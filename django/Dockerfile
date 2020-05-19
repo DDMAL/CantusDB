@@ -5,8 +5,8 @@ ENV PYTHONDONTWRITEBYTECODE 1
 ENV PYTHONUNBUFFERED 1
 
 # Copy our code from cantusdb directory into the new code directory
-COPY cantusdb /code/django/cantusdb
-WORKDIR /code/django/cantusdb
+COPY cantusdb_project /code/django/cantusdb_project
+WORKDIR /code/django/cantusdb_project
 
 # install our dependencies with pip
 RUN pip3 install -r requirements.txt
