@@ -5,7 +5,7 @@ services:
     build:
       context: ./django
     volumes:
-      - ./django/cantusdb:/code/django/cantusdb
+      - ./:/code/
       - static_volume:/resources/static
       - media_volume:/resources/media
     env_file: ./config/envs/dev_env
