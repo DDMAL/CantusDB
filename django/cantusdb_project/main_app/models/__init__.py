@@ -1,0 +1,1 @@
+from main_app.models.custom_base_model import CustomBaseModel
