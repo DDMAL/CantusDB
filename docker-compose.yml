@@ -1,0 +1,35 @@
+version: '3'
+
+services:
+  django:
+    build:
+      context: ./django
+    volumes:
+      - ./django/cantusdb:/code/django/cantusdb
+      - static_volume:/resources/static
+      - media_volume:/resources/media
+    env_file: ./config/envs/dev_env
+    depends_on:
+      - postgres
+
+  nginx:
+    image: nginx:alpine
+    ports:
+      - 8000:80
+    volumes:
+      - ./config/nginx/conf.d:/etc/nginx/conf.d
+      - static_volume:/resources/static
+      - media_volume:/resources/media
+    depends_on:
+      - django
+
+  postgres:
+    image: postgres:alpine
+    env_file: ./config/envs/dev_env
+    volumes:
+      - postgres_data:/var/lib/postgresql/data/
+
+volumes:
+  postgres_data:
+  static_volume:
+  media_volume:
