@@ -2,6 +2,7 @@ from django.db import models
 from main_app.models import CustomBaseModel
 from psycopg2.extras import NumericRange
 from django.contrib.postgres.fields import IntegerRangeField
+from users.models import User
 
 
 class Source(CustomBaseModel):
@@ -116,7 +117,7 @@ class Source(CustomBaseModel):
         blank=True, null=True, choices=cursus_choices, max_length=10
     )
     # TODO: make user model
-    current_editors = models.ManyToManyField("User", related_name="sources_edited")
+    current_editors = models.ManyToManyField(User, related_name="sources_edited")
     invetoried_by = models.ManyToManyField(
         "Indexer", related_name="sources_inventoried"
     )

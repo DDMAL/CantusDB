@@ -1,5 +1,6 @@
 from django.db import models
 from main_app.models import CustomBaseModel
+from users.models import User
 
 
 class Chant(CustomBaseModel):
@@ -43,7 +44,7 @@ class Chant(CustomBaseModel):
     # TODO: look into permissions for this field
     cao_concordances = models.CharField(blank=True, null=True, max_length=20)
     siglum = models.CharField(blank=True, null=True, max_length=99)
-    proofread_by = models.ForeignKey("User", on_delete=models.PROTECT)
+    proofread_by = models.ForeignKey(User, on_delete=models.PROTECT)
     melody_id = models.CharField(blank=True, null=True, max_length=50)
     sylabilized_full_text = models.TextField(blank=True, null=True)
     indexing_notes = models.TextField(blank=True, null=True)
