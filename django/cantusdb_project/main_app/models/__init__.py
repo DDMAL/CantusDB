@@ -1,1 +1,1 @@
-from main_app.models.custom_base_model import CustomBaseModel
+from main_app.models.base_model import BaseModel
