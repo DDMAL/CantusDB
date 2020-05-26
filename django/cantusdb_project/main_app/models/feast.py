@@ -10,8 +10,6 @@ class Feast(CustomBaseModel):
     description = models.TextField()
     feast_code = models.CharField(max_length=20)
     notes = models.TextFied(blank=True, null=True)
-    # Why is there feast_date and also month and day?
-    feast_date = models.CharField(blank=True, null=True, max_length=6)
     month = models.PositiveIntegerField(
         blank=True, null=True, validators=[MinValueValidator(1), MaxValueValidator(12)]
     )
