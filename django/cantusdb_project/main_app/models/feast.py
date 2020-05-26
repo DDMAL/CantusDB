@@ -5,10 +5,11 @@ from django.db.models import CheckConstraint, Q
 from main_app.models import BaseModel
 
 
-    name = models.CharField()
-    description = models.TextField()
-    feast_code = models.CharField(max_length=20)
-    notes = models.TextFied(blank=True, null=True)
+class Feast(BaseModel):
+    name = models.CharField(max_length=255)
+    description = models.TextField(blank=True, null=True)
+    feast_code = models.PositiveIntegerField(blank=True, null=True)
+    notes = models.TextField(blank=True, null=True)
     month = models.PositiveIntegerField(
         blank=True, null=True, validators=[MinValueValidator(1), MaxValueValidator(12)]
     )
