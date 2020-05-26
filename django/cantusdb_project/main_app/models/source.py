@@ -28,11 +28,9 @@ class Source(BaseModel):
         max_length=255,
         help_text="Full Manuscript Identification (City, Archive, Shelf-mark)",
     )
-    rism_siglum = models.ForeignKey(
-        "RismSiglum", on_delete=models.PROTECT, blank=True, null=True
-    )
     siglum = models.CharField(
         max_length=50, help_text="RISM-style siglum + Shelf-mark (e.g. GB-Ob 202)."
+    rism_siglum = models.CharField(max_length=50)
     )
     provenance = models.ForeignKey(
         "Provenance",
@@ -60,7 +58,6 @@ class Source(BaseModel):
     cursus = models.CharField(
         blank=True, null=True, choices=cursus_choices, max_length=10
     )
-    # TODO: make user model
     current_editors = models.ManyToManyField(User, related_name="sources_edited")
     invetoried_by = models.ManyToManyField(
         "Indexer", related_name="sources_inventoried"
