@@ -105,7 +105,7 @@ django/media/
 venv
 
 # Migrations
-django/cantusdb/migrations
+django/cantusdb_project/*/migrations
 
 # Fixtures
 django/cantusdb/fixtures
