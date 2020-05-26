@@ -3,5 +3,4 @@ from main_app.models import BaseModel
 
 
 class Provenance(BaseModel):
-    name = models.CharField(max_length=3)
-    description = models.TextField()
+    name = models.CharField(max_length=50)
