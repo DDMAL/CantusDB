@@ -1,10 +1,10 @@
 from django.db import models
-from main_app.models import CustomBaseModel
+from main_app.models import BaseModel
 from users.models import User
 
 
-class Chant(CustomBaseModel):
-    incipt = models.CharField()
+class Chant(BaseModel):
+    incipt = models.CharField(max_length=255)
     source = models.ForeignKey("Source", on_delete=models.PROTECT)
     marginalia = models.CharField(max_length=10)
     folio = models.CharField(blank=True, null=True, max_length=10)
@@ -16,7 +16,7 @@ class Chant(CustomBaseModel):
     position = models.CharField(max_length=10)
     cantus_id = models.CharField(max_length=10)
     feast = models.ForeignKey("Feast", on_delete=models.PROTECT)
-    mode = models.CharField(max_lenght=20)
+    mode = models.CharField(max_length=20)
     differentia = models.CharField(blank=True, null=True, max_length=20)
     finalis = models.CharField(blank=True, null=True, max_length=20)
     extra = models.CharField(blank=True, null=True, max_length=50)
