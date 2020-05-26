@@ -1,8 +1,8 @@
 from django.db import models
-from main_app.models import CustomBaseModel
+from main_app.models import BaseModel
 
 
-class Sequence(CustomBaseModel):
+class Sequence(BaseModel):
     title = models.CharField(max_length=100)
     siglum = models.CharField(blank=True, null=True, max_length=100)
     incpit = models.CharField(blank=True, null=True, max_length=255)

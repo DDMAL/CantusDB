@@ -1,10 +1,10 @@
 from django.contrib.postgres.fields import ArrayField
 from django.db import models
 
-from main_app.models import CustomBaseModel
+from main_app.models import BaseModel
 
 
-class Genre(CustomBaseModel):
+class Genre(BaseModel):
     mass_office_choices = [
         ("Mass", "Mass"),
         ("Office", "Office"),

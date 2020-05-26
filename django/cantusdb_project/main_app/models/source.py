@@ -1,11 +1,10 @@
 from django.db import models
-from main_app.models import CustomBaseModel
+from main_app.models import BaseModel
 from psycopg2.extras import NumericRange
 from django.contrib.postgres.fields import IntegerRangeField
 from users.models import User
 
 
-class Source(CustomBaseModel):
     century_choices = [
         (NumericRange(800, 901), "09th century"),
         (NumericRange(875, 901), "09th century (875-900)"),
@@ -62,6 +61,7 @@ class Source(CustomBaseModel):
         (NumericRange(1600, 1651), "17th century (1st half)"),
         (NumericRange(1600, 1626), "17th century (1600-1625)"),
     ]
+class Source(BaseModel):
     source_fragment_choices = [(True, "Full Source"), (False, "Fragment or Fragmented")]
     cursus_choices = [("Monastic", "Monastic"), ("Secular", "Secular")]
     source_status_choices = [
