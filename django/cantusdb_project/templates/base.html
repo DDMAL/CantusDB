@@ -1,0 +1,285 @@
+<!DOCTYPE html>
+{% load static %}
+<html lang="en">
+
+<head>
+    <!-- Required meta tags -->
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, 
+    initial-scale=1, shrink-to-fit=no">
+
+    <link rel="icon" href="{% static "favicon.ico" %}">
+
+    <!-- Bootstrap CSS -->
+    <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.0/css/bootstrap.min.css"
+        integrity="sha384-9aIt2nRpC12Uk9gS9baDl411NQApFmC26EwAOH8WgZl5MYYxFfc+NcPb1dKGj7Sk" crossorigin="anonymous">
+
+    <!-- JS, Popper.js, and jQuery -->
+    <script src="https://code.jquery.com/jquery-3.5.1.slim.min.js"
+        integrity="sha384-DfXdz2htPH0lsSSs5nCTpuj/zy4C+OGpamoFVy38MVBnE+IbbVYUew+OrCXaRkfj"
+        crossorigin="anonymous"></script>
+    <script src="https://cdn.jsdelivr.net/npm/popper.js@1.16.0/dist/umd/popper.min.js"
+        integrity="sha384-Q6E9RHvbIyZFJoft+2mJbHaEWldlvI9IOYy5n3zV9zzTtmI3UksdQRVvoxMfooAo"
+        crossorigin="anonymous"></script>
+    <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.5.0/js/bootstrap.min.js"
+        integrity="sha384-OgVRvuATP1z7JjHLkuOU7Xw704+h835Lr+6QL9UvYjZE3Ipu6Tp75j7Bh/kR0JKI"
+        crossorigin="anonymous"></script>
+
+    <style>
+        html {
+            position: relative;
+            min-height: 90%;
+        }
+
+        body {
+            margin-bottom: 30px;
+            /* Margin bottom by footer height */
+        }
+
+        .footer {
+            position: absolute;
+            bottom: 0;
+            width: 100%;
+            height: 30px;
+            /* Set the fixed height of the footer here */
+            line-height: 30px;
+            /* Vertically center the text there */
+        }
+
+        /* Change dropdown selected background to blue */
+        .dropdown .dropdown-menu .dropdown-item:active,
+        .dropdown .dropdown-menu .dropdown-item:hover {
+            background-color: lightblue !important;
+        }
+
+        hr.color {
+            border-top: 1px solid lightblue !important;
+        }
+
+    </style>
+</head>
+
+<body>
+    <header>
+        <!-- Navbar -->
+        <nav class="navbar navbar-expand-lg navbar-dark bg-dark">
+            <a class="navbar-brand" href="/">
+                <img src="{% static "CantusLogoSmall.gif" %}"
+                    alt="Cantus Database: A Database for Latin Ecclesiastical Chant" loading="lazy">
+            </a>
+
+            <!-- Hamburger button to show nav when screen is smaller-->
+            <button class="navbar-toggler" type="button" data-toggle="collapse" data-target="#navbar-links"
+                aria-controls="navbarSupportedContent" aria-expanded="false" aria-label="Toggle navigation">
+                <span class="navbar-toggler-icon"></span>
+            </button>
+
+            <div class="collapse navbar-collapse" id="navbar-links">
+                <ul class="navbar-nav">
+                    <li class="nav-item active">
+                        <a class="nav-link" href="/">Home<span class="sr-only">(current)</span></a>
+                    </li>
+                    <li class="nav-item dropdown">
+                        <a class="nav-link dropdown-toggle" href="#" id="navbarDropdownMenuLink" role="button"
+                            data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
+                            About
+                        </a>
+                        <div class="dropdown-menu" aria-labelledby="navbarDropdownMenuLink">
+                            <a class="dropdown-item" href="#">News</a>
+                            <a class="dropdown-item" href="#">Contributors</a>
+                            <a class="dropdown-item" href="#">ID Numbers: A History and Explanation</a>
+                            <a class="dropdown-item" href="#">Acknowledgements</a>
+                            <a class="dropdown-item" href="#">FAQ</a>
+                            <a class="dropdown-item" href="https://www.youtube.com/watch?v=iMmGrUxhPj4">Short Video
+                                Introduction(YouTube)</a>
+                            <a class="dropdown-item" href="#">Items Count</a>
+                        </div>
+                    </li>
+                    <li class="nav-item dropdown">
+                        <a class="nav-link dropdown-toggle" href="#" id="navbarDropdownMenuLink" role="button"
+                            data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
+                            Sources
+                        </a>
+                        <div class="dropdown-menu" aria-labelledby="navbarDropdownMenuLink">
+                            <a class="dropdown-item" href="#">Cantus Sources</a>
+                            <a class="dropdown-item" href="#">Clavis Sequentiarium (Sequence Database by Calvin
+                                Bower)</a>
+                        </div>
+                    </li>
+                    <li class="nav-item dropdown">
+                        <a class="nav-link dropdown-toggle" href="#" id="navbarDropdownMenuLink" role="button"
+                            data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
+                            Chants
+                        </a>
+                        <div class="dropdown-menu" aria-labelledby="navbarDropdownMenuLink">
+                            <a class="dropdown-item" href="#">Full Text Search</a>
+                            <a class="dropdown-item" href="#">Search by melody</a>
+                            <a class="dropdown-item" href="#">Clavis Sequentiarium (Sequence Database by Calvin
+                                Bower)</a>
+                        </div>
+                    </li>
+                    <li class="nav-item dropdown">
+                        <a class="nav-link dropdown-toggle" href="#" id="navbarDropdownMenuLink" role="button"
+                            data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
+                            Feasts
+                        </a>
+                        <div class="dropdown-menu" aria-labelledby="navbarDropdownMenuLink">
+                            <a class="dropdown-item" href="#">List of all feasts</a>
+                            <a class="dropdown-item" href="#">Sanctorale</a>
+                            <a class="dropdown-item" href="#">Temporale</a>
+                        </div>
+                    </li>
+                    <li class="nav-item dropdown">
+                        <a class="nav-link dropdown-toggle" href="#" id="navbarDropdownMenuLink" role="button"
+                            data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
+                            Terms
+                        </a>
+                        <div class="dropdown-menu" aria-labelledby="navbarDropdownMenuLink">
+                            <a class="dropdown-item" href="#">Genre abbreviations</a>
+                            <a class="dropdown-item" href="#">Offic/Mass abbreviations</a>
+                        </div>
+                    </li>
+                    <li class="nav-item dropdown">
+                        <a class="nav-link dropdown-toggle" href="#" id="navbarDropdownMenuLink" role="button"
+                            data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
+                            Resources
+                        </a>
+                        <div class="dropdown-menu" aria-labelledby="navbarDropdownMenuLink">
+                            <a class="dropdown-item" href="#">Action</a>
+                            <a class="dropdown-item" href="#">Another action</a>
+                            <a class="dropdown-item" href="#">Something else here</a>
+                        </div>
+                    </li>
+                </ul>
+            </div>
+        </nav>
+        <hr class="color">
+    </header>
+
+    <!-- Content goes here, using the extends tag from Django -->
+    <main role="main" class="content container pt-5">
+        {% block content %}
+        {% endblock %}
+    </main>
+
+    <!-- Footer in every page -->
+    <footer class="footer">
+        <hr>
+        <div class=" container-fluid">
+            <div class="row">
+                <div class="col-md" id="team-info">
+                    <h5>Cantus Team</h5>
+                    <ul class="list-group list-group-flush">
+                        <li class="list-group-item"><strong><a href="mailto:dlacoste@uwaterloo.ca">Debra Lacoste</a>
+                            </strong>&nbsp; |&nbsp;
+                            Project Manager</li>
+                        <li class="list-group-item"><strong><a href="http://kolacek.org">Jan Koláček</a> </strong>&nbsp;
+                            |&nbsp; Project
+                            Developer</li>
+                        <li class="list-group-item"><strong><a
+                                    href="http://www.dal.ca/faculty/arts/school-of-performing-arts/faculty-staff/our-faculty/musicology/jennifer-bain.html">Jennifer
+                                    Bain </a> &nbsp;</strong> |&nbsp; Co-Investigator</li>
+                        <li class="list-group-item"><strong><a
+                                    href="https://uwaterloo.ca/stratford-campus/people-profiles/christine-mcwebb">Christine
+                                    McWebb </a> &nbsp;</strong> |&nbsp; Co-Investigator</li>
+                        <li class="list-group-item"><a href="/indexers">&nbsp;&nbsp; ⇨ List of contributors</a></li>
+                    </ul>
+                </div>
+                <div class="col-md" id="contact-form">
+                    <h5>Contact</h5>
+                    <a href="/">Contact Form</a>
+                </div>
+                <!-- TODO: Change this so it's dynamic and reflect who is actually online -->
+                <div class="col-md" id="online-users">
+                    <h5>Who's Online</h5>
+                    <p>There are currently 3 users online</p>
+                    <ul class="list-group list-group-flush">
+                        <li class="list-group-item"><a href="/">User</a></li>
+                        <li class="list-group-item"><a href="/">User</a></li>
+                        <li class="list-group-item"><a href="/">User</a></li>
+                    </ul>
+                </div>
+                <div class="col-md" id="license">
+                    <h5>Creative Commons License</h5>
+                    <a href="http://creativecommons.org/licenses/by-nc-sa/4.0/">
+                        <img src="{% static "cc-logo.png" %}" alt="Creative Commons Logo" loading="lazy">
+                    </a>
+                    <p>
+                        This work is licensed under a <a
+                            href="http://creativecommons.org/licenses/by-nc-sa/4.0/">Creative Commons
+                            Attribution-NonCommercial-ShareAlike 4.0 International License.</a>
+                    </p>
+                </div>
+            </div>
+            <div class="row">
+                <div class="col-md" id="logos">
+                    <img class="img-fluid w-75" src="{% static "logoUW.png" %}" alt="Creative Commons Logo"
+                        loading="lazy">
+                    <img class="img-fluid w-100" src="{% static "logoSSHRC.jpg" %}" alt="Creative Commons Logo"
+                        loading="lazy">
+                </div>
+                <div class="col-md" id="facebook">
+                    <h5>Facebook</h5>
+                    <iframe
+                        src="https://www.facebook.com/plugins/page.php?href=https%3A%2F%2Fwww.facebook.com%2FCantusDatabase&width=340&height=500&small_header=true&adapt_container_width=true&hide_cover=false&show_facepile=true&appId=390784934606260"
+                        style="border:none;overflow:hidden" scrolling="yes" frameborder="0" allowTransparency="true">
+                    </iframe>
+                </div>
+                <div class="col-md" id="database-links">
+                    <h5>Database Links</h5>
+                    <ul class="list-group list-group-flush">
+                        <li class="list-group-item"><a href="http://cantusindex.org/" target="_blank">Cantus Index (all
+                                chants
+                                catalogue)</a></li>
+                        <li class="list-group-item"><a href="http://pemdatabase.eu/" target="_blank">Portuguese Early
+                                Music
+                                Database</a></li>
+                        <li class="list-group-item"><a href="http://cantus.sk" target="_blank">Slovakian Early Music
+                                Database</a></li>
+                        <li class="list-group-item"><a href="http://hunchant.eu" target="_blank">Hungarian Chant
+                                Database</a></li>
+                        <li class="list-group-item"><a href="http://cantusbohemiae.cz" target="_blank">Fontes Cantus
+                                Bohemiae</a></li>
+                        <li class="list-group-item"><a href="http://cantus.edu.pl" target="_blank">Cantus Planus in
+                                Polonia</a></li>
+                        <li class="list-group-item"><a href="http://musicahispanica.eu" target="_blank">Spanish Early
+                                Music
+                                Manuscript Database</a></li>
+                        <li class="list-group-item"><a href="http://musmed.eu" target="_blank">Medieval Music
+                                Manuscripts
+                                Online</a></li>
+                        <li class="list-group-item"><a href="http://comparatio.irht.cnrs.fr"
+                                target="_blank">Comparatio</a></li>
+                    </ul>
+                </div>
+                <div class="col-md" id="login">
+                    <h5>Login for Contributors</h5>
+                    <form>
+                        <div class="form-group">
+                            <label for="username">User Name or Email</label>
+                            <input type="text" class="form-control" id="username" aria-describedby="userNameHelp"
+                                placeholder="Enter user name or email">
+                        </div>
+                        <div class="form-group">
+                            <label for="password">Password</label>
+                            <input type="password" class="form-control" id="password" placeholder="Password">
+                        </div>
+                        <button type="submit" class="btn btn-primary">Log In</button>
+                    </form>
+                </div>
+            </div>
+        </div>
+        <br>
+        <div class="mb-2 p-2 bg-primary text-white">
+            <a href="https://www.facebook.com/CantusDatabase">
+                <img src="{% static "facebookIcon.png" %}" alt="Facebook link" loading="lazy">
+            </a>
+            <a href="mailto:cantus@cantusindex.org">
+                <img src="{% static "sendMailIcon.png" %}" alt="Send us email" loading="lazy">
+            </a>
+        </div>
+    </footer>
+
+</body>
+
+</html>
