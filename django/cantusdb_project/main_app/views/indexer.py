@@ -11,5 +11,6 @@ class IndexerDetailView(DetailView):
 class IndexerListView(SearchableListMixin, ListView):
     model = Indexer
     queryset = Indexer.objects.order_by("family_name")
+    search_fields = ["first_name", "family_name", "institution", "city", "country"]
     template_name = "indexer_list.html"
     context_object_name = "indexers"
