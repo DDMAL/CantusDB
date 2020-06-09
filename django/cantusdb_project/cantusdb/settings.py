@@ -44,6 +44,7 @@ INSTALLED_APPS = [
     "django.contrib.flatpages",
     "main_app",
     "users",
+    "articles",
 ]
 
 MIDDLEWARE = [
