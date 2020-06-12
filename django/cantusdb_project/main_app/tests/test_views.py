@@ -116,3 +116,41 @@ class IndexerListViewTest(TestCase):
             # indexers which is paginated and might not contain random_indexer if it
             # is not on the first page
             self.assertTrue(random_indexer in response.context["paginator"].object_list)
+
+
+class IndexerDetailViewTest(TestCase):
+    NUM_INDEXERS = 10
+
+    @classmethod
+    def setUpTestData(cls):
+        for i in range(cls.NUM_INDEXERS):
+            indexer = Indexer.objects.create(
+                first_name=fake.first_name(),
+                family_name=fake.last_name(),
+                institution=fake.company(),
+                city=fake.city(),
+                country=fake.country(),
+            )
+
+    def test_view_url_path(self):
+        for indexer in Indexer.objects.all():
+            response = self.client.get(f"/indexers/{indexer.id}")
+            self.assertEqual(response.status_code, 200)
+
+    def test_view_url_reverse_name(self):
+        for indexer in Indexer.objects.all():
+            response = self.client.get(reverse("indexer-detail", args=[indexer.id]))
+            self.assertEqual(response.status_code, 200)
+
+    def test_view_correct_templates(self):
+        for indexer in Indexer.objects.all():
+            response = self.client.get(reverse("indexer-detail", args=[indexer.id]))
+            self.assertEqual(response.status_code, 200)
+            self.assertTemplateUsed(response, "base.html")
+            self.assertTemplateUsed(response, "indexer_detail.html")
+
+    def test_view_context_data(self):
+        for indexer in Indexer.objects.all():
+            response = self.client.get(reverse("indexer-detail", args=[indexer.id]))
+            self.assertTrue("indexer" in response.context)
+            self.assertEquals(indexer, response.context["indexer"])
