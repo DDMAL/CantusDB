@@ -14,7 +14,8 @@ class Command(BaseCommand):
         root = ET.parse(file_path).getroot()
 
         for feast in root.findall("feast"):
-            name, description, day, month, feast_code, feast_id = (
+            name, description, day, month, feast_code, feast_id, notes = (
+                None,
                 None,
                 None,
                 None,
@@ -25,23 +26,26 @@ class Command(BaseCommand):
             for element in feast:
                 element_name = element.tag
                 element_value = feast.find(element.tag).text
-                cleanr = re.compile("<.*?>")
-                element_value = re.sub(cleanr, "", element_value)
+                if element_value:
+                    cleanr = re.compile("<.*?>")
+                    element_value = re.sub(cleanr, "", element_value)
 
-                if element_name == "name":
-                    name = element_value
-                if element_name == "description":
-                    description = element_value
-                if element_name == "date":
-                    split_str = element_value.split(".")
-                    if len(split_str) > 1:
-                        day = int(split_str[1])
-                        month = int(datetime.strptime(split_str[0], "%b").month)
-                if element_name == "feast_code":
-                    if element_value != "xxx":
-                        feast_code = int(element_value)
-                if element_name == "id":
-                    feast_id = int(element_value)
+                    if element_name == "name":
+                        name = element_value
+                    if element_name == "description":
+                        description = element_value
+                    if element_name == "date":
+                        split_str = element_value.split(".")
+                        if len(split_str) > 1:
+                            day = int(split_str[1])
+                            month = int(datetime.strptime(split_str[0], "%b").month)
+                    if element_name == "feast_code":
+                        if element_value != "xxx":
+                            feast_code = int(element_value)
+                    if element_name == "id":
+                        feast_id = int(element_value)
+                    if element_name == "notes":
+                        notes = element_value
             feast_obj = Feast(
                 id=feast_id,
                 name=name,
@@ -49,6 +53,7 @@ class Command(BaseCommand):
                 feast_code=feast_code,
                 month=month,
                 day=day,
+                notes=notes,
             )
             feast_obj.save()
             print(f"{feast_obj.name} saved on the database!")
