@@ -100,11 +100,9 @@ class IndexerListViewTest(TestCase):
         # Search for a three letter slice of the first name
         first_name = random_indexer.first_name
         first_name_length = len(first_name)
-        if first_name_length <= 3:
+        if first_name_length > 3:
             # If the name is 3 letters or less we would search for the complete name
             # which we already tested above
-            pass
-        else:
             slice_begin = random.randint(0, first_name_length - 3)
             slice_end = slice_begin + 3
             response = self.client.get(

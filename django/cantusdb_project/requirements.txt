@@ -3,7 +3,7 @@ asgiref==3.2.7
 attrs==19.3.0
 black==19.10b0
 click==7.1.2
-Django==3.0.6
+Django==3.0.7
 django-extra-views==0.13.0
 Faker==4.1.0
 gunicorn==20.0.4
