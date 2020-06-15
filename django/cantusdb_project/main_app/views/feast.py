@@ -9,13 +9,11 @@ class FeastDetailView(DetailView):
     template_name = "feast_detail.html"
 
 
-class FeastListView(ListView):
 class FeastListView(SearchableListMixin, ListView):
     model = Feast
-    paginate_by = 100
-    template_name = "list.html"
     queryset = Feast.objects.all()
     search_fields = ["name", "feast_code"]
+    paginate_by = 200
     def get_ordering(self):
         ordering = self.request.GET.get("ordering", "name")
         if ordering not in ["name", "feast_code"]:
