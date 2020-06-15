@@ -1,0 +1,60 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="mr-3 p-3 col-md-10 mx-auto bg-white rounded">
+    <h3>List of Indexers</h3>
+    <small>Displaying {{page_obj.start_index}}-{{page_obj.end_index}} of <b>{{page_obj.paginator.count}}</b></small>
+    <form method="get">
+        <div class="input-group">
+            <input type="text" class="form-control" placeholder="" name="q" value="{{ request.GET.q}}"
+                id="indexer-search">
+            <div class="input-group-append">
+                <button type="submit" class="btn btn-primary btn-sm"> Search Indexers </button>
+            </div>
+        </div>
+        <label for="indexer-search" class="small">Type any part of a word</label>
+    </form>
+    <table class="table table-responsive table-sm small">
+        <thead>
+            <tr>
+                <th scope="col">Name</th>
+                <th scope="col">Institution</th>
+                <th scope="col">City</th>
+                <th scope="col">Country</th>
+                <th scope="col">Sources</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for indexer in indexers %}
+            <tr>
+                <td class="text-center text-wrap">
+                    <a href="{{ indexer.get_absolute_url }}">{{indexer.first_name }} {{ indexer.family_name }}</a>
+                </td>
+                <td>{{ indexer.institution|default:""}}</td>
+                <td>{{ indexer.city|default:""}}</td>
+                <td>{{ indexer.country|default:""}}</td>
+                {% with source_count=indexer.sources_inventoried.count %}
+                <td>{{ source_count }} source{{ source_count|pluralize }}</td>
+                {% endwith %}
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+    <div class="pagination">
+        <span class="step-links">
+            {% if page_obj.has_previous %}
+            <a href="?page=1">&laquo; first</a>
+            <a href="?page={{ page_obj.previous_page_number }}">previous</a>
+            {% endif %}
+
+            <span class="current">
+                Page {{ page_obj.number }} of {{ page_obj.paginator.num_pages }}
+            </span>
+
+            {% if page_obj.has_next %}
+            <a href="?page={{ page_obj.next_page_number }}">next</a>
+            <a href="?page={{ page_obj.paginator.num_pages }}">last &raquo;</a>
+            {% endif %}
+        </span>
+    </div>
+</div>
+{% endblock %}
