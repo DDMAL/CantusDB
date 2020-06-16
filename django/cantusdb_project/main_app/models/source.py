@@ -37,7 +37,7 @@ class Source(BaseModel):
         on_delete=models.PROTECT,
         help_text="If the origin is unknown, select a location where the source was "
         "used later in its lifetime and provide details in the "
-        '"Provenancenotes" field.',
+        '"Provenance notes" field.',
     )
     provenance_notes = models.TextField(
         blank=True,
