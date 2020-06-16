@@ -190,7 +190,7 @@ class FeastListViewTest(TestCase):
             response = self.client.get(reverse("feast-list"), {"page": page_num})
             self.assertEqual(response.status_code, 200)
             self.assertTrue("is_paginated" in response.context)
-            self.assertTrue(response.context["is_paginated"] == True)
+            self.assertTrue(response.context["is_paginated"])
             if page_num == pages and (self.number_of_feasts % self.PAGE_SIZE != 0):
                 self.assertEqual(
                     len(response.context["feasts"]),
