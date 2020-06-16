@@ -20,3 +20,11 @@ class FeastListView(SearchableListMixin, ListView):
             ordering = "name"
         return ordering
 
+    def get_queryset(self):
+        month = self.request.GET.get("month", None)
+        if month and (int(month)) in range(1, 13):
+            month = int(month)
+            queryset = super().get_queryset().filter(month=month)
+            return queryset
+        else:
+            return super().get_queryset()
