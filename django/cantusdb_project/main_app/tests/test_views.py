@@ -73,13 +73,13 @@ class IndexerListViewTest(TestCase):
 
         # Test some invalid values for pages
         response = self.client.get(reverse("indexer-list"), {"page": -1})
-        self.assertEquals(response.status_code, 404)
+        self.assertEqual(response.status_code, 404)
         response = self.client.get(reverse("indexer-list"), {"page": 0})
-        self.assertEquals(response.status_code, 404)
+        self.assertEqual(response.status_code, 404)
         response = self.client.get(reverse("indexer-list"), {"page": "lst"})
-        self.assertEquals(response.status_code, 404)
+        self.assertEqual(response.status_code, 404)
         response = self.client.get(reverse("indexer-list"), {"page": pages + 1})
-        self.assertEquals(response.status_code, 404)
+        self.assertEqual(response.status_code, 404)
 
     def test_search(self):
         number_of_indexers = Indexer.objects.count()
@@ -93,7 +93,7 @@ class IndexerListViewTest(TestCase):
         response = self.client.get(
             reverse("indexer-list"), {"q": random_indexer.first_name}
         )
-        self.assertEquals(response.status_code, 200)
+        self.assertEqual(response.status_code, 200)
         # Check object_list (which has the whole queryset, not paginated) instead of
         # indexers which is paginated and might not contain random_indexer if it
         # is not on the first page
@@ -111,7 +111,7 @@ class IndexerListViewTest(TestCase):
                 reverse("indexer-list"),
                 {"q": random_indexer.first_name[slice_begin:slice_end]},
             )
-            self.assertEquals(response.status_code, 200)
+            self.assertEqual(response.status_code, 200)
             # Check object_list (which has the whole queryset, not paginated) instead of
             # indexers which is paginated and might not contain random_indexer if it
             # is not on the first page
@@ -153,7 +153,7 @@ class IndexerDetailViewTest(TestCase):
         for indexer in Indexer.objects.all():
             response = self.client.get(reverse("indexer-detail", args=[indexer.id]))
             self.assertTrue("indexer" in response.context)
-            self.assertEquals(indexer, response.context["indexer"])
+            self.assertEqual(indexer, response.context["indexer"])
 
 
 class FeastListViewTest(TestCase):
@@ -205,19 +205,19 @@ class FeastListViewTest(TestCase):
 
         # Test some invalid values for pages
         response = self.client.get(reverse("feast-list"), {"page": -1})
-        self.assertEquals(response.status_code, 404)
+        self.assertEqual(response.status_code, 404)
         response = self.client.get(reverse("feast-list"), {"page": 0})
-        self.assertEquals(response.status_code, 404)
+        self.assertEqual(response.status_code, 404)
         response = self.client.get(reverse("feast-list"), {"page": "lst"})
-        self.assertEquals(response.status_code, 404)
+        self.assertEqual(response.status_code, 404)
         response = self.client.get(reverse("feast-list"), {"page": pages + 1})
-        self.assertEquals(response.status_code, 404)
+        self.assertEqual(response.status_code, 404)
 
     def test_filter_by_month(self):
         for i in range(1, 13):
             month = str(i)
             response = self.client.get(reverse("feast-list"), {"month": month})
-            self.assertEquals(response.status_code, 200)
+            self.assertEqual(response.status_code, 200)
             feasts = response.context["paginator"].object_list
             # Check if all the feasts in the queryset have the month specified
             self.assertTrue(all(feast.month == i for feast in feasts))
@@ -225,32 +225,32 @@ class FeastListViewTest(TestCase):
     def test_ordering(self):
         # Order by feast_code
         response = self.client.get(reverse("feast-list"), {"ordering": "feast_code"})
-        self.assertEquals(response.status_code, 200)
+        self.assertEqual(response.status_code, 200)
         feasts = response.context["paginator"].object_list
-        self.assertEquals(feasts.query.order_by[0], "feast_code")
+        self.assertEqual(feasts.query.order_by[0], "feast_code")
 
         # Order by name
         response = self.client.get(reverse("feast-list"), {"ordering": "name"})
         feasts = response.context["paginator"].object_list
-        self.assertEquals(feasts.query.order_by[0], "name")
+        self.assertEqual(feasts.query.order_by[0], "name")
 
         # Empty ordering parameters in GET request should default to ordering by name
         response = self.client.get(reverse("feast-list"), {"ordering": ""})
         feasts = response.context["paginator"].object_list
-        self.assertEquals(feasts.query.order_by[0], "name")
+        self.assertEqual(feasts.query.order_by[0], "name")
 
         # Anything other than name and feast_code should default to ordering by name
         response = self.client.get(
             reverse("feast-list"), {"ordering": random.randint(1, 100)}
         )
         feasts = response.context["paginator"].object_list
-        self.assertEquals(feasts.query.order_by[0], "name")
+        self.assertEqual(feasts.query.order_by[0], "name")
 
         response = self.client.get(
             reverse("feast-list"), {"ordering": fake.text(max_nb_chars=20)}
         )
         feasts = response.context["paginator"].object_list
-        self.assertEquals(feasts.query.order_by[0], "name")
+        self.assertEqual(feasts.query.order_by[0], "name")
 
 
 class FeastDetailViewTest(TestCase):
@@ -284,4 +284,4 @@ class FeastDetailViewTest(TestCase):
         for feast in Feast.objects.all()[self.slice_begin:self.slice_end]:
             response = self.client.get(reverse("feast-detail", args=[feast.id]))
             self.assertTrue("feast" in response.context)
-            self.assertEquals(feast, response.context["feast"])
+            self.assertEqual(feast, response.context["feast"])
