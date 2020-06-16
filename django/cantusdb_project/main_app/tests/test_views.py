@@ -197,7 +197,7 @@ class FeastListViewTest(TestCase):
                     self.number_of_feasts % self.PAGE_SIZE
                 )
             else:
-                self.assertTrue(len(response.context["feasts"]) == self.PAGE_SIZE)
+                self.assertEqual(len(response.context["feasts"]), self.PAGE_SIZE)
 
         # Test the "last" syntax
         response = self.client.get(reverse("feast-list"), {"page": "last"})
