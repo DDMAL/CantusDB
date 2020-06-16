@@ -14,6 +14,9 @@ class FeastListView(SearchableListMixin, ListView):
     queryset = Feast.objects.all()
     search_fields = ["name", "feast_code"]
     paginate_by = 200
+    context_object_name = "feasts"
+    template_name = "feast_list.html"
+
     def get_ordering(self):
         ordering = self.request.GET.get("ordering", "name")
         if ordering not in ["name", "feast_code"]:
