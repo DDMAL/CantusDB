@@ -11,7 +11,7 @@ fake = Faker()
 
 
 class IndexerListViewTest(TestCase):
-    PAGE_SIZE = 100
+    PAGE_SIZE = IndexerListView.paginate_by
     MIN_PAGES = 1
     MAX_PAGES = 6
 
