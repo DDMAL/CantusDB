@@ -6,6 +6,8 @@ from django.urls import reverse
 from faker import Faker
 
 from main_app.models import Indexer
+from main_app.models import Feast
+from main_app.views import FeastListView, IndexerListView
 
 fake = Faker()
 
@@ -152,3 +154,134 @@ class IndexerDetailViewTest(TestCase):
             response = self.client.get(reverse("indexer-detail", args=[indexer.id]))
             self.assertTrue("indexer" in response.context)
             self.assertEquals(indexer, response.context["indexer"])
+
+
+class FeastListViewTest(TestCase):
+    PAGE_SIZE = FeastListView.paginate_by
+    fixtures = ["feast_fixtures.json"]
+
+    def setUp(self):
+        self.number_of_feasts = Feast.objects.all().count()
+        return super().setUp()
+
+    def test_view_url_path(self):
+        response = self.client.get("/feasts/")
+        self.assertEqual(response.status_code, 200)
+
+    def test_view_url_reverse_name(self):
+        response = self.client.get(reverse("feast-list"))
+        self.assertEqual(response.status_code, 200)
+
+    def test_view_correct_templates(self):
+        response = self.client.get(reverse("feast-list"))
+        self.assertEqual(response.status_code, 200)
+        self.assertTemplateUsed(response, "base.html")
+        self.assertTemplateUsed(response, "feast_list.html")
+
+    # TODO: maybe make a more general method to test pagination that I can apply
+    # to all list views?
+    def test_pagination(self):
+        # To get total number of pages do a ceiling integer division
+        q, r = divmod(self.number_of_feasts, self.PAGE_SIZE)
+        pages = q + bool(r)
+
+        # Test all pages
+        for page_num in range(1, pages + 1):
+            response = self.client.get(reverse("feast-list"), {"page": page_num})
+            self.assertEqual(response.status_code, 200)
+            self.assertTrue("is_paginated" in response.context)
+            self.assertTrue(response.context["is_paginated"] == True)
+            if page_num == pages and (self.number_of_feasts % self.PAGE_SIZE != 0):
+                self.assertTrue(
+                    len(response.context["feasts"])
+                    == (self.number_of_feasts % self.PAGE_SIZE)
+                )
+            else:
+                self.assertTrue(len(response.context["feasts"]) == self.PAGE_SIZE)
+
+        # Test the "last" syntax
+        response = self.client.get(reverse("feast-list"), {"page": "last"})
+        self.assertEqual(response.status_code, 200)
+
+        # Test some invalid values for pages
+        response = self.client.get(reverse("feast-list"), {"page": -1})
+        self.assertEquals(response.status_code, 404)
+        response = self.client.get(reverse("feast-list"), {"page": 0})
+        self.assertEquals(response.status_code, 404)
+        response = self.client.get(reverse("feast-list"), {"page": "lst"})
+        self.assertEquals(response.status_code, 404)
+        response = self.client.get(reverse("feast-list"), {"page": pages + 1})
+        self.assertEquals(response.status_code, 404)
+
+    def test_filter_by_month(self):
+        for i in range(1, 13):
+            month = str(i)
+            response = self.client.get(reverse("feast-list"), {"month": month})
+            self.assertEquals(response.status_code, 200)
+            feasts = response.context["paginator"].object_list
+            # Check if all the feasts in the queryset have the month specified
+            self.assertTrue(all(feast.month == i for feast in feasts))
+
+    def test_ordering(self):
+        # Order by feast_code
+        response = self.client.get(reverse("feast-list"), {"ordering": "feast_code"})
+        self.assertEquals(response.status_code, 200)
+        feasts = response.context["paginator"].object_list
+        self.assertEquals(feasts.query.order_by[0], "feast_code")
+
+        # Order by name
+        response = self.client.get(reverse("feast-list"), {"ordering": "name"})
+        feasts = response.context["paginator"].object_list
+        self.assertEquals(feasts.query.order_by[0], "name")
+
+        # Empty ordering parameters in GET request should default to ordering by name
+        response = self.client.get(reverse("feast-list"), {"ordering": ""})
+        feasts = response.context["paginator"].object_list
+        self.assertEquals(feasts.query.order_by[0], "name")
+
+        # Anything other than name and feast_code should default to ordering by name
+        response = self.client.get(
+            reverse("feast-list"), {"ordering": random.randint(1, 100)}
+        )
+        feasts = response.context["paginator"].object_list
+        self.assertEquals(feasts.query.order_by[0], "name")
+
+        response = self.client.get(
+            reverse("feast-list"), {"ordering": fake.text(max_nb_chars=20)}
+        )
+        feasts = response.context["paginator"].object_list
+        self.assertEquals(feasts.query.order_by[0], "name")
+
+
+class FeastDetailViewTest(TestCase):
+    fixtures = ["feast_fixtures.json"]
+    SLICE_SIZE = 10
+
+    def setUp(self):
+        self.number_of_feasts = Feast.objects.all().count()
+        self.slice_begin = random.randint(0, self.number_of_feasts - self.SLICE_SIZE)
+        self.slice_end = self.slice_begin + self.SLICE_SIZE
+        return super().setUp()
+
+    def test_view_url_path(self):
+        for feast in Feast.objects.all()[self.slice_begin:self.slice_end]:
+            response = self.client.get(f"/feasts/{feast.id}")
+            self.assertEqual(response.status_code, 200)
+
+    def test_view_url_reverse_name(self):
+        for feast in Feast.objects.all()[self.slice_begin:self.slice_end]:
+            response = self.client.get(reverse("feast-detail", args=[feast.id]))
+            self.assertEqual(response.status_code, 200)
+
+    def test_view_correct_templates(self):
+        for feast in Feast.objects.all()[self.slice_begin:self.slice_end]:
+            response = self.client.get(reverse("feast-detail", args=[feast.id]))
+            self.assertEqual(response.status_code, 200)
+            self.assertTemplateUsed(response, "base.html")
+            self.assertTemplateUsed(response, "feast_detail.html")
+
+    def test_view_context_data(self):
+        for feast in Feast.objects.all()[self.slice_begin:self.slice_end]:
+            response = self.client.get(reverse("feast-detail", args=[feast.id]))
+            self.assertTrue("feast" in response.context)
+            self.assertEquals(feast, response.context["feast"])
