@@ -1,0 +1,82 @@
+{% extends "base.html" %}
+{% block content %}
+<script>
+    // Make sure the select components keep their values across multiple GET requests
+    // so the user can "drill down" on what they want
+    window.onload = function () {
+        choice = "{{ request.GET.mass_office }}"
+        if (choice == "Mass") {
+            $("#mass_choice").prop("checked", true);
+        } else if (choice == "Office") {
+            $("#office_choice").prop("checked", true);
+        } else {
+            $("#any_choice").prop("checked", true);
+        }
+    }
+</script>
+<div class="mr-3 p-3 col-md-10 mx-auto bg-white rounded">
+    <h3>List of Feasts</h3>
+    <small>Displaying {{page_obj.start_index}}-{{page_obj.end_index}} of <b>{{page_obj.paginator.count}}</b></small>
+    <form method="get">
+        <p>Filter Genres:</p>
+        <div class="form-row">
+            <div class="form-check form-check-inline">
+                <input class="form-check-input" type="radio" id="any_choice" name="mass_office" value="">
+                <label class="form-check-label" for="mass_choice">- Any -</label>
+            </div>
+            <div class="form-check form-check-inline">
+                <input class="form-check-input" type="radio" id="mass_choice" name="mass_office" value="Mass">
+                <label class="form-check-label" for="mass_choice">Mass</label>
+            </div>
+            <div class="form-check form-check-inline">
+                <input class="form-check-input" type="radio" id="office_choice" name="mass_office" value="Office">
+                <label class="form-check-label" for="office_choice">Office</label>
+            </div>
+            <div class="form-group m-1 col-lg">
+                <button type="submit" class="btn btn-primary" id="btn-submit">Apply</button>
+            </div>
+        </div>
+    </form>
+    <table class="table table-responsive table-sm small">
+        <thead>
+            <tr>
+                <th scope="col" class="text-wrap">Genre</th>
+                <th scope="col" class="text-wrap">Description</th>
+                <th scope="col" class="text-wrap">Mass/Office</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for genre in genres %}
+            <tr>
+                <td class="text-wrap">
+                    <a href="{{ genre.get_absolute_url }}&mass_office={{ request.GET.mass_office }}">{{genre.name}}</a>
+                </td>
+                <td class="text-wrap">{{ genre.description|default:""}}</td>
+                <td class="text-wrap">
+                    {{ genre.mass_office|join:", "| default:"" }}
+                </td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+    <div class="pagination">
+        <span class="step-links">
+            {% if page_obj.has_previous %}
+            <a href="?page=1&mass_office={{ request.GET.mass_office }}">&laquo;
+                first</a>
+            <a href="?page={{ page_obj.previous_page_number }}&mass_office={{ request.GET.mass_office }}">previous</a>
+            {% endif %}
+
+            <span class="current">
+                Page {{ page_obj.number }} of {{ page_obj.paginator.num_pages }}
+            </span>
+
+            {% if page_obj.has_next %}
+            <a href="?page={{ page_obj.next_page_number }}&mass_office={{ request.GET.mass_office }}">next</a>
+            <a href="?page={{ page_obj.paginator.num_pages }}&mass_office={{ request.GET.mass_office }}">last
+                &raquo;</a>
+            {% endif %}
+        </span>
+    </div>
+</div>
+{% endblock %}
