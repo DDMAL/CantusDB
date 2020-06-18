@@ -194,7 +194,7 @@ class FeastListViewTest(TestCase):
             if page_num == pages and (self.number_of_feasts % self.PAGE_SIZE != 0):
                 self.assertEqual(
                     len(response.context["feasts"]),
-                    self.number_of_feasts % self.PAGE_SIZE
+                    self.number_of_feasts % self.PAGE_SIZE,
                 )
             else:
                 self.assertEqual(len(response.context["feasts"]), self.PAGE_SIZE)
@@ -264,24 +264,24 @@ class FeastDetailViewTest(TestCase):
         return super().setUp()
 
     def test_view_url_path(self):
-        for feast in Feast.objects.all()[self.slice_begin:self.slice_end]:
+        for feast in Feast.objects.all()[self.slice_begin : self.slice_end]:
             response = self.client.get(f"/feasts/{feast.id}")
             self.assertEqual(response.status_code, 200)
 
     def test_view_url_reverse_name(self):
-        for feast in Feast.objects.all()[self.slice_begin:self.slice_end]:
+        for feast in Feast.objects.all()[self.slice_begin : self.slice_end]:
             response = self.client.get(reverse("feast-detail", args=[feast.id]))
             self.assertEqual(response.status_code, 200)
 
     def test_view_correct_templates(self):
-        for feast in Feast.objects.all()[self.slice_begin:self.slice_end]:
+        for feast in Feast.objects.all()[self.slice_begin : self.slice_end]:
             response = self.client.get(reverse("feast-detail", args=[feast.id]))
             self.assertEqual(response.status_code, 200)
             self.assertTemplateUsed(response, "base.html")
             self.assertTemplateUsed(response, "feast_detail.html")
 
     def test_view_context_data(self):
-        for feast in Feast.objects.all()[self.slice_begin:self.slice_end]:
+        for feast in Feast.objects.all()[self.slice_begin : self.slice_end]:
             response = self.client.get(reverse("feast-detail", args=[feast.id]))
             self.assertTrue("feast" in response.context)
             self.assertEqual(feast, response.context["feast"])
