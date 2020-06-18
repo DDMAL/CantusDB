@@ -8,10 +8,10 @@ class Genre(BaseModel):
     mass_office_choices = [
         ("Mass", "Mass"),
         ("Office", "Office"),
-        ("Hispanic", "Old Hispanic"),
+        ("Old Hispanic", "Old Hispanic"),
     ]
     name = models.CharField(max_length=255)
     description = models.TextField()
     mass_office = ArrayField(
-        base_field=models.CharField(choices=mass_office_choices, max_length=8), size=3
+        base_field=models.CharField(max_length=12, choices=mass_office_choices), size=3,
     )

@@ -7,7 +7,11 @@ from faker import Faker
 
 from main_app.models import Indexer
 from main_app.models import Feast
-from main_app.views import FeastListView, IndexerListView
+from main_app.models import Genre
+from main_app.views import FeastListView
+from main_app.views import IndexerListView
+from main_app.views import GenreListView
+
 
 fake = Faker()
 
@@ -194,7 +198,7 @@ class FeastListViewTest(TestCase):
             if page_num == pages and (self.number_of_feasts % self.PAGE_SIZE != 0):
                 self.assertEqual(
                     len(response.context["feasts"]),
-                    self.number_of_feasts % self.PAGE_SIZE
+                    self.number_of_feasts % self.PAGE_SIZE,
                 )
             else:
                 self.assertEqual(len(response.context["feasts"]), self.PAGE_SIZE)
@@ -264,24 +268,110 @@ class FeastDetailViewTest(TestCase):
         return super().setUp()
 
     def test_view_url_path(self):
-        for feast in Feast.objects.all()[self.slice_begin:self.slice_end]:
+        for feast in Feast.objects.all()[self.slice_begin : self.slice_end]:
             response = self.client.get(f"/feasts/{feast.id}")
             self.assertEqual(response.status_code, 200)
 
     def test_view_url_reverse_name(self):
-        for feast in Feast.objects.all()[self.slice_begin:self.slice_end]:
+        for feast in Feast.objects.all()[self.slice_begin : self.slice_end]:
             response = self.client.get(reverse("feast-detail", args=[feast.id]))
             self.assertEqual(response.status_code, 200)
 
     def test_view_correct_templates(self):
-        for feast in Feast.objects.all()[self.slice_begin:self.slice_end]:
+        for feast in Feast.objects.all()[self.slice_begin : self.slice_end]:
             response = self.client.get(reverse("feast-detail", args=[feast.id]))
             self.assertEqual(response.status_code, 200)
             self.assertTemplateUsed(response, "base.html")
             self.assertTemplateUsed(response, "feast_detail.html")
 
     def test_view_context_data(self):
-        for feast in Feast.objects.all()[self.slice_begin:self.slice_end]:
+        for feast in Feast.objects.all()[self.slice_begin : self.slice_end]:
             response = self.client.get(reverse("feast-detail", args=[feast.id]))
             self.assertTrue("feast" in response.context)
             self.assertEqual(feast, response.context["feast"])
+
+
+class GenreListViewTest(TestCase):
+    PAGE_SIZE = GenreListView.paginate_by
+    fixtures = ["genre_fixtures.json"]
+
+    def setUp(self):
+        self.number_of_genres = Genre.objects.all().count()
+        return super().setUp()
+
+    def test_view_url_path(self):
+        response = self.client.get("/genres/")
+        self.assertEqual(response.status_code, 200)
+
+    def test_view_url_reverse_name(self):
+        response = self.client.get(reverse("genre-list"))
+        self.assertEqual(response.status_code, 200)
+
+    def test_view_correct_templates(self):
+        response = self.client.get(reverse("genre-list"))
+        self.assertEqual(response.status_code, 200)
+        self.assertTemplateUsed(response, "base.html")
+        self.assertTemplateUsed(response, "genre_list.html")
+
+    def test_filter_by_mass_or_office(self):
+        response = self.client.get(reverse("genre-list"), {"mass_office": "Mass"})
+        self.assertEqual(response.status_code, 200)
+        genres = response.context["paginator"].object_list
+        self.assertTrue(all(["Mass" in genre.mass_office for genre in genres]))
+
+        response = self.client.get(reverse("genre-list"), {"mass_office": "Office"})
+        self.assertEqual(response.status_code, 200)
+        genres = response.context["paginator"].object_list
+        self.assertTrue(all(["Office" in genre.mass_office for genre in genres]))
+
+        # Empty value or anything else defaults to all genres
+        response = self.client.get(reverse("genre-list"), {"mass_office": ""})
+        self.assertEqual(response.status_code, 200)
+        genres = response.context["paginator"].object_list
+        self.assertQuerysetEqual(
+            qs=genres,
+            values=list(Genre.objects.all()),
+            ordered=False,
+            # The transform argument having the identity function is so the members of
+            # the list don't go through the repr() method, then we can
+            # compare model objects to model objects
+            transform=lambda x: x,
+        )
+
+    # TODO: maybe make a more general method to test pagination that I can apply
+    # to all list views?
+    def test_pagination(self):
+        # To get total number of pages do a ceiling integer division
+        q, r = divmod(self.number_of_genres, self.PAGE_SIZE)
+        pages = q + bool(r)
+
+        # Test all pages
+        for page_num in range(1, pages + 1):
+            response = self.client.get(reverse("genre-list"), {"page": page_num})
+            self.assertEqual(response.status_code, 200)
+            self.assertTrue("is_paginated" in response.context)
+            if self.number_of_genres > self.PAGE_SIZE:
+                self.assertTrue(response.context["is_paginated"])
+            else:
+                self.assertFalse(response.context["is_paginated"])
+            if page_num == pages and (self.number_of_genres % self.PAGE_SIZE != 0):
+                self.assertEqual(
+                    len(response.context["genres"]),
+                    self.number_of_genres % self.PAGE_SIZE,
+                )
+            else:
+                self.assertEqual(len(response.context["genres"]), self.PAGE_SIZE)
+
+        # Test the "last" syntax
+        response = self.client.get(reverse("genre-list"), {"page": "last"})
+        self.assertEqual(response.status_code, 200)
+
+        # Test some invalid values for pages
+        response = self.client.get(reverse("genre-list"), {"page": -1})
+        self.assertEqual(response.status_code, 404)
+        response = self.client.get(reverse("genre-list"), {"page": 0})
+        self.assertEqual(response.status_code, 404)
+        response = self.client.get(reverse("genre-list"), {"page": "lst"})
+        self.assertEqual(response.status_code, 404)
+        response = self.client.get(reverse("genre-list"), {"page": pages + 1})
+        self.assertEqual(response.status_code, 404)
