@@ -133,4 +133,4 @@ STATICFILES_DIRS = [os.path.join(BASE_DIR, "static")]
 
 AUTH_USER_MODEL = "users.User"
 
-SITE_ID = 3
+SITE_ID = 4
