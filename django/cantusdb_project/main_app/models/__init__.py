@@ -1,4 +1,5 @@
 from main_app.models.base_model import BaseModel
+from main_app.models.century import Century
 from main_app.models.chant import Chant
 from main_app.models.feast import Feast
 from main_app.models.genre import Genre
