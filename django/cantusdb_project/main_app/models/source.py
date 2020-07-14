@@ -96,3 +96,4 @@ class Source(BaseModel):
     image_link = models.URLField(blank=True, null=True)
     indexing_notes = models.TextField(blank=True, null=True)
     indexing_date = models.TextField(blank=True, null=True)
+    json_info = JSONField()
