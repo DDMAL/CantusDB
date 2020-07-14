@@ -61,11 +61,7 @@ class Source(BaseModel):
         help_text='Date of the manuscript (e.g. "1200s", "1300-1350", etc.)',
     )
     century = models.ForeignKey(
-        "Century",
-        related_name="sources",
-        on_delete=models.PROTECT,
-        null=True,
-        blank=True,
+        "Century", on_delete=models.PROTECT, null=True, blank=True,
     )
     notation = models.ManyToManyField("Notation", related_name="sources")
     cursus = models.CharField(
