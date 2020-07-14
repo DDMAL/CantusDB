@@ -28,9 +28,13 @@ class Source(BaseModel):
         max_length=255,
         help_text="Full Manuscript Identification (City, Archive, Shelf-mark)",
     )
-    rism_siglum = models.CharField(max_length=50)
+    rism_siglum = models.CharField(max_length=50, null=True, blank=True)
     siglum = models.ForeignKey(
-        "Siglum", on_delete=models.PROTECT, help_text="RISM style siglum + shelf mark"
+        "Siglum",
+        on_delete=models.PROTECT,
+        help_text="RISM style siglum + shelf mark",
+        null=True,
+        blank=True,
     )
     provenance = models.ForeignKey(
         "Provenance",
