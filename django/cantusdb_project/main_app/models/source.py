@@ -2,6 +2,7 @@ from django.db import models
 from main_app.models import BaseModel
 from psycopg2.extras import NumericRange
 from django.contrib.postgres.fields import IntegerRangeField
+from django.contrib.postgres.fields import JSONField
 from users.models import User
 
 
@@ -93,5 +94,5 @@ class Source(BaseModel):
     description = models.TextField(blank=True, null=True)
     selected_bibliography = models.TextField(blank=True, null=True)
     image_link = models.URLField(blank=True, null=True)
-    notes_on_inventory = models.TextField(blank=True, null=True)
     indexing_date = models.DateField(blank=True, null=True)
+    indexing_notes = models.TextField(blank=True, null=True)
