@@ -24,6 +24,7 @@ class Source(BaseModel):
         (True, "Complete Inventory"),
         (False, "Partial Inventory"),
     ]
+
     title = models.CharField(
         max_length=255,
         help_text="Full Manuscript Identification (City, Archive, Shelf-mark)",
@@ -42,6 +43,8 @@ class Source(BaseModel):
         help_text="If the origin is unknown, select a location where the source was "
         "used later in its lifetime and provide details in the "
         '"Provenance notes" field.',
+        null=True,
+        blank=True,
     )
     provenance_notes = models.TextField(
         blank=True,
