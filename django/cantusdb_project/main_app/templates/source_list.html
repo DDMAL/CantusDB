@@ -1,0 +1,62 @@
+{% extends "base.html" %}
+{% load helper_tags %}
+{% block content %}
+<div class="mr-3 p-3 col-md-10 mx-auto bg-white rounded">
+    <h3>Browse Sources</h3>
+    <small>Displaying {{page_obj.start_index}}-{{page_obj.end_index}} of <b>{{page_obj.paginator.count}}
+            sources</b></small>
+    <table class="table table-responsive table-sm small table-bordered">
+        <thead>
+            <tr>
+                <th scope="col" class="text-wrap" style="text-align:center">Siglum</th>
+                <th scope="col" class="text-wrap" style="text-align:center">Summary</th>
+                <th scope="col" class="text-wrap" style="text-align:center">Date/Origin</th>
+                <th scope="col" class="text-wrap" style="text-align:center">Image Link</th>
+                <th scope="col" class="text-wrap" style="text-align:center">Chants/Melodies</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for source in sources %}
+            <tr>
+                <td class="text-wrap" style="text-align:center">
+                    <a href="{{ source.get_absolute_url }}">{{source.siglum}}</a>
+                </td>
+                <td class="text-wrap" style="text-align:center">{{ source.summary|default:""|truncatechars_html:140 }}
+                </td>
+                <td class="text-wrap" style="text-align:center">
+                    {{ source.century.all.first.name }}<br>
+                    {{ source.provenance.name|default:""}}
+                </td>
+                <td class="text-wrap" style="text-align:center">
+                    {% if source.image_link %}
+                    <a href="{{ source.image_link }}">Images</a>
+                    {% endif %}
+                </td>
+                <td class="text-wrap" style="text-align:center">
+                    /
+                </td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+    <div class="pagination">
+        <span class="step-links">
+            {% if page_obj.has_previous %}
+            <a href="?page=1">&laquo;
+                first</a>
+            <a href="?page={{ page_obj.previous_page_number }}">previous</a>
+            {% endif %}
+
+            <span class="current">
+                Page {{ page_obj.number }} of {{ page_obj.paginator.num_pages }}
+            </span>
+
+            {% if page_obj.has_next %}
+            <a href="?page={{ page_obj.next_page_number }}">next</a>
+            <a href="?page={{ page_obj.paginator.num_pages }}">last
+                &raquo;</a>
+            {% endif %}
+        </span>
+    </div>
+</div>
+{% endblock %}
