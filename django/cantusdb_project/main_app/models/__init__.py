@@ -9,5 +9,5 @@ from main_app.models.office import Office
 from main_app.models.provenance import Provenance
 from main_app.models.segment import Segment
 from main_app.models.sequence import Sequence
-from main_app.models.siglum import Siglum
+from main_app.models.rism_siglum import RismSiglum
 from main_app.models.source import Source
