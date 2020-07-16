@@ -57,13 +57,12 @@ class Source(BaseModel):
         max_length=50,
         help_text='Date of the manuscript (e.g. "1200s", "1300-1350", etc.)',
     )
-    century = models.ForeignKey(
-        "Century", on_delete=models.PROTECT, null=True, blank=True,
-    )
+    century = models.ManyToManyField("Century", related_name="sources")
     notation = models.ManyToManyField("Notation", related_name="sources")
     cursus = models.CharField(
         blank=True, null=True, choices=cursus_choices, max_length=10
     )
+    # TODO: Fill this field up with JSON info when I have access to the Users
     current_editors = models.ManyToManyField(User, related_name="sources_edited")
     invetoried_by = models.ManyToManyField(
         "Indexer", related_name="sources_inventoried"
