@@ -7,7 +7,6 @@ from users.models import User
 
 
 class Source(BaseModel):
-    source_fragment_choices = [(True, "Full Source"), (False, "Fragment or Fragmented")]
     cursus_choices = [("Monastic", "Monastic"), ("Secular", "Secular")]
     source_status_choices = [
         (
@@ -20,10 +19,6 @@ class Source(BaseModel):
         ("Unpublished / Indexing process", "Unpublished / Indexing process"),
         ("Unpublished / Proofread pending", "Unpublished / Proofread pending"),
         ("Unpublished / Proofreading process", "Unpublished / Proofreading process"),
-    ]
-    complete_inventory_choices = [
-        (True, "Complete Inventory"),
-        (False, "Partial Inventory"),
     ]
 
     title = models.CharField(
@@ -48,9 +43,7 @@ class Source(BaseModel):
         null=True,
         help_text="More exact indication of the provenance (if necessary)",
     )
-    full_source = models.BooleanField(
-        blank=True, null=True, choices=source_fragment_choices
-    )
+    full_source = models.BooleanField(blank=True, null=True)
     date = models.CharField(
         blank=True,
         null=True,
@@ -81,9 +74,7 @@ class Source(BaseModel):
     source_status = models.CharField(
         blank=True, null=True, choices=source_status_choices, max_length=255
     )
-    complete_inventory = models.BooleanField(
-        blank=True, null=True, choices=complete_inventory_choices
-    )
+    complete_inventory = models.BooleanField(blank=True, null=True)
     summary = models.TextField(blank=True, null=True)
     liturgical_occasions = models.TextField(blank=True, null=True)
     description = models.TextField(blank=True, null=True)
