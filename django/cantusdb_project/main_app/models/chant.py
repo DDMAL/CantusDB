@@ -8,9 +8,18 @@ class Chant(BaseModel):
     incipt = models.CharField(max_length=255)
     source = models.ForeignKey("Source", on_delete=models.PROTECT)
     marginalia = models.CharField(max_length=10)
+    incipt = models.CharField(max_length=255, null=True, blank=True)
+    source = models.ForeignKey(
+        "Source", on_delete=models.PROTECT, null=True, blank=True
+    )
+    marginalia = models.CharField(max_length=10, null=True, blank=True)
     folio = models.CharField(blank=True, null=True, max_length=10)
     sequence_number = models.PositiveIntegerField(
         help_text='Each folio starts with "1"'
+        help_text='Each folio starts with "1"', null=True, blank=True
+    )
+    office = models.ForeignKey(
+        "Office", on_delete=models.PROTECT, null=True, blank=True
     )
     office = models.ForeignKey("Office", on_delete=models.PROTECT)
     genre = models.ForeignKey("Genre", on_delete=models.PROTECT)
@@ -18,6 +27,11 @@ class Chant(BaseModel):
     cantus_id = models.CharField(max_length=10)
     feast = models.ForeignKey("Feast", on_delete=models.PROTECT)
     mode = models.CharField(max_length=20)
+    genre = models.ForeignKey("Genre", on_delete=models.PROTECT, null=True, blank=True)
+    position = models.CharField(max_length=10, null=True, blank=True)
+    cantus_id = models.CharField(max_length=10, null=True, blank=True)
+    feast = models.ForeignKey("Feast", on_delete=models.PROTECT, null=True, blank=True)
+    mode = models.CharField(max_length=20, null=True, blank=True)
     differentia = models.CharField(blank=True, null=True, max_length=20)
     finalis = models.CharField(blank=True, null=True, max_length=20)
     extra = models.CharField(blank=True, null=True, max_length=50)
@@ -33,6 +47,9 @@ class Chant(BaseModel):
         "Classical Latin forms. Use upper-case letters for proper nouns, "
         'the first word of each chant, and the first word after "Alleluia" for '
         "Mass Alleluias. Punctuation is omitted."
+        "Mass Alleluias. Punctuation is omitted.",
+        null=True,
+        blank=True,
     )
     manuscript_full_text_std_proofread = models.NullBooleanField(blank=True, null=True)
     # TODO: maybe change it to its own model?
@@ -40,12 +57,16 @@ class Chant(BaseModel):
     manuscript_full_text_proofread = models.NullBooleanField(blank=True, null=True)
     # TODO: maybe change this to its own model?
     volpiano = models.TextField()
+    volpiano = models.TextField(null=True, blank=True)
     volpiano_proofread = models.NullBooleanField(blank=True, null=True)
     image_link = models.URLField(blank=True, null=True)
     # TODO: look into permissions for this field
     cao_concordances = models.CharField(blank=True, null=True, max_length=20)
     siglum = models.CharField(blank=True, null=True, max_length=99)
     proofread_by = models.ForeignKey(User, on_delete=models.PROTECT)
+    proofread_by = models.ForeignKey(
+        User, on_delete=models.PROTECT, null=True, blank=True
+    )
     melody_id = models.CharField(blank=True, null=True, max_length=50)
     sylabilized_full_text = models.TextField(blank=True, null=True)
     indexing_notes = models.TextField(blank=True, null=True)
