@@ -1,6 +1,7 @@
 from django.db import models
 from main_app.models import BaseModel
 from users.models import User
+from django.contrib.postgres.fields import JSONField
 
 
 class Chant(BaseModel):
@@ -48,3 +49,4 @@ class Chant(BaseModel):
     melody_id = models.CharField(blank=True, null=True, max_length=50)
     sylabilized_full_text = models.TextField(blank=True, null=True)
     indexing_notes = models.TextField(blank=True, null=True)
+    json_info = JSONField(null=True, blank=True)
