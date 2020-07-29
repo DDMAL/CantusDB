@@ -1,0 +1,321 @@
+﻿<?xml version="1.0" encoding="UTF-8" ?>
+<genres>
+  <genre>
+    <name>A</name>
+    <description>Antiphon</description>
+    <mass_or_office>Office</mass_or_office>
+    <id>122</id>
+  </genre>
+  <genre>
+    <name>Ag</name>
+    <description>Agnus dei</description>
+    <mass_or_office>Mass</mass_or_office>
+    <id>124</id>
+  </genre>
+  <genre>
+    <name>Al</name>
+    <description>Alleluia</description>
+    <mass_or_office>Mass</mass_or_office>
+    <id>125</id>
+  </genre>
+  <genre>
+    <name>AlV</name>
+    <description>Alleluia verse</description>
+    <mass_or_office>Mass</mass_or_office>
+    <id>126</id>
+  </genre>
+  <genre>
+    <name>AV</name>
+    <description>Antiphon verse</description>
+    <mass_or_office>Office</mass_or_office>
+    <id>123</id>
+  </genre>
+  <genre>
+    <name>BD</name>
+    <description>Benedicamus domino</description>
+    <mass_or_office>Mass, Office</mass_or_office>
+    <id>127</id>
+  </genre>
+  <genre>
+    <name>Ca</name>
+    <description>Canticle</description>
+    <mass_or_office>Mass, Office</mass_or_office>
+    <id>128</id>
+  </genre>
+  <genre>
+    <name>Cap</name>
+    <description>Capitulum</description>
+    <mass_or_office>Office</mass_or_office>
+    <id>4229</id>
+  </genre>
+  <genre>
+    <name>CaV</name>
+    <description>Canticle verse</description>
+    <mass_or_office>Mass, Office</mass_or_office>
+    <id>129</id>
+  </genre>
+  <genre>
+    <name>Cm</name>
+    <description>Communion</description>
+    <mass_or_office>Mass</mass_or_office>
+    <id>130</id>
+  </genre>
+  <genre>
+    <name>CmR</name>
+    <description>Versus ad repetendum for the communion</description>
+    <mass_or_office>Mass</mass_or_office>
+    <id>131</id>
+  </genre>
+  <genre>
+    <name>CmV</name>
+    <description>Communion verse</description>
+    <mass_or_office>Mass</mass_or_office>
+    <id>132</id>
+  </genre>
+  <genre>
+    <name>Cr</name>
+    <description>Credo</description>
+    <mass_or_office>Mass</mass_or_office>
+    <id>133</id>
+  </genre>
+  <genre>
+    <name>D</name>
+    <description>Dramatic element (used for items of liturgical drama that are not otherwise rubricked)</description>
+    <mass_or_office>Mass, Office</mass_or_office>
+    <id>134</id>
+  </genre>
+  <genre>
+    <name>Gl</name>
+    <description>Gloria</description>
+    <mass_or_office>Mass</mass_or_office>
+    <id>135</id>
+  </genre>
+  <genre>
+    <name>Gr</name>
+    <description>Gradual</description>
+    <mass_or_office>Mass</mass_or_office>
+    <id>137</id>
+  </genre>
+  <genre>
+    <name>GrV</name>
+    <description>Gradual verse</description>
+    <mass_or_office>Mass</mass_or_office>
+    <id>138</id>
+  </genre>
+  <genre>
+    <name>H</name>
+    <description>Hymn</description>
+    <mass_or_office>Office</mass_or_office>
+    <id>139</id>
+  </genre>
+  <genre>
+    <name>HV</name>
+    <description>Hymn verse</description>
+    <mass_or_office>Office</mass_or_office>
+    <id>4230</id>
+  </genre>
+  <genre>
+    <name>I</name>
+    <description>Invitatory antiphon</description>
+    <mass_or_office>Office</mass_or_office>
+    <id>140</id>
+  </genre>
+  <genre>
+    <name>Ig</name>
+    <description>Ingressa (for the Beneventan liturgy)</description>
+    <mass_or_office>Office</mass_or_office>
+    <id>142</id>
+  </genre>
+  <genre>
+    <name>In</name>
+    <description>Introit</description>
+    <mass_or_office>Mass</mass_or_office>
+    <id>143</id>
+  </genre>
+  <genre>
+    <name>InR</name>
+    <description>Versus ad repetendum for the introit</description>
+    <mass_or_office>Mass</mass_or_office>
+    <id>144</id>
+  </genre>
+  <genre>
+    <name>InV</name>
+    <description>Introit verse</description>
+    <mass_or_office>Mass</mass_or_office>
+    <id>145</id>
+  </genre>
+  <genre>
+    <name>IP</name>
+    <description>Invitatory psalm (when fully written out and notated)</description>
+    <mass_or_office>Office</mass_or_office>
+    <id>141</id>
+  </genre>
+  <genre>
+    <name>Ite</name>
+    <description>Ite missa est</description>
+    <mass_or_office>Mass</mass_or_office>
+    <id>146</id>
+  </genre>
+  <genre>
+    <name>Ky</name>
+    <description>Kyrie</description>
+    <mass_or_office>Mass</mass_or_office>
+    <id>147</id>
+  </genre>
+  <genre>
+    <name>L</name>
+    <description>Lesson (when fully written out and notated)</description>
+    <mass_or_office>Mass</mass_or_office>
+    <id>148</id>
+  </genre>
+  <genre>
+    <name>Li</name>
+    <description>Litany</description>
+    <mass_or_office>Office</mass_or_office>
+    <id>4232</id>
+  </genre>
+  <genre>
+    <name>LiV</name>
+    <description>Litany verse</description>
+    <mass_or_office>Mass, Office</mass_or_office>
+    <id>4235</id>
+  </genre>
+  <genre>
+    <name>Of</name>
+    <description>Offertory</description>
+    <mass_or_office>Mass</mass_or_office>
+    <id>149</id>
+  </genre>
+  <genre>
+    <name>OfV</name>
+    <description>Offertory verse</description>
+    <mass_or_office>Mass</mass_or_office>
+    <id>150</id>
+  </genre>
+  <genre>
+    <name>Pn</name>
+    <description>Pater noster</description>
+    <mass_or_office>Mass, Office</mass_or_office>
+    <id>4482</id>
+  </genre>
+  <genre>
+    <name>Pr</name>
+    <description>Prefatio (when written out and notated)</description>
+    <mass_or_office>Mass</mass_or_office>
+    <id>153</id>
+  </genre>
+  <genre>
+    <name>PRCS</name>
+    <description>Preces (Old Hispanic)</description>
+    <mass_or_office>Old Hispanic</mass_or_office>
+    <id>4450</id>
+  </genre>
+  <genre>
+    <name>PRCSV</name>
+    <description>Verse for the Preces (Old Hispanic)</description>
+    <mass_or_office>Old Hispanic</mass_or_office>
+    <id>4451</id>
+  </genre>
+  <genre>
+    <name>PS</name>
+    <description>Psalm</description>
+    <mass_or_office>Office</mass_or_office>
+    <id>152</id>
+  </genre>
+  <genre>
+    <name>R</name>
+    <description>Responsory</description>
+    <mass_or_office>Office</mass_or_office>
+    <id>156</id>
+  </genre>
+  <genre>
+    <name>Sa</name>
+    <description>Sanctus</description>
+    <mass_or_office>Mass</mass_or_office>
+    <id>157</id>
+  </genre>
+  <genre>
+    <name>Sq</name>
+    <description>Sequence</description>
+    <mass_or_office>Mass</mass_or_office>
+    <id>158</id>
+  </genre>
+  <genre>
+    <name>SqV</name>
+    <description>Sequence verse</description>
+    <mass_or_office>Mass</mass_or_office>
+    <id>4233</id>
+  </genre>
+  <genre>
+    <name>Tc</name>
+    <description>Tract</description>
+    <mass_or_office>Mass</mass_or_office>
+    <id>159</id>
+  </genre>
+  <genre>
+    <name>TcV</name>
+    <description>Tract verse</description>
+    <mass_or_office>Mass</mass_or_office>
+    <id>160</id>
+  </genre>
+  <genre>
+    <name>Tp</name>
+    <description>Tropus</description>
+    <mass_or_office>Mass</mass_or_office>
+    <id>4224</id>
+  </genre>
+  <genre>
+    <name>V</name>
+    <description>Responsory verse</description>
+    <mass_or_office>Office</mass_or_office>
+    <id>161</id>
+  </genre>
+  <genre>
+    <name>Va</name>
+    <description>Varia</description>
+    <mass_or_office>Mass, Office</mass_or_office>
+    <id>4236</id>
+  </genre>
+  <genre>
+    <name>VaHW</name>
+    <description>Varia within Holy Week</description>
+    <mass_or_office>Mass, Office</mass_or_office>
+    <id>4237</id>
+  </genre>
+  <genre>
+    <name>W</name>
+    <description>Versicle</description>
+    <mass_or_office>Office</mass_or_office>
+    <id>162</id>
+  </genre>
+  <genre>
+    <name>[?]</name>
+    <description>Unknown, ambiguous, unidentifiable, illegible</description>
+    <mass_or_office>Mass, Office</mass_or_office>
+    <id>163</id>
+  </genre>
+  <genre>
+    <name>[GV]</name>
+    <description>Verse for a Mass chant (a generic code used in the earliest Cantus indices)</description>
+    <mass_or_office>Mass</mass_or_office>
+    <id>164</id>
+  </genre>
+  <genre>
+    <name>[G]</name>
+    <description>Mass chant (a generic code used in the earliest Cantus indices)</description>
+    <mass_or_office>Mass</mass_or_office>
+    <id>165</id>
+  </genre> 
+  <genre>
+    <name>[MO]</name>
+    <description>Mass Ordinary  (a generic code used in the earliest Cantus indices)</description>
+    <mass_or_office>Mass</mass_or_office>
+    <id>166</id>
+  </genre>
+  <genre>
+    <name>[M]</name>
+    <description>&quot;Miscellaneous&quot; (a descriptor used in the earliest versions of Cantus for the Te Deum, Versus in Triduo, prosulae - to be replaced by Va=Varia)</description>
+    <mass_or_office>Mass, Office</mass_or_office>
+    <id>167</id>
+  </genre>
+</genres>

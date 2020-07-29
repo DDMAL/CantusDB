@@ -1,0 +1,83 @@
+﻿<?xml version="1.0" encoding="UTF-8" ?>
+<offices>
+  <office>
+    <name>C</name>
+    <description>Compline</description>
+    <id>4152</id>
+  </office>
+  <office>
+    <name>CA</name>
+    <description>Chapter</description>
+    <id>4485</id>
+  </office>
+  <office>
+    <name>D</name>
+    <description>Day Hours</description>
+    <id>4162</id>
+  </office>
+  <office>
+    <name>E</name>
+    <description>Antiphons for the Magnificat or Benedictus ("in evangelio")</description>
+    <id>4160</id>
+  </office>
+  <office>
+    <name>H</name>
+    <description>Antiphons based on texts from the Historia</description>
+    <id>4163</id>
+  </office>
+  <office>
+    <name>L</name>
+    <description>Lauds</description>
+    <id>4154</id>
+  </office>
+  <office>
+    <name>M</name>
+    <description>Matins</description>
+    <id>4153</id>
+  </office>
+  <office>
+    <name>MI</name>
+    <description>Mass</description>
+    <id>4165</id>
+  </office>
+  <office>
+    <name>N</name>
+    <description>None</description>
+    <id>4158</id>
+  </office>
+  <office>
+    <name>P</name>
+    <description>Prime</description>
+    <id>4155</id>
+  </office>
+  <office>
+    <name>R</name>
+    <description>Memorial</description>
+    <id>4164</id>
+  </office>
+  <office>
+    <name>S</name>
+    <description>Sext</description>
+    <id>4157</id>
+  </office>
+  <office>
+    <name>T</name>
+    <description>Terce</description>
+    <id>4156</id>
+  </office>
+  <office>
+    <name>V</name>
+    <description>First Vespers</description>
+    <id>4151</id>
+  </office>
+  <office>
+    <name>V2</name>
+    <description>Second Vespers</description>
+    <id>4159</id>
+  </office>
+  <office>
+    <name>X</name>
+    <description>Supplemental, paraliturgical, rarely-used, or chants that do not fit into the usual categories or that are unclear in their usage</description>
+    <id>4161</id>
+  </office>
+</offices>

@@ -5,7 +5,10 @@ from main_app.views import FeastListView
 from main_app.views import FeastDetailView
 from main_app.views import GenreDetailView
 from main_app.views import GenreListView
-
+from main_app.views import OfficeListView
+from main_app.views import OfficeDetailView
+from main_app.views import SourceListView
+from main_app.views import SourceDetailView
 
 urlpatterns = [
     path("indexers/", IndexerListView.as_view(), name="indexer-list"),
@@ -14,4 +17,8 @@ urlpatterns = [
     path("feasts/<int:pk>", FeastDetailView.as_view(), name="feast-detail"),
     path("genres/", GenreListView.as_view(), name="genre-list"),
     path("genres/<int:pk>", GenreDetailView.as_view(), name="genre-detail"),
+    path("offices/", OfficeListView.as_view(), name="office-list"),
+    path("offices/<int:pk>", OfficeDetailView.as_view(), name="office-detail"),
+    path("sources/", SourceListView.as_view(), name="source-list"),
+    path("sources/<int:pk>", SourceDetailView.as_view(), name="source-detail"),
 ]

@@ -1,0 +1,3113 @@
+﻿<?xml version="1.0" encoding="UTF-8" ?>
+<sigla>
+  <siglum>
+    <name>I-Vlevi CF D 21</name>
+    <description>I-Vlevi CF D 21</description>
+    <id>689850</id>
+  </siglum>
+  <siglum>
+    <name>A-Gu 1584</name>
+    <description>Graz, Universitätsbibliothek 1584</description>
+    <id>123931</id>
+  </siglum>
+  <siglum>
+    <name>A-Gu 17</name>
+    <description>Graz, Universitätsbibliothek  Cod. 17  (37/9 f.)</description>
+    <id>124052</id>
+  </siglum>
+  <siglum>
+    <name>A-Gu 281</name>
+    <description>Graz, Universitatsbibliothek 281</description>
+    <id>123957</id>
+  </siglum>
+  <siglum>
+    <name>A-Gu 29</name>
+    <description>Graz, Universitätsbibliothek, 29 (olim 38/8 f.)</description>
+    <id>123610</id>
+  </siglum>
+  <siglum>
+    <name>A-Gu 30</name>
+    <description>Graz, Universitätsbibliothek, 30 (olim 38/9 f.)</description>
+    <id>123611</id>
+  </siglum>
+  <siglum>
+    <name>A-Gu 479</name>
+    <description>Graz, Universitätsbibliothek 479</description>
+    <id>123902</id>
+  </siglum>
+  <siglum>
+    <name>A-Gu 761</name>
+    <description>Graz, Universitatsbibliothek 761</description>
+    <id>123932</id>
+  </siglum>
+  <siglum>
+    <name>A-Gu 767</name>
+    <description>Graz, Universitätsbibliothek 767</description>
+    <id>123988</id>
+  </siglum>
+  <siglum>
+    <name>A-Gu 769</name>
+    <description>Graz, Universitätsbibliothek 769</description>
+    <id>123930</id>
+  </siglum>
+  <siglum>
+    <name>A-Gu Ms. 211</name>
+    <description>Graz, Universitätsbibliothek, Ms. 211; Antiphonale &quot;Codex Albensis&quot;</description>
+    <id>653927</id>
+  </siglum>
+  <siglum>
+    <name>A-KN 1010</name>
+    <description>Klosterneuburg, Augustiner-Chorherrenstift - Bibliothek, 1010</description>
+    <id>123653</id>
+  </siglum>
+  <siglum>
+    <name>A-KN 1011</name>
+    <description>Klosterneuburg, Augustiner-Chorherrenstift - Bibliothek, 1011</description>
+    <id>123654</id>
+  </siglum>
+  <siglum>
+    <name>A-KN 1012</name>
+    <description>Klosterneuburg, Augustiner-Chorherrenstift - Bibliothek, 1012</description>
+    <id>123613</id>
+  </siglum>
+  <siglum>
+    <name>A-KN 1013</name>
+    <description>Klosterneuburg, Augustiner-Chorherrenstift - Bibliothek, 1013</description>
+    <id>123614</id>
+  </siglum>
+  <siglum>
+    <name>A-KN 1015</name>
+    <description>Klosterneuburg, Augustiner-Chorherrenstift - Bibliothek, 1015</description>
+    <id>123655</id>
+  </siglum>
+  <siglum>
+    <name>A-KN 1017</name>
+    <description>Klosterneuburg, Augustiner-Chorherrenstift - Bibliothek, 1017</description>
+    <id>123615</id>
+  </siglum>
+  <siglum>
+    <name>A-KN 1018</name>
+    <description>Klosterneuburg, Augustiner-Chorherrenstift - Bibliothek, 1018</description>
+    <id>123616</id>
+  </siglum>
+  <siglum>
+    <name>A-KN 588</name>
+    <description>Klosterneuburg, Stiftsbibliothek 588</description>
+    <id>123989</id>
+  </siglum>
+  <siglum>
+    <name>A-KN 589</name>
+    <description>Klosterneuburg, Augustiner-Chorherrenstift - Bibliothek, 589</description>
+    <id>123656</id>
+  </siglum>
+  <siglum>
+    <name>A-KR VI/258</name>
+    <description>Kremsmünster, Benediktiner-Stift Kremsmünster - Musikarchiv, Schachtel VI/258</description>
+    <id>123660</id>
+  </siglum>
+  <siglum>
+    <name>A-LIs 290</name>
+    <description>Linz, Oberösterreichische Landesbibliothek, 290 (olim 183; Gamma p.19)</description>
+    <id>123617</id>
+  </siglum>
+  <siglum>
+    <name>A-Lol 286</name>
+    <description>Linz, Oberösterreichische Landesbibliothek, 286</description>
+    <id>123897</id>
+  </siglum>
+  <siglum>
+    <name>A-Lol 466</name>
+    <description>Linz, Oberösterreichische Landesbibliothek, 466</description>
+    <id>123858</id>
+  </siglum>
+  <siglum>
+    <name>A-Lol 466b</name>
+    <description>Linz, Oberösterreichische Landesbibliothek, 466 - ff. 234-254</description>
+    <id>124011</id>
+  </siglum>
+  <siglum>
+    <name>A-Ms-109</name>
+    <description>Melk, Stiftsbibliothek 109 (olim 1056)</description>
+    <id>123977</id>
+  </siglum>
+  <siglum>
+    <name>A-SF XI 480</name>
+    <description>Sankt Florian, Augustiner-Chorherrenstift - Bibliothek und Musikarchiv, XI 480</description>
+    <id>123658</id>
+  </siglum>
+  <siglum>
+    <name>A-VO 121</name>
+    <description>Vorau, Stiftsbibliothek, 121 (XXX)</description>
+    <id>124005</id>
+  </siglum>
+  <siglum>
+    <name>A-VO 177</name>
+    <description>Vorau, Stiftsbibliothek, 177 (XC)</description>
+    <id>123933</id>
+  </siglum>
+  <siglum>
+    <name>A-VO 303</name>
+    <description>Vorau, Stiftsbibliothek, 303 (XXXVII)</description>
+    <id>123915</id>
+  </siglum>
+  <siglum>
+    <name>A-VOR 287</name>
+    <description>Vorau, Stiftsbibliothek, 287 (olim XXIX)</description>
+    <id>123643</id>
+  </siglum>
+  <siglum>
+    <name>A-Wda C-10</name>
+    <description>Wien, Diözesanarchiv, C-10</description>
+    <id>123644</id>
+  </siglum>
+  <siglum>
+    <name>A-Wda C-11</name>
+    <description>Wien, Diözesanarchiv, C-11</description>
+    <id>123645</id>
+  </siglum>
+  <siglum>
+    <name>A-Wda D-4</name>
+    <description>Wien, Diözesanarchiv, D-4</description>
+    <id>123649</id>
+  </siglum>
+  <siglum>
+    <name>A-Wn 1043</name>
+    <description>Wien, Österreichische Nationalbibliothek, Cpv 1043</description>
+    <id>123852</id>
+  </siglum>
+  <siglum>
+    <name>A-Wn 13314</name>
+    <description>Wien, Österreichische Nationalbibliothek, Cpv 13 314</description>
+    <id>123859</id>
+  </siglum>
+  <siglum>
+    <name>A-Wn 15489</name>
+    <description>Wien, Österreichische Nationalbibliothek - Musiksammlung, 15489</description>
+    <id>123759</id>
+  </siglum>
+  <siglum>
+    <name>A-Wn 1799**</name>
+    <description>Wien, Österreichische Nationalbibliothek - Handschriftensammlung, 1799**</description>
+    <id>123667</id>
+  </siglum>
+  <siglum>
+    <name>A-Wn 1845</name>
+    <description>Wien, Österreichische Nationalbibliothek, Cpv 1845</description>
+    <id>123799</id>
+  </siglum>
+  <siglum>
+    <name>A-Wn 1890</name>
+    <description>Wien, Österreichische Nationalbibliothek - Musiksammlung, 1890</description>
+    <id>123713</id>
+  </siglum>
+  <siglum>
+    <name>A-Wn sn2700</name>
+    <description>Wien, Österreichische Nationalbibliothek,  Ser. Nov. 2700</description>
+    <id>123898</id>
+  </siglum>
+  <siglum>
+    <name>AA Impr. 1495</name>
+    <description>Augsburg Antiphoner (1495); London, British Library, printed book IB. 6753</description>
+    <id>123668</id>
+  </siglum>
+  <siglum>
+    <name>AUS-Msl 096.1/R66A</name>
+    <description>The Poissy Antiphonal</description>
+    <id>123745</id>
+  </siglum>
+  <siglum>
+    <name>AUS-Sfl Add. Ms. 413</name>
+    <description>Sydney, University of Sydney, Fisher Library, Rare Books &amp; Special Collections, Add. Ms. 413</description>
+    <id>669163</id>
+  </siglum>
+  <siglum>
+    <name>AUS-Sfl Add.Ms. 327</name>
+    <description>Sydney, University of Sydney, Fisher Library, Rare Books &amp; Special Collections, Add.Ms. 327</description>
+    <id>674508</id>
+  </siglum>
+  <siglum>
+    <name>AUS-Sfl Add.Ms. 376</name>
+    <description>Sydney, University of Sydney Fisher Library, Rare Books &amp; Special Collections, Add.Ms. 376</description>
+    <id>674218</id>
+  </siglum>
+  <siglum>
+    <name>AUS-Sfl Add.Ms. 379</name>
+    <description>Sydney, University of Sydney, Fisher Library, Rare Books &amp; Special Collections, Add.Ms. 379</description>
+    <id>674352</id>
+  </siglum>
+  <siglum>
+    <name>AUS-Sfl Add.Ms.380</name>
+    <description>Sydney, The University of Sydney, Fisher Library, Rare Books and Special Collections</description>
+    <id>674790</id>
+  </siglum>
+  <siglum>
+    <name>B-Br 11396</name>
+    <description>Bruxelles, Bibliothèque royale, 11396</description>
+    <id>124012</id>
+  </siglum>
+  <siglum>
+    <name>B-Br 15073</name>
+    <description>Bruxelles, Bibliothèque royalle, 15073</description>
+    <id>124069</id>
+  </siglum>
+  <siglum>
+    <name>B-Br 19389</name>
+    <description>Bruxelles, Bibliothèque royale, 19389</description>
+    <id>123923</id>
+  </siglum>
+  <siglum>
+    <name>B-Br 2031-32</name>
+    <description>Bruxelles, Bibliothèque royale 2031-32</description>
+    <id>123804</id>
+  </siglum>
+  <siglum>
+    <name>B-Br 4767</name>
+    <description>Bruxelles, Bibliothèque royale, 4767</description>
+    <id>124088</id>
+  </siglum>
+  <siglum>
+    <name>B-Br II 3823</name>
+    <description>Bruxelles, Bibliothèque royale, II 3823 (Fétis 1172)</description>
+    <id>123873</id>
+  </siglum>
+  <siglum>
+    <name>B-Br II 3825</name>
+    <description>Bruxelles, Bibliothèque royale, II 3825 (Fétis 1174)</description>
+    <id>124065</id>
+  </siglum>
+  <siglum>
+    <name>B-DEa 9</name>
+    <description>Dendermonde, Sint-Pieters-en Paulusabdij, ms. 9</description>
+    <id>588309</id>
+  </siglum>
+  <siglum>
+    <name>B-TO olv 63</name>
+    <description>Tongeren, Onze-Lieve-Vrouw-Kerk (Our Lady&#039;s Church), 63 (olim V)</description>
+    <id>123664</id>
+  </siglum>
+  <siglum>
+    <name>B-TO olv 64</name>
+    <description>Tongeren, Onze-Lieve-Vrouw-Kerk (Our Lady&#039;s Church), 64 (olim IV)</description>
+    <id>123665</id>
+  </siglum>
+  <siglum>
+    <name>B-TOb 152</name>
+    <description>Tongeren 152</description>
+    <id>123754</id>
+  </siglum>
+  <siglum>
+    <name>CDN-Hsmu M2149.L4</name>
+    <description>Halifax (Canada), St. Mary’s University - Patrick Power Library, M2149.L4 1554</description>
+    <id>123723</id>
+  </siglum>
+  <siglum>
+    <name>CDN-Lu M2150</name>
+    <description>London (Canada), University of Western Ontario - Music Library, M2150</description>
+    <id>123619</id>
+  </siglum>
+  <siglum>
+    <name>CDN-Mir 25</name>
+    <description>Montreal, McGill University - Humanities and Social Sciences Library McLennan-Repath, MS medieval 25 (fragment)</description>
+    <id>691960</id>
+  </siglum>
+  <siglum>
+    <name>CDN-Mlr 111</name>
+    <description>Montréal, Humanities and Social Sciences Library McLennan-Redpath, CDN-Mlr 111</description>
+    <id>676545</id>
+  </siglum>
+  <siglum>
+    <name>CDN-Mlr 169</name>
+    <description>Montréal, McGill University - Humanities and Social Sciences Library McLennan-Redpath, MS medieval 169 (fragment)</description>
+    <id>693578</id>
+  </siglum>
+  <siglum>
+    <name>CDN-Mlr 170</name>
+    <description>Montréal, McGill University - Humanities and Social Sciences Library McLennan-Redpath, MS medieval 170 (fragment)</description>
+    <id>693585</id>
+  </siglum>
+  <siglum>
+    <name>CDN-Mlr 171</name>
+    <description>Montréal, McGill University - Humanities and Social Sciences Library McLennan-Redpath, MS medieval 171 (fragment)</description>
+    <id>693589</id>
+  </siglum>
+  <siglum>
+    <name>CDN-Mlr 172</name>
+    <description>Montréal, McGill University - Humanities and Social Sciences Library McLennan-Redpath, MS medieval 172 (fragment)</description>
+    <id>693590</id>
+  </siglum>
+  <siglum>
+    <name>CDN-Mlr 176</name>
+    <description>Montréal, McGill University - Humanities and Social Sciences Library McLennan-Redpath, MS medieval 176 (fragment)</description>
+    <id>693601</id>
+  </siglum>
+  <siglum>
+    <name>CDN-Mlr 18</name>
+    <description>Montréal, Humanities and Social Sciences Library McLennan-Redpath, CDN-Mlr 18</description>
+    <id>675683</id>
+  </siglum>
+  <siglum>
+    <name>CDN-Mlr 184</name>
+    <description>Montréal, McGill University - Humanities and Social Sciences Library McLennan-Redpath, MS medieval 184 (fragment)</description>
+    <id>693615</id>
+  </siglum>
+  <siglum>
+    <name>CDN-Mlr 186</name>
+    <description>Montréal, McGill University - Humanities and Social Sciences Library McLennan-Redpath, MS medieval 186 (fragment)</description>
+    <id>693636</id>
+  </siglum>
+  <siglum>
+    <name>CDN-Mlr 20</name>
+    <description>Montréal, McGill University - Humanities and Social Sciences Library McLennan-Redpath, MS medieval 20 (fragment)</description>
+    <id>693397</id>
+  </siglum>
+  <siglum>
+    <name>CDN-Mlr 204</name>
+    <description>Montréal, McGill University - Humanities and Social Sciences Library McLennan-Redpath, MS medieval 204 (fragment)</description>
+    <id>693642</id>
+  </siglum>
+  <siglum>
+    <name>CDN-Mlr 205</name>
+    <description>Montréal, McGill University - Humanities and Social Sciences Library McLennan-Redpath, MS medieval 205 (fragment)</description>
+    <id>693647</id>
+  </siglum>
+  <siglum>
+    <name>CDN-Mlr 206</name>
+    <description>Montréal, McGill University - Humanities and Social Sciences Library McLennan-Redpath, MS medieval 206 (fragment)</description>
+    <id>693648</id>
+  </siglum>
+  <siglum>
+    <name>CDN-Mlr 207</name>
+    <description>Montréal, McGill University - Humanities and Social Sciences Library McLennan-Redpath, MS medieval 207 (fragment)</description>
+    <id>693659</id>
+  </siglum>
+  <siglum>
+    <name>CDN-Mlr 208</name>
+    <description>Montréal, McGill University - Humanities and Social Sciences Library McLennan-Redpath, MS medieval 208 (fragment)</description>
+    <id>693660</id>
+  </siglum>
+  <siglum>
+    <name>CDN-Mlr 209</name>
+    <description>Montréal, McGill University - Humanities and Social Sciences Library McLennan-Redpath, MS medieval 209 (fragment)</description>
+    <id>693666</id>
+  </siglum>
+  <siglum>
+    <name>CDN-Mlr 21</name>
+    <description>Montreal, McGill Rare Books Redpath, Fragment 21</description>
+    <id>691957</id>
+  </siglum>
+  <siglum>
+    <name>CDN-Mlr 21</name>
+    <description>Montréal, McGill University - Humanities and Social Sciences Library McLennan-Redpath, MS medieval 21 (fragment)</description>
+    <id>693404</id>
+  </siglum>
+  <siglum>
+    <name>CDN-Mlr 210</name>
+    <description>Montréal, McGill University - Humanities and Social Sciences Library McLennan-Redpath, MS medieval 210 (fragment)</description>
+    <id>693669</id>
+  </siglum>
+  <siglum>
+    <name>CDN-Mlr 211</name>
+    <description>Montréal, McGill University - Humanities and Social Sciences Library McLennan-Redpath, MS medieval 211 (fragment)</description>
+    <id>693680</id>
+  </siglum>
+  <siglum>
+    <name>CDN-Mlr 212</name>
+    <description>Montréal, McGill University - Humanities and Social Sciences Library McLennan-Redpath, MS medieval 212 (fragment)</description>
+    <id>693689</id>
+  </siglum>
+  <siglum>
+    <name>CDN-Mlr 215</name>
+    <description>Montréal, McGill University - Humanities and Social Sciences Library McLennan-Redpath, MS medieval 215 (fragment)</description>
+    <id>693724</id>
+  </siglum>
+  <siglum>
+    <name>CDN-Mlr 216</name>
+    <description>Montréal, McGill University - Humanities and Social Sciences Library McLennan-Redpath, MS medieval 216 (fragment)</description>
+    <id>693727</id>
+  </siglum>
+  <siglum>
+    <name>CDN-Mlr 217</name>
+    <description>Montréal, McGill University - Humanities and Social Sciences Library McLennan-Redpath, MS medieval 217 (fragment)</description>
+    <id>693732</id>
+  </siglum>
+  <siglum>
+    <name>CDN-Mlr 218</name>
+    <description>Montréal, McGill University - Humanities and Social Sciences Library McLennan-Redpath, MS medieval 218 (fragment)</description>
+    <id>693736</id>
+  </siglum>
+  <siglum>
+    <name>CDN-Mlr 219</name>
+    <description>Montréal, McGill University - Humanities and Social Sciences Library McLennan-Redpath, MS medieval 219 (fragment)</description>
+    <id>693740</id>
+  </siglum>
+  <siglum>
+    <name>CDN-Mlr 220</name>
+    <description>Montréal, McGill University - Humanities and Social Sciences Library McLennan-Redpath, MS medieval 220 (fragment)</description>
+    <id>693748</id>
+  </siglum>
+  <siglum>
+    <name>CDN-Mlr 221</name>
+    <description>Montréal, McGill University - Humanities and Social Sciences Library McLennan-Redpath, MS medieval 221 (fragment)</description>
+    <id>693768</id>
+  </siglum>
+  <siglum>
+    <name>CDN-Mlr 222</name>
+    <description>Montréal, McGill University - Humanities and Social Sciences Library McLennan-Redpath, MS medieval 222 (fragment)</description>
+    <id>693771</id>
+  </siglum>
+  <siglum>
+    <name>CDN-Mlr 231</name>
+    <description>Montréal, McGill University - Humanities and Social Sciences Library McLennan-Redpath, MS medieval 231 (fragment)</description>
+    <id>693792</id>
+  </siglum>
+  <siglum>
+    <name>CDN-Mlr 234</name>
+    <description>Montréal,McGill University - Humanities and Social Sciences Library McLennan-Redpath, 234</description>
+    <id>678936</id>
+  </siglum>
+  <siglum>
+    <name>CDN-Mlr 24</name>
+    <description>Montréal, McGill University - Humanities and Social Sciences Library McLennan-Redpath, MS medieval 24 (fragment)</description>
+    <id>693447</id>
+  </siglum>
+  <siglum>
+    <name>CDN-Mlr 25</name>
+    <description>Montreal, McGill Rare Books Redpath, Fragment 25</description>
+    <id>691959</id>
+  </siglum>
+  <siglum>
+    <name>CDN-Mlr 25</name>
+    <description>Montréal, McGill University - Humanities and Social Sciences Library McLennan-Redpath, MS medieval 25 (fragment)</description>
+    <id>693486</id>
+  </siglum>
+  <siglum>
+    <name>CDN-Mlr 25</name>
+    <description>Montreal, McGill University Rare Books Redpath Fragment 25</description>
+    <id>691958</id>
+  </siglum>
+  <siglum>
+    <name>CDN-Mlr 64</name>
+    <description>Montréal, McGill University - Humanities and Social Sciences Library McLennan-Redpath, MS medieval 64 (fragment)</description>
+    <id>693504</id>
+  </siglum>
+  <siglum>
+    <name>CDN-Mlr 65</name>
+    <description>Montréal, McGill University - Humanities and Social Sciences Library McLennan-Redpath, MS medieval 65 (fragment)</description>
+    <id>693507</id>
+  </siglum>
+  <siglum>
+    <name>CDN-Mlr 7</name>
+    <description>Montréal, McGill University - Humanities and Social Sciences Library McLennan-Redpath, MS medieval 7 (fragment)</description>
+    <id>693946</id>
+  </siglum>
+  <siglum>
+    <name>CDN-Mlr 72</name>
+    <description>Montréal, McGill University - Humanities and Social Sciences Library McLennan-Redpath, MS medieval 72 (fragment)</description>
+    <id>693510</id>
+  </siglum>
+  <siglum>
+    <name>CDN-Mlr 73</name>
+    <description>Montréal, Humanities and Social Sciences Library McLennan-Redpath, MS 73</description>
+    <id>680970</id>
+  </siglum>
+  <siglum>
+    <name>CDN-Mlr 78</name>
+    <description>Montréal, McGill University - Humanities and Social Sciences Library McLennan-Redpath, MS medieval 78 (fragment)</description>
+    <id>691955</id>
+  </siglum>
+  <siglum>
+    <name>CDN-Mlr 81</name>
+    <description>Montréal, McGill University - Humanities and Social Sciences Library McLennan-Redpath, MS medieval 81 (fragment)</description>
+    <id>693516</id>
+  </siglum>
+  <siglum>
+    <name>CDN-Mlr 86</name>
+    <description>Montréal, McGill University - Humanities and Social Sciences Library McLennan-Redpath, MS medieval 86 (fragment)</description>
+    <id>693548</id>
+  </siglum>
+  <siglum>
+    <name>CDN-Mlr 87</name>
+    <description>Montréal, McGill University - Humanities and Social Sciences Library McLennan-Redpath, MS medieval 87 (fragment)</description>
+    <id>693551</id>
+  </siglum>
+  <siglum>
+    <name>CDN-Mlr 88</name>
+    <description>Montréal, McGill University - Humanities and Social Sciences Library McLennan-Redpath, MS medieval 88 (fragment)</description>
+    <id>693560</id>
+  </siglum>
+  <siglum>
+    <name>CDN-Mlr 89</name>
+    <description>Montréal, McGill University - Humanities and Social Sciences Library McLennan-Redpath, MS medieval 89 (fragment)</description>
+    <id>693562</id>
+  </siglum>
+  <siglum>
+    <name>CDN-Mlr 92</name>
+    <description>Montréal, McGill University - Humanities and Social Sciences Library McLennan-Redpath, MS medieval 92 (fragment)</description>
+    <id>693565</id>
+  </siglum>
+  <siglum>
+    <name>CDN-Mlr 93</name>
+    <description>Montréal, McGill University - Humanities and Social Sciences Library McLennan-Redpath, MS medieval 93</description>
+    <id>693577</id>
+  </siglum>
+  <siglum>
+    <name>CDN-Mlr MS medieval 80 (fragment)</name>
+    <description>Montréal, McGill University - Humanities and Social Sciences Library McLennan-Redpath, MS medieval 80 (fragment)</description>
+    <id>691953</id>
+  </siglum>
+  <siglum>
+    <name>CDN-Oc 1</name>
+    <description>Ottawa, Carleton University, MacOdrum Library, Archives and Research Collection, ms. 1</description>
+    <id>666846</id>
+  </siglum>
+  <siglum>
+    <name>CDN-Oc 2</name>
+    <description>Ottawa, Carleton University, MacOdrum Library, Archives and Research Collection, ms. 2</description>
+    <id>666847</id>
+  </siglum>
+  <siglum>
+    <name>CDN-Qsl Chaperon</name>
+    <description>Quebec, Séminaire de Québec, Le Paroissien Noté</description>
+    <id>687359</id>
+  </siglum>
+  <siglum>
+    <name>CDN-WAwlul 1</name>
+    <description>Waterloo (Canada), Wilfrid Laurier University Library, Ms. 1</description>
+    <id>589057</id>
+  </siglum>
+  <siglum>
+    <name>CH-BEsu 620</name>
+    <description>Bern, Burgerbibliothek, 620</description>
+    <id>123928</id>
+  </siglum>
+  <siglum>
+    <name>CH-BEsu A421</name>
+    <description>Bern, Burgerbibliotek, A. 421</description>
+    <id>123927</id>
+  </siglum>
+  <siglum>
+    <name>CH-E 113</name>
+    <description>Einsiedeln, Stiftsbibliothek, cod. 113 (466)</description>
+    <id>123841</id>
+  </siglum>
+  <siglum>
+    <name>CH-E 114</name>
+    <description>Einsiedeln, Stiftsbibliothek, cod. 114</description>
+    <id>123883</id>
+  </siglum>
+  <siglum>
+    <name>CH-E 121</name>
+    <description>Einsiedeln, Stiftsbibliothek, cod. 121</description>
+    <id>123779</id>
+  </siglum>
+  <siglum>
+    <name>CH-E 121</name>
+    <description>Einsiedeln, Stiftsbibliothek, Codex 121</description>
+    <id>666647</id>
+  </siglum>
+  <siglum>
+    <name>CH-E 366</name>
+    <description>Einsiedeln, Stiftsbibliothek, cod. 366</description>
+    <id>123895</id>
+  </siglum>
+  <siglum>
+    <name>CH-E 611</name>
+    <description>Einsiedeln, Kloster Einsiedeln - Musikbibliothek, 611</description>
+    <id>123606</id>
+  </siglum>
+  <siglum>
+    <name>CH-EN 314</name>
+    <description>Engelberg Stiftsbibliothek, Codex 314</description>
+    <id>124002</id>
+  </siglum>
+  <siglum>
+    <name>CH-Fco 2</name>
+    <description>Fribourg, Bibliothèque des Cordeliers, 2</description>
+    <id>123672</id>
+  </siglum>
+  <siglum>
+    <name>CH-Ff Ms. 9</name>
+    <description>Fribourg/Freiburg, Couvent des Cordeliers/Franziskanerkloster, Ms. 9</description>
+    <id>675783</id>
+  </siglum>
+  <siglum>
+    <name>CH-P 18</name>
+    <description>Porrentruy, Bibliothèque cantonale jurassienne, 18</description>
+    <id>638308</id>
+  </siglum>
+  <siglum>
+    <name>CH-SGs 359</name>
+    <description>St. Gallen, Stiftsbibliothek, Cod. Sang. 359</description>
+    <id>672485</id>
+  </siglum>
+  <siglum>
+    <name>CH-SGs 375</name>
+    <description>Sankt-Gallen, Stiftsbibliothek, cod. 375</description>
+    <id>123896</id>
+  </siglum>
+  <siglum>
+    <name>CH-SGs 376</name>
+    <description>Sankt-Gallen, Stiftsbibliothek, cod. 376</description>
+    <id>123832</id>
+  </siglum>
+  <siglum>
+    <name>CH-SGs 378</name>
+    <description>Sankt-Gallen, Stiftsbibliothek, cod. 378</description>
+    <id>123833</id>
+  </siglum>
+  <siglum>
+    <name>CH-SGs 380</name>
+    <description>Sankt-Gallen, Stiftsbibliothek, cod. 380</description>
+    <id>123842</id>
+  </siglum>
+  <siglum>
+    <name>CH-SGs 381</name>
+    <description>Sankt-Gallen, Stiftsbibliothek, cod. 381</description>
+    <id>123790</id>
+  </siglum>
+  <siglum>
+    <name>CH-SGs 382</name>
+    <description>Sankt-Gallen, Stiftsbibliothek, cod. 382</description>
+    <id>123843</id>
+  </siglum>
+  <siglum>
+    <name>CH-SGs 388</name>
+    <description>Sankt Gallen, Stiftsbibliothek, 388</description>
+    <id>123750</id>
+  </siglum>
+  <siglum>
+    <name>CH-SGs 390</name>
+    <description>Sankt Gallen, Stiftsbibliothek, 390</description>
+    <id>123717</id>
+  </siglum>
+  <siglum>
+    <name>CH-SGs 391</name>
+    <description>Sankt Gallen, Stiftsbibliothek, 391</description>
+    <id>123718</id>
+  </siglum>
+  <siglum>
+    <name>CH-SGs 484</name>
+    <description>Sankt-Gallen, Stiftsbibliothek, cod. 484</description>
+    <id>123789</id>
+  </siglum>
+  <siglum>
+    <name>CH-SGs 898</name>
+    <description>Sankt-Gallen, Stiftsbibliothek, cod. 898</description>
+    <id>123803</id>
+  </siglum>
+  <siglum>
+    <name>CH-SGv 317</name>
+    <description>Sankt-Gallen, Kantonsbibliothek, Vadiana 317</description>
+    <id>123784</id>
+  </siglum>
+  <siglum>
+    <name>CH-SH 95</name>
+    <description>Schaffhausen, Stadtbibliothek</description>
+    <id>123913</id>
+  </siglum>
+  <siglum>
+    <name>CH-Zl St. Kath.</name>
+    <description>Zurich. Schweizerisches Landesmuseum, 26 117</description>
+    <id>123997</id>
+  </siglum>
+  <siglum>
+    <name>CH-Zz Rh. 125</name>
+    <description>Zürich, Zentralbibliothek, Rh. 125</description>
+    <id>123869</id>
+  </siglum>
+  <siglum>
+    <name>CH-Zz Rh. 14</name>
+    <description>Zürich, Zentralbibliothek, Rh. 14</description>
+    <id>123952</id>
+  </siglum>
+  <siglum>
+    <name>CH-Zz Rh. 55</name>
+    <description>Zürich, Zentralbibliothek, Rh. 55</description>
+    <id>123929</id>
+  </siglum>
+  <siglum>
+    <name>CH-Zz Rh.132</name>
+    <description>Zürich, Zentralbibliothek, Rh. 132</description>
+    <id>123844</id>
+  </siglum>
+  <siglum>
+    <name>CZ Pu VI.E.4c</name>
+    <description>Prague National Library VI.E.4c</description>
+    <id>123727</id>
+  </siglum>
+  <siglum>
+    <name>CZ-Bu R 387</name>
+    <description>Rajhrad 387</description>
+    <id>123760</id>
+  </siglum>
+  <siglum>
+    <name>CZ-HKm II A 1</name>
+    <description>Hradec Králové Antiphonary II A 1</description>
+    <id>123746</id>
+  </siglum>
+  <siglum>
+    <name>CZ-Pap P VIII</name>
+    <description>Prague, Knihovna metropolitni kapituly sv. Vita, P VIII</description>
+    <id>123975</id>
+  </siglum>
+  <siglum>
+    <name>CZ-Pst DE I 7</name>
+    <description>Praha (Prague), Strahovská knihovna (Library of the Royal Canonry of Premonstratensians at Strahov), DE I 7</description>
+    <id>649450</id>
+  </siglum>
+  <siglum>
+    <name>CZ-Pu XI C 3</name>
+    <description>Prague, University library XI C 3</description>
+    <id>588729</id>
+  </siglum>
+  <siglum>
+    <name>CZ-Pu XIII.C.4</name>
+    <description>Prague National Library XIII.C.4</description>
+    <id>123735</id>
+  </siglum>
+  <siglum>
+    <name>CZ-Pu XIV B 13</name>
+    <description>Praha (Prague), Národní knihovna České republiky (National Library), XIV B 13</description>
+    <id>123730</id>
+  </siglum>
+  <siglum>
+    <name>D-A/imp:1498</name>
+    <description>Print:   Ratdolt, Augsburg, 1494-98</description>
+    <id>124053</id>
+  </siglum>
+  <siglum>
+    <name>D-AAd 13</name>
+    <description>Aachen, Bischöfliche Diözesanbibliothek, 13 (XII)</description>
+    <id>123934</id>
+  </siglum>
+  <siglum>
+    <name>D-AAd 13</name>
+    <description>Aachen, Bischöfliche Diözesanbibliothek, 13 (XII)</description>
+    <id>123935</id>
+  </siglum>
+  <siglum>
+    <name>D-AAm G 20</name>
+    <description>Aachen (Aix-la-Chapelle), Domarchiv, G 20</description>
+    <id>123714</id>
+  </siglum>
+  <siglum>
+    <name>D-B 40608</name>
+    <description>Berlin, Staatsbibliothek Preussischer Kulturbesitz, MUS. MS. 40608</description>
+    <id>124013</id>
+  </siglum>
+  <siglum>
+    <name>D-B 664</name>
+    <description>Berlin, Staatsbibliothek Preussischer Kulturbesitz, th.lat.4o  664</description>
+    <id>123916</id>
+  </siglum>
+  <siglum>
+    <name>D-B IV. 11</name>
+    <description>Berlin, Staatsbibliothek Preussischer Kulturbesitz, th.lat.4o  11</description>
+    <id>123811</id>
+  </siglum>
+  <siglum>
+    <name>D-B Mus. 40047</name>
+    <description>Berlin, Staatsbibliothek zu Berlin Preußischer Kulturbesitz, Mus. 40047</description>
+    <id>123688</id>
+  </siglum>
+  <siglum>
+    <name>D-BAs 12</name>
+    <description>Bamberg, Staatsbibliothek, lit. 12</description>
+    <id>123958</id>
+  </siglum>
+  <siglum>
+    <name>D-BAs 5</name>
+    <description>Bamberg, Staatsbibliothek, lit. 5</description>
+    <id>123812</id>
+  </siglum>
+  <siglum>
+    <name>D-BAs 6</name>
+    <description>Bamberg, Staatsbibliothek, lit. 6</description>
+    <id>123791</id>
+  </siglum>
+  <siglum>
+    <name>D-BAs lit. 25</name>
+    <description>Bamberg, Staatsbibliothek, lit. 25 (olim Ed.IV.11)</description>
+    <id>123594</id>
+  </siglum>
+  <siglum>
+    <name>D-BAs Msc.Lit.27</name>
+    <description>Bamberg, Staatsbibliothek, Msc.Lit.27</description>
+    <id>588716</id>
+  </siglum>
+  <siglum>
+    <name>D-Bds 40078</name>
+    <description>Berlin, Deutsche Staatsbibliothek, mus. 40 078 (Z. 78)</description>
+    <id>123917</id>
+  </siglum>
+  <siglum>
+    <name>D-Dlb A122</name>
+    <description>Dresden, Sächsische Landesbibliothek, A. 122</description>
+    <id>123924</id>
+  </siglum>
+  <siglum>
+    <name>D-DS 545</name>
+    <description>Darmstadt, Hessische Landes- und Hochschulbibliothek, 545</description>
+    <id>123922</id>
+  </siglum>
+  <siglum>
+    <name>D-DS 868</name>
+    <description>Darmstadt, Hessische Landes- und Hochschulbibliothek, 868</description>
+    <id>123936</id>
+  </siglum>
+  <siglum>
+    <name>D-FUl Aa 55</name>
+    <description>Fulda, Hessische Landesbibliothek, Aa 55</description>
+    <id>123685</id>
+  </siglum>
+  <siglum>
+    <name>D-Gsta AB III 9</name>
+    <description>Göttingen, Stadtarchiv, AB III 9</description>
+    <id>682632</id>
+  </siglum>
+  <siglum>
+    <name>D-KA Aug. LX</name>
+    <description>Karlsruhe, Badische Landesbibliothek - Musikabteilung, Aug. LX</description>
+    <id>123612</id>
+  </siglum>
+  <siglum>
+    <name>D-KA Aug209</name>
+    <description>Karlsruhe, Badische Landesbibliothek, Aug. 209</description>
+    <id>123978</id>
+  </siglum>
+  <siglum>
+    <name>D-KA B102</name>
+    <description>Karlsruhe, Badische Landesbibliothek, B. 102</description>
+    <id>124007</id>
+  </siglum>
+  <siglum>
+    <name>D-KA Geo3</name>
+    <description>Karlsruhe, Badische Landesbibliothek, Sankt-Georgen 3</description>
+    <id>124014</id>
+  </siglum>
+  <siglum>
+    <name>D-KA Geo31</name>
+    <description>Karlsruhe, Badische Landesbibliothek, Sankt-Georgen 31</description>
+    <id>123979</id>
+  </siglum>
+  <siglum>
+    <name>D-KA L5</name>
+    <description>Karlsruhe, Badische Landesbibliothek, L[ichtenthal]. 5</description>
+    <id>123990</id>
+  </siglum>
+  <siglum>
+    <name>D-KA L60</name>
+    <description>Karlsruhe, Badische Landesbibliothek, L[ichtenthal]. 60</description>
+    <id>124092</id>
+  </siglum>
+  <siglum>
+    <name>D-KA P14a</name>
+    <description>Karlsruhe, Badische Landesbibliothek, St. Peter 14a</description>
+    <id>123991</id>
+  </siglum>
+  <siglum>
+    <name>D-KA P15</name>
+    <description>Karlsruhe, Badische Landesbibliothek, S. Peter 15</description>
+    <id>124026</id>
+  </siglum>
+  <siglum>
+    <name>D-KA P16</name>
+    <description>Karlsruhe, Badische Landesbibliothek, St. Peter 16</description>
+    <id>124006</id>
+  </siglum>
+  <siglum>
+    <name>D-KA P44</name>
+    <description>Karlsruhe, Badische Landesbibliothek, S. Peter 44</description>
+    <id>124003</id>
+  </siglum>
+  <siglum>
+    <name>D-KA UH1</name>
+    <description>Karlsruhe, Badische Landesbibliothek, UH1</description>
+    <id>124015</id>
+  </siglum>
+  <siglum>
+    <name>D-Kl  5</name>
+    <description>Kassel, Landesbibliothek, 4o theol. 5</description>
+    <id>123972</id>
+  </siglum>
+  <siglum>
+    <name>D-Kl 15</name>
+    <description>Kassel, Landesbibliothek, 4o theol. 15</description>
+    <id>123874</id>
+  </siglum>
+  <siglum>
+    <name>D-KNa W270</name>
+    <description>Köln, Historisches Archiv, W. f. 270</description>
+    <id>123965</id>
+  </siglum>
+  <siglum>
+    <name>D-KNd 1161</name>
+    <description>Köln, Erzbischöfliche Diözesan- und Dombibliothek, 1161</description>
+    <id>601861</id>
+  </siglum>
+  <siglum>
+    <name>D-KNd 215</name>
+    <description>Köln (Cologne), Erzbischöfliche Diözesan- und Dombibliothek, 215</description>
+    <id>123741</id>
+  </siglum>
+  <siglum>
+    <name>D-KNd 226</name>
+    <description>Köln, Dombibliothek, 226</description>
+    <id>123999</id>
+  </siglum>
+  <siglum>
+    <name>D-LEu 391</name>
+    <description>Leipzig, Universitätsbibliothek 391</description>
+    <id>123959</id>
+  </siglum>
+  <siglum>
+    <name>D-LEu Rep. I 93</name>
+    <description>Leipzig, Universitätsbibliothek, Rep. I 93</description>
+    <id>641834</id>
+  </siglum>
+  <siglum>
+    <name>D-Ma 12o Cmm 1</name>
+    <description>München, Franziskanerkloster St. Anna - Bibliothek, 12o Cmm 1</description>
+    <id>123673</id>
+  </siglum>
+  <siglum>
+    <name>D-Mbs 10075</name>
+    <description>München, Bayerische Staatsbibliothek, Clm 10 075</description>
+    <id>123937</id>
+  </siglum>
+  <siglum>
+    <name>D-Mbs 11004</name>
+    <description>München, Bayerische Staatsbibliothek, Clm 11 004</description>
+    <id>123878</id>
+  </siglum>
+  <siglum>
+    <name>D-Mbs 13125</name>
+    <description>München, Bayerische Staatsbibliothek, Clm 13 125</description>
+    <id>123911</id>
+  </siglum>
+  <siglum>
+    <name>D-Mbs 14013</name>
+    <description>München, Bayerische Staatsbibliothek, Clm 14 013</description>
+    <id>124018</id>
+  </siglum>
+  <siglum>
+    <name>D-Mbs 14045</name>
+    <description>München, Bayerische Staatsbibliothek  Clm 14 045</description>
+    <id>124029</id>
+  </siglum>
+  <siglum>
+    <name>D-Mbs 14083</name>
+    <description>München, Bayerische Staatsbibliothek, Clm 14 083</description>
+    <id>123821</id>
+  </siglum>
+  <siglum>
+    <name>D-Mbs 14322</name>
+    <description>München, Bayerische Staatsbibliothek, Clm 14 322</description>
+    <id>123822</id>
+  </siglum>
+  <siglum>
+    <name>D-Mbs 14343</name>
+    <description>München, Bayerische Staatsibliothek, Clm 14 343</description>
+    <id>123976</id>
+  </siglum>
+  <siglum>
+    <name>D-Mbs 14843</name>
+    <description>München, Bayerische Staatsbibliothek  Clm 14 843</description>
+    <id>123780</id>
+  </siglum>
+  <siglum>
+    <name>D-Mbs 14845</name>
+    <description>München, Bayerische Bayerishe Staatsbibliothek, Clm 14 845</description>
+    <id>123880</id>
+  </siglum>
+  <siglum>
+    <name>D-Mbs 14926</name>
+    <description>München, Bayerische Staatsbibliothek, Clm 14 926</description>
+    <id>124019</id>
+  </siglum>
+  <siglum>
+    <name>D-Mbs 15730</name>
+    <description>München, Bayerische Staatsbibliothek, Clm 15 730</description>
+    <id>123992</id>
+  </siglum>
+  <siglum>
+    <name>D-Mbs 17 019</name>
+    <description>München, Bayerische Staatsbibliothek  Clm 17 019</description>
+    <id>123834</id>
+  </siglum>
+  <siglum>
+    <name>D-Mbs 17018</name>
+    <description>München, Bayerische Staatsbibliothek, Clm 17 018</description>
+    <id>124044</id>
+  </siglum>
+  <siglum>
+    <name>D-Mbs 17021</name>
+    <description>München, Bayerische Staatsbibliothek, Clm 17 021</description>
+    <id>124045</id>
+  </siglum>
+  <siglum>
+    <name>D-Mbs 17025</name>
+    <description>München, Bayerische Staatsbibliothek, Clm 17 025</description>
+    <id>123960</id>
+  </siglum>
+  <siglum>
+    <name>D-Mbs 17100</name>
+    <description>München, Bayerische Staatsbibliothek  Clm 17 100</description>
+    <id>123938</id>
+  </siglum>
+  <siglum>
+    <name>D-Mbs 17212</name>
+    <description>München, Bayerische Staatsbibliothek, Clm 17 212</description>
+    <id>123860</id>
+  </siglum>
+  <siglum>
+    <name>D-Mbs 18392</name>
+    <description>München, Bayerische Staatsbibliothek, Clm  18392</description>
+    <id>123993</id>
+  </siglum>
+  <siglum>
+    <name>D-Mbs 18955</name>
+    <description>München, Bayerische Staatsbibliothek, Clm 18 955</description>
+    <id>123853</id>
+  </siglum>
+  <siglum>
+    <name>D-Mbs 18956</name>
+    <description>München, Bayerische Staatsbibliothek, Clm 18 956</description>
+    <id>123800</id>
+  </siglum>
+  <siglum>
+    <name>D-Mbs 19266</name>
+    <description>München, Bayerische Staatsbibliothek, Clm 19 266</description>
+    <id>124076</id>
+  </siglum>
+  <siglum>
+    <name>D-Mbs 19267</name>
+    <description>München, Bayerische Staatsbibliothek, Clm 19 267</description>
+    <id>124057</id>
+  </siglum>
+  <siglum>
+    <name>D-Mbs 23001</name>
+    <description>München, Bayerische Staatsbibliothek, Clm 23 001</description>
+    <id>124016</id>
+  </siglum>
+  <siglum>
+    <name>D-Mbs 23026</name>
+    <description>München, Bayerische Staatsbibliothek, Clm 23 026</description>
+    <id>124070</id>
+  </siglum>
+  <siglum>
+    <name>D-Mbs 23044</name>
+    <description>München, Bayerische Staatsbibliothek, Clm 23 044</description>
+    <id>124078</id>
+  </siglum>
+  <siglum>
+    <name>D-Mbs 23045</name>
+    <description>München, Bayerische Staatsbibliothek, Clm 23 045</description>
+    <id>124079</id>
+  </siglum>
+  <siglum>
+    <name>D-Mbs 23063</name>
+    <description>München, Bayerische Staatsbibliothek, Clm 23 063</description>
+    <id>123879</id>
+  </siglum>
+  <siglum>
+    <name>D-Mbs 23270</name>
+    <description>München, Bayerische Staatsbibliothek, Clm 23 270</description>
+    <id>123910</id>
+  </siglum>
+  <siglum>
+    <name>D-Mbs 23284</name>
+    <description>München, Bayerische Staatsbibliothek, Clm 23 284</description>
+    <id>124017</id>
+  </siglum>
+  <siglum>
+    <name>D-Mbs 23285</name>
+    <description>München, Bayerische Staatsbibliothek, Clm 23 285</description>
+    <id>123876</id>
+  </siglum>
+  <siglum>
+    <name>D-Mbs 23286</name>
+    <description>München, Bayerische Staatsibliothek, Clm 23 286</description>
+    <id>123981</id>
+  </siglum>
+  <siglum>
+    <name>D-Mbs 23287</name>
+    <description>München, Bayerische Staatsbibliothek, Clm 23 287</description>
+    <id>124028</id>
+  </siglum>
+  <siglum>
+    <name>D-Mbs 27020</name>
+    <description>München, Bayerische Staatsbibliothek, Clm 27 020</description>
+    <id>124080</id>
+  </siglum>
+  <siglum>
+    <name>D-Mbs 27130</name>
+    <description>München, Bayerische Staatsbibliothek, Clm 27 130</description>
+    <id>123877</id>
+  </siglum>
+  <siglum>
+    <name>D-Mbs 29308(1</name>
+    <description>München, Bayerische Staatsbibliothek  Clm 29 308 (1</description>
+    <id>123786</id>
+  </siglum>
+  <siglum>
+    <name>D-Mbs 29308(1</name>
+    <description>München, Bayerische Staatsbibliothek  Clm 29 308 (1</description>
+    <id>123785</id>
+  </siglum>
+  <siglum>
+    <name>D-Mbs 29308(18</name>
+    <description>München, Bayerische Staatsbibliothek  Clm 29 308 (18</description>
+    <id>123861</id>
+  </siglum>
+  <siglum>
+    <name>D-Mbs 29308(2</name>
+    <description>München, Bayerische Staatsbibliothek  Clm 29 308 (2</description>
+    <id>123813</id>
+  </siglum>
+  <siglum>
+    <name>D-Mbs 29308(5</name>
+    <description>München, Bayerische Staatsbibliothek  Clm 29 308 (5</description>
+    <id>123823</id>
+  </siglum>
+  <siglum>
+    <name>D-Mbs 3008</name>
+    <description>München, Bayerische Staatsbibliothek, Clm 3008</description>
+    <id>123875</id>
+  </siglum>
+  <siglum>
+    <name>D-Mbs 3311</name>
+    <description>München, Bayerische Staatsbibliothek, Clm 3311</description>
+    <id>124041</id>
+  </siglum>
+  <siglum>
+    <name>D-Mbs 3906</name>
+    <description>München, Bayerische Staatsbibliothek, Clm 3906</description>
+    <id>123980</id>
+  </siglum>
+  <siglum>
+    <name>D-Mbs 3914</name>
+    <description>München, Bayerische Staatsbibliothek, Clm 3914</description>
+    <id>123867</id>
+  </siglum>
+  <siglum>
+    <name>D-Mbs 4101</name>
+    <description>München, Bayerische Staatsbibliothek, Clm 4101</description>
+    <id>124054</id>
+  </siglum>
+  <siglum>
+    <name>D-Mbs 4519</name>
+    <description>München, Bayerische Staatsbibliothek  Clm 4519</description>
+    <id>124055</id>
+  </siglum>
+  <siglum>
+    <name>D-Mbs 4548</name>
+    <description>München, Bayerische Staatsbibliothek, Clm 4548</description>
+    <id>124027</id>
+  </siglum>
+  <siglum>
+    <name>D-Mbs 5023</name>
+    <description>München, Bayerische Staatsbibliothek  Clm 5023</description>
+    <id>124056</id>
+  </siglum>
+  <siglum>
+    <name>D-Mbs 6913</name>
+    <description>München, Bayerische Staatsbibliothek, Clm 6913</description>
+    <id>124042</id>
+  </siglum>
+  <siglum>
+    <name>D-Mbs 7815</name>
+    <description>München, Bayerische Staatsbibliothek, Clm 7815</description>
+    <id>124058</id>
+  </siglum>
+  <siglum>
+    <name>D-Mbs 7919</name>
+    <description>München, Bayerische Staatsbibliothek, Clm 7919</description>
+    <id>123961</id>
+  </siglum>
+  <siglum>
+    <name>D-Mbs 8710</name>
+    <description>München, Bayerische Staatsbibliothek, Clm 8710</description>
+    <id>124008</id>
+  </siglum>
+  <siglum>
+    <name>D-Mbs 9508</name>
+    <description>München, Bayerische Staatsbibliothek, Clm 9508</description>
+    <id>124043</id>
+  </siglum>
+  <siglum>
+    <name>D-Mbs Clm 4303</name>
+    <description>München, Bayerische Staatsbibliothek, Clm 4303</description>
+    <id>123681</id>
+  </siglum>
+  <siglum>
+    <name>D-Mbs Clm 4304</name>
+    <description>München, Bayerische Staatsbibliothek, Clm 4304</description>
+    <id>123682</id>
+  </siglum>
+  <siglum>
+    <name>D-Mbs Clm 4305</name>
+    <description>München, Bayerische Staatsbibliothek, Clm 4305</description>
+    <id>123683</id>
+  </siglum>
+  <siglum>
+    <name>D-Mbs Clm 4306</name>
+    <description>München, Bayerische Staatsbibliothek, Clm 4306</description>
+    <id>123684</id>
+  </siglum>
+  <siglum>
+    <name>D-Mbs g716</name>
+    <description>München, Bayerische Staatsbibliothek, Cgm 716</description>
+    <id>124030</id>
+  </siglum>
+  <siglum>
+    <name>D-Msb 19242</name>
+    <description>München, Bayerische Staatsbibliothek, Clm 19 242</description>
+    <id>123918</id>
+  </siglum>
+  <siglum>
+    <name>D-Mu 156</name>
+    <description>München, Universitätsbibliothek, 2Ý Cod. ms. 156</description>
+    <id>124000</id>
+  </siglum>
+  <siglum>
+    <name>D-Mü Clm 19162</name>
+    <description>Tegernsee Passionale</description>
+    <id>123770</id>
+  </siglum>
+  <siglum>
+    <name>D-MÜu 41</name>
+    <description>Münster, Universitäts- und Landesbibliothek, Hs 41</description>
+    <id>124037</id>
+  </siglum>
+  <siglum>
+    <name>D-MZb A</name>
+    <description>Mainz, Bischöfliches Dom- und Diözesanmuseum, A</description>
+    <id>123620</id>
+  </siglum>
+  <siglum>
+    <name>D-MZb B</name>
+    <description>Mainz, Bischöfliches Dom- und Diözesanmuseum, B</description>
+    <id>123621</id>
+  </siglum>
+  <siglum>
+    <name>D-MZb C</name>
+    <description>Mainz, Bischöfliches Dom- und Diözesanmuseum, C</description>
+    <id>123622</id>
+  </siglum>
+  <siglum>
+    <name>D-MZb D</name>
+    <description>Mainz, Bischöfliches Dom- und Diözesanmuseum, D</description>
+    <id>123623</id>
+  </siglum>
+  <siglum>
+    <name>D-MZb E</name>
+    <description>Mainz, Bischöfliches Dom- und Diözesanmuseum, E</description>
+    <id>123624</id>
+  </siglum>
+  <siglum>
+    <name>D-P/imp1511</name>
+    <description>Passau:  Imp: Graduale Pataviense (Wien, 1511)</description>
+    <id>124081</id>
+  </siglum>
+  <siglum>
+    <name>D-Rs 4o lit. 19</name>
+    <description>Regensburg, Staatliche Bibliothek, 4o Liturg. 19</description>
+    <id>123982</id>
+  </siglum>
+  <siglum>
+    <name>D-Rtt 1/II</name>
+    <description>Regensburg,  Fürst Thurn und Taxis Hofbibliothek, F.K. mus. 1/II</description>
+    <id>124093</id>
+  </siglum>
+  <siglum>
+    <name>D-Rtt 42/II</name>
+    <description>Regensburg,  Fürst Thurn und Taxis Hofbibliothek, F.K. mus. 42/II</description>
+    <id>124082</id>
+  </siglum>
+  <siglum>
+    <name>D-Rtt 43/II</name>
+    <description>Regensburg,  Fürst Thurn und Taxis Hofbibliothek, F.K. mus. 43/II</description>
+    <id>124097</id>
+  </siglum>
+  <siglum>
+    <name>D-Rtt 5/II</name>
+    <description>Regensburg,  Fürst Thurn und Taxis Hofbibliothek, F.K. mus. 5/II</description>
+    <id>124089</id>
+  </siglum>
+  <siglum>
+    <name>D-Rtt 68-69</name>
+    <description>Regensburg,  Fürst Thurn und Taxis Hofbibliothek, F.K. mus. 68 &amp; 69</description>
+    <id>124071</id>
+  </siglum>
+  <siglum>
+    <name>D-Rtt 7/II</name>
+    <description>Regensburg,  Fürst Thurn und Taxis Hofbibliothek, F.K. mus. 7/11</description>
+    <id>124083</id>
+  </siglum>
+  <siglum>
+    <name>D-Rtt 84</name>
+    <description>Regensburg,  Fürst Thurn und Taxis Hofbibliothek, F.K. mus. 84</description>
+    <id>124101</id>
+  </siglum>
+  <siglum>
+    <name>D-Sl 20</name>
+    <description>Stuttgart, Württembergische Landesbibliothek, cod. bibl., 2o 20</description>
+    <id>123912</id>
+  </siglum>
+  <siglum>
+    <name>D-Sl 36</name>
+    <description>Stuttgart, Württembergische Landesbibliothek, Cod. bibl. 4o 36</description>
+    <id>123881</id>
+  </siglum>
+  <siglum>
+    <name>D-Sl 38</name>
+    <description>Stuttgart, Württembergische Landesbibliothek, Cod. bibl. 2o 38</description>
+    <id>123994</id>
+  </siglum>
+  <siglum>
+    <name>D-Sl brev. 160</name>
+    <description>Stuttgart, Württembergische Landesbibliothek, Cod. brev. 160</description>
+    <id>123862</id>
+  </siglum>
+  <siglum>
+    <name>D-Sl HB.I.55</name>
+    <description>Stuttgart, Württembergische Landesbibliothek, HB.I.55</description>
+    <id>123637</id>
+  </siglum>
+  <siglum>
+    <name>D-Sl mus65</name>
+    <description>Stuttgart, Wüttembergische Lndesbibliothek, Cod. mus. 2o 65</description>
+    <id>124020</id>
+  </siglum>
+  <siglum>
+    <name>D-TRb Abt. 95, Nr. 5</name>
+    <description>Trier, Bistumsarchiv Abt. 95, Nr. 5</description>
+    <id>123757</id>
+  </siglum>
+  <siglum>
+    <name>D-TRs 1245 / 597 (original)</name>
+    <description>Trier, Stadtbibliothek Weberbach, 1245 / 597 (original)</description>
+    <id>651162</id>
+  </siglum>
+  <siglum>
+    <name>D-TRs 1245/597 (rev)</name>
+    <description>Trier, Stadtbibliothek, 1245 / 597 (revised)</description>
+    <id>662398</id>
+  </siglum>
+  <siglum>
+    <name>D-TRs 2254</name>
+    <description>Trier, Stadtbibliothek 2254 (Codex Bohm)</description>
+    <id>123946</id>
+  </siglum>
+  <siglum>
+    <name>D-W 28 Helmst. (olim 31)</name>
+    <description>Wolfenbüttel, Herzog August Bibliothek - Musikabteilung, 28 Helmst. (olim 31)</description>
+    <id>123716</id>
+  </siglum>
+  <siglum>
+    <name>D-W 29 Helmst. (olim 32)</name>
+    <description>Wolfenbüttel, Herzog August Bibliothek - Musikabteilung, 29 Helmst. (olim 32)</description>
+    <id>123715</id>
+  </siglum>
+  <siglum>
+    <name>D-W 45 (40)</name>
+    <description>Wolfenbüttel, Herzog August Bibliothek 45 (Helmst. 40)</description>
+    <id>123966</id>
+  </siglum>
+  <siglum>
+    <name>D-WI1 2</name>
+    <description>Wiesbaden, Hochschul- und Landesbibliothek RheinMain, 2 (Riesencodex)</description>
+    <id>588308</id>
+  </siglum>
+  <siglum>
+    <name>D-WI1 fragment 1</name>
+    <description>Wiesbaden, Hochschul-und Landesbibliothek RheinMain, fragment</description>
+    <id>676971</id>
+  </siglum>
+  <siglum>
+    <name>D-WÜ/imp1583</name>
+    <description>Graduale Herbipolense iussu atque authoritate</description>
+    <id>124098</id>
+  </siglum>
+  <siglum>
+    <name>D-WÜu 283</name>
+    <description>Würzburg, Universitätsbibliothek, M. ch. f. 283</description>
+    <id>124102</id>
+  </siglum>
+  <siglum>
+    <name>D-Xsb H109</name>
+    <description>Xanten, Stiftsarchiv und -bibliothek St. Viktor H 109</description>
+    <id>124059</id>
+  </siglum>
+  <siglum>
+    <name>D-Xsb H140(3)</name>
+    <description>Xanten, Stiftsarchiv und -bibliothek St. Viktor   H 140 (3)</description>
+    <id>124077</id>
+  </siglum>
+  <siglum>
+    <name>DK-Kk 3449 8o [01] I</name>
+    <description>København (Copenhagen), Det kongelige Bibliotek Slotsholmen, Gl. Kgl. S. 3449, 8o [01] I</description>
+    <id>123689</id>
+  </siglum>
+  <siglum>
+    <name>DK-Kk 3449 8o [02] II</name>
+    <description>København (Copenhagen), Det kongelige Bibliotek Slotsholmen, Gl. Kgl. S. 3449, 8o [02] II</description>
+    <id>123690</id>
+  </siglum>
+  <siglum>
+    <name>DK-Kk 3449 8o [03] III</name>
+    <description>København (Copenhagen), Det kongelige Bibliotek Slotsholmen, Gl. Kgl. S. 3449, 8o [03] III</description>
+    <id>123691</id>
+  </siglum>
+  <siglum>
+    <name>DK-Kk 3449 8o [04] IV</name>
+    <description>København (Copenhagen), Det kongelige Bibliotek Slotsholmen, Gl. Kgl. S. 3449, 8o [04] IV</description>
+    <id>123692</id>
+  </siglum>
+  <siglum>
+    <name>DK-Kk 3449 8o [05] V</name>
+    <description>København (Copenhagen), Det kongelige Bibliotek Slotsholmen, Gl. Kgl. S. 3449, 8o [05] V</description>
+    <id>123693</id>
+  </siglum>
+  <siglum>
+    <name>DK-Kk 3449 8o [06] VI</name>
+    <description>København (Copenhagen), Det kongelige Bibliotek Slotsholmen, Gl. Kgl. S. 3449, 8o [06] VI</description>
+    <id>123694</id>
+  </siglum>
+  <siglum>
+    <name>DK-Kk 3449 8o [07] VII</name>
+    <description>København (Copenhagen), Det kongelige Bibliotek Slotsholmen, Gl. Kgl. S. 3449, 8o [07] VII</description>
+    <id>123695</id>
+  </siglum>
+  <siglum>
+    <name>DK-Kk 3449 8o [08] VIII</name>
+    <description>København (Copenhagen), Det kongelige Bibliotek Slotsholmen, Gl. Kgl. S. 3449, 8o [08] VIII</description>
+    <id>123696</id>
+  </siglum>
+  <siglum>
+    <name>DK-Kk 3449 8o [09] IX</name>
+    <description>København (Copenhagen), Det kongelige Bibliotek Slotsholmen, Gl. Kgl. S. 3449, 8o [09] IX</description>
+    <id>123697</id>
+  </siglum>
+  <siglum>
+    <name>DK-Kk 3449 8o [10] X</name>
+    <description>København (Copenhagen), Det kongelige Bibliotek Slotsholmen, Gl. Kgl. S. 3449, 8o [10] X</description>
+    <id>123698</id>
+  </siglum>
+  <siglum>
+    <name>DK-Kk 3449 8o [11] XI</name>
+    <description>København (Copenhagen), Det kongelige Bibliotek Slotsholmen, Gl. Kgl. S. 3449, 8o [11] XI</description>
+    <id>123699</id>
+  </siglum>
+  <siglum>
+    <name>DK-Kk 3449 8o [12] XII</name>
+    <description>København (Copenhagen), Det kongelige Bibliotek Slotsholmen, Gl. Kgl. S. 3449, 8o [12] XII</description>
+    <id>123700</id>
+  </siglum>
+  <siglum>
+    <name>DK-Kk 3449 8o [13] XIII</name>
+    <description>København (Copenhagen), Det kongelige Bibliotek Slotsholmen, Gl. Kgl. S. 3449, 8o [13] XIII</description>
+    <id>123701</id>
+  </siglum>
+  <siglum>
+    <name>DK-Kk 3449 8o [14] XIV</name>
+    <description>København (Copenhagen), Det kongelige Bibliotek Slotsholmen, Gl. Kgl. S. 3449, 8o [14] XIV</description>
+    <id>123702</id>
+  </siglum>
+  <siglum>
+    <name>DK-Kk 3449 8o [15] XV</name>
+    <description>København (Copenhagen), Det kongelige Bibliotek Slotsholmen, Gl. Kgl. S. 3449, 8o [15] XV</description>
+    <id>123703</id>
+  </siglum>
+  <siglum>
+    <name>DK-Kk 3449 8o [16] XVI</name>
+    <description>København (Copenhagen), Det kongelige Bibliotek Slotsholmen, Gl. Kgl. S. 3449, 8o [16] XVI</description>
+    <id>123704</id>
+  </siglum>
+  <siglum>
+    <name>DK-Kk 3449 8o [17] XVII</name>
+    <description>København (Copenhagen), Det kongelige Bibliotek Slotsholmen, Gl. Kgl. S. 3449, 8o [17] XVII</description>
+    <id>123705</id>
+  </siglum>
+  <siglum>
+    <name>E-Mn 19421</name>
+    <description>Madrid, Biblioteca Nacional, 19421</description>
+    <id>123899</id>
+  </siglum>
+  <siglum>
+    <name>E-Mn 288</name>
+    <description>Madrid, Biblioteca Nacional, 288</description>
+    <id>123882</id>
+  </siglum>
+  <siglum>
+    <name>E-Mn 289</name>
+    <description>Madrid, Biblioteca Nacional, 289</description>
+    <id>123892</id>
+  </siglum>
+  <siglum>
+    <name>E-Mn V. 20-4</name>
+    <description>Madrid, Biblioteca Nacional, V.20-4</description>
+    <id>123893</id>
+  </siglum>
+  <siglum>
+    <name>E-SA 5</name>
+    <description>Salamanca, Catedral - Archivo Musical, 5</description>
+    <id>123636</id>
+  </siglum>
+  <siglum>
+    <name>E-SA 6</name>
+    <description>Salamanca, Catedral - Archivo Musical, 6</description>
+    <id>123650</id>
+  </siglum>
+  <siglum>
+    <name>E-SA 7</name>
+    <description>Salamanca, Catedral - Archivo Musical, 7</description>
+    <id>123651</id>
+  </siglum>
+  <siglum>
+    <name>E-SA 8</name>
+    <description>Salamanca, Catedral - Archivo Musical, 8</description>
+    <id>123652</id>
+  </siglum>
+  <siglum>
+    <name>E-Tc 35.10</name>
+    <description>Toledo, Archivo Capitular, ms 35.10</description>
+    <id>123967</id>
+  </siglum>
+  <siglum>
+    <name>E-Tc 44.1</name>
+    <description>Toledo, Catedral - Archivo y Biblioteca Capítulares, 44.1</description>
+    <id>123638</id>
+  </siglum>
+  <siglum>
+    <name>E-Tc 44.2</name>
+    <description>Toledo, Catedral - Archivo y Biblioteca Capítulares, 44.2</description>
+    <id>123639</id>
+  </siglum>
+  <siglum>
+    <name>E-Tc 52.11</name>
+    <description>Toledo, Archivo Capitular, ms 52.11</description>
+    <id>123939</id>
+  </siglum>
+  <siglum>
+    <name>EC-BSF4</name>
+    <description>Quito, Historic Library of the Church of San Francisco, BSF4</description>
+    <id>672452</id>
+  </siglum>
+  <siglum>
+    <name>EC-BSF8</name>
+    <description>Quito, Historic Library of the Church of San Francisco, BSF8</description>
+    <id>673703</id>
+  </siglum>
+  <siglum>
+    <name>EC-P16BSF18</name>
+    <description>Quito, Historic Library of the Church of San Francisco, P16BSF18</description>
+    <id>669907</id>
+  </siglum>
+  <siglum>
+    <name>Engelberg 103</name>
+    <description>Engelberg 103</description>
+    <id>123725</id>
+  </siglum>
+  <siglum>
+    <name>F-AI 44</name>
+    <description>Albi, Bibliothèque municipale Rochegude, 44</description>
+    <id>123679</id>
+  </siglum>
+  <siglum>
+    <name>F-AN 144</name>
+    <description>Angers, Bibliothèque municipale, 144 (136)</description>
+    <id>123792</id>
+  </siglum>
+  <siglum>
+    <name>F-AS 437</name>
+    <description>Arras, Bibliothèque municipale 437 (1011)</description>
+    <id>123925</id>
+  </siglum>
+  <siglum>
+    <name>F-AS 444</name>
+    <description>Arras, Bibliothèque municipale 444 (888, sic in AH)</description>
+    <id>123962</id>
+  </siglum>
+  <siglum>
+    <name>F-AS 893</name>
+    <description>Arras, Bibliothèque municipale, 893 (olim 465)</description>
+    <id>123593</id>
+  </siglum>
+  <siglum>
+    <name>F-AUT 28S</name>
+    <description>Autun, Bibliothèque municipale 28 S</description>
+    <id>123781</id>
+  </siglum>
+  <siglum>
+    <name>F-CA 38</name>
+    <description>Cambrai, Bibliothèque municipale, 38 (olim 40)</description>
+    <id>123601</id>
+  </siglum>
+  <siglum>
+    <name>F-CA 60</name>
+    <description>Cambrai, Bibliothèque municipale, ms 60</description>
+    <id>123863</id>
+  </siglum>
+  <siglum>
+    <name>F-CA 75</name>
+    <description>Cambrai, Bibliothèque municipale, 75</description>
+    <id>123814</id>
+  </siglum>
+  <siglum>
+    <name>F-CA 78</name>
+    <description>Cambrai, Bibliothèque municipale, ms 78(79)</description>
+    <id>123854</id>
+  </siglum>
+  <siglum>
+    <name>F-CA Impr. XVI C 4</name>
+    <description>Cambrai, Bibliothèque municipale, Impr. XVI C 4</description>
+    <id>123602</id>
+  </siglum>
+  <siglum>
+    <name>F-CHR 47</name>
+    <description>Chartres, Bibliothèque Municipale, Ms47</description>
+    <id>123782</id>
+  </siglum>
+  <siglum>
+    <name>F-CHR 520</name>
+    <description>Chartres, Bibliothèque municipale, 520 (destroyed)</description>
+    <id>123947</id>
+  </siglum>
+  <siglum>
+    <name>F-COm 409</name>
+    <description>Colmar,  Bibl. mun. 409</description>
+    <id>123940</id>
+  </siglum>
+  <siglum>
+    <name>F-DOU 113</name>
+    <description>Douai, Bibliothèque municipale, 113</description>
+    <id>124021</id>
+  </siglum>
+  <siglum>
+    <name>F-DOU 114</name>
+    <description>Douai, Bibliothèque municipale, 114</description>
+    <id>124001</id>
+  </siglum>
+  <siglum>
+    <name>F-DOU 123</name>
+    <description>Douai, Bibliothèque municipale, ms. 123</description>
+    <id>124066</id>
+  </siglum>
+  <siglum>
+    <name>F-DOU 124</name>
+    <description>Douai, Bibliothèque municipale, ms. 124</description>
+    <id>124099</id>
+  </siglum>
+  <siglum>
+    <name>F-DOU 69</name>
+    <description>Douai, Bibliothèque municipale, 69</description>
+    <id>123995</id>
+  </siglum>
+  <siglum>
+    <name>F-G 867</name>
+    <description>Grenoble, Bibliothèque Municipale, ms. 867 (91)</description>
+    <id>672072</id>
+  </siglum>
+  <siglum>
+    <name>F-LA 263</name>
+    <description>Laon, Bibliothèque municipale, ms 263</description>
+    <id>123903</id>
+  </siglum>
+  <siglum>
+    <name>F-LG 2</name>
+    <description>Limoges, Bibliothèque municipale 2 (17)</description>
+    <id>123983</id>
+  </siglum>
+  <siglum>
+    <name>F-LM 437</name>
+    <description>Le Mans, Bibliotheque municipale, 437</description>
+    <id>123968</id>
+  </siglum>
+  <siglum>
+    <name>F-MO 20</name>
+    <description>Montpellier, Bibliotheque municipale</description>
+    <id>123984</id>
+  </siglum>
+  <siglum>
+    <name>F-MZ 452</name>
+    <description>Metz, Bibliothèque municipale,  ms 452</description>
+    <id>123835</id>
+  </siglum>
+  <siglum>
+    <name>F-O 129</name>
+    <description>Orléans, Bibliothèque municipale 129 (107)</description>
+    <id>123973</id>
+  </siglum>
+  <siglum>
+    <name>F-Pm 526</name>
+    <description>Paris, Bibliotheque Mazarine, 526</description>
+    <id>123948</id>
+  </siglum>
+  <siglum>
+    <name>F-Pn 10508</name>
+    <description>Paris, Bibliothèque nationale, fonds lat. 10 508</description>
+    <id>123894</id>
+  </siglum>
+  <siglum>
+    <name>F-Pn 10510</name>
+    <description>Paris, Bibliothèque nationale, lat. 10 510</description>
+    <id>123837</id>
+  </siglum>
+  <siglum>
+    <name>F-Pn 10513</name>
+    <description>Paris, Bibliothèque nationale, lat. 10 513</description>
+    <id>124072</id>
+  </siglum>
+  <siglum>
+    <name>F-Pn 10587</name>
+    <description>Paris, Bibliothèque nationale, fonds lat. 10 587</description>
+    <id>123783</id>
+  </siglum>
+  <siglum>
+    <name>F-Pn 1084</name>
+    <description>Paris, Bibliothèque nationale, fond lat. 1084</description>
+    <id>123794</id>
+  </siglum>
+  <siglum>
+    <name>F-Pn 1086</name>
+    <description>Paris, Bibliothèque nationale, lat. 1086</description>
+    <id>123904</id>
+  </siglum>
+  <siglum>
+    <name>F-Pn 1101</name>
+    <description>Paris, Bibliothèque nationale, lat. 1101</description>
+    <id>123969</id>
+  </siglum>
+  <siglum>
+    <name>F-Pn 1107</name>
+    <description>Paris, Bibliothèque nationale 1107</description>
+    <id>123954</id>
+  </siglum>
+  <siglum>
+    <name>F-Pn 1118</name>
+    <description>Paris, Bibliothèque nationale, fond lat. 1118</description>
+    <id>123795</id>
+  </siglum>
+  <siglum>
+    <name>F-Pn 1120</name>
+    <description>Paris, Bibliothèque nationeale, lat. 1120</description>
+    <id>123818</id>
+  </siglum>
+  <siglum>
+    <name>F-Pn 1121</name>
+    <description>Paris, Bibliothèque nationale, fond lat. 1121</description>
+    <id>123817</id>
+  </siglum>
+  <siglum>
+    <name>F-Pn 1132</name>
+    <description>Paris, Bibliothèque nationale, lat. 1132</description>
+    <id>123839</id>
+  </siglum>
+  <siglum>
+    <name>F-Pn 1133</name>
+    <description>Paris, Bibliothèque nationale, lat. 1133</description>
+    <id>123840</id>
+  </siglum>
+  <siglum>
+    <name>F-Pn 1134</name>
+    <description>Paris, Bibliothèque nationale, lat. 1134</description>
+    <id>123838</id>
+  </siglum>
+  <siglum>
+    <name>F-Pn 1135</name>
+    <description>Paris, Bibliothèque nationale,  lat. 1135</description>
+    <id>123801</id>
+  </siglum>
+  <siglum>
+    <name>F-Pn 1136</name>
+    <description>Paris, Bibliothèque nationale, lat. 1136</description>
+    <id>123802</id>
+  </siglum>
+  <siglum>
+    <name>F-Pn 1137</name>
+    <description>Paris, Bibliothèque nationale, lat. 1137</description>
+    <id>123826</id>
+  </siglum>
+  <siglum>
+    <name>F-Pn 1138/1338</name>
+    <description>Paris, Bibliothèque nationale, lat. 1138 &amp; 1338</description>
+    <id>123816</id>
+  </siglum>
+  <siglum>
+    <name>F-Pn 1139</name>
+    <description>Paris, Bibliotheque nationale, lat. 1139</description>
+    <id>123868</id>
+  </siglum>
+  <siglum>
+    <name>F-Pn 1154</name>
+    <description>Paris, Bibliothèque nationale, lat. 1154</description>
+    <id>123774</id>
+  </siglum>
+  <siglum>
+    <name>F-Pn 1240</name>
+    <description>Paris, Bibliothèque nationale, lat. 1240</description>
+    <id>123787</id>
+  </siglum>
+  <siglum>
+    <name>F-Pn 13254</name>
+    <description>Paris, Bibliothèque nationale, lat. 13 254</description>
+    <id>123974</id>
+  </siglum>
+  <siglum>
+    <name>F-Pn 17312</name>
+    <description>Paris, Bibliothèque nationale, lat. 17 312</description>
+    <id>123949</id>
+  </siglum>
+  <siglum>
+    <name>F-Pn 17436</name>
+    <description>Paris, Bibliothèque nationale, lat. 17 436</description>
+    <id>123778</id>
+  </siglum>
+  <siglum>
+    <name>F-Pn 779</name>
+    <description>Paris, Bibliothèque nationale, lat. 779</description>
+    <id>123829</id>
+  </siglum>
+  <siglum>
+    <name>F-Pn 887</name>
+    <description>Paris, Bibliothèque nationale, fond lat. 887</description>
+    <id>123815</id>
+  </siglum>
+  <siglum>
+    <name>F-Pn 903</name>
+    <description>Paris, Bibliothèque nationale, lat. 903</description>
+    <id>123849</id>
+  </siglum>
+  <siglum>
+    <name>F-Pn 904</name>
+    <description>Paris, Bibliothèque nationale, lat. 904</description>
+    <id>123926</id>
+  </siglum>
+  <siglum>
+    <name>F-Pn 905</name>
+    <description>Paris, Bibliothèque nationale, lat. 905</description>
+    <id>124067</id>
+  </siglum>
+  <siglum>
+    <name>F-Pn 909</name>
+    <description>Paris, Bibliothèque nationale, fond lat. 909</description>
+    <id>123825</id>
+  </siglum>
+  <siglum>
+    <name>F-Pn 9436</name>
+    <description>Paris, Bibliothèque nationale, lat. 9436</description>
+    <id>123824</id>
+  </siglum>
+  <siglum>
+    <name>F-Pn 9448</name>
+    <description>Paris, Bibliothèque nationale, fonds lat. 9448</description>
+    <id>123793</id>
+  </siglum>
+  <siglum>
+    <name>F-Pn 9449</name>
+    <description>Paris, Bibliothèque nationale, lat. 9449</description>
+    <id>123830</id>
+  </siglum>
+  <siglum>
+    <name>F-Pn lat. 776</name>
+    <description>Paris, Bibliothèque nationale de France, Ms. lat. 776  (olim Colbert 873 ; Regius 3661)</description>
+    <id>666487</id>
+  </siglum>
+  <siglum>
+    <name>F-Pn na 1177</name>
+    <description>Paris, Bibliothèque nationale, nouv. acq. lat. 1177</description>
+    <id>123836</id>
+  </siglum>
+  <siglum>
+    <name>F-Pn na 1235</name>
+    <description>Paris, Bibliothèque nationale, nouv. acq. lat. 1235</description>
+    <id>123864</id>
+  </siglum>
+  <siglum>
+    <name>F-Pn na 1618</name>
+    <description>Paris, Bibliothèque nationale, nouv. acq. 1618</description>
+    <id>123777</id>
+  </siglum>
+  <siglum>
+    <name>F-Pn na 3126</name>
+    <description>Paris, Bibliothèque nationale, nouv. acq. lat. 3126</description>
+    <id>123900</id>
+  </siglum>
+  <siglum>
+    <name>F-Pn na1871</name>
+    <description>Paris, Bibliothèque nationale, nouv. acq. lat. 1871</description>
+    <id>123855</id>
+  </siglum>
+  <siglum>
+    <name>F-Pnm 12054</name>
+    <description>Paris, Bibliothèque Nationale, 12054</description>
+    <id>675815</id>
+  </siglum>
+  <siglum>
+    <name>F-Pnm 776</name>
+    <description>Paris, Bibliothèque Nationale de France, Latin 776</description>
+    <id>664930</id>
+  </siglum>
+  <siglum>
+    <name>F-Pnm 8884</name>
+    <description>Paris, Bibliothèque nationale, ms. lat. 8884</description>
+    <id>674721</id>
+  </siglum>
+  <siglum>
+    <name>F-Pnm lat. 1085</name>
+    <description>Paris, Bibliothèque nationale de France - Département des Manuscrits, latin 1085</description>
+    <id>123663</id>
+  </siglum>
+  <siglum>
+    <name>F-Pnm lat. 1090</name>
+    <description>Paris, Bibliothèque nationale de France - Département des Manuscrits, latin 1090</description>
+    <id>123627</id>
+  </siglum>
+  <siglum>
+    <name>F-Pnm lat. 1112</name>
+    <description>Paris, Bibliothèque nationale de France - Département des manuscrits, Latin 1112</description>
+    <id>676377</id>
+  </siglum>
+  <siglum>
+    <name>F-Pnm lat. 12044</name>
+    <description>Paris, Bibliothèque nationale de France - Département des Manuscrits, latin 12044</description>
+    <id>123628</id>
+  </siglum>
+  <siglum>
+    <name>F-Pnm lat. 1240</name>
+    <description>Paris, Bibliothèque nationale de France - Département des Manuscrits, latin 1240</description>
+    <id>123629</id>
+  </siglum>
+  <siglum>
+    <name>F-Pnm lat. 12601</name>
+    <description>Paris, Bibliothèque nationale de France - Département des Manuscrits, latin 12601</description>
+    <id>123630</id>
+  </siglum>
+  <siglum>
+    <name>F-Pnm lat. 15181</name>
+    <description>Paris, Bibliothèque nationale de France - Département des Manuscrits, latin 15181</description>
+    <id>123631</id>
+  </siglum>
+  <siglum>
+    <name>F-Pnm lat. 15182</name>
+    <description>Paris, Bibliothèque nationale de France - Département des Manuscrits, latin 15182</description>
+    <id>123632</id>
+  </siglum>
+  <siglum>
+    <name>F-Pnm lat. 776</name>
+    <description>Paris, Bibliothèque nationale de France - Département des Manuscrits, latin 776</description>
+    <id>666639</id>
+  </siglum>
+  <siglum>
+    <name>F-Pnm lat. 943</name>
+    <description>Bibliothèque nationale de France, Département des manuscrits, Latin 943</description>
+    <id>672486</id>
+  </siglum>
+  <siglum>
+    <name>F-Pnm n.a.lat. 1411</name>
+    <description>Paris, Bibliothèque nationale de France - Département des Manuscrits, nouv. acq. latin 1411</description>
+    <id>123677</id>
+  </siglum>
+  <siglum>
+    <name>F-Pnm n.a.lat. 1412</name>
+    <description>Paris, Bibliothèque nationale de France - Département des Manuscrits, nouv. acq. latin 1412</description>
+    <id>123678</id>
+  </siglum>
+  <siglum>
+    <name>F-Pnm n.a.lat. 1535</name>
+    <description>Paris, Bibliothèque nationale de France - Département des Manuscrits, nouv. acq. latin 1535</description>
+    <id>123633</id>
+  </siglum>
+  <siglum>
+    <name>F-PRO 12</name>
+    <description>Provins, Bibliothèque municipale 12</description>
+    <id>123941</id>
+  </siglum>
+  <siglum>
+    <name>F-R 248</name>
+    <description>Rouen, Bibliothèque municipale, 248 (olim  A. 339)</description>
+    <id>123662</id>
+  </siglum>
+  <siglum>
+    <name>F-Rm 249</name>
+    <description>Rouen, Bibliothèque municipale, ms 249 (A. 280)</description>
+    <id>123985</id>
+  </siglum>
+  <siglum>
+    <name>F-RS 224</name>
+    <description>Reims, Bibliothèque municipale, 224</description>
+    <id>123996</id>
+  </siglum>
+  <siglum>
+    <name>F-RS 285</name>
+    <description>Reims, Bibliothèque municipale, 285 (169)</description>
+    <id>124022</id>
+  </siglum>
+  <siglum>
+    <name>F-RSm 227</name>
+    <description>Reims, Bibliothèque municipale, 227 (122)</description>
+    <id>123950</id>
+  </siglum>
+  <siglum>
+    <name>F-SO 596</name>
+    <description>Solesmes, Abbaye de Saint-Pierre, 596 (The Wilton Processional)</description>
+    <id>620437</id>
+  </siglum>
+  <siglum>
+    <name>F-T 571</name>
+    <description>Troyes, Bibliothèque municipale, 571</description>
+    <id>123747</id>
+  </siglum>
+  <siglum>
+    <name>F-TOm 149</name>
+    <description>Tours, Bibliothèque municipale, 149</description>
+    <id>123640</id>
+  </siglum>
+  <siglum>
+    <name>F-VAL 114</name>
+    <description>Valenciennes, Bibliothèque municipale, 114</description>
+    <id>123642</id>
+  </siglum>
+  <siglum>
+    <name>F-VN 759</name>
+    <description>Verdun, Bibliothèque Municipale, 759</description>
+    <id>123970</id>
+  </siglum>
+  <siglum>
+    <name>GB-AB 20541 E</name>
+    <description>Aberystwyth, Llyfrgell Genedlaethol Cymru (National Library of Wales), 20541 E</description>
+    <id>123592</id>
+  </siglum>
+  <siglum>
+    <name>GB-Ccc 473</name>
+    <description>Cambridge, Corpus Christi College, 473</description>
+    <id>123796</id>
+  </siglum>
+  <siglum>
+    <name>GB-Ccc Ms. 146</name>
+    <description>Great Britain, Corpus Christi College, Cambridge, Ms. 146</description>
+    <id>674988</id>
+  </siglum>
+  <siglum>
+    <name>GB-Cu add710</name>
+    <description>Cambridge, University Library, additional 710</description>
+    <id>123955</id>
+  </siglum>
+  <siglum>
+    <name>GB-Cu Mm.ii.9</name>
+    <description>Cambridge, University Library, Mm.ii.9</description>
+    <id>123603</id>
+  </siglum>
+  <siglum>
+    <name>GB-Lbl 2.B.IV</name>
+    <description>London, British Library, Royal 2.B.IV</description>
+    <id>123906</id>
+  </siglum>
+  <siglum>
+    <name>GB-Lbl 8.C.XIII</name>
+    <description>London, British Library, Royal 8 C. XIII</description>
+    <id>123805</id>
+  </siglum>
+  <siglum>
+    <name>GB-Lbl Add 23935</name>
+    <description>London, British Library, Additional 23935</description>
+    <id>637892</id>
+  </siglum>
+  <siglum>
+    <name>GB-Lbl Add. 57337</name>
+    <description>London, British Library, Additional Collection, MS. 57337</description>
+    <id>673643</id>
+  </siglum>
+  <siglum>
+    <name>GB-Lbl add.11414</name>
+    <description>London, British Library, add. 11 414</description>
+    <id>124009</id>
+  </siglum>
+  <siglum>
+    <name>GB-Lbl add.12194</name>
+    <description>London, British Library, add. 12 195</description>
+    <id>123951</id>
+  </siglum>
+  <siglum>
+    <name>GB-Lbl add.16905</name>
+    <description>London, British Library, add. 16 905</description>
+    <id>123986</id>
+  </siglum>
+  <siglum>
+    <name>GB-Lbl add.18031</name>
+    <description>London, British Library, add. 18 031</description>
+    <id>123942</id>
+  </siglum>
+  <siglum>
+    <name>GB-Lbl add.18032</name>
+    <description>London, British Library, add. 18 032</description>
+    <id>123943</id>
+  </siglum>
+  <siglum>
+    <name>GB-Lbl add.19768</name>
+    <description>London, British Library, add. 19 768</description>
+    <id>123788</id>
+  </siglum>
+  <siglum>
+    <name>GB-Lbl add.19768t</name>
+    <description>London, British Library, Add. 19 768</description>
+    <id>123850</id>
+  </siglum>
+  <siglum>
+    <name>GB-Lbl add.24680</name>
+    <description>London, British Library add. 24 680</description>
+    <id>123865</id>
+  </siglum>
+  <siglum>
+    <name>GB-Lbl Cot.Cal A.xiv</name>
+    <description>London, British Library, Cotton MS Caligula A.xiv</description>
+    <id>123905</id>
+  </siglum>
+  <siglum>
+    <name>GB-Ob B775</name>
+    <description>Oxford, Bodleian Library, Bodley 775</description>
+    <id>123827</id>
+  </siglum>
+  <siglum>
+    <name>GB-Ob Can. Lit. 202</name>
+    <description>Oxford, Bodleian Library, MS. Canon. Liturg. 202 (olim 19314)</description>
+    <id>123687</id>
+  </siglum>
+  <siglum>
+    <name>GB-Ob can.lit.340</name>
+    <description>Oxford, Bodleian Library, canon. liturg. 340</description>
+    <id>123944</id>
+  </siglum>
+  <siglum>
+    <name>GB-Ob can.lit.341</name>
+    <description>Oxford, Bodleian Library, canon. liturg. 341</description>
+    <id>123907</id>
+  </siglum>
+  <siglum>
+    <name>GB-Ob can.lit.354</name>
+    <description>Oxford, Bodleian Library, canon. liturg. 354</description>
+    <id>123901</id>
+  </siglum>
+  <siglum>
+    <name>GB-Ob Douce 222</name>
+    <description>Oxford, Bodleian Library, Douce 222</description>
+    <id>123856</id>
+  </siglum>
+  <siglum>
+    <name>GB-Ob Lat. Lit. b 14</name>
+    <description>Oxford, Bodleian, Lat. Lit. b 14</description>
+    <id>680956</id>
+  </siglum>
+  <siglum>
+    <name>GB-Ob lat.lit.b.5</name>
+    <description>Oxford, Bodleian Library, Lat. Liturg. b. 5</description>
+    <id>124023</id>
+  </siglum>
+  <siglum>
+    <name>GB-Ob Laud Misc. 284</name>
+    <description>Oxford, Bodleian Library, MS. Laud Misc. 284</description>
+    <id>123707</id>
+  </siglum>
+  <siglum>
+    <name>GB-Ob Ss27</name>
+    <description>Oxford, Bodleian Library, Selden supra 27</description>
+    <id>123797</id>
+  </siglum>
+  <siglum>
+    <name>GB-WO F.160</name>
+    <description>Worcester, Cathedral - Music Library, F.160 (olim 1247) (with hymnal)</description>
+    <id>123647</id>
+  </siglum>
+  <siglum>
+    <name>GB-WO F.160 (Facs)</name>
+    <description>Worcester, Cathedral - Music Library, F.160 (olim 1247) (facsimile)</description>
+    <id>123646</id>
+  </siglum>
+  <siglum>
+    <name>GOTTSCHALK</name>
+    <description>Gottschalk Antiphoner (fragments)</description>
+    <id>123609</id>
+  </siglum>
+  <siglum>
+    <name>H-Bu lat. 118</name>
+    <description>Budapest, Egyetemi Könyvtár (University Library), lat. 118</description>
+    <id>123597</id>
+  </siglum>
+  <siglum>
+    <name>H-Bu lat. 119</name>
+    <description>Budapest, Egyetemi Könyvtár (University Library), lat. 119</description>
+    <id>123598</id>
+  </siglum>
+  <siglum>
+    <name>H-Bu lat. 121</name>
+    <description>Budapest, Egyetemi Könyvtár (University Library), lat. 121</description>
+    <id>123599</id>
+  </siglum>
+  <siglum>
+    <name>H-Bu lat. 122</name>
+    <description>Budapest, Egyetemi Könyvtár (University Library), lat. 122</description>
+    <id>123600</id>
+  </siglum>
+  <siglum>
+    <name>HR-Dsmbb III</name>
+    <description>Dubrovnik, Franjevacki samostan, Codex Badija III</description>
+    <id>123737</id>
+  </siglum>
+  <siglum>
+    <name>HR-Dsmbb V</name>
+    <description>Dubrovnik, Franjevacki samostan, Codex Badija V</description>
+    <id>123738</id>
+  </siglum>
+  <siglum>
+    <name>HR-Dsmbb X</name>
+    <description>Dubrovnik, Franjevacki samostan, Codex Badija X</description>
+    <id>123739</id>
+  </siglum>
+  <siglum>
+    <name>HR-Dsmbb XI</name>
+    <description>Dubrovnik, Franjevacki samostan, Codex Badija XI</description>
+    <id>123740</id>
+  </siglum>
+  <siglum>
+    <name>HR-Hf Cod. C</name>
+    <description>Dubrovnik, Franjevački Samostan (Franciscan Monastery), Cod. C Nr. 4</description>
+    <id>123719</id>
+  </siglum>
+  <siglum>
+    <name>HR-Hf Cod. D</name>
+    <description>Dubrovnik, Franjevački Samostan (Franciscan Monastery), Cod. D Nr. 5</description>
+    <id>123720</id>
+  </siglum>
+  <siglum>
+    <name>HR-Hf Cod. E</name>
+    <description>Dubrovnik, Franjevački Samostan (Franciscan Monastery), Cod. E Nr. 3</description>
+    <id>123721</id>
+  </siglum>
+  <siglum>
+    <name>HR-Hf Cod. F</name>
+    <description>Dubrovnik, Franjevački Samostan (Franciscan Monastery), Cod. F Nr. 6</description>
+    <id>123722</id>
+  </siglum>
+  <siglum>
+    <name>HR-ŠIBf sn</name>
+    <description>Šibenik, Franciscan Monastery, sine signo</description>
+    <id>123831</id>
+  </siglum>
+  <siglum>
+    <name>HR-Zmk MR 72</name>
+    <description>Metropolitanska Knjižnica MR 72</description>
+    <id>691025</id>
+  </siglum>
+  <siglum>
+    <name>I-Ac 693</name>
+    <description>Assisi, Biblioteca comunale, 693</description>
+    <id>123670</id>
+  </siglum>
+  <siglum>
+    <name>I-Ac 694</name>
+    <description>Assisi, Biblioteca comunale, 694</description>
+    <id>123669</id>
+  </siglum>
+  <siglum>
+    <name>I-Ac 695</name>
+    <description>Assisi, Biblioteca Comunale 695</description>
+    <id>123963</id>
+  </siglum>
+  <siglum>
+    <name>I-Ad 5</name>
+    <description>Assisi, Cattedrale San Rufino - Archivio e Biblioteca, 5</description>
+    <id>123675</id>
+  </siglum>
+  <siglum>
+    <name>I-AO 6</name>
+    <description>Aosta, Seminario Maggiore - Biblioteca, 6</description>
+    <id>123666</id>
+  </siglum>
+  <siglum>
+    <name>I-BAca (199)</name>
+    <description>Bari, Biblioteca Capitolare</description>
+    <id>123956</id>
+  </siglum>
+  <siglum>
+    <name>I-Bu 2748</name>
+    <description>Bologna, Biblioteca universitaria, 2748</description>
+    <id>123870</id>
+  </siglum>
+  <siglum>
+    <name>I-Bu 2824</name>
+    <description>Bologna, Biblioteca universitaria, 2824</description>
+    <id>123884</id>
+  </siglum>
+  <siglum>
+    <name>I-BV 19</name>
+    <description>Benevento, Archivio Capitolare, V 19</description>
+    <id>123595</id>
+  </siglum>
+  <siglum>
+    <name>I-BV 20</name>
+    <description>Benevento, Archivio Capitolare, V 20</description>
+    <id>123596</id>
+  </siglum>
+  <siglum>
+    <name>I-BV 34</name>
+    <description>Benevento, Biblioteca capitulore, VI 34</description>
+    <id>123885</id>
+  </siglum>
+  <siglum>
+    <name>I-BV 35</name>
+    <description>Benevento, Biblioteca capitolare, VI 35</description>
+    <id>123886</id>
+  </siglum>
+  <siglum>
+    <name>I-BV 38</name>
+    <description>Benevento, Biblioteca capitolare, cod. VI 38</description>
+    <id>123819</id>
+  </siglum>
+  <siglum>
+    <name>I-BV 39</name>
+    <description>Benevento, Biblioteca capitulore, VI 39</description>
+    <id>123845</id>
+  </siglum>
+  <siglum>
+    <name>I-CF 56</name>
+    <description>Cividale del Friuli, Archivio Capitolare, LVI</description>
+    <id>123987</id>
+  </siglum>
+  <siglum>
+    <name>I-CF 58</name>
+    <description>Cividale del Friuli, Archivio Capitolare, LVIII</description>
+    <id>124024</id>
+  </siglum>
+  <siglum>
+    <name>I-CHV</name>
+    <description>Chiavenna, Tesoro della Collegiata di S. Lorenzo - Museo Capitolare, s.c.</description>
+    <id>123604</id>
+  </siglum>
+  <siglum>
+    <name>I-Far</name>
+    <description>Firenze (Florence), Arcivescovado - Biblioteca, s.c.</description>
+    <id>123607</id>
+  </siglum>
+  <siglum>
+    <name>I-Fl Conv. sopp. 560</name>
+    <description>Firenze (Florence), Biblioteca Medicea-Laurenziana, Conv. sopp. 560</description>
+    <id>123608</id>
+  </siglum>
+  <siglum>
+    <name>I-INp 5</name>
+    <description>Intra, Archivio Parrocchiale, ms 5</description>
+    <id>123887</id>
+  </siglum>
+  <siglum>
+    <name>I-IV 60</name>
+    <description>Ivrea, Biblioteca capitolare, 60</description>
+    <id>123807</id>
+  </siglum>
+  <siglum>
+    <name>I-IV 60</name>
+    <description>Ivrea, Biblioteca capitolare, 60</description>
+    <id>123806</id>
+  </siglum>
+  <siglum>
+    <name>I-Lc 601</name>
+    <description>Lucca, Biblioteca Capitolare Feliniana e Biblioteca Arcivescovile, 601</description>
+    <id>123680</id>
+  </siglum>
+  <siglum>
+    <name>I-Lcr 5</name>
+    <description>Lucca, Biblioteca Arcivescovile, MS 5</description>
+    <id>671867</id>
+  </siglum>
+  <siglum>
+    <name>I-Mb AE XIV 12</name>
+    <description>Milano, Biblioteca nazionale Braidense, AE XIV 12</description>
+    <id>124025</id>
+  </siglum>
+  <siglum>
+    <name>I-MC 542</name>
+    <description>Montecassino, Monumento Nazionale di Montecassino - Biblioteca, 542</description>
+    <id>123625</id>
+  </siglum>
+  <siglum>
+    <name>I-MOc O.I.16</name>
+    <description>Modena, Biblioteca capitolare, O,I.16</description>
+    <id>123945</id>
+  </siglum>
+  <siglum>
+    <name>I-MOd O.I.7</name>
+    <description>Modena, Biblioteca capitolare, O. I. 7</description>
+    <id>123846</id>
+  </siglum>
+  <siglum>
+    <name>I-MZ 15/79</name>
+    <description>Monza, Basilica di S. Giovanni Battista - Biblioteca Capitolare e Tesoro, 15/79</description>
+    <id>123626</id>
+  </siglum>
+  <siglum>
+    <name>I-MZ 76</name>
+    <description>Monza, Biblioteca capitolare, c. 13/76</description>
+    <id>123808</id>
+  </siglum>
+  <siglum>
+    <name>I-MZ 77</name>
+    <description>Monza, Biblioteca capitolare, c. 14/77</description>
+    <id>123908</id>
+  </siglum>
+  <siglum>
+    <name>I-Nn vi.E.20</name>
+    <description>Napoli, Biblioteca nazionale Vittorio Emanuele III, vi. E. 20</description>
+    <id>123674</id>
+  </siglum>
+  <siglum>
+    <name>I-Pc 47</name>
+    <description>Padova, Biblioteca capitolare, A. 47</description>
+    <id>123888</id>
+  </siglum>
+  <siglum>
+    <name>I-Pc B16*</name>
+    <description>I-Pc B16*</description>
+    <id>690764</id>
+  </siglum>
+  <siglum>
+    <name>I-Pc C55</name>
+    <description>Padova, Biblioteca Capitolare, MS C.55</description>
+    <id>672573</id>
+  </siglum>
+  <siglum>
+    <name>I-PCd 65</name>
+    <description>Piacenza, Biblioteca capitolare 65</description>
+    <id>123909</id>
+  </siglum>
+  <siglum>
+    <name>I-PCsa 65</name>
+    <description>Piacenza, Basilica di S. Antonino - Biblioteca e Archivio Capitolari, 65</description>
+    <id>123634</id>
+  </siglum>
+  <siglum>
+    <name>I-PS 121</name>
+    <description>Pistoia, Biblioteca capitolare, 121</description>
+    <id>123866</id>
+  </siglum>
+  <siglum>
+    <name>I-Ps 697</name>
+    <description>Padua, Biblioteca del Seminario, 697</description>
+    <id>123889</id>
+  </siglum>
+  <siglum>
+    <name>I-Ps MS 697</name>
+    <description>Padova, Biblioteca del Seminario vescovile, 697</description>
+    <id>690740</id>
+  </siglum>
+  <siglum>
+    <name>I-Ra 123</name>
+    <description>Roma, Biblioteca Angelica, 123</description>
+    <id>123809</id>
+  </siglum>
+  <siglum>
+    <name>I-Rn 1343</name>
+    <description>Roma, Biblioteca nazionale 1343</description>
+    <id>123857</id>
+  </siglum>
+  <siglum>
+    <name>I-Rss XIV L1 (Antiphonale)</name>
+    <description>Rome, Santa Sabina, XIV L1 (&quot;Humbert&quot; codex)</description>
+    <id>123755</id>
+  </siglum>
+  <siglum>
+    <name>I-Rss XIV L1 (Graduale)</name>
+    <description>Rome, Santa Sabina, Archivum Generale Ordinis Praedicatorum, XIV L1</description>
+    <id>674599</id>
+  </siglum>
+  <siglum>
+    <name>I-Rv C.5</name>
+    <description>Roma, Biblioteca Vallicelliana, C.5</description>
+    <id>123635</id>
+  </siglum>
+  <siglum>
+    <name>I-Rvat 5319</name>
+    <description>Citta Vaticana, Biblioteca Vaticana, Vat. lat. 5319</description>
+    <id>123847</id>
+  </siglum>
+  <siglum>
+    <name>I-Rvat Capp.Sist.27</name>
+    <description>Città del Vaticano (Roma), Biblioteca Apostolica Vaticana, Cappella Sistina 27</description>
+    <id>123605</id>
+  </siglum>
+  <siglum>
+    <name>I-Rvat lat. 8737</name>
+    <description>Città del Vaticano (Roma), Biblioteca Apostolica Vaticana, lat. 8737</description>
+    <id>123676</id>
+  </siglum>
+  <siglum>
+    <name>I-Rvat Reg1529</name>
+    <description>Citta Vaticana, Biblioteca Apostolica Vaticana, Reg. lat. 1529</description>
+    <id>123798</id>
+  </siglum>
+  <siglum>
+    <name>I-Rvat Reg318</name>
+    <description>Citta Vaticana, Biblioteca Apostolica Vaticana, Reg. lat. 318</description>
+    <id>123828</id>
+  </siglum>
+  <siglum>
+    <name>I-Rvat SP B.79</name>
+    <description>Città del Vaticano (Roma), Biblioteca Apostolica Vaticana, San Pietro B.79</description>
+    <id>123661</id>
+  </siglum>
+  <siglum>
+    <name>I-Tn F. IV. 18</name>
+    <description>Torino, Biblioteca nazionale F. IV. 18</description>
+    <id>123871</id>
+  </siglum>
+  <siglum>
+    <name>I-Tn G. V. 20</name>
+    <description>Torino, Biblioteca nazionale G. V. 20</description>
+    <id>123810</id>
+  </siglum>
+  <siglum>
+    <name>I-UDs Codice 7</name>
+    <description>Udine, Biblioteca del Seminario Arcivescovile, Codice 7</description>
+    <id>674494</id>
+  </siglum>
+  <siglum>
+    <name>I-VCd 146</name>
+    <description>Vercelli, Biblioteca Capitolare, 146</description>
+    <id>123890</id>
+  </siglum>
+  <siglum>
+    <name>I-VCd 161</name>
+    <description>Vercelli, Biblioteca Capitolare, 161</description>
+    <id>123848</id>
+  </siglum>
+  <siglum>
+    <name>I-VCd 162</name>
+    <description>Vercelli, Biblioteca Capitolare, 162</description>
+    <id>123872</id>
+  </siglum>
+  <siglum>
+    <name>I-VCd CLXX</name>
+    <description>Vercelli, Biblioteca Capitolare, CLXX</description>
+    <id>123766</id>
+  </siglum>
+  <siglum>
+    <name>I-VCd LXII</name>
+    <description>Vercelli, Biblioteca Capitolare, LXII</description>
+    <id>123758</id>
+  </siglum>
+  <siglum>
+    <name>I-VCd LXIV</name>
+    <description>Vercelli, Biblioteca Capitolare, LXIV</description>
+    <id>123763</id>
+  </siglum>
+  <siglum>
+    <name>I-VCd LXX</name>
+    <description>Vercelli, Biblioteca Capitolare, LXX</description>
+    <id>123762</id>
+  </siglum>
+  <siglum>
+    <name>I-VCd LXXIX</name>
+    <description>Vercelli, Biblioteca Capitolare, LXXIX</description>
+    <id>123765</id>
+  </siglum>
+  <siglum>
+    <name>I-VCd XXXVII</name>
+    <description>Vercelli, Biblioteca Capitolare, XXXVII</description>
+    <id>123764</id>
+  </siglum>
+  <siglum>
+    <name>I-VEcap 107</name>
+    <description>Verona, Biblioteca Capitolare CVII    [107]</description>
+    <id>123851</id>
+  </siglum>
+  <siglum>
+    <name>I-VEcap 90</name>
+    <description>Verona, Biblioteca Capitolare XC (85)</description>
+    <id>123775</id>
+  </siglum>
+  <siglum>
+    <name>IRL-Dtc 100</name>
+    <description>Dublin, Trinity College   ms 100</description>
+    <id>124060</id>
+  </siglum>
+  <siglum>
+    <name>IRL-Dtc 81</name>
+    <description>Dublin, Trinity College, ms 81</description>
+    <id>124046</id>
+  </siglum>
+  <siglum>
+    <name>MA Impr. 1537</name>
+    <description>Münster Antiphoner (1537)</description>
+    <id>123724</id>
+  </siglum>
+  <siglum>
+    <name>McGill, Fragment 21</name>
+    <description>Montreal McGill, Fragment 21</description>
+    <id>691961</id>
+  </siglum>
+  <siglum>
+    <name>N-N.miss.imp.1519</name>
+    <description>Nidaros   Missale</description>
+    <id>124036</id>
+  </siglum>
+  <siglum>
+    <name>ND Lat. a. 12</name>
+    <description>Notre Dame Dominican Office of the Dead</description>
+    <id>123767</id>
+  </siglum>
+  <siglum>
+    <name>NL-At 206 A 11</name>
+    <description>Amsterdam, Toonkunstbibl. 206 A 11</description>
+    <id>124031</id>
+  </siglum>
+  <siglum>
+    <name>NL-Au I A 8</name>
+    <description>Amsterdam, Universiteitsbibliotheek, I. A. 8</description>
+    <id>124095</id>
+  </siglum>
+  <siglum>
+    <name>NL-Au I C 17</name>
+    <description>Amsterdam, Universiteitsbibliotheek, I. C. 17</description>
+    <id>124094</id>
+  </siglum>
+  <siglum>
+    <name>NL-D 10 T 3</name>
+    <description>Deventer, Athenaeum-Bibliotheek, 10 T 3</description>
+    <id>123914</id>
+  </siglum>
+  <siglum>
+    <name>NL-D 11 L 2</name>
+    <description>Deventer, Athenaeum-Bibliotheek, 11 L 2</description>
+    <id>124047</id>
+  </siglum>
+  <siglum>
+    <name>NL-DBsj 216-2</name>
+    <description>s’Hertogenbosch, Archief van de Sint-Jan (Bouwloods), 216-2</description>
+    <id>124090</id>
+  </siglum>
+  <siglum>
+    <name>NL-DHk 128 D 29</name>
+    <description>Den Haag, Koninklije Bibliotheek  128 D 29</description>
+    <id>124032</id>
+  </siglum>
+  <siglum>
+    <name>NL-DHk 70 E 4</name>
+    <description>Den Haag, Koninklijke Bibliotheek - Nationale Bibliotheek van Nederland, 70 E 4</description>
+    <id>123657</id>
+  </siglum>
+  <siglum>
+    <name>NL-DHk 71 A 21</name>
+    <description>Den Haag, Koninklije Bibliotheek, 71 A 21</description>
+    <id>124085</id>
+  </siglum>
+  <siglum>
+    <name>NL-DHk 71 A 4</name>
+    <description>Den Haag, Koninklije Bibliotheek KB  71 A 4</description>
+    <id>124061</id>
+  </siglum>
+  <siglum>
+    <name>NL-DHk 76 D 14</name>
+    <description>Den Haag, Koninklije Bibliotheek  76 D 14</description>
+    <id>124068</id>
+  </siglum>
+  <siglum>
+    <name>NL-DHk 76 E 18</name>
+    <description>Den Haag, Koninklijke Bibliotheek - Nationale Bibliotheek van Nederland, 76 E 18</description>
+    <id>666893</id>
+  </siglum>
+  <siglum>
+    <name>NL-DHk 76 E 2</name>
+    <description>Den Haag, Koninklije Bibliotheek  76 E 2</description>
+    <id>124048</id>
+  </siglum>
+  <siglum>
+    <name>NL-DHk 78 A 33</name>
+    <description>Den Haag, Koninklije Bibliotheek, 78 A 33</description>
+    <id>124084</id>
+  </siglum>
+  <siglum>
+    <name>NL-Hs 184 C 1</name>
+    <description>Haarlem, Stadsbibliotheek 184 C 1</description>
+    <id>124086</id>
+  </siglum>
+  <siglum>
+    <name>NL-Hs 184 C 2</name>
+    <description>Haarlem, Stadsbibliotheek 184 C 2</description>
+    <id>124033</id>
+  </siglum>
+  <siglum>
+    <name>NL-Hs 184 C 7</name>
+    <description>Haarlem, Stadsbibliotheek 184 C 7</description>
+    <id>123998</id>
+  </siglum>
+  <siglum>
+    <name>NL-Hs 187 C 17</name>
+    <description>Haarlem, Stadsbibliotheek 187 C 17</description>
+    <id>124038</id>
+  </siglum>
+  <siglum>
+    <name>NL-Lu BPL 2777</name>
+    <description>Leiden, Universiteitsbibliotheek BPL 2777</description>
+    <id>124096</id>
+  </siglum>
+  <siglum>
+    <name>NL-Lu BPL 2879</name>
+    <description>Leiden, Universiteitsbibliotheek BPL 2879</description>
+    <id>124039</id>
+  </siglum>
+  <siglum>
+    <name>NL-Uc ABM 62</name>
+    <description>Utrecht, Catharijneconvent, ABM h 62</description>
+    <id>123971</id>
+  </siglum>
+  <siglum>
+    <name>NL-Uc BHM 149</name>
+    <description>Utrecht, Catharijneconvent, BMH h. 149</description>
+    <id>124100</id>
+  </siglum>
+  <siglum>
+    <name>NL-Uc BMH 20</name>
+    <description>Haarlem, Bischopse Museum, BMH h 20</description>
+    <id>124062</id>
+  </siglum>
+  <siglum>
+    <name>NL-Uc BMH 21</name>
+    <description>Utrecht, Catharijneconvent,  BMH h. 21</description>
+    <id>124087</id>
+  </siglum>
+  <siglum>
+    <name>NL-Uc BMH 8</name>
+    <description>Utrecht, Catherijneconvent, BMH h 8</description>
+    <id>124063</id>
+  </siglum>
+  <siglum>
+    <name>NL-Uc BMH Warm</name>
+    <description>Utrecht, Catharijneconvent, BMH Warm h 92 H 1</description>
+    <id>124034</id>
+  </siglum>
+  <siglum>
+    <name>NL-Ura 166-41</name>
+    <description>Utrecht, Rijksarchief, Rechterlijke archieven vóór1811, Nr. 166-41</description>
+    <id>123920</id>
+  </siglum>
+  <siglum>
+    <name>NL-Uu 402</name>
+    <description>Utrecht, Universiteitsbibliotheek 402 (V. A. 13)</description>
+    <id>124040</id>
+  </siglum>
+  <siglum>
+    <name>NL-Uu 403</name>
+    <description>Utrecht, Universiteitsbibliotheek 403 (VIII. B. 2)</description>
+    <id>124073</id>
+  </siglum>
+  <siglum>
+    <name>NL-Uu 405</name>
+    <description>Utrecht, Universiteitsbibliotheek 405 (III. K. 3)</description>
+    <id>124049</id>
+  </siglum>
+  <siglum>
+    <name>NL-Uu 406</name>
+    <description>Utrecht, Universiteitsbibliotheek, 406 (III. J. 7)</description>
+    <id>124010</id>
+  </siglum>
+  <siglum>
+    <name>NL-Uu 406 (3 J 7)</name>
+    <description>Utrecht, Universiteitsbibliotheek, Ms. 406 (shelfmark 3 J 7)</description>
+    <id>123641</id>
+  </siglum>
+  <siglum>
+    <name>NL-Uu 407</name>
+    <description>Utrecht, Universiteitsbibliotheek 407 (3 J 6)</description>
+    <id>124035</id>
+  </siglum>
+  <siglum>
+    <name>NL-Uu 413</name>
+    <description>Utrecht, Universiteitsbibliotheek 413</description>
+    <id>124064</id>
+  </siglum>
+  <siglum>
+    <name>NL-Uu 415</name>
+    <description>Utrecht, Universiteitsbibliotheek 415 (VI. A. 1)</description>
+    <id>124074</id>
+  </siglum>
+  <siglum>
+    <name>NL-Uu 417</name>
+    <description>Utrecht, Universiteitsbibliotheek  417 (5. C. 19)</description>
+    <id>123964</id>
+  </siglum>
+  <siglum>
+    <name>NL-Zga 2</name>
+    <description>Zutphen, Gemeentearchief GAZ 2</description>
+    <id>124075</id>
+  </siglum>
+  <siglum>
+    <name>NL-ZUa 6</name>
+    <description>Zutphen, Stadsarchief en Stedelijke Bibliotheek, 6</description>
+    <id>123648</id>
+  </siglum>
+  <siglum>
+    <name>NZ-Wt MSR-03</name>
+    <description>Wellington (New Zealand), The Alexander Turnbull Library - Rare Books, MSR-03</description>
+    <id>599679</id>
+  </siglum>
+  <siglum>
+    <name>P-BRp 1</name>
+    <description>Braga Arquivo Municipal 1</description>
+    <id>123726</id>
+  </siglum>
+  <siglum>
+    <name>P-BRp 949</name>
+    <description>Braga Codex  ADB 949</description>
+    <id>123734</id>
+  </siglum>
+  <siglum>
+    <name>P-BRs 18</name>
+    <description>Braga Chapter Library 18</description>
+    <id>123732</id>
+  </siglum>
+  <siglum>
+    <name>P-BRs 23</name>
+    <description>Braga Chapter Library 23</description>
+    <id>123728</id>
+  </siglum>
+  <siglum>
+    <name>P-BRs Nº32</name>
+    <description>Antiphoner from the Cathedral of Braga, nº32</description>
+    <id>123752</id>
+  </siglum>
+  <siglum>
+    <name>P-Cug</name>
+    <description>P-Cug, MM45</description>
+    <id>123749</id>
+  </siglum>
+  <siglum>
+    <name>P-La</name>
+    <description>Lamego 1084 4-b</description>
+    <id>123729</id>
+  </siglum>
+  <siglum>
+    <name>P-Pm 1151</name>
+    <description>Porto 1151</description>
+    <id>123591</id>
+  </siglum>
+  <siglum>
+    <name>PL-GNd 149</name>
+    <description>Gniezno, Archiwum Archidiecezjalne, 149</description>
+    <id>123891</id>
+  </siglum>
+  <siglum>
+    <name>PL-KIk 1</name>
+    <description>Kielce, Biblioteka Kapituły Katedralnej, Ms. 1</description>
+    <id>123736</id>
+  </siglum>
+  <siglum>
+    <name>PL-Kkar 1 (Rkp 12)</name>
+    <description>Kraków, Klastor OO. Karmelitów na Piasku (Carmelite Convent), Ms.1 (rkp. Perg. 12)</description>
+    <id>123686</id>
+  </siglum>
+  <siglum>
+    <name>PL-Kkar 2 (Rkp 14)</name>
+    <description>Kraków, Klastor OO. Karmelitów na Piasku (Carmelite Convent), Ms.2 (rkp. Perg. 14)</description>
+    <id>123708</id>
+  </siglum>
+  <siglum>
+    <name>PL-Kkar 3 (Rkp 15)</name>
+    <description>Kraków, Klastor OO. Karmelitów na Piasku (Carmelite Convent), Ms.3 (rkp. Perg. 15)</description>
+    <id>123709</id>
+  </siglum>
+  <siglum>
+    <name>PL-Kkar 4 (Rkp 20)</name>
+    <description>Kraków, Klastor OO. Karmelitów na Piasku (Carmelite Convent), Ms.4 (rkp. Perg. 20)</description>
+    <id>123710</id>
+  </siglum>
+  <siglum>
+    <name>PL-Kkar 5 (Rkp 13)</name>
+    <description>Kraków, Klastor OO. Karmelitów na Piasku (Carmelite Convent), Ms.5 (rkp. Perg. 13)</description>
+    <id>123711</id>
+  </siglum>
+  <siglum>
+    <name>PL-WRu I F 401</name>
+    <description>Wroclaw, Biblioteka Uniwersytecka (University Library), I F 401</description>
+    <id>589069</id>
+  </siglum>
+  <siglum>
+    <name>PL-WRu IV.Q.81</name>
+    <description>Wroclaw, Biblioteka Uniwersytecka IV.Q.81</description>
+    <id>124050</id>
+  </siglum>
+  <siglum>
+    <name>PL-WRu R 503</name>
+    <description>Wrocław, Biblioteka Uniwersytecka, Ms. R 503</description>
+    <id>123756</id>
+  </siglum>
+  <siglum>
+    <name>PL-WRzno 12025/IV</name>
+    <description>Wrocław, Zakład Narodowy im. Ossolińskich, Biblioteka, Rkp. 12025/IV</description>
+    <id>123712</id>
+  </siglum>
+  <siglum>
+    <name>Rheinau</name>
+    <description>Rheinauer Liber Ordinarius</description>
+    <id>123731</id>
+  </siglum>
+  <siglum>
+    <name>SA-CT Grey 3c23</name>
+    <description>Cape Town, South African Library, Grey 4c7</description>
+    <id>124091</id>
+  </siglum>
+  <siglum>
+    <name>SI-Lna 18 (olim 17)</name>
+    <description>Ljubljana, Nadškofijski arhiv (Archiepiscopal Archives), 18 (olim 17)</description>
+    <id>123618</id>
+  </siglum>
+  <siglum>
+    <name>SI-Lna 19 (olim 18)</name>
+    <description>Ljubljana, Nadškofijski arhiv (Archiepiscopal Archives), 19 (olim 18)</description>
+    <id>123659</id>
+  </siglum>
+  <siglum>
+    <name>SK-Bra BMI EC Lad.3 EL18</name>
+    <description>Bratislava, State Archive Bratislava, EC.Lad.3</description>
+    <id>124103</id>
+  </siglum>
+  <siglum>
+    <name>SK-BRm EC Lad. 4, ba</name>
+    <description>Bratislava Antiphonary IIb</description>
+    <id>123742</id>
+  </siglum>
+  <siglum>
+    <name>TR-Itks 42</name>
+    <description>Istanbul, Topkapı Sarayı Müzesi, Deissmann 42</description>
+    <id>123706</id>
+  </siglum>
+  <siglum>
+    <name>US-Augusta GR/MS.020</name>
+    <description>Augusta (GA), Augusta-Richmond County Library, GR/MS.020</description>
+    <id>638296</id>
+  </siglum>
+  <siglum>
+    <name>US-AUS HRC 13</name>
+    <description>Austin, Harry Ransom Center, HRC 13</description>
+    <id>673035</id>
+  </siglum>
+  <siglum>
+    <name>US-AUS HRC Leaf A29</name>
+    <description>Austin, Harry Ransom Center, HRC Leaf A29</description>
+    <id>673084</id>
+  </siglum>
+  <siglum>
+    <name>US-AUS HRC Leaf A36</name>
+    <description>Austin, Harry Ransom Center, HRC Leaf A36</description>
+    <id>672574</id>
+  </siglum>
+  <siglum>
+    <name>US-AUS HRC Leaf A37</name>
+    <description>Austin, Harry Ransom Center, HRC Leaf A37</description>
+    <id>672993</id>
+  </siglum>
+  <siglum>
+    <name>US-AUS HRC Leaf A38</name>
+    <description>Austin, Harry Ransom Center, HRC Leaf A38</description>
+    <id>673018</id>
+  </siglum>
+  <siglum>
+    <name>US-AUS HRC Leaf A39</name>
+    <description>Austin, Harry Ransom Center, HRC Leaf A39</description>
+    <id>673021</id>
+  </siglum>
+  <siglum>
+    <name>US-AUS HRC Leaf A40</name>
+    <description>Austin, Harry Ransom Center, HRC Leaf A40</description>
+    <id>673031</id>
+  </siglum>
+  <siglum>
+    <name>US-BM 50</name>
+    <description>Bryn Mawr, Bryn Mawr College Special Collection, 50</description>
+    <id>588733</id>
+  </siglum>
+  <siglum>
+    <name>US-Cai 1911.142b</name>
+    <description>Chicago, Art Institute of Chicago, Mrs. William E. Kelley Collection, 1911.142b</description>
+    <id>669030</id>
+  </siglum>
+  <siglum>
+    <name>US-CHNbcbl 097</name>
+    <description>Franciscan antiphoner, John J. Burns Library, Boston College MS.1996.097</description>
+    <id>656252</id>
+  </siglum>
+  <siglum>
+    <name>US-Cn 181</name>
+    <description>Chicago, The Newberry Library, case 181</description>
+    <id>123953</id>
+  </siglum>
+  <siglum>
+    <name>US-Cn 24</name>
+    <description>Chicago, Newberry Library, 24</description>
+    <id>123671</id>
+  </siglum>
+  <siglum>
+    <name>US-Cn 59.1</name>
+    <description>Chicago, The Newberry Library, case 59.1</description>
+    <id>124051</id>
+  </siglum>
+  <siglum>
+    <name>US-HA Rauner Codex MS 003203</name>
+    <description>Hanover, NH, Dartmouth College Library, Rauner Codex MS 003203</description>
+    <id>680241</id>
+  </siglum>
+  <siglum>
+    <name>US-LAg 64</name>
+    <description>Los Angeles, J. Paul Getty Museum, Ms. 64</description>
+    <id>123921</id>
+  </siglum>
+  <siglum>
+    <name>US-NDu lat. b.4</name>
+    <description>Notre Dame Carthusian Diurnal</description>
+    <id>123744</id>
+  </siglum>
+  <siglum>
+    <name>US-NYcub Barnard 1</name>
+    <description>New York, Columbia University, Rare Book and Manuscript Library</description>
+    <id>683940</id>
+  </siglum>
+  <siglum>
+    <name>US-NYcub Plimpton 34</name>
+    <description>New York, Columbia University, Rare Book and Manuscript Library, Plimpton MS 034</description>
+    <id>604043</id>
+  </siglum>
+  <siglum>
+    <name>US-NYcub Plimpton 41</name>
+    <description>New York, Columbia University, Rare Book and Manuscript Library, Plimpton MS 041</description>
+    <id>589026</id>
+  </siglum>
+  <siglum>
+    <name>US-Private Frag0001</name>
+    <description>Private Collection, USA, Frag0001</description>
+    <id>674961</id>
+  </siglum>
+  <siglum>
+    <name>US-Private Frag0002</name>
+    <description>Private Collection, USA, Frag0002</description>
+    <id>675559</id>
+  </siglum>
+  <siglum>
+    <name>US-PRu Princeton MS. 245</name>
+    <description>Princeton , Princeton University Archive, Princeton MS. 245</description>
+    <id>691366</id>
+  </siglum>
+  <siglum>
+    <name>US-QK41.F8 1542, c.2</name>
+    <description>St Louis, Peter H. Raven Library (Missouri Botanical Library), QK41.F8 1542, c.2</description>
+    <id>670659</id>
+  </siglum>
+  <siglum>
+    <name>US-STu M2223, Item 42</name>
+    <description>An Antiphonal from the parish at Santa Maria sopra Porta-- Stanford Libraries, Department of Special Collections: Manuscript Collection: M2223, Item 42</description>
+    <id>693859</id>
+  </siglum>
+  <siglum>
+    <name>UStPFragm01</name>
+    <description>Utrecht St. Paul&#039;s Abbey Antiphonary Fragments</description>
+    <id>123753</id>
+  </siglum>
+</sigla>

@@ -1,0 +1,162 @@
+[
+    {
+        "model": "main_app.office",
+        "pk": 4151,
+        "fields": {
+            "date_created": "2020-06-18T19:20:24.077Z",
+            "date_updated": "2020-06-18T19:20:24.079Z",
+            "name": "V",
+            "description": "First Vespers"
+        }
+    },
+    {
+        "model": "main_app.office",
+        "pk": 4152,
+        "fields": {
+            "date_created": "2020-06-18T19:20:23.983Z",
+            "date_updated": "2020-06-18T19:20:23.987Z",
+            "name": "C",
+            "description": "Compline"
+        }
+    },
+    {
+        "model": "main_app.office",
+        "pk": 4153,
+        "fields": {
+            "date_created": "2020-06-18T19:20:24.024Z",
+            "date_updated": "2020-06-18T19:20:24.026Z",
+            "name": "M",
+            "description": "Matins"
+        }
+    },
+    {
+        "model": "main_app.office",
+        "pk": 4154,
+        "fields": {
+            "date_created": "2020-06-18T19:20:24.018Z",
+            "date_updated": "2020-06-18T19:20:24.020Z",
+            "name": "L",
+            "description": "Lauds"
+        }
+    },
+    {
+        "model": "main_app.office",
+        "pk": 4155,
+        "fields": {
+            "date_created": "2020-06-18T19:20:24.046Z",
+            "date_updated": "2020-06-18T19:20:24.048Z",
+            "name": "P",
+            "description": "Prime"
+        }
+    },
+    {
+        "model": "main_app.office",
+        "pk": 4156,
+        "fields": {
+            "date_created": "2020-06-18T19:20:24.070Z",
+            "date_updated": "2020-06-18T19:20:24.072Z",
+            "name": "T",
+            "description": "Terce"
+        }
+    },
+    {
+        "model": "main_app.office",
+        "pk": 4157,
+        "fields": {
+            "date_created": "2020-06-18T19:20:24.063Z",
+            "date_updated": "2020-06-18T19:20:24.065Z",
+            "name": "S",
+            "description": "Sext"
+        }
+    },
+    {
+        "model": "main_app.office",
+        "pk": 4158,
+        "fields": {
+            "date_created": "2020-06-18T19:20:24.038Z",
+            "date_updated": "2020-06-18T19:20:24.039Z",
+            "name": "N",
+            "description": "None"
+        }
+    },
+    {
+        "model": "main_app.office",
+        "pk": 4159,
+        "fields": {
+            "date_created": "2020-06-18T19:20:24.084Z",
+            "date_updated": "2020-06-18T19:20:24.085Z",
+            "name": "V2",
+            "description": "Second Vespers"
+        }
+    },
+    {
+        "model": "main_app.office",
+        "pk": 4160,
+        "fields": {
+            "date_created": "2020-06-18T19:20:24.003Z",
+            "date_updated": "2020-06-18T19:20:24.005Z",
+            "name": "E",
+            "description": "Antiphons for the Magnificat or Benedictus (\"in evangelio\")"
+        }
+    },
+    {
+        "model": "main_app.office",
+        "pk": 4161,
+        "fields": {
+            "date_created": "2020-06-18T19:20:24.090Z",
+            "date_updated": "2020-06-18T19:20:24.092Z",
+            "name": "X",
+            "description": "Supplemental, paraliturgical, rarely-used, or chants that do not fit into the usual categories or that are unclear in their usage"
+        }
+    },
+    {
+        "model": "main_app.office",
+        "pk": 4162,
+        "fields": {
+            "date_created": "2020-06-18T19:20:23.998Z",
+            "date_updated": "2020-06-18T19:20:24.000Z",
+            "name": "D",
+            "description": "Day Hours"
+        }
+    },
+    {
+        "model": "main_app.office",
+        "pk": 4163,
+        "fields": {
+            "date_created": "2020-06-18T19:20:24.011Z",
+            "date_updated": "2020-06-18T19:20:24.013Z",
+            "name": "H",
+            "description": "Antiphons based on texts from the Historia"
+        }
+    },
+    {
+        "model": "main_app.office",
+        "pk": 4164,
+        "fields": {
+            "date_created": "2020-06-18T19:20:24.055Z",
+            "date_updated": "2020-06-18T19:20:24.057Z",
+            "name": "R",
+            "description": "Memorial"
+        }
+    },
+    {
+        "model": "main_app.office",
+        "pk": 4165,
+        "fields": {
+            "date_created": "2020-06-18T19:20:24.031Z",
+            "date_updated": "2020-06-18T19:20:24.033Z",
+            "name": "MI",
+            "description": "Mass"
+        }
+    },
+    {
+        "model": "main_app.office",
+        "pk": 4485,
+        "fields": {
+            "date_created": "2020-06-18T19:20:23.992Z",
+            "date_updated": "2020-06-18T19:20:23.993Z",
+            "name": "CA",
+            "description": "Chapter"
+        }
+    }
+]

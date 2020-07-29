@@ -1,0 +1,130 @@
+{% extends "base.html" %}
+{% load helper_tags %}
+{% block content %}
+<script>
+    // Make sure the select components keep their values across multiple GET requests
+    // so the user can "drill down" on what they want
+    window.onload = function () {
+        $("#segment-filter").val("{{ request.GET.segment }}")
+        $("#provenance-filter").val("{{ request.GET.provenance }}")
+        $("#century-filter").val("{{ request.GET.century }}")
+        $("#full-source-filter").val("{{ request.GET.fullsource}}")
+    }
+</script>
+<div class="mr-3 p-3 col-md-10 mx-auto bg-white rounded">
+    <h3>Browse Sources</h3>
+    <small>Displaying {{page_obj.start_index}}-{{page_obj.end_index}} of <b>{{page_obj.paginator.count}}
+            sources</b></small>
+
+    <form method="get">
+        <div class="form-row align-items-end">
+            <div class="form-group m-1 col-lg">
+                <label for="segment-filter"><small>Segment</small></label>
+                <select id="segment-filter" name="segment" class="form-control custom-select custom-select-sm">
+                    <option value="">- Any -</option>
+                    <option value="4063">CANTUS Database</option>
+                    <option value="4064">Bower Sequence Database</option>
+                </select>
+            </div>
+            <div class="form-group m-1 col-lg">
+                <label for="feast-search"><small>General search (siglum, city, description ..)</small></label>
+                <input type="text" class="form-control form-control-sm" name="general"
+                    placeholder="Enter any part of a word" value="{{ request.GET.general}}" id="general-search">
+            </div>
+            <div class="form-group m-1 col-lg">
+                <label for="feast-search"><small>Indexing Notes</small></label>
+                <input type="text" class="form-control form-control-sm" name="indexing"
+                    placeholder="Search for indexers, proofreaders, editors." value="{{ request.GET.indexing}}"
+                    id="indexing-search">
+            </div>
+        </div>
+        <div class="form-row form-row align-items-end">
+            <div class="form-group m-1 col-lg">
+                <label for="provenance-filter"><small>Provenance (origin/history)</small></label>
+                <select id="provenance-filter" name="provenance" class="form-control custom-select custom-select-sm">
+                    <option value="">- Any -</option>
+                    {% for provenance in provenances %}
+                    <option value="{{provenance.id}}">{{provenance.name}}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="form-group m-1 col-lg">
+                <label for="century-filter"><small>Century</small></label>
+                <select id="century-filter" name="century" class="form-control custom-select custom-select-sm">
+                    <option value="">- Any -</option>
+                    {% for century in centuries %}
+                    <option value="{{century.id}}">{{century.name}}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="form-group m-1 col-lg">
+                <label for="full-source-filter"><small>Full source/Fragment</small></label>
+                <select class="form-control custom-select custom-select-sm" id="full-source-filter" name="fullsource">
+                    <option value="">- Any -</option>
+                    <option value="true">Complete source</option>
+                    <option value="false">Fragment</option>
+                </select>
+            </div>
+            <div class="form-group m-1 col-lg">
+                <button type="submit" class="btn btn-primary btn-sm" id="btn-submit"> Apply </button>
+                <a href="/sources" class="btn btn-primary btn-sm" id="btn-reset"> Reset </a>
+            </div>
+        </div>
+    </form>
+
+    <table class="table table-responsive table-sm small table-bordered">
+        <thead>
+            <tr>
+                <th scope="col" class="text-wrap" style="text-align:center">Siglum</th>
+                <th scope="col" class="text-wrap" style="text-align:center">Summary</th>
+                <th scope="col" class="text-wrap" style="text-align:center">Date/Origin</th>
+                <th scope="col" class="text-wrap" style="text-align:center">Image Link</th>
+                <th scope="col" class="text-wrap" style="text-align:center">Chants/Melodies</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for source in sources %}
+            <tr>
+                <td class="text-wrap" style="text-align:center">
+                    <a href="{{ source.get_absolute_url }}">{{source.siglum}}</a>
+                </td>
+                <td class="text-wrap" style="text-align:center">
+                    {{ source.summary|default:""|truncatechars_html:140 }}
+                </td>
+                <td class="text-wrap" style="text-align:center">
+                    {{ source.century.all.first.name }}<br>
+                    {{ source.provenance.name|default:""}}
+                </td>
+                <td class="text-wrap" style="text-align:center">
+                    {% if source.image_link %}
+                    <a href="{{ source.image_link }}">Images</a>
+                    {% endif %}
+                </td>
+                <td class="text-wrap" style="text-align:center">
+                    /
+                </td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+    <div class="pagination">
+        <span class="step-links">
+            {% if page_obj.has_previous %}
+            <a href="?page=1">&laquo;
+                first</a>
+            <a href="?page={{ page_obj.previous_page_number }}">previous</a>
+            {% endif %}
+
+            <span class="current">
+                Page {{ page_obj.number }} of {{ page_obj.paginator.num_pages }}
+            </span>
+
+            {% if page_obj.has_next %}
+            <a href="?page={{ page_obj.next_page_number }}">next</a>
+            <a href="?page={{ page_obj.paginator.num_pages }}">last
+                &raquo;</a>
+            {% endif %}
+        </span>
+    </div>
+</div>
+{% endblock %}
