@@ -1,6 +1,6 @@
 import calendar
 from typing import Union, Optional
-
+from django.utils.http import urlencode
 from django import template
 
 register = template.Library()
@@ -13,3 +13,11 @@ def month_to_string(value: Optional[Union[str, int]]) -> Optional[Union[str, int
         return calendar.month_abbr[value]
     else:
         return value
+
+
+@register.simple_tag(takes_context=True)
+def url_add_get_params(context, **kwargs):
+    query = context["request"].GET.copy()
+    query.pop("page", None)
+    query.update(kwargs)
+    return query.urlencode()
