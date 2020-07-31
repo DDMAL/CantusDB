@@ -187,117 +187,121 @@
     <!-- Footer in every page -->
     <footer class="footer">
         <hr>
-        <div class="p-3 container bg-white small">
-            <div class="row">
-                <div class="col-md" id="team-info">
-                    <h5>Cantus Team</h5>
-                    <ul class="list-group list-group-flush">
-                        <li class="list-group-item"><strong><a href="mailto:dlacoste@uwaterloo.ca">Debra Lacoste</a>
-                            </strong>&nbsp; |&nbsp;
-                            Project Manager</li>
-                        <li class="list-group-item"><strong><a href="http://kolacek.org">Jan Koláček</a>
-                            </strong>&nbsp;
-                            |&nbsp; Project
-                            Developer</li>
-                        <li class="list-group-item"><strong><a
-                                    href="http://www.dal.ca/faculty/arts/school-of-performing-arts/faculty-staff/our-faculty/musicology/jennifer-bain.html">Jennifer
-                                    Bain </a> &nbsp;</strong> |&nbsp; Co-Investigator</li>
-                        <li class="list-group-item"><strong><a
-                                    href="https://uwaterloo.ca/stratford-campus/people-profiles/christine-mcwebb">Christine
-                                    McWebb </a> &nbsp;</strong> |&nbsp; Co-Investigator</li>
-                        <li class="list-group-item"><a href="/indexers">&nbsp;&nbsp; ⇨ List of contributors</a></li>
-                    </ul>
+        <div class="p-3 bg-white small">
+            <div class="container">
+                <div class="row">
+                    <div class="col-md" id="team-info">
+                        <h5>Cantus Team</h5>
+                        <ul class="list-group list-group-flush">
+                            <li class="list-group-item"><strong><a href="mailto:dlacoste@uwaterloo.ca">Debra Lacoste</a>
+                                </strong>&nbsp; |&nbsp;
+                                Project Manager</li>
+                            <li class="list-group-item"><strong><a href="http://kolacek.org">Jan Koláček</a>
+                                </strong>&nbsp;
+                                |&nbsp; Project
+                                Developer</li>
+                            <li class="list-group-item"><strong><a
+                                        href="http://www.dal.ca/faculty/arts/school-of-performing-arts/faculty-staff/our-faculty/musicology/jennifer-bain.html">Jennifer
+                                        Bain </a> &nbsp;</strong> |&nbsp; Co-Investigator</li>
+                            <li class="list-group-item"><strong><a
+                                        href="https://uwaterloo.ca/stratford-campus/people-profiles/christine-mcwebb">Christine
+                                        McWebb </a> &nbsp;</strong> |&nbsp; Co-Investigator</li>
+                            <li class="list-group-item"><a href="/indexers">&nbsp;&nbsp; ⇨ List of contributors</a></li>
+                        </ul>
+                    </div>
+                    <div class="col-md" id="facebook">
+                        <h5>Facebook</h5>
+                        <iframe class="w-100"
+                            src="https://www.facebook.com/plugins/page.php?href=https%3A%2F%2Fwww.facebook.com%2FCantusDatabase&width=340&height=500&small_header=true&adapt_container_width=true&hide_cover=false&appId=390784934606260"
+                            style="border:none;" scrolling="yes" frameborder="0" allowTransparency="true">
+                        </iframe>
+                    </div>
+                    <!-- TODO: Change this so it's dynamic and reflect who is actually online -->
+                    <div class="col-md" id="online-users">
+                        <h5>Who's Online</h5>
+                        <p>There are currently 3 users online</p>
+                        <ul class="list-group list-group-flush">
+                            <li class="list-group-item"><a href="/">User</a></li>
+                            <li class="list-group-item"><a href="/">User</a></li>
+                            <li class="list-group-item"><a href="/">User</a></li>
+                        </ul>
+                    </div>
+                    <div class="col-md" id="license">
+                        <h5>Creative Commons License</h5>
+                        <a href="http://creativecommons.org/licenses/by-nc-sa/4.0/">
+                            <img src="{% static "cc-logo.png" %}" alt="Creative Commons Logo" loading="lazy">
+                        </a>
+                        <p>
+                            This work is licensed under a <a
+                                href="http://creativecommons.org/licenses/by-nc-sa/4.0/">Creative Commons
+                                Attribution-NonCommercial-ShareAlike 4.0 International License.</a>
+                        </p>
+                    </div>
                 </div>
-                <div class="col-md" id="facebook">
-                    <h5>Facebook</h5>
-                    <iframe class="w-100"
-                        src="https://www.facebook.com/plugins/page.php?href=https%3A%2F%2Fwww.facebook.com%2FCantusDatabase&width=340&height=500&small_header=true&adapt_container_width=true&hide_cover=false&appId=390784934606260"
-                        style="border:none;" scrolling="yes" frameborder="0" allowTransparency="true">
-                    </iframe>
-                </div>
-                <!-- TODO: Change this so it's dynamic and reflect who is actually online -->
-                <div class="col-md" id="online-users">
-                    <h5>Who's Online</h5>
-                    <p>There are currently 3 users online</p>
-                    <ul class="list-group list-group-flush">
-                        <li class="list-group-item"><a href="/">User</a></li>
-                        <li class="list-group-item"><a href="/">User</a></li>
-                        <li class="list-group-item"><a href="/">User</a></li>
-                    </ul>
-                </div>
-                <div class="col-md" id="license">
-                    <h5>Creative Commons License</h5>
-                    <a href="http://creativecommons.org/licenses/by-nc-sa/4.0/">
-                        <img src="{% static "cc-logo.png" %}" alt="Creative Commons Logo" loading="lazy">
-                    </a>
-                    <p>
-                        This work is licensed under a <a
-                            href="http://creativecommons.org/licenses/by-nc-sa/4.0/">Creative Commons
-                            Attribution-NonCommercial-ShareAlike 4.0 International License.</a>
-                    </p>
-                </div>
-            </div>
-            <div class="row">
-                <div class="col-md" id="logos">
-                    <img class="img-fluid w-75" src="{% static "logoUW.png" %}" alt="Creative Commons Logo"
-                        loading="lazy">
-                    <img class="img-fluid w-100" src="{% static "logoSSHRC.jpg" %}" alt="Creative Commons Logo"
-                        loading="lazy">
-                </div>
-                <div class="col-md" id="contact-form">
-                    <h5>Contact</h5>
-                    <a href="/">
-                        <svg class="bi bi-envelope" width="1em" height="1em" viewBox="0 0 16 16" fill="currentColor"
-                            xmlns="http://www.w3.org/2000/svg">
-                            <path fill-rule="evenodd"
-                                d="M14 3H2a1 1 0 0 0-1 1v8a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1V4a1 1 0 0 0-1-1zM2 2a2 2 0 0 0-2 2v8a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V4a2 2 0 0 0-2-2H2z" />
-                            <path
-                                d="M.05 3.555C.017 3.698 0 3.847 0 4v.697l5.803 3.546L0 11.801V12c0 .306.069.596.192.856l6.57-4.027L8 9.586l1.239-.757 6.57 4.027c.122-.26.191-.55.191-.856v-.2l-5.803-3.557L16 4.697V4c0-.153-.017-.302-.05-.445L8 8.414.05 3.555z" />
-                        </svg>
-                        Contact Form
-                    </a>
-                </div>
-                <div class="col-md" id="database-links">
-                    <h5>Database Links</h5>
-                    <ul class="list-group list-group-flush">
-                        <li class="list-group-item"><a href="http://cantusindex.org/" target="_blank">Cantus Index (all
-                                chants
-                                catalogue)</a></li>
-                        <li class="list-group-item"><a href="http://pemdatabase.eu/" target="_blank">Portuguese Early
-                                Music
-                                Database</a></li>
-                        <li class="list-group-item"><a href="http://cantus.sk" target="_blank">Slovakian Early Music
-                                Database</a></li>
-                        <li class="list-group-item"><a href="http://hunchant.eu" target="_blank">Hungarian Chant
-                                Database</a></li>
-                        <li class="list-group-item"><a href="http://cantusbohemiae.cz" target="_blank">Fontes Cantus
-                                Bohemiae</a></li>
-                        <li class="list-group-item"><a href="http://cantus.edu.pl" target="_blank">Cantus Planus in
-                                Polonia</a></li>
-                        <li class="list-group-item"><a href="http://musicahispanica.eu" target="_blank">Spanish Early
-                                Music
-                                Manuscript Database</a></li>
-                        <li class="list-group-item"><a href="http://musmed.eu" target="_blank">Medieval Music
-                                Manuscripts
-                                Online</a></li>
-                        <li class="list-group-item"><a href="http://comparatio.irht.cnrs.fr"
-                                target="_blank">Comparatio</a></li>
-                    </ul>
-                </div>
-                <div class="col-md" id="login">
-                    <h5>Login for Contributors</h5>
-                    <form>
-                        <div class="form-group">
-                            <label for="username">User Name or Email</label>
-                            <input type="text" class="form-control" id="username" aria-describedby="userNameHelp"
-                                placeholder="Enter user name or email">
-                        </div>
-                        <div class="form-group">
-                            <label for="password">Password</label>
-                            <input type="password" class="form-control" id="password" placeholder="Password">
-                        </div>
-                        <button type="submit" class="btn btn-primary">Log In</button>
-                    </form>
+                <div class="row">
+                    <div class="col-md" id="logos">
+                        <img class="img-fluid w-75" src="{% static "logoUW.png" %}" alt="University of Waterloo Logo"
+                            loading="lazy">
+                        <img class="img-fluid w-100" src="{% static "logoSSHRC.jpg" %}" alt="SSHRC Logo" loading="lazy">
+                    </div>
+                    <div class="col-md" id="contact-form">
+                        <h5>Contact</h5>
+                        <a href="/">
+                            <svg class="bi bi-envelope" width="1em" height="1em" viewBox="0 0 16 16" fill="currentColor"
+                                xmlns="http://www.w3.org/2000/svg">
+                                <path fill-rule="evenodd"
+                                    d="M14 3H2a1 1 0 0 0-1 1v8a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1V4a1 1 0 0 0-1-1zM2 2a2 2 0 0 0-2 2v8a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V4a2 2 0 0 0-2-2H2z" />
+                                <path
+                                    d="M.05 3.555C.017 3.698 0 3.847 0 4v.697l5.803 3.546L0 11.801V12c0 .306.069.596.192.856l6.57-4.027L8 9.586l1.239-.757 6.57 4.027c.122-.26.191-.55.191-.856v-.2l-5.803-3.557L16 4.697V4c0-.153-.017-.302-.05-.445L8 8.414.05 3.555z" />
+                            </svg>
+                            Contact Form
+                        </a>
+                    </div>
+                    <div class="col-md" id="database-links">
+                        <h5>Database Links</h5>
+                        <ul class="list-group list-group-flush">
+                            <li class="list-group-item"><a href="http://cantusindex.org/" target="_blank">Cantus Index
+                                    (all
+                                    chants
+                                    catalogue)</a></li>
+                            <li class="list-group-item"><a href="http://pemdatabase.eu/" target="_blank">Portuguese
+                                    Early
+                                    Music
+                                    Database</a></li>
+                            <li class="list-group-item"><a href="http://cantus.sk" target="_blank">Slovakian Early Music
+                                    Database</a></li>
+                            <li class="list-group-item"><a href="http://hunchant.eu" target="_blank">Hungarian Chant
+                                    Database</a></li>
+                            <li class="list-group-item"><a href="http://cantusbohemiae.cz" target="_blank">Fontes Cantus
+                                    Bohemiae</a></li>
+                            <li class="list-group-item"><a href="http://cantus.edu.pl" target="_blank">Cantus Planus in
+                                    Polonia</a></li>
+                            <li class="list-group-item"><a href="http://musicahispanica.eu" target="_blank">Spanish
+                                    Early
+                                    Music
+                                    Manuscript Database</a></li>
+                            <li class="list-group-item"><a href="http://musmed.eu" target="_blank">Medieval Music
+                                    Manuscripts
+                                    Online</a></li>
+                            <li class="list-group-item"><a href="http://comparatio.irht.cnrs.fr"
+                                    target="_blank">Comparatio</a></li>
+                        </ul>
+                    </div>
+                    <div class="col-md" id="login">
+                        <h5>Login for Contributors</h5>
+                        <form>
+                            <div class="form-group">
+                                <label for="username">User Name or Email</label>
+                                <input type="text" class="form-control" id="username" aria-describedby="userNameHelp"
+                                    placeholder="Enter user name or email">
+                            </div>
+                            <div class="form-group">
+                                <label for="password">Password</label>
+                                <input type="password" class="form-control" id="password" placeholder="Password">
+                            </div>
+                            <button type="submit" class="btn btn-primary">Log In</button>
+                        </form>
+                    </div>
                 </div>
             </div>
         </div>
