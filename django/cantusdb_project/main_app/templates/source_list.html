@@ -27,7 +27,7 @@
                 </select>
             </div>
             <div class="form-group m-1 col-lg">
-                <label for="feast-search"><small>General search (siglum, city, description ..)</small></label>
+                <label for="general-search"><small>General search (siglum, city, description ..)</small></label>
                 <input type="text" class="form-control form-control-sm" name="general"
                     placeholder="Enter any part of a word" value="{{ request.GET.general}}" id="general-search">
             </div>
@@ -110,9 +110,9 @@
     <div class="pagination">
         <span class="step-links">
             {% if page_obj.has_previous %}
-            <a href="?page=1">&laquo;
+            <a href="?{% url_add_get_params page=1%}">&laquo;
                 first</a>
-            <a href="?page={{ page_obj.previous_page_number }}">previous</a>
+            <a href="?{% url_add_get_params page=page_obj.previous_page_number %}">previous</a>
             {% endif %}
 
             <span class="current">
@@ -120,8 +120,8 @@
             </span>
 
             {% if page_obj.has_next %}
-            <a href="?page={{ page_obj.next_page_number }}">next</a>
-            <a href="?page={{ page_obj.paginator.num_pages }}">last
+            <a href="?{% url_add_get_params page=page_obj.next_page_number %}">next</a>
+            <a href="?{% url_add_get_params page=page_obj.paginator.num_pages %}">last
                 &raquo;</a>
             {% endif %}
         </span>
