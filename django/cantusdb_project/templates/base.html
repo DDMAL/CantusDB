@@ -64,17 +64,24 @@
             color: black !important;
         }
 
+        .border-top {
+            border-style: solid none none;
+            border-width: 5px !important;
+        }
+
     </style>
 </head>
 
 <body>
     <header>
+
         <!-- Navbar -->
-        <nav class="navbar navbar-expand-lg navbar-light bg-white">
-            <a class="navbar-brand" href="/">
-                <img src="{% static "CantusLogoSmall.gif" %}"
-                    alt="Cantus Database: A Database for Latin Ecclesiastical Chant" loading="lazy">
-            </a>
+        <div class="container">
+            <nav class="navbar navbar-expand-xl navbar-light bg-white border-danger border-top col-12">
+                <a class="navbar-brand" href="/">
+                    <img src="{% static "CantusLogoSmall.gif" %}"
+                        alt="Cantus Database: A Database for Latin Ecclesiastical Chant" loading="lazy">
+                </a>
 
             <!-- Hamburger button to show nav when screen is smaller-->
             <button class="navbar-toggler" type="button" data-toggle="collapse" data-target="#navbar-links"
