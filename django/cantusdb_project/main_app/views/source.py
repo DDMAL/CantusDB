@@ -28,7 +28,9 @@ class SourceListView(ListView):
         return context
 
     def get_queryset(self):
-        queryset = super().get_queryset()
+        queryset = (
+            super().get_queryset().filter(~Q(source_status__icontains="Unpublished"))
+        )
         q_obj_filter = Q()
         if self.request.GET.get("century"):
             century_id = int(self.request.GET.get("century"))
