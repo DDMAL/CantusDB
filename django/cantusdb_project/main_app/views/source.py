@@ -62,6 +62,7 @@ class SourceListView(ListView):
             rism_siglum_q = Q()
             description_q = Q()
             provenance_q = Q()
+            summary_q = Q()
             # For each term, add it to the Q object of each field with an OR operation.
             # We split the terms so that the words can be separated in the actual
             # field, allowing for a more flexible search, and a field needs
@@ -74,6 +75,7 @@ class SourceListView(ListView):
                 )
                 description_q |= Q(description__icontains=term)
                 provenance_q |= Q(provenance__name__icontains=term)
+                summary_q |= Q(summary__icontains=term)
             # All the Q objects are put together with OR.
             # The end result is that at least one term has to match in at least one
             # field
