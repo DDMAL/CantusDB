@@ -45,7 +45,7 @@ class SourceListView(ListView):
             full_source_str = self.request.GET.get("fullsource")
             if full_source_str == "true":
                 full_source = True
-            elif full_source == "false":
+            elif full_source_str == "false":
                 full_source = False
             q_obj_filter &= Q(full_source=full_source)
         # Maybe change this to lookup in a search vector with the vector Postgres field?
