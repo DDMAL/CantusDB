@@ -88,5 +88,50 @@
                 4
             ]
         }
+    },
+    {
+        "model": "flatpages.flatpage",
+        "pk": 7,
+        "fields": {
+            "url": "/citations/",
+            "title": "Citation Style",
+            "content": "<div class=\"field-item even\" property=\"content:encoded\"><p><span style=\"font-size:20px;\"><strong>How to cite the Cantus Database:</strong></span></p>\r\n<p><span style=\"font-size:16px;\">Have you used the database for general data discovery? Cite it this way:</span></p>\r\n<p><u>Cantus: A Database for Latin Ecclesiastical Chant -- Inventories of Chant Sources.</u> Directed by Debra Lacoste (2011-), Terence Bailey (1997-2010), and Ruth Steiner (1987-1996). Web developer, Jan Kol\u00e1\u010dek (2011-). Available from &lt;<a href=\"http://cantus.uwaterloo.ca/\">http://cantus.uwaterloo.ca/</a>&gt;. [date accessed].</p>\r\n<p>&nbsp;</p>\r\n<p></p>\r\n<p><span style=\"font-size:16px;\">Have you used individual catalogues extensively? Cite them following this style:</span></p>\r\n<p>Dietz, Judith, Jennifer Bain, and Meredith Evans. Inventory of \"Halifax (Canada), St. Mary\u2019s University - Patrick Power Library, M2149.L4 1554 [Salzinnes Antiphonal].\" Edited by Debra Lacoste. Additional fields added or edited by Alessandra Ignesti, Maria Murphy, Clare Neil, and Barbara Swanson. In: <u>Cantus: A Database for Latin Ecclesiastical Chant -- Inventories of Chant Sources.</u> Directed by Debra Lacoste (2011-), Terence Bailey (1997-2010), and Ruth Steiner (1987-1996). Web developer, Jan Kol\u00e1\u010dek (2011-). Available from &lt;<a href=\"http://cantus.uwaterloo.ca/&gt;\">http://cantus.uwaterloo.ca/&gt;</a>. [date accessed.]</p>\r\n<p></p>\r\n<p>------------------------------------------------------------------------------------------------------------</p>\r\n<p><span style=\"font-size:20px;\"><strong>How to cite Cantus chant ID numbers:</strong></span></p>\r\n<p><span style=\"font-size:14px;\"><strong>\"Cantus ID 001234\"</strong></span></p>\r\n<p>For publications, presentations, etc., please use the following format to cite Cantus numbers:</p>\r\n<ul><li>the prefix \u201cCantus ID\u201d</li>\r\n<li>one space</li>\r\n<li>the number assigned to the chant in \u201cCantus Database\u201d and \u201cCantus Index\u201d</li>\r\n</ul><p></p>\r\n<p>For example, \u201cCantus ID 001234\", \u201cCantus ID 006745a\u201d, \u201cCantus ID g02576\u201d, \u201cCantus ID a00345\u201d.</p>\r\n<p>&nbsp;</p>\r\n</div>",
+            "enable_comments": false,
+            "template_name": "",
+            "registration_required": false,
+            "sites": [
+                4
+            ]
+        }
+    },
+    {
+        "model": "flatpages.flatpage",
+        "pk": 8,
+        "fields": {
+            "url": "/references/",
+            "title": "Bibliography and References",
+            "content": "<p><strong>References</strong></p>\r\n<p><a name=\"AnalectaHymnica\" id=\"AnalectaHymnica\"></a>Dreves, G.M. ed. <em>Analecta Hymnica Medii Aevi</em>. 55 Volumes. Leipzig: 1886. Reprint. Frankfurt am Main: Minerva, 1961.</p>\r\n<p><a name=\"FrereAntiphonaleSarisburiense\" id=\"FrereAntiphonaleSarisburiense\"></a>Frere, Walter Howard, ed. <em>Antiphonale Sarisburiense</em>. London: Plainsong and Mediaeval Music Society, 1901-24; reprint, Farnborough, Hants.: Gregg Press Limited, 1966.</p>\r\n<p>Frere, Walter Howard. <em>The Use of Sarum, II. The Ordinal and Tonale</em>. Cambridge: Cambridge University Press, [1898-] 1901.</p>\r\n<p><a name=\"HesbertAMS\" id=\"HesbertAMS\"></a>Hesbert, Dom Ren\u00e9-Jean. <em>Antiphonale missarum sextuplex</em>. Rome: Herder, 1935.</p>\r\n<p><a name=\"HesbertCAO\" id=\"HesbertCAO\"></a>Hesbert, Dom Ren\u00e9-Jean. <em>Corpus Antiphonalium Officii</em>. 6 vols. Rome: Herder, 1963-79.</p>\r\n<p>Hesbert, Dom Ren\u00e9-Jean. \"The Sarum Antiphoner--Its Sources and Influence.\" <em>Journal of the Plainsong and Mediaeval Music Society</em> 3 (1980): pp. 49-55.</p>\r\n<p>Lewis, Charlton T. and  Short, Charles. <em>A New Latin Dictionary</em>. Oxford: Clarendon, 1879.</p>\r\n<ul><li>Available from <a href=\"http://www.perseus.tufts.edu/hopper/text?doc=Perseus:text:1999.04.0059\">Perseus Digital Library</a>.</li>\r\n<li>Available from <a href=\"https://archive.org/details/LewisAndShortANewLatinDictionary/mode/2up\"> archive.org</a> (1891).</li>\r\n<li>Available from various other downloadable apps and online searchable resources.</li>\r\n</ul>",
+            "enable_comments": false,
+            "template_name": "",
+            "registration_required": false,
+            "sites": [
+                4
+            ]
+        }
+    },
+    {
+        "model": "flatpages.flatpage",
+        "pk": 9,
+        "fields": {
+            "url": "/documents/",
+            "title": "Documents for Cantus contributors",
+            "content": "<p><a href=\"/sites/default/files/documents/1. Quick Guide to Liturgy.pdf\" target=\"_blank\">PDF: Quick Guide to Liturgy</a></p>\r\n<p><a href=\"/sites/default/files/documents/2. Volpiano Protocols.pdf\" target=\"_blank\">PDF: Volpiano Protocols</a></p>\r\n<p><a href=\"/sites/default/files/documents/3. Volpiano Neumes for Review.docx\" target=\"_blank\">DOCX: Volpiano Neumes for Review</a></p>\r\n<p><a href=\"/sites/default/files/documents/4. Volpiano Neume Protocols.pdf\" target=\"_blank\">PDF: Volpiano Neume Protocols</a></p>\r\n<p><a href=\"/sites/default/files/documents/5. Volpiano Editing Guidelines.pdf\" target=\"_blank\">PDF: Volpiano Editing Guidelines</a></p>\r\n<p><a href=\"/sites/default/files/documents/6. Text Entry and Editing.pdf\" target=\"_blank\">PDF: Text Entry and Editing</a></p>\r\n<p><a href=\"/sites/default/files/documents/7. Guide to Graduals.pdf\" target=\"_blank\">PDF: Guide to Graduals</a></p>",
+            "enable_comments": false,
+            "template_name": "",
+            "registration_required": false,
+            "sites": [
+                4
+            ]
+        }
     }
 ]
