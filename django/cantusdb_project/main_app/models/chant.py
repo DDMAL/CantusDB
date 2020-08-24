@@ -5,12 +5,12 @@ from django.contrib.postgres.fields import JSONField
 
 
 class Chant(BaseModel):
-    incipt = models.CharField(max_length=255, null=True, blank=True)
+    incipt = models.CharField(max_length=256, null=True, blank=True)
     source = models.ForeignKey(
         "Source", on_delete=models.PROTECT, null=True, blank=True
     )
-    marginalia = models.CharField(max_length=10, null=True, blank=True)
-    folio = models.CharField(blank=True, null=True, max_length=10)
+    marginalia = models.CharField(max_length=64, null=True, blank=True)
+    folio = models.CharField(blank=True, null=True, max_length=64)
     sequence_number = models.PositiveIntegerField(
         help_text='Each folio starts with "1"', null=True, blank=True
     )
@@ -18,18 +18,18 @@ class Chant(BaseModel):
         "Office", on_delete=models.PROTECT, null=True, blank=True
     )
     genre = models.ForeignKey("Genre", on_delete=models.PROTECT, null=True, blank=True)
-    position = models.CharField(max_length=10, null=True, blank=True)
-    cantus_id = models.CharField(max_length=10, null=True, blank=True)
+    position = models.CharField(max_length=64, null=True, blank=True)
+    cantus_id = models.CharField(max_length=64, null=True, blank=True)
     feast = models.ForeignKey("Feast", on_delete=models.PROTECT, null=True, blank=True)
-    mode = models.CharField(max_length=20, null=True, blank=True)
-    differentia = models.CharField(blank=True, null=True, max_length=20)
-    finalis = models.CharField(blank=True, null=True, max_length=20)
-    extra = models.CharField(blank=True, null=True, max_length=50)
+    mode = models.CharField(max_length=64, null=True, blank=True)
+    differentia = models.CharField(blank=True, null=True, max_length=64)
+    finalis = models.CharField(blank=True, null=True, max_length=64)
+    extra = models.CharField(blank=True, null=True, max_length=64)
     chant_range = models.CharField(
-        blank=True, null=True, help_text='Example: "1-c-k-4".', max_length=255
+        blank=True, null=True, help_text='Example: "1-c-k-4".', max_length=256
     )
     # TODO: look into the permissions of this field
-    addendum = models.CharField(blank=True, null=True, max_length=255)
+    addendum = models.CharField(blank=True, null=True, max_length=256)
     # TODO: maybe change this to its own model?
     manuscript_full_text_std_spelling = models.TextField(
         help_text="Manuscript full text with standardized spelling. Enter the words "
@@ -44,17 +44,17 @@ class Chant(BaseModel):
     # TODO: maybe change it to its own model?
     manuscript_full_text = models.TextField(null=True, blank=True)
     manuscript_full_text_proofread = models.NullBooleanField(blank=True, null=True)
+    manuscript_syllabized_full_text = models.TextField(null=True, blank=True)
     # TODO: maybe change this to its own model?
     volpiano = models.TextField(null=True, blank=True)
     volpiano_proofread = models.NullBooleanField(blank=True, null=True)
     image_link = models.URLField(blank=True, null=True)
     # TODO: look into permissions for this field
-    cao_concordances = models.CharField(blank=True, null=True, max_length=20)
-    siglum = models.CharField(blank=True, null=True, max_length=99)
+    cao_concordances = models.CharField(blank=True, null=True, max_length=64)
     proofread_by = models.ForeignKey(
         User, on_delete=models.PROTECT, null=True, blank=True
     )
-    melody_id = models.CharField(blank=True, null=True, max_length=50)
+    melody_id = models.CharField(blank=True, null=True, max_length=64)
     sylabilized_full_text = models.TextField(blank=True, null=True)
     indexing_notes = models.TextField(blank=True, null=True)
     json_info = JSONField(null=True, blank=True)
