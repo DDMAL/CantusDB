@@ -1,4 +1,5 @@
 {% extends "base.html" %}
+{% load helper_tags %}
 {% block content %}
 <div class="container">
     <div class="row">
@@ -15,9 +16,7 @@
                     <div class="card-body">
                         <select name="sources" id="source-select" class="w-75">
                             <option value="none">-Browse sources-</option>
-                            <option value="source1">Source 1</option>
-                            <option value="source2">Source 2</option>
-                            <option value="source3">Source 3</option>
+                            {% source_links %}
                         </select>
                     </div>
                 </div>
@@ -45,4 +44,6 @@
         </div>
     </div>
 </div>
+
+
 {% endblock %}
