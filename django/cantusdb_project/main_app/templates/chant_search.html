@@ -1,0 +1,153 @@
+{% extends "base.html" %}
+{% load helper_tags %}
+{% block content %}
+<script>
+    // Make sure the select components keep their values across multiple GET requests
+    // so the user can "drill down" on what they want
+    window.onload = function () {
+        $("#genre-filter").val("{{ request.GET.genre }}")
+        $("#cantus_id-filter").val("{{ request.GET.cantus_id }}")
+        $("#mode-filter").val("{{ request.GET.mode }}")
+        $("#melodies-filter").val("{{ request.GET.melodies}}")
+        $("#feast-filter").val("{{ request.GET.feast}}")
+        $("#incipit-filter").val("{{ request.GET.incipit}}")
+    }
+</script>
+<div class="mr-3 p-3 col-md-10 mx-auto bg-white rounded">
+    <h3>Search Chants</h3>
+    <small>Displaying {{page_obj.start_index}}-{{page_obj.end_index}} of <b>{{page_obj.paginator.count}}
+            sources</b></small>
+
+    <form method="get">
+        <div class="form-row align-items-end">
+            <div class="form-group m-1 col-lg">
+                <label for="incipit-search"><small>Incipit search</small></label>
+                <input type="text" class="form-control form-control-sm" name="incipit" value="{{ request.GET.incipit}}"
+                    id="incipit-filter">
+            </div>
+        </div>
+        <div class="form-row form-row align-items-end">
+            <div class="form-group m-1 col-lg">
+                <label for="genre-filter"><small>Genre</small></label>
+                <select id="genre-filter" name="genre" class="form-control custom-select custom-select-sm">
+                    <option value="">- Any -</option>
+                    {% for genre in genres %}
+                    <option value="{{genre.id}}">{{genre.name}}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="form-group m-1 col-lg">
+                <label for="cantus_id"><small>Cantus ID</small></label>
+                <input type="text" class="form-control form-control-sm" name="cantus_id" value="{{ request.GET.cantus_id}"
+                    id="cantus_id-filter">
+            </div>
+            <div class="form-group m-1 col-lg">
+                <label for="mode"><small>Mode</small></label>
+                <input type="text" class="form-control form-control-sm" name="mode" value="{{ request.GET.mode}"
+                    id="mode-filter">
+            </div>
+            <div class="form-group m-1 col-lg">
+                <label for="feast"><small>Feast</small></label>
+                <input type="text" class="form-control form-control-sm" name="feast" value="{{ request.GET.feast}"
+                    id="feast-filter">
+            </div>
+            <div class="form-group m-1 col-lg">
+                <label for="full-source-filter"><small>Full source/Fragment</small></label>
+                <select class="form-control custom-select custom-select-sm" id="full-source-filter" name="fullsource">
+                    <option value="">- Any -</option>
+                    <option value="true">Complete source</option>
+                    <option value="false">Fragment</option>
+                </select>
+            </div>
+            <div class="form-group m-1 col-lg">
+                <button type="submit" class="btn btn-primary btn-sm" id="btn-submit"> Apply </button>
+            </div>
+        </div>
+    </form>
+
+    <table class="table table-responsive table-sm small table-bordered">
+        <thead>
+            <tr>
+                <th scope="col" class="text-wrap" style="text-align:center">Siglum</th>
+                <th scope="col" class="text-wrap" style="text-align:center">Folio</th>
+                <th scope="col" class="text-wrap" style="text-align:center">Incipit</th>
+                <th scope="col" class="text-wrap" style="text-align:center">Feast</th>
+                <th scope="col" class="text-wrap" style="text-align:center">Office/Mass</th>
+                <th scope="col" class="text-wrap" style="text-align:center">Genre</th>
+                <th scope="col" class="text-wrap" style="text-align:center">Position</th>
+                <th scope="col" class="text-wrap" style="text-align:center">Cantus ID</th>
+                <th scope="col" class="text-wrap" style="text-align:center">Mode</th>
+                <th scope="col" class="text-wrap" style="text-align:center">MsFt</th>
+                <th scope="col" class="text-wrap" style="text-align:center">Mel</th>
+                <th scope="col" class="text-wrap" style="text-align:center">Image</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for chant in chants %}
+            <tr>
+                <td class="text-wrap" style="text-align:left">
+                    <a href="{{ chant.source.get_absolute_url }}">{{chant.source.siglum}}</a>
+                </td>
+                <td class="text-wrap" style="text-align:center">
+                    {{ chant.folio|default:""|truncatechars_html:140 }}
+                </td>
+                <td class="text-wrap" style="text-align:center">
+                    <a href="{{chant.get_absolute_url}}">{{ chant.incipt|default:"" }}</a>
+                </td>
+                <td class="text-wrap" style="text-align:center">
+                    {{ chant.feast.name|default:"" }}
+                </td>
+                <td class="text-wrap" style="text-align:center">
+                    {{ chant.office.name|default:"" }}
+                </td>
+                <td class="text-wrap" style="text-align:center">
+                    {{ chant.genre.name|default:"" }}
+                </td>
+                <td class="text-wrap" style="text-align:center">
+                    {{ chant.position|default:"" }}
+                </td>
+                <td class="text-wrap" style="text-align:center">
+                    <a href="http://cantusindex.org/id/{{ chant.cantus_id }}">{{chant.cantus_id}}</a>
+                </td>
+                <td class="text-wrap" style="text-align:center">
+                    {{ chant.mode|default:"" }}
+                </td>
+                <td class="text-wrap" style="text-align:center">
+                    {% if chant.manuscript_full_text %}
+                    ✔
+                    {% endif %}
+                </td>
+                <td class="text-wrap" style="text-align:center">
+                    {% if chant.volpiano %}
+                    ♫
+                    {% endif %}
+                </td>
+                <td class="text-wrap" style="text-align:center">
+                    {% if chant.image_link %}
+                    <a href="{{ chant.image_link }}">Image</a>
+                    {% endif %}
+                </td>
+                </tr>
+                {% endfor %}
+                </tbody>
+                </table>
+                <div class="pagination">
+                    <span class="step-links">
+                        {% if page_obj.has_previous %}
+                        <a href="?{% url_add_get_params page=1%}">&laquo;
+                            first</a>
+                        <a href="?{% url_add_get_params page=page_obj.previous_page_number %}">previous</a>
+                        {% endif %}
+                        <span class="current">
+                            Page {{ page_obj.number }} of {{ page_obj.paginator.num_pages }}
+                        </span>
+
+                        {% if page_obj.has_next %}
+                        <a href="?{% url_add_get_params page=page_obj.next_page_number %}">next</a>
+                        <a href="?{% url_add_get_params page=page_obj.paginator.num_pages %}">last
+                            &raquo;</a>
+                        {% endif %}
+                    </span>
+                </div>
+            </div>
+            {% endblock %}
