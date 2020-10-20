@@ -9,6 +9,9 @@ from main_app.views import OfficeListView
 from main_app.views import OfficeDetailView
 from main_app.views import SourceListView
 from main_app.views import SourceDetailView
+from main_app.views import ChantListView
+from main_app.views import ChantDetailView
+from main_app.views import ChantSearchView
 
 urlpatterns = [
     path("indexers/", IndexerListView.as_view(), name="indexer-list"),
@@ -21,4 +24,7 @@ urlpatterns = [
     path("offices/<int:pk>", OfficeDetailView.as_view(), name="office-detail"),
     path("sources/", SourceListView.as_view(), name="source-list"),
     path("sources/<int:pk>", SourceDetailView.as_view(), name="source-detail"),
+    path("chants/", ChantListView.as_view(), name="chant-list"),
+    path("chants/<int:pk>", ChantDetailView.as_view(), name="chant-detail"),
+    path("chant-search/", ChantSearchView.as_view(), name="chant-search"),
 ]
