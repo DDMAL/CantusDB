@@ -8,3 +8,6 @@ from main_app.views.office import OfficeListView
 from main_app.views.office import OfficeDetailView
 from main_app.views.source import SourceListView
 from main_app.views.source import SourceDetailView
+from main_app.views.chant import ChantListView
+from main_app.views.chant import ChantDetailView
+from main_app.views.chant import ChantSearchView
