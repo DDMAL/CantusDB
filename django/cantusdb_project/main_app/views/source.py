@@ -1,7 +1,6 @@
 from django.views.generic import DetailView, ListView
 from django.db.models import Q
 from main_app.models import Source, Provenance, Century
-from extra_views import SearchableListMixin
 
 
 class SourceDetailView(DetailView):
@@ -49,8 +48,6 @@ class SourceListView(ListView):
         # Maybe change this to lookup in a search vector with the vector Postgres field?
         # I would have to add a signal to update the vector with changes like I did
         # with SIMSSADB
-        # For the indexing notes search we follow the same procedure as above but with
-        # different fields
         if self.request.GET.get("general"):
             # Make list of terms split on spaces
             general_search_terms = self.request.GET.get("general").split(" ")
