@@ -16,7 +16,7 @@
 <div class="mr-3 p-3 col-md-10 mx-auto bg-white rounded">
     <h3>Search Chants</h3>
     <small>Displaying {{page_obj.start_index}}-{{page_obj.end_index}} of <b>{{page_obj.paginator.count}}
-            sources</b></small>
+            chants</b></small>
 
     <form method="get">
         <div class="form-row align-items-end">
@@ -52,11 +52,11 @@
                     id="feast-filter">
             </div>
             <div class="form-group m-1 col-lg">
-                <label for="full-source-filter"><small>Full source/Fragment</small></label>
-                <select class="form-control custom-select custom-select-sm" id="full-source-filter" name="fullsource">
+                <label for="melodies-filter"><small>Melodies</small></label>
+                <select class="form-control custom-select custom-select-sm" id="melodies-filter" name="melodies">
                     <option value="">- Any -</option>
-                    <option value="true">Complete source</option>
-                    <option value="false">Fragment</option>
+                    <option value="true">Chants with melodies</option>
+                    <option value="false">Chants without melodies</option>
                 </select>
             </div>
             <div class="form-group m-1 col-lg">
