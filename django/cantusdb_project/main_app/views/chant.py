@@ -42,9 +42,11 @@ class ChantSearchView(ListView):
             mode = self.request.GET.get("mode")
             q_obj_filter &= Q(mode=mode)
         if self.request.GET.get("melodies") in ["true", "false"]:
-            full_source_str = self.request.GET.get("melodies")
-            if full_source_str == "true":
-                q_obj_filter &= Q(melody_id__is_null=False)
+            melodies = self.request.GET.get("melodies")
+            if melodies == "true":
+                q_obj_filter &= Q(volpiano__isnull=False)
+            if melodies == "false":
+                q_obj_filter &= Q(volpiano__isnull=True)
         if self.request.GET.get("feast"):
             feast = self.request.GET.get("feast")
             feast = Feast.objects.filter(name=feast)
