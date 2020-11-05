@@ -1,4 +1,10 @@
-from django.views.generic import DetailView, ListView
+from django.views.generic import (
+    DetailView,
+    ListView,
+    CreateView,
+    UpdateView,
+    DeleteView,
+)
 from django.db.models import Q
 from main_app.models import Chant, Genre, Feast
 
@@ -63,3 +69,16 @@ class ChantSearchView(ListView):
                 incipit_q |= Q(incipt__icontains=term)
             q_obj_filter &= incipit_q
         return queryset.filter(q_obj_filter)
+
+
+class ChantCreateView(CreateView):
+    model = Chant
+    template_name = "chant_form.html"
+    fields = "__all__"
+
+
+class ChantUpdateView(UpdateView):
+    model = Chant
+    template_name = "chant_form.html"
+    fields = "__all__"
+    success_url = "/chants"

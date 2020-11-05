@@ -12,6 +12,8 @@ from main_app.views import SourceDetailView
 from main_app.views import ChantListView
 from main_app.views import ChantDetailView
 from main_app.views import ChantSearchView
+from main_app.views import ChantCreateView
+from main_app.views import ChantUpdateView
 
 urlpatterns = [
     path("indexers/", IndexerListView.as_view(), name="indexer-list"),
@@ -27,4 +29,6 @@ urlpatterns = [
     path("chants/", ChantListView.as_view(), name="chant-list"),
     path("chants/<int:pk>", ChantDetailView.as_view(), name="chant-detail"),
     path("chant-search/", ChantSearchView.as_view(), name="chant-search"),
+    path("chant-create/", ChantCreateView.as_view(), name="chant-create"),
+    path("chant-update/<int:pk>", ChantUpdateView.as_view(), name="chant-update"),
 ]
