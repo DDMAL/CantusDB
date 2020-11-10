@@ -10,7 +10,9 @@ class Chant(BaseModel):
         "Source", on_delete=models.PROTECT, null=True, blank=True
     )
     marginalia = models.CharField(max_length=64, null=True, blank=True)
-    folio = models.CharField(blank=True, null=True, max_length=64)
+    folio = models.CharField(
+        help_text='Binding order', blank=True, null=True, max_length=64
+    )
     sequence_number = models.PositiveIntegerField(
         help_text='Each folio starts with "1"', null=True, blank=True
     )
