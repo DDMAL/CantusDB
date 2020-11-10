@@ -1,0 +1,158 @@
+{% extends "base.html" %}
+{% load helper_tags %}
+{% block content %}
+<div class="mr-3 p-3 col-md-12 mx-auto bg-white rounded">
+
+    <h3>Create Chant</h3>
+
+    <form method="post">{% csrf_token %}
+
+        <div class="form-row align-items-end">
+            {% for field in form %}
+            {% if field.label == "Marginalia" or field.label == "Folio" %}
+            <div class="form-group m-1 col-lg-2">
+                <label for= "{{ field.id_for_label }}"><small>{{ field.label }}</small></label>
+                <input type="text" class="form-control form-control-sm" name="{{ field.html_name }}" value="{{ field.value }}"
+                    id="{{ field.id_for_label }}">
+                <p class=text-muted><small>{{ field.help_text }}</small></p>
+            </div>
+            {% elif field.label == "Sequence_number" %}
+            <div class="form-group m-1 col-lg-2">
+                <label for= "{{ field.id_for_label }}"><small>Sequence</small></label>
+                <input type="text" class="form-control form-control-sm" name="{{ field.html_name }}" value="{{ field.value }}"
+                    id="{{ field.id_for_label }}">
+                <p class=text-muted><small>{{ field.help_text }}</small></p>
+            </div>
+            {% endif %}
+            {% endfor %}
+        </div>
+        
+        <div class="form-row align-items-end">
+            <div class="form-group m-1 col-lg-2">
+                <label for="Office-Mass-filter"><small>Office-Mass</small></label>
+                <select id="Office-Mass-filter" name="Office-Mass" class="form-control custom-select custom-select-sm">
+                    <option value="">- None -</option>
+                    {% for office in offices %}
+                    <option value="{{office.id}}">{{office.name}}</option>
+                    {% endfor %}
+                </select>
+                
+                <a class="text-muted" href="#"><small>?</small></a>
+            </div>
+            <div class="form-group m-1 col-lg-2">
+                <label for="genre-filter"><small>Genre</small></label>
+                <select id="genre-filter" name="genre" class="form-control custom-select custom-select-sm">
+                    <option value="">- Any -</option>
+                    {% for genre in genres %}
+                    <option value="{{genre.id}}">{{genre.name}}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="form-group m-1 col-lg-2">
+                <label for="position-filter"><small>Position</small></label>
+                <input type="text" class="form-control form-control-sm" name="position" value="{{ request.GET.cantus_id }}"
+                    id="position-filter">
+            </div>
+            <div class="form-group m-1 col-lg-2">
+                <label for="cantus_id-filter"><small>Cantus ID</small></label>
+                <input type="text" class="form-control form-control-sm" name="cantus_id" value="{{ request.POST.cantus_id }}"
+                    id="cantus_id-filter">
+            </div>
+            <div class="form-group m-1 col-lg-2">
+                <label for="feast-filter"><small>Feast</small></label>
+                <select class="form-control custom-select custom-select-sm" id="feast-filter" name="feast">
+                    <option value="">- Any -</option>
+                    {% for feast in feasts %}
+                    <option value="{{feast.id}}">{{feast.name}}</option>
+                    {% endfor %}
+                </select>
+            </div>            
+        </div>
+
+        <div class="form-row align-items-end">
+            <div class="form-group m-1 col-lg-2">
+                <label for="mode-filter"><small>Mode</small></label>
+                <input type="text" class="form-control form-control-sm" name="mode" value="{{ request.GET.cantus_id }}"
+                    id="mode-filter">
+            </div>
+            <div class="form-group m-1 col-lg-2">
+                <label for="differentia-filter"><small>Differentia</small></label>
+                <input type="text" class="form-control form-control-sm" name="differentia" value="{{ request.GET.cantus_id }}"
+                    id="differentia-filter">
+            </div>         
+        </div>
+
+        <div class="form-row align-items-end">
+            <div class="form-group m-1 col-lg-2">
+                <label for="marginalia-filter"><small>Finalis</small></label>
+                <input type="text" class="form-control form-control-sm" name="finalis" value="{{ request.POST.marginalia }}"
+                    id="finalis-filter">
+            </div>
+            <div class="form-group m-1 col-lg-2">
+                <label for="folio-filter"><small>Extra</small></label>
+                <input type="text" class="form-control form-control-sm" name="extra" value="{{ request.GET.mode }}"
+                    id="extra-filter">
+            </div>
+            <div class="form-group m-1 col-lg-2">
+                <label for="feast-filter"><small>Range</small></label>
+                <input type="text" class="form-control form-control-sm" name="range" value="{{ request.GET.feast }}"
+                    id="range-filter">
+            </div>
+        </div>
+        
+        <div class="form-row align-items-end">
+            <div class="form-group m-1 col-lg">
+                <label for="full-text-std"><small>Manuscript Reading Full-Text (Standardized Spelling)</small></label>
+                <textarea class="form-control" rows="3" id="full-text-std"></textarea>
+                <p class=text-muted><small>
+                    Manuscript full text with standardized spelling. Enter the words according to the manuscript but normalize their spellings following Classical Latin forms. Use upper-case letters for proper nouns, the first word of each chant, and the first word after "Alleluia" for Mass Alleluias. Punctuation is omitted.
+                </small></p>
+            </div>
+        </div>
+
+        <div class="form-row align-items-end">
+            <div class="form-group m-1 col-lg">
+                <label for="full-text-ms"><small>Manuscript Reading Full-Text (MS_Spelling)</small></label>
+                <textarea class="form-control" rows="3" id="full-text-ms"></textarea>
+                <p class=text-muted><small>
+                    Enter the wording, word order and spellings as found in the manuscript, with abbreviations resolved to standard words. Use upper-case letters as found in the source. Retain “Xpistum” (Christum), “Ihc” (Jesus) and other instances of Greek characters with their closest approximations of Latin letters. Some punctuation signs and vertical dividing lines | are employed in this field. Repetenda and psalm cues can also be recorded here. For more information, contact Cantus Database staff.
+                </small></p>
+            </div>
+        </div>
+
+        <div class="form-row align-items-end">
+            <div class="form-group m-1 col-lg">
+                <label for="volpiano"><small>Volpiano</small></label>
+                <textarea class="form-control" rows="3" id="volpiano"></textarea>
+            </div>
+        </div>
+
+        <div class="form-row align-items-end">
+            <div class="form-group m-1 col-lg">
+                <label for="melody-id"><small>Melody ID</small></label>
+                <input type="text" class="form-control form-control-sm" name="melody-id" value="{{ request.POST.marginalia}}"
+                    id="melody-id">
+            </div>
+        </div>
+
+        <div class="form-row align-items-end">
+            <div class="form-group m-1 col-lg">
+                <label for="content-struct"><small>Content Structure</small></label>
+                <input type="text" class="form-control form-control-sm" name="content-struct" value="{{ request.POST.marginalia}}"
+                    id="content-struct">
+            </div>
+        </div>
+
+        <div class="form-row align-items-end">
+            <div class="form-group m-1 col-lg">
+                <label for="index-notes"><small>Indexing Notes</small></label>
+                <textarea class="form-control" rows="3" id="index-notes"></textarea>
+            </div>
+        </div>
+
+        <div class="form-group m-1 col-lg-2">
+        <button type="submit" class="btn btn-primary btn-sm" id="btn-submit"> Save </button>
+        </div>
+    </form>
+</div>
+{%  endblock %}
