@@ -1,7 +1,6 @@
 #!/bin/bash
-FILES=./main_app/fixtures/chants/*
+FILES=./main_app/fixtures/chants_fixed/*
 for f in $FILES
 do
-  echo "Processing $f file..."
-  python manage.py loaddata $f
+   python manage.py loaddata $f -v 2
 done
