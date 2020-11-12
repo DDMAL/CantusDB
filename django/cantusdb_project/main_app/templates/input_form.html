@@ -5,27 +5,54 @@
 
     <h3>Create Chant</h3>
 
-    <form method="post">{% csrf_token %}
+    <form action="/chant-create/" method="post">{% csrf_token %}
 
         <div class="form-row align-items-end">
-            {% for field in form %}
-            {% if field.label == "Marginalia" or field.label == "Folio" %}
+
             <div class="form-group m-1 col-lg-2">
-                <label for= "{{ field.id_for_label }}"><small>{{ field.label }}</small></label>
-                <input type="text" class="form-control form-control-sm" name="{{ field.html_name }}" value="{{ field.value }}"
-                    id="{{ field.id_for_label }}">
-                <p class=text-muted><small>{{ field.help_text }}</small></p>
+                {#{form.marginalia.label_tag}#}
+                <small>{{ form.marginalia.label_tag }}</small>
+                <!--label for= "{{ form.marginalia.id_for_label }}"><small>{{ form.marginalia.label_tag }}</small></label-->
+                <!--value is used to pre-fill the input box-->
+                {% if form.marginalia.value %}
+                <input type="text" class="form-control form-control-sm" name="{{ form.marginalia.html_name }}" value="{{ form.marginalia.value }}"
+                    id="{{ form.marginalia.id_for_label }}">
+                {% else %}
+                <input type="text" class="form-control form-control-sm" name="{{ form.marginalia.html_name }}"
+                    id="{{ form.marginalia.id_for_label }}">
+                {% endif %}
+                <label><small>{{ form.marginalia.errors }}</small></label>
+                <p class=text-muted><small>{{ form.marginalia.help_text }}</small></p>
             </div>
-            {% elif field.label == "Sequence_number" %}
+
             <div class="form-group m-1 col-lg-2">
-                <label for= "{{ field.id_for_label }}"><small>Sequence</small></label>
-                <input type="text" class="form-control form-control-sm" name="{{ field.html_name }}" value="{{ field.value }}"
-                    id="{{ field.id_for_label }}">
-                <p class=text-muted><small>{{ field.help_text }}</small></p>
+                <small>{{ form.folio.label_tag }}</small>
+                {% if form.folio.value %}
+                <input type="text" class="form-control form-control-sm" name="{{ form.folio.html_name }}" value="{{ form.folio.value }}"
+                    id="{{ form.folio.id_for_label }}">
+                {% else %}
+                <input type="text" class="form-control form-control-sm" name="{{ form.folio.html_name }}"
+                    id="{{ form.folio.id_for_label }}">
+                {% endif %}
+                <p class=text-muted><small>{{ form.folio.help_text }}</small></p>
             </div>
-            {% endif %}
-            {% endfor %}
+
+            <div class="form-group m-1 col-lg-2">
+                <small>{{form.sequence_number.label_tag}}</small>
+                <!--label for= "{{ form.sequence_number.id_for_label }}"><small>Sequence</small></label-->
+                {% if form.sequence_number.value %}
+                <input type="text" class="form-control form-control-sm" name="{{ form.sequence_number.html_name }}" value="{{ form.sequence_number.value }}"
+                    id="{{ form.sequence_number.id_for_label }}">
+                {% else %}
+                <input type="text" class="form-control form-control-sm" name="{{ form.sequence_number.html_name }}"
+                    id="{{ form.sequence_number.id_for_label }}">
+                {% endif %}
+                <!--label><small>{{ form.sequence_number.errors }}</small></label-->
+                <p class=text-muted><small>{{ form.sequence_number.help_text }}</small></p>
+            </div>
+
         </div>
+        <!-- below is not modified yet-->
         
         <div class="form-row align-items-end">
             <div class="form-group m-1 col-lg-2">
@@ -35,8 +62,7 @@
                     {% for office in offices %}
                     <option value="{{office.id}}">{{office.name}}</option>
                     {% endfor %}
-                </select>
-                
+                </select>               
                 <a class="text-muted" href="#"><small>?</small></a>
             </div>
             <div class="form-group m-1 col-lg-2">
@@ -47,6 +73,8 @@
                     <option value="{{genre.id}}">{{genre.name}}</option>
                     {% endfor %}
                 </select>
+                <!--label><small>{{ form.genre.errors }}</small></label-->
+                <p class=text-muted><small>{{ form.genre.help_text }}</small></p>
             </div>
             <div class="form-group m-1 col-lg-2">
                 <label for="position-filter"><small>Position</small></label>
