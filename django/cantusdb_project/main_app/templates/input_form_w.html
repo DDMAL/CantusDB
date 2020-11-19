@@ -7,48 +7,45 @@
 
     <form method="post">
 
-        <div class="form-row align-items-end">
+        <div class="form-row">
+
             <div class="form-group m-1 col-lg-2">
-                <label for="marginalia-filter"><small>maginalia</small></label>
-                <input type="text" class="form-control form-control-sm" name="marginalia" value="{{ request.POST.marginalia }}"
-                    id="marginalia-filter">
-                <p class=text-muted><small></small></p>
+                <small>{{ form.marginalia.label_tag }}</small>
+                {{ form.marginalia }}
             </div>
+
             <div class="form-group m-1 col-lg-2">
-                <label for="folio-filter"><small>Folio</small></label>
-                <input type="text" class="form-control form-control-sm" name="folio" value="{{ request.GET.mode }}"
-                    id="folio-filter">
-                <p class=text-muted><small>Binding order</small></p>
+                <small>{{ form.folio.label_tag }}</small>
+                {{ form.folio }}
+                <p class=text-muted><small>{{ form.folio.help_text}}</small></p>
             </div>
+            
             <div class="form-group m-1 col-lg-2">
-                <label for="feast-filter"><small>Sequence</small></label>
-                <input type="text" class="form-control form-control-sm" name="feast" value="{{ request.GET.feast }}"
-                    id="feast-filter">
-                <p class=text-muted><small>Each folio starts with "1"</small></p>
+                <label for="{{ form.sequence_number.id_for_label }}"><small>Sequence:</small></label>
+                {{ form.sequence_number }}
+                <p class=text-muted><small>{{ form.sequence_number.help_text}}</small></p>
             </div>
+
         </div>
         
-        <div class="form-row align-items-end">
+        <div class="form-row">
+
             <div class="form-group m-1 col-lg-2">
-                <label for="Office-Mass-filter"><small>Office-Mass</small></label>
-                <select id="Office-Mass-filter" name="Office-Mass" class="form-control custom-select custom-select-sm">
-                    <option value="">- None -</option>
-                    {% for genre in genres %}
-                    <option value="{{genre.id}}">{{genre.name}}</option>
-                    {% endfor %}
-                </select>
-                
+                <label for="{{ form.office.id_for_label }}"><small>Office-Mass:</small></label>
+                {{ form.office }}                
                 <a class="text-muted" href="#"><small>?</small></a>
             </div>
+
             <div class="form-group m-1 col-lg-2">
-                <label for="genre-filter"><small>Genre</small></label>
-                <select id="genre-filter" name="genre" class="form-control custom-select custom-select-sm">
+                <small>{{ form.genre.label_tag }}</small>
+                <select id="genre" name="genre" class="form-control custom-select custom-select-sm">
                     <option value="">- Any -</option>
                     {% for genre in genres %}
                     <option value="{{genre.id}}">{{genre.name}}</option>
                     {% endfor %}
                 </select>
             </div>
+            
             <div class="form-group m-1 col-lg-2">
                 <label for="position-filter"><small>Position</small></label>
                 <input type="text" class="form-control form-control-sm" name="position" value="{{ request.GET.cantus_id }}"
