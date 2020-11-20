@@ -38,24 +38,20 @@
 
             <div class="form-group m-1 col-lg-2">
                 <small>{{ form.genre.label_tag }}</small>
-                <select id="genre" name="genre" class="form-control custom-select custom-select-sm">
-                    <option value="">- Any -</option>
-                    {% for genre in genres %}
-                    <option value="{{genre.id}}">{{genre.name}}</option>
-                    {% endfor %}
+                {{ form.genre }}
                 </select>
             </div>
             
             <div class="form-group m-1 col-lg-2">
-                <label for="position-filter"><small>Position</small></label>
-                <input type="text" class="form-control form-control-sm" name="position" value="{{ request.GET.cantus_id }}"
-                    id="position-filter">
+                <small>{{ form.position.label_tag }}</small>
+                {{ form.position }}
             </div>
+
             <div class="form-group m-1 col-lg-2">
-                <label for="cantus_id-filter"><small>Cantus ID</small></label>
-                <input type="text" class="form-control form-control-sm" name="cantus_id" value="{{ request.GET.cantus_id }}"
-                    id="cantus_id-filter">
-            </div>
+                <small>{{ form.cantus_id.label_tag }}</small>
+                {{ form.cantus_id }}
+            </div>            
+            
             <div class="form-group m-1 col-lg-2">
                 <label for="feast-filter"><small>Feast</small></label>
                 <select class="form-control custom-select custom-select-sm" id="feast-filter" name="feast">
@@ -68,43 +64,46 @@
         </div>
 
         <div class="form-row align-items-end">
+
             <div class="form-group m-1 col-lg-2">
-                <label for="mode-filter"><small>Mode</small></label>
-                <input type="text" class="form-control form-control-sm" name="mode" value="{{ request.GET.cantus_id }}"
-                    id="mode-filter">
-            </div>
+                <small>{{ form.mode.label_tag }}</small>
+                {{ form.mode }}
+            </div>  
+
             <div class="form-group m-1 col-lg-2">
-                <label for="differentia-filter"><small>Differentia</small></label>
-                <input type="text" class="form-control form-control-sm" name="differentia" value="{{ request.GET.cantus_id }}"
-                    id="differentia-filter">
-            </div>         
+                <small>{{ form.differentia.label_tag }}</small>
+                {{ form.differentia }}
+            </div>  
+
         </div>
 
         <div class="form-row align-items-end">
+
             <div class="form-group m-1 col-lg-2">
-                <label for="marginalia-filter"><small>Finalis</small></label>
-                <input type="text" class="form-control form-control-sm" name="finalis" value="{{ request.POST.marginalia }}"
-                    id="finalis-filter">
-            </div>
+                <small>{{ form.finalis.label_tag }}</small>
+                {{ form.finalis }}
+            </div>  
+
             <div class="form-group m-1 col-lg-2">
-                <label for="folio-filter"><small>Extra</small></label>
-                <input type="text" class="form-control form-control-sm" name="extra" value="{{ request.GET.mode }}"
-                    id="extra-filter">
-            </div>
+                <small>{{ form.extra.label_tag }}</small>
+                {{ form.extra }}
+            </div>  
+
             <div class="form-group m-1 col-lg-2">
-                <label for="feast-filter"><small>Range</small></label>
-                <input type="text" class="form-control form-control-sm" name="range" value="{{ request.GET.feast }}"
-                    id="range-filter">
-            </div>
+                <label for="{{ form.chant_range.id_for_label }}"><small>Range:</small></label>
+                {{ form.chant_range }}
+            </div>  
+
         </div>
-        
+
+        <br></br>
+
         <div class="form-row align-items-end">
             <div class="form-group m-1 col-lg">
-                <label for="full-text-std"><small>Manuscript Reading Full-Text (Standardized Spelling)</small></label>
-                <textarea class="form-control" rows="3" id="full-text-std"></textarea>
-                <p class=text-muted><small>
-                    Manuscript full text with standardized spelling. Enter the words according to the manuscript but normalize their spellings following Classical Latin forms. Use upper-case letters for proper nouns, the first word of each chant, and the first word after "Alleluia" for Mass Alleluias. Punctuation is omitted.
-                </small></p>
+                <small>{{ form.manuscript_full_text_std_spelling.label_tag }}</small>
+                {{ form.manuscript_full_text_std_spelling }}
+                <!--textarea class="form-control" rows="3" id="form.manuscript_full_text_std_spelling.id_for_label"></textarea-->
+                <p class=text-muted><small>{{ form.manuscript_full_text_std_spelling.help_text }}</small></p>
             </div>
         </div>
 
