@@ -21,3 +21,11 @@ class SelectWidget(Select):
 class TextAreaWidget(Textarea):
     def __init__(self):
         self.attrs = {"class": "form-control", "rows": "3"}
+
+class VolpianoWidget(Textarea):
+    def __init__(self):
+        self.attrs = {
+            "class": "form-control", 
+            "rows": "1.5", 
+            "style": "font-family: Volpiano; font-size: xx-large"
+            }

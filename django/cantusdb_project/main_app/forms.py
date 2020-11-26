@@ -1,6 +1,6 @@
 from django import forms
 from .models import Chant, Office
-from .widgets import TextInputWidget, SelectWidget, TextAreaWidget
+from .widgets import TextInputWidget, SelectWidget, TextAreaWidget, VolpianoWidget
 # ModelForm allows to build a form directly from a model
 # see https://docs.djangoproject.com/en/3.0/topics/forms/modelforms/
 
@@ -60,5 +60,5 @@ class ChantCreateForm(forms.ModelForm):
             'chant_range': TextInputWidget(),
             'manuscript_full_text_std_spelling': TextAreaWidget(),
             'manuscript_full_text': TextAreaWidget(),
-            
+            'volpiano': VolpianoWidget(),
         }

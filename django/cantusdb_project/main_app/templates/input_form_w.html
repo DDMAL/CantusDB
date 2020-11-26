@@ -111,7 +111,7 @@
             <div class="form-group m-1 col-lg">
                 <label for="full-text-ms"><small>Manuscript Reading Full-Text (MS_Spelling)</small></label>
                 <textarea class="form-control" rows="3" id="full-text-ms"></textarea>
-                <p class=text-muted><small>
+                <p class="text-muted"><small>
                     Enter the wording, word order and spellings as found in the manuscript, with abbreviations resolved to standard words. Use upper-case letters as found in the source. Retain “Xpistum” (Christum), “Ihc” (Jesus) and other instances of Greek characters with their closest approximations of Latin letters. Some punctuation signs and vertical dividing lines | are employed in this field. Repetenda and psalm cues can also be recorded here. For more information, contact Cantus Database staff.
                 </small></p>
             </div>
@@ -119,8 +119,9 @@
 
         <div class="form-row align-items-end">
             <div class="form-group m-1 col-lg">
-                <label for="volpiano"><small>Volpiano</small></label>
-                <textarea class="form-control" rows="3" id="volpiano"></textarea>
+                <!--p style="font-family: Volpiano; font-size: xx-large;">abcdefg</p-->
+                <small>{{ form.volpiano.label_tag }}</small>
+                {{ form.volpiano }}
             </div>
         </div>
 
