@@ -1,6 +1,6 @@
 from django import forms
 from .models import Chant, Office
-from .widgets import TextInputWidget, SelectWidget, TextAreaWidget, VolpianoWidget
+from .widgets import *
 # ModelForm allows to build a form directly from a model
 # see https://docs.djangoproject.com/en/3.0/topics/forms/modelforms/
 
@@ -39,6 +39,9 @@ class ChantCreateForm(forms.ModelForm):
             'manuscript_full_text_std_spelling',
             'manuscript_full_text',
             'volpiano',
+            'melody_id',
+            #'content_structure',
+            'indexing_notes',
             ]
         widgets = {
             # 'marginalia': forms.TextInput(attrs={'class':'form-control form-control-sm'}),
@@ -57,8 +60,11 @@ class ChantCreateForm(forms.ModelForm):
             'differentia': TextInputWidget(),
             'finalis': TextInputWidget(),
             'extra': TextInputWidget(),
-            'chant_range': TextInputWidget(),
+            'chant_range': VolpianoInputWidget(),
             'manuscript_full_text_std_spelling': TextAreaWidget(),
             'manuscript_full_text': TextAreaWidget(),
-            'volpiano': VolpianoWidget(),
+            'volpiano': VolpianoAreaWidget(),
+            'melody_id': TextInputWidget(),
+            #'content_structure': TextInputWidget(),
+            'indexing_notes': TextAreaWidget()
         }

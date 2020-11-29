@@ -22,10 +22,17 @@ class TextAreaWidget(Textarea):
     def __init__(self):
         self.attrs = {"class": "form-control", "rows": "3"}
 
-class VolpianoWidget(Textarea):
+class VolpianoAreaWidget(Textarea):
     def __init__(self):
         self.attrs = {
             "class": "form-control", 
             "rows": "1.5", 
+            "style": "font-family: Volpiano; font-size: xx-large"
+            }
+
+class VolpianoInputWidget(TextInput):
+    def __init__(self):
+        self.attrs = {
+            "class": "form-control form-control-sm", 
             "style": "font-family: Volpiano; font-size: xx-large"
             }

@@ -1,7 +1,7 @@
 {% extends "base.html" %}
 {% load helper_tags %}
 {% block content %}
-<div class="mr-3 p-3 col-md-12 mx-auto bg-white rounded">
+<div class="mr-3 p-3 col-md-10 mx-auto bg-white rounded">
 
     <h3>Create Chant</h3>
 
@@ -89,31 +89,30 @@
                 {{ form.extra }}
             </div>  
 
-            <div class="form-group m-1 col-lg-2">
-                <label for="{{ form.chant_range.id_for_label }}"><small>Range:</small></label>
-                {{ form.chant_range }}
-            </div>  
-
         </div>
 
-        <br></br>
+        <div class="form-row align-items-end">
+            <div class="form-group m-1 col-lg-3">
+                <label for="{{ form.chant_range.id_for_label }}"><small>Range:</small></label>
+                {{ form.chant_range }}
+                <p class="text-muted"><small>{{ form.chant_range.help_text }}</small></p>
+            </div>  
+        </div>
 
         <div class="form-row align-items-end">
             <div class="form-group m-1 col-lg">
-                <small>{{ form.manuscript_full_text_std_spelling.label_tag }}</small>
+                <label for="{{ form.manuscript_full_text_std_spelling.id_for_label }}"><small>Manuscript Reading Full Text (standardized spelling):</small></label>
                 {{ form.manuscript_full_text_std_spelling }}
                 <!--textarea class="form-control" rows="3" id="form.manuscript_full_text_std_spelling.id_for_label"></textarea-->
-                <p class=text-muted><small>{{ form.manuscript_full_text_std_spelling.help_text }}</small></p>
+                <p class=text-muted><small>{{ form.manuscript_full_text_std_spelling.help_text }} For more info <a class="text-muted" href="#">click here</a></small></p>
             </div>
         </div>
 
         <div class="form-row align-items-end">
             <div class="form-group m-1 col-lg">
-                <label for="full-text-ms"><small>Manuscript Reading Full-Text (MS_Spelling)</small></label>
-                <textarea class="form-control" rows="3" id="full-text-ms"></textarea>
-                <p class="text-muted"><small>
-                    Enter the wording, word order and spellings as found in the manuscript, with abbreviations resolved to standard words. Use upper-case letters as found in the source. Retain “Xpistum” (Christum), “Ihc” (Jesus) and other instances of Greek characters with their closest approximations of Latin letters. Some punctuation signs and vertical dividing lines | are employed in this field. Repetenda and psalm cues can also be recorded here. For more information, contact Cantus Database staff.
-                </small></p>
+                <label for="{{ form.manuscript_full_text.id_for_label }}"><small>Manuscript Reading Full Text (MS Spelling)</small></label>
+                {{ form.manuscript_full_text }}
+                <p class="text-muted"><small>{{ form.manuscript_full_text.help_text }}</small></p>
             </div>
         </div>
 
@@ -126,25 +125,23 @@
         </div>
 
         <div class="form-row align-items-end">
-            <div class="form-group m-1 col-lg">
-                <label for="melody-id"><small>Melody ID</small></label>
-                <input type="text" class="form-control form-control-sm" name="melody-id" value="{{ request.POST.marginalia}}"
-                    id="melody-id">
+            <div class="form-group m-1 col-lg-2">
+                <small>{{ form.melody_id.label_tag }}</small>
+                {{ form.melody_id }}
+            </div>
+        </div>
+
+        <div class="form-row align-items-end">
+            <div class="form-group m-1 col-lg-2">
+                <small>{{ form.content_structure.label_tag }}</small>
+                {{ form.content_structure }}
             </div>
         </div>
 
         <div class="form-row align-items-end">
             <div class="form-group m-1 col-lg">
-                <label for="content-struct"><small>Content Structure</small></label>
-                <input type="text" class="form-control form-control-sm" name="content-struct" value="{{ request.POST.marginalia}}"
-                    id="content-struct">
-            </div>
-        </div>
-
-        <div class="form-row align-items-end">
-            <div class="form-group m-1 col-lg">
-                <label for="index-notes"><small>Indexing Notes</small></label>
-                <textarea class="form-control" rows="3" id="index-notes"></textarea>
+                <small>{{ form.indexing_notes.label_tag }}</small>
+                {{ form.indexing_notes }}
             </div>
         </div>
 
