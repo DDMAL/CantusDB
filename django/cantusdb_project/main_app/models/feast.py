@@ -26,3 +26,6 @@ class Feast(BaseModel):
                 check=(Q(day__gte=1) & Q(day__lte=31)), name="day_gte_1_lte_31"
             ),
         ]
+
+    def __str__(self):
+        return self.name

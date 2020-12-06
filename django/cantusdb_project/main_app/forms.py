@@ -1,5 +1,5 @@
 from django import forms
-from .models import Chant, Office
+from .models import Chant, Office, Genre, Feast
 from .widgets import *
 # ModelForm allows to build a form directly from a model
 # see https://docs.djangoproject.com/en/3.0/topics/forms/modelforms/
@@ -49,13 +49,12 @@ class ChantCreateForm(forms.ModelForm):
             # 'folio': forms.TextInput(attrs={'class':'form-control form-control-sm'}),
             'folio': TextInputWidget(),
             'sequence_number': TextInputWidget(),
-            #'office': forms.Select(attrs={'class': 'form-control custom-select custom-select-sm'})
-            #'office': SelectWidget(attrs={'choices': Office.objects.all().order_by("name").values("id", "name")}),
-            'office': SelectWidget(choices=Office.objects.values_list()),
-            'genre': SelectWidget(choices=Office.objects.all().values("id").order_by('name')),
+            #'office': forms.Select(attrs={'class': 'form-control custom-select custom-select-sm'}, ),
+            #'office': SelectWidget(),
+            #'genre': SelectWidget(choices=Office.objects.all().values("id").order_by('name')),
             'position': TextInputWidget(),
             'cantus_id': TextInputWidget(),
-            'feast': TextInputWidget(),
+            #'feast': SelectWidget(),
             'mode': TextInputWidget(),
             'differentia': TextInputWidget(),
             'finalis': TextInputWidget(),
@@ -67,4 +66,19 @@ class ChantCreateForm(forms.ModelForm):
             'melody_id': TextInputWidget(),
             #'content_structure': TextInputWidget(),
             'indexing_notes': TextAreaWidget()
-        }
+            }
+    
+    office = forms.ModelChoiceField(
+        queryset=Office.objects.all().order_by("name"),
+        )
+    office.widget.attrs.update({"class": "form-control custom-select custom-select-sm"})
+
+    genre = forms.ModelChoiceField(
+        queryset=Genre.objects.all().order_by("name"),
+        )
+    genre.widget.attrs.update({"class": "form-control custom-select custom-select-sm"})
+
+    feast = forms.ModelChoiceField(
+        queryset=Feast.objects.all().order_by("name"),
+        )
+    feast.widget.attrs.update({"class": "form-control custom-select custom-select-sm"})

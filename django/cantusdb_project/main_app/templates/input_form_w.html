@@ -5,7 +5,7 @@
 
     <h3>Create Chant</h3>
 
-    <form method="post">
+    <form method="post">{% csrf_token %}
 
         <div class="form-row">
 
@@ -30,18 +30,38 @@
         
         <div class="form-row">
 
-            <div class="form-group m-1 col-lg-2">
+            <!--div class="form-group m-1 col-lg-2">
                 <label for="{{ form.office.id_for_label }}"><small>Office-Mass:</small></label>
-                {{ form.office }}                
+                <select class="form-control custom-select custom-select-sm" id="{{ form.office.id_for_label }}" name="{{ form.office.html_name }}">
+                    <option value="">- Any -</option>
+                    {% for office in offices %}
+                    <option value="{{office.id}}">{{office.name}}</option>
+                    {% endfor %}
+                </select>              
+                <a class="text-muted" href="#"><small>?</small></a>
+            </div-->
+
+            <div class="form-group m-1 col-lg-2">
+                <label for="{{ form.office.id_for_label }}"><small>Office/Mass:</small></label>
+                {{ form.office }}         
                 <a class="text-muted" href="#"><small>?</small></a>
             </div>
 
+            <!--div class="form-group m-1 col-lg-2">
+                <small>{{ form.genre.label_tag }}</small>
+                <select class="form-control custom-select custom-select-sm" id="{{ form.genre.id_for_label }}" name="{{ form.genre.html_name }}">
+                    <option value="">- Any -</option>
+                    {% for genre in genres %}
+                    <option value="{{genre.id}}">{{genre.name}}</option>
+                    {% endfor %}
+                </select>
+            </div-->
+
             <div class="form-group m-1 col-lg-2">
                 <small>{{ form.genre.label_tag }}</small>
-                {{ form.genre }}
-                </select>
+                {{ form.genre }}         
             </div>
-            
+
             <div class="form-group m-1 col-lg-2">
                 <small>{{ form.position.label_tag }}</small>
                 {{ form.position }}
@@ -52,15 +72,21 @@
                 {{ form.cantus_id }}
             </div>            
             
-            <div class="form-group m-1 col-lg-2">
-                <label for="feast-filter"><small>Feast</small></label>
-                <select class="form-control custom-select custom-select-sm" id="feast-filter" name="feast">
+            <!--div class="form-group m-1 col-lg-2">
+                <small>{{ form.feast.label_tag }}</small>
+                <select class="form-control custom-select custom-select-sm" id="{{ form.feast.id_for_label }}" name="{{ form.feast.html_name }}">
                     <option value="">- Any -</option>
-                    {% for genre in genres %}
-                    <option value="{{genre.id}}">{{genre.name}}</option>
+                    {% for feast in feasts %}
+                    <option value="{{feast.id}}">{{feast.name}}</option>
                     {% endfor %}
                 </select>
-            </div>            
+            </div-->  
+
+            <div class="form-group m-1 col-lg-2">
+                <small>{{ form.feast.label_tag }}</small>
+                {{ form.feast }}
+            </div>     
+
         </div>
 
         <div class="form-row align-items-end">
