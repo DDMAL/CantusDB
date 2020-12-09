@@ -15,3 +15,6 @@ class Genre(BaseModel):
     mass_office = ArrayField(
         base_field=models.CharField(max_length=12, choices=mass_office_choices), size=3,
     )
+
+    def __str__(self):
+        return self.name

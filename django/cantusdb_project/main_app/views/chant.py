@@ -7,7 +7,7 @@ from django.views.generic import (
 )
 from django.db.models import Q
 from main_app.models import Chant, Genre, Feast, Office
-
+from main_app.forms import ChantCreateForm
 
 class ChantDetailView(DetailView):
     model = Chant
@@ -74,16 +74,20 @@ class ChantSearchView(ListView):
 class ChantCreateView(CreateView):
     model = Chant
     # template_name = "chant_form.html"
-    template_name = "input_form.html"
-    fields = "__all__" # include all fields to the form
-    # exclude = ['json_info'] # example of excluding sth from the form
+    template_name = "input_form_w.html"
 
+    #fields = "__all__" # include all fields to the form
+    # exclude = ['json_info'] # example of excluding sth from the form
+    form_class = ChantCreateForm
+    success_url = "/chants"
+    '''
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
         context["genres"] = Genre.objects.all().order_by("name").values("id", "name")
         context["offices"] = Office.objects.all().order_by("name").values("id", "name")
         context["feasts"] = Feast.objects.all().order_by("name").values("id", "name")
         return context
+    '''
 
 
 class ChantUpdateView(UpdateView):
