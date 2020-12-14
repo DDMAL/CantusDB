@@ -6,9 +6,9 @@ from django.views.generic import (
     DeleteView,
 )
 from django.db.models import Q
-from main_app.models import Chant, Genre, Feast, Office
+from main_app.models import Chant, Genre, Feast, Office, Source
 from main_app.forms import ChantCreateForm
-
+from django.shortcuts import get_object_or_404
 class ChantDetailView(DetailView):
     model = Chant
     context_object_name = "chant"
@@ -73,21 +73,27 @@ class ChantSearchView(ListView):
 
 class ChantCreateView(CreateView):
     model = Chant
-    # template_name = "chant_form.html"
     template_name = "input_form_w.html"
 
     #fields = "__all__" # include all fields to the form
     # exclude = ['json_info'] # example of excluding sth from the form
     form_class = ChantCreateForm
     success_url = "/chants"
-    '''
-    def get_context_data(self, **kwargs):
-        context = super().get_context_data(**kwargs)
-        context["genres"] = Genre.objects.all().order_by("name").values("id", "name")
-        context["offices"] = Office.objects.all().order_by("name").values("id", "name")
-        context["feasts"] = Feast.objects.all().order_by("name").values("id", "name")
-        return context
-    '''
+
+    def dispatch(self, request, *args, **kwargs):
+        """
+        Overridden so we can make sure the 'Source' instance exists
+        before going any further.
+        """
+        self.source = get_object_or_404(Source, pk=kwargs['source_pk'])
+        return super().dispatch(request, *args, **kwargs)
+
+    def form_valid(self, form):
+        print(self.kwargs['source_pk'])
+        form.instance.source = self.kwargs['source_pk']
+        form.instance.incipt = " ".join(form.instance.manuscript_full_text_std_spelling.split(" ")[:5])
+        return super().form_valid(form)
+
 
 
 class ChantUpdateView(UpdateView):

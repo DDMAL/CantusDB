@@ -1,5 +1,5 @@
 from django import forms
-from .models import Chant, Office, Genre, Feast
+from .models import Chant, Office, Genre, Feast, Source
 from .widgets import *
 # ModelForm allows to build a form directly from a model
 # see https://docs.djangoproject.com/en/3.0/topics/forms/modelforms/
@@ -30,7 +30,7 @@ class CommentForm(forms.ModelForm):
 class ChantCreateForm(forms.ModelForm):
     class Meta:
         model = Chant
-        # sepcify either 'fields' or 'excludes' so that django knows which fields to use
+        # specify either 'fields' or 'excludes' so that django knows which fields to use
         fields = [
             'marginalia', 'folio', 'sequence_number', 
             'office', 'genre', 'position', 'cantus_id', 'feast',
@@ -49,7 +49,9 @@ class ChantCreateForm(forms.ModelForm):
             # 'folio': forms.TextInput(attrs={'class':'form-control form-control-sm'}),
             'folio': TextInputWidget(),
             'sequence_number': TextInputWidget(),
-            #'office': forms.Select(attrs={'class': 'form-control custom-select custom-select-sm'}, ),
+            # the widgets dictionary is ignored for a model field with a non-empty choices attribute. 
+            # In this case, you must override the form field to use a different widget.
+            # this goes for all foreignkey fields here, which are written explicitly below to override form field
             #'office': SelectWidget(),
             #'genre': SelectWidget(choices=Office.objects.all().values("id").order_by('name')),
             'position': TextInputWidget(),
@@ -67,18 +69,41 @@ class ChantCreateForm(forms.ModelForm):
             #'content_structure': TextInputWidget(),
             'indexing_notes': TextAreaWidget()
             }
-    
+        # error_messages = {
+        #     # specify custom error messages for each field here
+        # }
+
+    source = forms.ModelChoiceField(
+        queryset=Source.objects.all().order_by("name"),   
+        required = True
+    )
+    incipt = forms.TextInput()
+
+    manuscript_full_text_std_spelling = forms.CharField(
+        required=True,
+        widget=TextAreaWidget,
+        help_text="Manuscript full text with standardized spelling. Enter the words "
+        "according to the manuscript but normalize their spellings following "
+        "Classical Latin forms. Use upper-case letters for proper nouns, "
+        'the first word of each chant, and the first word after "Alleluia" for '
+        "Mass Alleluias. Punctuation is omitted.",
+    )
     office = forms.ModelChoiceField(
         queryset=Office.objects.all().order_by("name"),
+        required=False
         )
     office.widget.attrs.update({"class": "form-control custom-select custom-select-sm"})
 
     genre = forms.ModelChoiceField(
         queryset=Genre.objects.all().order_by("name"),
+        required=False
         )
     genre.widget.attrs.update({"class": "form-control custom-select custom-select-sm"})
 
     feast = forms.ModelChoiceField(
         queryset=Feast.objects.all().order_by("name"),
+        required=False
         )
     feast.widget.attrs.update({"class": "form-control custom-select custom-select-sm"})
+
+    #def clean()

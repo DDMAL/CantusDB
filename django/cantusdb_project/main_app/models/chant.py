@@ -7,7 +7,7 @@ from django.contrib.postgres.fields import JSONField
 class Chant(BaseModel):
     incipt = models.CharField(max_length=256, null=True, blank=True)
     source = models.ForeignKey(
-        "Source", on_delete=models.PROTECT, null=True, blank=True
+        "Source", on_delete=models.PROTECT, null=False, blank=False
     )
     marginalia = models.CharField(max_length=64, null=True, blank=True)
     folio = models.CharField(
