@@ -31,6 +31,7 @@ class Chant(BaseModel):
         blank=True, null=True, help_text='Example: "1-c-k-4". Optional field', max_length=256
     )
     # TODO: look into the permissions of this field
+    # addendum is important, should have a spot on input form, should be editable
     addendum = models.CharField(blank=True, null=True, max_length=256)
     # TODO: maybe change this to its own model?
     manuscript_full_text_std_spelling = models.TextField(
@@ -61,7 +62,8 @@ class Chant(BaseModel):
     volpiano_proofread = models.NullBooleanField(blank=True, null=True)
     image_link = models.URLField(blank=True, null=True)
     # TODO: look into permissions for this field
-    cao_concordances = models.CharField(blank=True, null=True, max_length=64)
+    # cao_concordances is not needed anymore 2020-12-16
+    # cao_concordances = models.CharField(blank=True, null=True, max_length=64)
     proofread_by = models.ForeignKey(
         User, on_delete=models.PROTECT, null=True, blank=True
     )

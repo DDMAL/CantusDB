@@ -40,8 +40,8 @@ class ChantCreateForm(forms.ModelForm):
             'manuscript_full_text',
             'volpiano',
             'melody_id',
-            #'content_structure',
             'indexing_notes',
+            'addendum'
             ]
         widgets = {
             # 'marginalia': forms.TextInput(attrs={'class':'form-control form-control-sm'}),
@@ -66,8 +66,8 @@ class ChantCreateForm(forms.ModelForm):
             'manuscript_full_text': TextAreaWidget(),
             'volpiano': VolpianoAreaWidget(),
             'melody_id': TextInputWidget(),
-            #'content_structure': TextInputWidget(),
-            'indexing_notes': TextAreaWidget()
+            'indexing_notes': TextAreaWidget(),
+            'addendum': TextInputWidget()
             }
         # error_messages = {
         #     # specify custom error messages for each field here
@@ -77,7 +77,9 @@ class ChantCreateForm(forms.ModelForm):
         queryset=Source.objects.all().order_by("name"),   
         required = True
     )
-    incipt = forms.TextInput()
+    incipt = forms.CharField(
+        required = True
+    )
 
     manuscript_full_text_std_spelling = forms.CharField(
         required=True,
@@ -105,5 +107,3 @@ class ChantCreateForm(forms.ModelForm):
         required=False
         )
     feast.widget.attrs.update({"class": "form-control custom-select custom-select-sm"})
-
-    #def clean()
