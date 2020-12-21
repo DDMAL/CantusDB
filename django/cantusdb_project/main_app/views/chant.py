@@ -82,16 +82,26 @@ class ChantCreateView(CreateView):
 
     def dispatch(self, request, *args, **kwargs):
         """
-        Overridden so we can make sure the 'Source' instance exists
-        before going any further.
+        Overridden so we can make sure the 'Source' specified in url exists
+        before we display the form
         """
         self.source = get_object_or_404(Source, pk=kwargs['source_pk'])
         return super().dispatch(request, *args, **kwargs)
 
     def form_valid(self, form):
-        print(self.kwargs['source_pk'])
-        form.instance.source = self.kwargs['source_pk']
-        form.instance.incipt = " ".join(form.instance.manuscript_full_text_std_spelling.split(" ")[:5])
+        form.instance.source = self.source # the same as the next line
+        # form.instance.source = get_object_or_404(Source, pk=self.kwargs['source_pk'])
+
+        # compute incipt, within 30 charactors, keep words complete
+        words = form.instance.manuscript_full_text_std_spelling.split(" ")
+        incipt = ""
+        for word in words:
+            new_incipt = incipt + word + ' '
+            if len(new_incipt) >= 30:
+                break
+            else:
+                incipt = new_incipt
+        form.instance.incipt = incipt.strip(' ')
         return super().form_valid(form)
 
 

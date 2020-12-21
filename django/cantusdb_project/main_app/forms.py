@@ -73,14 +73,6 @@ class ChantCreateForm(forms.ModelForm):
         #     # specify custom error messages for each field here
         # }
 
-    source = forms.ModelChoiceField(
-        queryset=Source.objects.all().order_by("name"),   
-        required = True
-    )
-    incipt = forms.CharField(
-        required = True
-    )
-
     manuscript_full_text_std_spelling = forms.CharField(
         required=True,
         widget=TextAreaWidget,
@@ -107,3 +99,14 @@ class ChantCreateForm(forms.ModelForm):
         required=False
         )
     feast.widget.attrs.update({"class": "form-control custom-select custom-select-sm"})
+
+    # automatically computed fields
+    # source and incipt are mandatory fields in model,
+    # but have to be optional in the form, otherwise the field validation won't pass
+    source = forms.ModelChoiceField(
+        queryset=Source.objects.all().order_by("name"),   
+        required = False
+    )
+    incipt = forms.CharField(
+        required = False
+    )

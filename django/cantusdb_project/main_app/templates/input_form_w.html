@@ -6,12 +6,37 @@
     <h3>Create Chant</h3>
 
     <form method="post">{% csrf_token %}
+        
+        {% if form.errors %}
+	    <!-- Error messaging -->
+        <div id="errors">
+            <div class="inner">
+                <font color='red'>
+                    <p>Errors:</p>
+                    {{ form.non_field_errors }}
+                    <ul>
+                        {% for field in form %}
+                            {% if field.errors %}<li>{{ field.label }}: {{ field.errors|striptags }}</li>{% endif %}
+                        {% endfor %}
+                    </ul>
+                </font>
+            </div>
+        </div>
+	    <!-- /Error messaging -->
+        {% endif %}
 
         <div class="form-row">
 
             <div class="form-group m-1 col-lg-2">
                 <small>{{ form.marginalia.label_tag }}</small>
                 {{ form.marginalia }}
+                <!-- {% if form.marginalia.errors %}
+                    <ol>
+                    {% for error in form.marginalia.errors %}
+                        <li><strong>{{ error|escape }}</strong></li>
+                    {% endfor %}
+                    </ol>
+                {% endif %} -->
             </div>
 
             <div class="form-group m-1 col-lg-2">
@@ -168,6 +193,13 @@
             <div class="form-group m-1 col-lg">
                 <small>{{ form.indexing_notes.label_tag }}</small>
                 {{ form.indexing_notes }}
+            </div>
+        </div>
+
+        <div class="form-row align-items-end">
+            <div class="form-group m-1 col-lg">
+                <small>{{ form.addendum.label_tag }}</small>
+                {{ form.addendum }}
             </div>
         </div>
 
