@@ -14,6 +14,9 @@ from main_app.views import ChantDetailView
 from main_app.views import ChantSearchView
 from main_app.views import ChantCreateView
 from main_app.views import ChantUpdateView
+from main_app.views import ChantCiSearchView
+from main_app.views import CISearchView
+
 
 urlpatterns = [
     path("indexers/", IndexerListView.as_view(), name="indexer-list"),
@@ -30,5 +33,8 @@ urlpatterns = [
     path("chants/<int:pk>", ChantDetailView.as_view(), name="chant-detail"),
     path("chant-search/", ChantSearchView.as_view(), name="chant-search"),
     path("chant-create/<int:source_pk>", ChantCreateView.as_view(), name="chant-create"),
+
+    path("ci-search/<str:search_term>", CISearchView.as_view(), name="ci-search"),
+
     path("chant-update/<int:pk>", ChantUpdateView.as_view(), name="chant-update"),
 ]

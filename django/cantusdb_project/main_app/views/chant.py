@@ -4,11 +4,17 @@ from django.views.generic import (
     CreateView,
     UpdateView,
     DeleteView,
+    TemplateView,
 )
+from django.views import View
 from django.db.models import Q
 from main_app.models import Chant, Genre, Feast, Office, Source
 from main_app.forms import ChantCreateForm
-from django.shortcuts import get_object_or_404
+from django.shortcuts import get_object_or_404, HttpResponse
+
+import requests
+import lxml.html as lh
+
 class ChantDetailView(DetailView):
     model = Chant
     context_object_name = "chant"
@@ -104,10 +110,92 @@ class ChantCreateView(CreateView):
         form.instance.incipt = incipt.strip(' ')
         return super().form_valid(form)
 
-
-
 class ChantUpdateView(UpdateView):
     model = Chant
     template_name = "chant_form.html"
     fields = "__all__"
     success_url = "/chants"
+
+class ChantCiSearchView(View):
+    '''
+    open a new window (done in js)
+    get the search_term from the url
+    do the search in python and write results in get_context_data
+    render the table template
+    '''
+    def get(self, request, *args, **kwargs):
+        # print(kwargs['search_term'])
+        search_term = kwargs['search_term']
+        url = "http://cantusindex.org/search?t="+search_term+"&cid=&genre=All&ghisp=All"
+
+        page = requests.get(url)
+        doc = lh.fromstring(page.content)
+
+        #Parse data that are stored between <tr>..</tr> of HTML
+        tr_elements = doc.xpath('//tr')
+
+        #Create empty list
+        cantus_id = []
+        genre = []
+        full_text = []
+
+        # remove the table header
+        tr_elements = tr_elements[1:]
+
+        for row in tr_elements:
+            cantus_id.append(row[0].text_content().strip())
+            genre.append(row[1].text_content().strip())
+            full_text.append(row[2].text_content().strip())
+        # return HttpResponse(kwargs['search_term'])
+
+class CISearchView(TemplateView):
+    '''
+    open a new window (done in js)
+    get the search_term from the url
+    do the search in python and write results in get_context_data
+    render the table template
+    '''
+    
+    template_name = "ci_search.html"
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        print(kwargs['search_term'])
+        search_term = kwargs['search_term']
+
+        p = {'t': search_term, 'cid': '', 'genre': 'All', 'ghisp': 'All'}
+        r = requests.get('http://cantusindex.org/search', params=p)
+
+        print(r.url)
+
+        page = requests.get(r.url)
+        doc = lh.fromstring(page.content)
+
+        #Parse data that are stored between <tr>..</tr> of HTML
+        tr_elements = doc.xpath('//tr')
+
+        #Create empty list
+        cantus_id = []
+        genre = []
+        full_text = []
+
+        # remove the table header
+        tr_elements = tr_elements[1:]
+
+        for row in tr_elements:
+            cantus_id.append(row[0].text_content().strip())
+            genre.append(row[1].text_content().strip())
+            full_text.append(row[2].text_content().strip())
+
+        # context['cantus_ids'] = cantus_id
+        # context['genres'] = genre
+        # context['full_texts'] = full_text
+
+        # for looping through three lists in template, we have to zip it here
+        if len(cantus_id)==0:
+            context['results'] = [['No results', 'No results', 'No results']]
+        else:
+            context['results'] = zip(cantus_id, genre, full_text)
+
+        context['num'] = [1,2,3]
+        return context
