@@ -162,34 +162,35 @@ class CISearchView(TemplateView):
         context = super().get_context_data(**kwargs)
         print(kwargs['search_term'])
         search_term = kwargs['search_term']
-
-        p = {'t': search_term, 'cid': '', 'genre': 'All', 'ghisp': 'All'}
-        r = requests.get('http://cantusindex.org/search', params=p)
-
-        print(r.url)
-
-        page = requests.get(r.url)
-        doc = lh.fromstring(page.content)
-
-        #Parse data that are stored between <tr>..</tr> of HTML
-        tr_elements = doc.xpath('//tr')
-
-        #Create empty list
+        search_term = search_term.replace(' ', '+') # for multiple keywords
+        #Create empty list for the 3 types of info
         cantus_id = []
         genre = []
         full_text = []
 
-        # remove the table header
-        tr_elements = tr_elements[1:]
+        # scrape multiple pages
+        pages = range(0, 100)
+        for page in pages:
+            p = {'t': search_term, 'cid': '', 'genre': 'All', 'ghisp': 'All', 'page': page}
+            page = requests.get('http://cantusindex.org/search', params=p)
+            print(page.url)
 
-        for row in tr_elements:
-            cantus_id.append(row[0].text_content().strip())
-            genre.append(row[1].text_content().strip())
-            full_text.append(row[2].text_content().strip())
+            doc = lh.fromstring(page.content)
 
-        # context['cantus_ids'] = cantus_id
-        # context['genres'] = genre
-        # context['full_texts'] = full_text
+            #Parse data that are stored between <tr>..</tr> of HTML
+            tr_elements = doc.xpath('//tr')
+
+            # if cantus index returns an empty table
+            if not tr_elements:
+                break
+
+            # remove the table header
+            tr_elements = tr_elements[1:]
+
+            for row in tr_elements:
+                cantus_id.append(row[0].text_content().strip())
+                genre.append(row[1].text_content().strip())
+                full_text.append(row[2].text_content().strip())
 
         # for looping through three lists in template, we have to zip it here
         if len(cantus_id)==0:

@@ -220,29 +220,17 @@
                 <h4>Input Tool</h3>
                 Enter any text from chant:
                 <input type="text" id="incipitsearch"/>
-                <button onclick="otevriOkno()">Search ID</button>
-                <!-- <input type="submit" value="Search ID"> -->
+                <button onclick="openCiSearchWin()">Search ID</button>
                 <script>
-                    function getVal(){
-                        var search_term = document.getElementById('inciptsearch').value;
-                        alert(search_term);
-                    }
-
-                    function otevriOkno() {
+                    function openCiSearchWin() {
                         search_term = document.getElementById("incipitsearch").value;
                         if (search_term.length < 3) {
                             search_term = window.prompt("Enter at least 3 characters of incipit", "");
                         }
                         address = "/ci-search/" + search_term;
-                        window.open(address, "dyn_okno", "height=400px, width=1200px, top=0, left=50px, status=no, toolbar=no, location=no, scrollbars=yes, resizable=yes");
+                        var ci = window.open(address, "ci", "height=400px, width=1200px, top=0, left=50px, status=no, toolbar=no, location=no, scrollbars=yes, resizable=yes");
                     }
                 </script>
-
-                <!-- <div class="form-item" id="incipitsearch-wrapper">
-                    <label for="incipitsearch">INPUT TOOL: Enter any text from chant: </label>
-                    <input type="text" maxlength="128" name="" id="incipitsearch" size="24" value="" class="form-text">
-                    <input type="submit" name="op" id="" value="Search ID" class="form-submit showcaowindow" onclick="otevriOkno();"> -->
-                </div>
             </div>
         </div>
     </div>
