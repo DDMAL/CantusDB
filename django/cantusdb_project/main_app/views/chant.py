@@ -116,38 +116,6 @@ class ChantUpdateView(UpdateView):
     fields = "__all__"
     success_url = "/chants"
 
-class ChantCiSearchView(View):
-    '''
-    open a new window (done in js)
-    get the search_term from the url
-    do the search in python and write results in get_context_data
-    render the table template
-    '''
-    def get(self, request, *args, **kwargs):
-        # print(kwargs['search_term'])
-        search_term = kwargs['search_term']
-        url = "http://cantusindex.org/search?t="+search_term+"&cid=&genre=All&ghisp=All"
-
-        page = requests.get(url)
-        doc = lh.fromstring(page.content)
-
-        #Parse data that are stored between <tr>..</tr> of HTML
-        tr_elements = doc.xpath('//tr')
-
-        #Create empty list
-        cantus_id = []
-        genre = []
-        full_text = []
-
-        # remove the table header
-        tr_elements = tr_elements[1:]
-
-        for row in tr_elements:
-            cantus_id.append(row[0].text_content().strip())
-            genre.append(row[1].text_content().strip())
-            full_text.append(row[2].text_content().strip())
-        # return HttpResponse(kwargs['search_term'])
-
 class CISearchView(TemplateView):
     '''
     open a new window (done in js)

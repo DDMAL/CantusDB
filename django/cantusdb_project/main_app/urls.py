@@ -14,7 +14,6 @@ from main_app.views import ChantDetailView
 from main_app.views import ChantSearchView
 from main_app.views import ChantCreateView
 from main_app.views import ChantUpdateView
-from main_app.views import ChantCiSearchView
 from main_app.views import CISearchView
 
 
