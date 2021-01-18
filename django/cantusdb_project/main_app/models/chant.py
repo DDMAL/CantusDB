@@ -1,8 +1,8 @@
+from django.contrib.postgres.fields import JSONField
 from django.contrib.postgres.search import SearchVectorField
 from django.db import models
 from main_app.models import BaseModel
 from users.models import User
-from django.contrib.postgres.fields import JSONField
 
 
 class Chant(BaseModel):
