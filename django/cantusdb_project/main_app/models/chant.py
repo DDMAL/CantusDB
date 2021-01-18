@@ -1,3 +1,4 @@
+from django.contrib.postgres.search import SearchVectorField
 from django.db import models
 from main_app.models import BaseModel
 from users.models import User
@@ -69,6 +70,7 @@ class Chant(BaseModel):
     sylabilized_full_text = models.TextField(blank=True, null=True)
     indexing_notes = models.TextField(blank=True, null=True)
     json_info = JSONField(null=True, blank=True)
+    search_vector = SearchVectorField(null=True, editable=False)
 
     # newly-added fields 2020-11-27
     # not sure what field type we should use exactly
