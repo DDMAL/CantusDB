@@ -71,6 +71,30 @@ class Chant(BaseModel):
     indexing_notes = models.TextField(blank=True, null=True)
     json_info = JSONField(null=True, blank=True)
     search_vector = SearchVectorField(null=True, editable=False)
+    
+    def index_components(self) -> dict:
+        """Constructs a dictionary of weighted lists of search terms
+        
+        Returns
+        -------
+        dict
+            A dictionary of lists of search terms, the keys are the different weights
+        """
+        incipt = self.incipt if self.incipt else None
+        full_text = self.manuscript_full_text if self.manuscript_full_text else None
+        full_text_std_spelling = self.manuscript_full_text_std_spelling if self.manuscript_full_text_std_spelling else None
+        source = self.source.title if self.source else None
+        genre = self.genre.name if self.genre else None
+        feast = self.feast.name if self.feast else None
+        office = self.office.name if self.office else None
+        return {
+            "A": (
+                " ".join(filter(None,[incipt, full_text, full_text_std_spelling, source]))
+            ),
+            "B": (
+                " ".join(filter(None, [genre, feast, office]))
+            )
+        }
 
     # newly-added fields 2020-11-27
     # not sure what field type we should use exactly
