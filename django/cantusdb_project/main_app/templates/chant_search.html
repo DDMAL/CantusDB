@@ -70,7 +70,7 @@
             <tr>
                 <th scope="col" class="text-wrap" style="text-align:center">Siglum</th>
                 <th scope="col" class="text-wrap" style="text-align:center">Folio</th>
-                <th scope="col" class="text-wrap" style="text-align:center">Incipit</th>
+                <th scope="col" class="text-wrap" style="text-align:center">Incipit/Full Text</th>
                 <th scope="col" class="text-wrap" style="text-align:center">Feast</th>
                 <th scope="col" class="text-wrap" style="text-align:center">Office/Mass</th>
                 <th scope="col" class="text-wrap" style="text-align:center">Genre</th>
@@ -91,8 +91,11 @@
                 <td class="text-wrap" style="text-align:center">
                     {{ chant.folio|default:""|truncatechars_html:140 }}
                 </td>
-                <td class="text-wrap" style="text-align:center">
+                <td class="text-wrap" style="text-align:left">
                     <a href="{{chant.get_absolute_url}}">{{ chant.incipt|default:"" }}</a>
+                    <p>
+                        {{ chant.manuscript_full_text_std_spelling|default:""|truncatewords_html:100 }}
+                    </p>           
                 </td>
                 <td class="text-wrap" style="text-align:center">
                     {{ chant.feast.name|default:"" }}
