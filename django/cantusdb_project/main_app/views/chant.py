@@ -3,10 +3,13 @@ from django.views.generic import (
     ListView,
     CreateView,
     UpdateView,
-    DeleteView,
 )
-from django.db.models import Q
-from main_app.models import Chant, Genre, Feast, Office
+from django.db.models import Q, F, QuerySet
+from django.contrib.postgres.search import (
+    SearchQuery,
+    SearchRank,
+)
+from main_app.models import Chant, Genre, Feast
 from main_app.forms import ChantCreateForm
 
 class ChantDetailView(DetailView):
