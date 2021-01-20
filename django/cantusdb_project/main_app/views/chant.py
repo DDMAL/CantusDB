@@ -36,20 +36,41 @@ class ChantListView(ListView):
 
 
 class ChantSearchView(ListView):
+    """
+    Searches Chants and displays them as a list, accessed with ``chant-search/``
+
+    If no ``GET`` parameters, returns all chants
+
+    ``GET`` parameters:
+        ``genre``: Filters by Genre of Chant
+        ``cantus_id``: Filters by the Cantus ID field of Chant
+        ``mode``: Filters by mode of Chant
+        ``melodies``: Filters Chant by whether or not it contains a melody in
+                      Volpiano form. Valid values are "true" or "false".
+        ``feast``: Filters by Feast of Chant
+        ``incipit``: Searches text of Chant for keywords
+    """
+
     model = Chant
     queryset = Chant.objects.all().order_by("id")
     paginate_by = 100
     context_object_name = "chants"
     template_name = "chant_search.html"
 
-    def get_context_data(self, **kwargs):
+    def get_context_data(self, **kwargs) -> dict:
         context = super().get_context_data(**kwargs)
-        context["genres"] = Genre.objects.all().order_by("name").values("id", "name")
+        # Add to context a QuerySet of dicts with id and name of each Genre
+        context["genres"] = (
+            Genre.objects.all().order_by("name").values("id", "name")
+        )
         return context
 
-    def get_queryset(self):
+    def get_queryset(self) -> QuerySet:
         queryset = super().get_queryset()
+        # Create a Q object to filter the QuerySet of Chants
         q_obj_filter = Q()
+
+        # For every GET parameter other than incipit, add to the Q object
         if self.request.GET.get("genre"):
             genre_id = int(self.request.GET.get("genre"))
             q_obj_filter &= Q(genre__id=genre_id)
@@ -69,6 +90,15 @@ class ChantSearchView(ListView):
             feast = self.request.GET.get("feast")
             feast = Feast.objects.filter(name=feast)
             q_obj_filter &= Q(feast=feast)
+
+        # Filter the QuerySet with Q object
+        queryset = queryset.filter(q_obj_filter)
+
+        # TODO: change incipit to "keyword" maybe? More clear since it is
+        # searching the whole text
+
+        # Finally, use the incipit parameter to do keyword searching
+        # over the QuerySet
         if self.request.GET.get("incipit"):
             incipt = self.request.GET.get("incipit")
             queryset = self.keyword_search(queryset, incipt)
