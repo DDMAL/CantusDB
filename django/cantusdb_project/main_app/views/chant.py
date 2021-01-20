@@ -70,17 +70,32 @@ class ChantSearchView(ListView):
             feast = Feast.objects.filter(name=feast)
             q_obj_filter &= Q(feast=feast)
         if self.request.GET.get("incipit"):
-            # Make list of terms split on spaces
-            incipit_terms = self.request.GET.get("incipit").split(" ")
-            incipit_q = Q()
-            # For each term, add it to the Q object of each field with an OR operation.
-            # We split the terms so that the words can be separated in the actual
-            # field, allowing for a more flexible search, and a field needs
-            # to match only one of the terms
-            for term in incipit_terms:
-                incipit_q |= Q(incipt__icontains=term)
-            q_obj_filter &= incipit_q
-        return queryset.filter(q_obj_filter)
+            incipt = self.request.GET.get("incipit")
+            queryset = self.keyword_search(queryset, incipt)
+
+        return queryset
+
+    def keyword_search(self, queryset: QuerySet, keyword: str) -> QuerySet:
+        """
+        Performs a keyword search over a QuerySet of Chants
+
+        Uses PostgreSQL's full text search features
+
+        Args:
+            queryset (QuerySet): A QuerySet of Chants to be searched
+            keyword (str): A string of keywords to search the QuerySet
+
+        Returns:
+            QuerySet: A QuerySet of Chants filtered by keywords
+        """
+        query = SearchQuery(keyword)
+        rank_annotation = SearchRank(F("search_vector"), query)
+        filtered_queryset = (
+            queryset.annotate(rank=rank_annotation)
+            .filter(search_vector=query)
+            .order_by("-rank")
+        )
+        return filtered_queryset
 
 
 class ChantCreateView(CreateView):
