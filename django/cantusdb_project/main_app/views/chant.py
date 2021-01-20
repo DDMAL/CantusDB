@@ -12,13 +12,22 @@ from django.contrib.postgres.search import (
 from main_app.models import Chant, Genre, Feast
 from main_app.forms import ChantCreateForm
 
+
 class ChantDetailView(DetailView):
+    """
+    Displays a single Chant object. Accessed with ``chants/<int:pk>``
+    """
+
     model = Chant
     context_object_name = "chant"
     template_name = "chant_detail.html"
 
 
 class ChantListView(ListView):
+    """
+    Displays a list of Chant objects. Accessed with ``chants/``
+    """
+
     model = Chant
     queryset = Chant.objects.all().order_by("id")
     paginate_by = 100
@@ -75,25 +84,32 @@ class ChantSearchView(ListView):
 
 
 class ChantCreateView(CreateView):
-    model = Chant
+    """
+    Creates a single Chant. Accessed by ``chant-create/
+    """
+
     # template_name = "chant_form.html"
     template_name = "input_form_w.html"
 
-    #fields = "__all__" # include all fields to the form
+    # fields = "__all__" # include all fields to the form
     # exclude = ['json_info'] # example of excluding sth from the form
     form_class = ChantCreateForm
     success_url = "/chants"
-    '''
+    """
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
         context["genres"] = Genre.objects.all().order_by("name").values("id", "name")
         context["offices"] = Office.objects.all().order_by("name").values("id", "name")
         context["feasts"] = Feast.objects.all().order_by("name").values("id", "name")
         return context
-    '''
+    """
 
 
 class ChantUpdateView(UpdateView):
+    """
+    Updates a single Chant. Accessed by ``chant-update/<int:pk>``
+    """
+
     model = Chant
     template_name = "chant_form.html"
     fields = "__all__"
