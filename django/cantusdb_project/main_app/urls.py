@@ -31,9 +31,9 @@ urlpatterns = [
     path("chants/", ChantListView.as_view(), name="chant-list"),
     path("chants/<int:pk>", ChantDetailView.as_view(), name="chant-detail"),
     path("chant-search/", ChantSearchView.as_view(), name="chant-search"),
-    path("chant-create/<int:source_pk>", ChantCreateView.as_view(), name="chant-create"),
-
+    path(
+        "chant-create/<int:source_pk>", ChantCreateView.as_view(), name="chant-create"
+    ),
     path("ci-search/<str:search_term>", CISearchView.as_view(), name="ci-search"),
-
     path("chant-update/<int:pk>", ChantUpdateView.as_view(), name="chant-update"),
 ]

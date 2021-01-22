@@ -240,11 +240,10 @@
             <div class="row">
                 <div class="card mb-3 w-100">
                     <div class="card-body">
-                        <h5>Input Tool: <a id="source" href="">Source Name</a></h5>
-                        <!-- source name and suggestions should be filled with django {{ context }} -->
+                        <h5>Current Source: <a id="source" href="{{ source_link }}">{{ source.title }}</a></h5>
                         Suggestions based on the previous chant
                     </div>
-                    <script>
+                    <!-- <script>
                         window.onload = getSource;
                         function getSource() {
                             var url = window.location.href;
@@ -252,7 +251,7 @@
                             source = url.substring(index + 1,url.length);
                             document.getElementById("source").href=window.location.origin + "/sources/" + source;
                         }
-                    </script>
+                    </script> -->
                 </div>
             </div>
 

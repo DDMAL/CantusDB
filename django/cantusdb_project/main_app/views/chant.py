@@ -14,6 +14,8 @@ from django.shortcuts import get_object_or_404, HttpResponse
 
 import requests
 import lxml.html as lh
+from django.urls import reverse
+
 
 class ChantDetailView(DetailView):
     model = Chant
@@ -81,7 +83,7 @@ class ChantCreateView(CreateView):
     model = Chant
     template_name = "input_form_w.html"
 
-    #fields = "__all__" # include all fields to the form
+    # fields = "__all__" # include all fields to the form
     # exclude = ['json_info'] # example of excluding sth from the form
     form_class = ChantCreateForm
     success_url = "/chants"
@@ -91,24 +93,32 @@ class ChantCreateView(CreateView):
         Overridden so we can make sure the 'Source' specified in url exists
         before we display the form
         """
-        self.source = get_object_or_404(Source, pk=kwargs['source_pk'])
+        self.source = get_object_or_404(Source, pk=kwargs["source_pk"])
+        self.source_id = kwargs["source_pk"]
         return super().dispatch(request, *args, **kwargs)
 
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context["source_link"] = reverse("source-detail", args=[self.source_id])
+        context["source"] = self.source
+        return context
+
     def form_valid(self, form):
-        form.instance.source = self.source # the same as the next line
+        form.instance.source = self.source  # same effect as the next line
         # form.instance.source = get_object_or_404(Source, pk=self.kwargs['source_pk'])
 
         # compute incipt, within 30 charactors, keep words complete
         words = form.instance.manuscript_full_text_std_spelling.split(" ")
         incipt = ""
         for word in words:
-            new_incipt = incipt + word + ' '
+            new_incipt = incipt + word + " "
             if len(new_incipt) >= 30:
                 break
             else:
                 incipt = new_incipt
-        form.instance.incipt = incipt.strip(' ')
+        form.instance.incipt = incipt.strip(" ")
         return super().form_valid(form)
+
 
 class ChantUpdateView(UpdateView):
     model = Chant
@@ -116,38 +126,40 @@ class ChantUpdateView(UpdateView):
     fields = "__all__"
     success_url = "/chants"
 
+
 class CISearchView(TemplateView):
-    '''
+    """
     open a new window (done in js)
     get the search_term from the url
     do the search in python and write results in get_context_data
     render the table template
-    '''
-    
+    """
+
     template_name = "ci_search.html"
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
-        print(kwargs['search_term'])
-        search_term = kwargs['search_term']
-        search_term = search_term.replace(' ', '+') # for multiple keywords
-        #Create empty list for the 3 types of info
+        search_term = kwargs["search_term"]
+        search_term = search_term.replace(" ", "+")  # for multiple keywords
+        # Create empty list for the 3 types of info
         cantus_id = []
         genre = []
         full_text = []
 
         # scrape multiple pages
-        pages = range(0, 100)
+        pages = range(0, 5)
         for page in pages:
-            p = {'t': search_term, 'cid': '', 'genre': 'All', 'ghisp': 'All', 'page': page}
-            page = requests.get('http://cantusindex.org/search', params=p)
-            print(page.url)
-
+            p = {
+                "t": search_term,
+                "cid": "",
+                "genre": "All",
+                "ghisp": "All",
+                "page": page,
+            }
+            page = requests.get("http://cantusindex.org/search", params=p)
             doc = lh.fromstring(page.content)
-
-            #Parse data that are stored between <tr>..</tr> of HTML
-            tr_elements = doc.xpath('//tr')
-
+            # Parse data that are stored between <tr>..</tr> of HTML
+            tr_elements = doc.xpath("//tr")
             # if cantus index returns an empty table
             if not tr_elements:
                 break
@@ -161,10 +173,8 @@ class CISearchView(TemplateView):
                 full_text.append(row[2].text_content().strip())
 
         # for looping through three lists in template, we have to zip it here
-        if len(cantus_id)==0:
-            context['results'] = [['No results', 'No results', 'No results']]
+        if len(cantus_id) == 0:
+            context["results"] = [["No results", "No results", "No results"]]
         else:
-            context['results'] = zip(cantus_id, genre, full_text)
-
-        context['num'] = [1,2,3]
+            context["results"] = zip(cantus_id, genre, full_text)
         return context
