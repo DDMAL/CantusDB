@@ -99,6 +99,7 @@ class ChantCreateViewTest(TestCase):
         )
 
     def test_context(self):
+        # some context variable passed to templates
         source = Source.objects.all()[self.rand_source]
         url = reverse("chant-create", args=[source.id])
         response = self.client.get(url)
@@ -118,11 +119,16 @@ class CISearchViewTest(TestCase):
         fake_search_term = fake.text(6)
         response = self.client.get(reverse("ci-search", args=[fake_search_term]))
         self.assertEqual(response.status_code, 200)
+
+    def test_template_used(self):
+        fake_search_term = fake.text(6)
+        response = self.client.get(reverse("ci-search", args=[fake_search_term]))
+        self.assertEqual(response.status_code, 200)
         self.assertTemplateUsed(response, "ci_search.html")
 
     def test_context_returned(self):
         fake_search_term = fake.text(6)
-        fake_search_term = "eia adest"
+        # fake_search_term = "eia adest"
         response = self.client.get(f"/ci-search/{fake_search_term}")
         self.assertTrue("results" in response.context)
 
