@@ -1,5 +1,6 @@
 <!DOCTYPE html>
 <html>
+
 <head>
     <!-- Bootstrap CSS -->
     <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.0/css/bootstrap.min.css"
@@ -8,8 +9,10 @@
 
 <body>
 
-    <p>Select the chant by clicking "OK" at the left. If your chant is not included here, please add it into 
-        <a href="http://cantusindex.org/">Cantus Index</a> or contact the <a href="mailto:kolacek2010@gmail.com">administrator</a></p>
+    <p>Select the chant by clicking "OK" at the left. If your chant is not included here, please add it into
+        <a href="http://cantusindex.org/">Cantus Index</a> or contact the <a
+            href="mailto:kolacek2010@gmail.com">administrator</a>
+    </p>
     <table class="table table-responsive table-sm small table-bordered table-striped table-hover">
         <thead class="thead-dark">
             <tr>
@@ -32,21 +35,22 @@
         </tbody>
     </table>
 
-    <script> 
-        function autoFill() { 
-            var rowId =  event.target.parentNode.parentNode.id; //this gives id of tr whose button was clicked 
+    <script>
+        function autoFill() {
+            var rowId = event.target.parentNode.parentNode.id; //this gives id of tr whose button was clicked 
             var cantus_id = document.getElementById(rowId).cells[1].innerText;
             var genre = document.getElementById(rowId).cells[2].innerText;
-            var full_text = document.getElementById(rowId).cells[3].innerText;           
-            
-            // get the option value corresponding to the genre name
-            const genreId = Array.prototype.find.call(opener.document.getElementById('id_genre').children,({ textContent }) => textContent === genre);
+            var full_text = document.getElementById(rowId).cells[3].innerText;
 
-            opener.document.getElementById('id_cantus_id').value = cantus_id; 
+            // get the option value corresponding to the genre name
+            const genreId = Array.prototype.find.call(opener.document.getElementById('id_genre').children, ({ textContent }) => textContent === genre);
+
+            opener.document.getElementById('id_cantus_id').value = cantus_id;
             opener.document.getElementById('id_genre').value = genreId.value;
-            opener.document.getElementById('id_manuscript_full_text_std_spelling').value = full_text; 
+            opener.document.getElementById('id_manuscript_full_text_std_spelling').value = full_text;
             close()
         }
     </script>
 </body>
+
 </html>
