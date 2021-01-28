@@ -6,7 +6,7 @@ from users.models import User
 
 
 class Chant(BaseModel):
-    incipt = models.CharField(max_length=256, null=True, blank=True)
+    incipit = models.CharField(max_length=256, null=True, blank=True)
     source = models.ForeignKey(
         "Source", on_delete=models.PROTECT, null=True, blank=True
     )
@@ -80,7 +80,7 @@ class Chant(BaseModel):
         dict
             A dictionary of lists of search terms, the keys are the different weights
         """
-        incipt = self.incipt if self.incipt else None
+        incipit = self.incipit if self.incipit else None
         full_text = self.manuscript_full_text if self.manuscript_full_text else None
         full_text_std_spelling = self.manuscript_full_text_std_spelling if self.manuscript_full_text_std_spelling else None
         source = self.source.title if self.source else None
@@ -89,7 +89,7 @@ class Chant(BaseModel):
         office = self.office.name if self.office else None
         return {
             "A": (
-                " ".join(filter(None,[incipt, full_text, full_text_std_spelling, source]))
+                " ".join(filter(None,[incipit, full_text, full_text_std_spelling, source]))
             ),
             "B": (
                 " ".join(filter(None, [genre, feast, office]))
