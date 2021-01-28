@@ -13,6 +13,29 @@ from main_app.models import Chant, Genre, Feast
 from main_app.forms import ChantCreateForm
 
 
+def keyword_search(queryset: QuerySet, keywords: str) -> QuerySet:
+    """
+    Performs a keyword search over a QuerySet
+
+    Uses PostgreSQL's full text search features
+
+    Args:
+        queryset (QuerySet): A QuerySet to be searched
+        keywords (str): A string of keywords to search the QuerySet
+
+    Returns:
+        QuerySet: A QuerySet filtered by keywords
+    """
+    query = SearchQuery(keywords)
+    rank_annotation = SearchRank(F("search_vector"), query)
+    filtered_queryset = (
+        queryset.annotate(rank=rank_annotation)
+        .filter(search_vector=query)
+        .order_by("-rank")
+    )
+    return filtered_queryset
+
+
 class ChantDetailView(DetailView):
     """
     Displays a single Chant object. Accessed with ``chants/<int:pk>``
@@ -100,37 +123,14 @@ class ChantSearchView(ListView):
         # Finally, use the incipit parameter to do keyword searching
         # over the QuerySet
         if self.request.GET.get("incipit"):
-            incipt = self.request.GET.get("incipit")
-            queryset = self.keyword_search(queryset, incipt)
+            incipit = self.request.GET.get("incipit")
+            queryset = keyword_search(queryset, incipit)
 
         return queryset
 
-    def keyword_search(self, queryset: QuerySet, keyword: str) -> QuerySet:
-        """
-        Performs a keyword search over a QuerySet of Chants
-
-        Uses PostgreSQL's full text search features
-
-        Args:
-            queryset (QuerySet): A QuerySet of Chants to be searched
-            keyword (str): A string of keywords to search the QuerySet
-
-        Returns:
-            QuerySet: A QuerySet of Chants filtered by keywords
-        """
-        query = SearchQuery(keyword)
-        rank_annotation = SearchRank(F("search_vector"), query)
-        filtered_queryset = (
-            queryset.annotate(rank=rank_annotation)
-            .filter(search_vector=query)
-            .order_by("-rank")
-        )
-        return filtered_queryset
-
-
 class ChantCreateView(CreateView):
     """
-    Creates a single Chant. Accessed by ``chant-create/
+    Creates a single Chant. Accessed by ``chant-create/``
     """
 
     # template_name = "chant_form.html"
