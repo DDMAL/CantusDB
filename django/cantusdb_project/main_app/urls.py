@@ -15,6 +15,7 @@ from main_app.views import ChantSearchView
 from main_app.views import ChantCreateView
 from main_app.views import ChantUpdateView
 from main_app.views import CISearchView
+from main_app.views import views
 
 
 urlpatterns = [
@@ -36,4 +37,5 @@ urlpatterns = [
     ),
     path("ci-search/<str:search_term>", CISearchView.as_view(), name="ci-search"),
     path("chant-update/<int:pk>", ChantUpdateView.as_view(), name="chant-update"),
+    path("content-statistics", views.items_count, name="items-count"),
 ]
