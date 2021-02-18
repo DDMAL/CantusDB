@@ -1,12 +1,14 @@
+import operator
+from functools import reduce
+
+from django.contrib.postgres.search import SearchVector
+from django.db import models
+from django.db.models import Value
 from django.db.models.signals import post_save
 from django.dispatch import receiver
-from django.db.models import Value
-from django.contrib.postgres.search import SearchVector
-from functools import reduce
-from django.db import models
-from django.conf import settings
+
 from main_app.models import Chant
-import operator
+
 
 @receiver(post_save, sender=Chant)
 def on_save(instance, **kwargs):
