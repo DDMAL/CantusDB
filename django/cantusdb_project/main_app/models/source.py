@@ -83,3 +83,11 @@ class Source(BaseModel):
     indexing_notes = models.TextField(blank=True, null=True)
     indexing_date = models.TextField(blank=True, null=True)
     json_info = JSONField()
+
+    def number_of_chants(self) -> int:
+        """Returns the number of Chants and Sequences in this Source."""
+        return self.chant_set.count() + self.sequence_set.count()
+
+    def number_of_melodies(self) -> int:
+        """Returns the number of Chants in this Source that have melodies."""
+        return self.chant_set.filter(volpiano__isnull=False).count()
