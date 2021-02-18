@@ -50,7 +50,7 @@
             {% for genre in genres %}
             <tr>
                 <td class="text-wrap">
-                    <a href="{{ genre.get_absolute_url }}&mass_office={{ request.GET.mass_office }}">{{genre.name}}</a>
+                    <a href="{{ genre.get_absolute_url }}">{{genre.name}}</a>
                 </td>
                 <td class="text-wrap">{{ genre.description|default:""}}</td>
                 <td class="text-wrap">
