@@ -12,7 +12,7 @@ class Chant(BaseModel):
     )
     marginalia = models.CharField(max_length=63, null=True, blank=True)
     folio = models.CharField(
-        help_text='Binding order', blank=True, null=True, max_length=64
+        help_text="Binding order", blank=True, null=True, max_length=63
     )
     sequence_number = models.PositiveIntegerField(
         help_text='Each folio starts with "1"', null=True, blank=True
@@ -77,39 +77,35 @@ class Chant(BaseModel):
     indexing_notes = models.TextField(blank=True, null=True)
     json_info = JSONField(null=True, blank=True)
     search_vector = SearchVectorField(null=True, editable=False)
-    
+
     def index_components(self) -> dict:
         """Constructs a dictionary of weighted lists of search terms
-        
-        Returns
-        -------
-        dict
-            A dictionary of lists of search terms, the keys are the different weights
+
+        Returns:
+            dict: A dictionary of lists of search terms, the keys are the
+                  different weights
         """
         incipit = self.incipit if self.incipit else None
-        full_text = self.manuscript_full_text if self.manuscript_full_text else None
-        full_text_std_spelling = self.manuscript_full_text_std_spelling if self.manuscript_full_text_std_spelling else None
+        full_text = (
+            self.manuscript_full_text if self.manuscript_full_text else None
+        )
+        full_text_std_spelling = (
+            self.manuscript_full_text_std_spelling
+            if self.manuscript_full_text_std_spelling
+            else None
+        )
         source = self.source.title if self.source else None
         genre = self.genre.name if self.genre else None
         feast = self.feast.name if self.feast else None
         office = self.office.name if self.office else None
         return {
             "A": (
-                " ".join(filter(None,[incipit, full_text, full_text_std_spelling, source]))
+                " ".join(
+                    filter(
+                        None,
+                        [incipit, full_text, full_text_std_spelling, source],
+                    )
+                )
             ),
-            "B": (
-                " ".join(filter(None, [genre, feast, office]))
-            )
+            "B": (" ".join(filter(None, [genre, feast, office]))),
         }
-
-    # newly-added fields 2020-11-27
-    # not sure what field type we should use exactly
-    
-    # content_structure = models.CharField(
-    #     blank=True, null=True, max_length=64,
-    #     help_text="Additional folio number field, if folio numbers appear on the leaves but are not in the 'binding order'."
-    #     )
-    # fragmentarium_id = models.CharField(blank=True, null=True, max_length=64)
-    # # Digital Analysis of Chant Transmission
-    # dact = models.CharField(blank=True, null=True, max_length=64)
-    # also a second differentia field
