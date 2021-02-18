@@ -116,14 +116,11 @@ class ChantSearchView(ListView):
 
         # Filter the QuerySet with Q object
         queryset = queryset.filter(q_obj_filter)
-
-        # TODO: change incipit to "keyword" maybe? More clear since it is
-        # searching the whole text
-
+     
         # Finally, use the incipit parameter to do keyword searching
         # over the QuerySet
-        if self.request.GET.get("incipit"):
-            incipit = self.request.GET.get("incipit")
+        if self.request.GET.get("keyword"):
+            incipit = self.request.GET.get("keyword")
             queryset = keyword_search(queryset, incipit)
 
         return queryset
