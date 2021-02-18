@@ -1,6 +1,8 @@
+from typing import Dict, List
+
 from django.views.generic import DetailView, ListView
-from main_app.models import Genre
 from extra_views import SearchableListMixin
+from main_app.models import Genre
 
 
 class GenreDetailView(DetailView):
@@ -22,8 +24,9 @@ class GenreListView(SearchableListMixin, ListView):
         if mass_office in ["Mass", "Office", "Old Hispanic"]:
             # Put mass_office in a list because the contains lookup requires one
             queryset = (
-                super().get_queryset().filter(mass_office__contains=[mass_office])
+                super()
+                .get_queryset()
+                .filter(mass_office__contains=[mass_office])
             )
             return queryset
-        else:
-            return super().get_queryset()
+        return super().get_queryset()
