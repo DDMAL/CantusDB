@@ -57,7 +57,7 @@ class Source(BaseModel):
     )
     # TODO: Fill this field up with JSON info when I have access to the Users
     current_editors = models.ManyToManyField(User, related_name="sources_edited")
-    invetoried_by = models.ManyToManyField(
+    inventoried_by = models.ManyToManyField(
         "Indexer", related_name="sources_inventoried"
     )
     full_text_entered_by = models.ManyToManyField(
