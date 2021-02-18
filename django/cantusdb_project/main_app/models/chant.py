@@ -6,11 +6,11 @@ from users.models import User
 
 
 class Chant(BaseModel):
-    incipit = models.CharField(max_length=256, null=True, blank=True)
+    incipit = models.CharField(max_length=255, null=True, blank=True)
     source = models.ForeignKey(
         "Source", on_delete=models.PROTECT, null=True, blank=True
     )
-    marginalia = models.CharField(max_length=64, null=True, blank=True)
+    marginalia = models.CharField(max_length=63, null=True, blank=True)
     folio = models.CharField(
         help_text='Binding order', blank=True, null=True, max_length=64
     )
@@ -20,20 +20,25 @@ class Chant(BaseModel):
     office = models.ForeignKey(
         "Office", on_delete=models.PROTECT, null=True, blank=True
     )
-    genre = models.ForeignKey("Genre", on_delete=models.PROTECT, null=True, blank=True)
-    position = models.CharField(max_length=64, null=True, blank=True)
-    cantus_id = models.CharField(max_length=64, null=True, blank=True)
-    feast = models.ForeignKey("Feast", on_delete=models.PROTECT, null=True, blank=True)
-    mode = models.CharField(max_length=64, null=True, blank=True)
-    differentia = models.CharField(blank=True, null=True, max_length=64)
-    finalis = models.CharField(blank=True, null=True, max_length=64)
-    extra = models.CharField(blank=True, null=True, max_length=64)
-    chant_range = models.CharField(
-        blank=True, null=True, help_text='Example: "1-c-k-4". Optional field', max_length=256
+    genre = models.ForeignKey(
+        "Genre", on_delete=models.PROTECT, null=True, blank=True
     )
-    # TODO: look into the permissions of this field
-    addendum = models.CharField(blank=True, null=True, max_length=256)
-    # TODO: maybe change this to its own model?
+    position = models.CharField(max_length=63, null=True, blank=True)
+    cantus_id = models.CharField(max_length=63, null=True, blank=True)
+    feast = models.ForeignKey(
+        "Feast", on_delete=models.PROTECT, null=True, blank=True
+    )
+    mode = models.CharField(max_length=63, null=True, blank=True)
+    differentia = models.CharField(blank=True, null=True, max_length=63)
+    finalis = models.CharField(blank=True, null=True, max_length=63)
+    extra = models.CharField(blank=True, null=True, max_length=63)
+    chant_range = models.CharField(
+        blank=True,
+        null=True,
+        help_text='Example: "1-c-k-4". Optional field',
+        max_length=255,
+    )
+    addendum = models.CharField(blank=True, null=True, max_length=255)
     manuscript_full_text_std_spelling = models.TextField(
         help_text="Manuscript full text with standardized spelling. Enter the words "
         "according to the manuscript but normalize their spellings following "
@@ -43,8 +48,9 @@ class Chant(BaseModel):
         null=True,
         blank=True,
     )
-    manuscript_full_text_std_proofread = models.NullBooleanField(blank=True, null=True)
-    # TODO: maybe change it to its own model?
+    manuscript_full_text_std_proofread = models.NullBooleanField(
+        blank=True, null=True
+    )
     manuscript_full_text = models.TextField(
         help_text="Enter the wording, word order and spellings as found in the manuscript"
         ", with abbreviations resolved to standard words. Use upper-case letters as found"
@@ -52,21 +58,21 @@ class Chant(BaseModel):
         "Greek characters with their closest approximations of Latin letters. Some punctuation"
         " signs and vertical dividing lines | are employed in this field. Repetenda and psalm "
         "cues can also be recorded here. For more information, contact Cantus Database staff.",
-        null=True, 
-        blank=True
+        null=True,
+        blank=True,
     )
-    manuscript_full_text_proofread = models.NullBooleanField(blank=True, null=True)
+    manuscript_full_text_proofread = models.NullBooleanField(
+        blank=True, null=True
+    )
     manuscript_syllabized_full_text = models.TextField(null=True, blank=True)
-    # TODO: maybe change this to its own model?
     volpiano = models.TextField(null=True, blank=True)
     volpiano_proofread = models.NullBooleanField(blank=True, null=True)
     image_link = models.URLField(blank=True, null=True)
-    # TODO: look into permissions for this field
-    cao_concordances = models.CharField(blank=True, null=True, max_length=64)
+    cao_concordances = models.CharField(blank=True, null=True, max_length=63)
     proofread_by = models.ForeignKey(
         User, on_delete=models.PROTECT, null=True, blank=True
     )
-    melody_id = models.CharField(blank=True, null=True, max_length=64)
+    melody_id = models.CharField(blank=True, null=True, max_length=63)
     sylabilized_full_text = models.TextField(blank=True, null=True)
     indexing_notes = models.TextField(blank=True, null=True)
     json_info = JSONField(null=True, blank=True)

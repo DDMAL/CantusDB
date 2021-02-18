@@ -25,7 +25,7 @@ class Source(BaseModel):
         max_length=255,
         help_text="Full Manuscript Identification (City, Archive, Shelf-mark)",
     )
-    siglum = models.CharField(max_length=50, null=True, blank=True)
+    siglum = models.CharField(max_length=63, null=True, blank=True)
     rism_siglum = models.ForeignKey(
         "RismSiglum", on_delete=models.PROTECT, null=True, blank=True,
     )
@@ -47,13 +47,13 @@ class Source(BaseModel):
     date = models.CharField(
         blank=True,
         null=True,
-        max_length=50,
+        max_length=63,
         help_text='Date of the manuscript (e.g. "1200s", "1300-1350", etc.)',
     )
     century = models.ManyToManyField("Century", related_name="sources")
     notation = models.ManyToManyField("Notation", related_name="sources")
     cursus = models.CharField(
-        blank=True, null=True, choices=cursus_choices, max_length=10
+        blank=True, null=True, choices=cursus_choices, max_length=63
     )
     # TODO: Fill this field up with JSON info when I have access to the Users
     current_editors = models.ManyToManyField(User, related_name="sources_edited")
