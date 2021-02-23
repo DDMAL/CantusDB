@@ -113,10 +113,13 @@ class ChantSearchView(ListView):
             feast = self.request.GET.get("feast")
             feast = Feast.objects.filter(name=feast)
             q_obj_filter &= Q(feast=feast)
+        if self.request.GET.get("melody"):
+            melody = self.request.GET.get("melody")
+            q_obj_filter &= Q(volpiano__contains=melody)
 
         # Filter the QuerySet with Q object
         queryset = queryset.filter(q_obj_filter)
-     
+
         # Finally, use the incipit parameter to do keyword searching
         # over the QuerySet
         if self.request.GET.get("keyword"):
