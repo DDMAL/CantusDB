@@ -59,10 +59,20 @@
                     <option value="false">Chants without melodies</option>
                 </select>
             </div>
+        </div>
+        <div class="form-row align-items-end">
+            <div class="form-group m-1 col-lg">
+                <label for="melody-search"><small>Melody search</small></label>
+                <input type="text" class="form-control form-control-sm" name="melody" value="{{ request.GET.melody}}"
+                    id="melody-filter" style = "font-family:volpiano; font-size:30px;">
+            </div>
+        </div>
+        <div class="form-row align-items-end">
             <div class="form-group m-1 col-lg">
                 <button type="submit" class="btn btn-primary btn-sm" id="btn-submit"> Apply </button>
             </div>
         </div>
+        
     </form>
 
     <table class="table table-responsive table-sm small table-bordered">
