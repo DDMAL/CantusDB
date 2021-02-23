@@ -1,6 +1,7 @@
 from django.contrib.postgres.fields import JSONField
 from django.contrib.postgres.search import SearchVectorField
 from django.db import models
+from django.db.models.query import QuerySet
 from main_app.models import BaseModel
 from users.models import User
 
@@ -79,7 +80,7 @@ class Chant(BaseModel):
     search_vector = SearchVectorField(null=True, editable=False)
 
     def index_components(self) -> dict:
-        """Constructs a dictionary of weighted lists of search terms
+        """Constructs a dictionary of weighted lists of search terms.
 
         Returns:
             dict: A dictionary of lists of search terms, the keys are the
@@ -109,3 +110,6 @@ class Chant(BaseModel):
             ),
             "B": (" ".join(filter(None, [genre, feast, office]))),
         }
+
+    def related_chants_by_cantus_id(self) -> QuerySet:
+        return Chant.objects.filter(cantus_id=self.cantus_id)
