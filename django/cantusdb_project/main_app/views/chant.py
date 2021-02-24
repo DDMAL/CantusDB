@@ -6,7 +6,6 @@ from django.views.generic import (
     DeleteView,
     TemplateView,
 )
-from django.views import View
 from django.db.models import Q
 from main_app.models import Chant, Genre, Feast, Office, Source
 from main_app.forms import ChantCreateForm
@@ -14,7 +13,7 @@ from django.shortcuts import get_object_or_404, HttpResponse
 
 import requests
 import lxml.html as lh
-from django.urls import reverse
+from django.urls import reverse, reverse_lazy
 
 
 class ChantDetailView(DetailView):
@@ -26,7 +25,7 @@ class ChantDetailView(DetailView):
 class ChantListView(ListView):
     model = Chant
     queryset = Chant.objects.all().order_by("id")
-    paginate_by = 100
+    paginate_by = 18
     context_object_name = "chants"
     template_name = "chant_list.html"
 
@@ -82,11 +81,50 @@ class ChantSearchView(ListView):
 class ChantCreateView(CreateView):
     model = Chant
     template_name = "input_form_w.html"
-
-    # fields = "__all__" # include all fields to the form
-    # exclude = ['json_info'] # example of excluding sth from the form
     form_class = ChantCreateForm
-    success_url = "/chants"
+    # if success_url and get_success_url not specified, will direct to chant detail page
+    def get_success_url(self):
+        return reverse("chant-create", args=[self.source.id])
+
+    def get_initial(self):
+        self.latest_folio, self.latest_feast = self.get_folio_and_feast()
+        return {
+            "folio": self.latest_folio,
+            "feast": self.latest_feast,
+            "sequence_number": self.get_latest_sequence(),
+        }
+
+    def get_folio_and_feast(self):
+        # get the default [folio, feast] from the last created chant
+        # last created chant has the largest id, so order by id
+        chants_in_source = (
+            Chant.objects.all().filter(source=self.source).order_by("-id")
+        )
+        try:
+            latest_chant = chants_in_source[0]
+            latest_folio = latest_chant.folio
+            latest_feast = latest_chant.feast.id
+        except:
+            # if the source do not have any chant yet
+            latest_folio = "001r"
+            latest_feast = ""
+        return latest_folio, latest_feast
+
+    def get_latest_sequence(self):
+        # compute sequence number, automatically get the latest sequence number in the folio
+        chants_in_folio = Chant.objects.all().filter(
+            source=self.source, folio=self.latest_folio
+        )
+        sequences_in_folio = chants_in_folio.values("sequence_number").order_by(
+            "-sequence_number"
+        )
+        try:
+            latest_sequence = sequences_in_folio[0]["sequence_number"]
+        except:
+            # there exist sources that do not have any chants yet, in this case, autofill 001r
+            latest_sequence = 0
+        print("latest_seq: ", latest_sequence)
+        return int(latest_sequence) + 1
 
     def dispatch(self, request, *args, **kwargs):
         """
@@ -104,6 +142,7 @@ class ChantCreateView(CreateView):
         return context
 
     def form_valid(self, form):
+        # compute source
         form.instance.source = self.source  # same effect as the next line
         # form.instance.source = get_object_or_404(Source, pk=self.kwargs['source_pk'])
 
@@ -114,10 +153,42 @@ class ChantCreateView(CreateView):
             new_incipt = incipt + word + " "
             if len(new_incipt) >= 30:
                 break
-            else:
-                incipt = new_incipt
+            incipt = new_incipt
         form.instance.incipt = incipt.strip(" ")
-        return super().form_valid(form)
+
+        # if the folio field is left empty
+        if form.instance.folio == None:
+            form.instance.folio = self.latest_folio
+
+        # if the sequence field is left empty
+        if form.instance.sequence_number == None:
+            form.instance.sequence_number = self.get_latest_sequence()
+
+        # if a chant with the same sequence and folio already exists in the source
+        if (
+            Chant.objects.all()
+            .filter(
+                source=self.source,
+                folio=form.instance.folio,
+                sequence_number=form.instance.sequence_number,
+            )
+            .exists()
+        ):
+            form.add_error(
+                None,
+                "Chant with the same sequence and folio already exists in the source. Please make sure you're in the right source and check your entry for 'Folio' and 'Sequence'",
+            )
+
+        if form.is_valid():
+            return super().form_valid(form)
+        else:
+            return super().form_invalid(form)
+
+
+class ChantDeleteView(DeleteView):
+    model = Chant
+    success_url = reverse_lazy("chant-list")
+    template_name = "chant_confirm_delete.html"
 
 
 class ChantUpdateView(UpdateView):
