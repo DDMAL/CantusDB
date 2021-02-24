@@ -11,7 +11,7 @@ class Chant(BaseModel):
     )
     marginalia = models.CharField(max_length=64, null=True, blank=True)
     folio = models.CharField(
-        help_text='Binding order', blank=True, null=True, max_length=64
+        help_text="Binding order", blank=True, null=True, max_length=64
     )
     sequence_number = models.PositiveIntegerField(
         help_text='Each folio starts with "1"', null=True, blank=True
@@ -28,7 +28,10 @@ class Chant(BaseModel):
     finalis = models.CharField(blank=True, null=True, max_length=64)
     extra = models.CharField(blank=True, null=True, max_length=64)
     chant_range = models.CharField(
-        blank=True, null=True, help_text='Example: "1-c-k-4". Optional field', max_length=256
+        blank=True,
+        null=True,
+        help_text='Example: "1-c-k-4". Optional field',
+        max_length=256,
     )
     # TODO: look into the permissions of this field
     # addendum is important, should have a spot on input form, should be editable
@@ -52,8 +55,8 @@ class Chant(BaseModel):
         "Greek characters with their closest approximations of Latin letters. Some punctuation"
         " signs and vertical dividing lines | are employed in this field. Repetenda and psalm "
         "cues can also be recorded here. For more information, contact Cantus Database staff.",
-        null=True, 
-        blank=True
+        null=True,
+        blank=True,
     )
     manuscript_full_text_proofread = models.NullBooleanField(blank=True, null=True)
     manuscript_syllabized_full_text = models.TextField(null=True, blank=True)
@@ -74,11 +77,13 @@ class Chant(BaseModel):
 
     # newly-added fields 2020-11-27
     # not sure what field type we should use exactly
-    
-    # content_structure = models.CharField(
-    #     blank=True, null=True, max_length=64,
-    #     help_text="Additional folio number field, if folio numbers appear on the leaves but are not in the 'binding order'."
-    #     )
+
+    content_structure = models.CharField(
+        blank=True,
+        null=True,
+        max_length=64,
+        help_text="Additional folio number field, if folio numbers appear on the leaves but are not in the 'binding order'.",
+    )
     # fragmentarium_id = models.CharField(blank=True, null=True, max_length=64)
     # # Digital Analysis of Chant Transmission
     # dact = models.CharField(blank=True, null=True, max_length=64)
