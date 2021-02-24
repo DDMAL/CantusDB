@@ -175,6 +175,14 @@
                 </dd>
                 {% endif %}
             </dl>
+
+            <a href="" class="btn btn-primary" id="delete">Delete this Chant</a>
+            <script>
+                window.onload = function () {
+                    document.getElementById("delete").href = window.location.href + '/delete';
+                }
+            </script>
+
         </div>
 
         <div class="col">
