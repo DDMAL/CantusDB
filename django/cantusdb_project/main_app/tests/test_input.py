@@ -218,3 +218,4 @@ class CISearchViewTest(TestCase):
         # fake_search_term = "eia adest"
         response = self.client.get(f"/ci-search/{fake_search_term}")
         self.assertTrue("results" in response.context)
+        
