@@ -81,6 +81,9 @@ class ChantSearchView(ListView):
 
 
 class ChantCreateView(CreateView):
+    """Create chant at /chant-create/<source-id>
+    """
+
     model = Chant
     template_name = "input_form_w.html"
     form_class = ChantCreateForm
@@ -101,12 +104,11 @@ class ChantCreateView(CreateView):
         }
 
     def get_folio_feast_seq(self):
-        """
-        get the default [folio, feast, seq] from the last created chant
-        last created chant has the largest id, so order by id
+        """get the default [folio, feast, seq] from the last created chant
+        last created chant is found using 'date-updated'
         """
         chants_in_source = (
-            Chant.objects.all().filter(source=self.source).order_by("-id")
+            Chant.objects.all().filter(source=self.source).order_by("-date_updated")
         )
         if not chants_in_source:
             # if there is no chant in source
@@ -130,9 +132,7 @@ class ChantCreateView(CreateView):
         return latest_folio, latest_feast, latest_seq + 1
 
     def dispatch(self, request, *args, **kwargs):
-        """
-        Overridden so we can make sure the 'Source' specified in url exists
-        before we display the form
+        """Make sure the source specified in url exists before we display the form
         """
         self.source = get_object_or_404(Source, pk=kwargs["source_pk"])
         self.source_id = kwargs["source_pk"]
@@ -142,16 +142,25 @@ class ChantCreateView(CreateView):
         context = super().get_context_data(**kwargs)
         context["source_link"] = reverse("source-detail", args=[self.source_id])
         context["source"] = self.source
-        previous_chant = Chant.objects.all().get(
-            source=self.source,
-            folio=self.latest_folio,
-            sequence_number=self.latest_seq - 1,
-        )
-        context["previous_chant"] = previous_chant
-        context["previous_chant_link"] = reverse("chant-detail", args=[previous_chant.id])
+        try:
+            previous_chant = Chant.objects.all().get(
+                source=self.source,
+                folio=self.latest_folio,
+                sequence_number=self.latest_seq - 1,
+            )
+            context["previous_chant"] = previous_chant
+            context["previous_chant_link"] = reverse(
+                "chant-detail", args=[previous_chant.id]
+            )
+        except Chant.DoesNotExist:
+            context["previous_chant"] = None
+
         return context
 
     def form_valid(self, form):
+        """compute source, incipit; folio/sequence (if left empty)
+        validate the form: add success/error message
+        """
         # compute source
         form.instance.source = self.source  # same effect as the next line
         # form.instance.source = get_object_or_404(Source, pk=self.kwargs['source_pk'])
@@ -200,6 +209,9 @@ class ChantCreateView(CreateView):
 
 
 class ChantDeleteView(DeleteView):
+    """delete chant on chant-detail page
+    """
+
     model = Chant
     success_url = reverse_lazy("chant-list")
     template_name = "chant_confirm_delete.html"
@@ -213,11 +225,7 @@ class ChantUpdateView(UpdateView):
 
 
 class CISearchView(TemplateView):
-    """
-    open a new window (done in js)
-    get the search_term from the url
-    do the search in python and write results in get_context_data
-    render the table template
+    """search in CI and write results in get_context_data
     """
 
     template_name = "ci_search.html"

@@ -160,7 +160,7 @@ class ChantCreateViewTest(TestCase):
             data={
                 "manuscript_full_text_std_spelling": fake_text,
                 "folio": TEST_FOLIO,
-                "sequence_number": random.randint(0, 4),
+                "sequence_number": random.randint(1, 4),
             },
             follow=True,
         )
@@ -198,24 +198,24 @@ class ChantCreateViewTest(TestCase):
 
 class CISearchViewTest(TestCase):
     def test_view_url_path(self):
-        fake_search_term = fake.text(6)
+        fake_search_term = fake.word()
         response = self.client.get(f"/ci-search/{fake_search_term}")
         self.assertEqual(response.status_code, 200)
 
     def test_view_url_reverse_name(self):
-        fake_search_term = fake.text(6)
+        fake_search_term = fake.word()
         response = self.client.get(reverse("ci-search", args=[fake_search_term]))
         self.assertEqual(response.status_code, 200)
 
     def test_template_used(self):
-        fake_search_term = fake.text(6)
+        fake_search_term = fake.word()
         response = self.client.get(reverse("ci-search", args=[fake_search_term]))
         self.assertEqual(response.status_code, 200)
         self.assertTemplateUsed(response, "ci_search.html")
 
     def test_context_returned(self):
-        fake_search_term = fake.text(6)
+        fake_search_term = fake.word()
         # fake_search_term = "eia adest"
         response = self.client.get(f"/ci-search/{fake_search_term}")
         self.assertTrue("results" in response.context)
-        
+
