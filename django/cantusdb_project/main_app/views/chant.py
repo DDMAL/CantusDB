@@ -7,13 +7,15 @@ from django.views.generic import (
     TemplateView,
 )
 from django.db.models import Q
-from main_app.models import Chant, Genre, Feast, Office, Source
-from main_app.forms import ChantCreateForm
-from django.shortcuts import get_object_or_404, HttpResponse
+from django.contrib import messages
+from django.shortcuts import get_object_or_404
+from django.urls import reverse, reverse_lazy
 
 import requests
 import lxml.html as lh
-from django.urls import reverse, reverse_lazy
+
+from main_app.models import Chant, Genre, Feast, Source
+from main_app.forms import ChantCreateForm
 
 
 class ChantDetailView(DetailView):
@@ -87,44 +89,45 @@ class ChantCreateView(CreateView):
         return reverse("chant-create", args=[self.source.id])
 
     def get_initial(self):
-        self.latest_folio, self.latest_feast = self.get_folio_and_feast()
+        (
+            self.latest_folio,
+            self.latest_feast,
+            self.latest_seq,
+        ) = self.get_folio_feast_seq()
         return {
             "folio": self.latest_folio,
             "feast": self.latest_feast,
-            "sequence_number": self.get_latest_sequence(),
+            "sequence_number": self.latest_seq,
         }
 
-    def get_folio_and_feast(self):
-        # get the default [folio, feast] from the last created chant
-        # last created chant has the largest id, so order by id
+    def get_folio_feast_seq(self):
+        """
+        get the default [folio, feast, seq] from the last created chant
+        last created chant has the largest id, so order by id
+        """
         chants_in_source = (
             Chant.objects.all().filter(source=self.source).order_by("-id")
         )
-        try:
-            latest_chant = chants_in_source[0]
-            latest_folio = latest_chant.folio
-            latest_feast = latest_chant.feast.id
-        except:
-            # if the source do not have any chant yet
+        if not chants_in_source:
+            # if there is no chant in source
             latest_folio = "001r"
             latest_feast = ""
-        return latest_folio, latest_feast
-
-    def get_latest_sequence(self):
-        # compute sequence number, automatically get the latest sequence number in the folio
-        chants_in_folio = Chant.objects.all().filter(
-            source=self.source, folio=self.latest_folio
-        )
-        sequences_in_folio = chants_in_folio.values("sequence_number").order_by(
-            "-sequence_number"
-        )
-        try:
-            latest_sequence = sequences_in_folio[0]["sequence_number"]
-        except:
-            # there exist sources that do not have any chants yet, in this case, autofill 001r
-            latest_sequence = 0
-        print("latest_seq: ", latest_sequence)
-        return int(latest_sequence) + 1
+            latest_seq = 0
+        else:
+            latest_chant = chants_in_source[0]
+            if latest_chant.folio:
+                latest_folio = latest_chant.folio
+            else:
+                latest_folio = "001r"
+            if latest_chant.feast:
+                latest_feast = latest_chant.feast.id
+            else:
+                latest_feast = ""
+            if latest_chant.sequence_number:
+                latest_seq = latest_chant.sequence_number
+            else:
+                latest_seq = 0
+        return latest_folio, latest_feast, latest_seq + 1
 
     def dispatch(self, request, *args, **kwargs):
         """
@@ -139,6 +142,13 @@ class ChantCreateView(CreateView):
         context = super().get_context_data(**kwargs)
         context["source_link"] = reverse("source-detail", args=[self.source_id])
         context["source"] = self.source
+        previous_chant = Chant.objects.all().get(
+            source=self.source,
+            folio=self.latest_folio,
+            sequence_number=self.latest_seq - 1,
+        )
+        context["previous_chant"] = previous_chant
+        context["previous_chant_link"] = reverse("chant-detail", args=[previous_chant.id])
         return context
 
     def form_valid(self, form):
@@ -157,12 +167,12 @@ class ChantCreateView(CreateView):
         form.instance.incipt = incipt.strip(" ")
 
         # if the folio field is left empty
-        if form.instance.folio == None:
+        if form.instance.folio is None:
             form.instance.folio = self.latest_folio
 
         # if the sequence field is left empty
-        if form.instance.sequence_number == None:
-            form.instance.sequence_number = self.get_latest_sequence()
+        if form.instance.sequence_number is None:
+            form.instance.sequence_number = self.latest_seq
 
         # if a chant with the same sequence and folio already exists in the source
         if (
@@ -176,10 +186,14 @@ class ChantCreateView(CreateView):
         ):
             form.add_error(
                 None,
-                "Chant with the same sequence and folio already exists in the source. Please make sure you're in the right source and check your entry for 'Folio' and 'Sequence'",
+                "Chant with the same sequence and folio already exists in this source.",
             )
 
         if form.is_valid():
+            messages.success(
+                self.request,
+                "Chant '" + form.instance.incipt + "' created successfully!",
+            )
             return super().form_valid(form)
         else:
             return super().form_invalid(form)
