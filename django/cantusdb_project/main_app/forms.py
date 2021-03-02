@@ -46,7 +46,9 @@ class ChantCreateForm(forms.ModelForm):
             "manuscript_full_text_std_spelling",
             "manuscript_full_text",
             "volpiano",
+            "image_link",
             "melody_id",
+            "content_structure",
             "indexing_notes",
             "addendum",
         ]
@@ -68,7 +70,9 @@ class ChantCreateForm(forms.ModelForm):
             "manuscript_full_text_std_spelling": TextAreaWidget(),
             "manuscript_full_text": TextAreaWidget(),
             "volpiano": VolpianoAreaWidget(),
+            "image_link": TextInputWidget(),
             "melody_id": TextInputWidget(),
+            "content_structure": TextInputWidget(),
             "indexing_notes": TextAreaWidget(),
             "addendum": TextInputWidget(),
         }

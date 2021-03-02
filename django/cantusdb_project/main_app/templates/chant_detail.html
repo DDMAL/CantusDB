@@ -1,5 +1,6 @@
 {% extends "base.html" %}
 {% block content %}
+<title>{{ chant.incipt }} | Cantus Manuscript Database</title>
 <div class="container">
     <div class="row">
         <div class="mr-3 p-3 col-lg-8 bg-white rounded">
@@ -174,7 +175,15 @@
                 </dd>
                 {% endif %}
             </dl>
+            <a href="" class="btn btn-primary" id="delete">Delete this Chant</a>
+            <script>
+                window.onload = function () {
+                    document.getElementById("delete").href = window.location.href + '/delete';
+                }
+            </script>
+
         </div>
+
         <div class="col">
             <div class="row">
                 {% with source=chant.source %}
@@ -186,7 +195,7 @@
                         <br>
                         {{ source.siglum }}
                     </div>
-                    <div class=" card-body">
+                    <div class="card-body">
                         <!-- TODO: add proper links here -->
                         <small>
                             Provenance: <a href="#">{{source.provenance.name}}</a>
@@ -208,7 +217,6 @@
                                 </li>
                                 {% endfor %}
                             </ul>
-
                             Proofreader{{source.proofreaders.all|pluralize}}:
                             {% if source.proofreaders.all %}
                             <ul class="list-unstyled" style="margin-bottom: 0rem;">

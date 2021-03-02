@@ -13,8 +13,10 @@ from main_app.views import ChantListView
 from main_app.views import ChantDetailView
 from main_app.views import ChantSearchView
 from main_app.views import ChantCreateView
+from main_app.views import ChantDeleteView
 from main_app.views import ChantUpdateView
 from main_app.views import CISearchView
+from main_app.views import views
 
 
 urlpatterns = [
@@ -34,6 +36,8 @@ urlpatterns = [
     path(
         "chant-create/<int:source_pk>", ChantCreateView.as_view(), name="chant-create"
     ),
+    path("chants/<int:pk>/delete/", ChantDeleteView.as_view(), name="chant-delete"),
     path("ci-search/<str:search_term>", CISearchView.as_view(), name="ci-search"),
     path("chant-update/<int:pk>", ChantUpdateView.as_view(), name="chant-update"),
+    path("content-statistics", views.items_count, name="items-count"),
 ]

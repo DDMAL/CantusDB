@@ -1,12 +1,13 @@
+import random
+
 from django.test import TestCase
-from main_app.forms import ChantCreateForm
 from django.urls import reverse
 
+from faker import Faker
+
+from main_app.forms import ChantCreateForm
 from main_app.models import Source
 from main_app.models import Chant
-
-import random
-from faker import Faker
 
 fake = Faker()
 
@@ -34,9 +35,9 @@ class ChantCreateViewTest(TestCase):
     fixtures = [
         "source_fixtures.json",
         "provenance_fixtures.json",
-        "segment_fixtures",
-        "century_fixtures",
-        "indexer_fixtures",
+        "segment_fixtures.json",
+        "century_fixtures.json",
+        "indexer_fixtures.json",
         "notation_fixtures.json",
     ]
     SLICE_SIZE = 10
@@ -66,6 +67,8 @@ class ChantCreateViewTest(TestCase):
             self.assertTemplateUsed(response, "input_form_w.html")
 
     def test_fake_source(self):
+        """cannot go to input form with a fake source
+        """
         fake_source = fake.numerify(
             "#####"
         )  # there's not supposed to be 5-digits source id
@@ -73,7 +76,8 @@ class ChantCreateViewTest(TestCase):
         self.assertEqual(response.status_code, 404)
 
     def test_post_success(self):
-        # post with correct source and random full-text
+        """post with correct source and random full-text
+        """
         source = Source.objects.all()[self.rand_source]
         url = reverse("chant-create", args=[source.id])
         fake_text = fake.text(100)
@@ -83,11 +87,93 @@ class ChantCreateViewTest(TestCase):
         self.assertTrue(
             Chant.objects.filter(manuscript_full_text_std_spelling=fake_text).exists()
         )
-        self.assertRedirects(response, reverse("chant-list"))
-        self.assertRedirects(response, "/chants/")
+        self.assertRedirects(response, reverse("chant-create", args=[source.id]))
+
+    def test_autofill(self):
+        """Test pre-prepopulate when input chants to a non-empty source
+        """
+        # create some chants in the test source
+        source = Source.objects.all()[self.rand_source]
+        for i in range(1, 5):
+            Chant.objects.create(
+                source=source,
+                manuscript_full_text=fake.text(10),
+                folio="010r",
+                sequence_number=i,
+            )
+        chants_in_source = Chant.objects.all().filter(source=source).order_by("-id")
+        last_chant = chants_in_source[0]
+        last_folio = last_chant.folio
+        last_sequence = last_chant.sequence_number
+        # create a new chant using input form
+        url = reverse("chant-create", args=[source.id])
+        fake_text = fake.text(100)
+        response = self.client.post(
+            url, data={"manuscript_full_text_std_spelling": fake_text}, follow=True,
+        )
+        # after inputting, should redirect to another input form
+        self.assertRedirects(response, reverse("chant-create", args=[source.id]))
+        # get the newly created chant
+        posted_chant = Chant.objects.get(manuscript_full_text_std_spelling=fake_text)
+        # see if it has the default folio and sequence
+        self.assertEqual(posted_chant.folio, last_folio)
+        self.assertEqual(posted_chant.sequence_number, last_sequence + 1)
+
+    def test_autofill_empty(self):
+        """Test pre-prepopulate when input chants to an empty source
+        """
+        DEFAULT_FOLIO = "001r"
+        DEFAULT_SEQ = 1
+        source = Source.objects.all()[self.rand_source]
+        # create a new chant using input form
+        url = reverse("chant-create", args=[source.id])
+        fake_text = fake.text(100)
+        response = self.client.post(
+            url, data={"manuscript_full_text_std_spelling": fake_text}, follow=True,
+        )
+        # after inputting, should redirect to another input form
+        self.assertRedirects(response, reverse("chant-create", args=[source.id]))
+        # get the newly created chant
+        posted_chant = Chant.objects.get(manuscript_full_text_std_spelling=fake_text)
+        # see if it has the default folio and sequence
+        self.assertEqual(posted_chant.folio, DEFAULT_FOLIO)
+        self.assertEqual(posted_chant.sequence_number, DEFAULT_SEQ)
+
+    def test_repeated_seq(self):
+        """post with a folio and seq that already exists in the source
+        """
+        TEST_FOLIO = "001r"
+        # create some chants in the test source
+        source = Source.objects.all()[self.rand_source]
+        for i in range(1, 5):
+            Chant.objects.create(
+                source=source,
+                manuscript_full_text=fake.text(10),
+                folio=TEST_FOLIO,
+                sequence_number=i,
+            )
+        # post a chant with the same folio and seq
+        url = reverse("chant-create", args=[source.id])
+        fake_text = fake.text(10)
+        response = self.client.post(
+            url,
+            data={
+                "manuscript_full_text_std_spelling": fake_text,
+                "folio": TEST_FOLIO,
+                "sequence_number": random.randint(0, 4),
+            },
+            follow=True,
+        )
+        self.assertFormError(
+            response,
+            "form",
+            None,
+            errors="Chant with the same sequence and folio already exists in this source.",
+        )
 
     def test_post_error(self):
-        # post with correct source and empty full-text
+        """post with correct source and empty full-text
+        """
         source = Source.objects.all()[self.rand_source]
         url = reverse("chant-create", args=[source.id])
         response = self.client.post(url, data={"manuscript_full_text_std_spelling": ""})
@@ -99,7 +185,8 @@ class ChantCreateViewTest(TestCase):
         )
 
     def test_context(self):
-        # some context variable passed to templates
+        """some context variable passed to templates
+        """
         source = Source.objects.all()[self.rand_source]
         url = reverse("chant-create", args=[source.id])
         response = self.client.get(url)
@@ -131,45 +218,4 @@ class CISearchViewTest(TestCase):
         # fake_search_term = "eia adest"
         response = self.client.get(f"/ci-search/{fake_search_term}")
         self.assertTrue("results" in response.context)
-
-
-class ChantCreateFormTest(TestCase):
-    fixtures = [
-        "source_fixtures.json",
-        "provenance_fixtures.json",
-        "segment_fixtures",
-        "century_fixtures",
-        "indexer_fixtures",
-        "notation_fixtures.json",
-    ]
-
-    def test_fake_source(self):
-        # if the source does not exist, the form is not valid
-        form = ChantCreateForm(data={"source": 000000})
-        self.assertEqual(
-            form.errors["source"],
-            ["This source does not exist, please switch to a different source."],
-        )
-        self.assertFalse(form.is_valid())
-
-    def test_empty_full_text(self):
-        # if full-text is empty, the form is not valid
-        form = ChantCreateForm(
-            data={"source": 123610, "manuscript_full_text_std_spelling": ""}
-        )
-        self.assertEqual(
-            form.errors["manuscript_full_text_std_spelling"],
-            ["This field is required."],
-        )
-        self.assertFalse(form.is_valid())
-
-    def test_mandatory_field(self):
-        # if source and full-text are correct, the form is valid
-        form = ChantCreateForm(
-            data={
-                "source": 123610,
-                "manuscript_full_text_std_spelling": "some random text",
-            }
-        )
-        self.assertTrue(form.is_valid())
-
+        
