@@ -114,14 +114,15 @@
                 {{ chant.extra }}
             </dd>
             {% endif %}
-            {% if chant.manuscript_full_text_std_spelling %}
+            <!-- Apparently we don't need to show the manuscript_full_text_std_spelling field -->
+            <!-- {% if chant.manuscript_full_text_std_spelling %}
             <dt>
                 Manuscript Reading Full Text (standardized spelling)
             </dt>
             <dd>
                 {{ chant.manuscript_full_text_std_spelling }}
             </dd>
-            {% endif %}
+            {% endif %} -->
             {% if chant.manuscript_full_text %}
             <dt>
                 Manuscript Reading Full Text (MS spelling)
