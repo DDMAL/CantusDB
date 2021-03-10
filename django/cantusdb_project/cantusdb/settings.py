@@ -34,6 +34,7 @@ ALLOWED_HOSTS = os.getenv("CANTUSDB_HOSTS")
 # Application definition
 
 INSTALLED_APPS = [
+    "coverage",
     "dal",
     "dal_select2",
     "django.contrib.admin",

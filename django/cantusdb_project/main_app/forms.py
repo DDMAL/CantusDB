@@ -1,13 +1,11 @@
 from django import forms
-from .models import Chant, Office, Genre, Feast
+from .models import Chant, Office, Genre, Feast, Source
 from .widgets import *
+
 # ModelForm allows to build a form directly from a model
 # see https://docs.djangoproject.com/en/3.0/topics/forms/modelforms/
 
-# CreateView is a combination of 
-# several other classes that handle ModelForms and template rendering (TemplateView).
-
-'''
+"""
 # 3 ways of doing it
 #1 worst, helptext in the model will be missing
 class CommetnForm(forms.Form):
@@ -25,60 +23,91 @@ class CommentForm(forms.ModelForm):
         super().__init__(*args, **kwargs)
         self.fields['name'].widget.attrs.update({'class': 'special'})
         self.fields['comment'].widget.attrs.update(size='40')
-'''
-#3 best
+"""
+# 3 best
 class ChantCreateForm(forms.ModelForm):
     class Meta:
         model = Chant
-        # sepcify either 'fields' or 'excludes' so that django knows which fields to use
+        # specify either 'fields' or 'excludes' so that django knows which fields to use
         fields = [
-            'marginalia', 'folio', 'sequence_number', 
-            'office', 'genre', 'position', 'cantus_id', 'feast',
-            'mode', 'differentia',
-            'finalis', 'extra', 'chant_range',
-            'manuscript_full_text_std_spelling',
-            'manuscript_full_text',
-            'volpiano',
-            'melody_id',
-            #'content_structure',
-            'indexing_notes',
-            ]
+            "marginalia",
+            "folio",
+            "sequence_number",
+            "office",
+            "genre",
+            "position",
+            "cantus_id",
+            "feast",
+            "mode",
+            "differentia",
+            "finalis",
+            "extra",
+            "chant_range",
+            "manuscript_full_text_std_spelling",
+            "manuscript_full_text",
+            "volpiano",
+            "melody_id",
+            "indexing_notes",
+            "addendum",
+        ]
         widgets = {
-            # 'marginalia': forms.TextInput(attrs={'class':'form-control form-control-sm'}),
-            'marginalia': TextInputWidget(),
-            # 'folio': forms.TextInput(attrs={'class':'form-control form-control-sm'}),
-            'folio': TextInputWidget(),
-            'sequence_number': TextInputWidget(),
-            #'office': forms.Select(attrs={'class': 'form-control custom-select custom-select-sm'}, ),
-            #'office': SelectWidget(),
-            #'genre': SelectWidget(choices=Office.objects.all().values("id").order_by('name')),
-            'position': TextInputWidget(),
-            'cantus_id': TextInputWidget(),
+            "marginalia": TextInputWidget(),
+            "folio": TextInputWidget(),
+            "sequence_number": TextInputWidget(),
+            # the widgets dictionary is ignored for a model field with a non-empty choices attribute.
+            # In this case, you must override the form field to use a different widget.
+            # this goes for all foreignkey fields here, which are written explicitly below to override form field
+            "position": TextInputWidget(),
+            "cantus_id": TextInputWidget(),
             #'feast': SelectWidget(),
-            'mode': TextInputWidget(),
-            'differentia': TextInputWidget(),
-            'finalis': TextInputWidget(),
-            'extra': TextInputWidget(),
-            'chant_range': VolpianoInputWidget(),
-            'manuscript_full_text_std_spelling': TextAreaWidget(),
-            'manuscript_full_text': TextAreaWidget(),
-            'volpiano': VolpianoAreaWidget(),
-            'melody_id': TextInputWidget(),
-            #'content_structure': TextInputWidget(),
-            'indexing_notes': TextAreaWidget()
-            }
-    
+            "mode": TextInputWidget(),
+            "differentia": TextInputWidget(),
+            "finalis": TextInputWidget(),
+            "extra": TextInputWidget(),
+            "chant_range": VolpianoInputWidget(),
+            "manuscript_full_text_std_spelling": TextAreaWidget(),
+            "manuscript_full_text": TextAreaWidget(),
+            "volpiano": VolpianoAreaWidget(),
+            "melody_id": TextInputWidget(),
+            "indexing_notes": TextAreaWidget(),
+            "addendum": TextInputWidget(),
+        }
+        # error_messages = {
+        #     # specify custom error messages for each field here
+        # }
+
+    manuscript_full_text_std_spelling = forms.CharField(
+        required=True,
+        widget=TextAreaWidget,
+        help_text="Manuscript full text with standardized spelling. Enter the words "
+        "according to the manuscript but normalize their spellings following "
+        "Classical Latin forms. Use upper-case letters for proper nouns, "
+        'the first word of each chant, and the first word after "Alleluia" for '
+        "Mass Alleluias. Punctuation is omitted.",
+    )
     office = forms.ModelChoiceField(
-        queryset=Office.objects.all().order_by("name"),
-        )
+        queryset=Office.objects.all().order_by("name"), required=False
+    )
     office.widget.attrs.update({"class": "form-control custom-select custom-select-sm"})
 
     genre = forms.ModelChoiceField(
-        queryset=Genre.objects.all().order_by("name"),
-        )
+        queryset=Genre.objects.all().order_by("name"), required=False
+    )
     genre.widget.attrs.update({"class": "form-control custom-select custom-select-sm"})
 
     feast = forms.ModelChoiceField(
-        queryset=Feast.objects.all().order_by("name"),
-        )
+        queryset=Feast.objects.all().order_by("name"), required=False
+    )
     feast.widget.attrs.update({"class": "form-control custom-select custom-select-sm"})
+
+    # automatically computed fields
+    # source and incipt are mandatory fields in model,
+    # but have to be optional in the form, otherwise the field validation won't pass
+    source = forms.ModelChoiceField(
+        queryset=Source.objects.all().order_by("name"),
+        required=False,
+        error_messages={
+            "invalid_choice": "This source does not exist, please switch to a different source."
+        },
+    )
+    incipt = forms.CharField(required=False)
