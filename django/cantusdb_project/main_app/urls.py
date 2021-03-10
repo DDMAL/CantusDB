@@ -1,19 +1,24 @@
 from django.urls import path
-from main_app.views import IndexerDetailView
-from main_app.views import IndexerListView
-from main_app.views import FeastListView
-from main_app.views import FeastDetailView
-from main_app.views import GenreDetailView
-from main_app.views import GenreListView
-from main_app.views import OfficeListView
-from main_app.views import OfficeDetailView
-from main_app.views import SourceListView
-from main_app.views import SourceDetailView
-from main_app.views import ChantListView
-from main_app.views import ChantDetailView
-from main_app.views import ChantSearchView
-from main_app.views import ChantCreateView
-from main_app.views import ChantUpdateView
+
+from main_app.views import (
+    ChantCreateView,
+    ChantDetailView,
+    ChantListView,
+    ChantSearchView,
+    ChantUpdateView,
+    FeastDetailView,
+    FeastListView,
+    GenreDetailView,
+    GenreListView,
+    IndexerDetailView,
+    IndexerListView,
+    OfficeDetailView,
+    OfficeListView,
+    SequenceDetailView,
+    SequenceListView,
+    SourceDetailView,
+    SourceListView,
+)
 
 urlpatterns = [
     path("indexers/", IndexerListView.as_view(), name="indexer-list"),
@@ -34,5 +39,11 @@ urlpatterns = [
     path("chant-create/", ChantCreateView.as_view(), name="chant-create"),
     path(
         "chant-update/<int:pk>", ChantUpdateView.as_view(), name="chant-update"
+    ),
+    path("sequences/", SequenceListView.as_view(), name="sequence-list"),
+    path(
+        "sequences/<int:pk>",
+        SequenceDetailView.as_view(),
+        name="sequence-detail",
     ),
 ]
