@@ -1,17 +1,13 @@
-from main_app.views.indexer import IndexerDetailView
-from main_app.views.indexer import IndexerListView
-from main_app.views.feast import FeastListView
-from main_app.views.feast import FeastDetailView
-from main_app.views.genre import GenreListView
-from main_app.views.genre import GenreDetailView
-from main_app.views.office import OfficeListView
-from main_app.views.office import OfficeDetailView
-from main_app.views.source import SourceListView
-from main_app.views.source import SourceDetailView
-from main_app.views.chant import ChantListView
-from main_app.views.chant import ChantDetailView
-from main_app.views.chant import ChantSearchView
-from main_app.views.chant import ChantCreateView
-from main_app.views.chant import ChantDeleteView
-from main_app.views.chant import ChantUpdateView
-from main_app.views.chant import CISearchView
+from main_app.views.chant import (
+    ChantCreateView,
+    ChantDetailView,
+    ChantListView,
+    ChantSearchView,
+    ChantUpdateView,
+)
+from main_app.views.feast import FeastDetailView, FeastListView
+from main_app.views.genre import GenreDetailView, GenreListView
+from main_app.views.indexer import IndexerDetailView, IndexerListView
+from main_app.views.office import OfficeDetailView, OfficeListView
+from main_app.views.sequence import SequenceDetailView, SequenceListView
+from main_app.views.source import SourceDetailView, SourceListView

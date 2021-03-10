@@ -4,7 +4,32 @@
 <div class="mr-3 p-3 mx-auto bg-white rounded">
     <h3>{{ genre.name }}</h3>
     <p>{{ genre.description }}</p>
+    <table class="table table-responsive table-sm small">
+        <thead>
+            <tr>
+                <th scope="col" class="text-wrap">Incipit (example)</th>
+                <th scope="col" class="text-wrap">Cantus ID</th>
+                <th scope="col" class="text-wrap">Number of Chants</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for chant in genre_chant_list %}
+            <tr>
+                <td class="text-wrap" style="text-align:left">
+                    <a href="{{ chant.first_incipit_url }}">
+                        {{ chant.first_incipit }}
+                    </a>
+                </td>
+                <td class="text-wrap" style="text-align:center">
+                    <a href="http://cantusindex.org/id/{{ chant.cantus_id }}">
+                        {{chant.cantus_id}}
+                    </a>
+                <td class="text-wrap" style="text-align:center">
+                    {{ chant.num_chants }}
+                </td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
 </div>
-
-<!-- TODO: Add list of chants -->
 {% endblock %}

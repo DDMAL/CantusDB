@@ -22,9 +22,9 @@
     <form method="get">
         <div class="form-row align-items-end">
             <div class="form-group m-1 col-lg">
-                <label for="incipit-search"><small>Incipit search</small></label>
-                <input type="text" class="form-control form-control-sm" name="incipit" value="{{ request.GET.incipit}}"
-                    id="incipit-filter">
+                <label for="keyword-search"><small>Keyword search</small></label>
+                <input type="text" class="form-control form-control-sm" name="keyword" value="{{ request.GET.keyword}}"
+                    id="keyword-filter">
             </div>
         </div>
         <div class="form-row form-row align-items-end">
@@ -60,10 +60,20 @@
                     <option value="false">Chants without melodies</option>
                 </select>
             </div>
+        </div>
+        <div class="form-row align-items-end">
+            <div class="form-group m-1 col-lg">
+                <label for="melody-search"><small>Melody search</small></label>
+                <input type="text" class="form-control form-control-sm" name="melody" value="{{ request.GET.melody}}"
+                    id="melody-filter" style = "font-family:volpiano; font-size:30px;">
+            </div>
+        </div>
+        <div class="form-row align-items-end">
             <div class="form-group m-1 col-lg">
                 <button type="submit" class="btn btn-primary btn-sm" id="btn-submit"> Apply </button>
             </div>
         </div>
+        
     </form>
 
     <table class="table table-responsive table-sm small table-bordered">
@@ -71,7 +81,7 @@
             <tr>
                 <th scope="col" class="text-wrap" style="text-align:center">Siglum</th>
                 <th scope="col" class="text-wrap" style="text-align:center">Folio</th>
-                <th scope="col" class="text-wrap" style="text-align:center">Incipit</th>
+                <th scope="col" class="text-wrap" style="text-align:center">Incipit/Full Text</th>
                 <th scope="col" class="text-wrap" style="text-align:center">Feast</th>
                 <th scope="col" class="text-wrap" style="text-align:center">Office/Mass</th>
                 <th scope="col" class="text-wrap" style="text-align:center">Genre</th>
@@ -92,8 +102,11 @@
                 <td class="text-wrap" style="text-align:center">
                     {{ chant.folio|default:""|truncatechars_html:140 }}
                 </td>
-                <td class="text-wrap" style="text-align:center">
-                    <a href="{{chant.get_absolute_url}}">{{ chant.incipt|default:"" }}</a>
+                <td class="text-wrap" style="text-align:left">
+                    <a href="{{chant.get_absolute_url}}">{{ chant.incipit|default:"" }}</a>
+                    <p>
+                        {{ chant.manuscript_full_text_std_spelling|default:""|truncatewords_html:100 }}
+                    </p>           
                 </td>
                 <td class="text-wrap" style="text-align:center">
                     {{ chant.feast.name|default:"" }}
