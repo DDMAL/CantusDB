@@ -15,7 +15,7 @@ class Command(BaseCommand):
         pass
 
     def handle(self, *args, **options):
-        file_path = "/code/django/cantusdb_project/sequences.json"
+        file_path = "/code/django/cantusdb_project/main_app/fixtures/sequences_downloaded.json"
         json_file = open(file_path, "r")
         objects = ijson.items(json_file, "item")
         sequences = (sequence for sequence in objects)
@@ -34,7 +34,9 @@ class Command(BaseCommand):
                 print(f"Could not load sequence {sequence}")
                 continue
             try:
-                source_id = int(sequence["field_source"]["und"][0]["target_id"])
+                source_id = int(
+                    sequence["field_source"]["und"][0]["target_id"]
+                )
                 source = Source.objects.get(id=source_id)
             except (KeyError, TypeError, ObjectDoesNotExist) as e:
                 if type(e) == ObjectDoesNotExist:
@@ -76,11 +78,15 @@ class Command(BaseCommand):
             except (KeyError, TypeError):
                 rubric = None
             try:
-                analecta_hymnica = sequence["field_analecta_hymnica"]["und"][0]["value"]
+                analecta_hymnica = sequence["field_analecta_hymnica"]["und"][
+                    0
+                ]["value"]
             except (KeyError, TypeError):
                 analecta_hymnica = None
             try:
-                indexing_notes = sequence["field_indexing_notes"]["und"][0]["value"]
+                indexing_notes = sequence["field_indexing_notes"]["und"][0][
+                    "value"
+                ]
             except (KeyError, TypeError):
                 indexing_notes = None
             try:
@@ -96,7 +102,9 @@ class Command(BaseCommand):
             except (KeyError, TypeError):
                 cantus_id = None
             try:
-                image_link = sequence["field_image_link_chant"]["und"][0]["value"]
+                image_link = sequence["field_image_link_chant"]["und"][0][
+                    "value"
+                ]
                 validate = URLValidator()
                 validate(image_link)
             except:
