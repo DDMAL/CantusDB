@@ -15,7 +15,7 @@ class Genre(BaseModel):
         base_field=models.CharField(
             max_length=63, choices=mass_office_choices
         ),
-        size=3,
+        size=len(mass_office_choices),
     )
 
     def __str__(self):
