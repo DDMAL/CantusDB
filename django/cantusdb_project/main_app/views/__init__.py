@@ -13,3 +13,4 @@ from main_app.views.chant import ChantDetailView
 from main_app.views.chant import ChantSearchView
 from main_app.views.chant import ChantCreateView
 from main_app.views.chant import ChantUpdateView
+from main_app.views.chant import CISearchView

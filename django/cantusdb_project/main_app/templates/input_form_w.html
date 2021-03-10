@@ -1,179 +1,261 @@
 {% extends "base.html" %}
 {% load helper_tags %}
 {% block content %}
-<div class="mr-3 p-3 col-md-10 mx-auto bg-white rounded">
+<div class="container">
+    <div class="row">
+        <div class="mr-3 p-3 col-md-8 bg-white rounded">
+            <h3>Create Chant</h3>
 
-    <h3>Create Chant</h3>
+            <form method="post">{% csrf_token %}
+                
+                {% if form.errors %}
+                <!-- Error messaging -->
+                <div id="errors">
+                    <div class="inner">
+                        <font color='red'>
+                            <p>Errors:</p>
+                            {{ form.non_field_errors }}
+                            <ul>
+                                {% for field in form %}
+                                    {% if field.errors %}<li>{{ field.label }}: {{ field.errors|striptags }}</li>{% endif %}
+                                {% endfor %}
+                            </ul>
+                        </font>
+                    </div>
+                </div>
+                <!-- /Error messaging -->
+                {% endif %}
 
-    <form method="post">{% csrf_token %}
+                <div class="form-row">
 
-        <div class="form-row">
+                    <div class="form-group m-1 col-lg-2">
+                        <small>{{ form.marginalia.label_tag }}</small>
+                        {{ form.marginalia }}
+                        <!-- {% if form.marginalia.errors %}
+                            <ol>
+                            {% for error in form.marginalia.errors %}
+                                <li><strong>{{ error|escape }}</strong></li>
+                            {% endfor %}
+                            </ol>
+                        {% endif %} -->
+                    </div>
 
-            <div class="form-group m-1 col-lg-2">
-                <small>{{ form.marginalia.label_tag }}</small>
-                {{ form.marginalia }}
+                    <div class="form-group m-1 col-lg-2">
+                        <small>{{ form.folio.label_tag }}</small>
+                        {{ form.folio }}
+                        <p class=text-muted><small>{{ form.folio.help_text}}</small></p>
+                    </div>
+                    
+                    <div class="form-group m-1 col-lg-2">
+                        <label for="{{ form.sequence_number.id_for_label }}"><small>Sequence:</small></label>
+                        {{ form.sequence_number }}
+                        <p class=text-muted><small>{{ form.sequence_number.help_text}}</small></p>
+                    </div>
+
+                </div>
+                
+                <div class="form-row">
+
+                    <!--div class="form-group m-1 col-lg-2">
+                        <label for="{{ form.office.id_for_label }}"><small>Office-Mass:</small></label>
+                        <select class="form-control custom-select custom-select-sm" id="{{ form.office.id_for_label }}" name="{{ form.office.html_name }}">
+                            <option value="">- Any -</option>
+                            {% for office in offices %}
+                            <option value="{{office.id}}">{{office.name}}</option>
+                            {% endfor %}
+                        </select>              
+                        <a class="text-muted" href="#"><small>?</small></a>
+                    </div-->
+
+                    <div class="form-group m-1 col-lg-2">
+                        <label for="{{ form.office.id_for_label }}"><small>Office/Mass:</small></label>
+                        {{ form.office }}         
+                        <a class="text-muted" href="#"><small>?</small></a>
+                    </div>
+
+                    <!--div class="form-group m-1 col-lg-2">
+                        <small>{{ form.genre.label_tag }}</small>
+                        <select class="form-control custom-select custom-select-sm" id="{{ form.genre.id_for_label }}" name="{{ form.genre.html_name }}">
+                            <option value="">- Any -</option>
+                            {% for genre in genres %}
+                            <option value="{{genre.id}}">{{genre.name}}</option>
+                            {% endfor %}
+                        </select>
+                    </div-->
+
+                    <div class="form-group m-1 col-lg-2">
+                        <small>{{ form.genre.label_tag }}</small>
+                        {{ form.genre }}         
+                    </div>
+
+                    <div class="form-group m-1 col-lg-2">
+                        <small>{{ form.position.label_tag }}</small>
+                        {{ form.position }}
+                    </div>
+
+                    <div class="form-group m-1 col-lg-2">
+                        <small>{{ form.cantus_id.label_tag }}</small>
+                        {{ form.cantus_id }}
+                    </div>            
+                    
+                    <!--div class="form-group m-1 col-lg-2">
+                        <small>{{ form.feast.label_tag }}</small>
+                        <select class="form-control custom-select custom-select-sm" id="{{ form.feast.id_for_label }}" name="{{ form.feast.html_name }}">
+                            <option value="">- Any -</option>
+                            {% for feast in feasts %}
+                            <option value="{{feast.id}}">{{feast.name}}</option>
+                            {% endfor %}
+                        </select>
+                    </div-->  
+
+                    <div class="form-group m-1 col-lg-2">
+                        <small>{{ form.feast.label_tag }}</small>
+                        {{ form.feast }}
+                    </div>     
+
+                </div>
+
+                <div class="form-row align-items-end">
+
+                    <div class="form-group m-1 col-lg-2">
+                        <small>{{ form.mode.label_tag }}</small>
+                        {{ form.mode }}
+                    </div>  
+
+                    <div class="form-group m-1 col-lg-2">
+                        <small>{{ form.differentia.label_tag }}</small>
+                        {{ form.differentia }}
+                    </div>  
+
+                </div>
+
+                <div class="form-row align-items-end">
+
+                    <div class="form-group m-1 col-lg-2">
+                        <small>{{ form.finalis.label_tag }}</small>
+                        {{ form.finalis }}
+                    </div>  
+
+                    <div class="form-group m-1 col-lg-2">
+                        <small>{{ form.extra.label_tag }}</small>
+                        {{ form.extra }}
+                    </div>  
+
+                </div>
+
+                <div class="form-row align-items-end">
+                    <div class="form-group m-1 col-lg-3">
+                        <label for="{{ form.chant_range.id_for_label }}"><small>Range:</small></label>
+                        {{ form.chant_range }}
+                        <p class="text-muted"><small>{{ form.chant_range.help_text }}</small></p>
+                    </div>  
+                </div>
+
+                <div class="form-row align-items-end">
+                    <div class="form-group m-1 col-lg">
+                        <label for="{{ form.manuscript_full_text_std_spelling.id_for_label }}"><small>Manuscript Reading Full Text (standardized spelling):</small></label>
+                        {{ form.manuscript_full_text_std_spelling }}
+                        <!--textarea class="form-control" rows="3" id="form.manuscript_full_text_std_spelling.id_for_label"></textarea-->
+                        <p class=text-muted><small>{{ form.manuscript_full_text_std_spelling.help_text }} For more info <a class="text-muted" href="#">click here</a></small></p>
+                    </div>
+                </div>
+
+                <div class="form-row align-items-end">
+                    <div class="form-group m-1 col-lg">
+                        <label for="{{ form.manuscript_full_text.id_for_label }}"><small>Manuscript Reading Full Text (MS Spelling)</small></label>
+                        {{ form.manuscript_full_text }}
+                        <p class="text-muted"><small>{{ form.manuscript_full_text.help_text }}</small></p>
+                    </div>
+                </div>
+
+                <div class="form-row align-items-end">
+                    <div class="form-group m-1 col-lg">
+                        <!--p style="font-family: Volpiano; font-size: xx-large;">abcdefg</p-->
+                        <small>{{ form.volpiano.label_tag }}</small>
+                        {{ form.volpiano }}
+                    </div>
+                </div>
+
+                <div class="form-row align-items-end">
+                    <div class="form-group m-1 col-lg-2">
+                        <small>{{ form.melody_id.label_tag }}</small>
+                        {{ form.melody_id }}
+                    </div>
+                </div>
+
+                <div class="form-row align-items-end">
+                    <div class="form-group m-1 col-lg-2">
+                        <small>{{ form.content_structure.label_tag }}</small>
+                        {{ form.content_structure }}
+                    </div>
+                </div>
+
+                <div class="form-row align-items-end">
+                    <div class="form-group m-1 col-lg">
+                        <small>{{ form.indexing_notes.label_tag }}</small>
+                        {{ form.indexing_notes }}
+                    </div>
+                </div>
+
+                <div class="form-row align-items-end">
+                    <div class="form-group m-1 col-lg">
+                        <small>{{ form.addendum.label_tag }}</small>
+                        {{ form.addendum }}
+                    </div>
+                </div>
+
+                <div class="form-group m-1 col-lg-2">
+                <button type="submit" class="btn btn-primary btn-sm" id="btn-submit"> Save </button>
+                </div>
+            </form>
+        </div>
+
+        <div class="col">
+            <div class="row">
+                <div class="card mb-3 w-100">
+
+                    <div class="card-header">
+                        <h4>Input Tool</h4>
+                    </div>
+
+                    <div class=" card-body">
+                        Enter any text from chant:
+                        <input type="text" id="incipitsearch"/>
+                        <button class="btn btn-danger btn-sm" onclick="openCiSearchWin()">Search ID</button>
+                        <script>
+                            function openCiSearchWin() {
+                                search_term = document.getElementById("incipitsearch").value;
+                                if (search_term.length < 3) {
+                                    search_term = window.prompt("Enter at least 3 characters of incipit", "");
+                                }
+                                address = "/ci-search/" + search_term;
+                                var ci = window.open(address, "ci", "height=400px, width=1200px, top=0, left=50px, status=no, toolbar=no, location=no, scrollbars=yes, resizable=yes");
+                            }
+                        </script>
+                    </div>
+
+                </div>
             </div>
 
-            <div class="form-group m-1 col-lg-2">
-                <small>{{ form.folio.label_tag }}</small>
-                {{ form.folio }}
-                <p class=text-muted><small>{{ form.folio.help_text}}</small></p>
-            </div>
-            
-            <div class="form-group m-1 col-lg-2">
-                <label for="{{ form.sequence_number.id_for_label }}"><small>Sequence:</small></label>
-                {{ form.sequence_number }}
-                <p class=text-muted><small>{{ form.sequence_number.help_text}}</small></p>
+            <div class="row">
+                <div class="card mb-3 w-100">
+                    <div class="card-body">
+                        <h5>Current Source: <a id="source" href="{{ source_link }}">{{ source.title }}</a></h5>
+                        Suggestions based on the previous chant
+                    </div>
+                    <!-- <script>
+                        window.onload = getSource;
+                        function getSource() {
+                            var url = window.location.href;
+                            var index = url.lastIndexOf("\/");
+                            source = url.substring(index + 1,url.length);
+                            document.getElementById("source").href=window.location.origin + "/sources/" + source;
+                        }
+                    </script> -->
+                </div>
             </div>
 
         </div>
-        
-        <div class="form-row">
-
-            <!--div class="form-group m-1 col-lg-2">
-                <label for="{{ form.office.id_for_label }}"><small>Office-Mass:</small></label>
-                <select class="form-control custom-select custom-select-sm" id="{{ form.office.id_for_label }}" name="{{ form.office.html_name }}">
-                    <option value="">- Any -</option>
-                    {% for office in offices %}
-                    <option value="{{office.id}}">{{office.name}}</option>
-                    {% endfor %}
-                </select>              
-                <a class="text-muted" href="#"><small>?</small></a>
-            </div-->
-
-            <div class="form-group m-1 col-lg-2">
-                <label for="{{ form.office.id_for_label }}"><small>Office/Mass:</small></label>
-                {{ form.office }}         
-                <a class="text-muted" href="#"><small>?</small></a>
-            </div>
-
-            <!--div class="form-group m-1 col-lg-2">
-                <small>{{ form.genre.label_tag }}</small>
-                <select class="form-control custom-select custom-select-sm" id="{{ form.genre.id_for_label }}" name="{{ form.genre.html_name }}">
-                    <option value="">- Any -</option>
-                    {% for genre in genres %}
-                    <option value="{{genre.id}}">{{genre.name}}</option>
-                    {% endfor %}
-                </select>
-            </div-->
-
-            <div class="form-group m-1 col-lg-2">
-                <small>{{ form.genre.label_tag }}</small>
-                {{ form.genre }}         
-            </div>
-
-            <div class="form-group m-1 col-lg-2">
-                <small>{{ form.position.label_tag }}</small>
-                {{ form.position }}
-            </div>
-
-            <div class="form-group m-1 col-lg-2">
-                <small>{{ form.cantus_id.label_tag }}</small>
-                {{ form.cantus_id }}
-            </div>            
-            
-            <!--div class="form-group m-1 col-lg-2">
-                <small>{{ form.feast.label_tag }}</small>
-                <select class="form-control custom-select custom-select-sm" id="{{ form.feast.id_for_label }}" name="{{ form.feast.html_name }}">
-                    <option value="">- Any -</option>
-                    {% for feast in feasts %}
-                    <option value="{{feast.id}}">{{feast.name}}</option>
-                    {% endfor %}
-                </select>
-            </div-->  
-
-            <div class="form-group m-1 col-lg-2">
-                <small>{{ form.feast.label_tag }}</small>
-                {{ form.feast }}
-            </div>     
-
-        </div>
-
-        <div class="form-row align-items-end">
-
-            <div class="form-group m-1 col-lg-2">
-                <small>{{ form.mode.label_tag }}</small>
-                {{ form.mode }}
-            </div>  
-
-            <div class="form-group m-1 col-lg-2">
-                <small>{{ form.differentia.label_tag }}</small>
-                {{ form.differentia }}
-            </div>  
-
-        </div>
-
-        <div class="form-row align-items-end">
-
-            <div class="form-group m-1 col-lg-2">
-                <small>{{ form.finalis.label_tag }}</small>
-                {{ form.finalis }}
-            </div>  
-
-            <div class="form-group m-1 col-lg-2">
-                <small>{{ form.extra.label_tag }}</small>
-                {{ form.extra }}
-            </div>  
-
-        </div>
-
-        <div class="form-row align-items-end">
-            <div class="form-group m-1 col-lg-3">
-                <label for="{{ form.chant_range.id_for_label }}"><small>Range:</small></label>
-                {{ form.chant_range }}
-                <p class="text-muted"><small>{{ form.chant_range.help_text }}</small></p>
-            </div>  
-        </div>
-
-        <div class="form-row align-items-end">
-            <div class="form-group m-1 col-lg">
-                <label for="{{ form.manuscript_full_text_std_spelling.id_for_label }}"><small>Manuscript Reading Full Text (standardized spelling):</small></label>
-                {{ form.manuscript_full_text_std_spelling }}
-                <!--textarea class="form-control" rows="3" id="form.manuscript_full_text_std_spelling.id_for_label"></textarea-->
-                <p class=text-muted><small>{{ form.manuscript_full_text_std_spelling.help_text }} For more info <a class="text-muted" href="#">click here</a></small></p>
-            </div>
-        </div>
-
-        <div class="form-row align-items-end">
-            <div class="form-group m-1 col-lg">
-                <label for="{{ form.manuscript_full_text.id_for_label }}"><small>Manuscript Reading Full Text (MS Spelling)</small></label>
-                {{ form.manuscript_full_text }}
-                <p class="text-muted"><small>{{ form.manuscript_full_text.help_text }}</small></p>
-            </div>
-        </div>
-
-        <div class="form-row align-items-end">
-            <div class="form-group m-1 col-lg">
-                <!--p style="font-family: Volpiano; font-size: xx-large;">abcdefg</p-->
-                <small>{{ form.volpiano.label_tag }}</small>
-                {{ form.volpiano }}
-            </div>
-        </div>
-
-        <div class="form-row align-items-end">
-            <div class="form-group m-1 col-lg-2">
-                <small>{{ form.melody_id.label_tag }}</small>
-                {{ form.melody_id }}
-            </div>
-        </div>
-
-        <div class="form-row align-items-end">
-            <div class="form-group m-1 col-lg-2">
-                <small>{{ form.content_structure.label_tag }}</small>
-                {{ form.content_structure }}
-            </div>
-        </div>
-
-        <div class="form-row align-items-end">
-            <div class="form-group m-1 col-lg">
-                <small>{{ form.indexing_notes.label_tag }}</small>
-                {{ form.indexing_notes }}
-            </div>
-        </div>
-
-        <div class="form-group m-1 col-lg-2">
-        <button type="submit" class="btn btn-primary btn-sm" id="btn-submit"> Save </button>
-        </div>
-    </form>
+    </div>
 </div>
 {%  endblock %}
