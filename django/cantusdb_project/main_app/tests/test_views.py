@@ -1,22 +1,96 @@
-import random
 import os
-from pprint import pprint
+import random
 
+from abc import abstractmethod
+from abc import ABC
 from django.test import TestCase
 from django.urls import reverse
 from faker import Faker
+from typing import List
+from main_app.models import Chant, Feast, Genre, Indexer, Office
+from main_app.views import (
+    FeastListView,
+    GenreListView,
+    IndexerListView,
+    OfficeListView,
+)
 
-from main_app.models import Indexer
-from main_app.models import Feast
-from main_app.models import Genre
-from main_app.models import Office
-from main_app.views import FeastListView
-from main_app.views import IndexerListView
-from main_app.views import GenreListView
-from main_app.views import OfficeListView
-
+from . import make_fakes
 
 fake = Faker()
+
+
+class ListViewTest(ABC):
+
+    list_view_name = None
+    context_object_name = None
+    templates = None
+    page_size = None
+
+    @abstractmethod
+    def number_of_objects(self) -> int:
+        pass
+    
+    def __init_subclass__(cls, **kwargs):
+        for required in (
+            "list_view_name",
+            "context_object_name",
+            "templates",
+            "page_size",
+        ):
+            if not getattr(cls, required):
+                raise TypeError(
+                    f"Can't instantiate abstract class {cls.__name__} without "\
+                    "{required} attribute defined"
+                )
+        return super().__init_subclass__(**kwargs)
+
+    def test_pagination(self):
+        print(type(self).__name__)
+        # To get total number of pages do a ceiling integer division
+        q, r = divmod(self.number_of_objects(), self.page_size)
+        pages = q + bool(r)
+
+        # Test all pages
+        for page_num in range(1, pages + 1):
+            response = self.client.get(
+                reverse(self.list_view_name), {"page": page_num}
+            )
+            self.assertEqual(response.status_code, 200)
+            self.assertTrue("is_paginated" in response.context)
+            self.assertTrue(response.context["is_paginated"])
+            if page_num == pages and (
+                self.number_of_objects() % self.page_size != 0
+            ):
+                self.assertEqual(
+                    len(response.context[self.context_object_name]),
+                    self.number_of_objects() % self.page_size,
+                )
+            else:
+                self.assertEqual(
+                    len(response.context[self.context_object_name]),
+                    self.page_size,
+                )
+
+        # Test the "last" syntax
+        response = self.client.get(
+            reverse(self.list_view_name), {"page": "last"}
+        )
+        self.assertEqual(response.status_code, 200)
+
+        # Test some invalid values for pages
+        response = self.client.get(reverse(self.list_view_name), {"page": -1})
+        self.assertEqual(response.status_code, 404)
+        response = self.client.get(reverse(self.list_view_name), {"page": 0})
+        self.assertEqual(response.status_code, 404)
+        response = self.client.get(
+            reverse(self.list_view_name), {"page": "lst"}
+        )
+        self.assertEqual(response.status_code, 404)
+        response = self.client.get(
+            reverse(self.list_view_name), {"page": pages + 1}
+        )
+        self.assertEqual(response.status_code, 404)
 
 
 class IndexerListViewTest(TestCase):
@@ -33,13 +107,8 @@ class IndexerListViewTest(TestCase):
         ) + random.randint(1, cls.PAGE_SIZE)
 
         for i in range(cls.number_of_indexers):
-            Indexer.objects.create(
-                first_name=fake.first_name(),
-                family_name=fake.last_name(),
-                institution=fake.company(),
-                city=fake.city(),
-                country=fake.country(),
-            )
+            make_fakes.make_fake_indexer()
+        print (f"There are {Indexer.objects.count()} indexers")
 
     def test_view_url_path(self):
         response = self.client.get("/indexers/")
@@ -57,8 +126,8 @@ class IndexerListViewTest(TestCase):
 
     def test_pagination(self):
         # To get total number of pages do a ceiling integer division
-        q, r = divmod(self.number_of_indexers, self.PAGE_SIZE)
-        pages = q + bool(r)
+        quotient, remainder = divmod(self.number_of_indexers, self.PAGE_SIZE)
+        pages = quotient + bool(remainder)
 
         # Test all pages
         for page_num in range(1, pages + 1):
@@ -67,7 +136,7 @@ class IndexerListViewTest(TestCase):
             )
             self.assertEqual(response.status_code, 200)
             self.assertTrue("is_paginated" in response.context)
-            self.assertTrue(response.context["is_paginated"] == True)
+            self.assertTrue(response.context["is_paginated"])
             if page_num == pages and (
                 self.number_of_indexers % self.PAGE_SIZE != 0
             ):
@@ -109,9 +178,9 @@ class IndexerListViewTest(TestCase):
             reverse("indexer-list"), {"q": random_indexer.first_name}
         )
         self.assertEqual(response.status_code, 200)
-        # Check object_list (which has the whole queryset, not paginated) instead of
-        # indexers which is paginated and might not contain random_indexer if it
-        # is not on the first page
+        # Check object_list (which has the whole queryset, not paginated)
+        # instead of indexers which is paginated and might not contain
+        # random_indexer if it is not on the first page
         self.assertTrue(
             random_indexer in response.context["paginator"].object_list
         )
@@ -120,8 +189,8 @@ class IndexerListViewTest(TestCase):
         first_name = random_indexer.first_name
         first_name_length = len(first_name)
         if first_name_length > 3:
-            # If the name is 3 letters or less we would search for the complete name
-            # which we already tested above
+            # If the name is 3 letters or less we would search for the complete
+            # name which we already tested above
             slice_begin = random.randint(0, first_name_length - 3)
             slice_end = slice_begin + 3
             response = self.client.get(
@@ -129,9 +198,9 @@ class IndexerListViewTest(TestCase):
                 {"q": random_indexer.first_name[slice_begin:slice_end]},
             )
             self.assertEqual(response.status_code, 200)
-            # Check object_list (which has the whole queryset, not paginated) instead of
-            # indexers which is paginated and might not contain random_indexer if it
-            # is not on the first page
+            # Check object_list (which has the whole queryset, not paginated)
+            # instead of indexers which is paginated and might not contain
+            # random_indexer  if it is not on the first page
             self.assertTrue(
                 random_indexer in response.context["paginator"].object_list
             )
@@ -143,13 +212,7 @@ class IndexerDetailViewTest(TestCase):
     @classmethod
     def setUpTestData(cls):
         for i in range(cls.NUM_INDEXERS):
-            indexer = Indexer.objects.create(
-                first_name=fake.first_name(),
-                family_name=fake.last_name(),
-                institution=fake.company(),
-                city=fake.city(),
-                country=fake.country(),
-            )
+            make_fakes.make_fake_indexer()
 
     def test_view_url_path(self):
         for indexer in Indexer.objects.all():
@@ -183,6 +246,20 @@ class IndexerDetailViewTest(TestCase):
 
 class FeastListViewTest(TestCase):
     PAGE_SIZE = FeastListView.paginate_by
+    MIN_PAGES = 1
+    MAX_PAGES = 6
+
+    @classmethod
+    def setUpTestData(cls):
+        # Create at least 100 + [1,99] indexers, this way we can test pagination since
+        # we're paginating by 100 items
+        cls.number_of_indexers = cls.PAGE_SIZE * random.randint(
+            cls.MIN_PAGES, cls.MAX_PAGES
+        ) + random.randint(1, cls.PAGE_SIZE)
+
+        for i in range(cls.number_of_indexers):
+            make_fakes.make_fake_indexer()
+
     fixtures = ["feast_fixtures.json"]
 
     def setUp(self):
@@ -267,12 +344,14 @@ class FeastListViewTest(TestCase):
         feasts = response.context["paginator"].object_list
         self.assertEqual(feasts.query.order_by[0], "name")
 
-        # Empty ordering parameters in GET request should default to ordering by name
+        # Empty ordering parameters in GET request should default to ordering
+        # by name
         response = self.client.get(reverse("feast-list"), {"ordering": ""})
         feasts = response.context["paginator"].object_list
         self.assertEqual(feasts.query.order_by[0], "name")
 
-        # Anything other than name and feast_code should default to ordering by name
+        # Anything other than name and feast_code should default to ordering by
+        # name
         response = self.client.get(
             reverse("feast-list"), {"ordering": random.randint(1, 100)}
         )
@@ -375,7 +454,8 @@ class GenreListViewTest(TestCase):
             qs=genres,
             values=list(Genre.objects.all()),
             ordered=False,
-            # The transform argument having the identity function is so the members of
+            # The transform argument having the identity function is so the
+            # members of
             # the list don't go through the repr() method, then we can
             # compare model objects to model objects
             transform=lambda x: x,
@@ -573,3 +653,42 @@ class OfficeDetailViewTest(TestCase):
             )
             self.assertTrue("office" in response.context)
             self.assertEqual(office, response.context["office"])
+
+
+# class ChantSearchViewTest(TestCase):
+#     fixture_file = random.choice(
+#         os.listdir(
+#             "/code/django/cantusdb_project/main_app/fixtures/chants_fixed"
+#         )
+#     )
+#     # Loading pretty much all fixtures since Chants refer to all of these,
+#     # without them there are errors
+#     fixtures = [
+#         "provenance_fixtures.json",
+#         "indexer_fixtures.json",
+#         "century_fixtures.json",
+#         "notation_fixtures.json",
+#         "rism_siglum_fixtures.json",
+#         "genre_fixtures.json",
+#         "feast_fixtures.json",
+#         "office_fixtures.json",
+#         "segment_fixtures.json",
+#         "source_fixtures.json",
+#         f"chants_fixed/{fixture_file}",
+#     ]
+
+#     def setUp(self):
+#         print (Chant.objects.all().count())
+
+#     def test_view_url_path(self):
+#         response = self.client.get("/chant-search/")
+#         self.assertEqual(response.status_code, 200)
+
+#     def test_view_url_reverse_name(self):
+#         response = self.client.get(reverse("chant-search"))
+#         self.assertEqual(response.status_code, 200)
+
+#     def test_view_correct_templates(self):
+#         response = self.client.get(reverse("chant-search"))
+#         self.assertTemplateUsed(response, "base.html")
+#         self.assertTemplateUsed(response, "chant_search.html")
