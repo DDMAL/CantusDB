@@ -113,3 +113,16 @@ class Chant(BaseModel):
 
     def related_chants_by_cantus_id(self) -> QuerySet:
         return Chant.objects.filter(cantus_id=self.cantus_id)
+    # newly-added fields 2020-11-27
+    # not sure what field type we should use exactly
+
+    content_structure = models.CharField(
+        blank=True,
+        null=True,
+        max_length=64,
+        help_text="Additional folio number field, if folio numbers appear on the leaves but are not in the 'binding order'.",
+    )
+    # fragmentarium_id = models.CharField(blank=True, null=True, max_length=64)
+    # # Digital Analysis of Chant Transmission
+    # dact = models.CharField(blank=True, null=True, max_length=64)
+    # also a second differentia field

@@ -2,6 +2,7 @@
 {% load helper_tags %}
 {% block content %}
 <div class="container">
+    <title>{{ flatpage.title }} | Cantus Manuscript Database</title>
     <div class="row">
         <div class="mr-3 p-3 col-md-9 bg-white rounded">
             <h2>{{flatpage.title}}</h2>
@@ -14,11 +15,20 @@
                         Jump to Source
                     </div>
                     <div class="card-body">
-                        <select name="sources" id="source-select" class="w-75">
+                        <select name="sources" id="source-select" class="w-75" onchange="jumpSource()">
                             <option value="none">-Browse sources-</option>
                             {% source_links %}
                         </select>
                     </div>
+
+                    <script>
+                        function jumpSource() {
+                            sourceLink = document.getElementById("source-select").options[document.getElementById("source-select").selectedIndex].value;
+                            fullLink = window.location.origin + '/' + sourceLink;
+                            window.location.assign(fullLink);
+                        }
+                    </script>
+
                 </div>
             </div>
         </div>

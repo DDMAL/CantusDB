@@ -46,4 +46,8 @@ urlpatterns = [
         SequenceDetailView.as_view(),
         name="sequence-detail",
     ),
+    path("chants/<int:pk>/delete/", ChantDeleteView.as_view(), name="chant-delete"),
+    path("ci-search/<str:search_term>", CISearchView.as_view(), name="ci-search"),
+    path("chant-update/<int:pk>", ChantUpdateView.as_view(), name="chant-update"),
+    path("content-statistics", views.items_count, name="items-count"),
 ]

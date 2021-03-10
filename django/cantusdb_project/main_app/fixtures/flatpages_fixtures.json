@@ -79,7 +79,7 @@
         "pk": 6,
         "fields": {
             "url": "/about/acknowledgements/",
-            "title": "Ackowledgements",
+            "title": "Acknowledgements",
             "content": "<p>The Cantus Database gratefully acknowledges the funding and support received from the following organizations and\r\n    individuals:\r\n</p>\r\n<ul>\r\n    <li><a href=\"https://uwaterloo.ca/\" target=\"_blank\">The University of Waterloo </a></li>\r\n    <li><a href=\"http://www.sshrc-crsh.gc.ca\" target=\"_blank\">The Social Sciences and Humanities Research Council of\r\n            Canada </a></li>\r\n    <li><a href=\"http://www.mellon.org\" target=\"_blank\">The Andrew W. Mellon Foundation </a></li>\r\n    <li><a href=\"http://www.uwo.ca\" target=\"_blank\">The University of Western Ontario </a></li>\r\n    <li><a href=\"http://www.neh.gov\" target=\"_blank\">The National Endowment for the Humanities (NEH) </a></li>\r\n    <li><a href=\"http://www.cua.edu\" target=\"_blank\">The Catholic University of America </a></li>\r\n    <li>The Dom Mocquereau Foundation</li>\r\n    <li>Cantus researchers</li>\r\n    <li>External contributors</li>\r\n    <li>Automatic syllabification of the Latin text is based on the JavaScript <a\r\n            href=\"http://marello.org/tools/syllabifier/\" target=\"_blank\">Syllabifier tool </a> created\r\n        by Fr. Matthew Spencer. (<a href=\"http://marello.org/tools/syllabifier\">http://marello.org/tools/syllabifier</a>) Thank you, Matthew!\r\n    </li>\r\n</ul>",
             "enable_comments": false,
             "template_name": "",
