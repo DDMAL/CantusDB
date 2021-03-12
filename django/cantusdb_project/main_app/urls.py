@@ -6,6 +6,8 @@ from main_app.views import (
     ChantListView,
     ChantSearchView,
     ChantUpdateView,
+    ChantDeleteView,
+    CISearchView,
     FeastDetailView,
     FeastListView,
     GenreDetailView,
@@ -19,6 +21,7 @@ from main_app.views import (
     SourceDetailView,
     SourceListView,
 )
+from main_app.views import views
 
 urlpatterns = [
     path("indexers/", IndexerListView.as_view(), name="indexer-list"),
