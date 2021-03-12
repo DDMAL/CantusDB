@@ -27,7 +27,7 @@ MIN_NUMBER_TEXT_CHARS = 10
 # Picked 10000 for performance reasons, much bigger than that got slow
 MAX_NUMBER_TEXT_CHARS = 10000
 
-# The incipt will be up to 100 characters of the full text
+# The incipit will be up to 100 characters of the full text
 INCIPT_LENGTH = 100
 
 # Create a Faker instance with locale set to Latin

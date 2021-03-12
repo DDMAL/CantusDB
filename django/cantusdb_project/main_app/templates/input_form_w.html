@@ -235,7 +235,7 @@
                     <div class="card-body" style="font-size: 15px">
                         <b>Suggestions based on the previous chant:</b><br>
                         {% if previous_chant %}
-                        {{ previous_chant.folio }} {{ previous_chant.sequence_number}} <a href="{{ previous_chant_link }}" target="_blank">{{ previous_chant.incipt }}</a><br>
+                        {{ previous_chant.folio }} {{ previous_chant.sequence_number}} <a href="{{ previous_chant_link }}" target="_blank">{{ previous_chant.incipit }}</a><br>
                         Cantus ID: <a href="http://cantusindex.org/id/{{ previous_chant.cantus_id }}" target="_blank">{{ previous_chant.cantus_id }}</a>                        
                         {% else %}
                         There is no previous chant available, please use the search box below.

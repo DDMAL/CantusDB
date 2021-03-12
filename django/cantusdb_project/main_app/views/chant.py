@@ -75,7 +75,7 @@ class ChantSearchView(ListView):
             # field, allowing for a more flexible search, and a field needs
             # to match only one of the terms
             for term in incipit_terms:
-                incipit_q |= Q(incipt__icontains=term)
+                incipit_q |= Q(incipit__icontains=term)
             q_obj_filter &= incipit_q
         return queryset.filter(q_obj_filter)
 
@@ -165,15 +165,15 @@ class ChantCreateView(CreateView):
         form.instance.source = self.source  # same effect as the next line
         # form.instance.source = get_object_or_404(Source, pk=self.kwargs['source_pk'])
 
-        # compute incipt, within 30 charactors, keep words complete
+        # compute incipit, within 30 charactors, keep words complete
         words = form.instance.manuscript_full_text_std_spelling.split(" ")
-        incipt = ""
+        incipit = ""
         for word in words:
-            new_incipt = incipt + word + " "
+            new_incipt = incipit + word + " "
             if len(new_incipt) >= 30:
                 break
-            incipt = new_incipt
-        form.instance.incipt = incipt.strip(" ")
+            incipit = new_incipt
+        form.instance.incipit = incipit.strip(" ")
 
         # if the folio field is left empty
         if form.instance.folio is None:
@@ -201,7 +201,7 @@ class ChantCreateView(CreateView):
         if form.is_valid():
             messages.success(
                 self.request,
-                "Chant '" + form.instance.incipt + "' created successfully!",
+                "Chant '" + form.instance.incipit + "' created successfully!",
             )
             return super().form_valid(form)
         else:
