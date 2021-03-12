@@ -115,8 +115,10 @@ class ChantSearchView(ListView):
                 q_obj_filter &= Q(volpiano__isnull=True)
         if self.request.GET.get("feast"):
             feast = self.request.GET.get("feast")
-            feast = Feast.objects.filter(name=feast)
-            q_obj_filter &= Q(feast__in=feast)
+            # This will match any feast whose name contains the feast parameter
+            # as a substring
+            feasts = Feast.objects.filter(name__icontains=feast)
+            q_obj_filter &= Q(feast__in=feasts)
 
         # Filter the QuerySet with Q object
         queryset = queryset.filter(q_obj_filter)
