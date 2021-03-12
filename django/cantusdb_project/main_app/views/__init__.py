@@ -4,6 +4,8 @@ from main_app.views.chant import (
     ChantListView,
     ChantSearchView,
     ChantUpdateView,
+    ChantDeleteView,
+    CISearchView,
 )
 from main_app.views.feast import FeastDetailView, FeastListView
 from main_app.views.genre import GenreDetailView, GenreListView
