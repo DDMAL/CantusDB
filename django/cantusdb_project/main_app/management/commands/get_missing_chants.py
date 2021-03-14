@@ -17,16 +17,18 @@ class Command(BaseCommand):
 
     def handle(self, *args, **options):
         json_file = open("/code/django/cantusdb_project/chant_id_list.json", "r")
+        # where does this json file come from? It contains all the chant ids, up-to-date with old cantusDB?
         id_list = set(json.load(json_file))
         downloaded_log_file = open("chants_downloaded.txt", "a")
         error_log_file = open("error_log.txt", "a")
         chants_json_file = open("chants_downloaded.json", "a")
         chants_json_file.write("[")
 
+        # chants that we already have in our database
         chant_id_list = set(
             Chant.objects.all().values_list("id", flat=True).order_by("id")
         )
-
+        # these are the new chants we need to get
         missing_ids = list(id_list.difference(chant_id_list))
 
         # Get size and set and index for bookkeeping

@@ -6,14 +6,29 @@
         <div class="mr-3 p-3 col-lg-8 bg-white rounded">
             <h3>{{ chant.incipt }}</h3>
             <dl>
-                <dt>
-                    Source
-                </dt>
-                <dd>
-                    <a href="{{ chant.source.get_absolute_url }}">
-                        {{ chant.source.title }}
-                    </a>
-                </dd>
+                <div class="row">
+                    <div class="col">
+                        <dt>
+                            Source
+                        </dt>
+                        <dd>
+                            <a href="{{ chant.source.get_absolute_url }}">
+                                {{ chant.source.title }}
+                            </a>
+                        </dd>
+                    </div>
+                    <div class="col">
+                        {% if chant.marginalia %}
+                        <dt>
+                            Marginalia
+                        </dt>
+                        <dd>
+                            {{ chant.marginalia }}
+                        </dd>
+                        {% endif %}
+                    </div>
+                </div>
+
                 <div class="row">
                     <div class="col">
                         {% if chant.folio %}
@@ -36,6 +51,7 @@
                         {% endif %}
                     </div>
                 </div>
+                
                 <div class="row">
                     <div class="col">{% if chant.feast %}
                         <dt>
@@ -92,30 +108,40 @@
                         {% endif %}
                     </div>
                 </div>
-                {% if chant.finalis %}
-                <dt>
-                    Finalis
-                </dt>
-                <dd>
-                    {{ chant.finalis }}
-                </dd>
-                {% endif %}
-                {% if chant.differentia %}
-                <dt>
-                    Differentia
-                </dt>
-                <dd>
-                    {{ chant.differentia }}
-                </dd>
-                {% endif %}
-                {% if chant.extra %}
-                <dt>
-                    Extra
-                </dt>
-                <dd>
-                    {{ chant.extra }}
-                </dd>
-                {% endif %}
+
+                <div class="row">
+                    <div class="col">
+                        {% if chant.finalis %}
+                        <dt>
+                            Finalis
+                        </dt>
+                        <dd>
+                            {{ chant.finalis }}
+                        </dd>
+                        {% endif %}
+                    </div>
+                    <div class="col">
+                        {% if chant.differentia %}
+                        <dt>
+                            Differentia
+                        </dt>
+                        <dd>
+                            {{ chant.differentia }}
+                        </dd>
+                        {% endif %}
+                    </div>
+                    <div class="col">
+                        {% if chant.extra %}
+                        <dt>
+                            Extra
+                        </dt>
+                        <dd>
+                            {{ chant.extra }}
+                        </dd>
+                        {% endif %}
+                    </div>
+                </div>
+
                 {% if chant.manuscript_full_text_std_spelling %}
                 <dt>
                     Manuscript Reading Full Text (standardized spelling)
@@ -154,7 +180,7 @@
                 {% endif %}
                 {% if chant.indexing_notes %}
                 <dt>
-                    Indexing Notes:
+                    Indexing Notes
                 </dt>
                 <dd>
                     {{ chant.indexing_notes }}
@@ -174,7 +200,19 @@
                     </p>
                 </dd>
                 {% endif %}
+
+                {% if chant.image_link %}
+                <dt>
+                    Image link
+                </dt>
+                <dd>
+                    <a href="{{ chant.image_link }}" target="_blank">{{ chant.image_link }}</a>
+                </dd>
+                {% endif %}
             </dl>
+
+            
+
             <a href="" class="btn btn-primary" id="delete">Delete this Chant</a>
             <script>
                 window.onload = function () {

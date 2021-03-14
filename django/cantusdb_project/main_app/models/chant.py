@@ -1,5 +1,5 @@
 from django.db import models
-from main_app.models import BaseModel
+from main_app.models import BaseModel, source
 from users.models import User
 from django.contrib.postgres.fields import JSONField
 
@@ -88,3 +88,32 @@ class Chant(BaseModel):
     # # Digital Analysis of Chant Transmission
     # dact = models.CharField(blank=True, null=True, max_length=64)
     # also a second differentia field
+
+
+    # TODO change this function: if the chant is the last one on the folio, don't just give up, 
+    # return the first chant on the next folio
+    # also, just return object, return a CantusID is enough, but return an object can be more general-purpose
+    def get_next_chant(self):
+        """return the next chant in the same source
+
+        Returns:
+            chant_object/None: the next chant object, or None if there is no next chant
+        """
+        def get_next_folio(folio):
+            if folio ends with r:
+                next_folio = folio - r + v
+            elif folio ends with v:
+                next_folio = folio - v + 1 + r
+            elif folio is pure number:
+                next_folio = folio + 1
+
+        chants_same_folio = Chant.objects.filter(source=self.source, folio=self.folio)
+        chants_next_folio = Chant.objects.filter(source=self.source, folio=get_next_folio(self.folio)).order_by('-sequence_number')
+        try:
+            next_chant = chants_same_folio.get(sequence_number=self.sequence_number + 1)
+        except:
+            if chants_next_folio:
+                next_chant = chants_next_folio[0]
+            else:
+                next_chant = None
+        return next_chant

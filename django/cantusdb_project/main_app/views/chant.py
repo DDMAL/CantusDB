@@ -96,14 +96,16 @@ class ChantCreateView(CreateView):
             self.latest_folio,
             self.latest_feast,
             self.latest_seq,
-        ) = self.get_folio_feast_seq()
+            self.latest_image,
+        ) = self.get_folio_feast_seq_image()
         return {
             "folio": self.latest_folio,
             "feast": self.latest_feast,
             "sequence_number": self.latest_seq,
+            "image_link": self.latest_image,
         }
 
-    def get_folio_feast_seq(self):
+    def get_folio_feast_seq_image(self):
         """get the default [folio, feast, seq] from the last created chant
         last created chant is found using 'date-updated'
         """
@@ -115,6 +117,7 @@ class ChantCreateView(CreateView):
             latest_folio = "001r"
             latest_feast = ""
             latest_seq = 0
+            latest_image = ""
         else:
             latest_chant = chants_in_source[0]
             if latest_chant.folio:
@@ -129,7 +132,11 @@ class ChantCreateView(CreateView):
                 latest_seq = latest_chant.sequence_number
             else:
                 latest_seq = 0
-        return latest_folio, latest_feast, latest_seq + 1
+            if latest_chant.image_link:
+                latest_image = latest_chant.image_link
+            else:
+                latest_image = ""
+        return latest_folio, latest_feast, latest_seq + 1, latest_image
 
     def dispatch(self, request, *args, **kwargs):
         """Make sure the source specified in url exists before we display the form
@@ -137,6 +144,41 @@ class ChantCreateView(CreateView):
         self.source = get_object_or_404(Source, pk=kwargs["source_pk"])
         self.source_id = kwargs["source_pk"]
         return super().dispatch(request, *args, **kwargs)
+
+    def get_suggested_chants(self):
+        """get suggested chants based on the previous chant entered
+        look for the CantusID of the previous chant in any source,
+        compile a list of all the chants that follow it on that folio for the next sequence number
+        To search CantusID on CI: 'http://cantusindex.org/json-cid/<CantusID>'
+
+        Returns:
+            list of objects: a list of suggested chants
+        """
+        # what TODO here: search through the db for all CantusID for suggested chants
+        # rank them based on the number of occurences in CD
+        # search CI using those CantusID
+        # return the genre, fulltext from CI as context
+        suggested_chants = []
+        cantus_ids = []
+        nocs = []  # number of occurence
+        chants_in_source = Chant.objects.filter(source=self.source)
+        if not chants_in_source:
+            return None
+        latest_chant = chants_in_source.latest("date_updated")
+        cantus_id = latest_chant.cantus_id
+        chants_same_cantus_id = Chant.objects.filter(cantus_id=cantus_id)
+        for chant in chants_same_cantus_id:
+            next_chant = chant.get_next_chant()
+            if next_chant:
+                cantus_ids.append(next_chant.cantus_id)
+                number_of_occurence = len(
+                    Chant.objects.filter(cantus_id=next_chant.cantus_id)
+                )
+                nocs.append(number_of_occurence)
+        # next step: rank the noc and cantus_ids
+        # return only 5 top chants
+        print("number of suggestions: ", len(suggested_chants))
+        return suggested_chants
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
@@ -154,7 +196,8 @@ class ChantCreateView(CreateView):
             )
         except Chant.DoesNotExist:
             context["previous_chant"] = None
-
+        context["suggested_chants"] = self.get_suggested_chants()
+        # print(len(context["suggested_chants"]))
         return context
 
     def form_valid(self, form):
@@ -226,6 +269,9 @@ class ChantUpdateView(UpdateView):
 
 class CISearchView(TemplateView):
     """search in CI and write results in get_context_data
+    now this is implemented as [send a search request to CI -> scrape the returned html table]
+    But, it is possible to use CI json export. 
+    To do a text search on CI, use 'http://cantusindex.org/json-text/<text to search>'
     """
 
     template_name = "ci_search.html"
