@@ -61,9 +61,11 @@ class Command(BaseCommand):
             except (KeyError, TypeError):
                 folio = None
             try:
-                sequence = sequence["field_sequence_text"]["und"][0]["value"]
+                sequence_field = sequence["field_sequence_text"]["und"][0][
+                    "value"
+                ]
             except (KeyError, TypeError):
-                sequence = None
+                sequence_field = None
             try:
                 genre_id = int(sequence["field_mc_genre"]["und"][0]["tid"])
                 genre = Genre.objects.get(id=genre_id)
@@ -113,10 +115,11 @@ class Command(BaseCommand):
                 id=seq_id,
                 title=title,
                 siglum=siglum,
-                incpit=incipit,
+                incipit=incipit,
                 folio=folio,
                 genre=genre,
                 rubric=rubric,
+                sequence=sequence_field,
                 analecta_hymnica=analecta_hymnica,
                 indexing_notes=indexing_notes,
                 date=date,
