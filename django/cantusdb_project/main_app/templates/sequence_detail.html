@@ -1,0 +1,102 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="row">
+    <div class="mr-3 p-3 col-lg-8 mx-auto bg-white rounded">
+        <h3>{{ sequence.title }}</h3>
+        <dl>
+            <dt>
+                Siglum
+            </dt>
+            <dd>
+                {{ sequence.siglum }}
+            </dd>
+            <dt>
+                Source
+            </dt>
+            <dd>
+                <a href="{{ sequence.source.get_absolute_url }}">
+                    {{ sequence.source.title }}
+                </a>
+            </dd>
+            <div class="row">
+                <div class="col">
+                    {% if sequence.folio %}
+                    <dt>
+                        Folio
+                    </dt>
+                    <dd>
+                        {{ sequence.folio }}
+                    </dd>
+                    {% endif %}
+                </div>
+                <div class="col">
+                    {% if sequence.sequence %}
+                    <dt>
+                        Sequence
+                    </dt>
+                    <dd>
+                        {{ sequence.sequence }}
+                    </dd>
+                    {% endif %}
+                </div>
+            </div>
+            <dt>
+                Incipit
+            </dt>
+            <dd>
+                {{ sequence.incipit }}
+            </dd>
+            <dt>
+                Rubrics
+            </dt>
+            <dd>
+                {{ sequence.rubric }}
+            </dd>
+            <div class="row">
+                <div class="col">
+                    {% if sequence.genre %}
+                    <dt>
+                        Genre
+                    </dt>
+                    <dd>
+                        {{ sequence.genre.name }}
+                    </dd>
+                    {% endif %}
+                </div>
+                <div class="col">
+                    {% if sequence.cantus_id %}
+                    <dt>
+                        Cantus ID
+                    </dt>
+                    <dd>
+                        <a href="http://cantusindex.org/id/{{ sequence.cantus_id }}"> {{ sequence.cantus_id }}</a>
+                    </dd>
+                    {% endif %}
+                </div>
+                <div class="col">
+                    {% if sequence.analecta_hymnica %}
+                    <dt>
+                        Analecta Hymnica
+                    </dt>
+                    <dd>
+                        {{ sequence.analecta_hymnica }}
+                    </dd>
+                    {% endif %}
+                </div>
+                <div class="col">
+                    {% if sequence.date %}
+                    <dt>
+                        Date
+                    </dt>
+                    <dd>
+                        {{ sequence.date }}
+                    </dd>
+                    {% endif %}
+                </div>
+            </div>
+        </dl>
+    </div>
+</div>
+
+<!-- TODO: Add the rest of the related sequences (concordances) here -->
+{% endblock %}

@@ -25,7 +25,7 @@ class Source(BaseModel):
         max_length=255,
         help_text="Full Manuscript Identification (City, Archive, Shelf-mark)",
     )
-    siglum = models.CharField(max_length=50, null=True, blank=True)
+    siglum = models.CharField(max_length=63, null=True, blank=True)
     rism_siglum = models.ForeignKey(
         "RismSiglum", on_delete=models.PROTECT, null=True, blank=True,
     )
@@ -47,13 +47,13 @@ class Source(BaseModel):
     date = models.CharField(
         blank=True,
         null=True,
-        max_length=50,
+        max_length=63,
         help_text='Date of the manuscript (e.g. "1200s", "1300-1350", etc.)',
     )
     century = models.ManyToManyField("Century", related_name="sources")
     notation = models.ManyToManyField("Notation", related_name="sources")
     cursus = models.CharField(
-        blank=True, null=True, choices=cursus_choices, max_length=10
+        blank=True, null=True, choices=cursus_choices, max_length=63
     )
     # TODO: Fill this field up with JSON info when I have access to the Users
     current_editors = models.ManyToManyField(User, related_name="sources_edited")
@@ -83,3 +83,11 @@ class Source(BaseModel):
     indexing_notes = models.TextField(blank=True, null=True)
     indexing_date = models.TextField(blank=True, null=True)
     json_info = JSONField()
+
+    def number_of_chants(self) -> int:
+        """Returns the number of Chants and Sequences in this Source."""
+        return self.chant_set.count() + self.sequence_set.count()
+
+    def number_of_melodies(self) -> int:
+        """Returns the number of Chants in this Source that have melodies."""
+        return self.chant_set.filter(volpiano__isnull=False).count()

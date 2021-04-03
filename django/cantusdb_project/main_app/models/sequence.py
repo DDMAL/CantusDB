@@ -8,7 +8,9 @@ class Sequence(BaseModel):
     incipit = models.CharField(blank=True, null=True, max_length=255)
     folio = models.CharField(blank=True, null=True, max_length=255)
     sequence = models.CharField(blank=True, null=True, max_length=255)
-    genre = models.ForeignKey("Genre", blank=True, null=True, on_delete=models.PROTECT)
+    genre = models.ForeignKey(
+        "Genre", blank=True, null=True, on_delete=models.PROTECT
+    )
     rubric = models.CharField(blank=True, null=True, max_length=255)
     analecta_hymnica = models.CharField(blank=True, null=True, max_length=255)
     indexing_notes = models.TextField(blank=True, null=True)

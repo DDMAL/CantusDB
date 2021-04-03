@@ -5,7 +5,7 @@
         "fields": {
             "date_created": "2020-08-24T19:56:49.100Z", 
             "date_updated": "2020-08-24T19:56:49.100Z", 
-            "incipt": "Lux perpetua*", 
+            "incipit": "Lux perpetua*", 
             "source": 123627, 
             "marginalia": null, 
             "folio": "162v", 
@@ -272,7 +272,7 @@
         "fields": {
             "date_created": "2020-08-21T22:21:23.680Z", 
             "date_updated": "2020-08-21T22:21:23.680Z", 
-            "incipt": "Alleluia ego sum vitis vera ", 
+            "incipit": "Alleluia ego sum vitis vera ", 
             "source": 123627, 
             "marginalia": null, 
             "folio": "162v", 
@@ -563,7 +563,7 @@
         "fields": {
             "date_created": "2020-08-24T19:03:07.735Z", 
             "date_updated": "2020-08-24T19:03:07.735Z", 
-            "incipt": "Justi fulgebunt sicut sol in ", 
+            "incipit": "Justi fulgebunt sicut sol in ", 
             "source": 123627, 
             "marginalia": null, 
             "folio": "162v", 
@@ -854,7 +854,7 @@
         "fields": {
             "date_created": "2020-08-24T19:57:40.241Z", 
             "date_updated": "2020-08-24T19:57:40.242Z", 
-            "incipt": "Sancti et justi in domino ", 
+            "incipit": "Sancti et justi in domino ", 
             "source": 123627, 
             "marginalia": null, 
             "folio": "162v", 
@@ -1145,7 +1145,7 @@
         "fields": {
             "date_created": "2020-08-24T19:38:45.868Z", 
             "date_updated": "2020-08-24T19:38:45.868Z", 
-            "incipt": "Sancti tui domine beati sunt ", 
+            "incipit": "Sancti tui domine beati sunt ", 
             "source": 123627, 
             "marginalia": null, 
             "folio": "162v", 
@@ -1428,7 +1428,7 @@
         "fields": {
             "date_created": "2020-08-24T20:13:09.083Z", 
             "date_updated": "2020-08-24T20:13:09.083Z", 
-            "incipt": "Sancti tui domine sicut palma ", 
+            "incipit": "Sancti tui domine sicut palma ", 
             "source": 123627, 
             "marginalia": null, 
             "folio": "162v", 
@@ -1719,7 +1719,7 @@
         "fields": {
             "date_created": "2020-08-24T20:13:21.157Z", 
             "date_updated": "2020-08-24T20:13:21.157Z", 
-            "incipt": "Ego sum vitis vera alleluia ", 
+            "incipit": "Ego sum vitis vera alleluia ", 
             "source": 123627, 
             "marginalia": null, 
             "folio": "162v", 
@@ -2010,7 +2010,7 @@
         "fields": {
             "date_created": "2020-08-21T22:17:44.123Z", 
             "date_updated": "2020-08-21T22:17:44.124Z", 
-            "incipt": "Sicut misit me pater alleluia ", 
+            "incipit": "Sicut misit me pater alleluia ", 
             "source": 123627, 
             "marginalia": null, 
             "folio": "162v", 
@@ -2301,7 +2301,7 @@
         "fields": {
             "date_created": "2020-08-24T19:11:25.267Z", 
             "date_updated": "2020-08-24T19:11:25.267Z", 
-            "incipt": "Jerusalem civitas sancta ornamentis martyrum ", 
+            "incipit": "Jerusalem civitas sancta ornamentis martyrum ", 
             "source": 123627, 
             "marginalia": null, 
             "folio": "162v", 
@@ -2600,7 +2600,7 @@
         "fields": {
             "date_created": "2020-08-21T22:23:06.331Z", 
             "date_updated": "2020-08-21T22:23:06.331Z", 
-            "incipt": "Tristitia vestra alleluia convertetur in ", 
+            "incipit": "Tristitia vestra alleluia convertetur in ", 
             "source": 123627, 
             "marginalia": null, 
             "folio": "163r", 
@@ -2891,7 +2891,7 @@
         "fields": {
             "date_created": "2020-08-24T19:21:00.663Z", 
             "date_updated": "2020-08-24T19:21:00.663Z", 
-            "incipt": "Vidi civitatem sanctam Jerusalem ornatam ", 
+            "incipit": "Vidi civitatem sanctam Jerusalem ornatam ", 
             "source": 123627, 
             "marginalia": null, 
             "folio": "163r", 
@@ -3174,7 +3174,7 @@
         "fields": {
             "date_created": "2020-08-24T19:18:41.150Z", 
             "date_updated": "2020-08-24T19:18:41.150Z", 
-            "incipt": "Vox laetitiae in tabernaculis justorum ", 
+            "incipit": "Vox laetitiae in tabernaculis justorum ", 
             "source": 123627, 
             "marginalia": null, 
             "folio": "163r", 
@@ -3473,7 +3473,7 @@
         "fields": {
             "date_created": "2020-08-21T22:14:47.548Z", 
             "date_updated": "2020-08-21T22:14:47.548Z", 
-            "incipt": "In tabernaculis justorum vox laetitiae ", 
+            "incipit": "In tabernaculis justorum vox laetitiae ", 
             "source": 123627, 
             "marginalia": null, 
             "folio": "163r", 
@@ -3764,7 +3764,7 @@
         "fields": {
             "date_created": "2020-08-24T19:04:43.948Z", 
             "date_updated": "2020-08-24T19:04:43.948Z", 
-            "incipt": "Laetitia sempiterna*", 
+            "incipit": "Laetitia sempiterna*", 
             "source": 123627, 
             "marginalia": null, 
             "folio": "163r", 
@@ -4031,7 +4031,7 @@
         "fields": {
             "date_created": "2020-08-21T21:28:53.310Z", 
             "date_updated": "2020-08-21T21:28:53.310Z", 
-            "incipt": "Lux perpetua*", 
+            "incipit": "Lux perpetua*", 
             "source": 123627, 
             "marginalia": null, 
             "folio": "163r", 
@@ -4298,7 +4298,7 @@
         "fields": {
             "date_created": "2020-08-24T20:23:43.254Z", 
             "date_updated": "2020-08-24T20:23:43.254Z", 
-            "incipt": "Ego sum vitis*", 
+            "incipit": "Ego sum vitis*", 
             "source": 123627, 
             "marginalia": null, 
             "folio": "163r", 
@@ -4573,7 +4573,7 @@
         "fields": {
             "date_created": "2020-08-24T19:03:26.598Z", 
             "date_updated": "2020-08-24T19:03:26.598Z", 
-            "incipt": "Et vos*", 
+            "incipit": "Et vos*", 
             "source": 123627, 
             "marginalia": null, 
             "folio": "163r", 
@@ -4856,7 +4856,7 @@
         "fields": {
             "date_created": "2020-08-24T19:55:48.275Z", 
             "date_updated": "2020-08-24T19:55:48.275Z", 
-            "incipt": "Tristitia vestra in*", 
+            "incipit": "Tristitia vestra in*", 
             "source": 123627, 
             "marginalia": null, 
             "folio": "163r", 
@@ -5123,7 +5123,7 @@
         "fields": {
             "date_created": "2020-08-24T19:22:44.946Z", 
             "date_updated": "2020-08-24T19:22:44.946Z", 
-            "incipt": "Stabunt justi in magna constantia ", 
+            "incipit": "Stabunt justi in magna constantia ", 
             "source": 123627, 
             "marginalia": null, 
             "folio": "163r", 
@@ -5414,7 +5414,7 @@
         "fields": {
             "date_created": "2020-08-24T19:47:23.987Z", 
             "date_updated": "2020-08-24T19:47:23.987Z", 
-            "incipt": "Alleluia in sanctis gloriosus*", 
+            "incipit": "Alleluia in sanctis gloriosus*", 
             "source": 123627, 
             "marginalia": null, 
             "folio": "163r", 
@@ -5689,7 +5689,7 @@
         "fields": {
             "date_created": "2020-08-24T19:15:58.282Z", 
             "date_updated": "2020-08-24T19:15:58.282Z", 
-            "incipt": "Non turbetur cor vestrum neque ", 
+            "incipit": "Non turbetur cor vestrum neque ", 
             "source": 123627, 
             "marginalia": null, 
             "folio": "163r", 
@@ -5980,7 +5980,7 @@
         "fields": {
             "date_created": "2020-08-21T22:24:10.208Z", 
             "date_updated": "2020-08-21T22:24:10.208Z", 
-            "incipt": "Ecce quomodo computati sunt inter ", 
+            "incipit": "Ecce quomodo computati sunt inter ", 
             "source": 123627, 
             "marginalia": null, 
             "folio": "163v", 
@@ -6279,7 +6279,7 @@
         "fields": {
             "date_created": "2020-08-24T19:01:19.966Z", 
             "date_updated": "2020-08-24T19:01:19.966Z", 
-            "incipt": "Tanto tempore vobiscum sum et ", 
+            "incipit": "Tanto tempore vobiscum sum et ", 
             "source": 123627, 
             "marginalia": null, 
             "folio": "163v", 
@@ -6578,7 +6578,7 @@
         "fields": {
             "date_created": "2020-08-24T20:14:17.115Z", 
             "date_updated": "2020-08-24T20:14:17.115Z", 
-            "incipt": "Laetitia sempiterna*", 
+            "incipit": "Laetitia sempiterna*", 
             "source": 123627, 
             "marginalia": null, 
             "folio": "163v", 
@@ -6845,7 +6845,7 @@
         "fields": {
             "date_created": "2020-08-24T18:53:58.535Z", 
             "date_updated": "2020-08-24T18:53:58.535Z", 
-            "incipt": "Confitebuntur caeli mirabilia tua domine ", 
+            "incipit": "Confitebuntur caeli mirabilia tua domine ", 
             "source": 123627, 
             "marginalia": null, 
             "folio": "163v", 
@@ -7120,7 +7120,7 @@
         "fields": {
             "date_created": "2020-08-21T22:17:21.890Z", 
             "date_updated": "2020-08-21T22:17:21.890Z", 
-            "incipt": "Misericordias tuas domine in aeternum ", 
+            "incipit": "Misericordias tuas domine in aeternum ", 
             "source": 123627, 
             "marginalia": null, 
             "folio": "163v", 
@@ -7395,7 +7395,7 @@
         "fields": {
             "date_created": "2020-08-24T19:28:57.953Z", 
             "date_updated": "2020-08-24T19:28:57.953Z", 
-            "incipt": "Non turbetur cor vestrum neque ", 
+            "incipit": "Non turbetur cor vestrum neque ", 
             "source": 123627, 
             "marginalia": null, 
             "folio": "163v", 
@@ -7670,7 +7670,7 @@
         "fields": {
             "date_created": "2020-08-24T20:26:30.236Z", 
             "date_updated": "2020-08-24T20:26:30.236Z", 
-            "incipt": "Ego sum via veritas et ", 
+            "incipit": "Ego sum via veritas et ", 
             "source": 123627, 
             "marginalia": null, 
             "folio": "163v", 
@@ -7945,7 +7945,7 @@
         "fields": {
             "date_created": "2020-08-24T20:25:43.660Z", 
             "date_updated": "2020-08-24T20:25:43.660Z", 
-            "incipt": "Tanto tempore vobiscum sum et ", 
+            "incipit": "Tanto tempore vobiscum sum et ", 
             "source": 123627, 
             "marginalia": null, 
             "folio": "163v", 
@@ -8228,7 +8228,7 @@
         "fields": {
             "date_created": "2020-08-24T20:09:31.867Z", 
             "date_updated": "2020-08-24T20:09:31.867Z", 
-            "incipt": "Domine ostende nobis patrem et ", 
+            "incipit": "Domine ostende nobis patrem et ", 
             "source": 123627, 
             "marginalia": null, 
             "folio": "164r", 
@@ -8511,7 +8511,7 @@
         "fields": {
             "date_created": "2020-08-24T19:00:33.014Z", 
             "date_updated": "2020-08-24T19:00:33.015Z", 
-            "incipt": "In caelestibus regni*", 
+            "incipit": "In caelestibus regni*", 
             "source": 123627, 
             "marginalia": null, 
             "folio": "164r", 
@@ -8802,7 +8802,7 @@
         "fields": {
             "date_created": "2020-08-24T20:26:42.228Z", 
             "date_updated": "2020-08-24T20:26:42.228Z", 
-            "incipt": "Lux perpetua lucebit sanctis domine*", 
+            "incipit": "Lux perpetua lucebit sanctis domine*", 
             "source": 123627, 
             "marginalia": null, 
             "folio": "164r", 
@@ -9069,7 +9069,7 @@
         "fields": {
             "date_created": "2020-08-21T22:23:52.559Z", 
             "date_updated": "2020-08-21T22:23:52.559Z", 
-            "incipt": "Si cognovissetis me et patrem ", 
+            "incipit": "Si cognovissetis me et patrem ", 
             "source": 123627, 
             "marginalia": null, 
             "folio": "164r", 
@@ -9360,7 +9360,7 @@
         "fields": {
             "date_created": "2020-08-24T20:08:06.482Z", 
             "date_updated": "2020-08-24T20:08:06.482Z", 
-            "incipt": "Domine ostende nobis patrem et ", 
+            "incipit": "Domine ostende nobis patrem et ", 
             "source": 123627, 
             "marginalia": null, 
             "folio": "164r", 
@@ -9651,7 +9651,7 @@
         "fields": {
             "date_created": "2020-08-24T19:48:24.189Z", 
             "date_updated": "2020-08-24T19:48:24.189Z", 
-            "incipt": "Hoc signum crucis*", 
+            "incipit": "Hoc signum crucis*", 
             "source": 123627, 
             "marginalia": null, 
             "folio": "164r", 
@@ -9926,7 +9926,7 @@
         "fields": {
             "date_created": "2020-08-24T20:25:43.327Z", 
             "date_updated": "2020-08-24T20:25:43.327Z", 
-            "incipt": "Signum crucis*", 
+            "incipit": "Signum crucis*", 
             "source": 123627, 
             "marginalia": null, 
             "folio": "164r", 
@@ -10201,7 +10201,7 @@
         "fields": {
             "date_created": "2020-08-24T19:17:27.014Z", 
             "date_updated": "2020-08-24T19:17:27.014Z", 
-            "incipt": "O crux gloriosa o crux ", 
+            "incipit": "O crux gloriosa o crux ", 
             "source": 123627, 
             "marginalia": null, 
             "folio": "164r", 
@@ -10492,7 +10492,7 @@
         "fields": {
             "date_created": "2020-08-24T19:20:26.098Z", 
             "date_updated": "2020-08-24T19:20:26.098Z", 
-            "incipt": "Alleluia Christum qui nos redemit ", 
+            "incipit": "Alleluia Christum qui nos redemit ", 
             "source": 123627, 
             "marginalia": null, 
             "folio": "164r", 
@@ -10767,7 +10767,7 @@
         "fields": {
             "date_created": "2020-08-24T19:42:51.522Z", 
             "date_updated": "2020-08-24T19:42:51.522Z", 
-            "incipt": "O magnum pietatis opus mors ", 
+            "incipit": "O magnum pietatis opus mors ", 
             "source": 123627, 
             "marginalia": null, 
             "folio": "164r", 
@@ -11058,7 +11058,7 @@
         "fields": {
             "date_created": "2020-08-24T19:11:24.874Z", 
             "date_updated": "2020-08-24T19:11:24.874Z", 
-            "incipt": "Nos autem gloriari oportet in ", 
+            "incipit": "Nos autem gloriari oportet in ", 
             "source": 123627, 
             "marginalia": null, 
             "folio": "164v", 
@@ -11349,7 +11349,7 @@
         "fields": {
             "date_created": "2020-08-24T18:56:19.708Z", 
             "date_updated": "2020-08-24T18:56:19.708Z", 
-            "incipt": "Adoramus te Christe et benedicimus ", 
+            "incipit": "Adoramus te Christe et benedicimus ", 
             "source": 123627, 
             "marginalia": null, 
             "folio": "164v", 
@@ -11640,7 +11640,7 @@
         "fields": {
             "date_created": "2020-08-24T19:35:34.401Z", 
             "date_updated": "2020-08-24T19:35:34.401Z", 
-            "incipt": "Omnis terra adoret te et ", 
+            "incipit": "Omnis terra adoret te et ", 
             "source": 123627, 
             "marginalia": null, 
             "folio": "164v", 
@@ -11915,7 +11915,7 @@
         "fields": {
             "date_created": "2020-08-24T19:46:38.362Z", 
             "date_updated": "2020-08-24T19:46:38.362Z", 
-            "incipt": "Dulce lignum dulces clavos dulce ", 
+            "incipit": "Dulce lignum dulces clavos dulce ", 
             "source": 123627, 
             "marginalia": null, 
             "folio": "164v", 
@@ -12198,7 +12198,7 @@
         "fields": {
             "date_created": "2020-08-24T20:29:08.535Z", 
             "date_updated": "2020-08-24T20:29:08.535Z", 
-            "incipt": "Hoc signum crucis apparebit in ", 
+            "incipit": "Hoc signum crucis apparebit in ", 
             "source": 123627, 
             "marginalia": null, 
             "folio": "164v", 
@@ -12481,7 +12481,7 @@
         "fields": {
             "date_created": "2020-08-21T22:22:02.376Z", 
             "date_updated": "2020-08-21T22:22:02.377Z", 
-            "incipt": "Hoc signum crucis apparebit in ", 
+            "incipit": "Hoc signum crucis apparebit in ", 
             "source": 123627, 
             "marginalia": null, 
             "folio": "164v", 
@@ -12764,7 +12764,7 @@
         "fields": {
             "date_created": "2020-08-21T22:19:24.315Z", 
             "date_updated": "2020-08-21T22:19:24.315Z", 
-            "incipt": "Cum sederit filius hominis in ", 
+            "incipit": "Cum sederit filius hominis in ", 
             "source": 123627, 
             "marginalia": null, 
             "folio": "164v", 
@@ -13047,7 +13047,7 @@
         "fields": {
             "date_created": "2020-08-24T19:37:52.279Z", 
             "date_updated": "2020-08-24T19:37:52.279Z", 
-            "incipt": "O crux viride lignum quia ", 
+            "incipit": "O crux viride lignum quia ", 
             "source": 123627, 
             "marginalia": null, 
             "folio": "164v", 
@@ -13330,7 +13330,7 @@
         "fields": {
             "date_created": "2020-08-24T20:28:15.500Z", 
             "date_updated": "2020-08-24T20:28:15.500Z", 
-            "incipt": "O crux benedicta quae sola ", 
+            "incipit": "O crux benedicta quae sola ", 
             "source": 123627, 
             "marginalia": null, 
             "folio": "165r", 
@@ -13605,7 +13605,7 @@
         "fields": {
             "date_created": "2020-08-21T21:29:34.125Z", 
             "date_updated": "2020-08-21T21:29:34.125Z", 
-            "incipt": "Gloria patri et filio et ", 
+            "incipit": "Gloria patri et filio et ", 
             "source": 123627, 
             "marginalia": null, 
             "folio": "165r", 
@@ -13880,7 +13880,7 @@
         "fields": {
             "date_created": "2020-08-24T19:56:04.103Z", 
             "date_updated": "2020-08-24T19:56:04.103Z", 
-            "incipt": "Arbor decora et fulgida ornata ", 
+            "incipit": "Arbor decora et fulgida ornata ", 
             "source": 123627, 
             "marginalia": null, 
             "folio": "165r", 
@@ -14171,7 +14171,7 @@
         "fields": {
             "date_created": "2020-08-24T20:25:31.017Z", 
             "date_updated": "2020-08-24T20:25:31.017Z", 
-            "incipt": "Super omnia ligna cedrorum tu ", 
+            "incipit": "Super omnia ligna cedrorum tu ", 
             "source": 123627, 
             "marginalia": null, 
             "folio": "165r", 
@@ -14462,7 +14462,7 @@
         "fields": {
             "date_created": "2020-08-24T20:23:36.839Z", 
             "date_updated": "2020-08-24T20:23:36.839Z", 
-            "incipt": "O crux benedicta quia in ", 
+            "incipit": "O crux benedicta quia in ", 
             "source": 123627, 
             "marginalia": null, 
             "folio": "165r", 
@@ -14753,7 +14753,7 @@
         "fields": {
             "date_created": "2020-08-24T20:23:46.421Z", 
             "date_updated": "2020-08-24T20:23:46.421Z", 
-            "incipt": "Hoc signum crucis apparebit in ", 
+            "incipit": "Hoc signum crucis apparebit in ", 
             "source": 123627, 
             "marginalia": null, 
             "folio": "165v", 
@@ -15044,7 +15044,7 @@
         "fields": {
             "date_created": "2020-08-24T19:25:12.290Z", 
             "date_updated": "2020-08-24T19:25:12.290Z", 
-            "incipt": "Dulce lignum dulces clavos dulce ", 
+            "incipit": "Dulce lignum dulces clavos dulce ", 
             "source": 123627, 
             "marginalia": null, 
             "folio": "165v", 
@@ -15343,7 +15343,7 @@
         "fields": {
             "date_created": "2020-08-24T20:01:11.643Z", 
             "date_updated": "2020-08-24T20:01:11.643Z", 
-            "incipt": "Arbor decora*", 
+            "incipit": "Arbor decora*", 
             "source": 123627, 
             "marginalia": null, 
             "folio": "165v", 
@@ -15618,7 +15618,7 @@
         "fields": {
             "date_created": "2020-08-24T19:55:10.079Z", 
             "date_updated": "2020-08-24T19:55:10.079Z", 
-            "incipt": "Adoramus te Christe*", 
+            "incipit": "Adoramus te Christe*", 
             "source": 123627, 
             "marginalia": null, 
             "folio": "165v", 
@@ -15893,7 +15893,7 @@
         "fields": {
             "date_created": "2020-08-24T19:21:02.235Z", 
             "date_updated": "2020-08-24T19:21:02.235Z", 
-            "incipt": "O crux benedicta quae sola ", 
+            "incipit": "O crux benedicta quae sola ", 
             "source": 123627, 
             "marginalia": null, 
             "folio": "165v", 
@@ -16192,7 +16192,7 @@
         "fields": {
             "date_created": "2020-08-24T19:47:03.485Z", 
             "date_updated": "2020-08-24T19:47:03.485Z", 
-            "incipt": "O crux gloriosa in qua ", 
+            "incipit": "O crux gloriosa in qua ", 
             "source": 123627, 
             "marginalia": null, 
             "folio": "165v", 
@@ -16483,7 +16483,7 @@
         "fields": {
             "date_created": "2020-08-24T19:34:20.333Z", 
             "date_updated": "2020-08-24T19:34:20.333Z", 
-            "incipt": "O crux viride lignum quia ", 
+            "incipit": "O crux viride lignum quia ", 
             "source": 123627, 
             "marginalia": null, 
             "folio": "165v", 
@@ -16782,7 +16782,7 @@
         "fields": {
             "date_created": "2020-08-24T19:27:09.590Z", 
             "date_updated": "2020-08-24T19:27:09.590Z", 
-            "incipt": "Ingresso Zacharia templum domini apparuit ", 
+            "incipit": "Ingresso Zacharia templum domini apparuit ", 
             "source": 123627, 
             "marginalia": null, 
             "folio": "166r", 
@@ -17049,7 +17049,7 @@
         "fields": {
             "date_created": "2020-08-24T20:13:00.156Z", 
             "date_updated": "2020-08-24T20:13:00.156Z", 
-            "incipt": "Et Zacharias turbatus est videns ", 
+            "incipit": "Et Zacharias turbatus est videns ", 
             "source": 123627, 
             "marginalia": null, 
             "folio": "166r", 
@@ -17324,7 +17324,7 @@
         "fields": {
             "date_created": "2020-08-21T22:23:58.763Z", 
             "date_updated": "2020-08-21T22:23:58.763Z", 
-            "incipt": "Gloria patri et filio et ", 
+            "incipit": "Gloria patri et filio et ", 
             "source": 123627, 
             "marginalia": null, 
             "folio": "166r", 
@@ -17599,7 +17599,7 @@
         "fields": {
             "date_created": "2020-08-24T20:03:09.552Z", 
             "date_updated": "2020-08-24T20:03:09.552Z", 
-            "incipt": "Ut queant laxis*", 
+            "incipit": "Ut queant laxis*", 
             "source": 123627, 
             "marginalia": null, 
             "folio": "166r", 
@@ -17866,7 +17866,7 @@
         "fields": {
             "date_created": "2020-08-24T20:04:16.698Z", 
             "date_updated": "2020-08-24T20:04:16.698Z", 
-            "incipt": "Inter natos*", 
+            "incipit": "Inter natos*", 
             "source": 123627, 
             "marginalia": null, 
             "folio": "166r", 
@@ -18133,7 +18133,7 @@
         "fields": {
             "date_created": "2020-08-24T19:06:39.282Z", 
             "date_updated": "2020-08-24T19:06:39.282Z", 
-            "incipt": "Ingresso Zacharia templum domini apparuit ", 
+            "incipit": "Ingresso Zacharia templum domini apparuit ", 
             "source": 123627, 
             "marginalia": null, 
             "folio": "166r", 
@@ -18424,7 +18424,7 @@
         "fields": {
             "date_created": "2020-08-24T19:17:28.576Z", 
             "date_updated": "2020-08-24T19:17:28.576Z", 
-            "incipt": "Regem praecursoris dominum venite adoremus", 
+            "incipit": "Regem praecursoris dominum venite adoremus", 
             "source": 123627, 
             "marginalia": null, 
             "folio": "166r", 
@@ -18707,7 +18707,7 @@
         "fields": {
             "date_created": "2020-08-24T19:52:19.223Z", 
             "date_updated": "2020-08-24T19:52:19.223Z", 
-            "incipt": "Priusquam te formarem in utero ", 
+            "incipit": "Priusquam te formarem in utero ", 
             "source": 123627, 
             "marginalia": null, 
             "folio": "166r", 
@@ -18998,7 +18998,7 @@
         "fields": {
             "date_created": "2020-08-24T19:52:14.119Z", 
             "date_updated": "2020-08-24T19:52:14.119Z", 
-            "incipt": "Ad omnia quae mittam te ", 
+            "incipit": "Ad omnia quae mittam te ", 
             "source": 123627, 
             "marginalia": null, 
             "folio": "166r", 
@@ -19289,7 +19289,7 @@
         "fields": {
             "date_created": "2020-08-24T19:19:26.170Z", 
             "date_updated": "2020-08-24T19:19:26.171Z", 
-            "incipt": "Ne timeas a facie eorum ", 
+            "incipit": "Ne timeas a facie eorum ", 
             "source": 123627, 
             "marginalia": null, 
             "folio": "166r", 
@@ -19580,7 +19580,7 @@
         "fields": {
             "date_created": "2020-08-24T20:03:05.454Z", 
             "date_updated": "2020-08-24T20:03:05.454Z", 
-            "incipt": "Priusquam te formarem*", 
+            "incipit": "Priusquam te formarem*", 
             "source": 123627, 
             "marginalia": null, 
             "folio": "166v", 
@@ -19863,7 +19863,7 @@
         "fields": {
             "date_created": "2020-08-24T19:59:05.310Z", 
             "date_updated": "2020-08-24T19:59:05.310Z", 
-            "incipt": "Priusquam te formarem in utero ", 
+            "incipit": "Priusquam te formarem in utero ", 
             "source": 123627, 
             "marginalia": null, 
             "folio": "166v", 
@@ -20146,7 +20146,7 @@
         "fields": {
             "date_created": "2020-08-24T20:05:28.141Z", 
             "date_updated": "2020-08-24T20:05:28.141Z", 
-            "incipt": "Ecce dedi verba mea in ", 
+            "incipit": "Ecce dedi verba mea in ", 
             "source": 123627, 
             "marginalia": null, 
             "folio": "166v", 
@@ -20429,7 +20429,7 @@
         "fields": {
             "date_created": "2020-08-21T21:27:32.442Z", 
             "date_updated": "2020-08-21T21:27:32.442Z", 
-            "incipt": "De ventre matris meae vocavit ", 
+            "incipit": "De ventre matris meae vocavit ", 
             "source": 123627, 
             "marginalia": null, 
             "folio": "166v", 
@@ -20704,7 +20704,7 @@
         "fields": {
             "date_created": "2020-08-24T19:29:42.343Z", 
             "date_updated": "2020-08-24T19:29:42.343Z", 
-            "incipt": "Et glorificatus sum in oculis ", 
+            "incipit": "Et glorificatus sum in oculis ", 
             "source": 123627, 
             "marginalia": null, 
             "folio": "166v", 
@@ -20979,7 +20979,7 @@
         "fields": {
             "date_created": "2020-08-21T22:22:14.634Z", 
             "date_updated": "2020-08-21T22:22:14.634Z", 
-            "incipt": "Ecce constitui te hodie super ", 
+            "incipit": "Ecce constitui te hodie super ", 
             "source": 123627, 
             "marginalia": null, 
             "folio": "166v", 
@@ -21262,7 +21262,7 @@
         "fields": {
             "date_created": "2020-08-24T19:43:25.927Z", 
             "date_updated": "2020-08-24T19:43:25.927Z", 
-            "incipt": "Ecce dedi verba mea in ", 
+            "incipit": "Ecce dedi verba mea in ", 
             "source": 123627, 
             "marginalia": null, 
             "folio": "166v", 
@@ -21537,7 +21537,7 @@
         "fields": {
             "date_created": "2020-08-24T19:58:44.418Z", 
             "date_updated": "2020-08-24T19:58:44.418Z", 
-            "incipt": "Misit dominus manum suam et ", 
+            "incipit": "Misit dominus manum suam et ", 
             "source": 123627, 
             "marginalia": null, 
             "folio": "167r", 
@@ -21828,7 +21828,7 @@
         "fields": {
             "date_created": "2020-08-24T19:57:04.422Z", 
             "date_updated": "2020-08-24T19:57:04.422Z", 
-            "incipt": "Ecce dedi verba mea in ", 
+            "incipit": "Ecce dedi verba mea in ", 
             "source": 123627, 
             "marginalia": null, 
             "folio": "167r", 
@@ -22119,7 +22119,7 @@
         "fields": {
             "date_created": "2020-08-24T19:39:07.244Z", 
             "date_updated": "2020-08-24T19:39:07.244Z", 
-            "incipt": "Dominus ab utero vocavit me ", 
+            "incipit": "Dominus ab utero vocavit me ", 
             "source": 123627, 
             "marginalia": null, 
             "folio": "167r", 
@@ -22410,7 +22410,7 @@
         "fields": {
             "date_created": "2020-08-24T19:47:54.663Z", 
             "date_updated": "2020-08-24T19:47:54.663Z", 
-            "incipt": "Fuit homo*", 
+            "incipit": "Fuit homo*", 
             "source": 123627, 
             "marginalia": null, 
             "folio": "167r", 
@@ -22693,7 +22693,7 @@
         "fields": {
             "date_created": "2020-08-21T22:16:21.267Z", 
             "date_updated": "2020-08-21T22:16:21.267Z", 
-            "incipt": "Gabriel angelus apparuit Zachariae dicens ", 
+            "incipit": "Gabriel angelus apparuit Zachariae dicens ", 
             "source": 123627, 
             "marginalia": null, 
             "folio": "167r", 
@@ -22976,7 +22976,7 @@
         "fields": {
             "date_created": "2020-08-24T20:13:17.208Z", 
             "date_updated": "2020-08-24T20:13:17.208Z", 
-            "incipt": "Erit enim magnus coram domino ", 
+            "incipit": "Erit enim magnus coram domino ", 
             "source": 123627, 
             "marginalia": null, 
             "folio": "167r", 
@@ -23259,7 +23259,7 @@
         "fields": {
             "date_created": "2020-08-24T20:21:23.529Z", 
             "date_updated": "2020-08-24T20:21:23.529Z", 
-            "incipt": "Ipse praecedet ante illum in ", 
+            "incipit": "Ipse praecedet ante illum in ", 
             "source": 123627, 
             "marginalia": null, 
             "folio": "167r", 
@@ -23542,7 +23542,7 @@
         "fields": {
             "date_created": "2020-08-24T18:59:59.140Z", 
             "date_updated": "2020-08-24T18:59:59.140Z", 
-            "incipt": "Erit enim magnus coram domino ", 
+            "incipit": "Erit enim magnus coram domino ", 
             "source": 123627, 
             "marginalia": null, 
             "folio": "167r", 
@@ -23825,7 +23825,7 @@
         "fields": {
             "date_created": "2020-08-24T19:50:29.675Z", 
             "date_updated": "2020-08-24T19:50:29.675Z", 
-            "incipt": "Innuebant patri ejus quem vellet ", 
+            "incipit": "Innuebant patri ejus quem vellet ", 
             "source": 123627, 
             "marginalia": null, 
             "folio": "167v", 
@@ -24108,7 +24108,7 @@
         "fields": {
             "date_created": "2020-08-24T20:09:17.416Z", 
             "date_updated": "2020-08-24T20:09:17.416Z", 
-            "incipt": "Vicini quoque et cognati ejus ", 
+            "incipit": "Vicini quoque et cognati ejus ", 
             "source": 123627, 
             "marginalia": null, 
             "folio": "167v", 
@@ -24391,7 +24391,7 @@
         "fields": {
             "date_created": "2020-08-24T19:04:27.053Z", 
             "date_updated": "2020-08-24T19:04:27.053Z", 
-            "incipt": "Posuit os meum dominus quasi ", 
+            "incipit": "Posuit os meum dominus quasi ", 
             "source": 123627, 
             "marginalia": null, 
             "folio": "167v", 
@@ -24682,7 +24682,7 @@
         "fields": {
             "date_created": "2020-08-21T21:29:36.344Z", 
             "date_updated": "2020-08-21T21:29:36.344Z", 
-            "incipt": "Formans me ex utero servum ", 
+            "incipit": "Formans me ex utero servum ", 
             "source": 123627, 
             "marginalia": null, 
             "folio": "167v", 
@@ -24973,7 +24973,7 @@
         "fields": {
             "date_created": "2020-08-21T22:23:06.877Z", 
             "date_updated": "2020-08-21T22:23:06.877Z", 
-            "incipt": "Reges videbunt et consurgent principes ", 
+            "incipit": "Reges videbunt et consurgent principes ", 
             "source": 123627, 
             "marginalia": null, 
             "folio": "167v", 
@@ -25264,7 +25264,7 @@
         "fields": {
             "date_created": "2020-08-24T19:36:27.828Z", 
             "date_updated": "2020-08-24T19:36:27.828Z", 
-            "incipt": "Dominus ab utero*", 
+            "incipit": "Dominus ab utero*", 
             "source": 123627, 
             "marginalia": null, 
             "folio": "167v", 
@@ -25547,7 +25547,7 @@
         "fields": {
             "date_created": "2020-08-24T20:04:18.725Z", 
             "date_updated": "2020-08-24T20:04:18.725Z", 
-            "incipt": "Fuit homo missus a deo ", 
+            "incipit": "Fuit homo missus a deo ", 
             "source": 123627, 
             "marginalia": null, 
             "folio": "167v", 
@@ -25830,7 +25830,7 @@
         "fields": {
             "date_created": "2020-08-21T22:23:15.823Z", 
             "date_updated": "2020-08-21T22:23:15.823Z", 
-            "incipt": "Fuit in deserto praedicans et ", 
+            "incipit": "Fuit in deserto praedicans et ", 
             "source": 123627, 
             "marginalia": null, 
             "folio": "167v", 
@@ -26113,7 +26113,7 @@
         "fields": {
             "date_created": "2020-08-24T20:03:33.614Z", 
             "date_updated": "2020-08-24T20:03:33.614Z", 
-            "incipt": "Elisabeth Zachariae magnum virum genuit ", 
+            "incipit": "Elisabeth Zachariae magnum virum genuit ", 
             "source": 123627, 
             "marginalia": null, 
             "folio": "168r", 
@@ -26396,7 +26396,7 @@
         "fields": {
             "date_created": "2020-08-24T19:55:38.362Z", 
             "date_updated": "2020-08-24T19:55:38.362Z", 
-            "incipt": "Erat quidam infecunda corpore sed ", 
+            "incipit": "Erat quidam infecunda corpore sed ", 
             "source": 123627, 
             "marginalia": null, 
             "folio": "168r", 
@@ -26679,7 +26679,7 @@
         "fields": {
             "date_created": "2020-08-24T20:21:21.444Z", 
             "date_updated": "2020-08-24T20:21:21.444Z", 
-            "incipt": "Inter natos mulierum non surrexit ", 
+            "incipit": "Inter natos mulierum non surrexit ", 
             "source": 123627, 
             "marginalia": null, 
             "folio": "168r", 
@@ -26962,7 +26962,7 @@
         "fields": {
             "date_created": "2020-08-24T20:11:26.034Z", 
             "date_updated": "2020-08-24T20:11:26.034Z", 
-            "incipt": "Hic venit in testimonium ut ", 
+            "incipit": "Hic venit in testimonium ut ", 
             "source": 123627, 
             "marginalia": null, 
             "folio": "168r", 
@@ -27245,7 +27245,7 @@
         "fields": {
             "date_created": "2020-08-24T18:58:39.185Z", 
             "date_updated": "2020-08-24T18:58:39.185Z", 
-            "incipt": "Gloria patri et filio et ", 
+            "incipit": "Gloria patri et filio et ", 
             "source": 123627, 
             "marginalia": null, 
             "folio": "168r", 
@@ -27520,7 +27520,7 @@
         "fields": {
             "date_created": "2020-08-24T20:11:24.362Z", 
             "date_updated": "2020-08-24T20:11:24.362Z", 
-            "incipt": "Hic praecursor directus et lucerna ", 
+            "incipit": "Hic praecursor directus et lucerna ", 
             "source": 123627, 
             "marginalia": null, 
             "folio": "168r", 
@@ -27803,7 +27803,7 @@
         "fields": {
             "date_created": "2020-08-24T20:30:06.992Z", 
             "date_updated": "2020-08-24T20:30:06.992Z", 
-            "incipt": "Ipse praecedet ante illum in ", 
+            "incipit": "Ipse praecedet ante illum in ", 
             "source": 123627, 
             "marginalia": null, 
             "folio": "168v", 
@@ -28086,7 +28086,7 @@
         "fields": {
             "date_created": "2020-08-24T18:55:31.088Z", 
             "date_updated": "2020-08-24T18:55:31.088Z", 
-            "incipt": "Praecursor domini venit de quo ", 
+            "incipit": "Praecursor domini venit de quo ", 
             "source": 123627, 
             "marginalia": null, 
             "folio": "168v", 
