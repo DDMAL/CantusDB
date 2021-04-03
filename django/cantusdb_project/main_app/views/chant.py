@@ -13,6 +13,7 @@ from django.urls import reverse, reverse_lazy
 
 import requests
 import lxml.html as lh
+import json
 
 from main_app.models import Chant, Genre, Feast, Source
 from main_app.forms import ChantCreateForm
@@ -75,7 +76,7 @@ class ChantSearchView(ListView):
             # field, allowing for a more flexible search, and a field needs
             # to match only one of the terms
             for term in incipit_terms:
-                incipit_q |= Q(incipt__icontains=term)
+                incipit_q |= Q(incipit__icontains=term)
             q_obj_filter &= incipit_q
         return queryset.filter(q_obj_filter)
 
@@ -148,17 +149,17 @@ class ChantCreateView(CreateView):
     def get_suggested_chants(self):
         """get suggested chants based on the previous chant entered
         look for the CantusID of the previous chant in any source,
-        compile a list of all the chants that follow it on that folio for the next sequence number
-        To search CantusID on CI: 'http://cantusindex.org/json-cid/<CantusID>'
+        compile a list of all the chants (CantusIDs) that follow it (use seq) on the same or the next folio,
+        using these CantusIDs, search in CI for the correct full-text/genre
+        To search CantusID on CI, use json export: 'http://cantusindex.org/json-cid/<CantusID>'
 
         Returns:
-            list of objects: a list of suggested chants
+            list of dicts: a list of suggested chants in key-value pairs
         """
-        # what TODO here: search through the db for all CantusID for suggested chants
-        # rank them based on the number of occurences in CD
-        # search CI using those CantusID
-        # return the genre, fulltext from CI as context
-        suggested_chants = []
+
+        # only displays the chants that occur most often
+        NUM_SUGGESTIONS = 5
+
         cantus_ids = []
         nocs = []  # number of occurence
         chants_in_source = Chant.objects.filter(source=self.source)
@@ -166,19 +167,53 @@ class ChantCreateView(CreateView):
             return None
         latest_chant = chants_in_source.latest("date_updated")
         cantus_id = latest_chant.cantus_id
+        if cantus_id is None:
+            return None
         chants_same_cantus_id = Chant.objects.filter(cantus_id=cantus_id)
         for chant in chants_same_cantus_id:
             next_chant = chant.get_next_chant()
             if next_chant:
-                cantus_ids.append(next_chant.cantus_id)
-                number_of_occurence = len(
-                    Chant.objects.filter(cantus_id=next_chant.cantus_id)
-                )
-                nocs.append(number_of_occurence)
-        # next step: rank the noc and cantus_ids
-        # return only 5 top chants
-        print("number of suggestions: ", len(suggested_chants))
-        return suggested_chants
+                # return the number of occurence in the suggestions (not in the entire db)
+                if not next_chant.cantus_id in cantus_ids:
+                    # cantus_id can be None (some chants don't have one)
+                    if next_chant.cantus_id:
+                        # add the new cantus_id to the list, count starts from 1
+                        cantus_ids.append(next_chant.cantus_id)
+                        nocs.append(1)
+                if next_chant.cantus_id in cantus_ids:
+                    idx = cantus_ids.index(next_chant.cantus_id)
+                    nocs[idx] = nocs[idx] + 1
+        # sort the nocs and cantus_ids
+        sorted_list = sorted(zip(nocs, cantus_ids), reverse=True)
+        cantus_ids_sorted = [y for _, y in sorted_list]
+        nocs_sorted = [x for x, _ in sorted_list]
+
+        # return only NUM_SUGGESTIONS top chants
+        print(cantus_ids_sorted[:NUM_SUGGESTIONS])
+        print(nocs_sorted[:NUM_SUGGESTIONS])
+        print("total suggestions: ", len(cantus_ids))
+
+        suggested_chants = cantus_ids_sorted[:NUM_SUGGESTIONS]
+        suggested_chants_dicts = []
+
+        for i in range(NUM_SUGGESTIONS):
+            try:
+                suggested_chant = suggested_chants[i]  # suggested_chant is a CantusID
+            except IndexError:
+                # if the actual number of suggestions is less than NUM_SUGGESTIONS
+                break
+            # do a search in CI
+            response = requests.get(
+                "http://cantusindex.org/json-cid/{}".format(suggested_chant)
+            )
+            assert response.status_code == 200
+            # parse the json export to a dict
+            # response.json() # can't use this because of the BOM at the beginning of json export
+            chant_dict = json.loads(response.text[1:])[0]
+            # add number of occurence to the dict, so that we can display it easily
+            chant_dict["noc"] = nocs_sorted[i]
+            suggested_chants_dicts.append(chant_dict)
+        return suggested_chants_dicts
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
@@ -196,8 +231,9 @@ class ChantCreateView(CreateView):
             )
         except Chant.DoesNotExist:
             context["previous_chant"] = None
+        print("other context done")
         context["suggested_chants"] = self.get_suggested_chants()
-        # print(len(context["suggested_chants"]))
+        print("suggesions done")
         return context
 
     def form_valid(self, form):
@@ -208,15 +244,15 @@ class ChantCreateView(CreateView):
         form.instance.source = self.source  # same effect as the next line
         # form.instance.source = get_object_or_404(Source, pk=self.kwargs['source_pk'])
 
-        # compute incipt, within 30 charactors, keep words complete
+        # compute incipit, within 30 charactors, keep words complete
         words = form.instance.manuscript_full_text_std_spelling.split(" ")
-        incipt = ""
+        incipit = ""
         for word in words:
-            new_incipt = incipt + word + " "
-            if len(new_incipt) >= 30:
+            new_incipit = incipit + word + " "
+            if len(new_incipit) >= 30:
                 break
-            incipt = new_incipt
-        form.instance.incipt = incipt.strip(" ")
+            incipit = new_incipit
+        form.instance.incipit = incipit.strip(" ")
 
         # if the folio field is left empty
         if form.instance.folio is None:
@@ -244,7 +280,7 @@ class ChantCreateView(CreateView):
         if form.is_valid():
             messages.success(
                 self.request,
-                "Chant '" + form.instance.incipt + "' created successfully!",
+                "Chant '" + form.instance.incipit + "' created successfully!",
             )
             return super().form_valid(form)
         else:
@@ -277,6 +313,8 @@ class CISearchView(TemplateView):
     template_name = "ci_search.html"
 
     def get_context_data(self, **kwargs):
+        MAX_PAGE_NUMBER_CI = 5
+
         context = super().get_context_data(**kwargs)
         search_term = kwargs["search_term"]
         search_term = search_term.replace(" ", "+")  # for multiple keywords
@@ -286,7 +324,7 @@ class CISearchView(TemplateView):
         full_text = []
 
         # scrape multiple pages
-        pages = range(0, 5)
+        pages = range(0, MAX_PAGE_NUMBER_CI)
         for page in pages:
             p = {
                 "t": search_term,

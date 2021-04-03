@@ -12,7 +12,7 @@
             <div class="alert alert-success alert-dismissible">
                 {% for message in messages %}
                 <a href="#" class="close" data-dismiss="alert" aria-label="close">&times;</a>
-                {{ message }}
+                <a href="{{ previous_chant_link }}" style="color:#155724" target="_blank">{{ message }}</a>
                 {% endfor %}
             </div>
             {% endif %}
@@ -238,18 +238,18 @@
                     <div class="card-body" style="font-size: 15px">
                         <b>Suggestions based on the previous chant:</b><br>
                         {% if previous_chant %}
-                            {{ previous_chant.folio }} {{ previous_chant.sequence_number}} <a href="{{ previous_chant_link }}" target="_blank">{{ previous_chant.incipt }}</a><br>
+                            {{ previous_chant.folio }} {{ previous_chant.sequence_number}} <a href="{{ previous_chant_link }}" target="_blank">{{ previous_chant.incipit }}</a><br>
                             Cantus ID: <a href="http://cantusindex.org/id/{{ previous_chant.cantus_id }}" target="_blank">{{ previous_chant.cantus_id }}</a><br>
                                 {% if suggested_chants %}
                                     {% for chant in suggested_chants %}
-                                        <input type="button" style="width: 80px" value="{{ chant.cantus_id }}" onclick="autoFill{{ chant.id }}()"></input>
-                                        <strong>{{ chant.genre }}</strong> - {{ chant.manuscript_full_text_std_spelling }}<br>
+                                        <input type="button" style="width: 80px" value="{{ chant.cid }}" onclick="autoFill{{ chant.cid }}()"></input>
+                                        <strong>{{ chant.genre }}</strong> - {{ chant.fulltext }} (<strong>{{ chant.noc }}x</strong>)<br>
                                         <script>
-                                            function autoFill{{ chant.id }}() {
+                                            function autoFill{{ chant.cid }}() {
                                                 const genreId = Array.prototype.find.call(document.getElementById('id_genre').children, ({ textContent }) => textContent === "{{ chant.genre }}");
-                                                document.getElementById('id_cantus_id').value = "{{ chant.cantus_id }}";
+                                                document.getElementById('id_cantus_id').value = "{{ chant.cid }}";
                                                 document.getElementById('id_genre').value = genreId.value;
-                                                document.getElementById('id_manuscript_full_text_std_spelling').value = "{{ chant.manuscript_full_text_std_spelling }}";
+                                                document.getElementById('id_manuscript_full_text_std_spelling').value = "{{ chant.fulltext }}";
                                             }
                                         </script>
                                     {% endfor %}
