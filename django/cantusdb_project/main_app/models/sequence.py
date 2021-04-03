@@ -5,7 +5,7 @@ from main_app.models import BaseModel
 class Sequence(BaseModel):
     title = models.CharField(max_length=255, blank=True, null=True)
     siglum = models.CharField(blank=True, null=True, max_length=255)
-    incpit = models.CharField(blank=True, null=True, max_length=255)
+    incipit = models.CharField(blank=True, null=True, max_length=255)
     folio = models.CharField(blank=True, null=True, max_length=255)
     sequence = models.CharField(blank=True, null=True, max_length=255)
     genre = models.ForeignKey("Genre", blank=True, null=True, on_delete=models.PROTECT)

@@ -116,7 +116,7 @@
                             <br>
                             Inventoried by:
                             <ul class="list-unstyled" style="margin-bottom: 0rem;">
-                                {% for editor in source.invetoried_by.all %}
+                                {% for editor in source.inventoried_by.all %}
                                 <li>
                                     <a href={{ editor.get_absolute_url }}>{{editor.first_name}}
                                         {{editor.family_name}}</a><br>

@@ -105,7 +105,7 @@ class ChantCreateForm(forms.ModelForm):
     feast.widget.attrs.update({"class": "form-control custom-select custom-select-sm"})
 
     # automatically computed fields
-    # source and incipt are mandatory fields in model,
+    # source and incipit are mandatory fields in model,
     # but have to be optional in the form, otherwise the field validation won't pass
     source = forms.ModelChoiceField(
         queryset=Source.objects.all().order_by("name"),
@@ -114,4 +114,4 @@ class ChantCreateForm(forms.ModelForm):
             "invalid_choice": "This source does not exist, please switch to a different source."
         },
     )
-    incipt = forms.CharField(required=False)
+    incipit = forms.CharField(required=False)

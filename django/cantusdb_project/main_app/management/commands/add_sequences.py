@@ -105,7 +105,7 @@ class Command(BaseCommand):
                 id=seq_id,
                 title=title,
                 siglum=siglum,
-                incpit=incipit,
+                incipit=incipit,
                 folio=folio,
                 genre=genre,
                 rubric=rubric,

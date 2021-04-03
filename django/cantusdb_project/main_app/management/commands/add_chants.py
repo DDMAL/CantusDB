@@ -178,7 +178,7 @@ class Command(BaseCommand):
             obj, created = Chant.objects.get_or_create(
                 id=chant_id,
                 source=source,
-                incipt=incipit,
+                incipit=incipit,
                 marginalia=marginalia,
                 folio=folio,
                 sequence_number=sequence_number,
