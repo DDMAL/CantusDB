@@ -1,76 +1,57 @@
 {% extends "base.html" %}
 {% block content %}
-<div class="row">
-    <div class="mr-3 p-3 col-lg-8 mx-auto bg-white rounded">
-        <h3>{{ chant.incipit }}</h3>
-        <dl>
-            <dt>
-                Source
-            </dt>
-            <dd>
-                <a href="{{ chant.source.get_absolute_url }}">
-                    {{ chant.source.title }}
-                </a>
-            </dd>
-            <div class="row">
-                <div class="col">
-                    {% if chant.folio %}
-                    <dt>
-                        Folio
-                    </dt>
-                    <dd>
-                        {{ chant.folio }}
-                    </dd>
-                    {% endif %}
+<title>{{ chant.incipit }} | Cantus Manuscript Database</title>
+<div class="container">
+    <div class="row">
+        <div class="mr-3 p-3 col-lg-8 bg-white rounded">
+            <h3>{{ chant.incipit }}</h3>
+            <dl>
+                <div class="row">
+                    <div class="col">
+                        <dt>
+                            Source
+                        </dt>
+                        <dd>
+                            <a href="{{ chant.source.get_absolute_url }}">
+                                {{ chant.source.title }}
+                            </a>
+                        </dd>
+                    </div>
+                    <div class="col">
+                        {% if chant.marginalia %}
+                        <dt>
+                            Marginalia
+                        </dt>
+                        <dd>
+                            {{ chant.marginalia }}
+                        </dd>
+                        {% endif %}
+                    </div>
                 </div>
-                <div class="col">
-                    {% if chant.sequence_number %}
-                    <dt>
-                        Sequence
-                    </dt>
-                    <dd>
-                        {{ chant.sequence_number }}
-                    </dd>
-                    {% endif %}
+
+                <div class="row">
+                    <div class="col">
+                        {% if chant.folio %}
+                        <dt>
+                            Folio
+                        </dt>
+                        <dd>
+                            {{ chant.folio }}
+                        </dd>
+                        {% endif %}
+                    </div>
+                    <div class="col">
+                        {% if chant.sequence_number %}
+                        <dt>
+                            Sequence
+                        </dt>
+                        <dd>
+                            {{ chant.sequence_number }}
+                        </dd>
+                        {% endif %}
+                    </div>
                 </div>
-            </div>
-            <div class="row">
-                <div class="col">{% if chant.feast %}
-                    <dt>
-                        Feast
-                    </dt>
-                    <dd>
-                        <a href="{{ chant.feast.get_absolute_url }}">{{ chant.feast.name }}</a>
-                    </dd>
-                    {% endif %}
-                </div>
-                <div class="col">{% if chant.office %}
-                    <dt>
-                        Office/Mass
-                    </dt>
-                    <dd>
-                        <a href="{{ chant.office.get_absolute_url }}">{{ chant.office.name }}</a>
-                    </dd>
-                    {% endif %}
-                </div>
-                <div class="col">{% if chant.genre %}
-                    <dt>
-                        Genre
-                    </dt>
-                    <dd>
-                        <a href="{{ chant.genre.get_absolute_url }}">{{ chant.genre.name }}</a>
-                    </dd>
-                    {% endif %}
-                </div>
-                <div class="col">{% if chant.position %}
-                    <dt>
-                        Position
-                    </dt>
-                    <dd>
-                        {{ chant.position }}
-                    </dd>
-                    {% endif %}
-                </div>
+                
                 <div class="row">
                     <div class="col">{% if chant.feast %}
                         <dt>
@@ -127,95 +108,53 @@
                         {% endif %}
                     </div>
                 </div>
-                <div class="col">{% if chant.mode %}
-                    <dt>
-                        Mode
-                    </dt>
-                    <dd>
-                        {{ chant.mode }}
-                    </dd>
-                    {% endif %}
+
+                <div class="row">
+                    <div class="col">
+                        {% if chant.finalis %}
+                        <dt>
+                            Finalis
+                        </dt>
+                        <dd>
+                            {{ chant.finalis }}
+                        </dd>
+                        {% endif %}
+                    </div>
+                    <div class="col">
+                        {% if chant.differentia %}
+                        <dt>
+                            Differentia
+                        </dt>
+                        <dd>
+                            {{ chant.differentia }}
+                        </dd>
+                        {% endif %}
+                    </div>
+                    <div class="col">
+                        {% if chant.extra %}
+                        <dt>
+                            Extra
+                        </dt>
+                        <dd>
+                            {{ chant.extra }}
+                        </dd>
+                        {% endif %}
+                    </div>
                 </div>
-            </div>
-            {% if chant.finalis %}
-            <dt>
-                Finalis
-            </dt>
-            <dd>
-                {{ chant.finalis }}
-            </dd>
-            {% endif %}
-            {% if chant.differentia %}
-            <dt>
-                Differentia
-            </dt>
-            <dd>
-                {{ chant.differentia }}
-            </dd>
-            {% endif %}
-            {% if chant.extra %}
-            <dt>
-                Extra
-            </dt>
-            <dd>
-                {{ chant.extra }}
-            </dd>
-            {% endif %}
-            <!-- Apparently we don't need to show the manuscript_full_text_std_spelling field -->
-            <!-- {% if chant.manuscript_full_text_std_spelling %}
-            <dt>
-                Manuscript Reading Full Text (standardized spelling)
-            </dt>
-            <dd>
-                {{ chant.manuscript_full_text_std_spelling }}
-            </dd>
-            {% endif %} -->
-            {% if chant.manuscript_full_text %}
-            <dt>
-                Manuscript Reading Full Text (MS spelling)
-            </dt>
-            <dd>
-                {{ chant.manuscript_full_text }}
-            </dd>
-            {% endif %}
-            {% if chant.chant_range %}
-            <dt>
-                Range
-            </dt>
-            <dd>
-                <p style="font-family: volpiano; font-size:30px">
-                    {{ chant.chant_range }}
-                </p>
-            </dd>
-            {% endif %}
-            {% if chant.volpiano %}
-            <dt>
-                Volpiano
-            </dt>
-            <dd>
-                <p style="font-family: volpiano; font-size:30px">
-                    {{ chant.volpiano }}
-                </p>
-            </dd>
-            {% endif %}
-            {% if chant.indexing_notes %}
-            <dt>
-                Indexing Notes:
-            </dt>
-            <dd>
-                {{ chant.indexing_notes }}
-            </dd>
-            {% endif %}
-            {% if chant.volpiano and chant.manuscript_full_text %}
-            <dt>
-                Melody with text
-            </dt>
-            <!-- TODO: figure out how to silabilize the text and align with melody -->
-            <dd>
-                <p style="font-family: volpiano; font-size:30px">
-                    {{ chant.volpiano }}
-                </p>
-                <p>
+
+                {% if chant.manuscript_full_text_std_spelling %}
+                <dt>
+                    Manuscript Reading Full Text (standardized spelling)
+                </dt>
+                <dd>
+                    {{ chant.manuscript_full_text_std_spelling }}
+                </dd>
+                {% endif %}
+                {% if chant.manuscript_full_text %}
+                <dt>
+                    Manuscript Reading Full Text (MS spelling)
+                </dt>
+                <dd>
                     {{ chant.manuscript_full_text }}
                 </dd>
                 {% endif %}
@@ -241,7 +180,7 @@
                 {% endif %}
                 {% if chant.indexing_notes %}
                 <dt>
-                    Indexing Notes:
+                    Indexing Notes
                 </dt>
                 <dd>
                     {{ chant.indexing_notes }}
@@ -261,7 +200,19 @@
                     </p>
                 </dd>
                 {% endif %}
+
+                {% if chant.image_link %}
+                <dt>
+                    Image link
+                </dt>
+                <dd>
+                    <a href="{{ chant.image_link }}" target="_blank">{{ chant.image_link }}</a>
+                </dd>
+                {% endif %}
             </dl>
+
+            
+
             <a href="" class="btn btn-primary" id="delete">Delete this Chant</a>
             <script>
                 window.onload = function () {
@@ -296,7 +247,7 @@
                             <br>
                             Inventoried by:
                             <ul class="list-unstyled" style="margin-bottom: 0rem;">
-                                {% for editor in source.invetoried_by.all %}
+                                {% for editor in source.inventoried_by.all %}
                                 <li>
                                     <a href={{ editor.get_absolute_url }}>{{editor.first_name}}
                                         {{editor.family_name}}</a><br>

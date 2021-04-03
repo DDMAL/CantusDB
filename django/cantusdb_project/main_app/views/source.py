@@ -94,8 +94,8 @@ class SourceListView(ListView):
             # field, allowing for a more flexible search, and a field needs
             # to match only one of the terms
             for term in indexing_search_terms:
-                inventoried_by_q |= Q(invetoried_by__first_name__icontains=term) | Q(
-                    invetoried_by__family_name__icontains=term
+                inventoried_by_q |= Q(inventoried_by__first_name__icontains=term) | Q(
+                    inventoried_by__family_name__icontains=term
                 )
                 full_text_entered_by_q |= Q(
                     full_text_entered_by__first_name__icontains=term

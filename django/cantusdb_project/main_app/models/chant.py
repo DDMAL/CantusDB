@@ -1,19 +1,21 @@
 from django.contrib.postgres.fields import JSONField
 from django.contrib.postgres.search import SearchVectorField
 from django.db import models
+
 from django.db.models.query import QuerySet
 from main_app.models import BaseModel
 from users.models import User
 
 
 class Chant(BaseModel):
+
     incipit = models.CharField(max_length=255, null=True, blank=True)
     source = models.ForeignKey(
         "Source", on_delete=models.PROTECT, null=True, blank=True
     )
     marginalia = models.CharField(max_length=63, null=True, blank=True)
     folio = models.CharField(
-        help_text="Binding order", blank=True, null=True, max_length=63
+        help_text="Binding order", blank=True, null=True, max_length=63, db_index=True
     )
     sequence_number = models.PositiveIntegerField(
         help_text='Each folio starts with "1"', null=True, blank=True
@@ -25,7 +27,8 @@ class Chant(BaseModel):
         "Genre", on_delete=models.PROTECT, null=True, blank=True
     )
     position = models.CharField(max_length=63, null=True, blank=True)
-    cantus_id = models.CharField(max_length=63, null=True, blank=True)
+    # add db_index to speed up filtering
+    cantus_id = models.CharField(max_length=63, null=True, blank=True, db_index=True)
     feast = models.ForeignKey(
         "Feast", on_delete=models.PROTECT, null=True, blank=True
     )
@@ -126,3 +129,78 @@ class Chant(BaseModel):
     # # Digital Analysis of Chant Transmission
     # dact = models.CharField(blank=True, null=True, max_length=64)
     # also a second differentia field
+
+    # TODO change this function: if the chant is the last one on the folio, don't just give up,
+    # return the first chant on the next folio
+    # also, just return object, return a CantusID is enough, but return an object can be more general-purpose
+    def get_next_chant(self):
+        """return the next chant in the same source
+
+        Returns:
+            chant_object/None: the next chant object, or None if there is no next chant
+        """
+
+        def get_next_folio(folio):
+            """This is useful when the 'next chant' we need is on the next folio
+
+            Args:
+                folio (str): the folio number of a certain chant
+
+            Returns:
+                str: the folio number of the next folio
+            """
+            # For the ra, rb, va, vb - don't do anything about those. That formatting will not stay.
+
+            if folio is None:
+                # this shouldn't happen, but during testing, we may have some chants without folio
+                next_folio = "nosuchfolio"
+            elif folio == "001b":
+                # one specific case at this source https://cantus.uwaterloo.ca/chants?source=123612&folio=001b
+                next_folio = "001r"
+            elif folio.endswith("r"):
+                # 001r -> 001v
+                next_folio = folio[:-1] + "v"
+            elif folio.endswith("v"):
+                if folio[0].isdecimal():
+                    # 001v -> 002r
+                    next_folio = str(int(folio[:-1]) + 1).zfill(len(folio) - 1) + "r"
+                else:
+                    # a001v -> a002r
+                    next_folio = (
+                        folio[0] + str(int(folio[1:-1]) + 1).zfill(len(folio) - 1) + "r"
+                    )
+            elif folio.isdecimal():
+                # 001 -> 002
+                next_folio = str(int(folio) + 1).zfill(len(folio))
+
+            # special case: inserted pages
+            elif folio.endswith("w"):
+                # 001w -> 001x
+                next_folio = folio[:-1] + "x"
+            elif folio.endswith("y"):
+                # 001y -> 001z
+                next_folio = folio[:-1] + "z"
+            elif folio.endswith("a"):
+                # 001a -> 001b
+                next_folio = folio[:-1] + "b"
+
+            else:
+                # using weird folio naming
+                next_folio = "nosuchfolio"
+            return next_folio
+
+        try:
+            next_chant = Chant.objects.get(
+                source=self.source,
+                folio=self.folio,
+                sequence_number=self.sequence_number + 1,
+            )
+        except:
+            chants_next_folio = Chant.objects.filter(
+                source=self.source, folio=get_next_folio(self.folio)
+            ).order_by("-sequence_number")
+            try:
+                next_chant = chants_next_folio[0]
+            except:
+                next_chant = None
+        return next_chant

@@ -12,7 +12,7 @@
             <div class="alert alert-success alert-dismissible">
                 {% for message in messages %}
                 <a href="#" class="close" data-dismiss="alert" aria-label="close">&times;</a>
-                {{ message }}
+                <a href="{{ previous_chant_link }}" style="color:#155724" target="_blank">{{ message }}</a>
                 {% endfor %}
             </div>
             {% endif %}
@@ -109,7 +109,7 @@
 
                 </div>
 
-                <div class="form-row align-items-end">
+                <div class="form-row">
 
                     <div class="form-group m-1 col-lg-5">
                         <small>{{ form.feast.label_tag }}</small>
@@ -118,7 +118,7 @@
                     
                 </div>
 
-                <div class="form-row align-items-end">
+                <div class="form-row">
 
                     <div class="form-group m-1 col-lg-2">
                         <small>{{ form.mode.label_tag }}</small>
@@ -133,6 +133,9 @@
                     <div class="form-group m-1 col-lg-2">
                         <small>{{ form.differentia.label_tag }}</small>
                         {{ form.differentia }}
+                        <p>
+                            <small class="text-muted">Diff. IDs: <a href="https://differentiaedatabase.ca/">differentiaedatabase.ca</a></small>
+                        </p>
                     </div>
 
                     <div class="form-group m-1 col-lg-2">
@@ -163,7 +166,7 @@
                         {{ form.manuscript_full_text_std_spelling }}
                         <!--textarea class="form-control" rows="3" id="form.manuscript_full_text_std_spelling.id_for_label"></textarea-->
                         <p>
-                            <small class=text-muted>{{ form.manuscript_full_text_std_spelling.help_text }} For more
+                            <small class="text-muted">{{ form.manuscript_full_text_std_spelling.help_text }} For more
                                 info <a href="/field-descriptions/#Fulltext">click here</a>.</small>
                         </p>
                     </div>
@@ -172,7 +175,7 @@
                 <div class="form-row align-items-end">
                     <div class="form-group m-1 col-lg">
                         <label for="{{ form.manuscript_full_text.id_for_label }}"><small>Manuscript Reading Full Text
-                                (MS Spelling)</small></label>
+                                (MS spelling): </small></label>
                         {{ form.manuscript_full_text }}
                         <p class="text-muted" style="line-height: normal">
                             <small>{{ form.manuscript_full_text.help_text }}</small>
@@ -235,11 +238,32 @@
                     <div class="card-body" style="font-size: 15px">
                         <b>Suggestions based on the previous chant:</b><br>
                         {% if previous_chant %}
-                        {{ previous_chant.folio }} {{ previous_chant.sequence_number}} <a href="{{ previous_chant_link }}" target="_blank">{{ previous_chant.incipit }}</a><br>
-                        Cantus ID: <a href="http://cantusindex.org/id/{{ previous_chant.cantus_id }}" target="_blank">{{ previous_chant.cantus_id }}</a>                        
+                            {{ previous_chant.folio }} {{ previous_chant.sequence_number}} <a href="{{ previous_chant_link }}" target="_blank">{{ previous_chant.incipit }}</a><br>
+                            Cantus ID: <a href="http://cantusindex.org/id/{{ previous_chant.cantus_id }}" target="_blank">{{ previous_chant.cantus_id }}</a><br>
+                                {% if suggested_chants %}
+                                    {% for chant in suggested_chants %}
+                                        <input type="button" style="width: 80px" value="{{ chant.cid }}" onclick="autoFill{{ chant.cid }}()"></input>
+                                        <strong>{{ chant.genre }}</strong> - {{ chant.fulltext }} (<strong>{{ chant.noc }}x</strong>)<br>
+                                        <script>
+                                            function autoFill{{ chant.cid }}() {
+                                                const genreId = Array.prototype.find.call(document.getElementById('id_genre').children, ({ textContent }) => textContent === "{{ chant.genre }}");
+                                                document.getElementById('id_cantus_id').value = "{{ chant.cid }}";
+                                                document.getElementById('id_genre').value = genreId.value;
+                                                document.getElementById('id_manuscript_full_text_std_spelling').value = "{{ chant.fulltext }}";
+                                            }
+                                        </script>
+                                    {% endfor %}
+                                {% endif %}
+                        <br>
+                        <p>The suggestions are based on the <strong>Cantus Database | MMMO | Slovakian Early Music Database</strong><br>
+                        If your chant is not listed above, please use the search form below.</p>
+
                         {% else %}
-                        There is no previous chant available, please use the search box below.
+                            Sorry! No suggestions found. Please use the search form below.
                         {% endif %}
+
+
+
                     </div>
                 </div>
             </div>

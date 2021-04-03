@@ -5,7 +5,6 @@ from django.urls import reverse
 
 from faker import Faker
 
-from main_app.forms import ChantCreateForm
 from main_app.models import Source
 from main_app.models import Chant
 
@@ -170,6 +169,22 @@ class ChantCreateViewTest(TestCase):
             None,
             errors="Chant with the same sequence and folio already exists in this source.",
         )
+
+    def test_suggest_one_folio(self):
+        TEST_FOLIO = "test_folio"
+        NUM_CHANTS = 3
+        # create some chants in the test folio
+        for i in range(NUM_CHANTS):
+            Chant.objects.create(
+                source=self.rand_source, folio=TEST_FOLIO, sequence_number=i
+            )
+        # go to the same source and access the input form
+        source = Source.objects.all()[self.rand_source]
+        url = reverse("chant-create", args=[source.id])
+        response = self.client.get(url)
+        self.assertEqual(response.status_code, 200)
+        # assert context previous_chant, suggested_chants
+        print(response.context(["previous_chant"]))
 
     def test_post_error(self):
         """post with correct source and empty full-text
