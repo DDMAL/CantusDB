@@ -28,7 +28,7 @@ class SourceListView(ListView):
 
     def get_queryset(self):
         queryset = super().get_queryset()
-        q_obj_filter = Q()
+        q_obj_filter = ~Q(proofreaders=None)
         if self.request.GET.get("century"):
             century_id = int(self.request.GET.get("century"))
             q_obj_filter &= Q(century__id=century_id)
@@ -42,21 +42,25 @@ class SourceListView(ListView):
             full_source_str = self.request.GET.get("fullsource")
             if full_source_str == "true":
                 full_source = True
-            elif full_source == "false":
+            elif full_source_str == "false":
                 full_source = False
             q_obj_filter &= Q(full_source=full_source)
         # Maybe change this to lookup in a search vector with the vector Postgres field?
         # I would have to add a signal to update the vector with changes like I did
         # with SIMSSADB
         if self.request.GET.get("general"):
-            # Make list of terms split on spaces
-            general_search_terms = self.request.GET.get("general").split(" ")
+            # Strip spaces at the beginning and end. Then make list of terms split on spaces
+            general_search_terms = self.request.GET.get("general").strip(" ").split(" ")
             # We need a Q Object for each field we're gonna look into
             title_q = Q()
             siglum_q = Q()
             rism_siglum_q = Q()
             description_q = Q()
-            provenance_q = Q()
+            # it seems that old cantus don't look into title and provenance for the general search terms
+            # cantus.uwaterloo.ca/source/123901 this source cannot be found by searching its provenance 'Kremsmünster' in the general search field
+            # provenance_q = Q()
+            summary_q = Q()
+
             # For each term, add it to the Q object of each field with an OR operation.
             # We split the terms so that the words can be separated in the actual
             # field, allowing for a more flexible search, and a field needs
@@ -68,12 +72,16 @@ class SourceListView(ListView):
                     rism_siglum__description__icontains=term
                 )
                 description_q |= Q(description__icontains=term)
-                provenance_q |= Q(provenance__name__icontains=term)
+                summary_q |= Q(summary__icontains=term)
+                # provenance_q |= Q(provenance__name__icontains=term)
             # All the Q objects are put together with OR.
             # The end result is that at least one term has to match in at least one
             # field
+            # general_search_q = (
+            #     title_q | siglum_q | rism_siglum_q | description_q | provenance_q
+            # )
             general_search_q = (
-                title_q | siglum_q | rism_siglum_q | description_q | provenance_q
+                title_q | siglum_q | rism_siglum_q | description_q | summary_q
             )
             q_obj_filter &= general_search_q
 
