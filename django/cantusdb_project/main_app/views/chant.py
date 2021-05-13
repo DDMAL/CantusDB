@@ -18,7 +18,6 @@ from main_app.forms import ChantCreateForm
 from main_app.models import Chant, Feast, Genre, Source
 
 
-
 def keyword_search(queryset: QuerySet, keywords: str) -> QuerySet:
     """
     Performs a keyword search over a QuerySet
@@ -89,9 +88,7 @@ class ChantSearchView(ListView):
     def get_context_data(self, **kwargs) -> dict:
         context = super().get_context_data(**kwargs)
         # Add to context a QuerySet of dicts with id and name of each Genre
-        context["genres"] = (
-            Genre.objects.all().order_by("name").values("id", "name")
-        )
+        context["genres"] = Genre.objects.all().order_by("name").values("id", "name")
         return context
 
     def get_queryset(self) -> QuerySet:
@@ -165,9 +162,7 @@ class ChantCreateView(CreateView):
         last created chant is found using 'date-updated'
         """
         chants_in_source = (
-            Chant.objects.all()
-            .filter(source=self.source)
-            .order_by("-date_updated")
+            Chant.objects.all().filter(source=self.source).order_by("-date_updated")
         )
         if not chants_in_source:
             # if there is no chant in source
@@ -218,14 +213,19 @@ class ChantCreateView(CreateView):
 
         cantus_ids = []
         nocs = []  # number of occurence
-        chants_in_source = Chant.objects.filter(source=self.source)
+        # only load the fields that we need, this helps speed things up
+        chants_in_source = Chant.objects.filter(source=self.source).only(
+            "date_updated", "cantus_id"
+        )
         if not chants_in_source:
             return None
         latest_chant = chants_in_source.latest("date_updated")
         cantus_id = latest_chant.cantus_id
         if cantus_id is None:
             return None
-        chants_same_cantus_id = Chant.objects.filter(cantus_id=cantus_id)
+        chants_same_cantus_id = Chant.objects.filter(cantus_id=cantus_id).only(
+            "source", "folio", "sequence_number"
+        )
         for chant in chants_same_cantus_id:
             next_chant = chant.get_next_chant()
             if next_chant:
@@ -273,9 +273,7 @@ class ChantCreateView(CreateView):
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
-        context["source_link"] = reverse(
-            "source-detail", args=[self.source_id]
-        )
+        context["source_link"] = reverse("source-detail", args=[self.source_id])
         context["source"] = self.source
         try:
             previous_chant = Chant.objects.all().get(
