@@ -1,3 +1,4 @@
+from main_app.tests.make_fakes import make_fake_text
 import random
 
 from django.test import TestCase
@@ -7,6 +8,8 @@ from faker import Faker
 
 from main_app.models import Source
 from main_app.models import Chant
+
+from .make_fakes import *
 
 fake = Faker()
 
@@ -170,21 +173,64 @@ class ChantCreateViewTest(TestCase):
             errors="Chant with the same sequence and folio already exists in this source.",
         )
 
-    def test_suggest_one_folio(self):
-        TEST_FOLIO = "test_folio"
+    def test_no_suggest(self):
         NUM_CHANTS = 3
+        fake_folio = fake.numerify("###")
+        source = Source.objects.all()[self.rand_source]
         # create some chants in the test folio
         for i in range(NUM_CHANTS):
+            fake_cantus_id = fake.numerify("######")
             Chant.objects.create(
-                source=self.rand_source, folio=TEST_FOLIO, sequence_number=i
+                source=source,
+                folio=fake_folio,
+                sequence_number=i,
+                cantus_id=fake_cantus_id,
             )
         # go to the same source and access the input form
-        source = Source.objects.all()[self.rand_source]
         url = reverse("chant-create", args=[source.id])
         response = self.client.get(url)
         self.assertEqual(response.status_code, 200)
         # assert context previous_chant, suggested_chants
-        print(response.context(["previous_chant"]))
+        self.assertEqual(i, response.context["previous_chant"].sequence_number)
+        self.assertEqual(fake_cantus_id, response.context["previous_chant"].cantus_id)
+        self.assertListEqual([], response.context["suggested_chants"])
+
+    def test_suggest_one_folio(self):
+        NUM_CHANTS = 3
+        fake_folio = fake.numerify("###")
+        fake_cantus_ids = []
+        fake_chants = []
+        source = Source.objects.all()[self.rand_source]
+        # create some chants in the test folio
+        for i in range(NUM_CHANTS):
+            fake_cantus_id = fake.numerify("######")
+            fake_cantus_ids.append(fake_cantus_id)
+            fake_chants.append(
+                Chant.objects.create(
+                    source=source,
+                    folio=fake_folio,
+                    sequence_number=i,
+                    cantus_id=fake_cantus_id,
+                )
+            )
+        # create one more chant with a cantus_id that is supposed to have suggestions
+        Chant.objects.create(
+            source=source,
+            folio=fake_folio,
+            sequence_number=i + 1,
+            # if it has the same cantus_id as the first chant in this folio
+            # it should give a suggestion of the second chant in this folio
+            cantus_id=fake_cantus_ids[0],
+        )
+        # go to the same source and access the input form
+        url = reverse("chant-create", args=[source.id])
+        response = self.client.get(url)
+        self.assertEqual(response.status_code, 200)
+        # suggested chants should be [the second chant in source]
+        self.assertEqual(1, len(response.context["suggested_chants"]))
+        self.assertListEqual(
+            fake_cantus_ids[1], response.context["suggested_chants"][0].cantus_id
+        )
 
     def test_post_error(self):
         """post with correct source and empty full-text
