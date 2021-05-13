@@ -28,7 +28,7 @@ MIN_NUMBER_TEXT_CHARS = 10
 MAX_NUMBER_TEXT_CHARS = 10000
 
 # The incipit will be up to 100 characters of the full text
-INCIPT_LENGTH = 100
+INCIPIT_LENGTH = 100
 
 # Create a Faker instance with locale set to Latin
 faker = Faker("la")
@@ -82,7 +82,7 @@ def make_fake_chant() -> Chant:
         chant_range=make_fake_text(LONG_CHAR_FIELD_MAX),
         addendum=make_fake_text(LONG_CHAR_FIELD_MAX),
         manuscript_full_text_std_spelling=manuscript_full_text_std_spelling,
-        incipit=manuscript_full_text_std_spelling[0:INCIPT_LENGTH],
+        incipit=manuscript_full_text_std_spelling[0:INCIPIT_LENGTH],
         manuscript_full_text_std_proofread=faker.boolean(),
         manuscript_full_text=manuscript_full_text_std_spelling,
         manuscript_full_text_proofread=faker.boolean(),
@@ -133,9 +133,7 @@ def make_fake_genre() -> Genre:
         description=make_fake_text(
             max_size=MAX_NUMBER_TEXT_CHARS, min_size=MIN_NUMBER_TEXT_CHARS
         ),
-        mass_office=random.choices(
-            mass_office_choices, k=random.randint(1, 3)
-        ),
+        mass_office=random.choices(mass_office_choices, k=random.randint(1, 3)),
     )
     return genre
 
@@ -171,9 +169,7 @@ def make_fake_office() -> Office:
 
 def make_fake_provenance() -> Provenance:
     """Generates a fake Provenance object."""
-    provenance = Provenance.objects.create(
-        name=make_fake_text(SHORT_CHAR_FIELD_MAX)
-    )
+    provenance = Provenance.objects.create(name=make_fake_text(SHORT_CHAR_FIELD_MAX))
     return provenance
 
 
