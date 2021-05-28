@@ -23,9 +23,6 @@ mypy-extensions==0.4.3
 pathspec==0.8.0
 psycopg2==2.8.5
 ptvsd==4.3.2
-pylint==2.6.0
-pylint-django==2.4.2
-pylint-plugin-utils==0.6
 python-dateutil==2.8.1
 pytz==2020.1
 regex==2020.5.14

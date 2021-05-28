@@ -21,6 +21,7 @@ class Source(BaseModel):
         ("Unpublished / Proofreading process", "Unpublished / Proofreading process"),
     ]
 
+    visible_status = models.CharField(max_length=1, blank=True, null=True)
     title = models.CharField(
         max_length=255,
         help_text="Full Manuscript Identification (City, Archive, Shelf-mark)",
@@ -83,6 +84,8 @@ class Source(BaseModel):
     indexing_notes = models.TextField(blank=True, null=True)
     indexing_date = models.TextField(blank=True, null=True)
     json_info = JSONField()
+    fragmentarium_id = models.CharField(max_length=15, blank=True, null=True)
+    dact_id = models.CharField(max_length=15, blank=True, null=True)
 
     def number_of_chants(self) -> int:
         """Returns the number of Chants and Sequences in this Source."""

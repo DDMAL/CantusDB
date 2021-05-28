@@ -28,7 +28,13 @@ class SourceListView(ListView):
 
     def get_queryset(self):
         queryset = super().get_queryset()
-        q_obj_filter = ~Q(proofreaders=None)
+        q_obj_filter = Q(visible_status="1")
+        q_obj_filter &= ~Q(source_status="Published / Proofread pending")
+        q_obj_filter &= ~Q(source_status="Unpublished / Proofread pending")
+        q_obj_filter &= ~Q(
+            source_status="Editing process (not all the fields have been proofread)"
+        )
+
         if self.request.GET.get("century"):
             century_id = int(self.request.GET.get("century"))
             q_obj_filter &= Q(century__id=century_id)

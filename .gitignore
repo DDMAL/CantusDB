@@ -108,8 +108,11 @@ venv
 django/cantusdb_project/*/migrations
 
 # Fixtures
-django/cantusdb/fixtures
+django/cantusdb_project/main_app/fixtures
 
 #
 config/envs/dev_env
 .devcontainer/
+
+# Drupal scripts from old Cantus
+django/cantusdb_project/Drupal_scripts

@@ -72,6 +72,16 @@
                 <dt>Full Source/Fragment</dt>
                 <dd>{{ source.full_source|yesno:"Full Source,Fragment"}}</dd>
                 {% endif %}
+
+                {% if source.fragmentarium_id is not None %}
+                <dt>Fragment ID</dt>
+                <dd>{{ source.fragmentarium_id }}</dd>
+                {% endif %}
+
+                {% if source.dact_id is not None %}
+                <dt>DACT ID</dt>
+                <dd>{{ source.dact_id }}</dd>
+                {% endif %}
             </dl>
         </div>
 
@@ -105,16 +115,29 @@
                     <div class=" card-body">
                         <!-- TODO: add proper links here -->
                         <small>
-                            Provenance: <a href="#">{{source.provenance.name}}</a>
+                            {% if source.provenance.name %}
+                            <b>Provenance:</b> <a href="#">{{source.provenance.name}}</a>
                             <br>
-                            Date: <a href="#">{{source.century.all.first.name }}</a> |
+                            {% endif %}
+                            {% if source.date %}
+                            <b>Date:</b> 
+                            {% for century in source.century.all %}
+                            <a href="#">{{ century.name }}</a> 
+                            {% endfor %}
+                            |
                             <b>{{source.date|default_if_none:""}}</b>
                             <br>
-                            Cursus: <b>{{source.cursus|default_if_none:""}}</b>
+                            {% endif %}
+                            {% if source.cursus %}
+                            <b>Cursus:</b> <b>{{source.cursus|default_if_none:""}}</b>
                             <br>
-                            Notation: <a href="#">{{source.notation.all.first.name}}</a>
+                            {% endif %}
+                            {% if source.notation.all %}
+                            <b>Notation:</b> <a href="#">{{source.notation.all.first.name}}</a>
                             <br>
-                            Inventoried by:
+                            {% endif %}
+                            {% if source.inventoried_by.all %}
+                            <b>Inventoried by:</b>
                             <ul class="list-unstyled" style="margin-bottom: 0rem;">
                                 {% for editor in source.inventoried_by.all %}
                                 <li>
@@ -124,21 +147,23 @@
                                 </li>
                                 {% endfor %}
                             </ul>
-
-                            Proofreader{{source.proofreaders.all|pluralize}}:
-                            {% if source.proofreaders.all %}
+                            {% endif %}
+                            {% comment %} {% if source.proofreaders.all %} {% endcomment %}
+                            <b>Proofreader{{source.proofreaders.all|pluralize}}:</b>
                             <ul class="list-unstyled" style="margin-bottom: 0rem;">
                                 {% for editor in source.proofreaders.all %}
                                 <li>
                                     <a href={{ editor.get_absolute_url }}>{{editor.first_name}}
-                                        {{editor.family_name}}</a>
+                                        {{editor.family_name}}</a><br>
                                 </li>
                                 {% endfor %}
                             </ul>
-                            {% endif %}
+                            {% comment %} {% endif %} {% endcomment %}
+                            {% if source.indexing_notes %}
                             {{source.indexing_notes|default_if_none:""}}
                             <br>
-                            Contributor:
+                            {% endif %}
+                            <b>Contributor:</b>
                         </small>
                     </div>
                 </div>
