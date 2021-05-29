@@ -4,19 +4,9 @@ from main_app.models import BaseModel
 
 
 class Genre(BaseModel):
-    mass_office_choices = [
-        ("Mass", "Mass"),
-        ("Office", "Office"),
-        ("Old Hispanic", "Old Hispanic"),
-    ]
-    name = models.CharField(max_length=255)
+    name = models.CharField(max_length=15)
     description = models.TextField()
-    mass_office = ArrayField(
-        base_field=models.CharField(
-            max_length=63, choices=mass_office_choices
-        ),
-        size=len(mass_office_choices),
-    )
+    mass_office = models.CharField(max_length=63, null=True, blank=True)
 
     def __str__(self):
         return self.name

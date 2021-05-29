@@ -55,7 +55,7 @@
                 </td>
                 <td class="text-wrap">{{ genre.description|default:""}}</td>
                 <td class="text-wrap">
-                    {{ genre.mass_office|join:", "| default:"" }}
+                    {{ genre.mass_office }}
                 </td>
             </tr>
             {% endfor %}

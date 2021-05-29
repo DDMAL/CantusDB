@@ -33,9 +33,7 @@ class GenreDetailView(DetailView):
 
         chant_list = []
         for cantus_id in cantus_ids:
-            chants = self.object.chant_set.filter(
-                cantus_id=cantus_id
-            ).order_by("id")
+            chants = self.object.chant_set.filter(cantus_id=cantus_id).order_by("id")
             num_chants = chants.count()
             first_chant = chants.first()
             first_incipit_url = first_chant.get_absolute_url()
@@ -49,9 +47,7 @@ class GenreDetailView(DetailView):
                 }
             )
             # Sort list based on number of Chants per cantus_id (descending)
-            chant_list = sorted(
-                chant_list, key=lambda k: k["num_chants"], reverse=True
-            )
+            chant_list = sorted(chant_list, key=lambda k: k["num_chants"], reverse=True)
         return chant_list
 
     def get_context_data(self, **kwargs):
@@ -72,11 +68,6 @@ class GenreListView(SearchableListMixin, ListView):
     def get_queryset(self):
         mass_office = self.request.GET.get("mass_office", None)
         if mass_office in ["Mass", "Office", "Old Hispanic"]:
-            # Put mass_office in a list because the contains lookup requires one
-            queryset = (
-                super()
-                .get_queryset()
-                .filter(mass_office__contains=[mass_office])
-            )
+            queryset = super().get_queryset().filter(mass_office__contains=mass_office)
             return queryset
         return super().get_queryset()
