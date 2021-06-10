@@ -10,9 +10,10 @@ from users.models import User
 class Chant(BaseModel):
 
     incipit = models.CharField(max_length=255, null=True, blank=True)
+    visible_status = models.CharField(max_length=1, blank=True, null=True)
     source = models.ForeignKey(
         "Source", on_delete=models.PROTECT, null=True, blank=True
-    )
+    )  # PROTECT so that we can't delete a source with chants in it
     marginalia = models.CharField(max_length=63, null=True, blank=True)
     folio = models.CharField(
         help_text="Binding order", blank=True, null=True, max_length=63, db_index=True
@@ -23,15 +24,11 @@ class Chant(BaseModel):
     office = models.ForeignKey(
         "Office", on_delete=models.PROTECT, null=True, blank=True
     )
-    genre = models.ForeignKey(
-        "Genre", on_delete=models.PROTECT, null=True, blank=True
-    )
+    genre = models.ForeignKey("Genre", on_delete=models.PROTECT, null=True, blank=True)
     position = models.CharField(max_length=63, null=True, blank=True)
     # add db_index to speed up filtering
     cantus_id = models.CharField(max_length=63, null=True, blank=True, db_index=True)
-    feast = models.ForeignKey(
-        "Feast", on_delete=models.PROTECT, null=True, blank=True
-    )
+    feast = models.ForeignKey("Feast", on_delete=models.PROTECT, null=True, blank=True)
     mode = models.CharField(max_length=63, null=True, blank=True)
     differentia = models.CharField(blank=True, null=True, max_length=63)
     finalis = models.CharField(blank=True, null=True, max_length=63)
@@ -52,9 +49,7 @@ class Chant(BaseModel):
         null=True,
         blank=True,
     )
-    manuscript_full_text_std_proofread = models.NullBooleanField(
-        blank=True, null=True
-    )
+    manuscript_full_text_std_proofread = models.NullBooleanField(blank=True, null=True)
     manuscript_full_text = models.TextField(
         help_text="Enter the wording, word order and spellings as found in the manuscript"
         ", with abbreviations resolved to standard words. Use upper-case letters as found"
@@ -65,9 +60,7 @@ class Chant(BaseModel):
         null=True,
         blank=True,
     )
-    manuscript_full_text_proofread = models.NullBooleanField(
-        blank=True, null=True
-    )
+    manuscript_full_text_proofread = models.NullBooleanField(blank=True, null=True)
     manuscript_syllabized_full_text = models.TextField(null=True, blank=True)
     volpiano = models.TextField(null=True, blank=True)
     volpiano_proofread = models.NullBooleanField(blank=True, null=True)
@@ -77,7 +70,8 @@ class Chant(BaseModel):
         User, on_delete=models.PROTECT, null=True, blank=True
     )
     melody_id = models.CharField(blank=True, null=True, max_length=63)
-    sylabilized_full_text = models.TextField(blank=True, null=True)
+    # repeated field
+    # sylabilized_full_text = models.TextField(blank=True, null=True)
     indexing_notes = models.TextField(blank=True, null=True)
     json_info = JSONField(null=True, blank=True)
     search_vector = SearchVectorField(null=True, editable=False)
@@ -90,9 +84,7 @@ class Chant(BaseModel):
                   different weights
         """
         incipit = self.incipit if self.incipit else None
-        full_text = (
-            self.manuscript_full_text if self.manuscript_full_text else None
-        )
+        full_text = self.manuscript_full_text if self.manuscript_full_text else None
         full_text_std_spelling = (
             self.manuscript_full_text_std_spelling
             if self.manuscript_full_text_std_spelling
@@ -105,10 +97,7 @@ class Chant(BaseModel):
         return {
             "A": (
                 " ".join(
-                    filter(
-                        None,
-                        [incipit, full_text, full_text_std_spelling, source],
-                    )
+                    filter(None, [incipit, full_text, full_text_std_spelling, source],)
                 )
             ),
             "B": (" ".join(filter(None, [genre, feast, office]))),
@@ -116,9 +105,8 @@ class Chant(BaseModel):
 
     def related_chants_by_cantus_id(self) -> QuerySet:
         return Chant.objects.filter(cantus_id=self.cantus_id)
-    # newly-added fields 2020-11-27
-    # not sure what field type we should use exactly
 
+    # newly-added fields 2020-11-27
     content_structure = models.CharField(
         blank=True,
         null=True,
@@ -130,27 +118,20 @@ class Chant(BaseModel):
     # dact = models.CharField(blank=True, null=True, max_length=64)
     # also a second differentia field
 
-    # TODO change this function: if the chant is the last one on the folio, don't just give up,
-    # return the first chant on the next folio
-    # also, just return object, return a CantusID is enough, but return an object can be more general-purpose
     def get_next_chant(self):
         """return the next chant in the same source
-
         Returns:
             chant_object/None: the next chant object, or None if there is no next chant
         """
 
         def get_next_folio(folio):
             """This is useful when the 'next chant' we need is on the next folio
-
             Args:
                 folio (str): the folio number of a certain chant
-
             Returns:
                 str: the folio number of the next folio
             """
             # For the ra, rb, va, vb - don't do anything about those. That formatting will not stay.
-
             if folio is None:
                 # this shouldn't happen, but during testing, we may have some chants without folio
                 next_folio = "nosuchfolio"
