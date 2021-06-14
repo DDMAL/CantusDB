@@ -2,8 +2,10 @@ from main_app.models import Indexer
 from django.core.management.base import BaseCommand
 import requests, json
 
+INDEXER_ID_FILE = "indexer_list.txt"
 
-def get_indexer_list(file_path):
+
+def get_id_list(file_path):
     indexer_list = []
     file = open(file_path, "r")
     for line in file:
@@ -52,18 +54,30 @@ def get_new_indexer(indexer_id):
         print(f"created indexer {indexer_id}")
 
 
+def remove_extra():
+    waterloo_ids = get_id_list(INDEXER_ID_FILE)
+    our_ids = list(Indexer.objects.all().values_list("id", flat=True))
+    our_ids = [str(id) for id in our_ids]
+    waterloo_ids = set(waterloo_ids)
+    print(f"Our count: {len(our_ids)}")
+    print(f"Waterloo count: {len(waterloo_ids)}")
+    extra_ids = [id for id in our_ids if id not in waterloo_ids]
+    for id in extra_ids:
+        Indexer.objects.get(id=id).delete()
+        print(f"Extra item removed: {id}")
+
+
 class Command(BaseCommand):
     def add_arguments(self, parser):
-        # parser.add_argument(
-        #     "indexer_list_file",
-        #     type=str,
-        #     default="/code/django/cantusdb_project/indexer_list.txt",
-        # )
-        pass
+        parser.add_argument(
+            "--remove_extra",
+            action="store_true",
+            help="add this flag to remove the indexers in our database that are no longer present in waterloo database",
+        )
 
     def handle(self, *args, **options):
-        # file_path = options["indexer_list_file"]
-        file_path = "/code/django/cantusdb_project/indexer_list.txt"
-        indexer_list = get_indexer_list(file_path)
+        indexer_list = get_id_list(INDEXER_ID_FILE)
         for id in indexer_list:
             get_new_indexer(id)
+        if options["remove_extra"]:
+            remove_extra()

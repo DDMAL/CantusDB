@@ -41,6 +41,7 @@ def get_century_name(century_id):
     return century_name
 
 
+# this is used for all 'indexer' fields
 def get_indexers(json_response, field_name):
     indexers = []
     if json_response[field_name]:
@@ -121,7 +122,7 @@ def get_new_source(source_id):
             # source_status_id == None # 326 / 9
         else:
             print(f"Unknown source status: {source_status_id}")
-            return
+
     except (KeyError, TypeError):
         source_status = None
 
@@ -163,6 +164,7 @@ def get_new_source(source_id):
             cursus = "Secular"
         else:
             print(f"Unknown cursus {cursus_id}")
+
     except (KeyError, TypeError):
         cursus = None
 
@@ -173,7 +175,7 @@ def get_new_source(source_id):
         elif segment_id == "4064":
             segment_name = "Bower Sequence Database"
         else:
-            print(f"Unknown segment: {segment_id}")
+            print(f"Unknown segment {segment_id}")
         segment = Segment.objects.get(id=segment_id, name=segment_name)
     except (KeyError, TypeError, ObjectDoesNotExist) as e:
         if type(e) == ObjectDoesNotExist:

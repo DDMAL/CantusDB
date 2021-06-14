@@ -2,12 +2,7 @@ import sys
 import time
 import random
 
-from django.db import DefaultConnectionProxy
-from main_app.models.feast import Feast
-from main_app.models.genre import Genre
-from main_app.models.office import Office
-from main_app.models.source import Source
-from main_app.models.chant import Chant
+from main_app.models import Feast, Genre, Office, Source, Chant
 from django.core.management.base import BaseCommand
 from django.core.exceptions import ObjectDoesNotExist, ValidationError
 from django.core.validators import URLValidator
@@ -17,6 +12,12 @@ import lxml.html as lh
 # The reason that we’re not using CSV export is that it lacks information.
 # There’s no proofread information, no content structure, no chant range...
 # The json export is more complete
+
+CHANT_ID_FILE = "chant_list.txt"
+USER_AGENTS = [
+    "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_11_6) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/11.1.2 Safari/605.1.15",
+    "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_10_5) AppleWebKit/603.3.8 (KHTML, like Gecko) Version/10.1.2 Safari/603.3.8",
+]
 
 
 def get_chant_list(chant_id_file):
@@ -49,37 +50,41 @@ def get_office(office_id):
     return office
 
 
-USER_AGENTS = [
-    "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_11_6) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/11.1.2 Safari/605.1.15",
-    "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_10_5) AppleWebKit/603.3.8 (KHTML, like Gecko) Version/10.1.2 Safari/603.3.8",
-]
-
-
 def get_new_chant(chant_id):
     url = f"http://cantus.uwaterloo.ca/json-node/{chant_id}"
     headers = {"User-Agent": USER_AGENTS[0]}
     print(f"getting {chant_id}")
     try:
-        response = requests.get(url, headers, timeout=60)
-    # except requests.exceptions.ReadTimeout:
-    #     print(f"retrying: {chant_id}")
-    #     response = requests.get(url, headers, timeout=60)
+        response = requests.get(url, headers, timeout=20)
     except:
         print(f"retrying: {chant_id}")
         headers = {"User-Agent": USER_AGENTS[1]}
-        response = requests.get(url, headers, timeout=60)
-    print(f"got {chant_id}")
+        response = requests.get(url, headers, timeout=20)
+    print(f"got json for {chant_id}")
     json_response = json.loads(response.content)
 
     # mysterious field, status 0 for unpublished source (visible in db, denied entry on web), status 1 for published
-    status = json_response["status"]
-    if status != "1":
-        print(f"STATUS {status} at chant {chant_id}")
+    try:
+        status = json_response["status"]
+        if status != "1":
+            with open("error_log.txt", "a") as error_file:
+                error_file.write(f"chant {chant_id} STATUS {status} ")
+                error_file.write("\n")
+            # print(f"STATUS {status} at chant {chant_id}")
+    except TypeError:
+        assert json_response == False
+        with open("error_log.txt", "a") as error_file:
+            error_file.write(f"chant {chant_id} json not found")
+            error_file.write("\n")
+        return
     try:
         incipit = json_response["title"]
     except KeyError:
         incipit = None
-        print(f"chant {chant_id} missing incipit")
+        with open("error_log.txt", "a") as error_file:
+            error_file.write(f"chant {chant_id} missing incipit")
+            error_file.write("\n")
+        # print(f"chant {chant_id} missing incipit")
     try:
         marginalia = json_response["field_marginalia"]["und"][0]["value"]
     # also except TypeError here, in case chant["field_marginalia"] is an empty list
@@ -182,7 +187,7 @@ def get_new_chant(chant_id):
         image_link = None
     except ValidationError:
         image_link = None
-        print(f"source {chant_id} invalid image link")
+        print(f"chant {chant_id} invalid image link")
     try:
         indexing_notes = json_response["field_indexing_notes"]["und"][0]["value"]
     except (KeyError, TypeError):
@@ -196,10 +201,19 @@ def get_new_chant(chant_id):
         source_id = json_response["field_source"]["und"][0]["target_id"]
         source = Source.objects.get(id=source_id)
     except (KeyError, TypeError):
-        raise Exception(f"Chant {chant_id} Missing source")
+        with open("error_log.txt", "a") as error_file:
+            error_file.write(f"Chant {chant_id} empty source")
+            error_file.write("\n")
+        source = None
+        # raise Exception(f"Chant {chant_id} Missing source")
     except ObjectDoesNotExist:
         # before running this script, we should have run sync_sources, so we should have all sources by now
-        raise Exception(f"Chant {chant_id} Unknown source {source_id}")
+        # if some chants have unknown source, write those to log
+        with open("error_log.txt", "a") as error_file:
+            error_file.write(f"Chant {chant_id} Unknown source {source_id}")
+            error_file.write("\n")
+        source = None
+        # raise Exception(f"Chant {chant_id} Unknown source {source_id}")
 
     try:
         office_id = json_response["field_office"]["und"][0]["target_id"]
@@ -265,15 +279,30 @@ def get_new_chant(chant_id):
         print(f"Created new chant {chant_id}")
 
 
+def remove_extra():
+    waterloo_ids = get_chant_list(CHANT_ID_FILE)
+    our_ids = list(Chant.objects.all().values_list("id", flat=True))
+    our_ids = [str(id) for id in our_ids]
+    waterloo_ids = set(waterloo_ids)
+    print(f"Our count: {len(our_ids)}")
+    print(f"Waterloo count: {len(waterloo_ids)}")
+    extra_ids = [id for id in our_ids if id not in waterloo_ids]
+    for id in extra_ids:
+        Chant.objects.get(id=id).delete()
+        print(f"Extra item removed: {id}")
+
+
 class Command(BaseCommand):
-
-    CHANT_ID_FILE = "chant_list.txt"
-
     def add_arguments(self, parser):
         parser.add_argument(
             "id",
             type=str,
             help="update one chant (<chant_id>)) or update all chants ('all')",
+        )
+        parser.add_argument(
+            "--remove_extra",
+            action="store_true",
+            help="add this flag to remove the chants in our database that are no longer present in waterloo database",
         )
 
     def handle(self, *args, **options):
@@ -283,16 +312,19 @@ class Command(BaseCommand):
             all_chants = get_chant_list(CHANT_ID_FILE)
             # random_ids = random.sample(all_chants, 5)
             # print(random_ids)
-            length = len(all_chants)
+            # length = len(all_chants)
             for i, chant_id in enumerate(all_chants):
                 # print(chant_id)
                 get_new_chant(chant_id)
-                if i % 100 == 0:
-                    # sleep_time = random.randrange(5, 10)
-                    sleep_time = random.randrange(1, 2)
-                    print(f"sleeping...{sleep_time}")
-                    time.sleep(sleep_time)
+                # if i % 100 == 0:
+                # sleep_time = random.randrange(5, 10)
+                # sleep_time = random.randrange(1, 2)
+                # print(f"sleeping...{sleep_time}")
+                # time.sleep(sleep_time)
                 # percent_done = round(((i / length) * 100), 4)
                 # sys.stdout.write(f"\r{percent_done} %")
         else:
             get_new_chant(id)
+
+        if options["remove_extra"]:
+            remove_extra()

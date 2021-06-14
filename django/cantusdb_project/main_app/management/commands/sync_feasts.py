@@ -3,8 +3,10 @@ import requests
 import lxml.html as lh
 from main_app.models import Feast
 
+FEAST_ID_FILE = "feast_list.txt"
 
-def get_list_file(file_path="feast_list.txt"):
+
+def get_list_file(file_path):
     """for this one we need to scrape because it's more 'automated' than manual export
     """
     FEAST_LIST_PAGES = 8
@@ -21,7 +23,7 @@ def get_list_file(file_path="feast_list.txt"):
     f.close()
 
 
-def get_feast_list(file_path="feast_list.txt"):
+def get_feast_list(file_path):
     feast_list = []
     file = open(file_path, "r")
     for line in file:
@@ -32,7 +34,7 @@ def get_feast_list(file_path="feast_list.txt"):
 
 
 def remove_extra_feasts():
-    waterloo_feasts = get_feast_list()
+    waterloo_feasts = get_feast_list(FEAST_ID_FILE)
     our_feasts = list(Feast.objects.all().values_list("id", flat=True))
     our_feasts = [str(id) for id in our_feasts]
     waterloo_feasts = set(waterloo_feasts)
@@ -113,8 +115,8 @@ class Command(BaseCommand):
     def handle(self, *args, **options):
         id = options["id"]
         if id == "all":
-            get_list_file()
-            ids = get_feast_list()
+            get_list_file(FEAST_ID_FILE)
+            ids = get_feast_list(FEAST_ID_FILE)
             for id in ids:
                 print(id)
                 get_feast(id)
