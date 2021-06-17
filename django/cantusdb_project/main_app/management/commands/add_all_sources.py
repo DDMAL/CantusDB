@@ -110,6 +110,7 @@ class Command(BaseCommand):
                 source_obj = Source(
                     id=source_id,
                     title=title,
+                    siglum=siglum,
                     rism_siglum=rism_siglum,
                     provenance=provenance,
                     provenance_notes=provenance_notes,
