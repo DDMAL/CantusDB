@@ -19,8 +19,9 @@
             <tr>
                 <td class="text-wrap">
                     <a href={{sequence.source.get_absolute_url}}>
-                        {{ sequence.source.siglum }}
+                        {{ sequence.source.siglum }}<br>
                     </a>
+                    <b>{{ sequence.folio }}</b> {{ sequence.sequence }}
                 </td>
                 <td class="text-wrap">
                     <a href="{{ sequence.get_absolute_url }}">
@@ -28,7 +29,7 @@
                     </a>
                 </td>
                 <td class="text-wrap">
-                    {{ sequence.rubric }}
+                    {{ sequence.rubrics }}
                 </td>
                 <td class="text-wrap">
                     {{ sequence.analecta_hymnica }}
