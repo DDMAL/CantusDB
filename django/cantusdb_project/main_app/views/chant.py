@@ -93,6 +93,7 @@ class ChantSearchView(ListView):
 
     def get_queryset(self) -> QuerySet:
         queryset = super().get_queryset()
+        queryset = queryset.filter(source__visible=True).filter(source__public=True)
         # Create a Q object to filter the QuerySet of Chants
         q_obj_filter = Q()
 
@@ -128,6 +129,7 @@ class ChantSearchView(ListView):
         if self.request.GET.get("keyword"):
             incipit = self.request.GET.get("keyword")
             queryset = keyword_search(queryset, incipit)
+        queryset = queryset.order_by("source__siglum", "folio", "sequence_number")
 
         return queryset
 
