@@ -124,6 +124,7 @@ def get_new_source(source_id):
             print(f"Unknown source status: {source_status_id}")
 
     except (KeyError, TypeError):
+        source_status_id = None
         source_status = None
 
     try:
@@ -260,6 +261,13 @@ def get_new_source(source_id):
     except (KeyError, TypeError):
         dact_id = None
 
+    if source_status_id in ["4209", "4210", "4212", "4217", None]:
+        visible = True
+    elif source_status_id in ["4208", "4211", "4213"]:
+        visible = False
+    else:
+        raise Exception("UNKNOWN SOURCE STATUS ID")
+
     # try:
     #     # current editors are User, the other fields are Indexer
     #     current_editors_id = json_response["field_editors"]["und"][0]["uid"]  # 613
@@ -276,12 +284,12 @@ def get_new_source(source_id):
         id=source_id,
         defaults={
             "title": title,
-            "visible_status": status,
+            "public": status,
             "siglum": siglum,
             "rism_siglum": rism_siglum,
             "provenance": provenance,
             # provenance_notes=provenance_notes, # this seems the same thing as the name of the provenance
-            "source_status": source_status,
+            "source_status": source_status_id,
             "full_source": full_source,  # corresponding to "complete_fragment" in json-export
             "date": date,
             "cursus": cursus,
@@ -297,6 +305,7 @@ def get_new_source(source_id):
             "indexing_notes": indexing_notes,
             "indexing_date": indexing_date,
             "json_info": json_response,
+            "visible": visible,
         },
     )
     if created:

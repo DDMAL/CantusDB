@@ -8,20 +8,20 @@ from users.models import User
 
 class Source(BaseModel):
     cursus_choices = [("Monastic", "Monastic"), ("Secular", "Secular")]
-    source_status_choices = [
-        (
-            "Editing process (not all the fields have been proofread)",
-            "Editing process (not all the fields have been proofread)",
-        ),
-        ("Published / Complete", "Published / Complete"),
-        ("Published / Proofread pending", "Published / Proofread pending"),
-        ("Unpublished / Editing process", "Unpublished / Editing process"),
-        ("Unpublished / Indexing process", "Unpublished / Indexing process"),
-        ("Unpublished / Proofread pending", "Unpublished / Proofread pending"),
-        ("Unpublished / Proofreading process", "Unpublished / Proofreading process"),
-    ]
+    # source_status_choices = [
+    #     (
+    #         "Editing process (not all the fields have been proofread)",
+    #         "Editing process (not all the fields have been proofread)",
+    #     ),
+    #     ("Published / Complete", "Published / Complete"),
+    #     ("Published / Proofread pending", "Published / Proofread pending"),
+    #     ("Unpublished / Editing process", "Unpublished / Editing process"),
+    #     ("Unpublished / Indexing process", "Unpublished / Indexing process"),
+    #     ("Unpublished / Proofread pending", "Unpublished / Proofread pending"),
+    #     ("Unpublished / Proofreading process", "Unpublished / Proofreading process"),
+    # ]
 
-    visible_status = models.CharField(max_length=1, blank=True, null=True)
+    public = models.BooleanField(blank=True, null=True)
     title = models.CharField(
         max_length=255,
         help_text="Full Manuscript Identification (City, Archive, Shelf-mark)",
@@ -72,9 +72,7 @@ class Source(BaseModel):
     segment = models.ForeignKey(
         "Segment", on_delete=models.PROTECT, blank=True, null=True
     )
-    source_status = models.CharField(
-        blank=True, null=True, choices=source_status_choices, max_length=255
-    )
+    source_status = models.CharField(blank=True, null=True, max_length=255)
     complete_inventory = models.BooleanField(blank=True, null=True)
     summary = models.TextField(blank=True, null=True)
     liturgical_occasions = models.TextField(blank=True, null=True)
@@ -86,6 +84,7 @@ class Source(BaseModel):
     json_info = JSONField()
     fragmentarium_id = models.CharField(max_length=15, blank=True, null=True)
     dact_id = models.CharField(max_length=15, blank=True, null=True)
+    visible = models.BooleanField(blank=True, null=True)
 
     def number_of_chants(self) -> int:
         """Returns the number of Chants and Sequences in this Source."""
