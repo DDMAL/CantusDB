@@ -3,8 +3,12 @@ import json
 import os
 
 CWD = os.getcwd()
-LARGE_JSON = os.path.join(CWD, "main_app/fixtures/large_chant_fixtures.json")  # path to the large json file
-TARGET_PATH = os.path.join(CWD, "main_app/fixtures/chants_fixed")  # directory to put generated smaller json file
+LARGE_JSON = os.path.join(
+    CWD, "main_app/fixtures/chant_fixtures.json"
+)  # path to the large json file
+TARGET_PATH = os.path.join(
+    CWD, "main_app/fixtures/chant_fixtures"
+)  # directory to put generated smaller json file
 if not os.path.exists(TARGET_PATH):
     os.makedirs(TARGET_PATH)
 RESULT_BATCH_SIZE = 100  # how many chants in a resulting smaller json file
@@ -39,7 +43,7 @@ for x in range(number_of_chants + 1):
                 ),
                 "w",
             ) as f:
-                json.dump(chant_list, f, indent=4, separators=(", ", ": "))
+                json.dump(chant_list, f, indent=2, separators=(", ", ": "))
             chant_list = []
     except StopIteration:
         print("StopIteration_Raised")
@@ -50,6 +54,6 @@ for x in range(number_of_chants + 1):
             ),
             "w",
         ) as f:
-            json.dump(chant_list, f, indent=4, separators=(", ", ": "))
+            json.dump(chant_list, f, indent=2, separators=(", ", ": "))
         chant_list = []
 file.close()
