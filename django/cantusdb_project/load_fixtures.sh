@@ -8,7 +8,7 @@ python manage.py migrate
 # these fixtures need to be loaded in a certain order due to foreign key dependance
 # before running this, make sure you put the 'fixtures' folder under 'main_app'
 FIXTURES_LIST=(
-   flatpages_fixtures.json
+   flatpage_fixtures.json
    indexer_fixtures.json
    office_fixtures.json
    genre_fixtures.json
@@ -19,7 +19,6 @@ FIXTURES_LIST=(
    rism_siglum_fixtures.json
    segment_fixtures.json
    source_fixtures.json
-   # sequences.json is not here yet, but will be added in the future
    sequences_fixtures.json
 )
 
@@ -30,7 +29,7 @@ do
 done
 
 # load all the chants, this takes a few hours as we have half a million chants
-FILES=./main_app/fixtures/chants_fixed/*
+FILES=./main_app/fixtures/chant_fixtures/*
 for f in $FILES
 do
    python manage.py loaddata $f -v 2
