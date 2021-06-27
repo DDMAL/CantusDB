@@ -1,7 +1,11 @@
 {% extends "base.html" %}
 {% load helper_tags %}
 {% block content %}
-<div class="mr-3 p-3 col-md-10 mx-auto bg-white rounded">
+<div class="mr-3 p-3 col-md-12 mx-auto bg-white rounded">
+    <!-- global search bar-->
+    <object align="right">
+        {% include "global_search_bar.html" %}
+    </object>
     <h3>Clavis Sequentiarum</h3>
     <small>Displaying {{page_obj.start_index}}-{{page_obj.end_index}} of <b>{{page_obj.paginator.count}}</b></small>
     <table class="table table-responsive table-sm small">

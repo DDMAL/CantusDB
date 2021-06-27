@@ -3,7 +3,7 @@
 <title>{{ source.title }} | Cantus Manuscript Database</title>
 <div class="container">
     <div class="row">
-        <div class="mr-3 p-3 col-lg-8 bg-white rounded" id="long-info">
+        <div class="mr-3 p-3 col-lg-9 bg-white rounded" id="long-info">
             <h3>{{ source.title }}</h3>
             <dl>
                 {% if source.siglum %}
@@ -86,6 +86,10 @@
         </div>
 
         <div class="col">
+            <div class="row">
+            <!-- global search bar-->
+            {% include "global_search_bar.html" %}
+            </div>
             <div class="row">
                 <div class="card mb-3 w-100">
                     <div class="card-header">

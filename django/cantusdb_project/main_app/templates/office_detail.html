@@ -2,6 +2,10 @@
 {% block content %}
 <title>{{ office.name }} | Cantus Manuscript Database</title>
 <div class="mr-3 p-3 mx-auto bg-white rounded">
+    <!-- global search bar-->
+    <object align="right">
+        {% include "global_search_bar.html" %}
+    </object>
     <h3>{{ office.name }}</h3>
     <p>{{ office.description }}</p>
 </div>

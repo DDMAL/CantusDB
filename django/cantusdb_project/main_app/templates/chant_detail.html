@@ -3,7 +3,7 @@
 <title>{{ chant.incipit }} | Cantus Manuscript Database</title>
 <div class="container">
     <div class="row">
-        <div class="mr-3 p-3 col-lg-8 bg-white rounded">
+        <div class="mr-3 p-3 col-lg-9 bg-white rounded">
             <h3>{{ chant.incipit }}</h3>
             <dl>
                 <div class="row">
@@ -239,6 +239,10 @@
         </div>
 
         <div class="col">
+            <div class="row">
+            <!-- global search bar-->
+            {% include "global_search_bar.html" %}
+            </div>
             <div class="row">
                 {% with source=chant.source %}
                 <div class="card mb-3 w-100">

@@ -1,0 +1,14 @@
+<!DOCTYPE html>
+<body>
+    <form method="GET" action="{% url 'chant-search' %}">
+        <div class="input-group mb-3">
+            <input type="search" class="form-control" placeholder="Incipit/CantusID" name="search_bar">
+                <div class="input-group-append">
+                    <button class="btn btn-secondary" type="submit">
+                        <i class="fa fa-search"></i>
+                    </button>
+                </div>
+            </input>
+        </div>
+    </form>
+</body>

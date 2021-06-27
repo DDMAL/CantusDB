@@ -97,39 +97,49 @@ class ChantSearchView(ListView):
         # Create a Q object to filter the QuerySet of Chants
         q_obj_filter = Q()
 
-        # For every GET parameter other than incipit, add to the Q object
-        if self.request.GET.get("genre"):
-            genre_id = int(self.request.GET.get("genre"))
-            q_obj_filter &= Q(genre__id=genre_id)
-        if self.request.GET.get("cantus_id"):
-            cantus_id = self.request.GET.get("cantus_id")
-            q_obj_filter &= Q(cantus_id=cantus_id)
-        if self.request.GET.get("mode"):
-            mode = self.request.GET.get("mode")
-            q_obj_filter &= Q(mode=mode)
-        if self.request.GET.get("melodies") in ["true", "false"]:
-            melodies = self.request.GET.get("melodies")
-            if melodies == "true":
-                q_obj_filter &= Q(volpiano__isnull=False)
-            if melodies == "false":
-                q_obj_filter &= Q(volpiano__isnull=True)
-        if self.request.GET.get("feast"):
-            feast = self.request.GET.get("feast")
+        # if the search is accessed by the global search bar
+        if self.request.GET.get("search_bar"):
+            if self.request.GET.get("search_bar").isalpha():
+                incipit = self.request.GET.get("search_bar")
+                queryset = keyword_search(queryset, incipit)
+            else:
+                cantus_id = self.request.GET.get("search_bar")
+                q_obj_filter &= Q(cantus_id=cantus_id)
+                queryset = queryset.filter(q_obj_filter)
+        else:
+            # For every GET parameter other than incipit, add to the Q object
+            if self.request.GET.get("genre"):
+                genre_id = int(self.request.GET.get("genre"))
+                q_obj_filter &= Q(genre__id=genre_id)
+            if self.request.GET.get("cantus_id"):
+                cantus_id = self.request.GET.get("cantus_id")
+                q_obj_filter &= Q(cantus_id=cantus_id)
+            if self.request.GET.get("mode"):
+                mode = self.request.GET.get("mode")
+                q_obj_filter &= Q(mode=mode)
+            if self.request.GET.get("melodies") in ["true", "false"]:
+                melodies = self.request.GET.get("melodies")
+                if melodies == "true":
+                    q_obj_filter &= Q(volpiano__isnull=False)
+                if melodies == "false":
+                    q_obj_filter &= Q(volpiano__isnull=True)
+            if self.request.GET.get("feast"):
+                feast = self.request.GET.get("feast")
 
-            # This will match any feast whose name contains the feast parameter
-            # as a substring
-            feasts = Feast.objects.filter(name__icontains=feast)
-            q_obj_filter &= Q(feast__in=feasts)
+                # This will match any feast whose name contains the feast parameter
+                # as a substring
+                feasts = Feast.objects.filter(name__icontains=feast)
+                q_obj_filter &= Q(feast__in=feasts)
 
-        # Filter the QuerySet with Q object
-        queryset = queryset.filter(q_obj_filter)
+            # Filter the QuerySet with Q object
+            queryset = queryset.filter(q_obj_filter)
 
-        # Finally, use the incipit parameter to do keyword searching
-        # over the QuerySet
-        if self.request.GET.get("keyword"):
-            incipit = self.request.GET.get("keyword")
-            queryset = keyword_search(queryset, incipit)
-        queryset = queryset.order_by("source__siglum", "folio", "sequence_number")
+            # Finally, use the incipit parameter to do keyword searching
+            # over the QuerySet
+            if self.request.GET.get("keyword"):
+                incipit = self.request.GET.get("keyword")
+                queryset = keyword_search(queryset, incipit)
+            queryset = queryset.order_by("source__siglum", "folio", "sequence_number")
 
         return queryset
 

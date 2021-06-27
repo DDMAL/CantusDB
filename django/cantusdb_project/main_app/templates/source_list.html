@@ -12,7 +12,11 @@
         $("#full-source-filter").val("{{ request.GET.fullsource}}")
     }
 </script>
-<div class="mr-3 p-3 col-md-10 mx-auto bg-white rounded">
+<div class="mr-3 p-3 col-md-12 mx-auto bg-white rounded">
+    <!-- global search bar-->
+    <object align="right">
+        {% include "global_search_bar.html" %}
+    </object>
     <h3>Browse Sources</h3>
     <small>Displaying {{page_obj.start_index}}-{{page_obj.end_index}} of <b>{{page_obj.paginator.count}}
             sources</b></small>
