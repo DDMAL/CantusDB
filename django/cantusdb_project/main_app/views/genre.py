@@ -1,13 +1,13 @@
 from typing import Dict, List
 
-from django.views.generic import DetailView, ListView
+from django.views.generic import ListView
+from django.views.generic.detail import SingleObjectMixin
 from extra_views import SearchableListMixin
 from main_app.models import Genre
 
 
-class GenreDetailView(DetailView):
-    model = Genre
-    context_object_name = "genre"
+class GenreDetailView(SingleObjectMixin, ListView):
+    paginate_by = 50
     template_name = "genre_detail.html"
 
     def get_genre_cantus_ids(self) -> List[Dict]:
@@ -46,21 +46,38 @@ class GenreDetailView(DetailView):
                     "first_incipit_url": first_incipit_url,
                 }
             )
-            # Sort list based on number of Chants per cantus_id (descending)
-            chant_list = sorted(chant_list, key=lambda k: k["num_chants"], reverse=True)
+        # Sort list based on number of Chants per cantus_id (descending)
+        chant_list = sorted(chant_list, key=lambda k: k["num_chants"], reverse=True)
         return chant_list
+
+    def get(self, request, *args, **kwargs):
+        self.object = self.get_object(queryset=Genre.objects.all())
+        return super().get(request, *args, **kwargs)
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
-        # Add the list of cantus_ids to the context
-        context["genre_chant_list"] = self.get_genre_cantus_ids()
+        context["genre"] = self.object
         return context
+
+    def get_queryset(self):
+        # return self.object.chant_set.all()
+        search_term = self.request.GET.get("incipit")
+        if not search_term:
+            return self.get_genre_cantus_ids()
+        else:
+            search_term = search_term.strip(" ")
+            filtered_chants = [
+                chant
+                for chant in self.get_genre_cantus_ids()
+                if search_term.lower() in chant["first_incipit"].lower()
+            ]
+            return filtered_chants
 
 
 class GenreListView(SearchableListMixin, ListView):
     model = Genre
     queryset = Genre.objects.all().order_by("name")
-    search_fields = ["name"]
+    # search_fields = ["name"]
     paginate_by = 100
     context_object_name = "genres"
     template_name = "genre_list.html"
