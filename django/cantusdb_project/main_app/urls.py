@@ -8,6 +8,7 @@ from main_app.views import (
     ChantUpdateView,
     ChantDeleteView,
     CISearchView,
+    ChantByCantusIDView,
     FeastDetailView,
     FeastListView,
     GenreDetailView,
@@ -43,8 +44,10 @@ urlpatterns = [
     path("chant-update/<int:pk>", ChantUpdateView.as_view(), name="chant-update"),
     path("sequences/", SequenceListView.as_view(), name="sequence-list"),
     path("sequences/<int:pk>", SequenceDetailView.as_view(), name="sequence-detail",),
+    path(
+        "id/<str:cantus_id>", ChantByCantusIDView.as_view(), name="chant-by-cantus_id"
+    ),
     path("chants/<int:pk>/delete/", ChantDeleteView.as_view(), name="chant-delete"),
     path("ci-search/<str:search_term>", CISearchView.as_view(), name="ci-search"),
-    path("chant-update/<int:pk>", ChantUpdateView.as_view(), name="chant-update"),
     path("content-statistics", views.items_count, name="items-count"),
 ]

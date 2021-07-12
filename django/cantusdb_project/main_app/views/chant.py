@@ -15,7 +15,7 @@ from django.views.generic import (
     UpdateView,
 )
 from main_app.forms import ChantCreateForm
-from main_app.models import Chant, Feast, Genre, Source
+from main_app.models import Chant, Feast, Genre, Source, Sequence
 
 
 def keyword_search(queryset: QuerySet, keywords: str) -> QuerySet:
@@ -61,6 +61,33 @@ class ChantListView(ListView):
     paginate_by = 18
     context_object_name = "chants"
     template_name = "chant_list.html"
+
+
+class ChantByCantusIDView(ListView):
+    # model = Chant
+    paginate_by = 100
+    context_object_name = "chants"
+    template_name = "chant_seq_by_cantus_id.html"
+
+    def dispatch(self, request, *args, **kwargs):
+        self.cantus_id = kwargs["cantus_id"]
+        return super().dispatch(request, *args, **kwargs)
+
+    def get_queryset(self):
+        chant_set = Chant.objects.filter(cantus_id=self.cantus_id, visible_status=1)
+        sequence_set = Sequence.objects.filter(
+            cantus_id=self.cantus_id, visible_status=1
+        )
+        # the union operation turns sequences into chants, the resulting queryset contains only "chant" objects
+        # this forces us to do something special on the template to render correct absolute url for sequences
+        queryset = chant_set.union(sequence_set)
+        queryset = queryset.order_by("siglum")
+        return queryset
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context["cantus_id"] = self.cantus_id
+        return context
 
 
 class ChantSearchView(ListView):
