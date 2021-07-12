@@ -1,13 +1,35 @@
 {% extends "base.html" %}
 {% load helper_tags %}
 {% block content %}
+<title>Clavis Sequentiarum (Calvin Bower) | Cantus Manuscript Database</title>
 <div class="mr-3 p-3 col-md-12 mx-auto bg-white rounded">
     <!-- global search bar-->
     <object align="right">
         {% include "global_search_bar.html" %}
     </object>
-    <h3>Clavis Sequentiarum</h3>
-    <small>Displaying {{page_obj.start_index}}-{{page_obj.end_index}} of <b>{{page_obj.paginator.count}}</b></small>
+    <h3>Clavis Sequentiarum (Calvin Bower)</h3>
+    <small>Displaying <b>{{page_obj.start_index}}-{{page_obj.end_index}}</b> of <b>{{page_obj.paginator.count}}</b></small>
+
+    <form method="get">
+        <div class="form-row align-items-end">
+            <div class="form-group m-1">
+                <label for="incipit"><small><b>Incipit (any part)</b></small></label>
+                <input type="text" class="form-control form-control-sm" name="incipit" value="{{ request.GET.incipit }}" id="incipit">
+            </div>
+            <div class="form-group m-1">
+                <label for="siglum"><small><b>Siglum (any part)</b></small></label>
+                <input type="text" class="form-control form-control-sm" name="siglum" value="{{ request.GET.siglum }}" id="siglum">
+            </div>
+            <div class="form-group m-1">
+                <label for="CantusID"><small><b>Cantus ID (any part)</b></small></label>
+                <input type="text" class="form-control form-control-sm" name="cantus_id" value="{{ request.GET.cantus_id }}" id="CantusID">
+            </div>
+            <div class="form-group m-1">
+                <button type="submit" class="btn btn-primary btn-sm" id="btn-submit"> Apply </button>
+            </div>
+        </div>
+    </form>
+
     <table class="table table-responsive table-sm small">
         <thead>
             <tr>
