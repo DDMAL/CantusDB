@@ -86,6 +86,10 @@ def get_new_chant(chant_id):
             error_file.write("\n")
         # print(f"chant {chant_id} missing incipit")
     try:
+        siglum = json_response["field_siglum_chant"]["und"][0]["value"]
+    except (KeyError, TypeError):
+        siglum = None
+    try:
         marginalia = json_response["field_marginalia"]["und"][0]["value"]
     # also except TypeError here, in case chant["field_marginalia"] is an empty list
     except (KeyError, TypeError):
@@ -244,6 +248,7 @@ def get_new_chant(chant_id):
             "incipit": incipit,
             "visible_status": status,
             "source": source,
+            "siglum": siglum,
             "marginalia": marginalia,
             "folio": folio,
             "sequence_number": sequence_number,
