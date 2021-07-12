@@ -3,31 +3,48 @@ from django.contrib.postgres.search import SearchVectorField
 from django.db import models
 
 from django.db.models.query import QuerySet
+from django.urls.base import reverse
 from main_app.models import BaseModel
 from users.models import User
 
 
 class Chant(BaseModel):
-
-    incipit = models.CharField(max_length=255, null=True, blank=True)
+    # The following fields include the "dummy fields" used to harmonize the chant and sequence model
+    # Those fields should never be populated or displayed
+    # Order of the fields must be the same between the seq and chant models
+    # That's why the "dummy fields" are not grouped together
     visible_status = models.CharField(max_length=1, blank=True, null=True)
+    title = models.CharField(blank=True, null=True, max_length=255)
+    incipit = models.CharField(blank=True, null=True, max_length=255)
+    siglum = models.CharField(blank=True, null=True, max_length=255)
+    folio = models.CharField(
+        help_text="Binding order", blank=True, null=True, max_length=255, db_index=True
+    )
+    sequence = models.CharField(blank=True, null=True, max_length=255)
+    genre = models.ForeignKey("Genre", blank=True, null=True, on_delete=models.PROTECT)
+    rubrics = models.CharField(blank=True, null=True, max_length=255)
+    analecta_hymnica = models.CharField(blank=True, null=True, max_length=255)
+    indexing_notes = models.TextField(blank=True, null=True)
+    date = models.CharField(blank=True, null=True, max_length=255)
+    col1 = models.CharField(blank=True, null=True, max_length=255)
+    col2 = models.CharField(blank=True, null=True, max_length=255)
+    col3 = models.CharField(blank=True, null=True, max_length=255)
+    ah_volume = models.CharField(blank=True, null=True, max_length=255)
     source = models.ForeignKey(
         "Source", on_delete=models.PROTECT, null=True, blank=True
     )  # PROTECT so that we can't delete a source with chants in it
+    cantus_id = models.CharField(blank=True, null=True, max_length=255, db_index=True)
+    image_link = models.URLField(blank=True, null=True)
+    json_info = JSONField(null=True, blank=True)
     marginalia = models.CharField(max_length=63, null=True, blank=True)
-    folio = models.CharField(
-        help_text="Binding order", blank=True, null=True, max_length=63, db_index=True
-    )
     sequence_number = models.PositiveIntegerField(
         help_text='Each folio starts with "1"', null=True, blank=True
     )
     office = models.ForeignKey(
         "Office", on_delete=models.PROTECT, null=True, blank=True
     )
-    genre = models.ForeignKey("Genre", on_delete=models.PROTECT, null=True, blank=True)
     position = models.CharField(max_length=63, null=True, blank=True)
     # add db_index to speed up filtering
-    cantus_id = models.CharField(max_length=63, null=True, blank=True, db_index=True)
     feast = models.ForeignKey("Feast", on_delete=models.PROTECT, null=True, blank=True)
     mode = models.CharField(max_length=63, null=True, blank=True)
     differentia = models.CharField(blank=True, null=True, max_length=63)
@@ -64,17 +81,23 @@ class Chant(BaseModel):
     manuscript_syllabized_full_text = models.TextField(null=True, blank=True)
     volpiano = models.TextField(null=True, blank=True)
     volpiano_proofread = models.NullBooleanField(blank=True, null=True)
-    image_link = models.URLField(blank=True, null=True)
     cao_concordances = models.CharField(blank=True, null=True, max_length=63)
     proofread_by = models.ForeignKey(
         User, on_delete=models.PROTECT, null=True, blank=True
     )
     melody_id = models.CharField(blank=True, null=True, max_length=63)
-    # repeated field
-    # sylabilized_full_text = models.TextField(blank=True, null=True)
-    indexing_notes = models.TextField(blank=True, null=True)
-    json_info = JSONField(null=True, blank=True)
     search_vector = SearchVectorField(null=True, editable=False)
+    # newly-added fields 2020-11-27
+    content_structure = models.CharField(
+        blank=True,
+        null=True,
+        max_length=64,
+        help_text="Additional folio number field, if folio numbers appear on the leaves but are not in the 'binding order'.",
+    )
+    # fragmentarium_id = models.CharField(blank=True, null=True, max_length=64)
+    # # Digital Analysis of Chant Transmission
+    # dact = models.CharField(blank=True, null=True, max_length=64)
+    # also a second differentia field
 
     def index_components(self) -> dict:
         """Constructs a dictionary of weighted lists of search terms.
@@ -105,18 +128,6 @@ class Chant(BaseModel):
 
     def related_chants_by_cantus_id(self) -> QuerySet:
         return Chant.objects.filter(cantus_id=self.cantus_id)
-
-    # newly-added fields 2020-11-27
-    content_structure = models.CharField(
-        blank=True,
-        null=True,
-        max_length=64,
-        help_text="Additional folio number field, if folio numbers appear on the leaves but are not in the 'binding order'.",
-    )
-    # fragmentarium_id = models.CharField(blank=True, null=True, max_length=64)
-    # # Digital Analysis of Chant Transmission
-    # dact = models.CharField(blank=True, null=True, max_length=64)
-    # also a second differentia field
 
     def get_next_chant(self):
         """return the next chant in the same source
