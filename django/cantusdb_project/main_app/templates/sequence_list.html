@@ -61,7 +61,7 @@
                     {{ sequence.analecta_hymnica }}
                 </td>
                 <td class="text-wrap">
-                    {{ sequence.cantus_id }}
+                    <a href={% url 'chant-by-cantus_id' sequence.cantus_id %}>{{ sequence.cantus_id }}</a>
                 </td>
             </tr>
             {% endfor %}
