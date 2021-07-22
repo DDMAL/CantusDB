@@ -9,9 +9,9 @@
         $("#genre-filter").val("{{ request.GET.genre }}")
         $("#cantus_id-filter").val("{{ request.GET.cantus_id }}")
         $("#mode-filter").val("{{ request.GET.mode }}")
-        $("#melodies-filter").val("{{ request.GET.melodies}}")
-        $("#feast-filter").val("{{ request.GET.feast}}")
-        $("#incipit-filter").val("{{ request.GET.incipit}}")
+        $("#melodies-filter").val("{{ request.GET.melodies }}")
+        $("#feast-filter").val("{{ request.GET.feast }}")
+        $("#incipit-filter").val("{{ request.GET.incipit }}")
     }
 </script>
 <div class="mr-3 p-3 col-md-12 mx-auto bg-white rounded">
@@ -43,17 +43,17 @@
             </div>
             <div class="form-group m-1 col-lg">
                 <label for="cantus_id"><small>Cantus ID</small></label>
-                <input type="text" class="form-control form-control-sm" name="cantus_id" value="{{ request.GET.cantus_id}"
+                <input type="text" class="form-control form-control-sm" name="cantus_id" value="{{ request.GET.cantus_id }}"
                     id="cantus_id-filter">
             </div>
             <div class="form-group m-1 col-lg">
                 <label for="mode"><small>Mode</small></label>
-                <input type="text" class="form-control form-control-sm" name="mode" value="{{ request.GET.mode}"
+                <input type="text" class="form-control form-control-sm" name="mode" value="{{ request.GET.mode }}"
                     id="mode-filter">
             </div>
             <div class="form-group m-1 col-lg">
                 <label for="feast"><small>Feast</small></label>
-                <input type="text" class="form-control form-control-sm" name="feast" value="{{ request.GET.feast}"
+                <input type="text" class="form-control form-control-sm" name="feast" value="{{ request.GET.feast }}"
                     id="feast-filter">
             </div>
             <div class="form-group m-1 col-lg">
@@ -68,7 +68,7 @@
         <div class="form-row align-items-end">
             <div class="form-group m-1 col-lg">
                 <label for="melody-search"><small>Melody search</small></label>
-                <input type="text" class="form-control form-control-sm" name="melody" value="{{ request.GET.melody}}"
+                <input type="text" class="form-control form-control-sm" name="melody" value="{{ request.GET.melody }}"
                     id="melody-filter" style = "font-family:volpiano; font-size:30px;">
             </div>
         </div>
@@ -108,7 +108,16 @@
                 </td>
 
                 <td class="text-wrap" style="text-align:left">
-                    <a href="{{chant.get_absolute_url}}">{{ chant.incipit|default:"" }}</a>
+                    {% comment %} this is used for distinguishing chants from sequences,
+                    if the object is chant, use chant.get_absolute_url,
+                    otherwise, use sequence.get_absolute_url
+                    the combined queryset turned all objects into chants
+                    so this is the only way to make the distinction {% endcomment %}
+                    {% if chant.search_vector %}
+                        <a href="{{chant.get_absolute_url}}">{{ chant.incipit|default:"" }}</a>
+                    {% else %}
+                        <a href="{% url 'sequence-detail' chant.id %}">{{ chant.incipit|default:"" }}</a>
+                    {% endif %}
                     <p>
                         {{ chant.manuscript_full_text_std_spelling|default:""|truncatewords_html:100 }}
                     </p>           
@@ -126,7 +135,7 @@
                     {{ chant.position|default:"" }}
                 </td>
                 <td class="text-wrap" style="text-align:center">
-                    <a href="http://cantusindex.org/id/{{ chant.cantus_id }}">{{chant.cantus_id}}</a>
+                    <a href="http://cantusindex.org/id/{{ chant.cantus_id }}">{{chant.cantus_id|default:"" }}</a>
                 </td>
                 <td class="text-wrap" style="text-align:center">
                     {{ chant.mode|default:"" }}

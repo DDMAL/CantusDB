@@ -3,7 +3,7 @@ import requests
 import json
 from django.contrib import messages
 from django.contrib.postgres.search import SearchQuery, SearchRank
-from django.db.models import F, Q, QuerySet
+from django.db.models import F, Q, QuerySet, query
 from django.shortcuts import get_object_or_404
 from django.urls import reverse, reverse_lazy
 from django.views.generic import (
@@ -49,6 +49,68 @@ class ChantDetailView(DetailView):
     model = Chant
     context_object_name = "chant"
     template_name = "chant_detail.html"
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        self.chant = self.get_object()
+
+        chants_in_source = self.chant.source.chant_set
+        context["folios"] = (
+            chants_in_source.values_list("folio", flat=True)
+            .distinct()
+            .order_by("folio")
+        )
+        folio_list = list(context["folios"])
+        index = folio_list.index(self.chant.folio)
+        context["previous_folio"] = folio_list[index - 1] if index != 0 else None
+        context["next_folio"] = (
+            folio_list[index + 1] if index < len(folio_list) - 1 else None
+        )
+
+        chants_current_folio = chants_in_source.filter(
+            folio=self.chant.folio
+        ).prefetch_related("feast")
+
+        def get_chants_with_feasts(chants_in_folio):
+            feast_ids = []
+            for chant in chants_in_folio.order_by("sequence_number"):
+                feast_ids.append(chant.feast.id)
+            # remove duplicate feast ids and preserve the order
+            feast_ids = list(dict.fromkeys(feast_ids))
+
+            feasts = []
+            for feast_id in feast_ids:
+                feasts.append(Feast.objects.get(id=feast_id))
+            # feasts = Feast.objects.filter(id__in=feast_ids) # this loses the order
+            chants_in_feast = []
+            for feast in feasts:
+                chants = chants_in_folio.filter(feast=feast).order_by("sequence_number")
+                chants_in_feast.append(chants)
+            feasts_zip = zip(feasts, chants_in_feast)
+            return feasts_zip
+
+        context["feasts_current_folio"] = list(
+            get_chants_with_feasts(chants_current_folio)
+        )
+        # seems that context unreferenced in templates won't be evaluated
+
+        if context["previous_folio"]:
+            chants_previous_folio = chants_in_source.filter(
+                folio=context["previous_folio"]
+            ).prefetch_related("feast")
+            context["feasts_previous_folio"] = list(
+                get_chants_with_feasts(chants_previous_folio)
+            )
+
+        if context["next_folio"]:
+            chants_next_folio = chants_in_source.filter(
+                folio=context["next_folio"]
+            ).prefetch_related("feast")
+            context["feasts_next_folio"] = list(
+                get_chants_with_feasts(chants_next_folio)
+            )
+
+        return context
 
 
 class ChantListView(ListView):
@@ -106,8 +168,8 @@ class ChantSearchView(ListView):
         ``incipit``: Searches text of Chant for keywords
     """
 
-    model = Chant
-    queryset = Chant.objects.all().order_by("id")
+    # model = Chant
+    # queryset = Chant.objects.all().order_by("id")
     paginate_by = 100
     context_object_name = "chants"
     template_name = "chant_search.html"
@@ -119,20 +181,33 @@ class ChantSearchView(ListView):
         return context
 
     def get_queryset(self) -> QuerySet:
-        queryset = super().get_queryset()
-        queryset = queryset.filter(source__visible=True).filter(source__public=True)
+        # queryset = super().get_queryset()
+
+        chant_set = Chant.objects.filter(source__public=True, source__visible=True)
+        sequence_set = Sequence.objects.filter(
+            source__public=True, source__visible=True
+        )
+
+        # queryset = queryset.filter(source__visible=True).filter(source__public=True)
         # Create a Q object to filter the QuerySet of Chants
         q_obj_filter = Q()
 
         # if the search is accessed by the global search bar
         if self.request.GET.get("search_bar"):
-            if self.request.GET.get("search_bar").isalpha():
+            if self.request.GET.get("search_bar").replace(" ", "").isalpha():
                 incipit = self.request.GET.get("search_bar")
-                queryset = keyword_search(queryset, incipit)
+                chant_set = keyword_search(chant_set, incipit)
+                sequence_set = keyword_search(sequence_set, incipit)
+                queryset = chant_set.union(sequence_set)
+                # queryset = keyword_search(queryset, incipit)
             else:
                 cantus_id = self.request.GET.get("search_bar")
                 q_obj_filter &= Q(cantus_id=cantus_id)
-                queryset = queryset.filter(q_obj_filter)
+                chant_set = chant_set.filter(q_obj_filter)
+                sequence_set = sequence_set.filter(q_obj_filter)
+                queryset = chant_set.union(sequence_set)
+                # queryset = queryset.filter(q_obj_filter)
+
         else:
             # For every GET parameter other than incipit, add to the Q object
             if self.request.GET.get("genre"):
@@ -159,14 +234,23 @@ class ChantSearchView(ListView):
                 q_obj_filter &= Q(feast__in=feasts)
 
             # Filter the QuerySet with Q object
-            queryset = queryset.filter(q_obj_filter)
-
+            chant_set = chant_set.filter(q_obj_filter)
+            sequence_set = sequence_set.filter(q_obj_filter)
+            # combine the chant and sequence querysets
             # Finally, use the incipit parameter to do keyword searching
             # over the QuerySet
             if self.request.GET.get("keyword"):
                 incipit = self.request.GET.get("keyword")
-                queryset = keyword_search(queryset, incipit)
-            queryset = queryset.order_by("source__siglum", "folio", "sequence_number")
+                # queryset = keyword_search(queryset, incipit)
+                chant_set = keyword_search(chant_set, incipit)
+                sequence_set = keyword_search(sequence_set, incipit)
+
+            # once unioned, the queryset cannot be filtered/annotated anymore, so we put union to the last
+            queryset = chant_set.union(sequence_set)
+            # ordering with the folio string gives wrong order
+            # old cantus is also not strictly ordered by folio (there are outliers)
+            # so we order by id for now, which is the order that the chants are entered into the DB
+            queryset = queryset.order_by("siglum", "id")
 
         return queryset
 

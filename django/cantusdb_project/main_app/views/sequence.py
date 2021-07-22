@@ -38,4 +38,4 @@ class SequenceListView(ListView):
             cantus_id = self.request.GET.get("cantus_id")
             q_obj_filter &= Q(cantus_id__icontains=cantus_id)
 
-        return queryset.filter(q_obj_filter).order_by("siglum", "folio", "sequence")
+        return queryset.filter(q_obj_filter).order_by("siglum", "sequence")
