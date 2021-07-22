@@ -1,9 +1,36 @@
 {% extends "base.html" %}
 {% block content %}
 <title>{{ chant.incipit }} | Cantus Manuscript Database</title>
+
+<script>
+    function togglePrevious(toggleID) {
+        var x = document.getElementById("previous_div");
+        var toggle = document.getElementById(toggleID);
+        if (x.style.display === "none") {
+            x.style.display = "block";
+            toggle.innerHTML = "Hide previous chants";
+        } else {
+            x.style.display = "none";
+            toggle.innerHTML = "Display previous chants";
+        }
+        }
+
+    function toggleNext(toggleID) {
+        var x = document.getElementById("next_div");
+        var toggle = document.getElementById(toggleID);
+        if (x.style.display === "none") {
+            x.style.display = "block";
+            toggle.innerHTML = "Hide next chants";
+        } else {
+            x.style.display = "none";
+            toggle.innerHTML = "Display next chants";
+        }
+        }
+</script>
+
 <div class="container">
     <div class="row">
-        <div class="mr-3 p-3 col-lg-9 bg-white rounded">
+        <div class="mr-3 p-3 col-lg-8 bg-white rounded">
             <h3>{{ chant.incipit }}</h3>
             <dl>
                 <div class="row">
@@ -227,8 +254,75 @@
                 {% endif %}
             </dl>
 
-            
+            <h4>List of concordances</h4>
+            <a id="ajax_concordance" href="#">Display all concordances of this chant</a>
+            <div id="concordance_div"></div>
 
+            <br>
+            <h4>List of melodies</h4>
+            <a href="#" onclick="">Display the melodies connected with this chant</a>
+
+
+            <script>
+            const concordanceTable = document.getElementById('concordance_div')
+            const ajaxConcordance = () => {
+                $.ajax({
+                    type: "GET", 
+                    url: "/ajax/{{ chant.cantus_id }}",
+                    success: function(response){
+                        const concordances = response.concordances;
+                        const concordanceCount = response.concordance_count;
+                        // document.getElementById("test").innerHTML = cantus_id.toString();
+                        concordanceTable.innerHTML += `Displaying <b>${concordanceCount}</b> concordances from the following databases (Cantus ID <b>{{ chant.cantus_id }})</b>`;
+                        concordanceTable.innerHTML += `<table id="concordanceTable" class="table table-responsive table-sm small">
+                                                            <thead>
+                                                                <tr>
+                                                                    <th scope="col" class="text-wrap">Siglum</th>
+                                                                    <th scope="col" class="text-wrap">Folio</th>
+                                                                    <th scope="col" class="text-wrap">Incipit</th>
+                                                                    <th scope="col" class="text-wrap">Office </th>
+                                                                    <th scope="col" class="text-wrap">Genre </th>
+                                                                    <th scope="col" class="text-wrap">Position</th>
+                                                                    <th scope="col" class="text-wrap">Feast</th>
+                                                                    <th scope="col" class="text-wrap">Mode</th>
+                                                                    <th scope="col" class="text-wrap">Image</th>
+                                                                    <th scope="col" class="text-wrap">DB</th>
+                                                                </tr>
+                                                            </thead>
+                                                            <tbody>
+                                                            </tbody>
+                                                        </table>`;
+                        const table = document.getElementById("concordanceTable").getElementsByTagName("tbody")[0];
+                        concordances.map(chant=>{
+                            // console.log(chant.siglum)
+                            const newRow = table.insertRow(table.rows.length);
+                            if (chant.siglum) {newRow.innerHTML += `<td class="text-wrap"><a href="${chant.source_link}">${chant.siglum}</a></td>`} else {newRow.innerHTML += '<td class="text-wrap"></td>'}
+                            if (chant.folio) {newRow.innerHTML += `<td class="text-wrap">${chant.folio}</td>`}
+                            if (chant.incipit) {newRow.innerHTML += `<td class="text-wrap"><a href="${chant.chant_link}">${chant.incipit}</a></td>`}
+                            if (chant.office__name) {newRow.innerHTML += `<td class="text-wrap">${chant.office__name}</td>`}
+                            if (chant.genre__name) {newRow.innerHTML += `<td class="text-wrap">${chant.genre__name}</td>`}
+                            if (chant.position) {newRow.innerHTML += `<td class="text-wrap">${chant.position}</td>`} else {newRow.innerHTML += '<td class="text-wrap"></td>'}
+                            if (chant.feast__name) {newRow.innerHTML += `<td class="text-wrap">${chant.feast__name}</td>`}
+                            if (chant.mode) {newRow.innerHTML += `<td class="text-wrap">${chant.mode}</td>`} else {newRow.innerHTML += '<td class="text-wrap"></td>'}
+                            if (chant.image_link) {newRow.innerHTML += `<td class="text-wrap"><a href="${chant.image_link}" target="_blank">Image</a></td>`} else {newRow.innerHTML += '<td class="text-wrap"></td>'}
+                            newRow.innerHTML += `<td class="text-wrap">${chant.db}</td>`
+                        });
+                        document.getElementById("concordance_div").innerHTML += "<a href='//cantusindex.org/ci/{{ chant.cantus_id }}?c=1&refresh=1' target='_blank'>Refresh results</a>";
+                        document.getElementById("ajax_concordance").style.display = "none";
+                    },
+                    error: function(error){
+                        document.getElementById("concordance_div").innerHTML = "Error when displaying the concordances"
+                    }
+                });
+            }
+            document.getElementById("ajax_concordance").addEventListener("click", ()=>{
+                ajaxConcordance()
+            })
+            </script>
+
+
+
+            <br>
             <a href="" class="btn btn-primary" id="delete">Delete this Chant</a>
             <script>
                 window.onload = function () {
@@ -243,60 +337,94 @@
             <!-- global search bar-->
             {% include "global_search_bar.html" %}
             </div>
+
             <div class="row">
                 {% with source=chant.source %}
                 <div class="card mb-3 w-100">
                     <div class="card-header">
-                        <!-- TODO: add proper segment link here -->
-                        <small><a href="#">
-                                {{ source.segment.name }}</a></small>
+                        <b>Source navigation</b>
                         <br>
-                        {{ source.siglum }}
+                        <a href="{{ source.get_absolute_url }}"> <b>{{ source.siglum }}</b> </a>
                     </div>
+
                     <div class="card-body">
-                        <!-- TODO: add proper links here -->
                         <small>
-                            <b>Provenance:</b> <a href="#">{{source.provenance.name}}</a>
-                            <br>
-                            {% if source.date %}
-                            <b>Date: </b><a href="#">{{source.century.all.first.name }}</a> |
-                            <b>{{source.date|default_if_none:""}}</b>
-                            <br>
-                            {% endif %}
-                            {% if source.cursus %}
-                            <b>Cursus: </b><b>{{source.cursus|default_if_none:""}}</b>
-                            <br>
-                            {% endif %}
-                            {% if source.notation.all %}
-                            <b>Notation: </b><a href="#">{{source.notation.all.first.name}}</a>
-                            <br>
-                            {% endif %}
-                            {% if source.inventoried_by.all %}
-                            <b>Inventoried by:</b>
-                            <ul class="list-unstyled" style="margin-bottom: 0rem;">
-                                {% for editor in source.inventoried_by.all %}
-                                <li>
-                                    <a href={{ editor.get_absolute_url }}>{{editor.first_name}}
-                                        {{editor.family_name}}</a><br>
-                                    {{ editor.institution|default_if_none:"" }}
-                                </li>
+                            <!--a small selector of all folios of this source-->
+                            <select name="folios" id="folio-select" class="w-30" onchange="jumpSource()">
+                                <option value="#">Select a folio</option>
+                                {% for folio in folios %}
+                                    {% if folio == chant.folio %}
+                                        <option selected value="#">{{ folio }}</option>
+                                    {% else %}
+                                        <option value="#">{{ folio }}</option>
+                                    {% endif %}
                                 {% endfor %}
-                            </ul>
+                            </select>
+
+                            {% if previous_folio %}
+                                <a href="#">{{ previous_folio }} <</a>
                             {% endif %}
-                            <b>Proofreader{{source.proofreaders.all|pluralize}}:</b><br>
-                            {% if source.proofreaders.all %}
-                            <ul class="list-unstyled" style="margin-bottom: 0rem;">
-                                {% for editor in source.proofreaders.all %}
-                                <li>
-                                    <a href={{ editor.get_absolute_url }}>{{editor.first_name}}
-                                        {{editor.family_name}}</a>
-                                </li>
-                                {% endfor %}
-                            </ul>
+                            {% if next_folio %}
+                                <a href="#">> {{ next_folio }}</a>
                             {% endif %}
-                            {{source.indexing_notes|default_if_none:""}}
-                            {% comment %} <br>
-                            Contributor: {% endcomment %}
+
+                            {% if previous_folio %}
+                                <br>
+                                <div id="previous_div" style="display:none">
+                                    {% for feast, chants in feasts_previous_folio %}
+                                        Folio: <b>{{ previous_folio }}</b> - Feast: <b>{{ feast.name }}</b>
+                                        <table class="table table-responsive table-sm small table-bordered">     
+                                            {% for chant in chants %}
+                                                <tr>
+                                                    <td>{{ chant.sequence_number }}</td>
+                                                    <td>{{ chant.office.name|default_if_none:"" }} <b>{{ chant.genre.name|default_if_none:"" }}</b> {{ chant.position|default_if_none:"" }} </td>
+                                                    <td><a href="{{ chant.get_absolute_url }}">{{ chant.incipit|default_if_none:"" }}</a></td>
+                                                    <td><a href="{{ chant.get_ci_url }}" target="_blank">{{ chant.cantus_id|default_if_none:"" }}</a></td>
+                                                </tr>
+                                            {% endfor %}
+                                        </table>
+                                    {% endfor %}
+                                </div>
+                                <a id="previous_toggle" onclick="togglePrevious(this.id)" href="#">Display previous chants</a>
+                            {% endif %}
+                            <br>
+
+
+                            {% for feast, chants in feasts_current_folio %}
+                                Folio: <b>{{ chant.folio }}</b> - Feast: <b>{{ feast.name }}</b>
+                                <table class="table table-responsive table-sm small table-bordered">     
+                                    {% for chant in chants %}
+                                        <tr>
+                                            <td>{{ chant.sequence_number }}</td>
+                                            <td>{{ chant.office.name|default_if_none:"" }} <b>{{ chant.genre.name|default_if_none:"" }}</b> {{ chant.position|default_if_none:"" }} </td>
+                                            <td><a href="{{ chant.get_absolute_url }}">{{ chant.incipit|default_if_none:"" }}</a></td>
+                                            <td><a href="{{ chant.get_ci_url }}" target="_blank">{{ chant.cantus_id|default_if_none:"" }}</a></td>
+                                        </tr>
+                                    {% endfor %}
+                                </table>
+                            {% endfor %}
+
+                            {% if next_folio %}
+                                {% comment %} <button class="btn btn-primary" id="load-btn">NEXT CHANTS</button> {% endcomment %}
+                                <a id="next_toggle" href="#" onclick="toggleNext(this.id)">Display next chants</a>
+                                <br>
+
+                                <div id="next_div" style="display:none">
+                                    {% for feast, chants in feasts_next_folio %}
+                                        Folio: <b>{{ next_folio }}</b> - Feast: <b>{{ feast.name }}</b>
+                                        <table class="table table-responsive table-sm small table-bordered">     
+                                            {% for chant in chants %}
+                                                <tr>
+                                                    <td>{{ chant.sequence_number }}</td>
+                                                    <td>{{ chant.office.name|default_if_none:"" }} <b>{{ chant.genre.name|default_if_none:"" }}</b> {{ chant.position|default_if_none:"" }} </td>
+                                                    <td><a href="{{ chant.get_absolute_url }}">{{ chant.incipit|default_if_none:"" }}</a></td>
+                                                    <td><a href="{{ chant.get_ci_url }}" target="_blank">{{ chant.cantus_id|default_if_none:"" }}</a></td>
+                                                </tr>
+                                            {% endfor %}
+                                        </table>
+                                    {% endfor %}
+                                </div>
+                            {% endif %}
                         </small>
                     </div>
                 </div>

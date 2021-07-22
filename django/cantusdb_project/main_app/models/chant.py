@@ -98,6 +98,8 @@ class Chant(BaseModel):
     # # Digital Analysis of Chant Transmission
     # dact = models.CharField(blank=True, null=True, max_length=64)
     # also a second differentia field
+    def get_ci_url(self) -> str:
+        return f"http://cantusindex.org/id/{self.cantus_id}"
 
     def index_components(self) -> dict:
         """Constructs a dictionary of weighted lists of search terms.

@@ -1,3 +1,4 @@
+from django.http.response import JsonResponse
 from django.shortcuts import render
 from main_app.models import Chant, Sequence, Source, Feast, Genre, Indexer, Office
 
@@ -22,3 +23,32 @@ def items_count(request):
     }
     return render(request, "items_count.html", context)
 
+
+def ajax_concordance_list(request, cantus_id):
+    chants = (
+        Chant.objects.filter(cantus_id=cantus_id).order_by("siglum", "folio").annotate()
+    )
+
+    # queryset(list of dictionaries)
+    concordance_values = chants.values(
+        "siglum",
+        "folio",
+        "incipit",
+        "office__name",
+        "genre__name",
+        "feast__name",
+        "mode",
+        "image_link",
+    )
+
+    concordances = list(concordance_values)
+    for i, concordance in enumerate(concordances):
+        concordance["source_link"] = chants[i].source.get_absolute_url()
+        concordance["chant_link"] = chants[i].get_absolute_url()
+        concordance["db"] = "CD"
+
+    concordance_count = len(concordances)
+    return JsonResponse(
+        {"concordances": concordances, "concordance_count": concordance_count},
+        safe=False,
+    )
