@@ -1,5 +1,6 @@
 from django.http.response import JsonResponse
 from django.shortcuts import render
+from django.urls.base import reverse
 from main_app.models import Chant, Sequence, Source, Feast, Genre, Indexer, Office
 
 
@@ -25,10 +26,12 @@ def items_count(request):
 
 
 def ajax_concordance_list(request, cantus_id):
-    chants = (
-        Chant.objects.filter(cantus_id=cantus_id).order_by("siglum", "folio").annotate()
-    )
-
+    chants = Chant.objects.filter(cantus_id=cantus_id)
+    seqs = Sequence.objects.filter(cantus_id=cantus_id)
+    if seqs:
+        chants = chants.union(seqs).order_by("siglum", "folio")
+    else:
+        chants = chants.order_by("siglum", "folio")
     # queryset(list of dictionaries)
     concordance_values = chants.values(
         "siglum",
@@ -44,7 +47,10 @@ def ajax_concordance_list(request, cantus_id):
     concordances = list(concordance_values)
     for i, concordance in enumerate(concordances):
         concordance["source_link"] = chants[i].source.get_absolute_url()
-        concordance["chant_link"] = chants[i].get_absolute_url()
+        if chants[i].search_vector:
+            concordance["chant_link"] = chants[i].get_absolute_url()
+        else:
+            concordance["chant_link"] = reverse("sequence-detail", args=[chants[i].id])
         concordance["db"] = "CD"
 
     concordance_count = len(concordances)
