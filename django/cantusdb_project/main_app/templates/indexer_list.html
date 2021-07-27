@@ -38,9 +38,7 @@
                 <td>{{ indexer.institution|default:""}}</td>
                 <td>{{ indexer.city|default:""}}</td>
                 <td>{{ indexer.country|default:""}}</td>
-                {% with source_count=indexer.sources_inventoried.count %}
-                <td>{{ source_count }} source{{ source_count|pluralize }}</td>
-                {% endwith %}
+                <td>{{ indexer.source_count }} source{{ indexer.source_count|pluralize }}</td>
             </tr>
             {% endfor %}
         </tbody>
