@@ -50,10 +50,19 @@
             /* Vertically center the text there */
         }
 
+        .bg-footer {
+            background-color: #CC3333;
+        }
+
+        .dropdown .dropdown-menu {
+            opacity: 0.85 !important;
+        }
+
         /* Change dropdown selected background to blue */
         .dropdown .dropdown-menu .dropdown-item:active,
         .dropdown .dropdown-menu .dropdown-item:hover {
-            background-color: lightblue !important;
+            background-color: #f6f6f6 !important;
+            color: #CC3333;
         }
 
         hr.color {
@@ -65,12 +74,17 @@
         }
 
         .nav-link {
-            color: black !important;
+            color: black;
+        }
+
+        .nav-item .nav-link .small {
+            color: #5e5e5f;
         }
 
         .border-top {
             border-style: solid none none;
             border-width: 5px !important;
+            border-color: #CC3333 !important;
         }
 
         a {
@@ -78,7 +92,8 @@
         }
 
         a:hover {
-            color: #ee4502
+            color: #ee4502;
+            text-decoration: none;
         }
 
     </style>
@@ -90,7 +105,7 @@
 
         <!-- Navbar -->
         <div class="container">
-            <nav class="navbar navbar-expand-xl navbar-light bg-white border-danger border-top col-12">
+            <nav class="navbar navbar-expand-xl bg-white border-top col-12">
                 <a class="navbar-brand" href="/">
                     <img src="{% static "CantusLogoSmall.gif" %}"
                         alt="Cantus Database: A Database for Latin Ecclesiastical Chant" loading="lazy">
@@ -105,17 +120,17 @@
                 <div class="collapse navbar-collapse" id="navbar-links">
                     <ul class="navbar-nav mx-auto">
                         <li class="nav-item">
-                            <a class="nav-link font-weight-bold" href="/">HOME<br><span
-                                    class="font-weight-lighter small">Home
+                            <a class="nav-link font-weight-bold" style="color:#CC3333;" href="/">HOME<br style:"line-height: 50pt;"/><span
+                                    class="small">Home
                                     Page</span></a>
                         </li>
                         <li class="nav-item dropdown text-info">
                             <a class="nav-link dropdown-toggle font-weight-bold" href="#" id="navbarDropdownMenuLink"
                                 role="button" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
-                                ABOUT<br><small>Information</small>
+                                ABOUT<br><span class="small">Information</span>
                             </a>
                             <div class="dropdown-menu" aria-labelledby="navbarDropdownMenuLink">
-                                <a class="dropdown-item" href="#">News</a>
+                                <a class="dropdown-item" href="#" style:"background-color:transparent">News</a>
                                 <a class="dropdown-item" href="/indexers">Contributors</a>
                                 <a class="dropdown-item" href="/about/id-numbers/">ID Numbers: A History and
                                     Explanation</a>
@@ -129,7 +144,7 @@
                         <li class="nav-item dropdown">
                             <a class="nav-link dropdown-toggle font-weight-bold" href="#" id="navbarDropdownMenuLink"
                                 role="button" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
-                                SOURCES<br><small>List of inventories</small>
+                                SOURCES<br><span class="small">List of inventories</span>
                             </a>
                             <div class="dropdown-menu" aria-labelledby="navbarDropdownMenuLink">
                                 <a class="dropdown-item" href="/sources/?segment=4063">Cantus Sources</a>
@@ -140,7 +155,7 @@
                         <li class="nav-item dropdown">
                             <a class="nav-link dropdown-toggle font-weight-bold" href="#" id="navbarDropdownMenuLink"
                                 role="button" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
-                                CHANTS<br><small>Search</small>
+                                CHANTS<br><span class="small">Search</span>
                             </a>
                             <div class="dropdown-menu" aria-labelledby="navbarDropdownMenuLink">
                                 <a class="dropdown-item" href="/chant-search">Chant Search</a>
@@ -153,7 +168,7 @@
                             <a class="nav-link dropdown-toggle font-weight-bold" href="/feasts"
                                 id="navbarDropdownMenuLink" role="button" data-toggle="dropdown" aria-haspopup="true"
                                 aria-expanded="false">
-                                FEASTS<br><small>List of feasts</small>
+                                FEASTS<br><span class="small">List of feasts</span>
                             </a>
                             <div class="dropdown-menu" aria-labelledby="navbarDropdownMenuLink">
                                 <a class="dropdown-item" href="/feasts">List of all feasts</a>
@@ -165,7 +180,7 @@
                             <a class="nav-link dropdown-toggle font-weight-bold" href="/genres"
                                 id="navbarDropdownMenuLink" role="button" data-toggle="dropdown" aria-haspopup="true"
                                 aria-expanded="false">
-                                TERMS<br><small>Genres and more</small>
+                                TERMS<br><span class="small">Genres & fields</span>
                             </a>
                             <div class="dropdown-menu" aria-labelledby="navbarDropdownMenuLink">
                                 <a class="dropdown-item" href="/genres">Genre abbreviations</a>
@@ -176,7 +191,7 @@
                         <li class="nav-item dropdown">
                             <a class="nav-link dropdown-toggle font-weight-bold" href="#" id="navbarDropdownMenuLink"
                                 role="button" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
-                                RESOURCES<br><small>Docs, Instructions, Tools</small>
+                                RESOURCES<br><span class="small">Docs, Instructions, Tools</span>
                             </a>
                             <div class="dropdown-menu" aria-labelledby="navbarDropdownMenuLink">
                                 <a class="dropdown-item" href="/tutorial/">Tutorial for Cantus Contributors</a>
@@ -206,20 +221,20 @@
                     <div class="col-md" id="team-info">
                         <h5>Cantus Team</h5>
                         <ul class="list-group list-group-flush">
-                            <li class="list-group-item"><strong><a href="mailto:dlacoste@uwaterloo.ca">Debra Lacoste</a>
+                            <li class="list-group-item p-0"><strong><a href="mailto:dlacoste@uwaterloo.ca">Debra Lacoste</a>
                                 </strong>&nbsp; |&nbsp;
                                 Project Manager</li>
-                            <li class="list-group-item"><strong><a href="http://kolacek.org">Jan Koláček</a>
+                            <li class="list-group-item p-0"><strong><a href="http://kolacek.org">Jan Koláček</a>
                                 </strong>&nbsp;
                                 |&nbsp; Project
                                 Developer</li>
-                            <li class="list-group-item"><strong><a
+                            <li class="list-group-item p-0"><strong><a
                                         href="http://www.dal.ca/faculty/arts/school-of-performing-arts/faculty-staff/our-faculty/musicology/jennifer-bain.html">Jennifer
-                                        Bain </a> &nbsp;</strong> |&nbsp; Co-Investigator</li>
-                            <li class="list-group-item"><strong><a
+                                        Bain </a> &nbsp;</strong> |&nbsp; Principal Investigator</li>
+                            <li class="list-group-item p-0"><strong><a
                                         href="https://uwaterloo.ca/stratford-campus/people-profiles/christine-mcwebb">Christine
                                         McWebb </a> &nbsp;</strong> |&nbsp; Co-Investigator</li>
-                            <li class="list-group-item"><a href="/indexers">&nbsp;&nbsp; ⇨ List of contributors</a></li>
+                            <li class="list-group-item p-0"><a href="/indexers">&nbsp;&nbsp; ⇨ List of contributors</a></li>
                         </ul>
                     </div>
                     <div class="col-md" id="facebook">
@@ -234,9 +249,9 @@
                         <h5>Who's Online</h5>
                         <p>There are currently 3 users online</p>
                         <ul class="list-group list-group-flush">
-                            <li class="list-group-item"><a href="/">User</a></li>
-                            <li class="list-group-item"><a href="/">User</a></li>
-                            <li class="list-group-item"><a href="/">User</a></li>
+                            <li class="list-group-item p-0"><a href="/">User</a></li>
+                            <li class="list-group-item p-0"><a href="/">User</a></li>
+                            <li class="list-group-item p-0"><a href="/">User</a></li>
                         </ul>
                     </div>
                     <div class="col-md" id="license">
@@ -273,30 +288,30 @@
                     <div class="col-md" id="database-links">
                         <h5>Database Links</h5>
                         <ul class="list-group list-group-flush">
-                            <li class="list-group-item"><a href="http://cantusindex.org/" target="_blank">Cantus Index
+                            <li class="list-group-item p-0"><a href="http://cantusindex.org/" target="_blank">Cantus Index
                                     (all
                                     chants
                                     catalogue)</a></li>
-                            <li class="list-group-item"><a href="http://pemdatabase.eu/" target="_blank">Portuguese
+                            <li class="list-group-item p-0"><a href="http://pemdatabase.eu/" target="_blank">Portuguese
                                     Early
                                     Music
                                     Database</a></li>
-                            <li class="list-group-item"><a href="http://cantus.sk" target="_blank">Slovakian Early Music
+                            <li class="list-group-item p-0"><a href="http://cantus.sk" target="_blank">Slovakian Early Music
                                     Database</a></li>
-                            <li class="list-group-item"><a href="http://hunchant.eu" target="_blank">Hungarian Chant
+                            <li class="list-group-item p-0"><a href="http://hunchant.eu" target="_blank">Hungarian Chant
                                     Database</a></li>
-                            <li class="list-group-item"><a href="http://cantusbohemiae.cz" target="_blank">Fontes Cantus
+                            <li class="list-group-item p-0"><a href="http://cantusbohemiae.cz" target="_blank">Fontes Cantus
                                     Bohemiae</a></li>
-                            <li class="list-group-item"><a href="http://cantus.edu.pl" target="_blank">Cantus Planus in
+                            <li class="list-group-item p-0"><a href="http://cantus.edu.pl" target="_blank">Cantus Planus in
                                     Polonia</a></li>
-                            <li class="list-group-item"><a href="http://musicahispanica.eu" target="_blank">Spanish
+                            <li class="list-group-item p-0"><a href="http://musicahispanica.eu" target="_blank">Spanish
                                     Early
                                     Music
                                     Manuscript Database</a></li>
-                            <li class="list-group-item"><a href="http://musmed.eu" target="_blank">Medieval Music
+                            <li class="list-group-item p-0"><a href="http://musmed.eu" target="_blank">Medieval Music
                                     Manuscripts
                                     Online</a></li>
-                            <li class="list-group-item"><a href="http://comparatio.irht.cnrs.fr"
+                            <li class="list-group-item p-0"><a href="http://comparatio.irht.cnrs.fr"
                                     target="_blank">Comparatio</a></li>
                         </ul>
                     </div>
@@ -312,13 +327,13 @@
                                 <label for="password">Password</label>
                                 <input type="password" class="form-control" id="password" placeholder="Password">
                             </div>
-                            <button type="submit" class="btn btn-primary">Log In</button>
+                            <button type="submit" class="btn btn-dark">Log In</button>
                         </form>
                     </div>
                 </div>
             </div>
         </div>
-        <div class="bg-primary text-white row p-3">
+        <div class="bg-footer text-black row p-1">
             <div class="col-auto mr-auto">
                 <a href="https://www.facebook.com/CantusDatabase">
                     <img src="{% static "facebookIcon.png" %}" alt="Facebook link" loading="lazy">
@@ -328,7 +343,7 @@
                 </a>
             </div>
             <div class="col-auto">
-                <small>Cantus Index © 2012-18</small>
+                <small>Cantus Database © 2012-2021</small>
             </div>
         </div>
     </footer>
