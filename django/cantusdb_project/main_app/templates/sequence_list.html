@@ -45,23 +45,23 @@
             <tr>
                 <td class="text-wrap">
                     <a href={{sequence.source.get_absolute_url}}>
-                        {{ sequence.source.siglum }}<br>
+                        {{ sequence.source.siglum|default:"" }}<br>
                     </a>
-                    <b>{{ sequence.folio }}</b> {{ sequence.sequence }}
+                    <b>{{ sequence.folio|default:"" }}</b> {{ sequence.sequence|default:"" }}
                 </td>
                 <td class="text-wrap">
                     <a href="{{ sequence.get_absolute_url }}">
-                        {{ sequence.incipit }}
+                        {{ sequence.incipit|default:"" }}
                     </a>
                 </td>
                 <td class="text-wrap">
-                    {{ sequence.rubrics }}
+                    {{ sequence.rubrics|default:"" }}
                 </td>
                 <td class="text-wrap">
-                    {{ sequence.analecta_hymnica }}
+                    {{ sequence.analecta_hymnica|default:"" }}
                 </td>
                 <td class="text-wrap">
-                    <a href={% url 'chant-by-cantus_id' sequence.cantus_id %}>{{ sequence.cantus_id }}</a>
+                    <a href={% url 'chant-by-cantus_id' sequence.cantus_id %}>{{ sequence.cantus_id|default:"" }}</a>
                 </td>
             </tr>
             {% endfor %}
