@@ -139,4 +139,4 @@ class SourceListView(ListView):
             )
             q_obj_filter &= indexing_search_q
 
-        return queryset.filter(q_obj_filter)
+        return queryset.filter(q_obj_filter).distinct()
