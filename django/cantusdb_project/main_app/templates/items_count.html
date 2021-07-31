@@ -1,5 +1,6 @@
 {% extends "base.html" %}
 {% load helper_tags %}
+{% load humanize %}
 {% block content %}
 <title>Content Statistics | Cantus Manuscript Database</title>
 <div class="mr-3 p-3 mx-auto bg-white rounded">
@@ -8,7 +9,7 @@
         {% include "global_search_bar.html" %}
     </object>
     <h3>Content Statistics</h3>
-    <table class="table table-responsive table-bordered table-striped">
+    <table class="table table-sm table-bordered table-striped">
         <thead>
             <tr>
                 <th>Type</th>
@@ -18,35 +19,17 @@
         <tbody>
             <tr>
                 <td>Chant</td>
-                <td>{{ chant_count }}</td>
+                <td>{{ chant_count|intcomma }}</td>
             </tr>
 
             <tr>
                 <td>Sequence</td>
-                <td>{{ sequence_count }}</td>
+                <td>{{ sequence_count|intcomma }}</td>
             </tr>
 
             <tr>
                 <td>Source</td>
-                <td>{{ source_count }}</td>
-            </tr>
-            <tr>
-                <td>Feast</td>
-                <td>{{ feast_count }}</td>
-            </tr>
-
-            <tr>
-                <td>Genre</td>
-                <td>{{ genre_count }}</td>
-            </tr>
-
-            <tr>
-                <td>Indexer</td>
-                <td>{{ indexer_count }}</td>
-            </tr>
-            <tr>
-                <td>Office</td>
-                <td>{{ office_count }}</td>
+                <td>{{ source_count|intcomma }}</td>
             </tr>
         </tbody>
     </table>
