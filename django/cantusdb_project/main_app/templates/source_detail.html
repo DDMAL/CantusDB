@@ -111,7 +111,7 @@
                 <div class="card mb-3 w-100">
                     <div class="card-header">
                         <!-- TODO: add proper segment link here -->
-                        <small><a href="#">
+                        <small><a href="/sources?segment={{ source.segment.id }}">
                                 {{ source.segment.name }}</a></small>
                         <br>
                         {{ source.siglum }}
@@ -120,54 +120,53 @@
                         <!-- TODO: add proper links here -->
                         <small>
                             {% if source.provenance.name %}
-                            <b>Provenance:</b> <a href="#">{{source.provenance.name}}</a>
+                            Provenance: <b><a href="#">{{source.provenance.name}}</a></b>
                             <br>
                             {% endif %}
                             {% if source.date %}
-                            <b>Date:</b> 
+                            Date: 
                             {% for century in source.century.all %}
-                            <a href="#">{{ century.name }}</a> 
+                            <b><a href="#">{{ century.name }}</a></b>
                             {% endfor %}
                             |
                             <b>{{source.date|default_if_none:""}}</b>
                             <br>
                             {% endif %}
                             {% if source.cursus %}
-                            <b>Cursus:</b> <b>{{source.cursus|default_if_none:""}}</b>
+                            Cursus: <b>{{source.cursus|default_if_none:""}}</b>
                             <br>
                             {% endif %}
                             {% if source.notation.all %}
-                            <b>Notation:</b> <a href="#">{{source.notation.all.first.name}}</a>
+                            Notation: <b><a href="#">{{source.notation.all.first.name}}</a></b>
                             <br>
                             {% endif %}
                             {% if source.inventoried_by.all %}
-                            <b>Inventoried by:</b>
+                            Inventoried by:
                             <ul class="list-unstyled" style="margin-bottom: 0rem;">
                                 {% for editor in source.inventoried_by.all %}
                                 <li>
-                                    <a href={{ editor.get_absolute_url }}>{{editor.first_name}}
-                                        {{editor.family_name}}</a><br>
+                                    <a href={{ editor.get_absolute_url }}><b>{{editor.first_name}}
+                                        {{editor.family_name}}</b></a><br>
                                     {{ editor.institution|default_if_none:"" }}
                                 </li>
                                 {% endfor %}
                             </ul>
                             {% endif %}
                             {% comment %} {% if source.proofreaders.all %} {% endcomment %}
-                            <b>Proofreader{{source.proofreaders.all|pluralize}}:</b>
-                            <ul class="list-unstyled" style="margin-bottom: 0rem;">
-                                {% for editor in source.proofreaders.all %}
-                                <li>
-                                    <a href={{ editor.get_absolute_url }}>{{editor.first_name}}
-                                        {{editor.family_name}}</a><br>
-                                </li>
-                                {% endfor %}
-                            </ul>
+                                Proofreader{{source.proofreaders.all|pluralize}}:
+                                <br>
+                                <ul class="list-unstyled" style="margin-bottom: 0rem;">
+                                    {% for editor in source.proofreaders.all %}
+                                    <li>
+                                        <a href={{ editor.get_absolute_url }}><b>{{editor.first_name}}
+                                            {{editor.family_name}}</b></a><br>
+                                    </li>
+                                    {% endfor %}
+                                </ul>
                             {% comment %} {% endif %} {% endcomment %}
-                            {% if source.indexing_notes %}
                             {{source.indexing_notes|default_if_none:""}}
                             <br>
-                            {% endif %}
-                            <b>Contributor:</b>
+                            Contributor: <a href="">CANTUS Database Administrator</a>
                         </small>
                     </div>
                 </div>
