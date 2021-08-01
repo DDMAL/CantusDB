@@ -221,7 +221,7 @@ def get_new_source(source_id):
         else:
             print(f"Unknown full_source_id: {full_source_id}")
     except (KeyError, TypeError):
-        full_source = None
+        full_source = True if segment_id == "4064" else None
 
     try:
         selected_bibliography = json_response["field_bibliography"]["und"][0]["value"]
