@@ -50,5 +50,10 @@ urlpatterns = [
     path("chants/<int:pk>/delete/", ChantDeleteView.as_view(), name="chant-delete"),
     path("ci-search/<str:search_term>", CISearchView.as_view(), name="ci-search"),
     path("content-statistics", views.items_count, name="items-count"),
-    path("ajax/<str:cantus_id>", views.ajax_concordance_list, name="ajax"),
+    path(
+        "ajax/concordance/<str:cantus_id>",
+        views.ajax_concordance_list,
+        name="ajax_concordance",
+    ),
+    path("ajax/melody/<str:cantus_id>", views.ajax_melody_list, name="ajax_melody"),
 ]
