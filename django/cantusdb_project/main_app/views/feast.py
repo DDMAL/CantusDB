@@ -18,8 +18,11 @@ class FeastListView(SearchableListMixin, ListView):
     template_name = "feast_list.html"
 
     def get_ordering(self):
-        ordering = self.request.GET.get("ordering", "name")
+        ordering = self.request.GET.get("ordering")
         if ordering not in ["name", "feast_code"]:
+            self.request.GET._mutable = True
+            self.request.GET["ordering"] = "name"
+            self.request.GET._mutable = False
             ordering = "name"
         return ordering
 
