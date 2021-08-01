@@ -12,6 +12,8 @@
         $("#melodies-filter").val("{{ request.GET.melodies }}")
         $("#feast-filter").val("{{ request.GET.feast }}")
         $("#incipit-filter").val("{{ request.GET.incipit }}")
+        $("#keyword-search").val("{{ request.GET.keyword }}")
+        $("#search-bar").val("{{ request.GET.search_bar }}")
     }
 </script>
 <div class="mr-3 p-3 col-md-12 mx-auto bg-white rounded">
@@ -28,7 +30,7 @@
             <div class="form-group m-1 col-lg">
                 <label for="keyword-search"><small>Keyword search</small></label>
                 <input type="text" class="form-control form-control-sm" name="keyword" value="{{ request.GET.keyword}}"
-                    id="keyword-filter">
+                    id="keyword-search">
             </div>
         </div>
         <div class="form-row form-row align-items-end">
@@ -42,17 +44,17 @@
                 </select>
             </div>
             <div class="form-group m-1 col-lg">
-                <label for="cantus_id"><small>Cantus ID</small></label>
+                <label for="cantus_id-filter"><small>Cantus ID</small></label>
                 <input type="text" class="form-control form-control-sm" name="cantus_id" value="{{ request.GET.cantus_id }}"
                     id="cantus_id-filter">
             </div>
             <div class="form-group m-1 col-lg">
-                <label for="mode"><small>Mode</small></label>
+                <label for="mode-filter"><small>Mode</small></label>
                 <input type="text" class="form-control form-control-sm" name="mode" value="{{ request.GET.mode }}"
                     id="mode-filter">
             </div>
             <div class="form-group m-1 col-lg">
-                <label for="feast"><small>Feast</small></label>
+                <label for="feast-filter"><small>Feast</small></label>
                 <input type="text" class="form-control form-control-sm" name="feast" value="{{ request.GET.feast }}"
                     id="feast-filter">
             </div>
@@ -69,12 +71,12 @@
             <div class="form-group m-1 col-lg">
                 <label for="melody-search"><small>Melody search</small></label>
                 <input type="text" class="form-control form-control-sm" name="melody" value="{{ request.GET.melody }}"
-                    id="melody-filter" style = "font-family:volpiano; font-size:30px;">
+                    id="melody-search" style = "font-family:volpiano; font-size:30px;">
             </div>
         </div>
         <div class="form-row align-items-end">
             <div class="form-group m-1 col-lg">
-                <button type="submit" class="btn btn-primary btn-sm" id="btn-submit"> Apply </button>
+                <button type="submit" class="btn btn-dark btn-sm" id="btn-submit"> Apply </button>
             </div>
         </div>
         
@@ -135,7 +137,7 @@
                     {{ chant.position|default:"" }}
                 </td>
                 <td class="text-wrap" style="text-align:center">
-                    <a href="http://cantusindex.org/id/{{ chant.cantus_id }}">{{chant.cantus_id|default:"" }}</a>
+                    <a href="{{ chant.get_ci_url }}" target="_blank">{{chant.cantus_id|default:"" }}</a>
                 </td>
                 <td class="text-wrap" style="text-align:center">
                     {{ chant.mode|default:"" }}
@@ -152,7 +154,7 @@
                 </td>
                 <td class="text-wrap" style="text-align:center">
                     {% if chant.image_link %}
-                    <a href="{{ chant.image_link }}">Image</a>
+                    <a href="{{ chant.image_link }}" target="_blank">Image</a>
                     {% endif %}
                 </td>
                 </tr>
