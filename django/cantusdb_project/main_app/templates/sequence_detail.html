@@ -68,7 +68,7 @@
                     Genre
                 </dt>
                 <dd>
-                    {{ sequence.genre.name }}
+                    <a href="{{ sequence.genre.get_absolute_url }}">{{ sequence.genre.name }}</a>
                 </dd>
             </div>
             {% endif %}
@@ -79,7 +79,7 @@
                     Cantus ID
                 </dt>
                 <dd>
-                    <a href="http://cantusindex.org/id/{{ sequence.cantus_id }}"> {{ sequence.cantus_id }}</a>
+                    <a href="http://cantusindex.org/id/{{ sequence.cantus_id }}" target="_blank"> {{ sequence.cantus_id }}</a>
                 </dd>
             </div>
             {% endif %}
@@ -139,6 +139,19 @@
             </div>
             {% endif %}
 
+        </div>
+
+        <div class="row">
+            {% if sequence.indexing_notes %}
+                <div class="col">
+                    <dt>
+                        Indexing notes
+                    </dt>
+                    <dd>
+                        {{ sequence.indexing_notes }}
+                    </dd>
+                </div>
+            {% endif %}
         </div>
     </dl>
 </div>
