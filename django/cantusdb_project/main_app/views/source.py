@@ -38,8 +38,9 @@ class SourceListView(ListView):
         q_obj_filter &= Q(visible=True)
 
         if self.request.GET.get("century"):
-            century_id = int(self.request.GET.get("century"))
-            q_obj_filter &= Q(century__id=century_id)
+            century_name = Century.objects.get(id=self.request.GET.get("century")).name
+            q_obj_filter &= Q(century__name__icontains=century_name)
+
         if self.request.GET.get("provenance"):
             provenance_id = int(self.request.GET.get("provenance"))
             q_obj_filter &= Q(provenance__id=provenance_id)
@@ -49,10 +50,10 @@ class SourceListView(ListView):
         if self.request.GET.get("fullsource") in ["true", "false"]:
             full_source_str = self.request.GET.get("fullsource")
             if full_source_str == "true":
-                full_source = True
-            elif full_source_str == "false":
-                full_source = False
-            q_obj_filter &= Q(full_source=full_source)
+                full_source_q = Q(full_source=True) | Q(full_source=None)
+                q_obj_filter &= full_source_q
+            else:
+                q_obj_filter &= Q(full_source=False)
         # Maybe change this to lookup in a search vector with the vector Postgres field?
         # I would have to add a signal to update the vector with changes like I did
         # with SIMSSADB
