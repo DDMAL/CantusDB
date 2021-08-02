@@ -28,7 +28,10 @@ def url_add_get_params(context, **kwargs):
 @register.simple_tag(takes_context=False)
 def source_links():
     sources = (
-        Source.objects.exclude(siglum=None).values("siglum", "id").order_by("siglum")
+        Source.objects.filter(public=True, visible=True)
+        .exclude(siglum=None)
+        .values("siglum", "id")
+        .order_by("siglum")
     )
     options = ""
     # <option value="source1">Source 1</option>
