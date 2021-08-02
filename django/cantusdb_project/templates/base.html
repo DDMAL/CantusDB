@@ -172,8 +172,8 @@
                             </a>
                             <div class="dropdown-menu" aria-labelledby="navbarDropdownMenuLink">
                                 <a class="dropdown-item" href="/feasts">List of all feasts</a>
-                                <a class="dropdown-item" href="#">Sanctorale</a>
-                                <a class="dropdown-item" href="#">Temporale</a>
+                                <a class="dropdown-item" href="{% url "feast-list" %}?date=sanc">Sanctorale</a>
+                                <a class="dropdown-item" href="{% url "feast-list" %}?date=temp">Temporale</a>
                             </div>
                         </li>
                         <li class="nav-item dropdown">
