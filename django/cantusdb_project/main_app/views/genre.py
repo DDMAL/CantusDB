@@ -25,15 +25,14 @@ class GenreDetailView(SingleObjectMixin, ListView):
             List[Dict]: A list of dicts with data on each unique ``cantus_id``
         """
         cantus_ids = list(
-            self.object.chant_set.order_by("cantus_id")
-            .exclude(cantus_id=None)
+            self.object.chant_set.exclude(cantus_id=None)
             .values_list("cantus_id", flat=True)
             .distinct("cantus_id")
         )
 
         chant_list = []
         for cantus_id in cantus_ids:
-            chants = self.object.chant_set.filter(cantus_id=cantus_id).order_by("id")
+            chants = self.object.chant_set.filter(cantus_id=cantus_id)
             num_chants = chants.count()
             first_chant = chants.first()
             first_incipit_url = first_chant.get_absolute_url()
