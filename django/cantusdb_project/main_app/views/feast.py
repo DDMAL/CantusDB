@@ -1,3 +1,4 @@
+from django.db.models import query
 from django.views.generic import DetailView, ListView
 from main_app.models import Feast
 from extra_views import SearchableListMixin
@@ -27,10 +28,17 @@ class FeastListView(SearchableListMixin, ListView):
         return ordering
 
     def get_queryset(self):
+        queryset = super().get_queryset()
         month = self.request.GET.get("month", None)
+        date = self.request.GET.get("date")
+        if date == "temp":
+            queryset = queryset.filter(month=None, day=None)
+        elif date == "sanc":
+            queryset = queryset.exclude(month=None, day=None)
+
         if month and (int(month)) in range(1, 13):
             month = int(month)
-            queryset = super().get_queryset().filter(month=month)
+            queryset = queryset.filter(month=month)
             return queryset
         else:
-            return super().get_queryset()
+            return queryset
