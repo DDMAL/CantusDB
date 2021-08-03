@@ -1,8 +1,8 @@
 #!/bin/bash
 
-# generate tables in the database
-python manage.py makemigrations
-python manage.py migrate
+# generate tables in the database (optional)
+# python manage.py makemigrations
+# python manage.py migrate
 
 # load initial data to populate the database
 # these fixtures need to be loaded in a certain order due to foreign key dependance
