@@ -12,7 +12,7 @@ FIXTURES_LIST=(
    indexer_fixtures.json
    office_fixtures.json
    genre_fixtures.json
-   feast_fixturesjson
+   feast_fixtures.json
    notation_fixtures.json
    century_fixtures.json
    provenance_fixtures.json
