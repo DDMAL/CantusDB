@@ -19,7 +19,7 @@ FIXTURES_LIST=(
    rism_siglum_fixtures.json
    segment_fixtures.json
    source_fixtures.json
-   sequences_fixtures.json
+   sequence_fixtures.json
 )
 
 for fixture in ${FIXTURES_LIST[*]}
