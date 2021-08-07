@@ -5,6 +5,9 @@ from main_app.models import Chant, Sequence, Source, Feast, Genre, Indexer, Offi
 
 
 def items_count(request):
+    # in items count, the number on old cantus shows the total count of a type of object (chant, seq)
+    # no matter public or not
+    # but for the count of sources, it only shows the count of public sources
     chant_count = Chant.objects.count()
     sequence_count = Sequence.objects.count()
     source_count = Source.objects.filter(public=True).count()
