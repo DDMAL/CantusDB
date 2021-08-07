@@ -8,6 +8,13 @@ class SourceDetailView(DetailView):
     context_object_name = "source"
     template_name = "source_detail.html"
 
+    def get_context_data(self, **kwargs):
+        object = self.get_object()
+        context = super().get_context_data(**kwargs)
+        if object.segment.id == 4064:
+            context["sequences"] = object.sequence_set.all().order_by("sequence")
+        return context
+
 
 class SourceListView(ListView):
     model = Source

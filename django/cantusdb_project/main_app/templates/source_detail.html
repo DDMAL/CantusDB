@@ -83,6 +83,45 @@
                 <dd>{{ source.dact_id }}</dd>
                 {% endif %}
             </dl>
+
+            {% if sequences %}
+                <h4>Sequences in this source</h4>
+                <small>Displaying 1 - {{ sequences.count }} of {{ sequences.count }}</small>
+                <table class="table table-responsive table-sm small table-bordered">
+                    <thead>
+                        <tr>
+                            <th scope="col" class="text-wrap" style="text-align:center">Siglum</th>
+                            <th scope="col" class="text-wrap" style="text-align:center">Text incipit</th>
+                            <th scope="col" class="text-wrap" style="text-align:center">Rubrics</th>
+                            <th scope="col" class="text-wrap" style="text-align:center">AH</th>
+                            <th scope="col" class="text-wrap" style="text-align:center">Cantus ID</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for sequence in sequences %}
+                            <tr>
+                                <td class="text-wrap" style="text-align:center">
+                                    <a href="{{ source.get_absolute_url }}">{{source.siglum}}</a>
+                                    <br>
+                                    <b>{{ sequence.folio }}</b>  {{ sequence.sequence }}
+                                </td>
+                                <td class="text-wrap" style="text-align:center">
+                                    <a href={{ sequence.get_absolute_url}} >{{ sequence.incipit|default:"" }}</a>
+                                </td>
+                                <td class="text-wrap" style="text-align:center">
+                                    {{ sequence.rubrics|default:"" }}
+                                </td>
+                                <td class="text-wrap" style="text-align:center">
+                                    {{ sequence.analecta_hymnica|default:"" }}
+                                </td>
+                                <td class="text-wrap" style="text-align:center">
+                                    <a href={% url 'chant-by-cantus_id' sequence.cantus_id %}>{{ sequence.cantus_id|default:"" }}</a>
+                                </td>
+                            </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            {% endif %}
         </div>
 
         <div class="col">
