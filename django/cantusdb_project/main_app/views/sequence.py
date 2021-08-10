@@ -12,6 +12,13 @@ class SequenceDetailView(DetailView):
     context_object_name = "sequence"
     template_name = "sequence_detail.html"
 
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context["concordances"] = Sequence.objects.filter(
+            cantus_id=self.get_object().cantus_id
+        ).order_by("siglum")
+        return context
+
 
 class SequenceListView(ListView):
     """

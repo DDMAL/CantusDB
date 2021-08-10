@@ -154,7 +154,43 @@
             {% endif %}
         </div>
     </dl>
+
+    <h4>Concordances</h4>
+    <small>Displaying 1 - {{ concordances.count }} of {{ concordances.count }}</small>
+    <table class="table table-responsive table-sm small table-bordered">
+        <thead>
+            <tr>
+                <th scope="col" class="text-wrap" style="text-align:center">Siglum</th>
+                <th scope="col" class="text-wrap" style="text-align:center">Text incipit</th>
+                <th scope="col" class="text-wrap" style="text-align:center">Rubrics</th>
+                <th scope="col" class="text-wrap" style="text-align:center">AH</th>
+                <th scope="col" class="text-wrap" style="text-align:center">Cantus ID</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for sequence in concordances %}
+                <tr>
+                    <td class="text-wrap" style="text-align:center">
+                        <a href="{{ sequence.source.get_absolute_url }}">{{sequence.siglum}}</a>
+                        <br>
+                        <b>{{ sequence.folio }}</b>  {{ sequence.sequence }}
+                    </td>
+                    <td class="text-wrap" style="text-align:center">
+                        <a href={{ sequence.get_absolute_url}} >{{ sequence.incipit|default:"" }}</a>
+                    </td>
+                    <td class="text-wrap" style="text-align:center">
+                        {{ sequence.rubrics|default:"" }}
+                    </td>
+                    <td class="text-wrap" style="text-align:center">
+                        {{ sequence.analecta_hymnica|default:"" }}
+                    </td>
+                    <td class="text-wrap" style="text-align:center">
+                        <a href={% url 'chant-by-cantus_id' sequence.cantus_id %}>{{ sequence.cantus_id|default:"" }}</a>
+                    </td>
+                </tr>
+            {% endfor %}
+        </tbody>
+    </table>
 </div>
 
-<!-- TODO: Add the rest of the related sequences (concordances) here -->
 {% endblock %}
