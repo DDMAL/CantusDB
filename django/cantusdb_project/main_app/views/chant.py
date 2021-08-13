@@ -15,7 +15,7 @@ from django.views.generic import (
     UpdateView,
 )
 from main_app.forms import ChantCreateForm
-from main_app.models import Chant, Feast, Genre, Source, Sequence
+from main_app.models import Chant, Feast, Genre, Source, Sequence, feast
 
 
 def keyword_search(queryset: QuerySet, keywords: str) -> QuerySet:
@@ -119,10 +119,77 @@ class ChantListView(ListView):
     """
 
     model = Chant
-    queryset = Chant.objects.all().order_by("id")
-    paginate_by = 18
+    queryset = (
+        Chant.objects.all()
+        .filter(source__visible=True, source__public=True)
+        .order_by("id")
+    )
+    paginate_by = 50
     context_object_name = "chants"
     template_name = "chant_list.html"
+
+    def get_queryset(self):
+        queryset = super().get_queryset()
+        source_id = self.request.GET.get("source")
+        feast_id = self.request.GET.get("feast")
+        genre_id = self.request.GET.get("genre")
+        folio = self.request.GET.get("folio")
+
+        if source_id:
+            queryset = queryset.filter(source__id=source_id)
+        if feast_id:
+            queryset = queryset.filter(feast__id=feast_id)
+        if genre_id:
+            queryset = queryset.filter(genre__id=genre_id)
+        if folio:
+            queryset = queryset.filter(folio=folio)
+        return queryset
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        source_id = self.request.GET.get("source")
+        chants_in_source = Source.objects.get(id=source_id).chant_set
+        folios = (
+            chants_in_source.values_list("folio", flat=True)
+            .distinct()
+            .order_by("folio")
+        )
+        context["folios"] = folios
+
+        # for the feast selector on the right,
+        # feasts are aligned with the corresponding folios
+        folios_with_feasts = []
+        feasts_with_folios = []
+
+        folios_with_feasts.append(folios[0])
+        current_feast = (
+            chants_in_source.filter(folio=folios[0])
+            .exclude(feast=None)
+            .order_by("sequence_number")
+            .first()
+            .feast
+        )
+        feasts_with_folios.append(current_feast)
+
+        for folio in folios:
+            chants_on_folio = chants_in_source.filter(folio=folio).order_by(
+                "sequence_number"
+            )
+            for chant in chants_on_folio:
+                if chant.feast != current_feast:
+                    feasts_with_folios.append(chant.feast)
+                    folios_with_feasts.append(folio)
+                    current_feast = chant.feast
+
+        feast_zip = zip(folios_with_feasts, feasts_with_folios)
+        # the options for the feast selector on the right
+        context["feasts_with_folios"] = feast_zip
+
+        # these are needed in the left part, unrelated to stuff on the right
+        context["sources"] = Source.objects.all().order_by("siglum")
+        context["feasts"] = Feast.objects.all().order_by("name")
+        context["genres"] = Genre.objects.all().order_by("name")
+        return context
 
 
 class ChantByCantusIDView(ListView):
@@ -195,12 +262,14 @@ class ChantSearchView(ListView):
         # if the search is accessed by the global search bar
         if self.request.GET.get("search_bar"):
             if self.request.GET.get("search_bar").replace(" ", "").isalpha():
+                # if search bar is doing incipit search
                 incipit = self.request.GET.get("search_bar")
                 chant_set = keyword_search(chant_set, incipit)
                 sequence_set = keyword_search(sequence_set, incipit)
                 queryset = chant_set.union(sequence_set)
                 # queryset = keyword_search(queryset, incipit)
             else:
+                # if search bar is doing Cantus ID search
                 cantus_id = self.request.GET.get("search_bar")
                 q_obj_filter &= Q(cantus_id=cantus_id)
                 chant_set = chant_set.filter(q_obj_filter)
@@ -236,7 +305,6 @@ class ChantSearchView(ListView):
             # Filter the QuerySet with Q object
             chant_set = chant_set.filter(q_obj_filter)
             sequence_set = sequence_set.filter(q_obj_filter)
-            # combine the chant and sequence querysets
             # Finally, use the incipit parameter to do keyword searching
             # over the QuerySet
             if self.request.GET.get("keyword"):
@@ -256,8 +324,7 @@ class ChantSearchView(ListView):
 
 
 class ChantCreateView(CreateView):
-    """Create chant at /chant-create/<source-id>
-    """
+    """Create chant at /chant-create/<source-id>"""
 
     model = Chant
     template_name = "input_form_w.html"
@@ -314,8 +381,7 @@ class ChantCreateView(CreateView):
         return latest_folio, latest_feast, latest_seq + 1, latest_image
 
     def dispatch(self, request, *args, **kwargs):
-        """Make sure the source specified in url exists before we display the form
-        """
+        """Make sure the source specified in url exists before we display the form"""
         self.source = get_object_or_404(Source, pk=kwargs["source_pk"])
         self.source_id = kwargs["source_pk"]
         return super().dispatch(request, *args, **kwargs)
@@ -468,8 +534,7 @@ class ChantCreateView(CreateView):
 
 
 class ChantDeleteView(DeleteView):
-    """delete chant on chant-detail page
-    """
+    """delete chant on chant-detail page"""
 
     model = Chant
     success_url = reverse_lazy("chant-list")
@@ -486,7 +551,7 @@ class ChantUpdateView(UpdateView):
 class CISearchView(TemplateView):
     """search in CI and write results in get_context_data
     now this is implemented as [send a search request to CI -> scrape the returned html table]
-    But, it is possible to use CI json export. 
+    But, it is possible to use CI json export.
     To do a text search on CI, use 'http://cantusindex.org/json-text/<text to search>'
     """
 

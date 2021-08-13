@@ -2,48 +2,184 @@
 {% load helper_tags %}
 {% block content %}
 <title>Browse Chants | Cantus Manuscript Database</title>
-<div class="mr-3 p-3 col-md-12 mx-auto bg-white rounded">
-    <!-- global search bar-->
-    <object align="right">
-        {% include "global_search_bar.html" %}
-    </object>
-    <h3>Chants</h3>
-    <small>Displaying {{page_obj.start_index}}-{{page_obj.end_index}} of <b>{{page_obj.paginator.count}}</b></small>
-    <table class="table table-responsive table-sm small">
-        <thead>
-            <tr>
-                <th scope="col" class="text-wrap">Chant</th>
-                <th scope="col" class="text-wrap">Source</th>
-            </tr>
-        </thead>
-        <tbody>
-            {% for chant in chants %}
-            <tr>
-                <td class="text-wrap">
-                    <a href="{{ chant.get_absolute_url }}">{{chant.incipit}}</a>
-                </td>
-                <td class="text-wrap">{{ chant.source.title }}</td>
-            </tr>
-            {% endfor %}
-        </tbody>
-    </table>
-    <div class="pagination">
-        <span class="step-links">
-            {% if page_obj.has_previous %}
-            <a href="?{% url_add_get_params page=1%}">&laquo;
-                first</a>
-            <a href="?{% url_add_get_params page=page_obj.previous_page_number %}">previous</a>
-            {% endif %}
-            <span class="current">
-                Page {{ page_obj.number }} of {{ page_obj.paginator.num_pages }}
-            </span>
+<script>
+    // Make sure the select components keep their values across multiple GET requests
+    // so the user can "drill down" on what they want
+    window.onload = function () {
+        $("#source-filter").val("{{ request.GET.source }}")
+        $("#feast-filter").val("{{ request.GET.feast }}")
+        $("#search").val("{{ request.GET.search }}")
+        $("#genre-filter").val("{{ request.GET.genre}}")
+    }
+</script>
 
-            {% if page_obj.has_next %}
-            <a href="?{% url_add_get_params page=page_obj.next_page_number %}">next</a>
-            <a href="?{% url_add_get_params page=page_obj.paginator.num_pages %}">last
-                &raquo;</a>
-            {% endif %}
-        </span>
+<div class="container">
+    <div class="row">
+        <div class="mr-3 p-3 col-lg-8 bg-white rounded">
+            <h3>Browse Chants</h3>
+            <small>Displaying <b>{{page_obj.start_index}}-{{page_obj.end_index}}</b> of <b>{{page_obj.paginator.count}}</b> chants</small>
+            
+            <form method="get">
+                <div class="form-row align-items-end">
+                    <div class="form-group m-1 col-lg">
+                        <label for="source-filter"><small><b>Source</b></small></label>
+                        <select id="source-filter" name="source" value="{{ request.GET.source}}" class="form-control custom-select custom-select-sm">
+                            <option value="">- Any -</option>
+                            {% for source in sources %}
+                                <option value="{{ source.id }}">{{ source.siglum }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                </div>
+
+                <div class="form-row align-items-end">
+                    <div class="form-group m-1 col-lg">
+                        <label for="feast-filter"><small><b>Feast</b></small></label>
+                        <select id="feast-filter" name="feast" class="form-control custom-select custom-select-sm">
+                            <option value="">- Any -</option>
+                            {% for feast in feasts %}
+                                <option value="{{ feast.id }}">{{ feast.name }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                </div>
+
+                <div class="form-row align-items-end">
+                    <div class="form-group m-1 col-lg">
+                        <label for="search"><small><b>Search Text</b></small></label>
+                        <input type="text" class="form-control form-control-sm" name="general" value="{{ request.GET.search}}" id="search">
+                    </div>
+
+                    <div class="form-group m-1 col-lg">
+                        <label for="genre-filter"><small><b>Genre</b></small></label>
+                        <select id="genre-filter" name="genre" class="form-control custom-select custom-select-sm">
+                            <option value="">- Any -</option>
+                            {% for genre in genres %}
+                                <option value="{{ genre.id }}">{{ genre.name }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                </div>
+
+            </form>
+
+            <table class="table table-responsive table-sm small">
+                <thead>
+                    <tr>
+                        <th scope="col" class="text-wrap">Siglum</th>
+                        <th scope="col" class="text-wrap">Folio</th>
+                        <th scope="col" class="text-wrap">Sequence</th>
+                        <th scope="col" class="text-wrap">Incipit / Full text</th>
+                        <th scope="col" class="text-wrap">Feast</th>
+                        <th scope="col" class="text-wrap">Office</th>
+                        <th scope="col" class="text-wrap">Genre</th>
+                        <th scope="col" class="text-wrap">Position</th>
+                        <th scope="col" class="text-wrap">CantusID</th>
+                        <th scope="col" class="text-wrap">Mode</th>
+                        <th scope="col" class="text-wrap">Image</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for chant in chants %}
+                    <tr>
+                        <td class="text-wrap">{{ chant.siglum|default:"" }}</td>
+                        <td class="text-wrap"><b>{{ chant.folio|default:"" }}</b></td>
+                        <td class="text-wrap">{{ chant.sequence_number|default:"" }}</td>
+                        <td class="text-wrap">
+                            <a href="{{ chant.get_absolute_url }}"><b>{{ chant.incipit|default:"" }}</b></a>
+                            <p>{{ chant.manuscript_full_text_std_spelling }}</p>
+                        </td>
+                        <td class="text-wrap">
+                            <a href="{{ chant.feast.get_absolute_url }}">{{ chant.feast.name|default:"" }}</a>
+                        </td>
+                        <td class="text-wrap">{{ chant.office.name|default:"" }}</td>
+                        <td class="text-wrap">{{ chant.genre.name|default:"" }}</td>
+                        <td class="text-wrap">{{ chant.position|default:"" }}</td>
+                        <td class="text-wrap">
+                            <a href="{{ chant.get_ci_url }}" target="_blank">{{ chant.cantus_id }}</a>
+                        </td>
+                        <td class="text-wrap">{{ chant.mode|default:"" }}</td>
+                        <td class="text-wrap">
+                            {% if chant.image_link %}
+                                <a href="{{ chant.image_link }}" target="_blank">Image</a>
+                            {% endif %}
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+            <div class="pagination">
+                <span class="step-links">
+                    {% if page_obj.has_previous %}
+                    <a href="?{% url_add_get_params page=1%}">&laquo;
+                        first</a>
+                    <a href="?{% url_add_get_params page=page_obj.previous_page_number %}">previous</a>
+                    {% endif %}
+                    <span class="current">
+                        Page {{ page_obj.number }} of {{ page_obj.paginator.num_pages }}
+                    </span>
+
+                    {% if page_obj.has_next %}
+                    <a href="?{% url_add_get_params page=page_obj.next_page_number %}">next</a>
+                    <a href="?{% url_add_get_params page=page_obj.paginator.num_pages %}">last
+                        &raquo;</a>
+                    {% endif %}
+                </span>
+            </div>
+        </div>
+    
+        <div class="col">
+            <div class="row">
+            <!-- global search bar-->
+            {% include "global_search_bar.html" %}
+            </div>
+
+            {% with source=chants.first.source %}
+                <div class="row">
+                    <div class="card mb-3 w-100">
+
+                        <div class="card-header">
+                            <h4>{{ source.siglum }}</h4>
+                        </div>
+
+                        <div class="card-body">
+                            <small>
+                                <!--a small selector of all folios of this source-->
+                                <select name="folios" id="folio-select" class="w-30" onchange="jumpSource()">
+                                    <option value="#">Select a folio:</option>
+                                    {% for folio in folios %}
+                                        <option value="#">{{ folio }}</option>
+                                    {% endfor %}
+                                </select>
+
+                                <select name="feasts" id="feast-select" onchange="jumpSource()">
+                                    <option value="#">Select a feast:</option>
+                                    {% for folio, feast in feasts_with_folios %}
+                                        <option value="{{ feast.id }}">{{ folio }} - {{ feast.name }}</option>
+                                    {% endfor %}
+                                </select>
+                                <br>
+                                <a href="#">» View all chants</a>
+                                &nbsp;
+                                <a href="#">» View full index</a>
+                                &nbsp;
+                                <a href="#">» CSV export</a>
+                                <br>
+                                <a href="#">» Search chants in this manuscript</a>
+                                &nbsp;
+                                <a href="{{ source.image_link }}" target="_blank">» Image gallery</a>
+                                <br>
+                                <a href="#">» Search melodies in this manuscript</a>
+                                <br>
+                                <a href="//cantusindex.org/analyse?src={{ source.id }}&db=CD" target="_blank">» Analyse this manuscript (Cantus Analysis Tool)</a>
+                            </small>
+                        </div>    
+
+                    </div>
+                </div>
+            {% endwith %}
+
+        </div>
     </div>
 </div>
 {% endblock %}
