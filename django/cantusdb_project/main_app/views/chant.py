@@ -165,8 +165,7 @@ class ChantListView(ListView):
         source = Source.objects.get(id=source_id)
         context["source"] = source
         chants_in_source = source.chant_set
-
-        if not chants_in_source:
+        if chants_in_source.count() == 0:
             context["folios"] = None
             context["feasts_with_folios"] = None
             context["previous_folio"] = None
