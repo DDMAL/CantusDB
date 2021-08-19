@@ -189,10 +189,10 @@
                             </select>
 
                             {% if previous_folio %}
-                                <a href="{% url "chant-list" %}/?source{{ source.id }}&feast={{ feast }}">{{ previous_folio }} <</a>
+                                <a href="{% url "chant-list" %}?source={{ source.id }}&folio={{ previous_folio }}">{{ previous_folio }} <</a>
                             {% endif %}
                             {% if next_folio %}
-                                &nbsp;<a href="#">> {{ next_folio }}</a>
+                                &nbsp;<a href="{% url "chant-list" %}?source={{ source.id }}&folio={{ next_folio }}">> {{ next_folio }}</a>
                             {% endif %}                                
 
                             <select name="feast" id="feast-select" onchange="setParam('feast')">
@@ -202,7 +202,7 @@
                                 {% endfor %}
                             </select>
                             <br>
-                            <a href="#">» View all chants</a>
+                            <a href="{% url "chant-list" %}?source={{ source.id }}">» View all chants</a>
                             &nbsp;
                             <a href="#">» View full index</a>
                             &nbsp;
