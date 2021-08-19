@@ -134,6 +134,7 @@ class ChantListView(ListView):
         feast_id = self.request.GET.get("feast")
         genre_id = self.request.GET.get("genre")
         folio = self.request.GET.get("folio")
+        search_text = self.request.GET.get("search_text")
 
         if source_id:
             queryset = queryset.filter(source__id=source_id)
@@ -143,18 +144,49 @@ class ChantListView(ListView):
             queryset = queryset.filter(genre__id=genre_id)
         if folio:
             queryset = queryset.filter(folio=folio)
+        if search_text:
+            search_text = search_text.replace("+", " ").strip(" ")
+            queryset = queryset.filter(
+                Q(manuscript_full_text_std_spelling__icontains=search_text)
+                | Q(incipit__icontains=search_text)
+                | Q(manuscript_full_text__icontains=search_text)
+            )
+
         return queryset
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
+        # these are needed in the left part selectors, unrelated to stuff on the right
+        context["sources"] = Source.objects.all().order_by("siglum")
+        context["feasts"] = Feast.objects.all().order_by("name")
+        context["genres"] = Genre.objects.all().order_by("name")
+
         source_id = self.request.GET.get("source")
-        chants_in_source = Source.objects.get(id=source_id).chant_set
+        source = Source.objects.get(id=source_id)
+        context["source"] = source
+        chants_in_source = source.chant_set
+
+        if not chants_in_source:
+            context["folios"] = None
+            context["feasts_with_folios"] = None
+            context["previous_folio"] = None
+            context["next_folio"] = None
+            return context
+
         folios = (
             chants_in_source.values_list("folio", flat=True)
             .distinct()
             .order_by("folio")
         )
         context["folios"] = folios
+
+        if self.request.GET.get("folio"):
+            folio = self.request.GET.get("folio")
+            index = list(folios).index(folio)
+            context["previous_folio"] = folios[index - 1] if index != 0 else None
+            context["next_folio"] = (
+                folios[index + 1] if index < len(folios) - 1 else None
+            )
 
         # for the feast selector on the right,
         # feasts are aligned with the corresponding folios
@@ -184,11 +216,6 @@ class ChantListView(ListView):
         feast_zip = zip(folios_with_feasts, feasts_with_folios)
         # the options for the feast selector on the right
         context["feasts_with_folios"] = feast_zip
-
-        # these are needed in the left part, unrelated to stuff on the right
-        context["sources"] = Source.objects.all().order_by("siglum")
-        context["feasts"] = Feast.objects.all().order_by("name")
-        context["genres"] = Genre.objects.all().order_by("name")
         return context
 
 
