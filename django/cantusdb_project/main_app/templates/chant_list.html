@@ -206,7 +206,7 @@
                             &nbsp;
                             <a href="{% url "chant-index" %}?source={{ source.id }}" target="_blank">» View full index</a>
                             &nbsp;
-                            <a href="#">» CSV export</a>
+                            <a href="{% url "csv-export" source.id%}" target="_blank">» CSV export</a>
                             <br>
                             <a href="#">» Search chants in this manuscript</a>
                             &nbsp;

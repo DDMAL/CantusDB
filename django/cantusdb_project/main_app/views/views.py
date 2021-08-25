@@ -1,4 +1,6 @@
+import csv
 from django.http.response import JsonResponse
+from django.http import HttpResponse
 from django.shortcuts import render
 from django.urls.base import reverse
 from main_app.models import Chant, Sequence, Source, Feast, Genre, Indexer, Office
@@ -88,3 +90,77 @@ def ajax_melody_list(request, cantus_id):
         {"concordances": concordances, "concordance_count": concordance_count},
         safe=False,
     )
+
+
+def csv_export(request, source_id):
+    source = Source.objects.get(id=source_id)
+    if source.segment.id == 4064:
+        entries = source.sequence_set.order_by("id")
+    else:
+        entries = source.chant_set.order_by("id")
+
+    response = HttpResponse(content_type="text/csv")
+    # response["Content-Disposition"] = 'attachment; filename="somefilename.csv"'
+
+    writer = csv.writer(response)
+    writer.writerow(
+        [
+            "siglum",
+            "marginalia",
+            "folio",
+            "sequence",
+            "incipit",
+            "feast",
+            "office",
+            "genre",
+            "position",
+            "cantus_id",
+            "mode",
+            "finalis",
+            "differentia",
+            # "differentia_new",
+            "fulltext_standardized",
+            "fulltext_ms",
+            "volpiano",
+            "image_link",
+            "melody_id",
+            "cao_concordances",
+            "addendum",
+            "extra",
+            "node_id",
+        ]
+    )
+    for entry in entries:
+        feast = entry.feast.name if entry.feast else ""
+        office = entry.office.name if entry.office else ""
+        genre = entry.genre.name if entry.genre else ""
+
+        writer.writerow(
+            [
+                entry.siglum,
+                entry.marginalia,
+                entry.folio,
+                entry.sequence_number,
+                entry.incipit,
+                feast,
+                office,
+                genre,
+                entry.position,
+                entry.cantus_id,
+                entry.mode,
+                entry.finalis,
+                entry.differentia,
+                # entry.differentia_new,
+                entry.manuscript_full_text_std_spelling,
+                entry.manuscript_full_text,
+                entry.volpiano,
+                entry.image_link,
+                entry.melody_id,
+                entry.cao_concordances,
+                entry.addendum,
+                entry.extra,
+                entry.id,
+            ]
+        )
+
+    return response
