@@ -9,6 +9,7 @@ from main_app.views import (
     ChantDeleteView,
     CISearchView,
     ChantByCantusIDView,
+    FullIndexView,
     FeastDetailView,
     FeastListView,
     GenreDetailView,
@@ -43,7 +44,11 @@ urlpatterns = [
     ),
     path("chant-update/<int:pk>", ChantUpdateView.as_view(), name="chant-update"),
     path("sequences/", SequenceListView.as_view(), name="sequence-list"),
-    path("sequences/<int:pk>", SequenceDetailView.as_view(), name="sequence-detail",),
+    path(
+        "sequences/<int:pk>",
+        SequenceDetailView.as_view(),
+        name="sequence-detail",
+    ),
     path(
         "id/<str:cantus_id>", ChantByCantusIDView.as_view(), name="chant-by-cantus_id"
     ),
@@ -56,4 +61,6 @@ urlpatterns = [
         name="ajax_concordance",
     ),
     path("ajax/melody/<str:cantus_id>", views.ajax_melody_list, name="ajax_melody"),
+    path("csv/<str:source_id>", views.csv_export, name="csv-export"),
+    path("index/", FullIndexView.as_view(), name="chant-index"),
 ]
