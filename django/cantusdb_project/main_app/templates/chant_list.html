@@ -204,7 +204,7 @@
                             <br>
                             <a href="{% url "chant-list" %}?source={{ source.id }}">» View all chants</a>
                             &nbsp;
-                            <a href="#">» View full index</a>
+                            <a href="{% url "chant-index" %}?source={{ source.id }}" target="_blank">» View full index</a>
                             &nbsp;
                             <a href="#">» CSV export</a>
                             <br>

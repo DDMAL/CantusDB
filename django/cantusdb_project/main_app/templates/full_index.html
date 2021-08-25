@@ -1,0 +1,54 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <!-- Bootstrap CSS -->
+    <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.0/css/bootstrap.min.css"
+        integrity="sha384-9aIt2nRpC12Uk9gS9baDl411NQApFmC26EwAOH8WgZl5MYYxFfc+NcPb1dKGj7Sk" crossorigin="anonymous">
+</head>
+
+<body>
+    <title>Index | Cantus Manuscript Database</title>
+    <h3>CANTUS Manuscript Index: 
+        <a href="{{ source.get_absolute_url }}" target="_href">{{ source.title }}</a>
+    </h3>
+    This source index contains {{ chants.count }} chants.
+    <table class="table table-responsive table-sm small table-bordered table-striped table-hover">
+        <thead>
+            <tr>
+                <th width="80">Siglum</th>
+                <th width="30">Marg</th>
+                <th width="30">Folio</th>
+                <th width="30">Seq</th>
+                <th width="80">Feast</th>
+                <th width="30">Office</th>
+                <th width="30">Genre</th>
+                <th width="30">Pos</th>
+                <th width="200">Incipit</th>
+                <th width="80">Cantus ID</th>
+                <th width="30">Mode</th>
+                <th width="30">Diff</th>
+            </tr>
+        </thead>
+
+        <tbody>
+            {% for chant in chants %}
+                <tr>
+                    <td>{{ chant.siglum|default:"" }}</td>
+                    <td>{{ chant.marginalia|default_if_none:"" }}</td>
+                    <td>{{ chant.folio|default:"" }}</td>
+                    <td>{{ chant.sequence_number|default_if_none:"" }}</td>
+                    <td>{{ chant.feast.name|default:"" }}</td>
+                    <td>{{ chant.office.name|default:"" }}</td>
+                    <td>{{ chant.genre.name|default:"" }}</td>
+                    <td>{{ chant.position|default_if_none:"" }}</td>
+                    <td><a href="{{ chant.get_absolute_url }}" target="_blank">{{ chant.incipit|default:"" }}</a></td>
+                    <td>{{ chant.cantus_id|default:"" }}</td>
+                    <td>{{ chant.mode|default_if_none:"" }}</td>
+                    <td>{{ chant.differentia|default_if_none:"" }}</td>
+                </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</body>
+</html>
