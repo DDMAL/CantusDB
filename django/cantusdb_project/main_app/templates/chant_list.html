@@ -208,7 +208,7 @@
                             &nbsp;
                             <a href="{% url "csv-export" source.id%}" target="_blank">» CSV export</a>
                             <br>
-                            <a href="#">» Search chants in this manuscript</a>
+                            <a href="{% url "chant-search-ms" source.id %}" target="_blank" >» Search chants in this manuscript</a>
                             &nbsp;
                             <a href="{{ source.image_link }}" target="_blank">» Image gallery</a>
                             <br>
