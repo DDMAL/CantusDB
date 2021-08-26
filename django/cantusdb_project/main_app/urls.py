@@ -5,6 +5,7 @@ from main_app.views import (
     ChantDetailView,
     ChantListView,
     ChantSearchView,
+    ChantSearchMSView,
     ChantUpdateView,
     ChantDeleteView,
     CISearchView,
@@ -39,6 +40,11 @@ urlpatterns = [
     path("chants/", ChantListView.as_view(), name="chant-list"),
     path("chants/<int:pk>", ChantDetailView.as_view(), name="chant-detail"),
     path("chant-search/", ChantSearchView.as_view(), name="chant-search"),
+    path(
+        "chant-search-ms/<int:source_pk>",
+        ChantSearchMSView.as_view(),
+        name="chant-search-ms",
+    ),
     path(
         "chant-create/<int:source_pk>", ChantCreateView.as_view(), name="chant-create"
     ),

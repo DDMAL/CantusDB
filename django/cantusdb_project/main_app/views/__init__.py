@@ -3,6 +3,7 @@ from main_app.views.chant import (
     ChantDetailView,
     ChantListView,
     ChantSearchView,
+    ChantSearchMSView,
     ChantUpdateView,
     ChantDeleteView,
     CISearchView,
