@@ -6,12 +6,12 @@
     // Make sure the select components keep their values across multiple GET requests
     // so the user can "drill down" on what they want
     window.onload = function () {
+        $("#office-filter").val("{{ request.GET.office }}")
         $("#genre-filter").val("{{ request.GET.genre }}")
         $("#cantus_id-filter").val("{{ request.GET.cantus_id }}")
         $("#mode-filter").val("{{ request.GET.mode }}")
         $("#melodies-filter").val("{{ request.GET.melodies }}")
         $("#feast-filter").val("{{ request.GET.feast }}")
-        $("#incipit-filter").val("{{ request.GET.incipit }}")
         $("#keyword-search").val("{{ request.GET.keyword }}")
         $("#search-bar").val("{{ request.GET.search_bar }}")
     }
@@ -22,8 +22,14 @@
         {% include "global_search_bar.html" %}
     </object>
     <h3>Search Chants</h3>
-    <small>Displaying {{page_obj.start_index}}-{{page_obj.end_index}} of <b>{{page_obj.paginator.count}}
-            chants</b></small>
+    {% if source %}
+        Source: <a href="{{ source.get_absolute_url }}" target="_blank">{{ source.title }}</a><br>
+    {% endif %}
+
+    {% if chants.all %}
+        <small>Displaying {{page_obj.start_index}}-{{page_obj.end_index}} of <b>{{page_obj.paginator.count}}
+                chants</b></small>
+    {% endif %}
 
     <form method="get">
         <div class="form-row align-items-end">
@@ -34,6 +40,11 @@
             </div>
         </div>
         <div class="form-row form-row align-items-end">
+            <div class="form-group m-1 col-lg">
+                <label for="office-filter"><small>Office/Mass</small></label>
+                <input type="text" class="form-control form-control-sm" name="office" value="{{ request.GET.office }}"
+                    id="office-filter">
+            </div>
             <div class="form-group m-1 col-lg">
                 <label for="genre-filter"><small>Genre</small></label>
                 <select id="genre-filter" name="genre" class="form-control custom-select custom-select-sm">
@@ -67,13 +78,13 @@
                 </select>
             </div>
         </div>
-        <div class="form-row align-items-end">
+        {% comment %} <div class="form-row align-items-end">
             <div class="form-group m-1 col-lg">
                 <label for="melody-search"><small>Melody search</small></label>
                 <input type="text" class="form-control form-control-sm" name="melody" value="{{ request.GET.melody }}"
                     id="melody-search" style = "font-family:volpiano; font-size:30px;">
             </div>
-        </div>
+        </div> {% endcomment %}
         <div class="form-row align-items-end">
             <div class="form-group m-1 col-lg">
                 <button type="submit" class="btn btn-dark btn-sm" id="btn-submit"> Apply </button>
@@ -82,102 +93,106 @@
         
     </form>
 
-    <table class="table table-responsive table-sm small table-bordered">
-        <thead>
-            <tr>
-                <th scope="col" class="text-wrap" style="text-align:center">Siglum</th>
-                <th scope="col" class="text-wrap" style="text-align:center">Folio</th>
-                <th scope="col" class="text-wrap" style="text-align:center">Incipit/Full Text</th>
-                <th scope="col" class="text-wrap" style="text-align:center">Feast</th>
-                <th scope="col" class="text-wrap" style="text-align:center">Office/Mass</th>
-                <th scope="col" class="text-wrap" style="text-align:center">Genre</th>
-                <th scope="col" class="text-wrap" style="text-align:center">Position</th>
-                <th scope="col" class="text-wrap" style="text-align:center">Cantus ID</th>
-                <th scope="col" class="text-wrap" style="text-align:center">Mode</th>
-                <th scope="col" class="text-wrap" style="text-align:center">MsFt</th>
-                <th scope="col" class="text-wrap" style="text-align:center">Mel</th>
-                <th scope="col" class="text-wrap" style="text-align:center">Image</th>
-            </tr>
-        </thead>
-        <tbody>
-            {% for chant in chants %}
-            <tr>
-                <td class="text-wrap" style="text-align:left">
-                    <a href="{{ chant.source.get_absolute_url }}">{{chant.source.siglum}}</a>
-                </td>
-                <td class="text-wrap" style="text-align:center">
-                    {{ chant.folio|default:""|truncatechars_html:140 }}
-                </td>
+    {% if chants.all %}
+        <table class="table table-responsive table-sm small table-bordered">
+            <thead>
+                <tr>
+                    <th scope="col" class="text-wrap" style="text-align:center">Siglum</th>
+                    <th scope="col" class="text-wrap" style="text-align:center">Folio</th>
+                    <th scope="col" class="text-wrap" style="text-align:center">Incipit/Full Text</th>
+                    <th scope="col" class="text-wrap" style="text-align:center">Feast</th>
+                    <th scope="col" class="text-wrap" style="text-align:center">Office/Mass</th>
+                    <th scope="col" class="text-wrap" style="text-align:center">Genre</th>
+                    <th scope="col" class="text-wrap" style="text-align:center">Position</th>
+                    <th scope="col" class="text-wrap" style="text-align:center">Cantus ID</th>
+                    <th scope="col" class="text-wrap" style="text-align:center">Mode</th>
+                    <th scope="col" class="text-wrap" style="text-align:center">MsFt</th>
+                    <th scope="col" class="text-wrap" style="text-align:center">Mel</th>
+                    <th scope="col" class="text-wrap" style="text-align:center">Image</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for chant in chants %}
+                <tr>
+                    <td class="text-wrap" style="text-align:left">
+                        <a href="{{ chant.source.get_absolute_url }}">{{chant.source.siglum}}</a>
+                    </td>
+                    <td class="text-wrap" style="text-align:center">
+                        {{ chant.folio|default:""|truncatechars_html:140 }}
+                    </td>
 
-                <td class="text-wrap" style="text-align:left">
-                    {% comment %} this is used for distinguishing chants from sequences,
-                    if the object is chant, use chant.get_absolute_url,
-                    otherwise, use sequence.get_absolute_url
-                    the combined queryset turned all objects into chants
-                    so this is the only way to make the distinction {% endcomment %}
-                    {% if chant.search_vector %}
-                        <a href="{{chant.get_absolute_url}}">{{ chant.incipit|default:"" }}</a>
-                    {% else %}
-                        <a href="{% url 'sequence-detail' chant.id %}">{{ chant.incipit|default:"" }}</a>
-                    {% endif %}
-                    <p>
-                        {{ chant.manuscript_full_text_std_spelling|default:""|truncatewords_html:100 }}
-                    </p>           
-                </td>
-                <td class="text-wrap" style="text-align:center">
-                    {{ chant.feast.name|default:"" }}
-                </td>
-                <td class="text-wrap" style="text-align:center">
-                    {{ chant.office.name|default:"" }}
-                </td>
-                <td class="text-wrap" style="text-align:center">
-                    {{ chant.genre.name|default:"" }}
-                </td>
-                <td class="text-wrap" style="text-align:center">
-                    {{ chant.position|default:"" }}
-                </td>
-                <td class="text-wrap" style="text-align:center">
-                    <a href="{{ chant.get_ci_url }}" target="_blank">{{chant.cantus_id|default:"" }}</a>
-                </td>
-                <td class="text-wrap" style="text-align:center">
-                    {{ chant.mode|default:"" }}
-                </td>
-                <td class="text-wrap" style="text-align:center">
-                    {% if chant.manuscript_full_text %}
-                    ✔
-                    {% endif %}
-                </td>
-                <td class="text-wrap" style="text-align:center">
-                    {% if chant.volpiano %}
-                    ♫
-                    {% endif %}
-                </td>
-                <td class="text-wrap" style="text-align:center">
-                    {% if chant.image_link %}
-                    <a href="{{ chant.image_link }}" target="_blank">Image</a>
-                    {% endif %}
-                </td>
+                    <td class="text-wrap" style="text-align:left">
+                        {% comment %} this is used for distinguishing chants from sequences,
+                        if the object is chant, use chant.get_absolute_url,
+                        otherwise, use sequence.get_absolute_url
+                        the combined queryset turned all objects into chants
+                        so this is the only way to make the distinction {% endcomment %}
+                        {% if chant.search_vector %}
+                            <a href="{{chant.get_absolute_url}}">{{ chant.incipit|default:"" }}</a>
+                        {% else %}
+                            <a href="{% url 'sequence-detail' chant.id %}">{{ chant.incipit|default:"" }}</a>
+                        {% endif %}
+                        <p>
+                            {{ chant.manuscript_full_text_std_spelling|default:""|truncatewords_html:100 }}
+                        </p>           
+                    </td>
+                    <td class="text-wrap" style="text-align:center">
+                        {{ chant.feast.name|default:"" }}
+                    </td>
+                    <td class="text-wrap" style="text-align:center">
+                        {{ chant.office.name|default:"" }}
+                    </td>
+                    <td class="text-wrap" style="text-align:center">
+                        {{ chant.genre.name|default:"" }}
+                    </td>
+                    <td class="text-wrap" style="text-align:center">
+                        {{ chant.position|default:"" }}
+                    </td>
+                    <td class="text-wrap" style="text-align:center">
+                        <a href="{{ chant.get_ci_url }}" target="_blank">{{chant.cantus_id|default:"" }}</a>
+                    </td>
+                    <td class="text-wrap" style="text-align:center">
+                        {{ chant.mode|default:"" }}
+                    </td>
+                    <td class="text-wrap" style="text-align:center">
+                        {% if chant.manuscript_full_text %}
+                        ✔
+                        {% endif %}
+                    </td>
+                    <td class="text-wrap" style="text-align:center">
+                        {% if chant.volpiano %}
+                        ♫
+                        {% endif %}
+                    </td>
+                    <td class="text-wrap" style="text-align:center">
+                        {% if chant.image_link %}
+                        <a href="{{ chant.image_link }}" target="_blank">Image</a>
+                        {% endif %}
+                    </td>
                 </tr>
                 {% endfor %}
-                </tbody>
-                </table>
-                <div class="pagination">
-                    <span class="step-links">
-                        {% if page_obj.has_previous %}
-                        <a href="?{% url_add_get_params page=1%}">&laquo;
-                            first</a>
-                        <a href="?{% url_add_get_params page=page_obj.previous_page_number %}">previous</a>
-                        {% endif %}
-                        <span class="current">
-                            Page {{ page_obj.number }} of {{ page_obj.paginator.num_pages }}
-                        </span>
+            </tbody>
+        </table>
 
-                        {% if page_obj.has_next %}
-                        <a href="?{% url_add_get_params page=page_obj.next_page_number %}">next</a>
-                        <a href="?{% url_add_get_params page=page_obj.paginator.num_pages %}">last
-                            &raquo;</a>
-                        {% endif %}
-                    </span>
-                </div>
-            </div>
-            {% endblock %}
+        <div class="pagination">
+            <span class="step-links">
+                {% if page_obj.has_previous %}
+                    <a href="?{% url_add_get_params page=1%}">&laquo;
+                        first</a>
+                    <a href="?{% url_add_get_params page=page_obj.previous_page_number %}">previous</a>
+                {% endif %}
+                <span class="current">
+                    Page {{ page_obj.number }} of {{ page_obj.paginator.num_pages }}
+                </span>
+
+                {% if page_obj.has_next %}
+                    <a href="?{% url_add_get_params page=page_obj.next_page_number %}">next</a>
+                    <a href="?{% url_add_get_params page=page_obj.paginator.num_pages %}">last
+                        &raquo;</a>
+                {% endif %}
+            </span>
+        </div>
+    {% endif %}
+</div>
+        
+{% endblock %}

@@ -261,8 +261,6 @@ class ChantSearchView(ListView):
         ``incipit``: Searches text of Chant for keywords
     """
 
-    # model = Chant
-    # queryset = Chant.objects.all().order_by("id")
     paginate_by = 100
     context_object_name = "chants"
     template_name = "chant_search.html"
@@ -274,19 +272,15 @@ class ChantSearchView(ListView):
         return context
 
     def get_queryset(self) -> QuerySet:
-        # queryset = super().get_queryset()
-
-        chant_set = Chant.objects.filter(source__public=True, source__visible=True)
-        sequence_set = Sequence.objects.filter(
-            source__public=True, source__visible=True
-        )
-
-        # queryset = queryset.filter(source__visible=True).filter(source__public=True)
         # Create a Q object to filter the QuerySet of Chants
         q_obj_filter = Q()
 
         # if the search is accessed by the global search bar
         if self.request.GET.get("search_bar"):
+            chant_set = Chant.objects.filter(source__public=True, source__visible=True)
+            sequence_set = Sequence.objects.filter(
+                source__public=True, source__visible=True
+            )
             if self.request.GET.get("search_bar").replace(" ", "").isalpha():
                 # if search bar is doing incipit search
                 incipit = self.request.GET.get("search_bar")
@@ -304,13 +298,23 @@ class ChantSearchView(ListView):
                 # queryset = queryset.filter(q_obj_filter)
 
         else:
+            # "office" (or any other field) should be a key in the GET if the search button has been clicked,
+            # even if the user put nothing into the search form and hits "apply" immediately.
+            # In that case, we return the all chants + seqs filtered by the search form.
+            # On the contrary, if the user just arrived at the search page, there should be no params in GET
+            # In that case, we return an empty queryset.
+            if not "office" in self.request.GET:
+                return Chant.objects.none()
             # For every GET parameter other than incipit, add to the Q object
+            if self.request.GET.get("office"):
+                office = self.request.GET.get("office")
+                q_obj_filter &= Q(office__name__icontains=office)
             if self.request.GET.get("genre"):
                 genre_id = int(self.request.GET.get("genre"))
                 q_obj_filter &= Q(genre__id=genre_id)
             if self.request.GET.get("cantus_id"):
                 cantus_id = self.request.GET.get("cantus_id")
-                q_obj_filter &= Q(cantus_id=cantus_id)
+                q_obj_filter &= Q(cantus_id__icontains=cantus_id)
             if self.request.GET.get("mode"):
                 mode = self.request.GET.get("mode")
                 q_obj_filter &= Q(mode=mode)
@@ -322,22 +326,24 @@ class ChantSearchView(ListView):
                     q_obj_filter &= Q(volpiano__isnull=True)
             if self.request.GET.get("feast"):
                 feast = self.request.GET.get("feast")
-
                 # This will match any feast whose name contains the feast parameter
                 # as a substring
                 feasts = Feast.objects.filter(name__icontains=feast)
                 q_obj_filter &= Q(feast__in=feasts)
 
+            chant_set = Chant.objects.filter(source__public=True, source__visible=True)
+            sequence_set = Sequence.objects.filter(
+                source__public=True, source__visible=True
+            )
             # Filter the QuerySet with Q object
             chant_set = chant_set.filter(q_obj_filter)
             sequence_set = sequence_set.filter(q_obj_filter)
             # Finally, use the incipit parameter to do keyword searching
             # over the QuerySet
             if self.request.GET.get("keyword"):
-                incipit = self.request.GET.get("keyword")
-                # queryset = keyword_search(queryset, incipit)
-                chant_set = keyword_search(chant_set, incipit)
-                sequence_set = keyword_search(sequence_set, incipit)
+                keyword = self.request.GET.get("keyword")
+                chant_set = keyword_search(chant_set, keyword)
+                sequence_set = keyword_search(sequence_set, keyword)
 
             # once unioned, the queryset cannot be filtered/annotated anymore, so we put union to the last
             queryset = chant_set.union(sequence_set)
@@ -346,6 +352,74 @@ class ChantSearchView(ListView):
             # so we order by id for now, which is the order that the chants are entered into the DB
             queryset = queryset.order_by("siglum", "id")
 
+        return queryset
+
+
+class ChantSearchMSView(ListView):
+    paginate_by = 100
+    context_object_name = "chants"
+    template_name = "chant_search.html"
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        # Add to context a QuerySet of dicts with id and name of each Genre
+        context["genres"] = Genre.objects.all().order_by("name").values("id", "name")
+        # This is searching in a specific source, pass the source into context
+        source_id = self.kwargs["source_pk"]
+        context["source"] = Source.objects.get(id=source_id)
+        return context
+
+    def get_queryset(self) -> QuerySet:
+        # Create a Q object to filter the QuerySet of Chants
+        q_obj_filter = Q()
+        # If the "apply" button hasn't been clicked
+        if not "office" in self.request.GET:
+            return Chant.objects.none()
+        # For every GET parameter other than incipit, add to the Q object
+        if self.request.GET.get("office"):
+            office = self.request.GET.get("office")
+            q_obj_filter &= Q(office__name__icontains=office)
+        if self.request.GET.get("genre"):
+            genre_id = int(self.request.GET.get("genre"))
+            q_obj_filter &= Q(genre__id=genre_id)
+        if self.request.GET.get("cantus_id"):
+            cantus_id = self.request.GET.get("cantus_id")
+            q_obj_filter &= Q(cantus_id__icontains=cantus_id)
+        if self.request.GET.get("mode"):
+            mode = self.request.GET.get("mode")
+            q_obj_filter &= Q(mode=mode)
+        if self.request.GET.get("melodies") in ["true", "false"]:
+            melodies = self.request.GET.get("melodies")
+            if melodies == "true":
+                q_obj_filter &= Q(volpiano__isnull=False)
+            if melodies == "false":
+                q_obj_filter &= Q(volpiano__isnull=True)
+        if self.request.GET.get("feast"):
+            feast = self.request.GET.get("feast")
+            # This will match any feast whose name contains the feast parameter
+            # as a substring
+            feasts = Feast.objects.filter(name__icontains=feast)
+            q_obj_filter &= Q(feast__in=feasts)
+
+        source_id = self.kwargs["source_pk"]
+        source = Source.objects.get(id=source_id)
+
+        queryset = (
+            source.sequence_set if source.segment.id == 4064 else source.chant_set
+        )
+        queryset = queryset.filter(source__public=True, source__visible=True)
+
+        # Filter the QuerySet with Q object
+        queryset = queryset.filter(q_obj_filter)
+        # Finally, use the keyword parameter to do keyword searching
+        # over the QuerySet
+        if self.request.GET.get("keyword"):
+            keyword = self.request.GET.get("keyword")
+            queryset = keyword_search(queryset, keyword)
+        # ordering with the folio string gives wrong order
+        # old cantus is also not strictly ordered by folio (there are outliers)
+        # so we order by id for now, which is the order that the chants are entered into the DB
+        queryset = queryset.order_by("siglum", "id")
         return queryset
 
 
