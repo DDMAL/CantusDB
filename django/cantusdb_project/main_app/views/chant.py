@@ -249,16 +249,20 @@ class ChantSearchView(ListView):
     """
     Searches Chants and displays them as a list, accessed with ``chant-search/``
 
+    This view uses the same template as ``ChantSearchMSView``
+
     If no ``GET`` parameters, returns all chants
 
     ``GET`` parameters:
+        ``office``: Filters by Office of Chant
         ``genre``: Filters by Genre of Chant
         ``cantus_id``: Filters by the Cantus ID field of Chant
         ``mode``: Filters by mode of Chant
         ``melodies``: Filters Chant by whether or not it contains a melody in
                       Volpiano form. Valid values are "true" or "false".
         ``feast``: Filters by Feast of Chant
-        ``incipit``: Searches text of Chant for keywords
+        ``keyword``: Searches text of Chant for keywords
+        ``op``: Operation to take with keyword search. Options are "contains" and "starts_with"
     """
 
     paginate_by = 100
@@ -338,12 +342,16 @@ class ChantSearchView(ListView):
             # Filter the QuerySet with Q object
             chant_set = chant_set.filter(q_obj_filter)
             sequence_set = sequence_set.filter(q_obj_filter)
-            # Finally, use the incipit parameter to do keyword searching
-            # over the QuerySet
+            # Finally, do keyword searching over the querySet
             if self.request.GET.get("keyword"):
                 keyword = self.request.GET.get("keyword")
-                chant_set = keyword_search(chant_set, keyword)
-                sequence_set = keyword_search(sequence_set, keyword)
+                # the operation parameter can be "contains" or "starts_with"
+                if self.request.GET.get("op") == "contains":
+                    chant_set = keyword_search(chant_set, keyword)
+                    sequence_set = keyword_search(sequence_set, keyword)
+                else:
+                    chant_set = chant_set.filter(incipit__istartswith=keyword)
+                    sequence_set = sequence_set.filter(incipit__istartswith=keyword)
 
             # once unioned, the queryset cannot be filtered/annotated anymore, so we put union to the last
             queryset = chant_set.union(sequence_set)
@@ -356,6 +364,25 @@ class ChantSearchView(ListView):
 
 
 class ChantSearchMSView(ListView):
+    """
+    Searches chants/seqs in a certain manuscript, accessed with ``chant-search/<int:source_pk>``
+
+    This view uses the same template as ``ChantSearchView``
+
+    If no ``GET`` parameters, returns all chants
+
+    ``GET`` parameters:
+        ``office``: Filters by the office/mass of Chant
+        ``genre``: Filters by Genre of Chant
+        ``cantus_id``: Filters by the Cantus ID field of Chant
+        ``mode``: Filters by mode of Chant
+        ``melodies``: Filters Chant by whether or not it contains a melody in
+                      Volpiano form. Valid values are "true" or "false".
+        ``feast``: Filters by Feast of Chant
+        ``keyword``: Searches text of Chant for keywords
+        ``op``: Operation to take with keyword search. Options are "contains" and "starts_with"
+    """
+
     paginate_by = 100
     context_object_name = "chants"
     template_name = "chant_search.html"
@@ -411,11 +438,14 @@ class ChantSearchMSView(ListView):
 
         # Filter the QuerySet with Q object
         queryset = queryset.filter(q_obj_filter)
-        # Finally, use the keyword parameter to do keyword searching
-        # over the QuerySet
+        # Finally, do keyword searching over the QuerySet
         if self.request.GET.get("keyword"):
             keyword = self.request.GET.get("keyword")
-            queryset = keyword_search(queryset, keyword)
+            # the operation parameter can be "contains" or "starts_with"
+            if self.request.GET.get("op") == "contains":
+                queryset = keyword_search(queryset, keyword)
+            else:
+                queryset = queryset.filter(incipit__istartswith=keyword)
         # ordering with the folio string gives wrong order
         # old cantus is also not strictly ordered by folio (there are outliers)
         # so we order by id for now, which is the order that the chants are entered into the DB

@@ -5,15 +5,23 @@
 <script>
     // Make sure the select components keep their values across multiple GET requests
     // so the user can "drill down" on what they want
-    window.onload = function () {
-        $("#office-filter").val("{{ request.GET.office }}")
-        $("#genre-filter").val("{{ request.GET.genre }}")
-        $("#cantus_id-filter").val("{{ request.GET.cantus_id }}")
-        $("#mode-filter").val("{{ request.GET.mode }}")
-        $("#melodies-filter").val("{{ request.GET.melodies }}")
-        $("#feast-filter").val("{{ request.GET.feast }}")
-        $("#keyword-search").val("{{ request.GET.keyword }}")
-        $("#search-bar").val("{{ request.GET.search_bar }}")
+    function setValue(id, value) {
+        var s= document.getElementById(id);
+        s.value = value;
+    }
+
+    window.onload=function() {
+        setValue("office-filter", "{{ request.GET.office }}");
+        setValue("genre-filter", "{{ request.GET.genre }}");
+        setValue("cantus_id-filter", "{{ request.GET.cantus_id }}");
+        setValue("mode-filter", "{{ request.GET.mode }}");
+        setValue("melodies-filter", "{{ request.GET.melodies }}");
+        setValue("feast-filter", "{{ request.GET.feast }}");
+        setValue("keyword-search", "{{ request.GET.keyword }}");
+        setValue("search-bar", "{{ request.GET.search_bar }}");
+        if ("{{ request.GET.op }}") {
+            setValue("op-filter", "{{ request.GET.op }}");
+        }
     }
 </script>
 <div class="mr-3 p-3 col-md-12 mx-auto bg-white rounded">
@@ -33,6 +41,12 @@
 
     <form method="get">
         <div class="form-row align-items-end">
+            <div class="form-group m-1 col-lg">
+                <select class="form-control custom-select custom-select-sm" id="op-filter" name="op">
+                    <option selected value="contains">Contains</option>
+                    <option value="starts_with">Starts with</option>
+                </select>
+            </div>
             <div class="form-group m-1 col-lg">
                 <label for="keyword-search"><small>Keyword search</small></label>
                 <input type="text" class="form-control form-control-sm" name="keyword" value="{{ request.GET.keyword}}"
