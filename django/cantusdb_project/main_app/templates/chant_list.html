@@ -210,7 +210,9 @@
                             <br>
                             <a href="{% url "chant-search-ms" source.id %}" target="_blank" >» Search chants in this manuscript</a>
                             &nbsp;
+                            {% if source.image_link %}
                             <a href="{{ source.image_link }}" target="_blank">» Image gallery</a>
+                            {% endif %}
                             <br>
                             <a href="#">» Search melodies in this manuscript</a>
                             <br>
