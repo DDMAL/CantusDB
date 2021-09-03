@@ -12,7 +12,50 @@ class SourceDetailView(DetailView):
         object = self.get_object()
         context = super().get_context_data(**kwargs)
         if object.segment.id == 4064:
+            # if this is a sequence source
             context["sequences"] = object.sequence_set.all().order_by("sequence")
+            folios = (
+                object.sequence_set.values_list("folio", flat=True)
+                .distinct()
+                .order_by("folio")
+            )
+        else:
+            # if this is a normal chant source
+            folios = (
+                object.chant_set.values_list("folio", flat=True)
+                .distinct()
+                .order_by("folio")
+            )
+            # for the feast selector
+            # feasts are aligned with the corresponding folios
+            folios_with_feasts = []
+            feasts_with_folios = []
+
+            folios_with_feasts.append(folios[0])
+            current_feast = (
+                object.chant_set.filter(folio=folios[0])
+                .exclude(feast=None)
+                .order_by("sequence_number")
+                .first()
+                .feast
+            )
+            feasts_with_folios.append(current_feast)
+
+            for folio in folios:
+                chants_on_folio = object.chant_set.filter(folio=folio).order_by(
+                    "sequence_number"
+                )
+                for chant in chants_on_folio:
+                    if chant.feast != current_feast:
+                        feasts_with_folios.append(chant.feast)
+                        folios_with_feasts.append(folio)
+                        current_feast = chant.feast
+
+            feast_zip = zip(folios_with_feasts, feasts_with_folios)
+            # the options for the feast selector on the right, only available for chants
+            context["feasts_with_folios"] = feast_zip
+        # the options for the folio selector on the right, for both chants and seqs
+        context["folios"] = folios
         return context
 
 

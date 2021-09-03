@@ -1,9 +1,21 @@
 {% extends "base.html" %}
 {% block content %}
 <title>{{ source.title }} | Cantus Manuscript Database</title>
+<script>
+    // function for the auto-jump of various selectors and input fields on the page
+    // the folio selector and folio-feast selector on the right half do source-wide filtering
+    // the feast selector, genre selector, and text search on the left half do folio-wide filtering
+    function setParam(param) {
+        var url = new URL("{% url 'chant-list' %}", window.location.origin);
+        url.searchParams.set("source", {{ source.id }});
+        var target = document.getElementById(event.srcElement.id).options[document.getElementById(event.srcElement.id).selectedIndex].value;
+        url.searchParams.set(param, target);
+        window.location.assign(url);
+    }
+</script>
 <div class="container">
     <div class="row">
-        <div class="mr-3 p-3 col-lg-9 bg-white rounded" id="long-info">
+        <div class="mr-3 p-3 col-lg-8 bg-white rounded" id="long-info">
             <h3>{{ source.title }}</h3>
             <dl>
                 {% if source.siglum %}
@@ -126,37 +138,65 @@
 
         <div class="col">
             <div class="row">
-            <!-- global search bar-->
-            {% include "global_search_bar.html" %}
+                <!-- global search bar-->
+                {% include "global_search_bar.html" %}
             </div>
+
             <div class="row">
                 <div class="card mb-3 w-100">
-                    <div class="card-header">
-                        {{ source.siglum }}
-                    </div>
-                    <!-- TODO: update this when I have the chants on the database -->
-                    <div class="card-body">
-                        <select name="folios" id="folio-select" class="w-75">
-                            <option value="none">-Select a folio-</option>
-                        </select>
 
-                        <select name="feasts" id="feast-select" class="w-75">
-                            <option value="none">-Select a feast-</option>
-                        </select>
+                    <div class="card-header">
+                        <h4>{{ source.siglum }}</h4>
                     </div>
+
+                    <div class="card-body">
+                        <small>
+                            <!--a small selector of all folios of this source-->
+                            <select name="folio" id="folio-filter" class="w-30" onchange="setParam('folio')">
+                                <option value="">Select a folio:</option>
+                                {% for folio in folios %}
+                                    <option value="{{ folio }}">{{ folio }}</option>
+                                {% endfor %}
+                            </select>                              
+
+                            <select name="feast" id="feast-select" onchange="setParam('feast')">
+                                <option value="">Select a feast:</option>
+                                {% for folio, feast in feasts_with_folios %}
+                                    <option value="{{ feast.id }}">{{ folio }} - {{ feast.name }}</option>
+                                {% endfor %}
+                            </select>
+
+                            <br>
+                            <a href="{% url "chant-list" %}?source={{ source.id }}">» View all chants</a>
+                            &nbsp;
+                            <a href="{% url "chant-index" %}?source={{ source.id }}" target="_blank">» View full index</a>
+                            &nbsp;
+                            <a href="{% url "csv-export" source.id%}" target="_blank">» CSV export</a>
+                            <br>
+                            <a href="{% url "chant-search-ms" source.id %}" target="_blank" >» Search chants in this manuscript</a>
+                            &nbsp;
+                            {% if source.image_link %}
+                            <a href="{{ source.image_link }}" target="_blank">» Image gallery</a>
+                            {% endif %}
+                            <br>
+                            <a href="#">» Search melodies in this manuscript</a>
+                            <br>
+                            <a href="//cantusindex.org/analyse?src={{ source.id }}&db=CD" target="_blank">» Analyse this manuscript (Cantus Analysis Tool)</a>
+                        </small>
+                    </div>    
+
                 </div>
             </div>
+
             <div class="row">
                 <div class="card mb-3 w-100">
                     <div class="card-header">
-                        <!-- TODO: add proper segment link here -->
                         <small><a href="/sources?segment={{ source.segment.id }}">
                                 {{ source.segment.name }}</a></small>
                         <br>
                         {{ source.siglum }}
                     </div>
                     <div class=" card-body">
-                        <!-- TODO: add proper links here -->
                         <small>
                             {% if source.provenance.name %}
                             Provenance: <b><a href="#">{{source.provenance.name}}</a></b>
