@@ -9,25 +9,82 @@
     </object>
     <h3>{{ feast.name }}</h3>
     <p>{{ feast.description }}</p>
-    <dl class="list-inline">
+
+    <br>
+    <div class="row">
         {% if feast.feast_code %}
-        <dt>Feast Code</dt>
-        <dd>{{ feast.feast_code }}</dd>
+            <div class="col">
+                <dt>Feast Code</dt>
+                <dd>{{ feast.feast_code }}</dd>
+            </div>
         {% endif %}
         {% if feast.month and feast.day %}
-        <dt>Feast Date</dt>
-        <dd>{{ feast.month|month_to_string|default:""}}.{{ feast.day|default:""}}</dd>
-        <dt>Day</dt>
-        <dd>{{ feast.day|default:""}}</dd>
-        <dt>Month</dt>
-        <dd>{{ feast.month|default:""}}</dd>
+            <div class="col">
+                <dt>Feast Date</dt>
+                <dd>{{ feast.month|month_to_string|default:""}}.{{ feast.day|default:""}}</dd>
+            </div>
+            <div class="col">
+                <dt>Day</dt>
+                <dd>{{ feast.day|default:""}}</dd>
+            </div>
+            <div class="col">
+                <dt>Month</dt>
+                <dd>{{ feast.month|default:""}}</dd>
+            </div>
         {% endif %}
         {% if feast.notes %}
-        <dt>Notes</dt>
-        <dd>{{ feast.notes }}</dd>
+            <dt>Notes</dt>
+            <dd>{{ feast.notes }}</dd>
         {% endif %}
-    </dl>
+    </div>
 
-    <!-- TODO: add lists of chants and sources related to this feast-->
+    <br>
+    <div class="row">
+        <div class="col">
+            <h4>The most frequent chants</h4>
+            <small>Displaying 1 - {{ frequent_chants_zip|length }} of {{ frequent_chants_zip|length }}</small>
+            <table class="table table-responsive table-sm small table-bordered">
+                <thead>
+                    <tr>
+                        <th scope="col" class="text-wrap" style="text-align:center">CantusID</th>
+                        <th scope="col" class="text-wrap" style="text-align:center">Incipit</th>
+                        <th scope="col" class="text-wrap" style="text-align:center">Genre</th>
+                        <th scope="col" class="text-wrap" style="text-align:center">Chants</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for cantus_id, incipit, genre, count in frequent_chants_zip %}
+                    <tr>
+                        <td><a href="{% url 'chant-by-cantus_id' cantus_id %}">{{ cantus_id|default:"" }}</a></td>
+                        <td>{{ incipit }}</td>
+                        <td><a href="{{ genre.get_absolute_url }}">{{ genre.name }}</a></td>
+                        <td>{{ count }}</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        <!-- TODO: add lists of chants and sources related to this feast-->
+        <div class="col">
+            <h4>Sources containing the feast</h4>
+            <small>Displaying 1 - {{ sources_zip|length }} of {{ sources_zip|length }}</small>
+            <table class="table table-responsive table-sm small table-bordered">
+                <thead>
+                    <tr>
+                        <th scope="col" class="text-wrap" style="text-align:center">Siglum</th>
+                        <th scope="col" class="text-wrap" style="text-align:center">Chants</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for source, count in sources_zip %}
+                    <tr>
+                        <td><a href="{% url 'chant-list' %}?source={{ source.id }}">{{ source.siglum }}</a></td>
+                        <td><a href="{% url 'chant-list' %}?source={{ source.id }}&feast={{ feast.id }}">{{ count }}</a></td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
 </div>
 {% endblock %}
