@@ -13,7 +13,7 @@
             x.style.display = "none";
             toggle.innerHTML = "Display previous chants ▴";
         }
-        }
+    }
 
     function toggleNext(toggleID) {
         var x = document.getElementById("next_div");
@@ -25,7 +25,16 @@
             x.style.display = "none";
             toggle.innerHTML = "Display next chants ▾";
         }
-        }
+    }
+
+    function setFolio() {
+        var url = new URL("{% url 'chant-list' %}", window.location.origin);
+        var folio = document.getElementById("folio-select").options[document.getElementById("folio-select").selectedIndex].value;
+        url.searchParams.set("source", {{ chant.source.id }});
+        url.searchParams.set("folio", folio);
+        window.location.assign(url);
+    }
+
 </script>
 
 <div class="container">
@@ -390,8 +399,8 @@
 
         <div class="col">
             <div class="row">
-            <!-- global search bar-->
-            {% include "global_search_bar.html" %}
+                <!-- global search bar-->
+                {% include "global_search_bar.html" %}
             </div>
 
             {% with source=chant.source %}
@@ -406,13 +415,13 @@
                         <div class="card-body">
                             <small>
                                 <!--a small selector of all folios of this source-->
-                                <select name="folios" id="folio-select" class="w-30" onchange="jumpSource()">
-                                    <option value="#">Select a folio</option>
+                                <select name="folios" id="folio-select" class="w-30" onchange="setFolio()">
+                                    <option value="">Select a folio</option>
                                     {% for folio in folios %}
                                         {% if folio == chant.folio %}
-                                            <option selected value="#">{{ folio }}</option>
+                                            <option selected value="{{ folio }}">{{ folio }}</option>
                                         {% else %}
-                                            <option value="#">{{ folio }}</option>
+                                            <option value="{{ folio }}">{{ folio }}</option>
                                         {% endif %}
                                     {% endfor %}
                                 </select>
