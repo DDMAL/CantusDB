@@ -8,7 +8,7 @@ from main_app.models import BaseModel
 class Feast(BaseModel):
     name = models.CharField(max_length=255)
     description = models.TextField(blank=True, null=True)
-    feast_code = models.PositiveIntegerField(blank=True, null=True)
+    feast_code = models.CharField(max_length=255, blank=True, null=True)
     notes = models.TextField(blank=True, null=True)
     month = models.PositiveIntegerField(
         blank=True, null=True, validators=[MinValueValidator(1), MaxValueValidator(12)]
@@ -16,6 +16,7 @@ class Feast(BaseModel):
     day = models.PositiveIntegerField(
         blank=True, null=True, validators=[MinValueValidator(1), MaxValueValidator(31)]
     )
+    prefix = models.CharField(max_length=2, blank=True, null=True)
 
     class Meta:
         constraints = [
