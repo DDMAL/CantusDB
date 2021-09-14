@@ -69,4 +69,5 @@ urlpatterns = [
     path("ajax/melody/<str:cantus_id>", views.ajax_melody_list, name="ajax_melody"),
     path("csv/<str:source_id>", views.csv_export, name="csv-export"),
     path("index/", FullIndexView.as_view(), name="chant-index"),
+    path("contact/", views.contact_us, name="contact"),
 ]

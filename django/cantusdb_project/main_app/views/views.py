@@ -1,9 +1,11 @@
 import csv
-from django.http.response import JsonResponse
+from django.http.response import HttpResponseRedirect, JsonResponse
 from django.http import HttpResponse
 from django.shortcuts import render
 from django.urls.base import reverse
 from main_app.models import Chant, Sequence, Source, Feast, Genre, Indexer, Office
+from main_app.forms import ContactForm
+from django.core.mail import send_mail, get_connection
 
 
 def items_count(request):
@@ -164,3 +166,28 @@ def csv_export(request, source_id):
         )
 
     return response
+
+
+def contact_us(request):
+    submitted = False
+    if request.method == "POST":
+        form = ContactForm(request.POST)
+        if form.is_valid():
+            name = form.cleaned_data["name"]
+            sender_email = form.cleaned_data["sender_email"]
+            subject = form.cleaned_data["subject"]
+            message = form.cleaned_data["message"]
+            # when changing recipients into a real email address, write it as an env variable
+            recipients = ["info@test.com"]
+
+            connection = get_connection(
+                "django.core.mail.backends.console.EmailBackend"
+                # "django.core.mail.backends.smtp.EmailBackend"
+            )
+            send_mail(subject, message, sender_email, recipients, connection=connection)
+            return HttpResponseRedirect("/contact?submitted=True")
+    else:
+        form = ContactForm()
+        if request.GET.get("submitted"):
+            submitted = True
+    return render(request, "contact_form.html", {"form": form, "submitted": submitted})
