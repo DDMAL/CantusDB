@@ -15,7 +15,9 @@ from django.views.generic import (
     UpdateView,
 )
 from main_app.forms import ChantCreateForm
-from main_app.models import Chant, Feast, Genre, Source, Sequence, feast
+from main_app.models import Chant, Feast, Genre, Source, Sequence
+from latin_syllabification import syllabify_text
+import itertools
 
 
 def keyword_search(queryset: QuerySet, keywords: str) -> QuerySet:
@@ -110,12 +112,61 @@ class ChantDetailView(DetailView):
                 get_chants_with_feasts(chants_next_folio)
             )
 
+        if self.chant.volpiano:
+            # split volpiano into melody words
+            words_melody = [word + "---" for word in self.chant.volpiano.split("---")]
+            # remove the trailing "---" (added in previous line) from the last word
+            words_melody[-1] = words_melody[-1][:-3]
+
+            # split melody words into syllables
+            syls_melody = []
+            for word in words_melody[:-1]:
+                syls = [syl + "--" for syl in word.strip("---").split("--")]
+                # this next line is equivalent to removing the trailing "--" and
+                # then adding the "---" back to the end of each word
+                syls[-1] = syls[-1] + "-"
+                syls_melody.extend(syls)
+
+            if "--" in words_melody[-1]:
+                # if the last melody word is multi-syllable
+                syls = [syl + "--" for syl in words_melody[-1].split("--")]
+                # remove the trailing "--" (added in previous line) from the last syllable
+                syls[-1] = syls[-1][:-2]
+                syls_melody.extend(syls)
+            else:
+                # if the last melody word is one syllable or a barline
+                syls_melody.append(words_melody[-1])
+            # syls_melody is a list of melody syllables
+
+            if self.chant.manuscript_syllabized_full_text:
+                # deal with syllabized text saved in DB
+                # example of syllabized full text in DB:
+                # Spi-ri-tus san-ctus in te des-cen-det ma-ri-a ne ti-me-as ha-bens in u-te-ro fi-li-um de-i al-le-lu-ya "
+                words_text = self.chant.manuscript_syllabized_full_text.split(" ")
+                syls_text = []
+                for word in words_text:
+                    syls = [syl + "-" for syl in word.split("-")]
+                    syls[-1] = syls[-1].strip("-")
+                    syls_text.extend(syls)
+                # the first syllable in volpiano is always a clef, align an empty text with it
+                syls_text.insert(0, "")
+                context["syllabized_text_with_melody"] = itertools.zip_longest(
+                    syls_melody, syls_text, fillvalue=""
+                )
+
+            elif self.chant.manuscript_full_text:
+                syls_text = syllabify_text(self.chant.manuscript_full_text)
+                # the first syllable in volpiano is always a clef, align an empty text with it
+                syls_text.insert(0, "")
+                context["syllabized_text_with_melody"] = itertools.zip_longest(
+                    syls_melody, syls_text, fillvalue=""
+                )
         return context
 
 
 class ChantListView(ListView):
     """
-    Displays a list of Chant objects. Accessed with ``chants/``
+    Displays a list of Chant objects. Accessed with ``chants/`` followed by a series of GET params
     """
 
     model = Chant
