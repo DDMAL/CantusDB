@@ -142,12 +142,39 @@ class ChantDetailView(DetailView):
                 # deal with syllabized text saved in DB
                 # example of syllabized full text in DB:
                 # Spi-ri-tus san-ctus in te des-cen-det ma-ri-a ne ti-me-as ha-bens in u-te-ro fi-li-um de-i al-le-lu-ya "
-                words_text = self.chant.manuscript_syllabized_full_text.split(" ")
+
+                # if there is a vertical line in the syllabized text
+                # it shouldn't be grouped into any adjacent word
+                # so we must make sure it is surrounded by spaces
+                syllabized_text = self.chant.manuscript_syllabized_full_text
+                if "|" in syllabized_text:
+                    idx = syllabized_text.index("|")
+                    # if there is space missing in either end of the vertical line
+                    if (
+                        syllabized_text[idx - 1] != " "
+                        or syllabized_text[idx + 1] != " "
+                    ):
+                        # insert spaces around the vertical line
+                        syllabized_text = (
+                            syllabized_text[:idx] + " " + syllabized_text[idx:]
+                        )
+                        syllabized_text = (
+                            syllabized_text[: idx + 2]
+                            + " "
+                            + syllabized_text[idx + 2 :]
+                        )
+
+                words_text = syllabized_text.split(" ")
                 syls_text = []
                 for word in words_text:
-                    syls = [syl + "-" for syl in word.split("-")]
-                    syls[-1] = syls[-1].strip("-")
-                    syls_text.extend(syls)
+                    # this "if" is necessary because some chants use two spaces between syllabized words
+                    # splitting on " " with leave empty strings in the output, causing bugs in alignment
+                    # also, in the previous step, there may be excessive spaces inserted around the vertical line
+                    # this "if" eliminates the extra spaces
+                    if word:
+                        syls = [syl + "-" for syl in word.split("-")]
+                        syls[-1] = syls[-1].strip("-")
+                        syls_text.extend(syls)
                 # the first syllable in volpiano is always a clef, align an empty text with it
                 syls_text.insert(0, "")
                 context["syllabized_text_with_melody"] = itertools.zip_longest(
