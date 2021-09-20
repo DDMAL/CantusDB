@@ -215,7 +215,7 @@
                     Range
                 </dt>
                 <dd>
-                    <p style="font-family: volpiano; font-size:30px">
+                    <p style="font-family: volpiano; font-size:28px">
                         {{ chant.chant_range }}
                     </p>
                 </dd>
@@ -225,7 +225,7 @@
                     Volpiano
                 </dt>
                 <dd>
-                    <p style="font-family: volpiano; font-size:30px">
+                    <p style="font-family: volpiano; font-size:28px">
                         {{ chant.volpiano }}
                     </p>
                 </dd>
@@ -247,12 +247,11 @@
                         {% if chant.manuscript_syllabized_full_text %}
                             <p><small>Syllabification is based on saved syllabized text.</small></p>
                         {% endif %}
-                        <!-- TODO: figure out how to silabilize the text and align with melody -->
                         <dd>
                             {% for syl_mel, syl_text in syllabized_text_with_melody %}
-                            <span style="float: left;">
-                                <div style="font-family: volpiano; font-size:30px">{{ syl_mel }}</div>
-                                <div style="font-size: 10px">{{ syl_text }}</div>
+                            <span style="float: left">
+                                <div style="font-family: volpiano; font-size: 28px">{{ syl_mel }}</div>
+                                <div style="font-size: 10px"><pre>{{ syl_text }}</pre></div>
                             </span>
                             {% endfor %}
                         </dd>
