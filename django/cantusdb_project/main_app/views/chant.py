@@ -112,6 +112,8 @@ class ChantDetailView(DetailView):
                 get_chants_with_feasts(chants_next_folio)
             )
 
+        # syllabification section
+        # first, split the volpiano string into words, and then into a list of syllables
         if self.chant.volpiano:
             # split volpiano into melody words
             words_melody = [word + "---" for word in self.chant.volpiano.split("---")]
@@ -136,8 +138,8 @@ class ChantDetailView(DetailView):
             else:
                 # if the last melody word is one syllable or a barline
                 syls_melody.append(words_melody[-1])
-            # syls_melody is a list of melody syllables
 
+            # second, syllabize the text
             if self.chant.manuscript_syllabized_full_text:
                 # deal with syllabized text saved in DB
                 # example of syllabized full text in DB:
@@ -182,6 +184,7 @@ class ChantDetailView(DetailView):
                 )
 
             elif self.chant.manuscript_full_text:
+                # if there is melody but no pre-syllabized text stored in DB, we syllabize the full text dynamically
                 syls_text = syllabify_text(self.chant.manuscript_full_text)
                 # the first syllable in volpiano is always a clef, align an empty text with it
                 syls_text.insert(0, "")
