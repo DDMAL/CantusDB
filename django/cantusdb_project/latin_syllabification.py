@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-# Tim's syllabification script
+# Latin syllabification script by Tim
 # https://github.com/DDMAL/text_alignment/blob/develop/latin_syllabification.py
 import re
 
@@ -178,7 +178,15 @@ def syllabify_word(inp, verbose=False):
 def syllabify_text(input, verbose=False):
     words = input.split(" ")
     word_syls = [syllabify_word(w, verbose) for w in words]
-    syls = [item for sublist in word_syls for item in sublist]
+    # to keep consistency with the original Cantus,
+    # a hyphen is added to every syllable before the last syllable in the word
+    word_syls_hyphen = []
+    for syl_list in word_syls:
+        syl_list = [syl + "-" for syl in syl_list]
+        syl_list[-1] = syl_list[-1].strip("-")
+        word_syls_hyphen.append(syl_list)
+    syls = [item for sublist in word_syls_hyphen for item in sublist]
+    # syls = [item for sublist in word_syls for item in sublist]
     return syls
 
 
