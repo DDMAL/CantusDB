@@ -179,7 +179,7 @@ class ChantDetailView(DetailView):
                 # the first syllable in volpiano is always a clef, align an empty text with it
                 syls_text.insert(0, "")
                 context["syllabized_text_with_melody"] = itertools.zip_longest(
-                    syls_melody, syls_text, fillvalue=""
+                    syls_melody, syls_text, fillvalue=" "
                 )
 
             elif chant.manuscript_full_text:
@@ -190,14 +190,15 @@ class ChantDetailView(DetailView):
                 syls_text.insert(0, "")
                 # for "|" in the melody, make sure it is aligned with a "|" or an empty syllable in the text
                 if "3---" in syls_melody:
-                    print("3---")
                     idx = syls_melody.index("3---")
                     if syls_text[idx] != "|":
-                        syls_text.insert(idx, "")
+                        syls_text.insert(idx, " ")
 
-                context["syllabized_text_with_melody"] = itertools.zip_longest(
-                    syls_melody, syls_text, fillvalue=""
-                )
+                # if melody is longer than text, fill spaces to the end of the text
+                if len(syls_melody) > len(syls_text):
+                    syls_text = syls_text + [" "] * (len(syls_melody) - len(syls_text))
+                # if melody is shorter than text, discard the extra text (default behavior of zip)
+                context["syllabized_text_with_melody"] = zip(syls_melody, syls_text)
         return context
 
 
