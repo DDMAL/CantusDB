@@ -54,23 +54,23 @@ class ChantDetailView(DetailView):
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
-        self.chant = self.get_object()
+        chant = self.get_object()
 
-        chants_in_source = self.chant.source.chant_set
+        chants_in_source = chant.source.chant_set
         context["folios"] = (
             chants_in_source.values_list("folio", flat=True)
             .distinct()
             .order_by("folio")
         )
         folio_list = list(context["folios"])
-        index = folio_list.index(self.chant.folio)
+        index = folio_list.index(chant.folio)
         context["previous_folio"] = folio_list[index - 1] if index != 0 else None
         context["next_folio"] = (
             folio_list[index + 1] if index < len(folio_list) - 1 else None
         )
 
         chants_current_folio = chants_in_source.filter(
-            folio=self.chant.folio
+            folio=chant.folio
         ).prefetch_related("feast")
 
         def get_chants_with_feasts(chants_in_folio):
@@ -94,7 +94,6 @@ class ChantDetailView(DetailView):
         context["feasts_current_folio"] = list(
             get_chants_with_feasts(chants_current_folio)
         )
-        # seems that context unreferenced in templates won't be evaluated
 
         if context["previous_folio"]:
             chants_previous_folio = chants_in_source.filter(
@@ -114,9 +113,9 @@ class ChantDetailView(DetailView):
 
         # syllabification section
         # first, split the volpiano string into words, and then into a list of syllables
-        if self.chant.volpiano:
+        if chant.volpiano:
             # split volpiano into melody words
-            words_melody = [word + "---" for word in self.chant.volpiano.split("---")]
+            words_melody = [word + "---" for word in chant.volpiano.split("---")]
             # remove the trailing "---" (added in previous line) from the last word
             words_melody[-1] = words_melody[-1][:-3]
 
@@ -140,7 +139,7 @@ class ChantDetailView(DetailView):
                 syls_melody.append(words_melody[-1])
 
             # second, syllabize the text
-            if self.chant.manuscript_syllabized_full_text:
+            if chant.manuscript_syllabized_full_text:
                 # deal with syllabized text saved in DB
                 # example of syllabized full text in DB:
                 # Spi-ri-tus san-ctus in te des-cen-det ma-ri-a ne ti-me-as ha-bens in u-te-ro fi-li-um de-i al-le-lu-ya "
@@ -148,7 +147,7 @@ class ChantDetailView(DetailView):
                 # if there is a vertical line in the syllabized text
                 # it shouldn't be grouped into any adjacent word
                 # so we must make sure it is surrounded by spaces
-                syllabized_text = self.chant.manuscript_syllabized_full_text
+                syllabized_text = chant.manuscript_syllabized_full_text
                 if "|" in syllabized_text:
                     idx = syllabized_text.index("|")
                     # if there is space missing in either end of the vertical line
@@ -183,11 +182,19 @@ class ChantDetailView(DetailView):
                     syls_melody, syls_text, fillvalue=""
                 )
 
-            elif self.chant.manuscript_full_text:
-                # if there is melody but no pre-syllabized text stored in DB, we syllabize the full text dynamically
-                syls_text = syllabify_text(self.chant.manuscript_full_text)
+            elif chant.manuscript_full_text:
+                # if there is melody but no pre-syllabized text stored in DB,
+                # we use our own script to syllabize the text
+                syls_text = syllabify_text(chant.manuscript_full_text)
                 # the first syllable in volpiano is always a clef, align an empty text with it
                 syls_text.insert(0, "")
+                # for "|" in the melody, make sure it is aligned with a "|" or an empty syllable in the text
+                if "3---" in syls_melody:
+                    print("3---")
+                    idx = syls_melody.index("3---")
+                    if syls_text[idx] != "|":
+                        syls_text.insert(idx, "")
+
                 context["syllabized_text_with_melody"] = itertools.zip_longest(
                     syls_melody, syls_text, fillvalue=""
                 )
