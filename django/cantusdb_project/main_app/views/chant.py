@@ -1,3 +1,4 @@
+import enum
 import lxml.html as lh
 import requests
 import json
@@ -16,7 +17,7 @@ from django.views.generic import (
 )
 from main_app.forms import ChantCreateForm
 from main_app.models import Chant, Feast, Genre, Source, Sequence
-from latin_syllabification import syllabify_text
+from latin_syllabification import syllabify_text, syllabify_word
 import itertools
 
 
@@ -185,7 +186,52 @@ class ChantDetailView(DetailView):
             elif chant.manuscript_full_text:
                 # if there is melody but no pre-syllabized text stored in DB,
                 # we use our own script to syllabize the text
-                syls_text = syllabify_text(chant.manuscript_full_text)
+
+                words_text = chant.manuscript_full_text.split(" ")
+                syls_text = []
+
+                tilda_found = False
+                barline_found = False
+                for word in words_text:
+                    # the ~ starts a segment of text which do not go through syllabification
+                    # this segment ends at the next | or the end of text
+                    if word.startswith("~"):
+                        print("~ found")
+                        tilda_found = True
+                        # if there is a ~, record the index of that word
+                        tilda_idx = words_text.index(word)
+                        # check the words after ~ for |,
+                        # if not found, `barline_idx` set to the end of list (default)
+                        barline_idx = len(words_text)
+                        # if found, `barline_idx` will be changed in the following loop
+                        for word in words_text[tilda_idx:]:
+                            if word.startswith("|"):
+                                barline_found = True  # this is optional, if we have this, the default for barline_idx is unnecessary
+                                print("| found")
+                                # if there's a | following the ~, record the index of that word
+                                barline_idx = words_text.index(word)
+                                break
+                        break
+
+                if tilda_found:
+                    for word in words_text[0:tilda_idx]:
+                        syls = syllabify_word(word)
+                        syls_text.extend(syls)
+                    # for words between ~ and |, put them in one syllable without syllabification
+                    unsyllabized = " ".join(words_text[tilda_idx:barline_idx])
+                    syls_text.append(unsyllabized)
+                    # for words after |, syllabize them normally
+                    for word in words_text[barline_idx:]:
+                        syls = syllabify_word(word)
+                        syls_text.extend(syls)
+                else:
+                    for word in words_text:
+                        syls = syllabify_word(word)
+                        syls_text.extend(syls)
+
+                # directly run `syllabify_text` will not address the special symbols such as ~
+                # syls_text = syllabify_text(chant.manuscript_full_text)
+
                 # the first syllable in volpiano is always a clef, align an empty text with it
                 syls_text.insert(0, "")
                 # for "|" in the melody, make sure it is aligned with a "|" or an empty syllable in the text
@@ -194,6 +240,28 @@ class ChantDetailView(DetailView):
                     if syls_text[idx] != "|":
                         syls_text.insert(idx, " ")
 
+                if tilda_found:
+                    # melody (from the ~ to the next |) should not be syllabized
+                    for i, syl in enumerate(syls_text):
+                        if syl.startswith("~"):
+                            tilda_syl_idx = i
+                            break
+                    for i, syl in enumerate(syls_melody[tilda_syl_idx + 1 :]):
+                        if "3" in syl:
+                            barline_syl_idx = tilda_syl_idx + 1 + i
+                            break
+                    joined_melody = "".join(syls_melody[tilda_syl_idx:barline_syl_idx])
+                    print(joined_melody)
+                    rectified_melody = (
+                        syls_melody[:tilda_syl_idx]
+                        + [joined_melody]
+                        + syls_melody[barline_syl_idx:]
+                    )
+                    syls_melody = rectified_melody
+
+                """the processing for the melody between ~ and | is actually common to saved syllabized
+                text and syllabized-on-the-fly text, so we can make them share this part of code
+                see 272939 and 672094"""
                 # if melody is longer than text, fill spaces to the end of the text
                 if len(syls_melody) > len(syls_text):
                     syls_text = syls_text + [" "] * (len(syls_melody) - len(syls_text))
