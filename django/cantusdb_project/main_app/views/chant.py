@@ -1,4 +1,5 @@
 import enum
+from re import I
 import lxml.html as lh
 import requests
 import json
@@ -144,76 +145,107 @@ class ChantDetailView(DetailView):
                 # deal with syllabized text saved in DB
                 # example of syllabized full text in DB:
                 # Spi-ri-tus san-ctus in te des-cen-det ma-ri-a ne ti-me-as ha-bens in u-te-ro fi-li-um de-i al-le-lu-ya "
+                syllabized_text = chant.manuscript_syllabized_full_text
 
                 # if there is a vertical line in the syllabized text
                 # it shouldn't be grouped into any adjacent word
                 # so we must make sure it is surrounded by spaces
-                syllabized_text = chant.manuscript_syllabized_full_text
                 if "|" in syllabized_text:
-                    idx = syllabized_text.index("|")
-                    # if there is space missing in either end of the vertical line
-                    if (
-                        syllabized_text[idx - 1] != " "
-                        or syllabized_text[idx + 1] != " "
-                    ):
-                        # insert spaces around the vertical line
-                        syllabized_text = (
-                            syllabized_text[:idx] + " " + syllabized_text[idx:]
-                        )
-                        syllabized_text = (
-                            syllabized_text[: idx + 2]
-                            + " "
-                            + syllabized_text[idx + 2 :]
-                        )
+                    substrs_around_barline = syllabized_text.split("|")
+                    print(substrs_around_barline)
+                    # this may introduce extra spaces. those will be removed in the next part
+                    syllabized_text = " | ".join(substrs_around_barline)
+                    print(syllabized_text)
 
                 words_text = syllabized_text.split(" ")
+                # initialize `tilda_found`, this is for locating the part between ~ and |, which shouldn't be syllabized
+                tilda_found = False
                 syls_text = []
-                for word in words_text:
-                    # this "if" is necessary because some chants use two spaces between syllabized words
-                    # splitting on " " with leave empty strings in the output, causing bugs in alignment
-                    # also, in the previous step, there may be excessive spaces inserted around the vertical line
-                    # this "if" eliminates the extra spaces
-                    if word:
-                        syls = [syl + "-" for syl in word.split("-")]
-                        syls[-1] = syls[-1].strip("-")
-                        syls_text.extend(syls)
-                # the first syllable in volpiano is always a clef, align an empty text with it
+                for i, word in enumerate(words_text):
+                    if word.startswith("~"):
+                        print("~ found")
+                        tilda_found = True
+                        tilda_idx = i
+                        # initialize the index for the | following ~,
+                        # it defaults to the end of list in case there's no | following ~,
+                        barline_idx = len(words_text)
+                        for i, word in enumerate(words_text[tilda_idx + 1 :]):
+                            if word.startswith("|"):
+                                print("| found")
+                                # if there's a | following the ~, record the index of that word
+                                barline_idx = tilda_idx + 1 + i
+                                break
+                        break
+
+                # if there is ~ in the text, the text between ~ and | needs to be merged into one syllable
+                if tilda_found:
+
+                    # for words before ~, syllabize them normally
+                    for word in words_text[0:tilda_idx]:
+                        # this `if` is necessary because some chants use two spaces between syllabized words
+                        # splitting on space with leave empty strings in the output, causing bugs in alignment
+                        # also, in the previous step, there may be excessive spaces inserted around |
+                        # this `if` eliminates the extra spaces
+                        if word:
+                            syls = [syl + "-" for syl in word.split("-")]
+                            syls[-1] = syls[-1].strip("-")
+                            syls_text.extend(syls)
+
+                    # for words between ~ and |, put them in one syllable without syllabification
+                    unsyllabized = " ".join(words_text[tilda_idx:barline_idx])
+                    syls_text.append(unsyllabized)
+
+                    # for words after |, syllabize them normally
+                    for word in words_text[barline_idx:]:
+                        if word:
+                            syls = [syl + "-" for syl in word.split("-")]
+                            syls[-1] = syls[-1].strip("-")
+                            syls_text.extend(syls)
+                # if there is no ~ in text, syllabize the whole text normally
+                else:
+                    for word in words_text:
+                        if word:
+                            syls = [syl + "-" for syl in word.split("-")]
+                            syls[-1] = syls[-1].strip("-")
+                            syls_text.extend(syls)
+                # the first syllable in volpiano is always a clef,
+                # add an empty syllable in text to aligh with it
                 syls_text.insert(0, "")
-                context["syllabized_text_with_melody"] = itertools.zip_longest(
-                    syls_melody, syls_text, fillvalue=" "
-                )
 
             elif chant.manuscript_full_text:
+                """this part should be very similar to the 'pre-stored syllabized text' part
+                a lot of code in this part should be fixed according to what's in that part"""
                 # if there is melody but no pre-syllabized text stored in DB,
                 # we use our own script to syllabize the text
 
                 words_text = chant.manuscript_full_text.split(" ")
+                # initialize `tilda_found`, this is for locating the part between ~ and |, which shouldn't be syllabized
+                tilda_found = False
                 syls_text = []
 
-                tilda_found = False
-                barline_found = False
-                for word in words_text:
+                for i, word in enumerate(words_text):
                     # the ~ starts a segment of text which do not go through syllabification
                     # this segment ends at the next | or the end of text
                     if word.startswith("~"):
-                        print("~ found")
+                        # print("~ found")
                         tilda_found = True
                         # if there is a ~, record the index of that word
-                        tilda_idx = words_text.index(word)
+                        tilda_idx = i
                         # check the words after ~ for |,
                         # if not found, `barline_idx` set to the end of list (default)
                         barline_idx = len(words_text)
                         # if found, `barline_idx` will be changed in the following loop
-                        for word in words_text[tilda_idx:]:
+                        for i, word in enumerate(words_text[tilda_idx + 1 :]):
                             if word.startswith("|"):
-                                barline_found = True  # this is optional, if we have this, the default for barline_idx is unnecessary
-                                print("| found")
+                                # print("| found")
                                 # if there's a | following the ~, record the index of that word
-                                barline_idx = words_text.index(word)
+                                barline_idx = tilda_idx + 1 + i
                                 break
                         break
 
+                # if there is ~ in text, the text between ~ and | needs to be merged into one syllable
                 if tilda_found:
+                    # for words before ~, syllabify them normally
                     for word in words_text[0:tilda_idx]:
                         syls = syllabify_word(word)
                         syls_text.extend(syls)
@@ -224,6 +256,7 @@ class ChantDetailView(DetailView):
                     for word in words_text[barline_idx:]:
                         syls = syllabify_word(word)
                         syls_text.extend(syls)
+                # if there is no ~ in text, syllabify the whole text normally
                 else:
                     for word in words_text:
                         syls = syllabify_word(word)
@@ -234,39 +267,44 @@ class ChantDetailView(DetailView):
 
                 # the first syllable in volpiano is always a clef, align an empty text with it
                 syls_text.insert(0, "")
+                """is this really necessary?"""
                 # for "|" in the melody, make sure it is aligned with a "|" or an empty syllable in the text
-                if "3---" in syls_melody:
-                    idx = syls_melody.index("3---")
-                    if syls_text[idx] != "|":
-                        syls_text.insert(idx, " ")
+                # if "3---" in syls_melody:
+                #     idx = syls_melody.index("3---")
+                #     if syls_text[idx] != "|":
+                #         syls_text.insert(idx, " ")
 
-                if tilda_found:
-                    # melody (from the ~ to the next |) should not be syllabized
-                    for i, syl in enumerate(syls_text):
-                        if syl.startswith("~"):
-                            tilda_syl_idx = i
-                            break
-                    for i, syl in enumerate(syls_melody[tilda_syl_idx + 1 :]):
-                        if "3" in syl:
-                            barline_syl_idx = tilda_syl_idx + 1 + i
-                            break
-                    joined_melody = "".join(syls_melody[tilda_syl_idx:barline_syl_idx])
-                    print(joined_melody)
-                    rectified_melody = (
-                        syls_melody[:tilda_syl_idx]
-                        + [joined_melody]
-                        + syls_melody[barline_syl_idx:]
-                    )
-                    syls_melody = rectified_melody
+            # no matter what text we're using, as long as there is ~ in text,
+            # some text syllables (between ~ and |) are merged into one,
+            # we need to merge the correponding melody into one syllable too
+            if tilda_found:
+                # melody (from the ~ to the next |) should NOT be syllabized
+                # this loop locates the ~ in syllables
+                for i, syl in enumerate(syls_text):
+                    if syl.startswith("~"):
+                        tilda_syl_idx = i
+                        # initialize barline_syl_idx, if no | found after ~, default to end of list
+                        barline_syl_idx = len(syls_text)
+                        break
+                for i, syl in enumerate(syls_melody[tilda_syl_idx + 1 :]):
+                    # if | is present
+                    if "3" in syl:
+                        barline_syl_idx = tilda_syl_idx + 1 + i
+                        break
+                joined_melody = "".join(syls_melody[tilda_syl_idx:barline_syl_idx])
+                print(joined_melody)
+                rectified_melody = (
+                    syls_melody[:tilda_syl_idx]
+                    + [joined_melody]
+                    + syls_melody[barline_syl_idx:]
+                )
+                syls_melody = rectified_melody
 
-                """the processing for the melody between ~ and | is actually common to saved syllabized
-                text and syllabized-on-the-fly text, so we can make them share this part of code
-                see 272939 and 672094"""
-                # if melody is longer than text, fill spaces to the end of the text
-                if len(syls_melody) > len(syls_text):
-                    syls_text = syls_text + [" "] * (len(syls_melody) - len(syls_text))
-                # if melody is shorter than text, discard the extra text (default behavior of zip)
-                context["syllabized_text_with_melody"] = zip(syls_melody, syls_text)
+            # if melody is longer than text, fill spaces to the end of the text
+            if len(syls_melody) > len(syls_text):
+                syls_text = syls_text + [" "] * (len(syls_melody) - len(syls_text))
+            # if melody is shorter than text, discard the extra text (default behavior of zip)
+            context["syllabized_text_with_melody"] = zip(syls_melody, syls_text)
         return context
 
 
