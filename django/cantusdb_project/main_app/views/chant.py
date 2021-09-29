@@ -136,8 +136,8 @@ class ChantDetailView(DetailView):
                 # remove the trailing "--" (added in previous line) from the last syllable
                 syls[-1] = syls[-1][:-2]
                 syls_melody.extend(syls)
-            else:
-                # if the last melody word is one syllable or a barline
+            elif words_melody[-1]:
+                # if the last melody word is not empty string (it can be barline, syllable, or -)
                 syls_melody.append(words_melody[-1])
 
             # second, syllabize the text
@@ -248,6 +248,8 @@ class ChantDetailView(DetailView):
                     # for words before ~, syllabify them normally
                     for word in words_text[0:tilda_idx]:
                         syls = syllabify_word(word)
+                        # add - to every syllable before the last syllable in a word
+                        syls = [syl + "-" for syl in syls[:-1]] + [syls[-1]]
                         syls_text.extend(syls)
                     # for words between ~ and |, put them in one syllable without syllabification
                     unsyllabized = " ".join(words_text[tilda_idx:barline_idx])
@@ -255,11 +257,13 @@ class ChantDetailView(DetailView):
                     # for words after |, syllabize them normally
                     for word in words_text[barline_idx:]:
                         syls = syllabify_word(word)
+                        syls = [syl + "-" for syl in syls[:-1]] + [syls[-1]]
                         syls_text.extend(syls)
                 # if there is no ~ in text, syllabify the whole text normally
                 else:
                     for word in words_text:
                         syls = syllabify_word(word)
+                        syls = [syl + "-" for syl in syls[:-1]] + [syls[-1]]
                         syls_text.extend(syls)
 
                 # directly run `syllabify_text` will not address the special symbols such as ~
@@ -292,7 +296,6 @@ class ChantDetailView(DetailView):
                         barline_syl_idx = tilda_syl_idx + 1 + i
                         break
                 joined_melody = "".join(syls_melody[tilda_syl_idx:barline_syl_idx])
-                print(joined_melody)
                 rectified_melody = (
                     syls_melody[:tilda_syl_idx]
                     + [joined_melody]
