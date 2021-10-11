@@ -1,5 +1,42 @@
 from latin_syllabification import syllabify_word
 
+# some useful info taken from the text entry guideline:
+# the symbols are present only in the MS spelling, not std spelling
+# vertical stroke | identifies sections within a chant, it's meant to help align text with melody
+#   should be surrounded by spaces
+# tilda ~ identifies "Psalm incipits" or any text that doesn't align with pitches
+#   immediately before text, no spaces
+# IPSUM (same), it looks like: | space ～Ipsum space [actual psalm text from the antiphon]
+#   check some real examples to see whether/how this affects alignment
+
+#                                   MISSING TEXT WITH READABLE PITCHES
+# the number sign # identifies missing text, it could be missing complete word(s) or syllable(s)
+#   complete words missing: space # space
+#   partially visible word (syllables missing): - (one hyphen represents missing syllables) then space # space for missing section of text
+#   volpiano for the section with missing text: -- between neumes, begin and end section with --- (always treat the section as a word?)
+
+#                                   READABLE TEXT UNDER MISSING PITCHES
+# for a complete word:
+#   enclose affected text in {},
+#   volpiano use 6------6 to represent missing pitches, --- before and after each 6
+
+# for select syllables:
+#   enclose affected syllable(s) in {},
+#   volpiano use 6------6 to represent missing pitches, no --- before and after each 6???
+# In either case, the 6*6 align with {*}
+
+#                                   MISSING BOTH PITCHES AND TEXT
+# no text, no pitches visible:
+#   {#} indicates missing text,
+#   if partial word readable, use - for the missing sylable(s) and then enter space {#} space for the remainder of missing text
+#   volpiano use 6------6 as described above
+
+# no pitches, partial text visible:
+#   enclose affected text in {}, use - for the missing portions of words
+#   use # within {} to indicate location of missing text
+#   volpiano use 6------6 as described above
+
+
 # there should never be a space in volpiano. hyphens do the separation and spacing.
 def syllabize_melody(volpiano):
     # split volpiano into melody words
