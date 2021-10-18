@@ -7,7 +7,7 @@ from django.test import TestCase
 from django.urls import reverse
 from faker import Faker
 from typing import List
-from main_app.models import Chant, Feast, Genre, Indexer, Office
+from main_app.models import Feast, Genre, Indexer, Office
 from main_app.views import (
     FeastListView,
     GenreListView,
@@ -30,7 +30,7 @@ class ListViewTest(ABC):
     @abstractmethod
     def number_of_objects(self) -> int:
         pass
-    
+
     def __init_subclass__(cls, **kwargs):
         for required in (
             "list_view_name",
@@ -40,28 +40,24 @@ class ListViewTest(ABC):
         ):
             if not getattr(cls, required):
                 raise TypeError(
-                    f"Can't instantiate abstract class {cls.__name__} without "\
+                    f"Can't instantiate abstract class {cls.__name__} without "
                     "{required} attribute defined"
                 )
         return super().__init_subclass__(**kwargs)
 
     def test_pagination(self):
-        print(type(self).__name__)
+        # print(type(self).__name__)
         # To get total number of pages do a ceiling integer division
         q, r = divmod(self.number_of_objects(), self.page_size)
         pages = q + bool(r)
 
         # Test all pages
         for page_num in range(1, pages + 1):
-            response = self.client.get(
-                reverse(self.list_view_name), {"page": page_num}
-            )
+            response = self.client.get(reverse(self.list_view_name), {"page": page_num})
             self.assertEqual(response.status_code, 200)
             self.assertTrue("is_paginated" in response.context)
             self.assertTrue(response.context["is_paginated"])
-            if page_num == pages and (
-                self.number_of_objects() % self.page_size != 0
-            ):
+            if page_num == pages and (self.number_of_objects() % self.page_size != 0):
                 self.assertEqual(
                     len(response.context[self.context_object_name]),
                     self.number_of_objects() % self.page_size,
@@ -73,9 +69,7 @@ class ListViewTest(ABC):
                 )
 
         # Test the "last" syntax
-        response = self.client.get(
-            reverse(self.list_view_name), {"page": "last"}
-        )
+        response = self.client.get(reverse(self.list_view_name), {"page": "last"})
         self.assertEqual(response.status_code, 200)
 
         # Test some invalid values for pages
@@ -83,13 +77,9 @@ class ListViewTest(ABC):
         self.assertEqual(response.status_code, 404)
         response = self.client.get(reverse(self.list_view_name), {"page": 0})
         self.assertEqual(response.status_code, 404)
-        response = self.client.get(
-            reverse(self.list_view_name), {"page": "lst"}
-        )
+        response = self.client.get(reverse(self.list_view_name), {"page": "lst"})
         self.assertEqual(response.status_code, 404)
-        response = self.client.get(
-            reverse(self.list_view_name), {"page": pages + 1}
-        )
+        response = self.client.get(reverse(self.list_view_name), {"page": pages + 1})
         self.assertEqual(response.status_code, 404)
 
 
@@ -98,17 +88,21 @@ class IndexerListViewTest(TestCase):
     MIN_PAGES = 1
     MAX_PAGES = 6
 
-    @classmethod
-    def setUpTestData(cls):
-        # Create at least 100 + [1,99] indexers, this way we can test pagination since
-        # we're paginating by 100 items
-        cls.number_of_indexers = cls.PAGE_SIZE * random.randint(
-            cls.MIN_PAGES, cls.MAX_PAGES
-        ) + random.randint(1, cls.PAGE_SIZE)
+    # use real indexers and sources for test because the queryset used contains only "public" indexers
+    # "public" indexers are those who have at least one public source
+    fixtures = [
+        "indexer_fixtures.json",
+        "century_fixtures.json",
+        "notation_fixtures.json",
+        "provenance_fixtures.json",
+        "rism_siglum_fixtures.json",
+        "segment_fixtures.json",
+        "source_fixtures.json",
+    ]
 
-        for i in range(cls.number_of_indexers):
-            make_fakes.make_fake_indexer()
-        print (f"There are {Indexer.objects.count()} indexers")
+    def setUp(self):
+        self.number_of_indexers = Indexer.objects.all().count()
+        return super().setUp()
 
     def test_view_url_path(self):
         response = self.client.get("/indexers/")
@@ -124,54 +118,15 @@ class IndexerListViewTest(TestCase):
         self.assertTemplateUsed(response, "base.html")
         self.assertTemplateUsed(response, "indexer_list.html")
 
-    def test_pagination(self):
-        # To get total number of pages do a ceiling integer division
-        quotient, remainder = divmod(self.number_of_indexers, self.PAGE_SIZE)
-        pages = quotient + bool(remainder)
-
-        # Test all pages
-        for page_num in range(1, pages + 1):
-            response = self.client.get(
-                reverse("indexer-list"), {"page": page_num}
-            )
-            self.assertEqual(response.status_code, 200)
-            self.assertTrue("is_paginated" in response.context)
-            self.assertTrue(response.context["is_paginated"])
-            if page_num == pages and (
-                self.number_of_indexers % self.PAGE_SIZE != 0
-            ):
-                self.assertTrue(
-                    len(response.context["indexers"])
-                    == (self.number_of_indexers % self.PAGE_SIZE)
-                )
-            else:
-                self.assertTrue(
-                    len(response.context["indexers"]) == self.PAGE_SIZE
-                )
-
-        # Test the "last" syntax
-        response = self.client.get(reverse("indexer-list"), {"page": "last"})
-        self.assertEqual(response.status_code, 200)
-
-        # Test some invalid values for pages
-        response = self.client.get(reverse("indexer-list"), {"page": -1})
-        self.assertEqual(response.status_code, 404)
-        response = self.client.get(reverse("indexer-list"), {"page": 0})
-        self.assertEqual(response.status_code, 404)
-        response = self.client.get(reverse("indexer-list"), {"page": "lst"})
-        self.assertEqual(response.status_code, 404)
-        response = self.client.get(
-            reverse("indexer-list"), {"page": pages + 1}
-        )
-        self.assertEqual(response.status_code, 404)
-
     def test_search(self):
-        number_of_indexers = Indexer.objects.count()
+        # access the indexer list to obtain a list of "public" indexers
+        response = self.client.get(reverse("indexer-list"))
+        indexers = response.context["indexers"]
+        number_of_indexers = indexers.count()
 
         # Search by first name
-        random_indexer = Indexer.objects.get(
-            id=random.randint(1, number_of_indexers + 1)
-        )
+        idx = random.randint(1, number_of_indexers + 1)
+        random_indexer = indexers[idx]
 
         # Search the whole first name
         response = self.client.get(
@@ -181,9 +136,7 @@ class IndexerListViewTest(TestCase):
         # Check object_list (which has the whole queryset, not paginated)
         # instead of indexers which is paginated and might not contain
         # random_indexer if it is not on the first page
-        self.assertTrue(
-            random_indexer in response.context["paginator"].object_list
-        )
+        self.assertTrue(random_indexer in response.context["paginator"].object_list)
 
         # Search for a three letter slice of the first name
         first_name = random_indexer.first_name
@@ -201,9 +154,7 @@ class IndexerListViewTest(TestCase):
             # Check object_list (which has the whole queryset, not paginated)
             # instead of indexers which is paginated and might not contain
             # random_indexer  if it is not on the first page
-            self.assertTrue(
-                random_indexer in response.context["paginator"].object_list
-            )
+            self.assertTrue(random_indexer in response.context["paginator"].object_list)
 
 
 class IndexerDetailViewTest(TestCase):
@@ -221,25 +172,19 @@ class IndexerDetailViewTest(TestCase):
 
     def test_view_url_reverse_name(self):
         for indexer in Indexer.objects.all():
-            response = self.client.get(
-                reverse("indexer-detail", args=[indexer.id])
-            )
+            response = self.client.get(reverse("indexer-detail", args=[indexer.id]))
             self.assertEqual(response.status_code, 200)
 
     def test_view_correct_templates(self):
         for indexer in Indexer.objects.all():
-            response = self.client.get(
-                reverse("indexer-detail", args=[indexer.id])
-            )
+            response = self.client.get(reverse("indexer-detail", args=[indexer.id]))
             self.assertEqual(response.status_code, 200)
             self.assertTemplateUsed(response, "base.html")
             self.assertTemplateUsed(response, "indexer_detail.html")
 
     def test_view_context_data(self):
         for indexer in Indexer.objects.all():
-            response = self.client.get(
-                reverse("indexer-detail", args=[indexer.id])
-            )
+            response = self.client.get(reverse("indexer-detail", args=[indexer.id]))
             self.assertTrue("indexer" in response.context)
             self.assertEqual(indexer, response.context["indexer"])
 
@@ -289,23 +234,17 @@ class FeastListViewTest(TestCase):
 
         # Test all pages
         for page_num in range(1, pages + 1):
-            response = self.client.get(
-                reverse("feast-list"), {"page": page_num}
-            )
+            response = self.client.get(reverse("feast-list"), {"page": page_num})
             self.assertEqual(response.status_code, 200)
             self.assertTrue("is_paginated" in response.context)
             self.assertTrue(response.context["is_paginated"])
-            if page_num == pages and (
-                self.number_of_feasts % self.PAGE_SIZE != 0
-            ):
+            if page_num == pages and (self.number_of_feasts % self.PAGE_SIZE != 0):
                 self.assertEqual(
                     len(response.context["feasts"]),
                     self.number_of_feasts % self.PAGE_SIZE,
                 )
             else:
-                self.assertEqual(
-                    len(response.context["feasts"]), self.PAGE_SIZE
-                )
+                self.assertEqual(len(response.context["feasts"]), self.PAGE_SIZE)
 
         # Test the "last" syntax
         response = self.client.get(reverse("feast-list"), {"page": "last"})
@@ -332,9 +271,7 @@ class FeastListViewTest(TestCase):
 
     def test_ordering(self):
         # Order by feast_code
-        response = self.client.get(
-            reverse("feast-list"), {"ordering": "feast_code"}
-        )
+        response = self.client.get(reverse("feast-list"), {"ordering": "feast_code"})
         self.assertEqual(response.status_code, 200)
         feasts = response.context["paginator"].object_list
         self.assertEqual(feasts.query.order_by[0], "feast_code")
@@ -371,9 +308,7 @@ class FeastDetailViewTest(TestCase):
 
     def setUp(self):
         self.number_of_feasts = Feast.objects.all().count()
-        self.slice_begin = random.randint(
-            0, self.number_of_feasts - self.SLICE_SIZE
-        )
+        self.slice_begin = random.randint(0, self.number_of_feasts - self.SLICE_SIZE)
         self.slice_end = self.slice_begin + self.SLICE_SIZE
         return super().setUp()
 
@@ -384,25 +319,19 @@ class FeastDetailViewTest(TestCase):
 
     def test_view_url_reverse_name(self):
         for feast in Feast.objects.all()[self.slice_begin : self.slice_end]:
-            response = self.client.get(
-                reverse("feast-detail", args=[feast.id])
-            )
+            response = self.client.get(reverse("feast-detail", args=[feast.id]))
             self.assertEqual(response.status_code, 200)
 
     def test_view_correct_templates(self):
         for feast in Feast.objects.all()[self.slice_begin : self.slice_end]:
-            response = self.client.get(
-                reverse("feast-detail", args=[feast.id])
-            )
+            response = self.client.get(reverse("feast-detail", args=[feast.id]))
             self.assertEqual(response.status_code, 200)
             self.assertTemplateUsed(response, "base.html")
             self.assertTemplateUsed(response, "feast_detail.html")
 
     def test_view_context_data(self):
         for feast in Feast.objects.all()[self.slice_begin : self.slice_end]:
-            response = self.client.get(
-                reverse("feast-detail", args=[feast.id])
-            )
+            response = self.client.get(reverse("feast-detail", args=[feast.id]))
             self.assertTrue("feast" in response.context)
             self.assertEqual(feast, response.context["feast"])
 
@@ -430,21 +359,15 @@ class GenreListViewTest(TestCase):
         self.assertTemplateUsed(response, "genre_list.html")
 
     def test_filter_by_mass_or_office(self):
-        response = self.client.get(
-            reverse("genre-list"), {"mass_office": "Mass"}
-        )
+        response = self.client.get(reverse("genre-list"), {"mass_office": "Mass"})
         self.assertEqual(response.status_code, 200)
         genres = response.context["paginator"].object_list
         self.assertTrue(all(["Mass" in genre.mass_office for genre in genres]))
 
-        response = self.client.get(
-            reverse("genre-list"), {"mass_office": "Office"}
-        )
+        response = self.client.get(reverse("genre-list"), {"mass_office": "Office"})
         self.assertEqual(response.status_code, 200)
         genres = response.context["paginator"].object_list
-        self.assertTrue(
-            all(["Office" in genre.mass_office for genre in genres])
-        )
+        self.assertTrue(all(["Office" in genre.mass_office for genre in genres]))
 
         # Empty value or anything else defaults to all genres
         response = self.client.get(reverse("genre-list"), {"mass_office": ""})
@@ -470,26 +393,20 @@ class GenreListViewTest(TestCase):
 
         # Test all pages
         for page_num in range(1, pages + 1):
-            response = self.client.get(
-                reverse("genre-list"), {"page": page_num}
-            )
+            response = self.client.get(reverse("genre-list"), {"page": page_num})
             self.assertEqual(response.status_code, 200)
             self.assertTrue("is_paginated" in response.context)
             if self.number_of_genres > self.PAGE_SIZE:
                 self.assertTrue(response.context["is_paginated"])
             else:
                 self.assertFalse(response.context["is_paginated"])
-            if page_num == pages and (
-                self.number_of_genres % self.PAGE_SIZE != 0
-            ):
+            if page_num == pages and (self.number_of_genres % self.PAGE_SIZE != 0):
                 self.assertEqual(
                     len(response.context["genres"]),
                     self.number_of_genres % self.PAGE_SIZE,
                 )
             else:
-                self.assertEqual(
-                    len(response.context["genres"]), self.PAGE_SIZE
-                )
+                self.assertEqual(len(response.context["genres"]), self.PAGE_SIZE)
 
         # Test the "last" syntax
         response = self.client.get(reverse("genre-list"), {"page": "last"})
@@ -512,9 +429,7 @@ class GenreDetailViewTest(TestCase):
 
     def setUp(self):
         self.number_of_genres = Genre.objects.all().count()
-        self.slice_begin = random.randint(
-            0, self.number_of_genres - self.SLICE_SIZE
-        )
+        self.slice_begin = random.randint(0, self.number_of_genres - self.SLICE_SIZE)
         self.slice_end = self.slice_begin + self.SLICE_SIZE
         return super().setUp()
 
@@ -525,25 +440,19 @@ class GenreDetailViewTest(TestCase):
 
     def test_view_url_reverse_name(self):
         for genre in Genre.objects.all()[self.slice_begin : self.slice_end]:
-            response = self.client.get(
-                reverse("genre-detail", args=[genre.id])
-            )
+            response = self.client.get(reverse("genre-detail", args=[genre.id]))
             self.assertEqual(response.status_code, 200)
 
     def test_view_correct_templates(self):
         for genre in Genre.objects.all()[self.slice_begin : self.slice_end]:
-            response = self.client.get(
-                reverse("genre-detail", args=[genre.id])
-            )
+            response = self.client.get(reverse("genre-detail", args=[genre.id]))
             self.assertEqual(response.status_code, 200)
             self.assertTemplateUsed(response, "base.html")
             self.assertTemplateUsed(response, "genre_detail.html")
 
     def test_view_context_data(self):
         for genre in Genre.objects.all()[self.slice_begin : self.slice_end]:
-            response = self.client.get(
-                reverse("genre-detail", args=[genre.id])
-            )
+            response = self.client.get(reverse("genre-detail", args=[genre.id]))
             self.assertTrue("genre" in response.context)
             self.assertEqual(genre, response.context["genre"])
 
@@ -577,26 +486,20 @@ class OfficeListViewTest(TestCase):
 
         # Test all pages
         for page_num in range(1, pages + 1):
-            response = self.client.get(
-                reverse("office-list"), {"page": page_num}
-            )
+            response = self.client.get(reverse("office-list"), {"page": page_num})
             self.assertEqual(response.status_code, 200)
             self.assertTrue("is_paginated" in response.context)
             if self.number_of_offices > self.PAGE_SIZE:
                 self.assertTrue(response.context["is_paginated"])
             else:
                 self.assertFalse(response.context["is_paginated"])
-            if page_num == pages and (
-                self.number_of_offices % self.PAGE_SIZE != 0
-            ):
+            if page_num == pages and (self.number_of_offices % self.PAGE_SIZE != 0):
                 self.assertEqual(
                     len(response.context["offices"]),
                     self.number_of_offices % self.PAGE_SIZE,
                 )
             else:
-                self.assertEqual(
-                    len(response.context["offices"]), self.PAGE_SIZE
-                )
+                self.assertEqual(len(response.context["offices"]), self.PAGE_SIZE)
 
         # Test the "last" syntax
         response = self.client.get(reverse("office-list"), {"page": "last"})
@@ -619,9 +522,7 @@ class OfficeDetailViewTest(TestCase):
 
     def setUp(self):
         self.number_of_offices = Office.objects.all().count()
-        self.slice_begin = random.randint(
-            0, self.number_of_offices - self.SLICE_SIZE
-        )
+        self.slice_begin = random.randint(0, self.number_of_offices - self.SLICE_SIZE)
         self.slice_end = self.slice_begin + self.SLICE_SIZE
         return super().setUp()
 
@@ -632,25 +533,19 @@ class OfficeDetailViewTest(TestCase):
 
     def test_view_url_reverse_name(self):
         for office in Office.objects.all()[self.slice_begin : self.slice_end]:
-            response = self.client.get(
-                reverse("office-detail", args=[office.id])
-            )
+            response = self.client.get(reverse("office-detail", args=[office.id]))
             self.assertEqual(response.status_code, 200)
 
     def test_view_correct_templates(self):
         for office in Office.objects.all()[self.slice_begin : self.slice_end]:
-            response = self.client.get(
-                reverse("office-detail", args=[office.id])
-            )
+            response = self.client.get(reverse("office-detail", args=[office.id]))
             self.assertEqual(response.status_code, 200)
             self.assertTemplateUsed(response, "base.html")
             self.assertTemplateUsed(response, "office_detail.html")
 
     def test_view_context_data(self):
         for office in Office.objects.all()[self.slice_begin : self.slice_end]:
-            response = self.client.get(
-                reverse("office-detail", args=[office.id])
-            )
+            response = self.client.get(reverse("office-detail", args=[office.id]))
             self.assertTrue("office" in response.context)
             self.assertEqual(office, response.context["office"])
 
