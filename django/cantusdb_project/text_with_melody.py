@@ -7,7 +7,7 @@ from latin_syllabification import syllabify_word
 # tilda ~ identifies "Psalm incipits" or any text that doesn't align with pitches
 #   immediately before text, no spaces
 # IPSUM (same), it looks like: | space ～Ipsum space [actual psalm text from the antiphon]
-#   check some real examples to see whether/how this affects alignment
+#   this doesn't affect alignment, just treat the part between ~ and next | as one syllable in one word
 
 #                                   MISSING TEXT WITH READABLE PITCHES
 # the number sign # identifies missing text, it could be missing complete word(s) or syllable(s)

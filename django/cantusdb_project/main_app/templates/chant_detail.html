@@ -248,11 +248,13 @@
                             <p><small>Syllabification is based on saved syllabized text.</small></p>
                         {% endif %}
                         <dd>
-                            {% for syl_mel, syl_text in syllabized_text_with_melody %}
-                            <span style="float: left">
-                                <div style="font-family: volpiano; font-size: 28px">{{ syl_mel }}</div>
-                                <div style="font-size: 10px"><pre>{{ syl_text }}</pre></div>
-                            </span>
+                            {% for zip in syllabized_text_with_melody %}
+                                {% for syl_mel, syl_text in zip %}
+                                    <span style="float: left">
+                                        <div style="font-family: volpiano; font-size: 28px">{{ syl_mel }}</div>
+                                        <div style="font-size: 10px"><pre>{{ syl_text }}</pre></div>
+                                    </span>
+                                {% endfor %}
                             {% endfor %}
                         </dd>
                     </div>

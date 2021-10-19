@@ -19,7 +19,7 @@ from django.views.generic import (
 from main_app.forms import ChantCreateForm
 from main_app.models import Chant, Feast, Genre, Source, Sequence
 from latin_syllabification import syllabify_text, syllabify_word
-from text_with_melody import *
+from syllabification_re import *
 
 
 def keyword_search(queryset: QuerySet, keywords: str) -> QuerySet:
@@ -116,21 +116,26 @@ class ChantDetailView(DetailView):
         # syllabification section
         if chant.volpiano:
             syls_melody = syllabize_melody(chant.volpiano)
+            # print(syls_melody)
 
             if chant.manuscript_syllabized_full_text:
-                syls_text, tilda_found = syllabize_text(
+                syls_text = syllabize_text(
                     chant.manuscript_syllabized_full_text, pre_syllabized=True
                 )
 
             elif chant.manuscript_full_text:
-                syls_text, tilda_found = syllabize_text(
+                syls_text = syllabize_text(
                     chant.manuscript_full_text, pre_syllabized=False
                 )
 
-            rectified_melody = postprocess_symbols(syls_text, syls_melody, tilda_found)
-            text_melody_zip = align_melody_with_text(syls_text, rectified_melody)
+            # print(syls_text)
+            syls_text, syls_melody = postprocess(syls_text, syls_melody)
+            # print(syls_text)
+            word_zip = align(syls_text, syls_melody)
+            # rectified_melody = postprocess_symbols(syls_text, syls_melody, tilda_found)
+            # text_melody_zip = align_melody_with_text(syls_text, rectified_melody)
 
-            context["syllabized_text_with_melody"] = text_melody_zip
+            context["syllabized_text_with_melody"] = word_zip
         return context
 
 
