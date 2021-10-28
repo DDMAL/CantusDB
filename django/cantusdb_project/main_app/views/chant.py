@@ -78,7 +78,8 @@ class ChantDetailView(DetailView):
         def get_chants_with_feasts(chants_in_folio):
             feast_ids = []
             for chant in chants_in_folio.order_by("sequence_number"):
-                feast_ids.append(chant.feast.id)
+                if chant.feast:
+                    feast_ids.append(chant.feast.id)
             # remove duplicate feast ids and preserve the order
             feast_ids = list(dict.fromkeys(feast_ids))
 
