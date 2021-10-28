@@ -74,6 +74,7 @@ def ajax_melody_list(request, cantus_id):
         "genre__name",
         "position",
         "feast__name",
+        "cantus_id",
         "volpiano",
         "mode",
         # seems to use whichever is present: ms spelling, std spelling, incipit

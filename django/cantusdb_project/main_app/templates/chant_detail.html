@@ -271,130 +271,129 @@
                 {% endif %}
             </dl>
 
-            <h4>List of concordances</h4>
-            <a id="ajax_concordance" href="#">» Display all concordances of this chant</a>
-            <div id="concordance_div"></div>
+            {% if chant.cantus_id %}
+                <h4>List of concordances</h4>
+                <a id="ajax_concordance" href="#">» Display all concordances of this chant</a>
+                <div id="concordance_div"></div>
 
-            <br>
-            <h4>List of melodies</h4>
-            <a id="ajax_melody" href="#" onclick="">» Display the melodies connected with this chant</a>
-            <div id="melody_div"></div>        
+                <br>
+                <h4>List of melodies</h4>
+                <a id="ajax_melody" href="#" onclick="">» Display the melodies connected with this chant</a>
+                <div id="melody_div"></div>        
 
-            <script>
-                const concordanceTable = document.getElementById('concordance_div')
-                const ajaxConcordance = () => {
-                    $.ajax({
-                        type: "GET", 
-                        // url: "/ajax/{{ chant.cantus_id }}",
-                        url: "{% url 'ajax_concordance' chant.cantus_id %}",
-                        success: function(response){
-                            const concordances = response.concordances;
-                            const concordanceCount = response.concordance_count;
-                            // document.getElementById("test").innerHTML = cantus_id.toString();
-                            concordanceTable.innerHTML += `Displaying <b>${concordanceCount}</b> concordances from the following databases (Cantus ID <b>{{ chant.cantus_id }})</b>`;
-                            concordanceTable.innerHTML += `<table id="concordanceTable" class="table table-responsive table-sm small">
-                                                                <thead>
-                                                                    <tr>
-                                                                        <th scope="col" class="text-wrap">Siglum</th>
-                                                                        <th scope="col" class="text-wrap">Folio</th>
-                                                                        <th scope="col" class="text-wrap">Incipit</th>
-                                                                        <th scope="col" class="text-wrap">Office </th>
-                                                                        <th scope="col" class="text-wrap">Genre </th>
-                                                                        <th scope="col" class="text-wrap">Position</th>
-                                                                        <th scope="col" class="text-wrap">Feast</th>
-                                                                        <th scope="col" class="text-wrap">Mode</th>
-                                                                        <th scope="col" class="text-wrap">Image</th>
-                                                                        <th scope="col" class="text-wrap">DB</th>
-                                                                    </tr>
-                                                                </thead>
-                                                                <tbody>
-                                                                </tbody>
-                                                            </table>`;
-                            const table = document.getElementById("concordanceTable").getElementsByTagName("tbody")[0];
-                            concordances.map(chant=>{
-                                // console.log(chant.siglum)
-                                const newRow = table.insertRow(table.rows.length);
-                                if (chant.siglum) {newRow.innerHTML += `<td class="text-wrap"><a href="${chant.source_link}">${chant.siglum}</a></td>`} else {newRow.innerHTML += '<td class="text-wrap"></td>'}
-                                if (chant.folio) {newRow.innerHTML += `<td class="text-wrap">${chant.folio}</td>`} else {newRow.innerHTML += '<td class="text-wrap"></td>'}
-                                if (chant.incipit) {newRow.innerHTML += `<td class="text-wrap"><a href="${chant.chant_link}">${chant.incipit}</a></td>`} else {newRow.innerHTML += '<td class="text-wrap"></td>'}
-                                if (chant.office__name) {newRow.innerHTML += `<td class="text-wrap">${chant.office__name}</td>`} else {newRow.innerHTML += '<td class="text-wrap"></td>'}
-                                if (chant.genre__name) {newRow.innerHTML += `<td class="text-wrap">${chant.genre__name}</td>`} else {newRow.innerHTML += '<td class="text-wrap"></td>'}
-                                if (chant.position) {newRow.innerHTML += `<td class="text-wrap">${chant.position}</td>`} else {newRow.innerHTML += '<td class="text-wrap"></td>'}
-                                if (chant.feast__name) {newRow.innerHTML += `<td class="text-wrap">${chant.feast__name}</td>`} else {newRow.innerHTML += '<td class="text-wrap"></td>'}
-                                if (chant.mode) {newRow.innerHTML += `<td class="text-wrap">${chant.mode}</td>`} else {newRow.innerHTML += '<td class="text-wrap"></td>'}
-                                if (chant.image_link) {newRow.innerHTML += `<td class="text-wrap"><a href="${chant.image_link}" target="_blank">Image</a></td>`} else {newRow.innerHTML += '<td class="text-wrap"></td>'}
-                                newRow.innerHTML += `<td class="text-wrap">${chant.db}</td>`
-                            });
-                            document.getElementById("concordance_div").innerHTML += "<a href='//cantusindex.org/ci/{{ chant.cantus_id }}?c=1&refresh=1' target='_blank'>Refresh results</a>";
-                            document.getElementById("ajax_concordance").style.display = "none";
-                        },
-                        error: function(error){
-                            document.getElementById("concordance_div").innerHTML = "Error when displaying the concordances"
-                        }
-                    });
-                }
-                document.getElementById("ajax_concordance").addEventListener("click", ()=>{
-                    ajaxConcordance()
-                })
-            </script>
+                <script>
+                    const concordanceTable = document.getElementById('concordance_div')
+                    const ajaxConcordance = () => {
+                        $.ajax({
+                            type: "GET", 
+                            // url: "/ajax/{{ chant.cantus_id }}",
+                            url: "{% url 'ajax_concordance' chant.cantus_id %}",
+                            success: function(response){
+                                const concordances = response.concordances;
+                                const concordanceCount = response.concordance_count;
+                                // document.getElementById("test").innerHTML = cantus_id.toString();
+                                concordanceTable.innerHTML += `Displaying <b>${concordanceCount}</b> concordances from the following databases (Cantus ID <b>{{ chant.cantus_id }})</b>`;
+                                concordanceTable.innerHTML += `<table id="concordanceTable" class="table table-responsive table-sm small">
+                                                                    <thead>
+                                                                        <tr>
+                                                                            <th scope="col" class="text-wrap">Siglum</th>
+                                                                            <th scope="col" class="text-wrap">Folio</th>
+                                                                            <th scope="col" class="text-wrap">Incipit</th>
+                                                                            <th scope="col" class="text-wrap">Office </th>
+                                                                            <th scope="col" class="text-wrap">Genre </th>
+                                                                            <th scope="col" class="text-wrap">Position</th>
+                                                                            <th scope="col" class="text-wrap">Feast</th>
+                                                                            <th scope="col" class="text-wrap">Mode</th>
+                                                                            <th scope="col" class="text-wrap">Image</th>
+                                                                            <th scope="col" class="text-wrap">DB</th>
+                                                                        </tr>
+                                                                    </thead>
+                                                                    <tbody>
+                                                                    </tbody>
+                                                                </table>`;
+                                const table = document.getElementById("concordanceTable").getElementsByTagName("tbody")[0];
+                                concordances.map(chant=>{
+                                    const newRow = table.insertRow(table.rows.length);
+                                    if (chant.siglum) {newRow.innerHTML += `<td class="text-wrap"><a href="${chant.source_link}">${chant.siglum}</a></td>`} else {newRow.innerHTML += '<td class="text-wrap"></td>'}
+                                    if (chant.folio) {newRow.innerHTML += `<td class="text-wrap">${chant.folio}</td>`} else {newRow.innerHTML += '<td class="text-wrap"></td>'}
+                                    if (chant.incipit) {newRow.innerHTML += `<td class="text-wrap"><a href="${chant.chant_link}">${chant.incipit}</a></td>`} else {newRow.innerHTML += '<td class="text-wrap"></td>'}
+                                    if (chant.office__name) {newRow.innerHTML += `<td class="text-wrap">${chant.office__name}</td>`} else {newRow.innerHTML += '<td class="text-wrap"></td>'}
+                                    if (chant.genre__name) {newRow.innerHTML += `<td class="text-wrap">${chant.genre__name}</td>`} else {newRow.innerHTML += '<td class="text-wrap"></td>'}
+                                    if (chant.position) {newRow.innerHTML += `<td class="text-wrap">${chant.position}</td>`} else {newRow.innerHTML += '<td class="text-wrap"></td>'}
+                                    if (chant.feast__name) {newRow.innerHTML += `<td class="text-wrap">${chant.feast__name}</td>`} else {newRow.innerHTML += '<td class="text-wrap"></td>'}
+                                    if (chant.mode) {newRow.innerHTML += `<td class="text-wrap">${chant.mode}</td>`} else {newRow.innerHTML += '<td class="text-wrap"></td>'}
+                                    if (chant.image_link) {newRow.innerHTML += `<td class="text-wrap"><a href="${chant.image_link}" target="_blank">Image</a></td>`} else {newRow.innerHTML += '<td class="text-wrap"></td>'}
+                                    newRow.innerHTML += `<td class="text-wrap">${chant.db}</td>`
+                                });
+                                document.getElementById("concordance_div").innerHTML += "<a href='//cantusindex.org/ci/{{ chant.cantus_id }}?c=1&refresh=1' target='_blank'>Refresh results</a>";
+                                document.getElementById("ajax_concordance").style.display = "none";
+                            },
+                            error: function(error){
+                                document.getElementById("concordance_div").innerHTML = "Error when displaying the concordances"
+                            }
+                        });
+                    }
+                    document.getElementById("ajax_concordance").addEventListener("click", ()=>{
+                        ajaxConcordance()
+                    })
+                </script>
 
-            <script>
-                const melodyTable = document.getElementById('melody_div')
-                const ajaxMelody = (cantus_id) => {
-                    $.ajax({
-                        type: "GET", 
-                        url: "{% url 'ajax_melody' chant.cantus_id %}",
-                        success: function(response){
-                            const concordances = response.concordances;
-                            const melodyCount = response.concordance_count;
-                            melodyTable.innerHTML += `Displaying <b>${melodyCount}</b> melodies from the following databases: `;
-                            melodyTable.innerHTML += `<table id="melodyTable" class="table table-responsive table-sm small">
-                                                                <thead>
-                                                                    <tr>
-                                                                        <th scope="col" class="text-wrap">Chant</th>
-                                                                        <th scope="col" class="text-wrap">Melody</th>
-                                                                    </tr>
-                                                                </thead>
-                                                                <tbody>
-                                                                </tbody>
-                                                            </table>`;
-                            const table = document.getElementById("melodyTable").getElementsByTagName("tbody")[0];
-                            concordances.map(chant=>{
-                                // console.log(chant.siglum)
-                                const newRow = table.insertRow(table.rows.length);
+                <script>
+                    const melodyTable = document.getElementById('melody_div')
+                    const ajaxMelody = () => {
+                        $.ajax({
+                            type: "GET", 
+                            url: "{% url 'ajax_melody' chant.cantus_id %}",
+                            success: function(response){
+                                const concordances = response.concordances;
+                                const melodyCount = response.concordance_count;
+                                melodyTable.innerHTML += `Displaying <b>${melodyCount}</b> melodies from the following databases: `;
+                                melodyTable.innerHTML += `<table id="melodyTable" class="table table-responsive table-sm small">
+                                                                    <thead>
+                                                                        <tr>
+                                                                            <th scope="col" class="text-wrap">Chant</th>
+                                                                            <th scope="col" class="text-wrap">Melody</th>
+                                                                        </tr>
+                                                                    </thead>
+                                                                    <tbody>
+                                                                    </tbody>
+                                                                </table>`;
+                                const table = document.getElementById("melodyTable").getElementsByTagName("tbody")[0];
+                                concordances.map(chant=>{
+                                    const newRow = table.insertRow(table.rows.length);
 
-                                chantCell = newRow.insertCell()
-                                melodyCell = newRow.insertCell()
+                                    chantCell = newRow.insertCell()
+                                    melodyCell = newRow.insertCell()
 
-                                if (chant.siglum) {chantCell.innerHTML += `<a href="${chant.source_link}">${chant.siglum}</a>`} else {chantCell.innerHTML += ''}
-                                chantCell.innerHTML += '<br>';
-                                if (chant.folio) {chantCell.innerHTML += `${chant.folio} | `} else {chantCell.innerHTML += ''}
-                                if (chant.office__name) {chantCell.innerHTML += `${chant.office__name} `} else {chantCell.innerHTML += ''}
-                                if (chant.genre__name) {chantCell.innerHTML += `<b>${chant.genre__name} </b>`} else {chantCell.innerHTML += ''}
-                                if (chant.position) {chantCell.innerHTML += `${chant.position}`} else {chantCell.innerHTML += ''}
-                                chantCell.innerHTML += '<br>';
-                                if (chant.feast__name) {chantCell.innerHTML += `${chant.feast__name}`} else {chantCell.innerHTML += ''}
-                                chantCell.innerHTML += '<br>';
-                                chantCell.innerHTML += `Cantus ID: <a href=${chant.ci_link}>${cantus_id}</a>`
+                                    if (chant.siglum) {chantCell.innerHTML += `<a href="${chant.source_link}">${chant.siglum}</a>`} else {chantCell.innerHTML += ''}
+                                    chantCell.innerHTML += '<br>';
+                                    if (chant.folio) {chantCell.innerHTML += `${chant.folio} | `} else {chantCell.innerHTML += ''}
+                                    if (chant.office__name) {chantCell.innerHTML += `${chant.office__name} `} else {chantCell.innerHTML += ''}
+                                    if (chant.genre__name) {chantCell.innerHTML += `<b>${chant.genre__name} </b>`} else {chantCell.innerHTML += ''}
+                                    if (chant.position) {chantCell.innerHTML += `${chant.position}`} else {chantCell.innerHTML += ''}
+                                    chantCell.innerHTML += '<br>';
+                                    if (chant.feast__name) {chantCell.innerHTML += `${chant.feast__name}`} else {chantCell.innerHTML += ''}
+                                    chantCell.innerHTML += '<br>';
+                                    chantCell.innerHTML += `Cantus ID: <a href=${chant.ci_link}>${chant.cantus_id}</a>`
 
-                                melodyCell.innerHTML += `<div style="font-family: volpiano; font-size:20px">${chant.volpiano}</div>`
-                                melodyCell.innerHTML += '<br>'
-                                if (chant.mode) {melodyCell.innerHTML += `M:<b>${chant.mode} </b>`} else {melodyCell.innerHTML += ''}
-                                if (chant.manuscript_full_text_std_spelling) {melodyCell.innerHTML += `<a href=${chant.chant_link}>${chant.manuscript_full_text_std_spelling}</a>`} else {melodyCell.innerHTML += ''}
-                            });
-                            document.getElementById("ajax_melody").style.display = "none";
-                        },
-                        error: function(error){
-                            document.getElementById("melody_div").innerHTML = "Error when displaying the melodies"
-                        }
-                    });
-                }
-                document.getElementById("ajax_melody").addEventListener("click", ()=>{
-                    ajaxMelody({{ chant.cantus_id }})
-                })
-            </script>
+                                    melodyCell.innerHTML += `<div style="font-family: volpiano; font-size:20px">${chant.volpiano}</div>`
+                                    melodyCell.innerHTML += '<br>'
+                                    if (chant.mode) {melodyCell.innerHTML += `M:<b>${chant.mode} </b>`} else {melodyCell.innerHTML += ''}
+                                    if (chant.manuscript_full_text_std_spelling) {melodyCell.innerHTML += `<a href=${chant.chant_link}>${chant.manuscript_full_text_std_spelling}</a>`} else {melodyCell.innerHTML += ''}
+                                });
+                                document.getElementById("ajax_melody").style.display = "none";
+                            },
+                            error: function(error){
+                                document.getElementById("melody_div").innerHTML = "Error when displaying the melodies"
+                            }
+                        });
+                    }
+                    document.getElementById("ajax_melody").addEventListener("click", ()=>{
+                        ajaxMelody()
+                    })
+                </script>
 
-
+            {% endif %}
             {% comment %} <br>
             <a href="" class="btn btn-primary" id="delete">Delete this Chant</a>
             <script>
