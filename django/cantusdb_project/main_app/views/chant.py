@@ -2,6 +2,7 @@ import enum
 from re import I
 import lxml.html as lh
 import requests
+import urllib
 import json
 from django.contrib import messages
 from django.contrib.postgres.search import SearchQuery, SearchRank
@@ -254,7 +255,8 @@ class ChantByCantusIDView(ListView):
     template_name = "chant_seq_by_cantus_id.html"
 
     def dispatch(self, request, *args, **kwargs):
-        self.cantus_id = kwargs["cantus_id"]
+        # decode cantus_id, which might contain forward slash and is thus percent-encoded
+        self.cantus_id = urllib.parse.unquote(kwargs["cantus_id"])
         return super().dispatch(request, *args, **kwargs)
 
     def get_queryset(self):

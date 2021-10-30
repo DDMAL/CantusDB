@@ -55,7 +55,8 @@
                 <tbody>
                     {% for cantus_id, incipit, genre, count in frequent_chants_zip %}
                     <tr>
-                        <td><a href="{% url 'chant-by-cantus_id' cantus_id %}">{{ cantus_id|default:"" }}</a></td>
+                        {% comment %} use `urlencode` filter because 1 chant and 2 sequences have forward slash in their cantus_id (data error) {% endcomment %}
+                        <td><a href="{% url 'chant-by-cantus_id' cantus_id|urlencode:"" %}">{{ cantus_id|default:"" }}</a></td>
                         <td>{{ incipit }}</td>
                         <td><a href="{{ genre.get_absolute_url }}">{{ genre.name }}</a></td>
                         <td>{{ count }}</td>

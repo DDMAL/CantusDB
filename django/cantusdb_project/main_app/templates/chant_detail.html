@@ -286,8 +286,7 @@
                     const ajaxConcordance = () => {
                         $.ajax({
                             type: "GET", 
-                            // url: "/ajax/{{ chant.cantus_id }}",
-                            url: "{% url 'ajax_concordance' chant.cantus_id %}",
+                            url: "{% url 'ajax_concordance' chant.cantus_id|urlencode:'' %}",
                             success: function(response){
                                 const concordances = response.concordances;
                                 const concordanceCount = response.concordance_count;
@@ -343,7 +342,7 @@
                     const ajaxMelody = () => {
                         $.ajax({
                             type: "GET", 
-                            url: "{% url 'ajax_melody' chant.cantus_id %}",
+                            url: "{% url 'ajax_melody' chant.cantus_id|urlencode:'' %}",
                             success: function(response){
                                 const concordances = response.concordances;
                                 const melodyCount = response.concordance_count;
