@@ -129,6 +129,8 @@ class ChantDetailView(DetailView):
                     chant.manuscript_full_text, pre_syllabized=False
                 )
 
+            else:
+                syls_text = syllabize_text(chant.incipit, pre_syllabized=False)
             # print(syls_text)
             syls_text, syls_melody = postprocess(syls_text, syls_melody)
             # print(syls_text)
