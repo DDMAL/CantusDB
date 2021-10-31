@@ -17,7 +17,7 @@ from latin_syllabification import syllabify_word
 
 #                                   READABLE TEXT UNDER MISSING PITCHES
 # for a complete word:
-#   enclose affected text in {},
+#   enclose affected text in {} and don't syllabize them,
 #   volpiano use 6------6 to represent missing pitches, --- before and after each 6
 
 # for select syllables:
