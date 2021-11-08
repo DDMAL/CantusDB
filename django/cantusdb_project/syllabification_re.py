@@ -12,12 +12,13 @@ def syllabize_text(text, pre_syllabized=False):
         text = " | ".join(substrs_around_barline)
 
     words_text = text.split(" ")
-    # initialize this with a space, which aligns with the clef at the beginning of melody
+    # initialize the first word with a space, which aligns with the clef at the beginning of melody
     # syls_text is a list of lists (words). each word is a list of syllables
     syls_text = [[" "]]
 
     if pre_syllabized:
         for word in words_text:
+            # this `if` eliminates the extra spaces
             if word:
                 syls = [syl + "-" for syl in word.split("-")]
                 syls[-1] = syls[-1][:-1]
@@ -25,6 +26,10 @@ def syllabize_text(text, pre_syllabized=False):
     else:
         for word in words_text:
             if word:
+                # if "{" in word or "}" in word:
+                #     # what we want here is to make the part between {} an independent word, so that they mey be combined correctly
+                #     # see 219427 and 619450
+                # else:
                 syls = [syl + "-" for syl in syllabify_word(word)]
                 syls[-1] = syls[-1][:-1]
                 syls_text.append(syls)
@@ -81,6 +86,7 @@ def syllabize_melody(volpiano):
 def find_next_barline(syls_text, tilda_idx):
     # set default to beyond the last word, in case the barline is missing, all words after ~ will be combined
     barline_idx = len(syls_text)
+    # the barline is a word on its own, so start from the next word
     for i, word in enumerate(syls_text[tilda_idx + 1 :]):
         if word == ["|"]:
             barline_idx = tilda_idx + 1 + i
@@ -91,17 +97,17 @@ def find_next_barline(syls_text, tilda_idx):
 def find_next_brace_end(syls_text, brace_start_idx):
     # set default to the last word, in case the brace end is missing, all words after { will be combined
     brace_end_idx = len(syls_text) - 1
-    for i, word in enumerate(syls_text[brace_start_idx + 1 :]):
+    # there are cases where there's only one word in the braces, so start from the same word as the brace start
+    for i, word in enumerate(syls_text[brace_start_idx:]):
         if word[-1][-1] == "}":
-            brace_end_idx = brace_start_idx + 1 + i
+            brace_end_idx = brace_start_idx + i
             break
     return brace_end_idx
 
 
 def postprocess(syls_text, syls_melody):
-    print(syls_text)
     # process the braces {} before processing ~ and |, because some chants have ~ inside {}, in this case,
-    # process {} will solve both
+    # processing {} will solve both
     brace_start_idx = []
     brace_end_idx = []
     for i, word in enumerate(syls_text):
@@ -116,6 +122,7 @@ def postprocess(syls_text, syls_melody):
             word = [syl.strip("-") for syl in word]
             rebuilt_word = "".join(word)
             rebuilt_words.append(rebuilt_word)
+            print(rebuilt_words)
         syls_text[idx] = [" ".join(rebuilt_words)]
         for i in range(idx + 1, next_brace_end + 1):
             syls_text[i] = ["*"]
@@ -152,6 +159,7 @@ def postprocess(syls_text, syls_melody):
         for i in range(idx + 1, next_barline):
             syls_text[i] = ["*"]
     syls_text = [word for word in syls_text if word != ["*"]]
+    print(syls_text)
 
     return syls_text, syls_melody
 
