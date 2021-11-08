@@ -118,27 +118,21 @@ class ChantDetailView(DetailView):
         # syllabification section
         if chant.volpiano:
             syls_melody = syllabize_melody(chant.volpiano)
-            # print(syls_melody)
 
             if chant.manuscript_syllabized_full_text:
                 syls_text = syllabize_text(
                     chant.manuscript_syllabized_full_text, pre_syllabized=True
                 )
-
             elif chant.manuscript_full_text:
                 syls_text = syllabize_text(
                     chant.manuscript_full_text, pre_syllabized=False
                 )
-
+                syls_text, syls_melody = postprocess(syls_text, syls_melody)
             else:
                 syls_text = syllabize_text(chant.incipit, pre_syllabized=False)
-            # print(syls_text)
-            syls_text, syls_melody = postprocess(syls_text, syls_melody)
-            # print(syls_text)
-            word_zip = align(syls_text, syls_melody)
-            # rectified_melody = postprocess_symbols(syls_text, syls_melody, tilda_found)
-            # text_melody_zip = align_melody_with_text(syls_text, rectified_melody)
+                syls_text, syls_melody = postprocess(syls_text, syls_melody)
 
+            word_zip = align(syls_text, syls_melody)
             context["syllabized_text_with_melody"] = word_zip
         return context
 
