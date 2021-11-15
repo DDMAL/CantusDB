@@ -11,6 +11,17 @@ def syllabize_text(text, pre_syllabized=False):
         # this may introduce extra spaces. those will be removed in the next part
         text = " | ".join(substrs_around_barline)
 
+    # curly braces {} identifies text affected by missing pitches, insert spaces before { and after }
+    # so that the text in braces are are treated as a separate word
+    if "{" in text:
+        substrs_around_brace_start = text.split("{")
+        # this may introduce extra spaces. those will be removed in the next part
+        text = " {".join(substrs_around_brace_start)
+    if "}" in text:
+        substrs_around_brace_end = text.split("}")
+        # this may introduce extra spaces. those will be removed in the next part
+        text = "} ".join(substrs_around_brace_end)
+
     words_text = text.split(" ")
     # initialize the first word with a space, which aligns with the clef at the beginning of melody
     # syls_text is a list of lists (words). each word is a list of syllables
@@ -56,18 +67,46 @@ def syllabize_melody(volpiano):
     words_melody[-1] = words_melody[-1][:-3]
 
     # split melody words into syllables
+    #  `syls_melody` would be a list of lists (words), each word is a list of syllables
     syls_melody = []
     for word in words_melody[:-1]:
-        if "******" in word:
-            # change * back to 6------6
-            word = word.replace("******", "6------6")
-            syls_melody.append([word])
-        else:
-            syls = [syl + "--" for syl in word[:-3].split("--")]
-            # this next line is equivalent to removing the trailing "--" and
-            # then adding the "---" back to the end of each word
-            syls[-1] = syls[-1] + "-"
-            syls_melody.append(syls)
+        # to accommodate for text like `mar{tirum et}`, we appended space before all curly braces,
+        # so that the text in curly braces can nicely align with the `---6------6---` in melody
+        # (they're both treated as a single word)
+        # however, there are cases like `an{#}` (originally no space before curly brace,
+        # while the corresp `6------6` in melody has only two leading dashes because it corresponds to only a syllable)
+        # in order to accommodate both cases, we change the syllable-level `6------6` into word-level
+        # i.e., make it a single word on its own
+        # example: see 219427 and 619450
+        # this variable is for capturing the syllable-level `6------6` (below referred to as `gap`),
+        syl_level_gap = None
+        # `syls` contains the melody syllables in each melody word
+        syls = []
+        # the last 3 charactors (---) are discarded
+        for i, syl in enumerate(word[:-3].split("--")):
+            if "******" in syl:
+                # if the syllable contains `6------6`
+                # (it may not be exactly `6------6`, it could also be sth like `6------677`)
+                if i == 0:
+                    # if `6------6` is the first syllable in the word, it must be a word-level gap
+                    # just put it directly into the list for the current word
+                    syl = syl.replace("******", "6------6")
+                    syls.append(syl + "--")
+                else:
+                    # if the gap is not the first syllable in the word,
+                    # the word must be sth like `---k--6------677---` (syl-level gap)
+                    # we save it and later add it directly to the `syls_melody` list
+                    syl_level_gap = syl.replace("******", "6------6")
+            else:
+                # for normal syls, directly add them to the list for the current word
+                syls.append(syl + "--")
+        # this next line is equivalent to removing the trailing "--" and
+        # then adding the "---" back to the end of each word
+        syls[-1] = syls[-1] + "-"
+        syls_melody.append(syls)
+        if syl_level_gap:
+            # if there is syl-level gap, add it to `syls_melody` like a word
+            syls_melody.append([syl_level_gap])
 
     # for the last word in melody
     last_word = words_melody[-1]
@@ -80,6 +119,7 @@ def syllabize_melody(volpiano):
         # remove the trailing "--" (added in previous line) from the last syllable
         syls[-1] = syls[-1][:-2]
         syls_melody.append(syls)
+    print(syls_melody)
     return syls_melody
 
 
@@ -127,8 +167,6 @@ def postprocess(syls_text, syls_melody):
         for i in range(idx + 1, next_brace_end + 1):
             syls_text[i] = ["*"]
     syls_text = [word for word in syls_text if word != ["*"]]
-    print(syls_text)
-    print(syls_melody)
 
     # process the text between ~ and |
     barline_idx = []
@@ -160,7 +198,7 @@ def postprocess(syls_text, syls_melody):
             syls_text[i] = ["*"]
     syls_text = [word for word in syls_text if word != ["*"]]
     print(syls_text)
-
+    print(syls_melody)
     return syls_text, syls_melody
 
 
