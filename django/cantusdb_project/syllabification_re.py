@@ -1,4 +1,3 @@
-import re
 from latin_syllabification import syllabify_word
 from itertools import zip_longest
 
@@ -119,7 +118,7 @@ def syllabize_melody(volpiano):
         # remove the trailing "--" (added in previous line) from the last syllable
         syls[-1] = syls[-1][:-2]
         syls_melody.append(syls)
-    print(syls_melody)
+    # print(syls_melody)
     return syls_melody
 
 
@@ -132,6 +131,17 @@ def find_next_barline(syls_text, tilda_idx):
             barline_idx = tilda_idx + 1 + i
             break
     return barline_idx
+
+
+def find_next_barline_mel(syls_melody, tilda_idx):
+    # set default to beyond the last word, in case the barline is missing, all words after ~ will be combined
+    barline_idx_mel = len(syls_melody)
+    # the barline is a word on its own, so start from the next word
+    for i, word in enumerate(syls_melody[tilda_idx + 1 :]):
+        if word == ["3---"] or word == ["4---"] or word == ["3"] or word == ["4"]:
+            barline_idx_mel = tilda_idx + 1 + i
+            break
+    return barline_idx_mel
 
 
 def find_next_brace_end(syls_text, brace_start_idx):
@@ -162,7 +172,6 @@ def postprocess(syls_text, syls_melody):
             word = [syl.strip("-") for syl in word]
             rebuilt_word = "".join(word)
             rebuilt_words.append(rebuilt_word)
-            print(rebuilt_words)
         syls_text[idx] = [" ".join(rebuilt_words)]
         for i in range(idx + 1, next_brace_end + 1):
             syls_text[i] = ["*"]
@@ -185,10 +194,31 @@ def postprocess(syls_text, syls_melody):
     # `melody_offset` measures the change in indexing, so that we always index the correct words for combination
     melody_offset = 0
     for idx in tilda_idx:
-        syls_melody[idx - melody_offset] = ["".join(syls_melody[idx - melody_offset])]
-        next_barline = find_next_barline(syls_text, idx)
-        melody_offset = next_barline - idx - 1
+        # combine melody words
+        # based on the tilda index in text, find the index of melody words to combine
+        # most of the time, only one melody word needs to be combined
+        # but some situations require combination of multiple melody words, see 399083
+        next_barline_mel = find_next_barline_mel(syls_melody, idx - melody_offset)
+        melody_words_to_combine = syls_melody[idx - melody_offset : next_barline_mel]
+        # combine the melody words into one word (a list of melody syls)
+        melody_words_combined = [
+            syl for word in melody_words_to_combine for syl in word
+        ]
+        try:
+            # combine the melody syls into one syl
+            syls_melody[idx - melody_offset] = ["".join(melody_words_combined)]
+        except IndexError:
+            # sometimes the melody is shorter than text, so the tilda in text doesn't have melody
+            print("MELODY SHORTER THAN TEXT, DIDNT REACH TILDA")
+            break
+        # for the melody words that have been merged into some word before them,
+        # mark them differently so that they still occupy the index and do not appear in the results
+        for i in range(idx - melody_offset + 1, next_barline_mel):
+            syls_melody[i] = ["*"]
+
+        # combine text words
         rebuilt_words = []
+        next_barline = find_next_barline(syls_text, idx)
         for word in syls_text[idx:next_barline]:
             word = [syl.strip("-") for syl in word]
             rebuilt_word = "".join(word)
@@ -196,9 +226,16 @@ def postprocess(syls_text, syls_melody):
         syls_text[idx] = [" ".join(rebuilt_words)]
         for i in range(idx + 1, next_barline):
             syls_text[i] = ["*"]
+
+        # this is crucial for getting the index correct. melody offset updating depends on the number of melody words
+        # and text words that have been merged, and also the current melody offset
+        melody_offset = (
+            next_barline - idx - 1 - (next_barline_mel - idx - 1 + melody_offset)
+        )
+
+    # remove the previously merged words (marked *) from the final results
+    syls_melody = [word for word in syls_melody if word != ["*"]]
     syls_text = [word for word in syls_text if word != ["*"]]
-    print(syls_text)
-    print(syls_melody)
     return syls_text, syls_melody
 
 
