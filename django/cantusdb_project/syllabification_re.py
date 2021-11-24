@@ -247,6 +247,15 @@ def align(syls_text, syls_melody):
 
     list_of_zips = []
     for i in range(len(syls_melody)):
+        # when the melody ends with ---, the last melody word would be an empty string [""]
+        # this is usually ok because it happens only at the end of a chant,
+        # where there's no text to go with this empty melody word.
+        # it becomes a problem when the melody has fewer words than text, in which case the empty
+        # melody word would align with an extra text word that should not appear in the alignment
+        # see 560782 and 674219
+        # if the melody word is empty, ignore it during alignment
+        if syls_melody[i] == [""]:
+            continue
         # for every word, if melody has more syllables, add space to the text
         if len(syls_melody[i]) > len(syls_text[i]):
             word_zip = zip_longest(syls_melody[i], syls_text[i], fillvalue=" ")
