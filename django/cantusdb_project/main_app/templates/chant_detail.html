@@ -273,12 +273,12 @@
 
             {% if chant.cantus_id %}
                 <h4>List of concordances</h4>
-                <a id="ajax_concordance" href="#">» Display all concordances of this chant</a>
+                <a id="ajax_concordance" href="#" onclick="ajaxConcordance(); return false;">» Display all concordances of this chant</a>                
                 <div id="concordance_div"></div>
 
                 <br>
                 <h4>List of melodies</h4>
-                <a id="ajax_melody" href="#" onclick="">» Display the melodies connected with this chant</a>
+                <a id="ajax_melody" href="#" onclick="ajaxMelody(); return false;">» Display the melodies connected with this chant</a>
                 <div id="melody_div"></div>        
 
                 <script>
@@ -332,12 +332,10 @@
                             }
                         });
                     }
-                    document.getElementById("ajax_concordance").addEventListener("click", ()=>{
+                    {% comment %} document.getElementById("ajax_concordance").addEventListener("click", ()=>{
                         ajaxConcordance()
-                    })
-                </script>
+                    }) {% endcomment %}
 
-                <script>
                     const melodyTable = document.getElementById('melody_div')
                     const ajaxMelody = () => {
                         $.ajax({
@@ -387,9 +385,9 @@
                             }
                         });
                     }
-                    document.getElementById("ajax_melody").addEventListener("click", ()=>{
+                    {% comment %} document.getElementById("ajax_melody").addEventListener("click", ()=>{
                         ajaxMelody()
-                    })
+                    }) {% endcomment %}
                 </script>
 
             {% endif %}
@@ -462,7 +460,7 @@
                                             </table>
                                         {% endfor %}
                                     </div>
-                                    <a id="previous_toggle" onclick="togglePrevious(this.id)" href="#" role="button">Display previous chants ▴</a>
+                                    <a id="previous_toggle" href="#" onclick="togglePrevious(this.id); return false;">Display previous chants ▾</a>
                                 {% endif %}
                                 <br>
 
@@ -482,7 +480,9 @@
                                 {% endfor %}
 
                                 {% if next_folio %}
-                                    <a id="next_toggle" href="#" onclick="toggleNext(this.id)">Display next chants ▾</a>
+                                    {% comment %} <a id="next_toggle" href="javascript:toggleNext(this.id)">Display next chants ▾</a> {% endcomment %}
+                                    <a id="next_toggle" href="#" onclick="toggleNext(this.id); return false;">Display next chants ▾</a>
+
                                     <br>
 
                                     <div id="next_div" style="display:none">
@@ -519,13 +519,13 @@
                             <!-- TODO: add proper links here -->
                             <small>
                                 {% if source.provenance.name %}
-                                Provenance: <b><a href="#">{{source.provenance.name}}</a></b>
+                                Provenance: <b><a href="#" onclick="return false;">{{source.provenance.name}}</a></b>
                                 <br>
                                 {% endif %}
                                 {% if source.date %}
                                 Date: 
                                 {% for century in source.century.all %}
-                                <b><a href="#">{{ century.name }}</a></b>
+                                <b><a href="#" onclick="return false;">{{ century.name }}</a></b>
                                 {% endfor %}
                                 |
                                 <b>{{source.date|default_if_none:""}}</b>
@@ -536,7 +536,7 @@
                                 <br>
                                 {% endif %}
                                 {% if source.notation.all %}
-                                Notation: <b><a href="#">{{source.notation.all.first.name}}</a></b>
+                                Notation: <b><a href="#" onclick="return false;">{{source.notation.all.first.name}}</a></b>
                                 <br>
                                 {% endif %}
                                 {% if source.inventoried_by.all %}
@@ -565,7 +565,7 @@
                                 {% comment %} {% endif %} {% endcomment %}
                                 {{source.indexing_notes|default_if_none:""}}
                                 <br>
-                                Contributor: <a href="">CANTUS Database Administrator</a>
+                                Contributor: <a href="#" onclick="return false;">CANTUS Database Administrator</a>
                             </small>
                         </div>
                     </div>
