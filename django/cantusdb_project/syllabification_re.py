@@ -1,6 +1,46 @@
 from latin_syllabification import syllabify_word
 from itertools import zip_longest
 
+"""
+some useful info taken from the text entry guideline:
+the symbols are present only in the MS spelling, not std spelling
+vertical stroke | identifies sections within a chant, it's meant to help align text with melody
+  should be surrounded by spaces
+tilda ~ identifies "Psalm incipits" or any text that doesn't align with pitches
+  immediately before text, no spaces
+IPSUM (same), it looks like: | space ～Ipsum space [actual psalm text from the antiphon]
+  this doesn't affect alignment, just treat the part between ~ and next | as one syllable in one word
+
+                                  MISSING TEXT WITH READABLE PITCHES
+the number sign # identifies missing text, it could be missing complete word(s) or syllable(s)
+  complete words missing: space # space
+  partially visible word (syllables missing): - (one hyphen represents missing syllables) then space # space for missing section of text
+  volpiano for the section with missing text: -- between neumes, begin and end section with --- (always treat the section as a word?)
+
+                                  READABLE TEXT UNDER MISSING PITCHES
+for a complete word:
+  enclose affected text in {} and don't syllabize them,
+  volpiano use 6------6 to represent missing pitches, --- before and after each 6
+
+for select syllables:
+  enclose affected syllable(s) in {},
+  volpiano use 6------6 to represent missing pitches, no --- before and after each 6???
+In either case, the 6*6 align with {*}
+
+                                  MISSING BOTH PITCHES AND TEXT
+no text, no pitches visible:
+  {#} indicates missing text,
+  if partial word readable, use - for the missing sylable(s) and then enter space {#} space for the remainder of missing text
+  volpiano use 6------6 as described above
+
+no pitches, partial text visible:
+  enclose affected text in {}, use - for the missing portions of words
+  use # within {} to indicate location of missing text
+  volpiano use 6------6 as described above
+
+there should never be a space in volpiano. hyphens do the separation and spacing.
+"""
+
 
 def syllabize_text(text, pre_syllabized=False):
     # vertical stroke | identifies sections within a chant, it's meant to help align text with melody
@@ -194,6 +234,17 @@ def postprocess(syls_text, syls_melody):
     # `melody_offset` measures the change in indexing, so that we always index the correct words for combination
     melody_offset = 0
     for idx in tilda_idx:
+        # combine text words
+        rebuilt_words = []
+        next_barline = find_next_barline(syls_text, idx)
+        for word in syls_text[idx:next_barline]:
+            word = [syl.strip("-") for syl in word]
+            rebuilt_word = "".join(word)
+            rebuilt_words.append(rebuilt_word)
+        syls_text[idx] = [" ".join(rebuilt_words)]
+        for i in range(idx + 1, next_barline):
+            syls_text[i] = ["*"]
+
         # combine melody words
         # based on the tilda index in text, find the index of melody words to combine
         # most of the time, only one melody word needs to be combined
@@ -215,17 +266,6 @@ def postprocess(syls_text, syls_melody):
         # mark them differently so that they still occupy the index and do not appear in the results
         for i in range(idx - melody_offset + 1, next_barline_mel):
             syls_melody[i] = ["*"]
-
-        # combine text words
-        rebuilt_words = []
-        next_barline = find_next_barline(syls_text, idx)
-        for word in syls_text[idx:next_barline]:
-            word = [syl.strip("-") for syl in word]
-            rebuilt_word = "".join(word)
-            rebuilt_words.append(rebuilt_word)
-        syls_text[idx] = [" ".join(rebuilt_words)]
-        for i in range(idx + 1, next_barline):
-            syls_text[i] = ["*"]
 
         # this is crucial for getting the index correct. melody offset updating depends on the number of melody words
         # and text words that have been merged, and also the current melody offset
