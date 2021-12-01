@@ -1,0 +1,116 @@
+{% extends "base.html" %}
+{% block content %}
+<title>Search by melody | Cantus Manuscript Database</title>
+
+<div class="container">
+    <div class="row">
+        <div class="mr-3 p-3 col-lg-8 bg-white rounded" id="long-info">
+            <h3>Search by melody</h3>
+            <p>
+                This melody search provides results based on the Cantus Database chants.
+                <br>
+                For searching in chant melody catalogues 
+                go here: <a href="http://cantusindex.org/melody" target="_blank">Cantus Index Melody Search</a>.
+            </p>
+
+            <div style="font-size:0">
+                <img src="/static/melody search tool/1.jpg" alt="vopiano_clef">
+                <img src="/static/melody search tool/-.jpg" alt="dash">
+                <img src="/static/melody search tool/-.jpg" alt="dash">
+                <img src="/static/melody search tool/-.jpg" alt="dash">
+                <img src="/static/melody search tool/-.jpg" alt="dash">
+                <img src="/static/melody search tool/-.jpg" alt="dash">
+                <img src="/static/melody search tool/-.jpg" alt="dash">
+                <img src="/static/melody search tool/-.jpg" alt="dash">
+                <img src="/static/melody search tool/-.jpg" alt="dash">
+                <img src="/static/melody search tool/-.jpg" alt="dash">
+                <img src="/static/melody search tool/-.jpg" alt="dash">
+                <img src="/static/melody search tool/-.jpg" alt="dash">
+                <img src="/static/melody search tool/-.jpg" alt="dash">
+                <img src="/static/melody search tool/-.jpg" alt="dash">
+                <img src="/static/melody search tool/-.jpg" alt="dash">
+            </div>
+            <button type="button" class="btn btn-sm btn-outline-dark">Delete 1 note</button>
+            <button type="button" class="btn btn-sm btn-outline-dark">Delete all notes</button>
+
+            <form method="get">
+                <div class="form-row">
+                    <div class="form-group m-1 col-sm">
+                        <label for="source-siglum"><small>Source siglum</small></label>
+                        <input type="text" class="form-control form-control-sm" name="siglum" value="{{ request.GET.siglum }}" id="source-siglum">
+                    </div>
+                    <div class="form-group m-1 col-sm">
+                        <label for="text-search"><small>Text search</small></label>
+                        <input type="text" class="form-control form-control-sm" name="text" value="{{ request.GET.text }}" id="text-search">
+                    </div>
+                    <div class="form-group m-1 col-sm">
+                        <label for="genre"><small>Genre</small></label>
+                        <input type="text" class="form-control form-control-sm" name="genre" value="{{ request.GET.genre }}" id="genre">
+                    </div>
+                    <div class="form-group m-1 col-sm">
+                        <label for="feast"><small>Feast</small></label>
+                        <input type="text" class="form-control form-control-sm" name="feast" value="{{ request.GET.feast }}" id="feast">
+                    </div>
+                    <div class="form-group m-1 col-sm">
+                        <label for="mode"><small>Mode</small></label>
+                        <input type="mode" class="form-control form-control-sm" name="mode" value="{{ request.GET.mode }}" id="mode">
+                    </div>
+                </div>
+
+                <div class="form-row">
+                    <div class="form-group m-1">
+                        <input type="radio" id="search-begin" name="search-where" value="begin">
+                        <label for="search-begin">Search the beginning of the melody</label>
+                        <br>
+                        <input type="radio" id="search-anywhere" name="search-where" value="any">
+                        <label for="search-anywhere">Search anywhere in the melody</label>
+                    </div>
+                    <div class="form-group m-1">
+                        <input type="radio" id="search-exact" name="transposition" value="exact">
+                        <label for="search-exact">Exact matches</label>
+                        <br>
+                        <input type="radio" id="search-transposition" name="transposition" value="transposition">
+                        <label for="search-transposition">Exact matches + transpositions</label>
+                    </div>
+                </div>
+            </form>
+
+        </div>
+
+        <div class="col">
+            <div class="row">
+                <!-- global search bar-->
+                {% include "global_search_bar.html" %}
+            </div>
+
+            <div class="row">
+                <div class="card mb-3 w-100">
+
+                    <div class="card-header">
+                        <b>Melody Search Tool</b>
+                    </div>
+
+                    <div class="card-body">
+                        <small>
+                            <ul>
+                                <li><b>Enter the melody shape by mouse clicks on the staff.</b></li>
+                                <li><b>Ignore the repeating notes - the system will not allow you to enter the same pitch twice.</b></li>
+                            </ul>
+                            <p>
+                                CANTUS Melody Search tool was developed by Jan Koláček and first used in the 
+                                <a href="http://globalchant.org/search.php" target="_blank">Global Chant Database</a>
+                            </p>
+                            <p>
+                                Volpiano font - Version 4.02 (© fawe, September 2011) Courtesy of David Hiley and his research team at the 
+                                Universität Regensburg. For more details, including information on the newest versions of this font, 
+                                please refer to <a href="http://www.fawe.de" target="_blank">http://www.fawe.de</a>.
+                            </p>
+                        </small>
+                    </div>    
+
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
