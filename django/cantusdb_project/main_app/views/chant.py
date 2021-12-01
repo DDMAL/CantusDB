@@ -1,12 +1,10 @@
-import enum
-from re import I
 import lxml.html as lh
 import requests
 import urllib
 import json
 from django.contrib import messages
 from django.contrib.postgres.search import SearchQuery, SearchRank
-from django.db.models import F, Q, QuerySet, query
+from django.db.models import F, Q, QuerySet
 from django.shortcuts import get_object_or_404
 from django.urls import reverse, reverse_lazy
 from django.views.generic import (
@@ -19,8 +17,7 @@ from django.views.generic import (
 )
 from main_app.forms import ChantCreateForm
 from main_app.models import Chant, Feast, Genre, Source, Sequence
-from latin_syllabification import syllabify_text, syllabify_word
-from syllabification_re import *
+from align_text_mel import *
 
 
 def keyword_search(queryset: QuerySet, keywords: str) -> QuerySet:
