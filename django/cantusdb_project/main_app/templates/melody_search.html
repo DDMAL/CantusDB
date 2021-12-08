@@ -1,7 +1,7 @@
 {% extends "base.html" %}
 {% block content %}
 <title>Search by melody | Cantus Manuscript Database</title>
-
+<script src="/static/js/melody_search.js" async></script>
 <div class="container">
     <div class="row">
         <div class="mr-3 p-3 col-lg-8 bg-white rounded" id="long-info">
@@ -13,95 +13,26 @@
                 go here: <a href="http://cantusindex.org/melody" target="_blank">Cantus Index Melody Search</a>.
             </p>
 
-<script>
-    window.onload = init;
-    function init() {
-        drawArea = document.getElementById("drawArea");
-        drawArea.addEventListener("mousemove", trackMouse);
-        // maybe put this line here, and do different things in the trackMouse function, based on event.type
-        // drawArea.addEventListener("click", trackMouse);
-    }
-    // the `event` passed to the function is optional
-    // I can still refer to `event` in the function even if I don't pass it
-    // it automatically refers to the event that triggered this function
-    function trackMouse(event) {
-        console.log(event.type);
-        // get the y coordinate of the mouse position, x doesn't matter
-        x = event.pageX;
-        y = event.pageY;
-        // console.log("X coords: " + x + ", Y coords: " + y);
-        // compare it with the y coordinate of every staff line (hardcoded), 17 positions in total
-        const staffLines = [264, 279, 294, 309, 324, 339, 354, 369]
-        // switch the current empty image to the corresponding note image based on the range of y
-        if (y < 256) {
-            document.getElementById("1").src="/static/melody search tool/-.jpg";
-        } else if (y < 264) {
-            document.getElementById("1").src="/static/melody search tool/b2.gif";
-        } else if (y < 272) {
-            document.getElementById("1").src="/static/melody search tool/a2.gif";
-        } else if (y < 279) {
-            document.getElementById("1").src="/static/melody search tool/g1.gif";
-        } else if (y < 287) {
-            document.getElementById("1").src="/static/melody search tool/f1.gif";
-        } else if (y < 294) {
-            document.getElementById("1").src="/static/melody search tool/e1.gif";
-        } else if (y < 302) {
-            document.getElementById("1").src="/static/melody search tool/d1.gif";
-        } else if (y < 309) {
-            document.getElementById("1").src="/static/melody search tool/c1.gif";
-        } else if (y < 317) {
-            document.getElementById("1").src="/static/melody search tool/b1.gif";
-        } else if (y < 324) {
-            document.getElementById("1").src="/static/melody search tool/a1.gif";
-        } else if (y < 332) {
-            document.getElementById("1").src="/static/melody search tool/g.gif";
-        } else if (y < 339) {
-            document.getElementById("1").src="/static/melody search tool/f.gif";
-        } else if (y < 347) {
-            document.getElementById("1").src="/static/melody search tool/e.gif";
-        } else if (y < 354) {
-            document.getElementById("1").src="/static/melody search tool/d.gif";
-        } else if (y < 362) {
-            document.getElementById("1").src="/static/melody search tool/c.gif";
-        } else if (y < 369) {
-            document.getElementById("1").src="/static/melody search tool/b.gif";
-        } else if (y < 377) {
-            document.getElementById("1").src="/static/melody search tool/a.gif";
-        } else if (y < 382) {
-            document.getElementById("1").src="/static/melody search tool/9.gif";
-        } else {
-            document.getElementById("1").src="/static/melody search tool/-.jpg";
-        }
-    }
-
-    function showCoords() {
-        var x = event.pageX;
-        var y = event.pageY;
-        var coords = "X coords: " + x + ", Y coords: " + y;
-        console.log(coords);
-    }
-</script>
-
-            <div id="drawArea" style="font-size:0" onclick="showCoords(event)">
+            <div id="drawArea" style="font-size:0">
                 <img src="/static/melody search tool/1.jpg" alt="vopiano_clef">
                 <img id="1" src="/static/melody search tool/-.jpg" alt="dash">
                 <img id="2" src="/static/melody search tool/-.jpg" alt="dash">
                 <img id="3" src="/static/melody search tool/-.jpg" alt="dash">
-                <img src="/static/melody search tool/-.jpg" alt="dash">
-                <img src="/static/melody search tool/-.jpg" alt="dash">
-                <img src="/static/melody search tool/-.jpg" alt="dash">
-                <img src="/static/melody search tool/-.jpg" alt="dash">
-                <img src="/static/melody search tool/-.jpg" alt="dash">
-                <img src="/static/melody search tool/-.jpg" alt="dash">
-                <img src="/static/melody search tool/-.jpg" alt="dash">
-                <img src="/static/melody search tool/-.jpg" alt="dash">
-                <img src="/static/melody search tool/-.jpg" alt="dash">
-                <img src="/static/melody search tool/-.jpg" alt="dash">
-                <img src="/static/melody search tool/-.jpg" alt="dash">
+                <img id="4" src="/static/melody search tool/-.jpg" alt="dash">
+                <img id="5" src="/static/melody search tool/-.jpg" alt="dash">
+                <img id="6" src="/static/melody search tool/-.jpg" alt="dash">
+                <img id="7" src="/static/melody search tool/-.jpg" alt="dash">
+                <img id="8" src="/static/melody search tool/-.jpg" alt="dash">
+                <img id="9" src="/static/melody search tool/-.jpg" alt="dash">
+                <img id="10" src="/static/melody search tool/-.jpg" alt="dash">
+                <img id="11" src="/static/melody search tool/-.jpg" alt="dash">
+                <img id="12" src="/static/melody search tool/-.jpg" alt="dash">
+                <img id="13" src="/static/melody search tool/-.jpg" alt="dash">
+                <img id="14" src="/static/melody search tool/-.jpg" alt="dash">
             </div>
             <br>
-            <button type="button" class="btn btn-sm btn-outline-dark">Delete 1 note</button>
-            <button type="button" class="btn btn-sm btn-outline-dark">Delete all notes</button>
+            <button id="deleteOne" type="button" class="btn btn-sm btn-outline-dark">Delete 1 note</button>
+            <button id="deleteAll" type="button" class="btn btn-sm btn-outline-dark">Delete all notes</button>
 
             <form method="get">
                 <div class="form-row">
