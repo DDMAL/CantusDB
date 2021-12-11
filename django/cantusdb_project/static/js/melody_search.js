@@ -1,19 +1,64 @@
 window.onload = melodySearch;
 function melodySearch() {
     var index = 1;
+    var notes = "";
     const drawArea = document.getElementById("drawArea");
     const deleteOne = document.getElementById("deleteOne");
     const deleteAll = document.getElementById("deleteAll");
     deleteOne.addEventListener("click", deleteOneNote);
     deleteAll.addEventListener("click", deleteAllNotes);
     drawArea.addEventListener("mousemove", () => { trackMouse(index); });
-    drawArea.addEventListener("click", changePic);
+    drawArea.addEventListener("click", trackClick);
 
-    function changePic() {
+    function trackClick() {
+        const y = event.pageY;
+        // if click on the area without any notes, do nothing
+        if (y < 256 || y >= 382) {
+            return;
+        }
+        // otherwise, stop changing notes on the current slot
         drawArea.removeEventListener("mousemove", () => { trackMouse(index); })
+        // add the note to the search term, according to the y position of the click
         if (index <= 14) {
+            if (y < 264) {
+                notes += "q";
+            } else if (y < 272) {
+                notes += "p";
+            } else if (y < 279) {
+                notes += "o";
+            } else if (y < 287) {
+                notes += "n";
+            } else if (y < 294) {
+                notes += "m";
+            } else if (y < 302) {
+                notes += "l";
+            } else if (y < 309) {
+                notes += "k";
+            } else if (y < 317) {
+                notes += "j";
+            } else if (y < 324) {
+                notes += "h";
+            } else if (y < 332) {
+                notes += "g";
+            } else if (y < 339) {
+                notes += "f";
+            } else if (y < 347) {
+                notes += "e";
+            } else if (y < 354) {
+                notes += "d";
+            } else if (y < 362) {
+                notes += "c";
+            } else if (y < 369) {
+                notes += "b";
+            } else if (y < 377) {
+                notes += "a";
+            } else if (y < 382) {
+                notes += "9";
+            }
+            // move on to the next slot
             index = index + 1;
             drawArea.addEventListener("mousemove", () => { trackMouse(index); });
+            console.log(notes)
         }
     }
 
@@ -70,16 +115,28 @@ function melodySearch() {
         }
     }
 
+    function search(notes) {
+        // `notes` is a string consisting of all notes put on the canvas
+        // it should be updated with every call to `changePic` or `deleteNotes`
+        // then this should be an ajax call to the Django backend (do the search and return results)
+    }
+
     function deleteOneNote() {
         document.getElementById(index - 1).src = "/static/melody search tool/-.jpg";
+        // set the focused slot back one unit
         index = index - 1;
+        // remove the last character from the search term
+        notes = notes.slice(0, -1);
     }
 
     function deleteAllNotes() {
         for (let i = 1; i < index; i++) {
             document.getElementById(i).src = "/static/melody search tool/-.jpg";
         }
+        // set the focused slot to the beginning
         index = 1;
+        // set the search term to empty
+        notes = "";
     }
 
     function showCoords() {
