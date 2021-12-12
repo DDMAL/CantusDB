@@ -192,3 +192,23 @@ def contact_us(request):
         if request.GET.get("submitted"):
             submitted = True
     return render(request, "contact_form.html", {"form": form, "submitted": submitted})
+
+
+def ajax_melody_search(request, notes):
+    print("call received")
+    # chants = Chant.objects.filter(volpiano__icontains=notes).order_by("siglum", "folio")
+    chants = Chant.objects.exclude(volpiano=None)[0:5]
+    # queryset(list of dictionaries)
+    result_values = chants.values(
+        "siglum", "folio", "incipit", "genre__name", "feast__name", "mode", "volpiano"
+    )
+    results = list(result_values)
+    for i, result in enumerate(results):
+        # print(chants[i].get_absolute_url())
+        result["chant_link"] = chants[i].get_absolute_url()
+
+    result_count = len(results)
+    return JsonResponse(
+        {"results": results, "result_count": result_count},
+        safe=False,
+    )

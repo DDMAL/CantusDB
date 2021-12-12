@@ -385,14 +385,8 @@ class ChantSearchView(ListView):
         return queryset
 
 
-class MelodySearchView(ListView):
-    paginate_by = 100
-    context_object_name = "chants"
+class MelodySearchView(TemplateView):
     template_name = "melody_search.html"
-
-    def get_queryset(self):
-        return Chant.objects.exclude(volpiano=None)
-        # return super().get_queryset()
 
 
 class ChantSearchMSView(ListView):

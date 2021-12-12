@@ -1,6 +1,9 @@
 window.onload = melodySearch;
 function melodySearch() {
+    // `index` is the index of the currently active note slot, it starts from one
     var index = 1;
+    // `notes` is a string consisting of all notes put on the canvas
+    // it should be updated with every call to `trackClick` or `deleteNotes`
     var notes = "";
     const drawArea = document.getElementById("drawArea");
     const deleteOne = document.getElementById("deleteOne");
@@ -58,6 +61,8 @@ function melodySearch() {
             // move on to the next slot
             index = index + 1;
             drawArea.addEventListener("mousemove", () => { trackMouse(index); });
+            // here we should do the search
+            search()
             console.log(notes)
         }
     }
@@ -115,10 +120,45 @@ function melodySearch() {
         }
     }
 
-    function search(notes) {
-        // `notes` is a string consisting of all notes put on the canvas
-        // it should be updated with every call to `changePic` or `deleteNotes`
-        // then this should be an ajax call to the Django backend (do the search and return results)
+    // make an ajax call to the Django backend: do the search and return results
+    function search() {
+        const resultsDiv = document.getElementById("resultsDiv");
+        const xhttp = new XMLHttpRequest();
+        const url = "/ajax/melody-search/" + notes;
+        console.log(url);
+        xhttp.open("GET", url);
+        xhttp.onload = function () {
+            const data = JSON.parse(this.response)
+            resultsDiv.innerHTML = `Search results <b>(${data.result_count}) melodies</b>`;
+            resultsDiv.innerHTML += `<table id="resultsTable" class="table table-responsive table-sm small"><tbody></tbody></table>`;
+            const table = document.getElementById("resultsTable").getElementsByTagName("tbody")[0];
+            data.results.map(chant => {
+                const newRow = table.insertRow(table.rows.length);
+                newRow.innerHTML += `<td class="text-wrap">
+                                        <small>
+                                            <b>${chant.siglum}</b>
+                                            <br>
+                                            fol. <b>${chant.folio}</b>
+                                            <br>
+                                            <b>${chant.genre__name}</b> | Mode: <b>${chant.mode}</b>
+                                        </small>
+                                    </td>`;
+                newRow.innerHTML += `<td class="text-wrap>
+                                        <small>
+                                            <a href="${chant.chant_link}" target="_blank"><b>${chant.incipit}</b></a>
+                                            <br>
+                                            <div style="font-family: volpiano; font-size:20px">${chant.volpiano}</div>
+                                            <br>
+                                            ${chant.feast__name}
+                                        </small>
+                                    </td>`
+            });
+        }
+        xhttp.onerror = function () {
+            // handle errors
+            document.getElementById("resultsDiv").innerHTML = "ajax error"
+        }
+        xhttp.send();
     }
 
     function deleteOneNote() {
