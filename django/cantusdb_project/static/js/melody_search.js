@@ -129,28 +129,24 @@ function melodySearch() {
         xhttp.open("GET", url);
         xhttp.onload = function () {
             const data = JSON.parse(this.response)
-            resultsDiv.innerHTML = `Search results <b>(${data.result_count}) melodies</b>`;
+            resultsDiv.innerHTML = `Search results <b>(${data.result_count} melodies)</b>`;
             resultsDiv.innerHTML += `<table id="resultsTable" class="table table-responsive table-sm small"><tbody></tbody></table>`;
             const table = document.getElementById("resultsTable").getElementsByTagName("tbody")[0];
             data.results.map(chant => {
                 const newRow = table.insertRow(table.rows.length);
-                newRow.innerHTML += `<td class="text-wrap">
-                                        <small>
+                newRow.innerHTML += `<td style="width:30%">
                                             <b>${chant.siglum}</b>
                                             <br>
                                             fol. <b>${chant.folio}</b>
                                             <br>
                                             <b>${chant.genre__name}</b> | Mode: <b>${chant.mode}</b>
-                                        </small>
                                     </td>`;
-                newRow.innerHTML += `<td class="text-wrap>
-                                        <small>
+                newRow.innerHTML += `<td style="width:70%">
                                             <a href="${chant.chant_link}" target="_blank"><b>${chant.incipit}</b></a>
                                             <br>
-                                            <div style="font-family: volpiano; font-size:20px">${chant.volpiano}</div>
+                                            <div style="font-family: volpiano; font-size: 20px;">${chant.volpiano}</div>
                                             <br>
                                             ${chant.feast__name}
-                                        </small>
                                     </td>`
             });
         }
