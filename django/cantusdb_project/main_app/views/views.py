@@ -196,19 +196,23 @@ def contact_us(request):
 
 def ajax_melody_search(request, notes):
     print("call received")
-    # chants = Chant.objects.filter(volpiano__icontains=notes).order_by("siglum", "folio")
-    chants = Chant.objects.exclude(volpiano=None)[0:5]
-    # queryset(list of dictionaries)
-    result_values = chants.values(
-        "siglum", "folio", "incipit", "genre__name", "feast__name", "mode", "volpiano"
+    result_values = Chant.objects.filter(volpiano_notes__startswith=notes).values(
+        "id",
+        "siglum",
+        "folio",
+        "incipit",
+        "genre__name",
+        "feast__name",
+        "mode",
+        "volpiano",
     )
+    print("query done")
     results = list(result_values)
-    for i, result in enumerate(results):
-        # print(chants[i].get_absolute_url())
-        result["chant_link"] = chants[i].get_absolute_url()
-
-    result_count = len(results)
+    print("convert to list done")
+    for result in results:
+        result["chant_link"] = reverse("chant-detail", args=[result["id"]])
+    result_count = result_values.count()
     return JsonResponse(
         {"results": results, "result_count": result_count},
-        safe=False,
+        safe=True,
     )
