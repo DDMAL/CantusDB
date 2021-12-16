@@ -81,6 +81,7 @@ class Chant(BaseModel):
     manuscript_syllabized_full_text = models.TextField(null=True, blank=True)
     volpiano = models.TextField(null=True, blank=True)
     volpiano_proofread = models.NullBooleanField(blank=True, null=True)
+    volpiano_notes = models.TextField(null=True, blank=True)
     cao_concordances = models.CharField(blank=True, null=True, max_length=63)
     proofread_by = models.ForeignKey(
         User, on_delete=models.PROTECT, null=True, blank=True
@@ -122,7 +123,10 @@ class Chant(BaseModel):
         return {
             "A": (
                 " ".join(
-                    filter(None, [incipit, full_text, full_text_std_spelling, source],)
+                    filter(
+                        None,
+                        [incipit, full_text, full_text_std_spelling, source],
+                    )
                 )
             ),
             "B": (" ".join(filter(None, [genre, feast, office]))),
