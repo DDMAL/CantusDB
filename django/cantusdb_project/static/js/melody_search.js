@@ -8,6 +8,7 @@ function melodySearch() {
     const drawArea = document.getElementById("drawArea");
     const deleteOne = document.getElementById("deleteOne");
     const deleteAll = document.getElementById("deleteAll");
+    const resultsDiv = document.getElementById("resultsDiv");
     deleteOne.addEventListener("click", deleteOneNote);
     deleteAll.addEventListener("click", deleteAllNotes);
     drawArea.addEventListener("mousemove", () => { trackMouse(index); });
@@ -122,7 +123,6 @@ function melodySearch() {
 
     // make an ajax call to the Django backend: do the search and return results
     function search() {
-        const resultsDiv = document.getElementById("resultsDiv");
         const xhttp = new XMLHttpRequest();
         const url = "/ajax/melody-search/" + notes;
         console.log(url);
@@ -163,6 +163,8 @@ function melodySearch() {
         index = index - 1;
         // remove the last character from the search term
         notes = notes.slice(0, -1);
+        // redo the search using updated notes
+        search()
     }
 
     function deleteAllNotes() {
@@ -173,6 +175,8 @@ function melodySearch() {
         index = 1;
         // set the search term to empty
         notes = "";
+        // clear the search results
+        resultsDiv.innerHTML = "";
     }
 
     function showCoords() {
