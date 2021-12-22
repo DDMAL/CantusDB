@@ -206,10 +206,11 @@ def ajax_melody_search(request, notes):
         "mode",
         "volpiano",
     )
-    print("query done")
+    # convert queryset to a list of dicts because QuerySet is not JSON serializable
+    # the above constructed queryset will be evaluated here
     results = list(result_values)
-    print("convert to list done")
     for result in results:
+        # construct the url for chant detail page and add it to the result
         result["chant_link"] = reverse("chant-detail", args=[result["id"]])
     result_count = result_values.count()
     return JsonResponse(
