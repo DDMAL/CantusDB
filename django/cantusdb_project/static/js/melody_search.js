@@ -5,14 +5,23 @@ function melodySearch() {
     // `notes` is a string consisting of all notes put on the canvas
     // it should be updated with every call to `trackClick` or `deleteNotes`
     var notes = "";
+    // `anywhere` is true when "search anywhere" is checked, 
+    // false when "search beginning" is checked
+    var anywhere = false;
+
     const drawArea = document.getElementById("drawArea");
-    const deleteOne = document.getElementById("deleteOne");
-    const deleteAll = document.getElementById("deleteAll");
+    const deleteOneButton = document.getElementById("deleteOne");
+    const deleteAllButton = document.getElementById("deleteAll");
+    const searchBeginButton = document.getElementById("searchBegin");
+    const searchAnywhereButton = document.getElementById("searchAnywhere");
     const resultsDiv = document.getElementById("resultsDiv");
-    deleteOne.addEventListener("click", deleteOneNote);
-    deleteAll.addEventListener("click", deleteAllNotes);
+
     drawArea.addEventListener("mousemove", () => { trackMouse(index); });
     drawArea.addEventListener("click", trackClick);
+    deleteOneButton.addEventListener("click", deleteOneNote);
+    deleteAllButton.addEventListener("click", deleteAllNotes);
+    searchBeginButton.addEventListener("click", searchBeginning);
+    searchAnywhereButton.addEventListener("click", searchAnywhere);
 
     function trackClick() {
         const y = event.pageY;
@@ -124,7 +133,7 @@ function melodySearch() {
     // make an ajax call to the Django backend: do the search and return results
     function search() {
         const xhttp = new XMLHttpRequest();
-        const url = "/ajax/melody-search/" + notes;
+        const url = "/ajax/melody-search/" + notes + "/" + anywhere;
         console.log(url);
         xhttp.open("GET", url);
         xhttp.onload = function () {
@@ -164,7 +173,14 @@ function melodySearch() {
         // remove the last character from the search term
         notes = notes.slice(0, -1);
         // redo the search using updated notes
-        search()
+        if (notes != "") {
+            search();
+        }
+        // if there's no notes left, stop displaying the results and set index back to the beginning
+        else {
+            index = 1;
+            resultsDiv.innerHTML = "";
+        }
     }
 
     function deleteAllNotes() {
@@ -177,6 +193,26 @@ function melodySearch() {
         notes = "";
         // clear the search results
         resultsDiv.innerHTML = "";
+    }
+
+    function searchBeginning() {
+        // do nothing if "search beginning" is already checked
+        if (anywhere) {
+            anywhere = false;
+            if (notes != "") {
+                search();
+            }
+        }
+    }
+
+    function searchAnywhere() {
+        // do nothing if "search anywhere" is already checked
+        if (anywhere == false) {
+            anywhere = true;
+            if (notes != "") {
+                search();
+            }
+        }
     }
 
     function showCoords() {

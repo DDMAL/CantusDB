@@ -70,7 +70,7 @@ urlpatterns = [
     ),
     path("ajax/melody/<str:cantus_id>", views.ajax_melody_list, name="ajax_melody"),
     path(
-        "ajax/melody-search/<str:notes>",
+        "ajax/melody-search/<str:notes>/<str:anywhere>",
         views.ajax_melody_search,
         name="ajax_melody_search",
     ),

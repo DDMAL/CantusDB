@@ -194,17 +194,30 @@ def contact_us(request):
     return render(request, "contact_form.html", {"form": form, "submitted": submitted})
 
 
-def ajax_melody_search(request, notes):
+def ajax_melody_search(request, notes, anywhere):
     print("call received")
-    result_values = Chant.objects.filter(volpiano_notes__startswith=notes).values(
-        "id",
-        "siglum",
-        "folio",
-        "incipit",
-        "genre__name",
-        "feast__name",
-        "mode",
-        "volpiano",
+    result_values = (
+        Chant.objects.filter(volpiano_notes__contains=notes).values(
+            "id",
+            "siglum",
+            "folio",
+            "incipit",
+            "genre__name",
+            "feast__name",
+            "mode",
+            "volpiano",
+        )
+        if anywhere == "true"
+        else Chant.objects.filter(volpiano_notes__startswith=notes).values(
+            "id",
+            "siglum",
+            "folio",
+            "incipit",
+            "genre__name",
+            "feast__name",
+            "mode",
+            "volpiano",
+        )
     )
     # convert queryset to a list of dicts because QuerySet is not JSON serializable
     # the above constructed queryset will be evaluated here
