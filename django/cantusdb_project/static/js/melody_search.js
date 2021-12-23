@@ -8,7 +8,12 @@ function melodySearch() {
     // `anywhere` is true when "search anywhere" is checked, 
     // false when "search beginning" is checked
     var anywhere = false;
-
+    // lastXhttp is a pointer to the last ajax request
+    // if the user clicks on the canvas or deletes notes very fast, the older requests 
+    // may not finish before the newer ones, causing the result table being updated multiple times, 
+    // potentially with wrong results from the older requests
+    // therefore we keep a pointer to the last request and abort it whenever sending a new request
+    var lastXhttp = new XMLHttpRequest();
     const drawArea = document.getElementById("drawArea");
     const deleteOneButton = document.getElementById("deleteOne");
     const deleteAllButton = document.getElementById("deleteAll");
@@ -73,7 +78,6 @@ function melodySearch() {
             drawArea.addEventListener("mousemove", () => { trackMouse(index); });
             // here we should do the search
             search()
-            console.log(notes)
         }
     }
 
@@ -132,9 +136,10 @@ function melodySearch() {
 
     // make an ajax call to the Django backend: do the search and return results
     function search() {
+        // whenever a new search begins, abort the previous one, so that it does not update the result table with wrong data
+        lastXhttp.abort()
         const xhttp = new XMLHttpRequest();
         const url = "/ajax/melody-search/" + notes + "/" + anywhere;
-        console.log(url);
         xhttp.open("GET", url);
         xhttp.onload = function () {
             const data = JSON.parse(this.response)
@@ -158,12 +163,18 @@ function melodySearch() {
                                             ${chant.feast__name}
                                     </td>`
             });
+            // hide the "updating results" prompt after loading the data
+            document.getElementById("searchingPrompt").style.display = "none";
         }
         xhttp.onerror = function () {
             // handle errors
             document.getElementById("resultsDiv").innerHTML = "ajax error"
         }
         xhttp.send();
+        // update the pointer to the last xhttp request
+        lastXhttp = xhttp;
+        // display the "updating results" prompt after sending the ajax request
+        document.getElementById("searchingPrompt").style.display = "inline";
     }
 
     function deleteOneNote() {
@@ -179,6 +190,11 @@ function melodySearch() {
         // if there's no notes left, stop displaying the results and set index back to the beginning
         else {
             index = 1;
+            // abort the last ajax request, so that it does not populate the result table
+            lastXhttp.abort();
+            // hide the "updating results" prompt
+            document.getElementById("searchingPrompt").style.display = "none";
+            // clear the search results
             resultsDiv.innerHTML = "";
         }
     }
@@ -191,6 +207,10 @@ function melodySearch() {
         index = 1;
         // set the search term to empty
         notes = "";
+        // abort the last ajax request, which, if unfinished, could populate the result table even after deleting all notes
+        lastXhttp.abort();
+        // hide the "updating results" prompt
+        document.getElementById("searchingPrompt").style.display = "none";
         // clear the search results
         resultsDiv.innerHTML = "";
     }
