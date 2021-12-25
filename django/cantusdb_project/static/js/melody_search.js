@@ -22,6 +22,7 @@ function melodySearch() {
     const deleteAllButton = document.getElementById("deleteAll");
     const searchBeginButton = document.getElementById("searchBegin");
     const searchAnywhereButton = document.getElementById("searchAnywhere");
+    const siglumField = document.getElementById("siglum");
     const resultsDiv = document.getElementById("resultsDiv");
 
     drawArea.addEventListener("mousemove", () => { trackMouse(index); });
@@ -30,6 +31,8 @@ function melodySearch() {
     deleteAllButton.addEventListener("click", deleteAllNotes);
     searchBeginButton.addEventListener("click", searchBeginning);
     searchAnywhereButton.addEventListener("click", searchAnywhere);
+    // for the search fields, search-as-you-type
+    siglumField.addEventListener("input", search);
 
     function trackClick() {
         const y = event.pageY;
@@ -153,7 +156,12 @@ function melodySearch() {
         // whenever a new search begins, abort the previous one, so that it does not update the result table with wrong data
         lastXhttp.abort()
         const xhttp = new XMLHttpRequest();
-        const url = "/ajax/melody-search/" + notes + "/" + anywhere;
+        // construct the ajax url with search parameters
+        const url = new URL("/ajax/melody-search/", window.location.origin);
+        url.searchParams.append("notes", notes);
+        url.searchParams.append("anywhere", anywhere);
+        url.searchParams.append("siglum", siglumField.value);
+
         xhttp.open("GET", url);
         xhttp.onload = function () {
             const data = JSON.parse(this.response)
