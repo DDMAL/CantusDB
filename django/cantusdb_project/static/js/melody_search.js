@@ -23,6 +23,11 @@ function melodySearch() {
     const searchBeginButton = document.getElementById("searchBegin");
     const searchAnywhereButton = document.getElementById("searchAnywhere");
     const siglumField = document.getElementById("siglum");
+    const textSearchField = document.getElementById("textSearch");
+    const genreField = document.getElementById("genre");
+    const feastField = document.getElementById("feast");
+    const modeField = document.getElementById("mode");
+
     const resultsDiv = document.getElementById("resultsDiv");
 
     drawArea.addEventListener("mousemove", () => { trackMouse(index); });
@@ -33,6 +38,10 @@ function melodySearch() {
     searchAnywhereButton.addEventListener("click", searchAnywhere);
     // for the search fields, search-as-you-type
     siglumField.addEventListener("input", search);
+    textSearchField.addEventListener("input", search);
+    genreField.addEventListener("input", search);
+    feastField.addEventListener("input", search);
+    modeField.addEventListener("input", search);
 
     function trackClick() {
         const y = event.pageY;
@@ -153,6 +162,11 @@ function melodySearch() {
 
     // make an ajax call to the Django backend: do the search and return results
     function search() {
+        // if there's no notes, don't search
+        // this happens when the user fills in the search fields but doesn't input melody
+        if (notes == "") {
+            return;
+        }
         // whenever a new search begins, abort the previous one, so that it does not update the result table with wrong data
         lastXhttp.abort()
         const xhttp = new XMLHttpRequest();
@@ -161,6 +175,10 @@ function melodySearch() {
         url.searchParams.append("notes", notes);
         url.searchParams.append("anywhere", anywhere);
         url.searchParams.append("siglum", siglumField.value);
+        url.searchParams.append("text", textSearchField.value);
+        url.searchParams.append("genre", genreField.value);
+        url.searchParams.append("feast", feastField.value);
+        url.searchParams.append("mode", modeField.value);
 
         xhttp.open("GET", url);
         xhttp.onload = function () {

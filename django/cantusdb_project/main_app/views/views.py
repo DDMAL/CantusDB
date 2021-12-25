@@ -3,7 +3,11 @@ from django.http.response import HttpResponseRedirect, JsonResponse
 from django.http import HttpResponse
 from django.shortcuts import render
 from django.urls.base import reverse
-from main_app.models import Chant, Sequence, Source, Feast, Genre, Indexer, Office
+from main_app.models import (
+    Chant,
+    Sequence,
+    Source,
+)
 from main_app.forms import ContactForm
 from django.core.mail import send_mail, get_connection
 
@@ -199,6 +203,10 @@ def ajax_melody_search(request):
     notes = request.GET.get("notes")
     anywhere = request.GET.get("anywhere")
     siglum = request.GET.get("siglum")
+    text = request.GET.get("text")
+    genre_name = request.GET.get("genre")
+    feast_name = request.GET.get("feast")
+    mode = request.GET.get("mode")
 
     # if "search anywhere in the melody"
     if anywhere == "true":
@@ -207,10 +215,17 @@ def ajax_melody_search(request):
     else:
         chants = Chant.objects.filter(volpiano_notes__startswith=notes)
 
-    # if siglum is none empty
+    # if the search fields are not empty
     if siglum:
-        print("siglum received")
         chants = chants.filter(siglum__icontains=siglum)
+    if text:
+        chants = chants.filter(manuscript_full_text__icontains=text)
+    if genre_name:
+        chants = chants.filter(genre__name__icontains=genre_name)
+    if feast_name:
+        chants = chants.filter(feast__name__icontains=feast_name)
+    if mode:
+        chants = chants.filter(mode__icontains=mode)
 
     result_values = chants.values(
         "id",
