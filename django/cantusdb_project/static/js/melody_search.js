@@ -3,8 +3,11 @@ function melodySearch() {
     // `index` is the index of the currently active note slot, it starts from one
     var index = 1;
     // `notes` is a string consisting of all notes put on the canvas
-    // it should be updated with every call to `trackClick` or `deleteNotes`
+    // it is updated with every call to `trackClick` or `deleteNotes`
     var notes = "";
+    // `lastNote` stores the last entered note, it starts with empty str,
+    // it is updated with every call to `trackClick` or `deleteNotes`
+    var lastNote = "";
     // `anywhere` is true when "search anywhere" is checked, 
     // false when "search beginning" is checked
     var anywhere = false;
@@ -73,11 +76,22 @@ function melodySearch() {
             } else if (y < 382) {
                 notes += "9";
             }
-            // move on to the next slot
-            index = index + 1;
-            drawArea.addEventListener("mousemove", () => { trackMouse(index); });
-            // here we should do the search
-            search()
+
+            // if the newly entered note is different from the last note
+            if (notes.slice(-1) != lastNote) {
+                // update `lastNote`
+                lastNote = notes.slice(-1);
+                // move focus to the next slot
+                index = index + 1;
+                drawArea.addEventListener("mousemove", () => { trackMouse(index); });
+                // do the search
+                search();
+            } else {
+                // if the newly entered note is the same as the last note, it's deemed invalid,
+                // remove the newly entered note from `notes`
+                notes = notes.slice(0, -1);
+                return;
+            }
         }
     }
 
@@ -185,11 +199,16 @@ function melodySearch() {
         notes = notes.slice(0, -1);
         // redo the search using updated notes
         if (notes != "") {
+            // update `lastNote`
+            lastNote = notes.slice(-1);
             search();
         }
-        // if there's no notes left, stop displaying the results and set index back to the beginning
+        // if there's no notes left
         else {
+            // set index back to the beginning
             index = 1;
+            // set `lastNote` back to empty
+            lastNote = "";
             // abort the last ajax request, so that it does not populate the result table
             lastXhttp.abort();
             // hide the "updating results" prompt
@@ -205,6 +224,8 @@ function melodySearch() {
         }
         // set the focused slot to the beginning
         index = 1;
+        // set `lastNote` back to empty
+        lastNote = "";
         // set the search term to empty
         notes = "";
         // abort the last ajax request, which, if unfinished, could populate the result table even after deleting all notes
