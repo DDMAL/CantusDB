@@ -219,7 +219,7 @@ def ajax_melody_search(request):
     if siglum:
         chants = chants.filter(siglum__icontains=siglum)
     if text:
-        chants = chants.filter(manuscript_full_text__icontains=text)
+        chants = chants.filter(manuscript_full_text_std_spelling__icontains=text)
     if genre_name:
         chants = chants.filter(genre__name__icontains=genre_name)
     if feast_name:
@@ -227,7 +227,7 @@ def ajax_melody_search(request):
     if mode:
         chants = chants.filter(mode__icontains=mode)
 
-    result_values = chants.values(
+    result_values = chants.order_by("id").values(
         "id",
         "siglum",
         "folio",
