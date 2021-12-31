@@ -202,18 +202,33 @@ def ajax_melody_search(request):
     # all search parameters are passed in without using the url conf
     notes = request.GET.get("notes")
     anywhere = request.GET.get("anywhere")
+    transpose = request.GET.get("transpose")
     siglum = request.GET.get("siglum")
     text = request.GET.get("text")
     genre_name = request.GET.get("genre")
     feast_name = request.GET.get("feast")
     mode = request.GET.get("mode")
 
-    # if "search anywhere in the melody"
-    if anywhere == "true":
-        chants = Chant.objects.filter(volpiano_notes__contains=notes)
-    # if "search the beginning of melody"
+    intervals = "".join(
+        [str(ord(notes[j]) - ord(notes[j - 1])) for j in range(1, len(notes))]
+    )
+
+    # if "search exact matches + transpositions"
+    if transpose == "true":
+        # if "search anywhere in the melody"
+        if anywhere == "true":
+            chants = Chant.objects.filter(volpiano_intervals__contains=intervals)
+        # if "search the beginning of melody"
+        else:
+            chants = Chant.objects.filter(volpiano_intervals__startswith=intervals)
+    # if "search exact matches"
     else:
-        chants = Chant.objects.filter(volpiano_notes__startswith=notes)
+        # if "search anywhere in the melody"
+        if anywhere == "true":
+            chants = Chant.objects.filter(volpiano_notes__contains=notes)
+        # if "search the beginning of melody"
+        else:
+            chants = Chant.objects.filter(volpiano_notes__startswith=notes)
 
     # if the search fields are not empty
     if siglum:

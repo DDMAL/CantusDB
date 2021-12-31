@@ -11,6 +11,9 @@ function melodySearch() {
     // `anywhere` is true when "search anywhere" is checked, 
     // false when "search beginning" is checked
     var anywhere = false;
+    // `transpose` is true when "exact matchs + transpositions" is checked, 
+    // false when "exact matches" is checked
+    var transpose = false;
     // lastXhttp is a pointer to the last ajax request
     // if the user clicks on the canvas or deletes notes very fast, the older requests 
     // may not finish before the newer ones, causing the result table being updated multiple times, 
@@ -22,6 +25,8 @@ function melodySearch() {
     const deleteAllButton = document.getElementById("deleteAll");
     const searchBeginButton = document.getElementById("searchBegin");
     const searchAnywhereButton = document.getElementById("searchAnywhere");
+    const searchExactButton = document.getElementById("searchExact");
+    const searchTransposeButton = document.getElementById("searchTranspose");
     const siglumField = document.getElementById("siglum");
     const textSearchField = document.getElementById("textSearch");
     const genreField = document.getElementById("genre");
@@ -36,6 +41,8 @@ function melodySearch() {
     deleteAllButton.addEventListener("click", deleteAllNotes);
     searchBeginButton.addEventListener("click", searchBeginning);
     searchAnywhereButton.addEventListener("click", searchAnywhere);
+    searchExactButton.addEventListener("click", searchExact);
+    searchTransposeButton.addEventListener("click", searchTranspose);
     // for the search fields, search-as-you-type
     siglumField.addEventListener("input", search);
     textSearchField.addEventListener("input", search);
@@ -174,6 +181,7 @@ function melodySearch() {
         const url = new URL("/ajax/melody-search/", window.location.origin);
         url.searchParams.append("notes", notes);
         url.searchParams.append("anywhere", anywhere);
+        url.searchParams.append("transpose", transpose);
         url.searchParams.append("siglum", siglumField.value);
         url.searchParams.append("text", textSearchField.value);
         url.searchParams.append("genre", genreField.value);
@@ -276,6 +284,26 @@ function melodySearch() {
         // do nothing if "search anywhere" is already checked
         if (anywhere == false) {
             anywhere = true;
+            if (notes != "") {
+                search();
+            }
+        }
+    }
+
+    function searchExact() {
+        // do nothing if "exact matches" is already checked
+        if (tranpose) {
+            transpose = false;
+            if (notes != "") {
+                search();
+            }
+        }
+    }
+
+    function searchTranspose() {
+        // do nothing if "exact matches + transpositions" is already checked
+        if (transpose == false) {
+            transpose = true;
             if (notes != "") {
                 search();
             }

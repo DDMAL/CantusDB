@@ -3,7 +3,6 @@ from django.contrib.postgres.search import SearchVectorField
 from django.db import models
 
 from django.db.models.query import QuerySet
-from django.urls.base import reverse
 from main_app.models import BaseModel
 from users.models import User
 
@@ -82,6 +81,11 @@ class Chant(BaseModel):
     volpiano = models.TextField(null=True, blank=True)
     volpiano_proofread = models.NullBooleanField(blank=True, null=True)
     volpiano_notes = models.TextField(null=True, blank=True)
+    volpiano_intervals = models.TextField(null=True, blank=True)
+    # ArrayField does not support ordered lookup, e.g., [1, 2] is considered contained by [2, 1, 3]
+    # volpiano_intervals = ArrayField(
+    #     base_field=models.IntegerField(), null=True, blank=True
+    # )
     cao_concordances = models.CharField(blank=True, null=True, max_length=63)
     proofread_by = models.ForeignKey(
         User, on_delete=models.PROTECT, null=True, blank=True
