@@ -13,6 +13,18 @@ from django.core.mail import send_mail, get_connection
 
 
 def items_count(request):
+    """
+    Function-based view for the ``items count`` page, accessed with ``content-statistics``
+
+    Update 2022-01-05:
+    This page has been changed on the original Cantus. It is now in the private domain
+
+    Args:
+        request (request): The request
+
+    Returns:
+        HttpResponse: Render the page
+    """
     # in items count, the number on old cantus shows the total count of a type of object (chant, seq)
     # no matter public or not
     # but for the count of sources, it only shows the count of public sources
@@ -29,6 +41,16 @@ def items_count(request):
 
 
 def ajax_concordance_list(request, cantus_id):
+    """
+    Function-based view responding to the AJAX call for concordance list on the chant detail page,
+    accessed with ``chants/<ink:pk>``, click on "Display concordances of this chant"
+
+    Args:
+        cantus_id (str): The Cantus ID of the requested concordances group
+
+    Returns:
+        JsonResponse: A response to the AJAX call, to be unpacked by the frontend js code
+    """
     chants = Chant.objects.filter(cantus_id=cantus_id)
     seqs = Sequence.objects.filter(cantus_id=cantus_id)
     if seqs:
@@ -64,6 +86,16 @@ def ajax_concordance_list(request, cantus_id):
 
 
 def ajax_melody_list(request, cantus_id):
+    """
+    Function-based view responding to the AJAX call for melody list on the chant detail page,
+    accessed with ``chants/<ink:pk>``, click on "Display melodies connected with this chant"
+
+    Args:
+        cantus_id (str): The Cantus ID of the requested concordances group
+
+    Returns:
+        JsonResponse: A response to the AJAX call, to be unpacked by the frontend js code
+    """
     chants = (
         Chant.objects.filter(cantus_id=cantus_id)
         .exclude(volpiano=None)
@@ -100,7 +132,17 @@ def ajax_melody_list(request, cantus_id):
 
 
 def csv_export(request, source_id):
+    """
+    Function-based view for the CSV export page, accessed with ``csv/<str:source_id>``
+
+    Args:
+        source_id (str): The ID of the source to export
+
+    Returns:
+        HttpResponse: The CSV response
+    """
     source = Source.objects.get(id=source_id)
+    # "4064" is the segment id of the sequence DB, sources in that segment has sequences instead of chants
     if source.segment.id == 4064:
         entries = source.sequence_set.order_by("id")
     else:
@@ -174,6 +216,15 @@ def csv_export(request, source_id):
 
 
 def contact_us(request):
+    """
+    Function-based view that renders a contact form, access with ``contact``
+
+    Args:
+        request (request): The request
+
+    Returns:
+        HttpResponse: Render the contact form
+    """
     submitted = False
     if request.method == "POST":
         form = ContactForm(request.POST)
@@ -199,7 +250,28 @@ def contact_us(request):
 
 
 def ajax_melody_search(request):
-    # all search parameters are passed in without using the url conf
+    """
+    Function-based view responding to melody search AJAX calls, accessed with ``melody-search``
+
+    The queryset is filtered according to the ``GET`` parameters
+
+    ``GET`` parameters:
+        ``notes``: Note sequence drawn on the canvas by the user
+        ``anywhere``: Bool value indicating either "search anywhere" or "search beginning"
+        ``transpose``: Bool value indicating either "search exact matches" or "search transpositions"
+        ``siglum``: Filters by the siglum
+        ``text``: Filters by the chant text
+        ``genre_name``: Filters by genre of chant
+        ``feast_name``: Filters by feast of chant
+        ``mode``: Filters by mode of Chant
+
+    Args:
+        request (request): The request
+
+    Returns:
+        JsonResponse: A response to the AJAX call, to be unpacked by frontend js code
+    """
+    # all search parameters are passed in as GET params, without using the url conf
     notes = request.GET.get("notes")
     anywhere = request.GET.get("anywhere")
     transpose = request.GET.get("transpose")
@@ -213,22 +285,24 @@ def ajax_melody_search(request):
         [str(ord(notes[j]) - ord(notes[j - 1])) for j in range(1, len(notes))]
     )
 
+    # only include public chants in the result
+    chants = Chant.objects.filter(source__public=True, source__visible=True)
     # if "search exact matches + transpositions"
     if transpose == "true":
         # if "search anywhere in the melody"
         if anywhere == "true":
-            chants = Chant.objects.filter(volpiano_intervals__contains=intervals)
+            chants = chants.filter(volpiano_intervals__contains=intervals)
         # if "search the beginning of melody"
         else:
-            chants = Chant.objects.filter(volpiano_intervals__startswith=intervals)
+            chants = chants.filter(volpiano_intervals__startswith=intervals)
     # if "search exact matches"
     else:
         # if "search anywhere in the melody"
         if anywhere == "true":
-            chants = Chant.objects.filter(volpiano_notes__contains=notes)
+            chants = chants.filter(volpiano_notes__contains=notes)
         # if "search the beginning of melody"
         else:
-            chants = Chant.objects.filter(volpiano_notes__startswith=notes)
+            chants = chants.filter(volpiano_notes__startswith=notes)
 
     # if the search fields are not empty
     if siglum:
