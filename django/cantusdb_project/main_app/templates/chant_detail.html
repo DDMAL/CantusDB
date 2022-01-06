@@ -1,41 +1,7 @@
 {% extends "base.html" %}
 {% block content %}
 <title>{{ chant.incipit }} | Cantus Manuscript Database</title>
-
-<script>
-    function togglePrevious(toggleID) {
-        var x = document.getElementById("previous_div");
-        var toggle = document.getElementById(toggleID);
-        if (x.style.display === "none") {
-            x.style.display = "block";
-            toggle.innerHTML = "Hide previous chants ▴";
-        } else {
-            x.style.display = "none";
-            toggle.innerHTML = "Display previous chants ▴";
-        }
-    }
-
-    function toggleNext(toggleID) {
-        var x = document.getElementById("next_div");
-        var toggle = document.getElementById(toggleID);
-        if (x.style.display === "none") {
-            x.style.display = "block";
-            toggle.innerHTML = "Hide next chants ▾";
-        } else {
-            x.style.display = "none";
-            toggle.innerHTML = "Display next chants ▾";
-        }
-    }
-
-    function setFolio() {
-        var url = new URL("{% url 'chant-list' %}", window.location.origin);
-        var folio = document.getElementById("folio-select").options[document.getElementById("folio-select").selectedIndex].value;
-        url.searchParams.set("source", {{ chant.source.id }});
-        url.searchParams.set("folio", folio);
-        window.location.assign(url);
-    }
-
-</script>
+<script src="/static/js/chant_detail.js"></script>
 
 <div class="container">
     <div class="row">
@@ -273,123 +239,15 @@
 
             {% if chant.cantus_id %}
                 <h4>List of concordances</h4>
-                <a id="ajax_concordance" href="#" onclick="ajaxConcordance(); return false;">» Display all concordances of this chant</a>                
-                <div id="concordance_div"></div>
-
+                <span id="concordanceLoadingPrompt" style="display: none; color: #922"><b>Loading concordances...</b></span>
+                <a id="concordanceButton" href="#" onclick="loadConcordances('{{ chant.cantus_id }}'); return false;">» Display all concordances of this chant</a>   
+                <div id="concordanceDiv"></div>
                 <br>
+
                 <h4>List of melodies</h4>
-                <a id="ajax_melody" href="#" onclick="ajaxMelody(); return false;">» Display the melodies connected with this chant</a>
-                <div id="melody_div"></div>        
-
-                <script>
-                    const concordanceTable = document.getElementById('concordance_div')
-                    const ajaxConcordance = () => {
-                        $.ajax({
-                            type: "GET", 
-                            url: "{% url 'ajax_concordance' chant.cantus_id|urlencode:'' %}",
-                            success: function(response){
-                                const concordances = response.concordances;
-                                const concordanceCount = response.concordance_count;
-                                // document.getElementById("test").innerHTML = cantus_id.toString();
-                                concordanceTable.innerHTML += `Displaying <b>${concordanceCount}</b> concordances from the following databases (Cantus ID <b>{{ chant.cantus_id }})</b>`;
-                                concordanceTable.innerHTML += `<table id="concordanceTable" class="table table-responsive table-sm small">
-                                                                    <thead>
-                                                                        <tr>
-                                                                            <th scope="col" class="text-wrap">Siglum</th>
-                                                                            <th scope="col" class="text-wrap">Folio</th>
-                                                                            <th scope="col" class="text-wrap">Incipit</th>
-                                                                            <th scope="col" class="text-wrap">Office </th>
-                                                                            <th scope="col" class="text-wrap">Genre </th>
-                                                                            <th scope="col" class="text-wrap">Position</th>
-                                                                            <th scope="col" class="text-wrap">Feast</th>
-                                                                            <th scope="col" class="text-wrap">Mode</th>
-                                                                            <th scope="col" class="text-wrap">Image</th>
-                                                                            <th scope="col" class="text-wrap">DB</th>
-                                                                        </tr>
-                                                                    </thead>
-                                                                    <tbody>
-                                                                    </tbody>
-                                                                </table>`;
-                                const table = document.getElementById("concordanceTable").getElementsByTagName("tbody")[0];
-                                concordances.map(chant=>{
-                                    const newRow = table.insertRow(table.rows.length);
-                                    if (chant.siglum) {newRow.innerHTML += `<td class="text-wrap"><a href="${chant.source_link}">${chant.siglum}</a></td>`} else {newRow.innerHTML += '<td class="text-wrap"></td>'}
-                                    if (chant.folio) {newRow.innerHTML += `<td class="text-wrap">${chant.folio}</td>`} else {newRow.innerHTML += '<td class="text-wrap"></td>'}
-                                    if (chant.incipit) {newRow.innerHTML += `<td class="text-wrap"><a href="${chant.chant_link}">${chant.incipit}</a></td>`} else {newRow.innerHTML += '<td class="text-wrap"></td>'}
-                                    if (chant.office__name) {newRow.innerHTML += `<td class="text-wrap">${chant.office__name}</td>`} else {newRow.innerHTML += '<td class="text-wrap"></td>'}
-                                    if (chant.genre__name) {newRow.innerHTML += `<td class="text-wrap">${chant.genre__name}</td>`} else {newRow.innerHTML += '<td class="text-wrap"></td>'}
-                                    if (chant.position) {newRow.innerHTML += `<td class="text-wrap">${chant.position}</td>`} else {newRow.innerHTML += '<td class="text-wrap"></td>'}
-                                    if (chant.feast__name) {newRow.innerHTML += `<td class="text-wrap">${chant.feast__name}</td>`} else {newRow.innerHTML += '<td class="text-wrap"></td>'}
-                                    if (chant.mode) {newRow.innerHTML += `<td class="text-wrap">${chant.mode}</td>`} else {newRow.innerHTML += '<td class="text-wrap"></td>'}
-                                    if (chant.image_link) {newRow.innerHTML += `<td class="text-wrap"><a href="${chant.image_link}" target="_blank">Image</a></td>`} else {newRow.innerHTML += '<td class="text-wrap"></td>'}
-                                    newRow.innerHTML += `<td class="text-wrap">${chant.db}</td>`
-                                });
-                                document.getElementById("concordance_div").innerHTML += "<a href='//cantusindex.org/ci/{{ chant.cantus_id }}?c=1&refresh=1' target='_blank'>Refresh results</a>";
-                                document.getElementById("ajax_concordance").style.display = "none";
-                            },
-                            error: function(error){
-                                document.getElementById("concordance_div").innerHTML = "Error when displaying the concordances"
-                            }
-                        });
-                    }
-                    {% comment %} document.getElementById("ajax_concordance").addEventListener("click", ()=>{
-                        ajaxConcordance()
-                    }) {% endcomment %}
-
-                    const melodyTable = document.getElementById('melody_div')
-                    const ajaxMelody = () => {
-                        $.ajax({
-                            type: "GET", 
-                            url: "{% url 'ajax_melody' chant.cantus_id|urlencode:'' %}",
-                            success: function(response){
-                                const concordances = response.concordances;
-                                const melodyCount = response.concordance_count;
-                                melodyTable.innerHTML += `Displaying <b>${melodyCount}</b> melodies from the following databases: `;
-                                melodyTable.innerHTML += `<table id="melodyTable" class="table table-responsive table-sm small">
-                                                                    <thead>
-                                                                        <tr>
-                                                                            <th scope="col" class="text-wrap">Chant</th>
-                                                                            <th scope="col" class="text-wrap">Melody</th>
-                                                                        </tr>
-                                                                    </thead>
-                                                                    <tbody>
-                                                                    </tbody>
-                                                                </table>`;
-                                const table = document.getElementById("melodyTable").getElementsByTagName("tbody")[0];
-                                concordances.map(chant=>{
-                                    const newRow = table.insertRow(table.rows.length);
-
-                                    chantCell = newRow.insertCell()
-                                    melodyCell = newRow.insertCell()
-
-                                    if (chant.siglum) {chantCell.innerHTML += `<a href="${chant.source_link}">${chant.siglum}</a>`} else {chantCell.innerHTML += ''}
-                                    chantCell.innerHTML += '<br>';
-                                    if (chant.folio) {chantCell.innerHTML += `${chant.folio} | `} else {chantCell.innerHTML += ''}
-                                    if (chant.office__name) {chantCell.innerHTML += `${chant.office__name} `} else {chantCell.innerHTML += ''}
-                                    if (chant.genre__name) {chantCell.innerHTML += `<b>${chant.genre__name} </b>`} else {chantCell.innerHTML += ''}
-                                    if (chant.position) {chantCell.innerHTML += `${chant.position}`} else {chantCell.innerHTML += ''}
-                                    chantCell.innerHTML += '<br>';
-                                    if (chant.feast__name) {chantCell.innerHTML += `${chant.feast__name}`} else {chantCell.innerHTML += ''}
-                                    chantCell.innerHTML += '<br>';
-                                    chantCell.innerHTML += `Cantus ID: <a href=${chant.ci_link}>${chant.cantus_id}</a>`
-
-                                    melodyCell.innerHTML += `<div style="font-family: volpiano; font-size:20px">${chant.volpiano}</div>`
-                                    melodyCell.innerHTML += '<br>'
-                                    if (chant.mode) {melodyCell.innerHTML += `M:<b>${chant.mode} </b>`} else {melodyCell.innerHTML += ''}
-                                    if (chant.manuscript_full_text_std_spelling) {melodyCell.innerHTML += `<a href=${chant.chant_link}>${chant.manuscript_full_text_std_spelling}</a>`} else {melodyCell.innerHTML += ''}
-                                });
-                                document.getElementById("ajax_melody").style.display = "none";
-                            },
-                            error: function(error){
-                                document.getElementById("melody_div").innerHTML = "Error when displaying the melodies"
-                            }
-                        });
-                    }
-                    {% comment %} document.getElementById("ajax_melody").addEventListener("click", ()=>{
-                        ajaxMelody()
-                    }) {% endcomment %}
-                </script>
-
+                <span id="melodyLoadingPrompt" style="display: none; color: #922"><b>Loading melodies...</b></span>
+                <a id="melodyButton" href="#" onclick="loadMelodies('{{ chant.cantus_id }}'); return false;">» Display the melodies connected with this chant</a>
+                <div id="melodyDiv"></div>        
             {% endif %}
             {% comment %} <br>
             <a href="" class="btn btn-primary" id="delete">Delete this Chant</a>
@@ -419,7 +277,7 @@
                         <div class="card-body">
                             <small>
                                 <!--a small selector of all folios of this source-->
-                                <select name="folios" id="folio-select" class="w-30" onchange="setFolio()">
+                                <select name="folios" id="folioSelect" class="w-30" onchange="jumpToFolio('{{ source.id }}')">
                                     <option value="">Select a folio</option>
                                     {% for folio in folios %}
                                         {% if folio == chant.folio %}
@@ -445,7 +303,7 @@
 
                                 {% if previous_folio %}
                                     <br>
-                                    <div id="previous_div" style="display:none">
+                                    <div id="previousDiv" style="display:none">
                                         {% for feast, chants in feasts_previous_folio %}
                                             Folio: <b>{{ previous_folio }}</b> - Feast: <b>{{ feast.name }}</b>
                                             <table class="table table-responsive table-sm small table-bordered">     
@@ -460,10 +318,9 @@
                                             </table>
                                         {% endfor %}
                                     </div>
-                                    <a id="previous_toggle" href="#" onclick="togglePrevious(this.id); return false;">Display previous chants ▾</a>
+                                    <a id="previousToggle" href="#" onclick="togglePrevious(); return false;">Display previous chants ▾</a>
                                 {% endif %}
                                 <br>
-
 
                                 {% for feast, chants in feasts_current_folio %}
                                     Folio: <b>{{ chant.folio }}</b> - Feast: <b>{{ feast.name }}</b>
@@ -480,12 +337,9 @@
                                 {% endfor %}
 
                                 {% if next_folio %}
-                                    {% comment %} <a id="next_toggle" href="javascript:toggleNext(this.id)">Display next chants ▾</a> {% endcomment %}
-                                    <a id="next_toggle" href="#" onclick="toggleNext(this.id); return false;">Display next chants ▾</a>
-
+                                    <a id="nextToggle" href="#" onclick="toggleNext(); return false;">Display next chants ▾</a>
                                     <br>
-
-                                    <div id="next_div" style="display:none">
+                                    <div id="nextDiv" style="display:none">
                                         {% for feast, chants in feasts_next_folio %}
                                             Folio: <b>{{ next_folio }}</b> - Feast: <b>{{ feast.name }}</b>
                                             <table class="table table-responsive table-sm small table-bordered">     
