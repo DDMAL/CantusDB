@@ -251,7 +251,7 @@ def contact_us(request):
 
 def ajax_melody_search(request):
     """
-    Function-based view responding to melody search AJAX calls, accessed with ``melody-search``
+    Function-based view responding to melody search AJAX calls, accessed with ``melody``
 
     The queryset is filtered according to the ``GET`` parameters
 

@@ -41,7 +41,7 @@ urlpatterns = [
     path("chants/", ChantListView.as_view(), name="chant-list"),
     path("chants/<int:pk>", ChantDetailView.as_view(), name="chant-detail"),
     path("chant-search/", ChantSearchView.as_view(), name="chant-search"),
-    path("melody-search/", MelodySearchView.as_view(), name="melody-search"),
+    path("melody/", MelodySearchView.as_view(), name="melody-search"),
     path(
         "chant-search-ms/<int:source_pk>",
         ChantSearchMSView.as_view(),
