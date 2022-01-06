@@ -81,7 +81,7 @@ def ajax_concordance_list(request, cantus_id):
     concordance_count = len(concordances)
     return JsonResponse(
         {"concordances": concordances, "concordance_count": concordance_count},
-        safe=False,
+        safe=True,
     )
 
 
@@ -127,7 +127,7 @@ def ajax_melody_list(request, cantus_id):
     concordance_count = len(concordances)
     return JsonResponse(
         {"concordances": concordances, "concordance_count": concordance_count},
-        safe=False,
+        safe=True,
     )
 
 
