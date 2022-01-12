@@ -32,10 +32,18 @@ function melodySearch() {
     const genreField = document.getElementById("genre");
     const feastField = document.getElementById("feast");
     const modeField = document.getElementById("mode");
-
     const resultsDiv = document.getElementById("resultsDiv");
 
-    drawArea.addEventListener("mousemove", () => { trackMouse(index); });
+    // get the drawArea position (absolute position, relative to the document)
+    const drawAreaRect = drawArea.getBoundingClientRect();
+    const docRect = document.body.getBoundingClientRect();
+    const drawAreaLeft = drawAreaRect.left - docRect.left;
+    const drawAreaRight = drawAreaRect.right - docRect.left;
+    const drawAreaTop = drawAreaRect.top - docRect.top;
+    const drawAreaBottom = drawAreaRect.bottom - docRect.top;
+
+    // if put this EventListener on drawArea only, the note will 'stick' to the bottom row if the mouse move too fast vertically
+    drawArea.parentElement.addEventListener("mousemove", (event) => { trackMouse(event, index); });
     drawArea.addEventListener("click", trackClick);
     deleteOneButton.addEventListener("click", deleteOneNote);
     deleteAllButton.addEventListener("click", deleteAllNotes);
@@ -50,14 +58,8 @@ function melodySearch() {
     feastField.addEventListener("input", search);
     modeField.addEventListener("input", search);
 
-    function trackClick() {
+    function trackClick(event) {
         const y = event.pageY;
-        // if click on the area without any notes, do nothing
-        if (y < 256 || y >= 382) {
-            return;
-        }
-        // otherwise, stop changing notes on the current slot
-        drawArea.removeEventListener("mousemove", () => { trackMouse(index); })
         // add the note to the search term, according to the y position of the click
         if (index <= 14) {
             if (y < 264) {
@@ -92,7 +94,7 @@ function melodySearch() {
                 notes += "b";
             } else if (y < 377) {
                 notes += "a";
-            } else if (y < 382) {
+            } else if (y < drawAreaBottom) {
                 notes += "9";
             }
 
@@ -102,7 +104,6 @@ function melodySearch() {
                 lastNote = notes.slice(-1);
                 // move focus to the next slot
                 index = index + 1;
-                drawArea.addEventListener("mousemove", () => { trackMouse(index); });
                 // do the search
                 search();
             } else {
@@ -114,18 +115,16 @@ function melodySearch() {
         }
     }
 
-    function trackMouse(noteIndex) {
-        // console.log(event.type);
-        // get the y coordinate of the mouse position, x doesn't matter
-        // x = event.pageX;
+    function trackMouse(event, noteIndex) {
+        // get the mouse position
+        x = event.pageX;
         y = event.pageY;
-        // console.log("X coords: " + x + ", Y coords: " + y);
         // compare it with the y coordinate of every staff line (hardcoded), 17 positions in total
         // staff line coordinates: [264, 279, 294, 309, 324, 339, 354, 369]
         if (document.getElementById(noteIndex)) {
             const currentPic = document.getElementById(noteIndex);
             // change the current image to the corresp. note image based on the y position
-            if (y < 256) {
+            if (y < drawAreaTop) {
                 currentPic.src = "/static/melody search tool/-.jpg";
             } else if (y < 264) {
                 currentPic.src = "/static/melody search tool/b2.jpg";
@@ -159,9 +158,13 @@ function melodySearch() {
                 currentPic.src = "/static/melody search tool/b.jpg";
             } else if (y < 377) {
                 currentPic.src = "/static/melody search tool/a.jpg";
-            } else if (y < 382) {
+            } else if (y < drawAreaBottom) {
                 currentPic.src = "/static/melody search tool/9.jpg";
             } else {
+                currentPic.src = "/static/melody search tool/-.jpg";
+            }
+            // if the x position is out of the drawArea, reset the image
+            if (x < drawAreaLeft || x > drawAreaRight) {
                 currentPic.src = "/static/melody search tool/-.jpg";
             }
         }
@@ -190,7 +193,7 @@ function melodySearch() {
 
         xhttp.open("GET", url);
         xhttp.onload = function () {
-            const data = JSON.parse(this.response)
+            const data = JSON.parse(this.response);
             resultsDiv.innerHTML = `Search results <b>(${data.result_count} melodies)</b>`;
             resultsDiv.innerHTML += `<table id="resultsTable" class="table table-responsive table-sm small"><tbody></tbody></table>`;
             const table = document.getElementById("resultsTable").getElementsByTagName("tbody")[0];
@@ -209,14 +212,14 @@ function melodySearch() {
                                             <div style="font-family: volpiano; font-size: 20px;">${chant.volpiano}</div>
                                             <br>
                                             ${chant.feast__name}
-                                    </td>`
+                                    </td>`;
             });
             // hide the "updating results" prompt after loading the data
             document.getElementById("searchingPrompt").style.display = "none";
         }
         xhttp.onerror = function () {
             // handle errors
-            document.getElementById("resultsDiv").innerHTML = "ajax error"
+            document.getElementById("resultsDiv").innerHTML = "ajax error";
         }
         xhttp.send();
         // update the pointer to the last xhttp request
@@ -292,7 +295,7 @@ function melodySearch() {
 
     function searchExact() {
         // do nothing if "exact matches" is already checked
-        if (tranpose) {
+        if (transpose) {
             transpose = false;
             if (notes != "") {
                 search();
@@ -308,12 +311,5 @@ function melodySearch() {
                 search();
             }
         }
-    }
-
-    function showCoords() {
-        var x = event.pageX;
-        var y = event.pageY;
-        var coords = "X coords: " + x + ", Y coords: " + y;
-        console.log(coords);
     }
 }
