@@ -281,14 +281,27 @@ def ajax_melody_search(request):
     feast_name = request.GET.get("feast")
     mode = request.GET.get("mode")
 
-    intervals = "".join(
-        [str(ord(notes[j]) - ord(notes[j - 1])) for j in range(1, len(notes))]
-    )
-
     # only include public chants in the result
     chants = Chant.objects.filter(source__public=True, source__visible=True)
+
     # if "search exact matches + transpositions"
     if transpose == "true":
+        # calculate intervals
+        # replace '9' (the note G) with the char corresponding to (ASCII(a) - 1), because 'a' denotes the note A
+        notes_copy = list(notes.replace("9", chr(ord("a") - 1)))
+        # we model the interval between notes using the difference between the ASCII codes of corresponding letters
+        # the letter for the note B is "j" (106), note A is "h" (104), the letter "i" (105) is skipped
+        # move all notes above A down by one letter
+        for j, note in enumerate(notes_copy):
+            if ord(note) >= 106:
+                notes_copy[j] = chr(ord(note) - 1)
+        # `intervals` records the difference between two adjacent notes
+        intervals = "".join(
+            [
+                str(ord(notes_copy[j]) - ord(notes_copy[j - 1]))
+                for j in range(1, len(notes_copy))
+            ]
+        )
         # if "search anywhere in the melody"
         if anywhere == "true":
             chants = chants.filter(volpiano_intervals__contains=intervals)
