@@ -104,7 +104,6 @@
 
 <body>
     <header>
-
         <!-- Navbar -->
         <div class="container">
             <nav class="navbar navbar-expand-xl bg-white border-top col-12">
@@ -208,6 +207,7 @@
         </div>
         <!-- <hr class="color"> -->
     </header>
+
     <!-- Content goes here, using the extends tag from Django -->
     <main role="main" class="content container pt-4">
         {% block content %}
@@ -335,18 +335,14 @@
                 </div>
             </div>
         </div>
-        <div class="bg-footer text-black row p-1">
-            <div class="col-auto mr-auto">
-                <a href="https://www.facebook.com/CantusDatabase">
-                    <img src="{% static "facebookIcon.png" %}" alt="Facebook link" loading="lazy">
-                </a>
-                <a href="mailto:cantus@cantusindex.org">
-                    <img src="{% static "sendMailIcon.png" %}" alt="Send us email" loading="lazy">
-                </a>
-            </div>
-            <div class="col-auto">
-                <small>Cantus Database © 2012-2021</small>
-            </div>
+        <div class="col-12" style="background-color: #CC3333;">
+            <a href="https://www.facebook.com/CantusDatabase">
+                <img src="{% static "facebookIcon.png" %}" alt="Facebook link" loading="lazy">
+            </a>
+            <a href="mailto:cantus@cantusindex.org">
+                <img src="{% static "sendMailIcon.png" %}" alt="Send us email" loading="lazy">
+            </a>
+            <small style="float: right">Cantus Database © 2012-2022</small>
         </div>
     </footer>
 </body>
