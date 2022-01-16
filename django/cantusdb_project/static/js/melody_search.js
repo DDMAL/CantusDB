@@ -195,23 +195,23 @@ function melodySearch() {
         xhttp.onload = function () {
             const data = JSON.parse(this.response);
             resultsDiv.innerHTML = `Search results <b>(${data.result_count} melodies)</b>`;
-            resultsDiv.innerHTML += `<table id="resultsTable" class="table table-responsive table-sm small"><tbody></tbody></table>`;
+            resultsDiv.innerHTML += `<table id="resultsTable" class="table table-bordered table-sm small" style="table-layout: fixed; width: 100%;"><tbody></tbody></table>`;
+
             const table = document.getElementById("resultsTable").getElementsByTagName("tbody")[0];
             data.results.map(chant => {
                 const newRow = table.insertRow(table.rows.length);
-                newRow.innerHTML += `<td style="width:30%">
+                newRow.innerHTML += `<td style="width:20%">
                                             <b>${chant.siglum}</b>
                                             <br>
                                             fol. <b>${chant.folio}</b>
                                             <br>
                                             <b>${chant.genre__name}</b> | Mode: <b>${chant.mode}</b>
                                     </td>`;
-                newRow.innerHTML += `<td style="width:70%">
+                newRow.innerHTML += `<td style="width:80%">
                                             <a href="${chant.chant_link}" target="_blank"><b>${chant.incipit}</b></a>
                                             <br>
-                                            <div style="font-family: volpiano; font-size: 20px;">${chant.volpiano}</div>
-                                            <br>
-                                            ${chant.feast__name}
+                                            <div style="font-family: volpiano; font-size: 28px; white-space: nowrap; overflow: hidden; text-overflow: clip;">${chant.volpiano}</div>
+                                            <div style="float: right">${chant.feast__name}</div>
                                     </td>`;
             });
             // hide the "updating results" prompt after loading the data
