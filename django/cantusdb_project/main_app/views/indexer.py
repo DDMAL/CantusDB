@@ -33,6 +33,7 @@ class IndexerListView(SearchableListMixin, ListView):
     context_object_name = "indexers"
 
     def get_queryset(self):
+        # sources_inventoried is the related name for the Source model in its many-to-many relationship with the Indexer model
         queryset = (
             super()
             .get_queryset()
