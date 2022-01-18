@@ -71,27 +71,35 @@ class FeastDetailView(DetailView):
 
 
 class FeastListView(SearchableListMixin, ListView):
+    """Searchable List view for Feast model
+
+    Accessed by /feasts/
+
+    When passed a ``?q=<query>`` argument in the GET request, it will filter feasts
+    based on the fields defined in ``search_fields`` with the ``icontains`` lookup
+
+    The feasts can also be filtered by `date` (temp/sanc) and `month` and ordered by `sort_by`,
+    which are also passed as GET parameters
+    """
+
     model = Feast
-    queryset = Feast.objects.all()
-    search_fields = ["name", "feast_code"]
+    search_fields = ["name", "description", "feast_code"]
     paginate_by = 200
     context_object_name = "feasts"
     template_name = "feast_list.html"
 
     def get_ordering(self):
-        ordering = self.request.GET.get("ordering")
-        if ordering not in ["name", "feast_code"]:
-            self.request.GET._mutable = True
-            self.request.GET["ordering"] = "name"
-            self.request.GET._mutable = False
+        ordering = self.request.GET.get("sort_by")
+        if not ordering:
             ordering = "name"
         return ordering
 
     def get_queryset(self):
         queryset = super().get_queryset()
-        month = self.request.GET.get("month", None)
         date = self.request.GET.get("date")
-        # this categorization is not finalized yet, it gives different results from old Cantus
+        month = self.request.GET.get("month")
+        # temp vs sanc categorization is not finalized yet,
+        # the feastcode needs to be updated by the cantus people
         if date == "temp":
             queryset = queryset.filter(prefix__in=TEMP_PREFIX)
         elif date == "sanc":
@@ -100,6 +108,5 @@ class FeastListView(SearchableListMixin, ListView):
         if month and (int(month)) in range(1, 13):
             month = int(month)
             queryset = queryset.filter(month=month)
-            return queryset
-        else:
-            return queryset
+
+        return queryset

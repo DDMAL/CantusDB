@@ -21,14 +21,20 @@ class Source(BaseModel):
     #     ("Unpublished / Proofreading process", "Unpublished / Proofreading process"),
     # ]
 
+    # sources with public=False cannot be accessed by its url (access denied) and do not appear in source list
     public = models.BooleanField(blank=True, null=True)
+    # sources with visible=False can be accessed by typing in the url, but do not appear in source list
+    visible = models.BooleanField(blank=True, null=True)
     title = models.CharField(
         max_length=255,
         help_text="Full Manuscript Identification (City, Archive, Shelf-mark)",
     )
     siglum = models.CharField(max_length=63, null=True, blank=True)
     rism_siglum = models.ForeignKey(
-        "RismSiglum", on_delete=models.PROTECT, null=True, blank=True,
+        "RismSiglum",
+        on_delete=models.PROTECT,
+        null=True,
+        blank=True,
     )
     provenance = models.ForeignKey(
         "Provenance",
@@ -81,10 +87,9 @@ class Source(BaseModel):
     image_link = models.URLField(blank=True, null=True)
     indexing_notes = models.TextField(blank=True, null=True)
     indexing_date = models.TextField(blank=True, null=True)
-    json_info = JSONField()
+    json_info = JSONField(blank=True, null=True)
     fragmentarium_id = models.CharField(max_length=15, blank=True, null=True)
     dact_id = models.CharField(max_length=15, blank=True, null=True)
-    visible = models.BooleanField(blank=True, null=True)
 
     def number_of_chants(self) -> int:
         """Returns the number of Chants and Sequences in this Source."""
