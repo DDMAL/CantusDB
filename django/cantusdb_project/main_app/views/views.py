@@ -264,6 +264,7 @@ def ajax_melody_search(request):
         ``genre_name``: Filters by genre of chant
         ``feast_name``: Filters by feast of chant
         ``mode``: Filters by mode of Chant
+        ``source``: Search in a specific source
 
     Args:
         request (request): The request
@@ -280,6 +281,7 @@ def ajax_melody_search(request):
     genre_name = request.GET.get("genre")
     feast_name = request.GET.get("feast")
     mode = request.GET.get("mode")
+    source = request.GET.get("source")
 
     # only include public chants in the result
     chants = Chant.objects.filter(source__public=True, source__visible=True)
@@ -317,9 +319,16 @@ def ajax_melody_search(request):
         else:
             chants = chants.filter(volpiano_notes__startswith=notes)
 
-    # if the search fields are not empty
-    if siglum:
+    # filter the queryset with search params
+
+    # source id and siglum are duplicate information, they both uniquely identify a source
+    # if searching in a specific source, use `source`
+    # if searching across all sources, use `siglum`
+    if source:
+        chants = chants.filter(source__id=source)
+    elif siglum:
         chants = chants.filter(siglum__icontains=siglum)
+
     if text:
         chants = chants.filter(manuscript_full_text_std_spelling__icontains=text)
     if genre_name:
@@ -346,7 +355,4 @@ def ajax_melody_search(request):
         # construct the url for chant detail page and add it to the result
         result["chant_link"] = reverse("chant-detail", args=[result["id"]])
     result_count = result_values.count()
-    return JsonResponse(
-        {"results": results, "result_count": result_count},
-        safe=True,
-    )
+    return JsonResponse({"results": results, "result_count": result_count}, safe=True)

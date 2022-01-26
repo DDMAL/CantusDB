@@ -39,7 +39,11 @@
                 <div class="form-row">
                     <div class="form-group m-1 col-sm">
                         <label for="siglum"><small>Source siglum</small></label>
-                        <input type="text" class="form-control form-control-sm" name="siglum" value="{{ request.GET.siglum }}" id="siglum">
+                        {% if source %}
+                            <input type="text" class="form-control form-control-sm" name="siglum" value="{{ source.siglum }}" id="siglum">
+                        {% else %}
+                            <input type="text" class="form-control form-control-sm" name="siglum" value="{{ request.GET.siglum }}" id="siglum">
+                        {% endif %}
                     </div>
                     <div class="form-group m-1 col-sm">
                         <label for="textSearch"><small>Text search</small></label>
@@ -76,6 +80,10 @@
                     </div>
                 </div>
             </form>
+
+            {% if source %}
+                <b>Searching in source: <a href="{{ source.get_absolute_url }}" target="_blank">{{ source.title }}</a></b>
+            {% endif %}
 
             <div id="resultsDiv"></div>
         </div>

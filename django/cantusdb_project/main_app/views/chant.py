@@ -273,7 +273,7 @@ class ChantSearchView(ListView):
 
     This view uses the same template as ``ChantSearchMSView``
 
-    If no ``GET`` parameters, returns all chants
+    If no ``GET`` parameters, returns empty queryset
 
     ``GET`` parameters:
         ``office``: Filters by Office of Chant
@@ -386,16 +386,32 @@ class ChantSearchView(ListView):
 
 
 class MelodySearchView(TemplateView):
+    """
+    Searches chants by the melody, accessed with `melody` (searching across all sources) 
+    or `melody?src=<source_id>` (searching in one specific source)
+
+    This view only pass in the context variable `source`
+
+    The real searching happens at `views.ajax_melody_search`
+    """
+
     template_name = "melody_search.html"
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        # if searching in a specific source, pass the source into context
+        if self.request.GET.get("source"):
+            context["source"] = Source.objects.get(id=self.request.GET.get("source"))
+        return context
 
 
 class ChantSearchMSView(ListView):
     """
-    Searches chants/seqs in a certain manuscript, accessed with ``chant-search/<int:source_pk>``
+    Searches chants/sequences in a certain manuscript, accessed with ``chant-search-ms/<int:source_pk>``
 
     This view uses the same template as ``ChantSearchView``
 
-    If no ``GET`` parameters, returns all chants
+    If no ``GET`` parameters, returns empty queryset
 
     ``GET`` parameters:
         ``office``: Filters by the office/mass of Chant
