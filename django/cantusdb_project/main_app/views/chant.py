@@ -136,26 +136,32 @@ class ChantDetailView(DetailView):
 
 class ChantListView(ListView):
     """
-    Displays a list of Chant objects. Accessed with ``chants/`` followed by a series of GET params
+    Displays a list of Chant objects, accessed with ``chants`` followed by a series of GET params`
+    
+    This is the view for the `Browse Chants` page
+
+    ``GET`` parameters:
+        ``source``: Filters by Source of Chant
+        ``feast``: Filters by Feast of Chant
+        ``search_text``: Filters by text of Chant
+        ``genre``: Filters by genre of Chant
+        ``folio``: Filters by folio of Chant
     """
 
     model = Chant
-    queryset = (
-        Chant.objects.all()
-        .filter(source__visible=True, source__public=True)
-        .order_by("id")
-    )
     paginate_by = 50
     context_object_name = "chants"
     template_name = "chant_list.html"
 
     def get_queryset(self):
-        queryset = super().get_queryset()
         source_id = self.request.GET.get("source")
         feast_id = self.request.GET.get("feast")
         genre_id = self.request.GET.get("genre")
         folio = self.request.GET.get("folio")
         search_text = self.request.GET.get("search_text")
+
+        # only display public chants
+        queryset = Chant.objects.filter(source__visible=True, source__public=True)
 
         if source_id:
             queryset = queryset.filter(source__id=source_id)
@@ -172,8 +178,7 @@ class ChantListView(ListView):
                 | Q(incipit__icontains=search_text)
                 | Q(manuscript_full_text__icontains=search_text)
             )
-
-        return queryset
+        return queryset.order_by("id")
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
