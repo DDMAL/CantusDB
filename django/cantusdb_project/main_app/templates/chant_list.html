@@ -2,49 +2,7 @@
 {% load helper_tags %}
 {% block content %}
 <title>Browse Chants | Cantus Manuscript Database</title>
-<script>
-    // Make sure the select components keep their values across multiple GET requests
-    // so the user can "drill down" on what they want
-    window.onload = function () {
-        $("#source-filter").val("{{ request.GET.source }}")
-        $("#feast-filter").val("{{ request.GET.feast }}")
-        $("#feast-select").val("{{ request.GET.feast }}")
-        $("#genre-filter").val("{{ request.GET.genre }}")
-        $("#folio-filter").val("{{ request.GET.folio }}")
-    }
-    // function for the auto-jump of various selectors and input fields on the page
-    // the folio selector and folio-feast selector on the right half do source-wide filtering
-    // the feast selector, genre selector, and text search on the left half do folio-wide filtering
-    function setParam(param) {
-        var url = new URL(window.location.href);
-        if (event.srcElement.id=='search'){
-            var target = document.getElementById(event.srcElement.id).value;
-        } else {
-            var target = document.getElementById(event.srcElement.id).options[document.getElementById(event.srcElement.id).selectedIndex].value;
-        }
-        url.searchParams.set(param, target);
-        // if the source is reset, reset every selector
-        if (param=='source'){
-            url.searchParams.set('folio', '');
-            url.searchParams.set('feast', '');
-            url.searchParams.set('search_text', '');
-            url.searchParams.set('genre', '');
-        }
-        // if the feast on the right is reset, reset every selector but keep the source unchanged
-        if (event.srcElement.id=='feast-select'){
-            url.searchParams.set('folio', '');
-            url.searchParams.set('search_text', '');
-            url.searchParams.set('genre', '');
-        }
-        // if the folio is reset, reset every selector but keep the source unchanged
-        if (param=='folio'){
-            url.searchParams.set('feast', '');
-            url.searchParams.set('search_text', '');
-            url.searchParams.set('genre', '');
-        }
-        window.location.assign(url);
-    }
-</script>
+<script src="/static/js/chant_list.js"></script>
 
 <div class="container">
     <div class="row">
@@ -55,8 +13,8 @@
             <form method="get">
                 <div class="form-row align-items-end">
                     <div class="form-group m-1 col-lg">
-                        <label for="source-filter"><small><b>Source</b></small></label>
-                        <select id="source-filter" name="source" class="form-control custom-select custom-select-sm" onchange="setParam('source')">
+                        <label for="sourceFilter"><small><b>Source</b></small></label>
+                        <select id="sourceFilter" name="source" class="form-control custom-select custom-select-sm">
                             <option value="">- Any -</option>
                             {% for source in sources %}
                                 <option value="{{ source.id }}">{{ source.siglum }}</option>
@@ -67,8 +25,8 @@
 
                 <div class="form-row align-items-end">
                     <div class="form-group m-1 col-lg">
-                        <label for="feast-filter"><small><b>Feast</b></small></label>
-                        <select id="feast-filter" name="feast" class="form-control custom-select custom-select-sm" onchange="setParam('feast')">
+                        <label for="feastFilter"><small><b>Feast</b></small></label>
+                        <select id="feastFilter" name="feast" class="form-control custom-select custom-select-sm">
                             <option value="">- Any -</option>
                             {% for feast in feasts %}
                                 <option value="{{ feast.id }}">{{ feast.name }}</option>
@@ -80,12 +38,12 @@
                 <div class="form-row align-items-end">
                     <div class="form-group m-1 col-lg">
                         <label for="search"><small><b>Search Text</b></small></label>
-                        <input type="text" class="form-control form-control-sm" name="search_text" value="{{ request.GET.search_text }}" id="search"  onchange="setParam('search_text')">
+                        <input id="search" type="text" class="form-control form-control-sm" name="search_text" value="{{ request.GET.search_text }}">
                     </div>
 
                     <div class="form-group m-1 col-lg">
-                        <label for="genre-filter"><small><b>Genre</b></small></label>
-                        <select id="genre-filter" name="genre" class="form-control custom-select custom-select-sm" onchange="setParam('genre')">
+                        <label for="genreFilter"><small><b>Genre</b></small></label>
+                        <select id="genreFilter" name="genre" class="form-control custom-select custom-select-sm">
                             <option value="">- Any -</option>
                             {% for genre in genres %}
                                 <option value="{{ genre.id }}">{{ genre.name }}</option>
@@ -181,7 +139,7 @@
                     <div class="card-body">
                         <small>
                             <!--a small selector of all folios of this source-->
-                            <select name="folio" id="folio-filter" class="w-30" onchange="setParam('folio')">
+                            <select name="folio" id="folioFilter" class="w-30">
                                 <option value="">Select a folio:</option>
                                 {% for folio in folios %}
                                     <option value="{{ folio }}">{{ folio }}</option>
@@ -195,14 +153,14 @@
                                 &nbsp;<a href="{% url "chant-list" %}?source={{ source.id }}&folio={{ next_folio }}">> {{ next_folio }}</a>
                             {% endif %}                                
 
-                            <select name="feast" id="feast-select" onchange="setParam('feast')">
+                            <select name="feast" id="feastSelect">
                                 <option value="">Select a feast:</option>
                                 {% for folio, feast in feasts_with_folios %}
                                     <option value="{{ feast.id }}">{{ folio }} - {{ feast.name }}</option>
                                 {% endfor %}
                             </select>
                             <br>
-                            <a href="{% url "chant-list" %}?source={{ source.id }}">» View all chants</a>
+                            <a href="{% url "chant-list" %}?source={{ source.id }}" target="_blank">» View all chants</a>
                             &nbsp;
                             <a href="{% url "chant-index" %}?source={{ source.id }}" target="_blank">» View full index</a>
                             &nbsp;
@@ -214,7 +172,7 @@
                             <a href="{{ source.image_link }}" target="_blank">» Image gallery</a>
                             {% endif %}
                             <br>
-                            <a href="#">» Search melodies in this manuscript</a>
+                            <a href="{% url "melody-search" %}?source={{ source.id }}"  target="_blank">» Search melodies in this manuscript</a>
                             <br>
                             <a href="//cantusindex.org/analyse?src={{ source.id }}&db=CD" target="_blank">» Analyse this manuscript (Cantus Analysis Tool)</a>
                         </small>

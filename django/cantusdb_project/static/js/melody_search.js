@@ -14,6 +14,9 @@ function melodySearch() {
     // `transpose` is true when "exact matchs + transpositions" is checked, 
     // false when "exact matches" is checked
     var transpose = false;
+    // `searchInSource` differentiates between searching in a specific source or searching across all sources
+    var searchInSource = false;
+
     // lastXhttp is a pointer to the last ajax request
     // if the user clicks on the canvas or deletes notes very fast, the older requests 
     // may not finish before the newer ones, causing the result table being updated multiple times, 
@@ -57,6 +60,14 @@ function melodySearch() {
     genreField.addEventListener("input", search);
     feastField.addEventListener("input", search);
     modeField.addEventListener("input", search);
+
+    // check the page url for the `source` param, which indicates searching in a specific source
+    const urlParams = new URLSearchParams(window.location.search);
+    // if searching in a specific source, make the siglum field read-only
+    if (urlParams.has("source")) {
+        searchInSource = true;
+        siglumField.readOnly = true;
+    }
 
     function trackClick(event) {
         const y = event.pageY;
@@ -190,6 +201,11 @@ function melodySearch() {
         url.searchParams.append("genre", genreField.value);
         url.searchParams.append("feast", feastField.value);
         url.searchParams.append("mode", modeField.value);
+        // if searching in a specific source, pass the source id as a search param
+        if (searchInSource) {
+            url.searchParams.append("source", urlParams.get("source"));
+        }
+
 
         xhttp.open("GET", url);
         xhttp.onload = function () {
