@@ -56,6 +56,32 @@ class ChantDetailView(DetailView):
         context = super().get_context_data(**kwargs)
         chant = self.get_object()
 
+        # syllabification section
+        if chant.volpiano:
+            syls_melody = syllabize_melody(chant.volpiano)
+
+            if chant.manuscript_syllabized_full_text:
+                syls_text = syllabize_text(
+                    chant.manuscript_syllabized_full_text, pre_syllabized=True
+                )
+            elif chant.manuscript_full_text:
+                syls_text = syllabize_text(
+                    chant.manuscript_full_text, pre_syllabized=False
+                )
+                syls_text, syls_melody = postprocess(syls_text, syls_melody)
+            else:
+                syls_text = syllabize_text(chant.incipit, pre_syllabized=False)
+                syls_text, syls_melody = postprocess(syls_text, syls_melody)
+
+            word_zip = align(syls_text, syls_melody)
+            context["syllabized_text_with_melody"] = word_zip
+
+        # some chants don't have a source, for those chants, stop here without further calculating
+        # other context variables
+        if not chant.source:
+            return context
+
+        # source navigation section
         chants_in_source = chant.source.chant_set
         context["folios"] = (
             chants_in_source.values_list("folio", flat=True)
@@ -112,25 +138,6 @@ class ChantDetailView(DetailView):
                 get_chants_with_feasts(chants_next_folio)
             )
 
-        # syllabification section
-        if chant.volpiano:
-            syls_melody = syllabize_melody(chant.volpiano)
-
-            if chant.manuscript_syllabized_full_text:
-                syls_text = syllabize_text(
-                    chant.manuscript_syllabized_full_text, pre_syllabized=True
-                )
-            elif chant.manuscript_full_text:
-                syls_text = syllabize_text(
-                    chant.manuscript_full_text, pre_syllabized=False
-                )
-                syls_text, syls_melody = postprocess(syls_text, syls_melody)
-            else:
-                syls_text = syllabize_text(chant.incipit, pre_syllabized=False)
-                syls_text, syls_melody = postprocess(syls_text, syls_melody)
-
-            word_zip = align(syls_text, syls_melody)
-            context["syllabized_text_with_melody"] = word_zip
         return context
 
 

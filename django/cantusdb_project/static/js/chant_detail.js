@@ -43,19 +43,19 @@ function loadConcordances(cantusId) {
     xhttp.onload = function () {
         const data = JSON.parse(this.response);
         concordanceDiv.innerHTML = `Displaying <b>${data.concordance_count}</b> concordances from the following databases (Cantus ID <b>${cantusId}</b>)`;
-        concordanceDiv.innerHTML += `<table id="concordanceTable" class="table table-responsive table-sm small">
+        concordanceDiv.innerHTML += `<table id="concordanceTable" class="table table-bordered table-sm small" style="table-layout: fixed; width: 100%;">
                                     <thead>
                                         <tr>
-                                            <th scope="col" class="text-wrap">Siglum</th>
-                                            <th scope="col" class="text-wrap">Folio</th>
-                                            <th scope="col" class="text-wrap">Incipit</th>
-                                            <th scope="col" class="text-wrap">Office </th>
-                                            <th scope="col" class="text-wrap">Genre </th>
-                                            <th scope="col" class="text-wrap">Position</th>
-                                            <th scope="col" class="text-wrap">Feast</th>
-                                            <th scope="col" class="text-wrap">Mode</th>
-                                            <th scope="col" class="text-wrap">Image</th>
-                                            <th scope="col" class="text-wrap">DB</th>
+                                            <th scope="col" class="text-wrap" style="width:15%">Siglum</th>
+                                            <th scope="col" class="text-wrap" style="width:5%">Folio</th>
+                                            <th scope="col" class="text-wrap" style="width:20%">Incipit</th>
+                                            <th scope="col" class="text-wrap" style="width:5%"></th>
+                                            <th scope="col" class="text-wrap" style="width:5%"></th>
+                                            <th scope="col" class="text-wrap" style="width:5%"></th>
+                                            <th scope="col" class="text-wrap" style="width:20%">Feast</th>
+                                            <th scope="col" class="text-wrap" style="width:10%">Mode</th>
+                                            <th scope="col" class="text-wrap" style="width:10%">Image</th>
+                                            <th scope="col" class="text-wrap" style="width:5%">DB</th>
                                         </tr>
                                     </thead>
                                     <tbody>
@@ -65,7 +65,18 @@ function loadConcordances(cantusId) {
 
         data.concordances.map(chant => {
             const newRow = table.insertRow(table.rows.length);
-            if (chant.siglum) { newRow.innerHTML += `<td class="text-wrap"><a href="${chant.source_link}" target="_blank">${chant.siglum}</a></td>` } else { newRow.innerHTML += '<td class="text-wrap"></td>' }
+            if (chant.siglum) {
+                // if the chant has a siglum, display it
+                if (chant.source_link) {
+                    // if the chant has a source, display the siglum as a hyperlink to the source page
+                    newRow.innerHTML += `<td class="text-wrap"><a href="${chant.source_link}" target="_blank">${chant.siglum}</a></td>`;
+                } else {
+                    // if the chant does not have a source, display the siglum as plain text
+                    newRow.innerHTML += `<td class="text-wrap">${chant.siglum}</td>`;
+                }
+            } else {
+                newRow.innerHTML += '<td class="text-wrap"></td>';
+            }
             if (chant.folio) { newRow.innerHTML += `<td class="text-wrap">${chant.folio}</td>` } else { newRow.innerHTML += '<td class="text-wrap"></td>' }
             if (chant.incipit) { newRow.innerHTML += `<td class="text-wrap"><a href="${chant.chant_link}" target="_blank">${chant.incipit}</a></td>` } else { newRow.innerHTML += '<td class="text-wrap"></td>' }
             if (chant.office__name) { newRow.innerHTML += `<td class="text-wrap">${chant.office__name}</td>` } else { newRow.innerHTML += '<td class="text-wrap"></td>' }
@@ -106,10 +117,10 @@ function loadMelodies(cantusId) {
     xhttp.onload = function () {
         const data = JSON.parse(this.response);
         melodyDiv.innerHTML = `Displaying <b>${data.concordance_count}</b> melodies from the following databases: `;
-        melodyDiv.innerHTML += `<table id="melodyTable" class="table table-responsive table-sm small">
+        melodyDiv.innerHTML += `<table id="melodyTable" class="table table-bordered table-sm small" style="table-layout: fixed; width: 100%;">
                                     <thead>
                                         <tr>
-                                            <th scope="col" class="text-wrap">Chant</th>
+                                            <th scope="col" class="text-wrap" style="width:20%">Chant</th>
                                             <th scope="col" class="text-wrap">Melody</th>
                                         </tr>
                                     </thead>
@@ -121,11 +132,21 @@ function loadMelodies(cantusId) {
 
         data.concordances.map(chant => {
             const newRow = table.insertRow(table.rows.length);
+            if (chant.siglum) {
+                // if the chant has a siglum, display it
+                if (chant.source_link) {
+                    // if the chant has a source, display the siglum as a hyperlink to the source page
+                    newRow.innerHTML += `<td class="text-wrap"><a href="${chant.source_link}" target="_blank">${chant.siglum}</a></td>`;
+                } else {
+                    // if the chant does not have a source, display the siglum as plain text
+                    newRow.innerHTML += `<td class="text-wrap">${chant.siglum}</td>`;
+                }
+            } else {
+                newRow.innerHTML += '<td class="text-wrap"></td>';
+            }
 
-            chantCell = newRow.insertCell();
-            melodyCell = newRow.insertCell();
-
-            if (chant.siglum) { chantCell.innerHTML += `<a href="${chant.source_link}" target="_blank"><b>${chant.siglum}</b></a>` } else { chantCell.innerHTML += '' }
+            // the first cell contains chant information
+            const chantCell = newRow.getElementsByTagName("td")[0];
             chantCell.innerHTML += '<br>';
             if (chant.folio) { chantCell.innerHTML += `${chant.folio} | ` } else { chantCell.innerHTML += '' }
             if (chant.office__name) { chantCell.innerHTML += `${chant.office__name} ` } else { chantCell.innerHTML += '' }
@@ -136,10 +157,29 @@ function loadMelodies(cantusId) {
             chantCell.innerHTML += '<br>';
             chantCell.innerHTML += `Cantus ID: <a href="${chant.ci_link}" target="_blank">${chant.cantus_id}</a>`
 
-            melodyCell.innerHTML += `<div style="font-family: volpiano; font-size:20px">${chant.volpiano}</div>`
-            melodyCell.innerHTML += '<br>'
-            if (chant.mode) { melodyCell.innerHTML += `M:<b>${chant.mode} </b>` } else { melodyCell.innerHTML += '' }
-            if (chant.manuscript_full_text_std_spelling) { melodyCell.innerHTML += `<a href="${chant.chant_link}" target="_blank">${chant.manuscript_full_text_std_spelling}</a>` } else { melodyCell.innerHTML += '' }
+            // add the second cell to the row
+            newRow.innerHTML += `<td>
+                                    <div style="font-family: volpiano; font-size: 28px; white-space: nowrap; overflow: hidden; text-overflow: clip;">
+                                        ${chant.volpiano}
+                                    </div>
+                                    <br>
+                                </td>`;
+            // the second cell contains the volpiano and text
+            const melodyCell = newRow.getElementsByTagName("td")[1];
+            if (chant.mode) {
+                melodyCell.innerHTML += `M:<b>${chant.mode} </b>`;
+            } else {
+                melodyCell.innerHTML += "";
+            }
+            if (chant.manuscript_full_text_std_spelling) {
+                melodyCell.innerHTML += `<div style="white-space: nowrap; overflow: hidden; text-overflow: clip;">
+                                            <a href="${chant.chant_link}" target="_blank">
+                                                ${chant.manuscript_full_text_std_spelling}
+                                            </a>
+                                        </div>`;
+            } else {
+                melodyCell.innerHTML += ""
+            }
         });
         // hide the "loading results" prompt after loading the data
         loadingPrompt.style.display = "none";

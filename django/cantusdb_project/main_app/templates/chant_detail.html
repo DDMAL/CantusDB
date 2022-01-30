@@ -9,231 +9,170 @@
             <h3>{{ chant.incipit }}</h3>
             <dl>
                 <div class="row">
-                    <div class="col">
-                        <dt>
-                            Source
-                        </dt>
-                        <dd>
-                            <a href="{{ chant.source.get_absolute_url }}">
-                                {{ chant.source.title }}
-                            </a>
-                        </dd>
-                    </div>
+                    {% if chant.source %}
+                        <div class="col">
+                            <dt>Source</dt>
+                            <dd>
+                                <a href="{{ chant.source.get_absolute_url }}">{{ chant.source.title }}</a>
+                            </dd>
+                        </div>
+                    {% endif %}
+
                     {% if chant.marginalia %}
-                    <div class="col">
-                        <dt>
-                            Marginalia
-                        </dt>
-                        <dd>
-                            {{ chant.marginalia }}
-                        </dd>
-                    </div>
+                        <div class="col">
+                            <dt> Marginalia</dt>
+                            <dd>{{ chant.marginalia }}</dd>
+                        </div>
                     {% endif %}
                 </div>
 
                 <div class="row">
                     {% if chant.folio %}
-                    <div class="col">
-                        <dt>
-                            Folio
-                        </dt>
-                        <dd>
-                            {{ chant.folio }}
-                        </dd>
-                    </div>
+                        <div class="col">
+                            <dt>Folio</dt>
+                            <dd>{{ chant.folio }}</dd>
+                        </div>
                     {% endif %}
-                    <div class="col">
-                        {% comment %} {% if chant.sequence_number %} {% endcomment %}
-                        <dt>
-                            Sequence
-                        </dt>
-                        <dd>
-                            {{ chant.sequence_number }}
-                        </dd>
-                        {% comment %} {% endif %} {% endcomment %}
-                    </div>
+
+                    {% if chant.sequence_number %}
+                        <div class="col">
+                            <dt>Sequence</dt>
+                            <dd>{{ chant.sequence_number }}</dd>
+                        </div>
+                    {% endif %}
                 </div>
                 
                 <div class="row">
                     {% if chant.feast %}
-                    <div class="col">
-                        <dt>
-                            Feast
-                        </dt>
-                        <dd>
-                            <a href="{{ chant.feast.get_absolute_url }}">{{ chant.feast.name }}</a>
-                        </dd>
-                    </div>
+                        <div class="col">
+                            <dt>Feast</dt>
+                            <dd>
+                                <a href="{{ chant.feast.get_absolute_url }}">{{ chant.feast.name }}</a>
+                            </dd>
+                        </div>
                     {% endif %}
+
                     {% if chant.office %}
-                    <div class="col">
-                        <dt>
-                            Office/Mass
-                        </dt>
-                        <dd>
-                            <a href="{{ chant.office.get_absolute_url }}">{{ chant.office.name }}</a>
-                        </dd>
-                    </div>
+                        <div class="col">
+                            <dt>Office/Mass</dt>
+                            <dd>{{ chant.office.name }}</dd>
+                        </div>
                     {% endif %}
+
                     {% if chant.genre %}
-                    <div class="col">
-                        <dt>
-                            Genre
-                        </dt>
-                        <dd>
-                            <a href="{{ chant.genre.get_absolute_url }}">{{ chant.genre.name }}</a>
-                        </dd>
-                    </div>
+                        <div class="col">
+                            <dt>Genre</dt>
+                            <dd>{{ chant.genre.name }}</dd>
+                        </div>
                     {% endif %}
+
                     {% if chant.position %}
-                    <div class="col">
-                        <dt>
-                            Position
-                        </dt>
-                        <dd>
-                            {{ chant.position }}
-                        </dd>
-                    </div>
+                        <div class="col">
+                            <dt>Position</dt>
+                            <dd>{{ chant.position }}</dd>
+                        </div>
                     {% endif %}
+
                     {% if chant.cantus_id %}
-                    <div class="col">
-                        <dt>
-                            Cantus ID
-                        </dt>
-                        <dd>
-                            {{ chant.cantus_id }}
-                        </dd>
-                    </div>
+                        <div class="col">
+                            <dt>Cantus ID</dt>
+                            <dd>{{ chant.cantus_id }}</dd>
+                        </div>
                     {% endif %}
+
                     {% if chant.mode %}
-                    <div class="col">
-                        <dt>
-                            Mode
-                        </dt>
-                        <dd>
-                            {{ chant.mode }}
-                        </dd>
-                    </div>
+                        <div class="col">
+                            <dt>Mode</dt>
+                            <dd>{{ chant.mode }}</dd>
+                        </div>
                     {% endif %}
                 </div>
 
                 <div class="row">
                     {% if chant.finalis %}
-                    <div class="col">
-                        <dt>
-                            Finalis
-                        </dt>
-                        <dd>
-                            {{ chant.finalis }}
-                        </dd>
-                    </div>
+                        <div class="col">
+                            <dt>Finalis</dt>
+                            <dd>{{ chant.finalis }}</dd>
+                        </div>
                     {% endif %}
+
                     {% if chant.differentia %}
-                    <div class="col">
-                        <dt>
-                            Differentia
-                        </dt>
-                        <dd>
-                            {{ chant.differentia }}
-                        </dd>
-                    </div>
+                        <div class="col">
+                            <dt>Differentia</dt>
+                            <dd>{{ chant.differentia }}</dd>
+                        </div>
                     {% endif %}
+
                     {% if chant.addendum %}
-                    <div class="col">
-                        <dt>
-                            Addendum
-                        </dt>
-                        <dd>
-                            {{ chant.addendum }}
-                        </dd>
-                    </div>
+                        <div class="col">
+                            <dt>Addendum</dt>
+                            <dd>{{ chant.addendum }}</dd>
+                        </div>
                     {% endif %}
+
                     {% if chant.extra %}
-                    <div class="col">
-                        <dt>
-                            Extra
-                        </dt>
-                        <dd>
-                            {{ chant.extra }}
-                        </dd>
-                    </div>
+                        <div class="col">
+                            <dt>Extra</dt>
+                            <dd>{{ chant.extra }}</dd>
+                        </div>
                     {% endif %}
                 </div>
 
                 {% if chant.manuscript_full_text_std_spelling %}
-                <dt>
-                    Manuscript Reading Full Text (standardized spelling)
-                </dt>
-                <dd>
-                    {{ chant.manuscript_full_text_std_spelling }}
-                </dd>
+                    <dt>Manuscript Reading Full Text (standardized spelling)</dt>
+                    <dd>{{ chant.manuscript_full_text_std_spelling }}</dd>
                 {% endif %}
+
                 {% if chant.manuscript_full_text %}
-                <dt>
-                    Manuscript Reading Full Text (MS spelling)
-                </dt>
-                <dd>
-                    {{ chant.manuscript_full_text }}
-                </dd>
+                    <dt>Manuscript Reading Full Text (MS spelling)</dt>
+                    <dd>{{ chant.manuscript_full_text }}</dd>
                 {% endif %}
+
                 {% if chant.chant_range %}
-                <dt>
-                    Range
-                </dt>
-                <dd>
-                    <p style="font-family: volpiano; font-size:28px">
-                        {{ chant.chant_range }}
-                    </p>
-                </dd>
+                    <dt>Range</dt>
+                    <dd>
+                        <p style="font-family: volpiano; font-size:28px">{{ chant.chant_range }}</p>
+                    </dd>
                 {% endif %}
+
                 {% if chant.volpiano %}
-                <dt>
-                    Volpiano
-                </dt>
-                <dd>
-                    <p style="font-family: volpiano; font-size:28px">
-                        {{ chant.volpiano }}
-                    </p>
-                </dd>
+                    <dt>Volpiano</dt>
+                    <dd>
+                        <p style="font-family: volpiano; font-size:28px">{{ chant.volpiano }}</p>
+                    </dd>
                 {% endif %}
+
                 {% if chant.indexing_notes %}
-                <dt>
-                    Indexing Notes
-                </dt>
-                <dd>
-                    {{ chant.indexing_notes }}
-                </dd>
+                    <dt>Indexing Notes</dt>
+                    <dd>{{ chant.indexing_notes }}</dd>
                 {% endif %}
+
                 {% if chant.volpiano %}
-                <div class="row">
-                    <div class="col">
-                        <dt>
-                            Melody with text
-                        </dt>
-                        {% if chant.manuscript_syllabized_full_text %}
-                            <p><small>Syllabification is based on saved syllabized text.</small></p>
-                        {% endif %}
-                        <dd>
-                            {% for zip in syllabized_text_with_melody %}
-                                {% for syl_mel, syl_text in zip %}
-                                    <span style="float: left">
-                                        <div style="font-family: volpiano; font-size: 28px">{{ syl_mel }}</div>
-                                        <div style="font-size: 10px"><pre>{{ syl_text }}</pre></div>
-                                    </span>
+                    <div class="row">
+                        <div class="col">
+                            <dt>Melody with text</dt>
+                            {% if chant.manuscript_syllabized_full_text %}
+                                <p><small>Syllabification is based on saved syllabized text.</small></p>
+                            {% endif %}
+                            <dd>
+                                {% for zip in syllabized_text_with_melody %}
+                                    {% for syl_mel, syl_text in zip %}
+                                        <span style="float: left">
+                                            <div style="font-family: volpiano; font-size: 28px">{{ syl_mel }}</div>
+                                            <div style="font-size: 10px"><pre>{{ syl_text }}</pre></div>
+                                        </span>
+                                    {% endfor %}
                                 {% endfor %}
-                            {% endfor %}
-                        </dd>
+                            </dd>
+                        </div>
                     </div>
-                </div>
                 {% endif %}
 
                 {% if chant.image_link %}
-                <dt>
-                    Image link
-                </dt>
-                <dd>
-                    <a href="{{ chant.image_link }}" target="_blank">{{ chant.image_link }}</a>
-                </dd>
+                    <dt>Image link</dt>
+                    <dd>
+                        <a href="{{ chant.image_link }}" target="_blank">{{ chant.image_link }}</a>
+                    </dd>
                 {% endif %}
             </dl>
 
@@ -249,6 +188,7 @@
                 <a id="melodyButton" href="#" onclick="loadMelodies('{{ chant.cantus_id }}'); return false;">» Display the melodies connected with this chant</a>
                 <div id="melodyDiv"></div>        
             {% endif %}
+
             {% comment %} <br>
             <a href="" class="btn btn-primary" id="delete">Delete this Chant</a>
             <script>
@@ -256,7 +196,6 @@
                     document.getElementById("delete").href = window.location.href + '/delete';
                 }
             </script> {% endcomment %}
-
         </div>
 
         <div class="col">
@@ -271,9 +210,14 @@
                         <div class="card-header">
                             <b>Source navigation</b>
                             <br>
-                            <a href="{{ source.get_absolute_url }}"> <b>{{ source.siglum }}</b> </a>
+                            {% if source %}
+                                <a href="{{ source.get_absolute_url }}"> <b>{{ source.siglum }}</b> </a>
+                            {% else %}
+                                This chant is not associated with any source. 
+                            {% endif %}                            
                         </div>
 
+                        {% if source %}
                         <div class="card-body">
                             <small>
                                 <!--a small selector of all folios of this source-->
@@ -357,74 +301,80 @@
                                 {% endif %}
                             </small>
                         </div>
+                        {% endif %}
                     </div>
                 </div>
 
-                <div class="row">
-                    <div class="card mb-3 w-100">
-                        <div class="card-header">
-                            <!-- TODO: add proper segment link here -->
-                            <small><a href="/sources?segment={{ source.segment.id }}">
-                                    {{ source.segment.name }}</a></small>
-                            <br>
-                            {{ source.siglum }}
-                        </div>
-                        <div class=" card-body">
-                            <!-- TODO: add proper links here -->
-                            <small>
-                                {% if source.provenance.name %}
-                                Provenance: <b><a href="#" onclick="return false;">{{source.provenance.name}}</a></b>
+                {% if source %}
+                    <div class="row">
+                        <div class="card mb-3 w-100">
+                            <div class="card-header">
+                                <small><a href="/sources?segment={{ source.segment.id }}">{{ source.segment.name }}</a></small>
                                 <br>
-                                {% endif %}
-                                {% if source.date %}
-                                Date: 
-                                {% for century in source.century.all %}
-                                <b><a href="#" onclick="return false;">{{ century.name }}</a></b>
-                                {% endfor %}
-                                |
-                                <b>{{source.date|default_if_none:""}}</b>
-                                <br>
-                                {% endif %}
-                                {% if source.cursus %}
-                                Cursus: <b>{{source.cursus|default_if_none:""}}</b>
-                                <br>
-                                {% endif %}
-                                {% if source.notation.all %}
-                                Notation: <b><a href="#" onclick="return false;">{{source.notation.all.first.name}}</a></b>
-                                <br>
-                                {% endif %}
-                                {% if source.inventoried_by.all %}
-                                Inventoried by:
-                                <ul class="list-unstyled" style="margin-bottom: 0rem;">
-                                    {% for editor in source.inventoried_by.all %}
-                                    <li>
-                                        <a href={{ editor.get_absolute_url }}><b>{{editor.first_name}}
-                                            {{editor.family_name}}</b></a><br>
-                                        {{ editor.institution|default_if_none:"" }}
-                                    </li>
-                                    {% endfor %}
-                                </ul>
-                                {% endif %}
-                                {% comment %} {% if source.proofreaders.all %} {% endcomment %}
-                                    Proofreader{{source.proofreaders.all|pluralize}}:
-                                    <br>
-                                    <ul class="list-unstyled" style="margin-bottom: 0rem;">
-                                        {% for editor in source.proofreaders.all %}
-                                        <li>
-                                            <a href={{ editor.get_absolute_url }}><b>{{editor.first_name}}
-                                                {{editor.family_name}}</b></a><br>
-                                        </li>
+                                {{ source.siglum }}
+                            </div>
+                            <div class=" card-body">
+                                <small>
+                                    {% if source.provenance.name %}
+                                        Provenance: <b>{{ source.provenance.name }}</b>
+                                        <br>
+                                    {% endif %}
+
+                                    {% if source.date %}
+                                        Date: 
+                                        {% for century in source.century.all %}
+                                            <b>{{ century.name }}</b>
                                         {% endfor %}
-                                    </ul>
-                                {% comment %} {% endif %} {% endcomment %}
-                                {{source.indexing_notes|default_if_none:""}}
-                                <br>
-                                Contributor: <a href="#" onclick="return false;">CANTUS Database Administrator</a>
-                            </small>
-                        </div>
-                    </div>
+                                        |
+                                        <b>{{ source.date|default_if_none:"" }}</b>
+                                        <br>
+                                    {% endif %}
 
-                </div>
+                                    {% if source.cursus %}
+                                        Cursus: <b>{{ source.cursus|default_if_none:"" }}</b>
+                                        <br>
+                                    {% endif %}
+
+                                    {% if source.notation.all %}
+                                        Notation: <b>{{ source.notation.all.first.name }}</b>
+                                        <br>
+                                    {% endif %}
+
+                                    {% if source.inventoried_by.all %}
+                                        Inventoried by:
+                                        <ul class="list-unstyled" style="margin-bottom: 0rem;">
+                                            {% for editor in source.inventoried_by.all %}
+                                                <li>
+                                                    <a href={{ editor.get_absolute_url }}><b>{{ editor.first_name }}
+                                                        {{ editor.family_name }}</b></a><br>
+                                                    {{ editor.institution|default_if_none:"" }}
+                                                </li>
+                                            {% endfor %}
+                                        </ul>
+                                    {% endif %}
+
+                                    {% if source.proofreaders.all %}
+                                        Proofreader{{ source.proofreaders.all|pluralize }}:
+                                        <br>
+                                        <ul class="list-unstyled" style="margin-bottom: 0rem;">
+                                            {% for editor in source.proofreaders.all %}
+                                                <li>
+                                                    <a href={{ editor.get_absolute_url }}><b>{{editor.first_name}}
+                                                        {{editor.family_name}}</b></a><br>
+                                                </li>
+                                            {% endfor %}
+                                        </ul>
+                                    {% endif %}
+
+                                    {{ source.indexing_notes|default_if_none:"" }}
+                                    <br>
+                                    Contributor: <a href="#" onclick="return false;">CANTUS Database Administrator</a>
+                                </small>
+                            </div>
+                        </div>
+
+                    </div>
+                {% endif %}
             {% endwith %}
         </div>
     </div>

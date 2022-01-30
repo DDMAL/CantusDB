@@ -1,7 +1,5 @@
 from django.db import models
 from main_app.models import BaseModel
-from psycopg2.extras import NumericRange
-from django.contrib.postgres.fields import IntegerRangeField
 from django.contrib.postgres.fields import JSONField
 from users.models import User
 
@@ -29,12 +27,12 @@ class Source(BaseModel):
         max_length=255,
         help_text="Full Manuscript Identification (City, Archive, Shelf-mark)",
     )
+    # the siglum field as implemented on the old Cantus is composed of both the RISM siglum and the shelfmark
+    # it is a human-readable ID for a source
     siglum = models.CharField(max_length=63, null=True, blank=True)
+    # the RISM siglum uniquely identifies a library or holding institution
     rism_siglum = models.ForeignKey(
-        "RismSiglum",
-        on_delete=models.PROTECT,
-        null=True,
-        blank=True,
+        "RismSiglum", on_delete=models.PROTECT, null=True, blank=True,
     )
     provenance = models.ForeignKey(
         "Provenance",
