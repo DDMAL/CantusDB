@@ -71,7 +71,10 @@ def ajax_concordance_list(request, cantus_id):
 
     concordances = list(concordance_values)
     for i, concordance in enumerate(concordances):
-        concordance["source_link"] = chants[i].source.get_absolute_url()
+        # some chants do not have a source
+        # for those chants, do not return source link
+        if chants[i].source:
+            concordance["source_link"] = chants[i].source.get_absolute_url()
         if chants[i].search_vector:
             concordance["chant_link"] = chants[i].get_absolute_url()
         else:
@@ -119,7 +122,10 @@ def ajax_melody_list(request, cantus_id):
 
     concordances = list(concordance_values)
     for i, concordance in enumerate(concordances):
-        concordance["source_link"] = chants[i].source.get_absolute_url()
+        # some chants do not have a source
+        # for those chants, do not return source link
+        if chants[i].source:
+            concordance["source_link"] = chants[i].source.get_absolute_url()
         concordance["ci_link"] = chants[i].get_ci_url()
         concordance["chant_link"] = chants[i].get_absolute_url()
         concordance["db"] = "CD"
