@@ -9,53 +9,74 @@ class SourceDetailView(DetailView):
     template_name = "source_detail.html"
 
     def get_context_data(self, **kwargs):
-        object = self.get_object()
+        def get_feast_selector_options(source, folios):
+            """Generate folio-feast pairs as options for the feast selector
+
+            Going through all chants in the source, folio by folio,
+            a new entry (in the form of folio-feast) is added when the feast changes. 
+
+            Args:
+                source (Source object): The source object for this source detail page.
+                folios (list of strs): A list of folios in the source.
+
+            Returns:
+                zip object: A zip object combining a list of folios and Feast objects, to be unpacked in template.
+            """
+            # the two lists to be zipped
+            feast_selector_feasts = []
+            feast_selector_folios = []
+            # get all chants in the source, select those that have a feast
+            chants_in_source = source.chant_set.exclude(feast=None).order_by(
+                "folio", "sequence_number"
+            )
+            # initialize the feast selector options with the first chant in the source that has a feast
+            first_feast_chant = chants_in_source.first()
+            if not first_feast_chant:
+                # if none of the chants in this source has a feast, return an empty zip
+                folio_feast_zip = []
+            else:
+                # if there is at least one chant that has a feast
+                current_feast = first_feast_chant.feast
+                feast_selector_feasts.append(current_feast)
+                current_folio = first_feast_chant.folio
+                feast_selector_folios.append(current_folio)
+
+                for folio in folios:
+                    # get all chants on each folio
+                    chants_on_folio = chants_in_source.filter(folio=folio)
+                    for chant in chants_on_folio:
+                        if chant.feast != current_feast:
+                            # if the feast changes, add the new feast and the corresponding folio to the lists
+                            feast_selector_feasts.append(chant.feast)
+                            feast_selector_folios.append(folio)
+                            # update the current_feast to track future changes
+                            current_feast = chant.feast
+                # zip the two lists
+                folio_feast_zip = zip(feast_selector_folios, feast_selector_feasts)
+            return folio_feast_zip
+
+        source = self.get_object()
         context = super().get_context_data(**kwargs)
-        if object.segment.id == 4064:
+
+        if source.segment.id == 4064:
             # if this is a sequence source
-            context["sequences"] = object.sequence_set.all().order_by("sequence")
-            folios = (
-                object.sequence_set.values_list("folio", flat=True)
+            context["sequences"] = source.sequence_set.all().order_by("sequence")
+            context["folios"] = (
+                source.sequence_set.values_list("folio", flat=True)
                 .distinct()
                 .order_by("folio")
             )
         else:
-            # if this is a normal chant source
+            # if this is a chant source
             folios = (
-                object.chant_set.values_list("folio", flat=True)
+                source.chant_set.values_list("folio", flat=True)
                 .distinct()
                 .order_by("folio")
             )
-            # for the feast selector
-            # feasts are aligned with the corresponding folios
-            folios_with_feasts = []
-            feasts_with_folios = []
+            context["folios"] = folios
+            # the options for the feast selector on the right, only chant sources have this
+            context["feasts_with_folios"] = get_feast_selector_options(source, folios)
 
-            folios_with_feasts.append(folios[0])
-            current_feast = (
-                object.chant_set.filter(folio=folios[0])
-                .exclude(feast=None)
-                .order_by("sequence_number")
-                .first()
-                .feast
-            )
-            feasts_with_folios.append(current_feast)
-
-            for folio in folios:
-                chants_on_folio = object.chant_set.filter(folio=folio).order_by(
-                    "sequence_number"
-                )
-                for chant in chants_on_folio:
-                    if chant.feast != current_feast:
-                        feasts_with_folios.append(chant.feast)
-                        folios_with_feasts.append(folio)
-                        current_feast = chant.feast
-
-            feast_zip = zip(folios_with_feasts, feasts_with_folios)
-            # the options for the feast selector on the right, only available for chants
-            context["feasts_with_folios"] = feast_zip
-        # the options for the folio selector on the right, for both chants and seqs
-        context["folios"] = folios
         return context
 
 
