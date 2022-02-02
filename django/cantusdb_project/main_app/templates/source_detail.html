@@ -1,98 +1,87 @@
 {% extends "base.html" %}
 {% block content %}
 <title>{{ source.title }} | Cantus Manuscript Database</title>
-<script>
-    // function for the auto-jump of various selectors and input fields on the page
-    // the folio selector and folio-feast selector on the right half do source-wide filtering
-    // the feast selector, genre selector, and text search on the left half do folio-wide filtering
-    function setParam(param) {
-        var url = new URL("{% url 'chant-list' %}", window.location.origin);
-        url.searchParams.set("source", {{ source.id }});
-        var target = document.getElementById(event.srcElement.id).options[document.getElementById(event.srcElement.id).selectedIndex].value;
-        url.searchParams.set(param, target);
-        window.location.assign(url);
-    }
-</script>
+<script src="/static/js/source_detail.js"></script>
 <div class="container">
     <div class="row">
-        <div class="mr-3 p-3 col-lg-8 bg-white rounded" id="long-info">
+        <div class="mr-3 p-3 col-lg-8 bg-white rounded">
             <h3>{{ source.title }}</h3>
             <dl>
                 {% if source.siglum %}
-                <dt>Siglum</dt>
-                <dd>{{ source.siglum }}</dd>
+                    <dt>Siglum</dt>
+                    <dd>{{ source.siglum }}</dd>
                 {% endif %}
 
                 {% if source.summary %}
-                <dt>Summary</dt>
-                <dd>{{ source.summary }}</dd>
+                    <dt>Summary</dt>
+                    <dd>{{ source.summary }}</dd>
                 {% endif %}
 
                 {% if source.liturgical_occasions %}
-                <dt>Liturgical Occasions</dt>
-                <dd>{{ source.liturgical_occasions }}</dd>
+                    <dt>Liturgical Occasions</dt>
+                    <dd>{{ source.liturgical_occasions }}</dd>
                 {% endif %}
 
                 {% if source.description %}
-                <dt>Description</dt>
-                <dd>{{ source.description|safe }}</dd>
+                    <dt>Description</dt>
+                    <dd>{{ source.description|safe }}</dd>
                 {% endif %}
 
                 {% if source.selected_bibliography %}
-                <dt>Selected Bibilography</dt>
-                <dd>{{ source.selected_bibliography|safe }}</dd>
+                    <dt>Selected Bibilography</dt>
+                    <dd>{{ source.selected_bibliography|safe }}</dd>
                 {% endif %}
 
                 {% if source.indexing_notes %}
-                <dt>Notes on the Inventory</dt>
-                <dd>{{ source.indexing_notes|safe }}</dd>
+                    <dt>Notes on the Inventory</dt>
+                    <dd>{{ source.indexing_notes|safe }}</dd>
                 {% endif %}
 
                 {% if source.other_editors.all %}
-                <dt>Other Editors</dt>
-                <dd>
-                    {% for editor in source.other_editors.all %}
-                    <a href={{ editor.get_absolute_url }}>{{editor.first_name}} {{editor.family_name}}</a><br>
-                    {% endfor %}
-                </dd>
+                    <dt>Other Editors</dt>
+                    <dd>
+                        {% for editor in source.other_editors.all %}
+                        <a href={{ editor.get_absolute_url }}>{{ editor.first_name }} {{ editor.family_name }}</a><br>
+                        {% endfor %}
+                    </dd>
                 {% endif %}
 
                 {% if source.full_text_entered_by.all %}
-                <dt>Full Text Entered by</dt>
-                <dd>
-                    {% for editor in source.full_text_entered_by.all %}
-                    <a href={{ editor.get_absolute_url }}>{{editor.first_name}} {{editor.family_name}}</a><br>
-                    {% endfor %}
-                </dd>
+                    <dt>Full Text Entered by</dt>
+                    <dd>
+                        {% for editor in source.full_text_entered_by.all %}
+                        <a href={{ editor.get_absolute_url }}>{{ editor.first_name }} {{ editor.family_name }}</a><br>
+                        {% endfor %}
+                    </dd>
                 {% endif %}
 
                 {% if source.melodies_entered_by.all %}
-                <dt>Melodies Entered by</dt>
-                <dd>
-                    {% for editor in source.melodies_entered_by.all %}
-                    <a href={{ editor.get_absolute_url }}>{{editor.first_name}} {{editor.family_name}}</a><br>
-                    {% endfor %}
-                </dd>
+                    <dt>Melodies Entered by</dt>
+                    <dd>
+                        {% for editor in source.melodies_entered_by.all %}
+                        <a href={{ editor.get_absolute_url }}>{{ editor.first_name }} {{ editor.family_name }}</a><br>
+                        {% endfor %}
+                    </dd>
                 {% endif %}
 
                 {% if source.complete_inventory is not None %}
-                <dt>Complete/Partial Inventory</dt>
-                <dd>{{ source.complete_inventory|yesno:"Complete Inventory,Partial Inventory"}}</dd>
+                    <dt>Complete/Partial Inventory</dt>
+                    <dd>{{ source.complete_inventory|yesno:"Complete Inventory,Partial Inventory" }}</dd>
                 {% endif %}
 
                 {% if source.full_source is not None %}
-                <dt>Full Source/Fragment</dt>
-                <dd>{{ source.full_source|yesno:"Full Source,Fragment"}}</dd>
+                    <dt>Full Source/Fragment</dt>
+                    <dd>{{ source.full_source|yesno:"Full Source,Fragment" }}</dd>
                 {% endif %}
 
                 {% if source.fragmentarium_id is not None %}
-                <dt>Fragment ID</dt>
-                <dd>{{ source.fragmentarium_id }}</dd>
+                    <dt>Fragment ID</dt>
+                    <dd>{{ source.fragmentarium_id }}</dd>
                 {% endif %}
 
                 {% if source.dact_id is not None %}
-                <dt>DACT ID</dt>
-                <dd>{{ source.dact_id }}</dd>
+                    <dt>DACT ID</dt>
+                    <dd>{{ source.dact_id }}</dd>
                 {% endif %}
             </dl>
 
@@ -113,12 +102,12 @@
                         {% for sequence in sequences %}
                             <tr>
                                 <td class="text-wrap" style="text-align:center">
-                                    <a href="{{ source.get_absolute_url }}">{{source.siglum}}</a>
+                                    <a href="{{ source.get_absolute_url }}">{{ source.siglum }}</a>
                                     <br>
                                     <b>{{ sequence.folio }}</b>  {{ sequence.sequence }}
                                 </td>
                                 <td class="text-wrap" style="text-align:center">
-                                    <a href={{ sequence.get_absolute_url}} >{{ sequence.incipit|default:"" }}</a>
+                                    <a href={{ sequence.get_absolute_url }} >{{ sequence.incipit|default:"" }}</a>
                                 </td>
                                 <td class="text-wrap" style="text-align:center">
                                     {{ sequence.rubrics|default:"" }}
@@ -145,22 +134,20 @@
 
             <div class="row">
                 <div class="card mb-3 w-100">
-
                     <div class="card-header">
                         <h4>{{ source.siglum }}</h4>
                     </div>
-
                     <div class="card-body">
                         <small>
                             <!--a small selector of all folios of this source-->
-                            <select name="folio" id="folio-filter" class="w-30" onchange="setParam('folio')">
+                            <select id="folioSelect" class="w-30" onchange="jumpToFolio({{ source.id }})">
                                 <option value="">Select a folio:</option>
                                 {% for folio in folios %}
                                     <option value="{{ folio }}">{{ folio }}</option>
                                 {% endfor %}
                             </select>                              
 
-                            <select name="feast" id="feast-select" onchange="setParam('feast')">
+                            <select id="feastSelect" onchange="jumpToFeast({{ source.id }})">
                                 <option value="">Select a feast:</option>
                                 {% for folio, feast in feasts_with_folios %}
                                     <option value="{{ feast.id }}">{{ folio }} - {{ feast.name }}</option>
@@ -185,66 +172,66 @@
                             <a href="//cantusindex.org/analyse?src={{ source.id }}&db=CD" target="_blank">» Analyse this manuscript (Cantus Analysis Tool)</a>
                         </small>
                     </div>    
-
                 </div>
             </div>
 
             <div class="row">
                 <div class="card mb-3 w-100">
                     <div class="card-header">
-                        <small><a href="/sources?segment={{ source.segment.id }}">
-                                {{ source.segment.name }}</a></small>
+                        <small>
+                            <a href="{% url "source-list" %}?segment={{ source.segment.id }}">{{ source.segment.name }}</a>
+                        </small>
                         <br>
                         {{ source.siglum }}
                     </div>
                     <div class=" card-body">
                         <small>
                             {% if source.provenance.name %}
-                            Provenance: <b><a href="#">{{source.provenance.name}}</a></b>
-                            <br>
+                                Provenance: <b><a href="#">{{source.provenance.name}}</a></b>
+                                <br>
                             {% endif %}
                             {% if source.date %}
-                            Date: 
-                            {% for century in source.century.all %}
-                            <b><a href="#">{{ century.name }}</a></b>
-                            {% endfor %}
-                            |
-                            <b>{{source.date|default_if_none:""}}</b>
-                            <br>
+                                Date: 
+                                {% for century in source.century.all %}
+                                    <b><a href="#">{{ century.name }}</a></b>
+                                {% endfor %}
+                                |
+                                <b>{{ source.date|default_if_none:"" }}</b>
+                                <br>
                             {% endif %}
                             {% if source.cursus %}
-                            Cursus: <b>{{source.cursus|default_if_none:""}}</b>
-                            <br>
+                                Cursus: <b>{{ source.cursus|default_if_none:"" }}</b>
+                                <br>
                             {% endif %}
                             {% if source.notation.all %}
-                            Notation: <b><a href="#">{{source.notation.all.first.name}}</a></b>
-                            <br>
+                                Notation: <b><a href="#">{{ source.notation.all.first.name }}</a></b>
+                                <br>
                             {% endif %}
                             {% if source.inventoried_by.all %}
-                            Inventoried by:
-                            <ul class="list-unstyled" style="margin-bottom: 0rem;">
-                                {% for editor in source.inventoried_by.all %}
-                                <li>
-                                    <a href={{ editor.get_absolute_url }}><b>{{editor.first_name}}
-                                        {{editor.family_name}}</b></a><br>
-                                    {{ editor.institution|default_if_none:"" }}
-                                </li>
-                                {% endfor %}
-                            </ul>
-                            {% endif %}
-                            {% comment %} {% if source.proofreaders.all %} {% endcomment %}
-                                Proofreader{{source.proofreaders.all|pluralize}}:
-                                <br>
+                                Inventoried by:
                                 <ul class="list-unstyled" style="margin-bottom: 0rem;">
-                                    {% for editor in source.proofreaders.all %}
+                                    {% for editor in source.inventoried_by.all %}
                                     <li>
-                                        <a href={{ editor.get_absolute_url }}><b>{{editor.first_name}}
-                                            {{editor.family_name}}</b></a><br>
+                                        <a href={{ editor.get_absolute_url }}><b>{{ editor.first_name }}
+                                            {{ editor.family_name }}</b></a><br>
+                                        {{ editor.institution|default_if_none:"" }}
                                     </li>
                                     {% endfor %}
                                 </ul>
-                            {% comment %} {% endif %} {% endcomment %}
-                            {{source.indexing_notes|default_if_none:""}}
+                            {% endif %}
+                            {% if source.proofreaders.all %}
+                                Proofreader{{ source.proofreaders.all|pluralize }}:
+                                <br>
+                                <ul class="list-unstyled" style="margin-bottom: 0rem;">
+                                    {% for editor in source.proofreaders.all %}
+                                        <li>
+                                            <a href={{ editor.get_absolute_url }}><b>{{ editor.first_name }}
+                                                {{ editor.family_name }}</b></a><br>
+                                        </li>
+                                    {% endfor %}
+                                </ul>
+                            {% endif %}
+                            {{ source.indexing_notes|default_if_none:"" }}
                             <br>
                             Contributor: <a href="">CANTUS Database Administrator</a>
                         </small>
