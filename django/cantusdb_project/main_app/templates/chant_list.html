@@ -15,7 +15,7 @@
                     <div class="form-group m-1 col-lg">
                         <label for="sourceFilter"><small><b>Source</b></small></label>
                         <select id="sourceFilter" name="source" class="form-control custom-select custom-select-sm">
-                            <option value="">- Any -</option>
+                            {% comment %} <option value="">- Any -</option> {% endcomment %}
                             {% for source in sources %}
                                 <option value="{{ source.id }}">{{ source.siglum }}</option>
                             {% endfor %}
@@ -152,6 +152,7 @@
                             {% if next_folio %}
                                 &nbsp;<a href="{% url "chant-list" %}?source={{ source.id }}&folio={{ next_folio }}">> {{ next_folio }}</a>
                             {% endif %}                                
+                            <br>
 
                             <select name="feast" id="feastSelect">
                                 <option value="">Select a feast:</option>
