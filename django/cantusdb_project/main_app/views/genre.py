@@ -75,15 +75,13 @@ class GenreDetailView(SingleObjectMixin, ListView):
 
 class GenreListView(SearchableListMixin, ListView):
     model = Genre
-    queryset = Genre.objects.all().order_by("name")
-    # search_fields = ["name"]
     paginate_by = 100
     context_object_name = "genres"
     template_name = "genre_list.html"
 
     def get_queryset(self):
+        queryset = super().get_queryset()
         mass_office = self.request.GET.get("mass_office", None)
         if mass_office in ["Mass", "Office", "Old Hispanic"]:
-            queryset = super().get_queryset().filter(mass_office__contains=mass_office)
-            return queryset
-        return super().get_queryset()
+            queryset = queryset.filter(mass_office__contains=mass_office)
+        return queryset.order_by("name")
