@@ -103,6 +103,15 @@
                         </div>
                     {% endif %}
 
+                    {% if chant.chant_range %}
+                        <div class="col">
+                            <dt>Range</dt>
+                            <dd>
+                                <p style="font-family: volpiano; font-size:28px">{{ chant.chant_range }}</p>
+                            </dd>
+                        </div>
+                    {% endif %}
+
                     {% if chant.addendum %}
                         <div class="col">
                             <dt>Addendum</dt>
@@ -126,13 +135,6 @@
                 {% if chant.manuscript_full_text %}
                     <dt>Manuscript Reading Full Text (MS spelling)</dt>
                     <dd>{{ chant.manuscript_full_text }}</dd>
-                {% endif %}
-
-                {% if chant.chant_range %}
-                    <dt>Range</dt>
-                    <dd>
-                        <p style="font-family: volpiano; font-size:28px">{{ chant.chant_range }}</p>
-                    </dd>
                 {% endif %}
 
                 {% if chant.volpiano %}
@@ -171,7 +173,7 @@
                 {% if chant.image_link %}
                     <dt>Image link</dt>
                     <dd>
-                        <a href="{{ chant.image_link }}" target="_blank">{{ chant.image_link }}</a>
+                        <a href="{{ chant.image_link }}" target="_blank" style="word-break: break-all">{{ chant.image_link }}</a>
                     </dd>
                 {% endif %}
             </dl>
@@ -250,7 +252,7 @@
                                     <div id="previousDiv" style="display:none">
                                         {% for feast, chants in feasts_previous_folio %}
                                             Folio: <b>{{ previous_folio }}</b> - Feast: <b>{{ feast.name }}</b>
-                                            <table class="table table-responsive table-sm small table-bordered">     
+                                            <table class="table table-sm small table-bordered">     
                                                 {% for chant in chants %}
                                                     <tr>
                                                         <td>{{ chant.sequence_number }}</td>
@@ -268,7 +270,7 @@
 
                                 {% for feast, chants in feasts_current_folio %}
                                     Folio: <b>{{ chant.folio }}</b> - Feast: <b>{{ feast.name }}</b>
-                                    <table class="table table-responsive table-sm small table-bordered">     
+                                    <table class="table table-sm small table-bordered">     
                                         {% for chant in chants %}
                                             <tr>
                                                 <td>{{ chant.sequence_number }}</td>
@@ -286,7 +288,7 @@
                                     <div id="nextDiv" style="display:none">
                                         {% for feast, chants in feasts_next_folio %}
                                             Folio: <b>{{ next_folio }}</b> - Feast: <b>{{ feast.name }}</b>
-                                            <table class="table table-responsive table-sm small table-bordered">     
+                                            <table class="table table-sm small table-bordered">     
                                                 {% for chant in chants %}
                                                     <tr>
                                                         <td>{{ chant.sequence_number }}</td>
@@ -342,7 +344,7 @@
 
                                     {% if source.inventoried_by.all %}
                                         Inventoried by:
-                                        <ul class="list-unstyled" style="margin-bottom: 0rem;">
+                                        <ul>
                                             {% for editor in source.inventoried_by.all %}
                                                 <li>
                                                     <a href={{ editor.get_absolute_url }}><b>{{ editor.first_name }}
@@ -356,7 +358,7 @@
                                     {% if source.proofreaders.all %}
                                         Proofreader{{ source.proofreaders.all|pluralize }}:
                                         <br>
-                                        <ul class="list-unstyled" style="margin-bottom: 0rem;">
+                                        <ul>
                                             {% for editor in source.proofreaders.all %}
                                                 <li>
                                                     <a href={{ editor.get_absolute_url }}><b>{{editor.first_name}}
