@@ -142,10 +142,9 @@ class ChantDetailView(DetailView):
 
 
 class ChantListView(ListView):
-    """
+    """The view for the `Browse Chants` page.
+
     Displays a list of Chant objects, accessed with ``chants`` followed by a series of GET params`
-    
-    This is the view for the `Browse Chants` page
 
     ``GET`` parameters:
         ``source``: Filters by Source of Chant
@@ -161,50 +160,110 @@ class ChantListView(ListView):
     template_name = "chant_list.html"
 
     def get_queryset(self):
+        """Gather the chants to be displayed. 
+
+        When in the `browse chants` page, there must be a source specified. 
+        The chants in the specified source are filtered by a set of optional search parameters.
+
+        Returns:
+            queryset: The Chant objects to be displayed.
+        """
+        # when arriving at this page, the url must have a source specified
         source_id = self.request.GET.get("source")
+        source = Source.objects.get(id=source_id)
+
+        # optional search params
         feast_id = self.request.GET.get("feast")
         genre_id = self.request.GET.get("genre")
         folio = self.request.GET.get("folio")
         search_text = self.request.GET.get("search_text")
 
-        # only display public chants
-        queryset = Chant.objects.filter(source__visible=True, source__public=True)
-
-        if source_id:
-            queryset = queryset.filter(source__id=source_id)
+        # get all chants in the specified source
+        chants = source.chant_set
+        # filter the chants with optional search params
         if feast_id:
-            queryset = queryset.filter(feast__id=feast_id)
+            chants = chants.filter(feast__id=feast_id)
         if genre_id:
-            queryset = queryset.filter(genre__id=genre_id)
+            chants = chants.filter(genre__id=genre_id)
         if folio:
-            queryset = queryset.filter(folio=folio)
+            chants = chants.filter(folio=folio)
         if search_text:
             search_text = search_text.replace("+", " ").strip(" ")
-            queryset = queryset.filter(
+            chants = chants.filter(
                 Q(manuscript_full_text_std_spelling__icontains=search_text)
                 | Q(incipit__icontains=search_text)
                 | Q(manuscript_full_text__icontains=search_text)
             )
-        return queryset.order_by("id")
+        return chants.order_by("id")
 
     def get_context_data(self, **kwargs):
+        def get_feast_selector_options(source, folios):
+            """Generate folio-feast pairs as options for the feast selector
+
+            Going through all chants in the source, folio by folio,
+            a new entry (in the form of folio-feast) is added when the feast changes. 
+
+            Args:
+                source (Source object): The source that the user is browsing in.
+                folios (list of strs): A list of folios in the source.
+
+            Returns:
+                zip object: A zip object combining a list of folios and Feast objects, to be unpacked in template.
+            """
+            # the two lists to be zipped
+            feast_selector_feasts = []
+            feast_selector_folios = []
+            # get all chants in the source, select those that have a feast
+            chants_in_source = source.chant_set.exclude(feast=None).order_by(
+                "folio", "sequence_number"
+            )
+            # initialize the feast selector options with the first chant in the source that has a feast
+            first_feast_chant = chants_in_source.first()
+            if not first_feast_chant:
+                # if none of the chants in this source has a feast, return an empty zip
+                folio_feast_zip = []
+            else:
+                # if there is at least one chant that has a feast
+                current_feast = first_feast_chant.feast
+                feast_selector_feasts.append(current_feast)
+                current_folio = first_feast_chant.folio
+                feast_selector_folios.append(current_folio)
+
+                for folio in folios:
+                    # get all chants on each folio
+                    chants_on_folio = chants_in_source.filter(folio=folio)
+                    for chant in chants_on_folio:
+                        if chant.feast != current_feast:
+                            # if the feast changes, add the new feast and the corresponding folio to the lists
+                            feast_selector_feasts.append(chant.feast)
+                            feast_selector_folios.append(folio)
+                            # update the current_feast to track future changes
+                            current_feast = chant.feast
+                # zip the two lists
+                folio_feast_zip = zip(feast_selector_folios, feast_selector_feasts)
+            return folio_feast_zip
+
         context = super().get_context_data(**kwargs)
-        # these are needed in the left part selectors, unrelated to stuff on the right
-        context["sources"] = Source.objects.all().order_by("siglum")
+        # these are needed in the selectors on the left side of the page
+        context["sources"] = Source.objects.order_by("siglum")
         context["feasts"] = Feast.objects.all().order_by("name")
         context["genres"] = Genre.objects.all().order_by("name")
 
         source_id = self.request.GET.get("source")
         source = Source.objects.get(id=source_id)
         context["source"] = source
+
         chants_in_source = source.chant_set
         if chants_in_source.count() == 0:
+            # these are needed in the selectors and hyperlinks on the right side of the page
+            # if there's no chant in the source, there should be no options in those selectors
             context["folios"] = None
             context["feasts_with_folios"] = None
             context["previous_folio"] = None
             context["next_folio"] = None
             return context
 
+        # generate options for the folio selector on the right side of the page
         folios = (
             chants_in_source.values_list("folio", flat=True)
             .distinct()
@@ -213,41 +272,17 @@ class ChantListView(ListView):
         context["folios"] = folios
 
         if self.request.GET.get("folio"):
+            # if browsing chants on a specific folio
             folio = self.request.GET.get("folio")
             index = list(folios).index(folio)
+            # get the previous and next folio, if available
             context["previous_folio"] = folios[index - 1] if index != 0 else None
             context["next_folio"] = (
                 folios[index + 1] if index < len(folios) - 1 else None
             )
 
-        # for the feast selector on the right,
-        # feasts are aligned with the corresponding folios
-        folios_with_feasts = []
-        feasts_with_folios = []
-
-        folios_with_feasts.append(folios[0])
-        current_feast = (
-            chants_in_source.filter(folio=folios[0])
-            .exclude(feast=None)
-            .order_by("sequence_number")
-            .first()
-            .feast
-        )
-        feasts_with_folios.append(current_feast)
-
-        for folio in folios:
-            chants_on_folio = chants_in_source.filter(folio=folio).order_by(
-                "sequence_number"
-            )
-            for chant in chants_on_folio:
-                if chant.feast != current_feast:
-                    feasts_with_folios.append(chant.feast)
-                    folios_with_feasts.append(folio)
-                    current_feast = chant.feast
-
-        feast_zip = zip(folios_with_feasts, feasts_with_folios)
-        # the options for the feast selector on the right
-        context["feasts_with_folios"] = feast_zip
+        # the options for the feast selector on the right, same as the source detail page
+        context["feasts_with_folios"] = get_feast_selector_options(source, folios)
         return context
 
 
