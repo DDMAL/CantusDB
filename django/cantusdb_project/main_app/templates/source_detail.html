@@ -2,6 +2,7 @@
 {% block content %}
 <title>{{ source.title }} | Cantus Manuscript Database</title>
 <script src="/static/js/source_detail.js"></script>
+
 <div class="container">
     <div class="row">
         <div class="mr-3 p-3 col-lg-8 bg-white rounded">
@@ -209,20 +210,20 @@
                             {% endif %}
                             {% if source.inventoried_by.all %}
                                 Inventoried by:
-                                <ul class="list-unstyled" style="margin-bottom: 0rem;">
+                                <ul>
                                     {% for editor in source.inventoried_by.all %}
-                                    <li>
-                                        <a href={{ editor.get_absolute_url }}><b>{{ editor.first_name }}
-                                            {{ editor.family_name }}</b></a><br>
-                                        {{ editor.institution|default_if_none:"" }}
-                                    </li>
+                                        <li>
+                                            <a href={{ editor.get_absolute_url }}><b>{{ editor.first_name }}
+                                                {{ editor.family_name }}</b></a><br>
+                                            {{ editor.institution|default_if_none:"" }}
+                                        </li>
                                     {% endfor %}
                                 </ul>
                             {% endif %}
                             {% if source.proofreaders.all %}
                                 Proofreader{{ source.proofreaders.all|pluralize }}:
                                 <br>
-                                <ul class="list-unstyled" style="margin-bottom: 0rem;">
+                                <ul>
                                     {% for editor in source.proofreaders.all %}
                                         <li>
                                             <a href={{ editor.get_absolute_url }}><b>{{ editor.first_name }}
