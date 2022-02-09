@@ -8,18 +8,18 @@
         {% include "global_search_bar.html" %}
     </object>
     <h3>List of Indexers</h3>
-    <small>Displaying {{page_obj.start_index}}-{{page_obj.end_index}} of <b>{{page_obj.paginator.count}}</b></small>
+    <small>Displaying {{ page_obj.start_index }}-{{ page_obj.end_index }} of <b>{{ page_obj.paginator.count }}</b></small>
     <form method="get">
         <div class="input-group">
-            <input type="text" class="form-control" placeholder="" name="q" value="{{ request.GET.q}}"
-                id="indexer-search">
+            <input type="text" class="form-control" placeholder="Type any part of a word" name="q" value="{{ request.GET.q }}">
             <div class="input-group-append">
-                <button type="submit" class="btn btn-primary btn-sm"> Search Indexers </button>
+                <button type="submit" class="btn btn-dark btn-sm"> Search Indexers </button>
             </div>
         </div>
-        <label for="indexer-search" class="small"><small>Type any part of a word</small></label>
     </form>
-    <table class="table table-responsive table-sm small">
+    <br>
+    
+    <table class="table table-bordered table-sm small">
         <thead>
             <tr>
                 <th scope="col">Name</th>
@@ -31,15 +31,15 @@
         </thead>
         <tbody>
             {% for indexer in indexers %}
-            <tr>
-                <td class="text-center text-wrap">
-                    <a href="{{ indexer.get_absolute_url }}">{{indexer.first_name }} {{ indexer.family_name }}</a>
-                </td>
-                <td>{{ indexer.institution|default:""}}</td>
-                <td>{{ indexer.city|default:""}}</td>
-                <td>{{ indexer.country|default:""}}</td>
-                <td><a href="{{ indexer.get_absolute_url }}">{{ indexer.source_count }} source{{ indexer.source_count|pluralize }}</a></td>
-            </tr>
+                <tr>
+                    <td class="text-center text-wrap">
+                        <a href="{{ indexer.get_absolute_url }}">{{ indexer.first_name }} {{ indexer.family_name }}</a>
+                    </td>
+                    <td>{{ indexer.institution|default:"" }}</td>
+                    <td>{{ indexer.city|default:"" }}</td>
+                    <td>{{ indexer.country|default:"" }}</td>
+                    <td><a href="{{ indexer.get_absolute_url }}">{{ indexer.source_count }} source{{ indexer.source_count|pluralize }}</a></td>
+                </tr>
             {% endfor %}
         </tbody>
     </table>

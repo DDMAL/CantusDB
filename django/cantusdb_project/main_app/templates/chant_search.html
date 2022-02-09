@@ -31,7 +31,7 @@
     </object>
     <h3>Search Chants</h3>
     {% if source %}
-        Source: <a href="{{ source.get_absolute_url }}" target="_blank">{{ source.title }}</a><br>
+        <b>Searching in source: <a href="{{ source.get_absolute_url }}" target="_blank">{{ source.title }}</a></b>
     {% endif %}
 
     {% if chants.all %}
