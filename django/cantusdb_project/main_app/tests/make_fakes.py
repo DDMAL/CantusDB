@@ -34,7 +34,7 @@ INCIPIT_LENGTH = 100
 faker = Faker("la")
 
 
-def make_fake_text(max_size: int, min_size: int = 1) -> str:
+def make_fake_text(max_size: int, min_size: int = 5) -> str:
     """Generates fake text using with the Faker module.
 
     Size will be a random size between ``max_size`` and ``min_size``.
@@ -44,7 +44,8 @@ def make_fake_text(max_size: int, min_size: int = 1) -> str:
 
     Args:
         max_size (int): Maximum size of the text.
-        min_size (int, optional): Minimum size of the string. Defaults to 1.
+        min_size (int, optional): Minimum size of the string. 
+        Defaults to 5 because `faker.text` can only generate at least 5 characters.
 
     Returns:
         str: The fake text.
@@ -68,12 +69,14 @@ def make_fake_chant() -> Chant:
     chant = Chant.objects.create(
         source=make_fake_source(),
         marginalia=make_fake_text(SHORT_CHAR_FIELD_MAX),
-        folio=make_fake_text(SHORT_CHAR_FIELD_MAX),
+        # folio in the form of two digit and one letter
+        folio=faker.bothify("##?"),
         sequence_number=random.randint(1, MAX_SEQUENCE_NUMBER),
         office=make_fake_office(),
         genre=make_fake_genre(),
         position=make_fake_text(SHORT_CHAR_FIELD_MAX),
-        cantus_id=make_fake_text(SHORT_CHAR_FIELD_MAX),
+        # cantus_id in the form of six digits
+        cantus_id=faker.numerify("######"),
         feast=make_fake_feast(),
         mode=make_fake_text(SHORT_CHAR_FIELD_MAX),
         differentia=make_fake_text(SHORT_CHAR_FIELD_MAX),
@@ -86,7 +89,6 @@ def make_fake_chant() -> Chant:
         manuscript_full_text_std_proofread=faker.boolean(),
         manuscript_full_text=manuscript_full_text_std_spelling,
         manuscript_full_text_proofread=faker.boolean(),
-        manuscript_syllabized_full_text=faker.boolean(),
         volpiano=make_fake_text(
             max_size=MAX_NUMBER_TEXT_CHARS, min_size=MIN_NUMBER_TEXT_CHARS
         ),
@@ -95,7 +97,7 @@ def make_fake_chant() -> Chant:
         cao_concordances=make_fake_text(SHORT_CHAR_FIELD_MAX),
         proofread_by=None,
         melody_id=make_fake_text(SHORT_CHAR_FIELD_MAX),
-        sylabilized_full_text=make_fake_text(
+        manuscript_syllabized_full_text=make_fake_text(
             max_size=MAX_NUMBER_TEXT_CHARS, min_size=MIN_NUMBER_TEXT_CHARS
         ),
         indexing_notes=make_fake_text(
@@ -113,7 +115,8 @@ def make_fake_feast() -> Feast:
         description=make_fake_text(
             max_size=MAX_NUMBER_TEXT_CHARS, min_size=MIN_NUMBER_TEXT_CHARS
         ),
-        feast_code=random.randint(1, MAX_SEQUENCE_NUMBER),
+        # feast_code in the form of eight digits
+        feast_code=faker.numerify("########"),
         notes=make_fake_text(
             max_size=MAX_NUMBER_TEXT_CHARS, min_size=MIN_NUMBER_TEXT_CHARS
         ),
@@ -125,15 +128,12 @@ def make_fake_feast() -> Feast:
 
 def make_fake_genre() -> Genre:
     """Generates a fake Genre object."""
-    # The mass_office_choices list in Genre is a list of tuples and we only
-    # need the first element of each tuple
-    mass_office_choices = [x[0] for x in Genre.mass_office_choices]
     genre = Genre.objects.create(
-        name=make_fake_text(LONG_CHAR_FIELD_MAX),
+        name=faker.lexify("???"),
         description=make_fake_text(
             max_size=MAX_NUMBER_TEXT_CHARS, min_size=MIN_NUMBER_TEXT_CHARS
         ),
-        mass_office=random.choices(mass_office_choices, k=random.randint(1, 3)),
+        mass_office=make_fake_text(SHORT_CHAR_FIELD_MAX),
     )
     return genre
 
@@ -159,7 +159,7 @@ def make_fake_notation() -> Notation:
 def make_fake_office() -> Office:
     """Generates a fake Office object."""
     office = Office.objects.create(
-        name=make_fake_text(3),  # Offices have only 3 letters in their name
+        name=faker.lexify(text="??"),
         description=make_fake_text(
             max_size=MAX_NUMBER_TEXT_CHARS, min_size=MIN_NUMBER_TEXT_CHARS
         ),
@@ -175,8 +175,8 @@ def make_fake_provenance() -> Provenance:
 
 def make_fake_rism_siglum() -> RismSiglum:
     """Generates a fake RismSiglum object."""
-    rism_siglum = RismSiglum(
-        name=make_fake_text(LONG_CHAR_FIELD_MAX),
+    rism_siglum = RismSiglum.objects.create(
+        name=make_fake_text(SHORT_CHAR_FIELD_MAX),
         description=make_fake_text(
             max_size=MAX_NUMBER_TEXT_CHARS, min_size=MIN_NUMBER_TEXT_CHARS
         ),
@@ -196,7 +196,8 @@ def make_fake_sequence() -> Sequence:
         title=make_fake_text(LONG_CHAR_FIELD_MAX),
         siglum=make_fake_text(LONG_CHAR_FIELD_MAX),
         incipit=make_fake_text(LONG_CHAR_FIELD_MAX),
-        folio=make_fake_text(LONG_CHAR_FIELD_MAX),
+        # folio in the form of two digits and one letter
+        folio=faker.bothify("##?"),
         sequence=make_fake_text(LONG_CHAR_FIELD_MAX),
         genre=make_fake_genre(),
         rubric=make_fake_text(LONG_CHAR_FIELD_MAX),
@@ -207,7 +208,8 @@ def make_fake_sequence() -> Sequence:
         date=make_fake_text(LONG_CHAR_FIELD_MAX),
         ah_volume=make_fake_text(LONG_CHAR_FIELD_MAX),
         source=make_fake_source(),
-        cantus_id=make_fake_text(LONG_CHAR_FIELD_MAX),
+        # cantus_id in the form of six digits
+        cantus_id=faker.numerify("######"),
         image_link=faker.image_url(),
     )
     return sequence
@@ -230,13 +232,7 @@ def make_fake_source() -> Source:
         ),
         full_source=faker.boolean(),
         date=make_fake_text(SHORT_CHAR_FIELD_MAX),
-        century=make_fake_century(),
-        notation=make_fake_notation(),
         cursus=random.choice(cursus_choices),
-        inventoried_by=make_fake_indexer(),
-        full_text_entered_by=make_fake_indexer(),
-        proofreaders=make_fake_indexer(),
-        other_editors=make_fake_indexer(),
         segment=make_fake_segment(),
         source_status=random.choice(source_status_choices),
         complete_inventory=faker.boolean(),
@@ -252,7 +248,7 @@ def make_fake_source() -> Source:
         selected_bibliography=make_fake_text(
             max_size=MAX_NUMBER_TEXT_CHARS, min_size=MIN_NUMBER_TEXT_CHARS
         ),
-        image_link=faker.image_link(),
+        image_link=faker.image_url(),
         indexing_notes=make_fake_text(
             max_size=MAX_NUMBER_TEXT_CHARS, min_size=MIN_NUMBER_TEXT_CHARS
         ),
@@ -261,4 +257,11 @@ def make_fake_source() -> Source:
         ),
         json_info=None,
     )
+    source.century.set([make_fake_century()])
+    source.notation.set([make_fake_notation()])
+    source.inventoried_by.set([make_fake_indexer()])
+    source.full_text_entered_by.set([make_fake_indexer()])
+    source.melodies_entered_by.set([make_fake_indexer()])
+    source.proofreaders.set([make_fake_indexer()])
+    source.other_editors.set([make_fake_indexer()])
     return source
