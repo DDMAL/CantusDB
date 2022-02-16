@@ -200,7 +200,7 @@ def make_fake_sequence() -> Sequence:
         folio=faker.bothify("##?"),
         sequence=make_fake_text(LONG_CHAR_FIELD_MAX),
         genre=make_fake_genre(),
-        rubric=make_fake_text(LONG_CHAR_FIELD_MAX),
+        rubrics=make_fake_text(LONG_CHAR_FIELD_MAX),
         analecta_hymnica=make_fake_text(LONG_CHAR_FIELD_MAX),
         indexing_notes=make_fake_text(
             max_size=MAX_NUMBER_TEXT_CHARS, min_size=MIN_NUMBER_TEXT_CHARS
