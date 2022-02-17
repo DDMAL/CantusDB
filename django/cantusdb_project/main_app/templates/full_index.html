@@ -2,9 +2,21 @@
 <html>
 
 <head>
+    <!-- prevent search engines from indexing the staging website, remove for production -->
+    <meta name="robots" content="noindex">
     <!-- Bootstrap CSS -->
     <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.0/css/bootstrap.min.css"
         integrity="sha384-9aIt2nRpC12Uk9gS9baDl411NQApFmC26EwAOH8WgZl5MYYxFfc+NcPb1dKGj7Sk" crossorigin="anonymous">
+    <style>
+        a {
+            color: #922;
+        }
+
+        a:hover {
+            color: #CC3333;
+            text-decoration: none;
+        }
+    </style>
 </head>
 
 <body>
@@ -13,7 +25,7 @@
         <a href="{{ source.get_absolute_url }}" target="_href">{{ source.title }}</a>
     </h3>
     This source index contains {{ chants.count }} chants.
-    <table class="table table-responsive table-sm small table-bordered table-striped table-hover">
+    <table class="table table-sm small table-bordered table-striped table-hover">
         <thead>
             <tr>
                 <th width="80">Siglum</th>
@@ -34,16 +46,20 @@
         <tbody>
             {% for chant in chants %}
                 <tr>
-                    <td>{{ chant.siglum|default:"" }}</td>
+                    {% comment %} 
+                        `default`: use the given default if the value evaluates to False
+                        `default_if_none`: use the given default only if the value is None
+                    {% endcomment %}
+                    <td>{{ chant.siglum|default_if_none:"" }}</td>
                     <td>{{ chant.marginalia|default_if_none:"" }}</td>
-                    <td>{{ chant.folio|default:"" }}</td>
+                    <td>{{ chant.folio|default_if_none:"" }}</td>
                     <td>{{ chant.sequence_number|default_if_none:"" }}</td>
-                    <td>{{ chant.feast.name|default:"" }}</td>
-                    <td>{{ chant.office.name|default:"" }}</td>
-                    <td>{{ chant.genre.name|default:"" }}</td>
+                    <td>{{ chant.feast.name|default_if_none:"" }}</td>
+                    <td>{{ chant.office.name|default_if_none:"" }}</td>
+                    <td>{{ chant.genre.name|default_if_none:"" }}</td>
                     <td>{{ chant.position|default_if_none:"" }}</td>
-                    <td><a href="{{ chant.get_absolute_url }}" target="_blank">{{ chant.incipit|default:"" }}</a></td>
-                    <td>{{ chant.cantus_id|default:"" }}</td>
+                    <td><a href="{{ chant.get_absolute_url }}" target="_blank">{{ chant.incipit|default_if_none:"" }}</a></td>
+                    <td>{{ chant.cantus_id|default_if_none:"" }}</td>
                     <td>{{ chant.mode|default_if_none:"" }}</td>
                     <td>{{ chant.differentia|default_if_none:"" }}</td>
                 </tr>

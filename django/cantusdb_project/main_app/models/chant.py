@@ -1,24 +1,35 @@
 from django.contrib.postgres.fields import JSONField
 from django.contrib.postgres.search import SearchVectorField
 from django.db import models
-
 from django.db.models.query import QuerySet
 from main_app.models import BaseModel
 from users.models import User
 
 
 class Chant(BaseModel):
-    # The following fields include the "dummy fields" used to harmonize the chant and sequence model
-    # Those fields should never be populated or displayed
-    # Order of the fields must be the same between the seq and chant models
-    # That's why the "dummy fields" are not grouped together
+    """The model for chants
+
+    The fields defined here include both chant fields and some "dummy fields" used to harmonize 
+    the `Chant` model and `Sequence` model. There are situations where a queryset of chants and a queryset
+    of sequences need to be combined. The two models must have the same fields for that to work. 
+
+    The fields must be the defined in the same order between the `Sequence` and `Chant` model. 
+    That's why the "dummy fields" are not grouped together
+    """
+
+    # The "visible_status" field corresponds to the "status" field on old Cantus
     visible_status = models.CharField(max_length=1, blank=True, null=True)
+    # For chants, the old Cantus "title" field (in json export) is used to populate the new Cantus "incipit" field,
+    # For sequences, the old Cantus "title" field is used to populate the new Cantus "title" field,
+    # and the old Cantus "incipit" field is used to populate the new Cantus "incipit" field.
     title = models.CharField(blank=True, null=True, max_length=255)
     incipit = models.CharField(blank=True, null=True, max_length=255)
     siglum = models.CharField(blank=True, null=True, max_length=255)
     folio = models.CharField(
         help_text="Binding order", blank=True, null=True, max_length=255, db_index=True
     )
+    # The "sequence" char field is for sequence numbers like "01", used for sequences
+    # The "sequence_number" integer field below is for sequence numbers like "1", used for chants
     sequence = models.CharField(blank=True, null=True, max_length=255)
     genre = models.ForeignKey("Genre", blank=True, null=True, on_delete=models.PROTECT)
     rubrics = models.CharField(blank=True, null=True, max_length=255)
@@ -29,6 +40,7 @@ class Chant(BaseModel):
     col2 = models.CharField(blank=True, null=True, max_length=255)
     col3 = models.CharField(blank=True, null=True, max_length=255)
     ah_volume = models.CharField(blank=True, null=True, max_length=255)
+    # Note that some chants do not have a source
     source = models.ForeignKey(
         "Source", on_delete=models.PROTECT, null=True, blank=True
     )  # PROTECT so that we can't delete a source with chants in it
@@ -43,7 +55,6 @@ class Chant(BaseModel):
         "Office", on_delete=models.PROTECT, null=True, blank=True
     )
     position = models.CharField(max_length=63, null=True, blank=True)
-    # add db_index to speed up filtering
     feast = models.ForeignKey("Feast", on_delete=models.PROTECT, null=True, blank=True)
     mode = models.CharField(max_length=63, null=True, blank=True)
     differentia = models.CharField(blank=True, null=True, max_length=63)
@@ -80,19 +91,19 @@ class Chant(BaseModel):
     manuscript_syllabized_full_text = models.TextField(null=True, blank=True)
     volpiano = models.TextField(null=True, blank=True)
     volpiano_proofread = models.NullBooleanField(blank=True, null=True)
+    # The "volpiano_notes" and "volpiano_intervals" field are added in new Cantus to aid melody search.
+    # "volpiano_notes" is extracted from the "volpiano" field, by eliminating all non-note characters
+    # and removing consecutive repeated notes.
+    # "volpiano_intervals" is extracted from the "volpiano_notes" field.
+    # It records the intervals between any two adjacent volpiano notes.
     volpiano_notes = models.TextField(null=True, blank=True)
     volpiano_intervals = models.TextField(null=True, blank=True)
-    # ArrayField does not support ordered lookup, e.g., [1, 2] is considered contained by [2, 1, 3]
-    # volpiano_intervals = ArrayField(
-    #     base_field=models.IntegerField(), null=True, blank=True
-    # )
     cao_concordances = models.CharField(blank=True, null=True, max_length=63)
     proofread_by = models.ForeignKey(
         User, on_delete=models.PROTECT, null=True, blank=True
     )
     melody_id = models.CharField(blank=True, null=True, max_length=63)
     search_vector = SearchVectorField(null=True, editable=False)
-    # newly-added fields 2020-11-27
     content_structure = models.CharField(
         blank=True,
         null=True,
@@ -104,6 +115,11 @@ class Chant(BaseModel):
     # dact = models.CharField(blank=True, null=True, max_length=64)
     # also a second differentia field
     def get_ci_url(self) -> str:
+        """Construct the url to the entry in Cantus Index correponding to the chant.
+
+        Returns:
+            str: The url to the Cantus Index page
+        """
         return f"http://cantusindex.org/id/{self.cantus_id}"
 
     def index_components(self) -> dict:
@@ -127,10 +143,7 @@ class Chant(BaseModel):
         return {
             "A": (
                 " ".join(
-                    filter(
-                        None,
-                        [incipit, full_text, full_text_std_spelling, source],
-                    )
+                    filter(None, [incipit, full_text, full_text_std_spelling, source],)
                 )
             ),
             "B": (" ".join(filter(None, [genre, feast, office]))),
