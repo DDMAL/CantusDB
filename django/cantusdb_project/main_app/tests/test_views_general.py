@@ -316,3 +316,159 @@ class FeastDetailViewTest(TestCase):
         self.assertEqual(sources_zip[0][1], 3)
         self.assertEqual(sources_zip[1][1], 1)
 
+
+class GenreListViewTest(TestCase):
+    def test_url_and_templates(self):
+        """Test the url and templates used"""
+        response = self.client.get(reverse("genre-list"))
+        self.assertEqual(response.status_code, 200)
+        self.assertTemplateUsed(response, "base.html")
+        self.assertTemplateUsed(response, "genre_list.html")
+
+    def test_filter_by_mass(self):
+        mass_office_genre = Genre.objects.create(
+            name="genre1", description="test", mass_office="Mass, Office",
+        )
+        mass_genre = Genre.objects.create(
+            name="genre2", description="test", mass_office="Mass"
+        )
+        office_genre = Genre.objects.create(
+            name="genre3", description="test", mass_office="Office"
+        )
+        old_hispanic_genre = Genre.objects.create(
+            name="genre4", description="test", mass_office="Old Hispanic",
+        )
+        # filter by Mass
+        response = self.client.get(reverse("genre-list"), {"mass_office": "Mass"})
+        genres = response.context["genres"]
+        # Mass, Office and Mass should be in the list, while the others should not
+        self.assertIn(mass_genre, genres)
+        self.assertIn(mass_office_genre, genres)
+        self.assertNotIn(office_genre, genres)
+        self.assertNotIn(old_hispanic_genre, genres)
+
+    def test_filter_by_office(self):
+        mass_office_genre = Genre.objects.create(
+            name="genre1", description="test", mass_office="Mass, Office",
+        )
+        mass_genre = Genre.objects.create(
+            name="genre2", description="test", mass_office="Mass"
+        )
+        office_genre = Genre.objects.create(
+            name="genre3", description="test", mass_office="Office"
+        )
+        old_hispanic_genre = Genre.objects.create(
+            name="genre4", description="test", mass_office="Old Hispanic",
+        )
+        # filter by Office
+        response = self.client.get(reverse("genre-list"), {"mass_office": "Office"})
+        genres = response.context["genres"]
+        # Office, Office and Mass should be in the list, while the others should not
+        self.assertNotIn(mass_genre, genres)
+        self.assertIn(mass_office_genre, genres)
+        self.assertIn(office_genre, genres)
+        self.assertNotIn(old_hispanic_genre, genres)
+
+    def test_no_filtering(self):
+        mass_office_genre = Genre.objects.create(
+            name="genre1", description="test", mass_office="Mass, Office",
+        )
+        mass_genre = Genre.objects.create(
+            name="genre2", description="test", mass_office="Mass"
+        )
+        office_genre = Genre.objects.create(
+            name="genre3", description="test", mass_office="Office"
+        )
+        old_hispanic_genre = Genre.objects.create(
+            name="genre4", description="test", mass_office="Old Hispanic",
+        )
+        # default is no filtering
+        response = self.client.get(reverse("genre-list"))
+        genres = response.context["genres"]
+        # all genres should be in the list
+        self.assertIn(mass_genre, genres)
+        self.assertIn(mass_office_genre, genres)
+        self.assertIn(office_genre, genres)
+        self.assertIn(old_hispanic_genre, genres)
+
+    def test_invalid_filtering(self):
+        mass_office_genre = Genre.objects.create(
+            name="genre1", description="test", mass_office="Mass, Office",
+        )
+        mass_genre = Genre.objects.create(
+            name="genre2", description="test", mass_office="Mass"
+        )
+        office_genre = Genre.objects.create(
+            name="genre3", description="test", mass_office="Office"
+        )
+        old_hispanic_genre = Genre.objects.create(
+            name="genre4", description="test", mass_office="Old Hispanic",
+        )
+        # invalid filtering parameter should default to no filtering
+        response = self.client.get(
+            reverse("genre-list"), {"mass_office": "invalid param"}
+        )
+        genres = response.context["genres"]
+        # all genres should be in the list
+        self.assertIn(mass_genre, genres)
+        self.assertIn(mass_office_genre, genres)
+        self.assertIn(office_genre, genres)
+        self.assertIn(old_hispanic_genre, genres)
+
+
+class GenreDetailViewTest(TestCase):
+    def test_url_and_templates(self):
+        """Test the url and templates used"""
+        genre = make_fake_genre()
+        response = self.client.get(reverse("genre-detail", args=[genre.id]))
+        self.assertEqual(response.status_code, 200)
+        self.assertTemplateUsed(response, "base.html")
+        self.assertTemplateUsed(response, "genre_detail.html")
+
+    def test_context(self):
+        genre = make_fake_genre()
+        response = self.client.get(reverse("genre-detail", args=[genre.id]))
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(genre, response.context["genre"])
+
+    def test_chants_by_genre(self):
+        genre = make_fake_genre()
+        chant1 = Chant.objects.create(incipit="chant1", genre=genre, cantus_id="100000")
+        chant2 = Chant.objects.create(incipit="chant2", genre=genre, cantus_id="100000")
+        chant3 = Chant.objects.create(incipit="chant3", genre=genre, cantus_id="123456")
+        response = self.client.get(reverse("genre-detail", args=[genre.id]))
+        self.assertEqual(response.status_code, 200)
+        # the context should be a list of dicts, each corresponding to one cantus id
+        chant_info_list = response.context["object_list"]
+        # the chant info list should be ordered by the number of chants
+        # the first one should be the one that has two chants
+        self.assertEqual(chant_info_list[0]["cantus_id"], "100000")
+        self.assertEqual(chant_info_list[0]["num_chants"], 2)
+        self.assertEqual(chant_info_list[1]["cantus_id"], "123456")
+        self.assertEqual(chant_info_list[1]["num_chants"], 1)
+
+    def test_search_incipit(self):
+        genre = make_fake_genre()
+        chant1 = Chant.objects.create(incipit="chant1", genre=genre, cantus_id="100000")
+        chant2 = Chant.objects.create(incipit="chant2", genre=genre, cantus_id="123456")
+        response = self.client.get(reverse("genre-detail", args=[genre.id]))
+        self.assertEqual(response.status_code, 200)
+
+        # search for the common part of incipit
+        response = self.client.get(
+            reverse("genre-detail", args=[genre.id]), {"incipit": "chant"}
+        )
+        # both cantus_ids should be in the list
+        self.assertEqual(len(response.context["object_list"]), 2)
+        # search for the unique part of incipit
+        response = self.client.get(
+            reverse("genre-detail", args=[genre.id]), {"incipit": "chant1"}
+        )
+        # only one record should be in the list
+        self.assertEqual(len(response.context["object_list"]), 1)
+        # search for random incipit that don't exist
+        response = self.client.get(
+            reverse("genre-detail", args=[genre.id]), {"incipit": "random"}
+        )
+        # the list should be empty
+        self.assertEqual(len(response.context["object_list"]), 0)

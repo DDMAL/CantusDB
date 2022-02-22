@@ -16,10 +16,10 @@ class GenreDetailView(SingleObjectMixin, ListView):
 
         The list contains dicts and each dict has the following keys:
 
-        ``"cantus_id"``: The ``cantus_id``
-        ``"num_chants"``: The number of Chants that have this ``cantus_id``
-        ``"first_incipit"``: The incipit of first Chant with this ``cantus_id``
-        ``"first_incipit_url"``: The url of first Chant with this ``cantus_id``
+        ``cantus_id``: The ``cantus_id``
+        ``num_chants``: The number of Chants that have this ``cantus_id``
+        ``first_incipit``: The incipit of first Chant with this ``cantus_id``
+        ``first_incipit_url``: The url of first Chant with this ``cantus_id``
 
         Returns:
             List[Dict]: A list of dicts with data on each unique ``cantus_id``
