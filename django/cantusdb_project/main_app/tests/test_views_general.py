@@ -251,3 +251,68 @@ class FeastListViewTest(TestCase):
         self.assertEqual(response.status_code, 404)
         response = self.client.get(reverse("feast-list"), {"page": new_page_count + 1})
         self.assertEqual(response.status_code, 404)
+
+
+class FeastDetailViewTest(TestCase):
+    def test_url_and_templates(self):
+        """Test the url and templates used"""
+        feast = make_fake_feast()
+        response = self.client.get(reverse("feast-detail", args=[feast.id]))
+        self.assertEqual(response.status_code, 200)
+        self.assertTemplateUsed(response, "base.html")
+        self.assertTemplateUsed(response, "feast_detail.html")
+
+    def test_context(self):
+        feast = make_fake_feast()
+        response = self.client.get(reverse("feast-detail", args=[feast.id]))
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(feast, response.context["feast"])
+
+    def test_most_frequent_chants(self):
+        source = Source.objects.create(public=True, visible=True, title="public_source")
+        feast = make_fake_feast()
+        # 3 chants with cantus id: 300000
+        for i in range(3):
+            Chant.objects.create(feast=feast, cantus_id="300000", source=source)
+        # 2 chants with cantus id: 200000
+        for i in range(2):
+            Chant.objects.create(feast=feast, cantus_id="200000", source=source)
+        # 1 chant with cantus id: 100000
+        Chant.objects.create(feast=feast, cantus_id="100000", source=source)
+
+        response = self.client.get(reverse("feast-detail", args=[feast.id]))
+        frequent_chants_zip = response.context["frequent_chants_zip"]
+        # the items in zip should be ordered by chant count
+        # the first field is cantus id
+        self.assertEqual(frequent_chants_zip[0][0], "300000")
+        self.assertEqual(frequent_chants_zip[1][0], "200000")
+        self.assertEqual(frequent_chants_zip[2][0], "100000")
+        # the last field is cantus count
+        self.assertEqual(frequent_chants_zip[0][-1], 3)
+        self.assertEqual(frequent_chants_zip[1][-1], 2)
+        self.assertEqual(frequent_chants_zip[2][-1], 1)
+
+    def test_sources_containing_this_feast(self):
+        big_source = Source.objects.create(
+            public=True, visible=True, title="big_source", siglum="big"
+        )
+        small_source = Source.objects.create(
+            public=True, visible=True, title="small_source", siglum="small"
+        )
+        feast = make_fake_feast()
+        # 3 chants in the big source
+        for i in range(3):
+            Chant.objects.create(feast=feast, source=big_source)
+        # 1 chant in the small source
+        Chant.objects.create(feast=feast, source=small_source)
+
+        response = self.client.get(reverse("feast-detail", args=[feast.id]))
+        sources_zip = response.context["sources_zip"]
+        # the items in zip should be ordered by chant count
+        # the first field is siglum
+        self.assertEqual(sources_zip[0][0].siglum, "big")
+        self.assertEqual(sources_zip[1][0].siglum, "small")
+        # the second field is chant_count
+        self.assertEqual(sources_zip[0][1], 3)
+        self.assertEqual(sources_zip[1][1], 1)
+

@@ -34,7 +34,6 @@ class FeastDetailView(DetailView):
         chants_in_feast = self.get_object().chant_set.filter(
             source__public=True, source__visible=True
         )
-        print(chants_in_feast.count())
         cantus_ids = list(
             chants_in_feast.values_list("cantus_id", flat=True).distinct()
         )
