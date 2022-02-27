@@ -1,6 +1,5 @@
 from django.urls import reverse
 from django.test import TestCase
-
 from main_app.views.feast import FeastListView
 from .make_fakes import *
 
@@ -472,3 +471,280 @@ class GenreDetailViewTest(TestCase):
         )
         # the list should be empty
         self.assertEqual(len(response.context["object_list"]), 0)
+
+
+class OfficeListViewTest(TestCase):
+    def test_url_and_templates(self):
+        response = self.client.get(reverse("office-list"))
+        self.assertEqual(response.status_code, 200)
+        self.assertTemplateUsed(response, "base.html")
+        self.assertTemplateUsed(response, "office_list.html")
+
+    def test_context(self):
+        # make a certain number of offices
+        office_cnt = random.randint(1, 10)
+        for i in range(office_cnt):
+            make_fake_office()
+        office = Office.objects.first()
+        response = self.client.get(reverse("office-list"))
+        offices = response.context["offices"]
+        # the list view should contain all offices
+        self.assertEqual(offices.count(), office_cnt)
+
+
+class OfficeDetailViewTest(TestCase):
+    def test_url_and_templates(self):
+        office = make_fake_office()
+        response = self.client.get(reverse("office-detail", args=[office.id]))
+        self.assertEqual(response.status_code, 200)
+        self.assertTemplateUsed(response, "base.html")
+        self.assertTemplateUsed(response, "office_detail.html")
+
+    def test_context(self):
+        office = make_fake_office()
+        response = self.client.get(reverse("office-detail", args=[office.id]))
+        self.assertEqual(office, response.context["office"])
+
+
+class SourceListViewTest(TestCase):
+    def test_url_and_templates(self):
+        response = self.client.get(reverse("source-list"))
+        self.assertEqual(response.status_code, 200)
+        self.assertTemplateUsed(response, "base.html")
+        self.assertTemplateUsed(response, "source_list.html")
+
+    def test_provenances_and_centuries_in_context(self):
+        """Test the `provenances` and `centuries` in the context. They are displayed as options in the selectors"""
+        provenance = make_fake_provenance()
+        century = make_fake_century()
+        response = self.client.get(reverse("source-list"))
+        provenances = response.context["provenances"]
+        self.assertIn({"id": provenance.id, "name": provenance.name}, provenances)
+        centuries = response.context["centuries"]
+        self.assertIn({"id": century.id, "name": century.name}, centuries)
+
+    def test_only_public_sources_visible(self):
+        """For a source to be displayed in the list, its `public` and `visible` fields must both be `True`"""
+        public_source = Source.objects.create(
+            public=True, visible=True, title="public source"
+        )
+        private_source1 = Source.objects.create(
+            public=False, visible=True, title="private source"
+        )
+        private_source2 = Source.objects.create(
+            public=False, visible=False, title="private source"
+        )
+        private_source3 = Source.objects.create(
+            public=True, visible=False, title="private source"
+        )
+        response = self.client.get(reverse("source-list"))
+        sources = response.context["sources"]
+        self.assertIn(public_source, sources)
+        self.assertNotIn(private_source1, sources)
+        self.assertNotIn(private_source2, sources)
+        self.assertNotIn(private_source3, sources)
+
+    def test_filter_by_segment(self):
+        """The source list can be filtered by `segment`, `provenance`, `century`, and `full_source`"""
+        cantus_segment = Segment.objects.create(name="cantus")
+        clavis_segment = Segment.objects.create(name="clavis")
+        chant_source = Source.objects.create(
+            segment=cantus_segment, title="chant source", public=True, visible=True
+        )
+        seq_source = Source.objects.create(
+            segment=clavis_segment, title="sequence source", public=True, visible=True
+        )
+
+        # display chant sources only
+        response = self.client.get(
+            reverse("source-list"), {"segment": cantus_segment.id}
+        )
+        sources = response.context["sources"]
+        self.assertIn(chant_source, sources)
+        self.assertNotIn(seq_source, sources)
+
+        # display sequence sources only
+        response = self.client.get(
+            reverse("source-list"), {"segment": clavis_segment.id}
+        )
+        sources = response.context["sources"]
+        self.assertIn(seq_source, sources)
+        self.assertNotIn(chant_source, sources)
+
+    def test_filter_by_provenance(self):
+        aachen = make_fake_provenance()
+        albi = make_fake_provenance()
+        aachen_source = Source.objects.create(
+            provenance=aachen,
+            public=True,
+            visible=True,
+            title="source originated in Aachen",
+        )
+        albi_source = Source.objects.create(
+            provenance=albi,
+            public=True,
+            visible=True,
+            title="source originated in Albi",
+        )
+        no_provenance_source = Source.objects.create(
+            public=True, visible=True, title="source with empty provenance"
+        )
+
+        # display sources in Aachen
+        response = self.client.get(reverse("source-list"), {"provenance": aachen.id})
+        sources = response.context["sources"]
+        # only aachen_source should be in the list
+        self.assertIn(aachen_source, sources)
+        self.assertNotIn(albi_source, sources)
+        self.assertNotIn(no_provenance_source, sources)
+
+    def test_filter_by_century(self):
+        ninth_century = Century.objects.create(name="09th century")
+        ninth_century_first_half = Century.objects.create(
+            name="09th century (1st half)"
+        )
+        tenth_century = Century.objects.create(name="10th century")
+
+        ninth_century_source = Source.objects.create(
+            public=True, visible=True, title="source",
+        )
+        ninth_century_source.century.set([ninth_century])
+
+        ninth_century_first_half_source = Source.objects.create(
+            public=True, visible=True, title="source",
+        )
+        ninth_century_first_half_source.century.set([ninth_century_first_half])
+
+        multiple_century_source = Source.objects.create(
+            public=True, visible=True, title="source",
+        )
+        multiple_century_source.century.set([ninth_century, tenth_century])
+
+        # display sources in ninth century
+        response = self.client.get(
+            reverse("source-list"), {"century": ninth_century.id}
+        )
+        sources = response.context["sources"]
+        # ninth_century_source, ninth_century_first_half_source, and
+        # multiple_century_source should all be in the list
+        self.assertIn(ninth_century_source, sources)
+        self.assertIn(ninth_century_first_half_source, sources)
+        self.assertIn(multiple_century_source, sources)
+
+        # display sources in ninth century first half
+        response = self.client.get(
+            reverse("source-list"), {"century": ninth_century_first_half.id}
+        )
+        sources = response.context["sources"]
+        # only ninth_century_first_half_source should be in the list
+        self.assertNotIn(ninth_century_source, sources)
+        self.assertIn(ninth_century_first_half_source, sources)
+        self.assertNotIn(multiple_century_source, sources)
+
+    def test_filter_by_full_source(self):
+        full_source = Source.objects.create(
+            full_source=True, public=True, visible=True, title="full source"
+        )
+        fragment = Source.objects.create(
+            full_source=False, public=True, visible=True, title="fragment"
+        )
+        unknown = Source.objects.create(
+            public=True, visible=True, title="full_source field is empty"
+        )
+
+        # display full sources
+        response = self.client.get(reverse("source-list"), {"fullsource": "true"})
+        sources = response.context["sources"]
+        # full_source and unknown_source should be in the list, fragment should not
+        self.assertIn(full_source, sources)
+        self.assertNotIn(fragment, sources)
+        self.assertIn(unknown, sources)
+
+        # display fragments
+        response = self.client.get(reverse("source-list"), {"fullsource": "false"})
+        sources = response.context["sources"]
+        # fragment should be in the list, full_source and unknown_source should not
+        self.assertNotIn(full_source, sources)
+        self.assertIn(fragment, sources)
+        self.assertNotIn(unknown, sources)
+
+        # display all sources
+        response = self.client.get(reverse("source-list"))
+        sources = response.context["sources"]
+        # all three should be in the list
+        self.assertIn(full_source, sources)
+        self.assertIn(fragment, sources)
+        self.assertIn(unknown, sources)
+
+    def test_search_by_title(self):
+        """The "general search" field searches in `title`, `siglum`, `rism_siglum`, `description`, and `summary`"""
+        source = Source.objects.create(
+            title=make_fake_text(max_size=20), public=True, visible=True
+        )
+        search_term = get_random_search_term(source.title)
+        response = self.client.get(reverse("source-list"), {"general": search_term})
+        self.assertIn(source, response.context["sources"])
+
+    def test_search_by_siglum(self):
+        source = Source.objects.create(
+            siglum=make_fake_text(max_size=20), public=True, visible=True, title="title"
+        )
+        search_term = get_random_search_term(source.siglum)
+        response = self.client.get(reverse("source-list"), {"general": search_term})
+        self.assertIn(source, response.context["sources"])
+
+    def test_search_by_rism_siglum_name(self):
+        rism_siglum = make_fake_rism_siglum()
+        source = Source.objects.create(
+            rism_siglum=rism_siglum, public=True, visible=True, title="title",
+        )
+        search_term = get_random_search_term(source.rism_siglum.name)
+        response = self.client.get(reverse("source-list"), {"general": search_term})
+        self.assertIn(source, response.context["sources"])
+
+    def test_search_by_rism_siglum_description(self):
+        rism_siglum = make_fake_rism_siglum()
+        source = Source.objects.create(
+            rism_siglum=rism_siglum, public=True, visible=True, title="title",
+        )
+        search_term = get_random_search_term(source.rism_siglum.description)
+        response = self.client.get(reverse("source-list"), {"general": search_term})
+        self.assertIn(source, response.context["sources"])
+
+    def test_search_by_description(self):
+        source = Source.objects.create(
+            description=make_fake_text(max_size=200),
+            public=True,
+            visible=True,
+            title="title",
+        )
+        search_term = get_random_search_term(source.description)
+        response = self.client.get(reverse("source-list"), {"general": search_term})
+        self.assertIn(source, response.context["sources"])
+
+    def test_search_by_summary(self):
+        source = Source.objects.create(
+            summary=make_fake_text(max_size=200),
+            public=True,
+            visible=True,
+            title="title",
+        )
+        search_term = get_random_search_term(source.summary)
+        response = self.client.get(reverse("source-list"), {"general": search_term})
+        self.assertIn(source, response.context["sources"])
+
+    def test_search_by_indexing_notes(self):
+        """The "indexing notes" field searches in `indexing_notes` and indexer/editor related fields"""
+        source = Source.objects.create(
+            indexing_notes=make_fake_text(max_size=200),
+            public=True,
+            visible=True,
+            title="title",
+        )
+        search_term = get_random_search_term(source.indexing_notes)
+        response = self.client.get(reverse("source-list"), {"indexing": search_term})
+        self.assertIn(source, response.context["sources"])
+
+
+class SourceDetailViewTest(TestCase):
+    pass
