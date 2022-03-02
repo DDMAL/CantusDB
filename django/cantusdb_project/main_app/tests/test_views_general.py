@@ -747,4 +747,77 @@ class SourceListViewTest(TestCase):
 
 
 class SourceDetailViewTest(TestCase):
-    pass
+    def test_url_and_templates(self):
+        source = make_fake_source()
+        response = self.client.get(reverse("source-detail", args=[source.id]))
+        self.assertEqual(response.status_code, 200)
+        self.assertTemplateUsed(response, "base.html")
+        self.assertTemplateUsed(response, "source_detail.html")
+
+    def test_context_chant_folios(self):
+        # create a source and several chants in it
+        source = make_fake_source()
+        Chant.objects.create(source=source, folio="001r")
+        Chant.objects.create(source=source, folio="001r")
+        Chant.objects.create(source=source, folio="001v")
+        Chant.objects.create(source=source, folio="001v")
+        Chant.objects.create(source=source, folio="002r")
+        Chant.objects.create(source=source, folio="002v")
+        # request the page
+        response = self.client.get(reverse("source-detail", args=[source.id]))
+        # the element in "folios" should be unique and ordered in this way
+        folios = response.context["folios"]
+        self.assertEqual(list(folios), ["001r", "001v", "002r", "002v"])
+
+    def test_context_sequence_folios(self):
+        # create a sequence source and several sequences in it
+        source = Source.objects.create(
+            segment=Segment.objects.create(id=4064, name="Bower Sequence Database"),
+            title="a sequence source",
+        )
+        Sequence.objects.create(source=source, folio="001r")
+        Sequence.objects.create(source=source, folio="001r")
+        Sequence.objects.create(source=source, folio="001v")
+        Sequence.objects.create(source=source, folio="001v")
+        Sequence.objects.create(source=source, folio="002r")
+        Sequence.objects.create(source=source, folio="002v")
+        # request the page
+        response = self.client.get(reverse("source-detail", args=[source.id]))
+        # the element in "folios" should be unique and ordered in this way
+        folios = response.context["folios"]
+        self.assertEqual(list(folios), ["001r", "001v", "002r", "002v"])
+        # the folios should be ordered by the "folio" field
+        self.assertEqual(folios.query.order_by, ("folio",))
+
+    def test_context_feasts_with_folios(self):
+        # create a source and several chants (associated with feasts) in it
+        source = make_fake_source()
+        feast_1 = make_fake_feast()
+        feast_2 = make_fake_feast()
+        Chant.objects.create(source=source, folio="001r", feast=feast_1)
+        Chant.objects.create(source=source, folio="001r", feast=feast_1)
+        Chant.objects.create(source=source, folio="001v", feast=feast_2)
+        Chant.objects.create(source=source, folio="001v")
+        Chant.objects.create(source=source, folio="001v", feast=feast_2)
+        Chant.objects.create(source=source, folio="002r", feast=feast_1)
+        # request the page
+        response = self.client.get(reverse("source-detail", args=[source.id]))
+        # context "feasts_with_folios" is a list of tuples
+        # it records the folios where the feast changes
+        expected_result = [("001r", feast_1), ("001v", feast_2), ("002r", feast_1)]
+        self.assertEqual(response.context["feasts_with_folios"], expected_result)
+
+    def test_context_sequences(self):
+        # create a sequence source and several sequences in it
+        source = Source.objects.create(
+            segment=Segment.objects.create(id=4064, name="Bower Sequence Database"),
+            title="a sequence source",
+        )
+        sequence = Sequence.objects.create(source=source)
+        # request the page
+        response = self.client.get(reverse("source-detail", args=[source.id]))
+        # the sequence should be in the list of sequences
+        self.assertIn(sequence, response.context["sequences"])
+        # the list of sequences should be ordered by the "sequence" field
+        self.assertEqual(response.context["sequences"].query.order_by, ("sequence",))
+

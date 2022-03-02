@@ -20,20 +20,22 @@ class SourceDetailView(DetailView):
                 folios (list of strs): A list of folios in the source.
 
             Returns:
-                zip object: A zip object combining a list of folios and Feast objects, to be unpacked in template.
+                list of tuples: A list of folios and Feast objects, to be unpacked in template.
             """
             # the two lists to be zipped
             feast_selector_feasts = []
             feast_selector_folios = []
             # get all chants in the source, select those that have a feast
-            chants_in_source = source.chant_set.exclude(feast=None).order_by(
-                "folio", "sequence_number"
+            chants_in_source = (
+                source.chant_set.exclude(feast=None)
+                .order_by("folio", "sequence_number")
+                .select_related("feast")
             )
             # initialize the feast selector options with the first chant in the source that has a feast
             first_feast_chant = chants_in_source.first()
             if not first_feast_chant:
-                # if none of the chants in this source has a feast, return an empty zip
-                folio_feast_zip = []
+                # if none of the chants in this source has a feast, return an empty list
+                folios_with_feasts = []
             else:
                 # if there is at least one chant that has a feast
                 current_feast = first_feast_chant.feast
@@ -51,9 +53,14 @@ class SourceDetailView(DetailView):
                             feast_selector_folios.append(folio)
                             # update the current_feast to track future changes
                             current_feast = chant.feast
-                # zip the two lists
-                folio_feast_zip = zip(feast_selector_folios, feast_selector_feasts)
-            return folio_feast_zip
+                # as the two lists will always be of the same length, no need for zip,
+                # just naively combine them
+                # if we use zip, the returned generator will be exhausted in rendering templates, making it hard to test the returned value
+                folios_with_feasts = [
+                    (feast_selector_folios[i], feast_selector_feasts[i])
+                    for i in range(len(feast_selector_folios))
+                ]
+            return folios_with_feasts
 
         source = self.get_object()
         context = super().get_context_data(**kwargs)
