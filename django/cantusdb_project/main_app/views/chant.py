@@ -144,7 +144,7 @@ class ChantDetailView(DetailView):
 class ChantListView(ListView):
     """The view for the `Browse Chants` page.
 
-    Displays a list of Chant objects, accessed with ``chants`` followed by a series of GET params`
+    Displays a list of Chant objects, accessed with ``chants`` followed by a series of GET params
 
     ``GET`` parameters:
         ``source``: Filters by Source of Chant
@@ -214,14 +214,16 @@ class ChantListView(ListView):
             feast_selector_feasts = []
             feast_selector_folios = []
             # get all chants in the source, select those that have a feast
-            chants_in_source = source.chant_set.exclude(feast=None).order_by(
-                "folio", "sequence_number"
+            chants_in_source = (
+                source.chant_set.exclude(feast=None)
+                .order_by("folio", "sequence_number")
+                .select_related("feast")
             )
             # initialize the feast selector options with the first chant in the source that has a feast
             first_feast_chant = chants_in_source.first()
             if not first_feast_chant:
                 # if none of the chants in this source has a feast, return an empty zip
-                folio_feast_zip = []
+                folios_with_feasts = []
             else:
                 # if there is at least one chant that has a feast
                 current_feast = first_feast_chant.feast
@@ -239,9 +241,14 @@ class ChantListView(ListView):
                             feast_selector_folios.append(folio)
                             # update the current_feast to track future changes
                             current_feast = chant.feast
-                # zip the two lists
-                folio_feast_zip = zip(feast_selector_folios, feast_selector_feasts)
-            return folio_feast_zip
+                # as the two lists will always be of the same length, no need for zip,
+                # just naively combine them
+                # if we use zip, the returned generator will be exhausted in rendering templates, making it hard to test the returned value
+                folios_with_feasts = [
+                    (feast_selector_folios[i], feast_selector_feasts[i])
+                    for i in range(len(feast_selector_folios))
+                ]
+            return folios_with_feasts
 
         context = super().get_context_data(**kwargs)
         # these are needed in the selectors on the left side of the page
@@ -298,10 +305,8 @@ class ChantByCantusIDView(ListView):
         return super().dispatch(request, *args, **kwargs)
 
     def get_queryset(self):
-        chant_set = Chant.objects.filter(cantus_id=self.cantus_id, visible_status=1)
-        sequence_set = Sequence.objects.filter(
-            cantus_id=self.cantus_id, visible_status=1
-        )
+        chant_set = Chant.objects.filter(cantus_id=self.cantus_id)
+        sequence_set = Sequence.objects.filter(cantus_id=self.cantus_id)
         # the union operation turns sequences into chants, the resulting queryset contains only "chant" objects
         # this forces us to do something special on the template to render correct absolute url for sequences
         queryset = chant_set.union(sequence_set)

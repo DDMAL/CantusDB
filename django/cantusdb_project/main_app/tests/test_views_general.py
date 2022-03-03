@@ -895,3 +895,215 @@ class SequenceDetailViewTest(TestCase):
         response = self.client.get(reverse("sequence-detail", args=[sequence.id]))
         concordances = response.context["concordances"]
         self.assertIn(sequence_with_same_cantus_id, concordances)
+
+
+class ChantListViewTest(TestCase):
+    def test_url_and_templates(self):
+        source = make_fake_source()
+        response = self.client.get(reverse("chant-list"), {"source": source.id})
+        self.assertEqual(response.status_code, 200)
+        self.assertTemplateUsed(response, "base.html")
+        self.assertTemplateUsed(response, "chant_list.html")
+
+    def test_filter_by_source(self):
+        source = make_fake_source()
+        another_source = make_fake_source()
+        chant_in_source = Chant.objects.create(source=source)
+        chant_in_another_source = Chant.objects.create(source=another_source)
+        response = self.client.get(reverse("chant-list"), {"source": source.id})
+        chants = response.context["chants"]
+        self.assertIn(chant_in_source, chants)
+        self.assertNotIn(chant_in_another_source, chants)
+
+    def test_filter_by_feast(self):
+        source = make_fake_source()
+        feast = make_fake_feast()
+        another_feast = make_fake_feast()
+        chant_in_feast = Chant.objects.create(source=source, feast=feast)
+        chant_in_another_feast = Chant.objects.create(
+            source=source, feast=another_feast
+        )
+        response = self.client.get(
+            reverse("chant-list"), {"source": source.id, "feast": feast.id}
+        )
+        chants = response.context["chants"]
+        self.assertIn(chant_in_feast, chants)
+        self.assertNotIn(chant_in_another_feast, chants)
+
+    def test_filter_by_genre(self):
+        source = make_fake_source()
+        genre = make_fake_genre()
+        another_genre = make_fake_genre()
+        chant_in_genre = Chant.objects.create(source=source, genre=genre)
+        chant_in_another_genre = Chant.objects.create(
+            source=source, genre=another_genre
+        )
+        response = self.client.get(
+            reverse("chant-list"), {"source": source.id, "genre": genre.id}
+        )
+        chants = response.context["chants"]
+        self.assertIn(chant_in_genre, chants)
+        self.assertNotIn(chant_in_another_genre, chants)
+
+    def test_filter_by_folio(self):
+        source = make_fake_source()
+        chant_on_folio = Chant.objects.create(source=source, folio="001r")
+        chant_on_another_folio = Chant.objects.create(source=source, folio="002r")
+        response = self.client.get(
+            reverse("chant-list"), {"source": source.id, "folio": "001r"}
+        )
+        chants = response.context["chants"]
+        self.assertIn(chant_on_folio, chants)
+        self.assertNotIn(chant_on_another_folio, chants)
+
+    def test_search_full_text(self):
+        source = make_fake_source()
+        chant = Chant.objects.create(
+            source=source, manuscript_full_text=make_fake_text(max_size=100)
+        )
+        search_term = get_random_search_term(chant.manuscript_full_text)
+        response = self.client.get(
+            reverse("chant-list"), {"source": source.id, "search_text": search_term}
+        )
+        self.assertIn(chant, response.context["chants"])
+
+    def test_search_incipit(self):
+        source = make_fake_source()
+        chant = Chant.objects.create(source=source, incipit=make_fake_text(max_size=30))
+        search_term = get_random_search_term(chant.incipit)
+        response = self.client.get(
+            reverse("chant-list"), {"source": source.id, "search_text": search_term}
+        )
+        self.assertIn(chant, response.context["chants"])
+
+    def test_search_full_text_std_spelling(self):
+        source = make_fake_source()
+        chant = Chant.objects.create(
+            source=source,
+            manuscript_full_text_std_spelling=make_fake_text(max_size=100),
+        )
+        search_term = get_random_search_term(chant.manuscript_full_text_std_spelling)
+        response = self.client.get(
+            reverse("chant-list"), {"source": source.id, "search_text": search_term}
+        )
+        self.assertIn(chant, response.context["chants"])
+
+    def test_context_source(self):
+        source = make_fake_source()
+        response = self.client.get(reverse("chant-list"), {"source": source.id})
+        self.assertEqual(source, response.context["source"])
+
+    def test_context_folios(self):
+        # create a source and several chants in it
+        source = make_fake_source()
+        Chant.objects.create(source=source, folio="001r")
+        Chant.objects.create(source=source, folio="001r")
+        Chant.objects.create(source=source, folio="001v")
+        Chant.objects.create(source=source, folio="001v")
+        Chant.objects.create(source=source, folio="002r")
+        Chant.objects.create(source=source, folio="002v")
+        # request the page
+        response = self.client.get(reverse("chant-list"), {"source": source.id})
+        # the element in "folios" should be unique and ordered in this way
+        folios = response.context["folios"]
+        self.assertEqual(list(folios), ["001r", "001v", "002r", "002v"])
+
+    def test_context_feasts_with_folios(self):
+        # create a source and several chants (associated with feasts) in it
+        source = make_fake_source()
+        feast_1 = make_fake_feast()
+        feast_2 = make_fake_feast()
+        Chant.objects.create(source=source, folio="001r", feast=feast_1)
+        Chant.objects.create(source=source, folio="001r", feast=feast_1)
+        Chant.objects.create(source=source, folio="001v", feast=feast_2)
+        Chant.objects.create(source=source, folio="001v")
+        Chant.objects.create(source=source, folio="001v", feast=feast_2)
+        Chant.objects.create(source=source, folio="002r", feast=feast_1)
+        # request the page
+        response = self.client.get(reverse("chant-list"), {"source": source.id})
+        # context "feasts_with_folios" is a list of tuples
+        # it records the folios where the feast changes
+        expected_result = [("001r", feast_1), ("001v", feast_2), ("002r", feast_1)]
+        self.assertEqual(response.context["feasts_with_folios"], expected_result)
+
+
+class ChantDetailViewTest(TestCase):
+    def test_url_and_templates(self):
+        chant = make_fake_chant()
+        response = self.client.get(reverse("chant-detail", args=[chant.id]))
+        self.assertEqual(response.status_code, 200)
+        self.assertTemplateUsed(response, "base.html")
+        self.assertTemplateUsed(response, "chant_detail.html")
+
+    def test_context_folios(self):
+        # create a source and several chants in it
+        source = make_fake_source()
+        chant = Chant.objects.create(source=source, folio="001r")
+        Chant.objects.create(source=source, folio="001r")
+        Chant.objects.create(source=source, folio="001v")
+        Chant.objects.create(source=source, folio="001v")
+        Chant.objects.create(source=source, folio="002r")
+        Chant.objects.create(source=source, folio="002v")
+        # request the page
+        response = self.client.get(reverse("chant-detail", args=[chant.id]))
+        # the element in "folios" should be unique and ordered in this way
+        folios = response.context["folios"]
+        self.assertEqual(list(folios), ["001r", "001v", "002r", "002v"])
+
+    def test_context_previous_and_next_folio(self):
+        # create a source and several chants in it
+        source = make_fake_source()
+        # three folios: 001r, 001v, 002r
+        chant_without_previous_folio = Chant.objects.create(source=source, folio="001r")
+        chant_with_previous_and_next_folio = Chant.objects.create(
+            source=source, folio="001v"
+        )
+        chant_without_next_folio = Chant.objects.create(source=source, folio="002v")
+        # request the page and check the context variables
+        # for the chant on 001r, there is no previous folio, and the next folio should be 001v
+        response = self.client.get(
+            reverse("chant-detail", args=[chant_without_previous_folio.id])
+        )
+        self.assertIsNone(response.context["previous_folio"])
+        self.assertEqual(response.context["next_folio"], "001v")
+
+        # for the chant on 001v, previous folio should be 001r, and next folio should be 002v
+        response = self.client.get(
+            reverse("chant-detail", args=[chant_with_previous_and_next_folio.id])
+        )
+        self.assertEqual(response.context["previous_folio"], "001r")
+        self.assertEqual(response.context["next_folio"], "002v")
+
+        # for the chant on 002v, there is no next folio, and the previous folio should be 001v
+        response = self.client.get(
+            reverse("chant-detail", args=[chant_without_next_folio.id])
+        )
+        self.assertEqual(response.context["previous_folio"], "001v")
+        self.assertIsNone(response.context["next_folio"])
+
+
+class ChantByCantusIDViewTest(TestCase):
+    def test_url_and_templates(self):
+        chant = make_fake_chant()
+        response = self.client.get(
+            reverse("chant-by-cantus-id", args=[chant.cantus_id])
+        )
+        self.assertEqual(response.status_code, 200)
+        self.assertTemplateUsed(response, "base.html")
+        self.assertTemplateUsed(response, "chant_seq_by_cantus_id.html")
+
+    def test_queryset(self):
+        chant = make_fake_chant()
+        response = self.client.get(
+            reverse("chant-by-cantus-id", args=[chant.cantus_id])
+        )
+        self.assertIn(chant, response.context["chants"])
+
+
+class ChantSearchViewTest(TestCase):
+    def test_url_and_templates(self):
+        response = self.client.get(reverse("chant-search"))
+        self.assertEqual(response.status_code, 200)
+        self.assertTemplateUsed(response, "base.html")
+        self.assertTemplateUsed(response, "chant_search.html")
+
