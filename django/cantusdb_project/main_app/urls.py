@@ -52,13 +52,9 @@ urlpatterns = [
     ),
     path("chant-update/<int:pk>", ChantUpdateView.as_view(), name="chant-update"),
     path("sequences/", SequenceListView.as_view(), name="sequence-list"),
+    path("sequences/<int:pk>", SequenceDetailView.as_view(), name="sequence-detail",),
     path(
-        "sequences/<int:pk>",
-        SequenceDetailView.as_view(),
-        name="sequence-detail",
-    ),
-    path(
-        "id/<str:cantus_id>", ChantByCantusIDView.as_view(), name="chant-by-cantus_id"
+        "id/<str:cantus_id>", ChantByCantusIDView.as_view(), name="chant-by-cantus-id"
     ),
     path("chants/<int:pk>/delete/", ChantDeleteView.as_view(), name="chant-delete"),
     path("ci-search/<str:search_term>", CISearchView.as_view(), name="ci-search"),
@@ -69,11 +65,7 @@ urlpatterns = [
         name="ajax_concordance",
     ),
     path("ajax/melody/<str:cantus_id>", views.ajax_melody_list, name="ajax_melody"),
-    path(
-        "ajax/melody-search/",
-        views.ajax_melody_search,
-        name="ajax_melody_search",
-    ),
+    path("ajax/melody-search/", views.ajax_melody_search, name="ajax_melody_search",),
     path("csv/<str:source_id>", views.csv_export, name="csv-export"),
     path("index/", FullIndexView.as_view(), name="chant-index"),
     path("contact/", views.contact_us, name="contact"),

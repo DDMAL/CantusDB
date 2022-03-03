@@ -189,7 +189,7 @@
                     </td>
                     <td class="text-wrap" style="text-align:center">
                         {% comment %} use `urlencode` filter because 1 chant and 2 sequences have forward slash in their cantus_id (data error) {% endcomment %}
-                        <a href={% url 'chant-by-cantus_id' sequence.cantus_id|urlencode:"" %}>{{ sequence.cantus_id|default:"" }}</a>
+                        <a href={% url 'chant-by-cantus-id' sequence.cantus_id|urlencode:"" %}>{{ sequence.cantus_id|default:"" }}</a>
                     </td>
                     <td class="text-wrap" style="text-align:center">
                         {{ sequence.col1|default:"" }}
