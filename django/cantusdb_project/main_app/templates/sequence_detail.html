@@ -157,21 +157,24 @@
 
     <h4>Concordances</h4>
     <small>Displaying 1 - {{ concordances.count }} of {{ concordances.count }}</small>
-    <table class="table table-responsive table-sm small table-bordered">
+    <table class="table table-sm small table-bordered">
         <thead>
             <tr>
                 <th scope="col" class="text-wrap" style="text-align:center">Siglum</th>
-                <th scope="col" class="text-wrap" style="text-align:center">Text incipit</th>
+                <th scope="col" class="text-wrap" style="text-align:center">Incipit</th>
                 <th scope="col" class="text-wrap" style="text-align:center">Rubrics</th>
                 <th scope="col" class="text-wrap" style="text-align:center">AH</th>
-                <th scope="col" class="text-wrap" style="text-align:center">Cantus ID</th>
+                <th scope="col" class="text-wrap" style="text-align:center">CantusID</th>
+                <th scope="col" class="text-wrap" style="text-align:center">Notes:1</th>
+                <th scope="col" class="text-wrap" style="text-align:center">Notes:2</th>
+                <th scope="col" class="text-wrap" style="text-align:center">Notes:3</th>
             </tr>
         </thead>
         <tbody>
             {% for sequence in concordances %}
                 <tr>
                     <td class="text-wrap" style="text-align:center">
-                        <a href="{{ sequence.source.get_absolute_url }}">{{sequence.siglum}}</a>
+                        <a href="{{ sequence.source.get_absolute_url }}"><b>{{sequence.siglum}}</b></a>
                         <br>
                         <b>{{ sequence.folio }}</b>  {{ sequence.sequence }}
                     </td>
@@ -187,6 +190,15 @@
                     <td class="text-wrap" style="text-align:center">
                         {% comment %} use `urlencode` filter because 1 chant and 2 sequences have forward slash in their cantus_id (data error) {% endcomment %}
                         <a href={% url 'chant-by-cantus_id' sequence.cantus_id|urlencode:"" %}>{{ sequence.cantus_id|default:"" }}</a>
+                    </td>
+                    <td class="text-wrap" style="text-align:center">
+                        {{ sequence.col1|default:"" }}
+                    </td>
+                    <td class="text-wrap" style="text-align:center">
+                        {{ sequence.col2|default:"" }}
+                    </td>
+                    <td class="text-wrap" style="text-align:center">
+                        {{ sequence.col3|default:"" }}
                     </td>
                 </tr>
             {% endfor %}

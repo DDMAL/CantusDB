@@ -8,7 +8,7 @@
         {% include "global_search_bar.html" %}
     </object>
     <h3>Clavis Sequentiarum (Calvin Bower)</h3>
-    <small>Displaying <b>{{page_obj.start_index}}-{{page_obj.end_index}}</b> of <b>{{page_obj.paginator.count}}</b></small>
+    <small>Displaying <b>{{ page_obj.start_index }}-{{ page_obj.end_index }}</b> of <b>{{ page_obj.paginator.count }}</b></small>
 
     <form method="get">
         <div class="form-row align-items-end">
@@ -25,64 +25,77 @@
                 <input type="text" class="form-control form-control-sm" name="cantus_id" value="{{ request.GET.cantus_id }}" id="CantusID">
             </div>
             <div class="form-group m-1">
-                <button type="submit" class="btn btn-primary btn-sm" id="btn-submit"> Apply </button>
+                <button type="submit" class="btn btn-dark btn-sm" id="btn-submit"> Apply </button>
             </div>
         </div>
     </form>
 
-    <table class="table table-responsive table-sm small">
+    <table class="table table-bordered table-sm small">
         <thead>
             <tr>
-                <th scope="col" class="text-wrap">Siglum</th>
-                <th scope="col" class="text-wrap">Text incipit</th>
-                <th scope="col" class="text-wrap">Rubrics</th>
-                <th scope="col" class="text-wrap">AH</th>
-                <th scope="col" class="text-wrap">Cantus ID</th>
+                <th scope="col" class="text-wrap" style="text-align:center">Siglum</th>
+                <th scope="col" class="text-wrap" style="text-align:center">Text incipit</th>
+                <th scope="col" class="text-wrap" style="text-align:center">Rubrics</th>
+                <th scope="col" class="text-wrap" style="text-align:center">AH</th>
+                <th scope="col" class="text-wrap" style="text-align:center">Cantus ID</th>
+                <th scope="col" class="text-wrap" style="text-align:center">Notes:1</th>
+                <th scope="col" class="text-wrap" style="text-align:center">Notes:2</th>
+                <th scope="col" class="text-wrap" style="text-align:center">Notes:3</th>
             </tr>
         </thead>
         <tbody>
             {% for sequence in sequences %}
-            <tr>
-                <td class="text-wrap">
-                    <a href={{sequence.source.get_absolute_url}}>
-                        {{ sequence.source.siglum|default:"" }}<br>
-                    </a>
-                    <b>{{ sequence.folio|default:"" }}</b> {{ sequence.sequence|default:"" }}
-                </td>
-                <td class="text-wrap">
-                    <a href="{{ sequence.get_absolute_url }}">
-                        {{ sequence.incipit|default:"" }}
-                    </a>
-                </td>
-                <td class="text-wrap">
-                    {{ sequence.rubrics|default:"" }}
-                </td>
-                <td class="text-wrap">
-                    {{ sequence.analecta_hymnica|default:"" }}
-                </td>
-                <td class="text-wrap">
-                    {% comment %} use `urlencode` filter because 1 chant and 2 sequences have forward slash in their cantus_id (data error) {% endcomment %}
-                    <a href={% url 'chant-by-cantus_id' sequence.cantus_id|urlencode:"" %}>{{ sequence.cantus_id|default:"" }}</a>
-                </td>
-            </tr>
+                <tr style="text-align:center">
+                    <td class="text-wrap">
+                        <a href={{ sequence.source.get_absolute_url }}>
+                            <b>{{ sequence.source.siglum|default:"" }}</b><br>
+                        </a>
+                        <b>{{ sequence.folio|default:"" }}</b> {{ sequence.sequence|default:"" }}
+                    </td>
+                    <td class="text-wrap">
+                        <a href="{{ sequence.get_absolute_url }}">
+                            {{ sequence.incipit|default:"" }}
+                        </a>
+                    </td>
+                    <td class="text-wrap">
+                        {{ sequence.rubrics|default:"" }}
+                    </td>
+                    <td class="text-wrap">
+                        {{ sequence.analecta_hymnica|default:"" }}
+                    </td>
+                    <td class="text-wrap">
+                        {% comment %} use `urlencode` filter because 1 chant and 2 sequences have forward slash in their cantus_id (data error) {% endcomment %}
+                        <a href={% url 'chant-by-cantus_id' sequence.cantus_id|urlencode:"" %}>{{ sequence.cantus_id|default:"" }}</a>
+                    </td>
+                    <td class="text-wrap">
+                        {{ sequence.col1 |default:"" }}
+                    </td>
+                    <td class="text-wrap">
+                        {{ sequence.col2 |default:"" }}
+                    </td>
+                    <td class="text-wrap">
+                        {{ sequence.col3 |default:"" }}
+                    </td>
+                </tr>
             {% endfor %}
         </tbody>
     </table>
+
     <div class="pagination">
         <span class="step-links">
             {% if page_obj.has_previous %}
-            <a href="?{% url_add_get_params page=1%}">&laquo;
-                first</a>
-            <a href="?{% url_add_get_params page=page_obj.previous_page_number %}">previous</a>
+                <a href="?{% url_add_get_params page=1%}">&laquo;
+                    first</a>
+                <a href="?{% url_add_get_params page=page_obj.previous_page_number %}">previous</a>
             {% endif %}
             <span class="current">
                 Page {{ page_obj.number }} of {{ page_obj.paginator.num_pages }}
             </span>
 
             {% if page_obj.has_next %}
-            <a href="?{% url_add_get_params page=page_obj.next_page_number %}">next</a>
-            <a href="?{% url_add_get_params page=page_obj.paginator.num_pages %}">last
-                &raquo;</a>
+                <a href="?{% url_add_get_params page=page_obj.next_page_number %}">next</a>
+                <a href="?{% url_add_get_params page=page_obj.paginator.num_pages %}">last
+                    &raquo;</a>
             {% endif %}
         </span>
     </div>
