@@ -821,3 +821,77 @@ class SourceDetailViewTest(TestCase):
         # the list of sequences should be ordered by the "sequence" field
         self.assertEqual(response.context["sequences"].query.order_by, ("sequence",))
 
+
+class SequenceListViewTest(TestCase):
+    def test_url_and_templates(self):
+        response = self.client.get(reverse("sequence-list"))
+        self.assertEqual(response.status_code, 200)
+        self.assertTemplateUsed(response, "base.html")
+        self.assertTemplateUsed(response, "sequence_list.html")
+
+    def test_ordering(self):
+        # the sequences in the list should be ordered by the "siglum" and "sequence" fields
+        response = self.client.get(reverse("sequence-list"))
+        sequences = response.context["sequences"]
+        self.assertEqual(sequences.query.order_by, ("siglum", "sequence"))
+
+    def test_search_incipit(self):
+        # create a public sequence source and some sequence in it
+        source = Source.objects.create(
+            public=True, visible=True, title="a sequence source"
+        )
+        sequence = Sequence.objects.create(
+            incipit=make_fake_text(max_size=30), source=source
+        )
+        search_term = get_random_search_term(sequence.incipit)
+        # request the page, search for the incipit
+        response = self.client.get(reverse("sequence-list"), {"incipit": search_term})
+        # the sequence should be present in the results
+        self.assertIn(sequence, response.context["sequences"])
+
+    def test_search_siglum(self):
+        # create a public sequence source and some sequence in it
+        source = Source.objects.create(
+            public=True, visible=True, title="a sequence source"
+        )
+        sequence = Sequence.objects.create(
+            siglum=make_fake_text(max_size=10), source=source
+        )
+        search_term = get_random_search_term(sequence.siglum)
+        # request the page, search for the siglum
+        response = self.client.get(reverse("sequence-list"), {"siglum": search_term})
+        # the sequence should be present in the results
+        self.assertIn(sequence, response.context["sequences"])
+
+    def test_search_cantus_id(self):
+        # create a public sequence source and some sequence in it
+        source = Source.objects.create(
+            public=True, visible=True, title="a sequence source"
+        )
+        # faker generates a fake cantus id, in the form of two letters followed by five digits
+        sequence = Sequence.objects.create(
+            cantus_id=faker.bothify("??#####"), source=source
+        )
+        search_term = get_random_search_term(sequence.cantus_id)
+        # request the page, search for the incipit
+        response = self.client.get(reverse("sequence-list"), {"cantus_id": search_term})
+        # the sequence should be present in the results
+        self.assertIn(sequence, response.context["sequences"])
+
+
+class SequenceDetailViewTest(TestCase):
+    def test_url_and_templates(self):
+        sequence = make_fake_sequence()
+        response = self.client.get(reverse("sequence-detail", args=[sequence.id]))
+        self.assertEqual(response.status_code, 200)
+        self.assertTemplateUsed(response, "base.html")
+        self.assertTemplateUsed(response, "sequence_detail.html")
+
+    def test_concordances(self):
+        sequence = make_fake_sequence()
+        sequence_with_same_cantus_id = Sequence.objects.create(
+            cantus_id=sequence.cantus_id
+        )
+        response = self.client.get(reverse("sequence-detail", args=[sequence.id]))
+        concordances = response.context["concordances"]
+        self.assertIn(sequence_with_same_cantus_id, concordances)
