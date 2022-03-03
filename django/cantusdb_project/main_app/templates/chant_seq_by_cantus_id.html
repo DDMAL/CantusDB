@@ -8,8 +8,8 @@
         {% include "global_search_bar.html" %}
     </object>
     <h3>Chants by Cantus ID: {{ cantus_id }} </h3>
-    <small>Displaying {{page_obj.start_index}}-{{page_obj.end_index}} of <b>{{page_obj.paginator.count}}</b> chants</small>
-    <table class="table table-responsive table-sm small">
+    <small>Displaying {{ page_obj.start_index }}-{{ page_obj.end_index }} of <b>{{ page_obj.paginator.count }}</b> chants</small>
+    <table class="table table-bordered table-sm small">
         <thead>
             <tr>
                 <th scope="col" class="text-wrap">Source</th>
@@ -26,47 +26,47 @@
         </thead>
         <tbody>
             {% for chant in chants %}
-            <tr>
-                <td class="text-wrap">
-                    <a href="{{ chant.source.get_absolute_url }}">{{ chant.source.siglum }}</a>
-                </td>
-                <td class="text-wrap">{{ chant.folio }}</td>
-                {% comment %} this is used for distinguishing chants from sequences,
-                if the object is chant, use chant.get_absolute_url,
-                otherwise, use sequence.get_absolute_url
-                the combined queryset turned all objects into chants
-                so this is the only way to make the distinction {% endcomment %}
-                {% if chant.search_vector %}
-                    <td class="text-wrap"><a href="{{ chant.get_absolute_url }}">{{ chant.incipit }}</a></td>
-                {% else %}
-                    <td class="text-wrap"><a href="{% url 'sequence-detail' chant.id %}">{{ chant.incipit }}</a></td>
-                {% endif %}
-                <td class="text-wrap">{{ chant.office|default:"" }} </td>
-                <td class="text-wrap">{{ chant.genre.name|default:"" }} </td>
-                <td class="text-wrap">{{ chant.position|default:"" }}</td>
-                <td class="text-wrap"><a href="{{ chant.feast.get_absolute_url }}">{{ chant.feast.name|default:"" }}</a></td>
-                <td class="text-wrap">{{ chant.mode|default:"" }}</td>
-                <td class="text-wrap" style="font-family: volpiano; font-size:30px">{% if chant.volpiano %}<a href="{{ chant.get_absolute_url }}">1-</a>{% endif %}</td>
-                <td class="text-wrap">{% if chant.image_link %}<a href="{{ chant.image_link }}" target="_blank">Image</a>{% endif %}</td>
-            </tr>
+                <tr>
+                    <td class="text-wrap">
+                        <a href="{{ chant.source.get_absolute_url }}">{{ chant.source.siglum }}</a>
+                    </td>
+                    <td class="text-wrap">{{ chant.folio }}</td>
+                    {% comment %} this is used for distinguishing chants from sequences,
+                    if the object is chant, use chant.get_absolute_url,
+                    otherwise, use sequence.get_absolute_url
+                    the combined queryset turned all objects into chants
+                    so this is the only way to make the distinction {% endcomment %}
+                    {% if chant.search_vector %}
+                        <td class="text-wrap"><a href="{{ chant.get_absolute_url }}">{{ chant.incipit }}</a></td>
+                    {% else %}
+                        <td class="text-wrap"><a href="{% url 'sequence-detail' chant.id %}">{{ chant.incipit }}</a></td>
+                    {% endif %}
+                    <td class="text-wrap">{{ chant.office|default:"" }} </td>
+                    <td class="text-wrap">{{ chant.genre.name|default:"" }} </td>
+                    <td class="text-wrap">{{ chant.position|default:"" }}</td>
+                    <td class="text-wrap"><a href="{{ chant.feast.get_absolute_url }}">{{ chant.feast.name|default:"" }}</a></td>
+                    <td class="text-wrap">{{ chant.mode|default:"" }}</td>
+                    <td class="text-wrap" style="font-family: volpiano; font-size:30px">{% if chant.volpiano %}<a href="{{ chant.get_absolute_url }}">1-</a>{% endif %}</td>
+                    <td class="text-wrap">{% if chant.image_link %}<a href="{{ chant.image_link }}" target="_blank">Image</a>{% endif %}</td>
+                </tr>
             {% endfor %}
         </tbody>
     </table>
     <div class="pagination">
         <span class="step-links">
             {% if page_obj.has_previous %}
-            <a href="?{% url_add_get_params page=1%}">&laquo;
-                first</a>
-            <a href="?{% url_add_get_params page=page_obj.previous_page_number %}">previous</a>
+                <a href="?{% url_add_get_params page=1%}">&laquo;
+                    first</a>
+                <a href="?{% url_add_get_params page=page_obj.previous_page_number %}">previous</a>
             {% endif %}
             <span class="current">
                 Page {{ page_obj.number }} of {{ page_obj.paginator.num_pages }}
             </span>
 
             {% if page_obj.has_next %}
-            <a href="?{% url_add_get_params page=page_obj.next_page_number %}">next</a>
-            <a href="?{% url_add_get_params page=page_obj.paginator.num_pages %}">last
-                &raquo;</a>
+                <a href="?{% url_add_get_params page=page_obj.next_page_number %}">next</a>
+                <a href="?{% url_add_get_params page=page_obj.paginator.num_pages %}">last
+                    &raquo;</a>
             {% endif %}
         </span>
     </div>
