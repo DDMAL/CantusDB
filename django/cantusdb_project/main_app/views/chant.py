@@ -376,12 +376,12 @@ class ChantSearchView(ListView):
                 # queryset = queryset.filter(q_obj_filter)
 
         else:
-            # "office" (or any other field) should be a key in the GET if the search button has been clicked,
-            # even if the user put nothing into the search form and hits "apply" immediately.
+            # The field names should be keys in the "GET" QueryDict if the search button has been clicked,
+            # even if the user put nothing into the search form and hit "apply" immediately.
             # In that case, we return the all chants + seqs filtered by the search form.
             # On the contrary, if the user just arrived at the search page, there should be no params in GET
             # In that case, we return an empty queryset.
-            if not "office" in self.request.GET:
+            if not self.request.GET:
                 return Chant.objects.none()
             # For every GET parameter other than incipit, add to the Q object
             if self.request.GET.get("office"):
@@ -493,8 +493,8 @@ class ChantSearchMSView(ListView):
     def get_queryset(self) -> QuerySet:
         # Create a Q object to filter the QuerySet of Chants
         q_obj_filter = Q()
-        # If the "apply" button hasn't been clicked
-        if not "office" in self.request.GET:
+        # If the "apply" button hasn't been clicked, return empty queryset
+        if not self.request.GET:
             return Chant.objects.none()
         # For every GET parameter other than incipit, add to the Q object
         if self.request.GET.get("office"):
@@ -524,12 +524,9 @@ class ChantSearchMSView(ListView):
 
         source_id = self.kwargs["source_pk"]
         source = Source.objects.get(id=source_id)
-
         queryset = (
             source.sequence_set if source.segment.id == 4064 else source.chant_set
         )
-        queryset = queryset.filter(source__public=True, source__visible=True)
-
         # Filter the QuerySet with Q object
         queryset = queryset.filter(q_obj_filter)
         # Finally, do keyword searching over the QuerySet
