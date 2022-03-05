@@ -1107,3 +1107,183 @@ class ChantSearchViewTest(TestCase):
         self.assertTemplateUsed(response, "base.html")
         self.assertTemplateUsed(response, "chant_search.html")
 
+    def test_search_by_office(self):
+        source = Source.objects.create(public=True, visible=True, title="a source")
+        office = make_fake_office()
+        chant = Chant.objects.create(source=source, office=office)
+        search_term = get_random_search_term(office.name)
+        response = self.client.get(reverse("chant-search"), {"office": search_term})
+        self.assertIn(chant, response.context["chants"])
+
+    def test_filter_by_genre(self):
+        source = Source.objects.create(public=True, visible=True, title="a source")
+        genre = make_fake_genre()
+        chant = Chant.objects.create(source=source, genre=genre)
+        response = self.client.get(reverse("chant-search"), {"genre": genre.id})
+        self.assertIn(chant, response.context["chants"])
+
+    def test_search_by_cantus_id(self):
+        source = Source.objects.create(public=True, visible=True, title="a source")
+        chant = Chant.objects.create(source=source, cantus_id=faker.numerify("######"))
+        search_term = get_random_search_term(chant.cantus_id)
+        response = self.client.get(reverse("chant-search"), {"cantus_id": search_term})
+        self.assertIn(chant, response.context["chants"])
+
+    def test_search_by_mode(self):
+        source = Source.objects.create(public=True, visible=True, title="a source")
+        chant = Chant.objects.create(source=source, mode=faker.numerify("#"))
+        search_term = get_random_search_term(chant.mode)
+        response = self.client.get(reverse("chant-search"), {"mode": search_term})
+        self.assertIn(chant, response.context["chants"])
+
+    def test_search_by_feast(self):
+        source = Source.objects.create(public=True, visible=True, title="a source")
+        feast = make_fake_feast()
+        chant = Chant.objects.create(source=source, feast=feast)
+        search_term = get_random_search_term(feast.name)
+        response = self.client.get(reverse("chant-search"), {"feast": search_term})
+        self.assertIn(chant, response.context["chants"])
+
+    def test_filter_by_melody(self):
+        source = Source.objects.create(public=True, visible=True, title="a source")
+        chant_with_melody = Chant.objects.create(
+            source=source, volpiano=make_fake_text(max_size=20)
+        )
+        chant_without_melody = Chant.objects.create(source=source)
+        response = self.client.get(reverse("chant-search"), {"melodies": "true"})
+        # only chants with melodies should be in the result
+        self.assertIn(chant_with_melody, response.context["chants"])
+        self.assertNotIn(chant_without_melody, response.context["chants"])
+
+    def test_keyword_search_starts_with(self):
+        source = Source.objects.create(public=True, visible=True, title="a source")
+        chant = Chant.objects.create(
+            source=source, incipit=make_fake_text(max_size=200)
+        )
+        # use the beginning part of the incipit as search term
+        search_term = chant.incipit[0 : random.randint(1, len(chant.incipit))]
+        response = self.client.get(
+            reverse("chant-search"), {"keyword": search_term, "op": "starts_with"}
+        )
+        self.assertIn(chant, response.context["chants"])
+
+    def test_keyword_search_contains(self):
+        source = Source.objects.create(public=True, visible=True, title="a source")
+        chant = Chant.objects.create(
+            source=source, manuscript_full_text=make_fake_text(max_size=400)
+        )
+        # split full text into words
+        full_text_words = chant.manuscript_full_text.split(" ")
+        # use a random subset of words as search term
+        search_term = " ".join(
+            random.choices(
+                full_text_words, k=random.randint(1, len(full_text_words) - 1)
+            )
+        )
+        response = self.client.get(
+            reverse("chant-search"), {"keyword": search_term, "op": "contains"}
+        )
+        self.assertIn(chant, response.context["chants"])
+
+
+class ChantSearchMSViewTest(TestCase):
+    def test_url_and_templates(self):
+        source = make_fake_source()
+        response = self.client.get(reverse("chant-search-ms", args=[source.id]))
+        self.assertEqual(response.status_code, 200)
+        self.assertTemplateUsed(response, "base.html")
+        self.assertTemplateUsed(response, "chant_search.html")
+
+    def test_search_by_office(self):
+        # source = Source.objects.create(public=True, visible=True, title="a source")
+        source = make_fake_source()
+        office = make_fake_office()
+        chant = Chant.objects.create(source=source, office=office)
+        search_term = get_random_search_term(office.name)
+        response = self.client.get(
+            reverse("chant-search-ms", args=[source.id]), {"office": search_term}
+        )
+        self.assertIn(chant, response.context["chants"])
+
+    def test_filter_by_genre(self):
+        source = make_fake_source()
+        genre = make_fake_genre()
+        chant = Chant.objects.create(source=source, genre=genre)
+        response = self.client.get(
+            reverse("chant-search-ms", args=[source.id]), {"genre": genre.id}
+        )
+        self.assertIn(chant, response.context["chants"])
+
+    def test_search_by_cantus_id(self):
+        source = make_fake_source()
+        chant = Chant.objects.create(source=source, cantus_id=faker.numerify("######"))
+        search_term = get_random_search_term(chant.cantus_id)
+        response = self.client.get(
+            reverse("chant-search-ms", args=[source.id]), {"cantus_id": search_term}
+        )
+        self.assertIn(chant, response.context["chants"])
+
+    def test_search_by_mode(self):
+        source = make_fake_source()
+        chant = Chant.objects.create(source=source, mode=faker.numerify("#"))
+        search_term = get_random_search_term(chant.mode)
+        response = self.client.get(
+            reverse("chant-search-ms", args=[source.id]), {"mode": search_term}
+        )
+        self.assertIn(chant, response.context["chants"])
+
+    def test_search_by_feast(self):
+        source = make_fake_source()
+        feast = make_fake_feast()
+        chant = Chant.objects.create(source=source, feast=feast)
+        search_term = get_random_search_term(feast.name)
+        response = self.client.get(
+            reverse("chant-search-ms", args=[source.id]), {"feast": search_term}
+        )
+        self.assertIn(chant, response.context["chants"])
+
+    def test_filter_by_melody(self):
+        source = make_fake_source()
+        chant_with_melody = Chant.objects.create(
+            source=source, volpiano=make_fake_text(max_size=20)
+        )
+        chant_without_melody = Chant.objects.create(source=source)
+        response = self.client.get(
+            reverse("chant-search-ms", args=[source.id]), {"melodies": "true"}
+        )
+        # only chants with melodies should be in the result
+        self.assertIn(chant_with_melody, response.context["chants"])
+        self.assertNotIn(chant_without_melody, response.context["chants"])
+
+    def test_keyword_search_starts_with(self):
+        source = make_fake_source()
+        chant = Chant.objects.create(
+            source=source, incipit=make_fake_text(max_size=200)
+        )
+        # use the beginning part of the incipit as search term
+        search_term = chant.incipit[0 : random.randint(1, len(chant.incipit))]
+        response = self.client.get(
+            reverse("chant-search-ms", args=[source.id]),
+            {"keyword": search_term, "op": "starts_with"},
+        )
+        self.assertIn(chant, response.context["chants"])
+
+    def test_keyword_search_contains(self):
+        source = make_fake_source()
+        chant = Chant.objects.create(
+            source=source, manuscript_full_text=make_fake_text(max_size=400)
+        )
+        # split full text into words
+        full_text_words = chant.manuscript_full_text.split(" ")
+        # use a random subset of words as search term
+        search_term = " ".join(
+            random.choices(
+                full_text_words, k=random.randint(1, len(full_text_words) - 1)
+            )
+        )
+        response = self.client.get(
+            reverse("chant-search-ms", args=[source.id]),
+            {"keyword": search_term, "op": "contains"},
+        )
+        self.assertIn(chant, response.context["chants"])
+
