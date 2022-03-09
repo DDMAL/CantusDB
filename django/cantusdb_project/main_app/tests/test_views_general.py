@@ -1287,3 +1287,27 @@ class ChantSearchMSViewTest(TestCase):
         )
         self.assertIn(chant, response.context["chants"])
 
+
+class FullIndexViewTest(TestCase):
+    def test_url_and_templates(self):
+        source = make_fake_source()
+        response = self.client.get(reverse("chant-index"), {"source": source.id})
+        self.assertEqual(response.status_code, 200)
+        self.assertTemplateUsed(response, "full_index.html")
+
+    def test_chant_source_queryset(self):
+        chant_source = make_fake_source()
+        chant = Chant.objects.create(source=chant_source)
+        response = self.client.get(reverse("chant-index"), {"source": chant_source.id})
+        self.assertEqual(chant_source, response.context["source"])
+        self.assertIn(chant, response.context["chants"])
+
+    def test_sequence_source_queryset(self):
+        seq_source = Source.objects.create(
+            segment=Segment.objects.create(id=4064, name="Clavis Sequentiarium"),
+            title="a sequence source",
+        )
+        sequence = Sequence.objects.create(source=seq_source)
+        response = self.client.get(reverse("chant-index"), {"source": seq_source.id})
+        self.assertEqual(seq_source, response.context["source"])
+        self.assertIn(sequence, response.context["chants"])
