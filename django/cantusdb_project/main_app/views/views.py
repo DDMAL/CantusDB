@@ -151,7 +151,9 @@ def csv_export(request, source_id):
     if source.segment.id == 4064:
         entries = source.sequence_set.order_by("id")
     else:
-        entries = source.chant_set.order_by("id")
+        entries = source.chant_set.order_by("id").select_related(
+            "feast", "office", "genre"
+        )
 
     response = HttpResponse(content_type="text/csv")
     # response["Content-Disposition"] = 'attachment; filename="somefilename.csv"'
