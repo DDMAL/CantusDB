@@ -64,6 +64,7 @@ def ajax_concordance_list(request, cantus_id):
         "incipit",
         "office__name",
         "genre__name",
+        "position",
         "feast__name",
         "mode",
         "image_link",
@@ -100,9 +101,7 @@ def ajax_melody_list(request, cantus_id):
         JsonResponse: A response to the AJAX call, to be unpacked by the frontend js code
     """
     chants = (
-        Chant.objects.filter(cantus_id=cantus_id)
-        .exclude(volpiano=None)
-        .order_by("siglum", "folio")
+        Chant.objects.filter(cantus_id=cantus_id).exclude(volpiano=None).order_by("id")
     )
 
     # queryset(list of dictionaries)
