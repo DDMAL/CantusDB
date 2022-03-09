@@ -108,7 +108,7 @@ class ChantCreateForm(forms.ModelForm):
     # source and incipit are mandatory fields in model,
     # but have to be optional in the form, otherwise the field validation won't pass
     source = forms.ModelChoiceField(
-        queryset=Source.objects.all().order_by("name"),
+        queryset=Source.objects.all().order_by("title"),
         required=False,
         error_messages={
             "invalid_choice": "This source does not exist, please switch to a different source."
