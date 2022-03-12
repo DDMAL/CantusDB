@@ -1,4 +1,3 @@
-from django.contrib.postgres.fields import JSONField
 from django.contrib.postgres.search import SearchVectorField
 from django.db import models
 from main_app.models import BaseModel
@@ -26,7 +25,7 @@ class Sequence(BaseModel):
     )
     cantus_id = models.CharField(blank=True, null=True, max_length=255)
     image_link = models.URLField(blank=True, null=True)
-    json_info = JSONField(null=True, blank=True)
+    json_info = models.JSONField(null=True, blank=True)
 
     # The following fields (dummy fields) are just for harmonizing the chant and sequence models to have the same fields
     # They should never be populated or displayed
@@ -60,7 +59,7 @@ class Sequence(BaseModel):
         null=True,
         blank=True,
     )
-    manuscript_full_text_std_proofread = models.NullBooleanField(blank=True, null=True)
+    manuscript_full_text_std_proofread = models.BooleanField(blank=True, null=True)
     manuscript_full_text = models.TextField(
         help_text="Enter the wording, word order and spellings as found in the manuscript"
         ", with abbreviations resolved to standard words. Use upper-case letters as found"
@@ -71,10 +70,10 @@ class Sequence(BaseModel):
         null=True,
         blank=True,
     )
-    manuscript_full_text_proofread = models.NullBooleanField(blank=True, null=True)
+    manuscript_full_text_proofread = models.BooleanField(blank=True, null=True)
     manuscript_syllabized_full_text = models.TextField(null=True, blank=True)
     volpiano = models.TextField(null=True, blank=True)
-    volpiano_proofread = models.NullBooleanField(blank=True, null=True)
+    volpiano_proofread = models.BooleanField(blank=True, null=True)
     volpiano_notes = models.TextField(null=True, blank=True)
     volpiano_intervals = models.TextField(null=True, blank=True)
     # volpiano_intervals = ArrayField(base_field=models.IntegerField(), null=True, blank=True)
