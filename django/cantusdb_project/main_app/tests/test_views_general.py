@@ -1177,7 +1177,7 @@ class ChantSearchViewTest(TestCase):
         # use a random subset of words as search term
         search_term = " ".join(
             random.choices(
-                full_text_words, k=random.randint(1, len(full_text_words) - 1)
+                full_text_words, k=random.randint(1, max(len(full_text_words) - 1, 1))
             )
         )
         response = self.client.get(
@@ -1278,7 +1278,7 @@ class ChantSearchMSViewTest(TestCase):
         # use a random subset of words as search term
         search_term = " ".join(
             random.choices(
-                full_text_words, k=random.randint(1, len(full_text_words) - 1)
+                full_text_words, k=random.randint(1, max(len(full_text_words) - 1, 1))
             )
         )
         response = self.client.get(
