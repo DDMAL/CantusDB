@@ -1,30 +1,6 @@
 from django.urls import path
 
-from main_app.views import (
-    ChantCreateView,
-    ChantDetailView,
-    ChantListView,
-    ChantSearchView,
-    MelodySearchView,
-    ChantSearchMSView,
-    ChantUpdateView,
-    ChantDeleteView,
-    CISearchView,
-    ChantByCantusIDView,
-    FullIndexView,
-    FeastDetailView,
-    FeastListView,
-    GenreDetailView,
-    GenreListView,
-    IndexerDetailView,
-    IndexerListView,
-    OfficeDetailView,
-    OfficeListView,
-    SequenceDetailView,
-    SequenceListView,
-    SourceDetailView,
-    SourceListView,
-)
+from main_app.views import *
 from main_app.views import views
 
 urlpatterns = [
@@ -69,4 +45,9 @@ urlpatterns = [
     path("csv/<str:source_id>", views.csv_export, name="csv-export"),
     path("index/", FullIndexView.as_view(), name="chant-index"),
     path("contact/", views.contact_us, name="contact"),
+    path(
+        "ajax/search-bar/<str:search_term>",
+        views.ajax_search_bar,
+        name="ajax_search_bar",
+    ),
 ]

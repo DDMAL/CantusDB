@@ -363,3 +363,35 @@ def ajax_melody_search(request):
         result["chant_link"] = reverse("chant-detail", args=[result["id"]])
     result_count = result_values.count()
     return JsonResponse({"results": results, "result_count": result_count}, safe=True)
+
+
+def ajax_search_bar(request, search_term):
+    """
+    Function-based view responding to global search bar AJAX calls, 
+    accessed with the search bar on the top-right corner of almost every page.
+
+    Args:
+        search_term (str): The search term input
+
+    Returns:
+        JsonResponse: A response to the AJAX call, to be unpacked by frontend js code
+    """
+    # load only the first seven chants
+    chants = Chant.objects.filter(incipit__icontains=search_term).order_by("id")[0:7]
+    returned_values = chants.values(
+        "incipit",
+        "genre__name",
+        "feast__name",
+        "cantus_id",
+        "mode",
+        "siglum",
+        "office__name",
+        "folio",
+        "sequence_number",
+    )
+    returned_values = list(returned_values)
+    for i in range(chants.count()):
+        chant_link = chants[i].get_absolute_url()
+        returned_values[i]["chant_link"] = chant_link
+    return JsonResponse({"chants": returned_values}, safe=True)
+
