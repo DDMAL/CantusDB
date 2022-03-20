@@ -1,4 +1,4 @@
-window.onload = melodySearch;
+window.addEventListener("load", melodySearch);
 function melodySearch() {
     // `index` is the index of the currently active note slot, it starts from one
     var index = 1;

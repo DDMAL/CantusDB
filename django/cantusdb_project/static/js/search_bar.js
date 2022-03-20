@@ -1,9 +1,9 @@
-window.onload = globalSearch;
+window.addEventListener("load", globalSearch);
 function globalSearch() {
     // the global search bar at the top-right corner of almost every page
-    const searchBar = document.getElementById('searchBar')
+    const searchBar = document.getElementById("searchBar")
     // the area for displaying the suggested results
-    const chantsDiv = document.getElementById('chantsDiv');
+    const chantsDiv = document.getElementById("chantsDiv");
     // search upon input 
     searchBar.addEventListener("input", loadChants);
     // lastXhttp is a pointer to the last ajax request

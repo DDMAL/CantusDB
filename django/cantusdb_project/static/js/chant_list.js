@@ -1,4 +1,4 @@
-window.onload = function () {
+window.addEventListener("load", function () {
     const searchText = document.getElementById("search");
     const sourceFilter = document.getElementById("sourceFilter");
     const feastFilter = document.getElementById("feastFilter");
@@ -85,6 +85,4 @@ window.onload = function () {
         url.searchParams.set('folio', folio);
         window.location.assign(url);
     }
-}
-
-
+});
