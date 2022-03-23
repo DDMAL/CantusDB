@@ -1,4 +1,4 @@
-window.onload = function () {
+window.addEventListener("load", function () {
     // Make sure the select components keep their values across multiple GET requests
     // so the user can "drill down" on what they want
     const segmentFilter = document.getElementById("segmentFilter");
@@ -19,4 +19,4 @@ window.onload = function () {
     if (urlParams.has("fullSource")) {
         fullSourceFilter.value = urlParams.get("fullSource");
     }
-}
+});

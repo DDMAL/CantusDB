@@ -1,4 +1,4 @@
-window.onload = function () {
+window.addEventListener("load", function () {
     // check the correct radio button according to the GET parameter
     const anyChoice = document.getElementById("anyChoice");
     const massChoice = document.getElementById("massChoice");
@@ -17,4 +17,4 @@ window.onload = function () {
         default:
             anyChoice.checked = true;
     }
-}
+});

@@ -1,6 +1,5 @@
 from django.db import models
 from main_app.models import BaseModel
-from django.contrib.postgres.fields import JSONField
 from users.models import User
 
 
@@ -85,7 +84,7 @@ class Source(BaseModel):
     image_link = models.URLField(blank=True, null=True)
     indexing_notes = models.TextField(blank=True, null=True)
     indexing_date = models.TextField(blank=True, null=True)
-    json_info = JSONField(blank=True, null=True)
+    json_info = models.JSONField(blank=True, null=True)
     fragmentarium_id = models.CharField(max_length=15, blank=True, null=True)
     dact_id = models.CharField(max_length=15, blank=True, null=True)
 

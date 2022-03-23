@@ -1,4 +1,3 @@
-from django.contrib.postgres.fields import JSONField
 from django.contrib.postgres.search import SearchVectorField
 from django.db import models
 from django.db.models.query import QuerySet
@@ -46,7 +45,7 @@ class Chant(BaseModel):
     )  # PROTECT so that we can't delete a source with chants in it
     cantus_id = models.CharField(blank=True, null=True, max_length=255, db_index=True)
     image_link = models.URLField(blank=True, null=True)
-    json_info = JSONField(null=True, blank=True)
+    json_info = models.JSONField(null=True, blank=True)
     marginalia = models.CharField(max_length=63, null=True, blank=True)
     sequence_number = models.PositiveIntegerField(
         help_text='Each folio starts with "1"', null=True, blank=True
@@ -76,7 +75,7 @@ class Chant(BaseModel):
         null=True,
         blank=True,
     )
-    manuscript_full_text_std_proofread = models.NullBooleanField(blank=True, null=True)
+    manuscript_full_text_std_proofread = models.BooleanField(blank=True, null=True)
     manuscript_full_text = models.TextField(
         help_text="Enter the wording, word order and spellings as found in the manuscript"
         ", with abbreviations resolved to standard words. Use upper-case letters as found"
@@ -87,10 +86,10 @@ class Chant(BaseModel):
         null=True,
         blank=True,
     )
-    manuscript_full_text_proofread = models.NullBooleanField(blank=True, null=True)
+    manuscript_full_text_proofread = models.BooleanField(blank=True, null=True)
     manuscript_syllabized_full_text = models.TextField(null=True, blank=True)
     volpiano = models.TextField(null=True, blank=True)
-    volpiano_proofread = models.NullBooleanField(blank=True, null=True)
+    volpiano_proofread = models.BooleanField(blank=True, null=True)
     # The "volpiano_notes" and "volpiano_intervals" field are added in new Cantus to aid melody search.
     # "volpiano_notes" is extracted from the "volpiano" field, by eliminating all non-note characters
     # and removing consecutive repeated notes.

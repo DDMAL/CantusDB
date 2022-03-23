@@ -2,28 +2,8 @@
 {% load helper_tags %}
 {% block content %}
 <title>Search Chants | Cantus Manuscript Database</title>
-<script>
-    // Make sure the select components keep their values across multiple GET requests
-    // so the user can "drill down" on what they want
-    function setValue(id, value) {
-        var s= document.getElementById(id);
-        s.value = value;
-    }
+<script src="/static/js/chant_search.js"></script>
 
-    window.onload=function() {
-        setValue("office-filter", "{{ request.GET.office }}");
-        setValue("genre-filter", "{{ request.GET.genre }}");
-        setValue("cantus_id-filter", "{{ request.GET.cantus_id }}");
-        setValue("mode-filter", "{{ request.GET.mode }}");
-        setValue("melodies-filter", "{{ request.GET.melodies }}");
-        setValue("feast-filter", "{{ request.GET.feast }}");
-        setValue("keyword-search", "{{ request.GET.keyword }}");
-        setValue("search-bar", "{{ request.GET.search_bar }}");
-        if ("{{ request.GET.op }}") {
-            setValue("op-filter", "{{ request.GET.op }}");
-        }
-    }
-</script>
 <div class="mr-3 p-3 col-md-12 mx-auto bg-white rounded">
     <!-- global search bar-->
     <object align="right">
@@ -35,70 +15,59 @@
     {% endif %}
 
     {% if chants.all %}
-        <small>Displaying {{page_obj.start_index}}-{{page_obj.end_index}} of <b>{{page_obj.paginator.count}}
+        <small>Displaying {{ page_obj.start_index }}-{{ page_obj.end_index }} of <b>{{ page_obj.paginator.count }}
                 chants</b></small>
     {% endif %}
 
     <form method="get">
         <div class="form-row align-items-end">
             <div class="form-group m-1 col-lg">
-                <select class="form-control custom-select custom-select-sm" id="op-filter" name="op">
+                <select class="form-control custom-select custom-select-sm" id="opFilter" name="op">
                     <option selected value="contains">Contains</option>
                     <option value="starts_with">Starts with</option>
                 </select>
             </div>
             <div class="form-group m-1 col-lg">
-                <label for="keyword-search"><small>Keyword search</small></label>
-                <input type="text" class="form-control form-control-sm" name="keyword" value="{{ request.GET.keyword}}"
-                    id="keyword-search">
+                <label for="keywordSearch"><small>Keyword search</small></label>
+                <input type="text" class="form-control form-control-sm" name="keyword" id="keywordSearch" value="{{ request.GET.keyword }}">
             </div>
         </div>
-        <div class="form-row form-row align-items-end">
+        <div class="form-row align-items-end">
             <div class="form-group m-1 col-lg">
-                <label for="office-filter"><small>Office/Mass</small></label>
-                <input type="text" class="form-control form-control-sm" name="office" value="{{ request.GET.office }}"
-                    id="office-filter">
+                <label for="office"><small>Office/Mass</small></label>
+                <input type="text" class="form-control form-control-sm" name="office" id="office" value="{{ request.GET.office }}">
             </div>
             <div class="form-group m-1 col-lg">
-                <label for="genre-filter"><small>Genre</small></label>
-                <select id="genre-filter" name="genre" class="form-control custom-select custom-select-sm">
+                <label for="genreFilter"><small>Genre</small></label>
+                <select id="genreFilter" name="genre" class="form-control custom-select custom-select-sm">
                     <option value="">- Any -</option>
                     {% for genre in genres %}
-                    <option value="{{genre.id}}">{{genre.name}}</option>
+                        <option value="{{ genre.id }}">{{ genre.name }}</option>
                     {% endfor %}
                 </select>
             </div>
             <div class="form-group m-1 col-lg">
-                <label for="cantus_id-filter"><small>Cantus ID</small></label>
-                <input type="text" class="form-control form-control-sm" name="cantus_id" value="{{ request.GET.cantus_id }}"
-                    id="cantus_id-filter">
+                <label for="cantus_id"><small>Cantus ID</small></label>
+                <input type="text" class="form-control form-control-sm" name="cantus_id" id="cantus_id" value="{{ request.GET.cantus_id }}">
             </div>
             <div class="form-group m-1 col-lg">
-                <label for="mode-filter"><small>Mode</small></label>
-                <input type="text" class="form-control form-control-sm" name="mode" value="{{ request.GET.mode }}"
-                    id="mode-filter">
+                <label for="mode"><small>Mode</small></label>
+                <input type="text" class="form-control form-control-sm" name="mode" id="mode" value="{{ request.GET.mode }}">
             </div>
             <div class="form-group m-1 col-lg">
-                <label for="feast-filter"><small>Feast</small></label>
-                <input type="text" class="form-control form-control-sm" name="feast" value="{{ request.GET.feast }}"
-                    id="feast-filter">
+                <label for="feast"><small>Feast</small></label>
+                <input type="text" class="form-control form-control-sm" name="feast" id="feast" value="{{ request.GET.feast }}">
             </div>
             <div class="form-group m-1 col-lg">
-                <label for="melodies-filter"><small>Melodies</small></label>
-                <select class="form-control custom-select custom-select-sm" id="melodies-filter" name="melodies">
+                <label for="melodiesFilter"><small>Melodies</small></label>
+                <select class="form-control custom-select custom-select-sm" id="melodiesFilter" name="melodies">
                     <option value="">- Any -</option>
                     <option value="true">Chants with melodies</option>
                     <option value="false">Chants without melodies</option>
                 </select>
             </div>
         </div>
-        {% comment %} <div class="form-row align-items-end">
-            <div class="form-group m-1 col-lg">
-                <label for="melody-search"><small>Melody search</small></label>
-                <input type="text" class="form-control form-control-sm" name="melody" value="{{ request.GET.melody }}"
-                    id="melody-search" style = "font-family:volpiano; font-size:30px;">
-            </div>
-        </div> {% endcomment %}
+
         <div class="form-row align-items-end">
             <div class="form-group m-1 col-lg">
                 <button type="submit" class="btn btn-dark btn-sm" id="btn-submit"> Apply </button>
@@ -108,7 +77,7 @@
     </form>
 
     {% if chants.all %}
-        <table class="table table-responsive table-sm small table-bordered">
+        <table class="table table-sm small table-bordered">
             <thead>
                 <tr>
                     <th scope="col" class="text-wrap" style="text-align:center">Siglum</th>
@@ -127,63 +96,63 @@
             </thead>
             <tbody>
                 {% for chant in chants %}
-                <tr>
-                    <td class="text-wrap" style="text-align:left">
-                        <a href="{{ chant.source.get_absolute_url }}">{{chant.source.siglum}}</a>
-                    </td>
-                    <td class="text-wrap" style="text-align:center">
-                        {{ chant.folio|default:""|truncatechars_html:140 }}
-                    </td>
+                    <tr>
+                        <td class="text-wrap" style="text-align:left">
+                            <a href="{{ chant.source.get_absolute_url }}">{{ chant.source.siglum }}</a>
+                        </td>
+                        <td class="text-wrap" style="text-align:center">
+                            {{ chant.folio|default:""|truncatechars_html:140 }}
+                        </td>
 
-                    <td class="text-wrap" style="text-align:left">
-                        {% comment %} this is used for distinguishing chants from sequences,
-                        if the object is chant, use chant.get_absolute_url,
-                        otherwise, use sequence.get_absolute_url
-                        the combined queryset turned all objects into chants
-                        so this is the only way to make the distinction {% endcomment %}
-                        {% if chant.search_vector %}
-                            <a href="{{chant.get_absolute_url}}">{{ chant.incipit|default:"" }}</a>
-                        {% else %}
-                            <a href="{% url 'sequence-detail' chant.id %}">{{ chant.incipit|default:"" }}</a>
-                        {% endif %}
-                        <p>
-                            {{ chant.manuscript_full_text_std_spelling|default:""|truncatewords_html:100 }}
-                        </p>           
-                    </td>
-                    <td class="text-wrap" style="text-align:center">
-                        {{ chant.feast.name|default:"" }}
-                    </td>
-                    <td class="text-wrap" style="text-align:center">
-                        {{ chant.office.name|default:"" }}
-                    </td>
-                    <td class="text-wrap" style="text-align:center">
-                        {{ chant.genre.name|default:"" }}
-                    </td>
-                    <td class="text-wrap" style="text-align:center">
-                        {{ chant.position|default:"" }}
-                    </td>
-                    <td class="text-wrap" style="text-align:center">
-                        <a href="{{ chant.get_ci_url }}" target="_blank">{{chant.cantus_id|default:"" }}</a>
-                    </td>
-                    <td class="text-wrap" style="text-align:center">
-                        {{ chant.mode|default:"" }}
-                    </td>
-                    <td class="text-wrap" style="text-align:center">
-                        {% if chant.manuscript_full_text %}
-                        ✔
-                        {% endif %}
-                    </td>
-                    <td class="text-wrap" style="text-align:center">
-                        {% if chant.volpiano %}
-                        ♫
-                        {% endif %}
-                    </td>
-                    <td class="text-wrap" style="text-align:center">
-                        {% if chant.image_link %}
-                        <a href="{{ chant.image_link }}" target="_blank">Image</a>
-                        {% endif %}
-                    </td>
-                </tr>
+                        <td class="text-wrap" style="text-align:left">
+                            {% comment %} this is used for distinguishing chants from sequences,
+                            if the object is chant, use chant.get_absolute_url,
+                            otherwise, use sequence.get_absolute_url
+                            the combined queryset turned all objects into chants
+                            so this is the only way to make the distinction {% endcomment %}
+                            {% if chant.search_vector %}
+                                <a href="{{chant.get_absolute_url}}">{{ chant.incipit|default:"" }}</a>
+                            {% else %}
+                                <a href="{% url 'sequence-detail' chant.id %}">{{ chant.incipit|default:"" }}</a>
+                            {% endif %}
+                            <p>
+                                {{ chant.manuscript_full_text_std_spelling|default:""|truncatewords_html:100 }}
+                            </p>           
+                        </td>
+                        <td class="text-wrap" style="text-align:center">
+                            {{ chant.feast.name|default:"" }}
+                        </td>
+                        <td class="text-wrap" style="text-align:center">
+                            {{ chant.office.name|default:"" }}
+                        </td>
+                        <td class="text-wrap" style="text-align:center">
+                            {{ chant.genre.name|default:"" }}
+                        </td>
+                        <td class="text-wrap" style="text-align:center">
+                            {{ chant.position|default:"" }}
+                        </td>
+                        <td class="text-wrap" style="text-align:center">
+                            <a href="{{ chant.get_ci_url }}" target="_blank">{{chant.cantus_id|default:"" }}</a>
+                        </td>
+                        <td class="text-wrap" style="text-align:center">
+                            {{ chant.mode|default:"" }}
+                        </td>
+                        <td class="text-wrap" style="text-align:center">
+                            {% if chant.manuscript_full_text %}
+                                ✔
+                            {% endif %}
+                        </td>
+                        <td class="text-wrap" style="text-align:center">
+                            {% if chant.volpiano %}
+                                ♫
+                            {% endif %}
+                        </td>
+                        <td class="text-wrap" style="text-align:center">
+                            {% if chant.image_link %}
+                                <a href="{{ chant.image_link }}" target="_blank">Image</a>
+                            {% endif %}
+                        </td>
+                    </tr>
                 {% endfor %}
             </tbody>
         </table>

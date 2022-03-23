@@ -8,8 +8,8 @@
         {% include "global_search_bar.html" %}
     </object>
     <h3>Office/Mass abbreviations</h3>
-    <small>Displaying {{page_obj.start_index}}-{{page_obj.end_index}} of <b>{{page_obj.paginator.count}}</b></small>
-    <table class="table table-responsive table-sm small">
+    <small>Displaying {{ page_obj.start_index }}-{{ page_obj.end_index }} of {{ page_obj.paginator.count }}</small>
+    <table class="table table-bordered table-sm small">
         <thead>
             <tr>
                 <th scope="col" class="text-wrap">Office</th>
@@ -18,21 +18,21 @@
         </thead>
         <tbody>
             {% for office in offices %}
-            <tr>
-                <td class="text-wrap">
-                    <a href="{{ office.get_absolute_url }}">{{office.name}}</a>
-                </td>
-                <td class="text-wrap">{{ office.description }}</td>
-            </tr>
+                <tr>
+                    <td class="text-wrap">
+                        <a href="{{ office.get_absolute_url }}"><b>{{ office.name }}</b></a>
+                    </td>
+                    <td class="text-wrap">{{ office.description }}</td>
+                </tr>
             {% endfor %}
         </tbody>
     </table>
     <div class="pagination">
         <span class="step-links">
             {% if page_obj.has_previous %}
-            <a href="?{% url_add_get_params page=1%}">&laquo;
-                first</a>
-            <a href="?{% url_add_get_params page=page_obj.previous_page_number %}">previous</a>
+                <a href="?{% url_add_get_params page=1%}">&laquo;
+                    first</a>
+                <a href="?{% url_add_get_params page=page_obj.previous_page_number %}">previous</a>
             {% endif %}
 
             <span class="current">
@@ -40,9 +40,9 @@
             </span>
 
             {% if page_obj.has_next %}
-            <a href="?{% url_add_get_params page=page_obj.next_page_number %}">next</a>
-            <a href="?{% url_add_get_params page=page_obj.paginator.num_pages %}">last
-                &raquo;</a>
+                <a href="?{% url_add_get_params page=page_obj.next_page_number %}">next</a>
+                <a href="?{% url_add_get_params page=page_obj.paginator.num_pages %}">last
+                    &raquo;</a>
             {% endif %}
         </span>
     </div>

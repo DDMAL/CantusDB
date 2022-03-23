@@ -34,7 +34,6 @@ class FeastDetailView(DetailView):
         chants_in_feast = self.get_object().chant_set.filter(
             source__public=True, source__visible=True
         )
-        print(chants_in_feast.count())
         cantus_ids = list(
             chants_in_feast.values_list("cantus_id", flat=True).distinct()
         )
@@ -90,7 +89,9 @@ class FeastListView(SearchableListMixin, ListView):
 
     def get_ordering(self):
         ordering = self.request.GET.get("sort_by")
-        if not ordering:
+        # feasts can be ordered by name or feast_code,
+        # default to ordering by name if given anything else
+        if ordering not in ["name", "feast_code"]:
             ordering = "name"
         return ordering
 

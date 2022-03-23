@@ -1,14 +1,17 @@
 <!DOCTYPE html>
+<head>
+    <script src="/static/js/search_bar.js"></script>
+</head>
 <body>
-    <form method="GET" action="{% url 'chant-search' %}">
-        <div class="input-group mb-3">
-            <input type="search" class="form-control" placeholder="Incipit/CantusID" name="search_bar" id="search-bar">
-                <div class="input-group-append">
-                    <button class="btn btn-secondary" type="submit">
-                        <i class="fa fa-search"></i>
-                    </button>
-                </div>
-            </input>
-        </div>
-    </form>
+    <div class="input-group">
+        <input type="search" class="form-control" placeholder="Incipit/CantusID" id="searchBar">
+            <div class="input-group-append">
+                <button class="btn btn-secondary" type="submit">
+                    <i class="fa fa-search"></i>
+                </button>
+            </div>
+        </input>
+    </div>
+    <!--The chants returned by the ajax call go here-->
+    <div id="chantsDiv"></div>
 </body>

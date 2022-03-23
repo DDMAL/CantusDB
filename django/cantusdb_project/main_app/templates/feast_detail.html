@@ -21,15 +21,15 @@
         {% if feast.month and feast.day %}
             <div class="col">
                 <dt>Feast Date</dt>
-                <dd>{{ feast.month|month_to_string|default:""}}.{{ feast.day|default:""}}</dd>
+                <dd>{{ feast.month|month_to_string|default:"" }}.{{ feast.day|default:"" }}</dd>
             </div>
             <div class="col">
                 <dt>Day</dt>
-                <dd>{{ feast.day|default:""}}</dd>
+                <dd>{{ feast.day|default:"" }}</dd>
             </div>
             <div class="col">
                 <dt>Month</dt>
-                <dd>{{ feast.month|default:""}}</dd>
+                <dd>{{ feast.month|default:"" }}</dd>
             </div>
         {% endif %}
         {% if feast.notes %}
@@ -42,8 +42,8 @@
     <div class="row">
         <div class="col">
             <h4>The most frequent chants</h4>
-            <small>Displaying 1 - {{ frequent_chants_zip|length }} of {{ frequent_chants_zip|length }}</small>
-            <table class="table table-responsive table-sm small table-bordered">
+            <small>Displaying 1 - {{ frequent_chants_zip|length }} of <b>{{ frequent_chants_zip|length }}</b></small>
+            <table class="table table-bordered table-sm small">
                 <thead>
                     <tr>
                         <th scope="col" class="text-wrap" style="text-align:center">CantusID</th>
@@ -56,7 +56,7 @@
                     {% for cantus_id, incipit, genre, count in frequent_chants_zip %}
                     <tr>
                         {% comment %} use `urlencode` filter because 1 chant and 2 sequences have forward slash in their cantus_id (data error) {% endcomment %}
-                        <td><a href="{% url 'chant-by-cantus_id' cantus_id|urlencode:"" %}">{{ cantus_id|default:"" }}</a></td>
+                        <td><a href="{% url 'chant-by-cantus-id' cantus_id|urlencode:"" %}">{{ cantus_id|default:"" }}</a></td>
                         <td>{{ incipit }}</td>
                         <td><a href="{{ genre.get_absolute_url }}">{{ genre.name }}</a></td>
                         <td>{{ count }}</td>
@@ -65,11 +65,11 @@
                 </tbody>
             </table>
         </div>
-        <!-- TODO: add lists of chants and sources related to this feast-->
+
         <div class="col">
             <h4>Sources containing the feast</h4>
-            <small>Displaying 1 - {{ sources_zip|length }} of {{ sources_zip|length }}</small>
-            <table class="table table-responsive table-sm small table-bordered">
+            <small>Displaying 1 - {{ sources_zip|length }} of <b>{{ sources_zip|length }}</b></small>
+            <table class="table table-bordered table-sm small">
                 <thead>
                     <tr>
                         <th scope="col" class="text-wrap" style="text-align:center">Siglum</th>
@@ -78,10 +78,10 @@
                 </thead>
                 <tbody>
                     {% for source, count in sources_zip %}
-                    <tr>
-                        <td><a href="{% url 'chant-list' %}?source={{ source.id }}">{{ source.siglum }}</a></td>
-                        <td><a href="{% url 'chant-list' %}?source={{ source.id }}&feast={{ feast.id }}">{{ count }}</a></td>
-                    </tr>
+                        <tr>
+                            <td><a href="{% url 'chant-list' %}?source={{ source.id }}">{{ source.siglum }}</a></td>
+                            <td><a href="{% url 'chant-list' %}?source={{ source.id }}&feast={{ feast.id }}">{{ count }}</a></td>
+                        </tr>
                     {% endfor %}
                 </tbody>
             </table>
