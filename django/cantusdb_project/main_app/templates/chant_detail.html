@@ -161,7 +161,8 @@
                                     {% for syl_mel, syl_text in zip %}
                                         <span style="float: left">
                                             <div style="font-family: volpiano; font-size: 28px">{{ syl_mel }}</div>
-                                            <div style="font-size: 10px"><pre>{{ syl_text }}</pre></div>
+                                            <!-- "mt" is margin at the top, so that the lowest note in volpiano don't overlap with text -->
+                                            <div class="mt-2" style="font-size: 10px"><pre>{{ syl_text }}</pre></div>
                                         </span>
                                     {% endfor %}
                                 {% endfor %}

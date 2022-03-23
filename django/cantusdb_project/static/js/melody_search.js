@@ -223,10 +223,11 @@ function melodySearch() {
                                             <br>
                                             <b>${chant.genre__name}</b> | Mode: <b>${chant.mode}</b>
                                     </td>`;
+                // pb-2 = bottom padding, so that the lower notes in volpiano do not get cut off
                 newRow.innerHTML += `<td style="width:80%">
                                             <a href="${chant.chant_link}" target="_blank"><b>${chant.incipit}</b></a>
                                             <br>
-                                            <div style="font-family: volpiano; font-size: 28px; white-space: nowrap; overflow: hidden; text-overflow: clip;">${chant.volpiano}</div>
+                                            <div class="pb-2" style="font-family: volpiano; font-size: 28px; white-space: nowrap; overflow: hidden; text-overflow: clip;">${chant.volpiano}</div>
                                             <div style="float: right">${chant.feast__name}</div>
                                     </td>`;
             });
