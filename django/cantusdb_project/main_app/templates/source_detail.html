@@ -89,7 +89,7 @@
             {% if sequences %}
                 <h4>Sequences in this source</h4>
                 <small>Displaying 1 - {{ sequences.count }} of {{ sequences.count }}</small>
-                <table class="table table-responsive table-sm small table-bordered">
+                <table class="table table-sm small table-bordered">
                     <thead>
                         <tr>
                             <th scope="col" class="text-wrap" style="text-align:center">Siglum</th>
@@ -127,116 +127,110 @@
             {% endif %}
         </div>
 
-        <div class="col">
-            <div class="row">
-                <!-- global search bar-->
-                {% include "global_search_bar.html" %}
-            </div>
+        <div class="col p-0">
+            <!-- global search bar-->
+            {% include "global_search_bar.html" %}
 
-            <div class="row">
-                <div class="card mb-3 w-100">
-                    <div class="card-header">
-                        <h4>{{ source.siglum }}</h4>
-                    </div>
-                    <div class="card-body">
-                        <small>
-                            <!--a small selector of all folios of this source-->
-                            <select id="folioSelect" class="w-30" onchange="jumpToFolio({{ source.id }})">
-                                <option value="">Select a folio:</option>
-                                {% for folio in folios %}
-                                    <option value="{{ folio }}">{{ folio }}</option>
-                                {% endfor %}
-                            </select>                              
-
-                            <select id="feastSelect" onchange="jumpToFeast({{ source.id }})">
-                                <option value="">Select a feast:</option>
-                                {% for folio, feast in feasts_with_folios %}
-                                    <option value="{{ feast.id }}">{{ folio }} - {{ feast.name }}</option>
-                                {% endfor %}
-                            </select>
-
-                            <br>
-                            <a href="{% url "chant-list" %}?source={{ source.id }}" target="_blank">» View all chants</a>
-                            &nbsp;
-                            <a href="{% url "chant-index" %}?source={{ source.id }}" target="_blank">» View full index</a>
-                            &nbsp;
-                            <a href="{% url "csv-export" source.id%}" target="_blank">» CSV export</a>
-                            <br>
-                            <a href="{% url "chant-search-ms" source.id %}" target="_blank" >» Search chants in this manuscript</a>
-                            &nbsp;
-                            {% if source.image_link %}
-                                <a href="{{ source.image_link }}" target="_blank">» Image gallery</a>
-                            {% endif %}
-                            <br>
-                            <a href="{% url "melody-search" %}?source={{ source.id }}"  target="_blank">» Search melodies in this manuscript</a>
-                            <br>
-                            <a href="//cantusindex.org/analyse?src={{ source.id }}&db=CD" target="_blank">» Analyse this manuscript (Cantus Analysis Tool)</a>
-                        </small>
-                    </div>    
+            <div class="card mb-3 w-100">
+                <div class="card-header">
+                    <h4>{{ source.siglum }}</h4>
                 </div>
+                <div class="card-body">
+                    <small>
+                        <!--a small selector of all folios of this source-->
+                        <select id="folioSelect" class="w-30" onchange="jumpToFolio({{ source.id }})">
+                            <option value="">Select a folio:</option>
+                            {% for folio in folios %}
+                                <option value="{{ folio }}">{{ folio }}</option>
+                            {% endfor %}
+                        </select>                              
+
+                        <select id="feastSelect" onchange="jumpToFeast({{ source.id }})">
+                            <option value="">Select a feast:</option>
+                            {% for folio, feast in feasts_with_folios %}
+                                <option value="{{ feast.id }}">{{ folio }} - {{ feast.name }}</option>
+                            {% endfor %}
+                        </select>
+
+                        <br>
+                        <a href="{% url "chant-list" %}?source={{ source.id }}" target="_blank">» View all chants</a>
+                        &nbsp;
+                        <a href="{% url "chant-index" %}?source={{ source.id }}" target="_blank">» View full index</a>
+                        &nbsp;
+                        <a href="{% url "csv-export" source.id%}" target="_blank">» CSV export</a>
+                        <br>
+                        <a href="{% url "chant-search-ms" source.id %}" target="_blank" >» Search chants in this manuscript</a>
+                        &nbsp;
+                        {% if source.image_link %}
+                            <a href="{{ source.image_link }}" target="_blank">» Image gallery</a>
+                        {% endif %}
+                        <br>
+                        <a href="{% url "melody-search" %}?source={{ source.id }}"  target="_blank">» Search melodies in this manuscript</a>
+                        <br>
+                        <a href="//cantusindex.org/analyse?src={{ source.id }}&db=CD" target="_blank">» Analyse this manuscript (Cantus Analysis Tool)</a>
+                    </small>
+                </div>    
             </div>
 
-            <div class="row">
-                <div class="card mb-3 w-100">
-                    <div class="card-header">
-                        <small>
-                            <a href="{% url "source-list" %}?segment={{ source.segment.id }}">{{ source.segment.name }}</a>
-                        </small>
-                        <br>
-                        {{ source.siglum }}
-                    </div>
-                    <div class=" card-body">
-                        <small>
-                            {% if source.provenance.name %}
-                                Provenance: <b><a href="#">{{source.provenance.name}}</a></b>
-                                <br>
-                            {% endif %}
-                            {% if source.date %}
-                                Date: 
-                                {% for century in source.century.all %}
-                                    <b><a href="#">{{ century.name }}</a></b>
-                                {% endfor %}
-                                |
-                                <b>{{ source.date|default_if_none:"" }}</b>
-                                <br>
-                            {% endif %}
-                            {% if source.cursus %}
-                                Cursus: <b>{{ source.cursus|default_if_none:"" }}</b>
-                                <br>
-                            {% endif %}
-                            {% if source.notation.all %}
-                                Notation: <b><a href="#">{{ source.notation.all.first.name }}</a></b>
-                                <br>
-                            {% endif %}
-                            {% if source.inventoried_by.all %}
-                                Inventoried by:
-                                <ul>
-                                    {% for editor in source.inventoried_by.all %}
-                                        <li>
-                                            <a href={{ editor.get_absolute_url }}><b>{{ editor.first_name }}
-                                                {{ editor.family_name }}</b></a><br>
-                                            {{ editor.institution|default_if_none:"" }}
-                                        </li>
-                                    {% endfor %}
-                                </ul>
-                            {% endif %}
-                            {% if source.proofreaders.all %}
-                                Proofreader{{ source.proofreaders.all|pluralize }}:
-                                <br>
-                                <ul>
-                                    {% for editor in source.proofreaders.all %}
-                                        <li>
-                                            <a href={{ editor.get_absolute_url }}><b>{{ editor.first_name }}
-                                                {{ editor.family_name }}</b></a><br>
-                                        </li>
-                                    {% endfor %}
-                                </ul>
-                            {% endif %}
-                            {{ source.indexing_notes|default_if_none:"" }}
+            <div class="card mb-3 w-100">
+                <div class="card-header">
+                    <small>
+                        <a href="{% url "source-list" %}?segment={{ source.segment.id }}">{{ source.segment.name }}</a>
+                    </small>
+                    <br>
+                    {{ source.siglum }}
+                </div>
+                <div class=" card-body">
+                    <small>
+                        {% if source.provenance.name %}
+                            Provenance: <b><a href="#">{{source.provenance.name}}</a></b>
                             <br>
-                            Contributor: <a href="">CANTUS Database Administrator</a>
-                        </small>
-                    </div>
+                        {% endif %}
+                        {% if source.date %}
+                            Date: 
+                            {% for century in source.century.all %}
+                                <b><a href="#">{{ century.name }}</a></b>
+                            {% endfor %}
+                            |
+                            <b>{{ source.date|default_if_none:"" }}</b>
+                            <br>
+                        {% endif %}
+                        {% if source.cursus %}
+                            Cursus: <b>{{ source.cursus|default_if_none:"" }}</b>
+                            <br>
+                        {% endif %}
+                        {% if source.notation.all %}
+                            Notation: <b><a href="#">{{ source.notation.all.first.name }}</a></b>
+                            <br>
+                        {% endif %}
+                        {% if source.inventoried_by.all %}
+                            Inventoried by:
+                            <ul>
+                                {% for editor in source.inventoried_by.all %}
+                                    <li>
+                                        <a href={{ editor.get_absolute_url }}><b>{{ editor.first_name }}
+                                            {{ editor.family_name }}</b></a><br>
+                                        {{ editor.institution|default_if_none:"" }}
+                                    </li>
+                                {% endfor %}
+                            </ul>
+                        {% endif %}
+                        {% if source.proofreaders.all %}
+                            Proofreader{{ source.proofreaders.all|pluralize }}:
+                            <br>
+                            <ul>
+                                {% for editor in source.proofreaders.all %}
+                                    <li>
+                                        <a href={{ editor.get_absolute_url }}><b>{{ editor.first_name }}
+                                            {{ editor.family_name }}</b></a><br>
+                                    </li>
+                                {% endfor %}
+                            </ul>
+                        {% endif %}
+                        {{ source.indexing_notes|default_if_none:"" }}
+                        <br>
+                        Contributor: <a href="">CANTUS Database Administrator</a>
+                    </small>
                 </div>
             </div>
         </div>

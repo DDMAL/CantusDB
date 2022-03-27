@@ -223,82 +223,76 @@
                 </div>
 
                 <div class="form-group m-1 col-lg-2">
-                    <button type="submit" class="btn btn-primary btn-sm" id="btn-submit"> Save
+                    <button type="submit" class="btn btn-dark btn-sm" id="btn-submit"> Save
                     </button>
                 </div>
             </form>
         </div>
 
-        <div class="col">
-            <div class="row">
+        <div class="col p-0">
             <!-- global search bar-->
             {% include "global_search_bar.html" %}
-            </div>
-            <div class="row">
-                <div class="card mb-3 w-100">
-                    <div class="card-header">
-                        <h5><a id="source" href="{{ source_link }}">{{ source.title }}</a></h5>
-                    </div>
-                    <div class="card-body" style="font-size: 15px">
-                        <b>Suggestions based on the previous chant:</b><br>
-                        {% if previous_chant %}
-                            {{ previous_chant.folio }} {{ previous_chant.sequence_number}} <a href="{{ previous_chant_link }}" target="_blank">{{ previous_chant.incipit }}</a><br>
-                            Cantus ID: <a href="http://cantusindex.org/id/{{ previous_chant.cantus_id }}" target="_blank">{{ previous_chant.cantus_id }}</a><br>
-                                {% if suggested_chants %}
-                                    {% for chant in suggested_chants %}
-                                        <input type="button" style="width: 80px" value="{{ chant.cid }}" onclick="autoFill{{ chant.cid }}()"></input>
-                                        <strong>{{ chant.genre }}</strong> - {{ chant.fulltext }} (<strong>{{ chant.noc }}x</strong>)<br>
-                                        <script>
-                                            function autoFill{{ chant.cid }}() {
-                                                const genreId = Array.prototype.find.call(document.getElementById('id_genre').children, ({ textContent }) => textContent === "{{ chant.genre }}");
-                                                document.getElementById('id_cantus_id').value = "{{ chant.cid }}";
-                                                document.getElementById('id_genre').value = genreId.value;
-                                                document.getElementById('id_manuscript_full_text_std_spelling').value = "{{ chant.fulltext }}";
-                                            }
-                                        </script>
-                                    {% endfor %}
-                                {% else %}
-                                    Sorry! No suggestions found. Please use the search form below.<br>
-                                {% endif %}
-                        <br>
-                        <p>The suggestions are based on the <strong>Cantus Database | MMMO | Slovakian Early Music Database</strong><br>
-                        If your chant is not listed above, please use the search form below.</p>
 
-                        {% else %}
-                            Sorry! No suggestions found. Please use the search form below.
-                        {% endif %}
+            <div class="card mb-3 w-100">
+                <div class="card-header">
+                    <h5><a id="source" href="{{ source_link }}">{{ source.title }}</a></h5>
+                </div>
+                <div class="card-body" style="font-size: 15px">
+                    <b>Suggestions based on the previous chant:</b><br>
+                    {% if previous_chant %}
+                        {{ previous_chant.folio }} {{ previous_chant.sequence_number}} <a href="{{ previous_chant_link }}" target="_blank">{{ previous_chant.incipit }}</a><br>
+                        Cantus ID: <a href="http://cantusindex.org/id/{{ previous_chant.cantus_id }}" target="_blank">{{ previous_chant.cantus_id }}</a><br>
+                            {% if suggested_chants %}
+                                {% for chant in suggested_chants %}
+                                    <input type="button" style="width: 80px" value="{{ chant.cid }}" onclick="autoFill{{ chant.cid }}()"></input>
+                                    <strong>{{ chant.genre }}</strong> - {{ chant.fulltext }} (<strong>{{ chant.noc }}x</strong>)<br>
+                                    <script>
+                                        function autoFill{{ chant.cid }}() {
+                                            const genreId = Array.prototype.find.call(document.getElementById('id_genre').children, ({ textContent }) => textContent === "{{ chant.genre }}");
+                                            document.getElementById('id_cantus_id').value = "{{ chant.cid }}";
+                                            document.getElementById('id_genre').value = genreId.value;
+                                            document.getElementById('id_manuscript_full_text_std_spelling').value = "{{ chant.fulltext }}";
+                                        }
+                                    </script>
+                                {% endfor %}
+                            {% else %}
+                                Sorry! No suggestions found. Please use the search form below.<br>
+                            {% endif %}
+                    <br>
+                    <p>The suggestions are based on the <strong>Cantus Database | MMMO | Slovakian Early Music Database</strong><br>
+                    If your chant is not listed above, please use the search form below.</p>
 
+                    {% else %}
+                        Sorry! No suggestions found. Please use the search form below.
+                    {% endif %}
 
 
-                    </div>
+
                 </div>
             </div>
 
-            <div class="row">
-                <div class="card mb-3 w-100">
-                    <div class="card-header">
-                        <h5>Input Tool</h5>
-                    </div>
+            <div class="card mb-3 w-100">
+                <div class="card-header">
+                    <h5>Input Tool</h5>
+                </div>
 
-                    <div class=" card-body" style="font-size: 15px">
-                        Enter any text from chant:
-                        <input type="text" id="incipitsearch" />
-                        <button class="btn btn-danger btn-sm" onclick="openCiSearchWin()">Search ID</button>
-                        <script>
-                            function openCiSearchWin() {
-                                search_term = document.getElementById("incipitsearch").value;
-                                if (search_term.length < 3) {
-                                    search_term = window.prompt("Enter at least 3 characters of incipit", "");
-                                }
-                                address = "/ci-search/" + search_term;
-                                var ci = window.open(address, "ci", "height=400px, width=1200px, top=0, left=50px, status=no, toolbar=no, location=no, scrollbars=yes, resizable=yes");
+                <div class=" card-body" style="font-size: 15px">
+                    Enter any text from chant:
+                    <input type="text" id="incipitsearch" />
+                    <button class="btn btn-danger btn-sm" onclick="openCiSearchWin()">Search ID</button>
+                    <script>
+                        function openCiSearchWin() {
+                            search_term = document.getElementById("incipitsearch").value;
+                            if (search_term.length < 3) {
+                                search_term = window.prompt("Enter at least 3 characters of incipit", "");
                             }
-                        </script>
-                    </div>
-
+                            address = "/ci-search/" + search_term;
+                            var ci = window.open(address, "ci", "height=400px, width=1200px, top=0, left=50px, status=no, toolbar=no, location=no, scrollbars=yes, resizable=yes");
+                        }
+                    </script>
                 </div>
-            </div>
 
+            </div>
 
         </div>
     </div>
