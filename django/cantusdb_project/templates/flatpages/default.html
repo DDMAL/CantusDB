@@ -4,16 +4,16 @@
 <div class="container">
     <title>{{ flatpage.title }} | Cantus Manuscript Database</title>
     <div class="row">
-        <div class="mr-3 p-3 col-lg-8 bg-white rounded">
+        <div class="p-3 col-lg-8 bg-white rounded">
             <h2>{{flatpage.title}}</h2>
             {{ flatpage.content }}
         </div>
-        <div class="col">
-            <div class="row">
+        <div class="col-lg-4">
+            {% comment %} <div class="row"> {% endcomment %}
             {% include "global_search_bar.html" %}
-            </div>
-            <div class="row">
-                <div class="card mb-3 w-100">
+            {% comment %} </div> {% endcomment %}
+            {% comment %} <div class="row"> {% endcomment %}
+                <div class="card mt-3 w-100">
                     <div class="card-header">
                         Jump to Source
                     </div>
@@ -33,7 +33,7 @@
                     </script>
 
                 </div>
-            </div>
+            {% comment %} </div> {% endcomment %}
         </div>
     </div>
 </div>
