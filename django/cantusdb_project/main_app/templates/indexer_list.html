@@ -10,10 +10,10 @@
     <h3>List of Indexers</h3>
     <small>Displaying {{ page_obj.start_index }}-{{ page_obj.end_index }} of <b>{{ page_obj.paginator.count }}</b></small>
     <form method="get">
-        <div class="input-group">
+        <div class="input-group w-25">
             <input type="text" class="form-control" placeholder="Type any part of a word" name="q" value="{{ request.GET.q }}">
             <div class="input-group-append">
-                <button type="submit" class="btn btn-dark btn-sm"> Search Indexers </button>
+                <button type="submit" class="btn btn-dark btn-sm"> Search </button>
             </div>
         </div>
     </form>

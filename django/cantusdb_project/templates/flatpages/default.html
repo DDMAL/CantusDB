@@ -8,31 +8,29 @@
             <h2>{{flatpage.title}}</h2>
             {{ flatpage.content }}
         </div>
-        <div class="col">
-            <div class="row">
+        
+        <div class="col p-0">
+            <!-- global search bar-->
             {% include "global_search_bar.html" %}
-            </div>
-            <div class="row">
-                <div class="card mb-3 w-100">
-                    <div class="card-header">
-                        Jump to Source
-                    </div>
-                    <div class="card-body">
-                        <select name="sources" id="source-select" class="w-75" onchange="jumpSource()">
-                            <option value="none">-Browse sources-</option>
-                            {% source_links %}
-                        </select>
-                    </div>
 
-                    <script>
-                        function jumpSource() {
-                            sourceLink = document.getElementById("source-select").options[document.getElementById("source-select").selectedIndex].value;
-                            fullLink = window.location.origin + '/' + sourceLink;
-                            window.location.assign(fullLink);
-                        }
-                    </script>
-
+            <div class="card mt-3 w-100">
+                <div class="card-header">
+                    Jump to Source
                 </div>
+                <div class="card-body">
+                    <select name="sources" id="source-select" class="w-75" onchange="jumpSource()">
+                        <option value="none">-Browse sources-</option>
+                        {% source_links %}
+                    </select>
+                </div>
+
+                <script>
+                    function jumpSource() {
+                        sourceLink = document.getElementById("source-select").options[document.getElementById("source-select").selectedIndex].value;
+                        fullLink = window.location.origin + '/' + sourceLink;
+                        window.location.assign(fullLink);
+                    }
+                </script>
             </div>
         </div>
     </div>
