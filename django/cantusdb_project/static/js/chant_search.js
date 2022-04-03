@@ -4,6 +4,7 @@ window.addEventListener("load", function () {
     const opFilter = document.getElementById("opFilter");
     const genreFilter = document.getElementById("genreFilter");
     const melodiesFilter = document.getElementById("melodiesFilter");
+    const searchBar = document.getElementById("searchBar")
 
     const urlParams = new URLSearchParams(window.location.search);
     if (urlParams.has("op")) {
@@ -14,5 +15,8 @@ window.addEventListener("load", function () {
     }
     if (urlParams.has("melodies")) {
         melodiesFilter.value = urlParams.get("melodies");
+    }
+    if (urlParams.has("search_bar")) {
+        searchBar.value = urlParams.get("search_bar");
     }
 });
