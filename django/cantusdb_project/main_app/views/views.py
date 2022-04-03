@@ -377,7 +377,18 @@ def ajax_search_bar(request, search_term):
         JsonResponse: A response to the AJAX call, to be unpacked by frontend js code
     """
     # load only the first seven chants
-    chants = Chant.objects.filter(incipit__icontains=search_term).order_by("id")[0:7]
+    CHANT_CNT = 7
+
+    if search_term.isalpha():
+        # if the search term contains only alphabet letters, search incipit
+        chants = Chant.objects.filter(incipit__icontains=search_term).order_by("id")[
+            :CHANT_CNT
+        ]
+    else:
+        # if the search term contains digits, search Cantus ID
+        chants = Chant.objects.filter(cantus_id__istartswith=search_term).order_by(
+            "id"
+        )[:CHANT_CNT]
     returned_values = chants.values(
         "incipit",
         "genre__name",
