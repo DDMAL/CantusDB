@@ -43,8 +43,8 @@ there should never be a space in volpiano. hyphens do the separation and spacing
 
 
 def syllabize_text(text, pre_syllabized=False):
-    # vertical stroke | identifies sections within a chant, it's meant to help align text with melody
-    # it should be surrounded by spaces
+    # vertical stroke | identifies sections within a chant, it should be surrounded by spaces
+    # if it's missing spaces, add them
     if "|" in text:
         substrs_around_barline = text.split("|")
         # this may introduce extra spaces. those will be removed in the next part
@@ -67,6 +67,7 @@ def syllabize_text(text, pre_syllabized=False):
     syls_text = [[" "]]
 
     if pre_syllabized:
+        # if the chant has its syllabized_full_text hardcoded in the DB
         for word in words_text:
             # this `if` eliminates the extra spaces
             if word:
@@ -76,10 +77,6 @@ def syllabize_text(text, pre_syllabized=False):
     else:
         for word in words_text:
             if word:
-                # if "{" in word or "}" in word:
-                #     # what we want here is to make the part between {} an independent word, so that they mey be combined correctly
-                #     # see 219427 and 619450
-                # else:
                 syls = [syl + "-" for syl in syllabify_word(word)]
                 syls[-1] = syls[-1][:-1]
                 syls_text.append(syls)
@@ -296,12 +293,25 @@ def align(syls_text, syls_melody):
         # if the melody word is empty, ignore it during alignment
         if syls_melody[i] == [""]:
             continue
-        # for every word, if melody has more syllables, add space to the text
+
+        # if the melody word is a barline, but there's no barline in text to align with it
+        # see 270470 270305
+        if syls_melody[i] == ["3---"] and syls_text[i] != ["|"]:
+            # insert a barline or space (as a word) to text
+            # syls_text.insert(i, ["|"])
+            syls_text.insert(i, [" "])
+
+        # if the melody word has more syllables, add space to the text
         if len(syls_melody[i]) > len(syls_text[i]):
             word_zip = zip_longest(syls_melody[i], syls_text[i], fillvalue=" ")
-        # if text has more syllables, add dash to melody
         else:
-            word_zip = zip_longest(syls_melody[i], syls_text[i], fillvalue="-")
+            # when the text word has more syllables, there are two options:
+            # 1. hide the extra syllables (more like old cantus)
+            # word_zip = zip(syls_melody[i], syls_text[i])
+
+            # 2. append dashes to the melody word, so that the text word and melody word have the same number of syllables
+            # the second option may cause gaps in staff lines, if the appended content takes up less horizontal space than the extra text syllables
+            word_zip = zip_longest(syls_melody[i], syls_text[i], fillvalue="------")
         list_of_zips.append(word_zip)
 
     return list_of_zips
