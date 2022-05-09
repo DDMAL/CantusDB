@@ -8,18 +8,18 @@
 # these fixtures need to be loaded in a certain order due to foreign key dependance
 # before running this, make sure you put the 'fixtures' folder under 'main_app'
 FIXTURES_LIST=(
-   flatpage_fixtures.json
-   indexer_fixtures.json
-   office_fixtures.json
-   genre_fixtures.json
-   feast_fixtures.json
-   notation_fixtures.json
-   century_fixtures.json
-   provenance_fixtures.json
-   rism_siglum_fixtures.json
-   segment_fixtures.json
-   source_fixtures.json
-   sequence_fixtures.json
+   flatpage_fixture.json
+   indexer_fixture.json
+   office_fixture.json
+   genre_fixture.json
+   feast_fixture.json
+   notation_fixture.json
+   century_fixture.json
+   provenance_fixture.json
+   rism_siglum_fixture.json
+   segment_fixture.json
+   source_fixture.json
+   sequence_fixture.json
 )
 
 for fixture in ${FIXTURES_LIST[*]}
