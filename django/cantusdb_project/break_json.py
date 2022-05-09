@@ -4,7 +4,7 @@ import os
 
 CWD = os.getcwd()
 LARGE_JSON = os.path.join(
-    CWD, "main_app/fixtures/chant_fixtures.json"
+    CWD, "main_app/fixtures/chant_fixture.json"
 )  # path to the large json file
 TARGET_PATH = os.path.join(
     CWD, "main_app/fixtures/chant_fixtures"
