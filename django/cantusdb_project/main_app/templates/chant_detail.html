@@ -192,13 +192,9 @@
                 <div id="melodyDiv"></div>        
             {% endif %}
 
-            {% comment %} <br>
-            <a href="" class="btn btn-primary" id="delete">Delete this Chant</a>
-            <script>
-                window.onload = function () {
-                    document.getElementById("delete").href = window.location.href + '/delete';
-                }
-            </script> {% endcomment %}
+            <br>
+            <!-- This button helps delete random chants created when testing chant-create functionality -->
+            <a href="/chant-delete/{{ chant.id }}" class="btn btn-primary" id="delete">Delete this Chant</a>
         </div>
 
         <div class="col p-0">
