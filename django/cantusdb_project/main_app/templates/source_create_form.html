@@ -1,0 +1,177 @@
+{% extends "base.html" %}
+{% load helper_tags %}
+{% block content %}
+<title>Create Source | Cantus Manuscript Database</title>
+<div class="container">
+    <div class="row">
+        <div class="mr-3 p-3 col-md-8 bg-white rounded">
+            <h3>Create Source</h3>
+
+            <!--Display "submit success" message -->
+            {% if messages %}
+            <div class="alert alert-success alert-dismissible">
+                {% for message in messages %}
+                    {{ message }}
+                {% endfor %}
+            </div>
+            {% endif %}
+
+            <!--Display form error message -->
+            {% if form.errors %}
+            <div class="alert alert-danger alert-dismissible">
+                <a href="#" class="close" data-dismiss="alert" aria-label="close">&times;</a>
+                {% for error in form.non_field_errors %}
+                    <a href="#" class="close" data-dismiss="alert" aria-label="close">&times;</a>
+                    {{ error }}
+                {% endfor %}
+                {% for field in form %}
+                    {% if field.errors %}
+                        <a href="#" class="close" data-dismiss="alert" aria-label="close">&times;</a>
+                        {{ field.label }}: {{ field.errors|striptags }}
+                    {% endif %}
+                {% endfor %}
+            </div>
+            {% endif %}
+
+            <form method="post" style="line-height: normal">{% csrf_token %}
+                <div class="form-row">
+
+                    <div class="form-group m-1 col-lg-2">
+                        <label for="{{ form.title.id_for_label }}">
+                            <small>Full Manuscript Identification (City, Archive, Shelf-mark):</small>
+                        </label>
+                        {{ form.title }}
+                        <p class=text-muted><small>{{ form.title.help_text }}</small></p>
+                    </div>
+
+                    <div class="form-group m-1 col-lg-2">
+                        <label for="{{ form.rism_siglum.id_for_label }}">
+                            <small>RISM:</small>
+                        </label>
+                        {{ form.rism_siglum }}
+                    </div>
+                </div>
+
+                <div class="form-row">
+                    <div class="form-group m-1 col-lg-2">
+                        <small>{{ form.siglum.label_tag }}</small>
+                        {{ form.siglum }}
+                    </div>    
+                </div>
+
+                <div class="form-row">
+                    <div class="form-group m-1 col-lg-2">
+                        <label for="{{ form.provenance.id_for_label }}">
+                            <small>Provenance (origin / history):</small>
+                        </label>
+                        {{ form.provenance }}
+                        <p class=text-muted><small>{{ form.provenance.help_text }}</small></p>
+                    </div>
+                </div>
+
+                <div class="form-row">
+                    <div class="form-group m-1 col-lg-2">
+                        <small>{{ form.provenance_notes.label_tag }}</small>
+                        {{ form.provenance_notes }}
+                        <p class=text-muted><small>{{ form.provenance_notes.help_text }}</small></p>
+                    </div>
+
+                    <div class="form-group m-1 col-lg-2">
+                        <label for="{{ form.provenance.id_for_label }}">
+                            <small>Full source / fragment:</small>
+                        </label>
+                        {{ form.full_source }}
+                        <p class=text-muted><small>{{ form.full_source.help_text }}</small></p>
+                    </div>
+                </div>
+
+
+                <div class="form-row">
+                    <div class="form-group m-1 col-lg-2">
+                        <small>{{ form.date.label_tag }}</small>
+                        {{ form.date }}
+                        <p class=text-muted><small>{{ form.date.help_text }}</small></p>
+                    </div>
+                    <div class="form-group m-1 col-lg-5">
+                        <small>{{ form.century.label_tag }}</small>
+                        {{ form.century }}
+                    </div>
+                    <div class="form-group m-1 col-lg-2">
+                        <small>{{ form.cursus.label_tag }}</small>
+                        {{ form.cursus }}
+                    </div>
+                </div>
+
+                <div class="form-row">
+                    <div class="form-group m-1 col-lg-2">
+                        <small>{{ form.current_editors.label_tag }}</small>
+                        {{ form.current_editors }}
+                    </div> 
+                </div>
+
+                <div class="form-row">
+                    <div class="form-group m-1 col-lg-2">
+                        <small>{{ form.melodies_entered_by.label_tag }}</small>
+                        {{ form.melodies_entered_by }}
+                    </div> 
+
+                    <div class="form-group m-1 col-lg-2">
+                        <label for="{{ form.complete_inventory.id_for_label }}">
+                            <small>Complete / partial inventory:</small>
+                        </label>
+                        {{ form.complete_inventory }}
+                    </div>
+                </div>
+
+                <div class="form-row">
+
+                    <div class="form-group m-1 col-lg-2">
+                        <small>{{ form.summary.label_tag }}</small>
+                        {{ form.summary }}
+                    </div>
+                </div>
+            
+                <div class="form-row">
+                    <div class="form-group m-1 col-lg-2">
+                        <small>{{ form.description.label_tag }}</small>
+                        {{ form.description }}
+                    </div>
+                    <div class="form-group m-1 col-lg">
+                        <small>{{ form.selected_bibliography.label_tag }}</small>
+                        {{ form.selected_bibliography }}
+                    </div>
+                </div>
+
+                <div class="form-row align-items-end">
+                    <div class="form-group m-1 col-lg">
+                        <small>{{ form.image_link.label_tag }}</small>
+                        {{ form.image_link }}
+                    </div>
+                    <div class="form-group m-1 col-lg">
+                        <label for="{{ form.fragmentarium_id.id_for_label }}"><small>Fragmentarium ID:</small></label>
+                        {{ form.fragmentarium_id }}
+                    </div>
+                    <div class="form-group m-1 col-lg-8">
+                        <label for="{{ form.dact_id.id_for_label }}"><small>DACT ID:</small></label>
+                        {{ form.dact_id }}
+                    </div>
+                </div>
+
+                <div class="form-row align-items-end">
+                    <div class="form-group m-1 col-lg">
+                        <small>{{ form.indexing_notes.label_tag }}</small>
+                        {{ form.indexing_notes }}
+                    </div>
+                </div>
+
+                <div class="form-group m-1 col-lg-2">
+                    <button type="submit" class="btn btn-dark btn-sm" id="btn-submit"> Save
+                    </button>
+                </div>
+
+            </form>
+        </div>
+
+    </div>
+</div>
+{% endblock %}
