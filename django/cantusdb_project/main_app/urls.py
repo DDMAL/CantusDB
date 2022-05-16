@@ -1,7 +1,7 @@
 from django.urls import path
-
 from main_app.views import *
 from main_app.views import views
+from main_app.views.source import SourceCreateView
 
 urlpatterns = [
     path("indexers/", IndexerListView.as_view(), name="indexer-list"),
@@ -49,5 +49,8 @@ urlpatterns = [
         "ajax/search-bar/<str:search_term>",
         views.ajax_search_bar,
         name="ajax_search_bar",
+    ),
+        path(
+        "source-create/", SourceCreateView.as_view(), name="source-create"
     ),
 ]

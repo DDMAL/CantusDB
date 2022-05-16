@@ -1,5 +1,5 @@
 from django import forms
-from .models import Chant, Office, Genre, Feast, Source
+from .models import Chant, Office, Genre, Feast, Source, RismSiglum, Provenance, Century, Indexer
 from .widgets import *
 
 # ModelForm allows to build a form directly from a model
@@ -131,3 +131,86 @@ class ContactForm(forms.Form):
     sender_email = forms.EmailField()
     subject = forms.CharField(max_length=100)
     message = forms.CharField(widget=forms.Textarea)
+
+class SourceCreateForm(forms.ModelForm):
+    class Meta:
+        model = Source
+        fields = [
+            "title",
+            "rism_siglum",
+            "siglum",
+            "provenance",
+            "provenance_notes",
+            "full_source",
+            "date",
+            "century",
+            "cursus",
+            "current_editors",
+            "melodies_entered_by",
+            "complete_inventory",
+            "summary",
+            "description",
+            "selected_bibliography",
+            "image_link",
+            "fragmentarium_id",
+            "dact_id",
+            "indexing_notes"
+        ]
+        widgets = {
+            "title": TextInputWidget(),
+            "siglum": TextInputWidget(),
+            "provenance_notes": TextInputWidget(),
+            "date": TextInputWidget(),
+            "cursus": SelectWidget(),
+            "summary": TextAreaWidget(),
+            "description": TextAreaWidget(),
+            "selected_bibliography": TextAreaWidget(),
+            "image_link": TextInputWidget(),
+            "fragmentarium_id": TextInputWidget(),
+            "dact_id": TextInputWidget(),
+            "indexing_notes": TextAreaWidget()
+        }
+    rism_siglum = forms.ModelChoiceField(
+        queryset=RismSiglum.objects.all().order_by("name"), required=False
+    )
+    rism_siglum.widget.attrs.update({"class": "form-control custom-select custom-select-sm"})
+
+    provenance = forms.ModelChoiceField(
+        queryset=Provenance.objects.all().order_by("name"), required=False
+    )
+    provenance.widget.attrs.update({"class": "form-control custom-select custom-select-sm"})
+
+    TRUE_FALSE_CHOICES_SOURCE = (
+        (True, "Full"), 
+        (False, "Fragment")
+    )
+
+    full_source = forms.ChoiceField(
+        choices=TRUE_FALSE_CHOICES_SOURCE,
+    )
+    full_source.widget.attrs.update({"class": "form-control custom-select custom-select-sm"})
+
+    century = forms.ModelMultipleChoiceField(
+        queryset=Century.objects.all().order_by("name"), required=False
+    )
+    century.widget.attrs.update({"class": "form-control custom-select custom-select-sm"})
+
+    current_editors = forms.ModelMultipleChoiceField(
+        queryset=Indexer.objects.all().order_by("family_name"), required=False
+    )
+    current_editors.widget.attrs.update({"class": "form-control custom-select custom-select-sm"})
+
+    melodies_entered_by = forms.ModelMultipleChoiceField(
+        queryset=Indexer.objects.all().order_by("family_name"), required=False
+    )
+    melodies_entered_by.widget.attrs.update({"class": "form-control custom-select custom-select-sm"})
+
+    TRUE_FALSE_CHOICES_INVEN = (
+        (True, "Complete"), 
+        (False, "Incomplete")
+    )
+
+    complete_inventory = forms.ChoiceField(
+        choices=TRUE_FALSE_CHOICES_INVEN,
+    )
+    complete_inventory.widget.attrs.update({"class": "form-control custom-select custom-select-sm"})
