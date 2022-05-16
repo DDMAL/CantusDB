@@ -89,6 +89,15 @@ class ChantCreateForm(forms.ModelForm):
         'the first word of each chant, and the first word after "Alleluia" for '
         "Mass Alleluias. Punctuation is omitted.",
     )
+
+    folio = forms.CharField(
+        required=True, widget=TextInputWidget, help_text="Binding order",
+    )
+
+    sequence_number = forms.CharField(
+        required=True, widget=TextInputWidget, help_text="Each folio starts with '1'",
+    )
+
     office = forms.ModelChoiceField(
         queryset=Office.objects.all().order_by("name"), required=False
     )

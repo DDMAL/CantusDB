@@ -12,7 +12,7 @@
             <div class="alert alert-success alert-dismissible">
                 {% for message in messages %}
                 <a href="#" class="close" data-dismiss="alert" aria-label="close">&times;</a>
-                <a href="{{ previous_chant_link }}" style="color:#155724" target="_blank">{{ message }}</a>
+                <a href="{{ previous_chant.get_absolute_url }}" style="color:#155724" target="_blank">{{ message }}</a>
                 {% endfor %}
             </div>
             {% endif %}
@@ -235,12 +235,12 @@
 
             <div class="card mb-3 w-100">
                 <div class="card-header">
-                    <h5><a id="source" href="{{ source_link }}">{{ source.title }}</a></h5>
+                    <h5><a id="source" href="{{ source.get_absolute_url }}">{{ source.title }}</a></h5>
                 </div>
                 <div class="card-body" style="font-size: 15px">
                     <b>Suggestions based on the previous chant:</b><br>
                     {% if previous_chant %}
-                        {{ previous_chant.folio }} {{ previous_chant.sequence_number}} <a href="{{ previous_chant_link }}" target="_blank">{{ previous_chant.incipit }}</a><br>
+                        {{ previous_chant.folio }} {{ previous_chant.sequence_number}} <a href="{{ previous_chant.get_absolute_url }}" target="_blank">{{ previous_chant.incipit }}</a><br>
                         Cantus ID: <a href="http://cantusindex.org/id/{{ previous_chant.cantus_id }}" target="_blank">{{ previous_chant.cantus_id }}</a><br>
                             {% if suggested_chants %}
                                 {% for chant in suggested_chants %}
