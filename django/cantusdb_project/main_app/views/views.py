@@ -10,6 +10,8 @@ from main_app.models import (
 )
 from main_app.forms import ContactForm
 from django.core.mail import send_mail, get_connection
+from django.contrib.auth.views import LogoutView
+from django.contrib import messages
 
 
 def items_count(request):
@@ -406,3 +408,11 @@ def ajax_search_bar(request, search_term):
         returned_values[i]["chant_link"] = chant_link
     return JsonResponse({"chants": returned_values}, safe=True)
 
+class CustomLogoutView(LogoutView):
+    def get_next_page(self):
+        next_page = super().get_next_page()
+        messages.success(
+            self.request, 
+            'You have successfully logged out!'
+        )
+        return next_page
