@@ -58,7 +58,7 @@ urlpatterns = [
         name="source-create"
     ),
     path(
-        "edit-volpiano/", 
+        "edit-volpiano/<int:source_id>", 
         ChantEditVolpianoView.as_view(), 
         name="source-edit-volpiano"
     ),
