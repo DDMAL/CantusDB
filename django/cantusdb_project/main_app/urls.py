@@ -56,4 +56,5 @@ urlpatterns = [
         name="ajax_search_bar",
     ),
     path("json-sources/", views.json_sources_export, name="json-sources-export"),
+    path("json-node/<str:id>", views.json_node_export, name="json-node-export"),
 ]

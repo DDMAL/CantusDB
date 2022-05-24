@@ -1,4 +1,5 @@
 import csv
+from multiprocessing.sharedctypes import Value
 from django.http.response import HttpResponseRedirect, JsonResponse
 from django.http import HttpResponse
 from django.shortcuts import render
@@ -465,11 +466,22 @@ def json_melody_export(request, cantus_id):
     
     return JsonResponse(standardized_chants_values, safe=False)
 
+
 def json_node_export(request, id):
     """
     returns all fields of the chant/source with the specified `id`
     """
-    pass
+    chant = Chant.objects.filter(id=id)
+    source = Source.objects.filter(id=id)
+    if chant and source:
+        raise ValueError("id is associated with both a chant and a source")
+    elif not chant and not source:
+        raise ValueError("id is associated with neither a chant nor a source")
+    chant_or_source = chant if chant else source
+    vals = dict(*chant_or_source.values())
+
+    return JsonResponse(vals)
+
 
 def json_sources_export(request):
     """
