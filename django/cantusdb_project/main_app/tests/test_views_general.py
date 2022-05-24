@@ -3,7 +3,7 @@ from django.test import TestCase
 from main_app.views.feast import FeastListView
 from .make_fakes import *
 
-# run with `python -Wa manage.py test main_app.tests.test_views_genral`
+# run with `python -Wa manage.py test main_app.tests.test_views_general`
 # the -Wa flag tells Python to display deprecation warnings
 
 

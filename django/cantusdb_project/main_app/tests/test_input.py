@@ -13,6 +13,9 @@ from .make_fakes import *
 
 fake = Faker()
 
+# test_input (this file) is out of date and should not be run.
+# Instead, run test_views_general and test_models.
+
 """
 run tests with 'python manage.py test main_app'
 it creates a special database for the purpose of testing
