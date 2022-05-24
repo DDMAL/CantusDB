@@ -43,6 +43,11 @@ urlpatterns = [
     path("ajax/melody/<str:cantus_id>", views.ajax_melody_list, name="ajax_melody"),
     path("ajax/melody-search/", views.ajax_melody_search, name="ajax_melody_search",),
     path("csv/<str:source_id>", views.csv_export, name="csv-export"),
+    path(
+        "json-melody/<str:cantus_id>",
+        views.json_melody_export,
+        name="json_melody_export",
+    ),
     path("index/", FullIndexView.as_view(), name="chant-index"),
     path("contact/", views.contact_us, name="contact"),
     path(

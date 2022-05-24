@@ -10,6 +10,7 @@ from main_app.models import (
 )
 from main_app.forms import ContactForm
 from django.core.mail import send_mail, get_connection
+from requests import request
 
 
 def items_count(request):
@@ -405,4 +406,64 @@ def ajax_search_bar(request, search_term):
         chant_link = chants[i].get_absolute_url()
         returned_values[i]["chant_link"] = chant_link
     return JsonResponse({"chants": returned_values}, safe=True)
+
+def json_melody_export(request, cantus_id):
+    chants = Chant.objects.filter(cantus_id=cantus_id, volpiano__isnull=False)
+
+    db_keys = ["melody_id",
+        "id",
+        "cantus_id",
+        "siglum",
+        "source__id", # don't fetch the entire Source object, just the id of
+                      # the source. __id is removed in standardize_for_api below
+        "folio",
+        "incipit",
+        "manuscript_full_text",
+        "volpiano",
+        "mode",
+        "feast__id",
+        "office__id",
+        "genre__id",
+        "position",
+        ]
+
+    chants_values = list(chants.values(*db_keys)) # a list of dictionaries. Each
+                                                  # dictionary represents metadata on one chant
+
+    def standardize_for_api(chant_values):
+        keymap = { # map attribute names from Chant model (i.e. db_keys
+            # in list above) to corresponding attribute names
+            # in old API, and remove artifacts of query process (i.e. __id suffixes)
+        "melody_id": "mid",                 # <-
+        "id": "nid",                        # <-
+        "cantus_id": "cid",                 # <-
+        "siglum": "siglum",
+        "source__id": "srcnid",             # <-
+        "folio": "folio",
+        "incipit": "incipit",
+        "manuscript_full_text": "fulltext", # <-
+        "volpiano": "volpiano",
+        "mode": "mode",
+        "feast__id": "feast",               # <-
+        "office__id": "office",             # <-
+        "genre__id": "genre",               # <-
+        "position": "position",
+        }
+        
+        standardized_chant_values = {keymap[key]: chant_values[key] for key in chant_values}
+
+        # manually build a couple of last fields that aren't represented in Chant object
+        chant_uri = request.build_absolute_uri(reverse("chant-detail", args=[chant_values["id"]]))
+        standardized_chant_values["chantlink"] = chant_uri
+        src_uri = request.build_absolute_uri(reverse("source-detail", args=[chant_values["source__id"]]))
+        standardized_chant_values["srclink"] = src_uri
+
+        return standardized_chant_values
+
+    standardized_chants_values = [standardize_for_api(cv) for cv in chants_values]
+    
+    return JsonResponse(standardized_chants_values, safe=False)
+
+
+            
 
