@@ -215,7 +215,7 @@ class SourceCreateForm(forms.ModelForm):
     )
     complete_inventory.widget.attrs.update({"class": "form-control custom-select custom-select-sm"})
 
-class EditChantForm(forms.ModelForm):
+class ChantEditForm(forms.ModelForm):
     class Meta:
         model = Chant
         fields = [

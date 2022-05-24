@@ -1,26 +1,26 @@
 {% extends "base.html" %}
 {% block content %}
 <title>{{ source.title }} | Cantus Manuscript Database</title>
-<script src="/static/js/edit_volpiano.js"></script>
+<script src="/static/js/chant_edit.js"></script>
 
 <div class="container">
     <div class="row">
         <div class="mr-3 p-3 col-lg-8 bg-white rounded">
             <!--Display form error message -->
             {% if form.errors %}
-            <div class="alert alert-danger alert-dismissible">
-                <a href="#" class="close" data-dismiss="alert" aria-label="close">&times;</a>
-                {% for error in form.non_field_errors %}
+                <div class="alert alert-danger alert-dismissible">
                     <a href="#" class="close" data-dismiss="alert" aria-label="close">&times;</a>
-                    {{ error }}
-                {% endfor %}
-                {% for field in form %}
-                    {% if field.errors %}
+                    {% for error in form.non_field_errors %}
                         <a href="#" class="close" data-dismiss="alert" aria-label="close">&times;</a>
-                        {{ field.label }}: {{ field.errors|striptags }}
-                    {% endif %}
-                {% endfor %}
-            </div>
+                        {{ error }}
+                    {% endfor %}
+                    {% for field in form %}
+                        {% if field.errors %}
+                            <a href="#" class="close" data-dismiss="alert" aria-label="close">&times;</a>
+                            {{ field.label }}: {{ field.errors|striptags }}
+                        {% endif %}
+                    {% endfor %}
+                </div>
             {% endif %}
 
             {% if pk_specified %}
@@ -174,38 +174,38 @@
 
                     </small>
                     {% if chants.all %}
-                    <table class="table table-sm small table-bordered">
-                        <tbody>
-                            {% for chant in chants %}
-                                <tr>
-                                    <td class="text-wrap" style="text-align:center">
-                                        <small>{{ forloop.counter }}</small>
-                                    </td>
-                                    <td class="text-wrap" style="text-align:center">
-                                        <small>
-                                            {{ chant.office.name|default:"" }}
-                                            <br>
-                                            {{ chant.genre.name|default:"" }}
-                                            <br>
-                                            {{ chant.position|default:"" }}
-                                        </small>
-                                    </td>
-                                    <td class="text-wrap" style="text-align:center">
-                                        <small>{{ chant.incipit|default:"" }}</small>
-                                    </td>
-                                    <td class="text-wrap" style="text-align:center">
-                                        <small><a href="{{ chant.get_ci_url }}" target="_blank">{{ chant.cantus_id|default:"" }}</a></small>
-                                    </td>
-                                    <td class="text-wrap" style="text-align:center">
-                                        <small>{{ chant.mode|default:"" }}</small>
-                                    </td>
-                                    <td class="text-wrap" style="text-align:center">
-                                        <button type="button" class="btn btn-dark btn-sm" id="editButton" name="{{ chant.pk }}">EDIT</button>
-                                    </td>
-                                </tr>
-                            {% endfor %}
-                        </tbody>
-                    </table>
+                        <table class="table table-sm small table-bordered">
+                            <tbody>
+                                {% for chant in chants %}
+                                    <tr>
+                                        <td class="text-wrap" style="text-align:center">
+                                            <small>{{ chant.sequence_number }}</small>
+                                        </td>
+                                        <td class="text-wrap" style="text-align:center">
+                                            <small>
+                                                {{ chant.office.name|default:"" }}
+                                                <br>
+                                                {{ chant.genre.name|default:"" }}
+                                                <br>
+                                                {{ chant.position|default:"" }}
+                                            </small>
+                                        </td>
+                                        <td class="text-wrap" style="text-align:center">
+                                            <small>{{ chant.incipit|default:"" }}</small>
+                                        </td>
+                                        <td class="text-wrap" style="text-align:center">
+                                            <small><a href="{{ chant.get_ci_url }}" target="_blank">{{ chant.cantus_id|default:"" }}</a></small>
+                                        </td>
+                                        <td class="text-wrap" style="text-align:center">
+                                            <small>{{ chant.mode|default:"" }}</small>
+                                        </td>
+                                        <td class="text-wrap" style="text-align:center">
+                                            <button type="button" class="btn btn-dark btn-sm" id="editButton" name="{{ chant.pk }}">EDIT</button>
+                                        </td>
+                                    </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
                     {% endif %}        
                 </div>    
             </div>    

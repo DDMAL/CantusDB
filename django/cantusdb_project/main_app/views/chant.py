@@ -15,8 +15,8 @@ from django.views.generic import (
     TemplateView,
     UpdateView,
 )
-from main_app.forms import ChantCreateForm, EditChantForm
-from main_app.models import Chant, Feast, Genre, Source, Sequence, source
+from main_app.forms import ChantCreateForm, ChantEditForm
+from main_app.models import Chant, Feast, Genre, Source, Sequence
 from align_text_mel import *
 from django.contrib.auth.mixins import LoginRequiredMixin
 
@@ -824,10 +824,9 @@ class FullIndexView(TemplateView):
         return context
 
 class ChantEditVolpianoView(LoginRequiredMixin, UpdateView):
-    template_name = "edit_volpiano.html"
+    template_name = "chant_edit.html"
     model = Chant
-    form_class = EditChantForm
-    template_name = "edit_volpiano.html"
+    form_class = ChantEditForm
     pk_url_kwarg = "source_id"
 
     def get_queryset(self):
@@ -857,7 +856,7 @@ class ChantEditVolpianoView(LoginRequiredMixin, UpdateView):
         self.queryset = chants.order_by("id")
         return self.queryset
     
-    def get_object(self, queryset=None):
+    def get_object(self):
         queryset = self.get_queryset()
         pk = self.request.GET.get("pk")
         # if a pk is not specified, we will not render the update form, rather we will render the instructions page
