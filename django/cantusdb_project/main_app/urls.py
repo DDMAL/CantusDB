@@ -4,6 +4,7 @@ from main_app.views import views
 from main_app.views.source import SourceCreateView
 from main_app.views.chant import ChantEditVolpianoView
 from django.contrib.auth import views as auth_views
+from main_app.views.user import UserDetailView
 
 urlpatterns = [
     path("indexers/", IndexerListView.as_view(), name="indexer-list"),
@@ -58,10 +59,11 @@ urlpatterns = [
         name="source-create"
     ),
     path(
-        "edit-volpiano/", 
+        "edit-volpiano/<int:source_id>", 
         ChantEditVolpianoView.as_view(), 
         name="source-edit-volpiano"
     ),
+    path("users/<int:user_id>", UserDetailView.as_view(), name="user-detail"),
     path('login/', auth_views.LoginView.as_view(redirect_authenticated_user=True), name="login"),
     path('logout/', views.CustomLogoutView.as_view(), name="logout")
 ]

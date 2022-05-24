@@ -4,7 +4,7 @@ from main_app.models import Source, Provenance, Century
 from main_app.forms import SourceCreateForm
 from django.contrib import messages
 from django.urls import reverse
-
+from django.contrib.auth.mixins import LoginRequiredMixin
 
 class SourceDetailView(DetailView):
     model = Source
@@ -223,7 +223,7 @@ class SourceListView(ListView):
 
         return queryset.filter(q_obj_filter).distinct()
 
-class SourceCreateView(CreateView):
+class SourceCreateView(LoginRequiredMixin, CreateView):
     model = Source
     template_name = "source_create_form.html"
     form_class = SourceCreateForm

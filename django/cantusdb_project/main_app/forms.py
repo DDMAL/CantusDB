@@ -214,3 +214,50 @@ class SourceCreateForm(forms.ModelForm):
         choices=TRUE_FALSE_CHOICES_INVEN,
     )
     complete_inventory.widget.attrs.update({"class": "form-control custom-select custom-select-sm"})
+
+class ChantEditForm(forms.ModelForm):
+    class Meta:
+        model = Chant
+        fields = [
+            "manuscript_full_text_std_spelling",
+            "manuscript_full_text",
+            "volpiano",
+            "marginalia",
+            "folio",
+            "sequence",
+            "feast",
+            "office",
+            "genre",
+            "position",
+            "cantus_id",
+            "melody_id",
+            "mode",
+            "finalis",
+            "differentia",
+            "extra",
+            "image_link",
+            "indexing_notes"
+        ]
+        widgets = {
+            "manuscript_full_text_std_spelling": TextAreaWidget(),
+            "manuscript_full_text": TextAreaWidget(),
+            "volpiano": VolpianoAreaWidget(),
+            "marginalia": TextInputWidget(),
+            "folio": TextInputWidget(),
+            "sequence": TextInputWidget(),
+            "office": TextInputWidget(),
+            "genre": TextInputWidget(),
+            "position": TextInputWidget(),
+            "cantus_id": TextInputWidget(),
+            "melody_id": TextInputWidget(),
+            "mode": TextInputWidget(),
+            "finalis": TextInputWidget(),
+            "differentia": TextInputWidget(),
+            "extra": TextInputWidget(),
+            "image_link": TextInputWidget(),
+            "indexing_notes": TextAreaWidget()
+        }
+    feast = forms.ModelChoiceField(
+        queryset=Feast.objects.all().order_by("name"), required=False
+    )
+    feast.widget.attrs.update({"class": "form-control custom-select custom-select-sm"})

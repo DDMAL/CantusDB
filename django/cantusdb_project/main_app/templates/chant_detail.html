@@ -6,6 +6,16 @@
 <div class="container">
     <div class="row">
         <div class="mr-3 p-3 col-lg-8 bg-white rounded">
+
+            <!--Display "submit success" message -->
+            {% if messages %}
+                <div class="alert alert-success alert-dismissible">
+                    {% for message in messages %}
+                        {{ message }}
+                    {% endfor %}
+                </div>
+            {% endif %}                        
+
             <h3>{{ chant.incipit }}</h3>
             <dl>
                 <div class="row">
@@ -214,89 +224,89 @@
                     </div>
 
                     {% if source %}
-                    <div class="card-body">
-                        <small>
-                            <!--a small selector of all folios of this source-->
-                            <select name="folios" id="folioSelect" class="w-30" onchange="jumpToFolio('{{ source.id }}')">
-                                <option value="">Select a folio</option>
-                                {% for folio in folios %}
-                                    {% if folio == chant.folio %}
-                                        <option selected value="{{ folio }}">{{ folio }}</option>
-                                    {% else %}
-                                        <option value="{{ folio }}">{{ folio }}</option>
-                                    {% endif %}
+                        <div class="card-body">
+                            <small>
+                                <!--a small selector of all folios of this source-->
+                                <select name="folios" id="folioSelect" class="w-30" onchange="jumpToFolio('{{ source.id }}')">
+                                    <option value="">Select a folio</option>
+                                    {% for folio in folios %}
+                                        {% if folio == chant.folio %}
+                                            <option selected value="{{ folio }}">{{ folio }}</option>
+                                        {% else %}
+                                            <option value="{{ folio }}">{{ folio }}</option>
+                                        {% endif %}
+                                    {% endfor %}
+                                </select>
+
+                                {% if previous_folio %}
+                                    <a href="{% url "chant-list" %}?source={{ source.id }}&folio={{ previous_folio }}">{{ previous_folio }} <</a>
+                                {% endif %}
+                                {% if next_folio %}
+                                    &nbsp;<a href="{% url "chant-list" %}?source={{ source.id }}&folio={{ next_folio }}">> {{ next_folio }}</a>
+                                {% endif %}
+
+                                {% if chant.image_link %}
+                                    <br>
+                                    <a href={{ chant.image_link }} target="_blank">» Display facsimile <b>({{ chant.folio }})</b></a>
+                                    <br>
+                                {% endif %}
+
+                                {% if previous_folio %}
+                                    <br>
+                                    <div id="previousDiv" style="display:none">
+                                        {% for feast, chants in feasts_previous_folio %}
+                                            Folio: <b>{{ previous_folio }}</b> - Feast: <b>{{ feast.name }}</b>
+                                            <table class="table table-sm small table-bordered">     
+                                                {% for chant in chants %}
+                                                    <tr>
+                                                        <td>{{ chant.sequence_number }}</td>
+                                                        <td>{{ chant.office.name|default_if_none:"" }} <b>{{ chant.genre.name|default_if_none:"" }}</b> {{ chant.position|default_if_none:"" }} </td>
+                                                        <td><a href="{{ chant.get_absolute_url }}">{{ chant.incipit|default_if_none:"" }}</a></td>
+                                                        <td><a href="{{ chant.get_ci_url }}" target="_blank">{{ chant.cantus_id|default_if_none:"" }}</a></td>
+                                                    </tr>
+                                                {% endfor %}
+                                            </table>
+                                        {% endfor %}
+                                    </div>
+                                    <a id="previousToggle" href="#" onclick="togglePrevious(); return false;">Display previous chants ▾</a>
+                                {% endif %}
+                                <br>
+
+                                {% for feast, chants in feasts_current_folio %}
+                                    Folio: <b>{{ chant.folio }}</b> - Feast: <b>{{ feast.name }}</b>
+                                    <table class="table table-sm small table-bordered">     
+                                        {% for chant in chants %}
+                                            <tr>
+                                                <td>{{ chant.sequence_number }}</td>
+                                                <td>{{ chant.office.name|default_if_none:"" }} <b>{{ chant.genre.name|default_if_none:"" }}</b> {{ chant.position|default_if_none:"" }} </td>
+                                                <td><a href="{{ chant.get_absolute_url }}">{{ chant.incipit|default_if_none:"" }}</a></td>
+                                                <td><a href="{{ chant.get_ci_url }}" target="_blank">{{ chant.cantus_id|default_if_none:"" }}</a></td>
+                                            </tr>
+                                        {% endfor %}
+                                    </table>
                                 {% endfor %}
-                            </select>
 
-                            {% if previous_folio %}
-                                <a href="{% url "chant-list" %}?source={{ source.id }}&folio={{ previous_folio }}">{{ previous_folio }} <</a>
-                            {% endif %}
-                            {% if next_folio %}
-                                &nbsp;<a href="{% url "chant-list" %}?source={{ source.id }}&folio={{ next_folio }}">> {{ next_folio }}</a>
-                            {% endif %}
-
-                            {% if chant.image_link %}
-                                <br>
-                                <a href={{ chant.image_link }} target="_blank">» Display facsimile <b>({{ chant.folio }})</b></a>
-                                <br>
-                            {% endif %}
-
-                            {% if previous_folio %}
-                                <br>
-                                <div id="previousDiv" style="display:none">
-                                    {% for feast, chants in feasts_previous_folio %}
-                                        Folio: <b>{{ previous_folio }}</b> - Feast: <b>{{ feast.name }}</b>
-                                        <table class="table table-sm small table-bordered">     
-                                            {% for chant in chants %}
-                                                <tr>
-                                                    <td>{{ chant.sequence_number }}</td>
-                                                    <td>{{ chant.office.name|default_if_none:"" }} <b>{{ chant.genre.name|default_if_none:"" }}</b> {{ chant.position|default_if_none:"" }} </td>
-                                                    <td><a href="{{ chant.get_absolute_url }}">{{ chant.incipit|default_if_none:"" }}</a></td>
-                                                    <td><a href="{{ chant.get_ci_url }}" target="_blank">{{ chant.cantus_id|default_if_none:"" }}</a></td>
-                                                </tr>
-                                            {% endfor %}
-                                        </table>
-                                    {% endfor %}
-                                </div>
-                                <a id="previousToggle" href="#" onclick="togglePrevious(); return false;">Display previous chants ▾</a>
-                            {% endif %}
-                            <br>
-
-                            {% for feast, chants in feasts_current_folio %}
-                                Folio: <b>{{ chant.folio }}</b> - Feast: <b>{{ feast.name }}</b>
-                                <table class="table table-sm small table-bordered">     
-                                    {% for chant in chants %}
-                                        <tr>
-                                            <td>{{ chant.sequence_number }}</td>
-                                            <td>{{ chant.office.name|default_if_none:"" }} <b>{{ chant.genre.name|default_if_none:"" }}</b> {{ chant.position|default_if_none:"" }} </td>
-                                            <td><a href="{{ chant.get_absolute_url }}">{{ chant.incipit|default_if_none:"" }}</a></td>
-                                            <td><a href="{{ chant.get_ci_url }}" target="_blank">{{ chant.cantus_id|default_if_none:"" }}</a></td>
-                                        </tr>
-                                    {% endfor %}
-                                </table>
-                            {% endfor %}
-
-                            {% if next_folio %}
-                                <a id="nextToggle" href="#" onclick="toggleNext(); return false;">Display next chants ▾</a>
-                                <br>
-                                <div id="nextDiv" style="display:none">
-                                    {% for feast, chants in feasts_next_folio %}
-                                        Folio: <b>{{ next_folio }}</b> - Feast: <b>{{ feast.name }}</b>
-                                        <table class="table table-sm small table-bordered">     
-                                            {% for chant in chants %}
-                                                <tr>
-                                                    <td>{{ chant.sequence_number }}</td>
-                                                    <td>{{ chant.office.name|default_if_none:"" }} <b>{{ chant.genre.name|default_if_none:"" }}</b> {{ chant.position|default_if_none:"" }} </td>
-                                                    <td><a href="{{ chant.get_absolute_url }}">{{ chant.incipit|default_if_none:"" }}</a></td>
-                                                    <td><a href="{{ chant.get_ci_url }}" target="_blank">{{ chant.cantus_id|default_if_none:"" }}</a></td>
-                                                </tr>
-                                            {% endfor %}
-                                        </table>
-                                    {% endfor %}
-                                </div>
-                            {% endif %}
-                        </small>
-                    </div>
+                                {% if next_folio %}
+                                    <a id="nextToggle" href="#" onclick="toggleNext(); return false;">Display next chants ▾</a>
+                                    <br>
+                                    <div id="nextDiv" style="display:none">
+                                        {% for feast, chants in feasts_next_folio %}
+                                            Folio: <b>{{ next_folio }}</b> - Feast: <b>{{ feast.name }}</b>
+                                            <table class="table table-sm small table-bordered">     
+                                                {% for chant in chants %}
+                                                    <tr>
+                                                        <td>{{ chant.sequence_number }}</td>
+                                                        <td>{{ chant.office.name|default_if_none:"" }} <b>{{ chant.genre.name|default_if_none:"" }}</b> {{ chant.position|default_if_none:"" }} </td>
+                                                        <td><a href="{{ chant.get_absolute_url }}">{{ chant.incipit|default_if_none:"" }}</a></td>
+                                                        <td><a href="{{ chant.get_ci_url }}" target="_blank">{{ chant.cantus_id|default_if_none:"" }}</a></td>
+                                                    </tr>
+                                                {% endfor %}
+                                            </table>
+                                        {% endfor %}
+                                    </div>
+                                {% endif %}
+                            </small>
+                        </div>
                     {% endif %}
                 </div>
 
