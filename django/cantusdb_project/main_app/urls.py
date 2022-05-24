@@ -55,4 +55,5 @@ urlpatterns = [
         views.ajax_search_bar,
         name="ajax_search_bar",
     ),
+    path("json-sources/", views.json_sources_export, name="json-sources-export"),
 ]

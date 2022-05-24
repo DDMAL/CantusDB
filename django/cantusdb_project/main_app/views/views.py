@@ -362,6 +362,7 @@ def ajax_melody_search(request):
     for result in results:
         # construct the url for chant detail page and add it to the result
         result["chant_link"] = reverse("chant-detail", args=[result["id"]])
+
     result_count = result_values.count()
     return JsonResponse({"results": results, "result_count": result_count}, safe=True)
 
@@ -464,6 +465,19 @@ def json_melody_export(request, cantus_id):
     
     return JsonResponse(standardized_chants_values, safe=False)
 
+def json_node_export(request, id):
+    """
+    returns all fields of the chant/source with the specified `id`
+    """
+    pass
 
-            
+def json_sources_export(request):
+    """
+    generates a json object of published sources with their IDs and CSV links
+    """
+    sources = Source.objects.all()
+    ids = [source.id for source in sources]
+    csv_links = {id: request.build_absolute_uri(reverse("csv-export", args=[id])) for id in ids}
+
+    return JsonResponse(csv_links)
 
