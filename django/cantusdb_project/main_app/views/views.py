@@ -12,8 +12,9 @@ from main_app.forms import ContactForm
 from django.core.mail import send_mail, get_connection
 from django.contrib.auth.views import LogoutView
 from django.contrib import messages
+from django.contrib.auth.decorators import login_required
 
-
+@login_required
 def items_count(request):
     """
     Function-based view for the ``items count`` page, accessed with ``content-statistics``
