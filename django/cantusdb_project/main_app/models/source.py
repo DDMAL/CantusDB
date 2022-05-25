@@ -95,3 +95,7 @@ class Source(BaseModel):
     def number_of_melodies(self) -> int:
         """Returns the number of Chants in this Source that have melodies."""
         return self.chant_set.filter(volpiano__isnull=False).count()
+
+    def __str__(self):
+        return self.title
+    

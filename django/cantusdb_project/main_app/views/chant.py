@@ -15,9 +15,10 @@ from django.views.generic import (
     TemplateView,
     UpdateView,
 )
-from main_app.forms import ChantCreateForm
+from main_app.forms import ChantCreateForm, ChantEditForm
 from main_app.models import Chant, Feast, Genre, Source, Sequence
 from align_text_mel import *
+from django.contrib.auth.mixins import LoginRequiredMixin
 
 
 def keyword_search(queryset: QuerySet, keywords: str) -> QuerySet:
@@ -545,74 +546,68 @@ class ChantSearchMSView(ListView):
 
 
 class ChantCreateView(CreateView):
-    """Create chant at /chant-create/<source-id>"""
+    """Create chants in a certain manuscript, accessed with `chant-create/<int:source_pk>`.
+
+    This view displays the chant input form and provide access to 
+    "input tool" and "chant suggestion tool" to facilitate the input process.
+    """
 
     model = Chant
     template_name = "input_form_w.html"
     form_class = ChantCreateForm
+
     # if success_url and get_success_url not specified, will direct to chant detail page
     def get_success_url(self):
         return reverse("chant-create", args=[self.source.id])
 
     def get_initial(self):
-        (
-            self.latest_folio,
-            self.latest_feast,
-            self.latest_seq,
-            self.latest_image,
-        ) = self.get_folio_feast_seq_image()
-        return {
-            "folio": self.latest_folio,
-            "feast": self.latest_feast,
-            "sequence_number": self.latest_seq,
-            "image_link": self.latest_image,
-        }
+        """Get intial data from the latest chant in source.
 
-    def get_folio_feast_seq_image(self):
-        """get the default [folio, feast, seq] from the last created chant
-        last created chant is found using 'date-updated'
+        Some fields of the chant input form (`folio`, `feast`, `sequence_number`, and `image_link`) 
+        are pre-populated upon loading. These fields are computed based on the latest chant in the source. 
+
+        Returns:
+            dict: field names and corresponding data
         """
-        chants_in_source = (
-            Chant.objects.all().filter(source=self.source).order_by("-date_updated")
-        )
-        if not chants_in_source:
-            # if there is no chant in source
-            latest_folio = "001r"
-            latest_feast = ""
-            latest_seq = 0
-            latest_image = ""
-        else:
-            latest_chant = chants_in_source[0]
-            if latest_chant.folio:
-                latest_folio = latest_chant.folio
-            else:
-                latest_folio = "001r"
-            if latest_chant.feast:
-                latest_feast = latest_chant.feast.id
-            else:
-                latest_feast = ""
-            if latest_chant.sequence_number:
-                latest_seq = latest_chant.sequence_number
-            else:
-                latest_seq = 0
-            if latest_chant.image_link:
-                latest_image = latest_chant.image_link
-            else:
-                latest_image = ""
-        return latest_folio, latest_feast, latest_seq + 1, latest_image
+        try:
+            latest_chant = self.source.chant_set.latest("date_updated")
+        except Chant.DoesNotExist:
+            # if there is no chant in source, start with folio 001r, and sequence number 1
+            return {
+                "folio": "001r",
+                "feast": "",
+                "sequence_number": 1,
+                "image_link": "",
+            }
+        latest_folio = latest_chant.folio if latest_chant.folio else "001r"
+        latest_feast = latest_chant.feast.id if latest_chant.feast else ""
+        latest_seq = latest_chant.sequence_number if latest_chant.sequence_number else 0
+        latest_image = latest_chant.image_link if latest_chant.image_link else ""
+        return {
+            "folio": latest_folio,
+            "feast": latest_feast,
+            "sequence_number": latest_seq + 1,
+            "image_link": latest_image,
+        }
 
     def dispatch(self, request, *args, **kwargs):
         """Make sure the source specified in url exists before we display the form"""
         self.source = get_object_or_404(Source, pk=kwargs["source_pk"])
-        self.source_id = kwargs["source_pk"]
         return super().dispatch(request, *args, **kwargs)
 
     def get_suggested_chants(self):
-        """get suggested chants based on the previous chant entered
-        look for the CantusID of the previous chant in any source,
-        compile a list of all the chants (CantusIDs) that follow it (use seq) on the same or the next folio,
-        using these CantusIDs, search in CI for the correct full-text/genre
-        To search CantusID on CI, use json export: 'http://cantusindex.org/json-cid/<CantusID>'
+        """Get suggested chants based on the previous chant entered. 
+
+        This function gets the chant suggestions displayed to the right of the form. 
+        It works in the following steps:
+        1. Look up the Cantus ID of the previously entered chant.
+        2. Find all the chants with that Cantus ID, in all sources. 
+        3. Find all the chants that follow those chants on the same or the next folio.
+        4. Compile a list of Cantus IDs of the chants found in step 3.
+        5. Count the number of occurence of each Cantus ID in the chants found in step 3. 
+        6. Get the top 5 Cantus IDs that occur most often.
+        7. Using the top 5 Cantus IDs, search in CI for the correct full-text and genre.
+        8. To search Cantus ID on CI, use json export: 'http://cantusindex.org/json-cid/<cantus_id>'
 
         Returns:
             list of dicts: a list of suggested chants in key-value pairs
@@ -623,32 +618,31 @@ class ChantCreateView(CreateView):
 
         cantus_ids = []
         nocs = []  # number of occurence
-        # only load the fields that we need, this helps speed things up
-        chants_in_source = Chant.objects.filter(source=self.source).only(
-            "date_updated", "cantus_id"
-        )
-        if not chants_in_source:
+        try:
+            latest_chant = self.source.chant_set.latest("date_updated")
+        except Chant.DoesNotExist:
             return None
-        latest_chant = chants_in_source.latest("date_updated")
+
         cantus_id = latest_chant.cantus_id
         if cantus_id is None:
             return None
-        chants_same_cantus_id = Chant.objects.filter(cantus_id=cantus_id).only(
+
+        concordances = Chant.objects.filter(cantus_id=cantus_id).only(
             "source", "folio", "sequence_number"
         )
-        for chant in chants_same_cantus_id:
+        for chant in concordances:
             next_chant = chant.get_next_chant()
             if next_chant:
                 # return the number of occurence in the suggestions (not in the entire db)
-                if not next_chant.cantus_id in cantus_ids:
+                if next_chant.cantus_id in cantus_ids:
+                    idx = cantus_ids.index(next_chant.cantus_id)
+                    nocs[idx] += 1
+                else:
                     # cantus_id can be None (some chants don't have one)
                     if next_chant.cantus_id:
                         # add the new cantus_id to the list, count starts from 1
                         cantus_ids.append(next_chant.cantus_id)
                         nocs.append(1)
-                if next_chant.cantus_id in cantus_ids:
-                    idx = cantus_ids.index(next_chant.cantus_id)
-                    nocs[idx] = nocs[idx] + 1
         # sort the nocs and cantus_ids
         sorted_list = sorted(zip(nocs, cantus_ids), reverse=True)
         cantus_ids_sorted = [y for _, y in sorted_list]
@@ -675,7 +669,7 @@ class ChantCreateView(CreateView):
             assert response.status_code == 200
             # parse the json export to a dict
             # response.json() # can't use this because of the BOM at the beginning of json export
-            chant_dict = json.loads(response.text[1:])[0]
+            chant_dict = json.loads(response.text[2:])[0]
             # add number of occurence to the dict, so that we can display it easily
             chant_dict["noc"] = nocs_sorted[i]
             suggested_chants_dicts.append(chant_dict)
@@ -683,18 +677,9 @@ class ChantCreateView(CreateView):
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
-        context["source_link"] = reverse("source-detail", args=[self.source_id])
         context["source"] = self.source
         try:
-            previous_chant = Chant.objects.all().get(
-                source=self.source,
-                folio=self.latest_folio,
-                sequence_number=self.latest_seq - 1,
-            )
-            context["previous_chant"] = previous_chant
-            context["previous_chant_link"] = reverse(
-                "chant-detail", args=[previous_chant.id]
-            )
+            context["previous_chant"] = self.source.chant_set.latest("date_updated")
         except Chant.DoesNotExist:
             context["previous_chant"] = None
         print("other context done")
@@ -720,14 +705,6 @@ class ChantCreateView(CreateView):
             incipit = new_incipit
 
         form.instance.incipit = incipit.strip(" ")
-
-        # if the folio field is left empty
-        if form.instance.folio is None:
-            form.instance.folio = self.latest_folio
-
-        # if the sequence field is left empty
-        if form.instance.sequence_number is None:
-            form.instance.sequence_number = self.latest_seq
 
         # if a chant with the same sequence and folio already exists in the source
         if (
@@ -755,10 +732,14 @@ class ChantCreateView(CreateView):
 
 
 class ChantDeleteView(DeleteView):
-    """delete chant on chant-detail page"""
+    """Delete chant on chant-detail page
+
+    This is added to help testing chant-create functionality 
+    and should be removed in production.
+    """
 
     model = Chant
-    success_url = reverse_lazy("chant-list")
+    success_url = "/"
     template_name = "chant_confirm_delete.html"
 
 
@@ -841,3 +822,152 @@ class FullIndexView(TemplateView):
         context["chants"] = queryset
 
         return context
+
+class ChantEditVolpianoView(LoginRequiredMixin, UpdateView):
+    template_name = "chant_edit.html"
+    model = Chant
+    form_class = ChantEditForm
+    pk_url_kwarg = "source_id"
+
+    def get_queryset(self):
+        """Gather the chants to be displayed. 
+
+        When in the `browse chants` page, there must be a source specified. 
+        The chants in the specified source are filtered by a set of optional search parameters.
+
+        Returns:
+            queryset: The Chant objects to be displayed.
+        """
+        # when arriving at this page, the url must have a source specified
+        source_id = self.kwargs.get(self.pk_url_kwarg)
+        source = Source.objects.get(id=source_id)
+
+        # optional search params
+        feast_id = self.request.GET.get("feast")
+        folio = self.request.GET.get("folio")
+
+        # get all chants in the specified source
+        chants = source.chant_set
+        # filter the chants with optional search params
+        if feast_id:
+            chants = chants.filter(feast__id=feast_id)
+        if folio:
+            chants = chants.filter(folio=folio)
+        self.queryset = chants.order_by("id")
+        return self.queryset
+    
+    def get_object(self):
+        queryset = self.get_queryset()
+        pk = self.request.GET.get("pk")
+        # if a pk is not specified, we will not render the update form, rather we will render the instructions page
+        if not pk:
+            pk = queryset.latest("date_created").pk
+        queryset = queryset.filter(pk=pk)
+        return queryset.get()
+
+    def get_context_data(self, **kwargs):
+        def get_feast_selector_options(source, folios):
+            """Generate folio-feast pairs as options for the feast selector
+
+            Going through all chants in the source, folio by folio,
+            a new entry (in the form of folio-feast) is added when the feast changes. 
+
+            Args:
+                source (Source object): The source that the user is browsing in.
+                folios (list of strs): A list of folios in the source.
+
+            Returns:
+                zip object: A zip object combining a list of folios and Feast objects, to be unpacked in template.
+            """
+            # the two lists to be zipped
+            feast_selector_feasts = []
+            feast_selector_folios = []
+            # get all chants in the source, select those that have a feast
+            chants_in_source = (
+                source.chant_set.exclude(feast=None)
+                .order_by("folio", "sequence_number")
+                .select_related("feast")
+            )
+            # initialize the feast selector options with the first chant in the source that has a feast
+            first_feast_chant = chants_in_source.first()
+            if not first_feast_chant:
+                # if none of the chants in this source has a feast, return an empty zip
+                folios_with_feasts = []
+            else:
+                # if there is at least one chant that has a feast
+                current_feast = first_feast_chant.feast
+                feast_selector_feasts.append(current_feast)
+                current_folio = first_feast_chant.folio
+                feast_selector_folios.append(current_folio)
+
+                for folio in folios:
+                    # get all chants on each folio
+                    chants_on_folio = chants_in_source.filter(folio=folio)
+                    for chant in chants_on_folio:
+                        if chant.feast != current_feast:
+                            # if the feast changes, add the new feast and the corresponding folio to the lists
+                            feast_selector_feasts.append(chant.feast)
+                            feast_selector_folios.append(folio)
+                            # update the current_feast to track future changes
+                            current_feast = chant.feast
+                # as the two lists will always be of the same length, no need for zip,
+                # just naively combine them
+                # if we use zip, the returned generator will be exhausted in rendering templates, making it hard to test the returned value
+                folios_with_feasts = [
+                    (feast_selector_folios[i], feast_selector_feasts[i])
+                    for i in range(len(feast_selector_folios))
+                ]
+            return folios_with_feasts
+
+        context = super().get_context_data(**kwargs)
+        source_id = self.kwargs.get(self.pk_url_kwarg)
+        source = Source.objects.get(id=source_id)
+        context["source"] = source
+
+        chants_in_source = source.chant_set
+        if chants_in_source.count() == 0:
+            # these are needed in the selectors and hyperlinks on the right side of the page
+            # if there's no chant in the source, there should be no options in those selectors
+            context["folios"] = None
+            context["feasts_with_folios"] = None
+            context["previous_folio"] = None
+            context["next_folio"] = None
+            return context
+
+        # generate options for the folio selector on the right side of the page
+        folios = (
+            chants_in_source.values_list("folio", flat=True)
+            .distinct()
+            .order_by("folio")
+        )
+        context["folios"] = folios
+
+        if self.request.GET.get("folio"):
+            # if browsing chants on a specific folio
+            folio = self.request.GET.get("folio")
+            index = list(folios).index(folio)
+            # get the previous and next folio, if available
+            context["previous_folio"] = folios[index - 1] if index != 0 else None
+            context["next_folio"] = (
+                folios[index + 1] if index < len(folios) - 1 else None
+            )
+
+        # the options for the feast selector on the right, same as the source detail page
+        context["feasts_with_folios"] = get_feast_selector_options(source, folios)
+        context["chants"] = self.queryset
+        context["chant_pk"] = self.request.GET.get("pk")
+        if not self.request.GET.get("pk"):
+            context["pk_specified"] = False
+        else:
+            context["pk_specified"] = True
+        return context
+    
+    def form_valid(self, form):
+        if form.is_valid():
+            messages.success(
+                self.request,
+                "Chant updated successfully!",
+            )
+            return super().form_valid(form)
+        else:
+            return super().form_invalid(form)

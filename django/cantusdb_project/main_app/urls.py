@@ -1,7 +1,10 @@
-from django.urls import path
-
+from django.urls import path, include
 from main_app.views import *
 from main_app.views import views
+from main_app.views.source import SourceCreateView
+from main_app.views.chant import ChantEditVolpianoView
+from django.contrib.auth import views as auth_views
+from main_app.views.user import UserDetailView
 
 urlpatterns = [
     path("indexers/", IndexerListView.as_view(), name="indexer-list"),
@@ -32,7 +35,7 @@ urlpatterns = [
     path(
         "id/<str:cantus_id>", ChantByCantusIDView.as_view(), name="chant-by-cantus-id"
     ),
-    path("chants/<int:pk>/delete/", ChantDeleteView.as_view(), name="chant-delete"),
+    path("chant-delete/<int:pk>", ChantDeleteView.as_view(), name="chant-delete"),
     path("ci-search/<str:search_term>", CISearchView.as_view(), name="ci-search"),
     path("content-statistics", views.items_count, name="items-count"),
     path(
@@ -57,4 +60,17 @@ urlpatterns = [
     ),
     path("json-sources/", views.json_sources_export, name="json-sources-export"),
     path("json-node/<str:id>", views.json_node_export, name="json-node-export"),
+    path(
+        "source-create/", 
+        SourceCreateView.as_view(), 
+        name="source-create"
+    ),
+    path(
+        "edit-volpiano/<int:source_id>", 
+        ChantEditVolpianoView.as_view(), 
+        name="source-edit-volpiano"
+    ),
+    path("users/<int:user_id>", UserDetailView.as_view(), name="user-detail"),
+    path('login/', auth_views.LoginView.as_view(redirect_authenticated_user=True), name="login"),
+    path('logout/', views.CustomLogoutView.as_view(), name="logout")
 ]
