@@ -1,7 +1,10 @@
-from django.views.generic import DetailView, ListView
+from django.views.generic import DetailView, ListView, CreateView
 from django.db.models import Q
 from main_app.models import Source, Provenance, Century
-
+from main_app.forms import SourceCreateForm
+from django.contrib import messages
+from django.urls import reverse
+from django.contrib.auth.mixins import LoginRequiredMixin
 
 class SourceDetailView(DetailView):
     model = Source
@@ -219,3 +222,21 @@ class SourceListView(ListView):
             q_obj_filter &= indexing_search_q
 
         return queryset.filter(q_obj_filter).distinct()
+
+class SourceCreateView(LoginRequiredMixin, CreateView):
+    model = Source
+    template_name = "source_create_form.html"
+    form_class = SourceCreateForm
+
+    def get_success_url(self):
+        return reverse("source-create")
+
+    def form_valid(self, form):
+        if form.is_valid():
+            messages.success(
+                self.request,
+                "Source created successfully!",
+            )
+            return super().form_valid(form)
+        else:
+            return super().form_invalid(form)

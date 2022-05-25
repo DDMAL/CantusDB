@@ -30,6 +30,20 @@
     <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.5.0/js/bootstrap.min.js"
         integrity="sha384-OgVRvuATP1z7JjHLkuOU7Xw704+h835Lr+6QL9UvYjZE3Ipu6Tp75j7Bh/kR0JKI"
         crossorigin="anonymous"></script>
+    <script>
+        window.onload = function() {
+            let logButton = document.getElementById("log-in-out");
+            var base_url = window.location.origin;
+            function handleLogButtonClick() {
+                if (logButton.value === "Log In") {
+                    location.replace(`${base_url}/login/`);
+                } else if (logButton.value === "Log Out") {
+                    location.replace(`${base_url}/logout/`);
+                }
+            }
+            logButton.addEventListener("click", handleLogButtonClick);
+        }
+    </script>
 
     <style>
         html {
@@ -325,18 +339,11 @@
                     </div>
                     <div class="col-md" id="login">
                         <h5>Login for Contributors</h5>
-                        <form>
-                            <div class="form-group">
-                                <label for="username">User Name or Email</label>
-                                <input type="text" class="form-control" id="username" aria-describedby="userNameHelp"
-                                    placeholder="Enter user name or email">
-                            </div>
-                            <div class="form-group">
-                                <label for="password">Password</label>
-                                <input type="password" class="form-control" id="password" placeholder="Password">
-                            </div>
-                            <button type="submit" class="btn btn-dark">Log In</button>
-                        </form>
+                        {% if not request.user.is_anonymous %}
+                            <button type="button" value="Log Out" id="log-in-out" class="btn btn-dark">Log Out</button>
+                        {% else %}
+                            <button type="button" value="Log In" id="log-in-out" class="btn btn-dark">Log In</button>
+                        {% endif %}
                     </div>
                 </div>
             </div>

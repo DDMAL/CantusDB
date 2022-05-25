@@ -1,5 +1,5 @@
 from django import forms
-from .models import Chant, Office, Genre, Feast, Source
+from .models import Chant, Office, Genre, Feast, Source, RismSiglum, Provenance, Century, Indexer
 from .widgets import *
 
 # ModelForm allows to build a form directly from a model
@@ -89,6 +89,15 @@ class ChantCreateForm(forms.ModelForm):
         'the first word of each chant, and the first word after "Alleluia" for '
         "Mass Alleluias. Punctuation is omitted.",
     )
+
+    folio = forms.CharField(
+        required=True, widget=TextInputWidget, help_text="Binding order",
+    )
+
+    sequence_number = forms.CharField(
+        required=True, widget=TextInputWidget, help_text="Each folio starts with '1'",
+    )
+
     office = forms.ModelChoiceField(
         queryset=Office.objects.all().order_by("name"), required=False
     )
@@ -122,3 +131,133 @@ class ContactForm(forms.Form):
     sender_email = forms.EmailField()
     subject = forms.CharField(max_length=100)
     message = forms.CharField(widget=forms.Textarea)
+
+class SourceCreateForm(forms.ModelForm):
+    class Meta:
+        model = Source
+        fields = [
+            "title",
+            "rism_siglum",
+            "siglum",
+            "provenance",
+            "provenance_notes",
+            "full_source",
+            "date",
+            "century",
+            "cursus",
+            "current_editors",
+            "melodies_entered_by",
+            "complete_inventory",
+            "summary",
+            "description",
+            "selected_bibliography",
+            "image_link",
+            "fragmentarium_id",
+            "dact_id",
+            "indexing_notes"
+        ]
+        widgets = {
+            "title": TextInputWidget(),
+            "siglum": TextInputWidget(),
+            "provenance_notes": TextInputWidget(),
+            "date": TextInputWidget(),
+            "cursus": SelectWidget(),
+            "summary": TextAreaWidget(),
+            "description": TextAreaWidget(),
+            "selected_bibliography": TextAreaWidget(),
+            "image_link": TextInputWidget(),
+            "fragmentarium_id": TextInputWidget(),
+            "dact_id": TextInputWidget(),
+            "indexing_notes": TextAreaWidget()
+        }
+    rism_siglum = forms.ModelChoiceField(
+        queryset=RismSiglum.objects.all().order_by("name"), required=False
+    )
+    rism_siglum.widget.attrs.update({"class": "form-control custom-select custom-select-sm"})
+
+    provenance = forms.ModelChoiceField(
+        queryset=Provenance.objects.all().order_by("name"), required=False
+    )
+    provenance.widget.attrs.update({"class": "form-control custom-select custom-select-sm"})
+
+    TRUE_FALSE_CHOICES_SOURCE = (
+        (True, "Full"), 
+        (False, "Fragment")
+    )
+
+    full_source = forms.ChoiceField(
+        choices=TRUE_FALSE_CHOICES_SOURCE,
+    )
+    full_source.widget.attrs.update({"class": "form-control custom-select custom-select-sm"})
+
+    century = forms.ModelMultipleChoiceField(
+        queryset=Century.objects.all().order_by("name"), required=False
+    )
+    century.widget.attrs.update({"class": "form-control custom-select custom-select-sm"})
+
+    current_editors = forms.ModelMultipleChoiceField(
+        queryset=Indexer.objects.all().order_by("family_name"), required=False
+    )
+    current_editors.widget.attrs.update({"class": "form-control custom-select custom-select-sm"})
+
+    melodies_entered_by = forms.ModelMultipleChoiceField(
+        queryset=Indexer.objects.all().order_by("family_name"), required=False
+    )
+    melodies_entered_by.widget.attrs.update({"class": "form-control custom-select custom-select-sm"})
+
+    TRUE_FALSE_CHOICES_INVEN = (
+        (True, "Complete"), 
+        (False, "Incomplete")
+    )
+
+    complete_inventory = forms.ChoiceField(
+        choices=TRUE_FALSE_CHOICES_INVEN,
+    )
+    complete_inventory.widget.attrs.update({"class": "form-control custom-select custom-select-sm"})
+
+class ChantEditForm(forms.ModelForm):
+    class Meta:
+        model = Chant
+        fields = [
+            "manuscript_full_text_std_spelling",
+            "manuscript_full_text",
+            "volpiano",
+            "marginalia",
+            "folio",
+            "sequence",
+            "feast",
+            "office",
+            "genre",
+            "position",
+            "cantus_id",
+            "melody_id",
+            "mode",
+            "finalis",
+            "differentia",
+            "extra",
+            "image_link",
+            "indexing_notes"
+        ]
+        widgets = {
+            "manuscript_full_text_std_spelling": TextAreaWidget(),
+            "manuscript_full_text": TextAreaWidget(),
+            "volpiano": VolpianoAreaWidget(),
+            "marginalia": TextInputWidget(),
+            "folio": TextInputWidget(),
+            "sequence": TextInputWidget(),
+            "office": TextInputWidget(),
+            "genre": TextInputWidget(),
+            "position": TextInputWidget(),
+            "cantus_id": TextInputWidget(),
+            "melody_id": TextInputWidget(),
+            "mode": TextInputWidget(),
+            "finalis": TextInputWidget(),
+            "differentia": TextInputWidget(),
+            "extra": TextInputWidget(),
+            "image_link": TextInputWidget(),
+            "indexing_notes": TextAreaWidget()
+        }
+    feast = forms.ModelChoiceField(
+        queryset=Feast.objects.all().order_by("name"), required=False
+    )
+    feast.widget.attrs.update({"class": "form-control custom-select custom-select-sm"})
