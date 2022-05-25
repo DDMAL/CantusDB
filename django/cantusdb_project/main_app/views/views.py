@@ -474,26 +474,24 @@ def json_node_export(request, id):
     """
     returns all fields of the chant/sequence/source/indexer with the specified `id`
     """
-    is_chant = is_sequence = is_source = is_indexer = False # these flags will be useful soon for renaming internal variables into their legacy equivalents in old CantusDB
     
-    requested_item = Chant.objects.filter(id=id) # TODO: refactor: this cascade of conditionals seems very inelegant
-    if requested_item:
-        is_chant = True
+    # future possible optimization: use .get() instead of .filter()
+    chant = Chant.objects.filter(id=id)
+    sequence = Sequence.objects.filter(id=id)
+    source = Source.objects.filter(id=id)
+    indexer = Indexer.objects.filter(id=id)
+
+    if chant:
+        requested_item = chant
+    elif sequence:
+        requested_item = sequence
+    elif source:
+        requested_item = source
+    elif indexer:
+        requested_item = indexer
     else:
-        requested_item = Sequence.objects.filter(id=id)
-        if requested_item:
-            is_sequence = True
-        else:
-            requested_item = Source.objects.filter(id=id)
-            if requested_item:
-                is_source = True
-            else:
-                requested_item = Indexer.objects.filter(id=id)
-                if requested_item:
-                    is_indexer = True
-                else:
-                    return HttpResponseNotFound()
-    
+        return HttpResponseNotFound()
+
     vals = dict(*requested_item.values())
 
     return JsonResponse(vals)
