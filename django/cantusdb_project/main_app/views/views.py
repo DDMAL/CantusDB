@@ -1,12 +1,13 @@
 import csv
 from django.http.response import HttpResponseRedirect, JsonResponse
-from django.http import HttpResponse
+from django.http import HttpResponse, HttpResponseNotFound
 from django.shortcuts import render
 from django.urls.base import reverse
 from main_app.models import (
     Chant,
     Sequence,
     Source,
+    Indexer,
 )
 from main_app.forms import ContactForm
 from django.core.mail import send_mail, get_connection
@@ -471,16 +472,27 @@ def json_melody_export(request, cantus_id):
 
 def json_node_export(request, id):
     """
-    returns all fields of the chant/source with the specified `id`
+    returns all fields of the chant/sequence/source/indexer with the specified `id`
     """
+    
+    # future possible optimization: use .get() instead of .filter()
     chant = Chant.objects.filter(id=id)
+    sequence = Sequence.objects.filter(id=id)
     source = Source.objects.filter(id=id)
-    if chant and source:
-        raise ValueError("id is associated with both a chant and a source")
-    elif not chant and not source:
-        raise ValueError("id is associated with neither a chant nor a source")
-    chant_or_source = chant if chant else source
-    vals = dict(*chant_or_source.values())
+    indexer = Indexer.objects.filter(id=id)
+
+    if chant:
+        requested_item = chant
+    elif sequence:
+        requested_item = sequence
+    elif source:
+        requested_item = source
+    elif indexer:
+        requested_item = indexer
+    else:
+        return HttpResponseNotFound()
+
+    vals = dict(*requested_item.values())
 
     return JsonResponse(vals)
 
