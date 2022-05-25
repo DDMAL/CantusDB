@@ -364,6 +364,7 @@ def ajax_melody_search(request):
     for result in results:
         # construct the url for chant detail page and add it to the result
         result["chant_link"] = reverse("chant-detail", args=[result["id"]])
+
     result_count = result_values.count()
     return JsonResponse({"results": results, "result_count": result_count}, safe=True)
 
@@ -409,6 +410,92 @@ def ajax_search_bar(request, search_term):
         returned_values[i]["chant_link"] = chant_link
     return JsonResponse({"chants": returned_values}, safe=True)
 
+
+def json_melody_export(request, cantus_id):
+    chants = Chant.objects.filter(cantus_id=cantus_id, volpiano__isnull=False)
+
+    db_keys = ["melody_id",
+        "id",
+        "cantus_id",
+        "siglum",
+        "source__id", # don't fetch the entire Source object, just the id of
+                      # the source. __id is removed in standardize_for_api below
+        "folio",
+        "incipit",
+        "manuscript_full_text",
+        "volpiano",
+        "mode",
+        "feast__id",
+        "office__id",
+        "genre__id",
+        "position",
+        ]
+
+    chants_values = list(chants.values(*db_keys)) # a list of dictionaries. Each
+                                                  # dictionary represents metadata on one chant
+
+    def standardize_for_api(chant_values):
+        keymap = { # map attribute names from Chant model (i.e. db_keys
+            # in list above) to corresponding attribute names
+            # in old API, and remove artifacts of query process (i.e. __id suffixes)
+        "melody_id": "mid",                 # <-
+        "id": "nid",                        # <-
+        "cantus_id": "cid",                 # <-
+        "siglum": "siglum",
+        "source__id": "srcnid",             # <-
+        "folio": "folio",
+        "incipit": "incipit",
+        "manuscript_full_text": "fulltext", # <-
+        "volpiano": "volpiano",
+        "mode": "mode",
+        "feast__id": "feast",               # <-
+        "office__id": "office",             # <-
+        "genre__id": "genre",               # <-
+        "position": "position",
+        }
+        
+        standardized_chant_values = {keymap[key]: chant_values[key] for key in chant_values}
+
+        # manually build a couple of last fields that aren't represented in Chant object
+        chant_uri = request.build_absolute_uri(reverse("chant-detail", args=[chant_values["id"]]))
+        standardized_chant_values["chantlink"] = chant_uri
+        src_uri = request.build_absolute_uri(reverse("source-detail", args=[chant_values["source__id"]]))
+        standardized_chant_values["srclink"] = src_uri
+
+        return standardized_chant_values
+
+    standardized_chants_values = [standardize_for_api(cv) for cv in chants_values]
+    
+    return JsonResponse(standardized_chants_values, safe=False)
+
+
+def json_node_export(request, id):
+    """
+    returns all fields of the chant/source with the specified `id`
+    """
+    chant = Chant.objects.filter(id=id)
+    source = Source.objects.filter(id=id)
+    if chant and source:
+        raise ValueError("id is associated with both a chant and a source")
+    elif not chant and not source:
+        raise ValueError("id is associated with neither a chant nor a source")
+    chant_or_source = chant if chant else source
+    vals = dict(*chant_or_source.values())
+
+    return JsonResponse(vals)
+
+
+def json_sources_export(request):
+    """
+    generates a json object of published sources with their IDs and CSV links
+    """
+    sources = Source.objects.all()
+    ids = [source.id for source in sources]
+    csv_links = {id: request.build_absolute_uri(reverse("csv-export", args=[id])) for id in ids}
+
+    return JsonResponse(csv_links)
+
+  
 class CustomLogoutView(LogoutView):
     def get_next_page(self):
         next_page = super().get_next_page()

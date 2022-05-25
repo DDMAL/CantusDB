@@ -17,6 +17,10 @@ from main_app.views import (
 
 from . import make_fakes
 
+
+# test_views (this file) is out of date and should not be run.
+# Instead, run test_views_general and test_models.
+
 fake = Faker()
 
 
