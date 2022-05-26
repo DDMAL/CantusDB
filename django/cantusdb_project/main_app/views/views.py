@@ -503,7 +503,17 @@ def json_sources_export(request):
     """
     sources = Source.objects.all()
     ids = [source.id for source in sources]
-    csv_links = {id: request.build_absolute_uri(reverse("csv-export", args=[id])) for id in ids}
+
+    def inner_dictionary(id):
+        # in OldCantus, json-sources creates a json file with each id attribute pointing to a dictionary
+        # containing a single key, "csv", which itself points to a link to the relevant csv file.
+        # inner_dictionary() is used to build this single-keyed dictionary.
+        
+        # To avoid confusion, note that the `id` parameter refers to an identifier, and is not
+        # an abbreviation of `inner_dictionary`!
+        return {"csv": request.build_absolute_uri(reverse("csv-export", args=[id]))}
+    
+    csv_links = {id: inner_dictionary(id) for id in ids}
 
     return JsonResponse(csv_links)
 
