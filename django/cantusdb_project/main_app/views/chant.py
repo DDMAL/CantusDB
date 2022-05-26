@@ -19,6 +19,7 @@ from main_app.forms import ChantCreateForm, ChantEditForm
 from main_app.models import Chant, Feast, Genre, Source, Sequence
 from align_text_mel import *
 from django.contrib.auth.mixins import LoginRequiredMixin
+from django.http import Http404
 
 
 def keyword_search(queryset: QuerySet, keywords: str) -> QuerySet:
@@ -858,6 +859,8 @@ class ChantEditVolpianoView(LoginRequiredMixin, UpdateView):
     
     def get_object(self):
         queryset = self.get_queryset()
+        if len(queryset) == 0:
+            raise Http404("There are no chants associated with this source to edit")
         pk = self.request.GET.get("pk")
         # if a pk is not specified, we will not render the update form, rather we will render the instructions page
         if not pk:

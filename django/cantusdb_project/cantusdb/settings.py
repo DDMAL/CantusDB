@@ -26,7 +26,9 @@ MEDIA_ROOT = os.getenv("CANTUSDB_MEDIA_ROOT")
 SECRET_KEY = os.getenv("CANTUSDB_SECRET_KEY")
 
 # SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = bool(strtobool(os.getenv("CANTUSDB_DEBUG", "False")))
+DEBUG = False
+# need to set this to false so that we can display the custom 404 page
+# default: DEBUG = bool(strtobool(os.getenv("CANTUSDB_DEBUG", "False")))
 
 ALLOWED_HOSTS = [os.getenv("CANTUSDB_HOSTS")]
 

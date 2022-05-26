@@ -1,6 +1,7 @@
 from django import forms
 from .models import Chant, Office, Genre, Feast, Source, RismSiglum, Provenance, Century, Indexer
 from .widgets import *
+from django.contrib.auth import get_user_model
 
 # ModelForm allows to build a form directly from a model
 # see https://docs.djangoproject.com/en/3.0/topics/forms/modelforms/
@@ -196,7 +197,7 @@ class SourceCreateForm(forms.ModelForm):
     century.widget.attrs.update({"class": "form-control custom-select custom-select-sm"})
 
     current_editors = forms.ModelMultipleChoiceField(
-        queryset=Indexer.objects.all().order_by("family_name"), required=False
+        queryset=get_user_model().objects.all().order_by("last_name"), required=False
     )
     current_editors.widget.attrs.update({"class": "form-control custom-select custom-select-sm"})
 

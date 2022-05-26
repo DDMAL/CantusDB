@@ -516,3 +516,6 @@ class CustomLogoutView(LogoutView):
             'You have successfully logged out!'
         )
         return next_page
+
+def handle404(request, exception):
+    return render(request, "404.html")
