@@ -1,0 +1,50 @@
+{% extends "base.html" %}
+{% load helper_tags %}
+{% block content %}
+<title>My Sources | Cantus Manuscript Database</title>
+<div class="container">
+    <div class="row">
+        <div class="mr-3 p-3 col-lg-8 bg-white rounded">
+            <h3>My Sources</h3>
+            <a href="{% url "source-create" %}">+ Add new source</a>
+            {% if sources %}
+                <table class="table table-sm small table-bordered">
+                    <tbody>
+                        {% for source in sources %}
+                            <tr>
+                                <td class="text-wrap" style="text-align:center">
+                                    <a href="{% url "source-detail" source.pk %}">
+                                        {{ source.title }}
+                                    </a>
+                                </td>
+                                <td class="text-wrap" style="text-align:center">
+                                    <a href="{% url "source-edit-volpiano" source.pk %}">
+                                        Full text &amp; volpiano editor
+                                    </a>
+                                </td>
+                                <td class="text-wrap" style="text-align:center">
+                                    <a href="{% url "source-detail" source.pk %}">
+                                        Proofreading form
+                                    </a>
+                                </td>
+                            </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            {% endif %}        
+        </div>
+        <div class="col p-0">
+            <!-- global search bar-->
+            {% include "global_search_bar.html" %}
+            <div class="card mb-3 w-100">
+                <div class="card-header">
+                    <h4>Sources created by user</h4>
+                </div>
+                <div class="card-body">
+                    <a href="{% url "source-create" %}">+ Add new source</a>
+                </div>    
+            </div>    
+        </div>
+    </div>
+</div>
+{% endblock %}

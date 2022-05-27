@@ -68,7 +68,7 @@ class SourceDetailView(DetailView):
         source = self.get_object()
         context = super().get_context_data(**kwargs)
 
-        if source.segment.id == 4064:
+        if source.segment and source.segment.id == 4064:
             # if this is a sequence source
             context["sequences"] = source.sequence_set.all().order_by("sequence")
             context["folios"] = (
