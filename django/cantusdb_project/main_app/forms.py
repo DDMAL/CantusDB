@@ -187,22 +187,22 @@ class SourceCreateForm(forms.ModelForm):
     )
 
     full_source = forms.ChoiceField(
-        choices=TRUE_FALSE_CHOICES_SOURCE,
+        choices=TRUE_FALSE_CHOICES_SOURCE, required=False
     )
     full_source.widget.attrs.update({"class": "form-control custom-select custom-select-sm"})
 
     century = forms.ModelMultipleChoiceField(
-        queryset=Century.objects.all().order_by("name"), required=False
+        queryset=Century.objects.all().order_by("name")
     )
     century.widget.attrs.update({"class": "form-control custom-select custom-select-sm"})
 
     current_editors = forms.ModelMultipleChoiceField(
-        queryset=get_user_model().objects.all().order_by("last_name"), required=False
+        queryset=get_user_model().objects.all().order_by("last_name")
     )
     current_editors.widget.attrs.update({"class": "form-control custom-select custom-select-sm"})
 
     melodies_entered_by = forms.ModelMultipleChoiceField(
-        queryset=Indexer.objects.all().order_by("family_name"), required=False
+        queryset=Indexer.objects.all().order_by("family_name")
     )
     melodies_entered_by.widget.attrs.update({"class": "form-control custom-select custom-select-sm"})
 
@@ -212,7 +212,7 @@ class SourceCreateForm(forms.ModelForm):
     )
 
     complete_inventory = forms.ChoiceField(
-        choices=TRUE_FALSE_CHOICES_INVEN,
+        choices=TRUE_FALSE_CHOICES_INVEN, required=False
     )
     complete_inventory.widget.attrs.update({"class": "form-control custom-select custom-select-sm"})
 
