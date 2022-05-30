@@ -28,7 +28,12 @@ class Source(BaseModel):
     )
     # the siglum field as implemented on the old Cantus is composed of both the RISM siglum and the shelfmark
     # it is a human-readable ID for a source
-    siglum = models.CharField(max_length=63, null=True, blank=True)
+    siglum = models.CharField(
+        max_length=63, 
+        null=True, 
+        blank=True,
+        help_text="RISM-style siglum + Shelf-mark (e.g. GB-Ob 202).",
+    )
     # the RISM siglum uniquely identifies a library or holding institution
     rism_siglum = models.ForeignKey(
         "RismSiglum", on_delete=models.PROTECT, null=True, blank=True,
@@ -61,6 +66,9 @@ class Source(BaseModel):
     )
     # TODO: Fill this field up with JSON info when I have access to the Users
     current_editors = models.ManyToManyField(get_user_model(), related_name="sources_edited")
+    # created_by = models.ForeignKey(
+    #     get_user_model(), related_name="sources_created", on_delete=models.PROTECT, blank=True, null=True
+    # )
     inventoried_by = models.ManyToManyField(
         "Indexer", related_name="sources_inventoried"
     )
@@ -81,7 +89,11 @@ class Source(BaseModel):
     liturgical_occasions = models.TextField(blank=True, null=True)
     description = models.TextField(blank=True, null=True)
     selected_bibliography = models.TextField(blank=True, null=True)
-    image_link = models.URLField(blank=True, null=True)
+    image_link = models.URLField(
+        blank=True, 
+        null=True,
+        help_text='HTTP link to the image gallery of the source.',
+    )
     indexing_notes = models.TextField(blank=True, null=True)
     indexing_date = models.TextField(blank=True, null=True)
     json_info = models.JSONField(blank=True, null=True)
