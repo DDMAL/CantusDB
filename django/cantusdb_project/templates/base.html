@@ -375,8 +375,7 @@
                             <a href="{% url 'user-detail' request.user.id %}">{{ request.user }}</a>
                             |
                             <a href="{% url 'logout' %}">Log out</a>
-                        {% endif %}
-                        {% if request.user.is_anonymous %}
+                        {% else %}
                             <h5>Login for Contributors</h5>
                             <button type="button" value="Log In" id="log-in-out" class="btn btn-dark">Log in</button>
                         {% endif %}
