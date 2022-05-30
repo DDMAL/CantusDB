@@ -37,9 +37,10 @@
             function handleLogButtonClick() {
                 if (logButton.value === "Log In") {
                     location.replace(`${base_url}/login/`);
-                } else if (logButton.value === "Log Out") {
-                    location.replace(`${base_url}/logout/`);
-                }
+                } 
+                //else if (logButton.value === "Log Out") {
+                //    location.replace(`${base_url}/logout/`);
+                //}
             }
             logButton.addEventListener("click", handleLogButtonClick);
         }
@@ -338,11 +339,46 @@
                         </ul>
                     </div>
                     <div class="col-md" id="login">
-                        <h5>Login for Contributors</h5>
                         {% if not request.user.is_anonymous %}
-                            <button type="button" value="Log Out" id="log-in-out" class="btn btn-dark">Log Out</button>
-                        {% else %}
-                            <button type="button" value="Log In" id="log-in-out" class="btn btn-dark">Log In</button>
+                            <h5>Contributor Navigation</h5>
+                            <ul class="list-group list-group-flush">
+                                <li class="list-group-item p-0">
+                                    <a href="{% url 'my-sources' %}">My sources</a>
+                                </li>
+                                <li class="list-group-item p-0">
+                                    <a href="{% url 'source-create' %}">Add source</a>
+                                </li>
+                                <li class="list-group-item p-0">
+                                    <a href="{% url 'indexer-list' %}">List of indexers</a>
+                                </li>
+                                <li class="list-group-item p-0">
+                                    <a href="">Import feasts from Cantus Index</a>
+                                </li>
+                                <li class="list-group-item p-0">
+                                    <a href="">Update feasts from Cantus Index</a>
+                                </li>
+                                <li class="list-group-item p-0">
+                                    <a href="">Publish unpublished chants</a>
+                                </li>
+                                <li class="list-group-item p-0">
+                                    <a href="">Generate CSV - all published sources</a>
+                                </li>
+                                <li class="list-group-item p-0">
+                                    <a href="">Source index</a>
+                                </li>
+                                <li class="list-group-item p-0">
+                                    <a href="">Update differentiae</a>
+                                </li>
+                            </ul>
+                            <br>
+                            <h5>User Profile</h5>
+                            <a href="{% url 'user-detail' request.user.id %}">{{ request.user }}</a>
+                            |
+                            <a href="{% url 'logout' %}">Log out</a>
+                        {% endif %}
+                        {% if request.user.is_anonymous %}
+                            <h5>Login for Contributors</h5>
+                            <button type="button" value="Log In" id="log-in-out" class="btn btn-dark">Log in</button>
                         {% endif %}
                     </div>
                 </div>
