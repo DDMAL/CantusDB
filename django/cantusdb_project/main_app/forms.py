@@ -1,6 +1,5 @@
 from django import forms
 
-from main_app.models import rism_siglum
 from .models import Chant, Office, Genre, Feast, Source, RismSiglum, Provenance, Century, Indexer
 from .widgets import *
 from django.contrib.auth import get_user_model
