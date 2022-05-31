@@ -1,4 +1,5 @@
 from django import forms
+
 from .models import Chant, Office, Genre, Feast, Source, RismSiglum, Provenance, Century, Indexer
 from .widgets import *
 from django.contrib.auth import get_user_model
@@ -262,3 +263,90 @@ class ChantEditForm(forms.ModelForm):
         queryset=Feast.objects.all().order_by("name"), required=False
     )
     feast.widget.attrs.update({"class": "form-control custom-select custom-select-sm"})
+
+class SourceEditForm(forms.ModelForm):
+    class Meta:
+        model = Source
+        fields = [
+            "title",
+            "rism_siglum",
+            "siglum",
+            "provenance",
+            "provenance_notes",
+            "full_source",
+            "date",
+            "century",
+            "cursus",
+            "melodies_entered_by",
+            "complete_inventory",
+            "summary",
+            "description",
+            "selected_bibliography",
+            "image_link",
+            "fragmentarium_id",
+            "dact_id",
+            "indexing_notes"
+        ]
+        widgets = {
+            "title": TextInputWidget(),
+            "rism_siglum": TextInputWidget(),
+            "siglum": TextInputWidget(),
+            "provenance_notes": TextInputWidget(),
+            "date": TextInputWidget(),
+            "summary": TextAreaWidget(),
+            "description": TextAreaWidget(),
+            "selected_bibliography": TextAreaWidget(),
+            "image_link": TextInputWidget(),
+            "fragmentarium_id": TextInputWidget(),
+            "dact_id": TextInputWidget(),
+            "indexing_notes": TextAreaWidget(),
+        }
+    
+    provenance = forms.ModelChoiceField(
+        queryset=Provenance.objects.all().order_by("name"), required=False
+    )
+    provenance.widget.attrs.update({"class": "form-control custom-select custom-select-sm"}) # what does this do? - this adds styling - TODO remove these comments
+    
+    century = forms.ModelChoiceField(
+        queryset=Century.objects.all().order_by("name"), required = False
+    )
+    century.widget.attrs.update({"class": "form-control custom-select custom-select-sm"}) # what does this do?
+
+    CHOICES_FULL_SOURCE = (
+        (None, "None"),
+        (True, "Full source"),
+        (False, "Fragment or Fragmented"),
+    )
+    full_source = forms.ChoiceField(
+        choices=CHOICES_FULL_SOURCE, required=False
+    )
+    full_source.widget.attrs.update({"class": "form-control custom-select custom-select-sm"}) # what does this do?
+
+    CHOICES_CURSUS = (
+        (None, "None"),
+        ("Monastic", "Monastic"),
+        ("Secular", "Secular"),
+    )
+    cursus = forms.ChoiceField(
+        choices=CHOICES_CURSUS, required=False
+    )
+    cursus.widget.attrs.update({"class": "form-control custom-select custom-select-sm"}) # what does this do?
+
+    current_editors = forms.ModelMultipleChoiceField(
+        queryset=get_user_model().objects.all().order_by("last_name")
+    )
+    current_editors.widget.attrs.update({"class": "form-control custom-select custom-select-sm"})
+
+    melodies_entered_by = forms.ModelMultipleChoiceField(
+        queryset=get_user_model().objects.all().order_by("last_name"), required = False
+    )
+    melodies_entered_by.widget.attrs.update({"class": "form-control custom-select custom-select-sm"})
+
+    CHOICES_COMPLETE_INV = (
+        (True, "complete inventory"),
+        (False, "partial inventory"),
+    )
+    complete_inventory = forms.ChoiceField(
+        choices=CHOICES_COMPLETE_INV, required=False
+    )
+    complete_inventory.widget.attrs.update({"class": "form-control custom-select custom-select-sm"}) # what does this do?

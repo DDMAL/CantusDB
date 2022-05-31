@@ -1,7 +1,7 @@
 from django.urls import path, include
 from main_app.views import *
 from main_app.views import views
-from main_app.views.source import SourceCreateView
+from main_app.views.source import SourceCreateView, SourceEditView
 from main_app.views.chant import ChantEditVolpianoView
 from django.contrib.auth import views as auth_views
 from main_app.views.user import UserDetailView, UserSourceListView
@@ -73,7 +73,12 @@ urlpatterns = [
     path("users/<int:user_id>", UserDetailView.as_view(), name="user-detail"),
     path("my-sources/", UserSourceListView.as_view(), name="my-sources"),
     path('login/', auth_views.LoginView.as_view(redirect_authenticated_user=True), name="login"),
-    path('logout/', views.CustomLogoutView.as_view(), name="logout")
+    path('logout/', views.CustomLogoutView.as_view(), name="logout"),
+    path(
+        "edit-source/<int:source_id>", 
+        SourceEditView.as_view(), 
+        name="source-edit" # better name for this?
+    ),
 ]
 
 handler404 = 'main_app.views.views.handle404'
