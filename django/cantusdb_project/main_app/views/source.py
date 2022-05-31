@@ -1,10 +1,17 @@
 from django.views.generic import DetailView, ListView, CreateView
 from django.db.models import Q
 from main_app.models import Source, Provenance, Century
-from main_app.forms import SourceCreateForm
+from main_app.forms import SourceCreateForm, SourceEditForm
 from django.contrib import messages
 from django.urls import reverse
 from django.contrib.auth.mixins import LoginRequiredMixin
+from django.views.generic import (
+    CreateView,
+    UpdateView
+)
+
+from main_app.models.chant import Chant
+
 
 class SourceDetailView(DetailView):
     model = Source
@@ -240,3 +247,10 @@ class SourceCreateView(LoginRequiredMixin, CreateView):
             return super().form_valid(form)
         else:
             return super().form_invalid(form)
+
+class SourceEditView(LoginRequiredMixin,
+UpdateView):
+    template_name = "source_edit.html"
+    model = Source
+    form_class = SourceEditForm 
+    pk_url_kwarg = "source_id"
