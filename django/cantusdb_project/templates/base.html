@@ -30,22 +30,6 @@
     <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.5.0/js/bootstrap.min.js"
         integrity="sha384-OgVRvuATP1z7JjHLkuOU7Xw704+h835Lr+6QL9UvYjZE3Ipu6Tp75j7Bh/kR0JKI"
         crossorigin="anonymous"></script>
-    <script>
-        window.onload = function() {
-            let logButton = document.getElementById("log-in-out");
-            var base_url = window.location.origin;
-            function handleLogButtonClick() {
-                if (logButton.value === "Log In") {
-                    location.replace(`${base_url}/login/`);
-                } 
-                //else if (logButton.value === "Log Out") {
-                //    location.replace(`${base_url}/logout/`);
-                //}
-            }
-            logButton.addEventListener("click", handleLogButtonClick);
-        }
-    </script>
-
     <style>
         html {
             position: relative;
@@ -377,7 +361,9 @@
                             <a href="{% url 'logout' %}">Log out</a>
                         {% else %}
                             <h5>Login for Contributors</h5>
-                            <button type="button" value="Log In" id="log-in-out" class="btn btn-dark">Log in</button>
+                            <a href="{% url 'login' %}">
+                                <button type="button" class="btn btn-dark">Log in</button>
+                            </a>                        
                         {% endif %}
                     </div>
                 </div>
