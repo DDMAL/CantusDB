@@ -196,38 +196,40 @@
                                 <option value="{{ feast.id }}">{{ folio }} - {{ feast.name }}</option>
                             {% endfor %}
                         </select>
-
                         <br>
-
+                        <div id="currFolio">
+                            Folio:
+                        </div>
+                        <div id="currFeast">
+                            Feast:
+                        </div>    
                     </small>
                     {% if chants.all %}
                         <table class="table table-sm small table-bordered">
                             <tbody>
                                 {% for chant in chants %}
                                     <tr>
-                                        <td class="text-wrap" style="text-align:center">
+                                        <td class="h-25" style="width: 5%">
                                             <small>{{ chant.sequence_number }}</small>
                                         </td>
-                                        <td class="text-wrap" style="text-align:center">
+                                        <td class="h-25" style="width: 20%">
                                             <small>
                                                 {{ chant.office.name|default:"" }}
-                                                <br>
-                                                {{ chant.genre.name|default:"" }}
-                                                <br>
+                                                <b>{{ chant.genre.name|default:"" }}</b>
                                                 {{ chant.position|default:"" }}
                                             </small>
                                         </td>
-                                        <td class="text-wrap" style="text-align:center">
+                                        <td class="h-25" style="width: 40%; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; max-width: 0">
                                             <small>{{ chant.incipit|default:"" }}</small>
                                         </td>
-                                        <td class="text-wrap" style="text-align:center">
+                                        <td class="h-25" style="width: 20%">
                                             <small><a href="{{ chant.get_ci_url }}" target="_blank">{{ chant.cantus_id|default:"" }}</a></small>
                                         </td>
-                                        <td class="text-wrap" style="text-align:center">
+                                        <td class="h-25" style="width: 5%">
                                             <small>{{ chant.mode|default:"" }}</small>
                                         </td>
-                                        <td class="text-wrap" style="text-align:center">
-                                            <button type="button" class="btn btn-dark btn-sm" id="editButton" name="{{ chant.pk }}">EDIT</button>
+                                        <td class="h-25" style="width: 10%">
+                                            <button type="button" class="btn btn-dark btn-sm" id="editButton" name="{{ chant.pk }}">Edit</button>
                                         </td>
                                     </tr>
                                 {% endfor %}
