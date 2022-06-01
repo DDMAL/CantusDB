@@ -1,5 +1,4 @@
 import csv
-from inspect import Attribute
 from django.http.response import HttpResponseRedirect, JsonResponse
 from django.http import HttpResponse, HttpResponseNotFound
 from django.shortcuts import render
