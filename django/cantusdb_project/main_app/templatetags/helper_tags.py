@@ -39,7 +39,7 @@ def source_links():
     # <option value="source3">Source 3</option>
     for source in sources:
         option_str = (
-            f"<option value=sources/{source['id']}>{source['siglum']}</option>\n"
+            f"<option value=source/{source['id']}>{source['siglum']}</option>\n"
         )
         options += option_str
 
