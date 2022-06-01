@@ -66,9 +66,9 @@ class Source(BaseModel):
     )
     # TODO: Fill this field up with JSON info when I have access to the Users
     current_editors = models.ManyToManyField(get_user_model(), related_name="sources_edited")
-    # created_by = models.ForeignKey(
-    #     get_user_model(), related_name="sources_created", on_delete=models.PROTECT, blank=True, null=True
-    # )
+    created_by = models.ForeignKey(
+        get_user_model(), related_name="sources_created", on_delete=models.PROTECT, blank=True, null=True
+    )
     inventoried_by = models.ManyToManyField(
         "Indexer", related_name="sources_inventoried"
     )

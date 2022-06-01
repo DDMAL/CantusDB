@@ -5,6 +5,7 @@ from main_app.forms import SourceCreateForm
 from django.contrib import messages
 from django.urls import reverse
 from django.contrib.auth.mixins import LoginRequiredMixin
+from django.http import HttpResponseRedirect
 
 class SourceDetailView(DetailView):
     model = Source
@@ -232,11 +233,12 @@ class SourceCreateView(LoginRequiredMixin, CreateView):
         return reverse("source-create")
 
     def form_valid(self, form):
-        if form.is_valid():
-            messages.success(
-                self.request,
-                "Source created successfully!",
-            )
-            return super().form_valid(form)
-        else:
-            return super().form_invalid(form)
+        source = form.save(commit=False)
+        source.created_by = self.request.user
+        source.save()
+        form.save_m2m()
+        messages.success(
+            self.request,
+            "Source created successfully!",
+        )
+        return HttpResponseRedirect(self.get_success_url())
