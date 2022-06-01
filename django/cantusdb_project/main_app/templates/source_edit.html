@@ -22,6 +22,12 @@
                 </div>
             {% endif %}
 
+            <h3><em>Edit Source</em> {{ source.title }}</h3>
+
+            <p>
+                <a href="{% url 'source-detail' source.id %}">View</a> | Edit
+            </p>
+
             <form method="post" style="line-height: normal">{% csrf_token %}
                 <div class="form-row mb-3">
 
