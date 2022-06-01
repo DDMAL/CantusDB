@@ -92,7 +92,7 @@ urlpatterns = [
     path(
         "ajax/concordance/<str:cantus_id>",
         views.ajax_concordance_list,
-        name="ajax_concordance",
+        name="ajax-concordance",
     ),
 ]
 
