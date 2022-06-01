@@ -20,6 +20,7 @@ from main_app.models import Chant, Feast, Genre, Source, Sequence
 from align_text_mel import *
 from django.contrib.auth.mixins import LoginRequiredMixin
 from django.http import Http404
+from next_chants import next_chants
 
 
 def keyword_search(queryset: QuerySet, keywords: str) -> QuerySet:
@@ -597,28 +598,18 @@ class ChantCreateView(CreateView):
         return super().dispatch(request, *args, **kwargs)
 
     def get_suggested_chants(self):
-        """Get suggested chants based on the previous chant entered. 
-
-        This function gets the chant suggestions displayed to the right of the form. 
-        It works in the following steps:
-        1. Look up the Cantus ID of the previously entered chant.
-        2. Find all the chants with that Cantus ID, in all sources. 
-        3. Find all the chants that follow those chants on the same or the next folio.
-        4. Compile a list of Cantus IDs of the chants found in step 3.
-        5. Count the number of occurence of each Cantus ID in the chants found in step 3. 
-        6. Get the top 5 Cantus IDs that occur most often.
-        7. Using the top 5 Cantus IDs, search in CI for the correct full-text and genre.
-        8. To search Cantus ID on CI, use json export: 'http://cantusindex.org/json-cid/<cantus_id>'
-
+        """based on the previous chant entered, get data and metadata on
+        chants that follow the most recently entered chant in other manuscripts
+        
         Returns:
-            list of dicts: a list of suggested chants in key-value pairs
+            a list of dictionaries: for every potential chant,
+            each dictionary includes data on that chant,
+            taken from Cantus Index, as well as a count of how often
+            that chant is found following the previous chant
         """
 
         # only displays the chants that occur most often
         NUM_SUGGESTIONS = 5
-
-        cantus_ids = []
-        nocs = []  # number of occurence
         try:
             latest_chant = self.source.chant_set.latest("date_updated")
         except Chant.DoesNotExist:
@@ -628,52 +619,37 @@ class ChantCreateView(CreateView):
         if cantus_id is None:
             return None
 
-        concordances = Chant.objects.filter(cantus_id=cantus_id).only(
-            "source", "folio", "sequence_number"
-        )
-        for chant in concordances:
-            next_chant = chant.get_next_chant()
-            if next_chant:
-                # return the number of occurence in the suggestions (not in the entire db)
-                if next_chant.cantus_id in cantus_ids:
-                    idx = cantus_ids.index(next_chant.cantus_id)
-                    nocs[idx] += 1
-                else:
-                    # cantus_id can be None (some chants don't have one)
-                    if next_chant.cantus_id:
-                        # add the new cantus_id to the list, count starts from 1
-                        cantus_ids.append(next_chant.cantus_id)
-                        nocs.append(1)
-        # sort the nocs and cantus_ids
-        sorted_list = sorted(zip(nocs, cantus_ids), reverse=True)
-        cantus_ids_sorted = [y for _, y in sorted_list]
-        nocs_sorted = [x for x, _ in sorted_list]
+        suggested_chants = next_chants(cantus_id)
 
-        # return only NUM_SUGGESTIONS top chants
-        print(cantus_ids_sorted[:NUM_SUGGESTIONS])
-        print(nocs_sorted[:NUM_SUGGESTIONS])
-        print("total suggestions: ", len(cantus_ids))
+        # sort by number of occurrences
+        sorted_suggested_chants = sorted(suggested_chants,
+                                         key=lambda id_count_pair: id_count_pair[1],
+                                         reverse=True
+                                         )
+        # if there are more chants than NUM_SUGGESTIONS, remove chants that
+        # don't frequently appear after the most recently entered chant
+        trimmed_suggested_chants = sorted_suggested_chants[:NUM_SUGGESTIONS]
 
-        suggested_chants = cantus_ids_sorted[:NUM_SUGGESTIONS]
-        suggested_chants_dicts = []
-
-        for i in range(NUM_SUGGESTIONS):
-            try:
-                suggested_chant = suggested_chants[i]  # suggested_chant is a CantusID
-            except IndexError:
-                # if the actual number of suggestions is less than NUM_SUGGESTIONS
-                break
-            # do a search in CI
+        def make_suggested_chant_dict(suggested_chant):
+            sugg_chant_cantus_id, sugg_chant_count = suggested_chant
+            # search Cantus Index
             response = requests.get(
-                "http://cantusindex.org/json-cid/{}".format(suggested_chant)
+                "http://cantusindex.org/json-cid/{}".format(sugg_chant_cantus_id)
             )
             assert response.status_code == 200
             # parse the json export to a dict
-            # response.json() # can't use this because of the BOM at the beginning of json export
+            # can't use response.json() because of the BOM at the beginning of json export
             chant_dict = json.loads(response.text[2:])[0]
             # add number of occurence to the dict, so that we can display it easily
-            chant_dict["noc"] = nocs_sorted[i]
-            suggested_chants_dicts.append(chant_dict)
+            chant_dict["count"] = sugg_chant_count
+            return chant_dict
+
+        suggested_chants_dicts = [
+            make_suggested_chant_dict(chant)
+            for chant
+            in trimmed_suggested_chants
+            ]
+
         return suggested_chants_dicts
 
     def get_context_data(self, **kwargs):
@@ -683,9 +659,7 @@ class ChantCreateView(CreateView):
             context["previous_chant"] = self.source.chant_set.latest("date_updated")
         except Chant.DoesNotExist:
             context["previous_chant"] = None
-        print("other context done")
         context["suggested_chants"] = self.get_suggested_chants()
-        print("suggesions done")
         return context
 
     def form_valid(self, form):

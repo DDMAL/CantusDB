@@ -245,7 +245,7 @@
                             {% if suggested_chants %}
                                 {% for chant in suggested_chants %}
                                     <input type="button" style="width: 80px" value="{{ chant.cid }}" onclick="autoFill{{ chant.cid }}()"></input>
-                                    <strong>{{ chant.genre }}</strong> - {{ chant.fulltext }} (<strong>{{ chant.noc }}x</strong>)<br>
+                                    <strong>{{ chant.genre }}</strong> - {{ chant.fulltext }} (<strong>{{ chant.count }}x</strong>)<br>
                                     <script>
                                         function autoFill{{ chant.cid }}() {
                                             const genreId = Array.prototype.find.call(document.getElementById('id_genre').children, ({ textContent }) => textContent === "{{ chant.genre }}");

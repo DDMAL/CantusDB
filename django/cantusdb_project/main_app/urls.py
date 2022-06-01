@@ -60,6 +60,7 @@ urlpatterns = [
     ),
     path("json-sources/", views.json_sources_export, name="json-sources-export"),
     path("json-node/<str:id>", views.json_node_export, name="json-node-export"),
+    path("json-nextchants/<str:cantus_id>", views.json_nextchants, name="json-nextchants"),
     path(
         "source-create/", 
         SourceCreateView.as_view(), 
@@ -77,7 +78,7 @@ urlpatterns = [
     path(
         "edit-source/<int:source_id>", 
         SourceEditView.as_view(), 
-        name="source-edit" # better name for this?
+        name="source-edit"
     ),
 ]
 

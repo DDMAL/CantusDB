@@ -1,4 +1,5 @@
 import csv
+from inspect import Attribute
 from django.http.response import HttpResponseRedirect, JsonResponse
 from django.http import HttpResponse, HttpResponseNotFound
 from django.shortcuts import render
@@ -14,6 +15,7 @@ from django.core.mail import send_mail, get_connection
 from django.contrib.auth.views import LogoutView
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required
+from next_chants import next_chants
 
 @login_required
 def items_count(request):
@@ -517,7 +519,12 @@ def json_sources_export(request):
 
     return JsonResponse(csv_links)
 
-  
+
+def json_nextchants(request, cantus_id):
+    ids_and_counts = next_chants(cantus_id)
+    suggested_chants_dict = {cantus_id: count for (cantus_id, count) in ids_and_counts}
+    return JsonResponse(suggested_chants_dict)
+    
 class CustomLogoutView(LogoutView):
     def get_next_page(self):
         next_page = super().get_next_page()
