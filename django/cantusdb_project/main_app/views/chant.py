@@ -555,7 +555,7 @@ class ChantCreateView(CreateView):
     """
 
     model = Chant
-    template_name = "input_form_w.html"
+    template_name = "chant_create.html"
     form_class = ChantCreateForm
 
     # if success_url and get_success_url not specified, will direct to chant detail page
