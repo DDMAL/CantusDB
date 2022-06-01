@@ -26,28 +26,36 @@
             {% if pk_specified %}
                 <form method="post" style="line-height: normal">{% csrf_token %}
                     <div class="form-row">
-                        <label for="{{ form.manuscript_full_text_std_spelling.id_for_label }}">
-                            <small>Manuscript Reading Full Text (standardized spelling):</small>
-                        </label>
-                        {{ form.manuscript_full_text_std_spelling }}
+                        <div class="form-group m-1 col-lg-12">
+                            <label for="{{ form.manuscript_full_text_std_spelling.id_for_label }}">
+                                <small>Manuscript Reading Full Text (standardized spelling):</small>
+                            </label>
+                            {{ form.manuscript_full_text_std_spelling }}
+                        </div>
                     </div>
 
                     <div class="form-row">
-                        <button type="button" class="btn btn-dark btn-sm" id="copyFullTextBelow">Copy full text below</button>                
+                        <div class="form-group m-1 col-lg-4">
+                            <button type="button" class="btn btn-dark btn-sm" id="copyFullTextBelow">Copy full text below</button>                
+                        </div>
                     </div>
 
                     <div class="form-row">
-                        <label for="{{ form.manuscript_full_text.id_for_label }}">
-                            <small>Manuscript Reading Full Text (MS spelling):</small>
-                        </label>
-                        {{ form.manuscript_full_text }}
+                        <div class="form-group m-1 col-lg-12">
+                            <label for="{{ form.manuscript_full_text.id_for_label }}">
+                                <small>Manuscript Reading Full Text (MS spelling):</small>
+                            </label>
+                            {{ form.manuscript_full_text }}
+                        </div>
                     </div>
 
                     <div class="form-row">
-                        <label for="{{ form.volpiano.id_for_label }}">
-                            <small>Volpiano:</small>
-                        </label>
-                        {{ form.volpiano }}
+                        <div class="form-group m-1 col-lg-12">
+                            <label for="{{ form.volpiano.id_for_label }}">
+                                <small>Volpiano:</small>
+                            </label>
+                            {{ form.volpiano }}
+                        </div>
                     </div>
 
                     <div class="form-row">
@@ -63,7 +71,7 @@
                             <small>{{ form.sequence.label_tag }}</small>
                             {{ form.sequence }}
                         </div>
-                        <div class="form-group m-1 col-lg-2">
+                        <div class="form-group m-1 col-lg-4">
                             <small>{{ form.feast.label_tag }}</small>
                             {{ form.feast }}
                         </div>
@@ -77,6 +85,10 @@
                         <div class="form-group m-1 col-lg-2">
                             <small>{{ form.genre.label_tag }}</small>
                             {{ form.genre }}
+                        </div>
+                        <div class="form-group m-1 col-lg-2">
+                            <small>{{ form.position.label_tag }}</small>
+                            {{ form.position }}
                         </div>
                         <div class="form-group m-1 col-lg-2">
                             <label for="{{ form.cantus_id.id_for_label }}">
@@ -102,27 +114,42 @@
                             {{ form.finalis }}
                         </div>
                         <div class="form-group m-1 col-lg-2">
+                            <small>{{ form.differentia.label_tag }}</small>
+                            {{ form.differentia }}
+                        </div>
+                        <div class="form-group m-1 col-lg-2">
                             <small>{{ form.extra.label_tag }}</small>
                             {{ form.extra }}
                         </div>
                     </div>
 
                     <div class="form-row">
-                        <small>{{ form.image_link.label_tag }}</small>
-                        {{ form.image_link }}
+                        <div class="form-group m-1 col-lg-12">
+                            <small>{{ form.image_link.label_tag }}</small>
+                            {{ form.image_link }}
+                        </div>
                     </div>
 
                     <div class="form-row">
-                        <small>{{ form.indexing_notes.label_tag }}</small>
-                        {{ form.indexing_notes }}
+                        <div class="form-group m-1 col-lg-12">
+                            <small>{{ form.indexing_notes.label_tag }}</small>
+                            {{ form.indexing_notes }}
+                        </div>
+                    </div>
+
+                    <div class="form-row">
+                        <div class="form-group m-1 col-lg-2">
+                            <button type="submit" class="btn btn-dark btn-sm" id="btn-submit">Save</button>
+                        </div>
                     </div>
                     <div class="form-row">
-                        <button type="submit" class="btn btn-dark btn-sm" id="btn-submit">Save</button>
+                        <div class="form-group m-1 col-lg-4">
+                            <small>
+                                <a href="{% url "chant-detail" chant_pk %}" target="_blank">Open chant page (new window)</a>
+                            </small>
+                        </div>
                     </div>
                 </form> 
-                <small>
-                    <a href="{% url "chant-detail" chant_pk %}" target="_blank">Open chant page (new window)</a>
-                </small>
             {% else %}
                 <h3>Full text &amp; Volpiano edit form</h3>
                 <br>
@@ -169,38 +196,40 @@
                                 <option value="{{ feast.id }}">{{ folio }} - {{ feast.name }}</option>
                             {% endfor %}
                         </select>
-
                         <br>
-
+                        <div id="currFolio">
+                            Folio:
+                        </div>
+                        <div id="currFeast">
+                            Feast:
+                        </div>    
                     </small>
                     {% if chants.all %}
                         <table class="table table-sm small table-bordered">
                             <tbody>
                                 {% for chant in chants %}
                                     <tr>
-                                        <td class="text-wrap" style="text-align:center">
+                                        <td class="h-25" style="width: 5%">
                                             <small>{{ chant.sequence_number }}</small>
                                         </td>
-                                        <td class="text-wrap" style="text-align:center">
+                                        <td class="h-25" style="width: 20%">
                                             <small>
                                                 {{ chant.office.name|default:"" }}
-                                                <br>
-                                                {{ chant.genre.name|default:"" }}
-                                                <br>
+                                                <b>{{ chant.genre.name|default:"" }}</b>
                                                 {{ chant.position|default:"" }}
                                             </small>
                                         </td>
-                                        <td class="text-wrap" style="text-align:center">
+                                        <td class="h-25" style="width: 40%; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; max-width: 0">
                                             <small>{{ chant.incipit|default:"" }}</small>
                                         </td>
-                                        <td class="text-wrap" style="text-align:center">
+                                        <td class="h-25" style="width: 20%">
                                             <small><a href="{{ chant.get_ci_url }}" target="_blank">{{ chant.cantus_id|default:"" }}</a></small>
                                         </td>
-                                        <td class="text-wrap" style="text-align:center">
+                                        <td class="h-25" style="width: 5%">
                                             <small>{{ chant.mode|default:"" }}</small>
                                         </td>
-                                        <td class="text-wrap" style="text-align:center">
-                                            <button type="button" class="btn btn-dark btn-sm" id="editButton" name="{{ chant.pk }}">EDIT</button>
+                                        <td class="h-25" style="width: 10%">
+                                            <button type="button" class="btn btn-dark btn-sm" id="editButton" name="{{ chant.pk }}">Edit</button>
                                         </td>
                                     </tr>
                                 {% endfor %}
