@@ -6,6 +6,8 @@ from django.views.generic import ListView
 from django.contrib.auth.mixins import LoginRequiredMixin
 from django.db.models import Q
 from django.core.paginator import Paginator
+from django.contrib.auth.views import LogoutView
+from django.contrib import messages
 
 class UserDetailView(DetailView):
     """Detail view for User model
@@ -45,3 +47,12 @@ class UserSourceListView(LoginRequiredMixin, ListView):
 
         context["user_created_sources_page_obj"] = page_obj
         return context
+
+class CustomLogoutView(LogoutView):
+    def get_next_page(self):
+        next_page = super().get_next_page()
+        messages.success(
+            self.request, 
+            'You have successfully logged out!'
+        )
+        return next_page
