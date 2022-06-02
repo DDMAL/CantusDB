@@ -1,4 +1,5 @@
 from main_app.models import Chant
+from collections import Counter
 
 
 def next_chants(cantus_id):
@@ -10,25 +11,16 @@ def next_chants(cantus_id):
     Returns:
         list of duples, each representing a cantusID-count pair
     """
-    cantus_ids = []
-    counts = []
     concordances = Chant.objects.filter(cantus_id=cantus_id).only(
         "source", "folio", "sequence_number"
     )
-    for chant in concordances:
-        next_chant = chant.get_next_chant()
-        if next_chant:
-            # return the number of occurence in the suggestions (not in the entire db)
-            if next_chant.cantus_id in cantus_ids:
-                idx = cantus_ids.index(next_chant.cantus_id)
-                counts[idx] += 1
-            else:
-                # cantus_id can be None (some chants don't have one)
-                if next_chant.cantus_id:
-                    # add the new cantus_id to the list, count starts from 1
-                    cantus_ids.append(next_chant.cantus_id)
-                    counts.append(1)
+    next_chants = [chant.get_next_chant() for chant in concordances]
+    ids = [chant.cantus_id
+        for chant
+        in next_chants
+        if chant is not None] # chant would be None if .get_next_chant() returned None,
+                              # i.e. if the chant in concordances was the last in the manuscript
+    counts = Counter(ids)
+    ids_and_counts = [item for item in counts.items()] # each item is an id-count key-value pair
     
-    ids_and_counts = list(zip(cantus_ids, counts))
-
     return ids_and_counts
