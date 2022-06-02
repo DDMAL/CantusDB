@@ -185,7 +185,7 @@
                         <a href="{% url "source-list" %}?segment={{ source.segment.id }}">{{ source.segment.name }}</a>
                     </small>
                     <br>
-                    {{ source.siglum }}
+                    <b>{{ source.siglum }}</b>
                 </div>
                 <div class=" card-body">
                     <small>
@@ -240,6 +240,33 @@
                     </small>
                 </div>
             </div>
+            {% if not request.user.is_anonymous %}
+                <div class="card mb-3 w-100">
+                    <div class="card-header">
+                        Source edit options
+                        <br>
+                        <b>{{ source.siglum }}</b>
+                    </div>
+                    <div class=" card-body">
+                        <small>
+                            <ul>
+                                <li>
+                                    <a href="{% url "chant-create" source.id%}">Add new chant</a>
+                                </li>
+                                <li>
+                                    <a href="{% url "source-edit-volpiano" source.id%}">Edit chants (fulltext & volpiano editor)</a>
+                                </li>
+                                <li>
+                                    <a href="{% url "source-edit" source.id%}">Edit source description</a>
+                                </li>
+                                <li>
+                                    <a href="">Manage source editors</a>
+                                </li>
+                            </ul>
+                        </small>
+                    </div>
+                </div>
+            {% endif %}
         </div>
     </div>
 </div>
