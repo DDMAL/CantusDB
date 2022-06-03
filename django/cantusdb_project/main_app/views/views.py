@@ -11,8 +11,6 @@ from main_app.models import (
 )
 from main_app.forms import ContactForm
 from django.core.mail import send_mail, get_connection
-from django.contrib.auth.views import LogoutView
-from django.contrib import messages
 from django.contrib.auth.decorators import login_required
 from next_chants import next_chants
 
@@ -524,14 +522,6 @@ def json_nextchants(request, cantus_id):
     suggested_chants_dict = {cantus_id: count for (cantus_id, count) in ids_and_counts}
     return JsonResponse(suggested_chants_dict)
     
-class CustomLogoutView(LogoutView):
-    def get_next_page(self):
-        next_page = super().get_next_page()
-        messages.success(
-            self.request, 
-            'You have successfully logged out!'
-        )
-        return next_page
 
 def handle404(request, exception):
     return render(request, "404.html")

@@ -18,28 +18,26 @@
             </div>
             {% endif %}
 
-            <form method="post" action="{% url 'login' %}">
-            {% csrf_token %}
-                <div class="form-row">
-                    <div class="form-group m-1 col-lg-2">
-                        Username:
+            <div class="col-md" id="login">
+                <h5>Login for Contributors</h5>
+                <form method="post" action="{% url 'login' %}">
+                {% csrf_token %}
+                    <div class="form-group">
+                        <label for="username">Username</label>
+                        <br>
                         {{ form.username }}
-                    </div>    
-                </div>
-
-                <div class="form-row">
-                    <div class="form-group m-1 col-lg-2">
-                        Password:
+                    </div>
+                    <div class="form-group">
+                        <label for="password">Password</label>
+                        <br>
                         {{ form.password }}
-                    </div>    
-                </div>
-                <div class="form-group m-1 col-lg-2">
-                    <button type="submit" class="btn btn-dark btn-sm" id="btn-submit"> 
-                        Log In
+                    </div>
+                    <button type="submit" class="btn btn-dark" id="btn-submit">
+                        Log in
                     </button>
-                </div>
-                <input type="hidden" name="next" value="{{ next }}">
-            </form>
+                    <input type="hidden" name="next" value="{{ next }}">
+                </form>
+            </div>
         </div>
     </div>
 </div>
