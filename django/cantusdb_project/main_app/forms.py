@@ -97,7 +97,7 @@ class ChantCreateForm(forms.ModelForm):
     )
 
     sequence_number = forms.CharField(
-        required=True, widget=TextInputWidget, help_text="Each folio starts with '1'",
+        required=True, widget=TextInputWidget, help_text="Each folio starts with '1'.",
     )
 
     office = forms.ModelChoiceField(

@@ -82,7 +82,7 @@ class Chant(BaseModel):
         " in the source. Retain “Xpistum” (Christum), “Ihc” (Jesus) and other instances of "
         "Greek characters with their closest approximations of Latin letters. Some punctuation"
         " signs and vertical dividing lines | are employed in this field. Repetenda and psalm "
-        "cues can also be recorded here. For more information, contact Cantus Database staff.",
+        "cues can also be recorded here.",
         null=True,
         blank=True,
     )

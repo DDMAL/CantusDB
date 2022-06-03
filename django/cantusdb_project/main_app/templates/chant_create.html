@@ -166,8 +166,9 @@
                         {{ form.manuscript_full_text_std_spelling }}
                         <!--textarea class="form-control" rows="3" id="form.manuscript_full_text_std_spelling.id_for_label"></textarea-->
                         <p>
-                            <small class="text-muted">{{ form.manuscript_full_text_std_spelling.help_text }} For more
-                                info <a href="/field-descriptions/#Fulltext">click here</a>.</small>
+                            <small class="text-muted">{{ form.manuscript_full_text_std_spelling.help_text }}
+                                For more information, consult <a href="/field-descriptions/#Fulltext" target="_blank">Fields and Content Descriptions</a>.
+                            </small>
                         </p>
                     </div>
                 </div>
@@ -178,7 +179,9 @@
                                 (MS spelling): </small></label>
                         {{ form.manuscript_full_text }}
                         <p class="text-muted" style="line-height: normal">
-                            <small>{{ form.manuscript_full_text.help_text }}</small>
+                            <small>{{ form.manuscript_full_text.help_text }}
+                                For more information, <a href="{% url 'contact' %}" target="_blank">contact Cantus Database staff</a>.
+                            </small>
                         </p>
                     </div>
                 </div>
