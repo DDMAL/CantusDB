@@ -118,6 +118,26 @@
                     
                 </div>
 
+                <p>
+                    <small>
+                        {% if previous_chant %}
+                            Feasts that follow:
+                            <a href="">Placeholder Feast 1</a> (8x) | <a href="">Placeholder Feast 2</a> (3x) |
+
+                            {# code for suggested feasts will eventually look something like this:                                                      #}
+                            {#    {% for feast in suggested_feasts %}                                                                                   #}
+                            {#        <a href="{% something to do with the feast's ID - maybe calls some js to change the feast datalist above? %}">    #}
+                            {#            {{feast.name}}</a> ({{feast.count}}x) |                                                                       #}
+                            {#    {% endfor %}                                                                                                          #}
+                            
+                            <strong>
+                                <a href="{#(% trigger javascript! %)#}">Revert Changes</a>
+                            </strong>
+                        {% endif %}
+
+                    </small>
+                </p>
+
                 <div class="form-row">
 
                     <div class="form-group m-1 col-lg-2">
@@ -133,6 +153,11 @@
                     <div class="form-group m-1 col-lg-2">
                         <small>{{ form.differentia.label_tag }}</small>
                         {{ form.differentia }}
+                    </div>
+
+                    <div class="form-group m-1 col-lg-3">
+                        <label for="{{ form.differentia_id.id_for_label }}"><small>Differentia Database</small></label>
+                        {{ form.differentia_id }}
                         <p>
                             <small class="text-muted">Diff. IDs: <a href="https://differentiaedatabase.ca/">differentiaedatabase.ca</a></small>
                         </p>
@@ -203,7 +228,7 @@
 
                 <div class="form-row align-items-end">
                     <div class="form-group m-1 col-lg-8">
-                        <small>{{ form.content_structure.label_tag }}</small>
+                        <small>{{ form.content_structure.label_tag }}</small> <!-- the Content Structure field is no longer there in OldCantus... -->
                         {{ form.content_structure }}
                         <p class="text-muted" style="line-height: normal">
                             <small>{{ form.content_structure.help_text }}</small>
@@ -218,7 +243,7 @@
                     </div>
                 </div>
 
-                <div class="form-row align-items-end">
+                <div class="form-row align-items-end"> <!-- the Addendum field is no longer there in OldCantus... -->
                     <div class="form-group m-1 col-lg">
                         <small>{{ form.addendum.label_tag }}</small>
                         {{ form.addendum }}
