@@ -122,16 +122,12 @@
                     <small>
                         {% if previous_chant %}
                             Feasts that follow:
-                            <a href="">Placeholder Feast 1</a> (8x) | <a href="">Placeholder Feast 2</a> (3x) |
-
-                            {# code for suggested feasts will eventually look something like this:                                                      #}
-                            {#    {% for feast in suggested_feasts %}                                                                                   #}
-                            {#        <a href="{% something to do with the feast's ID - maybe calls some js to change the feast datalist above? %}">    #}
-                            {#            {{feast.name}}</a> ({{feast.count}}x) |                                                                       #}
-                            {#    {% endfor %}                                                                                                          #}
+                               {% for feast, count in suggested_feasts.items %}
+                                   <a href="" onclick="return false;">{{feast.name}}</a> ({{ count }}x) |                                                                   
+                               {% endfor %}                                                                                                      
                             
                             <strong>
-                                <a href="{#(% trigger javascript! %)#}">Revert Changes</a>
+                                <a href="" onclick="return false;">Revert Changes</a>
                             </strong>
                         {% endif %}
 
