@@ -7,7 +7,7 @@ from main_app.models import Genre
 
 
 class GenreDetailView(SingleObjectMixin, ListView):
-    paginate_by = 50
+    paginate_by = 100
     template_name = "genre_detail.html"
 
     def get_genre_cantus_ids(self) -> List[Dict]:
