@@ -118,6 +118,22 @@
                     
                 </div>
 
+                <p>
+                    <small>
+                        {% if previous_chant %}
+                            Feasts that follow:
+                               {% for feast, count in suggested_feasts.items %}
+                                   <a href="" onclick="return false;">{{ feast.name }}</a> ({{ count }}x) |                                                                   
+                               {% endfor %}                                                                                                      
+                            
+                            <strong>
+                                <a href="" onclick="return false;">Revert Changes</a>
+                            </strong>
+                        {% endif %}
+
+                    </small>
+                </p>
+
                 <div class="form-row">
 
                     <div class="form-group m-1 col-lg-2">
@@ -133,6 +149,11 @@
                     <div class="form-group m-1 col-lg-2">
                         <small>{{ form.differentia.label_tag }}</small>
                         {{ form.differentia }}
+                    </div>
+
+                    <div class="form-group m-1 col-lg-3">
+                        <label for="{{ form.differentia_id.id_for_label }}"><small>Differentia Database</small></label>
+                        {{ form.differentia_id }}
                         <p>
                             <small class="text-muted">Diff. IDs: <a href="https://differentiaedatabase.ca/">differentiaedatabase.ca</a></small>
                         </p>
@@ -203,7 +224,7 @@
 
                 <div class="form-row align-items-end">
                     <div class="form-group m-1 col-lg-8">
-                        <small>{{ form.content_structure.label_tag }}</small>
+                        <small>{{ form.content_structure.label_tag }}</small> <!-- the Content Structure field is no longer there in OldCantus... -->
                         {{ form.content_structure }}
                         <p class="text-muted" style="line-height: normal">
                             <small>{{ form.content_structure.help_text }}</small>
@@ -218,7 +239,7 @@
                     </div>
                 </div>
 
-                <div class="form-row align-items-end">
+                <div class="form-row align-items-end"> <!-- the Addendum field is no longer there in OldCantus... -->
                     <div class="form-group m-1 col-lg">
                         <small>{{ form.addendum.label_tag }}</small>
                         {{ form.addendum }}

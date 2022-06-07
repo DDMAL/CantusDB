@@ -21,6 +21,7 @@ from align_text_mel import *
 from django.contrib.auth.mixins import LoginRequiredMixin
 from django.http import Http404
 from next_chants import next_chants
+from collections import Counter
 
 
 def keyword_search(queryset: QuerySet, keywords: str) -> QuerySet:
@@ -652,6 +653,36 @@ class ChantCreateView(CreateView):
 
         return suggested_chants_dicts
 
+    def get_suggested_feasts(self):
+        """based on the feast of the most recently edited chant, provide a list of suggested feasts that
+        might follow the feast of that chant.
+
+        Returns: a dictionary, with feast objects as keys and counts as values
+        """
+        try:
+            latest_chant = self.source.chant_set.latest("date_updated")
+        except Chant.DoesNotExist:
+            return None
+
+        current_feast = latest_chant.feast
+        chants_assocd_w_current_feast = Chant.objects.filter(feast=current_feast)
+        next_chants = [chant.get_next_chant()
+            for chant
+            in chants_assocd_w_current_feast
+            ]
+        next_feasts = [chant.feast
+            for chant
+            in next_chants
+            if type(chant) is Chant # .get_next_chant() sometimes returns None
+                and chant.feast is not None # some chants aren't associated with a feast
+                and chant.feast.id != current_feast.id
+            ]
+        feast_counts = Counter(next_feasts)
+        sorted_feast_counts = dict( sorted(feast_counts.items(),
+                           key=lambda item: item[1],
+                           reverse=True))
+        return sorted_feast_counts
+
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
         context["source"] = self.source
@@ -660,6 +691,7 @@ class ChantCreateView(CreateView):
         except Chant.DoesNotExist:
             context["previous_chant"] = None
         context["suggested_chants"] = self.get_suggested_chants()
+        context["suggested_feasts"] = self.get_suggested_feasts()
         return context
 
     def form_valid(self, form):
