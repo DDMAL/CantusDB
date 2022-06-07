@@ -14,9 +14,14 @@
                         {{ message }}
                     {% endfor %}
                 </div>
-            {% endif %}                        
-
+            {% endif %}          
+            
             <h3>{{ chant.incipit }}</h3>
+            {% if user.is_authenticated %}
+                <p>
+                    View | <a href="{% url 'source-edit-volpiano' chant.source.id %}?pk={{ chant.id }}">Edit</a>
+                </p>
+            {% endif %}
             <dl>
                 <div class="row">
                     {% if chant.source %}

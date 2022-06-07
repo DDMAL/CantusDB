@@ -94,7 +94,7 @@ class SourceDetailView(DetailView):
 class SourceListView(ListView):
     model = Source
     queryset = Source.objects.all().order_by("siglum")
-    paginate_by = 1000
+    paginate_by = 100
     context_object_name = "sources"
     template_name = "source_list.html"
 

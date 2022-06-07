@@ -159,7 +159,7 @@ class ChantListView(ListView):
     """
 
     model = Chant
-    paginate_by = 50
+    paginate_by = 100
     context_object_name = "chants"
     template_name = "chant_list.html"
 

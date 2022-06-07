@@ -26,7 +26,7 @@ class SequenceListView(ListView):
     """
 
     model = Sequence
-    paginate_by = 500
+    paginate_by = 100
     context_object_name = "sequences"
     template_name = "sequence_list.html"
 
