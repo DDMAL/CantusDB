@@ -83,7 +83,7 @@ class FeastListView(SearchableListMixin, ListView):
 
     model = Feast
     search_fields = ["name", "description", "feast_code"]
-    paginate_by = 200
+    paginate_by = 100
     context_object_name = "feasts"
     template_name = "feast_list.html"
 

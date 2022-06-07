@@ -24,7 +24,7 @@ class UserSourceListView(LoginRequiredMixin, ListView):
     model = Source
     context_object_name = "sources"
     template_name = "user_source_list.html"
-    paginate_by = 20
+    paginate_by = 100
 
     def get_queryset(self):
         return Source.objects.filter(
