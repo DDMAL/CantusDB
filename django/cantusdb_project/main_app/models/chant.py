@@ -214,7 +214,6 @@ class Chant(BaseModel):
             chants_next_folio = Chant.objects.filter(
                 source=self.source, folio=get_next_folio(self.folio)
             ).order_by("sequence_number")
-            print(["chants_next_folio: [{} - {}]".format(chant.folio, chant.sequence_number) for chant in chants_next_folio])
             try:
                 next_chant = chants_next_folio[0]
             except AttributeError: # i.e. next folio is None
