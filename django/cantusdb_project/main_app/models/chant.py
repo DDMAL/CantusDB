@@ -168,7 +168,7 @@ class Chant(BaseModel):
             # For the ra, rb, va, vb - don't do anything about those. That formatting will not stay.
             if folio is None:
                 # this shouldn't happen, but during testing, we may have some chants without folio
-                next_folio = "nosuchfolio"
+                next_folio = None
             elif folio == "001b":
                 # one specific case at this source https://cantus.uwaterloo.ca/chants?source=123612&folio=001b
                 next_folio = "001r"
@@ -201,7 +201,7 @@ class Chant(BaseModel):
 
             else:
                 # using weird folio naming
-                next_folio = "nosuchfolio"
+                next_folio = None
             return next_folio
 
         try:
@@ -210,14 +210,18 @@ class Chant(BaseModel):
                 folio=self.folio,
                 sequence_number=self.sequence_number + 1,
             )
-        except:
+        except Chant.DoesNotExist: # i.e. it's the last chant on the folio
             chants_next_folio = Chant.objects.filter(
                 source=self.source, folio=get_next_folio(self.folio)
-            ).order_by("-sequence_number")
+            ).order_by("sequence_number")
+            print(["chants_next_folio: [{} - {}]".format(chant.folio, chant.sequence_number) for chant in chants_next_folio])
             try:
                 next_chant = chants_next_folio[0]
-            except:
+            except AttributeError: # i.e. next folio is None
+                return None
+            except ValueError: # i.e. next folio contains no chants
                 next_chant = None
+                
         return next_chant
 
     def get_previous_chant(self):
