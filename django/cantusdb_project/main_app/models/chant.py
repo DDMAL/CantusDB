@@ -168,7 +168,7 @@ class Chant(BaseModel):
             # For the ra, rb, va, vb - don't do anything about those. That formatting will not stay.
             if folio is None:
                 # this shouldn't happen, but during testing, we may have some chants without folio
-                next_folio = "nosuchfolio"
+                next_folio = None
             elif folio == "001b":
                 # one specific case at this source https://cantus.uwaterloo.ca/chants?source=123612&folio=001b
                 next_folio = "001r"
@@ -201,7 +201,7 @@ class Chant(BaseModel):
 
             else:
                 # using weird folio naming
-                next_folio = "nosuchfolio"
+                next_folio = None
             return next_folio
 
         try:
@@ -210,12 +210,82 @@ class Chant(BaseModel):
                 folio=self.folio,
                 sequence_number=self.sequence_number + 1,
             )
-        except:
+        except Chant.DoesNotExist: # i.e. it's the last chant on the folio
             chants_next_folio = Chant.objects.filter(
                 source=self.source, folio=get_next_folio(self.folio)
-            ).order_by("-sequence_number")
+            ).order_by("sequence_number")
             try:
                 next_chant = chants_next_folio[0]
-            except:
+            except AttributeError: # i.e. next folio is None
+                return None
+            except ValueError: # i.e. next folio contains no chants
                 next_chant = None
+
         return next_chant
+
+    def get_previous_chant(self):
+        """return the previous chant in the same source.
+
+        For use in the suggested_feasts function, to populate a list of possible next feasts.
+        Since this use case does not require very much accuracy, this function sometimes returns
+        erroneous values: if the chant is on a folio with an unusual name, the function
+        will return None. If it's the first chant on the folio and the previous folio has
+        an unusual name (e.g. a folio was inserted into the manuscript), the function may
+        return the wrong chant.
+
+        Returns:
+            Chant/None: the previous chant object, or None
+        """
+
+        def get_previous_folio(folio):
+            """For when the previous chant is on the previous folio
+            Args:
+                folio (str): the number of a folio
+            Returns:
+                str/None: the folio number of the previous folio, or None
+            """
+            if folio is None:
+                return None
+            if not folio[0].isnumeric():
+                # a001 etc.
+                previous_folio = None
+            elif folio == "001r" or folio == "001":
+                # i.e. first page in manuscript, no preceding folio
+                previous_folio = None
+            elif folio.isdecimal():
+                # 002 -> 001
+                previous_folio = str(int(folio) - 1).zfill(len(folio))
+            elif folio.endswith("v"):
+                # 001v -> 001r
+                previous_folio = folio[:-1] + "r"
+            elif folio.endswith("r"):
+                # 002r -> 001v
+                previous_folio = str(int(folio[:-1]) - 1).zfill(len(folio) - 1) + "v"
+            else:
+                # in case of nonstandard folio number
+                previous_folio = None
+        
+            return previous_folio
+
+        sequence_number = self.sequence_number
+        try:
+            previous_chant = Chant.objects.get(
+                source=self.source,
+                folio=self.folio,
+                sequence_number=sequence_number - 1,
+            )
+        except Chant.DoesNotExist: # it's the first chant on the folio - we need to look at the previous folio
+            try:
+                # since QuerySets don't support negative indexing, convert to list to allow for negative indexing in next try block
+                chants_previous_folio = list(Chant.objects.filter(
+                    source=self.source, folio=get_previous_folio(self.folio)
+                ).order_by("sequence_number"))
+            except AttributeError: # previous_folio is None
+                return None
+
+            try: # get the last chant on the previous folio
+                previous_chant = chants_previous_folio[-1]
+            except ValueError: # previous folio contains no chants
+                previous_chant = None
+        
+        return previous_chant

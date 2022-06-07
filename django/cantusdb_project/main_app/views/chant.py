@@ -24,6 +24,7 @@ from next_chants import next_chants
 from collections import Counter
 
 
+
 def keyword_search(queryset: QuerySet, keywords: str) -> QuerySet:
     """
     Performs a keyword search over a QuerySet
