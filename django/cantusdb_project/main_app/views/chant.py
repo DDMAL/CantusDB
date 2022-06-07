@@ -839,14 +839,6 @@ class ChantEditVolpianoView(LoginRequiredMixin, UpdateView):
     pk_url_kwarg = "source_id"
 
     def get_queryset(self):
-        """Gather the chants to be displayed. 
-
-        When in the `browse chants` page, there must be a source specified. 
-        The chants in the specified source are filtered by a set of optional search parameters.
-
-        Returns:
-            queryset: The Chant objects to be displayed.
-        """
         # when arriving at this page, the url must have a source specified
         source_id = self.kwargs.get(self.pk_url_kwarg)
         source = Source.objects.get(id=source_id)
@@ -929,6 +921,52 @@ class ChantEditVolpianoView(LoginRequiredMixin, UpdateView):
                     for i in range(len(feast_selector_folios))
                 ]
             return folios_with_feasts
+            
+        def get_chants_with_feasts(chants_in_folio):
+            # this will be a nested list of the following format:
+            # [
+            #   [feast_id_1, [chant, chant, ...]], 
+            #   [feast_id_2, [chant, chant, ...]], 
+            #   ...
+            # ]
+            feasts_chants = []
+            for chant in chants_in_folio.order_by("sequence_number"):
+                # if feasts_chants is empty, or if your current chant in the for loop 
+                # has a different feast.id than the last chant,
+                # append a new list with your current chant's feast.id
+                if chant.feast and (not feasts_chants or chant.feast.id != feasts_chants[-1][0]):
+                    feasts_chants.append([chant.feast.id, []])
+                # add the chant
+                feasts_chants[-1][1].append(chant)
+
+            # go through feasts_chants and replace feast_id with the corresponding Feast object
+            for feast_chants in feasts_chants:
+                feast_chants[0] = Feast.objects.get(id=feast_chants[0])
+
+            return feasts_chants
+        
+        def get_chants_with_folios(chants_in_feast):
+            # this will be a nested list of the following format:
+            # [
+            #   [folio_1, [chant, chant, ...]], 
+            #   [folio_2, [chant, chant, ...]], 
+            #   ...
+            # ]
+            folios_chants = []
+            for chant in chants_in_feast.order_by("folio"):
+                # if folios_chants is empty, or if your current chant in the for loop 
+                # belongs in a different folio than the last chant,
+                # append a new list with your current chant's folio
+                if chant.folio and (not folios_chants or chant.folio != folios_chants[-1][0]):
+                    folios_chants.append([chant.folio, []])
+                # add the chant
+                folios_chants[-1][1].append(chant)
+
+            # sort the chants associated with a particular folio by sequence number
+            for folio_chants in folios_chants:
+                folio_chants[1].sort(key=lambda x: x.sequence_number)
+
+            return folios_chants
 
         context = super().get_context_data(**kwargs)
         source_id = self.kwargs.get(self.pk_url_kwarg)
@@ -952,6 +990,8 @@ class ChantEditVolpianoView(LoginRequiredMixin, UpdateView):
             .order_by("folio")
         )
         context["folios"] = folios
+        # the options for the feast selector on the right, same as the source detail page
+        context["feasts_with_folios"] = get_feast_selector_options(source, folios)
 
         if self.request.GET.get("folio"):
             # if browsing chants on a specific folio
@@ -962,11 +1002,19 @@ class ChantEditVolpianoView(LoginRequiredMixin, UpdateView):
             context["next_folio"] = (
                 folios[index + 1] if index < len(folios) - 1 else None
             )
+            # if there is a "folio" query parameter, it means the user has chosen a specific folio
+            # need to render a list of chants, ordered by sequence number and grouped by feast
+            context["feasts_current_folio"] = get_chants_with_feasts(self.queryset)
+        
+        if self.request.GET.get("feast"):
+            # if there is a "feast" query parameter, it means the user has chosen a specific feast
+            # need to render a list of chants, grouped and ordered by folio and within each group,
+            # ordered by sequence number
+            context["folios_current_feast"] = get_chants_with_folios(self.queryset)
 
-        # the options for the feast selector on the right, same as the source detail page
-        context["feasts_with_folios"] = get_feast_selector_options(source, folios)
-        context["chants"] = self.queryset
-        context["chant_pk"] = self.request.GET.get("pk")
+        # this boolean let's us decide whether to show the user the instructions or the editing form
+        # if the pk hasn't been specified, a user hasn't selected a specific chant they want to edit
+        # if so, we should display the instructions
         if not self.request.GET.get("pk"):
             context["pk_specified"] = False
         else:
