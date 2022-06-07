@@ -1,7 +1,6 @@
 window.addEventListener("load", function () {
     const feastSelect = document.getElementById("feastSelect");
     const folioSelect = document.getElementById("folioSelect");
-    const editButtons = document.querySelectorAll("button[id=editButton]");
     const copyTextButton = document.getElementById("copyFullTextBelow");
     if (copyTextButton) {
         copyTextButton.addEventListener("click", copyText);
@@ -19,20 +18,11 @@ window.addEventListener("load", function () {
 
     feastSelect.addEventListener("change", setFeastRight);
     folioSelect.addEventListener("change", setFolio);
-    editButtons.forEach(btn => {
-        btn.addEventListener('click', edit);
-    });
 
     // functions for the auto-jump of various selectors and input fields on the page
     // the folio selector and folio-feast selector on the right half do source-wide Selecting
     // the feast selector, genre selector, and text search on the left half do folio-wide Selecting
     var url = new URL(window.location.href);
-
-    function edit(e) {
-        const pk = e.target.getAttribute("name");
-        url.searchParams.set('pk', pk);
-        window.location.assign(url);
-    }
 
     function copyText() {
         const standardText = document.getElementById('id_manuscript_full_text_std_spelling').innerHTML;
