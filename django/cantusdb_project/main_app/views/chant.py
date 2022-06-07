@@ -21,7 +21,7 @@ from align_text_mel import *
 from django.contrib.auth.mixins import LoginRequiredMixin
 from django.http import Http404
 from next_chants import next_chants
-from collections import Counter, namedtuple
+from collections import Counter
 
 
 def keyword_search(queryset: QuerySet, keywords: str) -> QuerySet:
