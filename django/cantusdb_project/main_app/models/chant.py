@@ -221,7 +221,7 @@ class Chant(BaseModel):
                 return None
             except ValueError: # i.e. next folio contains no chants
                 next_chant = None
-                
+
         return next_chant
 
     def get_previous_chant(self):
@@ -277,16 +277,16 @@ class Chant(BaseModel):
             )
         except Chant.DoesNotExist: # it's the first chant on the folio - we need to look at the previous folio
             try:
-                chants_previous_folio = Chant.objects.filter(
+                # since QuerySets don't support negative indexing, convert to list to allow for negative indexing in next try block
+                chants_previous_folio = list(Chant.objects.filter(
                     source=self.source, folio=get_previous_folio(self.folio)
-                ).order_by("sequence_number")
+                ).order_by("sequence_number"))
             except AttributeError: # previous_folio is None
                 return None
 
             try: # get the last chant on the previous folio
-                cpf_length = len(chants_previous_folio) # since QuerySets do not support negative indexing
-                previous_chant = chants_previous_folio[cpf_length-1]
-            except ValueError: # previous folio contains no chants (does this ever happen?)
+                previous_chant = chants_previous_folio[-1]
+            except ValueError: # previous folio contains no chants
                 previous_chant = None
         
         return previous_chant
