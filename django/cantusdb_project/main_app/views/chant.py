@@ -103,12 +103,23 @@ class ChantDetailView(DetailView):
         ).prefetch_related("feast")
 
         def get_chants_with_feasts(chants_in_folio):
+            # this will be a nested list of the following format:
+            # [
+            #   [feast_id_1, [chant, chant, ...]], 
+            #   [feast_id_2, [chant, chant, ...]], 
+            #   ...
+            # ]
             feasts_chants = []
             for chant in chants_in_folio.order_by("sequence_number"):
+                # if feasts_chants is empty, or if your current chant in the for loop 
+                # has a different feast.id than the last chant,
+                # append a new list with your current chant's feast.id
                 if chant.feast and (not feasts_chants or chant.feast.id != feasts_chants[-1][0]):
                     feasts_chants.append([chant.feast.id, []])
+                # add the chant
                 feasts_chants[-1][1].append(chant)
 
+            # go through feasts_chants and replace feast_id with the corresponding Feast object
             for feast_chants in feasts_chants:
                 feast_chants[0] = Feast.objects.get(id=feast_chants[0])
 
