@@ -21,7 +21,8 @@ from align_text_mel import *
 from django.contrib.auth.mixins import LoginRequiredMixin
 from django.http import Http404
 from next_chants import next_chants
-from collections import Counter, namedtuple
+from collections import Counter
+
 
 
 def keyword_search(queryset: QuerySet, keywords: str) -> QuerySet:
@@ -104,27 +105,29 @@ class ChantDetailView(DetailView):
         ).prefetch_related("feast")
 
         def get_chants_with_feasts(chants_in_folio):
-            feast_ids = []
+            # this will be a nested list of the following format:
+            # [
+            #   [feast_id_1, [chant, chant, ...]], 
+            #   [feast_id_2, [chant, chant, ...]], 
+            #   ...
+            # ]
+            feasts_chants = []
             for chant in chants_in_folio.order_by("sequence_number"):
-                if chant.feast:
-                    feast_ids.append(chant.feast.id)
-            # remove duplicate feast ids and preserve the order
-            feast_ids = list(dict.fromkeys(feast_ids))
+                # if feasts_chants is empty, or if your current chant in the for loop 
+                # has a different feast.id than the last chant,
+                # append a new list with your current chant's feast.id
+                if chant.feast and (not feasts_chants or chant.feast.id != feasts_chants[-1][0]):
+                    feasts_chants.append([chant.feast.id, []])
+                # add the chant
+                feasts_chants[-1][1].append(chant)
 
-            feasts = []
-            for feast_id in feast_ids:
-                feasts.append(Feast.objects.get(id=feast_id))
-            # feasts = Feast.objects.filter(id__in=feast_ids) # this loses the order
-            chants_in_feast = []
-            for feast in feasts:
-                chants = chants_in_folio.filter(feast=feast).order_by("sequence_number")
-                chants_in_feast.append(chants)
-            feasts_zip = zip(feasts, chants_in_feast)
-            return feasts_zip
+            # go through feasts_chants and replace feast_id with the corresponding Feast object
+            for feast_chants in feasts_chants:
+                feast_chants[0] = Feast.objects.get(id=feast_chants[0])
 
-        context["feasts_current_folio"] = list(
-            get_chants_with_feasts(chants_current_folio)
-        )
+            return feasts_chants
+
+        context["feasts_current_folio"] = get_chants_with_feasts(chants_current_folio)
 
         if context["previous_folio"]:
             chants_previous_folio = chants_in_source.filter(
