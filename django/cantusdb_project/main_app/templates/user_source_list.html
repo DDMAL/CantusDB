@@ -30,23 +30,7 @@
                     {% endfor %}
                 </tbody>
             </table>
-            <div class="pagination">
-                <span class="step-links">
-                    {% if page_obj.has_previous %}
-                        <a href="?page=1">&laquo; First</a>
-                        <a href="?page={{ page_obj.previous_page_number }}">Previous</a>
-                    {% endif %}
-
-                    <span class="current">
-                        Page {{ page_obj.number }} of {{ page_obj.paginator.num_pages }}
-                    </span>
-
-                    {% if page_obj.has_next %}
-                        <a href="?page={{ page_obj.next_page_number }}">Next</a>
-                        <a href="?page={{ page_obj.paginator.num_pages }}">Last &raquo;</a>
-                    {% endif %}
-                </span>
-            </div>
+            {% include "pagination.html" %}
         </div>
         <div class="col p-0">
             <!-- global search bar-->
@@ -78,23 +62,7 @@
                             {% endfor %}
                         </tbody>
                     </table>
-                    <div class="pagination">
-                        <span class="step-links">
-                            {% if user_created_sources_page_obj.has_previous %}
-                                <a href="?page2=1">&laquo; First</a>
-                                <a href="?page2={{ user_created_sources_page_obj.previous_page_number }}">Previous</a>
-                            {% endif %}
-                    
-                            <span class="current">
-                                Page {{ user_created_sources_page_obj.number }} of {{ user_created_sources_page_obj.paginator.num_pages }}
-                            </span>
-                    
-                            {% if user_created_sources_page_obj.has_next %}
-                                <a href="?page2={{ user_created_sources_page_obj.next_page_number }}">Next</a>
-                                <a href="?page2={{ user_created_sources_page_obj.paginator.num_pages }}">Last &raquo;</a>
-                            {% endif %}
-                        </span>
-                    </div>
+                    {% include "pagination.html" %}
                 </div>    
             </div>    
         </div>
