@@ -145,3 +145,5 @@ SITE_ID = 4
 # New in django 3.2: specify the default type of auto-created primary keys
 # https://docs.djangoproject.com/en/3.2/releases/3.2/#customizing-type-of-auto-created-primary-keys
 DEFAULT_AUTO_FIELD = "django.db.models.AutoField"
+
+EMAIL_BACKEND = 'django.core.mail.backends.console.EmailBackend'
