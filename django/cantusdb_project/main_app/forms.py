@@ -1,7 +1,14 @@
 from django import forms
 
 from .models import Chant, Office, Genre, Feast, Source, RismSiglum, Provenance, Century, Indexer
-from .widgets import *
+from .widgets import (TextInputWidget,
+                VolpianoInputWidget,
+                TextAreaWidget,
+                VolpianoAreaWidget,
+                SelectWidget,
+                CheckboxWidget,
+)
+from django.forms.widgets import CheckboxInput
 from django.contrib.auth import get_user_model
 
 # ModelForm allows to build a form directly from a model
@@ -135,6 +142,8 @@ class ContactForm(forms.Form):
     sender_email = forms.EmailField()
     subject = forms.CharField(max_length=100)
     message = forms.CharField(widget=forms.Textarea)
+    skill_testing_response = forms.CharField(max_length=1)
+    send_yourself_copy = forms.BooleanField(widget=CheckboxWidget, required=False)
 
 class SourceCreateForm(forms.ModelForm):
     class Meta:

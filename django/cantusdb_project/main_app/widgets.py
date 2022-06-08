@@ -1,4 +1,4 @@
-from django.forms.widgets import TextInput, Select, Textarea
+from django.forms.widgets import TextInput, Select, Textarea, CheckboxInput
 
 
 class TextInputWidget(TextInput):
@@ -39,3 +39,5 @@ class VolpianoInputWidget(TextInput):
             "style": "font-family: Volpiano; font-size: xx-large",
         }
 
+class CheckboxWidget(CheckboxInput):
+    pass
