@@ -1,6 +1,7 @@
 from django.urls import path, include
 from main_app.views import *
 from main_app.views import views
+from main_app.views.sequence import SequenceEditView
 from main_app.views.source import SourceCreateView, SourceEditView
 from main_app.views.chant import ChantEditVolpianoView
 from django.contrib.auth import views as auth_views
@@ -48,6 +49,7 @@ urlpatterns = [
     # sequence
     path("sequences/", SequenceListView.as_view(), name="sequence-list"),
     path("sequence/<int:pk>", SequenceDetailView.as_view(), name="sequence-detail",),
+    path("edit-sequence/<int:sequence_id>", SequenceEditView.as_view(), name="sequence-edit",),
     # source
     path("sources/", SourceListView.as_view(), name="source-list"),
     path("source/<int:pk>", SourceDetailView.as_view(), name="source-detail"),
