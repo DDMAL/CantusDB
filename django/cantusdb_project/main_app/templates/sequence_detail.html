@@ -2,11 +2,24 @@
 {% block content %}
 <title>{{ sequence.title }} | Cantus Manuscript Database</title>
 <div class="mr-3 p-3 mx-auto bg-white rounded">
+    <!--Display "submit success" message -->
+    {% if messages %}
+        <div class="alert alert-success alert-dismissible">
+            {% for message in messages %}
+                {{ message }}
+            {% endfor %}
+        </div>
+    {% endif %}          
     <!-- global search bar-->
     <object align="right">
         {% include "global_search_bar.html" %}
     </object>
     <h3>{{ sequence.title }}</h3>
+    {% if user.is_authenticated %}
+        <p>
+            View | <a href="{% url "sequence-edit" sequence.id %}">Edit</a>
+        </p>
+    {% endif %}
     <dl>
         <dt>
             Siglum

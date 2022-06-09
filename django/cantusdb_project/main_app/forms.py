@@ -1,6 +1,6 @@
 from django import forms
 
-from .models import Chant, Office, Genre, Feast, Source, RismSiglum, Provenance, Century, Indexer
+from .models import Chant, Office, Genre, Feast, Source, RismSiglum, Provenance, Century, Indexer, Sequence
 from .widgets import (TextInputWidget,
                 VolpianoInputWidget,
                 TextAreaWidget,
@@ -361,3 +361,53 @@ class SourceEditForm(forms.ModelForm):
         choices=CHOICES_COMPLETE_INV, required=False
     )
     complete_inventory.widget.attrs.update({"class": "form-control custom-select custom-select-sm"}) # what does this do?
+
+class SequenceEditForm(forms.ModelForm):
+    class Meta:
+        model = Sequence
+        fields = [
+            "title",
+            "siglum",
+            "incipit",
+            "folio",
+            "sequence",
+            "genre",
+            "rubrics",
+            "analecta_hymnica",
+            "indexing_notes",
+            "date",
+            "col1",
+            "col2",
+            "col3",
+            "ah_volume",
+            "source",
+            "cantus_id",
+            "image_link",
+        ]
+        widgets = {
+            "title": TextInputWidget(),
+            "siglum": TextInputWidget(),
+            "incipit": TextInputWidget(),
+            "folio": TextInputWidget(),
+            "sequence": TextInputWidget(),
+            "rubrics": TextInputWidget(),
+            "analecta_hymnica": TextInputWidget(),
+            "indexing_notes": TextAreaWidget(),
+            "date": TextInputWidget(),
+            "col1": TextInputWidget(),
+            "col2": TextInputWidget(),
+            "col3": TextInputWidget(),
+            "ah_volume": TextInputWidget(),
+            "cantus_id": TextInputWidget(),
+            "image_link": TextInputWidget(),
+        }
+    
+    genre = forms.ModelChoiceField(
+        queryset=Genre.objects.all().order_by("name"), required=False
+    )
+    genre.widget.attrs.update({"class": "form-control custom-select custom-select-sm"})
+    
+    source = forms.ModelChoiceField(
+        queryset=Source.objects.all().order_by("title"), required = False
+    )
+    source.widget.attrs.update({"class": "form-control custom-select custom-select-sm"})

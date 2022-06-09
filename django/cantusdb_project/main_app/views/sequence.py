@@ -1,6 +1,9 @@
-from django.views.generic import DetailView, ListView
+from django.views.generic import DetailView, ListView, UpdateView
 from main_app.models import Sequence
 from django.db.models import Q
+from main_app.forms import SequenceEditForm
+from django.contrib.auth.mixins import LoginRequiredMixin
+from django.contrib import messages
 
 
 class SequenceDetailView(DetailView):
@@ -46,3 +49,16 @@ class SequenceListView(ListView):
             q_obj_filter &= Q(cantus_id__icontains=cantus_id)
 
         return queryset.filter(q_obj_filter).order_by("siglum", "sequence")
+
+class SequenceEditView(LoginRequiredMixin, UpdateView):
+    template_name = "sequence_edit.html"
+    model = Sequence
+    form_class = SequenceEditForm
+    pk_url_kwarg = "sequence_id"
+
+    def form_valid(self, form):
+        messages.success(
+            self.request,
+            "Sequence updated successfully!",
+        )
+        return super().form_valid(form)
