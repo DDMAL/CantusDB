@@ -280,3 +280,21 @@ class SourceModelTest(TestCase):
         source = Source.objects.first()
         absolute_url = reverse("source-detail", args=[str(source.id)])
         self.assertEqual(source.get_absolute_url(), absolute_url)
+
+class ChantSequenceSyncTest(TestCase):
+    def test_chant_sequence_sync(self):
+        # for each of the models:
+        # retrieve all fields of that model
+        # go through all of the fields and create a list of tuples of the following format:
+        # [
+        #    ("field name", "field type"),
+        #    ("field name", "field type"), ...
+        # ]
+
+        # if the two models are defined such that
+        # they specify the same fields (with the same name and type) in the same order,
+        # we assert true
+
+        chant_field_names = [(f.name, f.get_internal_type()) for f in Chant._meta.get_fields()]
+        sequence_field_names = [(f.name, f.get_internal_type()) for f in Sequence._meta.get_fields()]
+        self.assertEqual(chant_field_names, sequence_field_names)
