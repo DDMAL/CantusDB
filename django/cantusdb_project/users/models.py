@@ -7,9 +7,12 @@ class User(AbstractUser):
     city = models.CharField(max_length=255, blank=True, null=True)
     country = models.CharField(max_length=255, blank=True, null=True)
     website = models.URLField(blank=True, null=True)
+    name = models.CharField(max_length=255, blank=True, null=True)
 
     def __str__(self):
-        if self.first_name and self.last_name:
+        if self.name:
+            return self.name
+        elif self.first_name and self.last_name:
             return f'{self.first_name} {self.last_name}'
         else:
             return self.username
