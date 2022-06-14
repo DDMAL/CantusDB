@@ -1,4 +1,3 @@
-from this import d
 from django.contrib.postgres.search import SearchVectorField
 from django.db import models
 from django.db.models.query import QuerySet
@@ -111,6 +110,9 @@ class Chant(BaseModel):
         max_length=64,
         help_text="Additional folio number field, if folio numbers appear on the leaves but are not in the 'binding order'.",
     )
+    next_chant = models.OneToOneField("self", related_name="prev_chant", null=True, blank=True, on_delete=models.SET_NULL)
+    # prev_chant = ...prev_chant is created via the next_chant's related_name property 
+
     # fragmentarium_id = models.CharField(blank=True, null=True, max_length=64)
     # # Digital Analysis of Chant Transmission
     # dact = models.CharField(blank=True, null=True, max_length=64)
