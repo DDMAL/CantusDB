@@ -22,6 +22,7 @@ from django.contrib.auth.mixins import LoginRequiredMixin
 from django.http import Http404
 from next_chants import next_chants
 from collections import Counter
+from django.contrib.auth.mixins import UserPassesTestMixin
 
 
 
@@ -551,7 +552,7 @@ class ChantSearchMSView(ListView):
         return queryset
 
 
-class ChantCreateView(CreateView):
+class ChantCreateView(LoginRequiredMixin, UserPassesTestMixin, CreateView):
     """Create chants in a certain manuscript, accessed with `chant-create/<int:source_pk>`.
 
     This view displays the chant input form and provide access to 
@@ -561,6 +562,23 @@ class ChantCreateView(CreateView):
     model = Chant
     template_name = "chant_create.html"
     form_class = ChantCreateForm
+    pk_url_kwarg = 'source_pk'
+
+    def test_func(self):
+        user = self.request.user
+        source_id = self.kwargs.get(self.pk_url_kwarg)
+        source = Source.objects.get(id=source_id)        
+        # checks if the user is a contributor,
+        # and if the user is the creator of this source 
+        is_contributor = user.groups.filter(name="contributor").exists()
+        # checks if the user is a project manager (they should have the privilege to edit any sequence)
+        is_project_manager = user.groups.filter(name="project manager").exists()
+
+        if (is_project_manager 
+            or (is_contributor and source.created_by == user)):
+            return True
+        else:
+            return False
 
     # if success_url and get_success_url not specified, will direct to chant detail page
     def get_success_url(self):
@@ -741,7 +759,7 @@ class ChantCreateView(CreateView):
             return super().form_invalid(form)
 
 
-class ChantDeleteView(DeleteView):
+class ChantDeleteView(LoginRequiredMixin, UserPassesTestMixin, DeleteView):
     """Delete chant on chant-detail page
 
     This is added to help testing chant-create functionality 
@@ -751,6 +769,29 @@ class ChantDeleteView(DeleteView):
     model = Chant
     success_url = "/"
     template_name = "chant_confirm_delete.html"
+
+    def test_func(self):
+        user = self.request.user
+        chant_id = self.kwargs.get(self.pk_url_kwarg)
+        chant = Chant.objects.get(id=chant_id)
+        source = Source.objects.get(chant=chant)
+        # checks if the user is an editor or a proofreader,
+        # and if the user is given privilege to make changes to this source
+        is_editor_proofreader = user.groups.filter(Q(name="editor")|Q(name="proofreader")).exists()
+        can_delete_chants_in_source = user.sources_user_can_edit.filter(id=source.id)
+        # checks if the user is a project manager (they should have the privilege to make any changes)
+        is_project_manager = user.groups.filter(name="project manager").exists()
+        # checks if the user is a contributor,
+        # and if the user is the creator of this source 
+        # (they should only have the privilege to make changes to sources they have created)
+        is_contributor = user.groups.filter(name="contributor").exists()
+
+        if ((is_editor_proofreader and can_delete_chants_in_source) 
+            or (is_project_manager) 
+            or (is_contributor and source.created_by == user)):
+            return True
+        else:
+            return False
 
 
 class ChantUpdateView(UpdateView):
@@ -833,11 +874,33 @@ class FullIndexView(TemplateView):
 
         return context
 
-class ChantEditVolpianoView(LoginRequiredMixin, UpdateView):
+class ChantEditVolpianoView(LoginRequiredMixin, UserPassesTestMixin, UpdateView):
     template_name = "chant_edit.html"
     model = Chant
     form_class = ChantEditForm
     pk_url_kwarg = "source_id"
+
+    def test_func(self):
+        user = self.request.user
+        source_id = self.kwargs.get(self.pk_url_kwarg)
+        source = Source.objects.get(id=source_id)
+        # checks if the user is an editor or a proofreader,
+        # and if the user is given privilege to edit chants in this source
+        is_editor_proofreader = user.groups.filter(Q(name="editor")|Q(name="proofreader")).exists()
+        can_edit_chants_in_source = user.sources_user_can_edit.filter(id=source_id)
+        # checks if the user is a project manager (they should have the privilege to edit any chant)
+        is_project_manager = user.groups.filter(name="project manager").exists()
+        # checks if the user is a contributor,
+        # and if the user is the creator of this source 
+        # (they should only have the privilege to edit chants in a source they have created)
+        is_contributor = user.groups.filter(name="contributor").exists()
+
+        if ((is_editor_proofreader and can_edit_chants_in_source) 
+            or (is_project_manager) 
+            or (is_contributor and source.created_by == user)):
+            return True
+        else:
+            return False
 
     def get_queryset(self):
         # when arriving at this page, the url must have a source specified

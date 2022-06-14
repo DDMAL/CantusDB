@@ -7,6 +7,7 @@ class User(AbstractUser):
     city = models.CharField(max_length=255, blank=True, null=True)
     country = models.CharField(max_length=255, blank=True, null=True)
     website = models.URLField(blank=True, null=True)
+    sources_user_can_edit = models.ManyToManyField("main_app.Source", related_name="sources_user_can_edit", blank=True)
 
     def __str__(self):
         if self.first_name and self.last_name:

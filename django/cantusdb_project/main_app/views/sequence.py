@@ -4,6 +4,9 @@ from django.db.models import Q
 from main_app.forms import SequenceEditForm
 from django.contrib.auth.mixins import LoginRequiredMixin
 from django.contrib import messages
+from django.contrib.auth.mixins import UserPassesTestMixin
+
+from main_app.models.source import Source
 
 
 class SequenceDetailView(DetailView):
@@ -50,7 +53,7 @@ class SequenceListView(ListView):
 
         return queryset.filter(q_obj_filter).order_by("siglum", "sequence")
 
-class SequenceEditView(LoginRequiredMixin, UpdateView):
+class SequenceEditView(LoginRequiredMixin, UserPassesTestMixin, UpdateView):
     template_name = "sequence_edit.html"
     model = Sequence
     form_class = SequenceEditForm
@@ -62,3 +65,27 @@ class SequenceEditView(LoginRequiredMixin, UpdateView):
             "Sequence updated successfully!",
         )
         return super().form_valid(form)
+
+    def test_func(self):
+        user = self.request.user
+        sequence_id = self.kwargs.get(self.pk_url_kwarg)
+        sequence = Sequence.objects.get(id=sequence_id)
+        # find the source of this sequence
+        source = Source.objects.get(sequence=sequence)
+        # checks if the user is an editor or a proofreader,
+        # and if the user is given privilege to edit this source and thus, it's sequences
+        is_editor_proofreader = user.groups.filter(Q(name="editor")|Q(name="proofreader")).exists()
+        can_edit_sequences_in_source = user.sources_user_can_edit.filter(id=source.id)
+        # checks if the user is a project manager (they should have the privilege to edit any sequence)
+        is_project_manager = user.groups.filter(name="project manager").exists()
+        # checks if the user is a contributor,
+        # and if the user is the creator of this source 
+        # (they should only have the privilege to edit sequences in a source they have created)
+        is_contributor = user.groups.filter(name="contributor").exists()
+
+        if ((is_editor_proofreader and can_edit_sequences_in_source) 
+            or (is_project_manager) 
+            or (is_contributor and source.created_by == user)):
+            return True
+        else:
+            return False

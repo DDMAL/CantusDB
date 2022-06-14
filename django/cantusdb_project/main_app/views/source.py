@@ -6,6 +6,8 @@ from django.contrib import messages
 from django.urls import reverse
 from django.contrib.auth.mixins import LoginRequiredMixin
 from django.http import HttpResponseRedirect
+from django.contrib.auth.mixins import UserPassesTestMixin
+
 
 class SourceDetailView(DetailView):
     model = Source
@@ -224,10 +226,22 @@ class SourceListView(ListView):
 
         return queryset.filter(q_obj_filter).distinct()
 
-class SourceCreateView(LoginRequiredMixin, CreateView):
+class SourceCreateView(LoginRequiredMixin, UserPassesTestMixin, CreateView):
     model = Source
     template_name = "source_create_form.html"
     form_class = SourceCreateForm
+
+    def test_func(self):
+        user = self.request.user
+        # checks if the user is a project manager
+        is_project_manager = user.groups.filter(name="project manager").exists()
+        # checks if the user is a contributor
+        is_contributor = user.groups.filter(name="contributor").exists()
+
+        if (is_project_manager or is_contributor):
+            return True
+        else:
+            return False
 
     def get_success_url(self):
         return reverse("source-create")
@@ -243,9 +257,30 @@ class SourceCreateView(LoginRequiredMixin, CreateView):
         )
         return HttpResponseRedirect(self.get_success_url())
 
-class SourceEditView(LoginRequiredMixin, UpdateView):
+class SourceEditView(LoginRequiredMixin, UserPassesTestMixin, UpdateView):
     template_name = "source_edit.html"
     model = Source
     form_class = SourceEditForm 
     pk_url_kwarg = "source_id"
 
+    def test_func(self):
+        user = self.request.user
+        source_id = self.kwargs.get(self.pk_url_kwarg)
+        source = Source.objects.get(id=source_id)
+        # checks if the user is an editor or a proofreader,
+        # and if the user is given privilege to edit chants in this source
+        is_editor_proofreader = user.groups.filter(Q(name="editor")|Q(name="proofreader")).exists()
+        can_edit_chants_in_source = user.sources_user_can_edit.filter(id=source_id)
+        # checks if the user is a project manager (they should have the privilege to edit any chant)
+        is_project_manager = user.groups.filter(name="project manager").exists()
+        # checks if the user is a contributor,
+        # and if the user is the creator of this source 
+        # (they should only have the privilege to edit chants in a source they have created)
+        is_contributor = user.groups.filter(name="contributor").exists()
+
+        if ((is_editor_proofreader and can_edit_chants_in_source) 
+            or (is_project_manager) 
+            or (is_contributor and source.created_by == user)):
+            return True
+        else:
+            return False
