@@ -1,3 +1,4 @@
+from this import d
 from django.contrib.postgres.search import SearchVectorField
 from django.db import models
 from django.db.models.query import QuerySet
@@ -114,6 +115,17 @@ class Chant(BaseModel):
     # # Digital Analysis of Chant Transmission
     # dact = models.CharField(blank=True, null=True, max_length=64)
     # also a second differentia field
+
+    def __str__(self):
+        incipit = ""
+        if self.incipit:
+            incipit = self.incipit
+        elif self.manuscript_full_text:
+            split_text = self.manuscript_full_text.split()
+            incipit = " ".join(split_text[:4])
+        return '"{incip}" ({id})'.format(incip = incipit, id = self.id)
+
+
     def get_ci_url(self) -> str:
         """Construct the url to the entry in Cantus Index correponding to the chant.
 
