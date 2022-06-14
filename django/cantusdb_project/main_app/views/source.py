@@ -5,7 +5,7 @@ from main_app.forms import SourceCreateForm, SourceEditForm
 from django.contrib import messages
 from django.urls import reverse
 from django.contrib.auth.mixins import LoginRequiredMixin
-from django.http import HttpResponseRedirect, HttpResponseNotAllowed
+from django.http import HttpResponseRedirect
 from django.core.exceptions import PermissionDenied
 
 class SourceDetailView(DetailView):
