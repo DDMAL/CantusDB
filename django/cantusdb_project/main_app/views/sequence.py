@@ -4,6 +4,7 @@ from django.db.models import Q
 from main_app.forms import SequenceEditForm
 from django.contrib.auth.mixins import LoginRequiredMixin
 from django.contrib import messages
+from django.core.exceptions import PermissionDenied
 
 
 class SequenceDetailView(DetailView):
@@ -16,6 +17,13 @@ class SequenceDetailView(DetailView):
     template_name = "sequence_detail.html"
 
     def get_context_data(self, **kwargs):
+
+        # if the sequence's source isn't public, only logged-in users should be able to view the sequence's detail page
+        sequence = self.get_object()
+        source = sequence.source
+        if (source.public is False) and (not self.request.user.is_authenticated):
+            raise PermissionDenied()
+        
         context = super().get_context_data(**kwargs)
         context["concordances"] = Sequence.objects.filter(
             cantus_id=self.get_object().cantus_id

@@ -15,6 +15,7 @@ from django.views.generic import (
     TemplateView,
     UpdateView,
 )
+from django.core.exceptions import PermissionDenied
 from main_app.forms import ChantCreateForm, ChantEditForm
 from main_app.models import Chant, Feast, Genre, Source, Sequence
 from align_text_mel import *
@@ -60,6 +61,11 @@ class ChantDetailView(DetailView):
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
         chant = self.get_object()
+        
+        # if the chant's source isn't public, only logged-in users should be able to view the chant's detail page
+        source = chant.source
+        if (source.public is False) and (not self.request.user.is_authenticated):
+            raise PermissionDenied()
 
         # syllabification section
         if chant.volpiano:
@@ -178,6 +184,9 @@ class ChantListView(ListView):
         # when arriving at this page, the url must have a source specified
         source_id = self.request.GET.get("source")
         source = Source.objects.get(id=source_id)
+        
+        if (source.public is False) and (not self.request.user.is_authenticated):
+            raise PermissionDenied()
 
         # optional search params
         feast_id = self.request.GET.get("feast")

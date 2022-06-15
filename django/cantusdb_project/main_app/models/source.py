@@ -109,5 +109,6 @@ class Source(BaseModel):
         return self.chant_set.filter(volpiano__isnull=False).count()
 
     def __str__(self):
-        return self.title
+        string = '{t} ({i})'.format(t=self.title, i=self.id)
+        return string
     

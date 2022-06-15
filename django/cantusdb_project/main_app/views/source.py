@@ -6,6 +6,7 @@ from django.contrib import messages
 from django.urls import reverse
 from django.contrib.auth.mixins import LoginRequiredMixin
 from django.http import HttpResponseRedirect
+from django.core.exceptions import PermissionDenied
 
 class SourceDetailView(DetailView):
     model = Source
@@ -67,6 +68,9 @@ class SourceDetailView(DetailView):
             return folios_with_feasts
 
         source = self.get_object()
+        if (source.public is False) and (not self.request.user.is_authenticated):
+            raise PermissionDenied()
+
         context = super().get_context_data(**kwargs)
 
         if source.segment and source.segment.id == 4064:
@@ -87,8 +91,8 @@ class SourceDetailView(DetailView):
             context["folios"] = folios
             # the options for the feast selector on the right, only chant sources have this
             context["feasts_with_folios"] = get_feast_selector_options(source, folios)
-
         return context
+
 
 
 class SourceListView(ListView):
