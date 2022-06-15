@@ -6,8 +6,6 @@ from django.contrib.auth.mixins import LoginRequiredMixin
 from django.contrib import messages
 from django.contrib.auth.mixins import UserPassesTestMixin
 
-from main_app.models.source import Source
-
 
 class SequenceDetailView(DetailView):
     """
@@ -71,7 +69,7 @@ class SequenceEditView(LoginRequiredMixin, UserPassesTestMixin, UpdateView):
         sequence_id = self.kwargs.get(self.pk_url_kwarg)
         sequence = Sequence.objects.get(id=sequence_id)
         # find the source of this sequence
-        source = Source.objects.get(sequence=sequence)
+        source = sequence.source
         # checks if the user is an editor or a proofreader,
         # and if the user is given privilege to edit this source and thus, it's sequences
         is_editor_proofreader = user.groups.filter(Q(name="editor")|Q(name="proofreader")).exists()

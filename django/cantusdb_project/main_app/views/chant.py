@@ -774,7 +774,7 @@ class ChantDeleteView(LoginRequiredMixin, UserPassesTestMixin, DeleteView):
         user = self.request.user
         chant_id = self.kwargs.get(self.pk_url_kwarg)
         chant = Chant.objects.get(id=chant_id)
-        source = Source.objects.get(chant=chant)
+        source = chant.source
         # checks if the user is an editor or a proofreader,
         # and if the user is given privilege to make changes to this source
         is_editor_proofreader = user.groups.filter(Q(name="editor")|Q(name="proofreader")).exists()
