@@ -260,7 +260,7 @@
                                     <br>
                                     <div id="previousDiv" style="display:none">
                                         {% for feast, chants in feasts_previous_folio %}
-                                            Folio: <b>{{ previous_folio }}</b> - Feast: <b>{{ feast.name }}</b>
+                                            Folio: <b>{{ previous_folio }}</b> - Feast: <b>{% if feast %}{{ feast.name }}{% else %} {% endif %}</b>
                                             <table class="table table-sm small table-bordered">     
                                                 {% for chant in chants %}
                                                     <tr>
@@ -278,7 +278,7 @@
                                 <br>
 
                                 {% for feast, chants in feasts_current_folio %}
-                                    Folio: <b>{{ chant.folio }}</b> - Feast: <b>{{ feast.name }}</b>
+                                    Folio: <b>{{ chant.folio }}</b> - Feast: <b>{% if feast %}{{ feast.name }}{% else %} {% endif %}</b>
                                     <table class="table table-sm small table-bordered">     
                                         {% for chant in chants %}
                                             <tr>
@@ -296,7 +296,7 @@
                                     <br>
                                     <div id="nextDiv" style="display:none">
                                         {% for feast, chants in feasts_next_folio %}
-                                            Folio: <b>{{ next_folio }}</b> - Feast: <b>{{ feast.name }}</b>
+                                            Folio: <b>{{ next_folio }}</b> - Feast: <b>{% if feast %}{{ feast.name }}{% else %} {% endif %}</b>
                                             <table class="table table-sm small table-bordered">     
                                                 {% for chant in chants %}
                                                     <tr>
