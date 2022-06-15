@@ -948,16 +948,32 @@ class ChantEditVolpianoView(LoginRequiredMixin, UpdateView):
             # ]
             feasts_chants = []
             for chant in chants_in_folio.order_by("sequence_number"):
-                # if feasts_chants is empty, or if your current chant in the for loop 
-                # has a different feast.id than the last chant,
-                # append a new list with your current chant's feast.id
-                if chant.feast and (not feasts_chants or chant.feast.id != feasts_chants[-1][0]):
-                    feasts_chants.append([chant.feast.id, []])
+                # if feasts_chants is empty, append a new list 
+                if not feasts_chants:
+                    # if the chant has a feast, append the following: [feast_id, []]
+                    if chant.feast:
+                        feasts_chants.append([chant.feast.id, []])
+                    # else, append the following: ["no_feast", []]
+                    else:
+                        feasts_chants.append(["no_feast", []])
+                else:
+                    # if the chant has a feast and this feast id is different from the last appended lists' feast id,
+                    # append a new list: [feast_id, []]
+                    if chant.feast and (chant.feast.id != feasts_chants[-1][0]):
+                        feasts_chants.append([chant.feast.id, []])
+                    # if the chant doesn't have a feast and last appended list was for chants that had feast id,
+                    # append a new list: ["no_feast", []]
+                    elif not chant.feast and (feasts_chants[-1][0] != "no_feast"):
+                        feasts_chants.append(["no_feast", []])
                 # add the chant
                 feasts_chants[-1][1].append(chant)
 
             # go through feasts_chants and replace feast_id with the corresponding Feast object
             for feast_chants in feasts_chants:
+                # if there is no feast_id because the chant had no feast, assign a None object
+                if feast_chants[0] == "no_feast":
+                    feast_chants[0] = None
+                    continue
                 feast_chants[0] = Feast.objects.get(id=feast_chants[0])
 
             return feasts_chants
