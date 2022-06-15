@@ -1,4 +1,3 @@
-from this import d
 from django.contrib.postgres.search import SearchVectorField
 from django.db import models
 from django.db.models.query import QuerySet
