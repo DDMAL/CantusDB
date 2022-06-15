@@ -232,8 +232,18 @@ class Chant(BaseModel):
                 next_chant = chants_next_folio[0]
             except AttributeError: # i.e. next folio is None
                 return None
+            except Chant.DoesNotExist: # i.e. next folio contains no chants (I think?)
+                return None
+            except IndexError: # i.e. next folio contains no chants (I think?)
+                return None
             except ValueError: # i.e. next folio contains no chants
                 next_chant = None
+        except Chant.MultipleObjectsReturned: # i.e. multiple chants have the same source, folio and sequence_number
+                                              # for example, the two chants on folio h001r sequence_number 1, in source with ID 123753 
+            next_chant = None
+        except TypeError: # sequence_number is None
+            next_chant = None
+
 
         return next_chant
 
