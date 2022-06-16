@@ -10,11 +10,11 @@ class Command(BaseCommand):
         while True:
             print("processing chunk with start_index of", start_index)
             try:
-                chants_chunk = chants[start_index:start_index+CHUNK_SIZE]
+                chunk = chants[start_index:start_index+CHUNK_SIZE]
             except IndexError:
                 break
             
-            for chant in chants_chunk:
+            for chant in chunk:
                 this_chant_feast = chant.feast
                 if this_chant_feast is None:
                     chant.is_last_chant_in_feast = False
@@ -30,5 +30,5 @@ class Command(BaseCommand):
                 except AttributeError: # next_chant is None
                     chant.is_last_chant_in_feast = True
                 chant.save()
-            del chants_chunk # make sure we don't use too much RAM
+            del chunk # make sure we don't use too much RAM
             start_index += CHUNK_SIZE
