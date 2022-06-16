@@ -216,6 +216,8 @@ class Chant(BaseModel):
                 elif suffix == "a":
                     # 001a -> 001b
                     next_folio = stem + "b"
+                else:
+                    next_folio = None
             return next_folio
 
         try:
