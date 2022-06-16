@@ -217,6 +217,7 @@ class Chant(BaseModel):
                     # 001a -> 001b
                     next_folio = stem + "b"
                 else:
+                    # unusual/uncommon suffix
                     next_folio = None
             return next_folio
 
