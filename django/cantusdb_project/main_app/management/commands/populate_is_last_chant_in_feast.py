@@ -17,18 +17,18 @@ class Command(BaseCommand):
             for chant in chants_chunk:
                 this_chant_feast = chant.feast
                 if this_chant_feast is None:
-                    chant.ends_feast = False
+                    chant.is_last_chant_in_feast = False
                     continue
                 try:
                     next_chant_feast = chant.next_chant.feast
                     if next_chant_feast is None:
-                        chant.ends_feast = True
+                        chant.is_last_chant_in_feast = True
                     if this_chant_feast != next_chant_feast:
-                        chant.ends_feast = True
+                        chant.is_last_chant_in_feast = True
                     else:
-                        chant.ends_feast = False
+                        chant.is_last_chant_in_feast = False
                 except AttributeError: # next_chant is None
-                    chant.ends_feast = True
+                    chant.is_last_chant_in_feast = True
                 chant.save()
             del chants_chunk # make sure we don't use too much RAM
             start_index += CHUNK_SIZE
