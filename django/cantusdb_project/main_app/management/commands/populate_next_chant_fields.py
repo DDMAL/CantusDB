@@ -15,6 +15,7 @@ class Command(BaseCommand):
         CHUNK_SIZE = 1_000
         overwrite = kwargs["overwrite"]
         chants = Chant.objects.all()
+        chants_count = chants.count()
         start_index = 0
         while True:
             print("processing chunk with start_index of", start_index)

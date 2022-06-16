@@ -6,13 +6,11 @@ class Command(BaseCommand):
     def handle(self, *args, **kwargs):
         CHUNK_SIZE = 1_000
         chants = Chant.objects.all()
+        chants_count = chants.count()
         start_index = 0
-        while True:
+        while start_index <= chants_count:
             print("processing chunk with start_index of", start_index)
-            try:
-                chunk = chants[start_index:start_index+CHUNK_SIZE]
-            except IndexError:
-                break
+            chunk = chants[start_index:start_index+CHUNK_SIZE]
             
             for chant in chunk:
                 this_chant_feast = chant.feast
