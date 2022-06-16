@@ -111,7 +111,9 @@ class Chant(BaseModel):
         help_text="Additional folio number field, if folio numbers appear on the leaves but are not in the 'binding order'.",
     )
     next_chant = models.OneToOneField("self", related_name="prev_chant", null=True, blank=True, on_delete=models.SET_NULL)
-    # prev_chant = ...prev_chant is created via the next_chant's related_name property 
+    # prev_chant = ...  # prev_chant is created when next_chant is calculated 
+
+    is_last_chant_in_feast = models.BooleanField(blank=True, null=True)
 
     # fragmentarium_id = models.CharField(blank=True, null=True, max_length=64)
     # # Digital Analysis of Chant Transmission
