@@ -181,7 +181,14 @@ class Chant(BaseModel):
             Returns:
                 str: the folio number of the next folio
             """
-            # For the ra, rb, va, vb - don't do anything about those. That formatting will not stay.
+            # For chants that end with ra, rb, va, vb - don't do anything about those. That formatting will not stay.
+
+            # some folios begin with an "a" - these should be treated like other folios, but preserving the leading "a"
+            if folio[0] == "a":
+                prefix, folio = folio[:1], folio[1:]
+            else:
+                prefix = ""
+
             if folio is None:
                 # this shouldn't happen, but during testing, we may have some chants without folio
                 next_folio = None
@@ -198,24 +205,24 @@ class Chant(BaseModel):
 
                 if suffix == "r":
                     # 001r -> 001v
-                    next_folio = stem + "v"
+                    next_folio = prefix + stem + "v"
                 elif suffix == "v":
                     next_stem = str(stem_int + 1).zfill(3)
-                    next_folio = next_stem + "r"
+                    next_folio = prefix + next_stem + "r"
                 elif suffix == "":
                     # 001 -> 002
-                    next_folio = str(stem_int + 1).zfill(3)
+                    next_folio = prefix + str(stem_int + 1).zfill(3)
 
                 # special cases: inserted pages
                 elif suffix == "w":
                     # 001w -> 001x
-                    next_folio = stem + "x"
+                    next_folio = prefix + stem + "x"
                 elif suffix == "y":
                     # 001y -> 001z
-                    next_folio = stem + "z"
+                    next_folio = prefix + stem + "z"
                 elif suffix == "a":
                     # 001a -> 001b
-                    next_folio = stem + "b"
+                    next_folio = prefix + stem + "b"
                 else:
                     # unusual/uncommon suffix
                     next_folio = None
