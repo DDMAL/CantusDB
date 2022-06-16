@@ -8,6 +8,7 @@ from django.contrib.auth.mixins import LoginRequiredMixin
 from django.http import HttpResponseRedirect
 from django.contrib.auth.mixins import UserPassesTestMixin
 from django.core.exceptions import PermissionDenied
+from django.http import Http404
 
 
 class SourceDetailView(DetailView):
@@ -270,7 +271,10 @@ class SourceEditView(LoginRequiredMixin, UserPassesTestMixin, UpdateView):
     def test_func(self):
         user = self.request.user
         source_id = self.kwargs.get(self.pk_url_kwarg)
-        source = Source.objects.get(id=source_id)
+        try:
+            source = Source.objects.get(id=source_id)
+        except:
+            raise Http404("This source does not exist")
         # checks if the user is an editor or a proofreader,
         # and if the user is given privilege to edit chants in this source
         is_editor_proofreader = user.groups.filter(Q(name="editor")|Q(name="proofreader")).exists()
