@@ -188,36 +188,34 @@ class Chant(BaseModel):
             elif folio == "001b":
                 # one specific case at this source https://cantus.uwaterloo.ca/chants?source=123612&folio=001b
                 next_folio = "001r"
-            elif folio.endswith("r"):
-                # 001r -> 001v
-                next_folio = folio[:-1] + "v"
-            elif folio.endswith("v"):
-                if folio[0].isdecimal():
-                    # 001v -> 002r
-                    next_folio = str(int(folio[:-1]) + 1).zfill(len(folio) - 1) + "r"
-                else:
-                    # a001v -> a002r
-                    next_folio = (
-                        folio[0] + str(int(folio[1:-1]) + 1).zfill(len(folio) - 1) + "r"
-                    )
-            elif folio.isdecimal():
-                # 001 -> 002
-                next_folio = str(int(folio) + 1).zfill(len(folio))
-
-            # special case: inserted pages
-            elif folio.endswith("w"):
-                # 001w -> 001x
-                next_folio = folio[:-1] + "x"
-            elif folio.endswith("y"):
-                # 001y -> 001z
-                next_folio = folio[:-1] + "z"
-            elif folio.endswith("a"):
-                # 001a -> 001b
-                next_folio = folio[:-1] + "b"
-
             else:
-                # using weird folio naming
-                next_folio = None
+                stem, suffix = folio[:3], folio[3:]
+                if stem.isdecimal():
+                    stem_int = int(stem)
+                else:
+                    next_folio = None
+                    return next_folio
+
+                if suffix == "r":
+                    # 001r -> 001v
+                    next_folio = stem + "v"
+                elif suffix == "v":
+                    next_stem = str(stem_int + 1).zfill(3)
+                    next_folio = next_stem + "r"
+                elif suffix == "":
+                    # 001 -> 002
+                    next_folio = str(stem_int + 1).zfill(3)
+
+                # special cases: inserted pages
+                elif suffix == "w":
+                    # 001w -> 001x
+                    next_folio = stem + "x"
+                elif suffix == "y":
+                    # 001y -> 001z
+                    next_folio = stem + "z"
+                elif suffix == "a":
+                    # 001a -> 001b
+                    next_folio = stem + "b"
             return next_folio
 
         try:
@@ -283,10 +281,10 @@ class Chant(BaseModel):
                 previous_folio = str(int(folio) - 1).zfill(len(folio))
             elif folio.endswith("v"):
                 # 001v -> 001r
-                previous_folio = folio[:-1] + "r"
+                previous_folio = stem + "r"
             elif folio.endswith("r"):
                 # 002r -> 001v
-                previous_folio = str(int(folio[:-1]) - 1).zfill(len(folio) - 1) + "v"
+                previous_folio = str(int(stem) - 1).zfill(len(folio) - 1) + "v"
             else:
                 # in case of nonstandard folio number
                 previous_folio = None
