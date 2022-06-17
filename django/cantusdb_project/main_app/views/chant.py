@@ -711,17 +711,17 @@ class ChantCreateView(LoginRequiredMixin, UserPassesTestMixin, CreateView):
             return None
 
         current_feast = latest_chant.feast
-        chants_assocd_w_current_feast = Chant.objects.filter(feast=current_feast)
-        next_chants = [chant.get_next_chant()
+        chants_that_end_feast = Chant.objects.filter(is_last_chant_in_feast = True)
+        chants_that_end_current_feast = chants_that_end_feast.filter(feast=current_feast)
+        next_chants = [chant.next_chant
             for chant
-            in chants_assocd_w_current_feast
+            in chants_that_end_current_feast
             ]
         next_feasts = [chant.feast
             for chant
             in next_chants
             if type(chant) is Chant # .get_next_chant() sometimes returns None
                 and chant.feast is not None # some chants aren't associated with a feast
-                and chant.feast.id != current_feast.id
             ]
         feast_counts = Counter(next_feasts)
         sorted_feast_counts = dict( sorted(feast_counts.items(),
