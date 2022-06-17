@@ -111,7 +111,9 @@ class Chant(BaseModel):
         help_text="Additional folio number field, if folio numbers appear on the leaves but are not in the 'binding order'.",
     )
     next_chant = models.OneToOneField("self", related_name="prev_chant", null=True, blank=True, on_delete=models.SET_NULL)
-    # prev_chant = ...prev_chant is created via the next_chant's related_name property 
+    # prev_chant = ...  # prev_chant is created when next_chant is calculated 
+
+    is_last_chant_in_feast = models.BooleanField(blank=True, null=True)
 
     # fragmentarium_id = models.CharField(blank=True, null=True, max_length=64)
     # # Digital Analysis of Chant Transmission
@@ -179,43 +181,51 @@ class Chant(BaseModel):
             Returns:
                 str: the folio number of the next folio
             """
-            # For the ra, rb, va, vb - don't do anything about those. That formatting will not stay.
+            # For chants that end with ra, rb, va, vb - don't do anything about those. That formatting will not stay.
+
+            # some folios begin with an "a" - these should be treated like other folios, but preserving the leading "a"
+            if folio[0] == "a":
+                prefix, folio = folio[:1], folio[1:]
+            else:
+                prefix = ""
+
             if folio is None:
                 # this shouldn't happen, but during testing, we may have some chants without folio
                 next_folio = None
             elif folio == "001b":
                 # one specific case at this source https://cantus.uwaterloo.ca/chants?source=123612&folio=001b
                 next_folio = "001r"
-            elif folio.endswith("r"):
-                # 001r -> 001v
-                next_folio = folio[:-1] + "v"
-            elif folio.endswith("v"):
-                if folio[0].isdecimal():
-                    # 001v -> 002r
-                    next_folio = str(int(folio[:-1]) + 1).zfill(len(folio) - 1) + "r"
-                else:
-                    # a001v -> a002r
-                    next_folio = (
-                        folio[0] + str(int(folio[1:-1]) + 1).zfill(len(folio) - 1) + "r"
-                    )
-            elif folio.isdecimal():
-                # 001 -> 002
-                next_folio = str(int(folio) + 1).zfill(len(folio))
-
-            # special case: inserted pages
-            elif folio.endswith("w"):
-                # 001w -> 001x
-                next_folio = folio[:-1] + "x"
-            elif folio.endswith("y"):
-                # 001y -> 001z
-                next_folio = folio[:-1] + "z"
-            elif folio.endswith("a"):
-                # 001a -> 001b
-                next_folio = folio[:-1] + "b"
-
             else:
-                # using weird folio naming
-                next_folio = None
+                stem, suffix = folio[:3], folio[3:]
+                if stem.isdecimal():
+                    stem_int = int(stem)
+                else:
+                    next_folio = None
+                    return next_folio
+
+                if suffix == "r":
+                    # 001r -> 001v
+                    next_folio = prefix + stem + "v"
+                elif suffix == "v":
+                    next_stem = str(stem_int + 1).zfill(3)
+                    next_folio = prefix + next_stem + "r"
+                elif suffix == "":
+                    # 001 -> 002
+                    next_folio = prefix + str(stem_int + 1).zfill(3)
+
+                # special cases: inserted pages
+                elif suffix == "w":
+                    # 001w -> 001x
+                    next_folio = prefix + stem + "x"
+                elif suffix == "y":
+                    # 001y -> 001z
+                    next_folio = prefix + stem + "z"
+                elif suffix == "a":
+                    # 001a -> 001b
+                    next_folio = prefix + stem + "b"
+                else:
+                    # unusual/uncommon suffix
+                    next_folio = None
             return next_folio
 
         try:
@@ -247,69 +257,3 @@ class Chant(BaseModel):
 
         return next_chant
 
-    def get_previous_chant(self):
-        """return the previous chant in the same source.
-
-        For use in the suggested_feasts function, to populate a list of possible next feasts.
-        Since this use case does not require very much accuracy, this function sometimes returns
-        erroneous values: if the chant is on a folio with an unusual name, the function
-        will return None. If it's the first chant on the folio and the previous folio has
-        an unusual name (e.g. a folio was inserted into the manuscript), the function may
-        return the wrong chant.
-
-        Returns:
-            Chant/None: the previous chant object, or None
-        """
-
-        def get_previous_folio(folio):
-            """For when the previous chant is on the previous folio
-            Args:
-                folio (str): the number of a folio
-            Returns:
-                str/None: the folio number of the previous folio, or None
-            """
-            if folio is None:
-                return None
-            if not folio[0].isnumeric():
-                # a001 etc.
-                previous_folio = None
-            elif folio == "001r" or folio == "001":
-                # i.e. first page in manuscript, no preceding folio
-                previous_folio = None
-            elif folio.isdecimal():
-                # 002 -> 001
-                previous_folio = str(int(folio) - 1).zfill(len(folio))
-            elif folio.endswith("v"):
-                # 001v -> 001r
-                previous_folio = folio[:-1] + "r"
-            elif folio.endswith("r"):
-                # 002r -> 001v
-                previous_folio = str(int(folio[:-1]) - 1).zfill(len(folio) - 1) + "v"
-            else:
-                # in case of nonstandard folio number
-                previous_folio = None
-        
-            return previous_folio
-
-        sequence_number = self.sequence_number
-        try:
-            previous_chant = Chant.objects.get(
-                source=self.source,
-                folio=self.folio,
-                sequence_number=sequence_number - 1,
-            )
-        except Chant.DoesNotExist: # it's the first chant on the folio - we need to look at the previous folio
-            try:
-                # since QuerySets don't support negative indexing, convert to list to allow for negative indexing in next try block
-                chants_previous_folio = list(Chant.objects.filter(
-                    source=self.source, folio=get_previous_folio(self.folio)
-                ).order_by("sequence_number"))
-            except AttributeError: # previous_folio is None
-                return None
-
-            try: # get the last chant on the previous folio
-                previous_chant = chants_previous_folio[-1]
-            except ValueError: # previous folio contains no chants
-                previous_chant = None
-        
-        return previous_chant
