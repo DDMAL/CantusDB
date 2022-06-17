@@ -15,6 +15,7 @@ from django.contrib.auth.decorators import login_required
 from next_chants import next_chants
 from django.contrib import messages
 import random
+from django.http import Http404
 
 @login_required
 def items_count(request):
@@ -151,7 +152,10 @@ def csv_export(request, source_id):
     Returns:
         HttpResponse: The CSV response
     """
-    source = Source.objects.get(id=source_id)
+    try:
+        source = Source.objects.get(id=source_id)
+    except:
+        raise Http404("This source does not exist")
     # "4064" is the segment id of the sequence DB, sources in that segment has sequences instead of chants
     if source.segment.id == 4064:
         entries = source.sequence_set.order_by("id")

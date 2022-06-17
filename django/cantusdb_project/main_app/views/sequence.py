@@ -6,6 +6,7 @@ from django.contrib.auth.mixins import LoginRequiredMixin
 from django.contrib import messages
 from django.contrib.auth.mixins import UserPassesTestMixin
 from django.core.exceptions import PermissionDenied
+from django.http import Http404
 
 
 
@@ -76,7 +77,10 @@ class SequenceEditView(LoginRequiredMixin, UserPassesTestMixin, UpdateView):
     def test_func(self):
         user = self.request.user
         sequence_id = self.kwargs.get(self.pk_url_kwarg)
-        sequence = Sequence.objects.get(id=sequence_id)
+        try:
+            sequence = Sequence.objects.get(id=sequence_id)
+        except:
+            raise Http404("This sequence does not exist")
         # find the source of this sequence
         source = sequence.source
         # checks if the user is an editor or a proofreader,
