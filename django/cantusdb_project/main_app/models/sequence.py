@@ -5,7 +5,7 @@ from users.models import User
 
 
 class Sequence(BaseChant):
-    """The model for chants
+    """The model for sequences
 
     Both Chant and Sequence must have the same fields, otherwise errors will be raised
     when a user searches for chants/sequences in the database. Thus, all fields,
