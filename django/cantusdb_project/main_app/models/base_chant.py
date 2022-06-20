@@ -27,9 +27,13 @@ class BaseChant(BaseModel):
     folio = models.CharField(
         help_text="Binding order", blank=True, null=True, max_length=255, db_index=True
     )
-    # The "sequence" char field is for sequence numbers like "01", used for sequences
-    # The "sequence_number" integer field below is for sequence numbers like "1", used for chants
+    # The "sequence" char field, used for Sequences, is used to indicate the relative positions of sequences on the page.
+    # It sometimes features non-numeric characters and leading zeroes, so it's a CharField.
     sequence = models.CharField(blank=True, null=True, max_length=255)
+    # The "sequence_number" integer field, used for Chants, similarly indicates the relative positions of chants on the page
+    sequence_number = models.PositiveIntegerField(
+        help_text='Each folio starts with "1"', null=True, blank=True
+    )
     genre = models.ForeignKey("Genre", blank=True, null=True, on_delete=models.PROTECT)
     rubrics = models.CharField(blank=True, null=True, max_length=255)
     analecta_hymnica = models.CharField(blank=True, null=True, max_length=255)
@@ -47,9 +51,6 @@ class BaseChant(BaseModel):
     image_link = models.URLField(blank=True, null=True)
     json_info = models.JSONField(null=True, blank=True)
     marginalia = models.CharField(max_length=63, null=True, blank=True)
-    sequence_number = models.PositiveIntegerField(
-        help_text='Each folio starts with "1"', null=True, blank=True
-    )
     office = models.ForeignKey(
         "Office", on_delete=models.PROTECT, null=True, blank=True
     )
@@ -113,6 +114,7 @@ class BaseChant(BaseModel):
     next_chant = models.OneToOneField("self", related_name="prev_chant", null=True, blank=True, on_delete=models.SET_NULL)
     # prev_chant = ...  # prev_chant is created when next_chant is calculated 
 
+    # this field, populated by the populate_is_last_chant_in_feast script, exists in order to optimize .get_suggested_feasts() on the chant-create page
     is_last_chant_in_feast = models.BooleanField(blank=True, null=True)
 
     # fragmentarium_id = models.CharField(blank=True, null=True, max_length=64)
