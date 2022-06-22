@@ -1339,25 +1339,6 @@ class JsonSourcesExportTest(TestCase):
         pass
 
 class JsonNextChantsTest(TestCase):
-    # def setupTestData(self):
-    #     fake_source_1 = make_fake_source()
-    #     fake_source_2 = make_fake_source()
-
-    #     fake_chant_1 = Chant.objects.create(
-    #         source = fake_source_1,
-    #     )
-    #     fake_chant_2 = Chant.objects.create(
-    #         source = fake_source_1,
-    #     )
-    #     fake_chant_1.next_chant = fake_chant_2
-        
-    #     fake_chant_3 = Chant.objects.create(
-    #         source = fake_source_2,
-    #     )
-    #     fake_chant_4 = Chant.objects.create(
-    #         source = fake_source_2,
-    #     )
-    #     fake_chant_3.next_chant = fake_chant_4
 
     def test_existing_cantus_id(self):
         fake_source_1 = make_fake_source()
