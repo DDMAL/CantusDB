@@ -14,7 +14,7 @@ def next_chants(cantus_id):
     concordances = Chant.objects.filter(cantus_id=cantus_id).only(
         "source", "folio", "sequence_number"
     )
-    next_chants = [chant.get_next_chant() for chant in concordances]
+    next_chants = [chant.next_chant for chant in concordances]
     ids = [chant.cantus_id
         for chant
         in next_chants

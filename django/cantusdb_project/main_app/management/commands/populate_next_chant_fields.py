@@ -17,12 +17,10 @@ class Command(BaseCommand):
         chants = Chant.objects.all()
         chants_count = chants.count()
         start_index = 0
-        while True:
+        while start_index <= CHUNK_SIZE:
             print("processing chunk with start_index of", start_index)
             try:
                 chunk = chants[start_index:start_index+CHUNK_SIZE]
-            except IndexError:
-                break
             
             for chant in chunk:
                 if chant.next_chant and not overwrite: # unless -o or -overwrite flag has been supplied, skip chants that already have a next_chant

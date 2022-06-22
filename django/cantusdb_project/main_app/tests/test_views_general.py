@@ -1,6 +1,9 @@
+from struct import unpack
 from django.urls import reverse
 from django.test import TestCase
 from main_app.views.feast import FeastListView
+from django.http.response import JsonResponse
+import json
 from .make_fakes import *
 
 # run with `python -Wa manage.py test main_app.tests.test_views_general`
@@ -1311,3 +1314,89 @@ class FullIndexViewTest(TestCase):
         response = self.client.get(reverse("chant-index"), {"source": seq_source.id})
         self.assertEqual(seq_source, response.context["source"])
         self.assertIn(sequence, response.context["chants"])
+
+class JsonMelodyExportTest(TestCase):
+    def setupTestData(self):
+        pass
+
+    def test_json_melody_export(self):
+        chants = None
+        pass
+
+
+class JsonNodeExportTest(TestCase):
+    def setupTestData(self):
+        pass
+
+    def test_json_node_export(self):
+        pass
+
+class JsonSourcesExportTest(TestCase):
+    def setupTestData(self):
+        pass
+
+    def test_json_sources_export(self):
+        pass
+
+class JsonNextChantsTest(TestCase):
+
+    def test_existing_cantus_id(self):
+        fake_source_1 = make_fake_source()
+        fake_source_2 = make_fake_source()
+
+        fake_chant_2 = Chant.objects.create(
+            source = fake_source_1,
+            cantus_id = "2000"
+        )
+
+        fake_chant_1 = Chant.objects.create(
+            source = fake_source_1,
+            next_chant = fake_chant_2,
+            cantus_id = "1000"
+        )
+        
+        fake_chant_4 = Chant.objects.create(
+            source = fake_source_2,
+            cantus_id = "2000"
+        )
+
+        fake_chant_3 = Chant.objects.create(
+            source = fake_source_2,
+            next_chant = fake_chant_4,
+            cantus_id = "1000"
+        )
+
+        path = reverse("json-nextchants", args=["1000"])
+        response = self.client.get(path)
+        self.assertIsInstance(response, JsonResponse)
+        unpacked_response = json.loads(response.content)
+        self.assertEqual(unpacked_response, {"2000": 2})
+
+    def test_nonexistent_cantus_id(self):
+        fake_source_1 = make_fake_source()
+        fake_source_2 = make_fake_source()
+
+        fake_chant_2 = Chant.objects.create(
+            source = fake_source_1,
+        )
+        fake_chant_1 = Chant.objects.create(
+            source = fake_source_1,
+            next_chant = fake_chant_2
+        )
+        
+        fake_chant_4 = Chant.objects.create(
+            source = fake_source_2,
+        )
+        fake_chant_3 = Chant.objects.create(
+            source = fake_source_2,
+            next_chant = fake_chant_4
+        )
+
+        path = reverse("json-nextchants", args=["9000"])
+        response = self.client.get(reverse("json-nextchants", args=["9000"]))
+        self.assertIsInstance(response, JsonResponse)
+        unpacked_response = json.loads(response.content)
+        self.assertEqual(unpacked_response, {})
+
+
+
