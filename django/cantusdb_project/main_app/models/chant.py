@@ -182,6 +182,11 @@ class Chant(BaseModel):
                 str: the folio number of the next folio
             """
             # For chants that end with ra, rb, va, vb - don't do anything about those. That formatting will not stay.
+            
+            if folio is None:
+                # this shouldn't happen, but during testing, we may have some chants without folio
+                next_folio = None
+                return next_folio
 
             # some folios begin with an "a" - these should be treated like other folios, but preserving the leading "a"
             if folio[0] == "a":
@@ -189,43 +194,36 @@ class Chant(BaseModel):
             else:
                 prefix = ""
 
-            if folio is None:
-                # this shouldn't happen, but during testing, we may have some chants without folio
-                next_folio = None
-            elif folio == "001b":
-                # one specific case at this source https://cantus.uwaterloo.ca/chants?source=123612&folio=001b
-                next_folio = "001r"
+            stem, suffix = folio[:3], folio[3:]
+            if stem.isdecimal():
+                stem_int = int(stem)
             else:
-                stem, suffix = folio[:3], folio[3:]
-                if stem.isdecimal():
-                    stem_int = int(stem)
-                else:
-                    next_folio = None
-                    return next_folio
+                next_folio = None
+                return next_folio
 
-                if suffix == "r":
-                    # 001r -> 001v
-                    next_folio = prefix + stem + "v"
-                elif suffix == "v":
-                    next_stem = str(stem_int + 1).zfill(3)
-                    next_folio = prefix + next_stem + "r"
-                elif suffix == "":
-                    # 001 -> 002
-                    next_folio = prefix + str(stem_int + 1).zfill(3)
+            if suffix == "r":
+                # 001r -> 001v
+                next_folio = prefix + stem + "v"
+            elif suffix == "v":
+                next_stem = str(stem_int + 1).zfill(3)
+                next_folio = prefix + next_stem + "r"
+            elif suffix == "":
+                # 001 -> 002
+                next_folio = prefix + str(stem_int + 1).zfill(3)
 
-                # special cases: inserted pages
-                elif suffix == "w":
-                    # 001w -> 001x
-                    next_folio = prefix + stem + "x"
-                elif suffix == "y":
-                    # 001y -> 001z
-                    next_folio = prefix + stem + "z"
-                elif suffix == "a":
-                    # 001a -> 001b
-                    next_folio = prefix + stem + "b"
-                else:
-                    # unusual/uncommon suffix
-                    next_folio = None
+            # special cases: inserted pages
+            elif suffix == "w":
+                # 001w -> 001x
+                next_folio = prefix + stem + "x"
+            elif suffix == "y":
+                # 001y -> 001z
+                next_folio = prefix + stem + "z"
+            elif suffix == "a":
+                # 001a -> 001b
+                next_folio = prefix + stem + "b"
+            else:
+                # unusual/uncommon suffix
+                next_folio = None
             return next_folio
 
         try:
