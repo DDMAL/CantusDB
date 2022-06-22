@@ -1,4 +1,3 @@
-from struct import unpack
 from django.urls import reverse
 from django.test import TestCase
 from main_app.views.feast import FeastListView
@@ -1316,25 +1315,16 @@ class FullIndexViewTest(TestCase):
         self.assertIn(sequence, response.context["chants"])
 
 class JsonMelodyExportTest(TestCase):
-    def setupTestData(self):
-        pass
-
     def test_json_melody_export(self):
         chants = None
         pass
 
 
 class JsonNodeExportTest(TestCase):
-    def setupTestData(self):
-        pass
-
     def test_json_node_export(self):
         pass
 
 class JsonSourcesExportTest(TestCase):
-    def setupTestData(self):
-        pass
-
     def test_json_sources_export(self):
         pass
 
