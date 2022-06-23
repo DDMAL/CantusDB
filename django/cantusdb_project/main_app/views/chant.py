@@ -691,6 +691,17 @@ class ChantCreateView(LoginRequiredMixin, UserPassesTestMixin, CreateView):
         trimmed_suggested_chants = sorted_suggested_chants[:NUM_SUGGESTIONS]
 
         def make_suggested_chant_dict(suggested_chant):
+            """finds data on a chant with a particular cantusID, and adds a key "count" to that data
+
+            Args:
+                suggested_chant (tuple(str, int)): tuple containing the cantus ID of a chant,
+                along with an int that represents the number of times the suggested chant follows
+                another particular chant.
+
+            Returns:
+                dict: dictionary containing data for a specific chant, along with a count
+                of how many times it appears after instances of the other particular chant.
+            """
             sugg_chant_cantus_id, sugg_chant_count = suggested_chant
             # search Cantus Index
             response = requests.get(
@@ -702,6 +713,7 @@ class ChantCreateView(LoginRequiredMixin, UserPassesTestMixin, CreateView):
             chant_dict = json.loads(response.text[2:])[0]
             # add number of occurence to the dict, so that we can display it easily
             chant_dict["count"] = sugg_chant_count
+            print(chant_dict)
             return chant_dict
 
         suggested_chants_dicts = [
@@ -736,7 +748,9 @@ class ChantCreateView(LoginRequiredMixin, UserPassesTestMixin, CreateView):
             if type(chant) is Chant # .get_next_chant() sometimes returns None
                 and chant.feast is not None # some chants aren't associated with a feast
             ]
+        print(next_feasts)
         feast_counts = Counter(next_feasts)
+        print(feast_counts)
         sorted_feast_counts = dict( sorted(feast_counts.items(),
                            key=lambda item: item[1],
                            reverse=True))

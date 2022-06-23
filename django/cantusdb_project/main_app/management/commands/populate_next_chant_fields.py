@@ -19,9 +19,7 @@ class Command(BaseCommand):
         start_index = 0
         while start_index <= CHUNK_SIZE:
             print("processing chunk with start_index of", start_index)
-            try:
-                chunk = chants[start_index:start_index+CHUNK_SIZE]
-            
+            chunk = chants[start_index:start_index+CHUNK_SIZE]
             for chant in chunk:
                 if chant.next_chant and not overwrite: # unless -o or -overwrite flag has been supplied, skip chants that already have a next_chant
                     continue
