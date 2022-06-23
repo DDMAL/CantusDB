@@ -18,8 +18,8 @@ def next_chants(cantus_id):
     ids = [chant.cantus_id
         for chant
         in next_chants
-        if chant is not None] # chant would be None if .get_next_chant() returned None,
-                              # i.e. if the chant in concordances was the last in the manuscript
+        if chant is not None and chant.cantus_id is not None]   # chant would be None if .get_next_chant() returned None,
+                                                                # i.e. if the chant in concordances was the last in the manuscript
     counts = Counter(ids)
     ids_and_counts = [item for item in counts.items()] # each item is an id-count key-value pair
     
