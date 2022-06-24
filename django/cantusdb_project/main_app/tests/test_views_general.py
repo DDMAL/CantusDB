@@ -1594,7 +1594,7 @@ class PermissionsTest(TestCase):
         response = self.client.get(f'/edit-source/{allowed_source.id}')
         self.assertEqual(response.status_code, 200)
 
-    def test_permissions_anon(self):
+    def test_permissions_default(self):
         self.client.login(username='user', password='pass')
 
         # get random source, chant and sequence
