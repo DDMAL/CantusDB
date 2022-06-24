@@ -1541,10 +1541,6 @@ class PermissionsTest(TestCase):
         response = self.client.get(f'/edit-source/{source_created_by_contributor.id}')
         self.assertEqual(response.status_code, 200)
 
-        # UserSourceListView
-        response = self.client.get('/my-sources/')
-        self.assertEqual(response.status_code, 200)
-
     def test_permissions_editor(self):
         editor = Group.objects.get(name='editor') 
         editor.user_set.add(self.user)
@@ -1598,10 +1594,6 @@ class PermissionsTest(TestCase):
         response = self.client.get(f'/edit-source/{allowed_source.id}')
         self.assertEqual(response.status_code, 200)
 
-        # UserSourceListView
-        response = self.client.get('/my-sources/')
-        self.assertEqual(response.status_code, 200)
-
     def test_permissions_anon(self):
         self.client.login(username='user', password='pass')
 
@@ -1633,7 +1625,3 @@ class PermissionsTest(TestCase):
         # SourceEditView
         response = self.client.get(f'/edit-source/{source.id}')
         self.assertEqual(response.status_code, 403)
-
-        # UserSourceListView
-        response = self.client.get('/my-sources/')
-        self.assertEqual(response.status_code, 200)
