@@ -1482,10 +1482,6 @@ class PermissionsTest(TestCase):
         response = self.client.get(f'/edit-source/{source.id}')
         self.assertEqual(response.status_code, 200)
 
-        # UserSourceListView
-        response = self.client.get('/my-sources/')
-        self.assertEqual(response.status_code, 200)
-
     def test_permissions_contributor(self):
         contributor = Group.objects.get(name='contributor') 
         contributor.user_set.add(self.user)
