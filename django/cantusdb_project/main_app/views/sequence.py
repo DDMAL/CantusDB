@@ -76,27 +76,10 @@ class SequenceEditView(LoginRequiredMixin, UserPassesTestMixin, UpdateView):
 
     def test_func(self):
         user = self.request.user
-        sequence_id = self.kwargs.get(self.pk_url_kwarg)
-        try:
-            sequence = Sequence.objects.get(id=sequence_id)
-        except:
-            raise Http404("This sequence does not exist")
-        # find the source of this sequence
-        source = sequence.source
-        # checks if the user is an editor or a proofreader,
-        # and if the user is given privilege to edit this source and thus, it's sequences
-        is_editor_proofreader = user.groups.filter(Q(name="editor")|Q(name="proofreader")).exists()
-        can_edit_sequences_in_source = user.sources_user_can_edit.filter(id=source.id)
         # checks if the user is a project manager (they should have the privilege to edit any sequence)
         is_project_manager = user.groups.filter(name="project manager").exists()
-        # checks if the user is a contributor,
-        # and if the user is the creator of this source 
-        # (they should only have the privilege to edit sequences in a source they have created)
-        is_contributor = user.groups.filter(name="contributor").exists()
 
-        if ((is_editor_proofreader and can_edit_sequences_in_source) 
-            or (is_project_manager) 
-            or (is_contributor and source.created_by == user)):
+        if is_project_manager:
             return True
         else:
             return False
