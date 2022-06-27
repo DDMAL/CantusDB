@@ -344,7 +344,7 @@ class SourceEditForm(forms.ModelForm):
     cursus.widget.attrs.update({"class": "form-control custom-select custom-select-sm"}) # what does this do?
 
     current_editors = forms.ModelMultipleChoiceField(
-        queryset=get_user_model().objects.all().order_by("last_name")
+        queryset=get_user_model().objects.all().order_by("last_name"), required = False
     )
     current_editors.widget.attrs.update({"class": "form-control custom-select custom-select-sm"})
 
