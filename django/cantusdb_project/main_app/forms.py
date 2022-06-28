@@ -318,7 +318,7 @@ class SourceEditForm(forms.ModelForm):
     )
     provenance.widget.attrs.update({"class": "form-control custom-select custom-select-sm"}) # what does this do? - this adds styling - TODO remove these comments
     
-    century = forms.ModelChoiceField(
+    century = forms.ModelMultipleChoiceField(
         queryset=Century.objects.all().order_by("name"), required = False
     )
     century.widget.attrs.update({"class": "form-control custom-select custom-select-sm"}) # what does this do?
@@ -344,7 +344,7 @@ class SourceEditForm(forms.ModelForm):
     cursus.widget.attrs.update({"class": "form-control custom-select custom-select-sm"}) # what does this do?
 
     current_editors = forms.ModelMultipleChoiceField(
-        queryset=get_user_model().objects.all().order_by("last_name")
+        queryset=get_user_model().objects.all().order_by("last_name"), required = False
     )
     current_editors.widget.attrs.update({"class": "form-control custom-select custom-select-sm"})
 
