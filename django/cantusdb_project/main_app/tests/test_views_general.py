@@ -1637,3 +1637,240 @@ class PermissionsTest(TestCase):
         # UserSourceListView
         response = self.client.get('/my-sources/')
         self.assertEqual(response.status_code, 200)
+
+class ChantCreateViewTest(TestCase):
+    @classmethod
+    def setUpTestData(cls):
+        Group.objects.create(name="project manager")
+
+    def setUp(self):
+        self.user = get_user_model().objects.create(username='user')
+        self.user.set_password('pass')
+        self.user.save()
+        self.client = Client()
+        project_manager = Group.objects.get(name='project manager') 
+        project_manager.user_set.add(self.user)
+        self.client.login(username='user', password='pass')
+
+    def test_url_and_templates(self):
+        source = make_fake_source()
+
+        response = self.client.get(reverse("chant-create", args=[source.id]))
+        self.assertEqual(response.status_code, 200)
+        self.assertTemplateUsed(response, "chant_create.html")
+
+        response = self.client.get(reverse("chant-create", args=[source.id + 100]))
+        self.assertEqual(response.status_code, 404)
+        self.assertTemplateUsed(response, "404.html")
+
+    def test_create_chant(self):
+        source = make_fake_source()
+        response = self.client.post(
+            reverse("chant-create", args=[source.id]), 
+            {"manuscript_full_text_std_spelling": "initial", "folio": "001r", "sequence_number": "1"})
+        self.assertEqual(response.status_code, 302)
+        self.assertRedirects(response, reverse('chant-create', args=[source.id]))  
+        chant = Chant.objects.first()
+        self.assertEqual(chant.manuscript_full_text_std_spelling, "initial")
+
+class ChantDeleteViewTest(TestCase):
+    @classmethod
+    def setUpTestData(cls):
+        Group.objects.create(name="project manager")
+
+    def setUp(self):
+        self.user = get_user_model().objects.create(username='user')
+        self.user.set_password('pass')
+        self.user.save()
+        self.client = Client()
+        project_manager = Group.objects.get(name='project manager') 
+        project_manager.user_set.add(self.user)
+        self.client.login(username='user', password='pass')
+
+    def test_context(self):
+        chant = make_fake_chant()
+        response = self.client.get(reverse("chant-delete", args=[chant.id]))
+        self.assertEqual(chant, response.context["object"])
+
+    def test_url_and_templates(self):
+        chant = make_fake_chant()
+
+        response = self.client.get(reverse("chant-delete", args=[chant.id]))
+        self.assertEqual(response.status_code, 200)
+        self.assertTemplateUsed(response, "chant_confirm_delete.html")
+
+        response = self.client.get(reverse("chant-delete", args=[chant.id + 100]))
+        self.assertEqual(response.status_code, 404)
+        self.assertTemplateUsed(response, "404.html")
+
+    def test_existing_chant(self):
+        chant = make_fake_chant()
+        response = self.client.post(reverse("chant-delete", args=[chant.id]))
+        self.assertEqual(response.status_code, 302)
+
+    def test_non_existing_chant(self):
+        chant = make_fake_chant()
+        response = self.client.post(reverse("chant-delete", args=[chant.id + 100]))
+        self.assertEqual(response.status_code, 404)
+
+class ChantEditVolpianoViewTest(TestCase):
+    @classmethod
+    def setUpTestData(cls):
+        Group.objects.create(name="project manager")
+
+    def setUp(self):
+        self.user = get_user_model().objects.create(username='user')
+        self.user.set_password('pass')
+        self.user.save()
+        self.client = Client()
+        project_manager = Group.objects.get(name='project manager') 
+        project_manager.user_set.add(self.user)
+        self.client.login(username='user', password='pass')
+
+    def test_url_and_templates(self):
+        source = make_fake_source()
+        Chant.objects.create(source = source)
+
+        response = self.client.get(reverse("source-edit-volpiano", args=[source.id]))
+        self.assertEqual(response.status_code, 200)
+        self.assertTemplateUsed(response, "chant_edit.html")
+
+        response = self.client.get(reverse("source-edit-volpiano", args=[source.id + 100]))
+        self.assertEqual(response.status_code, 404)
+        self.assertTemplateUsed(response, "404.html")
+
+        # trying to access chant-edit with a source that has no chant should return 404
+        source = make_fake_source()
+
+        response = self.client.get(reverse("source-edit-volpiano", args=[source.id]))
+        self.assertEqual(response.status_code, 404)
+        self.assertTemplateUsed(response, "404.html")
+
+    def test_update_chant(self):
+        source = make_fake_source()
+        chant = Chant.objects.create(source = source, manuscript_full_text_std_spelling = "initial")
+
+        response = self.client.get(
+            reverse('source-edit-volpiano', args=[source.id]), 
+            {'pk': chant.id})
+        self.assertEqual(response.status_code, 200)
+        self.assertTemplateUsed(response, "chant_edit.html")
+
+        response = self.client.post(
+            reverse('source-edit-volpiano', args=[source.id]), 
+            {'manuscript_full_text_std_spelling': 'test', 'pk': chant.id})
+        self.assertEqual(response.status_code, 302)
+        self.assertRedirects(response, reverse('chant-detail', args=[chant.id]))  
+        chant.refresh_from_db()
+        self.assertEqual(chant.manuscript_full_text_std_spelling, 'test')
+
+class SequenceEditViewTest(TestCase):
+    @classmethod
+    def setUpTestData(cls):
+        Group.objects.create(name="project manager")
+
+    def setUp(self):
+        self.user = get_user_model().objects.create(username='user')
+        self.user.set_password('pass')
+        self.user.save()
+        self.client = Client()
+        project_manager = Group.objects.get(name='project manager') 
+        project_manager.user_set.add(self.user)
+        self.client.login(username='user', password='pass')
+
+    def test_context(self):
+        sequence = make_fake_sequence()
+        response = self.client.get(reverse("sequence-edit", args=[sequence.id]))
+        self.assertEqual(sequence, response.context["object"])
+
+    def test_url_and_templates(self):
+        sequence = make_fake_sequence()
+
+        response = self.client.get(reverse("sequence-edit", args=[sequence.id]))
+        self.assertEqual(response.status_code, 200)
+        self.assertTemplateUsed(response, "sequence_edit.html")
+
+        response = self.client.get(reverse("sequence-edit", args=[sequence.id + 100]))
+        self.assertEqual(response.status_code, 404)
+        self.assertTemplateUsed(response, "404.html")
+
+    def test_update_sequence(self):
+        sequence = make_fake_sequence()
+        response = self.client.post(
+            reverse('sequence-edit', args=[sequence.id]), 
+            {'title': 'test'})
+        self.assertEqual(response.status_code, 302)
+        sequence.refresh_from_db()
+        self.assertEqual(sequence.title, 'test')
+
+class SourceCreateViewTest(TestCase):
+    @classmethod
+    def setUpTestData(cls):
+        Group.objects.create(name="project manager")
+
+    def setUp(self):
+        self.user = get_user_model().objects.create(username='user')
+        self.user.set_password('pass')
+        self.user.save()
+        self.client = Client()
+        project_manager = Group.objects.get(name='project manager') 
+        project_manager.user_set.add(self.user)
+        self.client.login(username='user', password='pass')
+
+    def test_url_and_templates(self):
+        response = self.client.get(reverse("source-create"))
+        self.assertEqual(response.status_code, 200)
+        self.assertTemplateUsed(response, "source_create_form.html")
+
+    def test_create_source(self):
+        response = self.client.post(
+            reverse('source-create'), 
+            {'title': 'test'})
+
+        self.assertEqual(response.status_code, 302)
+        self.assertRedirects(response, reverse('source-create'))       
+
+        source = Source.objects.first()
+        self.assertEqual(source.title, 'test')
+
+class SourceEditViewTest(TestCase):
+    @classmethod
+    def setUpTestData(cls):
+        Group.objects.create(name="project manager")
+
+    def setUp(self):
+        self.user = get_user_model().objects.create(username='user')
+        self.user.set_password('pass')
+        self.user.save()
+        self.client = Client()
+        project_manager = Group.objects.get(name='project manager') 
+        project_manager.user_set.add(self.user)
+        self.client.login(username='user', password='pass')
+
+    def test_context(self):
+        source = make_fake_source()
+        response = self.client.get(reverse("source-edit", args=[source.id]))
+        self.assertEqual(source, response.context["object"])
+
+    def test_url_and_templates(self):
+        source = make_fake_source()
+
+        response = self.client.get(reverse("source-edit", args=[source.id]))
+        self.assertEqual(response.status_code, 200)
+        self.assertTemplateUsed(response, "source_edit.html")
+
+        response = self.client.get(reverse("source-edit", args=[source.id + 100]))
+        self.assertEqual(response.status_code, 404)
+        self.assertTemplateUsed(response, "404.html")
+
+    def test_edit_source(self):
+        source = make_fake_source()
+
+        response = self.client.post(
+            reverse('source-edit', args=[source.id]), 
+            {'title': 'test'})
+
+        self.assertEqual(response.status_code, 302)
+        self.assertRedirects(response, reverse('source-detail', args=[source.id]))       
+        source.refresh_from_db()
+        self.assertEqual(source.title, 'test')
