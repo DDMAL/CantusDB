@@ -6,7 +6,7 @@ from django.contrib.auth.models import Group
 class Command(BaseCommand):
 
     def handle(self, *args, **kwargs):
-        with open('exportFileOutput.csv','r') as csvinput:
+        with open('oldcantususer_uid_role_detailed.csv','r') as csvinput:
             reader = csv.reader(csvinput)
             next(reader, None)
 

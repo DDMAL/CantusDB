@@ -3,8 +3,8 @@ from itertools import count
 import lxml.html as lh
 import requests
 
-with open('exportFile.csv','r') as csvinput:
-    with open('exportFileOutput.csv', 'w') as csvoutput:
+with open('oldcantususer_uid_role.csv','r') as csvinput:
+    with open('oldcantususer_uid_role_detailed.csv', 'w') as csvoutput:
         writer = csv.writer(csvoutput, lineterminator='\n')
         reader = csv.reader(csvinput)
 
