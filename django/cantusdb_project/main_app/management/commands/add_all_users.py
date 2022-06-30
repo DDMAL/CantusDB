@@ -20,9 +20,8 @@ class Command(BaseCommand):
                 institution = row[5]
                 country = row[7]
 
-                _user = User.objects.get_or_create(
+                user, created = User.objects.get_or_create(
                     username = f"{name}_{uid}",
-                    password = "cantusdb",
                     id = uid,
                     first_name = name,
                     last_name = surname,
@@ -30,7 +29,9 @@ class Command(BaseCommand):
                     country = country
                 )
 
-                user = _user[0]
+                if created:
+                    user.set_password("cantusdb")
+                    user.save()
 
                 if new_role != "none":
                     group = Group.objects.get(name=new_role) 
