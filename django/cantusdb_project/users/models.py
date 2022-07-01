@@ -1,5 +1,6 @@
 from django.db import models
 from django.contrib.auth.models import AbstractUser
+from django.urls.base import reverse
 
 
 class User(AbstractUser):
@@ -22,3 +23,8 @@ class User(AbstractUser):
             return self.name
         else:
             return self.username
+
+    def get_absolute_url(self) -> str:
+        """Get the absolute URL for an instance of a model."""
+        detail_name = self.__class__.__name__.lower() + "-detail"
+        return reverse(detail_name, kwargs={"pk": self.pk})

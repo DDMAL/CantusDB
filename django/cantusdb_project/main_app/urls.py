@@ -5,7 +5,7 @@ from main_app.views.sequence import SequenceEditView
 from main_app.views.source import SourceCreateView, SourceEditView
 from main_app.views.chant import ChantEditVolpianoView
 from django.contrib.auth import views as auth_views
-from main_app.views.user import UserDetailView, UserSourceListView, CustomLogoutView
+from main_app.views.user import UserDetailView, UserSourceListView, CustomLogoutView, UserListView
 
 urlpatterns = [
     # static pages
@@ -15,7 +15,8 @@ urlpatterns = [
     path('login/', auth_views.LoginView.as_view(redirect_authenticated_user=True), name="login"),
     path('logout/', CustomLogoutView.as_view(), name="logout"),
     path("my-sources/", UserSourceListView.as_view(), name="my-sources"),
-    path("users/<int:user_id>", UserDetailView.as_view(), name="user-detail"),
+    path("users/<int:pk>", UserDetailView.as_view(), name="user-detail"),
+    path("users/", UserListView.as_view(), name="user-list"),
 
     # chant
     path("chants/", ChantListView.as_view(), name="chant-list"),
