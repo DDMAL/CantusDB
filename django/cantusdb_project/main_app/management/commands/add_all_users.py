@@ -18,6 +18,7 @@ class Command(BaseCommand):
                 name = row[3]
                 surname = row[4]
                 institution = row[5]
+                city = row[6]
                 country = row[7]
 
                 user, created = User.objects.get_or_create(
@@ -26,6 +27,7 @@ class Command(BaseCommand):
                     first_name = name,
                     last_name = surname,
                     institution = institution,
+                    city = city,
                     country = country
                 )
 
