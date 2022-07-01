@@ -1876,10 +1876,27 @@ class UserListViewTest(TestCase):
         self.assertEqual(response.status_code, 200)
         self.assertTemplateUsed(response, "user_list.html")
 
-    def test_existing_chant(self):
+    def test_view(self):
         for i in range(5):
             get_user_model().objects.create(username=i)
 
         response = self.client.get(reverse("user-list"))
         self.assertEqual(response.status_code, 200)
         self.assertEqual(len(response.context["users"]), 6)
+
+class UserDetailViewTest(TestCase):
+    @classmethod
+    def setUpTestData(cls):
+        get_user_model().objects.create(username='user')
+
+    def test_url_and_templates(self):
+        user = get_user_model().objects.first()
+        response = self.client.get(reverse('user-detail', args=[user.id]))
+        self.assertEqual(response.status_code, 200)
+        self.assertTemplateUsed(response, "user_detail.html")
+
+    def test_context(self):
+        user = get_user_model().objects.first()
+        response = self.client.get(reverse('user-detail', args=[user.id]))
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.context["user"], user)
