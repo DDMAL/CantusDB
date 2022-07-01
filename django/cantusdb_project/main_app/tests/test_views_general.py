@@ -1448,6 +1448,10 @@ class PermissionsTest(TestCase):
         response = self.client.get('/my-sources/')
         self.assertRedirects(response, '/login/?next=/my-sources/')        
 
+        # UserListView
+        response = self.client.get('/users/')
+        self.assertRedirects(response, '/login/?next=/users/')        
+
     def test_permissions_project_manager(self):
         project_manager = Group.objects.get(name='project manager') 
         project_manager.user_set.add(self.user)
@@ -1858,3 +1862,41 @@ class SourceEditViewTest(TestCase):
         self.assertRedirects(response, reverse('source-detail', args=[source.id]))       
         source.refresh_from_db()
         self.assertEqual(source.title, 'test')
+
+class UserListViewTest(TestCase):
+    def setUp(self):
+        self.user = get_user_model().objects.create(username='user')
+        self.user.set_password('pass')
+        self.user.save()
+        self.client = Client()
+        self.client.login(username='user', password='pass')
+
+    def test_url_and_templates(self):
+        response = self.client.get(reverse("user-list"))
+        self.assertEqual(response.status_code, 200)
+        self.assertTemplateUsed(response, "user_list.html")
+
+    def test_view(self):
+        for i in range(5):
+            get_user_model().objects.create(username=i)
+
+        response = self.client.get(reverse("user-list"))
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(len(response.context["users"]), 6)
+
+class UserDetailViewTest(TestCase):
+    @classmethod
+    def setUpTestData(cls):
+        get_user_model().objects.create(username='user')
+
+    def test_url_and_templates(self):
+        user = get_user_model().objects.first()
+        response = self.client.get(reverse('user-detail', args=[user.id]))
+        self.assertEqual(response.status_code, 200)
+        self.assertTemplateUsed(response, "user_detail.html")
+
+    def test_context(self):
+        user = get_user_model().objects.first()
+        response = self.client.get(reverse('user-detail', args=[user.id]))
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.context["user"], user)
