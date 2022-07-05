@@ -1487,6 +1487,13 @@ class PermissionsTest(TestCase):
         contributor.user_set.add(self.user)
         self.client.login(username='user', password='pass')
 
+        # a source assigned to the current user
+        assigned_source = make_fake_source()
+        self.user.sources_user_can_edit.add(assigned_source)
+        for i in range(5):
+            Chant.objects.create(source = assigned_source)
+        chant_in_assigned_source = Chant.objects.filter(source = assigned_source).order_by('?').first()
+
         # a source created by the current user
         source_created_by_contributor = make_fake_source()
         source_created_by_contributor.created_by = self.user
@@ -1495,9 +1502,10 @@ class PermissionsTest(TestCase):
             Chant.objects.create(source = source_created_by_contributor)
         chant_in_source_created_by_contributor = Chant.objects.filter(source = source_created_by_contributor).order_by('?').first()
 
-        # source and chant that the user should not have access to (did not create the source)
-        restricted_source = Source.objects.filter(~Q(created_by = self.user)).order_by('?').first()
-        restricted_chant = Chant.objects.filter(~Q(source = source_created_by_contributor)).order_by('?').first()
+        # did not create the source, was not assigned the source
+        restricted_source = Source.objects.filter(~Q(created_by = self.user)&~Q(id = assigned_source.id)).order_by('?').first()
+        restricted_chant = Chant.objects.filter(source = restricted_source).order_by('?').first()
+        
         # a random sequence
         sequence = Sequence.objects.order_by('?').first()
 
@@ -1508,6 +1516,9 @@ class PermissionsTest(TestCase):
         response = self.client.get(f'/chant-create/{source_created_by_contributor.id}')
         self.assertEqual(response.status_code, 200)
 
+        response = self.client.get(f'/chant-create/{assigned_source.id}')
+        self.assertEqual(response.status_code, 200)
+
         # ChantDeleteView
         response = self.client.get(f'/chant-delete/{restricted_chant.id}')
         self.assertEqual(response.status_code, 403)
@@ -1515,11 +1526,17 @@ class PermissionsTest(TestCase):
         response = self.client.get(f'/chant-delete/{chant_in_source_created_by_contributor.id}')
         self.assertEqual(response.status_code, 200)
 
+        response = self.client.get(f'/chant-delete/{chant_in_assigned_source.id}')
+        self.assertEqual(response.status_code, 200)
+
         # ChantEditVolpianoView
         response = self.client.get(f'/edit-volpiano/{restricted_source.id}')
         self.assertEqual(response.status_code, 403)
 
         response = self.client.get(f'/edit-volpiano/{source_created_by_contributor.id}')
+        self.assertEqual(response.status_code, 200)
+
+        response = self.client.get(f'/edit-volpiano/{assigned_source.id}')
         self.assertEqual(response.status_code, 200)
 
         # SequenceEditView
@@ -1537,20 +1554,33 @@ class PermissionsTest(TestCase):
         response = self.client.get(f'/edit-source/{source_created_by_contributor.id}')
         self.assertEqual(response.status_code, 200)
 
+        response = self.client.get(f'/edit-source/{assigned_source.id}')
+        self.assertEqual(response.status_code, 403)
+
     def test_permissions_editor(self):
         editor = Group.objects.get(name='editor') 
         editor.user_set.add(self.user)
         self.client.login(username='user', password='pass')
 
-        # designate a random source to the user
-        allowed_source = Source.objects.order_by('?').first()
-        self.user.sources_user_can_edit.add(allowed_source)
-        # a random chant in the designated source
-        allowed_chant = Chant.objects.filter(source = allowed_source).order_by('?').first()
+        # a source assigned to the current user
+        assigned_source = make_fake_source()
+        self.user.sources_user_can_edit.add(assigned_source)
+        for i in range(5):
+            Chant.objects.create(source = assigned_source)
+        chant_in_assigned_source = Chant.objects.filter(source = assigned_source).order_by('?').first()
 
-        # source and chant that the user should not have access to (was not designated to this source)
-        restricted_source = Source.objects.filter(~Q(id = allowed_source.id)).order_by('?').first()
-        restricted_chant = Chant.objects.filter(~Q(source = allowed_source)).order_by('?').first()
+        # a source created by the current user
+        source_created_by_contributor = make_fake_source()
+        source_created_by_contributor.created_by = self.user
+        source_created_by_contributor.save()
+        for i in range(5):
+            Chant.objects.create(source = source_created_by_contributor)
+        chant_in_source_created_by_contributor = Chant.objects.filter(source = source_created_by_contributor).order_by('?').first()
+
+        # did not create the source, was not assigned the source
+        restricted_source = Source.objects.filter(~Q(created_by = self.user)&~Q(id = assigned_source.id)).order_by('?').first()
+        restricted_chant = Chant.objects.filter(source = restricted_source).order_by('?').first()
+        
         # a random sequence
         sequence = Sequence.objects.order_by('?').first()
 
@@ -1558,21 +1588,30 @@ class PermissionsTest(TestCase):
         response = self.client.get(f'/chant-create/{restricted_source.id}')
         self.assertEqual(response.status_code, 403)
 
-        response = self.client.get(f'/chant-create/{allowed_source.id}')
+        response = self.client.get(f'/chant-create/{source_created_by_contributor.id}')
+        self.assertEqual(response.status_code, 200)
+
+        response = self.client.get(f'/chant-create/{assigned_source.id}')
         self.assertEqual(response.status_code, 200)
 
         # ChantDeleteView
         response = self.client.get(f'/chant-delete/{restricted_chant.id}')
         self.assertEqual(response.status_code, 403)
 
-        response = self.client.get(f'/chant-delete/{allowed_chant.id}')
+        response = self.client.get(f'/chant-delete/{chant_in_source_created_by_contributor.id}')
+        self.assertEqual(response.status_code, 200)
+
+        response = self.client.get(f'/chant-delete/{chant_in_assigned_source.id}')
         self.assertEqual(response.status_code, 200)
 
         # ChantEditVolpianoView
         response = self.client.get(f'/edit-volpiano/{restricted_source.id}')
         self.assertEqual(response.status_code, 403)
 
-        response = self.client.get(f'/edit-volpiano/{allowed_source.id}')
+        response = self.client.get(f'/edit-volpiano/{source_created_by_contributor.id}')
+        self.assertEqual(response.status_code, 200)
+
+        response = self.client.get(f'/edit-volpiano/{assigned_source.id}')
         self.assertEqual(response.status_code, 200)
 
         # SequenceEditView
@@ -1581,13 +1620,16 @@ class PermissionsTest(TestCase):
 
         # SourceCreateView
         response = self.client.get('/source-create/')
-        self.assertEqual(response.status_code, 403)
+        self.assertEqual(response.status_code, 200)
 
         # SourceEditView
         response = self.client.get(f'/edit-source/{restricted_source.id}')
         self.assertEqual(response.status_code, 403)
 
-        response = self.client.get(f'/edit-source/{allowed_source.id}')
+        response = self.client.get(f'/edit-source/{source_created_by_contributor.id}')
+        self.assertEqual(response.status_code, 200)
+
+        response = self.client.get(f'/edit-source/{assigned_source.id}')
         self.assertEqual(response.status_code, 200)
 
     def test_permissions_default(self):
