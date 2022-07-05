@@ -20,9 +20,12 @@ class Command(BaseCommand):
                 institution = row[5]
                 city = row[6]
                 country = row[7]
+                username = row[8]
+                email = row[9]
 
                 user, created = User.objects.get_or_create(
-                    username = f"{name}_{uid}",
+                    username = username,
+                    email = email,
                     id = uid,
                     first_name = name,
                     last_name = surname,
@@ -35,6 +38,20 @@ class Command(BaseCommand):
                     user.set_password("cantusdb")
                     user.save()
 
+                if user.groups.first() is None:
+                    old_role = "none"
+                else:
+                    old_role = user.groups.first().name
+
+                roles_weights = {
+                    "project manager": 3, 
+                    "editor": 2, 
+                    "contributor": 1,
+                    "none": 0
+                }
+                
                 if new_role != "none":
-                    group = Group.objects.get(name=new_role) 
-                    group.user_set.add(user)
+                    if roles_weights[new_role] > roles_weights[old_role]:
+                        user.groups.clear()
+                        group = Group.objects.get(name=new_role) 
+                        group.user_set.add(user)
