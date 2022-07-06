@@ -252,14 +252,19 @@ class SourceCreateView(LoginRequiredMixin, UserPassesTestMixin, CreateView):
         return reverse("source-create")
 
     def form_valid(self, form):
-        source = form.save(commit=False)
+        source = form.save()
         source.created_by = self.request.user
         source.save()
-        form.save_m2m()
+        current_editors = source.current_editors.all()
+        
+        for editor in current_editors:
+            editor.sources_user_can_edit.add(source)
+        
         messages.success(
             self.request,
             "Source created successfully!",
         )
+        
         return HttpResponseRedirect(self.get_success_url())
 
 class SourceEditView(LoginRequiredMixin, UserPassesTestMixin, UpdateView):
@@ -292,3 +297,16 @@ class SourceEditView(LoginRequiredMixin, UserPassesTestMixin, UpdateView):
             return True
         else:
             return False
+
+    def form_valid(self, form):
+        source = form.save()
+        current_editors = source.current_editors.all()
+        assigned_users = source.users_who_can_edit_this_source.all()
+
+        for user in assigned_users:
+            user.sources_user_can_edit.remove(source)
+        
+        for editor in current_editors:
+            editor.sources_user_can_edit.add(source)
+        
+        return HttpResponseRedirect(self.get_success_url())
