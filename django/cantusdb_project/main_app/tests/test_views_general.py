@@ -47,10 +47,10 @@ class IndexerListViewTest(TestCase):
         indexer_with_no_source = make_fake_indexer()
 
         # generate public/private sources and assign indexers to them
-        private_source = Source.objects.create(title="private source", public=False)
+        private_source=Source.objects.create(title="private source", public=False)
         private_source.inventoried_by.set([indexer_with_private_source])
 
-        public_source = Source.objects.create(title="published source", public=True)
+        public_source=Source.objects.create(title="published source", public=True)
         public_source.inventoried_by.set([indexer_with_public_source])
 
         source_with_multiple_indexers = Source.objects.create(
@@ -74,7 +74,7 @@ class IndexerListViewTest(TestCase):
         Only public indexers should appear in the results
         """
         indexer_with_public_source = make_fake_indexer()
-        public_source = Source.objects.create(title="published source", public=True,)
+        public_source=Source.objects.create(title="published source", public=True,)
         public_source.inventoried_by.set([indexer_with_public_source])
 
         # search with a random slice of first name
@@ -86,7 +86,7 @@ class IndexerListViewTest(TestCase):
 
     def test_search_family_name(self):
         indexer_with_public_source = make_fake_indexer()
-        public_source = Source.objects.create(title="published source", public=True,)
+        public_source=Source.objects.create(title="published source", public=True,)
         public_source.inventoried_by.set([indexer_with_public_source])
 
         target = indexer_with_public_source.family_name
@@ -97,7 +97,7 @@ class IndexerListViewTest(TestCase):
 
     def test_search_country(self):
         indexer_with_public_source = make_fake_indexer()
-        public_source = Source.objects.create(title="published source", public=True,)
+        public_source=Source.objects.create(title="published source", public=True,)
         public_source.inventoried_by.set([indexer_with_public_source])
 
         target = indexer_with_public_source.country
@@ -108,7 +108,7 @@ class IndexerListViewTest(TestCase):
 
     def test_search_city(self):
         indexer_with_public_source = make_fake_indexer()
-        public_source = Source.objects.create(title="published source", public=True,)
+        public_source=Source.objects.create(title="published source", public=True,)
         public_source.inventoried_by.set([indexer_with_public_source])
 
         target = indexer_with_public_source.city
@@ -119,7 +119,7 @@ class IndexerListViewTest(TestCase):
 
     def test_search_institution(self):
         indexer_with_public_source = make_fake_indexer()
-        public_source = Source.objects.create(title="published source", public=True,)
+        public_source=Source.objects.create(title="published source", public=True,)
         public_source.inventoried_by.set([indexer_with_public_source])
 
         target = indexer_with_public_source.institution
@@ -274,7 +274,7 @@ class FeastDetailViewTest(TestCase):
         self.assertEqual(feast, response.context["feast"])
 
     def test_most_frequent_chants(self):
-        source = Source.objects.create(public=True, visible=True, title="public_source")
+        source=Source.objects.create(public=True, visible=True, title="public_source")
         feast = make_fake_feast()
         # 3 chants with cantus id: 300000
         for i in range(3):
@@ -298,10 +298,10 @@ class FeastDetailViewTest(TestCase):
         self.assertEqual(frequent_chants_zip[2][-1], 1)
 
     def test_sources_containing_this_feast(self):
-        big_source = Source.objects.create(
+        big_source=Source.objects.create(
             public=True, visible=True, title="big_source", siglum="big"
         )
-        small_source = Source.objects.create(
+        small_source=Source.objects.create(
             public=True, visible=True, title="small_source", siglum="small"
         )
         feast = make_fake_feast()
@@ -531,7 +531,7 @@ class SourceListViewTest(TestCase):
 
     def test_only_public_sources_visible(self):
         """For a source to be displayed in the list, its `public` and `visible` fields must both be `True`"""
-        public_source = Source.objects.create(
+        public_source=Source.objects.create(
             public=True, visible=True, title="public source"
         )
         private_source1 = Source.objects.create(
@@ -554,10 +554,10 @@ class SourceListViewTest(TestCase):
         """The source list can be filtered by `segment`, `provenance`, `century`, and `full_source`"""
         cantus_segment = Segment.objects.create(name="cantus")
         clavis_segment = Segment.objects.create(name="clavis")
-        chant_source = Source.objects.create(
+        chant_source=Source.objects.create(
             segment=cantus_segment, title="chant source", public=True, visible=True
         )
-        seq_source = Source.objects.create(
+        seq_source=Source.objects.create(
             segment=clavis_segment, title="sequence source", public=True, visible=True
         )
 
@@ -580,19 +580,19 @@ class SourceListViewTest(TestCase):
     def test_filter_by_provenance(self):
         aachen = make_fake_provenance()
         albi = make_fake_provenance()
-        aachen_source = Source.objects.create(
+        aachen_source=Source.objects.create(
             provenance=aachen,
             public=True,
             visible=True,
             title="source originated in Aachen",
         )
-        albi_source = Source.objects.create(
+        albi_source=Source.objects.create(
             provenance=albi,
             public=True,
             visible=True,
             title="source originated in Albi",
         )
-        no_provenance_source = Source.objects.create(
+        no_provenance_source=Source.objects.create(
             public=True, visible=True, title="source with empty provenance"
         )
 
@@ -611,17 +611,17 @@ class SourceListViewTest(TestCase):
         )
         tenth_century = Century.objects.create(name="10th century")
 
-        ninth_century_source = Source.objects.create(
+        ninth_century_source=Source.objects.create(
             public=True, visible=True, title="source",
         )
         ninth_century_source.century.set([ninth_century])
 
-        ninth_century_first_half_source = Source.objects.create(
+        ninth_century_first_half_source=Source.objects.create(
             public=True, visible=True, title="source",
         )
         ninth_century_first_half_source.century.set([ninth_century_first_half])
 
-        multiple_century_source = Source.objects.create(
+        multiple_century_source=Source.objects.create(
             public=True, visible=True, title="source",
         )
         multiple_century_source.century.set([ninth_century, tenth_century])
@@ -648,7 +648,7 @@ class SourceListViewTest(TestCase):
         self.assertNotIn(multiple_century_source, sources)
 
     def test_filter_by_full_source(self):
-        full_source = Source.objects.create(
+        full_source=Source.objects.create(
             full_source=True, public=True, visible=True, title="full source"
         )
         fragment = Source.objects.create(
@@ -684,7 +684,7 @@ class SourceListViewTest(TestCase):
 
     def test_search_by_title(self):
         """The "general search" field searches in `title`, `siglum`, `rism_siglum`, `description`, and `summary`"""
-        source = Source.objects.create(
+        source=Source.objects.create(
             title=make_fake_text(max_size=20), public=True, visible=True
         )
         search_term = get_random_search_term(source.title)
@@ -692,7 +692,7 @@ class SourceListViewTest(TestCase):
         self.assertIn(source, response.context["sources"])
 
     def test_search_by_siglum(self):
-        source = Source.objects.create(
+        source=Source.objects.create(
             siglum=make_fake_text(max_size=20), public=True, visible=True, title="title"
         )
         search_term = get_random_search_term(source.siglum)
@@ -701,7 +701,7 @@ class SourceListViewTest(TestCase):
 
     def test_search_by_rism_siglum_name(self):
         rism_siglum = make_fake_rism_siglum()
-        source = Source.objects.create(
+        source=Source.objects.create(
             rism_siglum=rism_siglum, public=True, visible=True, title="title",
         )
         search_term = get_random_search_term(source.rism_siglum.name)
@@ -710,7 +710,7 @@ class SourceListViewTest(TestCase):
 
     def test_search_by_rism_siglum_description(self):
         rism_siglum = make_fake_rism_siglum()
-        source = Source.objects.create(
+        source=Source.objects.create(
             rism_siglum=rism_siglum, public=True, visible=True, title="title",
         )
         search_term = get_random_search_term(source.rism_siglum.description)
@@ -718,7 +718,7 @@ class SourceListViewTest(TestCase):
         self.assertIn(source, response.context["sources"])
 
     def test_search_by_description(self):
-        source = Source.objects.create(
+        source=Source.objects.create(
             description=make_fake_text(max_size=200),
             public=True,
             visible=True,
@@ -729,7 +729,7 @@ class SourceListViewTest(TestCase):
         self.assertIn(source, response.context["sources"])
 
     def test_search_by_summary(self):
-        source = Source.objects.create(
+        source=Source.objects.create(
             summary=make_fake_text(max_size=200),
             public=True,
             visible=True,
@@ -741,7 +741,7 @@ class SourceListViewTest(TestCase):
 
     def test_search_by_indexing_notes(self):
         """The "indexing notes" field searches in `indexing_notes` and indexer/editor related fields"""
-        source = Source.objects.create(
+        source=Source.objects.create(
             indexing_notes=make_fake_text(max_size=200),
             public=True,
             visible=True,
@@ -777,7 +777,7 @@ class SourceDetailViewTest(TestCase):
 
     def test_context_sequence_folios(self):
         # create a sequence source and several sequences in it
-        source = Source.objects.create(
+        source=Source.objects.create(
             segment=Segment.objects.create(id=4064, name="Bower Sequence Database"),
             title="a sequence source",
         )
@@ -815,7 +815,7 @@ class SourceDetailViewTest(TestCase):
 
     def test_context_sequences(self):
         # create a sequence source and several sequences in it
-        source = Source.objects.create(
+        source=Source.objects.create(
             segment=Segment.objects.create(id=4064, name="Bower Sequence Database"),
             title="a sequence source",
         )
@@ -843,7 +843,7 @@ class SequenceListViewTest(TestCase):
 
     def test_search_incipit(self):
         # create a public sequence source and some sequence in it
-        source = Source.objects.create(
+        source=Source.objects.create(
             public=True, visible=True, title="a sequence source"
         )
         sequence = Sequence.objects.create(
@@ -857,7 +857,7 @@ class SequenceListViewTest(TestCase):
 
     def test_search_siglum(self):
         # create a public sequence source and some sequence in it
-        source = Source.objects.create(
+        source=Source.objects.create(
             public=True, visible=True, title="a sequence source"
         )
         sequence = Sequence.objects.create(
@@ -871,7 +871,7 @@ class SequenceListViewTest(TestCase):
 
     def test_search_cantus_id(self):
         # create a public sequence source and some sequence in it
-        source = Source.objects.create(
+        source=Source.objects.create(
             public=True, visible=True, title="a sequence source"
         )
         # faker generates a fake cantus id, in the form of two letters followed by five digits
@@ -1114,7 +1114,7 @@ class ChantSearchViewTest(TestCase):
         self.assertTemplateUsed(response, "chant_search.html")
 
     def test_search_by_office(self):
-        source = Source.objects.create(public=True, visible=True, title="a source")
+        source=Source.objects.create(public=True, visible=True, title="a source")
         office = make_fake_office()
         chant = Chant.objects.create(source=source, office=office)
         search_term = get_random_search_term(office.name)
@@ -1122,28 +1122,28 @@ class ChantSearchViewTest(TestCase):
         self.assertIn(chant, response.context["chants"])
 
     def test_filter_by_genre(self):
-        source = Source.objects.create(public=True, visible=True, title="a source")
+        source=Source.objects.create(public=True, visible=True, title="a source")
         genre = make_fake_genre()
         chant = Chant.objects.create(source=source, genre=genre)
         response = self.client.get(reverse("chant-search"), {"genre": genre.id})
         self.assertIn(chant, response.context["chants"])
 
     def test_search_by_cantus_id(self):
-        source = Source.objects.create(public=True, visible=True, title="a source")
+        source=Source.objects.create(public=True, visible=True, title="a source")
         chant = Chant.objects.create(source=source, cantus_id=faker.numerify("######"))
         search_term = get_random_search_term(chant.cantus_id)
         response = self.client.get(reverse("chant-search"), {"cantus_id": search_term})
         self.assertIn(chant, response.context["chants"])
 
     def test_search_by_mode(self):
-        source = Source.objects.create(public=True, visible=True, title="a source")
+        source=Source.objects.create(public=True, visible=True, title="a source")
         chant = Chant.objects.create(source=source, mode=faker.numerify("#"))
         search_term = get_random_search_term(chant.mode)
         response = self.client.get(reverse("chant-search"), {"mode": search_term})
         self.assertIn(chant, response.context["chants"])
 
     def test_search_by_feast(self):
-        source = Source.objects.create(public=True, visible=True, title="a source")
+        source=Source.objects.create(public=True, visible=True, title="a source")
         feast = make_fake_feast()
         chant = Chant.objects.create(source=source, feast=feast)
         search_term = get_random_search_term(feast.name)
@@ -1151,7 +1151,7 @@ class ChantSearchViewTest(TestCase):
         self.assertIn(chant, response.context["chants"])
 
     def test_filter_by_melody(self):
-        source = Source.objects.create(public=True, visible=True, title="a source")
+        source=Source.objects.create(public=True, visible=True, title="a source")
         chant_with_melody = Chant.objects.create(
             source=source, volpiano=make_fake_text(max_size=20)
         )
@@ -1162,7 +1162,7 @@ class ChantSearchViewTest(TestCase):
         self.assertNotIn(chant_without_melody, response.context["chants"])
 
     def test_keyword_search_starts_with(self):
-        source = Source.objects.create(public=True, visible=True, title="a source")
+        source=Source.objects.create(public=True, visible=True, title="a source")
         chant = Chant.objects.create(
             source=source, incipit=make_fake_text(max_size=200)
         )
@@ -1174,7 +1174,7 @@ class ChantSearchViewTest(TestCase):
         self.assertIn(chant, response.context["chants"])
 
     def test_keyword_search_contains(self):
-        source = Source.objects.create(public=True, visible=True, title="a source")
+        source=Source.objects.create(public=True, visible=True, title="a source")
         chant = Chant.objects.create(
             source=source, manuscript_full_text=make_fake_text(max_size=400)
         )
@@ -1201,7 +1201,7 @@ class ChantSearchMSViewTest(TestCase):
         self.assertTemplateUsed(response, "chant_search.html")
 
     def test_search_by_office(self):
-        # source = Source.objects.create(public=True, visible=True, title="a source")
+        # source=Source.objects.create(public=True, visible=True, title="a source")
         source = make_fake_source()
         office = make_fake_office()
         chant = Chant.objects.create(source=source, office=office)
@@ -1309,7 +1309,7 @@ class FullIndexViewTest(TestCase):
         self.assertIn(chant, response.context["chants"])
 
     def test_sequence_source_queryset(self):
-        seq_source = Source.objects.create(
+        seq_source=Source.objects.create(
             segment=Segment.objects.create(id=4064, name="Clavis Sequentiarium"),
             title="a sequence source",
         )
@@ -1404,8 +1404,8 @@ class PermissionsTest(TestCase):
         for i in range(5):
             source = make_fake_source()
             for i in range(5):
-                Chant.objects.create(source = source)
-                Sequence.objects.create(source = source)
+                Chant.objects.create(source=source)
+                Sequence.objects.create(source=source)
                 
     def setUp(self):
         self.user = get_user_model().objects.create(username='user')
@@ -1454,7 +1454,7 @@ class PermissionsTest(TestCase):
         self.client.login(username='user', password='pass')
 
         # get random source, chant and sequence
-        source = Source.objects.order_by('?').first()
+        source=Source.objects.order_by('?').first()
         chant = Chant.objects.order_by('?').first()
         sequence = Sequence.objects.order_by('?').first()
 
@@ -1491,20 +1491,20 @@ class PermissionsTest(TestCase):
         assigned_source = make_fake_source()
         self.user.sources_user_can_edit.add(assigned_source)
         for i in range(5):
-            Chant.objects.create(source = assigned_source)
-        chant_in_assigned_source = Chant.objects.filter(source = assigned_source).order_by('?').first()
+            Chant.objects.create(source=assigned_source)
+        chant_in_assigned_source = Chant.objects.filter(source=assigned_source).order_by('?').first()
 
         # a source created by the current user
         source_created_by_contributor = make_fake_source()
         source_created_by_contributor.created_by = self.user
         source_created_by_contributor.save()
         for i in range(5):
-            Chant.objects.create(source = source_created_by_contributor)
-        chant_in_source_created_by_contributor = Chant.objects.filter(source = source_created_by_contributor).order_by('?').first()
+            Chant.objects.create(source=source_created_by_contributor)
+        chant_in_source_created_by_contributor = Chant.objects.filter(source=source_created_by_contributor).order_by('?').first()
 
         # did not create the source, was not assigned the source
-        restricted_source = Source.objects.filter(~Q(created_by = self.user)&~Q(id = assigned_source.id)).order_by('?').first()
-        restricted_chant = Chant.objects.filter(source = restricted_source).order_by('?').first()
+        restricted_source=Source.objects.filter(~Q(created_by=self.user)&~Q(id=assigned_source.id)).order_by('?').first()
+        restricted_chant = Chant.objects.filter(source=restricted_source).order_by('?').first()
         
         # a random sequence
         sequence = Sequence.objects.order_by('?').first()
@@ -1566,20 +1566,20 @@ class PermissionsTest(TestCase):
         assigned_source = make_fake_source()
         self.user.sources_user_can_edit.add(assigned_source)
         for i in range(5):
-            Chant.objects.create(source = assigned_source)
-        chant_in_assigned_source = Chant.objects.filter(source = assigned_source).order_by('?').first()
+            Chant.objects.create(source=assigned_source)
+        chant_in_assigned_source = Chant.objects.filter(source=assigned_source).order_by('?').first()
 
         # a source created by the current user
         source_created_by_contributor = make_fake_source()
         source_created_by_contributor.created_by = self.user
         source_created_by_contributor.save()
         for i in range(5):
-            Chant.objects.create(source = source_created_by_contributor)
-        chant_in_source_created_by_contributor = Chant.objects.filter(source = source_created_by_contributor).order_by('?').first()
+            Chant.objects.create(source=source_created_by_contributor)
+        chant_in_source_created_by_contributor = Chant.objects.filter(source=source_created_by_contributor).order_by('?').first()
 
         # did not create the source, was not assigned the source
-        restricted_source = Source.objects.filter(~Q(created_by = self.user)&~Q(id = assigned_source.id)).order_by('?').first()
-        restricted_chant = Chant.objects.filter(source = restricted_source).order_by('?').first()
+        restricted_source=Source.objects.filter(~Q(created_by=self.user)&~Q(id=assigned_source.id)).order_by('?').first()
+        restricted_chant = Chant.objects.filter(source=restricted_source).order_by('?').first()
         
         # a random sequence
         sequence = Sequence.objects.order_by('?').first()
@@ -1636,7 +1636,7 @@ class PermissionsTest(TestCase):
         self.client.login(username='user', password='pass')
 
         # get random source, chant and sequence
-        source = Source.objects.order_by('?').first()
+        source=Source.objects.order_by('?').first()
         chant = Chant.objects.order_by('?').first()
         sequence = Sequence.objects.order_by('?').first()
 
@@ -1755,7 +1755,7 @@ class ChantEditVolpianoViewTest(TestCase):
 
     def test_url_and_templates(self):
         source = make_fake_source()
-        Chant.objects.create(source = source)
+        Chant.objects.create(source=source)
 
         response = self.client.get(reverse("source-edit-volpiano", args=[source.id]))
         self.assertEqual(response.status_code, 200)
@@ -1774,7 +1774,7 @@ class ChantEditVolpianoViewTest(TestCase):
 
     def test_update_chant(self):
         source = make_fake_source()
-        chant = Chant.objects.create(source = source, manuscript_full_text_std_spelling = "initial")
+        chant = Chant.objects.create(source=source, manuscript_full_text_std_spelling="initial")
 
         response = self.client.get(
             reverse('source-edit-volpiano', args=[source.id]), 
