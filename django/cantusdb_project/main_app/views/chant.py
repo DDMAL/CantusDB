@@ -596,23 +596,21 @@ class ChantCreateView(LoginRequiredMixin, UserPassesTestMixin, CreateView):
     def test_func(self):
         user = self.request.user
         source_id = self.kwargs.get(self.pk_url_kwarg)
-        try:
-            source = Source.objects.get(id=source_id)
-        except:
-            raise Http404("This source does not exist")
-        # checks if the user is an editor,
-        # and if the user is given privilege to edit chants in this source
-        is_editor = user.groups.filter(name="editor").exists()
-        can_edit_chants_in_source = user.sources_user_can_edit.filter(id=source_id)
-        # checks if the user is a project manager (they should have the privilege to edit any chant)
+        source = get_object_or_404(Source, id=source_id)
+
+        assigned_to_source = user.sources_user_can_edit.filter(id=source_id)
+
+        # checks if the user is a project manager
         is_project_manager = user.groups.filter(name="project manager").exists()
-        # checks if the user is a contributor,
-        # and if the user is the creator of this source 
-        # (they should only have the privilege to edit chants in a source they have created)
+        # checks if the user is an editor
+        is_editor = user.groups.filter(name="editor").exists()
+        # checks if the user is a contributor
         is_contributor = user.groups.filter(name="contributor").exists()
 
-        if ((is_editor and can_edit_chants_in_source) 
-            or (is_project_manager) 
+        if ((is_project_manager) 
+            or (is_editor and assigned_to_source) 
+            or (is_editor and source.created_by == user)  
+            or (is_contributor and assigned_to_source)
             or (is_contributor and source.created_by == user)):
             return True
         else:
@@ -825,24 +823,22 @@ class ChantDeleteView(LoginRequiredMixin, UserPassesTestMixin, DeleteView):
     def test_func(self):
         user = self.request.user
         chant_id = self.kwargs.get(self.pk_url_kwarg)
-        try:
-            chant = Chant.objects.get(id=chant_id)
-        except:
-            raise Http404("This chant does not exist")
+        chant = get_object_or_404(Chant, id=chant_id)
         source = chant.source
-        # checks if the user is an editor,
-        # and if the user is given privilege to make changes to this source
-        is_editor = user.groups.filter(name="editor").exists()
-        can_delete_chants_in_source = user.sources_user_can_edit.filter(id=source.id)
-        # checks if the user is a project manager (they should have the privilege to make any changes)
+
+        assigned_to_source = user.sources_user_can_edit.filter(id=source.id)
+
+        # checks if the user is a project manager
         is_project_manager = user.groups.filter(name="project manager").exists()
+        # checks if the user is an editor,
+        is_editor = user.groups.filter(name="editor").exists()
         # checks if the user is a contributor,
-        # and if the user is the creator of this source 
-        # (they should only have the privilege to make changes to sources they have created)
         is_contributor = user.groups.filter(name="contributor").exists()
 
-        if ((is_editor and can_delete_chants_in_source) 
-            or (is_project_manager) 
+        if ((is_project_manager) 
+            or (is_editor and assigned_to_source) 
+            or (is_editor and source.created_by == user)  
+            or (is_contributor and assigned_to_source)
             or (is_contributor and source.created_by == user)):
             return True
         else:
@@ -938,23 +934,21 @@ class ChantEditVolpianoView(LoginRequiredMixin, UserPassesTestMixin, UpdateView)
     def test_func(self):
         user = self.request.user
         source_id = self.kwargs.get(self.pk_url_kwarg)
-        try:
-            source = Source.objects.get(id=source_id)
-        except:
-            raise Http404("This source does not exist")
-        # checks if the user is an editor,
-        # and if the user is given privilege to edit chants in this source
-        is_editor = user.groups.filter(name="editor").exists()
-        can_edit_chants_in_source = user.sources_user_can_edit.filter(id=source_id)
-        # checks if the user is a project manager (they should have the privilege to edit any chant)
+        source = get_object_or_404(Source, id=source_id)
+
+        assigned_to_source = user.sources_user_can_edit.filter(id=source_id)
+
+        # checks if the user is a project manager
         is_project_manager = user.groups.filter(name="project manager").exists()
+        # checks if the user is an editor,
+        is_editor = user.groups.filter(name="editor").exists()
         # checks if the user is a contributor,
-        # and if the user is the creator of this source 
-        # (they should only have the privilege to edit chants in a source they have created)
         is_contributor = user.groups.filter(name="contributor").exists()
 
-        if ((is_editor and can_edit_chants_in_source) 
-            or (is_project_manager) 
+        if ((is_project_manager) 
+            or (is_editor and assigned_to_source) 
+            or (is_editor and source.created_by == user)  
+            or (is_contributor and assigned_to_source)
             or (is_contributor and source.created_by == user)):
             return True
         else:
