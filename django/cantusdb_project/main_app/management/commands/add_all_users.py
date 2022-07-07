@@ -21,14 +21,11 @@ class Command(BaseCommand):
                 institution = row[5]
                 city = row[6]
                 country = row[7]
-                username = row[8]
                 email = row[9]
 
-                user, created = User.objects.get_or_create(id=uid)
+                user, created = User.objects.get_or_create(id=uid, email=email)
 
                 if created:
-                    user.username = username
-                    user.email = email
                     user.first_name = name
                     user.last_name = surname
                     user.institution = institution
