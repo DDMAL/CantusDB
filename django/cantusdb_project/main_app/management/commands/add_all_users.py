@@ -2,6 +2,7 @@ from django.contrib.auth import get_user_model
 from django.core.management.base import BaseCommand
 import csv
 from django.contrib.auth.models import Group
+from main_app.models import Source, Chant
 
 class Command(BaseCommand):
 
@@ -23,18 +24,16 @@ class Command(BaseCommand):
                 username = row[8]
                 email = row[9]
 
-                user, created = User.objects.get_or_create(
-                    username = username,
-                    email = email,
-                    id = uid,
-                    first_name = name,
-                    last_name = surname,
-                    institution = institution,
-                    city = city,
-                    country = country
-                )
+                user, created = User.objects.get_or_create(id=uid)
 
                 if created:
+                    user.username = username
+                    user.email = email
+                    user.first_name = name
+                    user.last_name = surname
+                    user.institution = institution
+                    user.city = city
+                    user.country = country
                     user.set_password("cantusdb")
                     user.save()
 
@@ -55,3 +54,46 @@ class Command(BaseCommand):
                         user.groups.clear()
                         group = Group.objects.get(name=new_role) 
                         group.user_set.add(user)
+
+        with open('editors_source.csv','r') as csvinput:
+            reader = csv.reader(csvinput)
+
+            User = get_user_model()
+
+            for row in reader:
+                source_id = row[3]
+                user_id = row[7]
+
+                try:
+                    user = User.objects.get(id=user_id)
+                except User.DoesNotExist:
+                    user = None
+                try:
+                    source = Source.objects.get(id=source_id)
+                except Source.DoesNotExist:
+                    source = None
+
+                if user is not None and source is not None:
+                    user.sources_user_can_edit.add(source)
+
+        with open('editors_chant.csv','r') as csvinput:
+            reader = csv.reader(csvinput)
+
+            User = get_user_model()
+
+            for row in reader:
+                chant_id = row[3]
+                user_id = row[7]
+
+                try:
+                    user = User.objects.get(id=user_id)
+                except User.DoesNotExist:
+                    user = None
+                try:
+                    chant = Chant.objects.get(id=chant_id)
+                    source = chant.source
+                except Chant.DoesNotExist:
+                    source = None
+
+                if user is not None and source is not None:
+                    user.sources_user_can_edit.add(source)
