@@ -1408,7 +1408,7 @@ class PermissionsTest(TestCase):
                 Sequence.objects.create(source=source)
                 
     def setUp(self):
-        self.user = get_user_model().objects.create(username='user')
+        self.user = get_user_model().objects.create(email='test@test.com')
         self.user.set_password('pass')
         self.user.save()
         self.client = Client()
@@ -1455,7 +1455,7 @@ class PermissionsTest(TestCase):
     def test_permissions_project_manager(self):
         project_manager = Group.objects.get(name='project manager') 
         project_manager.user_set.add(self.user)
-        self.client.login(username='user', password='pass')
+        self.client.login(email='test@test.com', password='pass')
 
         # get random source, chant and sequence
         source = Source.objects.order_by('?').first()
@@ -1489,7 +1489,7 @@ class PermissionsTest(TestCase):
     def test_permissions_contributor(self):
         contributor = Group.objects.get(name='contributor') 
         contributor.user_set.add(self.user)
-        self.client.login(username='user', password='pass')
+        self.client.login(email='test@test.com', password='pass')
 
         # a source assigned to the current user
         assigned_source = make_fake_source()
@@ -1564,7 +1564,7 @@ class PermissionsTest(TestCase):
     def test_permissions_editor(self):
         editor = Group.objects.get(name='editor') 
         editor.user_set.add(self.user)
-        self.client.login(username='user', password='pass')
+        self.client.login(email='test@test.com', password='pass')
 
         # a source assigned to the current user
         assigned_source = make_fake_source()
@@ -1637,7 +1637,7 @@ class PermissionsTest(TestCase):
         self.assertEqual(response.status_code, 200)
 
     def test_permissions_default(self):
-        self.client.login(username='user', password='pass')
+        self.client.login(email='test@test.com', password='pass')
 
         # get random source, chant and sequence
         source = Source.objects.order_by('?').first()
@@ -1674,13 +1674,13 @@ class ChantCreateViewTest(TestCase):
         Group.objects.create(name="project manager")
 
     def setUp(self):
-        self.user = get_user_model().objects.create(username='user')
+        self.user = get_user_model().objects.create(email='test@test.com')
         self.user.set_password('pass')
         self.user.save()
         self.client = Client()
         project_manager = Group.objects.get(name='project manager') 
         project_manager.user_set.add(self.user)
-        self.client.login(username='user', password='pass')
+        self.client.login(email='test@test.com', password='pass')
 
     def test_url_and_templates(self):
         source = make_fake_source()
@@ -1709,13 +1709,13 @@ class ChantDeleteViewTest(TestCase):
         Group.objects.create(name="project manager")
 
     def setUp(self):
-        self.user = get_user_model().objects.create(username='user')
+        self.user = get_user_model().objects.create(email='test@test.com')
         self.user.set_password('pass')
         self.user.save()
         self.client = Client()
         project_manager = Group.objects.get(name='project manager') 
         project_manager.user_set.add(self.user)
-        self.client.login(username='user', password='pass')
+        self.client.login(email='test@test.com', password='pass')
 
     def test_context(self):
         chant = make_fake_chant()
@@ -1749,13 +1749,13 @@ class ChantEditVolpianoViewTest(TestCase):
         Group.objects.create(name="project manager")
 
     def setUp(self):
-        self.user = get_user_model().objects.create(username='user')
+        self.user = get_user_model().objects.create(email='test@test.com')
         self.user.set_password('pass')
         self.user.save()
         self.client = Client()
         project_manager = Group.objects.get(name='project manager') 
         project_manager.user_set.add(self.user)
-        self.client.login(username='user', password='pass')
+        self.client.login(email='test@test.com', password='pass')
 
     def test_url_and_templates(self):
         source = make_fake_source()
@@ -1800,13 +1800,13 @@ class SequenceEditViewTest(TestCase):
         Group.objects.create(name="project manager")
 
     def setUp(self):
-        self.user = get_user_model().objects.create(username='user')
+        self.user = get_user_model().objects.create(email='test@test.com')
         self.user.set_password('pass')
         self.user.save()
         self.client = Client()
         project_manager = Group.objects.get(name='project manager') 
         project_manager.user_set.add(self.user)
-        self.client.login(username='user', password='pass')
+        self.client.login(email='test@test.com', password='pass')
 
     def test_context(self):
         sequence = make_fake_sequence()
@@ -1839,13 +1839,13 @@ class SourceCreateViewTest(TestCase):
         Group.objects.create(name="project manager")
 
     def setUp(self):
-        self.user = get_user_model().objects.create(username='user')
+        self.user = get_user_model().objects.create(email='test@test.com')
         self.user.set_password('pass')
         self.user.save()
         self.client = Client()
         project_manager = Group.objects.get(name='project manager') 
         project_manager.user_set.add(self.user)
-        self.client.login(username='user', password='pass')
+        self.client.login(email='test@test.com', password='pass')
 
     def test_url_and_templates(self):
         response = self.client.get(reverse("source-create"))
@@ -1869,13 +1869,13 @@ class SourceEditViewTest(TestCase):
         Group.objects.create(name="project manager")
 
     def setUp(self):
-        self.user = get_user_model().objects.create(username='user')
+        self.user = get_user_model().objects.create(email='test@test.com')
         self.user.set_password('pass')
         self.user.save()
         self.client = Client()
         project_manager = Group.objects.get(name='project manager') 
         project_manager.user_set.add(self.user)
-        self.client.login(username='user', password='pass')
+        self.client.login(email='test@test.com', password='pass')
 
     def test_context(self):
         source = make_fake_source()
@@ -1907,11 +1907,11 @@ class SourceEditViewTest(TestCase):
 
 class UserListViewTest(TestCase):
     def setUp(self):
-        self.user = get_user_model().objects.create(username='user')
+        self.user = get_user_model().objects.create(email='test@test.com')
         self.user.set_password('pass')
         self.user.save()
         self.client = Client()
-        self.client.login(username='user', password='pass')
+        self.client.login(email='test@test.com', password='pass')
 
     def test_url_and_templates(self):
         response = self.client.get(reverse("user-list"))
@@ -1920,7 +1920,7 @@ class UserListViewTest(TestCase):
 
     def test_view(self):
         for i in range(5):
-            get_user_model().objects.create(username=i)
+            get_user_model().objects.create(email=f"test{i}@test.com")
 
         response = self.client.get(reverse("user-list"))
         self.assertEqual(response.status_code, 200)
@@ -1929,7 +1929,7 @@ class UserListViewTest(TestCase):
 class UserDetailViewTest(TestCase):
     @classmethod
     def setUpTestData(cls):
-        get_user_model().objects.create(username='user')
+        get_user_model().objects.create(email='test@test.com')
 
     def test_url_and_templates(self):
         user = get_user_model().objects.first()
