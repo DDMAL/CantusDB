@@ -1,5 +1,4 @@
 from django import forms
-
 from .models import Chant, Office, Genre, Feast, Source, RismSiglum, Provenance, Century, Indexer, Sequence
 from .widgets import (TextInputWidget,
                 VolpianoInputWidget,
@@ -10,6 +9,7 @@ from .widgets import (TextInputWidget,
 )
 from django.forms.widgets import CheckboxInput
 from django.contrib.auth import get_user_model
+from django.db.models import Q
 
 # ModelForm allows to build a form directly from a model
 # see https://docs.djangoproject.com/en/3.0/topics/forms/modelforms/
@@ -209,12 +209,18 @@ class SourceCreateForm(forms.ModelForm):
     century.widget.attrs.update({"class": "form-control custom-select custom-select-sm"})
 
     current_editors = forms.ModelMultipleChoiceField(
-        queryset=get_user_model().objects.all().order_by("last_name"), required=False
+        queryset=get_user_model().objects.filter(
+            Q(groups__name="project manager")|
+            Q(groups__name="editor")|
+            Q(groups__name="contributor")).order_by("last_name"), required=False
     )
     current_editors.widget.attrs.update({"class": "form-control custom-select custom-select-sm"})
 
     melodies_entered_by = forms.ModelMultipleChoiceField(
-        queryset=Indexer.objects.all().order_by("family_name"), required=False
+        queryset=get_user_model().objects.filter(
+            Q(groups__name="project manager")|
+            Q(groups__name="editor")|
+            Q(groups__name="contributor")).order_by("last_name"), required=False
     )
     melodies_entered_by.widget.attrs.update({"class": "form-control custom-select custom-select-sm"})
 
@@ -288,6 +294,7 @@ class SourceEditForm(forms.ModelForm):
             "date",
             "century",
             "cursus",
+            "current_editors",
             "melodies_entered_by",
             "complete_inventory",
             "summary",
@@ -344,12 +351,18 @@ class SourceEditForm(forms.ModelForm):
     cursus.widget.attrs.update({"class": "form-control custom-select custom-select-sm"}) # what does this do?
 
     current_editors = forms.ModelMultipleChoiceField(
-        queryset=get_user_model().objects.all().order_by("last_name"), required = False
+        queryset=get_user_model().objects.filter(
+            Q(groups__name="project manager")|
+            Q(groups__name="editor")|
+            Q(groups__name="contributor")).order_by("last_name"), required=False
     )
     current_editors.widget.attrs.update({"class": "form-control custom-select custom-select-sm"})
 
     melodies_entered_by = forms.ModelMultipleChoiceField(
-        queryset=get_user_model().objects.all().order_by("last_name"), required = False
+        queryset=get_user_model().objects.filter(
+            Q(groups__name="project manager")|
+            Q(groups__name="editor")|
+            Q(groups__name="contributor")).order_by("last_name"), required=False
     )
     melodies_entered_by.widget.attrs.update({"class": "form-control custom-select custom-select-sm"})
 
