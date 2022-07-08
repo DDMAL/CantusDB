@@ -1,7 +1,7 @@
 from django.db import models
 from django.contrib.auth.models import AbstractUser
 from django.urls.base import reverse
-
+from .managers import CustomUserManager
 
 class User(AbstractUser):
     institution = models.CharField(max_length=255, blank=True, null=True)
@@ -10,6 +10,13 @@ class User(AbstractUser):
     website = models.URLField(blank=True, null=True)
     sources_user_can_edit = models.ManyToManyField("main_app.Source", related_name="users_who_can_edit_this_source", blank=True)
     full_name = models.CharField(max_length=255, blank=True, null=True)
+    username = None
+    email = models.EmailField(unique=True)
+
+    USERNAME_FIELD = 'email'
+    REQUIRED_FIELDS = []
+
+    objects = CustomUserManager()
 
     @property
     def name(self):
@@ -22,7 +29,7 @@ class User(AbstractUser):
         if self.name:
             return self.name
         else:
-            return self.username
+            return self.email
 
     def get_absolute_url(self) -> str:
         """Get the absolute URL for an instance of a model."""
