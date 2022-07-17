@@ -35,7 +35,7 @@ class UserSourceListView(LoginRequiredMixin, ListView):
             # | Q(melodies_entered_by=self.request.user)
             # | Q(proofreaders=self.request.user)
             # | Q(other_editors=self.request.user) 
-        ).order_by("title")
+        ).order_by("title").distinct()
         
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
