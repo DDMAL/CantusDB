@@ -217,10 +217,7 @@ class SourceCreateForm(forms.ModelForm):
     current_editors.widget.attrs.update({"class": "form-control custom-select custom-select-sm"})
 
     melodies_entered_by = forms.ModelMultipleChoiceField(
-        queryset=get_user_model().objects.filter(
-            Q(groups__name="project manager")|
-            Q(groups__name="editor")|
-            Q(groups__name="contributor")).order_by("last_name"), required=False
+        queryset=Indexer.objects.all().order_by("family_name"), required=False
     )
     melodies_entered_by.widget.attrs.update({"class": "form-control custom-select custom-select-sm"})
 
@@ -359,10 +356,7 @@ class SourceEditForm(forms.ModelForm):
     current_editors.widget.attrs.update({"class": "form-control custom-select custom-select-sm"})
 
     melodies_entered_by = forms.ModelMultipleChoiceField(
-        queryset=get_user_model().objects.filter(
-            Q(groups__name="project manager")|
-            Q(groups__name="editor")|
-            Q(groups__name="contributor")).order_by("last_name"), required=False
+        queryset=Indexer.objects.all().order_by("family_name"), required=False
     )
     melodies_entered_by.widget.attrs.update({"class": "form-control custom-select custom-select-sm"})
 
