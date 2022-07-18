@@ -12,12 +12,12 @@ class UserAdmin(BaseUserAdmin):
     fieldsets = (
         ('Account info', {'fields': (('email', 'password'), 'is_active', ('date_joined', 'last_login'))}),
         ('Personal info', {'fields': ('full_name', ('first_name', 'last_name'), 'institution', ('city', 'country'), 'website',)}),
-        ('Permissions', {'fields': ('is_staff', 'groups', 'sources_user_can_edit',)}),
+        ('Permissions', {'fields': ('is_staff', 'is_superuser', 'groups', 'sources_user_can_edit',)}),
     )
     add_fieldsets = (
         ('Account info', {'fields': ('email', ('password1', 'password2'),)}),
         ('Personal info', {'fields': ('full_name', ('first_name', 'last_name'), 'institution', ('city', 'country'), 'website',)}),
-        ('Permissions', {'fields': ('is_staff', 'groups', 'sources_user_can_edit',)}),
+        ('Permissions', {'fields': ('is_staff', 'is_superuser', 'groups', 'sources_user_can_edit',)}),
     )
     search_fields = ('email', 'first_name', 'last_name', 'institution',)
     ordering = ('email',)
