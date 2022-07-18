@@ -35,7 +35,7 @@ urlpatterns = [
         ChantEditVolpianoView.as_view(), 
         name="source-edit-volpiano"
     ),
-        path(
+    path(
         "proofread-chant/<int:source_id>", 
         ChantProofreadView.as_view(), 
         name="chant-proofread"
