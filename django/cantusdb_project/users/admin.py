@@ -6,6 +6,7 @@ from django.contrib.auth.forms import UserCreationForm, UserChangeForm
 # Register your models here.
 
 class UserAdmin(BaseUserAdmin):
+    readonly_fields = ('date_joined', 'last_login',)
     list_display = ('email', 'first_name', 'last_name', 'institution',)
     list_filter = ('groups',)
     fieldsets = (
