@@ -1,6 +1,4 @@
 from django import forms
-
-from users.models import User
 from .models import Chant, Office, Genre, Feast, Source, RismSiglum, Provenance, Century, Indexer, Sequence
 from .widgets import (TextInputWidget,
                 VolpianoInputWidget,
