@@ -1,7 +1,7 @@
 import csv
 from django.http.response import HttpResponseRedirect, JsonResponse
 from django.http import HttpResponse, HttpResponseNotFound
-from django.shortcuts import render
+from django.shortcuts import render, redirect
 from django.urls.base import reverse
 from main_app.models import (
     Chant,
@@ -16,6 +16,8 @@ from next_chants import next_chants
 from django.contrib import messages
 import random
 from django.http import Http404
+from django.contrib.auth import update_session_auth_hash
+from django.contrib.auth.forms import PasswordChangeForm
 
 @login_required
 def items_count(request):
@@ -560,3 +562,18 @@ def json_nextchants(request, cantus_id):
 
 def handle404(request, exception):
     return render(request, "404.html")
+
+@login_required
+def change_password(request):
+    if request.method == 'POST':
+        form = PasswordChangeForm(request.user, request.POST)
+        if form.is_valid():
+            user = form.save()
+            update_session_auth_hash(request, user)
+            messages.success(request, 'Your password was successfully updated!')
+            return redirect('change-password')
+    else:
+        form = PasswordChangeForm(request.user)
+    return render(request, 'registration/change_password.html', {
+        'form': form
+    })
