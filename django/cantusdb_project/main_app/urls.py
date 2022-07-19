@@ -17,7 +17,7 @@ urlpatterns = [
     path("my-sources/", UserSourceListView.as_view(), name="my-sources"),
     path("users/<int:pk>", UserDetailView.as_view(), name="user-detail"),
     path("users/", UserListView.as_view(), name="user-list"),
-
+    path("change-password/", views.change_password, name="change-password"),
     # chant
     path("chants/", ChantListView.as_view(), name="chant-list"),
     path("chant/<int:pk>", ChantDetailView.as_view(), name="chant-detail"),
