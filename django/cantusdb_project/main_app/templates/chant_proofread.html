@@ -1,0 +1,310 @@
+{% extends "base.html" %}
+{% block content %}
+<title>{{ source.title }} | Cantus Manuscript Database</title>
+<script src="/static/js/chant_edit.js"></script>
+
+<div class="container">
+    <div class="row">
+        <div class="mr-3 p-3 col-lg-8 bg-white rounded">
+            <!--Display form error message -->
+            {% if form.errors %}
+                <div class="alert alert-danger alert-dismissible">
+                    <a href="#" class="close" data-dismiss="alert" aria-label="close">&times;</a>
+                    {% for error in form.non_field_errors %}
+                        <a href="#" class="close" data-dismiss="alert" aria-label="close">&times;</a>
+                        {{ error }}
+                    {% endfor %}
+                    {% for field in form %}
+                        {% if field.errors %}
+                            <a href="#" class="close" data-dismiss="alert" aria-label="close">&times;</a>
+                            {{ field.label }}: {{ field.errors|striptags }}
+                        {% endif %}
+                    {% endfor %}
+                </div>
+            {% endif %}
+
+            {% if pk_specified %}
+                {% if user.is_authenticated %}
+                    <p>
+                        <a href="{% url 'chant-detail' chant.id %}">View</a> | Edit
+                    </p>
+                {% endif %}
+                <form method="post" style="line-height: normal">{% csrf_token %}
+                    <div class="form-row">
+                        <div class="form-group m-1 col-lg-2">
+                            <small>{{ form.marginalia.label_tag }}</small>
+                            {{ form.marginalia }}
+                        </div>
+                        <div class="form-group m-1 col-lg-2">
+                            <small>{{ form.folio.label_tag }}</small>
+                            {{ form.folio }}
+                        </div>
+                        <div class="form-group m-1 col-lg-2">
+                            <small>{{ form.sequence.label_tag }}</small>
+                            {{ form.sequence }}
+                        </div>
+                        <div class="form-group m-1 col-lg-4">
+                            <small>{{ form.feast.label_tag }}</small>
+                            {{ form.feast }}
+                        </div>
+                    </div>
+
+                    <div class="form-row">
+                        <div class="form-group m-1 col-lg-2">
+                            <small>{{ form.office.label_tag }}</small>
+                            {{ form.office }}
+                        </div>
+                        <div class="form-group m-1 col-lg-2">
+                            <small>{{ form.genre.label_tag }}</small>
+                            {{ form.genre }}
+                        </div>
+                        <div class="form-group m-1 col-lg-2">
+                            <small>{{ form.position.label_tag }}</small>
+                            {{ form.position }}
+                        </div>
+                        <div class="form-group m-1 col-lg-2">
+                            <label for="{{ form.cantus_id.id_for_label }}">
+                                <small>Cantus ID:</small>
+                            </label>
+                            {{ form.cantus_id }}
+                        </div>
+                        <div class="form-group m-1 col-lg-2">
+                            <label for="{{ form.melody_id.id_for_label }}">
+                                <small>Melody ID:</small>
+                            </label>
+                            {{ form.melody_id }}
+                        </div>
+                    </div>
+
+                    <div class="form-row">
+                        <div class="form-group m-1 col-lg-2">
+                            <small>{{ form.mode.label_tag }}</small>
+                            {{ form.mode }}
+                        </div>
+                        <div class="form-group m-1 col-lg-2">
+                            <small>{{ form.finalis.label_tag }}</small>
+                            {{ form.finalis }}
+                        </div>
+                        <div class="form-group m-1 col-lg-2">
+                            <small>{{ form.differentia.label_tag }}</small>
+                            {{ form.differentia }}
+                        </div>
+                        <div class="form-group m-1 col-lg-2">
+                            <small>{{ form.differentia_id.label_tag }}</small>
+                            {{ form.differentia_id }}
+                        </div>
+                        <div class="form-group m-1 col-lg-2">
+                            <small>{{ form.extra.label_tag }}</small>
+                            {{ form.extra }}
+                        </div>
+                    </div>
+
+                    <div class="form-row">
+                        <div class="form-group m-1 col-lg-8">
+                            <small>{{ form.addendum.label_tag }}</small>
+                            {{ form.addendum }}
+                        </div>
+                        <div class="form-group m-1 col-lg-2">
+                            <small>{{ form.chant_range.label_tag }}</small>
+                            {{ form.chant_range }}
+                        </div>
+                    </div>
+
+                    <div class="form-row">
+                        <div class="form-group m-1 col-lg-12">
+                            <label for="{{ form.manuscript_full_text_std_spelling.id_for_label }}">
+                                <small>Manuscript Reading Full Text (standardized spelling):</small>
+                            </label>
+                            {{ form.manuscript_full_text_std_spelling }}
+                        </div>
+                    </div>
+                    
+                    <div class="form-row">
+                        <div class="form-group m-1 col-lg-12">
+                            <label for="{{ form.manuscript_full_text_std_spelling.id_for_label }}">
+                                <small>Manuscript Reading Full Text (standardized spelling) proofread:</small>
+                            </label>
+                            {{ form.manuscript_full_text_std_proofread }}
+                        </div>
+                    </div>
+
+                    <div class="form-row">
+                        <div class="form-group m-1 col-lg-4">
+                            <button type="button" class="btn btn-dark btn-sm" id="copyFullTextBelow">Copy full text below</button>                
+                        </div>
+                    </div>
+
+                    <div class="form-row">
+                        <div class="form-group m-1 col-lg-12">
+                            <label for="{{ form.manuscript_full_text.id_for_label }}">
+                                <small>Manuscript Reading Full Text (MS spelling):</small>
+                            </label>
+                            {{ form.manuscript_full_text }}
+                        </div>
+                    </div>
+
+                    <div class="form-row">
+                        <div class="form-group m-1 col-lg-12">
+                            <label for="{{ form.manuscript_full_text_std_spelling.id_for_label }}">
+                                <small>Manuscript Reading Full Text (MS spelling) proofread:</small>
+                            </label>
+                            {{ form.manuscript_full_text_proofread }}
+                        </div>
+                    </div>
+
+                    <div class="form-row">
+                        <div class="form-group m-1 col-lg-12">
+                            <label for="{{ form.volpiano.id_for_label }}">
+                                <small>Volpiano:</small>
+                            </label>
+                            {{ form.volpiano }}
+                        </div>
+                    </div>
+
+                    <div class="form-row">
+                        <div class="form-group m-1 col-lg-12">
+                            <label for="{{ form.volpiano.id_for_label }}">
+                                <small>Volpiano proofread:</small>
+                            </label>
+                            {{ form.volpiano_proofread }}
+                        </div>
+                    </div>
+
+                    <div class="form-row">
+                        <div class="form-group m-1 col-lg-12">
+                            <small>{{ form.image_link.label_tag }}</small>
+                            {{ form.image_link }}
+                        </div>
+                    </div>
+
+                    <div class="form-row">
+                        <div class="form-group m-1 col-lg-12">
+                            <small>{{ form.siglum.label_tag }}</small>
+                            {{ form.siglum }}
+                        </div>
+                    </div>
+
+                    <div class="form-row">
+                        <div class="form-group m-1 col-lg-12">
+                            <small>{{ form.proofread_by.label_tag }}</small>
+                            {{ form.proofread_by }}
+                        </div>
+                    </div>
+
+                    <div class="form-row">
+                        <div class="form-group m-1 col-lg-12">
+                            <small>{{ form.manuscript_syllabized_full_text.label_tag }}</small>
+                            {{ form.manuscript_syllabized_full_text }}
+                        </div>
+                    </div>
+
+                    <div class="form-row">
+                        <div class="form-group m-1 col-lg-12">
+                            <small>{{ form.indexing_notes.label_tag }}</small>
+                            {{ form.indexing_notes }}
+                        </div>
+                    </div>
+
+                    <div class="form-row">
+                        <div class="form-group m-1 col-lg-2">
+                            <button type="submit" class="btn btn-dark btn-sm" id="btn-submit">Save</button>
+                        </div>
+                    </div>
+                    <div class="form-row">
+                        <div class="form-group m-1 col-lg-4">
+                            <small>
+                                <a href="{% url "chant-detail" chant.id %}" target="_blank">Open chant page (new window)</a>
+                            </small>
+                        </div>
+                    </div>
+                </form> 
+            {% else %}
+                <h3>Proofreading tool</h3>
+                <br>
+                <dl>
+                    <dd><small>1) Select a <b>folio</b> or a <b>feast</b> (in the right block)</small></dd>
+                    <dd><small>2) Click <b>"EDIT"</b> next to any chant</small></dd>
+                    <dd><small>3) Proofread the chant and click <b>"SAVE"</b></small></dd>
+                </dl> 
+            {% endif %}
+        </div>
+
+        <div class="col p-0">
+            <!-- global search bar-->
+            {% include "global_search_bar.html" %}
+
+            <div class="card mb-3 w-100">
+                <div class="card-header">
+                    <h4>{{ source.siglum }}</h4>
+                </div>
+                <div class="card-body">
+                    <small>
+                        <!--a small selector of all folios of this source-->
+                        <select id="folioSelect" class="w-30">
+                            <option value="">Select a folio:</option>
+                            {% for folio in folios %}
+                                <option value="{{ folio }}">{{ folio }}</option>
+                            {% endfor %}
+                        </select>             
+                        
+                        {% if previous_folio %}
+                            <a href="{% url "source-edit-volpiano" source.id %}?folio={{ previous_folio }}">{{ previous_folio }} <</a>
+                        {% endif %}
+                        {% if next_folio %}
+                            &nbsp;<a href="{% url "source-edit-volpiano" source.id %}?folio={{ next_folio }}">> {{ next_folio }}</a>
+                        {% endif %}             
+
+                        <br>
+
+                        <select id="feastSelect">
+                            <option value="">Select a feast:</option>
+                            {% for folio, feast in feasts_with_folios %}
+                                <option value="{{ feast.id }}">{{ folio }} - {{ feast.name }}</option>
+                            {% endfor %}
+                        </select>
+                        <br>
+                    </small>
+                    {% comment %} render if the user has selected a specific folio {% endcomment %}
+                    {% if feasts_current_folio %}
+                        {% for feast, chants in feasts_current_folio %}
+                            <small>Folio: <b>{{ chant.folio }}</b> - Feast: <b>{{ feast.name }}</b></small>
+                            <table class="table table-sm small table-bordered">     
+                                {% for chant in chants %}
+                                    <tr>
+                                        <td class="h-25" style="width: 5%">{{ chant.sequence_number }}</td>
+                                        <td class="h-25" style="width: 20%">{{ chant.office.name|default_if_none:"" }} <b>{{ chant.genre.name|default_if_none:"" }}</b> {{ chant.position|default_if_none:"" }} </td>
+                                        <td class="h-25" style="width: 40%; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; max-width: 0"><a href="{{ chant.get_absolute_url }}">{{ chant.incipit|default_if_none:"" }}</a></td>
+                                        <td class="h-25" style="width: 20%"><a href="{{ chant.get_ci_url }}" target="_blank">{{ chant.cantus_id|default_if_none:"" }}</a></td>
+                                        <td class="h-25" style="width: 5%">{{ chant.mode|default:"" }}</td>
+                                        <td class="h-25" style="width: 10%">
+                                            <a href="{% url 'chant-proofread' source.id %}?pk={{ chant.pk }}&folio={{ chant.folio }}">EDIT</button></td>
+                                    </tr>
+                                {% endfor %}
+                            </table>
+                        {% endfor %}
+                    {% comment %} render if the user has selected a specific feast {% endcomment %}
+                    {% elif folios_current_feast %}
+                        {% for folio, chants in folios_current_feast %}
+                            <small>Folio: <b>{{ folio }}</b> - Feast: <b>{{ chant.feast }}</b></small>
+                            <table class="table table-sm small table-bordered">     
+                                {% for chant in chants %}
+                                    <tr>
+                                        <td class="h-25" style="width: 5%">{{ chant.sequence_number }}</td>
+                                        <td class="h-25" style="width: 20%">{{ chant.office.name|default_if_none:"" }} <b>{{ chant.genre.name|default_if_none:"" }}</b> {{ chant.position|default_if_none:"" }} </td>
+                                        <td class="h-25" style="width: 40%; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; max-width: 0"><a href="{{ chant.get_absolute_url }}">{{ chant.incipit|default_if_none:"" }}</a></td>
+                                        <td class="h-25" style="width: 20%"><a href="{{ chant.get_ci_url }}" target="_blank">{{ chant.cantus_id|default_if_none:"" }}</a></td>
+                                        <td class="h-25" style="width: 5%">{{ chant.mode|default:"" }}</td>
+                                        <td class="h-25" style="width: 10%">
+                                            <a href="{% url 'chant-proofread' source.id %}?pk={{ chant.pk }}&feast={{ chant.feast.id }}">EDIT</button>
+                                        </td>
+                                    </tr>
+                                {% endfor %}
+                            </table>
+                        {% endfor %}
+                    {% endif %}
+                </div>    
+            </div>    
+        </div>
+    </div>
+</div>
+{% endblock %}

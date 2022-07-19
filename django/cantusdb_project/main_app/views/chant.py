@@ -16,7 +16,7 @@ from django.views.generic import (
     UpdateView,
 )
 from django.core.exceptions import PermissionDenied
-from main_app.forms import ChantCreateForm, ChantEditForm
+from main_app.forms import ChantCreateForm, ChantEditForm, ChantProofreadForm
 from main_app.models import Chant, Feast, Genre, Source, Sequence
 from align_text_mel import *
 from django.contrib.auth.mixins import LoginRequiredMixin
@@ -1162,3 +1162,25 @@ class ChantEditVolpianoView(LoginRequiredMixin, UserPassesTestMixin, UpdateView)
             return super().form_valid(form)
         else:
             return super().form_invalid(form)
+
+class ChantProofreadView(ChantEditVolpianoView):
+    template_name = "chant_proofread.html"
+    model = Chant
+    form_class = ChantProofreadForm
+    pk_url_kwarg = "source_id"
+
+    def test_func(self):
+        user = self.request.user
+        source_id = self.kwargs.get(self.pk_url_kwarg)
+
+        assigned_to_source = user.sources_user_can_edit.filter(id=source_id)
+
+        # checks if the user is a project manager
+        is_project_manager = user.groups.filter(name="project manager").exists()
+        # checks if the user is an editor,
+        is_editor = user.groups.filter(name="editor").exists()
+
+        if (is_project_manager) or (is_editor and assigned_to_source):
+            return True
+        else:
+            return False

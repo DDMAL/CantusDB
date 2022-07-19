@@ -7,7 +7,6 @@ from .widgets import (TextInputWidget,
                 SelectWidget,
                 CheckboxWidget,
 )
-from django.forms.widgets import CheckboxInput
 from django.contrib.auth import get_user_model
 from django.db.models import Q
 
@@ -277,6 +276,80 @@ class ChantEditForm(forms.ModelForm):
         queryset=Feast.objects.all().order_by("name"), required=False
     )
     feast.widget.attrs.update({"class": "form-control custom-select custom-select-sm"})
+
+class ChantProofreadForm(forms.ModelForm):
+    class Meta:
+        model = Chant
+        fields = [
+            "manuscript_full_text_std_spelling",
+            "manuscript_full_text",
+            "volpiano",
+            "marginalia",
+            "folio",
+            "sequence",
+            "feast",
+            "office",
+            "genre",
+            "position",
+            "cantus_id",
+            "melody_id",
+            "mode",
+            "finalis",
+            "differentia",
+            "extra",
+            "image_link",
+            "indexing_notes",
+            # additional fields for the proofreading form
+            "manuscript_full_text_std_proofread",
+            "manuscript_full_text_proofread",
+            "volpiano_proofread",
+            "proofread_by",
+            "manuscript_syllabized_full_text",
+            "chant_range",
+            "siglum",
+            "addendum",
+            "differentia_id"
+        ]
+        widgets = {
+            "manuscript_full_text_std_spelling": TextAreaWidget(),
+            "manuscript_full_text": TextAreaWidget(),
+            "volpiano": VolpianoAreaWidget(),
+            "marginalia": TextInputWidget(),
+            "folio": TextInputWidget(),
+            "sequence": TextInputWidget(),
+            "office": TextInputWidget(),
+            "genre": TextInputWidget(),
+            "position": TextInputWidget(),
+            "cantus_id": TextInputWidget(),
+            "melody_id": TextInputWidget(),
+            "mode": TextInputWidget(),
+            "finalis": TextInputWidget(),
+            "differentia": TextInputWidget(),
+            "extra": TextInputWidget(),
+            "image_link": TextInputWidget(),
+            "indexing_notes": TextAreaWidget(),
+            # additional fields for the proofreading form
+            "manuscript_full_text_std_proofread": CheckboxWidget(),
+            "manuscript_full_text_proofread": CheckboxWidget(),
+            "volpiano_proofread": CheckboxWidget(),
+            "manuscript_syllabized_full_text": TextAreaWidget(),
+            "chant_range": VolpianoAreaWidget(),
+            "siglum": TextInputWidget(),
+            "addendum": TextInputWidget(),
+            "differentia_id": TextInputWidget()
+        }
+    feast = forms.ModelChoiceField(
+        queryset=Feast.objects.all().order_by("name"), required=False
+    )
+    feast.widget.attrs.update({"class": "form-control custom-select custom-select-sm"})
+
+    proofread_by = forms.ModelMultipleChoiceField(
+        queryset=get_user_model().objects.filter(
+            Q(groups__name="project manager")|
+            Q(groups__name="editor")
+        ).order_by("last_name"), required=False
+    )
+    proofread_by.widget.attrs.update({"class": "form-control custom-select custom-select-sm"})
 
 class SourceEditForm(forms.ModelForm):
     class Meta:

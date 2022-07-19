@@ -1,6 +1,6 @@
 from main_app.models import BaseModel
 from django.db import models
-from users.models import User
+from django.contrib.auth import get_user_model
 from django.contrib.postgres.search import SearchVectorField
 
 class BaseChant(BaseModel):
@@ -100,8 +100,8 @@ class BaseChant(BaseModel):
     volpiano_notes = models.TextField(null=True, blank=True)
     volpiano_intervals = models.TextField(null=True, blank=True)
     cao_concordances = models.CharField(blank=True, null=True, max_length=63)
-    proofread_by = models.ForeignKey(
-        User, on_delete=models.PROTECT, null=True, blank=True
+    proofread_by = models.ManyToManyField(
+        get_user_model(), blank=True
     )
     melody_id = models.CharField(blank=True, null=True, max_length=63)
     search_vector = SearchVectorField(null=True, editable=False)
