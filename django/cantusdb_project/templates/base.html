@@ -358,6 +358,8 @@
                             <h5>User Profile</h5>
                             <a href="{% url 'user-detail' request.user.id %}">{{ request.user }}</a>
                             |
+                            <a href="{% url 'change-password' %}">Change password</a>
+                            |
                             <a href="{% url 'logout' %}">Log out</a>
                         {% else %}
                             <h5>Login for Contributors</h5>
