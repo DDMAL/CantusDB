@@ -1,5 +1,6 @@
 <!DOCTYPE html>
 {% load static %}
+{% load helper_tags %}
 <html lang="en">
 
 <head>
@@ -316,33 +317,37 @@
                         {% if not request.user.is_anonymous %}
                             <h5>Contributor Navigation</h5>
                             <ul class="list-group list-group-flush">
-                                <li class="list-group-item p-0">
-                                    <a href="{% url 'my-sources' %}">My sources</a>
-                                </li>
-                                <li class="list-group-item p-0">
-                                    <a href="{% url 'source-create' %}">Add source</a>
-                                </li>
-                                <li class="list-group-item p-0">
-                                    <a href="{% url 'indexer-list' %}">List of indexers</a>
-                                </li>
-                                <li class="list-group-item p-0">
-                                    <a href="">Import feasts from Cantus Index</a>
-                                </li>
-                                <li class="list-group-item p-0">
-                                    <a href="">Update feasts from Cantus Index</a>
-                                </li>
-                                <li class="list-group-item p-0">
-                                    <a href="">Publish unpublished chants</a>
-                                </li>
-                                <li class="list-group-item p-0">
-                                    <a href="">Generate CSV - all published sources</a>
-                                </li>
-                                <li class="list-group-item p-0">
-                                    <a href="">Source index</a>
-                                </li>
-                                <li class="list-group-item p-0">
-                                    <a href="">Update differentiae</a>
-                                </li>
+                                {% if request.user|has_group:"contributor" or request.user|has_group:"editor" or request.user|has_group:"project manager" %}
+                                    <li class="list-group-item p-0">
+                                        <a href="{% url 'my-sources' %}">My sources</a>
+                                    </li>
+                                    <li class="list-group-item p-0">
+                                        <a href="{% url 'source-create' %}">Add source</a>
+                                    </li>
+                                {% endif %}
+                                {% if request.user|has_group:"project manager" %}
+                                    <li class="list-group-item p-0">
+                                        <a href="">Add news</a>
+                                    </li>
+                                    <li class="list-group-item p-0">
+                                        <a href="/admin/main_app/feast/add/">Add feast</a>
+                                    </li>
+                                    <li class="list-group-item p-0">
+                                        <a href="/admin/main_app/indexer/add/">Add indexer</a>
+                                    </li>
+                                    <li class="list-group-item p-0">
+                                        <a href="{% url 'indexer-list' %}">List of indexers</a>
+                                    </li>
+                                    <li class="list-group-item p-0">
+                                        <a href="/admin/users/user/">Administer users</a>
+                                    </li>
+                                    <li class="list-group-item p-0">
+                                        <a href="">Taxonomy manager</a>
+                                    </li>
+                                    <li class="list-group-item p-0">
+                                        <a href="">Content overview</a>
+                                    </li>
+                                {% endif %}
                             </ul>
                             <br>
                             <h5>User Profile</h5>
