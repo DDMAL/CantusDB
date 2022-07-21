@@ -44,3 +44,7 @@ def source_links():
         options += option_str
 
     return mark_safe(options)
+
+@register.filter(name='has_group') 
+def has_group(user, group_name):
+    return user.groups.filter(name=group_name).exists() 
