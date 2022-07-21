@@ -319,33 +319,33 @@
                             <ul class="list-group list-group-flush">
                                 {% if request.user|has_group:"contributor" or request.user|has_group:"editor" or request.user|has_group:"project manager" %}
                                     <li class="list-group-item p-0">
-                                        <a href="{% url 'my-sources' %}">My sources</a>
+                                        <a href="{% url 'my-sources' %}">My Sources</a>
                                     </li>
                                     <li class="list-group-item p-0">
-                                        <a href="{% url 'source-create' %}">Add source</a>
+                                        <a href="{% url 'source-create' %}">Add Source</a>
                                     </li>
                                 {% endif %}
                                 {% if request.user|has_group:"project manager" %}
                                     <li class="list-group-item p-0">
-                                        <a href="">Add news</a>
+                                        <a href="">Add News</a>
                                     </li>
                                     <li class="list-group-item p-0">
-                                        <a href="/admin/main_app/feast/add/">Add feast</a>
+                                        <a href="/admin/main_app/feast/add/">Add Feast</a>
                                     </li>
                                     <li class="list-group-item p-0">
-                                        <a href="/admin/main_app/indexer/add/">Add indexer</a>
+                                        <a href="/admin/main_app/indexer/add/">Add Indexer</a>
                                     </li>
                                     <li class="list-group-item p-0">
-                                        <a href="{% url 'indexer-list' %}">List of indexers</a>
+                                        <a href="{% url 'indexer-list' %}">List of Indexers</a>
                                     </li>
                                     <li class="list-group-item p-0">
-                                        <a href="/admin/users/user/">Administer users</a>
+                                        <a href="/admin/users/user/">Administer Users</a>
                                     </li>
                                     <li class="list-group-item p-0">
-                                        <a href="">Taxonomy manager</a>
+                                        <a href="/admin/">Taxonomy Manager</a>
                                     </li>
                                     <li class="list-group-item p-0">
-                                        <a href="">Content overview</a>
+                                        <a href="">Content Overview</a>
                                     </li>
                                 {% endif %}
                             </ul>
@@ -353,13 +353,13 @@
                             <h5>User Profile</h5>
                             <a href="{% url 'user-detail' request.user.id %}">{{ request.user }}</a>
                             |
-                            <a href="{% url 'change-password' %}">Change password</a>
+                            <a href="{% url 'change-password' %}">Change Password</a>
                             |
-                            <a href="{% url 'logout' %}">Log out</a>
+                            <a href="{% url 'logout' %}">Logout</a>
                         {% else %}
                             <h5>Login for Contributors</h5>
                             <a href="{% url 'login' %}?next={{ request.path }}">
-                                <button type="button" class="btn btn-dark">Log in</button>
+                                <button type="button" class="btn btn-dark">Login</button>
                             </a>                        
                         {% endif %}
                     </div>
