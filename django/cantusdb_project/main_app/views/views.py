@@ -4,20 +4,29 @@ from django.http import HttpResponse, HttpResponseNotFound
 from django.shortcuts import render, redirect
 from django.urls.base import reverse
 from main_app.models import (
+    Century,
     Chant,
-    Sequence,
-    Source,
+    Feast,
+    Genre,
     Indexer,
+    Notation,
+    Office,
+    Provenance,
+    RismSiglum,
+    Segment,
+    Sequence,
+    Source
 )
 from main_app.forms import ContactForm
 from django.core.mail import send_mail, get_connection
-from django.contrib.auth.decorators import login_required
+from django.contrib.auth.decorators import login_required, user_passes_test
 from next_chants import next_chants
 from django.contrib import messages
 import random
 from django.http import Http404
 from django.contrib.auth import update_session_auth_hash
 from django.contrib.auth.forms import PasswordChangeForm
+from django.core.exceptions import PermissionDenied
 
 @login_required
 def items_count(request):
@@ -576,4 +585,42 @@ def change_password(request):
         form = PasswordChangeForm(request.user)
     return render(request, 'registration/change_password.html', {
         'form': form
+    })
+
+def pm_check(user):
+    if user.groups.filter(name="project manager").exists():
+        return True
+    raise PermissionDenied
+
+# first give the user a chance to login
+@login_required
+# if they're logged in but they're not a project manager, raise 403
+@user_passes_test(pm_check)
+def content_overview(request):
+    objects = []
+    models = [
+        Century,
+        Chant,
+        Feast,
+        Genre,
+        Indexer,
+        Notation,
+        Office,
+        Provenance,
+        RismSiglum,
+        Segment,
+        Sequence,
+        Source
+    ]
+
+    # get the 50 most recently updated objects for all of the models
+    for model in models:
+        for object in model.objects.all().order_by("-date_updated")[:50]:
+            objects.append(object)
+
+    objects.sort(key=lambda x: x.date_updated, reverse=True)
+    recently_updated_50_objects = objects[:50]
+
+    return render(request, "content_overview.html", {
+        "objects": recently_updated_50_objects
     })
