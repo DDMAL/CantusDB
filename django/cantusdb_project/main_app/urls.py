@@ -102,6 +102,12 @@ urlpatterns = [
         views.ajax_concordance_list,
         name="ajax-concordance",
     ),
+    # content overview (for project managers)
+    path(
+        "content-overview/",
+        views.content_overview,
+        name="content-overview",
+    ),
 ]
 
 handler404 = 'main_app.views.views.handle404'
