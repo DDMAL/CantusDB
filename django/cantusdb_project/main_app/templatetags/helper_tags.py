@@ -47,4 +47,8 @@ def source_links():
 
 @register.filter
 def classname(obj):
+    """
+    Returns the name of the object's class
+    A use-case is: {% if object|classname == "Notation" %}
+    """
     return obj.__class__.__name__
