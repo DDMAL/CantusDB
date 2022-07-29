@@ -588,6 +588,12 @@ def change_password(request):
     })
 
 def pm_check(user):
+    """
+    A callback function that will be called by the user_passes_test decorator of content_overview.
+
+    Takes in a logged-in user as an argument.
+    Returns True if they are in a "project manager" group, raises PermissionDenied otherwise.
+    """
     if user.groups.filter(name="project manager").exists():
         return True
     raise PermissionDenied
