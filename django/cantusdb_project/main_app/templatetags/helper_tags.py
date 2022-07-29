@@ -63,3 +63,7 @@ def admin_url_name(class_name, action):
     action = action.lower()
 
     return f"admin:main_app_{class_name}_{action}"
+
+@register.filter(name='has_group') 
+def has_group(user, group_name):
+    return user.groups.filter(name=group_name).exists() 
