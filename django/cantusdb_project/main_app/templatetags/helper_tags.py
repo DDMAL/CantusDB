@@ -52,3 +52,14 @@ def classname(obj):
     A use-case is: {% if object|classname == "Notation" %}
     """
     return obj.__class__.__name__
+
+@register.filter
+def admin_url_name(class_name, action):
+    """
+    Accepts a class name and an action (either "change" or "delete") as arguments.
+    Returns the name of the URL for changing/deleting an object in the admin interface.
+    """
+    class_name = class_name.lower()
+    action = action.lower()
+
+    return f"admin:main_app_{class_name}_{action}"
