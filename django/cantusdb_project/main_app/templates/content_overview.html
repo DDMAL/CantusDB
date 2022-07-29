@@ -66,9 +66,9 @@
                     </td>
                     <td class="text-wrap" style="text-align:center">
                         {% with class=object|classname %}
-                            <a href="/admin/main_app/{{ class|lower }}/{{ object.id }}/change/"><b>Edit</b></a>
+                            <a href={% url class|admin_url_name:"change" object.id %}><b>Edit</b></a>
                             |
-                            <a href="/admin/main_app/{{ class|lower }}/{{ object.id }}/delete/"><b>Delete</b></a>
+                            <a href={% url class|admin_url_name:"delete" object.id %}><b>Delete</b></a>
                         {% endwith %}
                     </td>
                 </tr>
