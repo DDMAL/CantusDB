@@ -68,6 +68,7 @@ class SequenceEditView(LoginRequiredMixin, UserPassesTestMixin, UpdateView):
     pk_url_kwarg = "sequence_id"
 
     def form_valid(self, form):
+        form.instance.last_updated_by = self.request.user
         messages.success(
             self.request,
             "Sequence updated successfully!",

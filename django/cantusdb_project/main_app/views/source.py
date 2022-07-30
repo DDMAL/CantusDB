@@ -251,9 +251,8 @@ class SourceCreateView(LoginRequiredMixin, UserPassesTestMixin, CreateView):
         return reverse("source-create")
 
     def form_valid(self, form):
+        form.instance.created_by = self.request.user
         source = form.save()
-        source.created_by = self.request.user
-        source.save()
         current_editors = source.current_editors.all()
         
         for editor in current_editors:
@@ -295,6 +294,7 @@ class SourceEditView(LoginRequiredMixin, UserPassesTestMixin, UpdateView):
             return False
 
     def form_valid(self, form):
+        form.instance.last_updated_by = self.request.user
         source = form.save()
         current_editors = source.current_editors.all()
         assigned_users = source.users_who_can_edit_this_source.all()

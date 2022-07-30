@@ -800,6 +800,7 @@ class ChantCreateView(LoginRequiredMixin, UserPassesTestMixin, CreateView):
             )
 
         if form.is_valid():
+            form.instance.created_by = self.request.user
             messages.success(
                 self.request,
                 "Chant '" + form.instance.incipit + "' created successfully!",
@@ -1155,6 +1156,7 @@ class ChantEditVolpianoView(LoginRequiredMixin, UserPassesTestMixin, UpdateView)
     
     def form_valid(self, form):
         if form.is_valid():
+            form.instance.last_updated_by = self.request.user
             messages.success(
                 self.request,
                 "Chant updated successfully!",
