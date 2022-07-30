@@ -12,6 +12,7 @@ class User(AbstractUser):
     full_name = models.CharField(max_length=255, blank=True, null=True)
     username = None
     email = models.EmailField(unique=True)
+    changed_initial_password = models.BooleanField(default=False)
 
     USERNAME_FIELD = 'email'
     REQUIRED_FIELDS = []
