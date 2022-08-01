@@ -1,0 +1,20 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="mr-3 p-3 col-md-9 bg-white rounded">
+    <div class="row">
+        <div class="col">
+            <h3>
+                {{article.title}}
+            </h3>
+            <div class="container">
+                <div class="container text-wrap">
+                    <small>Submitted by <a href="{{ article.author.get_absolute_url }}">{{ article.author }}</a> on {{ article.date_created|date:"D, m/d/Y - H:i" }}</small>
+                    <div>
+                        {{ article.body|safe }}
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

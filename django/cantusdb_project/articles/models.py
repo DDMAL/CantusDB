@@ -1,5 +1,6 @@
 from django.conf import settings
 from django.db import models
+from django.urls import reverse
 from main_app.models import Indexer
 
 class Article(models.Model):
@@ -29,3 +30,8 @@ class Article(models.Model):
 
     def __str__(self):
         return self.title
+
+    def get_absolute_url(self) -> str:
+        """Get the absolute URL for an instance of a model."""
+        detail_name = "article-detail"
+        return reverse(detail_name, kwargs={"pk": self.pk})
