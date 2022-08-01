@@ -1,11 +1,15 @@
 from django.conf import settings
 from django.db import models
+from main_app.models import Indexer
 
 class Article(models.Model):
     title = models.CharField(max_length=255)
     body = models.TextField()
     
-    author = models.CharField(max_length=255)
+    author = models.ForeignKey(
+        Indexer,
+        on_delete=models.CASCADE,
+    )
     created_by = models.ForeignKey(
         settings.AUTH_USER_MODEL,
         on_delete=models.CASCADE,
@@ -14,7 +18,8 @@ class Article(models.Model):
     date_created = models.DateTimeField(
         help_text="The date this article was created",
         null=True,
-        blank=True,)
+        blank=True,
+    )
     date_updated = models.DateTimeField(
         help_text="The date this article was most recently updated",
         auto_now=True,
