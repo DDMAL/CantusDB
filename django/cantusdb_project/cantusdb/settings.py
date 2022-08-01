@@ -58,8 +58,8 @@ INSTALLED_APPS = [
     "django.contrib.humanize",
     "extra_views",
     "main_app",
-    "users",
     "articles",
+    "users",
 ]
 
 MIDDLEWARE = [
