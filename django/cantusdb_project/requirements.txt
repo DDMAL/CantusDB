@@ -12,6 +12,7 @@ coverage==5.3.1
 Django==4.0.3
 django-autocomplete-light==3.5.1
 django-extra-views==0.13.0
+django-quill-editor==0.1.40
 Faker==4.1.0
 gunicorn==20.0.4
 idna==2.10

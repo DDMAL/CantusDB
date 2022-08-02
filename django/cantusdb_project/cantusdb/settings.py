@@ -59,6 +59,7 @@ INSTALLED_APPS = [
     "extra_views",
     "main_app",
     "articles",
+    "django_quill", # to provide rich-text field for articles
     "users",
 ]
 

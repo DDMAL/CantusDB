@@ -2,10 +2,11 @@ from django.conf import settings
 from django.db import models
 from django.urls import reverse
 from main_app.models import Indexer
+from django_quill.fields import QuillField
 
 class Article(models.Model):
     title = models.CharField(max_length=255)
-    body = models.TextField()
+    body = QuillField() # rich text field
     
     author = models.ForeignKey(
         Indexer,
