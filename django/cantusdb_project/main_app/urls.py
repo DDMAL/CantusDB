@@ -7,7 +7,6 @@ from main_app.views.chant import ChantEditVolpianoView, ChantProofreadView
 from main_app.views.user import UserDetailView, UserSourceListView, CustomLogoutView, UserListView, CustomLoginView
 
 urlpatterns = [
-    # static pages
     path("index/", FullIndexView.as_view(), name="chant-index"),
     path("contact/", views.contact_us, name="contact"),
     # login/logout/user
