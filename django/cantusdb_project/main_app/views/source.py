@@ -295,14 +295,23 @@ class SourceEditView(LoginRequiredMixin, UserPassesTestMixin, UpdateView):
 
     def form_valid(self, form):
         form.instance.last_updated_by = self.request.user
+        old_current_editors = list(self.get_object().current_editors.all())
+        new_current_editors = form.cleaned_data["current_editors"]
         source = form.save()
-        current_editors = source.current_editors.all()
-        assigned_users = source.users_who_can_edit_this_source.all()
 
-        for user in assigned_users:
-            user.sources_user_can_edit.remove(source)
+        # users can be assigned to a source in two different ways:
+        # 1. assigned as one of the current editors (in source-create and source-edit views)
+        # 2. assigned to a source, manually, by the project manager (through the admin interface's Source page)
+        # even if the "current editors" have changed, users who have been assigned to a source by method 2 should not be affected
         
-        for editor in current_editors:
-            editor.sources_user_can_edit.add(source)
-        
+        # if the current editors for this source has changed,
+        # remove this source from the "sources user can edit" set of all users who were previously "current editors",
+        # then reassign this source to new "current editors"
+        if "current_editors" in form.changed_data:
+            for old_editor in old_current_editors:
+                old_editor.sources_user_can_edit.remove(source)
+
+            for new_editor in new_current_editors:
+                new_editor.sources_user_can_edit.add(source)
+
         return HttpResponseRedirect(self.get_success_url())
