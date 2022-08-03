@@ -295,14 +295,14 @@ class SourceEditView(LoginRequiredMixin, UserPassesTestMixin, UpdateView):
 
     def form_valid(self, form):
         form.instance.last_updated_by = self.request.user
+        old_current_editors = list(Source.objects.get(id=form.instance.id).current_editors.all())
+        new_current_editors = form.cleaned_data["current_editors"]
         source = form.save()
-        current_editors = source.current_editors.all()
-        assigned_users = source.users_who_can_edit_this_source.all()
 
-        for user in assigned_users:
-            user.sources_user_can_edit.remove(source)
+        for old_editor in old_current_editors:
+            old_editor.sources_user_can_edit.remove(source)
         
-        for editor in current_editors:
-            editor.sources_user_can_edit.add(source)
+        for new_editor in new_current_editors:
+            new_editor.sources_user_can_edit.add(source)
         
         return HttpResponseRedirect(self.get_success_url())
