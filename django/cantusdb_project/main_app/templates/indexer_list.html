@@ -33,7 +33,7 @@
             {% for indexer in indexers %}
                 <tr>
                     <td class="text-center text-wrap">
-                        <a href="{{ indexer.get_absolute_url }}">{{ indexer.first_name }} {{ indexer.family_name }}</a>
+                        <a href="{{ indexer.get_absolute_url }}">{{ indexer.given_name }} {{ indexer.family_name }}</a>
                     </td>
                     <td>{{ indexer.institution|default:"" }}</td>
                     <td>{{ indexer.city|default:"" }}</td>

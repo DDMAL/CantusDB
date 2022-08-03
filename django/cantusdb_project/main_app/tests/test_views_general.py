@@ -67,7 +67,7 @@ class IndexerListViewTest(TestCase):
         self.assertNotIn(indexer_with_private_source, response.context["indexers"])
         self.assertNotIn(indexer_with_no_source, response.context["indexers"])
 
-    def test_search_first_name(self):
+    def test_search_given_name(self):
         """
         Indexer can be searched by passing a `q` parameter to the url \\
         Search fields include first name, family name, country, city, and institution \\
@@ -78,7 +78,7 @@ class IndexerListViewTest(TestCase):
         public_source.inventoried_by.set([indexer_with_public_source])
 
         # search with a random slice of first name
-        target = indexer_with_public_source.first_name
+        target = indexer_with_public_source.given_name
         search_term = get_random_search_term(target)
         response = self.client.get(reverse("indexer-list"), {"q": search_term})
         self.assertEqual(response.status_code, 200)

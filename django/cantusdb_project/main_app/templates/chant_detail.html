@@ -354,7 +354,7 @@
                                     <ul>
                                         {% for editor in source.inventoried_by.all %}
                                             <li>
-                                                <a href={{ editor.get_absolute_url }}><b>{{ editor.first_name }}
+                                                <a href={{ editor.get_absolute_url }}><b>{{ editor.given_name }}
                                                     {{ editor.family_name }}</b></a><br>
                                                 {{ editor.institution|default_if_none:"" }}
                                             </li>
@@ -368,7 +368,7 @@
                                     <ul>
                                         {% for editor in source.proofreaders.all %}
                                             <li>
-                                                <a href={{ editor.get_absolute_url }}><b>{{editor.first_name}}
+                                                <a href={{ editor.get_absolute_url }}><b>{{editor.given_name}}
                                                     {{editor.family_name}}</b></a><br>
                                             </li>
                                         {% endfor %}

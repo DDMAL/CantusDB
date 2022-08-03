@@ -141,7 +141,7 @@ def make_fake_genre() -> Genre:
 def make_fake_indexer() -> Indexer:
     """Generates a fake Indexer object."""
     indexer = Indexer.objects.create(
-        first_name=faker.first_name(),
+        given_name=faker.first_name(),
         family_name=faker.last_name(),
         institution=faker.company(),
         city=faker.city(),
