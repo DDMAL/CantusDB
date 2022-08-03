@@ -429,16 +429,16 @@ def ajax_search_bar(request, search_term):
     # load only the first seven chants
     CHANT_CNT = 7
 
-    if search_term.isalpha():
-        # if the search term contains only alphabet letters, search incipit
-        chants = Chant.objects.filter(incipit__icontains=search_term).order_by("id")[
-            :CHANT_CNT
-        ]
-    else:
-        # if the search term contains digits, search Cantus ID
+    if search_term.isdigit():
+        # if the search term contains only digits, search Cantus ID
         chants = Chant.objects.filter(cantus_id__istartswith=search_term).order_by(
             "id"
         )[:CHANT_CNT]
+    else:
+        # if the search term contains non-digit characters, search incipit
+        chants = Chant.objects.filter(incipit__icontains=search_term).order_by("id")[
+            :CHANT_CNT
+        ]
     returned_values = chants.values(
         "incipit",
         "genre__name",
