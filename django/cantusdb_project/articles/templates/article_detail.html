@@ -7,12 +7,11 @@
                 {{article.title}}
             </h3>
             <div class="container">
-                {% if article.image_link %}
-                <img src="{{article.image_link|safe}}" class="img-fluid m-3 h-50 w-50">
-                {% endif %}
                 <div class="container text-wrap">
-                    {{ article.body |safe }}
-                    <small>Submitted by {{article.author_id}} on {{article.date_created|date:"D, m/d/Y - H:i"}}</small>
+                    <small>Submitted by <a href="{{ article.author.get_absolute_url }}">{{ article.author }}</a> on {{ article.date_created|date:"D, m/d/Y - H:i" }}</small>
+                    <div>
+                        {{ article.body.html|safe }}
+                    </div>
                 </div>
             </div>
         </div>

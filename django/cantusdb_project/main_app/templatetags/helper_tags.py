@@ -3,9 +3,28 @@ from typing import Union, Optional
 from django.utils.http import urlencode
 from django import template
 from main_app.models import Source
+from articles.models import Article
 from django.utils.safestring import mark_safe
 
 register = template.Library()
+
+
+@register.simple_tag(takes_context=False)
+def recent_articles():
+    articles = Article.objects.order_by("-date_created")[:5]
+    list_item_template = '<li><a href="{url}">{title}</a><br><small>{date}</small></li>'
+    list_items = [
+        list_item_template.format(
+            url=a.get_absolute_url(),
+            title=a.title,
+            date=a.date_created.strftime("%x"),
+        )
+        for a
+        in articles
+    ]
+    list_items_string = "".join(list_items)
+    recent_articles_string = "<ul>{lis}</ul>".format(lis=list_items_string)
+    return mark_safe(recent_articles_string)
 
 
 @register.filter(name="month_to_string")
@@ -44,6 +63,8 @@ def source_links():
         options += option_str
 
     return mark_safe(options)
+
+
 
 @register.filter
 def classname(obj):
