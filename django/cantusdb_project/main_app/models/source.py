@@ -16,12 +16,25 @@ class Source(BaseModel):
         ("Unpublished / Indexing process", "Unpublished / Indexing process"),
         ("Unpublished / Proofread pending", "Unpublished / Proofread pending"),
         ("Unpublished / Proofreading process", "Unpublished / Proofreading process"),
+        ("Unpublished / No indexing activity", "Unpublished / No indexing activity"),
     ]
 
-    # sources with public=False cannot be accessed by its url (access denied) and do not appear in source list
+    # Here, "public" indicates whether a source will EVER be seen by the public. 
+    # `public=True` for regular sources, which might not be published yet but will eventually be.
+    # `public=False` for test sources, which are only for testing purpose and will never be published. 
+
+    # If `public=True` & `published=True`, the source is accessible to the public.
+
+    # If `public=True` & `published=False`, the source is a work in progress. 
+    # It's hidden from the public, but can be seen in lists and through urls for logged-in users.
+
+    # If `public=False`, the source is a test/hidden source.
+    # It's hidden from the public and it doesn't appear in lists.
+    # The only access is through the url by logged-in users.
+    
     public = models.BooleanField(blank=True, null=True)
-    # sources with visible=False can be accessed by typing in the url, but do not appear in source list
-    visible = models.BooleanField(blank=True, null=True)
+    published = models.BooleanField(blank=True, null=True)
+
     title = models.CharField(
         max_length=255,
         help_text="Full Manuscript Identification (City, Archive, Shelf-mark)",
@@ -64,7 +77,6 @@ class Source(BaseModel):
     cursus = models.CharField(
         blank=True, null=True, choices=cursus_choices, max_length=63
     )
-    # TODO: Fill this field up with JSON info when I have access to the Users
     current_editors = models.ManyToManyField(get_user_model(), related_name="sources_edited")
     created_by = models.ForeignKey(
         get_user_model(), related_name="sources_created", on_delete=models.CASCADE, blank=True, null=True
@@ -83,7 +95,7 @@ class Source(BaseModel):
     segment = models.ForeignKey(
         "Segment", on_delete=models.PROTECT, blank=True, null=True
     )
-    source_status = models.CharField(blank=True, null=True, max_length=255)
+    source_status = models.CharField(blank=True, null=True, choices=source_status_choices, max_length=255)
     complete_inventory = models.BooleanField(blank=True, null=True)
     summary = models.TextField(blank=True, null=True)
     liturgical_occasions = models.TextField(blank=True, null=True)

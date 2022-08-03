@@ -7,6 +7,7 @@ from main_app.models import (
     RismSiglum,
     Segment,
 )
+from django.contrib.auth import get_user_model
 import lxml.html as lh
 from django.core.validators import URLValidator
 from django.core.exceptions import ObjectDoesNotExist, ValidationError
@@ -22,14 +23,6 @@ def get_source_list():
         source_list.append(line)
     file.close()
     return source_list
-    # this will not get all sources, the json export is not complete
-    # published_sources = []
-    # url = "https://cantus.uwaterloo.ca/json-sources"
-    # response = requests.get(url)
-    # json_response = json.loads(response.content)
-    # for key in json_response:
-    #     published_sources.append(key)
-    # return published_sources
 
 
 def get_century_name(century_id):
@@ -57,10 +50,13 @@ def get_new_source(source_id):
     response = requests.get(url)
     json_response = json.loads(response.content)
     title = json_response["title"]
-    # mysterious field, status 0 for unpublished source (visible in db, denied entry on web), status 1 for published
-    status = json_response["status"]
-    if status != "1":
-        print(f"STATUS {status} at source {source_id}")
+
+    # public=1 for regular source, public=0 for private source (e.g., test source)
+    # non-logged-in user can't see private source by any means
+    # logged-in user can access private source through url, but a private source never appear in any list 
+    public = json_response["status"]
+    if public != "1":
+        print(f"STATUS {public} at source {source_id}")
 
     try:
         siglum = json_response["field_siglum"]["und"][0]["value"]
@@ -100,28 +96,30 @@ def get_new_source(source_id):
     try:
         source_status_id = json_response["field_source_status_tax"]["und"][0][
             "tid"
-        ]  # 4212
+        ]
 
-        # these mappings are estimated by observing individual sources in the database
-        # not necessarily accurate, but it gives the same results between the old and new cantus
-        # published / unpublished
-        if source_status_id == "4208":  # 234 / 19
-            source_status = "Published / Proofread pending"
-        elif source_status_id == "4209":  # 0 / 1
-            source_status = "Unpublished / Editing process"
-        elif source_status_id == "4210":  # 0 / 3
+        # these codes and the actual source status string have been carefully matched
+        # when logged-in at project manager level, old Cantus displays the source status
+        # on the source-detail page
+        if source_status_id == "4208":
             source_status = "Unpublished / Indexing process"
-        elif source_status_id == "4211":  # 1 / 0
+        elif source_status_id == "4209":
             source_status = "Editing process (not all the fields have been proofread)"
-        elif source_status_id == "4212":  # 162 / 0
-            source_status = "Published / Complete"
-        elif source_status_id == "4213":  # 1 / 1
+        elif source_status_id == "4210":
             source_status = "Unpublished / Proofread pending"
-        elif source_status_id == "4217":  # 3 / 5
+        elif source_status_id == "4211": 
+            # as of 2022-08-03, no source in this status
             source_status = "Unpublished / Proofreading process"
-            # source_status_id == None # 326 / 9
+        elif source_status_id == "4212":
+            source_status = "Published / Complete"
+        elif source_status_id == "4213":
+            source_status = "Unpublished / Editing process"
+        elif source_status_id == "4217":
+            source_status = "Published / Proofread pending"
+        elif source_status_id == "4547": 
+            source_status = "Unpublished / No indexing activity"
         else:
-            print(f"Unknown source status: {source_status_id}")
+            raise Exception(f"UNKNOWN SOURCE STATUS ID {source_status_id}")
 
     except (KeyError, TypeError):
         source_status_id = None
@@ -149,7 +147,6 @@ def get_new_source(source_id):
     if json_response["field_notation"]:
         for und in json_response["field_notation"]["und"]:
             notation_id = und["tid"]
-            # notation_name = get_notation_name(century_id)
             try:
                 notation_item = Notation.objects.get(id=notation_id)
                 notation.append(notation_item)
@@ -164,7 +161,7 @@ def get_new_source(source_id):
         elif cursus_id == "4219":
             cursus = "Secular"
         else:
-            print(f"Unknown cursus {cursus_id}")
+            raise Exception(f"UNKNOWN CURSUS ID {cursus_id}")
 
     except (KeyError, TypeError):
         cursus = None
@@ -261,18 +258,25 @@ def get_new_source(source_id):
     except (KeyError, TypeError):
         dact_id = None
 
-    if source_status_id in ["4209", "4210", "4212", "4217", None]:
-        visible = True
-    elif source_status_id in ["4208", "4211", "4213"]:
-        visible = False
+    # a source_status_id of None is considered published, because all sequence sources
+    #  have a source_status of None, and they are all published
+    if source_status_id in ["4212", "4217", "4547", None]:
+        published = True
+    elif source_status_id in ["4208", "4209", "4210", "4211", "4213"]:
+        published = False
     else:
-        raise Exception("UNKNOWN SOURCE STATUS ID")
+        raise Exception(f"UNKNOWN SOURCE STATUS ID {source_status_id}")
 
-    # try:
-    #     # current editors are User, the other fields are Indexer
-    #     current_editors_id = json_response["field_editors"]["und"][0]["uid"]  # 613
-    # except (KeyError, TypeError):
-    #     current_editors = None
+    # current editors are User, the other "people" fields are Indexer
+    current_editors = []
+    try:
+        current_editors_entries = json_response["field_editors"]["und"]
+        for entry in current_editors_entries:
+            user_id = entry["uid"]
+            user = get_user_model().objects.get(id=user_id)
+            current_editors.append(user)
+    except (KeyError, TypeError):
+        current_editors = []
 
     inventoried_by = get_indexers(json_response, "field_indexer")
     full_text_entered_by = get_indexers(json_response, "field_full_texts_entered_by")
@@ -284,12 +288,13 @@ def get_new_source(source_id):
         id=source_id,
         defaults={
             "title": title,
-            "public": status,
+            "public": public,
+            "published": published,
             "siglum": siglum,
             "rism_siglum": rism_siglum,
             "provenance": provenance,
             # provenance_notes=provenance_notes, # this seems the same thing as the name of the provenance
-            "source_status": source_status_id,
+            "source_status": source_status,
             "full_source": full_source,  # corresponding to "complete_fragment" in json-export
             "date": date,
             "cursus": cursus,
@@ -305,20 +310,22 @@ def get_new_source(source_id):
             "indexing_notes": indexing_notes,
             "indexing_date": indexing_date,
             "json_info": json_response,
-            "visible": visible,
         },
     )
     if created:
         print(f"Created new source {source_id}")
 
+    # set the many-to-many fields
     source_obj.century.set(century)
     source_obj.notation.set(notation)
-    # source_obj.current_editors.set(current_editors) # user, not indexer
+    # these point to the Indexer model
     source_obj.inventoried_by.set(inventoried_by)
     source_obj.full_text_entered_by.set(full_text_entered_by)
     source_obj.melodies_entered_by.set(melodies_entered_by)
     source_obj.proofreaders.set(proofreaders)
     source_obj.other_editors.set(other_editors)
+    # these point to the User model
+    source_obj.current_editors.set(current_editors)
 
     return source_obj
 
@@ -357,7 +364,6 @@ class Command(BaseCommand):
             for source_id in all_sources:
                 print(source_id)
                 source = get_new_source(source_id)
-                # print(source.title)
         else:
             new_source = get_new_source(id)
             print(new_source.title)
