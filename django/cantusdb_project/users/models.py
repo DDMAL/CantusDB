@@ -8,7 +8,6 @@ class User(AbstractUser):
     city = models.CharField(max_length=255, blank=True, null=True)
     country = models.CharField(max_length=255, blank=True, null=True)
     website = models.URLField(blank=True, null=True)
-    sources_user_can_edit = models.ManyToManyField("main_app.Source", related_name="users_who_can_edit_this_source", blank=True)
     full_name = models.CharField(max_length=255, blank=True, null=True)
     username = None
     email = models.EmailField(unique=True)
