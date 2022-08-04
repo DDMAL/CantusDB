@@ -1145,13 +1145,25 @@ class ChantEditVolpianoView(LoginRequiredMixin, UserPassesTestMixin, UpdateView)
             # ordered by sequence number
             context["folios_current_feast"] = get_chants_with_folios(self.queryset)
 
-        # this boolean let's us decide whether to show the user the instructions or the editing form
+        # this boolean lets us decide whether to show the user the instructions or the editing form
         # if the pk hasn't been specified, a user hasn't selected a specific chant they want to edit
         # if so, we should display the instructions
-        if not self.request.GET.get("pk"):
-            context["pk_specified"] = False
-        else:
-            context["pk_specified"] = True
+        pk = self.request.GET.get("pk")
+        pk_specified = bool(pk)
+        context["pk_specified"] = pk_specified
+
+        # provide a suggested_fulltext for situations in which a chant has no
+        # manuscript_full_text_std_spelling
+        context["suggested_fulltext"] = ""
+        if pk_specified:
+            current_chant = Chant.objects.filter(pk=pk).first()
+            cantus_id = current_chant.cantus_id
+
+            request = requests.get(
+                    "http://cantusindex.org/json-cid/{}".format(cantus_id)
+            )
+            context["suggested_fulltext"] = json.loads(request.text[2:])[0]["fulltext"]
+
         return context
     
     def form_valid(self, form):
