@@ -40,11 +40,7 @@ class SegmentAdmin(BaseModelAdmin):
 class SequenceAdmin(BaseModelAdmin):
     pass
 
-class SourcesUserCanEditInline(admin.TabularInline):
-    model = get_user_model().sources_user_can_edit.through
-
 class SourceAdmin(BaseModelAdmin):
-    inlines = [SourcesUserCanEditInline]
     filter_horizontal = ('century', 'notation', 'current_editors', 'inventoried_by', 'full_text_entered_by', 'melodies_entered_by', 'proofreaders', 'other_editors')
 
 admin.site.register(Chant, ChantAdmin)

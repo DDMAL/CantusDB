@@ -65,7 +65,7 @@ class Source(BaseModel):
         blank=True, null=True, choices=cursus_choices, max_length=63
     )
     # TODO: Fill this field up with JSON info when I have access to the Users
-    current_editors = models.ManyToManyField(get_user_model(), related_name="sources_edited")
+    current_editors = models.ManyToManyField(get_user_model(), related_name="sources_user_can_edit")
     inventoried_by = models.ManyToManyField(
         "Indexer", related_name="sources_inventoried"
     )
