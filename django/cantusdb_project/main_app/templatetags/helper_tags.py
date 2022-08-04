@@ -39,7 +39,11 @@ def month_to_string(value: Optional[Union[str, int]]) -> Optional[Union[str, int
 @register.simple_tag(takes_context=True)
 def url_add_get_params(context, **kwargs):
     query = context["request"].GET.copy()
-    query.pop("page", None)
+    # accounts for the situations where there may be two paginations in one page
+    if "page" in kwargs:
+        query.pop("page", None)
+    if "page2" in kwargs:
+        query.pop("page2", None)
     query.update(kwargs)
     return query.urlencode()
 
