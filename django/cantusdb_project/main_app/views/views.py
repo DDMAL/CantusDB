@@ -429,13 +429,13 @@ def ajax_search_bar(request, search_term):
     # load only the first seven chants
     CHANT_CNT = 7
 
-    if search_term.isdigit():
-        # if the search term contains only digits, search Cantus ID
+    if any(char.isdigit() for char in search_term):
+        # if the search term contains at least one digit, assume user is searching by Cantus ID
         chants = Chant.objects.filter(cantus_id__istartswith=search_term).order_by(
             "id"
         )[:CHANT_CNT]
     else:
-        # if the search term contains non-digit characters, search incipit
+        # if the search term does not contain any digits, assume user is searching by incipit
         chants = Chant.objects.filter(incipit__icontains=search_term).order_by("id")[
             :CHANT_CNT
         ]
