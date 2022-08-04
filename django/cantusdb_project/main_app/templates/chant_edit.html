@@ -36,6 +36,14 @@
                                 <small>Manuscript Reading Full Text (standardized spelling):</small>
                             </label>
                             {{ form.manuscript_full_text_std_spelling }}
+                            <script>
+                                function autoFillSuggestedFulltext() {
+                                    if (document.getElementById('id_manuscript_full_text_std_spelling').value == "") {
+                                        document.getElementById('id_manuscript_full_text_std_spelling').value = "{{ suggested_fulltext }}";
+                                    }
+                                }
+                                autoFillSuggestedFulltext();
+                            </script>
                         </div>
                     </div>
 
