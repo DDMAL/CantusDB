@@ -37,12 +37,12 @@ class UserSourceListView(LoginRequiredMixin, ListView):
             # | Q(melodies_entered_by=self.request.user)
             # | Q(proofreaders=self.request.user)
             # | Q(other_editors=self.request.user) 
-        ).order_by("title").distinct()
+        ).order_by("-date_created").distinct()
         
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
 
-        user_created_sources = Source.objects.filter(created_by=self.request.user)
+        user_created_sources = Source.objects.filter(created_by=self.request.user).order_by("-date_created").distinct()
         paginator = Paginator(user_created_sources, 10)
         page_number = self.request.GET.get('page2')
         page_obj = paginator.get_page(page_number)
