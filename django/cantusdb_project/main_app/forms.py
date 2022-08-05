@@ -249,6 +249,7 @@ class ChantEditForm(forms.ModelForm):
             "mode",
             "finalis",
             "differentia",
+            "differentia_id",
             "extra",
             "image_link",
             "indexing_notes"
@@ -266,6 +267,7 @@ class ChantEditForm(forms.ModelForm):
             "mode": TextInputWidget(),
             "finalis": TextInputWidget(),
             "differentia": TextInputWidget(),
+            "differentia_id": TextInputWidget(),
             "extra": TextInputWidget(),
             "image_link": TextInputWidget(),
             "indexing_notes": TextAreaWidget()

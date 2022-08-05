@@ -131,6 +131,12 @@
                             {{ form.differentia }}
                         </div>
                         <div class="form-group m-1 col-lg-2">
+                            <label for="{{ form.differentia_id.id_for_label }}">
+                                <small>Differentia DB:</small>
+                            </label>
+                            {{ form.differentia_id }}
+                        </div>
+                        <div class="form-group m-1 col-lg-2">
                             <small>{{ form.extra.label_tag }}</small>
                             {{ form.extra }}
                         </div>
