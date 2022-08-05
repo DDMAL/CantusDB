@@ -1177,6 +1177,10 @@ class ChantEditVolpianoView(LoginRequiredMixin, UserPassesTestMixin, UpdateView)
         else:
             return super().form_invalid(form)
 
+    def get_success_url(self):
+        # stay on the same page after save
+        return self.request.get_full_path()
+
 class ChantProofreadView(ChantEditVolpianoView):
     template_name = "chant_proofread.html"
     model = Chant
