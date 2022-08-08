@@ -193,8 +193,8 @@ class SourceCreateForm(forms.ModelForm):
     provenance.widget.attrs.update({"class": "form-control custom-select custom-select-sm"})
 
     TRUE_FALSE_CHOICES_SOURCE = (
-        (True, "Full"), 
-        (False, "Fragment")
+        (True, "Full source"), 
+        (False, "Fragment or Fragmented")
     )
 
     full_source = forms.ChoiceField(
@@ -403,7 +403,7 @@ class SourceEditForm(forms.ModelForm):
     CHOICES_FULL_SOURCE = (
         (None, "None"),
         (True, "Full source"),
-        (False, "Fragment or Fragmented"),
+        (False, "Fragment or Fragmented"),        
     )
     full_source = forms.ChoiceField(
         choices=CHOICES_FULL_SOURCE, required=False
