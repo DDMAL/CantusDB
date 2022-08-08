@@ -187,6 +187,13 @@
                     <dd><small>4) Edit the fields <b>according to the manuscript, following the fulltext guidelines created by Cantus</b></small></dd>
                     <dd><small>5) Click <b>"SAVE"</b></small></dd>
                 </dl> 
+                <a href="{% url "source-create" %}" style="display: inline-block; margin-top:5px;">
+                    <small><b>&plus; Add new source</b></small>
+                </a>
+                <br>
+                <a href="{{ source.get_absolute_url }}" style="display: inline-block; margin-top:5px;">
+                    {{ source.siglum }}
+                </a>
             {% endif %}
         </div>
 
