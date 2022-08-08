@@ -167,8 +167,8 @@ def csv_export(request, source_id):
         source = Source.objects.get(id=source_id)
     except:
         raise Http404("This source does not exist")
-    # "4064" is the segment id of the sequence DB, sources in that segment has sequences instead of chants
-    if source.segment.id == 4064:
+    # "4064" is the segment id of the sequence DB, sources in that segment have sequences instead of chants
+    if source.segment and source.segment.id == 4064:
         entries = source.sequence_set.order_by("id")
     else:
         entries = source.chant_set.order_by("id").select_related(
