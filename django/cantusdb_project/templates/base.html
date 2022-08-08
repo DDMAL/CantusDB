@@ -313,7 +313,7 @@
                     </div>
                     <div class="col-md" id="login">
                         {% if not request.user.is_anonymous %}
-                            <h5>Contributor Navigation</h5>
+                            <h5>Admin Navigation</h5>
                             <ul class="list-group list-group-flush">
                                 {% if request.user|has_group:"contributor" or request.user|has_group:"editor" or request.user|has_group:"project manager" %}
                                     <li class="list-group-item p-0">
