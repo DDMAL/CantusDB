@@ -193,8 +193,8 @@ class SourceCreateForm(forms.ModelForm):
     provenance.widget.attrs.update({"class": "form-control custom-select custom-select-sm"})
 
     TRUE_FALSE_CHOICES_SOURCE = (
-        (True, "Full"), 
-        (False, "Fragment")
+        (True, "Full source"), 
+        (False, "Fragment or Fragmented")
     )
 
     full_source = forms.ChoiceField(
@@ -403,22 +403,22 @@ class SourceEditForm(forms.ModelForm):
     provenance = forms.ModelChoiceField(
         queryset=Provenance.objects.all().order_by("name"), required=False
     )
-    provenance.widget.attrs.update({"class": "form-control custom-select custom-select-sm"}) # what does this do? - this adds styling - TODO remove these comments
+    provenance.widget.attrs.update({"class": "form-control custom-select custom-select-sm"}) # adds styling
     
     century = forms.ModelMultipleChoiceField(
         queryset=Century.objects.all().order_by("name"), required = False
     )
-    century.widget.attrs.update({"class": "form-control custom-select custom-select-sm"}) # what does this do?
+    century.widget.attrs.update({"class": "form-control custom-select custom-select-sm"})
 
     CHOICES_FULL_SOURCE = (
         (None, "None"),
         (True, "Full source"),
-        (False, "Fragment or Fragmented"),
+        (False, "Fragment or Fragmented"),        
     )
     full_source = forms.ChoiceField(
         choices=CHOICES_FULL_SOURCE, required=False
     )
-    full_source.widget.attrs.update({"class": "form-control custom-select custom-select-sm"}) # what does this do?
+    full_source.widget.attrs.update({"class": "form-control custom-select custom-select-sm"})
 
     CHOICES_CURSUS = (
         (None, "None"),
@@ -428,7 +428,7 @@ class SourceEditForm(forms.ModelForm):
     cursus = forms.ChoiceField(
         choices=CHOICES_CURSUS, required=False
     )
-    cursus.widget.attrs.update({"class": "form-control custom-select custom-select-sm"}) # what does this do?
+    cursus.widget.attrs.update({"class": "form-control custom-select custom-select-sm"})
 
     current_editors = forms.ModelMultipleChoiceField(
         queryset=get_user_model().objects.filter(
@@ -450,7 +450,7 @@ class SourceEditForm(forms.ModelForm):
     complete_inventory = forms.ChoiceField(
         choices=CHOICES_COMPLETE_INV, required=False
     )
-    complete_inventory.widget.attrs.update({"class": "form-control custom-select custom-select-sm"}) # what does this do?
+    complete_inventory.widget.attrs.update({"class": "form-control custom-select custom-select-sm"})
 
 class SequenceEditForm(forms.ModelForm):
     class Meta:
