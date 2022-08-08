@@ -6,6 +6,14 @@
 <div class="container">
     <div class="row">
         <div class="mr-3 p-3 col-lg-8 bg-white rounded">
+
+            <!--Display messages -->
+            {% for message in messages %}
+                <div class="alert {{ message.tags }} alert-dismissible" role="alert" >
+                    {{ message }}
+                </div>
+            {% endfor %}
+
             <!--Display form error message -->
             {% if form.errors %}
                 <div class="alert alert-danger alert-dismissible">
@@ -131,6 +139,12 @@
                             {{ form.differentia }}
                         </div>
                         <div class="form-group m-1 col-lg-2">
+                            <label for="{{ form.differentia_id.id_for_label }}">
+                                <small>Differentia DB:</small>
+                            </label>
+                            {{ form.differentia_id }}
+                        </div>
+                        <div class="form-group m-1 col-lg-2">
                             <small>{{ form.extra.label_tag }}</small>
                             {{ form.extra }}
                         </div>
@@ -238,7 +252,7 @@
                                     <tr>
                                         <td class="h-25" style="width: 5%">{{ chant.sequence_number }}</td>
                                         <td class="h-25" style="width: 20%">{{ chant.office.name|default_if_none:"" }} <b>{{ chant.genre.name|default_if_none:"" }}</b> {{ chant.position|default_if_none:"" }} </td>
-                                        <td class="h-25" style="width: 40%; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; max-width: 0"><a href="{{ chant.get_absolute_url }}">{{ chant.incipit|default_if_none:"" }}</a></td>
+                                        <td class="h-25" style="width: 40%; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; max-width: 0"><a href="{{ chant.get_absolute_url }}" target="_blank">{{ chant.incipit|default_if_none:"" }}</a></td>
                                         <td class="h-25" style="width: 20%"><a href="{{ chant.get_ci_url }}" target="_blank">{{ chant.cantus_id|default_if_none:"" }}</a></td>
                                         <td class="h-25" style="width: 5%">{{ chant.mode|default:"" }}</td>
                                         <td class="h-25" style="width: 10%">

@@ -249,6 +249,7 @@ class ChantEditForm(forms.ModelForm):
             "mode",
             "finalis",
             "differentia",
+            "differentia_id",
             "extra",
             "image_link",
             "indexing_notes"
@@ -260,14 +261,13 @@ class ChantEditForm(forms.ModelForm):
             "marginalia": TextInputWidget(),
             "folio": TextInputWidget(),
             "sequence": TextInputWidget(),
-            "office": TextInputWidget(),
-            "genre": TextInputWidget(),
             "position": TextInputWidget(),
             "cantus_id": TextInputWidget(),
             "melody_id": TextInputWidget(),
             "mode": TextInputWidget(),
             "finalis": TextInputWidget(),
             "differentia": TextInputWidget(),
+            "differentia_id": TextInputWidget(),
             "extra": TextInputWidget(),
             "image_link": TextInputWidget(),
             "indexing_notes": TextAreaWidget()
@@ -276,6 +276,16 @@ class ChantEditForm(forms.ModelForm):
         queryset=Feast.objects.all().order_by("name"), required=False
     )
     feast.widget.attrs.update({"class": "form-control custom-select custom-select-sm"})
+
+    office = forms.ModelChoiceField(
+        queryset=Office.objects.all().order_by("name"), required=False
+    )
+    office.widget.attrs.update({"class": "form-control custom-select custom-select-sm"})
+
+    genre = forms.ModelChoiceField(
+        queryset=Genre.objects.all().order_by("name"), required=False
+    )
+    genre.widget.attrs.update({"class": "form-control custom-select custom-select-sm"})
 
 class ChantProofreadForm(forms.ModelForm):
     class Meta:
