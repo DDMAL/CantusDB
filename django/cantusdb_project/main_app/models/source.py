@@ -1,5 +1,5 @@
 from django.db import models
-from main_app.models import BaseModel
+from main_app.models import BaseModel, Segment
 from django.contrib.auth import get_user_model
 
 
@@ -109,4 +109,8 @@ class Source(BaseModel):
         string = '{t} ({i})'.format(t=self.title, i=self.id)
         return string
 
-    
+    def save(self, *args, **kwargs):
+        # when creating a source, assign it to "Cantus Database" by default
+        cantus_db_segment = Segment.objects.get(name="CANTUS Database")
+        self.segment = cantus_db_segment
+        super().save(*args, **kwargs)
