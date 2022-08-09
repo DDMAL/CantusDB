@@ -1,5 +1,4 @@
 import calendar
-from tokenize import String
 from typing import Union, Optional
 from django.utils.http import urlencode
 from django import template
