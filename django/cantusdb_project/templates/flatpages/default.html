@@ -32,16 +32,17 @@
                     }
                 </script>
             </div>
-            <div class="card mt-3 w-100">
-                <div class="card-header">
-                    What's New
-                </div>
-                <div class="card-body">
-                    <ul>
+
+            {% if request.user.is_anonymous %}
+                <div class="card mt-3 w-100">
+                    <div class="card-header">
+                        What's New
+                    </div>
+                    <div class="card-body">
                         {% recent_articles %}
-                    </ul>
+                    </div>
                 </div>
-            </div>
+            {% endif %}
         </div>
     </div>
 </div>
