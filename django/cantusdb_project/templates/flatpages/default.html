@@ -43,6 +43,18 @@
                     </div>
                 </div>
             {% endif %}
+
+            {% if not request.user.is_anonymous %}
+                <div class="card mt-3 w-100">
+                    <div class="card-header">
+                        My Sources
+                    </div>
+                    <div class="card-body">
+                        <a href="{% url 'my-sources' %}">My Sources</a>
+                    </div>
+                </div>
+
+            {% endif %}
         </div>
     </div>
 </div>
