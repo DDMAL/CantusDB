@@ -49,7 +49,7 @@
                         {% if object.created_by is None %}
                             {{ object.created_by }}
                         {% else %}
-                            <a href="/admin/users/user/{{ object.created_by.id }}/change/">
+                            <a href="{% url 'admin:users_user_change' object.created_by.id %}">
                                 {{ object.created_by }}
                             </a>
                         {% endif %}
@@ -59,7 +59,7 @@
                         {% if object.last_updated_by is None %}
                             {{ object.last_updated_by }}
                         {% else %}
-                            <a href="/admin/users/user/{{ object.last_updated_by.id }}/change/">
+                            <a href="{% url 'admin:users_user_change' object.last_updated_by.id %}">
                                 {{ object.last_updated_by }}
                             </a>
                         {% endif %}
