@@ -50,7 +50,8 @@
                         My Sources
                     </div>
                     <div class="card-body">
-                        <a href="{% url 'my-sources' %}">My Sources</a>
+                        <small><b><a href="{% url 'source-create' %}">+ Add new source</a></b></small>
+                        {% my_sources user %}
                     </div>
                 </div>
             {% endif %}
