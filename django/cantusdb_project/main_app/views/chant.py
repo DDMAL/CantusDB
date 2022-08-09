@@ -969,9 +969,18 @@ class ChantEditVolpianoView(LoginRequiredMixin, UserPassesTestMixin, UpdateView)
         # filter the chants with optional search params
         if feast_id:
             chants = chants.filter(feast__id=feast_id)
-        if folio:
+        elif folio:
             chants = chants.filter(folio=folio)
-        self.queryset = chants.order_by("id")
+        # when one initially navigates to a source's edit-volpiano page, the first folio in the source is selected by default
+        else:
+            folios = (
+                chants.values_list("folio", flat=True)
+                .distinct()
+                .order_by("folio")
+            )
+            initial_folio = folios[0]
+            chants = chants.filter(folio=initial_folio)
+        self.queryset = chants
         return self.queryset
     
     def get_object(self):
@@ -1126,9 +1135,16 @@ class ChantEditVolpianoView(LoginRequiredMixin, UserPassesTestMixin, UpdateView)
         # the options for the feast selector on the right, same as the source detail page
         context["feasts_with_folios"] = get_feast_selector_options(source, folios)
 
-        if self.request.GET.get("folio"):
+        # the user has selected a folio, or,
+        # they have just navigated to the edit-chant page (where the first folio gets selected by default)
+        if self.request.GET.get("folio") or (not self.request.GET.get("folio") and not self.request.GET.get("feast")):
             # if browsing chants on a specific folio
-            folio = self.request.GET.get("folio")
+            if self.request.GET.get("folio"):
+                folio = self.request.GET.get("folio")
+            else:
+                folio = folios[0]
+                # will be used in the template to pre-select the first folio in the drop-down
+                context["initial_GET_folio"] = folio
             index = list(folios).index(folio)
             # get the previous and next folio, if available
             context["previous_folio"] = folios[index - 1] if index != 0 else None
@@ -1139,7 +1155,7 @@ class ChantEditVolpianoView(LoginRequiredMixin, UserPassesTestMixin, UpdateView)
             # need to render a list of chants, ordered by sequence number and grouped by feast
             context["feasts_current_folio"] = get_chants_with_feasts(self.queryset)
         
-        if self.request.GET.get("feast"):
+        elif self.request.GET.get("feast"):
             # if there is a "feast" query parameter, it means the user has chosen a specific feast
             # need to render a list of chants, grouped and ordered by folio and within each group,
             # ordered by sequence number
