@@ -325,22 +325,22 @@
                                 {% endif %}
                                 {% if request.user|has_group:"project manager" %}
                                     <li class="list-group-item p-0">
-                                        <a href="/admin/articles/article/add/">Add News</a>
+                                        <a href="{% url 'admin:articles_article_add' %}">Add News</a>
                                     </li>
                                     <li class="list-group-item p-0">
-                                        <a href="/admin/main_app/feast/add/">Add Feast</a>
+                                        <a href="{% url 'admin:main_app_feast_add' %}">Add Feast</a>
                                     </li>
                                     <li class="list-group-item p-0">
-                                        <a href="/admin/main_app/indexer/add/">Add Indexer</a>
+                                        <a href="{% url 'admin:main_app_indexer_add' %}">Add Indexer</a>
                                     </li>
                                     <li class="list-group-item p-0">
                                         <a href="{% url 'indexer-list' %}">List of Indexers</a>
                                     </li>
                                     <li class="list-group-item p-0">
-                                        <a href="/admin/users/user/">Administer Users</a>
+                                        <a href="{% url 'admin:users_user_changelist' %}">Administer Users</a>
                                     </li>
                                     <li class="list-group-item p-0">
-                                        <a href="/admin/">Taxonomy Manager</a>
+                                        <a href="{% url 'admin:index' %}">Taxonomy Manager</a>
                                     </li>
                                     <li class="list-group-item p-0">
                                         <a href="{% url 'content-overview' %}">Content Overview</a>
