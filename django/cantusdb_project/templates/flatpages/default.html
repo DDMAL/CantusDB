@@ -42,9 +42,7 @@
                         {% recent_articles %}
                     </div>
                 </div>
-            {% endif %}
-
-            {% if not request.user.is_anonymous %}
+            {% else %}
                 <div class="card mt-3 w-100">
                     <div class="card-header">
                         My Sources
