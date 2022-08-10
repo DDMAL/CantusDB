@@ -1,4 +1,3 @@
-from turtle import position
 import lxml.html as lh
 import requests
 import urllib
