@@ -1,11 +1,9 @@
-import sys
-import time
-import random
-
 from main_app.models import Feast, Genre, Office, Source, Chant
 from django.core.management.base import BaseCommand
 from django.core.exceptions import ObjectDoesNotExist, ValidationError
 from django.core.validators import URLValidator
+from django.contrib.auth import get_user_model
+
 import requests, json
 import lxml.html as lh
 
@@ -70,13 +68,13 @@ def get_new_chant(chant_id):
             with open("error_log.txt", "a") as error_file:
                 error_file.write(f"chant {chant_id} STATUS {status} ")
                 error_file.write("\n")
-            # print(f"STATUS {status} at chant {chant_id}")
     except TypeError:
         assert json_response == False
         with open("error_log.txt", "a") as error_file:
             error_file.write(f"chant {chant_id} json not found")
             error_file.write("\n")
         return
+
     try:
         incipit = json_response["title"]
     except KeyError:
@@ -84,52 +82,63 @@ def get_new_chant(chant_id):
         with open("error_log.txt", "a") as error_file:
             error_file.write(f"chant {chant_id} missing incipit")
             error_file.write("\n")
-        # print(f"chant {chant_id} missing incipit")
+
     try:
         siglum = json_response["field_siglum_chant"]["und"][0]["value"]
     except (KeyError, TypeError):
         siglum = None
+
     try:
         marginalia = json_response["field_marginalia"]["und"][0]["value"]
     # also except TypeError here, in case chant["field_marginalia"] is an empty list
     except (KeyError, TypeError):
         marginalia = None
+
     try:
         folio = json_response["field_folio"]["und"][0]["value"]
     except (KeyError, TypeError):
         folio = None
+
     try:
         sequence_number = int(json_response["field_sequence"]["und"][0]["value"])
     except (KeyError, TypeError):
         sequence_number = None
+
     try:
         position = json_response["field_position"]["und"][0]["value"]
     except (KeyError, TypeError):
         position = None
+
     try:
         cantus_id = json_response["field_cantus_id"]["und"][0]["value"]
     except (KeyError, TypeError):
         cantus_id = None
+
     try:
         mode = json_response["field_mode"]["und"][0]["value"]
     except (KeyError, TypeError):
         mode = None
+
     try:
         differentia = json_response["field_differentia"]["und"][0]["value"]
     except (KeyError, TypeError):
         differentia = None
+
     try:
         finalis = json_response["field_finalis"]["und"][0]["value"]
     except (KeyError, TypeError):
         finalis = None
+
     try:
         extra = json_response["field_extra"]["und"][0]["value"]
     except (KeyError, TypeError):
         extra = None
+
     try:
         chant_range = json_response["field_range"]["und"][0]["value"]
     except (KeyError, TypeError):
         chant_range = None
+
     try:
         addendum = json_response["field_addendum"]["und"][0]["value"]
     except (KeyError, TypeError):
@@ -201,6 +210,17 @@ def get_new_chant(chant_id):
     except (KeyError, TypeError):
         content_structure = None
 
+    # proofread_by is User, the other "people" fields are Indexer
+    proofread_by = []
+    try:
+        proofreaders = json_response["field_proofread_by"]["und"]
+        for entry in proofreaders:
+            user_id = entry["uid"]
+            user = get_user_model().objects.get(id=user_id)
+            proofread_by.append(user)
+    except (KeyError, TypeError):
+        proofread_by = []
+
     try:
         source_id = json_response["field_source"]["und"][0]["target_id"]
         source = Source.objects.get(id=source_id)
@@ -209,7 +229,6 @@ def get_new_chant(chant_id):
             error_file.write(f"Chant {chant_id} empty source")
             error_file.write("\n")
         source = None
-        # raise Exception(f"Chant {chant_id} Missing source")
     except ObjectDoesNotExist:
         # before running this script, we should have run sync_sources, so we should have all sources by now
         # if some chants have unknown source, write those to log
@@ -217,7 +236,6 @@ def get_new_chant(chant_id):
             error_file.write(f"Chant {chant_id} Unknown source {source_id}")
             error_file.write("\n")
         source = None
-        # raise Exception(f"Chant {chant_id} Unknown source {source_id}")
 
     try:
         office_id = json_response["field_office"]["und"][0]["target_id"]
@@ -272,8 +290,6 @@ def get_new_chant(chant_id):
             "volpiano_proofread": volpiano_proofread,
             "image_link": image_link,
             "cao_concordances": concordances,
-            # proofread_by is User, not Indexer
-            # "proofread_by": proofread_by,
             "melody_id": melody_id,
             "indexing_notes": indexing_notes,
             "content_structure": content_structure,
@@ -283,6 +299,7 @@ def get_new_chant(chant_id):
     if created:
         print(f"Created new chant {chant_id}")
 
+    chant_obj.proofread_by.set(proofread_by)
 
 def remove_extra():
     waterloo_ids = get_chant_list(CHANT_ID_FILE)
@@ -315,19 +332,8 @@ class Command(BaseCommand):
         id = options["id"]
         if id == "all":
             all_chants = get_chant_list(CHANT_ID_FILE)
-            # random_ids = random.sample(all_chants, 5)
-            # print(random_ids)
-            # length = len(all_chants)
-            for i, chant_id in enumerate(all_chants):
-                # print(chant_id)
+            for chant_id in all_chants:
                 get_new_chant(chant_id)
-                # if i % 100 == 0:
-                # sleep_time = random.randrange(5, 10)
-                # sleep_time = random.randrange(1, 2)
-                # print(f"sleeping...{sleep_time}")
-                # time.sleep(sleep_time)
-                # percent_done = round(((i / length) * 100), 4)
-                # sys.stdout.write(f"\r{percent_done} %")
         else:
             get_new_chant(id)
 
