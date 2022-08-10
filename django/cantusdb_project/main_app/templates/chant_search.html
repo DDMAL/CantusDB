@@ -59,6 +59,10 @@
                 <input type="text" class="form-control form-control-sm" name="feast" id="feast" value="{{ request.GET.feast }}">
             </div>
             <div class="form-group m-1 col-lg">
+                <label for="position"><small>Position</small></label>
+                <input type="text" class="form-control form-control-sm" name="position" id="position" value="{{ request.GET.position }}">
+            </div>
+            <div class="form-group m-1 col-lg">
                 <label for="melodiesFilter"><small>Melodies</small></label>
                 <select class="form-control custom-select custom-select-sm" id="melodiesFilter" name="melodies">
                     <option value="">- Any -</option>
