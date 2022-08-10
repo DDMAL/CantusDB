@@ -21,10 +21,10 @@ class SequenceDetailView(DetailView):
 
     def get_context_data(self, **kwargs):
 
-        # if the sequence's source isn't public, only logged-in users should be able to view the sequence's detail page
+        # if the sequence's source isn't published, only logged-in users should be able to view the sequence's detail page
         sequence = self.get_object()
         source = sequence.source
-        if (source.public is False) and (not self.request.user.is_authenticated):
+        if (source.published is False) and (not self.request.user.is_authenticated):
             raise PermissionDenied()
         
         context = super().get_context_data(**kwargs)

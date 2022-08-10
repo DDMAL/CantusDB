@@ -63,9 +63,9 @@ class ChantDetailView(DetailView):
         context = super().get_context_data(**kwargs)
         chant = self.get_object()
         
-        # if the chant's source isn't public, only logged-in users should be able to view the chant's detail page
+        # if the chant's source isn't published, only logged-in users should be able to view the chant's detail page
         source = chant.source
-        if (source.public is False) and (not self.request.user.is_authenticated):
+        if (source.published is False) and (not self.request.user.is_authenticated):
             raise PermissionDenied()
 
         # syllabification section
@@ -202,7 +202,7 @@ class ChantListView(ListView):
         source_id = self.request.GET.get("source")
         source = Source.objects.get(id=source_id)
         
-        if (source.public is False) and (not self.request.user.is_authenticated):
+        if (source.published is False) and (not self.request.user.is_authenticated):
             raise PermissionDenied()
 
         # optional search params

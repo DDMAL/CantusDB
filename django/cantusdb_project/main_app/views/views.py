@@ -34,11 +34,11 @@ def items_count(request):
         HttpResponse: Render the page
     """
     # in items count, the number on old cantus shows the total count of a type of object (chant, seq)
-    # no matter public or not
-    # but for the count of sources, it only shows the count of public sources
+    # no matter published or not
+    # but for the count of sources, it only shows the count of published sources
     chant_count = Chant.objects.count()
     sequence_count = Sequence.objects.count()
-    source_count = Source.objects.filter(public=True).count()
+    source_count = Source.objects.filter(published=True).count()
 
     context = {
         "chant_count": chant_count,
@@ -330,7 +330,7 @@ def ajax_melody_search(request):
     mode = request.GET.get("mode")
     source = request.GET.get("source")
 
-    # only include public chants in the result
+    # only include published chants in the result
     chants = Chant.objects.filter(source__published=True)
 
     # if "search exact matches + transpositions"

@@ -39,7 +39,7 @@ class IndexerListView(SearchableListMixin, ListView):
             .get_queryset()
             .annotate(
                 source_count=Count(
-                    "sources_inventoried", filter=Q(sources_inventoried__public=True)
+                    "sources_inventoried", filter=Q(sources_inventoried__published=True)
                 )
             )
             .exclude(source_count=0)
