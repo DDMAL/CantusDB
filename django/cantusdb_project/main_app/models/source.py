@@ -19,21 +19,11 @@ class Source(BaseModel):
         ("Unpublished / No indexing activity", "Unpublished / No indexing activity"),
     ]
 
-    # Here, "public" indicates whether a source will EVER be seen by the public. 
-    # `public=True` for regular sources, which might not be published yet but will eventually be.
-    # `public=False` for test sources, which are only for testing purpose and will never be published. 
-
-    # If `public=True` & `published=True`, the source is accessible to the public.
-
-    # If `public=True` & `published=False`, the source is a work in progress. 
-    # It's hidden from the public, but can be seen in lists and through urls for logged-in users.
-
-    # If `public=False`, the source is a test/hidden source.
-    # It's hidden from the public and it doesn't appear in lists.
-    # The only access is through the url by logged-in users.
-    
-    public = models.BooleanField(blank=True, null=True)
-    published = models.BooleanField(blank=True, null=True)
+    # The old Cantus uses two fields to jointly control the access to sources. 
+    # Here in the new Cantus, we only use one field, and there are two levels: published and unpublished.
+    # Published sources are available to the public. 
+    # Unpublished sources are hidden from the list and cannot be accessed by URL until the user logs in.
+    published = models.BooleanField(blank=False, null=False)
 
     title = models.CharField(
         max_length=255,

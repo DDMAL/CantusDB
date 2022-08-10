@@ -51,13 +51,6 @@ def get_new_source(source_id):
     json_response = json.loads(response.content)
     title = json_response["title"]
 
-    # public=1 for regular source, public=0 for private source (e.g., test source)
-    # non-logged-in user can't see private source by any means
-    # logged-in user can access private source through url, but a private source never appear in any list 
-    public = json_response["status"]
-    if public != "1":
-        print(f"STATUS {public} at source {source_id}")
-
     try:
         siglum = json_response["field_siglum"]["und"][0]["value"]
     except (KeyError, TypeError):
@@ -258,14 +251,22 @@ def get_new_source(source_id):
     except (KeyError, TypeError):
         dact_id = None
 
+    # A field on old Cantus. It controls access to sources together with source_status_id
+    # possible values: string "0" and "1"
+    status_published = int(json_response["status"])
+
     # a source_status_id of None is considered published, because all sequence sources
     #  have a source_status of None, and they are all published
     if source_status_id in ["4212", "4217", "4547", None]:
-        published = True
+        source_status_published = True
     elif source_status_id in ["4208", "4209", "4210", "4211", "4213"]:
-        published = False
+        source_status_published = False
     else:
         raise Exception(f"UNKNOWN SOURCE STATUS ID {source_status_id}")
+
+    # this is the only field that controls source access on new Cantus
+    # True for published, False for unpublished
+    published = status_published and source_status_published
 
     # current editors are User, the other "people" fields are Indexer
     current_editors = []
@@ -288,7 +289,6 @@ def get_new_source(source_id):
         id=source_id,
         defaults={
             "title": title,
-            "public": public,
             "published": published,
             "siglum": siglum,
             "rism_siglum": rism_siglum,
