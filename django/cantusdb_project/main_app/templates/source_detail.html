@@ -49,7 +49,7 @@
                     <dt>Other Editors</dt>
                     <dd>
                         {% for editor in source.other_editors.all %}
-                        <a href={{ editor.get_absolute_url }}>{{ editor.first_name }} {{ editor.family_name }}</a><br>
+                        <a href={{ editor.get_absolute_url }}>{{ editor.given_name }} {{ editor.family_name }}</a><br>
                         {% endfor %}
                     </dd>
                 {% endif %}
@@ -58,7 +58,7 @@
                     <dt>Full Text Entered by</dt>
                     <dd>
                         {% for editor in source.full_text_entered_by.all %}
-                        <a href={{ editor.get_absolute_url }}>{{ editor.first_name }} {{ editor.family_name }}</a><br>
+                        <a href={{ editor.get_absolute_url }}>{{ editor.given_name }} {{ editor.family_name }}</a><br>
                         {% endfor %}
                     </dd>
                 {% endif %}
@@ -67,7 +67,7 @@
                     <dt>Melodies Entered by</dt>
                     <dd>
                         {% for editor in source.melodies_entered_by.all %}
-                        <a href={{ editor.get_absolute_url }}>{{ editor.first_name }} {{ editor.family_name }}</a><br>
+                        <a href={{ editor.get_absolute_url }}>{{ editor.given_name }} {{ editor.family_name }}</a><br>
                         {% endfor %}
                     </dd>
                 {% endif %}
@@ -215,7 +215,7 @@
                             <ul>
                                 {% for editor in source.inventoried_by.all %}
                                     <li>
-                                        <a href={{ editor.get_absolute_url }}><b>{{ editor.first_name }}
+                                        <a href={{ editor.get_absolute_url }}><b>{{ editor.given_name }}
                                             {{ editor.family_name }}</b></a><br>
                                         {{ editor.institution|default_if_none:"" }}
                                     </li>
@@ -228,7 +228,7 @@
                             <ul>
                                 {% for editor in source.proofreaders.all %}
                                     <li>
-                                        <a href={{ editor.get_absolute_url }}><b>{{ editor.first_name }}
+                                        <a href={{ editor.get_absolute_url }}><b>{{ editor.given_name }}
                                             {{ editor.family_name }}</b></a><br>
                                     </li>
                                 {% endfor %}

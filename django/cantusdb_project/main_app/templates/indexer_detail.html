@@ -1,13 +1,13 @@
 {% extends "base.html" %}
 {% load helper_tags %}
 {% block content %}
-<title>{{ indexer.first_name }} {{ indexer.family_name }} | Cantus Manuscript Database</title>
+<title>{{ indexer.given_name }} {{ indexer.family_name }} | Cantus Manuscript Database</title>
 <div class="mr-3 p-3 mx-auto bg-white rounded">
     <!-- global search bar-->
     <object align="right">
         {% include "global_search_bar.html" %}
     </object>
-    <h3>{{ indexer.first_name }} {{ indexer.family_name }}</h3>
+    <h3>{{ indexer.given_name }} {{ indexer.family_name }}</h3>
     <dl class="list-inline">
         {% if indexer.institution %}
         <dt>Institution</dt>

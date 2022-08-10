@@ -16,12 +16,15 @@ class Source(BaseModel):
         ("Unpublished / Indexing process", "Unpublished / Indexing process"),
         ("Unpublished / Proofread pending", "Unpublished / Proofread pending"),
         ("Unpublished / Proofreading process", "Unpublished / Proofreading process"),
+        ("Unpublished / No indexing activity", "Unpublished / No indexing activity"),
     ]
 
-    # sources with public=False cannot be accessed by its url (access denied) and do not appear in source list
-    public = models.BooleanField(blank=True, null=True)
-    # sources with visible=False can be accessed by typing in the url, but do not appear in source list
-    visible = models.BooleanField(blank=True, null=True)
+    # The old Cantus uses two fields to jointly control the access to sources. 
+    # Here in the new Cantus, we only use one field, and there are two levels: published and unpublished.
+    # Published sources are available to the public. 
+    # Unpublished sources are hidden from the list and cannot be accessed by URL until the user logs in.
+    published = models.BooleanField(blank=False, null=False)
+
     title = models.CharField(
         max_length=255,
         help_text="Full Manuscript Identification (City, Archive, Shelf-mark)",
@@ -64,7 +67,6 @@ class Source(BaseModel):
     cursus = models.CharField(
         blank=True, null=True, choices=cursus_choices, max_length=63
     )
-    # TODO: Fill this field up with JSON info when I have access to the Users
     current_editors = models.ManyToManyField(get_user_model(), related_name="sources_user_can_edit")
     inventoried_by = models.ManyToManyField(
         "Indexer", related_name="sources_inventoried"
@@ -80,7 +82,7 @@ class Source(BaseModel):
     segment = models.ForeignKey(
         "Segment", on_delete=models.PROTECT, blank=True, null=True
     )
-    source_status = models.CharField(blank=True, null=True, max_length=255)
+    source_status = models.CharField(blank=True, null=True, choices=source_status_choices, max_length=255)
     complete_inventory = models.BooleanField(blank=True, null=True)
     summary = models.TextField(blank=True, null=True)
     liturgical_occasions = models.TextField(blank=True, null=True)

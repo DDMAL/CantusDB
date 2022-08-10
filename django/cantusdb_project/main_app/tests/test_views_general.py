@@ -40,93 +40,93 @@ class IndexerListViewTest(TestCase):
         self.assertTemplateUsed(response, "indexer_list.html")
 
     def test_only_public_indexer_visible(self):
-        """In the indexer list view, only public indexers (those who have at least one public source) should be visible"""
+        """In the indexer list view, only public indexers (those who have at least one published source) should be visible"""
         # generate some indexers
-        indexer_with_public_source = make_fake_indexer()
-        indexer_with_private_source = make_fake_indexer()
+        indexer_with_published_source = make_fake_indexer()
+        indexer_with_unpublished_source = make_fake_indexer()
         indexer_with_no_source = make_fake_indexer()
 
-        # generate public/private sources and assign indexers to them
-        private_source = Source.objects.create(title="private source", public=False)
-        private_source.inventoried_by.set([indexer_with_private_source])
+        # generate published/unpublished sources and assign indexers to them
+        unpublished_source = Source.objects.create(title="unpublished source", published=False)
+        unpublished_source.inventoried_by.set([indexer_with_unpublished_source])
 
-        public_source = Source.objects.create(title="published source", public=True)
-        public_source.inventoried_by.set([indexer_with_public_source])
+        published_source = Source.objects.create(title="published source", published=True)
+        published_source.inventoried_by.set([indexer_with_published_source])
 
         source_with_multiple_indexers = Source.objects.create(
-            title="private source with multiple indexers", public=False,
+            title="unpublished source with multiple indexers", published=False,
         )
         source_with_multiple_indexers.inventoried_by.set(
-            [indexer_with_public_source, indexer_with_private_source]
+            [indexer_with_published_source, indexer_with_unpublished_source]
         )
 
         # access the page context, only the public indexer should be in the context
         response = self.client.get(reverse("indexer-list"))
         self.assertEqual(response.status_code, 200)
-        self.assertIn(indexer_with_public_source, response.context["indexers"])
-        self.assertNotIn(indexer_with_private_source, response.context["indexers"])
+        self.assertIn(indexer_with_published_source, response.context["indexers"])
+        self.assertNotIn(indexer_with_unpublished_source, response.context["indexers"])
         self.assertNotIn(indexer_with_no_source, response.context["indexers"])
 
-    def test_search_first_name(self):
+    def test_search_given_name(self):
         """
         Indexer can be searched by passing a `q` parameter to the url \\
         Search fields include first name, family name, country, city, and institution \\
         Only public indexers should appear in the results
         """
-        indexer_with_public_source = make_fake_indexer()
-        public_source = Source.objects.create(title="published source", public=True,)
-        public_source.inventoried_by.set([indexer_with_public_source])
+        indexer_with_published_source = make_fake_indexer()
+        published_source = Source.objects.create(title="published source", published=True)
+        published_source.inventoried_by.set([indexer_with_published_source])
 
         # search with a random slice of first name
-        target = indexer_with_public_source.first_name
+        target = indexer_with_published_source.given_name
         search_term = get_random_search_term(target)
         response = self.client.get(reverse("indexer-list"), {"q": search_term})
         self.assertEqual(response.status_code, 200)
-        self.assertIn(indexer_with_public_source, response.context["indexers"])
+        self.assertIn(indexer_with_published_source, response.context["indexers"])
 
     def test_search_family_name(self):
-        indexer_with_public_source = make_fake_indexer()
-        public_source = Source.objects.create(title="published source", public=True,)
-        public_source.inventoried_by.set([indexer_with_public_source])
+        indexer_with_published_source = make_fake_indexer()
+        published_source = Source.objects.create(title="published source", published=True)
+        published_source.inventoried_by.set([indexer_with_published_source])
 
-        target = indexer_with_public_source.family_name
+        target = indexer_with_published_source.family_name
         search_term = get_random_search_term(target)
         response = self.client.get(reverse("indexer-list"), {"q": search_term})
         self.assertEqual(response.status_code, 200)
-        self.assertIn(indexer_with_public_source, response.context["indexers"])
+        self.assertIn(indexer_with_published_source, response.context["indexers"])
 
     def test_search_country(self):
-        indexer_with_public_source = make_fake_indexer()
-        public_source = Source.objects.create(title="published source", public=True,)
-        public_source.inventoried_by.set([indexer_with_public_source])
+        indexer_with_published_source = make_fake_indexer()
+        published_source = Source.objects.create(title="published source", published=True)
+        published_source.inventoried_by.set([indexer_with_published_source])
 
-        target = indexer_with_public_source.country
+        target = indexer_with_published_source.country
         search_term = get_random_search_term(target)
         response = self.client.get(reverse("indexer-list"), {"q": search_term})
         self.assertEqual(response.status_code, 200)
-        self.assertIn(indexer_with_public_source, response.context["indexers"])
+        self.assertIn(indexer_with_published_source, response.context["indexers"])
 
     def test_search_city(self):
-        indexer_with_public_source = make_fake_indexer()
-        public_source = Source.objects.create(title="published source", public=True,)
-        public_source.inventoried_by.set([indexer_with_public_source])
+        indexer_with_published_source = make_fake_indexer()
+        published_source = Source.objects.create(title="published source", published=True)
+        published_source.inventoried_by.set([indexer_with_published_source])
 
-        target = indexer_with_public_source.city
+        target = indexer_with_published_source.city
         search_term = get_random_search_term(target)
         response = self.client.get(reverse("indexer-list"), {"q": search_term})
         self.assertEqual(response.status_code, 200)
-        self.assertIn(indexer_with_public_source, response.context["indexers"])
+        self.assertIn(indexer_with_published_source, response.context["indexers"])
 
     def test_search_institution(self):
-        indexer_with_public_source = make_fake_indexer()
-        public_source = Source.objects.create(title="published source", public=True,)
-        public_source.inventoried_by.set([indexer_with_public_source])
+        indexer_with_published_source = make_fake_indexer()
+        published_source = Source.objects.create(title="published source", published=True)
+        published_source.inventoried_by.set([indexer_with_published_source])
 
-        target = indexer_with_public_source.institution
+        target = indexer_with_published_source.institution
         search_term = get_random_search_term(target)
         response = self.client.get(reverse("indexer-list"), {"q": search_term})
         self.assertEqual(response.status_code, 200)
-        self.assertIn(indexer_with_public_source, response.context["indexers"])
+        self.assertIn(indexer_with_published_source, response.context["indexers"])
 
 
 class IndexerDetailViewTest(TestCase):
@@ -274,7 +274,7 @@ class FeastDetailViewTest(TestCase):
         self.assertEqual(feast, response.context["feast"])
 
     def test_most_frequent_chants(self):
-        source = Source.objects.create(public=True, visible=True, title="public_source")
+        source = Source.objects.create(published=True, title="published_source")
         feast = make_fake_feast()
         # 3 chants with cantus id: 300000
         for i in range(3):
@@ -299,10 +299,10 @@ class FeastDetailViewTest(TestCase):
 
     def test_sources_containing_this_feast(self):
         big_source = Source.objects.create(
-            public=True, visible=True, title="big_source", siglum="big"
+            published=True, title="big_source", siglum="big"
         )
         small_source = Source.objects.create(
-            public=True, visible=True, title="small_source", siglum="small"
+            published=True, title="small_source", siglum="small"
         )
         feast = make_fake_feast()
         # 3 chants in the big source
@@ -529,36 +529,28 @@ class SourceListViewTest(TestCase):
         centuries = response.context["centuries"]
         self.assertIn({"id": century.id, "name": century.name}, centuries)
 
-    def test_only_public_sources_visible(self):
-        """For a source to be displayed in the list, its `public` and `visible` fields must both be `True`"""
-        public_source = Source.objects.create(
-            public=True, visible=True, title="public source"
+    def test_only_published_sources_visible(self):
+        """For a source to be displayed in the list, its `published` field must be `True`"""
+        published_source = Source.objects.create(
+            published=True, title="published source"
         )
-        private_source1 = Source.objects.create(
-            public=False, visible=True, title="private source"
-        )
-        private_source2 = Source.objects.create(
-            public=False, visible=False, title="private source"
-        )
-        private_source3 = Source.objects.create(
-            public=True, visible=False, title="private source"
+        private_source = Source.objects.create(
+            published=False, title="private source"
         )
         response = self.client.get(reverse("source-list"))
         sources = response.context["sources"]
-        self.assertIn(public_source, sources)
-        self.assertNotIn(private_source1, sources)
-        self.assertNotIn(private_source2, sources)
-        self.assertNotIn(private_source3, sources)
+        self.assertIn(published_source, sources)
+        self.assertNotIn(private_source, sources)
 
     def test_filter_by_segment(self):
         """The source list can be filtered by `segment`, `provenance`, `century`, and `full_source`"""
         cantus_segment = Segment.objects.create(name="cantus")
         clavis_segment = Segment.objects.create(name="clavis")
         chant_source = Source.objects.create(
-            segment=cantus_segment, title="chant source", public=True, visible=True
+            segment=cantus_segment, title="chant source", published=True
         )
         seq_source = Source.objects.create(
-            segment=clavis_segment, title="sequence source", public=True, visible=True
+            segment=clavis_segment, title="sequence source", published=True
         )
 
         # display chant sources only
@@ -582,18 +574,16 @@ class SourceListViewTest(TestCase):
         albi = make_fake_provenance()
         aachen_source = Source.objects.create(
             provenance=aachen,
-            public=True,
-            visible=True,
+            published=True,
             title="source originated in Aachen",
         )
         albi_source = Source.objects.create(
             provenance=albi,
-            public=True,
-            visible=True,
+            published=True,
             title="source originated in Albi",
         )
         no_provenance_source = Source.objects.create(
-            public=True, visible=True, title="source with empty provenance"
+            published=True, title="source with empty provenance"
         )
 
         # display sources in Aachen
@@ -612,17 +602,17 @@ class SourceListViewTest(TestCase):
         tenth_century = Century.objects.create(name="10th century")
 
         ninth_century_source = Source.objects.create(
-            public=True, visible=True, title="source",
+            published=True, title="source",
         )
         ninth_century_source.century.set([ninth_century])
 
         ninth_century_first_half_source = Source.objects.create(
-            public=True, visible=True, title="source",
+            published=True, title="source",
         )
         ninth_century_first_half_source.century.set([ninth_century_first_half])
 
         multiple_century_source = Source.objects.create(
-            public=True, visible=True, title="source",
+            published=True, title="source",
         )
         multiple_century_source.century.set([ninth_century, tenth_century])
 
@@ -649,17 +639,17 @@ class SourceListViewTest(TestCase):
 
     def test_filter_by_full_source(self):
         full_source = Source.objects.create(
-            full_source=True, public=True, visible=True, title="full source"
+            full_source=True, published=True, title="full source"
         )
         fragment = Source.objects.create(
-            full_source=False, public=True, visible=True, title="fragment"
+            full_source=False, published=True, title="fragment"
         )
         unknown = Source.objects.create(
-            public=True, visible=True, title="full_source field is empty"
+            published=True, title="full_source field is empty"
         )
 
         # display full sources
-        response = self.client.get(reverse("source-list"), {"fullsource": "true"})
+        response = self.client.get(reverse("source-list"), {"fullSource": "true"})
         sources = response.context["sources"]
         # full_source and unknown_source should be in the list, fragment should not
         self.assertIn(full_source, sources)
@@ -667,7 +657,7 @@ class SourceListViewTest(TestCase):
         self.assertIn(unknown, sources)
 
         # display fragments
-        response = self.client.get(reverse("source-list"), {"fullsource": "false"})
+        response = self.client.get(reverse("source-list"), {"fullSource": "false"})
         sources = response.context["sources"]
         # fragment should be in the list, full_source and unknown_source should not
         self.assertNotIn(full_source, sources)
@@ -685,7 +675,7 @@ class SourceListViewTest(TestCase):
     def test_search_by_title(self):
         """The "general search" field searches in `title`, `siglum`, `rism_siglum`, `description`, and `summary`"""
         source = Source.objects.create(
-            title=make_fake_text(max_size=20), public=True, visible=True
+            title=make_fake_text(max_size=20), published=True
         )
         search_term = get_random_search_term(source.title)
         response = self.client.get(reverse("source-list"), {"general": search_term})
@@ -693,7 +683,7 @@ class SourceListViewTest(TestCase):
 
     def test_search_by_siglum(self):
         source = Source.objects.create(
-            siglum=make_fake_text(max_size=20), public=True, visible=True, title="title"
+            siglum=make_fake_text(max_size=20), published=True, title="title"
         )
         search_term = get_random_search_term(source.siglum)
         response = self.client.get(reverse("source-list"), {"general": search_term})
@@ -702,7 +692,7 @@ class SourceListViewTest(TestCase):
     def test_search_by_rism_siglum_name(self):
         rism_siglum = make_fake_rism_siglum()
         source = Source.objects.create(
-            rism_siglum=rism_siglum, public=True, visible=True, title="title",
+            rism_siglum=rism_siglum, published=True, title="title",
         )
         search_term = get_random_search_term(source.rism_siglum.name)
         response = self.client.get(reverse("source-list"), {"general": search_term})
@@ -711,7 +701,7 @@ class SourceListViewTest(TestCase):
     def test_search_by_rism_siglum_description(self):
         rism_siglum = make_fake_rism_siglum()
         source = Source.objects.create(
-            rism_siglum=rism_siglum, public=True, visible=True, title="title",
+            rism_siglum=rism_siglum, published=True, title="title",
         )
         search_term = get_random_search_term(source.rism_siglum.description)
         response = self.client.get(reverse("source-list"), {"general": search_term})
@@ -720,8 +710,7 @@ class SourceListViewTest(TestCase):
     def test_search_by_description(self):
         source = Source.objects.create(
             description=make_fake_text(max_size=200),
-            public=True,
-            visible=True,
+            published=True,
             title="title",
         )
         search_term = get_random_search_term(source.description)
@@ -731,8 +720,7 @@ class SourceListViewTest(TestCase):
     def test_search_by_summary(self):
         source = Source.objects.create(
             summary=make_fake_text(max_size=200),
-            public=True,
-            visible=True,
+            published=True,
             title="title",
         )
         search_term = get_random_search_term(source.summary)
@@ -743,8 +731,7 @@ class SourceListViewTest(TestCase):
         """The "indexing notes" field searches in `indexing_notes` and indexer/editor related fields"""
         source = Source.objects.create(
             indexing_notes=make_fake_text(max_size=200),
-            public=True,
-            visible=True,
+            published=True,
             title="title",
         )
         search_term = get_random_search_term(source.indexing_notes)
@@ -780,6 +767,7 @@ class SourceDetailViewTest(TestCase):
         source = Source.objects.create(
             segment=Segment.objects.create(id=4064, name="Bower Sequence Database"),
             title="a sequence source",
+            published=True
         )
         Sequence.objects.create(source=source, folio="001r")
         Sequence.objects.create(source=source, folio="001r")
@@ -818,6 +806,7 @@ class SourceDetailViewTest(TestCase):
         source = Source.objects.create(
             segment=Segment.objects.create(id=4064, name="Bower Sequence Database"),
             title="a sequence source",
+            published=True
         )
         sequence = Sequence.objects.create(source=source)
         # request the page
@@ -842,9 +831,9 @@ class SequenceListViewTest(TestCase):
         self.assertEqual(sequences.query.order_by, ("siglum", "sequence"))
 
     def test_search_incipit(self):
-        # create a public sequence source and some sequence in it
+        # create a published sequence source and some sequence in it
         source = Source.objects.create(
-            public=True, visible=True, title="a sequence source"
+            published=True, title="a sequence source"
         )
         sequence = Sequence.objects.create(
             incipit=make_fake_text(max_size=30), source=source
@@ -856,9 +845,9 @@ class SequenceListViewTest(TestCase):
         self.assertIn(sequence, response.context["sequences"])
 
     def test_search_siglum(self):
-        # create a public sequence source and some sequence in it
+        # create a published sequence source and some sequence in it
         source = Source.objects.create(
-            public=True, visible=True, title="a sequence source"
+            published=True, title="a sequence source"
         )
         sequence = Sequence.objects.create(
             siglum=make_fake_text(max_size=10), source=source
@@ -870,9 +859,9 @@ class SequenceListViewTest(TestCase):
         self.assertIn(sequence, response.context["sequences"])
 
     def test_search_cantus_id(self):
-        # create a public sequence source and some sequence in it
+        # create a published sequence source and some sequence in it
         source = Source.objects.create(
-            public=True, visible=True, title="a sequence source"
+            published=True, title="a sequence source"
         )
         # faker generates a fake cantus id, in the form of two letters followed by five digits
         sequence = Sequence.objects.create(
@@ -1114,7 +1103,7 @@ class ChantSearchViewTest(TestCase):
         self.assertTemplateUsed(response, "chant_search.html")
 
     def test_search_by_office(self):
-        source = Source.objects.create(public=True, visible=True, title="a source")
+        source = Source.objects.create(published=True, title="a source")
         office = make_fake_office()
         chant = Chant.objects.create(source=source, office=office)
         search_term = get_random_search_term(office.name)
@@ -1122,28 +1111,28 @@ class ChantSearchViewTest(TestCase):
         self.assertIn(chant, response.context["chants"])
 
     def test_filter_by_genre(self):
-        source = Source.objects.create(public=True, visible=True, title="a source")
+        source = Source.objects.create(published=True, title="a source")
         genre = make_fake_genre()
         chant = Chant.objects.create(source=source, genre=genre)
         response = self.client.get(reverse("chant-search"), {"genre": genre.id})
         self.assertIn(chant, response.context["chants"])
 
     def test_search_by_cantus_id(self):
-        source = Source.objects.create(public=True, visible=True, title="a source")
+        source = Source.objects.create(published=True, title="a source")
         chant = Chant.objects.create(source=source, cantus_id=faker.numerify("######"))
         search_term = get_random_search_term(chant.cantus_id)
         response = self.client.get(reverse("chant-search"), {"cantus_id": search_term})
         self.assertIn(chant, response.context["chants"])
 
     def test_search_by_mode(self):
-        source = Source.objects.create(public=True, visible=True, title="a source")
+        source = Source.objects.create(published=True, title="a source")
         chant = Chant.objects.create(source=source, mode=faker.numerify("#"))
         search_term = get_random_search_term(chant.mode)
         response = self.client.get(reverse("chant-search"), {"mode": search_term})
         self.assertIn(chant, response.context["chants"])
 
     def test_search_by_feast(self):
-        source = Source.objects.create(public=True, visible=True, title="a source")
+        source = Source.objects.create(published=True, title="a source")
         feast = make_fake_feast()
         chant = Chant.objects.create(source=source, feast=feast)
         search_term = get_random_search_term(feast.name)
@@ -1151,7 +1140,7 @@ class ChantSearchViewTest(TestCase):
         self.assertIn(chant, response.context["chants"])
 
     def test_filter_by_melody(self):
-        source = Source.objects.create(public=True, visible=True, title="a source")
+        source = Source.objects.create(published=True, title="a source")
         chant_with_melody = Chant.objects.create(
             source=source, volpiano=make_fake_text(max_size=20)
         )
@@ -1162,7 +1151,7 @@ class ChantSearchViewTest(TestCase):
         self.assertNotIn(chant_without_melody, response.context["chants"])
 
     def test_keyword_search_starts_with(self):
-        source = Source.objects.create(public=True, visible=True, title="a source")
+        source = Source.objects.create(published=True, title="a source")
         chant = Chant.objects.create(
             source=source, incipit=make_fake_text(max_size=200)
         )
@@ -1174,7 +1163,7 @@ class ChantSearchViewTest(TestCase):
         self.assertIn(chant, response.context["chants"])
 
     def test_keyword_search_contains(self):
-        source = Source.objects.create(public=True, visible=True, title="a source")
+        source = Source.objects.create(published=True, title="a source")
         chant = Chant.objects.create(
             source=source, manuscript_full_text=make_fake_text(max_size=400)
         )
@@ -1201,7 +1190,7 @@ class ChantSearchMSViewTest(TestCase):
         self.assertTemplateUsed(response, "chant_search.html")
 
     def test_search_by_office(self):
-        # source = Source.objects.create(public=True, visible=True, title="a source")
+        # source = Source.objects.create(public=True,published, title="a source")
         source = make_fake_source()
         office = make_fake_office()
         chant = Chant.objects.create(source=source, office=office)
@@ -1312,6 +1301,7 @@ class FullIndexViewTest(TestCase):
         seq_source = Source.objects.create(
             segment=Segment.objects.create(id=4064, name="Clavis Sequentiarium"),
             title="a sequence source",
+            published=True
         )
         sequence = Sequence.objects.create(source=seq_source)
         response = self.client.get(reverse("chant-index"), {"source": seq_source.id})

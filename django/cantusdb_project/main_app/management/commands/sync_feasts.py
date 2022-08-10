@@ -9,7 +9,7 @@ FEAST_ID_FILE = "feast_list.txt"
 def get_list_file(file_path):
     """for this one we need to scrape because it's more 'automated' than manual export
     """
-    FEAST_LIST_PAGES = 8
+    FEAST_LIST_PAGES = 9
     f = open(file_path, "w")
     url = "https://cantus.uwaterloo.ca/feasts"
     # add arguments for paginations

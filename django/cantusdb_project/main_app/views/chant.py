@@ -63,9 +63,9 @@ class ChantDetailView(DetailView):
         context = super().get_context_data(**kwargs)
         chant = self.get_object()
         
-        # if the chant's source isn't public, only logged-in users should be able to view the chant's detail page
+        # if the chant's source isn't published, only logged-in users should be able to view the chant's detail page
         source = chant.source
-        if (source.public is False) and (not self.request.user.is_authenticated):
+        if (source.published is False) and (not self.request.user.is_authenticated):
             raise PermissionDenied()
 
         # syllabification section
@@ -202,7 +202,7 @@ class ChantListView(ListView):
         source_id = self.request.GET.get("source")
         source = Source.objects.get(id=source_id)
         
-        if (source.public is False) and (not self.request.user.is_authenticated):
+        if (source.published is False) and (not self.request.user.is_authenticated):
             raise PermissionDenied()
 
         # optional search params
@@ -389,10 +389,8 @@ class ChantSearchView(ListView):
 
         # if the search is accessed by the global search bar
         if self.request.GET.get("search_bar"):
-            chant_set = Chant.objects.filter(source__public=True, source__visible=True)
-            sequence_set = Sequence.objects.filter(
-                source__public=True, source__visible=True
-            )
+            chant_set = Chant.objects.filter(source__published=True)
+            sequence_set = Sequence.objects.filter(source__published=True)
             if self.request.GET.get("search_bar").replace(" ", "").isalpha():
                 # if search bar is doing incipit search
                 incipit = self.request.GET.get("search_bar")
@@ -446,10 +444,8 @@ class ChantSearchView(ListView):
                 feasts = Feast.objects.filter(name__icontains=feast)
                 q_obj_filter &= Q(feast__in=feasts)
 
-            chant_set = Chant.objects.filter(source__public=True, source__visible=True)
-            sequence_set = Sequence.objects.filter(
-                source__public=True, source__visible=True
-            )
+            chant_set = Chant.objects.filter(source__published=True)
+            sequence_set = Sequence.objects.filter(source__published=True)
             # Filter the QuerySet with Q object
             chant_set = chant_set.filter(q_obj_filter)
             sequence_set = sequence_set.filter(q_obj_filter)

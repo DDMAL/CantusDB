@@ -152,14 +152,14 @@ class IndexerModelTest(TestCase):
     def setUpTestData(cls):
         make_fake_indexer()
 
-    def test_first_name_label(self):
+    def test_given_name_label(self):
         indexer = Indexer.objects.first()
-        field_label = indexer._meta.get_field("first_name").verbose_name
-        self.assertEqual(field_label, "first name")
+        field_label = indexer._meta.get_field("given_name").verbose_name
+        self.assertEqual(field_label, "given name")
 
-    def test_first_name_max_length(self):
+    def test_given_name_max_length(self):
         indexer = Indexer.objects.first()
-        max_length = indexer._meta.get_field("first_name").max_length
+        max_length = indexer._meta.get_field("given_name").max_length
         self.assertEqual(max_length, 50)
 
     def test_family_name_label(self):

@@ -27,7 +27,7 @@ class IndexerListView(SearchableListMixin, ListView):
     """
 
     model = Indexer
-    search_fields = ["first_name", "family_name", "institution", "city", "country"]
+    search_fields = ["given_name", "family_name", "institution", "city", "country"]
     paginate_by = 100
     template_name = "indexer_list.html"
     context_object_name = "indexers"
@@ -39,7 +39,7 @@ class IndexerListView(SearchableListMixin, ListView):
             .get_queryset()
             .annotate(
                 source_count=Count(
-                    "sources_inventoried", filter=Q(sources_inventoried__public=True)
+                    "sources_inventoried", filter=Q(sources_inventoried__published=True)
                 )
             )
             .exclude(source_count=0)

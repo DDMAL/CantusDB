@@ -43,7 +43,7 @@ def get_new_indexer(indexer_id):
     indexer, created = Indexer.objects.update_or_create(
         id=indexer_id,
         defaults={
-            "first_name": first_name,
+            "given_name": first_name,
             "family_name": family_name,
             "institution": institution,
             "city": city,

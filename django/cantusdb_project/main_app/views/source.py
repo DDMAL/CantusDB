@@ -72,7 +72,7 @@ class SourceDetailView(DetailView):
             return folios_with_feasts
 
         source = self.get_object()
-        if (source.public is False) and (not self.request.user.is_authenticated):
+        if (source.published is False) and (not self.request.user.is_authenticated):
             raise PermissionDenied()
 
         context = super().get_context_data(**kwargs)
@@ -118,14 +118,7 @@ class SourceListView(ListView):
 
     def get_queryset(self):
         queryset = super().get_queryset()
-        # q_obj_filter = Q(visible_status="1")
-        # q_obj_filter &= ~Q(source_status="Published / Proofread pending")
-        # q_obj_filter &= ~Q(source_status="Unpublished / Proofread pending")
-        # q_obj_filter &= ~Q(
-        #     source_status="Editing process (not all the fields have been proofread)"
-        # )
-        q_obj_filter = Q(public=True)
-        q_obj_filter &= Q(visible=True)
+        q_obj_filter = Q(published=True)
 
         if self.request.GET.get("century"):
             century_name = Century.objects.get(id=self.request.GET.get("century")).name
@@ -137,16 +130,14 @@ class SourceListView(ListView):
         if self.request.GET.get("segment"):
             segment_id = int(self.request.GET.get("segment"))
             q_obj_filter &= Q(segment__id=segment_id)
-        if self.request.GET.get("fullsource") in ["true", "false"]:
-            full_source_str = self.request.GET.get("fullsource")
+        if self.request.GET.get("fullSource") in ["true", "false"]:
+            full_source_str = self.request.GET.get("fullSource")
             if full_source_str == "true":
                 full_source_q = Q(full_source=True) | Q(full_source=None)
                 q_obj_filter &= full_source_q
             else:
                 q_obj_filter &= Q(full_source=False)
-        # Maybe change this to lookup in a search vector with the vector Postgres field?
-        # I would have to add a signal to update the vector with changes like I did
-        # with SIMSSADB
+
         if self.request.GET.get("general"):
             # Strip spaces at the beginning and end. Then make list of terms split on spaces
             general_search_terms = self.request.GET.get("general").strip(" ").split(" ")
@@ -201,19 +192,19 @@ class SourceListView(ListView):
             # field, allowing for a more flexible search, and a field needs
             # to match only one of the terms
             for term in indexing_search_terms:
-                inventoried_by_q |= Q(inventoried_by__first_name__icontains=term) | Q(
+                inventoried_by_q |= Q(inventoried_by__given_name__icontains=term) | Q(
                     inventoried_by__family_name__icontains=term
                 )
                 full_text_entered_by_q |= Q(
-                    full_text_entered_by__first_name__icontains=term
+                    full_text_entered_by__given_name__icontains=term
                 ) | Q(full_text_entered_by__family_name__icontains=term)
                 melodies_entered_by_q |= Q(
-                    melodies_entered_by__first_name__icontains=term
+                    melodies_entered_by__given_name__icontains=term
                 ) | Q(melodies_entered_by__family_name__icontains=term)
-                proofreaders_q |= Q(proofreaders__first_name__icontains=term) | Q(
+                proofreaders_q |= Q(proofreaders__given_name__icontains=term) | Q(
                     proofreaders__family_name__icontains=term
                 )
-                other_editors_q |= Q(other_editors__first_name__icontains=term) | Q(
+                other_editors_q |= Q(other_editors__given_name__icontains=term) | Q(
                     other_editors__family_name__icontains=term
                 )
                 indexing_notes_q |= Q(indexing_notes__icontains=term)

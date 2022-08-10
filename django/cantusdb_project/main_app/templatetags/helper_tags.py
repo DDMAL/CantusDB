@@ -103,15 +103,12 @@ def url_add_get_params(context, **kwargs):
 @register.simple_tag(takes_context=False)
 def source_links():
     sources = (
-        Source.objects.filter(public=True, visible=True, segment__id=4063)
+        Source.objects.filter(published=True, segment__id=4063)
         .exclude(siglum=None)
         .values("siglum", "id")
         .order_by("siglum")
     )
     options = ""
-    # <option value="source1">Source 1</option>
-    # <option value="source2">Source 2</option>
-    # <option value="source3">Source 3</option>
     for source in sources:
         option_str = (
             f"<option value=source/{source['id']}>{source['siglum']}</option>\n"
