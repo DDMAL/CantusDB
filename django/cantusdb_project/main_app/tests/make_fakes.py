@@ -95,7 +95,6 @@ def make_fake_chant() -> Chant:
         volpiano_proofread=faker.boolean(),
         image_link=faker.image_url(),
         cao_concordances=make_fake_text(SHORT_CHAR_FIELD_MAX),
-        proofread_by=None,
         melody_id=make_fake_text(SHORT_CHAR_FIELD_MAX),
         manuscript_syllabized_full_text=make_fake_text(
             max_size=MAX_NUMBER_TEXT_CHARS, min_size=MIN_NUMBER_TEXT_CHARS
@@ -215,7 +214,7 @@ def make_fake_sequence() -> Sequence:
     return sequence
 
 
-def make_fake_source() -> Source:
+def make_fake_source(published=True) -> Source:
     """Generates a fake Source object."""
     # The cursus_choices and source_status_choices lists in Source are lists of
     # tuples and we only need the first element of each tuple
@@ -223,6 +222,7 @@ def make_fake_source() -> Source:
     source_status_choices = [x[0] for x in Source.source_status_choices]
 
     source = Source.objects.create(
+        published=published,
         title=make_fake_text(LONG_CHAR_FIELD_MAX),
         siglum=make_fake_text(SHORT_CHAR_FIELD_MAX),
         rism_siglum=make_fake_rism_siglum(),
