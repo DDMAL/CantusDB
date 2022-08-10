@@ -1,3 +1,4 @@
+from turtle import position
 import lxml.html as lh
 import requests
 import urllib
@@ -365,6 +366,7 @@ class ChantSearchView(ListView):
         ``genre``: Filters by Genre of Chant
         ``cantus_id``: Filters by the Cantus ID field of Chant
         ``mode``: Filters by mode of Chant
+        ``position``: Filters by position of chant
         ``melodies``: Filters Chant by whether or not it contains a melody in
                       Volpiano form. Valid values are "true" or "false".
         ``feast``: Filters by Feast of Chant
@@ -429,6 +431,9 @@ class ChantSearchView(ListView):
             if self.request.GET.get("mode"):
                 mode = self.request.GET.get("mode")
                 q_obj_filter &= Q(mode=mode)
+            if self.request.GET.get("position"):
+                position = self.request.GET.get("position")
+                q_obj_filter &= Q(position=position)
             if self.request.GET.get("melodies") in ["true", "false"]:
                 melodies = self.request.GET.get("melodies")
                 if melodies == "true":
