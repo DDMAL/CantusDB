@@ -106,7 +106,7 @@ class Source(BaseModel):
         return self.chant_set.filter(volpiano__isnull=False).count()
 
     def __str__(self):
-        string = '{t} ({i})'.format(t=self.title, i=self.id)
+        string = '[{s}] {t} ({i})'.format(s=self.rism_siglum, t=self.title, i=self.id)
         return string
 
     def save(self, *args, **kwargs):
