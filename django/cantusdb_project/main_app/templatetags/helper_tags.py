@@ -44,9 +44,8 @@ def my_sources(user):
         return link
     def make_add_new_chants_link(source):
         id = source.id
-        title = source.title
         url = reverse("chant-create", args=[id])
-        link = '<a href="{}">+ Add new chant</a>'.format(url, title) 
+        link = '<a href="{}">+ Add new chant</a>'.format(url) 
         return link
     def make_edit_chants_link(source):
         id = source.id
