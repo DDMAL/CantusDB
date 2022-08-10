@@ -5,7 +5,7 @@
     <title>{{ flatpage.title }} | Cantus Manuscript Database</title>
     <div class="row">
         <div class="mr-3 p-3 col-lg-8 bg-white rounded">
-            <h2>{{flatpage.title}}</h2>
+            <h2>{{ flatpage.title }}</h2>
             {{ flatpage.content }}
         </div>
         
@@ -32,6 +32,27 @@
                     }
                 </script>
             </div>
+
+            {% if request.user.is_anonymous %}
+                <div class="card mt-3 w-100">
+                    <div class="card-header">
+                        What's New
+                    </div>
+                    <div class="card-body">
+                        {% recent_articles %}
+                    </div>
+                </div>
+            {% else %}
+                <div class="card mt-3 w-100">
+                    <div class="card-header">
+                        My Sources
+                    </div>
+                    <div class="card-body">
+                        <small><b><a href="{% url 'source-create' %}">+ Add new source</a></b></small>
+                        {% my_sources user %}
+                    </div>
+                </div>
+            {% endif %}
         </div>
     </div>
 </div>

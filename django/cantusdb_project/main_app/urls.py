@@ -4,15 +4,13 @@ from main_app.views import views
 from main_app.views.sequence import SequenceEditView
 from main_app.views.source import SourceCreateView, SourceEditView
 from main_app.views.chant import ChantEditVolpianoView, ChantProofreadView
-from django.contrib.auth import views as auth_views
-from main_app.views.user import UserDetailView, UserSourceListView, CustomLogoutView, UserListView
+from main_app.views.user import UserDetailView, UserSourceListView, CustomLogoutView, UserListView, CustomLoginView
 
 urlpatterns = [
-    # static pages
     path("index/", FullIndexView.as_view(), name="chant-index"),
     path("contact/", views.contact_us, name="contact"),
     # login/logout/user
-    path('login/', auth_views.LoginView.as_view(redirect_authenticated_user=True), name="login"),
+    path('login/', CustomLoginView.as_view(redirect_authenticated_user=True), name="login"),
     path('logout/', CustomLogoutView.as_view(), name="logout"),
     path("my-sources/", UserSourceListView.as_view(), name="my-sources"),
     path("users/<int:pk>", UserDetailView.as_view(), name="user-detail"),
@@ -101,6 +99,12 @@ urlpatterns = [
         "ajax/concordance/<str:cantus_id>",
         views.ajax_concordance_list,
         name="ajax-concordance",
+    ),
+    # content overview (for project managers)
+    path(
+        "content-overview/",
+        views.content_overview,
+        name="content-overview",
     ),
 ]
 

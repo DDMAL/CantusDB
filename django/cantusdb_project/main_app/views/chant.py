@@ -365,6 +365,7 @@ class ChantSearchView(ListView):
         ``genre``: Filters by Genre of Chant
         ``cantus_id``: Filters by the Cantus ID field of Chant
         ``mode``: Filters by mode of Chant
+        ``position``: Filters by position of chant
         ``melodies``: Filters Chant by whether or not it contains a melody in
                       Volpiano form. Valid values are "true" or "false".
         ``feast``: Filters by Feast of Chant
@@ -427,6 +428,9 @@ class ChantSearchView(ListView):
             if self.request.GET.get("mode"):
                 mode = self.request.GET.get("mode")
                 q_obj_filter &= Q(mode=mode)
+            if self.request.GET.get("position"):
+                position = self.request.GET.get("position")
+                q_obj_filter &= Q(position=position)
             if self.request.GET.get("melodies") in ["true", "false"]:
                 melodies = self.request.GET.get("melodies")
                 if melodies == "true":
@@ -796,6 +800,7 @@ class ChantCreateView(LoginRequiredMixin, UserPassesTestMixin, CreateView):
             )
 
         if form.is_valid():
+            form.instance.created_by = self.request.user
             messages.success(
                 self.request,
                 "Chant '" + form.instance.incipit + "' created successfully!",
@@ -964,9 +969,18 @@ class ChantEditVolpianoView(LoginRequiredMixin, UserPassesTestMixin, UpdateView)
         # filter the chants with optional search params
         if feast_id:
             chants = chants.filter(feast__id=feast_id)
-        if folio:
+        elif folio:
             chants = chants.filter(folio=folio)
-        self.queryset = chants.order_by("id")
+        # when one initially navigates to a source's edit-volpiano page, the first folio in the source is selected by default
+        else:
+            folios = (
+                chants.values_list("folio", flat=True)
+                .distinct()
+                .order_by("folio")
+            )
+            initial_folio = folios[0]
+            chants = chants.filter(folio=initial_folio)
+        self.queryset = chants
         return self.queryset
     
     def get_object(self):
@@ -1121,9 +1135,16 @@ class ChantEditVolpianoView(LoginRequiredMixin, UserPassesTestMixin, UpdateView)
         # the options for the feast selector on the right, same as the source detail page
         context["feasts_with_folios"] = get_feast_selector_options(source, folios)
 
-        if self.request.GET.get("folio"):
+        # the user has selected a folio, or,
+        # they have just navigated to the edit-chant page (where the first folio gets selected by default)
+        if self.request.GET.get("folio") or (not self.request.GET.get("folio") and not self.request.GET.get("feast")):
             # if browsing chants on a specific folio
-            folio = self.request.GET.get("folio")
+            if self.request.GET.get("folio"):
+                folio = self.request.GET.get("folio")
+            else:
+                folio = folios[0]
+                # will be used in the template to pre-select the first folio in the drop-down
+                context["initial_GET_folio"] = folio
             index = list(folios).index(folio)
             # get the previous and next folio, if available
             context["previous_folio"] = folios[index - 1] if index != 0 else None
@@ -1134,23 +1155,36 @@ class ChantEditVolpianoView(LoginRequiredMixin, UserPassesTestMixin, UpdateView)
             # need to render a list of chants, ordered by sequence number and grouped by feast
             context["feasts_current_folio"] = get_chants_with_feasts(self.queryset)
         
-        if self.request.GET.get("feast"):
+        elif self.request.GET.get("feast"):
             # if there is a "feast" query parameter, it means the user has chosen a specific feast
             # need to render a list of chants, grouped and ordered by folio and within each group,
             # ordered by sequence number
             context["folios_current_feast"] = get_chants_with_folios(self.queryset)
 
-        # this boolean let's us decide whether to show the user the instructions or the editing form
+        # this boolean lets us decide whether to show the user the instructions or the editing form
         # if the pk hasn't been specified, a user hasn't selected a specific chant they want to edit
         # if so, we should display the instructions
-        if not self.request.GET.get("pk"):
-            context["pk_specified"] = False
-        else:
-            context["pk_specified"] = True
+        pk = self.request.GET.get("pk")
+        pk_specified = bool(pk)
+        context["pk_specified"] = pk_specified
+
+        # provide a suggested_fulltext for situations in which a chant has no
+        # manuscript_full_text_std_spelling
+        context["suggested_fulltext"] = ""
+        if pk_specified:
+            current_chant = Chant.objects.filter(pk=pk).first()
+            cantus_id = current_chant.cantus_id
+
+            request = requests.get(
+                    "http://cantusindex.org/json-cid/{}".format(cantus_id)
+            )
+            context["suggested_fulltext"] = json.loads(request.text[2:])[0]["fulltext"]
+
         return context
     
     def form_valid(self, form):
         if form.is_valid():
+            form.instance.last_updated_by = self.request.user
             messages.success(
                 self.request,
                 "Chant updated successfully!",
@@ -1158,6 +1192,10 @@ class ChantEditVolpianoView(LoginRequiredMixin, UserPassesTestMixin, UpdateView)
             return super().form_valid(form)
         else:
             return super().form_invalid(form)
+
+    def get_success_url(self):
+        # stay on the same page after save
+        return self.request.get_full_path()
 
 class ChantProofreadView(ChantEditVolpianoView):
     template_name = "chant_proofread.html"

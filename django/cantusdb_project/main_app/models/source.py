@@ -1,5 +1,5 @@
 from django.db import models
-from main_app.models import BaseModel
+from main_app.models import BaseModel, Segment
 from django.contrib.auth import get_user_model
 
 
@@ -67,10 +67,7 @@ class Source(BaseModel):
     cursus = models.CharField(
         blank=True, null=True, choices=cursus_choices, max_length=63
     )
-    current_editors = models.ManyToManyField(get_user_model(), related_name="sources_edited")
-    created_by = models.ForeignKey(
-        get_user_model(), related_name="sources_created", on_delete=models.CASCADE, blank=True, null=True
-    )
+    current_editors = models.ManyToManyField(get_user_model(), related_name="sources_user_can_edit")
     inventoried_by = models.ManyToManyField(
         "Indexer", related_name="sources_inventoried"
     )
@@ -111,7 +108,11 @@ class Source(BaseModel):
         return self.chant_set.filter(volpiano__isnull=False).count()
 
     def __str__(self):
-        string = '{t} ({i})'.format(t=self.title, i=self.id)
+        string = '[{s}] {t} ({i})'.format(s=self.rism_siglum, t=self.title, i=self.id)
         return string
 
-    
+    def save(self, *args, **kwargs):
+        # when creating a source, assign it to "Cantus Database" by default
+        cantus_db_segment = Segment.objects.get(name="CANTUS Database")
+        self.segment = cantus_db_segment
+        super().save(*args, **kwargs)

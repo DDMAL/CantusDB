@@ -109,6 +109,7 @@
 </head>
 
 <body>
+    <script async defer crossorigin="anonymous" src="https://connect.facebook.net/en_US/sdk.js#xfbml=1&version=v14.0" nonce="ILOxiQ1O"></script>
     <header>
         <!-- Navbar -->
         <div class="container">
@@ -247,15 +248,12 @@
                     </div>
                     <div class="col-md" id="facebook">
                         <h5>Facebook</h5>
-                        <iframe class="w-100"
-                            src="https://www.facebook.com/plugins/page.php?href=https%3A%2F%2Fwww.facebook.com%2FCantusDatabase&width=340&height=500&small_header=true&adapt_container_width=true&hide_cover=false&appId=390784934606260"
-                            style="border:none;" scrolling="yes" frameborder="0" allowTransparency="true">
-                        </iframe>
+                        <div class="fb-page" data-href="https://www.facebook.com/CantusDatabase/" data-width="" data-height="" data-small-header="false" data-adapt-container-width="true" data-hide-cover="false" data-show-facepile="false"><blockquote cite="https://www.facebook.com/CantusDatabase/" class="fb-xfbml-parse-ignore"><a href="hhttps://www.facebook.com/CantusDatabase/">Cantus Database</a></blockquote></div>
                     </div>
                     <div class="col-md" id="license">
                         <h5>Creative Commons License</h5>
                         <a href="http://creativecommons.org/licenses/by-nc-sa/4.0/">
-                            <img src="{% static "cc-logo.png" %}" alt="Creative Commons Logo" loading="lazy">
+                            <img src="{% static "creative-commons-logo.png" %}" alt="Creative Commons Logo" loading="lazy">
                         </a>
                         <p>
                             This work is licensed under a <a
@@ -266,9 +264,19 @@
                 </div>
                 <div class="row">
                     <div class="col-md" id="logos">
-                        <img class="img-fluid w-75" src="{% static "logoUW.png" %}" alt="University of Waterloo Logo"
-                            loading="lazy">
+                        <a href="https://uwaterloo.ca/margot/" target="_blank">
+                            <img class="img-fluid w-75" src="{% static "logoUW.png" %}" alt="University of Waterloo Logo"
+                                loading="lazy">
+                        </a>
+                        <a href="https://www.dal.ca/faculty/arts/school-of-performing-arts.html" target="_blank">
+                            <img class="img-fluid w-75" src="{% static "DalhousieLogo.jpg" %}" alt="Dalhousie University Logo"
+                                loading="lazy">
+                        </a>
                         <img class="img-fluid w-100" src="{% static "logoSSHRC.jpg" %}" alt="SSHRC Logo" loading="lazy">
+                        <a href="https://www.computecanada.ca" target="_blank">
+                            <img class="img-fluid w-75" src="{% static "compute-canada-logo.png" %}" alt="Compute Canada Logo"
+                                loading="lazy">
+                        </a>
                     </div>
                     <div class="col-md" id="contact-form">
                         <h5>Contact</h5>
@@ -315,7 +323,7 @@
                     </div>
                     <div class="col-md" id="login">
                         {% if not request.user.is_anonymous %}
-                            <h5>Contributor Navigation</h5>
+                            <h5>Admin Navigation</h5>
                             <ul class="list-group list-group-flush">
                                 {% if request.user|has_group:"contributor" or request.user|has_group:"editor" or request.user|has_group:"project manager" %}
                                     <li class="list-group-item p-0">
@@ -327,25 +335,25 @@
                                 {% endif %}
                                 {% if request.user|has_group:"project manager" %}
                                     <li class="list-group-item p-0">
-                                        <a href="">Add News</a>
+                                        <a href="{% url 'admin:articles_article_add' %}">Add News</a>
                                     </li>
                                     <li class="list-group-item p-0">
-                                        <a href="/admin/main_app/feast/add/">Add Feast</a>
+                                        <a href="{% url 'admin:main_app_feast_add' %}">Add Feast</a>
                                     </li>
                                     <li class="list-group-item p-0">
-                                        <a href="/admin/main_app/indexer/add/">Add Indexer</a>
+                                        <a href="{% url 'admin:main_app_indexer_add' %}">Add Indexer</a>
                                     </li>
                                     <li class="list-group-item p-0">
                                         <a href="{% url 'indexer-list' %}">List of Indexers</a>
                                     </li>
                                     <li class="list-group-item p-0">
-                                        <a href="/admin/users/user/">Administer Users</a>
+                                        <a href="{% url 'admin:users_user_changelist' %}">Administer Users</a>
                                     </li>
                                     <li class="list-group-item p-0">
-                                        <a href="/admin/">Taxonomy Manager</a>
+                                        <a href="{% url 'admin:index' %}">Taxonomy Manager</a>
                                     </li>
                                     <li class="list-group-item p-0">
-                                        <a href="">Content Overview</a>
+                                        <a href="{% url 'content-overview' %}">Content Overview</a>
                                     </li>
                                 {% endif %}
                             </ul>

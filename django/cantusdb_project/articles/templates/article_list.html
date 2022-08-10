@@ -5,15 +5,12 @@
     {% for article in articles %}
     <div class="row">
         <div class="col">
-            <small>{{article.date_created|date:"D, m/d/Y - H:i"}}</small>
+            <small>{{ article.date_created|date:"D, m/d/Y - H:i" }}</small>
             <h4>
-                <a href="{{article.get_absolute_url}}">{{article.title}}</a>
+                <a href="{{ article.get_absolute_url }}">{{ article.title }}</a>
             </h4>
             <div class="container">
-                {% if article.image_link %}
-                <img src="{{article.image_link|safe}}" class="img-fluid float-left m-3 h-25 w-25">
-                {% endif %}
-                {{ article.body |safe|truncatechars_html:3000 }}
+                {{ article.body|safe|truncatechars_html:3000 }}
             </div>
         </div>
     </div>

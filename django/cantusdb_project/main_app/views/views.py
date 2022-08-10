@@ -4,20 +4,29 @@ from django.http import HttpResponse, HttpResponseNotFound
 from django.shortcuts import render, redirect
 from django.urls.base import reverse
 from main_app.models import (
+    Century,
     Chant,
-    Sequence,
-    Source,
+    Feast,
+    Genre,
     Indexer,
+    Notation,
+    Office,
+    Provenance,
+    RismSiglum,
+    Segment,
+    Sequence,
+    Source
 )
 from main_app.forms import ContactForm
 from django.core.mail import send_mail, get_connection
-from django.contrib.auth.decorators import login_required
+from django.contrib.auth.decorators import login_required, user_passes_test
 from next_chants import next_chants
 from django.contrib import messages
 import random
 from django.http import Http404
 from django.contrib.auth import update_session_auth_hash
 from django.contrib.auth.forms import PasswordChangeForm
+from django.core.exceptions import PermissionDenied
 
 @login_required
 def items_count(request):
@@ -158,8 +167,8 @@ def csv_export(request, source_id):
         source = Source.objects.get(id=source_id)
     except:
         raise Http404("This source does not exist")
-    # "4064" is the segment id of the sequence DB, sources in that segment has sequences instead of chants
-    if source.segment.id == 4064:
+    # "4064" is the segment id of the sequence DB, sources in that segment have sequences instead of chants
+    if source.segment and source.segment.id == 4064:
         entries = source.sequence_set.order_by("id")
     else:
         entries = source.chant_set.order_by("id").select_related(
@@ -420,16 +429,16 @@ def ajax_search_bar(request, search_term):
     # load only the first seven chants
     CHANT_CNT = 7
 
-    if search_term.isalpha():
-        # if the search term contains only alphabet letters, search incipit
-        chants = Chant.objects.filter(incipit__icontains=search_term).order_by("id")[
-            :CHANT_CNT
-        ]
-    else:
-        # if the search term contains digits, search Cantus ID
+    if any(char.isdigit() for char in search_term):
+        # if the search term contains at least one digit, assume user is searching by Cantus ID
         chants = Chant.objects.filter(cantus_id__istartswith=search_term).order_by(
             "id"
         )[:CHANT_CNT]
+    else:
+        # if the search term does not contain any digits, assume user is searching by incipit
+        chants = Chant.objects.filter(incipit__icontains=search_term).order_by("id")[
+            :CHANT_CNT
+        ]
     returned_values = chants.values(
         "incipit",
         "genre__name",
@@ -568,12 +577,62 @@ def change_password(request):
     if request.method == 'POST':
         form = PasswordChangeForm(request.user, request.POST)
         if form.is_valid():
+            if request.user.changed_initial_password == False:
+                form.user.changed_initial_password = True
             user = form.save()
             update_session_auth_hash(request, user)
             messages.success(request, 'Your password was successfully updated!')
-            return redirect('change-password')
     else:
         form = PasswordChangeForm(request.user)
+        if request.user.changed_initial_password == False:
+            messages.warning(
+                request,
+                "The current password was assigned to you by default and is unsecure. Please make sure to change it for security purposes."
+            )
     return render(request, 'registration/change_password.html', {
         'form': form
+    })
+
+def pm_check(user):
+    """
+    A callback function that will be called by the user_passes_test decorator of content_overview.
+
+    Takes in a logged-in user as an argument.
+    Returns True if they are in a "project manager" group, raises PermissionDenied otherwise.
+    """
+    if user.groups.filter(name="project manager").exists():
+        return True
+    raise PermissionDenied
+
+# first give the user a chance to login
+@login_required
+# if they're logged in but they're not a project manager, raise 403
+@user_passes_test(pm_check)
+def content_overview(request):
+    objects = []
+    models = [
+        Century,
+        Chant,
+        Feast,
+        Genre,
+        Indexer,
+        Notation,
+        Office,
+        Provenance,
+        RismSiglum,
+        Segment,
+        Sequence,
+        Source
+    ]
+
+    # get the 50 most recently updated objects for all of the models
+    for model in models:
+        for object in model.objects.all().order_by("-date_updated")[:50]:
+            objects.append(object)
+
+    objects.sort(key=lambda x: x.date_updated, reverse=True)
+    recently_updated_50_objects = objects[:50]
+
+    return render(request, "content_overview.html", {
+        "objects": recently_updated_50_objects
     })

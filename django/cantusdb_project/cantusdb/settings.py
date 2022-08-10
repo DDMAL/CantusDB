@@ -58,8 +58,9 @@ INSTALLED_APPS = [
     "django.contrib.humanize",
     "extra_views",
     "main_app",
-    "users",
     "articles",
+    "django_quill", # to provide rich-text field for articles
+    "users",
 ]
 
 MIDDLEWARE = [
