@@ -388,10 +388,8 @@ class ChantSearchView(ListView):
 
         # if the search is accessed by the global search bar
         if self.request.GET.get("search_bar"):
-            chant_set = Chant.objects.filter(source__public=True, source__visible=True)
-            sequence_set = Sequence.objects.filter(
-                source__public=True, source__visible=True
-            )
+            chant_set = Chant.objects.filter(source__published=True)
+            sequence_set = Sequence.objects.filter(source__published=True)
             if self.request.GET.get("search_bar").replace(" ", "").isalpha():
                 # if search bar is doing incipit search
                 incipit = self.request.GET.get("search_bar")
@@ -442,10 +440,8 @@ class ChantSearchView(ListView):
                 feasts = Feast.objects.filter(name__icontains=feast)
                 q_obj_filter &= Q(feast__in=feasts)
 
-            chant_set = Chant.objects.filter(source__public=True, source__visible=True)
-            sequence_set = Sequence.objects.filter(
-                source__public=True, source__visible=True
-            )
+            chant_set = Chant.objects.filter(source__published=True)
+            sequence_set = Sequence.objects.filter(source__published=True)
             # Filter the QuerySet with Q object
             chant_set = chant_set.filter(q_obj_filter)
             sequence_set = sequence_set.filter(q_obj_filter)

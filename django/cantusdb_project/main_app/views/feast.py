@@ -31,9 +31,7 @@ class FeastDetailView(DetailView):
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
-        chants_in_feast = self.get_object().chant_set.filter(
-            source__public=True, source__visible=True
-        )
+        chants_in_feast = self.get_object().chant_set.filter(source__published=True)
         cantus_ids = list(
             chants_in_feast.values_list("cantus_id", flat=True).distinct()
         )

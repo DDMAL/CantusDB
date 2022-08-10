@@ -331,7 +331,7 @@ def ajax_melody_search(request):
     source = request.GET.get("source")
 
     # only include public chants in the result
-    chants = Chant.objects.filter(source__public=True, source__visible=True)
+    chants = Chant.objects.filter(source__published=True)
 
     # if "search exact matches + transpositions"
     if transpose == "true":
