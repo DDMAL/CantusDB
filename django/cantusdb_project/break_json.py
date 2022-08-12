@@ -34,8 +34,8 @@ for x in range(number_of_chants + 1):
     try:
         chant = next(chants)  # chant is a dict
         chant_list.append(chant)
-        print("processing chant: ", x)
         if (x + 1) % RESULT_BATCH_SIZE == 0:
+            print("processing chant: ", x)
             with open(
                 os.path.join(
                     TARGET_PATH,
