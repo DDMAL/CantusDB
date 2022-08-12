@@ -1,0 +1,84 @@
+{% extends "base.html" %}
+{% block content %}
+<title>Edit Syllabification | Cantus Manuscript Database</title>
+
+<div class="container">
+    <div class="row">
+        <div class="mr-3 p-3 col-lg-12 bg-white rounded">
+
+            <!--Display messages -->
+            {% for message in messages %}
+                <div class="alert {{ message.tags }} alert-dismissible" role="alert" >
+                    {{ message }}
+                </div>
+            {% endfor %}
+
+            <!--Display form error message -->
+            {% if form.errors %}
+                <div class="alert alert-danger alert-dismissible">
+                    <a href="#" class="close" data-dismiss="alert" aria-label="close">&times;</a>
+                    {% for error in form.non_field_errors %}
+                        <a href="#" class="close" data-dismiss="alert" aria-label="close">&times;</a>
+                        {{ error }}
+                    {% endfor %}
+                    {% for field in form %}
+                        {% if field.errors %}
+                            <a href="#" class="close" data-dismiss="alert" aria-label="close">&times;</a>
+                            {{ field.label }}: {{ field.errors|striptags }}
+                        {% endif %}
+                    {% endfor %}
+                </div>
+            {% endif %}
+            <h3>Edit Syllabification</h3>
+            <form method="post" style="line-height: normal">{% csrf_token %}
+
+                <div class="form-row">
+                    <div class="form-group m-1 col-lg-12">
+                        <label for="{{ form.manuscript_full_text.id_for_label }}">
+                            <small><b>Manuscript Reading Full Text (MS spelling):</b></small>
+                        </label>
+                        {{ form.manuscript_full_text }}
+                    </div>
+                </div>
+
+                <div class="form-row">
+                    <div class="form-group m-1 col-lg-12">
+                        <label for="{{ form.manuscript_syllabized_full_text.id_for_label }}">
+                            <small><b>Syllabized Full Text:</b></small>
+                        </label>
+                        {{ form.manuscript_syllabized_full_text }}
+                    </div>
+                </div>
+
+                {% if chant.volpiano %}
+                    <div class="form-row">
+                        <div class="form-group m-1 col-lg-12">
+                            <small><b>Preview of melody and text</b> | Close this tab after saving the correct syllabification:</small>
+                            <br>
+                            {% if chant.manuscript_syllabized_full_text %}
+                                <small>Syllabification is based on saved syllabized text.</small>
+                                <br>
+                            {% endif %}
+                            {% for zip in syllabized_text_with_melody %}
+                                {% for syl_mel, syl_text in zip %}
+                                    <span style="float: left">
+                                        <div style="font-family: volpiano; font-size: 28px">{{ syl_mel }}</div>
+                                        <!-- "mt" is margin at the top, so that the lowest note in volpiano don't overlap with text -->
+                                        <div class="mt-2" style="font-size: 10px"><pre>{{ syl_text }}</pre></div>
+                                    </span>
+                                {% endfor %}
+                            {% endfor %}
+                        </div>
+                    </div>
+                {% endif %}
+
+                <div class="form-row">
+                    <div class="form-group m-1 col-lg-2">
+                        <button type="submit" class="btn btn-dark btn-sm" id="btn-submit">Save</button>
+                    </div>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}

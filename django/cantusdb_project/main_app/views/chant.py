@@ -16,7 +16,7 @@ from django.views.generic import (
     UpdateView,
 )
 from django.core.exceptions import PermissionDenied
-from main_app.forms import ChantCreateForm, ChantEditForm, ChantProofreadForm
+from main_app.forms import ChantCreateForm, ChantEditForm, ChantProofreadForm, ChantEditSyllabificationForm
 from main_app.models import Chant, Feast, Genre, Source, Sequence
 from align_text_mel import *
 from django.contrib.auth.mixins import LoginRequiredMixin
@@ -1180,6 +1180,33 @@ class ChantEditVolpianoView(LoginRequiredMixin, UserPassesTestMixin, UpdateView)
             )
             context["suggested_fulltext"] = json.loads(request.text[2:])[0]["fulltext"]
 
+        chant = self.get_object()
+
+        # Preview of melody and text:
+        # in the old CantusDB,
+        # 'manuscript_syllabized_full_text' exists => preview constructed from 'manuscript_syllabized_full_text'
+        # no 'manuscript_syllabized_full_text', but 'manuscript_full_text' exists => preview constructed from 'manuscript_full_text'
+        # no 'manuscript_syllabized_full_text' and no 'manuscript_full_text' => preview constructed from 'manuscript_full_text_std_spelling'
+
+        if chant.volpiano:
+            syls_melody = syllabize_melody(chant.volpiano)
+
+            if chant.manuscript_syllabized_full_text:
+                syls_text = syllabize_text(
+                    chant.manuscript_syllabized_full_text, pre_syllabized=True
+                )
+            elif chant.manuscript_full_text:
+                syls_text = syllabize_text(
+                    chant.manuscript_full_text, pre_syllabized=False
+                )
+                syls_text, syls_melody = postprocess(syls_text, syls_melody)
+            elif chant.manuscript_full_text_std_spelling:
+                syls_text = syllabize_text(chant.manuscript_full_text_std_spelling, pre_syllabized=False)
+                syls_text, syls_melody = postprocess(syls_text, syls_melody)
+
+            word_zip = align(syls_text, syls_melody)
+            context["syllabized_text_with_melody"] = word_zip
+
         return context
     
     def form_valid(self, form):
@@ -1218,3 +1245,76 @@ class ChantProofreadView(ChantEditVolpianoView):
             return True
         else:
             return False
+
+class ChantEditSyllabificationView(LoginRequiredMixin, UserPassesTestMixin, UpdateView):
+    template_name = "chant_syllabification_edit.html"
+    model = Chant
+    context_object_name = "chant"
+    form_class = ChantEditSyllabificationForm
+    pk_url_kwarg = "chant_id"
+
+    def test_func(self):
+        chant = self.get_object()
+        source = chant.source
+        user = self.request.user
+
+        assigned_to_source = user.sources_user_can_edit.filter(id=source.id)
+
+        # checks if the user is a project manager
+        is_project_manager = user.groups.filter(name="project manager").exists()
+        # checks if the user is an editor,
+        is_editor = user.groups.filter(name="editor").exists()
+        # checks if the user is a contributor,
+        is_contributor = user.groups.filter(name="contributor").exists()
+
+        if ((is_project_manager)
+            or (is_editor and assigned_to_source)
+            or (is_editor and source.created_by == user)
+            or (is_contributor and assigned_to_source)
+            or (is_contributor and source.created_by == user)):
+            return True
+        else:
+            return False
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        chant = self.get_object()
+
+        # Preview of melody and text:
+        # in the old CantusDB,
+        # 'manuscript_syllabized_full_text' exists => preview constructed from 'manuscript_syllabized_full_text'
+        # no 'manuscript_syllabized_full_text', but 'manuscript_full_text' exists => preview constructed from 'manuscript_full_text'
+        # no 'manuscript_syllabized_full_text' and no 'manuscript_full_text' => preview constructed from 'manuscript_full_text_std_spelling'
+
+        if chant.volpiano:
+            syls_melody = syllabize_melody(chant.volpiano)
+
+            if chant.manuscript_syllabized_full_text:
+                syls_text = syllabize_text(
+                    chant.manuscript_syllabized_full_text, pre_syllabized=True
+                )
+            elif chant.manuscript_full_text:
+                syls_text = syllabize_text(
+                    chant.manuscript_full_text, pre_syllabized=False
+                )
+                syls_text, syls_melody = postprocess(syls_text, syls_melody)
+            elif chant.manuscript_full_text_std_spelling:
+                syls_text = syllabize_text(chant.manuscript_full_text_std_spelling, pre_syllabized=False)
+                syls_text, syls_melody = postprocess(syls_text, syls_melody)
+
+            word_zip = align(syls_text, syls_melody)
+            context["syllabized_text_with_melody"] = word_zip
+
+        return context
+
+    def form_valid(self, form):
+        form.instance.last_updated_by = self.request.user
+        messages.success(
+            self.request,
+            "Syllabification updated successfully!",
+        )
+        return super().form_valid(form)
+
+    def get_success_url(self):
+        # stay on the same page after save
+        return self.request.get_full_path()

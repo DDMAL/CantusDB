@@ -501,3 +501,15 @@ class SequenceEditForm(forms.ModelForm):
         queryset=Source.objects.all().order_by("title"), required = False
     )
     source.widget.attrs.update({"class": "form-control custom-select custom-select-sm"})
+
+class ChantEditSyllabificationForm(forms.ModelForm):
+    class Meta:
+        model = Chant
+        fields = [
+            "manuscript_full_text",
+            "manuscript_syllabized_full_text",
+        ]
+        widgets = {
+            "manuscript_full_text": TextAreaWidget(),
+            "manuscript_syllabized_full_text": TextAreaWidget(),
+        }

@@ -3,7 +3,7 @@ from main_app.views import *
 from main_app.views import views
 from main_app.views.sequence import SequenceEditView
 from main_app.views.source import SourceCreateView, SourceEditView
-from main_app.views.chant import ChantEditVolpianoView, ChantProofreadView
+from main_app.views.chant import ChantEditVolpianoView, ChantProofreadView, ChantEditSyllabificationView
 from main_app.views.user import UserDetailView, UserSourceListView, CustomLogoutView, UserListView, CustomLoginView
 
 urlpatterns = [
@@ -37,6 +37,11 @@ urlpatterns = [
         "proofread-chant/<int:source_id>", 
         ChantProofreadView.as_view(), 
         name="chant-proofread"
+    ),
+        path(
+        "edit-syllabification/<int:chant_id>",
+        ChantEditSyllabificationView.as_view(),
+        name="source-edit-syllabification"
     ),
     # feast
     path("feasts/", FeastListView.as_view(), name="feast-list"),

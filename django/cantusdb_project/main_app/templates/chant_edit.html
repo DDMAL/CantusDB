@@ -164,11 +164,42 @@
                         </div>
                     </div>
 
+                    {% if chant.volpiano %}
+                        <div class="form-row">
+                            <div class="form-group m-1 col-lg-12">
+                                <small>Preview of melody and text:</small>
+                                <br>
+                                {% if chant.manuscript_syllabized_full_text %}
+                                    <small>Syllabification is based on saved syllabized text.</small>
+                                    <br>
+                                {% endif %}
+                                {% for zip in syllabized_text_with_melody %}
+                                    {% for syl_mel, syl_text in zip %}
+                                        <span style="float: left">
+                                            <div style="font-family: volpiano; font-size: 28px">{{ syl_mel }}</div>
+                                            <!-- "mt" is margin at the top, so that the lowest note in volpiano don't overlap with text -->
+                                            <div class="mt-2" style="font-size: 10px"><pre>{{ syl_text }}</pre></div>
+                                        </span>
+                                    {% endfor %}
+                                {% endfor %}
+                            </div>
+                        </div>
+                    {% endif %}
+
+                    <div class="form-row">
+                        <div class="form-group m-1 col-lg-4">
+                            <a href="{% url "source-edit-syllabification" chant.id %}" style="display: inline-block; margin-top:5px;" target="_blank">
+                                <small>Edit syllabification (new window):</small>
+                            </a>
+                        </div>
+                    </div>
+
                     <div class="form-row">
                         <div class="form-group m-1 col-lg-2">
                             <button type="submit" class="btn btn-dark btn-sm" id="btn-submit">Save</button>
                         </div>
                     </div>
+
                     <div class="form-row">
                         <div class="form-group m-1 col-lg-4">
                             <small>
