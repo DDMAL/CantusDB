@@ -577,6 +577,8 @@ def change_password(request):
     if request.method == 'POST':
         form = PasswordChangeForm(request.user, request.POST)
         if form.is_valid():
+            # if the user is trying to change their password for the first time (the password that was given to them),
+            # update the user's changed_initial_password boolean field to True
             if request.user.changed_initial_password == False:
                 form.user.changed_initial_password = True
             user = form.save()
