@@ -1180,32 +1180,32 @@ class ChantEditVolpianoView(LoginRequiredMixin, UserPassesTestMixin, UpdateView)
             )
             context["suggested_fulltext"] = json.loads(request.text[2:])[0]["fulltext"]
 
-        # chant = self.get_object()
+        chant = self.get_object()
 
-        # # Preview of melody and text:
-        # # in the old CantusDB,
-        # # 'manuscript_syllabized_full_text' exists => preview constructed from 'manuscript_syllabized_full_text'
-        # # no 'manuscript_syllabized_full_text', but 'manuscript_full_text' exists => preview constructed from 'manuscript_full_text'
-        # # no 'manuscript_syllabized_full_text' and no 'manuscript_full_text' => preview constructed from 'manuscript_full_text_std_spelling'
+        # Preview of melody and text:
+        # in the old CantusDB,
+        # 'manuscript_syllabized_full_text' exists => preview constructed from 'manuscript_syllabized_full_text'
+        # no 'manuscript_syllabized_full_text', but 'manuscript_full_text' exists => preview constructed from 'manuscript_full_text'
+        # no 'manuscript_syllabized_full_text' and no 'manuscript_full_text' => preview constructed from 'manuscript_full_text_std_spelling'
 
-        # if chant.volpiano:
-        #     syls_melody = syllabize_melody(chant.volpiano)
+        if chant.volpiano:
+            syls_melody = syllabize_melody(chant.volpiano)
 
-        #     if chant.manuscript_syllabized_full_text:
-        #         syls_text = syllabize_text(
-        #             chant.manuscript_syllabized_full_text, pre_syllabized=True
-        #         )
-        #     elif chant.manuscript_full_text:
-        #         syls_text = syllabize_text(
-        #             chant.manuscript_full_text, pre_syllabized=False
-        #         )
-        #         syls_text, syls_melody = postprocess(syls_text, syls_melody)
-        #     elif chant.manuscript_full_text_std_spelling:
-        #         syls_text = syllabize_text(chant.manuscript_full_text_std_spelling, pre_syllabized=False)
-        #         syls_text, syls_melody = postprocess(syls_text, syls_melody)
+            if chant.manuscript_syllabized_full_text:
+                syls_text = syllabize_text(
+                    chant.manuscript_syllabized_full_text, pre_syllabized=True
+                )
+            elif chant.manuscript_full_text:
+                syls_text = syllabize_text(
+                    chant.manuscript_full_text, pre_syllabized=False
+                )
+                syls_text, syls_melody = postprocess(syls_text, syls_melody)
+            elif chant.manuscript_full_text_std_spelling:
+                syls_text = syllabize_text(chant.manuscript_full_text_std_spelling, pre_syllabized=False)
+                syls_text, syls_melody = postprocess(syls_text, syls_melody)
 
-        #     word_zip = align(syls_text, syls_melody)
-        #     context["syllabized_text_with_melody"] = word_zip
+            word_zip = align(syls_text, syls_melody)
+            context["syllabized_text_with_melody"] = word_zip
 
         return context
     
