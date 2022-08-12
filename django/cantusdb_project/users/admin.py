@@ -11,7 +11,9 @@ class SourceInline(admin.TabularInline):
 
 class UserAdmin(BaseUserAdmin):
     readonly_fields = ('date_joined', 'last_login',)
+    # fields that are displayed on the user list page of the admin
     list_display = ('email', 'first_name', 'last_name', 'institution',)
+    # creates a filter on the right side of the page to filter users by group
     list_filter = ('groups',)
     fieldsets = (
         ('Account info', {'fields': (('email', 'password'), 'is_active', ('date_joined', 'last_login'))}),
@@ -24,6 +26,7 @@ class UserAdmin(BaseUserAdmin):
         ('Permissions', {'fields': ('is_staff', 'is_superuser', 'groups',)}),
     )
     search_fields = ('email', 'first_name', 'last_name', 'institution',)
+    # order the list of users by email
     ordering = ('email',)
     filter_horizontal = ('groups',)
     inlines = [SourceInline]

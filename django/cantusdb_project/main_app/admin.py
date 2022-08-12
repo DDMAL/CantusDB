@@ -4,8 +4,11 @@ from django.contrib.auth import get_user_model
 # Register your models here.
 
 class BaseModelAdmin(admin.ModelAdmin):
+    # these fields should not be editable
     exclude = ('created_by', 'last_updated_by')
 
+    # if an object is created in the admin interface, assign the user to the created_by field
+    # else if an object is updated in the admin interface, assign the user to the last_updated_by field
     def save_model(self, request, obj, form, change):
         if change:
             obj.last_updated_by = request.user
@@ -41,6 +44,9 @@ class SequenceAdmin(BaseModelAdmin):
     pass
 
 class SourceAdmin(BaseModelAdmin):
+    # from the Django docs:
+    # Adding a ManyToManyField to this list will instead use a nifty unobtrusive JavaScript “filter” interface
+    # that allows searching within the options. The unselected and selected options appear in two boxes side by side.
     filter_horizontal = ('century', 'notation', 'current_editors', 'inventoried_by', 'full_text_entered_by', 'melodies_entered_by', 'proofreaders', 'other_editors')
 
 admin.site.register(Chant, ChantAdmin)
