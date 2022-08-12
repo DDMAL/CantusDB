@@ -9,8 +9,11 @@ class User(AbstractUser):
     country = models.CharField(max_length=255, blank=True, null=True)
     website = models.URLField(blank=True, null=True)
     full_name = models.CharField(max_length=255, blank=True, null=True)
+    # email replaces username
+    # i.e. users will log in with their emails
     username = None
     email = models.EmailField(unique=True)
+    # will be used to check if the user has changed the password assigned to them
     changed_initial_password = models.BooleanField(default=False)
 
     USERNAME_FIELD = 'email'

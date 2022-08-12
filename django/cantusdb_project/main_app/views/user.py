@@ -77,6 +77,9 @@ class UserListView(LoginRequiredMixin, SearchableListMixin, ListView):
 class CustomLoginView(LoginView):
     def form_valid(self, form):
         auth_login(self.request, form.get_user())
+        # if the user has not yet changed the initial password that was assigned to them,
+        # redirect them to the change-password page everytime they log in
+        # with warning messages prompting them to change their password
         if form.get_user().changed_initial_password == False:
             return HttpResponseRedirect(reverse("change-password"))
         return HttpResponseRedirect(self.get_success_url())
