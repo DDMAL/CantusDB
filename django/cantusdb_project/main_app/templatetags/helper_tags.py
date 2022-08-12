@@ -130,7 +130,7 @@ def classname(obj):
 @register.filter
 def admin_url_name(class_name, action):
     """
-    Accepts a class name and an action (either "change" or "delete") as arguments.
+    Accepts the name of a class in "main_app", and an action (either "change" or "delete") as arguments.
     Returns the name of the URL for changing/deleting an object in the admin interface.
     """
     class_name = class_name.lower()

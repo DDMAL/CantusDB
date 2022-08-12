@@ -244,6 +244,8 @@ class SourceCreateView(LoginRequiredMixin, UserPassesTestMixin, CreateView):
     def form_valid(self, form):
         form.instance.created_by = self.request.user
         source = form.save()
+
+        # assign this source to the "current_editors"
         current_editors = source.current_editors.all()
         
         for editor in current_editors:
@@ -286,6 +288,10 @@ class SourceEditView(LoginRequiredMixin, UserPassesTestMixin, UpdateView):
 
     def form_valid(self, form):
         form.instance.last_updated_by = self.request.user
+
+        # remove this source from the old "current_editors"
+        # assign this source to the new "current_editors"
+
         old_current_editors = list(Source.objects.get(id=form.instance.id).current_editors.all())
         new_current_editors = form.cleaned_data["current_editors"]
         source = form.save()

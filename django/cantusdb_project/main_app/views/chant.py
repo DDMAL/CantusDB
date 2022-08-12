@@ -956,6 +956,18 @@ class ChantEditVolpianoView(LoginRequiredMixin, UserPassesTestMixin, UpdateView)
             return False
 
     def get_queryset(self):
+        """
+            When a user visits the edit-chant page for a certain Source,
+            there are 2 dropdowns on the right side of the page: one for folio, and the other for feast.
+
+            When either a folio or a feast is selected, a list of Chants in the selected folio/feast will be rendered.
+
+            Returns:
+                a QuerySet of Chants in the Source, filtered by the optional search parameters.
+
+            Note: the first folio is selected by default.
+        """
+
         # when arriving at this page, the url must have a source specified
         source_id = self.kwargs.get(self.pk_url_kwarg)
         source = Source.objects.get(id=source_id)
@@ -971,7 +983,7 @@ class ChantEditVolpianoView(LoginRequiredMixin, UserPassesTestMixin, UpdateView)
             chants = chants.filter(feast__id=feast_id)
         elif folio:
             chants = chants.filter(folio=folio)
-        # when one initially navigates to a source's edit-volpiano page, the first folio in the source is selected by default
+        # if none of the optional search params are specified, the first folio in the source is selected by default
         else:
             folios = (
                 chants.values_list("folio", flat=True)
@@ -984,11 +996,20 @@ class ChantEditVolpianoView(LoginRequiredMixin, UserPassesTestMixin, UpdateView)
         return self.queryset
     
     def get_object(self):
+        """
+            If the Source has no Chant, an Http404 is raised.
+            This is because there would be no Chant for the UpdateView to handle.
+
+        Returns:
+            the Chant that we wish to edit (specified by the Chant's pk)
+        """
         queryset = self.get_queryset()
         if len(queryset) == 0:
             raise Http404("There are no chants associated with this source to edit")
         pk = self.request.GET.get("pk")
-        # if a pk is not specified, we will not render the update form, rather we will render the instructions page
+        # if a pk is not specified, this means that the user has not yet selected a Chant to edit
+        # thus, we will not render the update form
+        # instead, we will render the instructions page
         if not pk:
             pk = queryset.latest("date_created").pk
         queryset = queryset.filter(pk=pk)
@@ -1116,6 +1137,8 @@ class ChantEditVolpianoView(LoginRequiredMixin, UserPassesTestMixin, UpdateView)
         context["source"] = source
 
         chants_in_source = source.chant_set
+
+        # the following code block is sort of obsolete because if there is no Chant in the Source, a 404 will be raised
         if chants_in_source.count() == 0:
             # these are needed in the selectors and hyperlinks on the right side of the page
             # if there's no chant in the source, there should be no options in those selectors
