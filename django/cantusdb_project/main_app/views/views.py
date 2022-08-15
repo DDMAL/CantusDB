@@ -595,7 +595,7 @@ def change_password(request):
         'form': form
     })
 
-def pm_check(user):
+def project_manager_check(user):
     """
     A callback function that will be called by the user_passes_test decorator of content_overview.
 
@@ -609,7 +609,7 @@ def pm_check(user):
 # first give the user a chance to login
 @login_required
 # if they're logged in but they're not a project manager, raise 403
-@user_passes_test(pm_check)
+@user_passes_test(project_manager_check)
 def content_overview(request):
     objects = []
     models = [
