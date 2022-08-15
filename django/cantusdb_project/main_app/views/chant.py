@@ -811,8 +811,12 @@ class ChantCreateView(LoginRequiredMixin, UserPassesTestMixin, CreateView):
 
 
 class ChantDeleteView(LoginRequiredMixin, UserPassesTestMixin, DeleteView):
+    """The view for deleting a chant object
+
+    This view is used in the chant-edit page, where an authorized user is allowed to
+    edit or delete chants in a certain source. 
+    """
     model = Chant
-    success_url = "/"
     template_name = "chant_confirm_delete.html"
 
     def test_func(self):
@@ -839,6 +843,8 @@ class ChantDeleteView(LoginRequiredMixin, UserPassesTestMixin, DeleteView):
         else:
             return False
 
+    def get_success_url(self):
+        return reverse("source-edit-volpiano", args=[self.object.source.id])
 
 class CISearchView(TemplateView):
     """search in CI and write results in get_context_data
