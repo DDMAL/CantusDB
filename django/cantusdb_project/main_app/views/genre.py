@@ -10,7 +10,7 @@ class GenreDetailView(SingleObjectMixin, ListView):
     paginate_by = 100
     template_name = "genre_detail.html"
 
-    def get_genre_cantus_ids(self) -> List[Dict]:
+    def get_genre_cantus_ids(self, display_unpublished=True) -> List[Dict]:
         """
         Get a list with data on each unique ``cantus_id`` related to this Genre.
 
@@ -24,14 +24,18 @@ class GenreDetailView(SingleObjectMixin, ListView):
         Returns:
             List[Dict]: A list of dicts with data on each unique ``cantus_id``
         """
-        cantus_ids = list(
-            self.object.chant_set.exclude(cantus_id=None)
+        cantus_ids = (self.object.chant_set
+            .exclude(cantus_id=None)
             .values_list("cantus_id", flat=True)
             .distinct("cantus_id")
         )
+        if not display_unpublished:
+            cantus_ids = cantus_ids.filter(source__published=True)
+        
+        cantus_ids_list = list(cantus_ids)
 
         chant_list = []
-        for cantus_id in cantus_ids:
+        for cantus_id in cantus_ids_list:
             chants = self.object.chant_set.filter(cantus_id=cantus_id)
             num_chants = chants.count()
             first_chant = chants.first()
@@ -60,14 +64,15 @@ class GenreDetailView(SingleObjectMixin, ListView):
 
     def get_queryset(self):
         # return self.object.chant_set.all()
+        display_unpublished = self.request.user.is_authenticated
         search_term = self.request.GET.get("incipit")
         if not search_term:
-            return self.get_genre_cantus_ids()
+            return self.get_genre_cantus_ids(display_unpublished=display_unpublished)
         else:
             search_term = search_term.strip(" ")
             filtered_chants = [
                 chant
-                for chant in self.get_genre_cantus_ids()
+                for chant in self.get_genre_cantus_ids(display_unpublished=display_unpublished)
                 if search_term.lower() in chant["first_incipit"].lower()
             ]
             return filtered_chants
