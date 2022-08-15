@@ -23,7 +23,6 @@ urlpatterns = [
     path(
         "chant-create/<int:source_pk>", ChantCreateView.as_view(), name="chant-create"
     ),
-    path("chant-update/<int:pk>", ChantUpdateView.as_view(), name="chant-update"),
     path(
         "id/<str:cantus_id>", ChantByCantusIDView.as_view(), name="chant-by-cantus-id"
     ),

@@ -5,7 +5,6 @@ from main_app.views.chant import (
     ChantSearchView,
     MelodySearchView,
     ChantSearchMSView,
-    ChantUpdateView,
     ChantDeleteView,
     CISearchView,
     ChantByCantusIDView,

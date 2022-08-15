@@ -811,12 +811,6 @@ class ChantCreateView(LoginRequiredMixin, UserPassesTestMixin, CreateView):
 
 
 class ChantDeleteView(LoginRequiredMixin, UserPassesTestMixin, DeleteView):
-    """Delete chant on chant-detail page
-
-    This is added to help testing chant-create functionality 
-    and should be removed in production.
-    """
-
     model = Chant
     success_url = "/"
     template_name = "chant_confirm_delete.html"
@@ -844,13 +838,6 @@ class ChantDeleteView(LoginRequiredMixin, UserPassesTestMixin, DeleteView):
             return True
         else:
             return False
-
-
-class ChantUpdateView(UpdateView):
-    model = Chant
-    template_name = "chant_form.html"
-    fields = "__all__"
-    success_url = "/chants"
 
 
 class CISearchView(TemplateView):
