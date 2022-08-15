@@ -5,9 +5,12 @@
 # python manage.py migrate
 
 # load initial data to populate the database
-# these fixtures need to be loaded in a certain order due to foreign key dependance
+# bash load_fixtures.sh
+# these fixtures need to be loaded in a certain order due to foreign key dependencies
 # before running this, make sure you put the 'fixtures' folder under 'main_app'
 FIXTURES_LIST=(
+   group_fixture.json
+   user_fixture.json
    flatpage_fixture.json
    indexer_fixture.json
    office_fixture.json
