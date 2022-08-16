@@ -568,7 +568,7 @@ def json_sources_export(request):
     """
     generates a json object of published sources with their IDs and CSV links
     """
-    sources = Source.objects.all()
+    sources = Source.objects.filter(published=True)
     ids = [source.id for source in sources]
 
     def inner_dictionary(id):
