@@ -542,14 +542,21 @@ def json_node_export(request, id):
     indexer = Indexer.objects.filter(id=id)
 
     if chant:
+        if not chant.first().source.published:
+            return HttpResponseNotFound()
         requested_item = chant
     elif sequence:
+        if not sequence.first().source.published:
+            return HttpResponseNotFound()
         requested_item = sequence
     elif source:
+        if not source.first().published:
+            return HttpResponseNotFound()
         requested_item = source
     elif indexer:
         requested_item = indexer
     else:
+        # id does not correspond to a chant, sequence, source or indexer
         return HttpResponseNotFound()
 
     vals = dict(*requested_item.values())
