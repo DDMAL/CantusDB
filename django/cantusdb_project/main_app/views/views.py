@@ -60,7 +60,7 @@ def items_count(request):
 def ajax_concordance_list(request, cantus_id):
     """
     Function-based view responding to the AJAX call for concordance list on the chant detail page,
-    accessed with ``chants/<ink:pk>``, click on "Display concordances of this chant"
+    accessed with ``chants/<int:pk>``, click on "Display concordances of this chant"
 
     Args:
         cantus_id (str): The Cantus ID of the requested concordances group
@@ -109,7 +109,7 @@ def ajax_concordance_list(request, cantus_id):
 def ajax_melody_list(request, cantus_id):
     """
     Function-based view responding to the AJAX call for melody list on the chant detail page,
-    accessed with ``chants/<ink:pk>``, click on "Display melodies connected with this chant"
+    accessed with ``chants/<int:pk>``, click on "Display melodies connected with this chant"
 
     Args:
         cantus_id (str): The Cantus ID of the requested concordances group
