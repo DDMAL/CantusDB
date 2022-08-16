@@ -127,6 +127,10 @@ def ajax_melody_list(request, cantus_id):
         Chant.objects.filter(cantus_id=cantus_id).exclude(volpiano=None).order_by("id")
     )
 
+    display_unpublished = request.user.is_authenticated
+    if not display_unpublished:
+        chants = chants.filter(source__published=True)
+    
     # queryset(list of dictionaries)
     concordance_values = chants.values(
         "siglum",
