@@ -473,7 +473,7 @@ def ajax_search_bar(request, search_term):
 
 
 def json_melody_export(request, cantus_id):
-    chants = Chant.objects.filter(cantus_id=cantus_id, volpiano__isnull=False)
+    chants = Chant.objects.filter(cantus_id=cantus_id, volpiano__isnull=False, source__published=True)
 
     db_keys = ["melody_id",
         "id",
