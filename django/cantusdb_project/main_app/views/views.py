@@ -70,6 +70,12 @@ def ajax_concordance_list(request, cantus_id):
     """
     chants = Chant.objects.filter(cantus_id=cantus_id)
     seqs = Sequence.objects.filter(cantus_id=cantus_id)
+
+    display_unpublished = request.user.is_authenticated
+    if not display_unpublished:
+        chants = chants.filter(source__published=True)
+        seqs = seqs.filter(source__published=True)
+        
     if seqs:
         chants = chants.union(seqs).order_by("siglum", "folio")
     else:
