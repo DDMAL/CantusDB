@@ -60,7 +60,7 @@ def items_count(request):
 def ajax_concordance_list(request, cantus_id):
     """
     Function-based view responding to the AJAX call for concordance list on the chant detail page,
-    accessed with ``chants/<ink:pk>``, click on "Display concordances of this chant"
+    accessed with ``chants/<int:pk>``, click on "Display concordances of this chant"
 
     Args:
         cantus_id (str): The Cantus ID of the requested concordances group
@@ -70,6 +70,12 @@ def ajax_concordance_list(request, cantus_id):
     """
     chants = Chant.objects.filter(cantus_id=cantus_id)
     seqs = Sequence.objects.filter(cantus_id=cantus_id)
+
+    display_unpublished = request.user.is_authenticated
+    if not display_unpublished:
+        chants = chants.filter(source__published=True)
+        seqs = seqs.filter(source__published=True)
+        
     if seqs:
         chants = chants.union(seqs).order_by("siglum", "folio")
     else:
@@ -109,7 +115,7 @@ def ajax_concordance_list(request, cantus_id):
 def ajax_melody_list(request, cantus_id):
     """
     Function-based view responding to the AJAX call for melody list on the chant detail page,
-    accessed with ``chants/<ink:pk>``, click on "Display melodies connected with this chant"
+    accessed with ``chants/<int:pk>``, click on "Display melodies connected with this chant"
 
     Args:
         cantus_id (str): The Cantus ID of the requested concordances group
@@ -121,6 +127,10 @@ def ajax_melody_list(request, cantus_id):
         Chant.objects.filter(cantus_id=cantus_id).exclude(volpiano=None).order_by("id")
     )
 
+    display_unpublished = request.user.is_authenticated
+    if not display_unpublished:
+        chants = chants.filter(source__published=True)
+    
     # queryset(list of dictionaries)
     concordance_values = chants.values(
         "siglum",
@@ -436,12 +446,17 @@ def ajax_search_bar(request, search_term):
         # if the search term contains at least one digit, assume user is searching by Cantus ID
         chants = Chant.objects.filter(cantus_id__istartswith=search_term).order_by(
             "id"
-        )[:CHANT_CNT]
+        )
     else:
         # if the search term does not contain any digits, assume user is searching by incipit
-        chants = Chant.objects.filter(incipit__icontains=search_term).order_by("id")[
-            :CHANT_CNT
-        ]
+        chants = Chant.objects.filter(incipit__icontains=search_term).order_by("id")
+
+    display_unpublished = request.user.is_authenticated
+    if not display_unpublished:
+        chants = chants.filter(source__published=True)
+    
+    chants = chants[:CHANT_CNT]
+
     returned_values = chants.values(
         "incipit",
         "genre__name",
@@ -461,7 +476,7 @@ def ajax_search_bar(request, search_term):
 
 
 def json_melody_export(request, cantus_id):
-    chants = Chant.objects.filter(cantus_id=cantus_id, volpiano__isnull=False)
+    chants = Chant.objects.filter(cantus_id=cantus_id, volpiano__isnull=False, source__published=True)
 
     db_keys = ["melody_id",
         "id",
@@ -530,14 +545,21 @@ def json_node_export(request, id):
     indexer = Indexer.objects.filter(id=id)
 
     if chant:
+        if not chant.first().source.published:
+            return HttpResponseNotFound()
         requested_item = chant
     elif sequence:
+        if not sequence.first().source.published:
+            return HttpResponseNotFound()
         requested_item = sequence
     elif source:
+        if not source.first().published:
+            return HttpResponseNotFound()
         requested_item = source
     elif indexer:
         requested_item = indexer
     else:
+        # id does not correspond to a chant, sequence, source or indexer
         return HttpResponseNotFound()
 
     vals = dict(*requested_item.values())
@@ -549,7 +571,7 @@ def json_sources_export(request):
     """
     generates a json object of published sources with their IDs and CSV links
     """
-    sources = Source.objects.all()
+    sources = Source.objects.filter(published=True)
     ids = [source.id for source in sources]
 
     def inner_dictionary(id):
