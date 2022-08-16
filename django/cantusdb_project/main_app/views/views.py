@@ -338,9 +338,12 @@ def ajax_melody_search(request):
     feast_name = request.GET.get("feast")
     mode = request.GET.get("mode")
     source = request.GET.get("source")
-
-    # only include published chants in the result
-    chants = Chant.objects.filter(source__published=True)
+    
+    display_unpublished = request.user.is_authenticated
+    if not display_unpublished:
+        chants = Chant.objects.filter(source__published=True)
+    else:
+        chants = Chant.objects
 
     # if "search exact matches + transpositions"
     if transpose == "true":

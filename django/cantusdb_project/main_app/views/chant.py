@@ -340,6 +340,10 @@ class ChantByCantusIDView(ListView):
     def get_queryset(self):
         chant_set = Chant.objects.filter(cantus_id=self.cantus_id)
         sequence_set = Sequence.objects.filter(cantus_id=self.cantus_id)
+        display_unpublished = self.request.user.is_authenticated
+        if not display_unpublished:
+            chant_set = chant_set.filter(source__published=True)
+            sequence_set = sequence_set.filter(source__published=True)
         # the union operation turns sequences into chants, the resulting queryset contains only "chant" objects
         # this forces us to do something special on the template to render correct absolute url for sequences
         queryset = chant_set.union(sequence_set)
@@ -386,7 +390,7 @@ class ChantSearchView(ListView):
     def get_queryset(self) -> QuerySet:
         # Create a Q object to filter the QuerySet of Chants
         q_obj_filter = Q()
-
+        display_unpublished = self.request.user.is_authenticated
         # if the search is accessed by the global search bar
         if self.request.GET.get("search_bar"):
             chant_set = Chant.objects.filter(source__published=True)
@@ -443,9 +447,12 @@ class ChantSearchView(ListView):
                 # as a substring
                 feasts = Feast.objects.filter(name__icontains=feast)
                 q_obj_filter &= Q(feast__in=feasts)
-
-            chant_set = Chant.objects.filter(source__published=True)
-            sequence_set = Sequence.objects.filter(source__published=True)
+            if not display_unpublished:
+                chant_set = Chant.objects.filter(source__published=True)
+                sequence_set = Sequence.objects.filter(source__published=True)
+            else:
+                chant_set = Chant.objects
+                sequence_set = Sequence.objects
             # Filter the QuerySet with Q object
             chant_set = chant_set.filter(q_obj_filter)
             sequence_set = sequence_set.filter(q_obj_filter)
