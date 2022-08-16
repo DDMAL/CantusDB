@@ -30,8 +30,7 @@ class FeastDetailView(DetailView):
     template_name = "feast_detail.html"
 
     def get_context_data(self, **kwargs):
-        context = super().get_context_data(**kwargs) 
-        print(context)
+        context = super().get_context_data(**kwargs)
 
         display_unpublished = self.request.user.is_authenticated
 
