@@ -340,6 +340,10 @@ class ChantByCantusIDView(ListView):
     def get_queryset(self):
         chant_set = Chant.objects.filter(cantus_id=self.cantus_id)
         sequence_set = Sequence.objects.filter(cantus_id=self.cantus_id)
+        display_unpublished = self.request.user.is_authenticated
+        if not display_unpublished:
+            chant_set = chant_set.filter(source__published=True)
+            sequence_set = sequence_set.filter(source__published=True)
         # the union operation turns sequences into chants, the resulting queryset contains only "chant" objects
         # this forces us to do something special on the template to render correct absolute url for sequences
         queryset = chant_set.union(sequence_set)
