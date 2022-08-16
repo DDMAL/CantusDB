@@ -132,7 +132,7 @@ def ajax_melody_list(request, cantus_id):
         "cantus_id",
         "volpiano",
         "mode",
-        # seems to use whichever is present: ms spelling, std spelling, incipit
+        # OldCantus seems to use whichever is present: ms spelling, std spelling, incipit (in that order)
         "manuscript_full_text_std_spelling",
     )
 
