@@ -46,7 +46,11 @@ class SequenceListView(ListView):
 
     def get_queryset(self):
         queryset = super().get_queryset()
-        q_obj_filter = Q(source__published=True)
+        display_unpublished = self.request.user.is_authenticated
+        if display_unpublished:
+            q_obj_filter = Q()
+        else:
+            q_obj_filter = Q(source__published=True)
 
         if self.request.GET.get("incipit"):
             incipit = self.request.GET.get("incipit")
