@@ -684,7 +684,9 @@ class ChantCreateView(LoginRequiredMixin, UserPassesTestMixin, CreateView):
         if cantus_id is None:
             return None
 
-        suggested_chants = next_chants(cantus_id)
+        display_unpublished = self.request.user.is_authenticated
+
+        suggested_chants = next_chants(cantus_id, display_unpublished=display_unpublished)
 
         # sort by number of occurrences
         sorted_suggested_chants = sorted(suggested_chants,

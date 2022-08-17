@@ -589,7 +589,7 @@ def json_sources_export(request):
 
 
 def json_nextchants(request, cantus_id):
-    ids_and_counts = next_chants(cantus_id)
+    ids_and_counts = next_chants(cantus_id, display_unpublished=False)
     suggested_chants_dict = {id: count for (id, count) in ids_and_counts}
     return JsonResponse(suggested_chants_dict)
     
