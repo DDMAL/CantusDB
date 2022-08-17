@@ -17,7 +17,7 @@ class Command(BaseCommand):
         chants = Chant.objects.all()
         chants_count = chants.count()
         start_index = 0
-        while start_index <= CHUNK_SIZE:
+        while start_index <= chants_count:
             print("processing chunk with start_index of", start_index)
             chunk = chants[start_index:start_index+CHUNK_SIZE]
             for chant in chunk:
