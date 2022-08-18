@@ -14,21 +14,14 @@ def next_chants(cantus_id, display_unpublished=False):
     concordances = Chant.objects.filter(cantus_id=cantus_id).only(
         "source", "folio", "sequence_number"
     )
-    # if not display_unpublished:
-    #     concordances = concordances.filter(source__published=True)
+    if not display_unpublished:
+        concordances = concordances.filter(source__published=True)
     
     next_chants = [chant.next_chant
             for chant
             in concordances
             if chant.next_chant is not None
         ]
-    if not display_unpublished:
-        next_chants = [chant
-            for chant
-            in next_chants
-            if chant.source.published
-        ]
-
     ids = [chant.cantus_id
         for chant
         in next_chants
