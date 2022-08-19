@@ -65,7 +65,8 @@ class ChantDetailView(DetailView):
         
         # if the chant's source isn't published, only logged-in users should be able to view the chant's detail page
         source = chant.source
-        if (source.published is False) and (not self.request.user.is_authenticated):
+        display_unpublished = self.request.user.is_authenticated
+        if (source.published is False) and (not display_unpublished):
             raise PermissionDenied()
 
         # syllabification section
@@ -202,7 +203,8 @@ class ChantListView(ListView):
         source_id = self.request.GET.get("source")
         source = Source.objects.get(id=source_id)
         
-        if (source.published is False) and (not self.request.user.is_authenticated):
+        display_unpublished = self.request.user.is_authenticated
+        if (source.published is False) and (not display_unpublished):
             raise PermissionDenied()
 
         # optional search params
@@ -921,7 +923,6 @@ class FullIndexView(TemplateView):
         source = Source.objects.get(id=source_id)
 
         display_unpublished = self.request.user.is_authenticated
-
         if (not display_unpublished) and (source.published == False):
             raise PermissionDenied
 
