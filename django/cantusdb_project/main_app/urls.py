@@ -17,7 +17,7 @@ urlpatterns = [
     path("users/", UserListView.as_view(), name="user-list"),
     path("change-password/", views.change_password, name="change-password"),
     # chant
-    path("chants/", ChantListView.as_view(), name="chant-list"),
+    path("chants/", ChantListView.as_view(), name="chant-list"), # /chants/?source={source id}
     path("chant/<int:pk>", ChantDetailView.as_view(), name="chant-detail"),
     path("chant-search/", ChantSearchView.as_view(), name="chant-search"),
     path(
