@@ -7,7 +7,6 @@ from main_app.views.chant import ChantEditVolpianoView, ChantProofreadView, Chan
 from main_app.views.user import UserDetailView, UserSourceListView, CustomLogoutView, UserListView, CustomLoginView
 
 urlpatterns = [
-    path("index/", FullIndexView.as_view(), name="chant-index"),
     path("contact/", views.contact_us, name="contact"),
     # login/logout/user
     path('login/', CustomLoginView.as_view(redirect_authenticated_user=True), name="login"),
@@ -17,7 +16,7 @@ urlpatterns = [
     path("users/", UserListView.as_view(), name="user-list"),
     path("change-password/", views.change_password, name="change-password"),
     # chant
-    path("chants/", ChantListView.as_view(), name="chant-list"),
+    path("chants/", ChantListView.as_view(), name="chant-list"), # /chants/?source={source id}
     path("chant/<int:pk>", ChantDetailView.as_view(), name="chant-detail"),
     path("chant-search/", ChantSearchView.as_view(), name="chant-search"),
     path(
@@ -42,6 +41,7 @@ urlpatterns = [
         ChantEditSyllabificationView.as_view(),
         name="source-edit-syllabification"
     ),
+    path("index/", ChantIndexView.as_view(), name="chant-index"), # /index/?source={source id}
     # feast
     path("feasts/", FeastListView.as_view(), name="feast-list"),
     path("feast/<int:pk>", FeastDetailView.as_view(), name="feast-detail"),
