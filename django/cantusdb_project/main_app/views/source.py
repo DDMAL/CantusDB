@@ -72,7 +72,8 @@ class SourceDetailView(DetailView):
             return folios_with_feasts
 
         source = self.get_object()
-        if (source.published is False) and (not self.request.user.is_authenticated):
+        display_unpublished = self.request.user.is_authenticated
+        if (source.published is False) and (not display_unpublished):
             raise PermissionDenied()
 
         context = super().get_context_data(**kwargs)
