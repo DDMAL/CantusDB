@@ -532,6 +532,9 @@ class ChantSearchMSView(ListView):
             context["source"] = source
         except:
             raise Http404("This source does not exist")
+        display_unpublished = self.request.user.is_authenticated
+        if (source.published == False) and (not display_unpublished):
+            raise PermissionDenied
         return context
 
     def get_queryset(self) -> QuerySet:
