@@ -914,10 +914,17 @@ class FullIndexView(TemplateView):
     template_name = "full_index.html"
 
     def get_context_data(self, **kwargs):
+
         context = super().get_context_data(**kwargs)
 
         source_id = self.request.GET.get("source")
         source = Source.objects.get(id=source_id)
+
+        display_unpublished = self.request.user.is_authenticated
+
+        if (not display_unpublished) and (source.published == False):
+            raise PermissionDenied
+
         # 4064 is the id for the sequence database
         if source.segment.id == 4064:
             queryset = source.sequence_set.order_by("id")
