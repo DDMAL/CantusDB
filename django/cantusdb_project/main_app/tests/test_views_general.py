@@ -1283,7 +1283,7 @@ class ChantSearchMSViewTest(TestCase):
         self.assertIn(chant, response.context["chants"])
 
 
-class FullIndexViewTest(TestCase):
+class ChantIndexViewTest(TestCase):
     def test_url_and_templates(self):
         source = make_fake_source()
         response = self.client.get(reverse("chant-index"), {"source": source.id})

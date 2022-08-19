@@ -41,7 +41,7 @@ urlpatterns = [
         ChantEditSyllabificationView.as_view(),
         name="source-edit-syllabification"
     ),
-    path("index/", FullIndexView.as_view(), name="chant-index"), # /index/?source={source id}
+    path("index/", ChantIndexView.as_view(), name="chant-index"), # /index/?source={source id}
     # feast
     path("feasts/", FeastListView.as_view(), name="feast-list"),
     path("feast/<int:pk>", FeastDetailView.as_view(), name="feast-detail"),

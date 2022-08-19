@@ -912,7 +912,7 @@ class CISearchView(TemplateView):
         return context
 
 
-class FullIndexView(TemplateView):
+class ChantIndexView(TemplateView):
     template_name = "full_index.html"
 
     def get_context_data(self, **kwargs):
