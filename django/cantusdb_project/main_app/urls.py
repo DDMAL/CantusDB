@@ -7,7 +7,7 @@ from main_app.views.chant import ChantEditVolpianoView, ChantProofreadView, Chan
 from main_app.views.user import UserDetailView, UserSourceListView, CustomLogoutView, UserListView, CustomLoginView
 
 urlpatterns = [
-    path("index/", FullIndexView.as_view(), name="chant-index"),
+    path("index/", FullIndexView.as_view(), name="chant-index"), # /index/?source={source id}
     path("contact/", views.contact_us, name="contact"),
     # login/logout/user
     path('login/', CustomLoginView.as_view(redirect_authenticated_user=True), name="login"),
