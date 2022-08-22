@@ -152,7 +152,7 @@
                             {% endfor %}
                         </select>                              
 
-                        <select id="feastSelect" onchange="jumpToFeast({{ source.id }})">
+                        <select id="feastSelect" onchange="jumpToFeast({{ source.id }})" style="width: 200px;"> <!-- style attribute prevents select element from extending beyond left edge of div element -->
                             <option value="">Select a feast:</option>
                             {% for folio, feast in feasts_with_folios %}
                                 <option value="{{ feast.id }}">{{ folio }} - {{ feast.name }}</option>
