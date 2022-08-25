@@ -113,7 +113,7 @@
     <header>
         <!-- Navbar -->
         <div class="container">
-            <nav class="navbar navbar-expand-xl bg-white border-top col-12">
+            <nav class="navbar navbar-expand-xl navbar-light bg-light border-top col-12">
                 <a class="navbar-brand" href="/">
                     <img src="{% static "CantusLogoSmall.gif" %}"
                         alt="Cantus Database: A Database for Latin Ecclesiastical Chant" loading="lazy">
@@ -127,11 +127,15 @@
 
                 <div class="collapse navbar-collapse" id="navbar-links">
                     <ul class="navbar-nav mx-auto">
+
+                        <!-- HOME -->
                         <li class="nav-item">
                             <a class="nav-link font-weight-bold" href="/">HOME<br style:"line-height: 50pt;"/><span
                                     class="small">Home
                                     Page</span></a>
                         </li>
+
+                        <!-- ABOUT -->
                         <li class="nav-item dropdown text-info">
                             <a class="nav-link dropdown-toggle font-weight-bold" href="#" id="navbarDropdownMenuLink"
                                 role="button" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
@@ -149,6 +153,8 @@
                                 <a class="dropdown-item" href="{% url 'items-count' %}">Items Count</a>
                             </div>
                         </li>
+
+                        <!-- SOURCES -->
                         <li class="nav-item dropdown">
                             <a class="nav-link dropdown-toggle font-weight-bold" href="#" id="navbarDropdownMenuLink"
                                 role="button" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
@@ -160,6 +166,8 @@
                                     Bower)</a>
                             </div>
                         </li>
+
+                        <!-- CHANTS -->
                         <li class="nav-item dropdown">
                             <a class="nav-link dropdown-toggle font-weight-bold" href="#" id="navbarDropdownMenuLink"
                                 role="button" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
@@ -172,6 +180,8 @@
                                     Bower)</a>
                             </div>
                         </li>
+
+                        <!-- FEASTS -->
                         <li class="nav-item dropdown">
                             <a class="nav-link dropdown-toggle font-weight-bold" href="/feasts"
                                 id="navbarDropdownMenuLink" role="button" data-toggle="dropdown" aria-haspopup="true"
@@ -184,6 +194,8 @@
                                 <a class="dropdown-item" href="{% url "feast-list" %}?date=temp">Temporale</a>
                             </div>
                         </li>
+
+                        <!-- TERMS -->
                         <li class="nav-item dropdown">
                             <a class="nav-link dropdown-toggle font-weight-bold" href="/genres"
                                 id="navbarDropdownMenuLink" role="button" data-toggle="dropdown" aria-haspopup="true"
@@ -196,6 +208,8 @@
                                 <a class="dropdown-item" href="/field-descriptions/">Fields</a>
                             </div>
                         </li>
+
+                        <!-- RESOURCES -->
                         <li class="nav-item dropdown">
                             <a class="nav-link dropdown-toggle font-weight-bold" href="#" id="navbarDropdownMenuLink"
                                 role="button" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
