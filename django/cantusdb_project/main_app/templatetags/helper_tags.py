@@ -13,12 +13,12 @@ register = template.Library()
 @register.simple_tag(takes_context=False)
 def recent_articles():
     articles = Article.objects.order_by("-date_created")[:5]
-    list_item_template = '<li><a href="{url}">{title}</a><br><small>{date}</small></li>'
+    list_item_template = '<li style="padding-bottom: 0.5em;"><a href="{url}">{title}</a><br><small>{date}</small></li>'
     list_items = [
         list_item_template.format(
             url=a.get_absolute_url(),
             title=a.title,
-            date=a.date_created.strftime("%x"),
+            date=a.date_created.strftime("%A %B %-d, %Y"),
         )
         for a
         in articles
