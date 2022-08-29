@@ -513,6 +513,11 @@ class OfficeDetailViewTest(TestCase):
 
 
 class SourceListViewTest(TestCase):
+    def setUp(self):
+        # unless a segment is specified when a source is created, the source is automatically assigned
+        # to a segment with the name "CANTUS Database"
+        Segment.objects.create(name="CANTUS Database")
+
     def test_url_and_templates(self):
         response = self.client.get(reverse("source-list"))
         self.assertEqual(response.status_code, 200)
@@ -544,8 +549,8 @@ class SourceListViewTest(TestCase):
 
     def test_filter_by_segment(self):
         """The source list can be filtered by `segment`, `provenance`, `century`, and `full_source`"""
-        cantus_segment = Segment.objects.create(name="cantus")
-        clavis_segment = Segment.objects.create(name="clavis")
+        cantus_segment = make_fake_segment(name="cantus")
+        clavis_segment = make_fake_segment(name="clavis")
         chant_source = Source.objects.create(
             segment=cantus_segment, title="chant source", published=True
         )
