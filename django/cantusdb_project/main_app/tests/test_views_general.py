@@ -1789,7 +1789,9 @@ class ChantEditVolpianoViewTest(TestCase):
 
     def test_url_and_templates(self):
         source1 = make_fake_source()
-        Chant.objects.create(source=source1)
+
+        # must specify folio, or ChantEditVolpianoView.get_queryset will fail when it tries to default to displaying the first folio
+        Chant.objects.create(source=source1, folio="001r")
 
         response = self.client.get(reverse("source-edit-volpiano", args=[source1.id]))
         self.assertEqual(response.status_code, 200)
