@@ -824,6 +824,12 @@ class SourceDetailViewTest(TestCase):
 
 
 class SequenceListViewTest(TestCase):
+    def setUp(self):
+        # unless a segment is specified when a source is created, the source is automatically assigned
+        # to the segment with the name "CANTUS Database" - to prevent errors, we must make sure that
+        # such a segment exists
+        Segment.objects.create(name="CANTUS Database")
+
     def test_url_and_templates(self):
         response = self.client.get(reverse("sequence-list"))
         self.assertEqual(response.status_code, 200)
