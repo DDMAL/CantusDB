@@ -32,6 +32,13 @@ def get_random_search_term(target):
 
 
 class IndexerListViewTest(TestCase):
+    def setUp(self):
+        # unless a segment is specified when a source is created, the source is automatically assigned
+        # to the segment with the name "CANTUS Database" - to prevent errors, we must make sure that
+        # such a segment exists
+        Segment.objects.create(name="CANTUS Database")
+
+
     def test_url_and_templates(self):
         """Test the url and templates used"""
         response = self.client.get(reverse("indexer-list"))
