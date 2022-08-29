@@ -452,9 +452,14 @@ class GenreDetailViewTest(TestCase):
 
     def test_chants_by_genre(self):
         genre = make_fake_genre()
-        chant1 = Chant.objects.create(incipit="chant1", genre=genre, cantus_id="100000")
-        chant2 = Chant.objects.create(incipit="chant2", genre=genre, cantus_id="100000")
-        chant3 = Chant.objects.create(incipit="chant3", genre=genre, cantus_id="123456")
+
+        # create a source because if chants1, 2 and 3 don't have a source,
+        # source.published will be None, and they won't be included in
+        # the response context
+        source = make_fake_source()
+        chant1 = Chant.objects.create(incipit="chant1", genre=genre, cantus_id="100000", source=source)
+        chant2 = Chant.objects.create(incipit="chant2", genre=genre, cantus_id="100000", source=source)
+        chant3 = Chant.objects.create(incipit="chant3", genre=genre, cantus_id="123456", source=source)
         response = self.client.get(reverse("genre-detail", args=[genre.id]))
         self.assertEqual(response.status_code, 200)
         # the context should be a list of dicts, each corresponding to one cantus id
