@@ -1788,21 +1788,21 @@ class ChantEditVolpianoViewTest(TestCase):
         self.client.login(email='test@test.com', password='pass')
 
     def test_url_and_templates(self):
-        source = make_fake_source()
-        Chant.objects.create(source=source)
+        source1 = make_fake_source()
+        Chant.objects.create(source=source1)
 
-        response = self.client.get(reverse("source-edit-volpiano", args=[source.id]))
+        response = self.client.get(reverse("source-edit-volpiano", args=[source1.id]))
         self.assertEqual(response.status_code, 200)
         self.assertTemplateUsed(response, "chant_edit.html")
 
-        response = self.client.get(reverse("source-edit-volpiano", args=[source.id + 100]))
+        response = self.client.get(reverse("source-edit-volpiano", args=[source1.id + 100]))
         self.assertEqual(response.status_code, 404)
         self.assertTemplateUsed(response, "404.html")
 
         # trying to access chant-edit with a source that has no chant should return 404
-        source = make_fake_source()
+        source2 = make_fake_source()
 
-        response = self.client.get(reverse("source-edit-volpiano", args=[source.id]))
+        response = self.client.get(reverse("source-edit-volpiano", args=[source2.id]))
         self.assertEqual(response.status_code, 404)
         self.assertTemplateUsed(response, "404.html")
 
