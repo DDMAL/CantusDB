@@ -67,7 +67,7 @@ def make_fake_chant() -> Chant:
     )
 
     chant = Chant.objects.create(
-        source=make_fake_source(),
+        source=make_fake_source(segment_name="CANTUS Database"),
         marginalia=make_fake_text(SHORT_CHAR_FIELD_MAX),
         # folio in the form of two digit and one letter
         folio=faker.bothify("##?"),
@@ -183,9 +183,11 @@ def make_fake_rism_siglum() -> RismSiglum:
     return rism_siglum
 
 
-def make_fake_segment() -> Segment:
+def make_fake_segment(name=None) -> Segment:
     """Generates a fake Segment object."""
-    segment = Segment.objects.create(name=make_fake_text(SHORT_CHAR_FIELD_MAX))
+    if not name:
+        name = make_fake_text(SHORT_CHAR_FIELD_MAX)
+    segment = Segment.objects.create(name=name)
     return segment
 
 
@@ -206,7 +208,7 @@ def make_fake_sequence() -> Sequence:
         ),
         date=make_fake_text(LONG_CHAR_FIELD_MAX),
         ah_volume=make_fake_text(LONG_CHAR_FIELD_MAX),
-        source=make_fake_source(),
+        source=make_fake_source(segment_name="Bower Sequence Database"),
         # cantus_id in the form of six digits
         cantus_id=faker.numerify("######"),
         image_link=faker.image_url(),
@@ -214,7 +216,7 @@ def make_fake_sequence() -> Sequence:
     return sequence
 
 
-def make_fake_source(published=True) -> Source:
+def make_fake_source(published=True, segment_name=None) -> Source:
     """Generates a fake Source object."""
     # The cursus_choices and source_status_choices lists in Source are lists of
     # tuples and we only need the first element of each tuple
@@ -233,7 +235,7 @@ def make_fake_source(published=True) -> Source:
         full_source=faker.boolean(),
         date=make_fake_text(SHORT_CHAR_FIELD_MAX),
         cursus=random.choice(cursus_choices),
-        segment=make_fake_segment(),
+        segment=make_fake_segment(name=segment_name),
         source_status=random.choice(source_status_choices),
         complete_inventory=faker.boolean(),
         summary=make_fake_text(
