@@ -113,6 +113,7 @@ class Source(BaseModel):
 
     def save(self, *args, **kwargs):
         # when creating a source, assign it to "CANTUS Database" segment by default
-        cantus_db_segment = Segment.objects.get(name="CANTUS Database")
-        self.segment = cantus_db_segment
+        if not self.segment:
+            cantus_db_segment = Segment.objects.get(name="CANTUS Database")
+            self.segment = cantus_db_segment
         super().save(*args, **kwargs)
