@@ -275,37 +275,34 @@
                                 Attribution-NonCommercial-ShareAlike 4.0 International License.</a>
                         </p>
                     </div>
-                </div>
-                <div class="row">
-                    <div class="col-md" id="logos">
-                        <a href="https://uwaterloo.ca/margot/" target="_blank">
-                            <img class="img-fluid w-75" src="{% static "logoUW.png" %}" alt="University of Waterloo Logo"
-                                loading="lazy">
-                        </a>
-                        <a href="https://www.dal.ca/faculty/arts/school-of-performing-arts.html" target="_blank">
-                            <img class="img-fluid w-75" src="{% static "DalhousieLogo.jpg" %}" alt="Dalhousie University Logo"
-                                loading="lazy">
-                        </a>
-                        <img class="img-fluid w-100" src="{% static "logoSSHRC.jpg" %}" alt="SSHRC Logo" loading="lazy">
-                        <a href="https://www.computecanada.ca" target="_blank">
-                            <img class="img-fluid w-75" src="{% static "compute-canada-logo.png" %}" alt="Compute Canada Logo"
-                                loading="lazy">
-                        </a>
-                    </div>
-                    <div class="col-md" id="contact-form">
-                        <h5>Contact</h5>
-                        <a href="{% url 'contact' %}">
-                            <svg class="bi bi-envelope" width="1em" height="1em" viewBox="0 0 16 16" fill="currentColor"
-                                xmlns="http://www.w3.org/2000/svg">
-                                <path fill-rule="evenodd"
-                                    d="M14 3H2a1 1 0 0 0-1 1v8a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1V4a1 1 0 0 0-1-1zM2 2a2 2 0 0 0-2 2v8a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V4a2 2 0 0 0-2-2H2z" />
-                                <path
-                                    d="M.05 3.555C.017 3.698 0 3.847 0 4v.697l5.803 3.546L0 11.801V12c0 .306.069.596.192.856l6.57-4.027L8 9.586l1.239-.757 6.57 4.027c.122-.26.191-.55.191-.856v-.2l-5.803-3.557L16 4.697V4c0-.153-.017-.302-.05-.445L8 8.414.05 3.555z" />
+                    <div class="col-md" id="contact">
+                        <h5>Contact Us</h5>
+                        <a href="{% url 'contact' %}">      
+                            <svg xmlns="http://www.w3.org/2000/svg" width="30" height="30" fill="currentColor" class="bi bi-envelope" viewBox="0 0 16 16">
+                                <!-- draw the envelope icon -->
+                                <path d="M0 4a2 2 0 0 1 2-2h12a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H2a2 2 0 0 1-2-2V4Zm2-1a1 1 0 0 0-1 1v.217l7 4.2 7-4.2V4a1 1 0 0 0-1-1H2Zm13 2.383-4.708 2.825L15 11.105V5.383Zm-.034 6.876-5.64-3.471L8 9.583l-1.326-.795-5.64 3.47A1 1 0 0 0 2 13h12a1 1 0 0 0 .966-.741ZM1 11.105l4.708-2.897L1 5.383v5.722Z"/>
                             </svg>
                             Contact Form
                         </a>
                     </div>
-                    <div class="col-md" id="database-links">
+                </div>
+                <div class="row">
+                    <div class="col-md-6" id="logos">
+                        <a href="https://uwaterloo.ca/margot/" target="_blank">
+                            <img class="img-fluid p-2" style="max-width: 50%;" src="{% static "uwaterloo-logo.png" %}" alt="University of Waterloo Logo"
+                                loading="lazy">
+                        </a>
+                        <a href="https://www.dal.ca/faculty/arts/school-of-performing-arts.html" target="_blank">
+                            <img class="img-fluid p-2" style="max-width: 50%;" src="{% static "dalhousie-logo.png" %}" alt="Dalhousie University Logo"
+                                loading="lazy">
+                        </a>
+                        <img class="img-fluid p-2" style="max-width: 100%;" src="{% static "sshrc-logo.jpg" %}" alt="SSHRC Logo" loading="lazy">
+                        <a href="https://alliancecan.ca/" target="_blank">
+                            <img class="img-fluid p-2" style="max-width: 100%;" src="{% static "digital-alliance-logo.png" %}" alt="Digital Alliance Logo"
+                                loading="lazy">
+                        </a>
+                    </div>
+                    <div class="col-md-3" id="database-links">
                         <h5>Database Links</h5>
                         <ul class="list-group list-group-flush">
                             <li class="list-group-item p-0"><a href="http://cantusindex.org/" target="_blank">Cantus Index
@@ -335,7 +332,7 @@
                                     target="_blank">Comparatio</a></li>
                         </ul>
                     </div>
-                    <div class="col-md" id="login">
+                    <div class="col-md-3" id="login">
                         {% if not request.user.is_anonymous %}
                             <h5>Admin Navigation</h5>
                             <ul class="list-group list-group-flush">
