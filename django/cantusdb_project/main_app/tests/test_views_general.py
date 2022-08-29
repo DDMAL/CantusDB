@@ -32,6 +32,13 @@ def get_random_search_term(target):
 
 
 class IndexerListViewTest(TestCase):
+    def setUp(self):
+        # unless a segment is specified when a source is created, the source is automatically assigned
+        # to the segment with the name "CANTUS Database" - to prevent errors, we must make sure that
+        # such a segment exists
+        Segment.objects.create(name="CANTUS Database")
+
+
     def test_url_and_templates(self):
         """Test the url and templates used"""
         response = self.client.get(reverse("indexer-list"))
@@ -259,6 +266,13 @@ class FeastListViewTest(TestCase):
 
 
 class FeastDetailViewTest(TestCase):
+    def setUp(self):
+        # unless a segment is specified when a source is created, the source is automatically assigned
+        # to the segment with the name "CANTUS Database" - to prevent errors, we must make sure that
+        # such a segment exists
+        Segment.objects.create(name="CANTUS Database")
+        pass
+
     def test_url_and_templates(self):
         """Test the url and templates used"""
         feast = make_fake_feast()
@@ -438,9 +452,13 @@ class GenreDetailViewTest(TestCase):
 
     def test_chants_by_genre(self):
         genre = make_fake_genre()
-        chant1 = Chant.objects.create(incipit="chant1", genre=genre, cantus_id="100000")
-        chant2 = Chant.objects.create(incipit="chant2", genre=genre, cantus_id="100000")
-        chant3 = Chant.objects.create(incipit="chant3", genre=genre, cantus_id="123456")
+        # create a source because if chants1, 2 and 3 don't have a source,
+        # source.published will be None, and they won't be included in
+        # the response context
+        source = make_fake_source()
+        chant1 = Chant.objects.create(incipit="chant1", genre=genre, cantus_id="100000", source=source)
+        chant2 = Chant.objects.create(incipit="chant2", genre=genre, cantus_id="100000", source=source)
+        chant3 = Chant.objects.create(incipit="chant3", genre=genre, cantus_id="123456", source=source)
         response = self.client.get(reverse("genre-detail", args=[genre.id]))
         self.assertEqual(response.status_code, 200)
         # the context should be a list of dicts, each corresponding to one cantus id
@@ -454,8 +472,12 @@ class GenreDetailViewTest(TestCase):
 
     def test_search_incipit(self):
         genre = make_fake_genre()
-        chant1 = Chant.objects.create(incipit="chant1", genre=genre, cantus_id="100000")
-        chant2 = Chant.objects.create(incipit="chant2", genre=genre, cantus_id="123456")
+        # create a source because if chants1 and 2 don't have a source,
+        # source.published will be None, and they won't be included in
+        # the response context
+        source = make_fake_source()
+        chant1 = Chant.objects.create(incipit="chant1", genre=genre, cantus_id="100000", source=source)
+        chant2 = Chant.objects.create(incipit="chant2", genre=genre, cantus_id="123456", source=source)
         response = self.client.get(reverse("genre-detail", args=[genre.id]))
         self.assertEqual(response.status_code, 200)
 
@@ -513,6 +535,12 @@ class OfficeDetailViewTest(TestCase):
 
 
 class SourceListViewTest(TestCase):
+    def setUp(self):
+        # unless a segment is specified when a source is created, the source is automatically assigned
+        # to the segment with the name "CANTUS Database" - to prevent errors, we must make sure that
+        # such a segment exists
+        Segment.objects.create(name="CANTUS Database")
+
     def test_url_and_templates(self):
         response = self.client.get(reverse("source-list"))
         self.assertEqual(response.status_code, 200)
@@ -544,8 +572,8 @@ class SourceListViewTest(TestCase):
 
     def test_filter_by_segment(self):
         """The source list can be filtered by `segment`, `provenance`, `century`, and `full_source`"""
-        cantus_segment = Segment.objects.create(name="cantus")
-        clavis_segment = Segment.objects.create(name="clavis")
+        cantus_segment = make_fake_segment(name="cantus")
+        clavis_segment = make_fake_segment(name="clavis")
         chant_source = Source.objects.create(
             segment=cantus_segment, title="chant source", published=True
         )
@@ -818,6 +846,12 @@ class SourceDetailViewTest(TestCase):
 
 
 class SequenceListViewTest(TestCase):
+    def setUp(self):
+        # unless a segment is specified when a source is created, the source is automatically assigned
+        # to the segment with the name "CANTUS Database" - to prevent errors, we must make sure that
+        # such a segment exists
+        Segment.objects.create(name="CANTUS Database")
+
     def test_url_and_templates(self):
         response = self.client.get(reverse("sequence-list"))
         self.assertEqual(response.status_code, 200)
@@ -1096,6 +1130,12 @@ class ChantByCantusIDViewTest(TestCase):
 
 
 class ChantSearchViewTest(TestCase):
+    def setUp(self):
+        # unless a segment is specified when a source is created, the source is automatically assigned
+        # to the segment with the name "CANTUS Database" - to prevent errors, we must make sure that
+        # such a segment exists
+        Segment.objects.create(name="CANTUS Database")
+
     def test_url_and_templates(self):
         response = self.client.get(reverse("chant-search"))
         self.assertEqual(response.status_code, 200)
@@ -1748,21 +1788,23 @@ class ChantEditVolpianoViewTest(TestCase):
         self.client.login(email='test@test.com', password='pass')
 
     def test_url_and_templates(self):
-        source = make_fake_source()
-        Chant.objects.create(source=source)
+        source1 = make_fake_source()
 
-        response = self.client.get(reverse("source-edit-volpiano", args=[source.id]))
+        # must specify folio, or ChantEditVolpianoView.get_queryset will fail when it tries to default to displaying the first folio
+        Chant.objects.create(source=source1, folio="001r")
+
+        response = self.client.get(reverse("source-edit-volpiano", args=[source1.id]))
         self.assertEqual(response.status_code, 200)
         self.assertTemplateUsed(response, "chant_edit.html")
 
-        response = self.client.get(reverse("source-edit-volpiano", args=[source.id + 100]))
+        response = self.client.get(reverse("source-edit-volpiano", args=[source1.id + 100]))
         self.assertEqual(response.status_code, 404)
         self.assertTemplateUsed(response, "404.html")
 
         # trying to access chant-edit with a source that has no chant should return 404
-        source = make_fake_source()
+        source2 = make_fake_source()
 
-        response = self.client.get(reverse("source-edit-volpiano", args=[source.id]))
+        response = self.client.get(reverse("source-edit-volpiano", args=[source2.id]))
         self.assertEqual(response.status_code, 404)
         self.assertTemplateUsed(response, "404.html")
 
@@ -1836,6 +1878,10 @@ class SourceCreateViewTest(TestCase):
         project_manager = Group.objects.get(name='project manager') 
         project_manager.user_set.add(self.user)
         self.client.login(email='test@test.com', password='pass')
+        # unless a segment is specified when a source is created, the source is automatically assigned
+        # to the segment with the name "CANTUS Database" - to prevent errors, we must make sure that
+        # such a segment exists
+        Segment.objects.create(name="CANTUS Database")
 
     def test_url_and_templates(self):
         response = self.client.get(reverse("source-create"))

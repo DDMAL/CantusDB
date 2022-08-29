@@ -63,7 +63,6 @@ class GenreDetailView(SingleObjectMixin, ListView):
         return context
 
     def get_queryset(self):
-        # return self.object.chant_set.all()
         display_unpublished = self.request.user.is_authenticated
         search_term = self.request.GET.get("incipit")
         if not search_term:

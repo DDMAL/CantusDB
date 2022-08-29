@@ -723,7 +723,6 @@ class ChantCreateView(LoginRequiredMixin, UserPassesTestMixin, CreateView):
             chant_dict = json.loads(response.text[2:])[0]
             # add number of occurence to the dict, so that we can display it easily
             chant_dict["count"] = sugg_chant_count
-            print(chant_dict)
             return chant_dict
 
         suggested_chants_dicts = [
@@ -758,9 +757,7 @@ class ChantCreateView(LoginRequiredMixin, UserPassesTestMixin, CreateView):
             if type(chant) is Chant # .get_next_chant() sometimes returns None
                 and chant.feast is not None # some chants aren't associated with a feast
             ]
-        print(next_feasts)
         feast_counts = Counter(next_feasts)
-        print(feast_counts)
         sorted_feast_counts = dict( sorted(feast_counts.items(),
                            key=lambda item: item[1],
                            reverse=True))
@@ -1001,6 +998,10 @@ class ChantEditVolpianoView(LoginRequiredMixin, UserPassesTestMixin, UpdateView)
                 .distinct()
                 .order_by("folio")
             )
+            if not folios:
+                # if the source has no chants (conceivable), or if it has chants but
+                # none of them have folios specified (we don't really expect this to happen)
+                raise Http404
             initial_folio = folios[0]
             chants = chants.filter(folio=initial_folio)
         self.queryset = chants
@@ -1212,7 +1213,11 @@ class ChantEditVolpianoView(LoginRequiredMixin, UserPassesTestMixin, UpdateView)
             request = requests.get(
                     "http://cantusindex.org/json-cid/{}".format(cantus_id)
             )
-            context["suggested_fulltext"] = json.loads(request.text[2:])[0]["fulltext"]
+            request_text = json.loads(request.text[2:])
+            if request_text:
+                context["suggested_fulltext"] = request_text[0]["fulltext"]
+            else:
+                context["suggested_fulltext"] = ""
 
         chant = self.get_object()
 
