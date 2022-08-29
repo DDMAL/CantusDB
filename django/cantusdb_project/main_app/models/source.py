@@ -23,7 +23,7 @@ class Source(BaseModel):
     # Here in the new Cantus, we only use one field, and there are two levels: published and unpublished.
     # Published sources are available to the public. 
     # Unpublished sources are hidden from the list and cannot be accessed by URL until the user logs in.
-    published = models.BooleanField(blank=False, null=False)
+    published = models.BooleanField(blank=False, null=False, default=False)
 
     title = models.CharField(
         max_length=255,
