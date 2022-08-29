@@ -1209,7 +1209,11 @@ class ChantEditVolpianoView(LoginRequiredMixin, UserPassesTestMixin, UpdateView)
             request = requests.get(
                     "http://cantusindex.org/json-cid/{}".format(cantus_id)
             )
-            context["suggested_fulltext"] = json.loads(request.text[2:])[0]["fulltext"]
+            request_text = json.loads(request.text[2:])
+            if request_text:
+                context["suggested_fulltext"] = request_text[0]["fulltext"]
+            else:
+                context["suggested_fulltext"] = ""
 
         chant = self.get_object()
 
