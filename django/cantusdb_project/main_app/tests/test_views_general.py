@@ -515,7 +515,7 @@ class OfficeDetailViewTest(TestCase):
 class SourceListViewTest(TestCase):
     def setUp(self):
         # unless a segment is specified when a source is created, the source is automatically assigned
-        # to a segment with the name "CANTUS Database" - to prevent errors, we must make sure that
+        # to the segment with the name "CANTUS Database" - to prevent errors, we must make sure that
         # such a segment exists
         Segment.objects.create(name="CANTUS Database")
 
@@ -1842,6 +1842,10 @@ class SourceCreateViewTest(TestCase):
         project_manager = Group.objects.get(name='project manager') 
         project_manager.user_set.add(self.user)
         self.client.login(email='test@test.com', password='pass')
+        # unless a segment is specified when a source is created, the source is automatically assigned
+        # to the segment with the name "CANTUS Database" - to prevent errors, we must make sure that
+        # such a segment exists
+        Segment.objects.create(name="CANTUS Database")
 
     def test_url_and_templates(self):
         response = self.client.get(reverse("source-create"))
