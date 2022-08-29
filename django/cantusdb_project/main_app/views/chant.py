@@ -998,6 +998,10 @@ class ChantEditVolpianoView(LoginRequiredMixin, UserPassesTestMixin, UpdateView)
                 .distinct()
                 .order_by("folio")
             )
+            if not folios:
+                # if the source has no chants (conceivable), or if it has chants but
+                # none of them have folios specified (we don't really expect this to happen)
+                raise Http404
             initial_folio = folios[0]
             chants = chants.filter(folio=initial_folio)
         self.queryset = chants
