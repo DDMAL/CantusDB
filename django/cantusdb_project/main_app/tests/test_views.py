@@ -1747,6 +1747,19 @@ class ChantCreateViewTest(TestCase):
         response = self.client.get(url)
         self.assertEqual(response.context["source"].title, source.title)
 
+    def test_post_error(self):
+        """post with correct source and empty full-text
+        """
+        source = make_fake_source()
+        url = reverse("chant-create", args=[source.id])
+        response = self.client.post(url, data={"manuscript_full_text_std_spelling": ""})
+        self.assertFormError(
+            response,
+            "form",
+            "manuscript_full_text_std_spelling",
+            "This field is required.",
+        )
+
 class ChantDeleteViewTest(TestCase):
     @classmethod
     def setUpTestData(cls):

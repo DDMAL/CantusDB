@@ -230,17 +230,4 @@ class ChantCreateViewTest(TestCase):
             fake_cantus_ids[1], response.context["suggested_chants"][0].cantus_id
         )
 
-    def test_post_error(self):
-        """post with correct source and empty full-text
-        """
-        source = Source.objects.all()[self.rand_source]
-        url = reverse("chant-create", args=[source.id])
-        response = self.client.post(url, data={"manuscript_full_text_std_spelling": ""})
-        self.assertFormError(
-            response,
-            "form",
-            "manuscript_full_text_std_spelling",
-            "This field is required.",
-        )
-
 
