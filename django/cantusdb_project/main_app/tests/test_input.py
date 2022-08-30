@@ -250,8 +250,5 @@ class ChantCreateViewTest(TestCase):
         url = reverse("chant-create", args=[source.id])
         response = self.client.get(url)
         self.assertEqual(response.context["source"].title, source.title)
-        self.assertEqual(
-            response.context["source_link"], reverse("source-detail", args=[source.id])
-        )
 
 
