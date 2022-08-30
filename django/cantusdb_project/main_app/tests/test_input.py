@@ -246,7 +246,7 @@ class ChantCreateViewTest(TestCase):
     def test_context(self):
         """some context variable passed to templates
         """
-        source = Source.objects.all()[self.rand_source]
+        source = make_fake_source()
         url = reverse("chant-create", args=[source.id])
         response = self.client.get(url)
         self.assertEqual(response.context["source"].title, source.title)
