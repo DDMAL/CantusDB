@@ -54,11 +54,6 @@ class ChantCreateViewTest(TestCase):
         self.rand_source = random.randint(0, self.number_of_sources)
         return super().setUp()
 
-    def test_view_url_path(self):
-        for source in Source.objects.all()[self.slice_begin : self.slice_end]:
-            response = self.client.get(f"/chant-create/{source.id}")
-            self.assertEqual(response.status_code, 200)
-
     def test_view_url_reverse_name(self):
         for source in Source.objects.all()[self.slice_begin : self.slice_end]:
             response = self.client.get(reverse("chant-create", args=[source.id]))

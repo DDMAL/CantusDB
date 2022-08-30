@@ -1733,6 +1733,11 @@ class ChantCreateViewTest(TestCase):
         self.assertRedirects(response, reverse('chant-create', args=[source.id]))  
         chant = Chant.objects.first()
         self.assertEqual(chant.manuscript_full_text_std_spelling, "initial")
+    
+    def test_view_url_path(self):
+        source = make_fake_source()
+        response = self.client.get(f"/chant-create/{source.id}")
+        self.assertEqual(response.status_code, 200)
 
 class ChantDeleteViewTest(TestCase):
     @classmethod
