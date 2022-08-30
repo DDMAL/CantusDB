@@ -10,7 +10,7 @@ from django.contrib.auth.models import Group
 from django.test import Client
 from django.db.models import Q
 
-# run with `python -Wa manage.py test main_app.tests.test_views_general`
+# run with `python -Wa manage.py test main_app.tests.test_views`
 # the -Wa flag tells Python to display deprecation warnings
 
 
