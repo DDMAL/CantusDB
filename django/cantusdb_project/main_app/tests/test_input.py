@@ -37,21 +37,9 @@ https://developer.mozilla.org/en-US/docs/Learn/Server-side/Django/Testing
 
 
 class ChantCreateViewTest(TestCase):
-    fixtures = [
-        "source_fixtures.json",
-        "provenance_fixtures.json",
-        "segment_fixtures.json",
-        "century_fixtures.json",
-        "indexer_fixtures.json",
-        "notation_fixtures.json",
-    ]
     SLICE_SIZE = 10
 
     def setUp(self):
-        self.number_of_sources = Source.objects.all().count()
-        self.slice_begin = random.randint(0, self.number_of_sources - self.SLICE_SIZE)
-        self.slice_end = self.slice_begin + self.SLICE_SIZE
-        self.rand_source = random.randint(0, self.number_of_sources)
         return super().setUp()
 
     def test_view_url_reverse_name(self):
@@ -194,40 +182,41 @@ class ChantCreateViewTest(TestCase):
         self.assertListEqual([], response.context["suggested_chants"])
 
     def test_suggest_one_folio(self):
-        NUM_CHANTS = 3
-        fake_folio = fake.numerify("###")
-        fake_cantus_ids = []
-        fake_chants = []
-        source = Source.objects.all()[self.rand_source]
-        # create some chants in the test folio
-        for i in range(NUM_CHANTS):
-            fake_cantus_id = fake.numerify("######")
-            fake_cantus_ids.append(fake_cantus_id)
-            fake_chants.append(
-                Chant.objects.create(
-                    source=source,
-                    folio=fake_folio,
-                    sequence_number=i,
-                    cantus_id=fake_cantus_id,
-                )
-            )
-        # create one more chant with a cantus_id that is supposed to have suggestions
-        Chant.objects.create(
-            source=source,
-            folio=fake_folio,
-            sequence_number=i + 1,
-            # if it has the same cantus_id as the first chant in this folio
-            # it should give a suggestion of the second chant in this folio
-            cantus_id=fake_cantus_ids[0],
+        fake_source = make_fake_source()
+        fake_chant_1 = make_fake_chant(
+            source=fake_source,
+            cantus_id="111111",
+            folio="001",
+            sequence_number=1
         )
+        fake_chant_2 = make_fake_chant(
+            source=fake_source,
+            cantus_id="222222",
+            folio="001",
+            sequence_number=2
+        )
+        fake_chant_3 = make_fake_chant(
+            source=fake_source,
+            cantus_id="3333333",
+            folio="001",
+            sequence_number=3
+        )
+
+        # create one more chant with a cantus_id that is supposed to have suggestions
+        # if it has the same cantus_id as the fake_chant_1,
+        # it should give a suggestion of fake_chant_2
+        fake_chant_4 = make_fake_chant(
+            cantus_id="111111"
+        )
+
         # go to the same source and access the input form
-        url = reverse("chant-create", args=[source.id])
+        url = reverse("chant-create", args=[fake_source.id])
         response = self.client.get(url)
         self.assertEqual(response.status_code, 200)
-        # suggested chants should be [the second chant in source]
+        # only one chant, i.e. fake_chant_2, should be returned
         self.assertEqual(1, len(response.context["suggested_chants"]))
         self.assertListEqual(
-            fake_cantus_ids[1], response.context["suggested_chants"][0].cantus_id
+            222222, response.context["suggested_chants"][0].cantus_id
         )
 
 
