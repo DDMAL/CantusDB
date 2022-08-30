@@ -1739,6 +1739,14 @@ class ChantCreateViewTest(TestCase):
         response = self.client.get(f"/chant-create/{source.id}")
         self.assertEqual(response.status_code, 200)
 
+    def test_context(self):
+        """some context variable passed to templates
+        """
+        source = make_fake_source()
+        url = reverse("chant-create", args=[source.id])
+        response = self.client.get(url)
+        self.assertEqual(response.context["source"].title, source.title)
+
 class ChantDeleteViewTest(TestCase):
     @classmethod
     def setUpTestData(cls):

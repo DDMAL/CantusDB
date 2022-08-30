@@ -243,12 +243,4 @@ class ChantCreateViewTest(TestCase):
             "This field is required.",
         )
 
-    def test_context(self):
-        """some context variable passed to templates
-        """
-        source = make_fake_source()
-        url = reverse("chant-create", args=[source.id])
-        response = self.client.get(url)
-        self.assertEqual(response.context["source"].title, source.title)
-
 
