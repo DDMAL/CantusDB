@@ -117,35 +117,3 @@ class ChantCreateViewTest(TestCase):
         # see if it has the default folio and sequence
         self.assertEqual(posted_chant.folio, DEFAULT_FOLIO)
         self.assertEqual(posted_chant.sequence_number, DEFAULT_SEQ)
-
-    def test_repeated_seq(self):
-        """post with a folio and seq that already exists in the source
-        """
-        TEST_FOLIO = "001r"
-        # create some chants in the test source
-        source = Source.objects.all()[self.rand_source]
-        for i in range(1, 5):
-            Chant.objects.create(
-                source=source,
-                manuscript_full_text=fake.text(10),
-                folio=TEST_FOLIO,
-                sequence_number=i,
-            )
-        # post a chant with the same folio and seq
-        url = reverse("chant-create", args=[source.id])
-        fake_text = fake.text(10)
-        response = self.client.post(
-            url,
-            data={
-                "manuscript_full_text_std_spelling": fake_text,
-                "folio": TEST_FOLIO,
-                "sequence_number": random.randint(1, 4),
-            },
-            follow=True,
-        )
-        self.assertFormError(
-            response,
-            "form",
-            None,
-            errors="Chant with the same sequence and folio already exists in this source.",
-        )
