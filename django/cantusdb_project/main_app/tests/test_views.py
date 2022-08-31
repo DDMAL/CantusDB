@@ -1381,6 +1381,7 @@ class ChantIndexViewTest(TestCase):
         self.assertEqual(seq_source, response.context["source"])
         self.assertIn(sequence, response.context["chants"])
 
+
 class ChantCreateViewTest(TestCase):
     @classmethod
     def setUpTestData(cls):
@@ -1514,6 +1515,7 @@ class ChantCreateViewTest(TestCase):
         self.assertEqual(fake_cantus_id, response.context["previous_chant"].cantus_id)
         self.assertListEqual([], response.context["suggested_chants"])
 
+
 class ChantDeleteViewTest(TestCase):
     @classmethod
     def setUpTestData(cls):
@@ -1553,6 +1555,7 @@ class ChantDeleteViewTest(TestCase):
         chant = make_fake_chant()
         response = self.client.post(reverse("chant-delete", args=[chant.id + 100]))
         self.assertEqual(response.status_code, 404)
+
 
 class ChantEditVolpianoViewTest(TestCase):
     @classmethod
@@ -1608,6 +1611,7 @@ class ChantEditVolpianoViewTest(TestCase):
         chant.refresh_from_db()
         self.assertEqual(chant.manuscript_full_text_std_spelling, 'test')
 
+
 class JsonMelodyExportTest(TestCase):
     def test_json_melody_export(self):
         chants = None
@@ -1618,9 +1622,11 @@ class JsonNodeExportTest(TestCase):
     def test_json_node_export(self):
         pass
 
+
 class JsonSourcesExportTest(TestCase):
     def test_json_sources_export(self):
         pass
+
 
 class JsonNextChantsTest(TestCase):
 
@@ -1681,7 +1687,6 @@ class JsonNextChantsTest(TestCase):
         self.assertIsInstance(response, JsonResponse)
         unpacked_response = json.loads(response.content)
         self.assertEqual(unpacked_response, {})
-
 
 
 class PermissionsTest(TestCase):
@@ -1958,6 +1963,7 @@ class PermissionsTest(TestCase):
         response = self.client.get(f'/edit-source/{source.id}')
         self.assertEqual(response.status_code, 403)
 
+
 class SequenceEditViewTest(TestCase):
     @classmethod
     def setUpTestData(cls):
@@ -1997,6 +2003,7 @@ class SequenceEditViewTest(TestCase):
         sequence.refresh_from_db()
         self.assertEqual(sequence.title, 'test')
 
+
 class SourceCreateViewTest(TestCase):
     @classmethod
     def setUpTestData(cls):
@@ -2030,6 +2037,7 @@ class SourceCreateViewTest(TestCase):
 
         source = Source.objects.first()
         self.assertEqual(source.title, 'test')
+
 
 class SourceEditViewTest(TestCase):
     @classmethod
@@ -2073,6 +2081,7 @@ class SourceEditViewTest(TestCase):
         source.refresh_from_db()
         self.assertEqual(source.title, 'test')
 
+
 class UserListViewTest(TestCase):
     def setUp(self):
         self.user = get_user_model().objects.create(email='test@test.com')
@@ -2094,6 +2103,7 @@ class UserListViewTest(TestCase):
         self.assertEqual(response.status_code, 200)
         self.assertEqual(len(response.context["users"]), 6)
 
+
 class UserDetailViewTest(TestCase):
     @classmethod
     def setUpTestData(cls):
@@ -2110,6 +2120,7 @@ class UserDetailViewTest(TestCase):
         response = self.client.get(reverse('user-detail', args=[user.id]))
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response.context["user"], user)
+
 
 class CISearchViewTest(TestCase):
     def test_view_url_path(self):
