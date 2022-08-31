@@ -149,25 +149,3 @@ class ChantCreateViewTest(TestCase):
             None,
             errors="Chant with the same sequence and folio already exists in this source.",
         )
-
-    def test_no_suggest(self):
-        NUM_CHANTS = 3
-        fake_folio = fake.numerify("###")
-        source = Source.objects.all()[self.rand_source]
-        # create some chants in the test folio
-        for i in range(NUM_CHANTS):
-            fake_cantus_id = fake.numerify("######")
-            Chant.objects.create(
-                source=source,
-                folio=fake_folio,
-                sequence_number=i,
-                cantus_id=fake_cantus_id,
-            )
-        # go to the same source and access the input form
-        url = reverse("chant-create", args=[source.id])
-        response = self.client.get(url)
-        self.assertEqual(response.status_code, 200)
-        # assert context previous_chant, suggested_chants
-        self.assertEqual(i, response.context["previous_chant"].sequence_number)
-        self.assertEqual(fake_cantus_id, response.context["previous_chant"].cantus_id)
-        self.assertListEqual([], response.context["suggested_chants"])
