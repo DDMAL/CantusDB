@@ -37,27 +37,10 @@ https://developer.mozilla.org/en-US/docs/Learn/Server-side/Django/Testing
 
 
 class ChantCreateViewTest(TestCase):
-    fixtures = [
-        "source_fixtures.json",
-        "provenance_fixtures.json",
-        "segment_fixtures.json",
-        "century_fixtures.json",
-        "indexer_fixtures.json",
-        "notation_fixtures.json",
-    ]
     SLICE_SIZE = 10
 
     def setUp(self):
-        self.number_of_sources = Source.objects.all().count()
-        self.slice_begin = random.randint(0, self.number_of_sources - self.SLICE_SIZE)
-        self.slice_end = self.slice_begin + self.SLICE_SIZE
-        self.rand_source = random.randint(0, self.number_of_sources)
         return super().setUp()
-
-    def test_view_url_path(self):
-        for source in Source.objects.all()[self.slice_begin : self.slice_end]:
-            response = self.client.get(f"/chant-create/{source.id}")
-            self.assertEqual(response.status_code, 200)
 
     def test_view_url_reverse_name(self):
         for source in Source.objects.all()[self.slice_begin : self.slice_end]:
@@ -197,89 +180,3 @@ class ChantCreateViewTest(TestCase):
         self.assertEqual(i, response.context["previous_chant"].sequence_number)
         self.assertEqual(fake_cantus_id, response.context["previous_chant"].cantus_id)
         self.assertListEqual([], response.context["suggested_chants"])
-
-    def test_suggest_one_folio(self):
-        NUM_CHANTS = 3
-        fake_folio = fake.numerify("###")
-        fake_cantus_ids = []
-        fake_chants = []
-        source = Source.objects.all()[self.rand_source]
-        # create some chants in the test folio
-        for i in range(NUM_CHANTS):
-            fake_cantus_id = fake.numerify("######")
-            fake_cantus_ids.append(fake_cantus_id)
-            fake_chants.append(
-                Chant.objects.create(
-                    source=source,
-                    folio=fake_folio,
-                    sequence_number=i,
-                    cantus_id=fake_cantus_id,
-                )
-            )
-        # create one more chant with a cantus_id that is supposed to have suggestions
-        Chant.objects.create(
-            source=source,
-            folio=fake_folio,
-            sequence_number=i + 1,
-            # if it has the same cantus_id as the first chant in this folio
-            # it should give a suggestion of the second chant in this folio
-            cantus_id=fake_cantus_ids[0],
-        )
-        # go to the same source and access the input form
-        url = reverse("chant-create", args=[source.id])
-        response = self.client.get(url)
-        self.assertEqual(response.status_code, 200)
-        # suggested chants should be [the second chant in source]
-        self.assertEqual(1, len(response.context["suggested_chants"]))
-        self.assertListEqual(
-            fake_cantus_ids[1], response.context["suggested_chants"][0].cantus_id
-        )
-
-    def test_post_error(self):
-        """post with correct source and empty full-text
-        """
-        source = Source.objects.all()[self.rand_source]
-        url = reverse("chant-create", args=[source.id])
-        response = self.client.post(url, data={"manuscript_full_text_std_spelling": ""})
-        self.assertFormError(
-            response,
-            "form",
-            "manuscript_full_text_std_spelling",
-            "This field is required.",
-        )
-
-    def test_context(self):
-        """some context variable passed to templates
-        """
-        source = Source.objects.all()[self.rand_source]
-        url = reverse("chant-create", args=[source.id])
-        response = self.client.get(url)
-        self.assertEqual(response.context["source"].title, source.title)
-        self.assertEqual(
-            response.context["source_link"], reverse("source-detail", args=[source.id])
-        )
-
-
-class CISearchViewTest(TestCase):
-    def test_view_url_path(self):
-        fake_search_term = fake.word()
-        response = self.client.get(f"/ci-search/{fake_search_term}")
-        self.assertEqual(response.status_code, 200)
-
-    def test_view_url_reverse_name(self):
-        fake_search_term = fake.word()
-        response = self.client.get(reverse("ci-search", args=[fake_search_term]))
-        self.assertEqual(response.status_code, 200)
-
-    def test_template_used(self):
-        fake_search_term = fake.word()
-        response = self.client.get(reverse("ci-search", args=[fake_search_term]))
-        self.assertEqual(response.status_code, 200)
-        self.assertTemplateUsed(response, "ci_search.html")
-
-    def test_context_returned(self):
-        fake_search_term = fake.word()
-        # fake_search_term = "eia adest"
-        response = self.client.get(f"/ci-search/{fake_search_term}")
-        self.assertTrue("results" in response.context)
-

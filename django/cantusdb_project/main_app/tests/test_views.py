@@ -1733,6 +1733,73 @@ class ChantCreateViewTest(TestCase):
         self.assertRedirects(response, reverse('chant-create', args=[source.id]))  
         chant = Chant.objects.first()
         self.assertEqual(chant.manuscript_full_text_std_spelling, "initial")
+    
+    def test_view_url_path(self):
+        source = make_fake_source()
+        response = self.client.get(f"/chant-create/{source.id}")
+        self.assertEqual(response.status_code, 200)
+
+    def test_context(self):
+        """some context variable passed to templates
+        """
+        source = make_fake_source()
+        url = reverse("chant-create", args=[source.id])
+        response = self.client.get(url)
+        self.assertEqual(response.context["source"].title, source.title)
+
+    def test_post_error(self):
+        """post with correct source and empty full-text
+        """
+        source = make_fake_source()
+        url = reverse("chant-create", args=[source.id])
+        response = self.client.post(url, data={"manuscript_full_text_std_spelling": ""})
+        self.assertFormError(
+            response,
+            "form",
+            "manuscript_full_text_std_spelling",
+            "This field is required.",
+        )
+
+    def test_suggest_one_folio(self):
+        fake_source = make_fake_source()
+        fake_chant_3 = make_fake_chant(
+            source=fake_source,
+            cantus_id="333333",
+            folio="001",
+            sequence_number=3,
+        )
+        fake_chant_2 = make_fake_chant(
+            source=fake_source,
+            cantus_id="007450", # this has to be an actual cantus ID, since next_chants pulls data from CantusIndex and we'll get an empty response if we use "222222" etc.
+            folio="001",
+            sequence_number=2,
+            next_chant=fake_chant_3,
+        )
+        fake_chant_1 = make_fake_chant(
+            source=fake_source,
+            cantus_id="111111",
+            folio="001",
+            sequence_number=1,
+            next_chant=fake_chant_2,
+        )
+
+        # create one more chant with a cantus_id that is supposed to have suggestions
+        # if it has the same cantus_id as the fake_chant_1,
+        # it should give a suggestion of fake_chant_2
+        fake_chant_4 = make_fake_chant(
+            source=fake_source,
+            cantus_id="111111",
+        )
+
+        # go to the same source and access the input form
+        url = reverse("chant-create", args=[fake_source.id])
+        response = self.client.get(url)
+        self.assertEqual(response.status_code, 200)
+        # only one chant, i.e. fake_chant_2, should be returned
+        self.assertEqual(1, len(response.context["suggested_chants"]))
+        self.assertEqual(
+            "007450", response.context["suggested_chants"][0]["cid"]
+        )
 
 class ChantDeleteViewTest(TestCase):
     @classmethod
@@ -1980,3 +2047,25 @@ class UserDetailViewTest(TestCase):
         response = self.client.get(reverse('user-detail', args=[user.id]))
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response.context["user"], user)
+
+class CISearchViewTest(TestCase):
+    def test_view_url_path(self):
+        fake_search_term = faker.word()
+        response = self.client.get(f"/ci-search/{fake_search_term}")
+        self.assertEqual(response.status_code, 200)
+
+    def test_view_url_reverse_name(self):
+        fake_search_term = faker.word()
+        response = self.client.get(reverse("ci-search", args=[fake_search_term]))
+        self.assertEqual(response.status_code, 200)
+
+    def test_template_used(self):
+        fake_search_term = faker.word()
+        response = self.client.get(reverse("ci-search", args=[fake_search_term]))
+        self.assertEqual(response.status_code, 200)
+        self.assertTemplateUsed(response, "ci_search.html")
+
+    def test_context_returned(self):
+        fake_search_term = faker.word()
+        response = self.client.get(f"/ci-search/{fake_search_term}")
+        self.assertTrue("results" in response.context)

@@ -60,23 +60,33 @@ def make_fake_century() -> Century:
     return century
 
 
-def make_fake_chant() -> Chant:
+def make_fake_chant(source=None, folio=None, sequence_number=None, cantus_id=None, next_chant=None) -> Chant:
     """Generates a fake Chant object."""
     manuscript_full_text_std_spelling = make_fake_text(
         max_size=MAX_NUMBER_TEXT_CHARS, min_size=MIN_NUMBER_TEXT_CHARS
     )
 
+    if source is None:
+        source = make_fake_source(segment_name="CANTUS Database")
+    if folio is None:
+        # two digits and one letter
+        folio = faker.bothify("##?")
+    if sequence_number is None:
+        sequence_number = random.randint(1, MAX_SEQUENCE_NUMBER)
+    if cantus_id is None:
+        cantus_id = faker.numerify("######")
+        
+
     chant = Chant.objects.create(
-        source=make_fake_source(segment_name="CANTUS Database"),
+        source=source,
         marginalia=make_fake_text(SHORT_CHAR_FIELD_MAX),
-        # folio in the form of two digit and one letter
-        folio=faker.bothify("##?"),
-        sequence_number=random.randint(1, MAX_SEQUENCE_NUMBER),
+        folio=folio,
+        sequence_number=sequence_number,
         office=make_fake_office(),
         genre=make_fake_genre(),
         position=make_fake_text(SHORT_CHAR_FIELD_MAX),
         # cantus_id in the form of six digits
-        cantus_id=faker.numerify("######"),
+        cantus_id=cantus_id,
         feast=make_fake_feast(),
         mode=make_fake_text(SHORT_CHAR_FIELD_MAX),
         differentia=make_fake_text(SHORT_CHAR_FIELD_MAX),
@@ -103,6 +113,7 @@ def make_fake_chant() -> Chant:
             max_size=MAX_NUMBER_TEXT_CHARS, min_size=MIN_NUMBER_TEXT_CHARS
         ),
         json_info=None,
+        next_chant=next_chant,
     )
     return chant
 
