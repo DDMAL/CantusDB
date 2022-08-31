@@ -1,18 +1,50 @@
 import unittest
+import random
 from django.urls import reverse
 from django.test import TestCase
 from main_app.views.feast import FeastListView
 from django.http.response import JsonResponse
 import json
-from .make_fakes import *
 from django.contrib.auth import get_user_model
 from django.contrib.auth.models import Group
 from django.test import Client
 from django.db.models import Q
 
+from faker import Faker
+from .make_fakes import (make_fake_text,
+    make_fake_century,
+    make_fake_chant,
+    make_fake_feast,
+    make_fake_genre,
+    make_fake_indexer,
+    make_fake_notation,
+    make_fake_office,
+    make_fake_provenance,
+    make_fake_rism_siglum,
+    make_fake_segment,
+    make_fake_sequence,
+    make_fake_source,
+)
+
+from main_app.models import Century
+from main_app.models import Chant
+from main_app.models import Feast
+from main_app.models import Genre
+from main_app.models import Indexer
+from main_app.models import Notation
+from main_app.models import Office
+from main_app.models import Provenance
+from main_app.models import RismSiglum
+from main_app.models import Segment
+from main_app.models import Sequence
+from main_app.models import Source
+
 # run with `python -Wa manage.py test main_app.tests.test_views`
 # the -Wa flag tells Python to display deprecation warnings
 
+
+# Create a Faker instance with locale set to Latin
+faker = Faker("la")
 
 def get_random_search_term(target):
     """Helper function for generating a random slice of a string.
@@ -1349,6 +1381,283 @@ class ChantIndexViewTest(TestCase):
         self.assertEqual(seq_source, response.context["source"])
         self.assertIn(sequence, response.context["chants"])
 
+
+class ChantCreateViewTest(TestCase):
+    @classmethod
+    def setUpTestData(cls):
+        Group.objects.create(name="project manager")
+
+    def setUp(self):
+        self.user = get_user_model().objects.create(email='test@test.com')
+        self.user.set_password('pass')
+        self.user.save()
+        self.client = Client()
+        project_manager = Group.objects.get(name='project manager') 
+        project_manager.user_set.add(self.user)
+        self.client.login(email='test@test.com', password='pass')
+
+    def test_url_and_templates(self):
+        source = make_fake_source()
+
+        response = self.client.get(reverse("chant-create", args=[source.id]))
+        self.assertEqual(response.status_code, 200)
+        self.assertTemplateUsed(response, "chant_create.html")
+
+        response = self.client.get(reverse("chant-create", args=[source.id + 100]))
+        self.assertEqual(response.status_code, 404)
+        self.assertTemplateUsed(response, "404.html")
+
+    def test_create_chant(self):
+        source = make_fake_source()
+        response = self.client.post(
+            reverse("chant-create", args=[source.id]), 
+            {"manuscript_full_text_std_spelling": "initial", "folio": "001r", "sequence_number": "1"})
+        self.assertEqual(response.status_code, 302)
+        self.assertRedirects(response, reverse('chant-create', args=[source.id]))  
+        chant = Chant.objects.first()
+        self.assertEqual(chant.manuscript_full_text_std_spelling, "initial")
+    
+    def test_view_url_path(self):
+        source = make_fake_source()
+        response = self.client.get(f"/chant-create/{source.id}")
+        self.assertEqual(response.status_code, 200)
+
+    def test_context(self):
+        """some context variable passed to templates
+        """
+        source = make_fake_source()
+        url = reverse("chant-create", args=[source.id])
+        response = self.client.get(url)
+        self.assertEqual(response.context["source"].title, source.title)
+
+    def test_post_error(self):
+        """post with correct source and empty full-text
+        """
+        source = make_fake_source()
+        url = reverse("chant-create", args=[source.id])
+        response = self.client.post(url, data={"manuscript_full_text_std_spelling": ""})
+        self.assertFormError(
+            response,
+            "form",
+            "manuscript_full_text_std_spelling",
+            "This field is required.",
+        )
+
+    def test_suggest_one_folio(self):
+        fake_source = make_fake_source()
+        fake_chant_3 = make_fake_chant(
+            source=fake_source,
+            cantus_id="333333",
+            folio="001",
+            sequence_number=3,
+        )
+        fake_chant_2 = make_fake_chant(
+            source=fake_source,
+            cantus_id="007450", # this has to be an actual cantus ID, since next_chants pulls data from CantusIndex and we'll get an empty response if we use "222222" etc.
+            folio="001",
+            sequence_number=2,
+            next_chant=fake_chant_3,
+        )
+        fake_chant_1 = make_fake_chant(
+            source=fake_source,
+            cantus_id="111111",
+            folio="001",
+            sequence_number=1,
+            next_chant=fake_chant_2,
+        )
+
+        # create one more chant with a cantus_id that is supposed to have suggestions
+        # if it has the same cantus_id as the fake_chant_1,
+        # it should give a suggestion of fake_chant_2
+        fake_chant_4 = make_fake_chant(
+            source=fake_source,
+            cantus_id="111111",
+        )
+
+        # go to the same source and access the input form
+        url = reverse("chant-create", args=[fake_source.id])
+        response = self.client.get(url)
+        self.assertEqual(response.status_code, 200)
+        # only one chant, i.e. fake_chant_2, should be returned
+        self.assertEqual(1, len(response.context["suggested_chants"]))
+        self.assertEqual(
+            "007450", response.context["suggested_chants"][0]["cid"]
+        )
+
+    def test_fake_source(self):
+        """cannot go to input form with a fake source
+        """
+        fake_source = faker.numerify(
+            "#####"
+        )  # there's not supposed to be 5-digits source id
+        response = self.client.get(reverse("chant-create", args=[fake_source]))
+        self.assertEqual(response.status_code, 404)
+
+    def test_no_suggest(self):
+        NUM_CHANTS = 3
+        fake_folio = faker.numerify("###")
+        source = make_fake_source()
+        # create some chants in the test folio
+        for i in range(NUM_CHANTS):
+            fake_cantus_id = faker.numerify("######")
+            make_fake_chant(
+                source=source,
+                folio=fake_folio,
+                sequence_number=i,
+                cantus_id=fake_cantus_id,
+            )
+        # go to the same source and access the input form
+        url = reverse("chant-create", args=[source.id])
+        response = self.client.get(url)
+        self.assertEqual(response.status_code, 200)
+        # assert context previous_chant, suggested_chants
+        self.assertEqual(i, response.context["previous_chant"].sequence_number)
+        self.assertEqual(fake_cantus_id, response.context["previous_chant"].cantus_id)
+        self.assertListEqual([], response.context["suggested_chants"])
+
+    def test_repeated_seq(self):
+        """post with a folio and seq that already exists in the source
+        """
+        TEST_FOLIO = "001r"
+        # create some chants in the test source
+        source = make_fake_source()
+        for i in range(1, 5):
+            Chant.objects.create(
+                source=source,
+                manuscript_full_text=faker.text(10),
+                folio=TEST_FOLIO,
+                sequence_number=i,
+            )
+        # post a chant with the same folio and seq
+        url = reverse("chant-create", args=[source.id])
+        fake_text = faker.text(10)
+        response = self.client.post(
+            url,
+            data={
+                "manuscript_full_text_std_spelling": fake_text,
+                "folio": TEST_FOLIO,
+                "sequence_number": random.randint(1, 4),
+            },
+            follow=True,
+        )
+        self.assertFormError(
+            response,
+            "form",
+            None,
+            errors="Chant with the same sequence and folio already exists in this source.",
+        )
+
+    def test_view_url_reverse_name(self):
+        fake_sources = [make_fake_source() for _ in range(10)]
+        for source in fake_sources:
+            response = self.client.get(reverse("chant-create", args=[source.id]))
+            self.assertEqual(response.status_code, 200)
+
+    def test_template_used(self):
+        fake_sources = [make_fake_source() for _ in range(10)]
+        for source in fake_sources:
+            response = self.client.get(reverse("chant-create", args=[source.id]))
+            self.assertEqual(response.status_code, 200)
+            self.assertTemplateUsed(response, "base.html")
+            self.assertTemplateUsed(response, "chant_create.html")
+
+
+class ChantDeleteViewTest(TestCase):
+    @classmethod
+    def setUpTestData(cls):
+        Group.objects.create(name="project manager")
+
+    def setUp(self):
+        self.user = get_user_model().objects.create(email='test@test.com')
+        self.user.set_password('pass')
+        self.user.save()
+        self.client = Client()
+        project_manager = Group.objects.get(name='project manager') 
+        project_manager.user_set.add(self.user)
+        self.client.login(email='test@test.com', password='pass')
+
+    def test_context(self):
+        chant = make_fake_chant()
+        response = self.client.get(reverse("chant-delete", args=[chant.id]))
+        self.assertEqual(chant, response.context["object"])
+
+    def test_url_and_templates(self):
+        chant = make_fake_chant()
+
+        response = self.client.get(reverse("chant-delete", args=[chant.id]))
+        self.assertEqual(response.status_code, 200)
+        self.assertTemplateUsed(response, "chant_confirm_delete.html")
+
+        response = self.client.get(reverse("chant-delete", args=[chant.id + 100]))
+        self.assertEqual(response.status_code, 404)
+        self.assertTemplateUsed(response, "404.html")
+
+    def test_existing_chant(self):
+        chant = make_fake_chant()
+        response = self.client.post(reverse("chant-delete", args=[chant.id]))
+        self.assertEqual(response.status_code, 302)
+
+    def test_non_existing_chant(self):
+        chant = make_fake_chant()
+        response = self.client.post(reverse("chant-delete", args=[chant.id + 100]))
+        self.assertEqual(response.status_code, 404)
+
+
+class ChantEditVolpianoViewTest(TestCase):
+    @classmethod
+    def setUpTestData(cls):
+        Group.objects.create(name="project manager")
+
+    def setUp(self):
+        self.user = get_user_model().objects.create(email='test@test.com')
+        self.user.set_password('pass')
+        self.user.save()
+        self.client = Client()
+        project_manager = Group.objects.get(name='project manager') 
+        project_manager.user_set.add(self.user)
+        self.client.login(email='test@test.com', password='pass')
+
+    def test_url_and_templates(self):
+        source1 = make_fake_source()
+
+        # must specify folio, or ChantEditVolpianoView.get_queryset will fail when it tries to default to displaying the first folio
+        Chant.objects.create(source=source1, folio="001r")
+
+        response = self.client.get(reverse("source-edit-volpiano", args=[source1.id]))
+        self.assertEqual(response.status_code, 200)
+        self.assertTemplateUsed(response, "chant_edit.html")
+
+        response = self.client.get(reverse("source-edit-volpiano", args=[source1.id + 100]))
+        self.assertEqual(response.status_code, 404)
+        self.assertTemplateUsed(response, "404.html")
+
+        # trying to access chant-edit with a source that has no chant should return 404
+        source2 = make_fake_source()
+
+        response = self.client.get(reverse("source-edit-volpiano", args=[source2.id]))
+        self.assertEqual(response.status_code, 404)
+        self.assertTemplateUsed(response, "404.html")
+
+    def test_update_chant(self):
+        source = make_fake_source()
+        chant = Chant.objects.create(source=source, manuscript_full_text_std_spelling="initial")
+
+        response = self.client.get(
+            reverse('source-edit-volpiano', args=[source.id]), 
+            {'pk': chant.id})
+        self.assertEqual(response.status_code, 200)
+        self.assertTemplateUsed(response, "chant_edit.html")
+
+        response = self.client.post(
+            reverse('source-edit-volpiano', args=[source.id]), 
+            {'manuscript_full_text_std_spelling': 'test', 'pk': chant.id})
+        self.assertEqual(response.status_code, 302)
+        # Check that after the edit, the user is redirected to the source-edit-volpiano page
+        self.assertRedirects(response, reverse('source-edit-volpiano', args=[source.id]))  
+        chant.refresh_from_db()
+        self.assertEqual(chant.manuscript_full_text_std_spelling, 'test')
+
+
 class JsonMelodyExportTest(TestCase):
     def test_json_melody_export(self):
         chants = None
@@ -1359,9 +1668,11 @@ class JsonNodeExportTest(TestCase):
     def test_json_node_export(self):
         pass
 
+
 class JsonSourcesExportTest(TestCase):
     def test_json_sources_export(self):
         pass
+
 
 class JsonNextChantsTest(TestCase):
 
@@ -1422,7 +1733,6 @@ class JsonNextChantsTest(TestCase):
         self.assertIsInstance(response, JsonResponse)
         unpacked_response = json.loads(response.content)
         self.assertEqual(unpacked_response, {})
-
 
 
 class PermissionsTest(TestCase):
@@ -1699,201 +2009,6 @@ class PermissionsTest(TestCase):
         response = self.client.get(f'/edit-source/{source.id}')
         self.assertEqual(response.status_code, 403)
 
-class ChantCreateViewTest(TestCase):
-    @classmethod
-    def setUpTestData(cls):
-        Group.objects.create(name="project manager")
-
-    def setUp(self):
-        self.user = get_user_model().objects.create(email='test@test.com')
-        self.user.set_password('pass')
-        self.user.save()
-        self.client = Client()
-        project_manager = Group.objects.get(name='project manager') 
-        project_manager.user_set.add(self.user)
-        self.client.login(email='test@test.com', password='pass')
-
-    def test_url_and_templates(self):
-        source = make_fake_source()
-
-        response = self.client.get(reverse("chant-create", args=[source.id]))
-        self.assertEqual(response.status_code, 200)
-        self.assertTemplateUsed(response, "chant_create.html")
-
-        response = self.client.get(reverse("chant-create", args=[source.id + 100]))
-        self.assertEqual(response.status_code, 404)
-        self.assertTemplateUsed(response, "404.html")
-
-    def test_create_chant(self):
-        source = make_fake_source()
-        response = self.client.post(
-            reverse("chant-create", args=[source.id]), 
-            {"manuscript_full_text_std_spelling": "initial", "folio": "001r", "sequence_number": "1"})
-        self.assertEqual(response.status_code, 302)
-        self.assertRedirects(response, reverse('chant-create', args=[source.id]))  
-        chant = Chant.objects.first()
-        self.assertEqual(chant.manuscript_full_text_std_spelling, "initial")
-    
-    def test_view_url_path(self):
-        source = make_fake_source()
-        response = self.client.get(f"/chant-create/{source.id}")
-        self.assertEqual(response.status_code, 200)
-
-    def test_context(self):
-        """some context variable passed to templates
-        """
-        source = make_fake_source()
-        url = reverse("chant-create", args=[source.id])
-        response = self.client.get(url)
-        self.assertEqual(response.context["source"].title, source.title)
-
-    def test_post_error(self):
-        """post with correct source and empty full-text
-        """
-        source = make_fake_source()
-        url = reverse("chant-create", args=[source.id])
-        response = self.client.post(url, data={"manuscript_full_text_std_spelling": ""})
-        self.assertFormError(
-            response,
-            "form",
-            "manuscript_full_text_std_spelling",
-            "This field is required.",
-        )
-
-    def test_suggest_one_folio(self):
-        fake_source = make_fake_source()
-        fake_chant_3 = make_fake_chant(
-            source=fake_source,
-            cantus_id="333333",
-            folio="001",
-            sequence_number=3,
-        )
-        fake_chant_2 = make_fake_chant(
-            source=fake_source,
-            cantus_id="007450", # this has to be an actual cantus ID, since next_chants pulls data from CantusIndex and we'll get an empty response if we use "222222" etc.
-            folio="001",
-            sequence_number=2,
-            next_chant=fake_chant_3,
-        )
-        fake_chant_1 = make_fake_chant(
-            source=fake_source,
-            cantus_id="111111",
-            folio="001",
-            sequence_number=1,
-            next_chant=fake_chant_2,
-        )
-
-        # create one more chant with a cantus_id that is supposed to have suggestions
-        # if it has the same cantus_id as the fake_chant_1,
-        # it should give a suggestion of fake_chant_2
-        fake_chant_4 = make_fake_chant(
-            source=fake_source,
-            cantus_id="111111",
-        )
-
-        # go to the same source and access the input form
-        url = reverse("chant-create", args=[fake_source.id])
-        response = self.client.get(url)
-        self.assertEqual(response.status_code, 200)
-        # only one chant, i.e. fake_chant_2, should be returned
-        self.assertEqual(1, len(response.context["suggested_chants"]))
-        self.assertEqual(
-            "007450", response.context["suggested_chants"][0]["cid"]
-        )
-
-class ChantDeleteViewTest(TestCase):
-    @classmethod
-    def setUpTestData(cls):
-        Group.objects.create(name="project manager")
-
-    def setUp(self):
-        self.user = get_user_model().objects.create(email='test@test.com')
-        self.user.set_password('pass')
-        self.user.save()
-        self.client = Client()
-        project_manager = Group.objects.get(name='project manager') 
-        project_manager.user_set.add(self.user)
-        self.client.login(email='test@test.com', password='pass')
-
-    def test_context(self):
-        chant = make_fake_chant()
-        response = self.client.get(reverse("chant-delete", args=[chant.id]))
-        self.assertEqual(chant, response.context["object"])
-
-    def test_url_and_templates(self):
-        chant = make_fake_chant()
-
-        response = self.client.get(reverse("chant-delete", args=[chant.id]))
-        self.assertEqual(response.status_code, 200)
-        self.assertTemplateUsed(response, "chant_confirm_delete.html")
-
-        response = self.client.get(reverse("chant-delete", args=[chant.id + 100]))
-        self.assertEqual(response.status_code, 404)
-        self.assertTemplateUsed(response, "404.html")
-
-    def test_existing_chant(self):
-        chant = make_fake_chant()
-        response = self.client.post(reverse("chant-delete", args=[chant.id]))
-        self.assertEqual(response.status_code, 302)
-
-    def test_non_existing_chant(self):
-        chant = make_fake_chant()
-        response = self.client.post(reverse("chant-delete", args=[chant.id + 100]))
-        self.assertEqual(response.status_code, 404)
-
-class ChantEditVolpianoViewTest(TestCase):
-    @classmethod
-    def setUpTestData(cls):
-        Group.objects.create(name="project manager")
-
-    def setUp(self):
-        self.user = get_user_model().objects.create(email='test@test.com')
-        self.user.set_password('pass')
-        self.user.save()
-        self.client = Client()
-        project_manager = Group.objects.get(name='project manager') 
-        project_manager.user_set.add(self.user)
-        self.client.login(email='test@test.com', password='pass')
-
-    def test_url_and_templates(self):
-        source1 = make_fake_source()
-
-        # must specify folio, or ChantEditVolpianoView.get_queryset will fail when it tries to default to displaying the first folio
-        Chant.objects.create(source=source1, folio="001r")
-
-        response = self.client.get(reverse("source-edit-volpiano", args=[source1.id]))
-        self.assertEqual(response.status_code, 200)
-        self.assertTemplateUsed(response, "chant_edit.html")
-
-        response = self.client.get(reverse("source-edit-volpiano", args=[source1.id + 100]))
-        self.assertEqual(response.status_code, 404)
-        self.assertTemplateUsed(response, "404.html")
-
-        # trying to access chant-edit with a source that has no chant should return 404
-        source2 = make_fake_source()
-
-        response = self.client.get(reverse("source-edit-volpiano", args=[source2.id]))
-        self.assertEqual(response.status_code, 404)
-        self.assertTemplateUsed(response, "404.html")
-
-    def test_update_chant(self):
-        source = make_fake_source()
-        chant = Chant.objects.create(source=source, manuscript_full_text_std_spelling="initial")
-
-        response = self.client.get(
-            reverse('source-edit-volpiano', args=[source.id]), 
-            {'pk': chant.id})
-        self.assertEqual(response.status_code, 200)
-        self.assertTemplateUsed(response, "chant_edit.html")
-
-        response = self.client.post(
-            reverse('source-edit-volpiano', args=[source.id]), 
-            {'manuscript_full_text_std_spelling': 'test', 'pk': chant.id})
-        self.assertEqual(response.status_code, 302)
-        # Check that after the edit, the user is redirected to the source-edit-volpiano page
-        self.assertRedirects(response, reverse('source-edit-volpiano', args=[source.id]))  
-        chant.refresh_from_db()
-        self.assertEqual(chant.manuscript_full_text_std_spelling, 'test')
 
 class SequenceEditViewTest(TestCase):
     @classmethod
@@ -1934,6 +2049,7 @@ class SequenceEditViewTest(TestCase):
         sequence.refresh_from_db()
         self.assertEqual(sequence.title, 'test')
 
+
 class SourceCreateViewTest(TestCase):
     @classmethod
     def setUpTestData(cls):
@@ -1967,6 +2083,7 @@ class SourceCreateViewTest(TestCase):
 
         source = Source.objects.first()
         self.assertEqual(source.title, 'test')
+
 
 class SourceEditViewTest(TestCase):
     @classmethod
@@ -2010,6 +2127,7 @@ class SourceEditViewTest(TestCase):
         source.refresh_from_db()
         self.assertEqual(source.title, 'test')
 
+
 class UserListViewTest(TestCase):
     def setUp(self):
         self.user = get_user_model().objects.create(email='test@test.com')
@@ -2031,6 +2149,7 @@ class UserListViewTest(TestCase):
         self.assertEqual(response.status_code, 200)
         self.assertEqual(len(response.context["users"]), 6)
 
+
 class UserDetailViewTest(TestCase):
     @classmethod
     def setUpTestData(cls):
@@ -2047,6 +2166,7 @@ class UserDetailViewTest(TestCase):
         response = self.client.get(reverse('user-detail', args=[user.id]))
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response.context["user"], user)
+
 
 class CISearchViewTest(TestCase):
     def test_view_url_path(self):
