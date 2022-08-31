@@ -1,15 +1,43 @@
 import unittest
+import random
 from django.urls import reverse
 from django.test import TestCase
 from main_app.views.feast import FeastListView
 from django.http.response import JsonResponse
 import json
-from .make_fakes import *
 from django.contrib.auth import get_user_model
 from django.contrib.auth.models import Group
 from django.test import Client
 from django.db.models import Q
+
 from faker import Faker
+from .make_fakes import (make_fake_text,
+    make_fake_century,
+    make_fake_chant,
+    make_fake_feast,
+    make_fake_genre,
+    make_fake_indexer,
+    make_fake_notation,
+    make_fake_office,
+    make_fake_provenance,
+    make_fake_rism_siglum,
+    make_fake_segment,
+    make_fake_sequence,
+    make_fake_source,
+)
+
+from main_app.models import Century
+from main_app.models import Chant
+from main_app.models import Feast
+from main_app.models import Genre
+from main_app.models import Indexer
+from main_app.models import Notation
+from main_app.models import Office
+from main_app.models import Provenance
+from main_app.models import RismSiglum
+from main_app.models import Segment
+from main_app.models import Sequence
+from main_app.models import Source
 
 # run with `python -Wa manage.py test main_app.tests.test_views`
 # the -Wa flag tells Python to display deprecation warnings
