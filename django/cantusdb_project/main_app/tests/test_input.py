@@ -54,15 +54,6 @@ class ChantCreateViewTest(TestCase):
             self.assertTemplateUsed(response, "base.html")
             self.assertTemplateUsed(response, "input_form_w.html")
 
-    def test_fake_source(self):
-        """cannot go to input form with a fake source
-        """
-        fake_source = fake.numerify(
-            "#####"
-        )  # there's not supposed to be 5-digits source id
-        response = self.client.get(reverse("chant-create", args=[fake_source]))
-        self.assertEqual(response.status_code, 404)
-
     def test_post_success(self):
         """post with correct source and random full-text
         """

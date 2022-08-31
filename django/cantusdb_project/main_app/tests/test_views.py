@@ -9,10 +9,14 @@ from django.contrib.auth import get_user_model
 from django.contrib.auth.models import Group
 from django.test import Client
 from django.db.models import Q
+from faker import Faker
 
 # run with `python -Wa manage.py test main_app.tests.test_views`
 # the -Wa flag tells Python to display deprecation warnings
 
+
+# Create a Faker instance with locale set to Latin
+faker = Faker("la")
 
 def get_random_search_term(target):
     """Helper function for generating a random slice of a string.
@@ -1800,6 +1804,15 @@ class ChantCreateViewTest(TestCase):
         self.assertEqual(
             "007450", response.context["suggested_chants"][0]["cid"]
         )
+
+    def test_fake_source(self):
+        """cannot go to input form with a fake source
+        """
+        fake_source = faker.numerify(
+            "#####"
+        )  # there's not supposed to be 5-digits source id
+        response = self.client.get(reverse("chant-create", args=[fake_source]))
+        self.assertEqual(response.status_code, 404)
 
 class ChantDeleteViewTest(TestCase):
     @classmethod
