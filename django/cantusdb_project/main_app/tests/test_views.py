@@ -1547,6 +1547,14 @@ class ChantCreateViewTest(TestCase):
             errors="Chant with the same sequence and folio already exists in this source.",
         )
 
+    def test_template_used(self):
+        fake_sources = [make_fake_source() for _ in range(10)]
+        for source in fake_sources:
+            response = self.client.get(reverse("chant-create", args=[source.id]))
+            self.assertEqual(response.status_code, 200)
+            self.assertTemplateUsed(response, "base.html")
+            self.assertTemplateUsed(response, "chant_create.html")
+
 
 class ChantDeleteViewTest(TestCase):
     @classmethod

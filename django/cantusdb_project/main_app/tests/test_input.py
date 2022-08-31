@@ -48,13 +48,6 @@ class ChantCreateViewTest(TestCase):
             response = self.client.get(reverse("chant-create", args=[source.id]))
             self.assertEqual(response.status_code, 200)
 
-    def test_template_used(self):
-        for source in Source.objects.all()[self.slice_begin : self.slice_end]:
-            response = self.client.get(reverse("chant-create", args=[source.id]))
-            self.assertEqual(response.status_code, 200)
-            self.assertTemplateUsed(response, "base.html")
-            self.assertTemplateUsed(response, "input_form_w.html")
-
     @unittest.skip("post request fails to make chant - see comment above `response = ...`")
     def test_post_success(self):
         """post with correct source and random full-text
