@@ -705,6 +705,26 @@ class OfficeListViewTest(TestCase):
 
 
 class OfficeDetailViewTest(TestCase):
+    def setUp(self):
+        for _ in range(10):
+            make_fake_office()
+
+    def test_view_url_path(self):
+        for office in Office.objects.all():
+            response = self.client.get(f"/office/{office.id}")
+            self.assertEqual(response.status_code, 200)
+
+    def test_view_url_reverse_name(self):
+        for office in Office.objects.all():
+            response = self.client.get(reverse("office-detail", args=[office.id]))
+            self.assertEqual(response.status_code, 200)
+
+    def test_view_context_data(self):
+        for office in Office.objects.all():
+            response = self.client.get(reverse("office-detail", args=[office.id]))
+            self.assertTrue("office" in response.context)
+            self.assertEqual(office, response.context["office"])
+
     def test_url_and_templates(self):
         office = make_fake_office()
         response = self.client.get(reverse("office-detail", args=[office.id]))

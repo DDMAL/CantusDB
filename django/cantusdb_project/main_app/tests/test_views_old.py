@@ -24,40 +24,6 @@ from . import make_fakes
 fake = Faker()
 
 
-class OfficeDetailViewTest(TestCase):
-    fixtures = ["office_fixtures.json"]
-    SLICE_SIZE = 10
-
-    def setUp(self):
-        self.number_of_offices = Office.objects.all().count()
-        self.slice_begin = random.randint(0, self.number_of_offices - self.SLICE_SIZE)
-        self.slice_end = self.slice_begin + self.SLICE_SIZE
-        return super().setUp()
-
-    def test_view_url_path(self):
-        for office in Office.objects.all()[self.slice_begin : self.slice_end]:
-            response = self.client.get(f"/offices/{office.id}")
-            self.assertEqual(response.status_code, 200)
-
-    def test_view_url_reverse_name(self):
-        for office in Office.objects.all()[self.slice_begin : self.slice_end]:
-            response = self.client.get(reverse("office-detail", args=[office.id]))
-            self.assertEqual(response.status_code, 200)
-
-    def test_view_correct_templates(self):
-        for office in Office.objects.all()[self.slice_begin : self.slice_end]:
-            response = self.client.get(reverse("office-detail", args=[office.id]))
-            self.assertEqual(response.status_code, 200)
-            self.assertTemplateUsed(response, "base.html")
-            self.assertTemplateUsed(response, "office_detail.html")
-
-    def test_view_context_data(self):
-        for office in Office.objects.all()[self.slice_begin : self.slice_end]:
-            response = self.client.get(reverse("office-detail", args=[office.id]))
-            self.assertTrue("office" in response.context)
-            self.assertEqual(office, response.context["office"])
-
-
 # class ChantSearchViewTest(TestCase):
 #     fixture_file = random.choice(
 #         os.listdir(
