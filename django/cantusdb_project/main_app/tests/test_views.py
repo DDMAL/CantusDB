@@ -67,7 +67,6 @@ def get_random_search_term(target):
 
 
 class ListViewTest(ABC):
-
     list_view_name = None
     context_object_name = None
     templates = None
@@ -127,6 +126,7 @@ class ListViewTest(ABC):
         self.assertEqual(response.status_code, 404)
         response = self.client.get(reverse(self.list_view_name), {"page": pages + 1})
         self.assertEqual(response.status_code, 404)
+
 
 class IndexerListViewTest(TestCase):
     def setUp(self):
