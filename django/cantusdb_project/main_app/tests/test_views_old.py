@@ -44,13 +44,6 @@ class FeastDetailViewTest(TestCase):
             response = self.client.get(reverse("feast-detail", args=[feast.id]))
             self.assertEqual(response.status_code, 200)
 
-    def test_view_correct_templates(self):
-        for feast in Feast.objects.all()[self.slice_begin : self.slice_end]:
-            response = self.client.get(reverse("feast-detail", args=[feast.id]))
-            self.assertEqual(response.status_code, 200)
-            self.assertTemplateUsed(response, "base.html")
-            self.assertTemplateUsed(response, "feast_detail.html")
-
     def test_view_context_data(self):
         for feast in Feast.objects.all()[self.slice_begin : self.slice_end]:
             response = self.client.get(reverse("feast-detail", args=[feast.id]))
