@@ -698,7 +698,6 @@ class OfficeListViewTest(TestCase):
         self.assertTemplateUsed(response, "office_list.html")
 
     def test_context(self):
-        office = Office.objects.first()
         response = self.client.get(reverse("office-list"))
         offices = response.context["offices"]
         # the list view should contain all offices
