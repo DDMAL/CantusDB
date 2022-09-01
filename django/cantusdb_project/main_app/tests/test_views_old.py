@@ -24,69 +24,6 @@ from . import make_fakes
 fake = Faker()
 
 
-class ListViewTest(ABC):
-
-    list_view_name = None
-    context_object_name = None
-    templates = None
-    page_size = None
-
-    @abstractmethod
-    def number_of_objects(self) -> int:
-        pass
-
-    def __init_subclass__(cls, **kwargs):
-        for required in (
-            "list_view_name",
-            "context_object_name",
-            "templates",
-            "page_size",
-        ):
-            if not getattr(cls, required):
-                raise TypeError(
-                    f"Can't instantiate abstract class {cls.__name__} without "
-                    "{required} attribute defined"
-                )
-        return super().__init_subclass__(**kwargs)
-
-    def test_pagination(self):
-        # print(type(self).__name__)
-        # To get total number of pages do a ceiling integer division
-        q, r = divmod(self.number_of_objects(), self.page_size)
-        pages = q + bool(r)
-
-        # Test all pages
-        for page_num in range(1, pages + 1):
-            response = self.client.get(reverse(self.list_view_name), {"page": page_num})
-            self.assertEqual(response.status_code, 200)
-            self.assertTrue("is_paginated" in response.context)
-            self.assertTrue(response.context["is_paginated"])
-            if page_num == pages and (self.number_of_objects() % self.page_size != 0):
-                self.assertEqual(
-                    len(response.context[self.context_object_name]),
-                    self.number_of_objects() % self.page_size,
-                )
-            else:
-                self.assertEqual(
-                    len(response.context[self.context_object_name]),
-                    self.page_size,
-                )
-
-        # Test the "last" syntax
-        response = self.client.get(reverse(self.list_view_name), {"page": "last"})
-        self.assertEqual(response.status_code, 200)
-
-        # Test some invalid values for pages
-        response = self.client.get(reverse(self.list_view_name), {"page": -1})
-        self.assertEqual(response.status_code, 404)
-        response = self.client.get(reverse(self.list_view_name), {"page": 0})
-        self.assertEqual(response.status_code, 404)
-        response = self.client.get(reverse(self.list_view_name), {"page": "lst"})
-        self.assertEqual(response.status_code, 404)
-        response = self.client.get(reverse(self.list_view_name), {"page": pages + 1})
-        self.assertEqual(response.status_code, 404)
-
-
 class IndexerListViewTest(TestCase):
     PAGE_SIZE = IndexerListView.paginate_by
     MIN_PAGES = 1
