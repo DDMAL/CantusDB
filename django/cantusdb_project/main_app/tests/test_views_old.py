@@ -53,12 +53,6 @@ class IndexerListViewTest(TestCase):
         response = self.client.get(reverse("indexer-list"))
         self.assertEqual(response.status_code, 200)
 
-    def test_view_correct_templates(self):
-        response = self.client.get(reverse("indexer-list"))
-        self.assertEqual(response.status_code, 200)
-        self.assertTemplateUsed(response, "base.html")
-        self.assertTemplateUsed(response, "indexer_list.html")
-
 
 class IndexerDetailViewTest(TestCase):
     NUM_INDEXERS = 10
