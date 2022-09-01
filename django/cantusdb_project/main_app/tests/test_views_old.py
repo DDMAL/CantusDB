@@ -42,19 +42,6 @@ class IndexerDetailViewTest(TestCase):
             response = self.client.get(reverse("indexer-detail", args=[indexer.id]))
             self.assertEqual(response.status_code, 200)
 
-    def test_view_correct_templates(self):
-        for indexer in Indexer.objects.all():
-            response = self.client.get(reverse("indexer-detail", args=[indexer.id]))
-            self.assertEqual(response.status_code, 200)
-            self.assertTemplateUsed(response, "base.html")
-            self.assertTemplateUsed(response, "indexer_detail.html")
-
-    def test_view_context_data(self):
-        for indexer in Indexer.objects.all():
-            response = self.client.get(reverse("indexer-detail", args=[indexer.id]))
-            self.assertTrue("indexer" in response.context)
-            self.assertEqual(indexer, response.context["indexer"])
-
 
 class FeastListViewTest(TestCase):
     PAGE_SIZE = FeastListView.paginate_by
