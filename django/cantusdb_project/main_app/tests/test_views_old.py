@@ -54,12 +54,6 @@ class FeastListViewTest(TestCase):
         response = self.client.get(reverse("feast-list"))
         self.assertEqual(response.status_code, 200)
 
-    def test_view_correct_templates(self):
-        response = self.client.get(reverse("feast-list"))
-        self.assertEqual(response.status_code, 200)
-        self.assertTemplateUsed(response, "base.html")
-        self.assertTemplateUsed(response, "feast_list.html")
-
     # TODO: maybe make a more general method to test pagination that I can apply
     # to all list views?
     def test_pagination(self):
