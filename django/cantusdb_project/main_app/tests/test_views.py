@@ -677,6 +677,20 @@ class GenreDetailViewTest(TestCase):
 
 
 class OfficeListViewTest(TestCase):
+    OFFICE_COUNT = 10
+
+    def setUp(self):
+        for _ in range(self.OFFICE_COUNT):
+            make_fake_office()
+
+    def test_view_url_path(self):
+        response = self.client.get("/offices/")
+        self.assertEqual(response.status_code, 200)
+
+    def test_view_url_reverse_name(self):
+        response = self.client.get(reverse("office-list"))
+        self.assertEqual(response.status_code, 200)
+
     def test_url_and_templates(self):
         response = self.client.get(reverse("office-list"))
         self.assertEqual(response.status_code, 200)
@@ -684,15 +698,11 @@ class OfficeListViewTest(TestCase):
         self.assertTemplateUsed(response, "office_list.html")
 
     def test_context(self):
-        # make a certain number of offices
-        office_cnt = random.randint(1, 10)
-        for i in range(office_cnt):
-            make_fake_office()
         office = Office.objects.first()
         response = self.client.get(reverse("office-list"))
         offices = response.context["offices"]
         # the list view should contain all offices
-        self.assertEqual(offices.count(), office_cnt)
+        self.assertEqual(offices.count(), self.OFFICE_COUNT)
 
 
 class OfficeDetailViewTest(TestCase):
