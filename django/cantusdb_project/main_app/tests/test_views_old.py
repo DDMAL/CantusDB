@@ -45,14 +45,6 @@ class IndexerListViewTest(TestCase):
         self.number_of_indexers = Indexer.objects.all().count()
         return super().setUp()
 
-    def test_view_url_path(self):
-        response = self.client.get("/indexers/")
-        self.assertEqual(response.status_code, 200)
-
-    def test_view_url_reverse_name(self):
-        response = self.client.get(reverse("indexer-list"))
-        self.assertEqual(response.status_code, 200)
-
 
 class IndexerDetailViewTest(TestCase):
     NUM_INDEXERS = 10

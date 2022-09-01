@@ -135,6 +135,13 @@ class IndexerListViewTest(TestCase):
         # such a segment exists
         Segment.objects.create(name="CANTUS Database")
 
+    def test_view_url_path(self):
+        response = self.client.get("/indexers/")
+        self.assertEqual(response.status_code, 200)
+
+    def test_view_url_reverse_name(self):
+        response = self.client.get(reverse("indexer-list"))
+        self.assertEqual(response.status_code, 200)
 
     def test_url_and_templates(self):
         """Test the url and templates used"""
