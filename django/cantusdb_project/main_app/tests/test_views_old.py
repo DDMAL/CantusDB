@@ -46,41 +46,6 @@ class FeastListViewTest(TestCase):
         self.number_of_feasts = Feast.objects.all().count()
         return super().setUp()
 
-    # TODO: maybe make a more general method to test pagination that I can apply
-    # to all list views?
-    def test_pagination(self):
-        # To get total number of pages do a ceiling integer division
-        q, r = divmod(self.number_of_feasts, self.PAGE_SIZE)
-        pages = q + bool(r)
-
-        # Test all pages
-        for page_num in range(1, pages + 1):
-            response = self.client.get(reverse("feast-list"), {"page": page_num})
-            self.assertEqual(response.status_code, 200)
-            self.assertTrue("is_paginated" in response.context)
-            self.assertTrue(response.context["is_paginated"])
-            if page_num == pages and (self.number_of_feasts % self.PAGE_SIZE != 0):
-                self.assertEqual(
-                    len(response.context["feasts"]),
-                    self.number_of_feasts % self.PAGE_SIZE,
-                )
-            else:
-                self.assertEqual(len(response.context["feasts"]), self.PAGE_SIZE)
-
-        # Test the "last" syntax
-        response = self.client.get(reverse("feast-list"), {"page": "last"})
-        self.assertEqual(response.status_code, 200)
-
-        # Test some invalid values for pages
-        response = self.client.get(reverse("feast-list"), {"page": -1})
-        self.assertEqual(response.status_code, 404)
-        response = self.client.get(reverse("feast-list"), {"page": 0})
-        self.assertEqual(response.status_code, 404)
-        response = self.client.get(reverse("feast-list"), {"page": "lst"})
-        self.assertEqual(response.status_code, 404)
-        response = self.client.get(reverse("feast-list"), {"page": pages + 1})
-        self.assertEqual(response.status_code, 404)
-
     def test_filter_by_month(self):
         for i in range(1, 13):
             month = str(i)
