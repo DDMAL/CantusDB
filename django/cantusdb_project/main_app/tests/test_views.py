@@ -274,6 +274,14 @@ class IndexerDetailViewTest(TestCase):
 
 
 class FeastListViewTest(TestCase):
+    def test_view_url_path(self):
+        response = self.client.get("/feasts/")
+        self.assertEqual(response.status_code, 200)
+
+    def test_view_url_reverse_name(self):
+        response = self.client.get(reverse("feast-list"))
+        self.assertEqual(response.status_code, 200)
+
     def test_url_and_templates(self):
         """Test the url and templates used"""
         response = self.client.get(reverse("feast-list"))

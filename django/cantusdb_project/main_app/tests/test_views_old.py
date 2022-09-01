@@ -46,14 +46,6 @@ class FeastListViewTest(TestCase):
         self.number_of_feasts = Feast.objects.all().count()
         return super().setUp()
 
-    def test_view_url_path(self):
-        response = self.client.get("/feasts/")
-        self.assertEqual(response.status_code, 200)
-
-    def test_view_url_reverse_name(self):
-        response = self.client.get(reverse("feast-list"))
-        self.assertEqual(response.status_code, 200)
-
     # TODO: maybe make a more general method to test pagination that I can apply
     # to all list views?
     def test_pagination(self):
