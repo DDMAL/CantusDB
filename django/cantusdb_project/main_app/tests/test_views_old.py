@@ -59,44 +59,6 @@ class IndexerListViewTest(TestCase):
         self.assertTemplateUsed(response, "base.html")
         self.assertTemplateUsed(response, "indexer_list.html")
 
-    def test_search(self):
-        # access the indexer list to obtain a list of "public" indexers
-        response = self.client.get(reverse("indexer-list"))
-        indexers = response.context["indexers"]
-        number_of_indexers = indexers.count()
-
-        # Search by first name
-        idx = random.randint(1, number_of_indexers + 1)
-        random_indexer = indexers[idx]
-
-        # Search the whole first name
-        response = self.client.get(
-            reverse("indexer-list"), {"q": random_indexer.first_name}
-        )
-        self.assertEqual(response.status_code, 200)
-        # Check object_list (which has the whole queryset, not paginated)
-        # instead of indexers which is paginated and might not contain
-        # random_indexer if it is not on the first page
-        self.assertTrue(random_indexer in response.context["paginator"].object_list)
-
-        # Search for a three letter slice of the first name
-        first_name = random_indexer.first_name
-        first_name_length = len(first_name)
-        if first_name_length > 3:
-            # If the name is 3 letters or less we would search for the complete
-            # name which we already tested above
-            slice_begin = random.randint(0, first_name_length - 3)
-            slice_end = slice_begin + 3
-            response = self.client.get(
-                reverse("indexer-list"),
-                {"q": random_indexer.first_name[slice_begin:slice_end]},
-            )
-            self.assertEqual(response.status_code, 200)
-            # Check object_list (which has the whole queryset, not paginated)
-            # instead of indexers which is paginated and might not contain
-            # random_indexer  if it is not on the first page
-            self.assertTrue(random_indexer in response.context["paginator"].object_list)
-
 
 class IndexerDetailViewTest(TestCase):
     NUM_INDEXERS = 10
