@@ -484,6 +484,14 @@ class FeastDetailViewTest(TestCase):
 
 
 class GenreListViewTest(TestCase):
+    def test_view_url_path(self):
+        response = self.client.get("/genres/")
+        self.assertEqual(response.status_code, 200)
+
+    def test_view_url_reverse_name(self):
+        response = self.client.get(reverse("genre-list"))
+        self.assertEqual(response.status_code, 200)
+    
     def test_url_and_templates(self):
         """Test the url and templates used"""
         response = self.client.get(reverse("genre-list"))

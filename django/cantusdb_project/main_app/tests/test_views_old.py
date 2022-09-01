@@ -32,20 +32,6 @@ class GenreListViewTest(TestCase):
         self.number_of_genres = Genre.objects.all().count()
         return super().setUp()
 
-    def test_view_url_path(self):
-        response = self.client.get("/genres/")
-        self.assertEqual(response.status_code, 200)
-
-    def test_view_url_reverse_name(self):
-        response = self.client.get(reverse("genre-list"))
-        self.assertEqual(response.status_code, 200)
-
-    def test_view_correct_templates(self):
-        response = self.client.get(reverse("genre-list"))
-        self.assertEqual(response.status_code, 200)
-        self.assertTemplateUsed(response, "base.html")
-        self.assertTemplateUsed(response, "genre_list.html")
-
     def test_filter_by_mass_or_office(self):
         response = self.client.get(reverse("genre-list"), {"mass_office": "Mass"})
         self.assertEqual(response.status_code, 200)
