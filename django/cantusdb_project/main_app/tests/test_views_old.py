@@ -32,32 +32,6 @@ class GenreListViewTest(TestCase):
         self.number_of_genres = Genre.objects.all().count()
         return super().setUp()
 
-    def test_filter_by_mass_or_office(self):
-        response = self.client.get(reverse("genre-list"), {"mass_office": "Mass"})
-        self.assertEqual(response.status_code, 200)
-        genres = response.context["paginator"].object_list
-        self.assertTrue(all(["Mass" in genre.mass_office for genre in genres]))
-
-        response = self.client.get(reverse("genre-list"), {"mass_office": "Office"})
-        self.assertEqual(response.status_code, 200)
-        genres = response.context["paginator"].object_list
-        self.assertTrue(all(["Office" in genre.mass_office for genre in genres]))
-
-        # Empty value or anything else defaults to all genres
-        response = self.client.get(reverse("genre-list"), {"mass_office": ""})
-        self.assertEqual(response.status_code, 200)
-        genres = response.context["paginator"].object_list
-        self.assertQuerysetEqual(
-            qs=genres,
-            values=list(Genre.objects.all()),
-            ordered=False,
-            # The transform argument having the identity function is so the
-            # members of
-            # the list don't go through the repr() method, then we can
-            # compare model objects to model objects
-            transform=lambda x: x,
-        )
-
     # TODO: maybe make a more general method to test pagination that I can apply
     # to all list views?
     def test_pagination(self):
