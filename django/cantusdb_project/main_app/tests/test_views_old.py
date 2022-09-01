@@ -24,33 +24,6 @@ from . import make_fakes
 fake = Faker()
 
 
-class FeastDetailViewTest(TestCase):
-    fixtures = ["feast_fixtures.json"]
-    SLICE_SIZE = 10
-
-    def setUp(self):
-        self.number_of_feasts = Feast.objects.all().count()
-        self.slice_begin = random.randint(0, self.number_of_feasts - self.SLICE_SIZE)
-        self.slice_end = self.slice_begin + self.SLICE_SIZE
-        return super().setUp()
-
-    def test_view_url_path(self):
-        for feast in Feast.objects.all()[self.slice_begin : self.slice_end]:
-            response = self.client.get(f"/feasts/{feast.id}")
-            self.assertEqual(response.status_code, 200)
-
-    def test_view_url_reverse_name(self):
-        for feast in Feast.objects.all()[self.slice_begin : self.slice_end]:
-            response = self.client.get(reverse("feast-detail", args=[feast.id]))
-            self.assertEqual(response.status_code, 200)
-
-    def test_view_context_data(self):
-        for feast in Feast.objects.all()[self.slice_begin : self.slice_end]:
-            response = self.client.get(reverse("feast-detail", args=[feast.id]))
-            self.assertTrue("feast" in response.context)
-            self.assertEqual(feast, response.context["feast"])
-
-
 class GenreListViewTest(TestCase):
     PAGE_SIZE = GenreListView.paginate_by
     fixtures = ["genre_fixtures.json"]

@@ -400,7 +400,25 @@ class FeastDetailViewTest(TestCase):
         # to the segment with the name "CANTUS Database" - to prevent errors, we must make sure that
         # such a segment exists
         Segment.objects.create(name="CANTUS Database")
-        pass
+
+        for _ in range(10):
+            make_fake_feast()
+
+    def test_view_url_path(self):
+        for feast in Feast.objects.all():
+            response = self.client.get(f"/feast/{feast.id}")
+            self.assertEqual(response.status_code, 200)
+
+    def test_view_url_reverse_name(self):
+        for feast in Feast.objects.all():
+            response = self.client.get(reverse("feast-detail", args=[feast.id]))
+            self.assertEqual(response.status_code, 200)
+
+    def test_view_context_data(self):
+        for feast in Feast.objects.all():
+            response = self.client.get(reverse("feast-detail", args=[feast.id]))
+            self.assertTrue("feast" in response.context)
+            self.assertEqual(feast, response.context["feast"])
 
     def test_url_and_templates(self):
         """Test the url and templates used"""
