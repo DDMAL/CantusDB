@@ -591,6 +591,26 @@ class GenreListViewTest(TestCase):
 
 
 class GenreDetailViewTest(TestCase):
+    def setUp(self):
+        for _ in range(10):
+            make_fake_genre()
+
+    def test_view_url_path(self):
+        for genre in Genre.objects.all():
+            response = self.client.get(f"/genre/{genre.id}")
+            self.assertEqual(response.status_code, 200)
+
+    def test_view_url_reverse_name(self):
+        for genre in Genre.objects.all():
+            response = self.client.get(reverse("genre-detail", args=[genre.id]))
+            self.assertEqual(response.status_code, 200)
+
+    def test_view_context_data(self):
+        for genre in Genre.objects.all():
+            response = self.client.get(reverse("genre-detail", args=[genre.id]))
+            self.assertTrue("genre" in response.context)
+            self.assertEqual(genre, response.context["genre"])
+
     def test_url_and_templates(self):
         """Test the url and templates used"""
         genre = make_fake_genre()

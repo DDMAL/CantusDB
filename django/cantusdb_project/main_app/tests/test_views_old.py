@@ -23,41 +23,6 @@ from . import make_fakes
 
 fake = Faker()
 
-
-class GenreDetailViewTest(TestCase):
-    fixtures = ["genre_fixtures.json"]
-    SLICE_SIZE = 10
-
-    def setUp(self):
-        self.number_of_genres = Genre.objects.all().count()
-        self.slice_begin = random.randint(0, self.number_of_genres - self.SLICE_SIZE)
-        self.slice_end = self.slice_begin + self.SLICE_SIZE
-        return super().setUp()
-
-    def test_view_url_path(self):
-        for genre in Genre.objects.all()[self.slice_begin : self.slice_end]:
-            response = self.client.get(f"/genres/{genre.id}")
-            self.assertEqual(response.status_code, 200)
-
-    def test_view_url_reverse_name(self):
-        for genre in Genre.objects.all()[self.slice_begin : self.slice_end]:
-            response = self.client.get(reverse("genre-detail", args=[genre.id]))
-            self.assertEqual(response.status_code, 200)
-
-    def test_view_correct_templates(self):
-        for genre in Genre.objects.all()[self.slice_begin : self.slice_end]:
-            response = self.client.get(reverse("genre-detail", args=[genre.id]))
-            self.assertEqual(response.status_code, 200)
-            self.assertTemplateUsed(response, "base.html")
-            self.assertTemplateUsed(response, "genre_detail.html")
-
-    def test_view_context_data(self):
-        for genre in Genre.objects.all()[self.slice_begin : self.slice_end]:
-            response = self.client.get(reverse("genre-detail", args=[genre.id]))
-            self.assertTrue("genre" in response.context)
-            self.assertEqual(genre, response.context["genre"])
-
-
 class OfficeListViewTest(TestCase):
     fixtures = ["office_fixtures.json"]
     PAGE_SIZE = OfficeListView.paginate_by
