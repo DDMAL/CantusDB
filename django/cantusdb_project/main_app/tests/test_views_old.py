@@ -24,28 +24,6 @@ from . import make_fakes
 fake = Faker()
 
 
-class IndexerListViewTest(TestCase):
-    PAGE_SIZE = IndexerListView.paginate_by
-    MIN_PAGES = 1
-    MAX_PAGES = 6
-
-    # use real indexers and sources for test because the queryset used contains only "public" indexers
-    # "public" indexers are those who have at least one public source
-    fixtures = [
-        "indexer_fixtures.json",
-        "century_fixtures.json",
-        "notation_fixtures.json",
-        "provenance_fixtures.json",
-        "rism_siglum_fixtures.json",
-        "segment_fixtures.json",
-        "source_fixtures.json",
-    ]
-
-    def setUp(self):
-        self.number_of_indexers = Indexer.objects.all().count()
-        return super().setUp()
-
-
 class IndexerDetailViewTest(TestCase):
     NUM_INDEXERS = 10
 
