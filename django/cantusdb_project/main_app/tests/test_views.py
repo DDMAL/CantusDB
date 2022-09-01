@@ -241,6 +241,23 @@ class IndexerListViewTest(TestCase):
 
 
 class IndexerDetailViewTest(TestCase):
+    NUM_INDEXERS = 10
+
+    @classmethod
+    def setUpTestData(cls):
+        for i in range(cls.NUM_INDEXERS):
+            make_fake_indexer()
+
+    def test_view_url_path(self):
+        for indexer in Indexer.objects.all():
+            response = self.client.get(f"/indexer/{indexer.id}")
+            self.assertEqual(response.status_code, 200)
+
+    def test_view_url_reverse_name(self):
+        for indexer in Indexer.objects.all():
+            response = self.client.get(reverse("indexer-detail", args=[indexer.id]))
+            self.assertEqual(response.status_code, 200)
+
     def test_url_and_templates(self):
         """Test the url and templates used"""
         indexer = make_fake_indexer()

@@ -24,25 +24,6 @@ from . import make_fakes
 fake = Faker()
 
 
-class IndexerDetailViewTest(TestCase):
-    NUM_INDEXERS = 10
-
-    @classmethod
-    def setUpTestData(cls):
-        for i in range(cls.NUM_INDEXERS):
-            make_fakes.make_fake_indexer()
-
-    def test_view_url_path(self):
-        for indexer in Indexer.objects.all():
-            response = self.client.get(f"/indexers/{indexer.id}")
-            self.assertEqual(response.status_code, 200)
-
-    def test_view_url_reverse_name(self):
-        for indexer in Indexer.objects.all():
-            response = self.client.get(reverse("indexer-detail", args=[indexer.id]))
-            self.assertEqual(response.status_code, 200)
-
-
 class FeastListViewTest(TestCase):
     PAGE_SIZE = FeastListView.paginate_by
     MIN_PAGES = 1
