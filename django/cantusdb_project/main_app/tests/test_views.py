@@ -304,7 +304,6 @@ class FeastDetailViewTest(TestCase):
         # to the segment with the name "CANTUS Database" - to prevent errors, we must make sure that
         # such a segment exists
         Segment.objects.create(name="CANTUS Database")
-        pass
 
     def test_url_and_templates(self):
         """Test the url and templates used"""
@@ -1659,10 +1658,66 @@ class ChantEditVolpianoViewTest(TestCase):
 
 
 class JsonMelodyExportTest(TestCase):
-    def test_json_melody_export(self):
-        chants = None
-        pass
+    def test_json_melody_response(self):
+        NUM_CHANTS = 10
+        FAKE_CANTUS_ID = "111111"
+        for _ in range(NUM_CHANTS):
+            make_fake_chant(cantus_id=FAKE_CANTUS_ID)
 
+        response_1 = self.client.get(f"/json-melody/{FAKE_CANTUS_ID}")
+        self.assertEqual(response_1.status_code, 200)
+        self.assertIsInstance(response_1, JsonResponse)
+
+        response_2 = self.client.get(reverse("json-melody-export", args=[FAKE_CANTUS_ID]))
+        self.assertEqual(response_1.status_code, 200)
+        self.assertIsInstance(response_2, JsonResponse)
+        unpacked_response = json.loads(response_2.content)
+        self.assertEqual(len(unpacked_response), NUM_CHANTS)
+
+    def test_json_melody_fields(self):
+        CORRECT_FIELDS = {
+            "mid",
+            "nid",
+            "cid",
+            "siglum",
+            "srcnid",
+            "folio",
+            "incipit",
+            "fulltext",
+            "volpiano",
+            "mode",
+            "feast",
+            "office",
+            "genre",
+            "position",
+            "chantlink",
+            "srclink",
+        }
+        FAKE_CANTUS_ID = "111111"
+        make_fake_chant(cantus_id=FAKE_CANTUS_ID)
+        response = self.client.get(reverse("json-melody-export", args=[FAKE_CANTUS_ID]))
+        unpacked = json.loads(response.content)[0]
+        response_fields = set(unpacked.keys())
+        self.assertEqual(response_fields, CORRECT_FIELDS)
+    
+    def test_json_melody_published_vs_unpublished(self):
+        FAKE_CANTUS_ID = "111111"
+        published_source = make_fake_source(published=True)
+        published_chant = make_fake_chant(
+            cantus_id=FAKE_CANTUS_ID,
+            manuscript_full_text_std_spelling="I'm a chant from a published source!",
+            source=published_source,
+        )
+        unpublished_source = make_fake_source(published=False)
+        unpublished_chant = make_fake_chant(
+            cantus_id=FAKE_CANTUS_ID,
+            manuscript_full_text_std_spelling="Help, I'm trapped in a JSON response factory! Can you help me escape...?",
+            source=unpublished_source,
+        )
+        response = self.client.get(reverse("json-melody-export", args=[FAKE_CANTUS_ID]))
+        unpacked_response = json.loads(response.content)
+        self.assertEqual(len(unpacked_response), 1) # just published_chant
+        self.assertEqual(unpacked_response[0]["fulltext"], "I'm a chant from a published source!")
 
 class JsonNodeExportTest(TestCase):
     def test_json_node_export(self):
