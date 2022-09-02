@@ -1720,7 +1720,31 @@ class JsonMelodyExportTest(TestCase):
         self.assertEqual(unpacked_response[0]["fulltext"], "I'm a chant from a published source!")
 
 class JsonNodeExportTest(TestCase):
-    def test_json_node_export(self):
+    def test_json_node_response(self):
+        chant = make_fake_chant()
+        id = chant.id
+
+        response_1 = self.client.get(f"/json-node/{id}")
+        self.assertEqual(response_1.status_code, 200)
+        self.assertIsInstance(response_1, JsonResponse)
+
+        response_2 = self.client.get(reverse("json-node-export", args=[id]))
+        self.assertEqual(response_1.status_code, 200)
+        self.assertIsInstance(response_2, JsonResponse)
+
+    def test_json_node_for_chant(self):
+        pass
+
+    def test_json_node_for_sequence(self):
+        pass
+
+    def test_json_node_for_source(self):
+        pass
+
+    def test_json_node_for_indexer(self):
+        pass
+
+    def test_json_node_published_vs_unpublished(self):
         pass
 
 
