@@ -11,7 +11,7 @@ from main_app.models import Chant
 
 
 @receiver(post_save, sender=Chant)
-def on_save(instance, **kwargs):
+def update_chant_search_vector(instance, **kwargs):
     """When saving an instance of Chant, update its search vector field."""
     index_components = instance.index_components()
     pk = instance.pk
