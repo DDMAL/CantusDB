@@ -9,6 +9,8 @@ from django.contrib.auth import get_user_model
 from django.contrib.auth.models import Group
 from django.test import Client
 from django.db.models import Q
+from abc import abstractmethod
+from abc import ABC
 
 from faker import Faker
 from .make_fakes import (make_fake_text,
@@ -71,6 +73,13 @@ class IndexerListViewTest(TestCase):
         # such a segment exists
         Segment.objects.create(name="CANTUS Database")
 
+    def test_view_url_path(self):
+        response = self.client.get("/indexers/")
+        self.assertEqual(response.status_code, 200)
+
+    def test_view_url_reverse_name(self):
+        response = self.client.get(reverse("indexer-list"))
+        self.assertEqual(response.status_code, 200)
 
     def test_url_and_templates(self):
         """Test the url and templates used"""
@@ -170,6 +179,23 @@ class IndexerListViewTest(TestCase):
 
 
 class IndexerDetailViewTest(TestCase):
+    NUM_INDEXERS = 10
+
+    @classmethod
+    def setUpTestData(cls):
+        for i in range(cls.NUM_INDEXERS):
+            make_fake_indexer()
+
+    def test_view_url_path(self):
+        for indexer in Indexer.objects.all():
+            response = self.client.get(f"/indexer/{indexer.id}")
+            self.assertEqual(response.status_code, 200)
+
+    def test_view_url_reverse_name(self):
+        for indexer in Indexer.objects.all():
+            response = self.client.get(reverse("indexer-detail", args=[indexer.id]))
+            self.assertEqual(response.status_code, 200)
+
     def test_url_and_templates(self):
         """Test the url and templates used"""
         indexer = make_fake_indexer()
@@ -186,6 +212,14 @@ class IndexerDetailViewTest(TestCase):
 
 
 class FeastListViewTest(TestCase):
+    def test_view_url_path(self):
+        response = self.client.get("/feasts/")
+        self.assertEqual(response.status_code, 200)
+
+    def test_view_url_reverse_name(self):
+        response = self.client.get(reverse("feast-list"))
+        self.assertEqual(response.status_code, 200)
+
     def test_url_and_templates(self):
         """Test the url and templates used"""
         response = self.client.get(reverse("feast-list"))
@@ -304,7 +338,25 @@ class FeastDetailViewTest(TestCase):
         # to the segment with the name "CANTUS Database" - to prevent errors, we must make sure that
         # such a segment exists
         Segment.objects.create(name="CANTUS Database")
-        pass
+
+        for _ in range(10):
+            make_fake_feast()
+
+    def test_view_url_path(self):
+        for feast in Feast.objects.all():
+            response = self.client.get(f"/feast/{feast.id}")
+            self.assertEqual(response.status_code, 200)
+
+    def test_view_url_reverse_name(self):
+        for feast in Feast.objects.all():
+            response = self.client.get(reverse("feast-detail", args=[feast.id]))
+            self.assertEqual(response.status_code, 200)
+
+    def test_view_context_data(self):
+        for feast in Feast.objects.all():
+            response = self.client.get(reverse("feast-detail", args=[feast.id]))
+            self.assertTrue("feast" in response.context)
+            self.assertEqual(feast, response.context["feast"])
 
     def test_url_and_templates(self):
         """Test the url and templates used"""
@@ -370,6 +422,14 @@ class FeastDetailViewTest(TestCase):
 
 
 class GenreListViewTest(TestCase):
+    def test_view_url_path(self):
+        response = self.client.get("/genres/")
+        self.assertEqual(response.status_code, 200)
+
+    def test_view_url_reverse_name(self):
+        response = self.client.get(reverse("genre-list"))
+        self.assertEqual(response.status_code, 200)
+    
     def test_url_and_templates(self):
         """Test the url and templates used"""
         response = self.client.get(reverse("genre-list"))
@@ -469,6 +529,26 @@ class GenreListViewTest(TestCase):
 
 
 class GenreDetailViewTest(TestCase):
+    def setUp(self):
+        for _ in range(10):
+            make_fake_genre()
+
+    def test_view_url_path(self):
+        for genre in Genre.objects.all():
+            response = self.client.get(f"/genre/{genre.id}")
+            self.assertEqual(response.status_code, 200)
+
+    def test_view_url_reverse_name(self):
+        for genre in Genre.objects.all():
+            response = self.client.get(reverse("genre-detail", args=[genre.id]))
+            self.assertEqual(response.status_code, 200)
+
+    def test_view_context_data(self):
+        for genre in Genre.objects.all():
+            response = self.client.get(reverse("genre-detail", args=[genre.id]))
+            self.assertTrue("genre" in response.context)
+            self.assertEqual(genre, response.context["genre"])
+
     def test_url_and_templates(self):
         """Test the url and templates used"""
         genre = make_fake_genre()
@@ -535,6 +615,20 @@ class GenreDetailViewTest(TestCase):
 
 
 class OfficeListViewTest(TestCase):
+    OFFICE_COUNT = 10
+
+    def setUp(self):
+        for _ in range(self.OFFICE_COUNT):
+            make_fake_office()
+
+    def test_view_url_path(self):
+        response = self.client.get("/offices/")
+        self.assertEqual(response.status_code, 200)
+
+    def test_view_url_reverse_name(self):
+        response = self.client.get(reverse("office-list"))
+        self.assertEqual(response.status_code, 200)
+
     def test_url_and_templates(self):
         response = self.client.get(reverse("office-list"))
         self.assertEqual(response.status_code, 200)
@@ -542,18 +636,33 @@ class OfficeListViewTest(TestCase):
         self.assertTemplateUsed(response, "office_list.html")
 
     def test_context(self):
-        # make a certain number of offices
-        office_cnt = random.randint(1, 10)
-        for i in range(office_cnt):
-            make_fake_office()
-        office = Office.objects.first()
         response = self.client.get(reverse("office-list"))
         offices = response.context["offices"]
         # the list view should contain all offices
-        self.assertEqual(offices.count(), office_cnt)
+        self.assertEqual(offices.count(), self.OFFICE_COUNT)
 
 
 class OfficeDetailViewTest(TestCase):
+    def setUp(self):
+        for _ in range(10):
+            make_fake_office()
+
+    def test_view_url_path(self):
+        for office in Office.objects.all():
+            response = self.client.get(f"/office/{office.id}")
+            self.assertEqual(response.status_code, 200)
+
+    def test_view_url_reverse_name(self):
+        for office in Office.objects.all():
+            response = self.client.get(reverse("office-detail", args=[office.id]))
+            self.assertEqual(response.status_code, 200)
+
+    def test_view_context_data(self):
+        for office in Office.objects.all():
+            response = self.client.get(reverse("office-detail", args=[office.id]))
+            self.assertTrue("office" in response.context)
+            self.assertEqual(office, response.context["office"])
+
     def test_url_and_templates(self):
         office = make_fake_office()
         response = self.client.get(reverse("office-detail", args=[office.id]))
@@ -1168,6 +1277,10 @@ class ChantSearchViewTest(TestCase):
         # to the segment with the name "CANTUS Database" - to prevent errors, we must make sure that
         # such a segment exists
         Segment.objects.create(name="CANTUS Database")
+
+    def test_view_url_path(self):
+        response = self.client.get("/chant-search/")
+        self.assertEqual(response.status_code, 200)
 
     def test_url_and_templates(self):
         response = self.client.get(reverse("chant-search"))
