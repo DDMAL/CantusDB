@@ -99,13 +99,11 @@ class Source(BaseModel):
     fragmentarium_id = models.CharField(max_length=15, blank=True, null=True)
     dact_id = models.CharField(max_length=15, blank=True, null=True)
 
-    def number_of_chants(self) -> int:
-        """Returns the number of Chants and Sequences in this Source."""
-        return self.chant_set.count() + self.sequence_set.count()
-
-    def number_of_melodies(self) -> int:
-        """Returns the number of Chants in this Source that have melodies."""
-        return self.chant_set.filter(volpiano__isnull=False).count()
+    # number_of_chants and number_of_melodies are used for rendering the source-list page (perhaps among other places)
+    # they are automatically recalculated in main_app.signals.update_source_chant_count and
+    # main_app.signals.update_source_melody_count every time a chant or sequence is saved or deleted
+    number_of_chants = models.IntegerField(blank=True, null=True)
+    number_of_melodies = models.IntegerField(blank=True, null=True)
 
     def __str__(self):
         string = '[{s}] {t} ({i})'.format(s=self.rism_siglum, t=self.title, i=self.id)

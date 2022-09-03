@@ -1,8 +1,4 @@
-from django.contrib.postgres.search import SearchVectorField
-from django.db import models
 from main_app.models.base_chant import BaseChant
-from users.models import User
-
 
 class Sequence(BaseChant):
     """The model for sequences

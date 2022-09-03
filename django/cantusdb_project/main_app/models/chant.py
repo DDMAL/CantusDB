@@ -14,15 +14,6 @@ class Chant(BaseChant):
     models harmonized, even if only one of the two models uses a particular field.
     """
 
-    def __str__(self):
-        incipit = ""
-        if self.incipit:
-            incipit = self.incipit
-        elif self.manuscript_full_text:
-            split_text = self.manuscript_full_text.split()
-            incipit = " ".join(split_text[:4])
-        return '"{incip}" ({id})'.format(incip = incipit, id = self.id)
-
 
     def get_ci_url(self) -> str:
         """Construct the url to the entry in Cantus Index correponding to the chant.
