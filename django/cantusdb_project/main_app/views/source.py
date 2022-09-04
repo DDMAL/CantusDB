@@ -79,7 +79,7 @@ class SourceDetailView(DetailView):
 
         if source.segment and source.segment.id == 4064:
             # if this is a sequence source
-            context["sequences"] = source.sequence_set.all().order_by("sequence")
+            context["sequences"] = source.sequence_set.order_by("sequence")
             context["folios"] = (
                 source.sequence_set.values_list("folio", flat=True)
                 .distinct()
