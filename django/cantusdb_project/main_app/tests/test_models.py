@@ -36,7 +36,8 @@ class CenturyModelTest(TestCase):
 class ChantModelTest(TestCase):
     @classmethod
     def setUpTestData(cls):
-        make_fake_chant()
+        source = make_fake_source()
+        make_fake_chant(source=source)
 
     def test_get_ci_url(self):
         chant = Chant.objects.first()
@@ -73,7 +74,7 @@ class ChantModelTest(TestCase):
 
     def test_get_concordances(self):
         chant = Chant.objects.get(id=1)
-        chant_with_same_cantus_id = Chant.objects.create(cantus_id=chant.cantus_id)
+        chant_with_same_cantus_id = Chant.objects.create(cantus_id=chant.cantus_id, source=chant.source)
         concordances = chant.related_chants_by_cantus_id()
         self.assertIn(chant_with_same_cantus_id, concordances)
 
@@ -262,13 +263,13 @@ class SourceModelTest(TestCase):
         sequence = Sequence.objects.create(source=source)
         self.assertIn(chant, source.chant_set.all())
         self.assertIn(sequence, source.sequence_set.all())
-        self.assertEqual(source.number_of_chants(), 2)
+        self.assertEqual(source.number_of_chants, 2)
 
     def test_number_of_melodies(self):
         source = Source.objects.first()
         chant_w_melody = Chant.objects.create(source=source, volpiano="1-a-b-c")
         chant = Chant.objects.create(source=source)
-        self.assertEqual(source.number_of_melodies(), 1)
+        self.assertEqual(source.number_of_melodies, 1)
 
     def test_display_name(self):
         source = Source.objects.first()
