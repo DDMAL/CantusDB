@@ -1,6 +1,6 @@
 from django.views.generic import DetailView, ListView, CreateView, UpdateView
 from django.db.models import Q
-from main_app.models import Source, Provenance, Century, Chant
+from main_app.models import Source, Provenance, Century
 from main_app.forms import SourceCreateForm, SourceEditForm
 from django.contrib import messages
 from django.urls import reverse
@@ -8,7 +8,6 @@ from django.contrib.auth.mixins import LoginRequiredMixin
 from django.http import HttpResponseRedirect
 from django.contrib.auth.mixins import UserPassesTestMixin
 from django.core.exceptions import PermissionDenied
-from django.http import Http404
 from django.shortcuts import get_object_or_404
 
 
@@ -98,11 +97,7 @@ class SourceDetailView(DetailView):
             context["feasts_with_folios"] = get_feast_selector_options(source, folios)
         return context
 
-
-
 class SourceListView(ListView):
-    model = Source
-    queryset = Source.objects.all().order_by("siglum")
     paginate_by = 100
     context_object_name = "sources"
     template_name = "source_list.html"
@@ -118,8 +113,9 @@ class SourceListView(ListView):
         return context
 
     def get_queryset(self):
-        queryset = super().get_queryset()
-        
+        # use select_related() for foreign keys to reduce DB queries
+        queryset = Source.objects.select_related("rism_siglum", "segment", "provenance").order_by("siglum")
+
         display_unpublished = self.request.user.is_authenticated
         if display_unpublished:
             q_obj_filter = Q()
