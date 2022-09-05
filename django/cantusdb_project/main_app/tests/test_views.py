@@ -1731,7 +1731,7 @@ class JsonNodeExportTest(TestCase):
         self.assertIsInstance(response_1, JsonResponse)
 
         response_2 = self.client.get(reverse("json-node-export", args=[id]))
-        self.assertEqual(response_1.status_code, 200)
+        self.assertEqual(response_2.status_code, 200)
         self.assertIsInstance(response_2, JsonResponse)
 
         response_3 = self.client.get(reverse('json-node-export', args=["1000000000"]))
