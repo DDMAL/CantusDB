@@ -6,31 +6,28 @@ from django.contrib.auth.mixins import LoginRequiredMixin
 from django.contrib import messages
 from django.contrib.auth.mixins import UserPassesTestMixin
 from django.core.exceptions import PermissionDenied
-from django.http import Http404
-
 
 
 class SequenceDetailView(DetailView):
     """
     Displays a single Sequence object. Accessed with ``sequences/<int:pk>``
     """
-
     model = Sequence
     context_object_name = "sequence"
     template_name = "sequence_detail.html"
 
     def get_context_data(self, **kwargs):
-
-        # if the sequence's source isn't published, only logged-in users should be able to view the sequence's detail page
         sequence = self.get_object()
         source = sequence.source
+        # if the sequence's source isn't published, 
+        # only logged-in users should be able to view the sequence's detail page
         if (source.published is False) and (not self.request.user.is_authenticated):
             raise PermissionDenied()
         
         context = super().get_context_data(**kwargs)
         context["concordances"] = Sequence.objects.filter(
-            cantus_id=self.get_object().cantus_id
-        ).order_by("siglum")
+            cantus_id=sequence.cantus_id
+        ).select_related("source").order_by("siglum")
         return context
 
 
@@ -38,14 +35,12 @@ class SequenceListView(ListView):
     """
     Displays a list of Sequence objects. Accessed with ``sequences/``
     """
-
-    model = Sequence
     paginate_by = 100
     context_object_name = "sequences"
     template_name = "sequence_list.html"
 
     def get_queryset(self):
-        queryset = super().get_queryset()
+        queryset = Sequence.objects.select_related("source")
         display_unpublished = self.request.user.is_authenticated
         if display_unpublished:
             q_obj_filter = Q()
@@ -63,6 +58,7 @@ class SequenceListView(ListView):
             q_obj_filter &= Q(cantus_id__icontains=cantus_id)
 
         return queryset.filter(q_obj_filter).order_by("siglum", "sequence")
+
 
 class SequenceEditView(LoginRequiredMixin, UserPassesTestMixin, UpdateView):
     template_name = "sequence_edit.html"

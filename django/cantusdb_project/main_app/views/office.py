@@ -11,7 +11,7 @@ class OfficeDetailView(DetailView):
 
 class OfficeListView(ListView):
     model = Office
-    queryset = Office.objects.all().order_by("name")
+    queryset = Office.objects.order_by("name")
     paginate_by = 100
     context_object_name = "offices"
     template_name = "office_list.html"
