@@ -2,6 +2,7 @@ import unittest
 import random
 from django.urls import reverse
 from django.test import TestCase
+from django.http import HttpResponseNotFound
 from main_app.views.feast import FeastListView
 from django.http.response import JsonResponse
 import json
@@ -1731,9 +1732,23 @@ class JsonNodeExportTest(TestCase):
         response_2 = self.client.get(reverse("json-node-export", args=[id]))
         self.assertEqual(response_1.status_code, 200)
         self.assertIsInstance(response_2, JsonResponse)
-
+        
     def test_json_node_for_chant(self):
-        pass
+        chant = make_fake_chant()
+        id = chant.id
+
+        response = self.client.get(reverse("json-node-export", args=[id]))
+        self.assertIsInstance(response, JsonResponse)
+
+        unpacked_response = json.loads(response.content)
+
+        response_cantus_id = unpacked_response['cantus_id']
+        self.assertIsInstance(response_cantus_id, str)
+        self.assertEqual(response_cantus_id, chant.cantus_id)
+
+        response_id = unpacked_response['id']
+        self.assertIsInstance(response_id, int)
+        self.assertEqual(response_id, id)
 
     def test_json_node_for_sequence(self):
         pass
