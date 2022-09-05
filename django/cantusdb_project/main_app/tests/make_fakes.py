@@ -60,12 +60,15 @@ def make_fake_century() -> Century:
     return century
 
 
-def make_fake_chant(source=None, folio=None, sequence_number=None, cantus_id=None, next_chant=None) -> Chant:
+def make_fake_chant(source=None,
+    folio=None,
+    sequence_number=None,
+    cantus_id=None,
+    manuscript_full_text_std_spelling=None,
+    volpiano=None,
+    next_chant=None
+) -> Chant:
     """Generates a fake Chant object."""
-    manuscript_full_text_std_spelling = make_fake_text(
-        max_size=MAX_NUMBER_TEXT_CHARS, min_size=MIN_NUMBER_TEXT_CHARS
-    )
-
     if source is None:
         source = make_fake_source(segment_name="CANTUS Database")
     if folio is None:
@@ -75,6 +78,12 @@ def make_fake_chant(source=None, folio=None, sequence_number=None, cantus_id=Non
         sequence_number = random.randint(1, MAX_SEQUENCE_NUMBER)
     if cantus_id is None:
         cantus_id = faker.numerify("######")
+    if manuscript_full_text_std_spelling is None:
+        manuscript_full_text_std_spelling = make_fake_text(
+            max_size=MAX_NUMBER_TEXT_CHARS, min_size=MIN_NUMBER_TEXT_CHARS
+        )
+    if volpiano is None:
+        volpiano = make_fake_text(20)
         
 
     chant = Chant.objects.create(

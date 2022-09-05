@@ -2,6 +2,7 @@ import unittest
 import random
 from django.urls import reverse
 from django.test import TestCase
+from django.http import HttpResponseNotFound
 from main_app.views.feast import FeastListView
 from django.http.response import JsonResponse
 import json
@@ -338,25 +339,6 @@ class FeastDetailViewTest(TestCase):
         # to the segment with the name "CANTUS Database" - to prevent errors, we must make sure that
         # such a segment exists
         Segment.objects.create(name="CANTUS Database")
-
-        for _ in range(10):
-            make_fake_feast()
-
-    def test_view_url_path(self):
-        for feast in Feast.objects.all():
-            response = self.client.get(f"/feast/{feast.id}")
-            self.assertEqual(response.status_code, 200)
-
-    def test_view_url_reverse_name(self):
-        for feast in Feast.objects.all():
-            response = self.client.get(reverse("feast-detail", args=[feast.id]))
-            self.assertEqual(response.status_code, 200)
-
-    def test_view_context_data(self):
-        for feast in Feast.objects.all():
-            response = self.client.get(reverse("feast-detail", args=[feast.id]))
-            self.assertTrue("feast" in response.context)
-            self.assertEqual(feast, response.context["feast"])
 
     def test_url_and_templates(self):
         """Test the url and templates used"""
@@ -1770,23 +1752,235 @@ class ChantEditVolpianoViewTest(TestCase):
 
 
 class JsonMelodyExportTest(TestCase):
-    def test_json_melody_export(self):
-        chants = None
-        pass
+    def test_json_melody_response(self):
+        NUM_CHANTS = 10
+        FAKE_CANTUS_ID = "111111"
+        for _ in range(NUM_CHANTS):
+            make_fake_chant(cantus_id=FAKE_CANTUS_ID)
+
+        response_1 = self.client.get(f"/json-melody/{FAKE_CANTUS_ID}")
+        self.assertEqual(response_1.status_code, 200)
+        self.assertIsInstance(response_1, JsonResponse)
+
+        response_2 = self.client.get(reverse("json-melody-export", args=[FAKE_CANTUS_ID]))
+        self.assertEqual(response_1.status_code, 200)
+        self.assertIsInstance(response_2, JsonResponse)
+        unpacked_response = json.loads(response_2.content)
+        self.assertEqual(len(unpacked_response), NUM_CHANTS)
+
+    def test_json_melody_fields(self):
+        CORRECT_FIELDS = {
+            "mid",
+            "nid",
+            "cid",
+            "siglum",
+            "srcnid",
+            "folio",
+            "incipit",
+            "fulltext",
+            "volpiano",
+            "mode",
+            "feast",
+            "office",
+            "genre",
+            "position",
+            "chantlink",
+            "srclink",
+        }
+        FAKE_CANTUS_ID = "111111"
+        make_fake_chant(cantus_id=FAKE_CANTUS_ID)
+        response = self.client.get(reverse("json-melody-export", args=[FAKE_CANTUS_ID]))
+        unpacked = json.loads(response.content)[0]
+        response_fields = set(unpacked.keys())
+        self.assertEqual(response_fields, CORRECT_FIELDS)
+    
+    def test_json_melody_published_vs_unpublished(self):
+        FAKE_CANTUS_ID = "111111"
+        published_source = make_fake_source(published=True)
+        published_chant = make_fake_chant(
+            cantus_id=FAKE_CANTUS_ID,
+            manuscript_full_text_std_spelling="I'm a chant from a published source!",
+            source=published_source,
+        )
+        unpublished_source = make_fake_source(published=False)
+        unpublished_chant = make_fake_chant(
+            cantus_id=FAKE_CANTUS_ID,
+            manuscript_full_text_std_spelling="Help, I'm trapped in a JSON response factory! Can you help me escape...?",
+            source=unpublished_source,
+        )
+        response = self.client.get(reverse("json-melody-export", args=[FAKE_CANTUS_ID]))
+        unpacked_response = json.loads(response.content)
+        self.assertEqual(len(unpacked_response), 1) # just published_chant
+        self.assertEqual(unpacked_response[0]["fulltext"], "I'm a chant from a published source!")
 
 
 class JsonNodeExportTest(TestCase):
-    def test_json_node_export(self):
-        pass
+    def test_json_node_response(self):
+        chant = make_fake_chant()
+        id = chant.id
+
+        response_1 = self.client.get(f"/json-node/{id}")
+        self.assertEqual(response_1.status_code, 200)
+        self.assertIsInstance(response_1, JsonResponse)
+
+        response_2 = self.client.get(reverse("json-node-export", args=[id]))
+        self.assertEqual(response_2.status_code, 200)
+        self.assertIsInstance(response_2, JsonResponse)
+
+        response_3 = self.client.get(reverse('json-node-export', args=["1000000000"]))
+        self.assertEqual(response_3.status_code, 404)
+        
+    def test_json_node_for_chant(self):
+        chant = make_fake_chant()
+        id = chant.id
+
+        response = self.client.get(reverse("json-node-export", args=[id]))
+        self.assertIsInstance(response, JsonResponse)
+
+        unpacked_response = json.loads(response.content)
+
+        response_cantus_id = unpacked_response['cantus_id']
+        self.assertIsInstance(response_cantus_id, str)
+        self.assertEqual(response_cantus_id, chant.cantus_id)
+
+        response_id = unpacked_response['id']
+        self.assertIsInstance(response_id, int)
+        self.assertEqual(response_id, id)
+
+    def test_json_node_for_sequence(self):
+        sequence = make_fake_sequence()
+        id = sequence.id
+
+        response = self.client.get(reverse("json-node-export", args=[id]))
+        self.assertIsInstance(response, JsonResponse)
+
+        unpacked_response = json.loads(response.content)
+
+        response_cantus_id = unpacked_response['cantus_id']
+        self.assertIsInstance(response_cantus_id, str)
+        self.assertEqual(response_cantus_id, sequence.cantus_id)
+
+        response_id = unpacked_response['id']
+        self.assertIsInstance(response_id, int)
+        self.assertEqual(response_id, id)
+
+    def test_json_node_for_source(self):
+        source = make_fake_source()
+        id = source.id
+
+        response = self.client.get(reverse("json-node-export", args=[id]))
+        self.assertIsInstance(response, JsonResponse)
+
+        unpacked_response = json.loads(response.content)
+
+        response_title = unpacked_response['title']
+        self.assertIsInstance(response_title, str)
+        self.assertEqual(response_title, source.title)
+
+        response_id = unpacked_response['id']
+        self.assertIsInstance(response_id, int)
+        self.assertEqual(response_id, id)
+
+    def test_json_node_for_indexer(self):
+        indexer = make_fake_indexer()
+        id = indexer.id
+
+        response = self.client.get(reverse("json-node-export", args=[id]))
+        self.assertIsInstance(response, JsonResponse)
+
+        unpacked_response = json.loads(response.content)
+
+        response_name = unpacked_response['given_name']
+        self.assertIsInstance(response_name, str)
+        self.assertEqual(response_name, indexer.given_name)
+
+        response_id = unpacked_response['id']
+        self.assertIsInstance(response_id, int)
+        self.assertEqual(response_id, id)
+
+    def test_json_node_published_vs_unpublished(self):
+        source = make_fake_source(published=True)
+        chant = make_fake_chant(source=source)
+        sequence = make_fake_sequence(source=source)
+
+        source_id = source.id
+        chant_id = chant.id
+        sequence_id = sequence.id
+
+        published_source_response = self.client.get(reverse("json-node-export", args=[source_id]))
+        self.assertEqual(published_source_response.status_code, 200)
+        published_chant_response = self.client.get(reverse("json-node-export", args=[chant_id]))
+        self.assertEqual(published_chant_response.status_code, 200)
+        published_sequence_response = self.client.get(reverse("json-node-export", args=[sequence_id]))
+        self.assertEqual(published_sequence_response.status_code, 200)
+
+        source.published = False
+        source.save()
+
+        unpublished_source_response = self.client.get(reverse("json-node-export", args=[source_id]))
+        self.assertEqual(unpublished_source_response.status_code, 404)
+        unpublished_chant_response = self.client.get(reverse("json-node-export", args=[chant_id]))
+        self.assertEqual(unpublished_chant_response.status_code, 404)
+        unpublished_sequence_response = self.client.get(reverse("json-node-export", args=[sequence_id]))
+        self.assertEqual(unpublished_sequence_response.status_code, 404)
 
 
 class JsonSourcesExportTest(TestCase):
-    def test_json_sources_export(self):
-        pass
+    def test_json_sources_response(self):
+        source = make_fake_source(published=True)
+
+        response_1 = self.client.get(f"/json-sources/")
+        self.assertEqual(response_1.status_code, 200)
+        self.assertIsInstance(response_1, JsonResponse)
+
+        response_2 = self.client.get(reverse("json-sources-export"))
+        self.assertEqual(response_2.status_code, 200)
+        self.assertIsInstance(response_2, JsonResponse)
+
+    def test_json_sources_format(self):
+        NUMBER_OF_SOURCES = 10
+        sample_source = None
+        for _ in range(NUMBER_OF_SOURCES):
+            sample_source = make_fake_source(published=True)
+
+        # there should be one item for each source
+        response = self.client.get(reverse("json-sources-export"))
+        unpacked_response = json.loads(response.content)
+        self.assertEqual(len(unpacked_response), NUMBER_OF_SOURCES)
+
+        # for each item, the key should be the source's id and the value should be
+        # a nested dictionary with a single key: "csv"
+        sample_id = str(sample_source.id)
+        self.assertIn(sample_id, unpacked_response.keys())
+        sample_item = unpacked_response[sample_id]
+        sample_item_keys = list(sample_item.keys())
+        self.assertEqual(sample_item_keys, ['csv'])
+
+        # the single value should be a link in form `cantusdatabase.com/csv/{source.id}`
+        expected_substring = f"/csv/{sample_id}"
+        sample_item_value = list(sample_item.values())[0]
+        self.assertIn(expected_substring, sample_item_value)
+
+    def test_json_sources_published_vs_unpublished(self):
+        NUM_PUBLISHED_SOURCES = 3
+        NUM_UNPUBLISHED_SOURCES = 5
+        for _ in range(NUM_PUBLISHED_SOURCES):
+            sample_published_source = make_fake_source(published=True)
+        for _ in range(NUM_UNPUBLISHED_SOURCES):
+            sample_unpublished_source = make_fake_source(published=False)
+
+        response = self.client.get(reverse("json-sources-export"))
+        unpacked_response = json.loads(response.content)
+        response_keys = unpacked_response.keys()
+        self.assertEqual(len(unpacked_response), NUM_PUBLISHED_SOURCES)
+
+        published_id = str(sample_published_source.id)
+        unpublished_id = str(sample_unpublished_source.id)
+        self.assertIn(published_id, response_keys)
+        self.assertNotIn(unpublished_id, response_keys)
 
 
 class JsonNextChantsTest(TestCase):
-
     def test_existing_cantus_id(self):
         fake_source_1 = make_fake_source()
         fake_source_2 = make_fake_source()
