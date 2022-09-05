@@ -211,8 +211,10 @@ def make_fake_segment(name=None) -> Segment:
     return segment
 
 
-def make_fake_sequence() -> Sequence:
+def make_fake_sequence(source=None) -> Sequence:
     """Generates a fake Sequence object."""
+    if source is None:
+        source = make_fake_source(segment_name="Bower Sequence Database")
     sequence = Sequence.objects.create(
         title=make_fake_text(LONG_CHAR_FIELD_MAX),
         siglum=make_fake_text(LONG_CHAR_FIELD_MAX),
@@ -228,7 +230,7 @@ def make_fake_sequence() -> Sequence:
         ),
         date=make_fake_text(LONG_CHAR_FIELD_MAX),
         ah_volume=make_fake_text(LONG_CHAR_FIELD_MAX),
-        source=make_fake_source(segment_name="Bower Sequence Database"),
+        source=source,
         # cantus_id in the form of six digits
         cantus_id=faker.numerify("######"),
         image_link=faker.image_url(),
