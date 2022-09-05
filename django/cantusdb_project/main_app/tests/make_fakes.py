@@ -204,7 +204,6 @@ def make_fake_segment(name=None) -> Segment:
 
 def make_fake_sequence(source=None, title=None, incipit=None, cantus_id=None) -> Sequence:
     """Generates a fake Sequence object."""
-    # print("in make_fake_sequence, before checking for nonetypes. incipit:", incipit)
     if source is None:
         source = make_fake_source(segment_name="Bower Sequence Database")
     if title is None:
@@ -213,7 +212,6 @@ def make_fake_sequence(source=None, title=None, incipit=None, cantus_id=None) ->
         incipit = make_fake_text(LONG_CHAR_FIELD_MAX)
     if cantus_id is None:
         cantus_id = faker.numerify("######")
-    # print("in make_fake_sequence, after checking for nonetypes. incipit:", incipit)
     sequence = Sequence.objects.create(
         title=title,
         siglum=make_fake_text(LONG_CHAR_FIELD_MAX),
