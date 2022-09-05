@@ -1833,8 +1833,59 @@ class JsonNodeExportTest(TestCase):
 
 
 class JsonSourcesExportTest(TestCase):
-    def test_json_sources_export(self):
-        pass
+    def test_json_sources_response(self):
+        source = make_fake_source(published=True)
+
+        response_1 = self.client.get(f"/json-sources/")
+        self.assertEqual(response_1.status_code, 200)
+        self.assertIsInstance(response_1, JsonResponse)
+
+        response_2 = self.client.get(reverse("json-sources-export"))
+        self.assertEqual(response_2.status_code, 200)
+        self.assertIsInstance(response_2, JsonResponse)
+
+    def test_json_sources_format(self):
+        NUMBER_OF_SOURCES = 10
+        sample_source = None
+        for _ in range(NUMBER_OF_SOURCES):
+            sample_source = make_fake_source(published=True)
+
+        # there should be one item for each source
+        response = self.client.get(reverse("json-sources-export"))
+        unpacked_response = json.loads(response.content)
+        self.assertEqual(len(unpacked_response), NUMBER_OF_SOURCES)
+
+        # for each item, the key should be the source's id and the value should be
+        # a nested dictionary with a single key: "csv"
+        sample_id = str(sample_source.id)
+        self.assertIn(sample_id, unpacked_response.keys())
+        sample_item = unpacked_response[sample_id]
+        sample_item_keys = list(sample_item.keys())
+        self.assertEqual(sample_item_keys, ['csv'])
+
+        # the single value should be a link in form `cantusdatabase.com/csv/{source.id}`
+        expected_substring = f"/csv/{sample_id}"
+        sample_item_value = list(sample_item.values())[0]
+        print(sample_item_value)
+        self.assertIn(expected_substring, sample_item_value)
+
+    def test_json_sources_published_vs_unpublished(self):
+        NUM_PUBLISHED_SOURCES = 3
+        NUM_UNPUBLISHED_SOURCES = 5
+        for _ in range(NUM_PUBLISHED_SOURCES):
+            sample_published_source = make_fake_source(published=True)
+        for _ in range(NUM_UNPUBLISHED_SOURCES):
+            sample_unpublished_source = make_fake_source(published=False)
+
+        response = self.client.get(reverse("json-sources-export"))
+        unpacked_response = json.loads(response.content)
+        response_keys = unpacked_response.keys()
+        self.assertEqual(len(unpacked_response), NUM_PUBLISHED_SOURCES)
+
+        published_id = str(sample_published_source.id)
+        unpublished_id = str(sample_unpublished_source.id)
+        self.assertIn(published_id, response_keys)
+        self.assertNotIn(unpublished_id, response_keys)
 
 
 class JsonNextChantsTest(TestCase):
