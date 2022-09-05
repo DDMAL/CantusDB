@@ -1060,9 +1060,7 @@ class SequenceDetailViewTest(TestCase):
 
     def test_concordances(self):
         sequence = make_fake_sequence()
-        sequence_with_same_cantus_id = Sequence.objects.create(
-            cantus_id=sequence.cantus_id
-        )
+        sequence_with_same_cantus_id = make_fake_sequence(cantus_id=sequence.cantus_id)
         response = self.client.get(reverse("sequence-detail", args=[sequence.id]))
         concordances = response.context["concordances"]
         self.assertIn(sequence_with_same_cantus_id, concordances)
@@ -2154,10 +2152,11 @@ class SequenceEditViewTest(TestCase):
         self.assertTemplateUsed(response, "404.html")
 
     def test_update_sequence(self):
-        sequence = make_fake_sequence()
+        sequence = make_fake_sequence(incipit="test_update_sequence")
+        sequence_id = str(sequence.id)
         response = self.client.post(
-            reverse('sequence-edit', args=[sequence.id]), 
-            {'title': 'test'})
+            reverse('sequence-edit', args=[sequence_id]), 
+            {'title': 'test', 'source': sequence.source.id})
         self.assertEqual(response.status_code, 302)
         sequence.refresh_from_db()
         self.assertEqual(sequence.title, 'test')
