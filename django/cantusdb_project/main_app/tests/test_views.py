@@ -1720,6 +1720,7 @@ class JsonMelodyExportTest(TestCase):
         self.assertEqual(len(unpacked_response), 1) # just published_chant
         self.assertEqual(unpacked_response[0]["fulltext"], "I'm a chant from a published source!")
 
+
 class JsonNodeExportTest(TestCase):
     def test_json_node_response(self):
         chant = make_fake_chant()
@@ -1837,7 +1838,6 @@ class JsonSourcesExportTest(TestCase):
 
 
 class JsonNextChantsTest(TestCase):
-
     def test_existing_cantus_id(self):
         fake_source_1 = make_fake_source()
         fake_source_2 = make_fake_source()
