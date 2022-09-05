@@ -1961,7 +1961,6 @@ class JsonSourcesExportTest(TestCase):
         # the single value should be a link in form `cantusdatabase.com/csv/{source.id}`
         expected_substring = f"/csv/{sample_id}"
         sample_item_value = list(sample_item.values())[0]
-        print(sample_item_value)
         self.assertIn(expected_substring, sample_item_value)
 
     def test_json_sources_published_vs_unpublished(self):
