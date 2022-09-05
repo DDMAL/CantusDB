@@ -1754,16 +1754,81 @@ class JsonNodeExportTest(TestCase):
         self.assertEqual(response_id, id)
 
     def test_json_node_for_sequence(self):
-        pass
+        sequence = make_fake_sequence()
+        id = sequence.id
+
+        response = self.client.get(reverse("json-node-export", args=[id]))
+        self.assertIsInstance(response, JsonResponse)
+
+        unpacked_response = json.loads(response.content)
+
+        response_cantus_id = unpacked_response['cantus_id']
+        self.assertIsInstance(response_cantus_id, str)
+        self.assertEqual(response_cantus_id, sequence.cantus_id)
+
+        response_id = unpacked_response['id']
+        self.assertIsInstance(response_id, int)
+        self.assertEqual(response_id, id)
 
     def test_json_node_for_source(self):
-        pass
+        source = make_fake_source()
+        id = source.id
+
+        response = self.client.get(reverse("json-node-export", args=[id]))
+        self.assertIsInstance(response, JsonResponse)
+
+        unpacked_response = json.loads(response.content)
+
+        response_title = unpacked_response['title']
+        self.assertIsInstance(response_title, str)
+        self.assertEqual(response_title, source.title)
+
+        response_id = unpacked_response['id']
+        self.assertIsInstance(response_id, int)
+        self.assertEqual(response_id, id)
 
     def test_json_node_for_indexer(self):
-        pass
+        indexer = make_fake_indexer()
+        id = indexer.id
+
+        response = self.client.get(reverse("json-node-export", args=[id]))
+        self.assertIsInstance(response, JsonResponse)
+
+        unpacked_response = json.loads(response.content)
+
+        response_name = unpacked_response['given_name']
+        self.assertIsInstance(response_name, str)
+        self.assertEqual(response_name, indexer.given_name)
+
+        response_id = unpacked_response['id']
+        self.assertIsInstance(response_id, int)
+        self.assertEqual(response_id, id)
 
     def test_json_node_published_vs_unpublished(self):
-        pass
+        source = make_fake_source(published=True)
+        chant = make_fake_chant(source=source)
+        sequence = make_fake_sequence(source=source)
+
+        source_id = source.id
+        chant_id = chant.id
+        sequence_id = sequence.id
+
+        published_source_response = self.client.get(reverse("json-node-export", args=[source_id]))
+        self.assertEqual(published_source_response.status_code, 200)
+        published_chant_response = self.client.get(reverse("json-node-export", args=[chant_id]))
+        self.assertEqual(published_chant_response.status_code, 200)
+        published_sequence_response = self.client.get(reverse("json-node-export", args=[sequence_id]))
+        self.assertEqual(published_sequence_response.status_code, 200)
+
+        source.published = False
+        source.save()
+
+        unpublished_source_response = self.client.get(reverse("json-node-export", args=[source_id]))
+        self.assertEqual(unpublished_source_response.status_code, 404)
+        unpublished_chant_response = self.client.get(reverse("json-node-export", args=[chant_id]))
+        self.assertEqual(unpublished_chant_response.status_code, 404)
+        unpublished_sequence_response = self.client.get(reverse("json-node-export", args=[sequence_id]))
+        self.assertEqual(unpublished_sequence_response.status_code, 404)
 
 
 class JsonSourcesExportTest(TestCase):
