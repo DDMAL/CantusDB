@@ -1045,6 +1045,56 @@ class ChantEditVolpianoViewTest(TestCase):
         self.assertEqual(chant.manuscript_full_text_std_spelling, 'test')
 
 
+class ChantProofreadViewTest(TestCase):
+    @classmethod
+    def setUpTestData(cls):
+        Group.objects.create(name="project manager")
+
+    def setUp(self):
+        self.user = get_user_model().objects.create(email='test@test.com')
+        self.user.set_password('pass')
+        self.user.save()
+        self.client = Client()
+        project_manager = Group.objects.get(name='project manager') 
+        project_manager.user_set.add(self.user)
+        self.client.login(email='test@test.com', password='pass')
+
+    def test_view_url_and_templates(self):
+        source = make_fake_source()
+        source_id = source.id
+
+        for i in range(3):
+            chant = make_fake_chant(source=source, folio="001r", sequence_number=i)
+            sample_folio = chant.folio
+            sample_pk = chant.sequence_number
+        nonexistent_folio = "001v"
+
+        response_1 = self.client.get(f"/proofread-chant/{source_id}")
+        self.assertEqual(response_1.status_code, 200)
+        self.assertTemplateUsed(response_1, "base.html")
+        self.assertTemplateUsed(response_1, "chant_proofread.html")
+
+        response_2 = self.client.get(reverse("chant-proofread", args=[source_id]))
+        self.assertEqual(response_2.status_code, 200)
+
+        response_3 = self.client.get(f"/proofread-chant/{source_id}?folio={sample_folio}")
+        self.assertEqual(response_3.status_code, 200)
+
+        response_4 = self.client.get(f"/proofread-chant/{source_id}?folio={nonexistent_folio}")
+        self.assertEqual(response_4.status_code, 404)
+
+        response_5 = self.client.get(f"/proofread-chant/{source_id}?pk={sample_pk}&folio={sample_folio}")
+        self.assertEqual(response_5.status_code, 200)
+
+        self.client.logout()
+        response_6 = self.client.get(reverse("chant-proofread", args=[source_id]))
+        self.assertEqual(response_6.status_code, 302) # redirect to login page
+    
+    def test_proofread_chant(self):
+        pass
+
+
+
 class FeastListViewTest(TestCase):
     def test_view_url_path(self):
         response = self.client.get("/feasts/")
