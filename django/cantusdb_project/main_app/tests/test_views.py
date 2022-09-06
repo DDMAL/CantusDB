@@ -1109,6 +1109,38 @@ class ChantProofreadViewTest(TestCase):
         self.assertIs(chant.manuscript_full_text_std_proofread, True)
 
 
+class ChantEditSyllabificationViewTest(TestCase):
+    @classmethod
+    def setUpTestData(cls):
+        Group.objects.create(name="project manager")
+
+    def setUp(self):
+        self.user = get_user_model().objects.create(email='test@test.com')
+        self.user.set_password('pass')
+        self.user.save()
+        self.client = Client()
+        project_manager = Group.objects.get(name='project manager') 
+        project_manager.user_set.add(self.user)
+        self.client.login(email='test@test.com', password='pass')
+
+    def test_view_url_and_templates(self):
+        source = make_fake_source()
+        chant = make_fake_chant(source=source)
+        chant_id = chant.id
+
+        response_1 = self.client.get(f"/edit-syllabification/{chant_id}")
+        self.assertEqual(response_1.status_code, 200)
+        self.assertTemplateUsed(response_1, "base.html")
+        self.assertTemplateUsed(response_1, "chant_syllabification_edit.html")
+
+        response_2 = self.client.get(reverse("source-edit-syllabification", args=[chant_id]))
+        self.assertEqual(response_2.status_code, 200)
+
+        self.client.logout()
+        response_3 = self.client.get(reverse("source-edit-syllabification", args=[chant_id]))
+        self.assertEqual(response_3.status_code, 302) # 302: redirect to login page
+
+
 class FeastListViewTest(TestCase):
     def test_view_url_path(self):
         response = self.client.get("/feasts/")
