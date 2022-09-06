@@ -7,4 +7,4 @@ class Office(BaseModel):
     description = models.TextField()
 
     def __str__(self):
-        return self.name
+        return f"[{self.name}] {self.description}"
