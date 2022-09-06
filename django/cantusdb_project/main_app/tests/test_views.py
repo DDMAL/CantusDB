@@ -1124,8 +1124,7 @@ class ChantEditSyllabificationViewTest(TestCase):
         self.client.login(email='test@test.com', password='pass')
 
     def test_view_url_and_templates(self):
-        source = make_fake_source()
-        chant = make_fake_chant(source=source)
+        chant = make_fake_chant()
         chant_id = chant.id
 
         response_1 = self.client.get(f"/edit-syllabification/{chant_id}")
