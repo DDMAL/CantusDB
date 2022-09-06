@@ -1088,7 +1088,7 @@ class ChantProofreadViewTest(TestCase):
 
         self.client.logout()
         response_6 = self.client.get(reverse("chant-proofread", args=[source_id]))
-        self.assertEqual(response_6.status_code, 302) # redirect to login page
+        self.assertEqual(response_6.status_code, 302) # 302 Found
     
     def test_proofread_chant(self):
         chant = make_fake_chant(manuscript_full_text_std_spelling="lorem ipsum", folio="001r")
@@ -1096,7 +1096,7 @@ class ChantProofreadViewTest(TestCase):
         source = chant.source
         response = self.client.post(f"/proofread-chant/{source.id}?pk={chant.id}&folio=001r", 
             {'manuscript_full_text_std_proofread': 'True'})
-        self.assertEqual(response.status_code, 302)
+        self.assertEqual(response.status_code, 302) # 302 Found
         chant.refresh_from_db()
         self.assertIs(chant.manuscript_full_text_std_proofread, True)
 
