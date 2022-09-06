@@ -62,23 +62,23 @@ class Source(BaseModel):
         max_length=63,
         help_text='Date of the manuscript (e.g. "1200s", "1300-1350", etc.)',
     )
-    century = models.ManyToManyField("Century", related_name="sources")
-    notation = models.ManyToManyField("Notation", related_name="sources")
+    century = models.ManyToManyField("Century", related_name="sources", blank=True, null=True,)
+    notation = models.ManyToManyField("Notation", related_name="sources", blank=True, null=True,)
     cursus = models.CharField(
         blank=True, null=True, choices=cursus_choices, max_length=63
     )
-    current_editors = models.ManyToManyField(get_user_model(), related_name="sources_user_can_edit")
+    current_editors = models.ManyToManyField(get_user_model(), related_name="sources_user_can_edit", blank=True, null=True,)
     inventoried_by = models.ManyToManyField(
-        "Indexer", related_name="sources_inventoried"
+        "Indexer", related_name="sources_inventoried", blank=True, null=True,
     )
     full_text_entered_by = models.ManyToManyField(
-        "Indexer", related_name="entered_full_text_for_sources"
+        "Indexer", related_name="entered_full_text_for_sources", blank=True, null=True,
     )
     melodies_entered_by = models.ManyToManyField(
-        "Indexer", related_name="entered_melody_for_sources"
+        "Indexer", related_name="entered_melody_for_sources", blank=True, null=True,
     )
-    proofreaders = models.ManyToManyField("Indexer", related_name="proofread_sources")
-    other_editors = models.ManyToManyField("Indexer", related_name="edited_sources")
+    proofreaders = models.ManyToManyField("Indexer", related_name="proofread_sources", blank=True, null=True,)
+    other_editors = models.ManyToManyField("Indexer", related_name="edited_sources", blank=True, null=True,)
     segment = models.ForeignKey(
         "Segment", on_delete=models.PROTECT, blank=True, null=True
     )
