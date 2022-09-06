@@ -1066,7 +1066,7 @@ class ChantProofreadViewTest(TestCase):
         for i in range(3):
             chant = make_fake_chant(source=source, folio="001r", sequence_number=i)
             sample_folio = chant.folio
-            sample_pk = chant.sequence_number
+            sample_pk = chant.id
         nonexistent_folio = "001v"
 
         response_1 = self.client.get(f"/proofread-chant/{source_id}")
@@ -1091,7 +1091,14 @@ class ChantProofreadViewTest(TestCase):
         self.assertEqual(response_6.status_code, 302) # redirect to login page
     
     def test_proofread_chant(self):
-        pass
+        chant = make_fake_chant(manuscript_full_text_std_spelling="lorem ipsum", folio="001r")
+        self.assertIs(chant.manuscript_full_text_std_proofread, False)
+        source = chant.source
+        response = self.client.post(f"/proofread-chant/{source.id}?pk={chant.id}&folio=001r", 
+            {'manuscript_full_text_std_proofread': 'True'})
+        self.assertEqual(response.status_code, 302)
+        chant.refresh_from_db()
+        self.assertIs(chant.manuscript_full_text_std_proofread, True)
 
 
 
