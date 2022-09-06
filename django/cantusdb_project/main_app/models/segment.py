@@ -4,3 +4,6 @@ from main_app.models import BaseModel
 
 class Segment(BaseModel):
     name = models.CharField(max_length=63)
+
+    def __str__(self):
+        return f"{self.name} ({self.id})"
