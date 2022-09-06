@@ -1101,7 +1101,6 @@ class ChantProofreadViewTest(TestCase):
         self.assertIs(chant.manuscript_full_text_std_proofread, True)
 
 
-
 class FeastListViewTest(TestCase):
     def test_view_url_path(self):
         response = self.client.get("/feasts/")
@@ -2512,3 +2511,21 @@ class CISearchViewTest(TestCase):
         fake_search_term = faker.word()
         response = self.client.get(f"/ci-search/{fake_search_term}")
         self.assertTrue("results" in response.context)
+
+
+class ChangePasswordViewTest(TestCase):
+    def setUp(self):
+        self.user = get_user_model().objects.create(email='test@test.com')
+        self.user.set_password('pass')
+        self.user.save()
+        self.client.login(email='test@test.com', password='pass')
+
+    def test_url_and_templates(self):
+        response_2 = self.client.get("/change-password/")
+        self.assertEqual(response_2.status_code, 200)
+        self.assertTemplateUsed(response_2, "base.html")
+        self.assertTemplateUsed(response_2, "registration/change_password.html")
+        response_1 = self.client.get(reverse("change-password"))
+        self.assertEqual(response_1.status_code, 200)
+        self.assertTemplateUsed(response_1, "base.html")
+        self.assertTemplateUsed(response_1, "registration/change_password.html")
