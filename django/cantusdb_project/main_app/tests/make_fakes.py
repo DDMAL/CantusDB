@@ -65,6 +65,7 @@ def make_fake_chant(source=None,
     sequence_number=None,
     cantus_id=None,
     manuscript_full_text_std_spelling=None,
+    manuscript_full_text_std_proofread=None,
     volpiano=None,
     next_chant=None
 ) -> Chant:
@@ -82,6 +83,8 @@ def make_fake_chant(source=None,
         manuscript_full_text_std_spelling = make_fake_text(
             max_size=MAX_NUMBER_TEXT_CHARS, min_size=MIN_NUMBER_TEXT_CHARS
         )
+    if manuscript_full_text_std_proofread is None:
+        manuscript_full_text_std_proofread = False
     if volpiano is None:
         volpiano = make_fake_text(20)
         
@@ -105,7 +108,7 @@ def make_fake_chant(source=None,
         addendum=make_fake_text(LONG_CHAR_FIELD_MAX),
         manuscript_full_text_std_spelling=manuscript_full_text_std_spelling,
         incipit=manuscript_full_text_std_spelling[0:INCIPIT_LENGTH],
-        manuscript_full_text_std_proofread=faker.boolean(),
+        manuscript_full_text_std_proofread=manuscript_full_text_std_proofread,
         manuscript_full_text=manuscript_full_text_std_spelling,
         manuscript_full_text_proofread=faker.boolean(),
         volpiano=make_fake_text(
