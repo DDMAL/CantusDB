@@ -599,6 +599,14 @@ class ChantSearchViewTest(TestCase):
         response = self.client.get(reverse("chant-search"), {"feast": search_term})
         self.assertIn(chant, response.context["chants"])
 
+    def test_search_by_position(self):
+        source = Source.objects.create(published=True, title="a source")
+        position = 1
+        chant = Chant.objects.create(source=source, position=position)
+        search_term = "1"
+        response = self.client.get(reverse("chant-search"), {"position": search_term})
+        self.assertIn(chant, response.context["chants"])
+
     def test_filter_by_melody(self):
         source = Source.objects.create(published=True, title="a source")
         chant_with_melody = Chant.objects.create(
