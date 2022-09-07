@@ -62,6 +62,7 @@ def make_fake_century() -> Century:
 
 def make_fake_chant(source=None,
     folio=None,
+    genre=None,
     position=None,
     sequence_number=None,
     cantus_id=None,
@@ -78,6 +79,8 @@ def make_fake_chant(source=None,
     if folio is None:
         # two digits and one letter
         folio = faker.bothify("##?")
+    if genre is None:
+        genre = make_fake_genre()
     if position is None:
         position = make_fake_text(SHORT_CHAR_FIELD_MAX)
     if sequence_number is None:
@@ -106,7 +109,7 @@ def make_fake_chant(source=None,
         folio=folio,
         sequence_number=sequence_number,
         office=make_fake_office(),
-        genre=make_fake_genre(),
+        genre=genre,
         position=position,
         # cantus_id in the form of six digits
         cantus_id=cantus_id,
