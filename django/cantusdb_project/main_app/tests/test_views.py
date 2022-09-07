@@ -1465,6 +1465,23 @@ class FeastDetailViewTest(TestCase):
         self.assertEqual(sources_zip[0][1], 3)
         self.assertEqual(sources_zip[1][1], 1)
 
+    def test_sources_containing_feast_published_vs_unpublished(self):
+        published_source = make_fake_source(
+            published=True,
+            title="published source",
+        )
+        unpublished_source = make_fake_source(published=False)
+        feast = make_fake_feast()
+        for _ in range(2):
+            make_fake_chant(source=published_source, feast=feast)
+        make_fake_chant(source=unpublished_source, feast=feast)
+
+        response = self.client.get(reverse("feast-detail", args=[feast.id]))
+        sources_zip = response.context["sources_zip"]
+        self.assertEqual(len(sources_zip), 1) # only item should be a duple corresponding to published_source
+        self.assertEqual(sources_zip[0][0].title, "published source")
+        self.assertEqual(sources_zip[0][1], 2)
+
 
 class GenreListViewTest(TestCase):
     def test_view_url_path(self):
