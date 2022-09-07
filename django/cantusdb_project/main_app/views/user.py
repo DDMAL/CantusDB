@@ -59,7 +59,7 @@ class CustomLogoutView(LogoutView):
         )
         return next_page
 
-class UserListView(LoginRequiredMixin, SearchableListMixin, ListView):
+class UserListView(SearchableListMixin, ListView):
     """Searchable List view for User model
 
     Accessed by /users/
@@ -67,9 +67,9 @@ class UserListView(LoginRequiredMixin, SearchableListMixin, ListView):
     When passed a ``?q=<query>`` argument in the GET request, it will filter users
     based on the fields defined in ``search_fields`` with the ``icontains`` lookup
     """
-
     model = get_user_model()
-    search_fields = ["first_name", "last_name", "institution", "city", "country"]
+    ordering = "full_name"
+    search_fields = ["full_name", "institution", "city", "country"]
     paginate_by = 100
     template_name = "user_list.html"
     context_object_name = "users"
