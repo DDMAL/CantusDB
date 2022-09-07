@@ -256,16 +256,20 @@ def make_fake_sequence(source=None, title=None, incipit=None, cantus_id=None) ->
     return sequence
 
 
-def make_fake_source(published=True, segment_name=None) -> Source:
+def make_fake_source(published=True, title=None, segment_name=None) -> Source:
     """Generates a fake Source object."""
     # The cursus_choices and source_status_choices lists in Source are lists of
     # tuples and we only need the first element of each tuple
+
+    if title is None:
+        title=make_fake_text(LONG_CHAR_FIELD_MAX)
+
     cursus_choices = [x[0] for x in Source.cursus_choices]
     source_status_choices = [x[0] for x in Source.source_status_choices]
 
     source = Source.objects.create(
         published=published,
-        title=make_fake_text(LONG_CHAR_FIELD_MAX),
+        title=title,
         siglum=make_fake_text(SHORT_CHAR_FIELD_MAX),
         rism_siglum=make_fake_rism_siglum(),
         provenance=make_fake_provenance(),
