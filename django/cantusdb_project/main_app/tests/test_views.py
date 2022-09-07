@@ -1644,6 +1644,25 @@ class GenreDetailViewTest(TestCase):
         self.assertEqual(chant_info_list[0]["num_chants"], 2)
         self.assertEqual(chant_info_list[1]["cantus_id"], "123456")
         self.assertEqual(chant_info_list[1]["num_chants"], 1)
+    
+    def test_genre_cantus_ids_published_vs_unpublished(self):
+        genre = make_fake_genre()
+        published_source = make_fake_source(published=True)
+        unpublished_source = make_fake_source(published=False)
+        published_chant = make_fake_chant(
+            source=published_source,
+            genre=genre,
+            cantus_id="111111",
+        )
+        unpublished_chant = make_fake_chant(
+            source=unpublished_source,
+            genre=genre,
+            cantus_id="999999",
+        )
+        response = self.client.get(reverse("genre-detail", args=[genre.id]))
+        chant_info_list = response.context["object_list"]
+        self.assertEqual(len(chant_info_list), 1)
+        self.assertEqual(chant_info_list[0]["cantus_id"], "111111")
 
     def test_search_incipit(self):
         genre = make_fake_genre()
