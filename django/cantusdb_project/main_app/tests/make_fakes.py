@@ -65,6 +65,7 @@ def make_fake_chant(source=None,
     position=None,
     sequence_number=None,
     cantus_id=None,
+    feast=None,
     manuscript_full_text_std_spelling=None,
     manuscript_full_text_std_proofread=None,
     volpiano=None,
@@ -83,6 +84,8 @@ def make_fake_chant(source=None,
         sequence_number = random.randint(1, MAX_SEQUENCE_NUMBER)
     if cantus_id is None:
         cantus_id = faker.numerify("######")
+    if feast is None:
+        feast = make_fake_feast()
     if manuscript_full_text_std_spelling is None:
         manuscript_full_text_std_spelling = make_fake_text(
             max_size=MAX_NUMBER_TEXT_CHARS, min_size=MIN_NUMBER_TEXT_CHARS
@@ -107,7 +110,7 @@ def make_fake_chant(source=None,
         position=position,
         # cantus_id in the form of six digits
         cantus_id=cantus_id,
-        feast=make_fake_feast(),
+        feast=feast,
         mode=make_fake_text(SHORT_CHAR_FIELD_MAX),
         differentia=make_fake_text(SHORT_CHAR_FIELD_MAX),
         finalis=make_fake_text(SHORT_CHAR_FIELD_MAX),
