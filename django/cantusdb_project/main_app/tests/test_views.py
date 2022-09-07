@@ -2554,6 +2554,46 @@ class JsonNextChantsTest(TestCase):
         unpacked_response = json.loads(response.content)
         self.assertEqual(unpacked_response, {})
 
+    def test_published_vs_unpublished(self):
+        fake_source_1 = make_fake_source(published=True)
+        fake_source_2 = make_fake_source(published=False)
+
+        fake_chant_2 = Chant.objects.create(
+            source = fake_source_1,
+            cantus_id = "2000"
+        )
+
+        fake_chant_1 = Chant.objects.create(
+            source = fake_source_1,
+            next_chant = fake_chant_2,
+            cantus_id = "1000"
+        )
+        
+        fake_chant_4 = Chant.objects.create(
+            source = fake_source_2,
+            cantus_id = "2000"
+        )
+
+        fake_chant_3 = Chant.objects.create(
+            source = fake_source_2,
+            next_chant = fake_chant_4,
+            cantus_id = "1000"
+        )
+
+        path = reverse("json-nextchants", args=["1000"])
+        response_1 = self.client.get(path)
+        self.assertIsInstance(response_1, JsonResponse)
+        unpacked_response_1 = json.loads(response_1.content)
+        self.assertEqual(unpacked_response_1, {"2000": 1})
+        
+        fake_source_2.published = True
+        fake_source_2.save()
+        response_2 = self.client.get(path)
+        self.assertIsInstance(response_2, JsonResponse)
+        unpacked_response_2 = json.loads(response_2.content)
+        self.assertEqual(unpacked_response_2, {"2000": 2})
+
+
 
 class CISearchViewTest(TestCase):
     def test_view_url_path(self):
