@@ -1,5 +1,6 @@
 import unittest
 import random
+from urllib import response
 from django.urls import reverse
 from django.test import TestCase
 from django.http import HttpResponseNotFound
@@ -1421,6 +1422,25 @@ class FeastDetailViewTest(TestCase):
         self.assertEqual(frequent_chants_zip[1][-1], 2)
         self.assertEqual(frequent_chants_zip[2][-1], 1)
 
+    def test_chants_in_feast_published_vs_unpublished(self):
+        feast = make_fake_feast()
+        source = make_fake_source()
+        chant = make_fake_chant(source=source, feast=feast)
+
+        source.published = True
+        source.save()
+        response_1 = self.client.get(reverse("feast-detail", args=[feast.id]))
+        frequent_chants_zip = response_1.context["frequent_chants_zip"]
+        cantus_ids = [x[0] for x in frequent_chants_zip]
+        self.assertIn(chant.cantus_id, cantus_ids)
+
+        source.published = False
+        source.save()
+        response_1 = self.client.get(reverse("feast-detail", args=[feast.id]))
+        frequent_chants_zip = response_1.context["frequent_chants_zip"]
+        cantus_ids = [x[0] for x in frequent_chants_zip]
+        self.assertNotIn(chant.cantus_id, cantus_ids)
+        
     def test_sources_containing_this_feast(self):
         big_source = Source.objects.create(
             published=True, title="big_source", siglum="big"
