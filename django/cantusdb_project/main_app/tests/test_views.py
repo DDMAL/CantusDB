@@ -1653,6 +1653,15 @@ class ChantCreateViewTest(TestCase):
             self.assertEqual(response.status_code, 200)
             self.assertTemplateUsed(response, "base.html")
             self.assertTemplateUsed(response, "chant_create.html")
+    
+    def test_next_chant_signal(self):
+        source = make_fake_source()
+        chant_1 = make_fake_chant(source=source, folio="001r", sequence_number=1)
+        response = self.client.post(
+            reverse("chant-create", args=[source.id]), 
+            {"manuscript_full_text_std_spelling": "cantus secundus", "folio": "001r", "sequence_number": "2"})
+        chant_2 = Chant.objects.get(manuscript_full_text_std_spelling="cantus secundus")
+        self.assertEqual(chant_1.next_chant, chant_2)
 
 
 class ChantDeleteViewTest(TestCase):
