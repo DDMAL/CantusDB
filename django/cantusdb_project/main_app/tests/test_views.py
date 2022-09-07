@@ -608,6 +608,24 @@ class ChantSearchViewTest(TestCase):
         self.assertTemplateUsed(response, "base.html")
         self.assertTemplateUsed(response, "chant_search.html")
 
+    def test_published_vs_unpublished(self):
+        source = make_fake_source()
+        chant = make_fake_chant(source=source, manuscript_full_text_std_spelling="lorem ipsum")
+
+        source.published = True
+        source.save()
+        response = self.client.get(
+            reverse("chant-search"), {"keyword": "lorem", "op": "contains"}
+        )
+        self.assertIn(chant, response.context["chants"])
+
+        source.published = False
+        source.save()
+        response = self.client.get(
+            reverse("chant-search"), {"keyword": "lorem", "op": "contains"}
+        )
+        self.assertNotIn(chant, response.context["chants"])
+
     def test_search_by_office(self):
         source = Source.objects.create(published=True, title="a source")
         office = make_fake_office()
