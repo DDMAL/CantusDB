@@ -12,6 +12,7 @@ from django.test import Client
 from django.db.models import Q
 from abc import abstractmethod
 from abc import ABC
+import csv
 
 from faker import Faker
 from .make_fakes import (make_fake_text,
@@ -2560,6 +2561,63 @@ class CISearchViewTest(TestCase):
         fake_search_term = faker.word()
         response = self.client.get(f"/ci-search/{fake_search_term}")
         self.assertTrue("results" in response.context)
+
+
+class CsvExportTest(TestCase):
+    def test_url(self):
+        source = make_fake_source(published=True)
+        response_1 = self.client.get(reverse("csv-export", args=[source.id]))
+        self.assertEqual(response_1.status_code, 200)
+        response_2 = self.client.get(f'/csv/{source.id}')
+        self.assertEqual(response_2.status_code, 200)
+    
+    def test_content(self):
+        NUM_CHANTS = 5
+        source = make_fake_source(published=True)
+        for _ in range(NUM_CHANTS):
+            make_fake_chant(source=source)
+        response = self.client.get(reverse("csv-export", args=[source.id]))
+        content = response.content.decode('utf-8')
+        split_content = list(csv.reader(content.splitlines(), delimiter=','))
+        header, rows = split_content[0], split_content[1:]
+        
+        expected_column_titles = [
+            "siglum",
+            "marginalia",
+            "folio",
+            "sequence",
+            "incipit",
+            "feast",
+            "office",
+            "genre",
+            "position",
+            "cantus_id",
+            "mode",
+            "finalis",
+            "differentia",
+            "fulltext_standardized",
+            "fulltext_ms",
+            "volpiano",
+            "image_link",
+            "melody_id",
+            "cao_concordances",
+            "addendum",
+            "extra",
+            "node_id",
+        ]
+        for t in expected_column_titles:
+            self.assertIn(t, header)
+
+        self.assertEqual(len(rows), NUM_CHANTS)
+    
+    def test_published_vs_unpublished(self):
+        published_source = make_fake_source(published=True)
+        response_1 = self.client.get(reverse("csv-export", args=[published_source.id]))
+        self.assertEqual(response_1.status_code, 200)
+        unpublished_source = make_fake_source(published=False)
+        response_2 = self.client.get(reverse("csv-export", args=[unpublished_source.id]))
+        self.assertEqual(response_2.status_code, 403)
+
 
 
 class ChangePasswordViewTest(TestCase):
