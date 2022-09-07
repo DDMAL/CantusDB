@@ -351,6 +351,15 @@ class ChantListViewTest(TestCase):
         self.assertTemplateUsed(response, "base.html")
         self.assertTemplateUsed(response, "chant_list.html")
 
+    def test_published_vs_unpublished(self):
+        published_source = make_fake_source(published=True)
+        response_1 = self.client.get(reverse("chant-list"), {"source": published_source.id})
+        self.assertEqual(response_1.status_code, 200)
+        
+        unpublished_source = make_fake_source(published=False)
+        response_2 = self.client.get(reverse("chant-list"), {"source": unpublished_source.id})
+        self.assertEqual(response_2.status_code, 403)
+
     def test_filter_by_source(self):
         source = make_fake_source()
         another_source = make_fake_source()
@@ -2269,7 +2278,7 @@ class SourceDetailViewTest(TestCase):
         source = make_fake_source(published=False)
         response_1 = self.client.get(reverse("source-detail", args=[source.id]))
         self.assertEqual(response_1.status_code, 403)
-        
+
         source.published = True
         source.save()
         response_2 = self.client.get(reverse("source-detail", args=[source.id]))
