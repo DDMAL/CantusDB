@@ -572,6 +572,24 @@ class ChantByCantusIDViewTest(TestCase):
         )
         self.assertIn(chant, response.context["chants"])
 
+    def test_published_vs_unpublished(self):
+        source = make_fake_source()
+        chant = make_fake_chant(source=source)
+
+        source.published = True
+        source.save()
+        response_1 = self.client.get(
+            reverse("chant-by-cantus-id", args=[chant.cantus_id])
+        )
+        self.assertIn(chant, response_1.context["chants"])
+
+        source.published = False
+        source.save()
+        response_2 = self.client.get(
+            reverse("chant-by-cantus-id", args=[chant.cantus_id])
+        )
+        self.assertNotIn(chant, response_2.context["chants"])
+
 
 class ChantSearchViewTest(TestCase):
     def setUp(self):
