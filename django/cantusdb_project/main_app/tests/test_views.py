@@ -2265,6 +2265,16 @@ class SourceDetailViewTest(TestCase):
         # the list of sequences should be ordered by the "sequence" field
         self.assertEqual(response.context["sequences"].query.order_by, ("sequence",))
 
+    def test_published_vs_unpublished(self):
+        source = make_fake_source(published=False)
+        response_1 = self.client.get(reverse("source-detail", args=[source.id]))
+        self.assertEqual(response_1.status_code, 403)
+        
+        source.published = True
+        source.save()
+        response_2 = self.client.get(reverse("source-detail", args=[source.id]))
+        self.assertEqual(response_2.status_code, 200)
+
 
 class JsonMelodyExportTest(TestCase):
     def test_json_melody_response(self):
@@ -2585,7 +2595,7 @@ class JsonNextChantsTest(TestCase):
         self.assertIsInstance(response_1, JsonResponse)
         unpacked_response_1 = json.loads(response_1.content)
         self.assertEqual(unpacked_response_1, {"2000": 1})
-        
+
         fake_source_2.published = True
         fake_source_2.save()
         response_2 = self.client.get(path)
