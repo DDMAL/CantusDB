@@ -1139,6 +1139,16 @@ class ChantEditSyllabificationViewTest(TestCase):
         response_3 = self.client.get(reverse("source-edit-syllabification", args=[chant_id]))
         self.assertEqual(response_3.status_code, 302) # 302: redirect to login page
 
+    def test_edit_syllabification(self):
+        chant = make_fake_chant(
+            manuscript_syllabized_full_text="lorem ipsum"
+        )
+        self.assertIs(chant.manuscript_syllabized_full_text, "lorem ipsum")
+        response = self.client.post(f"/edit-syllabification/{chant.id}", {"manuscript_syllabized_full_text": "lo-rem ip-sum"})
+        self.assertEqual(response.status_code, 302) # 302 Found
+        chant.refresh_from_db()
+        self.assertEqual(chant.manuscript_syllabized_full_text, "lo-rem ip-sum")
+
 
 class FeastListViewTest(TestCase):
     def test_view_url_path(self):
