@@ -1,6 +1,5 @@
 import unittest
 import random
-from urllib import response
 from django.urls import reverse
 from django.test import TestCase
 from django.http import HttpResponseNotFound
