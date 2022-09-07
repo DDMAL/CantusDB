@@ -721,6 +721,20 @@ class ChantSearchMSViewTest(TestCase):
         self.assertTemplateUsed(response, "base.html")
         self.assertTemplateUsed(response, "chant_search.html")
 
+    def test_published_vs_unpublished(self):
+        source = make_fake_source()
+
+        source.published = True
+        source.save()
+        response = self.client.get(reverse("chant-search-ms", args=[source.id]))
+        self.assertEqual(response.status_code, 200)
+
+        source.published = False
+        source.save()
+        response = self.client.get(reverse("chant-search-ms", args=[source.id]))
+        self.assertEqual(response.status_code, 403)
+
+
     def test_search_by_office(self):
         # source = Source.objects.create(public=True,published, title="a source")
         source = make_fake_source()
