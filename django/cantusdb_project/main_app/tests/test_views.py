@@ -355,7 +355,7 @@ class ChantListViewTest(TestCase):
         published_source = make_fake_source(published=True)
         response_1 = self.client.get(reverse("chant-list"), {"source": published_source.id})
         self.assertEqual(response_1.status_code, 200)
-        
+
         unpublished_source = make_fake_source(published=False)
         response_2 = self.client.get(reverse("chant-list"), {"source": unpublished_source.id})
         self.assertEqual(response_2.status_code, 403)
@@ -535,6 +535,24 @@ class ChantDetailViewTest(TestCase):
         )
         self.assertEqual(response.context["previous_folio"], "001v")
         self.assertIsNone(response.context["next_folio"])
+
+    def test_published_vs_unpublished(self):
+        source = make_fake_source()
+        chant = make_fake_chant(source=source)
+
+        source.published=True
+        source.save()
+        response = self.client.get(
+            reverse("chant-detail", args=[chant.id])
+        )
+        self.assertEqual(response.status_code, 200)
+
+        source.published=False
+        source.save()
+        response = self.client.get(
+            reverse("chant-detail", args=[chant.id])
+        )
+        self.assertEqual(response.status_code, 403)
 
 
 class ChantByCantusIDViewTest(TestCase):
