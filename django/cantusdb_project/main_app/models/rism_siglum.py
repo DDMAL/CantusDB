@@ -13,6 +13,10 @@ class RismSiglum(BaseModel):
 
     name = models.CharField(max_length=255)
     description = models.TextField(null=True, blank=True)
+    
+    class Meta:
+        verbose_name = "RISM siglum"
+        verbose_name_plural = "RISM sigla"
 
     def __str__(self):
         return self.name
