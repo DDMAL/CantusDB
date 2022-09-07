@@ -68,7 +68,8 @@ def make_fake_chant(source=None,
     manuscript_full_text_std_spelling=None,
     manuscript_full_text_std_proofread=None,
     volpiano=None,
-    next_chant=None
+    manuscript_syllabized_full_text=None,
+    next_chant=None,
 ) -> Chant:
     """Generates a fake Chant object."""
     if source is None:
@@ -90,6 +91,10 @@ def make_fake_chant(source=None,
         manuscript_full_text_std_proofread = False
     if volpiano is None:
         volpiano = make_fake_text(20)
+    if manuscript_syllabized_full_text is None:
+        manuscript_syllabized_full_text = make_fake_text(
+            max_size=MAX_NUMBER_TEXT_CHARS, min_size=MIN_NUMBER_TEXT_CHARS
+        )
         
 
     chant = Chant.objects.create(
@@ -121,9 +126,7 @@ def make_fake_chant(source=None,
         image_link=faker.image_url(),
         cao_concordances=make_fake_text(SHORT_CHAR_FIELD_MAX),
         melody_id=make_fake_text(SHORT_CHAR_FIELD_MAX),
-        manuscript_syllabized_full_text=make_fake_text(
-            max_size=MAX_NUMBER_TEXT_CHARS, min_size=MIN_NUMBER_TEXT_CHARS
-        ),
+        manuscript_syllabized_full_text=manuscript_syllabized_full_text,
         indexing_notes=make_fake_text(
             max_size=MAX_NUMBER_TEXT_CHARS, min_size=MIN_NUMBER_TEXT_CHARS
         ),
