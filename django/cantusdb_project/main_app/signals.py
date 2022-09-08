@@ -4,7 +4,6 @@ from functools import reduce
 from django.contrib.postgres.search import SearchVector
 from django.db import models
 from django.db.models import Value
-from django.db.models import F
 from django.db.models.signals import post_save, post_delete
 from django.dispatch import receiver
 
