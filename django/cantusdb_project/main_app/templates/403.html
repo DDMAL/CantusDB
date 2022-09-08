@@ -8,6 +8,9 @@
             <br>
             <dl>
                 <dd>You are not authorized to access this page.</dd>
+                {% if not user.is_authenticated %}
+                <dd>This could be because you are not currently logged in. If you want, you can try <a href="{% url 'login' %}?next={{ request.path }}">logging in</a>.</dd>
+                {% endif %}
             </dl> 
         </div>
     </div>
