@@ -45,3 +45,11 @@ def update_source_melody_count(instance, **kwargs):
     source = instance.source
     source.number_of_melodies = source.chant_set.filter(volpiano__isnull=False).count()
     source.save()
+
+@receiver(post_save, sender=Chant)
+@receiver(post_delete, sender=Chant)
+def update_next_chant_fields(instance, **kwargs):
+    """When saving or deleting a Chant, make sure the next_chant of each chant in the source is up-to-date"""
+    source = instance.source
+    for chant in source.chant_set.all():
+        chant.next_chant = chant.get_next_chant()
