@@ -52,4 +52,8 @@ def update_next_chant_fields(instance, **kwargs):
     """When saving or deleting a Chant, make sure the next_chant of each chant in the source is up-to-date"""
     source = instance.source
     for chant in source.chant_set.all():
-        chant.next_chant = chant.get_next_chant()
+        next_chant = chant.get_next_chant()
+        # use .update() instead of .save() to prevent RecursionError
+        # (otherwise, saving would trigger @receiver(post_save, ...) again)
+        Chant.objects.filter(id=chant.id).update(next_chant=next_chant)
+
