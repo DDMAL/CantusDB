@@ -62,11 +62,16 @@ def make_fake_century() -> Century:
 
 def make_fake_chant(source=None,
     folio=None,
+    genre=None,
+    position=None,
     sequence_number=None,
     cantus_id=None,
+    feast=None,
     manuscript_full_text_std_spelling=None,
+    manuscript_full_text_std_proofread=None,
     volpiano=None,
-    next_chant=None
+    manuscript_syllabized_full_text=None,
+    next_chant=None,
 ) -> Chant:
     """Generates a fake Chant object."""
     if source is None:
@@ -74,16 +79,28 @@ def make_fake_chant(source=None,
     if folio is None:
         # two digits and one letter
         folio = faker.bothify("##?")
+    if genre is None:
+        genre = make_fake_genre()
+    if position is None:
+        position = make_fake_text(SHORT_CHAR_FIELD_MAX)
     if sequence_number is None:
         sequence_number = random.randint(1, MAX_SEQUENCE_NUMBER)
     if cantus_id is None:
         cantus_id = faker.numerify("######")
+    if feast is None:
+        feast = make_fake_feast()
     if manuscript_full_text_std_spelling is None:
         manuscript_full_text_std_spelling = make_fake_text(
             max_size=MAX_NUMBER_TEXT_CHARS, min_size=MIN_NUMBER_TEXT_CHARS
         )
+    if manuscript_full_text_std_proofread is None:
+        manuscript_full_text_std_proofread = False
     if volpiano is None:
         volpiano = make_fake_text(20)
+    if manuscript_syllabized_full_text is None:
+        manuscript_syllabized_full_text = make_fake_text(
+            max_size=MAX_NUMBER_TEXT_CHARS, min_size=MIN_NUMBER_TEXT_CHARS
+        )
         
 
     chant = Chant.objects.create(
@@ -92,11 +109,11 @@ def make_fake_chant(source=None,
         folio=folio,
         sequence_number=sequence_number,
         office=make_fake_office(),
-        genre=make_fake_genre(),
-        position=make_fake_text(SHORT_CHAR_FIELD_MAX),
+        genre=genre,
+        position=position,
         # cantus_id in the form of six digits
         cantus_id=cantus_id,
-        feast=make_fake_feast(),
+        feast=feast,
         mode=make_fake_text(SHORT_CHAR_FIELD_MAX),
         differentia=make_fake_text(SHORT_CHAR_FIELD_MAX),
         finalis=make_fake_text(SHORT_CHAR_FIELD_MAX),
@@ -105,7 +122,7 @@ def make_fake_chant(source=None,
         addendum=make_fake_text(LONG_CHAR_FIELD_MAX),
         manuscript_full_text_std_spelling=manuscript_full_text_std_spelling,
         incipit=manuscript_full_text_std_spelling[0:INCIPIT_LENGTH],
-        manuscript_full_text_std_proofread=faker.boolean(),
+        manuscript_full_text_std_proofread=manuscript_full_text_std_proofread,
         manuscript_full_text=manuscript_full_text_std_spelling,
         manuscript_full_text_proofread=faker.boolean(),
         volpiano=make_fake_text(
@@ -115,9 +132,7 @@ def make_fake_chant(source=None,
         image_link=faker.image_url(),
         cao_concordances=make_fake_text(SHORT_CHAR_FIELD_MAX),
         melody_id=make_fake_text(SHORT_CHAR_FIELD_MAX),
-        manuscript_syllabized_full_text=make_fake_text(
-            max_size=MAX_NUMBER_TEXT_CHARS, min_size=MIN_NUMBER_TEXT_CHARS
-        ),
+        manuscript_syllabized_full_text=manuscript_syllabized_full_text,
         indexing_notes=make_fake_text(
             max_size=MAX_NUMBER_TEXT_CHARS, min_size=MIN_NUMBER_TEXT_CHARS
         ),
@@ -244,16 +259,20 @@ def make_fake_sequence(source=None, title=None, incipit=None, cantus_id=None) ->
     return sequence
 
 
-def make_fake_source(published=True, segment_name=None) -> Source:
+def make_fake_source(published=True, title=None, segment_name=None) -> Source:
     """Generates a fake Source object."""
     # The cursus_choices and source_status_choices lists in Source are lists of
     # tuples and we only need the first element of each tuple
+
+    if title is None:
+        title=make_fake_text(LONG_CHAR_FIELD_MAX)
+
     cursus_choices = [x[0] for x in Source.cursus_choices]
     source_status_choices = [x[0] for x in Source.source_status_choices]
 
     source = Source.objects.create(
         published=published,
-        title=make_fake_text(LONG_CHAR_FIELD_MAX),
+        title=title,
         siglum=make_fake_text(SHORT_CHAR_FIELD_MAX),
         rism_siglum=make_fake_rism_siglum(),
         provenance=make_fake_provenance(),
