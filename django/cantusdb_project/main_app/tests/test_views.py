@@ -1705,6 +1705,20 @@ class ChantDeleteViewTest(TestCase):
         response = self.client.post(reverse("chant-delete", args=[chant.id + 100]))
         self.assertEqual(response.status_code, 404)
 
+    def test_next_chant_signal(self):
+        chant_1 = make_fake_chant()
+        chant_2 = make_fake_chant(source=chant_1.source, folio=chant_1.folio, sequence_number=chant_1.sequence_number + 1)
+
+        chant_1.refresh_from_db()
+        self.assertEqual(chant_1.next_chant, chant_2)
+
+        response = self.client.post(reverse("chant-delete", args=[chant_2.id]))
+
+        chant_1.refresh_from_db()
+        self.assertIs(chant_1.next_chant, None)
+
+
+
 
 class ChantEditVolpianoViewTest(TestCase):
     @classmethod
