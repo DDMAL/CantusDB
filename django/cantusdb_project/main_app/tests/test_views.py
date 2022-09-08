@@ -1053,6 +1053,7 @@ class ChantCreateViewTest(TestCase):
             reverse("chant-create", args=[source.id]), 
             {"manuscript_full_text_std_spelling": "cantus secundus", "folio": "001r", "sequence_number": "2"})
         chant_2 = Chant.objects.get(manuscript_full_text_std_spelling="cantus secundus")
+        chant_1.refresh_from_db()
         self.assertEqual(chant_1.next_chant, chant_2)
 
 
