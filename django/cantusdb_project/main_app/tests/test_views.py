@@ -2759,26 +2759,32 @@ class JsonNextChantsTest(TestCase):
         fake_source_1 = make_fake_source(published=True)
         fake_source_2 = make_fake_source(published=False)
 
-        fake_chant_2 = Chant.objects.create(
-            source = fake_source_1,
-            cantus_id = "2000"
-        )
-
         fake_chant_1 = Chant.objects.create(
             source = fake_source_1,
-            next_chant = fake_chant_2,
-            cantus_id = "1000"
+            cantus_id = "1000",
+            folio="001r",
+            sequence_number=1,
         )
-        
-        fake_chant_4 = Chant.objects.create(
-            source = fake_source_2,
-            cantus_id = "2000"
+
+        fake_chant_2 = Chant.objects.create(
+            source = fake_source_1,
+            cantus_id = "2000",
+            folio="001r",
+            sequence_number=2,
         )
 
         fake_chant_3 = Chant.objects.create(
             source = fake_source_2,
-            next_chant = fake_chant_4,
-            cantus_id = "1000"
+            cantus_id = "1000",
+            folio="001r",
+            sequence_number=1,
+        )
+
+        fake_chant_4 = Chant.objects.create(
+            source = fake_source_2,
+            cantus_id = "2000",
+            folio="001r",
+            sequence_number=2,
         )
 
         path = reverse("json-nextchants", args=["1000"])
