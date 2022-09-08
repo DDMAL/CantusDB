@@ -1166,6 +1166,25 @@ class ChantEditVolpianoViewTest(TestCase):
         suggested_fulltext = response.context["suggested_fulltext"]
         self.assertEqual(suggested_fulltext, expected_suggestion)
 
+    def test_next_chant_signal(self):
+        source = make_fake_source()
+        chant_1 = make_fake_chant(source=source, folio="001r", sequence_number=1, manuscript_full_text_std_spelling="chant_1")
+        chant_2 = make_fake_chant(source=source, folio="002r", sequence_number=1, manuscript_full_text_std_spelling="chant_2")
+
+        response = self.client.post(
+            f"/edit-volpiano/{source.id}?pk={chant_2.id}&folio={chant_2.folio}",
+            {
+                "manuscript_full_text_std_spelling": "chant_2",
+                "folio": "001v",
+                "sequence_number": "1"
+            }
+        )
+
+        chant_1.refresh_from_db()
+
+        chant_2_updated = Chant.objects.get(manuscript_full_text_std_spelling="chant_2")
+        self.assertEqual(chant_1.next_chant, chant_2_updated)
+
 
 class ChantProofreadViewTest(TestCase):
     @classmethod
