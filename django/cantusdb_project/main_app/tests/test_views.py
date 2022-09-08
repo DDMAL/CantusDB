@@ -1718,8 +1718,6 @@ class ChantDeleteViewTest(TestCase):
         self.assertIs(chant_1.next_chant, None)
 
 
-
-
 class ChantEditVolpianoViewTest(TestCase):
     @classmethod
     def setUpTestData(cls):
