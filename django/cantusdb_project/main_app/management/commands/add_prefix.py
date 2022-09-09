@@ -3,7 +3,7 @@ from django.core.management.base import BaseCommand, CommandError
 # from pprint import pprint
 from main_app.models import Feast
 
-
+# run with `python manage.py add_prefix`
 class Command(BaseCommand):
     def add_arguments(self, parser):
         pass
