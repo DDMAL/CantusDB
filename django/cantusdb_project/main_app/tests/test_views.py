@@ -1046,6 +1046,16 @@ class ChantCreateViewTest(TestCase):
             self.assertTemplateUsed(response, "base.html")
             self.assertTemplateUsed(response, "chant_create.html")
 
+    def test_next_chant_signal(self):
+        source = make_fake_source()
+        chant_1 = make_fake_chant(source=source, folio="001r", sequence_number=1)
+        response = self.client.post(
+            reverse("chant-create", args=[source.id]), 
+            {"manuscript_full_text_std_spelling": "cantus secundus", "folio": "001r", "sequence_number": "2"})
+        chant_2 = Chant.objects.get(manuscript_full_text_std_spelling="cantus secundus")
+        chant_1.refresh_from_db()
+        self.assertEqual(chant_1.next_chant, chant_2)
+
 
 class ChantDeleteViewTest(TestCase):
     @classmethod
@@ -1086,6 +1096,18 @@ class ChantDeleteViewTest(TestCase):
         chant = make_fake_chant()
         response = self.client.post(reverse("chant-delete", args=[chant.id + 100]))
         self.assertEqual(response.status_code, 404)
+
+    def test_next_chant_signal(self):
+        chant_1 = make_fake_chant()
+        chant_2 = make_fake_chant(source=chant_1.source, folio=chant_1.folio, sequence_number=chant_1.sequence_number + 1)
+
+        chant_1.refresh_from_db()
+        self.assertEqual(chant_1.next_chant, chant_2)
+
+        response = self.client.post(reverse("chant-delete", args=[chant_2.id]))
+
+        chant_1.refresh_from_db()
+        self.assertIs(chant_1.next_chant, None)
 
 
 class ChantEditVolpianoViewTest(TestCase):
@@ -1156,6 +1178,25 @@ class ChantEditVolpianoViewTest(TestCase):
         expected_suggestion = "Puer natus est nobis alleluia alleluia"
         suggested_fulltext = response.context["suggested_fulltext"]
         self.assertEqual(suggested_fulltext, expected_suggestion)
+
+    def test_next_chant_signal(self):
+        source = make_fake_source()
+        chant_1 = make_fake_chant(source=source, folio="001r", sequence_number=1, manuscript_full_text_std_spelling="chant_1")
+        chant_2 = make_fake_chant(source=source, folio="002r", sequence_number=1, manuscript_full_text_std_spelling="chant_2")
+
+        response = self.client.post(
+            f"/edit-volpiano/{source.id}?pk={chant_2.id}&folio={chant_2.folio}",
+            {
+                "manuscript_full_text_std_spelling": "chant_2",
+                "folio": "001v",
+                "sequence_number": "1"
+            }
+        )
+
+        chant_1.refresh_from_db()
+
+        chant_2_updated = Chant.objects.get(manuscript_full_text_std_spelling="chant_2")
+        self.assertEqual(chant_1.next_chant, chant_2_updated)
 
 
 class ChantProofreadViewTest(TestCase):
@@ -2654,26 +2695,32 @@ class JsonNextChantsTest(TestCase):
         fake_source_1 = make_fake_source()
         fake_source_2 = make_fake_source()
 
-        fake_chant_2 = Chant.objects.create(
-            source = fake_source_1,
-            cantus_id = "2000"
-        )
-
         fake_chant_1 = Chant.objects.create(
             source = fake_source_1,
-            next_chant = fake_chant_2,
-            cantus_id = "1000"
+            cantus_id = "1000",
+            folio="001r",
+            sequence_number=1,
         )
-        
-        fake_chant_4 = Chant.objects.create(
-            source = fake_source_2,
-            cantus_id = "2000"
+
+        fake_chant_2 = Chant.objects.create(
+            source = fake_source_1,
+            cantus_id = "2000",
+            folio="001r",
+            sequence_number=2,
         )
 
         fake_chant_3 = Chant.objects.create(
             source = fake_source_2,
-            next_chant = fake_chant_4,
-            cantus_id = "1000"
+            cantus_id = "1000",
+            folio="001r",
+            sequence_number=1,
+        )
+
+        fake_chant_4 = Chant.objects.create(
+            source = fake_source_2,
+            cantus_id = "2000",
+            folio="001r",
+            sequence_number=2,
         )
 
         path = reverse("json-nextchants", args=["1000"])
@@ -2712,26 +2759,32 @@ class JsonNextChantsTest(TestCase):
         fake_source_1 = make_fake_source(published=True)
         fake_source_2 = make_fake_source(published=False)
 
-        fake_chant_2 = Chant.objects.create(
-            source = fake_source_1,
-            cantus_id = "2000"
-        )
-
         fake_chant_1 = Chant.objects.create(
             source = fake_source_1,
-            next_chant = fake_chant_2,
-            cantus_id = "1000"
+            cantus_id = "1000",
+            folio="001r",
+            sequence_number=1,
         )
-        
-        fake_chant_4 = Chant.objects.create(
-            source = fake_source_2,
-            cantus_id = "2000"
+
+        fake_chant_2 = Chant.objects.create(
+            source = fake_source_1,
+            cantus_id = "2000",
+            folio="001r",
+            sequence_number=2,
         )
 
         fake_chant_3 = Chant.objects.create(
             source = fake_source_2,
-            next_chant = fake_chant_4,
-            cantus_id = "1000"
+            cantus_id = "1000",
+            folio="001r",
+            sequence_number=1,
+        )
+
+        fake_chant_4 = Chant.objects.create(
+            source = fake_source_2,
+            cantus_id = "2000",
+            folio="001r",
+            sequence_number=2,
         )
 
         path = reverse("json-nextchants", args=["1000"])
