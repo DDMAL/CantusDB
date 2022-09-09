@@ -16,6 +16,8 @@ class Feast(BaseModel):
     day = models.PositiveIntegerField(
         blank=True, null=True, validators=[MinValueValidator(1), MaxValueValidator(31)]
     )
+
+    # the `prefix` field can be automatically populated by running `python manage.py add_prefix`
     prefix = models.CharField(max_length=2, blank=True, null=True)
 
     class Meta:
