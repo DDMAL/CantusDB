@@ -2,6 +2,7 @@ from main_app.models import Chant
 from django.core.exceptions import ValidationError
 from django.core.management.base import BaseCommand
 
+# Run with `python manage.py populate_next_chant_fields`.
 class Command(BaseCommand):
     def add_arguments(self, parser):
         parser.add_argument(
