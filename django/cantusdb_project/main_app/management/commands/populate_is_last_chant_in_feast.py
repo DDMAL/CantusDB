@@ -1,6 +1,7 @@
 from main_app.models import Chant
 from django.core.management.base import BaseCommand
 
+# Run with `python manage.py populate_is_last_chant_in_feast`.
 class Command(BaseCommand):
 
     def handle(self, *args, **kwargs):
