@@ -20,7 +20,10 @@ class Command(BaseCommand):
             # do not use the existing "name" property, 
             # because for some reason, the first/last names can have trailing spaces
             # TODO: populate the full_name field and remove the "name" property
-            user.full_name = f"{user.first_name.strip()} {user.last_name.strip()}"
+            if user.first_name or user.last_name:
+                user.full_name = f"{user.first_name.strip()} {user.last_name.strip()}"
+            else:
+                user.full_name = "Anonymous User"
             user.save()
 
         for indexer in indexers:
@@ -50,5 +53,6 @@ class Command(BaseCommand):
                     # leave the password empty for dummy users
                     # the password can't be empty in login form, so they can't log in
                     password="",
+                    old_indexer_id = indexer.id,
                     show_in_list=True,
                 )
