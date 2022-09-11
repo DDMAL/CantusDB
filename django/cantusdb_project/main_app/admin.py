@@ -16,6 +16,9 @@ class BaseModelAdmin(admin.ModelAdmin):
             obj.created_by = request.user
         super().save_model(request, obj, form, change)
 
+class CenturyAdmin(BaseModelAdmin):
+    pass
+
 class ChantAdmin(BaseModelAdmin):
     pass
 
@@ -37,6 +40,9 @@ class OfficeAdmin(BaseModelAdmin):
 class ProvenanceAdmin(BaseModelAdmin):
     pass
 
+class RismSiglumAdmin(BaseModelAdmin):
+    pass
+
 class SegmentAdmin(BaseModelAdmin):
     pass
 
@@ -49,6 +55,7 @@ class SourceAdmin(BaseModelAdmin):
     # that allows searching within the options. The unselected and selected options appear in two boxes side by side.
     filter_horizontal = ('century', 'notation', 'current_editors', 'inventoried_by', 'full_text_entered_by', 'melodies_entered_by', 'proofreaders', 'other_editors')
 
+admin.site.register(Century, CenturyAdmin)
 admin.site.register(Chant, ChantAdmin)
 admin.site.register(Feast, FeastAdmin)
 admin.site.register(Genre, GenreAdmin)
@@ -56,6 +63,7 @@ admin.site.register(Indexer, IndexerAdmin)
 admin.site.register(Notation, NotationAdmin)
 admin.site.register(Office, OfficeAdmin)
 admin.site.register(Provenance, ProvenanceAdmin)
+admin.site.register(RismSiglum, RismSiglumAdmin)
 admin.site.register(Segment, SegmentAdmin)
 admin.site.register(Sequence, SequenceAdmin)
 admin.site.register(Source, SourceAdmin)

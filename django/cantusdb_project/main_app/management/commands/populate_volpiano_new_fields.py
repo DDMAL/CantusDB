@@ -2,7 +2,7 @@ import re
 from django.core.management.base import BaseCommand
 from main_app.models import Chant
 
-
+# Run with `python manage.py populate_volpiano_new_fields`.
 def generate_volpiano_notes(volpiano):
     """
     Populate the ``volpiano_notes`` field of the ``Chant`` model
