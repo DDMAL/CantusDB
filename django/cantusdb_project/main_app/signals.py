@@ -14,17 +14,22 @@ from main_app.models import Sequence
 
 @receiver(post_save, sender=Chant)
 def on_chant_save(instance, **kwargs):
-    update_chant_search_vector(instance)
     update_source_chant_count(instance)
     update_source_melody_count(instance)
+
     update_next_chant_fields(instance)
+    update_is_last_chant_in_feast_fields(instance)
+
+    update_chant_search_vector(instance)
     update_volpiano_fields(instance)
 
 @receiver(post_delete, sender=Chant)
 def on_chant_delete(instance, **kwargs):
     update_source_chant_count(instance)
     update_source_melody_count(instance)
+
     update_next_chant_fields(instance)
+    update_is_last_chant_in_feast_fields(instance)
 
 @receiver(post_save, sender=Sequence)
 def on_sequence_save(instance, **kwargs):
@@ -183,4 +188,28 @@ def update_volpiano_fields(instance):
         volpiano_intervals=volpiano_intervals
     )
 
+def update_is_last_chant_in_feast_fields(instance):
+    """When saving or deleting a Chant, make sure that the is_last_chant_in_feast field of every chant in that chant's source is up-to-date
+    
+    Called in on_chant_save(), on_chant_delete()
+    """
+    source = instance.source
+    for chant in source.chant_set.all():
+        this_chant_feast = chant.feast
+        if this_chant_feast is None:
+            is_last_chant_in_feast = False
+        else:
+            try:
+                next_chant_feast = chant.next_chant.feast
+                if next_chant_feast is None:
+                    is_last_chant_in_feast = True
+                elif this_chant_feast != next_chant_feast:
+                    is_last_chant_in_feast = True
+                else:
+                    is_last_chant_in_feast = False
+            except AttributeError: # chant.next_chant is None
+                is_last_chant_in_feast = True
 
+        Chant.objects.filter(id=chant.id).update(
+            is_last_chant_in_feast=is_last_chant_in_feast
+        )
