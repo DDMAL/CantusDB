@@ -1055,6 +1055,23 @@ class ChantCreateViewTest(TestCase):
         chant_2 = Chant.objects.get(manuscript_full_text_std_spelling="cantus secundus")
         chant_1.refresh_from_db()
         self.assertEqual(chant_1.next_chant, chant_2)
+    
+    def test_volpiano_signal(self):
+        source = make_fake_source()
+        self.client.post(
+            reverse("chant-create", args=[source.id]), 
+            {"manuscript_full_text_std_spelling": "ut queant lactose", "folio": "001r", "sequence_number": "1", "volpiano": "9abcdefg)A-B1C2D3E4F5G67?. yiz"}
+        )
+        chant_1 = Chant.objects.get(manuscript_full_text_std_spelling="ut queant lactose")
+        self.assertEqual(chant_1.volpiano, "9abcdefg)A-B1C2D3E4F5G67?. yiz")
+        self.assertEqual(chant_1.volpiano_notes, "9abcdefg9abcdefg")
+        self.client.post(
+            reverse("chant-create", args=[source.id]), 
+            {"manuscript_full_text_std_spelling": "resonare foobaz", "folio": "001r", "sequence_number": "2", "volpiano": "abacadaeafagahaja"}
+        )
+        chant_2 = Chant.objects.get(manuscript_full_text_std_spelling="resonare foobaz")
+        self.assertEqual(chant_2.volpiano, "abacadaeafagahaja")
+        self.assertEqual(chant_2.volpiano_intervals, "1-12-23-34-45-56-67-78-8")
 
 
 class ChantDeleteViewTest(TestCase):
@@ -1197,6 +1214,50 @@ class ChantEditVolpianoViewTest(TestCase):
 
         chant_2_updated = Chant.objects.get(manuscript_full_text_std_spelling="chant_2")
         self.assertEqual(chant_1.next_chant, chant_2_updated)
+    
+    def test_volpiano_signal(self):
+        source = make_fake_source()
+        chant_1 = make_fake_chant(
+            manuscript_full_text_std_spelling="ut queant lactose",
+            source=source,
+            folio="001r",
+            sequence_number=1
+        )
+        self.client.post(
+            reverse('source-edit-volpiano', args=[source.id]),  
+            {
+                "manuscript_full_text_std_spelling": "ut queant lactose",
+                "folio": "001r",
+                "sequence_number": "1",
+                "volpiano": "9abcdefg)A-B1C2D3E4F5G67?. yiz",
+            }
+        )
+        chant_1 = Chant.objects.get(
+            manuscript_full_text_std_spelling="ut queant lactose"
+        )
+        self.assertEqual(chant_1.volpiano, "9abcdefg)A-B1C2D3E4F5G67?. yiz")
+        self.assertEqual(chant_1.volpiano_notes, "9abcdefg9abcdefg")
+
+        make_fake_chant(
+            manuscript_full_text_std_spelling="resonare foobaz",
+            source=source,
+            folio="001r",
+            sequence_number=2
+        )
+        self.client.post(
+            reverse('source-edit-volpiano', args=[source.id]),  
+            {
+                "manuscript_full_text_std_spelling": "resonare foobaz",
+                "folio": "001r",
+                "sequence_number": "2",
+                "volpiano": "abacadaeafagahaja",
+            }
+        )
+        chant_2 = Chant.objects.get(
+            manuscript_full_text_std_spelling="resonare foobaz"
+        )
+        self.assertEqual(chant_2.volpiano, "abacadaeafagahaja")
+        self.assertEqual(chant_2.volpiano_intervals, "1-12-23-34-45-56-67-78-8")
 
 
 class ChantProofreadViewTest(TestCase):
