@@ -1072,6 +1072,36 @@ class ChantCreateViewTest(TestCase):
         chant_2 = Chant.objects.get(manuscript_full_text_std_spelling="resonare foobaz")
         self.assertEqual(chant_2.volpiano, "abacadaeafagahaja")
         self.assertEqual(chant_2.volpiano_intervals, "1-12-23-34-45-56-67-78-8")
+    
+    def test_is_last_chant_in_feast_signal(self):
+        source = make_fake_source()
+        feast = make_fake_feast()
+
+        chant_1 = make_fake_chant(
+            source=source,
+            folio="001r",
+            sequence_number=1,
+            feast=feast,
+        )
+        chant_2 = make_fake_chant(
+            source=source,
+            feast=feast,
+            folio="001r",
+            sequence_number=2
+        )
+
+        chant_2.refresh_from_db()
+        self.assertIs(chant_2.is_last_chant_in_feast, True)
+
+        self.client.post(
+            reverse("chant-create", args=[source.id]), 
+            {"manuscript_full_text_std_spelling": "test", "folio": "001r", "sequence_number": "3", "feast": feast.id}
+        )
+
+        chant_2.refresh_from_db()
+        self.assertIs(chant_2.is_last_chant_in_feast, False)
+
+
 
 
 class ChantDeleteViewTest(TestCase):
