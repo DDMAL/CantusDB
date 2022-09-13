@@ -93,10 +93,20 @@ class IndexerListView(UserListView):
     def get_queryset(self):
         all_users = super().get_queryset()
         indexers = all_users.filter(show_in_list=True)
-        # indexers = indexers.annotate(
-        #     source_count=Count("inventoried_sources", filter=Q(sources_inventoried__published=True))
-        # )
-        return indexers
+        display_unpublished = self.request.user.is_authenticated
+        if display_unpublished:
+            indexers = indexers.annotate(
+                source_count=Count("inventoried_sources")
+            )
+            # display those who have at least one source
+            return indexers.filter(source_count__gte=1)        
+        else:
+            indexers = indexers.annotate(
+                source_count=Count("inventoried_sources", filter=Q(inventoried_sources__published=True))
+            )
+            # display those who have at least one published source
+            return indexers.filter(source_count__gte=1)     
+
 
 class CustomLoginView(LoginView):
     def form_valid(self, form):

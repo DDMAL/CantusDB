@@ -35,10 +35,12 @@
                     <td class="text-center text-wrap">
                         <a href="{{ indexer.get_absolute_url }}">{{ indexer.full_name }}</a>
                     </td>
-                    <td>{{ indexer.institution|default:"" }}</td>
-                    <td>{{ indexer.city|default:"" }}</td>
-                    <td>{{ indexer.country|default:"" }}</td>
-                    <td><a href="{{ indexer.get_absolute_url }}">{{ indexer.source_count }} source{{ indexer.source_count|pluralize }}</a></td>
+                    <td class="text-center text-wrap">{{ indexer.institution|default:"" }}</td>
+                    <td class="text-center text-wrap">{{ indexer.city|default:"" }}</td>
+                    <td class="text-center text-wrap">{{ indexer.country|default:"" }}</td>
+                    <td class="text-center text-wrap">
+                        <a href="{{ indexer.get_absolute_url }}">{{ indexer.source_count }} source{{ indexer.source_count|pluralize }}</a>
+                    </td>
                 </tr>
             {% endfor %}
         </tbody>

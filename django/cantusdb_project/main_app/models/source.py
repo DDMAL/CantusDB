@@ -71,7 +71,7 @@ class Source(BaseModel):
     
     # indexer-related fields
     inventoried_by = models.ManyToManyField(
-        "Indexer", related_name="sources_inventoried", blank=True
+        "Indexer", related_name="inventoried_sources", blank=True
     )
     full_text_entered_by = models.ManyToManyField(
         "Indexer", related_name="entered_full_text_for_sources", blank=True
@@ -84,7 +84,7 @@ class Source(BaseModel):
     
     # replace indexer-related fields with the following user-related fields
     inventoried_by_u = models.ManyToManyField(
-        get_user_model(), related_name="sources_inventoried", blank=True
+        get_user_model(), related_name="inventoried_sources", blank=True
     )
     full_text_entered_by_u = models.ManyToManyField(
         get_user_model(), related_name="entered_full_text_for_sources", blank=True
