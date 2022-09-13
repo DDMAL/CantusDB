@@ -5,8 +5,7 @@ from django.core.management.base import BaseCommand
 # and saves it. In doing so, it triggers the on_chant_save()
 # function for each chant, which populates several fields used
 # to optimizing site performance including
-# Chant.search_vectors, Chant.next_chant, Chant.is_last_chant_in_feast,
-# Chant.volpiano_notes, Chant.volpiano_intervals,
+# Chant.search_vectors, Chant.volpiano_notes, Chant.volpiano_intervals,
 # Source.number_of_chants and Source.number_of_melodies.
 
 # Run with `python manage.py populate_chant_fields`.
