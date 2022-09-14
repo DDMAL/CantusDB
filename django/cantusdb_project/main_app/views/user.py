@@ -59,7 +59,7 @@ class CustomLogoutView(LogoutView):
         )
         return next_page
 
-class UserListView(SearchableListMixin, ListView):
+class UserListView(LoginRequiredMixin, SearchableListMixin, ListView):
     """A list of all User objects
 
     This view is equivalent to the user list view on the old Cantus.
