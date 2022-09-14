@@ -45,28 +45,28 @@
                     <dd>{{ source.indexing_notes|safe }}</dd>
                 {% endif %}
 
-                {% if source.other_editors_u.all %}
+                {% if source.other_editors.all %}
                     <dt>Other Editors</dt>
                     <dd>
-                        {% for editor in source.other_editors_u.all %}
+                        {% for editor in source.other_editors.all %}
                             <a href={{ editor.get_absolute_url }}>{{ editor.full_name }}</a><br>
                         {% endfor %}
                     </dd>
                 {% endif %}
 
-                {% if source.full_text_entered_by_u.all %}
+                {% if source.full_text_entered_by.all %}
                     <dt>Full Text Entered by</dt>
                     <dd>
-                        {% for editor in source.full_text_entered_by_u.all %}
+                        {% for editor in source.full_text_entered_by.all %}
                             <a href={{ editor.get_absolute_url }}>{{ editor.full_name }}</a><br>
                         {% endfor %}
                     </dd>
                 {% endif %}
 
-                {% if source.melodies_entered_by_u.all %}
+                {% if source.melodies_entered_by.all %}
                     <dt>Melodies Entered by</dt>
                     <dd>
-                        {% for editor in source.melodies_entered_by_u.all %}
+                        {% for editor in source.melodies_entered_by.all %}
                             <a href={{ editor.get_absolute_url }}>{{ editor.full_name }}</a><br>
                         {% endfor %}
                     </dd>
@@ -210,10 +210,10 @@
                             Notation: <b><a href="#">{{ source.notation.all.first.name }}</a></b>
                             <br>
                         {% endif %}
-                        {% if source.inventoried_by_u.all %}
+                        {% if source.inventoried_by.all %}
                             Inventoried by:
                             <ul>
-                                {% for editor in source.inventoried_by_u.all %}
+                                {% for editor in source.inventoried_by.all %}
                                     <li>
                                         <a href={{ editor.get_absolute_url }}><b>{{ editor.full_name }}</b></a><br>
                                         {{ editor.institution|default_if_none:"" }}
@@ -221,11 +221,11 @@
                                 {% endfor %}
                             </ul>
                         {% endif %}
-                        {% if source.proofreaders_u.all %}
-                            Proofreader{{ source.proofreaders_u.all|pluralize }}:
+                        {% if source.proofreaders.all %}
+                            Proofreader{{ source.proofreaders.all|pluralize }}:
                             <br>
                             <ul>
-                                {% for editor in source.proofreaders_u.all %}
+                                {% for editor in source.proofreaders.all %}
                                     <li>
                                         <a href={{ editor.get_absolute_url }}><b>{{ editor.full_name }}</b></a><br>
                                     </li>

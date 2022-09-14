@@ -69,31 +69,17 @@ class Source(BaseModel):
     )
     current_editors = models.ManyToManyField(get_user_model(), related_name="sources_user_can_edit", blank=True)
     
-    # indexer-related fields
     inventoried_by = models.ManyToManyField(
-        "Indexer", related_name="inventoried_sources", blank=True
-    )
-    full_text_entered_by = models.ManyToManyField(
-        "Indexer", related_name="entered_full_text_for_sources", blank=True
-    )
-    melodies_entered_by = models.ManyToManyField(
-        "Indexer", related_name="entered_melody_for_sources", blank=True
-    )
-    proofreaders = models.ManyToManyField("Indexer", related_name="proofread_sources", blank=True)
-    other_editors = models.ManyToManyField("Indexer", related_name="edited_sources", blank=True)
-    
-    # replace indexer-related fields with the following user-related fields
-    inventoried_by_u = models.ManyToManyField(
         get_user_model(), related_name="inventoried_sources", blank=True
     )
-    full_text_entered_by_u = models.ManyToManyField(
+    full_text_entered_by = models.ManyToManyField(
         get_user_model(), related_name="entered_full_text_for_sources", blank=True
     )
-    melodies_entered_by_u = models.ManyToManyField(
+    melodies_entered_by = models.ManyToManyField(
         get_user_model(), related_name="entered_melody_for_sources", blank=True
     )
-    proofreaders_u = models.ManyToManyField(get_user_model(), related_name="proofread_sources", blank=True)
-    other_editors_u = models.ManyToManyField(get_user_model(), related_name="edited_sources", blank=True)
+    proofreaders = models.ManyToManyField(get_user_model(), related_name="proofread_sources", blank=True)
+    other_editors = models.ManyToManyField(get_user_model(), related_name="edited_sources", blank=True)
     
 
     segment = models.ForeignKey(

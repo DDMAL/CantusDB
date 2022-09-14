@@ -346,10 +346,10 @@
                                     <br>
                                 {% endif %}
 
-                                {% if source.inventoried_by_u.all %}
+                                {% if source.inventoried_by.all %}
                                     Inventoried by:
                                     <ul>
-                                        {% for editor in source.inventoried_by_u.all %}
+                                        {% for editor in source.inventoried_by.all %}
                                             <li>
                                                 <a href={{ editor.get_absolute_url }}><b>{{ editor.full_name }}</b></a>
                                                 <br>
@@ -359,11 +359,11 @@
                                     </ul>
                                 {% endif %}
 
-                                {% if source.proofreaders_u.all %}
-                                    Proofreader{{ source.proofreaders_u.all|pluralize }}:
+                                {% if source.proofreaders.all %}
+                                    Proofreader{{ source.proofreaders.all|pluralize }}:
                                     <br>
                                     <ul>
-                                        {% for editor in source.proofreaders_u.all %}
+                                        {% for editor in source.proofreaders.all %}
                                             <li>
                                                 <a href={{ editor.get_absolute_url }}><b>{{ editor.full_name }}</b></a>
                                                 <br>
