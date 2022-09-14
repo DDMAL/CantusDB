@@ -194,21 +194,15 @@ class SourceListView(ListView):
             # field, allowing for a more flexible search, and a field needs
             # to match only one of the terms
             for term in indexing_search_terms:
-                inventoried_by_q |= Q(inventoried_by__given_name__icontains=term) | Q(
-                    inventoried_by__family_name__icontains=term
-                )
+                inventoried_by_q |= Q(inventoried_by__full_name__icontains=term)
                 full_text_entered_by_q |= Q(
-                    full_text_entered_by__given_name__icontains=term
-                ) | Q(full_text_entered_by__family_name__icontains=term)
+                    full_text_entered_by__full_name__icontains=term
+                )
                 melodies_entered_by_q |= Q(
-                    melodies_entered_by__given_name__icontains=term
-                ) | Q(melodies_entered_by__family_name__icontains=term)
-                proofreaders_q |= Q(proofreaders__given_name__icontains=term) | Q(
-                    proofreaders__family_name__icontains=term
+                    melodies_entered_by__full_name__icontains=term
                 )
-                other_editors_q |= Q(other_editors__given_name__icontains=term) | Q(
-                    other_editors__family_name__icontains=term
-                )
+                proofreaders_q |= Q(proofreaders__full_name__icontains=term)
+                other_editors_q |= Q(other_editors__full_name__icontains=term)
                 indexing_notes_q |= Q(indexing_notes__icontains=term)
             # All the Q objects are put together with OR.
             # The end result is that at least one term has to match in at least one
