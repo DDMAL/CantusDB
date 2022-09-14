@@ -346,27 +346,27 @@
                                     <br>
                                 {% endif %}
 
-                                {% if source.inventoried_by.all %}
+                                {% if source.inventoried_by_u.all %}
                                     Inventoried by:
                                     <ul>
-                                        {% for editor in source.inventoried_by.all %}
+                                        {% for editor in source.inventoried_by_u.all %}
                                             <li>
-                                                <a href={{ editor.get_absolute_url }}><b>{{ editor.given_name }}
-                                                    {{ editor.family_name }}</b></a><br>
+                                                <a href={{ editor.get_absolute_url }}><b>{{ editor.full_name }}</b></a>
+                                                <br>
                                                 {{ editor.institution|default_if_none:"" }}
                                             </li>
                                         {% endfor %}
                                     </ul>
                                 {% endif %}
 
-                                {% if source.proofreaders.all %}
-                                    Proofreader{{ source.proofreaders.all|pluralize }}:
+                                {% if source.proofreaders_u.all %}
+                                    Proofreader{{ source.proofreaders_u.all|pluralize }}:
                                     <br>
                                     <ul>
-                                        {% for editor in source.proofreaders.all %}
+                                        {% for editor in source.proofreaders_u.all %}
                                             <li>
-                                                <a href={{ editor.get_absolute_url }}><b>{{editor.given_name}}
-                                                    {{editor.family_name}}</b></a><br>
+                                                <a href={{ editor.get_absolute_url }}><b>{{ editor.full_name }}</b></a>
+                                                <br>
                                             </li>
                                         {% endfor %}
                                     </ul>
@@ -374,7 +374,7 @@
 
                                 {{ source.indexing_notes|default_if_none:"" }}
                                 <br>
-                                Contributor: <a href="#" onclick="return false;">CANTUS Database Administrator</a>
+                                Contributor: <a href="#" onclick="return false;"></a>
                             </small>
                         </div>
                     </div>
