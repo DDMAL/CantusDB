@@ -159,14 +159,12 @@ def update_volpiano_fields(instance):
     volpiano_notes = generate_volpiano_notes(
         instance.volpiano
     )
-    Chant.objects.filter(id=instance.id).update(
-        volpiano_notes=volpiano_notes
-    )
-
     volpiano_intervals = generate_volpiano_intervals(
         volpiano_notes
     )
+
     Chant.objects.filter(id=instance.id).update(
-        volpiano_intervals=volpiano_intervals
+        volpiano_notes=volpiano_notes,
+        volpiano_intervals=volpiano_intervals,
     )
 
