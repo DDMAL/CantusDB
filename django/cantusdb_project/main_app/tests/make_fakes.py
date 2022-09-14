@@ -125,9 +125,7 @@ def make_fake_chant(source=None,
         manuscript_full_text_std_proofread=manuscript_full_text_std_proofread,
         manuscript_full_text=manuscript_full_text_std_spelling,
         manuscript_full_text_proofread=faker.boolean(),
-        volpiano=make_fake_text(
-            max_size=MAX_NUMBER_TEXT_CHARS, min_size=MIN_NUMBER_TEXT_CHARS
-        ),
+        volpiano=volpiano,
         volpiano_proofread=faker.boolean(),
         image_link=faker.image_url(),
         cao_concordances=make_fake_text(SHORT_CHAR_FIELD_MAX),
