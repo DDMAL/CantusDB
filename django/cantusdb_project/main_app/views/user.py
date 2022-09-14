@@ -76,7 +76,7 @@ class UserListView(LoginRequiredMixin, SearchableListMixin, ListView):
     template_name = "user_list.html"
     context_object_name = "users"
 
-class IndexerListView(UserListView):
+class IndexerListView(SearchableListMixin, ListView):
     """A list of User objects shown to the public
 
     This view replaces the indexer list view on the old Cantus. 
@@ -87,6 +87,10 @@ class IndexerListView(UserListView):
 
     Accessed by /indexers/
     """
+    model = get_user_model()
+    ordering = "full_name"
+    search_fields = ["full_name", "institution", "city", "country"]
+    paginate_by = 100
     template_name = "indexer_list.html"
     context_object_name = "indexers"
 
