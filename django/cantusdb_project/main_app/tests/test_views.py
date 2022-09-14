@@ -1,8 +1,6 @@
-import unittest
 import random
 from django.urls import reverse
 from django.test import TestCase
-from django.http import HttpResponseNotFound
 from main_app.views.feast import FeastListView
 from django.http.response import JsonResponse
 import json
@@ -10,8 +8,6 @@ from django.contrib.auth import get_user_model
 from django.contrib.auth.models import Group
 from django.test import Client
 from django.db.models import Q
-from abc import abstractmethod
-from abc import ABC
 import csv
 
 from faker import Faker
@@ -20,7 +16,6 @@ from .make_fakes import (make_fake_text,
     make_fake_chant,
     make_fake_feast,
     make_fake_genre,
-    make_fake_indexer,
     make_fake_notation,
     make_fake_office,
     make_fake_provenance,
@@ -28,13 +23,13 @@ from .make_fakes import (make_fake_text,
     make_fake_segment,
     make_fake_sequence,
     make_fake_source,
+    make_fake_user,
 )
 
 from main_app.models import Century
 from main_app.models import Chant
 from main_app.models import Feast
 from main_app.models import Genre
-from main_app.models import Indexer
 from main_app.models import Notation
 from main_app.models import Office
 from main_app.models import Provenance
@@ -2441,23 +2436,6 @@ class JsonNodeExportTest(TestCase):
         response_title = unpacked_response['title']
         self.assertIsInstance(response_title, str)
         self.assertEqual(response_title, source.title)
-
-        response_id = unpacked_response['id']
-        self.assertIsInstance(response_id, int)
-        self.assertEqual(response_id, id)
-
-    def test_json_node_for_indexer(self):
-        indexer = make_fake_indexer()
-        id = indexer.id
-
-        response = self.client.get(reverse("json-node-export", args=[id]))
-        self.assertIsInstance(response, JsonResponse)
-
-        unpacked_response = json.loads(response.content)
-
-        response_name = unpacked_response['given_name']
-        self.assertIsInstance(response_name, str)
-        self.assertEqual(response_name, indexer.given_name)
 
         response_id = unpacked_response['id']
         self.assertIsInstance(response_id, int)
