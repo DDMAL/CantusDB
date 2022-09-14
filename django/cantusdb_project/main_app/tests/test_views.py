@@ -1050,7 +1050,16 @@ class ChantCreateViewTest(TestCase):
         source = make_fake_source()
         self.client.post(
             reverse("chant-create", args=[source.id]), 
-            {"manuscript_full_text_std_spelling": "ut queant lactose", "folio": "001r", "sequence_number": "1", "volpiano": "9abcdefg)A-B1C2D3E4F5G67?. yiz"}
+            {
+                "manuscript_full_text_std_spelling": "ut queant lactose",
+                "folio": "001r",
+                "sequence_number": "1",
+                # liquescents, to be converted to lowercase
+                #                    vv v v v v v v  
+                "volpiano": "9abcdefg)A-B1C2D3E4F5G67?. yiz"
+                #                      ^ ^ ^ ^ ^ ^ ^^^^^^^^
+                # clefs, accidentals, etc., to be deleted
+            }
         )
         chant_1 = Chant.objects.get(manuscript_full_text_std_spelling="ut queant lactose")
         self.assertEqual(chant_1.volpiano, "9abcdefg)A-B1C2D3E4F5G67?. yiz")
@@ -1183,12 +1192,16 @@ class ChantEditVolpianoViewTest(TestCase):
             sequence_number=1
         )
         self.client.post(
-            reverse('source-edit-volpiano', args=[source.id]),  
+            reverse('source-edit-volpiano', args=[source.id]),
             {
                 "manuscript_full_text_std_spelling": "ut queant lactose",
                 "folio": "001r",
                 "sequence_number": "1",
-                "volpiano": "9abcdefg)A-B1C2D3E4F5G67?. yiz",
+                # liquescents, to be converted to lowercase
+                #                    vv v v v v v v  
+                "volpiano": "9abcdefg)A-B1C2D3E4F5G67?. yiz"
+                #                      ^ ^ ^ ^ ^ ^ ^^^^^^^^
+                # clefs, accidentals, etc., to be deleted
             }
         )
         chant_1 = Chant.objects.get(
