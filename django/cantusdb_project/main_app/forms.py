@@ -48,7 +48,7 @@ class ChantCreateForm(forms.ModelForm):
             "feast",
             "mode",
             "differentia",
-            "differentia_id",
+            "differentia_new",
             "finalis",
             "extra",
             "chant_range",
@@ -73,7 +73,7 @@ class ChantCreateForm(forms.ModelForm):
             #'feast': SelectWidget(),
             "mode": TextInputWidget(),
             "differentia": TextInputWidget(),
-            "differentia_id": TextInputWidget(),
+            "differentia_new": TextInputWidget(),
             "finalis": TextInputWidget(),
             "extra": TextInputWidget(),
             "chant_range": VolpianoInputWidget(),
@@ -249,7 +249,7 @@ class ChantEditForm(forms.ModelForm):
             "mode",
             "finalis",
             "differentia",
-            "differentia_id",
+            "differentia_new",
             "extra",
             "image_link",
             "indexing_notes"
@@ -267,7 +267,7 @@ class ChantEditForm(forms.ModelForm):
             "mode": TextInputWidget(),
             "finalis": TextInputWidget(),
             "differentia": TextInputWidget(),
-            "differentia_id": TextInputWidget(),
+            "differentia_new": TextInputWidget(),
             "extra": TextInputWidget(),
             "image_link": TextInputWidget(),
             "indexing_notes": TextAreaWidget()
@@ -318,7 +318,7 @@ class ChantProofreadForm(forms.ModelForm):
             "chant_range",
             "siglum",
             "addendum",
-            "differentia_id"
+            "differentia_new"
         ]
         widgets = {
             "manuscript_full_text_std_spelling": TextAreaWidget(),
@@ -346,7 +346,7 @@ class ChantProofreadForm(forms.ModelForm):
             "chant_range": VolpianoAreaWidget(),
             "siglum": TextInputWidget(),
             "addendum": TextInputWidget(),
-            "differentia_id": TextInputWidget()
+            "differentia_new": TextInputWidget()
         }
     feast = forms.ModelChoiceField(
         queryset=Feast.objects.all().order_by("name"), required=False
