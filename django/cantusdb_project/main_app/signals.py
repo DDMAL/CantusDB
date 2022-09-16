@@ -60,8 +60,9 @@ def update_source_chant_count(instance):
     """
 
     source = instance.source
-    source.number_of_chants = source.chant_set.count() + source.sequence_set.count()
-    source.save()
+    if source is not None:
+        source.number_of_chants = source.chant_set.count() + source.sequence_set.count()
+        source.save()
 
 def update_source_melody_count(instance):
     """When saving or deleting a Chant, update its Source's number_of_melodies field
@@ -69,8 +70,9 @@ def update_source_melody_count(instance):
     Called in on_chant_save() and on_chant_delete()
     """
     source = instance.source
-    source.number_of_melodies = source.chant_set.filter(volpiano__isnull=False).count()
-    source.save()
+    if source is not None:
+        source.number_of_melodies = source.chant_set.filter(volpiano__isnull=False).count()
+        source.save()
 
 def update_volpiano_fields(instance):
     """When saving a Chant, make sure the chant's volpiano_notes and volpiano_intervals are up-to-date
