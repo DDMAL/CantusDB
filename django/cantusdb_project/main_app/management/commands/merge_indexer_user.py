@@ -49,7 +49,7 @@ class Command(BaseCommand):
                     country=indexer.country,
                     full_name=indexer_full_name,
                     # assign random email to dummy users
-                    email=f"{faker.bothify('????????')}@fakeemail.com",
+                    email=f"{faker.lexify('????????')}@fakeemail.com",
                     # leave the password empty for dummy users
                     # the password can't be empty in login form, so they can't log in
                     password="",
