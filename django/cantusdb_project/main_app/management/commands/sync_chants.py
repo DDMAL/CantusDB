@@ -125,6 +125,11 @@ def get_new_chant(chant_id):
         differentia = None
 
     try:
+        differentia_new = json_response["field_differentia_new"]["und"][0]["value"]
+    except (KeyError, TypeError):
+        differentia_new = None
+
+    try:
         finalis = json_response["field_finalis"]["und"][0]["value"]
     except (KeyError, TypeError):
         finalis = None
@@ -277,6 +282,7 @@ def get_new_chant(chant_id):
             "feast": feast,
             "mode": mode,
             "differentia": differentia,
+            "differentia_new": differentia_new,
             "finalis": finalis,
             "extra": extra,
             "chant_range": chant_range,

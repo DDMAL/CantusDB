@@ -132,7 +132,7 @@ class GenreModelTest(TestCase):
     def setUpTestData(cls):
         make_fake_genre()
 
-    def test_object_name(self):
+    def test_string_representation(self):
         genre = Genre.objects.first()
         self.assertEqual(str(genre), f"[{genre.name}] {genre.description}")
 
@@ -153,9 +153,12 @@ class OfficeModelTest(TestCase):
     def setUpTestData(cls):
         make_fake_office()
 
-    def test_object_name(self):
+    def test_object_string_representation(self):
         office = Office.objects.first()
-        self.assertEqual(str(office), f"[{office.name}] {office.description}")
+        self.assertEqual(
+            str(office),
+            f"[{office.name}] {office.description}"
+        )
 
     def test_display_name(self):
         office = Office.objects.first()

@@ -58,7 +58,7 @@ class BaseChant(BaseModel):
     feast = models.ForeignKey("Feast", on_delete=models.PROTECT, null=True, blank=True)
     mode = models.CharField(max_length=63, null=True, blank=True)
     differentia = models.CharField(blank=True, null=True, max_length=63)
-    differentia_id = models.CharField(blank=True, null=True, max_length=12)
+    differentia_new = models.CharField(blank=True, null=True, max_length=12)
     finalis = models.CharField(blank=True, null=True, max_length=63)
     extra = models.CharField(blank=True, null=True, max_length=63)
     chant_range = models.CharField(
