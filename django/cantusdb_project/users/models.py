@@ -26,16 +26,9 @@ class User(AbstractUser):
 
     objects = CustomUserManager()
 
-    @property
-    def name(self):
+    def __str__(self):
         if self.full_name:
             return self.full_name
-        elif self.first_name and self.last_name:
-            return f'{self.first_name} {self.last_name}'
-
-    def __str__(self):
-        if self.name:
-            return self.name
         else:
             return self.email
 

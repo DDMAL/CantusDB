@@ -17,9 +17,6 @@ class Command(BaseCommand):
             # set all users to be non-indexer first
             # those listed as indexers on old Cantus will have this adjusted to True
             user.is_indexer = False
-            # do not use the existing "name" property, 
-            # because for some reason, the first/last names can have trailing spaces
-            # TODO: populate the full_name field and remove the "name" property
             if user.first_name or user.last_name:
                 user.full_name = f"{user.first_name.strip()} {user.last_name.strip()}"
             else:
