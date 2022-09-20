@@ -52,7 +52,7 @@ def get_new_indexer(indexer_id):
         # keep the user as it is (merge the indexer into existing user)
         # and store the ID of its indexer object
         homonymous_user.old_indexer_id = indexer_id
-        homonymous_user.show_in_list = True
+        homonymous_user.is_indexer = True
         homonymous_user.save()
     # if the indexer doesn't exist as a user
     else:
@@ -69,7 +69,7 @@ def get_new_indexer(indexer_id):
             # the password can't be empty in login form, so they can't log in
             password="",
             old_indexer_id = indexer_id,
-            show_in_list=True,
+            is_indexer=True,
         )
 
 

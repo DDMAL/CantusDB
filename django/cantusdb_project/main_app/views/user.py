@@ -96,7 +96,7 @@ class IndexerListView(SearchableListMixin, ListView):
 
     def get_queryset(self):
         all_users = super().get_queryset()
-        indexers = all_users.filter(show_in_list=True)
+        indexers = all_users.filter(is_indexer=True)
         display_unpublished = self.request.user.is_authenticated
         if display_unpublished:
             indexers = indexers.annotate(

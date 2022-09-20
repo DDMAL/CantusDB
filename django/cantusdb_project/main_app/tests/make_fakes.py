@@ -170,14 +170,14 @@ def make_fake_genre() -> Genre:
     return genre
 
 
-def make_fake_user(show_in_list=True) -> get_user_model():
+def make_fake_user(is_indexer=True) -> get_user_model():
     """Generates a fake User object."""
     user = get_user_model().objects.create(
         full_name=f"{faker.first_name()} {faker.last_name()}",
         institution=faker.company(),
         city=faker.city(),
         country=faker.country(),
-        show_in_list=show_in_list,
+        is_indexer=is_indexer,
         email=f"{faker.lexify('????????')}@fakeemail.com",
     )
     return user

@@ -14,9 +14,9 @@ class Command(BaseCommand):
         indexers = Indexer.objects.all()
 
         for user in users:
-            # set all users to be hidden first
+            # set all users to be non-indexer first
             # those listed as indexers on old Cantus will have this adjusted to True
-            user.show_in_list = False
+            user.is_indexer = False
             # do not use the existing "name" property, 
             # because for some reason, the first/last names can have trailing spaces
             # TODO: populate the full_name field and remove the "name" property
@@ -38,7 +38,7 @@ class Command(BaseCommand):
                 # keep the user as it is (merge the indexer into existing user)
                 # and store the ID of its indexer object
                 homonymous_user.old_indexer_id = indexer.id
-                homonymous_user.show_in_list = True
+                homonymous_user.is_indexer = True
                 homonymous_user.save()
             # if the indexer doesn't exist as a user
             else:
@@ -54,5 +54,5 @@ class Command(BaseCommand):
                     # the password can't be empty in login form, so they can't log in
                     password="",
                     old_indexer_id = indexer.id,
-                    show_in_list=True,
+                    is_indexer=True,
                 )
