@@ -1,4 +1,4 @@
-from django.urls import path, include
+from django.urls import path
 from main_app.views import *
 from main_app.views import views
 from main_app.views.sequence import SequenceEditView
@@ -50,7 +50,6 @@ urlpatterns = [
     path("genre/<int:pk>", GenreDetailView.as_view(), name="genre-detail"),
     # indexer
     path("indexers/", IndexerListView.as_view(), name="indexer-list"),
-    path("indexer/<int:pk>", IndexerDetailView.as_view(), name="indexer-detail"),
     # office
     path("offices/", OfficeListView.as_view(), name="office-list"),
     path("office/<int:pk>", OfficeDetailView.as_view(), name="office-detail"),

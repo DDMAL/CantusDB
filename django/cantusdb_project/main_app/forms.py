@@ -1,5 +1,5 @@
 from django import forms
-from .models import Chant, Office, Genre, Feast, Source, RismSiglum, Provenance, Century, Indexer, Sequence
+from .models import Chant, Office, Genre, Feast, Source, RismSiglum, Provenance, Century, Sequence
 from .widgets import (TextInputWidget,
                 VolpianoInputWidget,
                 TextAreaWidget,
@@ -216,7 +216,7 @@ class SourceCreateForm(forms.ModelForm):
     current_editors.widget.attrs.update({"class": "form-control custom-select custom-select-sm"})
 
     melodies_entered_by = forms.ModelMultipleChoiceField(
-        queryset=Indexer.objects.all().order_by("family_name"), required=False
+        queryset=get_user_model().objects.all().order_by("full_name"), required=False
     )
     melodies_entered_by.widget.attrs.update({"class": "form-control custom-select custom-select-sm"})
 
@@ -439,7 +439,7 @@ class SourceEditForm(forms.ModelForm):
     current_editors.widget.attrs.update({"class": "form-control custom-select custom-select-sm"})
 
     melodies_entered_by = forms.ModelMultipleChoiceField(
-        queryset=Indexer.objects.all().order_by("family_name"), required=False
+        queryset=get_user_model().objects.all().order_by("full_name"), required=False
     )
     melodies_entered_by.widget.attrs.update({"class": "form-control custom-select custom-select-sm"})
 

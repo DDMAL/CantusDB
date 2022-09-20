@@ -351,8 +351,8 @@
                                     <ul>
                                         {% for editor in source.inventoried_by.all %}
                                             <li>
-                                                <a href={{ editor.get_absolute_url }}><b>{{ editor.given_name }}
-                                                    {{ editor.family_name }}</b></a><br>
+                                                <a href={{ editor.get_absolute_url }}><b>{{ editor.full_name }}</b></a>
+                                                <br>
                                                 {{ editor.institution|default_if_none:"" }}
                                             </li>
                                         {% endfor %}
@@ -365,8 +365,8 @@
                                     <ul>
                                         {% for editor in source.proofreaders.all %}
                                             <li>
-                                                <a href={{ editor.get_absolute_url }}><b>{{editor.given_name}}
-                                                    {{editor.family_name}}</b></a><br>
+                                                <a href={{ editor.get_absolute_url }}><b>{{ editor.full_name }}</b></a>
+                                                <br>
                                             </li>
                                         {% endfor %}
                                     </ul>
@@ -374,7 +374,7 @@
 
                                 {{ source.indexing_notes|default_if_none:"" }}
                                 <br>
-                                Contributor: <a href="#" onclick="return false;">CANTUS Database Administrator</a>
+                                Contributor: <a href="#" onclick="return false;"></a>
                             </small>
                         </div>
                     </div>

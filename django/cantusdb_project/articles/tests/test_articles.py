@@ -1,40 +1,26 @@
 from django.test import TestCase
-from django.contrib.auth import get_user_model
 from django.urls import reverse
-
 from articles.models import Article
-from users.models import User
-from main_app.models import Indexer
 from main_app.tests.make_fakes import (
     make_fake_text,
-    make_fake_indexer,
+    make_fake_user,
 )
 
-# run with `python -Wa manage.py test articles.tests.test_articles.py`
+# run with `python -Wa manage.py test articles.tests.test_articles`
 # the -Wa flag tells Python to display deprecation warnings
-
-def make_fake_user():
-    fake_email = "{f}@{g}.com".format(
-        f=make_fake_text(12),
-        g=make_fake_text(12),
-    )
-    user = get_user_model().objects.create(email=fake_email)
-    return user
 
 def make_fake_article(user=None):
     if user is None:
-        user=make_fake_user()
+        user = make_fake_user()
     article = Article.objects.create(
         title=make_fake_text(max_size=12),
-        author=make_fake_indexer(),
-        created_by=user,
+        author=make_fake_user(),
     )
     return article
 
 
 class ArticleListViewTest(TestCase):
     def setUp(self):
-        fake_user = make_fake_user()
         for i in range(10):
             make_fake_article()
 

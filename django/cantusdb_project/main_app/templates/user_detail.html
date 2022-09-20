@@ -1,13 +1,13 @@
 {% extends "base.html" %}
 {% load helper_tags %}
 {% block content %}
-<title>{{ user.first_name }} {{ user.last_name }} | Cantus Manuscript Database</title>
+<title>{{ user.full_name }} | Cantus Manuscript Database</title>
 <div class="mr-3 p-3 mx-auto bg-white rounded">
     <!-- global search bar-->
     <object align="right">
         {% include "global_search_bar.html" %}
     </object>
-    <h3>{{ user.first_name }} {{ user.last_name }}</h3>
+    <h3>{{ user.full_name }}</h3>
     <dl class="list-inline">
         {% if user.institution %}
         <dt>Institution</dt>

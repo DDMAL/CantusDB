@@ -1,8 +1,6 @@
-import unittest
 import random
 from django.urls import reverse
 from django.test import TestCase
-from django.http import HttpResponseNotFound
 from main_app.views.feast import FeastListView
 from django.http.response import JsonResponse
 import json
@@ -10,8 +8,6 @@ from django.contrib.auth import get_user_model
 from django.contrib.auth.models import Group
 from django.test import Client
 from django.db.models import Q
-from abc import abstractmethod
-from abc import ABC
 import csv
 
 from faker import Faker
@@ -20,7 +16,6 @@ from .make_fakes import (make_fake_text,
     make_fake_chant,
     make_fake_feast,
     make_fake_genre,
-    make_fake_indexer,
     make_fake_notation,
     make_fake_office,
     make_fake_provenance,
@@ -28,13 +23,13 @@ from .make_fakes import (make_fake_text,
     make_fake_segment,
     make_fake_sequence,
     make_fake_source,
+    make_fake_user,
 )
 
 from main_app.models import Century
 from main_app.models import Chant
 from main_app.models import Feast
 from main_app.models import Genre
-from main_app.models import Indexer
 from main_app.models import Notation
 from main_app.models import Office
 from main_app.models import Provenance
@@ -1768,151 +1763,6 @@ class GenreDetailViewTest(TestCase):
         self.assertEqual(len(response.context["object_list"]), 0)
 
 
-class IndexerListViewTest(TestCase):
-    def setUp(self):
-        # unless a segment is specified when a source is created, the source is automatically assigned
-        # to the segment with the name "CANTUS Database" - to prevent errors, we must make sure that
-        # such a segment exists
-        Segment.objects.create(name="CANTUS Database")
-
-    def test_view_url_path(self):
-        response = self.client.get("/indexers/")
-        self.assertEqual(response.status_code, 200)
-
-    def test_view_url_reverse_name(self):
-        response = self.client.get(reverse("indexer-list"))
-        self.assertEqual(response.status_code, 200)
-
-    def test_url_and_templates(self):
-        """Test the url and templates used"""
-        response = self.client.get(reverse("indexer-list"))
-        self.assertEqual(response.status_code, 200)
-        self.assertTemplateUsed(response, "base.html")
-        self.assertTemplateUsed(response, "indexer_list.html")
-
-    def test_only_public_indexer_visible(self):
-        """In the indexer list view, only public indexers (those who have at least one published source) should be visible"""
-        # generate some indexers
-        indexer_with_published_source = make_fake_indexer()
-        indexer_with_unpublished_source = make_fake_indexer()
-        indexer_with_no_source = make_fake_indexer()
-
-        # generate published/unpublished sources and assign indexers to them
-        unpublished_source = Source.objects.create(title="unpublished source", published=False)
-        unpublished_source.inventoried_by.set([indexer_with_unpublished_source])
-
-        published_source = Source.objects.create(title="published source", published=True)
-        published_source.inventoried_by.set([indexer_with_published_source])
-
-        source_with_multiple_indexers = Source.objects.create(
-            title="unpublished source with multiple indexers", published=False,
-        )
-        source_with_multiple_indexers.inventoried_by.set(
-            [indexer_with_published_source, indexer_with_unpublished_source]
-        )
-
-        # access the page context, only the public indexer should be in the context
-        response = self.client.get(reverse("indexer-list"))
-        self.assertEqual(response.status_code, 200)
-        self.assertIn(indexer_with_published_source, response.context["indexers"])
-        self.assertNotIn(indexer_with_unpublished_source, response.context["indexers"])
-        self.assertNotIn(indexer_with_no_source, response.context["indexers"])
-
-    def test_search_given_name(self):
-        """
-        Indexer can be searched by passing a `q` parameter to the url \\
-        Search fields include first name, family name, country, city, and institution \\
-        Only public indexers should appear in the results
-        """
-        indexer_with_published_source = make_fake_indexer()
-        published_source = Source.objects.create(title="published source", published=True)
-        published_source.inventoried_by.set([indexer_with_published_source])
-
-        # search with a random slice of first name
-        target = indexer_with_published_source.given_name
-        search_term = get_random_search_term(target)
-        response = self.client.get(reverse("indexer-list"), {"q": search_term})
-        self.assertEqual(response.status_code, 200)
-        self.assertIn(indexer_with_published_source, response.context["indexers"])
-
-    def test_search_family_name(self):
-        indexer_with_published_source = make_fake_indexer()
-        published_source = Source.objects.create(title="published source", published=True)
-        published_source.inventoried_by.set([indexer_with_published_source])
-
-        target = indexer_with_published_source.family_name
-        search_term = get_random_search_term(target)
-        response = self.client.get(reverse("indexer-list"), {"q": search_term})
-        self.assertEqual(response.status_code, 200)
-        self.assertIn(indexer_with_published_source, response.context["indexers"])
-
-    def test_search_country(self):
-        indexer_with_published_source = make_fake_indexer()
-        published_source = Source.objects.create(title="published source", published=True)
-        published_source.inventoried_by.set([indexer_with_published_source])
-
-        target = indexer_with_published_source.country
-        search_term = get_random_search_term(target)
-        response = self.client.get(reverse("indexer-list"), {"q": search_term})
-        self.assertEqual(response.status_code, 200)
-        self.assertIn(indexer_with_published_source, response.context["indexers"])
-
-    def test_search_city(self):
-        indexer_with_published_source = make_fake_indexer()
-        published_source = Source.objects.create(title="published source", published=True)
-        published_source.inventoried_by.set([indexer_with_published_source])
-
-        target = indexer_with_published_source.city
-        search_term = get_random_search_term(target)
-        response = self.client.get(reverse("indexer-list"), {"q": search_term})
-        self.assertEqual(response.status_code, 200)
-        self.assertIn(indexer_with_published_source, response.context["indexers"])
-
-    def test_search_institution(self):
-        indexer_with_published_source = make_fake_indexer()
-        published_source = Source.objects.create(title="published source", published=True)
-        published_source.inventoried_by.set([indexer_with_published_source])
-
-        target = indexer_with_published_source.institution
-        search_term = get_random_search_term(target)
-        response = self.client.get(reverse("indexer-list"), {"q": search_term})
-        self.assertEqual(response.status_code, 200)
-        self.assertIn(indexer_with_published_source, response.context["indexers"])
-
-
-class IndexerDetailViewTest(TestCase):
-    NUM_INDEXERS = 10
-
-    @classmethod
-    def setUpTestData(cls):
-        for i in range(cls.NUM_INDEXERS):
-            make_fake_indexer()
-
-    def test_view_url_path(self):
-        for indexer in Indexer.objects.all():
-            response = self.client.get(f"/indexer/{indexer.id}")
-            self.assertEqual(response.status_code, 200)
-
-    def test_view_url_reverse_name(self):
-        for indexer in Indexer.objects.all():
-            response = self.client.get(reverse("indexer-detail", args=[indexer.id]))
-            self.assertEqual(response.status_code, 200)
-
-    def test_url_and_templates(self):
-        """Test the url and templates used"""
-        indexer = make_fake_indexer()
-        response = self.client.get(reverse("indexer-detail", args=[indexer.id]))
-        self.assertEqual(response.status_code, 200)
-        self.assertTemplateUsed(response, "base.html")
-        self.assertTemplateUsed(response, "indexer_detail.html")
-
-    def test_context(self):
-        indexer = make_fake_indexer()
-        response = self.client.get(reverse("indexer-detail", args=[indexer.id]))
-        self.assertEqual(response.status_code, 200)
-        self.assertEqual(indexer, response.context["indexer"])
-
-
 class OfficeListViewTest(TestCase):
     OFFICE_COUNT = 10
 
@@ -2619,23 +2469,6 @@ class JsonNodeExportTest(TestCase):
         response_title = unpacked_response['title']
         self.assertIsInstance(response_title, str)
         self.assertEqual(response_title, source.title)
-
-        response_id = unpacked_response['id']
-        self.assertIsInstance(response_id, int)
-        self.assertEqual(response_id, id)
-
-    def test_json_node_for_indexer(self):
-        indexer = make_fake_indexer()
-        id = indexer.id
-
-        response = self.client.get(reverse("json-node-export", args=[id]))
-        self.assertIsInstance(response, JsonResponse)
-
-        unpacked_response = json.loads(response.content)
-
-        response_name = unpacked_response['given_name']
-        self.assertIsInstance(response_name, str)
-        self.assertEqual(response_name, indexer.given_name)
 
         response_id = unpacked_response['id']
         self.assertIsInstance(response_id, int)

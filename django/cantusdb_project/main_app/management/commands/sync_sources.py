@@ -1,7 +1,6 @@
 from main_app.models import (
     Source,
     Century,
-    Indexer,
     Notation,
     Provenance,
     RismSiglum,
@@ -40,7 +39,7 @@ def get_indexers(json_response, field_name):
     if json_response[field_name]:
         for und in json_response[field_name]["und"]:
             indexer_id = und["nid"]
-            indexer = Indexer.objects.get(id=indexer_id)
+            indexer = get_user_model().objects.get(old_indexer_id=indexer_id)
             indexers.append(indexer)
     return indexers
 
@@ -268,7 +267,8 @@ def get_new_source(source_id):
     # True for published, False for unpublished
     published = status_published and source_status_published
 
-    # current editors are User, the other "people" fields are Indexer
+    # current editors are User, the other "people" fields were originally Indexer, 
+    # but we harmonize them to User anyways
     current_editors = []
     try:
         current_editors_entries = json_response["field_editors"]["und"]

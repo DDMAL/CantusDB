@@ -148,67 +148,6 @@ class GenreModelTest(TestCase):
         self.assertEqual(genre.get_absolute_url(), absolute_url)
 
 
-class IndexerModelTest(TestCase):
-    @classmethod
-    def setUpTestData(cls):
-        make_fake_indexer()
-
-    def test_given_name_label(self):
-        indexer = Indexer.objects.first()
-        field_label = indexer._meta.get_field("given_name").verbose_name
-        self.assertEqual(field_label, "given name")
-
-    def test_given_name_max_length(self):
-        indexer = Indexer.objects.first()
-        max_length = indexer._meta.get_field("given_name").max_length
-        self.assertEqual(max_length, 50)
-
-    def test_family_name_label(self):
-        indexer = Indexer.objects.first()
-        field_label = indexer._meta.get_field("family_name").verbose_name
-        self.assertEqual(field_label, "family name")
-
-    def test_family_name_max_length(self):
-        indexer = Indexer.objects.first()
-        max_length = indexer._meta.get_field("family_name").max_length
-        self.assertEqual(max_length, 50)
-
-    def test_insitution_label(self):
-        indexer = Indexer.objects.first()
-        field_label = indexer._meta.get_field("institution").verbose_name
-        self.assertEqual(field_label, "institution")
-
-    def test_institution_max_length(self):
-        indexer = Indexer.objects.first()
-        max_length = indexer._meta.get_field("institution").max_length
-        self.assertEqual(max_length, 255)
-
-    def test_city_label(self):
-        indexer = Indexer.objects.first()
-        field_label = indexer._meta.get_field("city").verbose_name
-        self.assertEqual(field_label, "city")
-
-    def test_city_max_length(self):
-        indexer = Indexer.objects.first()
-        max_length = indexer._meta.get_field("city").max_length
-        self.assertEqual(max_length, 255)
-
-    def test_country_label(self):
-        indexer = Indexer.objects.first()
-        field_label = indexer._meta.get_field("country").verbose_name
-        self.assertEqual(field_label, "country")
-
-    def test_country_max_length(self):
-        indexer = Indexer.objects.first()
-        max_length = indexer._meta.get_field("country").max_length
-        self.assertEqual(max_length, 255)
-
-    def test_absolute_url(self):
-        indexer = Indexer.objects.first()
-        absolute_url = reverse("indexer-detail", args=[str(indexer.id)])
-        self.assertEqual(indexer.get_absolute_url(), absolute_url)
-
-
 class OfficeModelTest(TestCase):
     @classmethod
     def setUpTestData(cls):

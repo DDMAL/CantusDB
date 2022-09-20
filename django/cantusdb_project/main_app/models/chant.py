@@ -1,9 +1,5 @@
-from django.contrib.postgres.search import SearchVectorField
-from django.db import models
 from django.db.models.query import QuerySet
 from main_app.models.base_chant import BaseChant
-from users.models import User
-
 
 class Chant(BaseChant):
     """The model for chants
@@ -13,8 +9,6 @@ class Chant(BaseChant):
     properties and attributes should be declared in BaseChant in order to keep the two
     models harmonized, even if only one of the two models uses a particular field.
     """
-
-
     def get_ci_url(self) -> str:
         """Construct the url to the entry in Cantus Index correponding to the chant.
 

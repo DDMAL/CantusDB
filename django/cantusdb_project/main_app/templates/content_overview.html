@@ -38,9 +38,9 @@
                                 <a href="{{ object.get_absolute_url }}"><b>{{ object.name|truncatechars:30 }}</b></a>
                             {% endif %}
                         </td>
-                    {% elif object.first_name %}
+                    {% elif object.full_name %}
                         <td class="text-wrap" style="text-align:center">
-                            <a href="{{ object.get_absolute_url }}"><b>{{ object.first_name }} {{ object.family_name }}</b></a>
+                            <a href="{{ object.get_absolute_url }}"><b>{{ object.full_name }}</b></a>
                         </td>
                     {% else %}
                         <td class="text-wrap" style="text-align:center">
