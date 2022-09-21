@@ -126,7 +126,6 @@
                                     <a href="javascript:" onclick="autoFillFeast{{ feast.id }}();">{{ feast.name }}</a> ({{ count }}x) |
                                     <script>
                                         function autoFillFeast{{ feast.id }}() {
-                                            console.log({{ feast.id }})
                                             document.getElementById('id_feast').value = "{{ feast.id }}";
                                         }
                                     </script>
