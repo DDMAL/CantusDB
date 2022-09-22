@@ -930,6 +930,8 @@ class ChantCreateViewTest(TestCase):
 
     def test_suggest_one_folio(self):
         fake_source = make_fake_source()
+        # create fake genre to match fake_chant_2
+        fake_R_genre = make_fake_genre(name="R")
         fake_chant_3 = make_fake_chant(
             source=fake_source,
             cantus_id="333333",
@@ -967,6 +969,9 @@ class ChantCreateViewTest(TestCase):
         self.assertEqual(1, len(response.context["suggested_chants"]))
         self.assertEqual(
             "007450", response.context["suggested_chants"][0]["cid"]
+        )
+        self.assertEqual(
+            fake_R_genre.id, response.context["suggested_chants"][0]["genre_id"]
         )
 
     def test_fake_source(self):
