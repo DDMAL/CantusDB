@@ -123,12 +123,15 @@
                         {% if previous_chant %}
                             Feasts that follow:
                                {% for feast, count in suggested_feasts.items %}
-                                   <a href="" onclick="return false;">{{ feast.name }}</a> ({{ count }}x) |
+                                    <a href="javascript:" onclick="autoFillFeast{{ feast.id }}();">{{ feast.name }}</a> ({{ count }}x) |
+                                    <script>
+                                        function autoFillFeast{{ feast.id }}() {
+                                            document.getElementById('id_feast').value = "{{ feast.id }}";
+                                        }
+                                    </script>
                                {% endfor %}                                                                                                      
                             
-                            <strong>
-                                <a href="" onclick="return false;">Revert Changes</a>
-                            </strong>
+                            <!-- eventually, perhaps: implement a "Reverse Changes" button -->
                         {% endif %}
 
                     </small>
