@@ -723,6 +723,10 @@ class ChantCreateView(LoginRequiredMixin, UserPassesTestMixin, CreateView):
             chant_dict = json.loads(response.text[2:])[0]
             # add number of occurence to the dict, so that we can display it easily
             chant_dict["count"] = sugg_chant_count
+            # figure out the id of the genre of the chant, to easily populate the Genre selector
+            genre_name = chant_dict["genre"]
+            genre_id = Genre.objects.get(name=genre_name).id
+            chant_dict["genre_id"] = genre_id
             return chant_dict
 
         suggested_chants_dicts = [
