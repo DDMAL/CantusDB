@@ -21,7 +21,7 @@ class SequenceDetailView(DetailView):
         source = sequence.source
         # if the sequence's source isn't published, 
         # only logged-in users should be able to view the sequence's detail page
-        if (source.published is False) and (not self.request.user.is_authenticated):
+        if (source is not None) and (source.published is False) and (not self.request.user.is_authenticated):
             raise PermissionDenied()
         
         context = super().get_context_data(**kwargs)
