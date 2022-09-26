@@ -19,7 +19,7 @@
             <h3>{{ chant.incipit }}</h3>
             {% if user.is_authenticated %}
                 <p>
-                    View | <a href="{% url 'source-edit-volpiano' chant.source.id %}?pk={{ chant.id }}&folio={{ chant.folio }}">Edit</a>
+                    View | <a href="{% url 'source-edit-chants' chant.source.id %}?pk={{ chant.id }}&folio={{ chant.folio }}">Edit</a>
                 </p>
             {% endif %}
             <dl>
