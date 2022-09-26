@@ -3,7 +3,7 @@ from main_app.views import *
 from main_app.views import views
 from main_app.views.sequence import SequenceEditView
 from main_app.views.source import SourceCreateView, SourceEditView
-from main_app.views.chant import ChantEditVolpianoView, ChantProofreadView, ChantEditSyllabificationView
+from main_app.views.chant import SourceEditChantsView, ChantProofreadView, ChantEditSyllabificationView, SourceEditChantsView
 from main_app.views.user import UserDetailView, UserSourceListView, CustomLogoutView, UserListView, CustomLoginView
 
 urlpatterns = [
@@ -27,9 +27,9 @@ urlpatterns = [
     ),
     path("chant-delete/<int:pk>", ChantDeleteView.as_view(), name="chant-delete"),
     path(
-        "edit-volpiano/<int:source_id>", 
-        ChantEditVolpianoView.as_view(), 
-        name="source-edit-volpiano"
+        "edit-chants/<int:source_id>", 
+        SourceEditChantsView.as_view(), 
+        name="source-edit-chants"
     ),
     path(
         "proofread-chant/<int:source_id>", 
