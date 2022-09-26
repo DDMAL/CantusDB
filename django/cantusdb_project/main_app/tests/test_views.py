@@ -483,6 +483,10 @@ class ChantListViewTest(TestCase):
 
 
 class ChantDetailViewTest(TestCase):
+    @classmethod
+    def setUpTestData(cls):
+        Group.objects.create(name="project manager")
+
     def test_url_and_templates(self):
         chant = make_fake_chant()
         response = self.client.get(reverse("chant-detail", args=[chant.id]))
@@ -553,6 +557,30 @@ class ChantDetailViewTest(TestCase):
             reverse("chant-detail", args=[chant.id])
         )
         self.assertEqual(response.status_code, 403)
+
+    def test_chant_edit_link(self):
+
+        source = make_fake_source()
+        chant = make_fake_chant(
+            source=source, folio="001r", 
+            manuscript_full_text_std_spelling="manuscript_full_text_std_spelling"
+        )
+
+        # have to create project manager user - "View | Edit" toggle only visible for those with edit access for a chant's source
+        self.user = get_user_model().objects.create(email='test@test.com')
+        self.user.set_password('pass')
+        self.user.save()
+        self.client = Client()
+        project_manager = Group.objects.get(name='project manager') 
+        project_manager.user_set.add(self.user)
+        self.client.login(email='test@test.com', password='pass')
+
+        response = self.client.get(
+            reverse("chant-detail", args=[chant.id])
+        )
+        expected_url_fragment = f"edit-volpiano/{source.id}?pk={chant.id}&folio={chant.folio}"
+
+        self.assertIn(expected_url_fragment, str(response.content))
 
 
 class ChantByCantusIDViewTest(TestCase):
