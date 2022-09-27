@@ -18,7 +18,7 @@ class Feast(BaseModel):
     )
 
     # the `prefix` field can be automatically populated by running `python manage.py add_prefix`
-    prefix = models.CharField(max_length=2, blank=True, null=True)
+    prefix = models.CharField(max_length=2, blank=True, null=True, editable=False)
 
     class Meta:
         constraints = [
