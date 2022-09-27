@@ -25,8 +25,8 @@ window.addEventListener("load", function () {
     var url = new URL(window.location.href);
 
     function copyText() {
-        const standardText = document.getElementById('id_manuscript_full_text_std_spelling').innerHTML;
-        document.getElementById('id_manuscript_full_text').innerHTML = standardText;
+        const standardText = document.getElementById('id_manuscript_full_text_std_spelling').value;
+        document.getElementById('id_manuscript_full_text').value = standardText;
     }
 
     // if the feast on the right is reset, reset every selector but keep the source unchanged
