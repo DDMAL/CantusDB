@@ -857,7 +857,7 @@ class ChantDeleteView(LoginRequiredMixin, UserPassesTestMixin, DeleteView):
             return False
 
     def get_success_url(self):
-        return reverse("source-edit-volpiano", args=[self.object.source.id])
+        return reverse("source-edit-chants", args=[self.object.source.id])
 
 class CISearchView(TemplateView):
     """search in CI and write results in get_context_data
@@ -938,7 +938,7 @@ class ChantIndexView(TemplateView):
 
         return context
 
-class ChantEditVolpianoView(LoginRequiredMixin, UserPassesTestMixin, UpdateView):
+class SourceEditChantsView(LoginRequiredMixin, UserPassesTestMixin, UpdateView):
     template_name = "chant_edit.html"
     model = Chant
     form_class = ChantEditForm
@@ -1267,7 +1267,7 @@ class ChantEditVolpianoView(LoginRequiredMixin, UserPassesTestMixin, UpdateView)
         # stay on the same page after save
         return self.request.get_full_path()
 
-class ChantProofreadView(ChantEditVolpianoView):
+class ChantProofreadView(SourceEditChantsView):
     template_name = "chant_proofread.html"
     model = Chant
     form_class = ChantProofreadForm

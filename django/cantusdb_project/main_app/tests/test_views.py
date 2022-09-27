@@ -102,9 +102,9 @@ class PermissionsTest(TestCase):
         response = self.client.get(f'/chant-delete/{chant.id}')
         self.assertRedirects(response, f'/login/?next=/chant-delete/{chant.id}')        
         
-        # ChantEditVolpianoView
-        response = self.client.get(f'/edit-volpiano/{source.id}')
-        self.assertRedirects(response, f'/login/?next=/edit-volpiano/{source.id}')        
+        # SourceEditChantsView
+        response = self.client.get(f'/edit-chants/{source.id}')
+        self.assertRedirects(response, f'/login/?next=/edit-chants/{source.id}')        
 
         # SequenceEditView
         response = self.client.get(f'/edit-sequence/{sequence.id}')
@@ -144,8 +144,8 @@ class PermissionsTest(TestCase):
         response = self.client.get(f'/chant-delete/{chant.id}')
         self.assertEqual(response.status_code, 200)
 
-        # ChantEditVolpianoView
-        response = self.client.get(f'/edit-volpiano/{source.id}')
+        # SourceEditChantsView
+        response = self.client.get(f'/edit-chants/{source.id}')
         self.assertEqual(response.status_code, 200)
 
         # SequenceEditView
@@ -207,14 +207,14 @@ class PermissionsTest(TestCase):
         response = self.client.get(f'/chant-delete/{chant_in_assigned_source.id}')
         self.assertEqual(response.status_code, 200)
 
-        # ChantEditVolpianoView
-        response = self.client.get(f'/edit-volpiano/{restricted_source.id}')
+        # SourceEditChantsView
+        response = self.client.get(f'/edit-chants/{restricted_source.id}')
         self.assertEqual(response.status_code, 403)
 
-        response = self.client.get(f'/edit-volpiano/{source_created_by_contributor.id}')
+        response = self.client.get(f'/edit-chants/{source_created_by_contributor.id}')
         self.assertEqual(response.status_code, 200)
 
-        response = self.client.get(f'/edit-volpiano/{assigned_source.id}')
+        response = self.client.get(f'/edit-chants/{assigned_source.id}')
         self.assertEqual(response.status_code, 200)
 
         # SequenceEditView
@@ -282,14 +282,14 @@ class PermissionsTest(TestCase):
         response = self.client.get(f'/chant-delete/{chant_in_assigned_source.id}')
         self.assertEqual(response.status_code, 200)
 
-        # ChantEditVolpianoView
-        response = self.client.get(f'/edit-volpiano/{restricted_source.id}')
+        # SourceEditChantsView
+        response = self.client.get(f'/edit-chants/{restricted_source.id}')
         self.assertEqual(response.status_code, 403)
 
-        response = self.client.get(f'/edit-volpiano/{source_created_by_contributor.id}')
+        response = self.client.get(f'/edit-chants/{source_created_by_contributor.id}')
         self.assertEqual(response.status_code, 200)
 
-        response = self.client.get(f'/edit-volpiano/{assigned_source.id}')
+        response = self.client.get(f'/edit-chants/{assigned_source.id}')
         self.assertEqual(response.status_code, 200)
 
         # SequenceEditView
@@ -326,8 +326,8 @@ class PermissionsTest(TestCase):
         response = self.client.get(f'/chant-delete/{chant.id}')
         self.assertEqual(response.status_code, 403)
 
-        # ChantEditVolpianoView
-        response = self.client.get(f'/edit-volpiano/{source.id}')
+        # SourceEditChantsView
+        response = self.client.get(f'/edit-chants/{source.id}')
         self.assertEqual(response.status_code, 403)
 
         # SequenceEditView
@@ -1147,7 +1147,7 @@ class ChantDeleteViewTest(TestCase):
         self.assertEqual(response.status_code, 404)
 
 
-class ChantEditVolpianoViewTest(TestCase):
+class SourceEditChantsViewTest(TestCase):
     @classmethod
     def setUpTestData(cls):
         Group.objects.create(name="project manager")
@@ -1164,21 +1164,21 @@ class ChantEditVolpianoViewTest(TestCase):
     def test_url_and_templates(self):
         source1 = make_fake_source()
 
-        # must specify folio, or ChantEditVolpianoView.get_queryset will fail when it tries to default to displaying the first folio
+        # must specify folio, or SourceEditChantsView.get_queryset will fail when it tries to default to displaying the first folio
         Chant.objects.create(source=source1, folio="001r")
 
-        response = self.client.get(reverse("source-edit-volpiano", args=[source1.id]))
+        response = self.client.get(reverse("source-edit-chants", args=[source1.id]))
         self.assertEqual(response.status_code, 200)
         self.assertTemplateUsed(response, "chant_edit.html")
 
-        response = self.client.get(reverse("source-edit-volpiano", args=[source1.id + 100]))
+        response = self.client.get(reverse("source-edit-chants", args=[source1.id + 100]))
         self.assertEqual(response.status_code, 404)
         self.assertTemplateUsed(response, "404.html")
 
         # trying to access chant-edit with a source that has no chant should return 404
         source2 = make_fake_source()
 
-        response = self.client.get(reverse("source-edit-volpiano", args=[source2.id]))
+        response = self.client.get(reverse("source-edit-chants", args=[source2.id]))
         self.assertEqual(response.status_code, 404)
         self.assertTemplateUsed(response, "404.html")
 
@@ -1187,17 +1187,17 @@ class ChantEditVolpianoViewTest(TestCase):
         chant = Chant.objects.create(source=source, manuscript_full_text_std_spelling="initial")
 
         response = self.client.get(
-            reverse('source-edit-volpiano', args=[source.id]), 
+            reverse('source-edit-chants', args=[source.id]), 
             {'pk': chant.id})
         self.assertEqual(response.status_code, 200)
         self.assertTemplateUsed(response, "chant_edit.html")
 
         response = self.client.post(
-            reverse('source-edit-volpiano', args=[source.id]), 
+            reverse('source-edit-chants', args=[source.id]), 
             {'manuscript_full_text_std_spelling': 'test', 'pk': chant.id})
         self.assertEqual(response.status_code, 302)
-        # Check that after the edit, the user is redirected to the source-edit-volpiano page
-        self.assertRedirects(response, reverse('source-edit-volpiano', args=[source.id]))  
+        # Check that after the edit, the user is redirected to the source-edit-chants page
+        self.assertRedirects(response, reverse('source-edit-chants', args=[source.id]))  
         chant.refresh_from_db()
         self.assertEqual(chant.manuscript_full_text_std_spelling, 'test')
     
@@ -1206,7 +1206,7 @@ class ChantEditVolpianoViewTest(TestCase):
         chant = make_fake_chant(source=source, manuscript_full_text_std_spelling="",
         cantus_id="007450")
         response = self.client.get(
-            reverse('source-edit-volpiano', args=[source.id]), 
+            reverse('source-edit-chants', args=[source.id]), 
             {'pk': chant.id}
         )
         # expected_suggestion is copied from Cantus Index. If this test is failing,
@@ -1225,7 +1225,7 @@ class ChantEditVolpianoViewTest(TestCase):
             sequence_number=1
         )
         self.client.post(
-            reverse('source-edit-volpiano', args=[source.id]),
+            reverse('source-edit-chants', args=[source.id]),
             {
                 "manuscript_full_text_std_spelling": "ut queant lactose",
                 "folio": "001r",
@@ -1250,7 +1250,7 @@ class ChantEditVolpianoViewTest(TestCase):
             sequence_number=2
         )
         self.client.post(
-            reverse('source-edit-volpiano', args=[source.id]),  
+            reverse('source-edit-chants', args=[source.id]),  
             {
                 "manuscript_full_text_std_spelling": "resonare foobaz",
                 "folio": "001r",

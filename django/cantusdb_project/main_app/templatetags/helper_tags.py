@@ -49,7 +49,7 @@ def my_sources(user):
         return link
     def make_edit_chants_link(source):
         id = source.id
-        url = reverse("source-edit-volpiano", args=[id])
+        url = reverse("source-edit-chants", args=[id])
         link = '<a href="{}">Edit chants (Fulltext & Volpiano editor)</a>'.format(url) 
         return link
     def make_links_for_source(source):

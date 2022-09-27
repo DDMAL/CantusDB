@@ -248,10 +248,10 @@
                         </select>             
                         
                         {% if previous_folio %}
-                            <a href="{% url "source-edit-volpiano" source.id %}?folio={{ previous_folio }}">{{ previous_folio }} <</a>
+                            <a href="{% url "source-edit-chants" source.id %}?folio={{ previous_folio }}">{{ previous_folio }} <</a>
                         {% endif %}
                         {% if next_folio %}
-                            &nbsp;<a href="{% url "source-edit-volpiano" source.id %}?folio={{ next_folio }}">> {{ next_folio }}</a>
+                            &nbsp;<a href="{% url "source-edit-chants" source.id %}?folio={{ next_folio }}">> {{ next_folio }}</a>
                         {% endif %}             
 
                         <br>
