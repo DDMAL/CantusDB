@@ -578,7 +578,7 @@ class ChantDetailViewTest(TestCase):
         response = self.client.get(
             reverse("chant-detail", args=[chant.id])
         )
-        expected_url_fragment = f"edit-volpiano/{source.id}?pk={chant.id}&folio={chant.folio}"
+        expected_url_fragment = f"edit-chants/{source.id}?pk={chant.id}&folio={chant.folio}"
 
         self.assertIn(expected_url_fragment, str(response.content))
 
