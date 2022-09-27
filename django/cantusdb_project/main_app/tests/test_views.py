@@ -2927,6 +2927,7 @@ class CsvExportTest(TestCase):
             "mode",
             "finalis",
             "differentia",
+            "differentia_new",
             "fulltext_standardized",
             "fulltext_ms",
             "volpiano",
