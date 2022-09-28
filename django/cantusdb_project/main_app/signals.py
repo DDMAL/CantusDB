@@ -178,7 +178,12 @@ def update_volpiano_fields(instance):
 def update_prefix_field(instance):
     pk = instance.pk
 
-    prefix = str(instance.feast_code)[0:2]
-    instance.__class__.objects.filter(pk=pk).update(
-        prefix=prefix
-    )
+    if instance.feast_code:
+        prefix = str(instance.feast_code)[0:2]
+        instance.__class__.objects.filter(pk=pk).update(
+            prefix=prefix
+        )
+    else: # feast_code is None, ""
+        instance.__class__.objects.filter(pk=pk).update(
+            prefix=""
+        )
