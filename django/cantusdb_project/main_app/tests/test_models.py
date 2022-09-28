@@ -126,6 +126,28 @@ class FeastModelTest(TestCase):
         absolute_url = reverse("feast-detail", args=[str(feast.id)])
         self.assertEqual(feast.get_absolute_url(), absolute_url)
 
+    def test_update_prefix_field_signal(self):
+        feast = make_fake_feast()
+        feast_code = "12345678"
+        expected_prefix = feast_code[:2]
+        feast.feast_code = feast_code
+        feast.save()
+        feast.refresh_from_db()
+        self.assertEqual(feast.feast_code, feast_code)
+        self.assertEqual(feast.prefix, expected_prefix)
+
+        feast.feast_code = None
+        feast.save()
+        feast.refresh_from_db()
+        self.assertIs(feast.feast_code, None)
+        self.assertEqual(feast.prefix, "")
+
+        feast.feast_code = ""
+        feast.save()
+        feast.refresh_from_db()
+        self.assertIs(feast.feast_code, "")
+        self.assertEqual(feast.prefix, "")
+
 
 class GenreModelTest(TestCase):
     @classmethod
