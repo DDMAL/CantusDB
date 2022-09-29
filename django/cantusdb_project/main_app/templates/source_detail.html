@@ -207,7 +207,9 @@
                             <br>
                         {% endif %}
                         {% if source.notation.all %}
-                            Notation: <b><a href="#">{{ source.notation.all.first.name }}</a></b>
+                            Notation: <b><a href="{{ source.notation.all.first.get_absolute_url }}">
+                                {{ source.notation.all.first.name }}
+                            </a></b>
                             <br>
                         {% endif %}
                         {% if source.inventoried_by.all %}
