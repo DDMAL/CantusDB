@@ -3,7 +3,7 @@ from main_app.views import *
 from main_app.views import views
 from main_app.views.sequence import SequenceEditView
 from main_app.views.source import SourceCreateView, SourceEditView
-from main_app.views.chant import SourceEditChantsView, ChantProofreadView, ChantEditSyllabificationView, SourceEditChantsView
+from main_app.views.chant import SourceEditChantsView, ChantProofreadView, ChantEditSyllabificationView
 from main_app.views.notation import NotationDetailView
 from main_app.views.user import UserDetailView, UserSourceListView, CustomLogoutView, UserListView, CustomLoginView
 
