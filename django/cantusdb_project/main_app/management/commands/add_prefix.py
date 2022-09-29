@@ -15,4 +15,6 @@ class Command(BaseCommand):
             if feast.feast_code:
                 feast.prefix = str(feast.feast_code)[0:2]
                 feast.save()
-                print(feast.prefix)
+            else: # feast_code is None, ""
+                feast.prefix = ""
+                feast.save()
