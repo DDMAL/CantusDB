@@ -1946,6 +1946,25 @@ class IndexerDetailViewTest(TestCase):
         self.assertEqual(indexer, response.context["indexer"])
 
 
+class NotationDetailViewTest(TestCase):
+    def test_view_url_path(self):
+        notation = make_fake_notation()
+        response = self.client.get(f"/notation/{notation.id}")
+        self.assertEqual(response.status_code, 200)
+
+    def test_view_url_reverse_name(self):
+        notation = make_fake_notation()
+        response = self.client.get(reverse("notation-detail", args=[notation.id]))
+        self.assertEqual(response.status_code, 200)
+
+    def test_url_and_templates(self):
+        notation = make_fake_notation()
+        response = self.client.get(reverse("notation-detail", args=[notation.id]))
+        self.assertEqual(response.status_code, 200)
+        self.assertTemplateUsed(response, "base.html")
+        self.assertTemplateUsed(response, "notation_detail.html")
+
+
 class OfficeListViewTest(TestCase):
     OFFICE_COUNT = 10
 
