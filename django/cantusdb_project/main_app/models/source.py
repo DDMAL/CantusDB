@@ -49,6 +49,7 @@ class Source(BaseModel):
         '"Provenance notes" field.',
         null=True,
         blank=True,
+        related_name="sources",
     )
     provenance_notes = models.TextField(
         blank=True,
