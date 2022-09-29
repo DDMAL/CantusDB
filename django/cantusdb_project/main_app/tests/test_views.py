@@ -30,7 +30,7 @@ from .make_fakes import (make_fake_text,
     make_fake_source,
 )
 
-from main_app.models import Century
+from main_app.models import Century, provenance
 from main_app.models import Chant
 from main_app.models import Feast
 from main_app.models import Genre
@@ -2006,6 +2006,26 @@ class OfficeDetailViewTest(TestCase):
         office = make_fake_office()
         response = self.client.get(reverse("office-detail", args=[office.id]))
         self.assertEqual(office, response.context["office"])
+
+
+class ProvenanceDetailViewTest(TestCase):
+    def test_view_url_path(self):
+        provenance = make_fake_provenance()
+        response = self.client.get(f"/provenance/{provenance.id}")
+        self.assertEqual(response.status_code, 200)
+
+    def test_view_url_reverse_name(self):
+        provenance = make_fake_provenance()
+        response = self.client.get(reverse("provenance-detail", args=[provenance.id]))
+        self.assertEqual(response.status_code, 200)
+
+    def test_url_and_templates(self):
+        provenance = make_fake_provenance()
+        response = self.client.get(reverse("provenance-detail", args=[provenance.id]))
+        self.assertEqual(response.status_code, 200)
+        self.assertTemplateUsed(response, "base.html")
+        self.assertTemplateUsed(response, "provenance_detail.html")
+
 
 
 class SequenceListViewTest(TestCase):
