@@ -30,7 +30,7 @@ from .make_fakes import (make_fake_text,
     make_fake_source,
 )
 
-from main_app.models import Century, provenance
+from main_app.models import Century
 from main_app.models import Chant
 from main_app.models import Feast
 from main_app.models import Genre
