@@ -122,6 +122,14 @@ class BaseChant(BaseModel):
     # dact = models.CharField(blank=True, null=True, max_length=64)
     # also a second differentia field
     
+    def get_ci_url(self) -> str:
+        """Construct the url to the entry in Cantus Index correponding to the chant.
+
+        Returns:
+            str: The url to the Cantus Index page
+        """
+        return f"http://cantusindex.org/id/{self.cantus_id}"
+    
     def __str__(self):
         incipit = ""
         if self.incipit:
