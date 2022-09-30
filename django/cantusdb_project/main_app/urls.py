@@ -4,8 +4,9 @@ from main_app.views import views
 from main_app.views.century import CenturyDetailView
 from main_app.views.sequence import SequenceEditView
 from main_app.views.source import SourceCreateView, SourceEditView
+from main_app.views.chant import SourceEditChantsView, ChantProofreadView, ChantEditSyllabificationView
+from main_app.views.notation import NotationDetailView
 from main_app.views.provenance import ProvenanceDetailView
-from main_app.views.chant import SourceEditChantsView, ChantProofreadView, ChantEditSyllabificationView, SourceEditChantsView
 from main_app.views.user import UserDetailView, UserSourceListView, CustomLogoutView, UserListView, CustomLoginView
 
 urlpatterns = [
@@ -55,6 +56,8 @@ urlpatterns = [
     # indexer
     path("indexers/", IndexerListView.as_view(), name="indexer-list"),
     path("indexer/<int:pk>", IndexerDetailView.as_view(), name="indexer-detail"),
+    # notation
+    path("notation/<int:pk>", NotationDetailView.as_view(), name="notation-detail"),
     # office
     path("offices/", OfficeListView.as_view(), name="office-list"),
     path("office/<int:pk>", OfficeDetailView.as_view(), name="office-detail"),
