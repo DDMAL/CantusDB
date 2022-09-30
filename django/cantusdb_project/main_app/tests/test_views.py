@@ -2008,6 +2008,26 @@ class OfficeDetailViewTest(TestCase):
         self.assertEqual(office, response.context["office"])
 
 
+class ProvenanceDetailViewTest(TestCase):
+    def test_view_url_path(self):
+        provenance = make_fake_provenance()
+        response = self.client.get(f"/provenance/{provenance.id}")
+        self.assertEqual(response.status_code, 200)
+
+    def test_view_url_reverse_name(self):
+        provenance = make_fake_provenance()
+        response = self.client.get(reverse("provenance-detail", args=[provenance.id]))
+        self.assertEqual(response.status_code, 200)
+
+    def test_url_and_templates(self):
+        provenance = make_fake_provenance()
+        response = self.client.get(reverse("provenance-detail", args=[provenance.id]))
+        self.assertEqual(response.status_code, 200)
+        self.assertTemplateUsed(response, "base.html")
+        self.assertTemplateUsed(response, "provenance_detail.html")
+
+
+
 class SequenceListViewTest(TestCase):
     def setUp(self):
         # unless a segment is specified when a source is created, the source is automatically assigned

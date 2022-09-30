@@ -3,6 +3,7 @@ from main_app.views import *
 from main_app.views import views
 from main_app.views.sequence import SequenceEditView
 from main_app.views.source import SourceCreateView, SourceEditView
+from main_app.views.provenance import ProvenanceDetailView
 from main_app.views.chant import SourceEditChantsView, ChantProofreadView, ChantEditSyllabificationView, SourceEditChantsView
 from main_app.views.user import UserDetailView, UserSourceListView, CustomLogoutView, UserListView, CustomLoginView
 
@@ -54,6 +55,8 @@ urlpatterns = [
     # office
     path("offices/", OfficeListView.as_view(), name="office-list"),
     path("office/<int:pk>", OfficeDetailView.as_view(), name="office-detail"),
+    # provenance
+    path("provenance/<int:pk>", ProvenanceDetailView.as_view(), name="provenance-detail"),
     # sequence
     path("sequences/", SequenceListView.as_view(), name="sequence-list"),
     path("sequence/<int:pk>", SequenceDetailView.as_view(), name="sequence-detail",),
