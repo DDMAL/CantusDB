@@ -42,7 +42,7 @@ function loadConcordances(cantusId) {
     xhttp.open("GET", url);
     xhttp.onload = function () {
         const data = JSON.parse(this.response);
-        concordanceDiv.innerHTML = `Displaying <b>${data.concordance_count}</b> concordances from the following databases (Cantus ID <b>${cantusId}</b>)`;
+        concordanceDiv.innerHTML = `Displaying <b>${data.concordance_count}</b> concordances from the following databases (Cantus ID <b><a href="http://cantusindex.org/id/${cantusId}" target="_blank">${cantusId}</a></b>)`;
         concordanceDiv.innerHTML += `<table id="concordanceTable" class="table table-bordered table-sm small" style="table-layout: fixed; width: 100%;">
                                     <thead>
                                         <tr>
