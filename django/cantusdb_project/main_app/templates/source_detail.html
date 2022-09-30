@@ -196,7 +196,9 @@
                         {% if source.date %}
                             Date: 
                             {% for century in source.century.all %}
-                                <b><a href="#">{{ century.name }}</a></b>
+                                <b><a href="{{ century.get_absolute_url }}">
+                                    {{ century.name }}
+                                </a></b>
                             {% endfor %}
                             |
                             <b>{{ source.date|default_if_none:"" }}</b>

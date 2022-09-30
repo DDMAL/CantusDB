@@ -1,6 +1,7 @@
 from django.urls import path, include
 from main_app.views import *
 from main_app.views import views
+from main_app.views.century import CenturyDetailView
 from main_app.views.sequence import SequenceEditView
 from main_app.views.source import SourceCreateView, SourceEditView
 from main_app.views.provenance import ProvenanceDetailView
@@ -16,6 +17,8 @@ urlpatterns = [
     path("users/<int:pk>", UserDetailView.as_view(), name="user-detail"),
     path("users/", UserListView.as_view(), name="user-list"),
     path("change-password/", views.change_password, name="change-password"),
+    # century
+    path("century/<int:pk>", CenturyDetailView.as_view(), name="century-detail"),    
     # chant
     path("chants/", ChantListView.as_view(), name="chant-list"), # /chants/?source={source id}
     path("chant/<int:pk>", ChantDetailView.as_view(), name="chant-detail"),
