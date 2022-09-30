@@ -98,6 +98,10 @@
             text-decoration: none;
         }
 
+        .footer h5 {
+            margin: 25px 0px 10px
+        }
+
         /* this class is used for displaying results under the global search bar */
         .list-group-item-action:hover {
             color: black;
@@ -237,7 +241,7 @@
 
     <!-- Footer in every page -->
     <footer class="footer">
-        <hr>
+        <hr style="opacity: 0%">
         <div class="p-3 bg-white small">
             <div class="container">
                 <div class="row">
@@ -394,7 +398,6 @@
                                     </li>
                                 {% endif %}
                             </ul>
-                            <br>
                             <h5>User Profile</h5>
                             <a href="{% url 'user-detail' request.user.id %}">{{ request.user }}</a>
                             |
