@@ -6,7 +6,11 @@
     <object align="right">
         {% include "global_search_bar.html" %}
     </object>
-    <h3>Chants by Cantus ID: {{ cantus_id }} </h3>
+    <h3>
+        Chants by Cantus ID: <a href="http://cantusindex.org/id/{{ cantus_id }}" target="_blank">
+            {{ cantus_id }}
+        </a>
+    </h3>
     <small>Displaying {{ page_obj.start_index }}-{{ page_obj.end_index }} of <b>{{ page_obj.paginator.count }}</b> chants</small>
     <table class="table table-bordered table-sm small">
         <thead>
