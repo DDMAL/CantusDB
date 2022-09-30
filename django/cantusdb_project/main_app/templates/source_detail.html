@@ -190,13 +190,15 @@
                 <div class=" card-body">
                     <small>
                         {% if source.provenance.name %}
-                            Provenance: <b><a href="#">{{source.provenance.name}}</a></b>
+                            Provenance: <b><a href="{{ source.provenance.get_absolute_url }}">{{source.provenance.name}}</a></b>
                             <br>
                         {% endif %}
                         {% if source.date %}
                             Date: 
                             {% for century in source.century.all %}
-                                <b><a href="#">{{ century.name }}</a></b>
+                                <b><a href="{{ century.get_absolute_url }}">
+                                    {{ century.name }}
+                                </a></b>
                             {% endfor %}
                             |
                             <b>{{ source.date|default_if_none:"" }}</b>
