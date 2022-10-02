@@ -6,7 +6,11 @@
     <object align="right">
         {% include "global_search_bar.html" %}
     </object>
-    <h3>Chants by Cantus ID: {{ cantus_id }} </h3>
+    <h3>
+        Chants by Cantus ID: <a href="http://cantusindex.org/id/{{ cantus_id }}" target="_blank">
+            {{ cantus_id }}
+        </a>
+    </h3>
     <small>Displaying {{ page_obj.start_index }}-{{ page_obj.end_index }} of <b>{{ page_obj.paginator.count }}</b> chants</small>
     <table class="table table-bordered table-sm small">
         <thead>
@@ -19,7 +23,7 @@
                 <th scope="col" class="text-wrap">Position</th>
                 <th scope="col" class="text-wrap">Feast</th>
                 <th scope="col" class="text-wrap">Mode</th>
-                <th scope="col" class="text-wrap" style="font-family: volpiano; font-size:30px">1-</th>
+                <th scope="col" class="text-wrap" style="font-family: volpiano; font-size:30px">1</th>
                 <th scope="col" class="text-wrap">Facsimile</th>
             </tr>
         </thead>
@@ -45,7 +49,7 @@
                     <td class="text-wrap">{{ chant.position|default:"" }}</td>
                     <td class="text-wrap"><a href="{{ chant.feast.get_absolute_url }}">{{ chant.feast.name|default:"" }}</a></td>
                     <td class="text-wrap">{{ chant.mode|default:"" }}</td>
-                    <td class="text-wrap" style="font-family: volpiano; font-size:30px">{% if chant.volpiano %}<a href="{{ chant.get_absolute_url }}">1-</a>{% endif %}</td>
+                    <td class="text-wrap" style="font-family: volpiano; font-size:30px">{% if chant.volpiano %}<a href="{{ chant.get_absolute_url }}" style="text-decoration: none">1</a>{% endif %}</td>
                     <td class="text-wrap">{% if chant.image_link %}<a href="{{ chant.image_link }}" target="_blank">Image</a>{% endif %}</td>
                 </tr>
             {% endfor %}
