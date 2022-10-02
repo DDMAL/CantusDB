@@ -91,7 +91,11 @@
                     {% if chant.cantus_id %}
                         <div class="col">
                             <dt>Cantus ID</dt>
-                            <dd>{{ chant.cantus_id }}</dd>
+                            <dd>
+                                <a href="{{ chant.get_ci_url }}" target="_blank">
+                                    {{ chant.cantus_id }}
+                                </a>
+                            </dd>
                         </div>
                     {% endif %}
 
