@@ -14,15 +14,6 @@ class Chant(BaseChant):
     models harmonized, even if only one of the two models uses a particular field.
     """
 
-
-    def get_ci_url(self) -> str:
-        """Construct the url to the entry in Cantus Index correponding to the chant.
-
-        Returns:
-            str: The url to the Cantus Index page
-        """
-        return f"http://cantusindex.org/id/{self.cantus_id}"
-
     def index_components(self) -> dict:
         """Constructs a dictionary of weighted lists of search terms.
 
