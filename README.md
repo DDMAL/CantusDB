@@ -1,6 +1,9 @@
 # CantusDB
+Documentation for Cantus Database, including documentation on its APIs, can be found in the [Wiki](https://github.com/DDMAL/CantusDB/wiki).
 
 ## OldCantus vs. NewCantus
+
+This repository contains code for "NewCantus," an updated version of Cantus Database built in Django. "OldCantus", built in Drupal, can be accessed at https://cantus.uwaterloo.ca.
 
 Discrepancies between text stored in the CantusDB database and the manuscript text are compiled by testers in the following Google Spreadsheet: https://docs.google.com/spreadsheets/d/133lVOVM15l7a6bQKIQije4op363ragG4OXewYop_cbQ/edit#gid=0
 
