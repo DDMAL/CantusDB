@@ -89,6 +89,14 @@ class ChantDetailView(DetailView):
             word_zip = align(syls_text, syls_melody)
             context["syllabized_text_with_melody"] = word_zip
 
+        if chant.cantus_id:
+            response = requests.get(
+                "http://cantusindex.org/json-con/{}".format(chant.cantus_id)
+            )
+            concordance_dict = json.loads(response.text[2:])
+            concordance_chants = [c["chant"] for c in concordance_dict]
+            context["concordances"] = concordance_chants
+
         # some chants don't have a source, for those chants, stop here without further calculating
         # other context variables
         if not chant.source:
