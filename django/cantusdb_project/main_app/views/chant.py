@@ -89,13 +89,251 @@ class ChantDetailView(DetailView):
             word_zip = align(syls_text, syls_melody)
             context["syllabized_text_with_melody"] = word_zip
 
+        # If chant has a cantus ID, Create table of concordances
         if chant.cantus_id:
             response = requests.get(
                 "http://cantusindex.org/json-con/{}".format(chant.cantus_id)
             )
-            concordance_dict = json.loads(response.text[2:])
-            concordance_chants = [c["chant"] for c in concordance_dict]
+            concordances = json.loads(response.text[2:])
+            
+            ######################################
+            ### create context["concordances"] ###
+            # (data to be unpacked in chant_detail.html to make concordances table)
+            
+            # response.text is an array of JSON objects. Each has a single
+            # key, ["chant"], pointing to a nested object. We only need the
+            # nested object. 
+            concordance_chants = [c["chant"] for c in concordances] 
             context["concordances"] = concordance_chants
+
+            ##############################################
+            ### create context["concordances_summary"] ###
+            # (tally of how many concordances come from which databases)
+            context["concordances_summary"] = ""
+
+            # tally from all databases
+            concordances_count = len(
+                concordance_chants
+            )
+            if concordances_count:
+                if concordances_count > 1:
+                    context["concordances_summary"] += f"Displaying <b>{concordances_count}</b> concordances from the following databases:"
+                else:
+                    context["concordances_summary"] += f"Displaying <b>1</b> concordance from the following database:"
+
+                context["concordances_summary"] += "<table>"
+
+            # Cantus Database
+            cd_count = len(
+                [
+                    True for c in concordance_chants
+                    if c["db"] == "CD"
+                ]
+            )
+            if cd_count:
+                if cd_count == 1:
+                    chant_tally = "<b>1</b> chant"
+                else:
+                    chant_tally = f"<b>{cd_count}</b> chants"
+                context["concordances_summary"] += f"""
+                    <tr>
+                        <td>
+                            <a href="/" target="_blank">Cantus Database</a> (CD)
+                        </td>
+                        <td>
+                            {chant_tally}
+                        </td>
+                    </tr>
+                """
+            
+            # Fontes Cantus Bohemiae
+            fcb_count = len(
+                [
+                    True for c in concordance_chants
+                    if c["db"] == "FCB"
+                ]
+            )
+            if fcb_count:
+                if fcb_count == 1:
+                    chant_tally = "<b>1</b> chant"
+                else:
+                    chant_tally = f"<b>{fcb_count}</b> chants"
+                context["concordances_summary"] += f"""
+                    <tr>
+                        <td>
+                            <a href="http://cantusbohemiae.cz" target="_blank">Fontes Cantus Bohemiae</a> (FCB)
+                        </td>
+                        <td>
+                            {chant_tally}
+                        </td>
+                    </tr>
+                """
+
+            # Medieval Music Manuscripts Online
+            mmmo_count = len(
+                [
+                    True for c in concordance_chants
+                    if c["db"] == "MMMO"
+                ]
+            )
+            if mmmo_count:
+                if mmmo_count == 1:
+                    chant_tally = "<b>1</b> chant"
+                else:
+                    chant_tally = f"<b>{mmmo_count}</b> chants"
+                context["concordances_summary"] += f"""
+                    <tr>
+                        <td>
+                            <a href="http://musmed.eu" target="_blank">Medieval Music Manuscripts Online</a> (MMMO)
+                        </td>
+                        <td>
+                            {chant_tally}
+                        </td>
+                    </tr>
+                """
+            
+            # Portuguese Early Music Database
+            pem_count = len(
+                [
+                    True for c in concordance_chants
+                    if c["db"] == "PEM"
+                ]
+            )
+            if pem_count:
+                if pem_count == 1:
+                    chant_tally = "<b>1</b> chant"
+                else:
+                    chant_tally = f"<b>{pem_count}</b> chants"
+                context["concordances_summary"] += f"""
+                    <tr>
+                        <td>
+                            <a href="http://pemdatabase.eu" target="_blank">Portuguese Early Music Database</a> (PEM)
+                        </td>
+                        <td>
+                            {chant_tally}
+                        </td>
+                    </tr>
+                """
+            
+            # Spanish Early Music Manuscripts
+            semm_count = len( 
+                [
+                    True for c in concordance_chants
+                    if c["db"] == "SEMM"
+                ]
+            )
+            if semm_count:
+                if semm_count == 1:
+                    chant_tally = "<b>1</b> chant"
+                else:
+                    chant_tally = f"<b>{semm_count}</b> chants"
+                context["concordances_summary"] += f"""
+                    <tr>
+                        <td>
+                            <a href="http://musicahispanica.eu" target="_blank">Spanish Early Music Manuscript Database</a> (SEMM)
+                        </td>
+                        <td>
+                            {chant_tally}
+                        </td>
+                    </tr>
+                """
+
+            # Cantus Planus in Polonia
+            cpl_count = len(
+                [
+                    True for c in concordance_chants
+                    if c["db"] == "CPL"
+                ]
+            )
+            if cpl_count:
+                if cpl_count == 1:
+                    chant_tally = "<b>1</b> chant"
+                else:
+                    chant_tally = f"<b>{cpl_count}</b> chants"
+                context["concordances_summary"] += f"""
+                    <tr>
+                        <td>
+                            <a href="http://cantus.ispan.pl" target="_blank">Cantus Planus in Polonia</a> (CPL)
+                        </td>
+                        <td>
+                            {chant_tally}
+                        </td>
+                    </tr>
+                """
+
+            # Hungarian Chant Database
+            hcd_count = len(
+                [
+                    True for c in concordance_chants
+                    if c["db"] == "HCD"
+                ]
+            )
+            if hcd_count:
+                if hcd_count == 1:
+                    chant_tally = "<b>1</b> chant"
+                else:
+                    chant_tally = f"<b>{hcd_count}</b> chants"
+                context["concordances_summary"] += f"""
+                    <tr>
+                        <td>
+                            <a href="http://hun-chant.eu" target="_blank">Hungarian Chant Database</a> (HCD)
+                        </td>
+                        <td>
+                            {chant_tally}
+                        </td>
+                    </tr>
+                """
+
+            # Slovak Early Music Database
+            csk_count = len(
+                [
+                    True for c in concordance_chants
+                    if c["db"] == "CSK"
+                ]
+            )
+            if csk_count:
+                if csk_count == 1:
+                    chant_tally = "<b>1</b> chant"
+                else:
+                    chant_tally = f"<b>{csk_count}</b> chants"
+                context["concordances_summary"] += f"""
+                    <tr>
+                        <td>
+                            <a href="http://cantus.sk" target="_blank">Slovak Early Music Database</a> (CSK)
+                        </td>
+                        <td>
+                            {chant_tally}
+                        </td>
+                    </tr>
+                """
+
+            # Fragmentia
+            frh_count = len(
+                [
+                    True for c in concordance_chants
+                    if c["db"] == "FRH"
+                ]
+            )
+            if frh_count:
+                if frh_count == 1:
+                    chant_tally = "<b>1</b> chant"
+                else:
+                    chant_tally = f"<b>{frh_count}</b> chants"
+                context["concordances_summary"] += f"""
+                    <tr>
+                        <td>
+                            Fragmentia (FRH):
+                        </td>
+                        <td>
+                            {chant_tally}
+                        </td>
+                    </tr>
+                """
+            # TODO - also do something about gregorien.info, comparatio
+
+            if concordances_count:
+                context["concordances_summary"] += "</table><br>"
+
 
         # some chants don't have a source, for those chants, stop here without further calculating
         # other context variables

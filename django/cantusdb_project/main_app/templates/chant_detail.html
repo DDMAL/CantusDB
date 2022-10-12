@@ -199,19 +199,20 @@
             </dl>
             {% if chant.cantus_id %}
                 <h4>List of concordances</h4>
+                {{ concordances_summary | safe }}
                 <table id="concordanceTable" class="table table-bordered table-sm small" style="table-layout: fixed; width: 100%;">
                     <thead>
                         <tr>
                             <th scope="col" class="text-wrap" style="width:15%">Siglum</th>
                             <th scope="col" class="text-wrap" style="width:6%">Folio</th>
-                            <th scope="col" class="text-wrap" style="width:21%">Incipit</th>
+                            <th scope="col" class="text-wrap" style="width:23%">Incipit</th>
                             <th scope="col" class="text-wrap" style="width:4%"></th>
                             <th scope="col" class="text-wrap" style="width:4%"></th>
                             <th scope="col" class="text-wrap" style="width:4%"></th>
                             <th scope="col" class="text-wrap" style="width:20%">Feast</th>
-                            <th scope="col" class="text-wrap" style="width:10%">Mode</th>
+                            <th scope="col" class="text-wrap" style="width:7%">Mode</th>
                             <th scope="col" class="text-wrap" style="width:8%">Image</th>
-                            <th scope="col" class="text-wrap" style="width:8%">DB</th>
+                            <th scope="col" class="text-wrap" style="width:9%">DB</th>
                         </tr>
                     </thead>
                     <tbody>
