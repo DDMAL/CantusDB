@@ -2,6 +2,7 @@ import lxml.html as lh
 import requests
 import urllib
 import json
+import threading
 from django.contrib import messages
 from django.contrib.postgres.search import SearchQuery, SearchRank
 from django.db.models import F, Q, QuerySet
@@ -358,7 +359,6 @@ class ChantDetailView(DetailView):
             # http://cantusindex.org/json-con/{cantus_id}/refresh in a new thread,
             # thus ensuring the current page doesn't take a long time to load, while also
             # ensuring that concordances are up-to-date for future page loads.
-            import threading
             t = threading.Thread(
                 target=requests.get,
                 args=[f"http://cantusindex.org/json-con/{chant.cantus_id}/refresh"]
