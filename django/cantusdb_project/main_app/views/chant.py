@@ -117,9 +117,9 @@ class ChantDetailView(DetailView):
             )
             if concordances_count:
                 if concordances_count > 1:
-                    context["concordances_summary"] += f"Displaying <b>{concordances_count}</b> concordances from the following databases:"
+                    context["concordances_summary"] += f'Displaying <b>{concordances_count}</b> concordances from the following databases (Cantus ID <b><a href="http://cantusindex.org/id/{chant.cantus_id}" target="_blank" title="{chant.cantus_id} on Cantus Index">{chant.cantus_id}</a></b>):'
                 else:
-                    context["concordances_summary"] += f"Displaying <b>1</b> concordance from the following database:"
+                    context["concordances_summary"] += f'Displaying <b>1</b> concordance from the following database (Cantus ID <b><a href="http://cantusindex.org/id/{chant.cantus_id}" target="_blank" title="{chant.cantus_id} on Cantus Index">{chant.cantus_id}</a></b>):'
 
                 context["concordances_summary"] += "<table>"
 
@@ -141,7 +141,7 @@ class ChantDetailView(DetailView):
                             <a href="/" target="_blank">Cantus Database</a> (CD)
                         </td>
                         <td>
-                            {chant_tally}
+                            <a href="{reverse("chant-by-cantus-id", args=[chant.cantus_id])}" target="_blank">{chant_tally}</a>
                         </td>
                     </tr>
                 """
@@ -164,7 +164,7 @@ class ChantDetailView(DetailView):
                             <a href="http://cantusbohemiae.cz" target="_blank">Fontes Cantus Bohemiae</a> (FCB)
                         </td>
                         <td>
-                            {chant_tally}
+                            <a href="http://cantusbohemiae.cz/id/{chant.cantus_id}" target="_blank">{chant_tally}</a>
                         </td>
                     </tr>
                 """
@@ -187,7 +187,7 @@ class ChantDetailView(DetailView):
                             <a href="http://musmed.eu" target="_blank">Medieval Music Manuscripts Online</a> (MMMO)
                         </td>
                         <td>
-                            {chant_tally}
+                            <a href="http://musmed.eu/id/{chant.cantus_id}" target="_blank">{chant_tally}</a>
                         </td>
                     </tr>
                 """
@@ -210,7 +210,7 @@ class ChantDetailView(DetailView):
                             <a href="http://pemdatabase.eu" target="_blank">Portuguese Early Music Database</a> (PEM)
                         </td>
                         <td>
-                            {chant_tally}
+                            <a href="http://pemdatabase.eu/id/{chant.cantus_id}" target="_blank">{chant_tally}</a>
                         </td>
                     </tr>
                 """
@@ -233,7 +233,7 @@ class ChantDetailView(DetailView):
                             <a href="http://musicahispanica.eu" target="_blank">Spanish Early Music Manuscript Database</a> (SEMM)
                         </td>
                         <td>
-                            {chant_tally}
+                            <a href="http://musicahispanica.eu/id/{chant.cantus_id}" target="_blank">{chant_tally}</a>
                         </td>
                     </tr>
                 """
@@ -256,7 +256,7 @@ class ChantDetailView(DetailView):
                             <a href="http://cantus.ispan.pl" target="_blank">Cantus Planus in Polonia</a> (CPL)
                         </td>
                         <td>
-                            {chant_tally}
+                            <a href="http://cantus.ispan.pl/id/{chant.cantus_id}" target="_blank">{chant_tally}</a>
                         </td>
                     </tr>
                 """
@@ -279,7 +279,7 @@ class ChantDetailView(DetailView):
                             <a href="http://hun-chant.eu" target="_blank">Hungarian Chant Database</a> (HCD)
                         </td>
                         <td>
-                            {chant_tally}
+                            <a href="http://hun-chant.eu/id/{chant.cantus_id}" target="_blank">{chant_tally}</a>
                         </td>
                     </tr>
                 """
@@ -302,7 +302,7 @@ class ChantDetailView(DetailView):
                             <a href="http://cantus.sk" target="_blank">Slovak Early Music Database</a> (CSK)
                         </td>
                         <td>
-                            {chant_tally}
+                            <a href="http://cantus.sk/id/{chant.cantus_id}" target="_blank">{chant_tally}</a>
                         </td>
                     </tr>
                 """
@@ -322,10 +322,10 @@ class ChantDetailView(DetailView):
                 context["concordances_summary"] += f"""
                     <tr>
                         <td>
-                            Fragmentia (FRH):
+                            <a href="http://fragmenta.zti.hu/en/" target="_blank">Fragmenta Manuscriptorum Musicalium Hungariae</a> (FRH):
                         </td>
                         <td>
-                            {chant_tally}
+                            <a href="http://fragmenta.zti.hu/en/id/{chant.cantus_id}" target="_blank">{chant_tally}</a>
                         </td>
                     </tr>
                 """
