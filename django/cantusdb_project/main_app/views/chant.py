@@ -351,6 +351,20 @@ class ChantDetailView(DetailView):
             if concordances_count:
                 context["concordances_summary"] += "</table><br>"
 
+            # http://cantusindex.org/json-con/{cantus_id} returns a cached
+            # copy of the concordances. Appending "/refresh" to the URL causes Cantus
+            # Index to recalculate the concordances, but this takes a few seconds.
+            # So, after fetching the cached version above, we make a call to
+            # http://cantusindex.org/json-con/{cantus_id}/refresh in a new thread,
+            # thus ensuring the current page doesn't take a long time to load, while also
+            # ensuring that concordances are up-to-date for future page loads.
+            import threading
+            t = threading.Thread(
+                target=requests.get,
+                args=[f"http://cantusindex.org/json-con/{chant.cantus_id}/refresh"]
+            )
+            t.start()
+
 
         # some chants don't have a source, for those chants, stop here without further calculating
         # other context variables
