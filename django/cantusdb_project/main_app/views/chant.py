@@ -322,14 +322,31 @@ class ChantDetailView(DetailView):
                 context["concordances_summary"] += f"""
                     <tr>
                         <td>
-                            <a href="http://fragmenta.zti.hu/en/" target="_blank">Fragmenta Manuscriptorum Musicalium Hungariae</a> (FRH):
+                            <a href="http://fragmenta.zti.hu/en/" target="_blank">Fragmenta Manuscriptorum Musicalium Hungariae</a> (FRH)
                         </td>
                         <td>
                             <a href="http://fragmenta.zti.hu/en/id/{chant.cantus_id}" target="_blank">{chant_tally}</a>
                         </td>
                     </tr>
                 """
-            # TODO - also do something about gregorien.info, comparatio
+            
+            # Gregorien.info
+            # check to see if the corresponding page exists. If it does, display
+            # links to gregorien.info in summary
+            gregorien_response = requests.get(
+                "http://cantusindex.org/json-con/{}".format(chant.cantus_id)
+            )
+            if gregorien_response.status_code == 200:
+                context["concordances_summary"] += f"""
+                    <tr>
+                        <td>
+                            <a href="https://gregorien.info/" target="_blank">Gregorien.info</a>
+                        </td>
+                        <td>
+                            <a href="https://gregorien.info/chant/cid/{chant.cantus_id}/en" target="_blank">» VIEW AT GREGORIEN.INFO</a>
+                        </td>
+                    </tr>
+                """
 
             if concordances_count:
                 context["concordances_summary"] += "</table><br>"
