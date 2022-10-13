@@ -307,7 +307,7 @@ class ChantDetailView(DetailView):
                     </tr>
                 """
 
-            # Fragmentia
+            # Fragmenta Manuscriptorum Musicalium Hungariae
             frh_count = len(
                 [
                     True for c in concordance_chants
