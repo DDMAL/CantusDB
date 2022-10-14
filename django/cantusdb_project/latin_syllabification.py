@@ -206,17 +206,10 @@ def syllabify_text(input, verbose=False):
             syl_list[-1] = syl_list[-1].strip("-")
             word_syls_hyphen.append(syl_list)
     syls = [item for sublist in word_syls_hyphen for item in sublist]
-    # syls = [item for sublist in word_syls for item in sublist]
     return syls
 
 
 if __name__ == "__main__":
-    # fpath = "/Users/tim/Desktop/002v_transcript.txt"
-    # with open(fpath) as f:
-    #     ss = ' '.join(f.readlines())
-    # res = syllabify_text(ss, True)
-    # print(res)
-
     inp = (
         "Quique terrigene et filii hominum simul in unum dives et pauper Ite "
         "Qui regis israel intende qui deducis velut ovem ioseph qui sedes super cherubin Nuncia "
