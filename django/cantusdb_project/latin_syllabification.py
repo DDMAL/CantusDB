@@ -51,6 +51,7 @@ def clean_transcript(text):
     text = re.sub(r" \| ", " ", text)
     # change all runs of consecutive spaces to single spaces
     text = re.sub(r" +", " ", text)
+    text = text.strip()
     # convert to lowercase
     # text = text.lower()
     return text
