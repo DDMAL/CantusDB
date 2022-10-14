@@ -19,8 +19,24 @@ consonant_groups = [
     "th",
     "sp",
 ]
-diphthongs = ["ae", "au", "ei", "oe", "ui", "ya", "ex", "ix"]
-vowels = ["a", "e", "i", "o", "u", "y"]
+diphthongs = [
+    "ae",
+    "au",
+    "ei",
+    "oe",
+    "ui",
+    "ya",
+    "ex",
+    "ix",
+]
+vowels = [
+    "a",
+    "e",
+    "i",
+    "o",
+    "u",
+    "y",
+]
 
 # add uppercase variants of every single symbol.
 consonant_groups += [x[0].upper() + x[1:] for x in consonant_groups]
