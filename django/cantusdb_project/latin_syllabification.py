@@ -28,6 +28,7 @@ diphthongs = [
     "ya",
     "ex",
     "ix",
+    "ihe", # ihe-sus, # ihe-ru-sa-lem
 ]
 vowels = [
     "a",
