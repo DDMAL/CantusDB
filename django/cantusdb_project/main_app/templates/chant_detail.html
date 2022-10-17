@@ -198,7 +198,7 @@
                 {% endif %}
             </dl>
             {% if chant.cantus_id %}
-                <h4>List of concordances</h4>
+                <h4 id="concordances">List of concordances</h4>
                 <small>{{ concordances_summary | safe }}</small>
                 <table id="concordanceTable" class="table table-bordered table-sm small" style="table-layout: fixed; width: 100%;">
                     <thead>
@@ -258,6 +258,7 @@
                         {% endfor %}
                     </tbody>
                 </table>
+                <a href="#concordances" onclick="window.location.href = '#concordances'; window.location.reload(true);">Refresh concordances</a><br><br>
 
                 <h4>List of melodies</h4>
                 <span id="melodyLoadingPrompt" style="display: none; color: #922"><b>Loading melodies...</b></span>
