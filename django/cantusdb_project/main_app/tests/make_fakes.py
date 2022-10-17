@@ -6,7 +6,6 @@ from main_app.models import Century
 from main_app.models import Chant
 from main_app.models import Feast
 from main_app.models import Genre
-from main_app.models import Indexer
 from main_app.models import Notation
 from main_app.models import Office
 from main_app.models import Provenance
@@ -14,6 +13,7 @@ from main_app.models import RismSiglum
 from main_app.models import Segment
 from main_app.models import Sequence
 from main_app.models import Source
+from django.contrib.auth import get_user_model
 
 # Max values for two types of Char fields
 LONG_CHAR_FIELD_MAX = 255
@@ -172,16 +172,17 @@ def make_fake_genre(name=None) -> Genre:
     return genre
 
 
-def make_fake_indexer() -> Indexer:
-    """Generates a fake Indexer object."""
-    indexer = Indexer.objects.create(
-        given_name=faker.first_name(),
-        family_name=faker.last_name(),
+def make_fake_user(is_indexer=True) -> get_user_model():
+    """Generates a fake User object."""
+    user = get_user_model().objects.create(
+        full_name=f"{faker.first_name()} {faker.last_name()}",
         institution=faker.company(),
         city=faker.city(),
         country=faker.country(),
+        is_indexer=is_indexer,
+        email=f"{faker.lexify('????????')}@fakeemail.com",
     )
-    return indexer
+    return user
 
 
 def make_fake_notation() -> Notation:
@@ -308,9 +309,9 @@ def make_fake_source(published=True, title=None, segment_name=None) -> Source:
     )
     source.century.set([make_fake_century()])
     source.notation.set([make_fake_notation()])
-    source.inventoried_by.set([make_fake_indexer()])
-    source.full_text_entered_by.set([make_fake_indexer()])
-    source.melodies_entered_by.set([make_fake_indexer()])
-    source.proofreaders.set([make_fake_indexer()])
-    source.other_editors.set([make_fake_indexer()])
+    source.inventoried_by.set([make_fake_user()])
+    source.full_text_entered_by.set([make_fake_user()])
+    source.melodies_entered_by.set([make_fake_user()])
+    source.proofreaders.set([make_fake_user()])
+    source.other_editors.set([make_fake_user()])
     return source

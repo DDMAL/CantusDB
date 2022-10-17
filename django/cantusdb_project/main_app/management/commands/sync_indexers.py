@@ -1,9 +1,9 @@
-from main_app.models import Indexer
 from django.core.management.base import BaseCommand
+from django.contrib.auth import get_user_model
 import requests, json
+from faker import Faker
 
 INDEXER_ID_FILE = "indexer_list.txt"
-
 
 def get_id_list(file_path):
     indexer_list = []
@@ -14,8 +14,8 @@ def get_id_list(file_path):
     file.close()
     return indexer_list
 
-
 def get_new_indexer(indexer_id):
+    # use json-export to get indexer information
     url = f"http://cantus.uwaterloo.ca/json-node/{indexer_id}"
     response = requests.get(url)
     json_response = json.loads(response.content)
@@ -40,44 +40,45 @@ def get_new_indexer(indexer_id):
     else:
         country = None
 
-    indexer, created = Indexer.objects.update_or_create(
-        id=indexer_id,
-        defaults={
-            "given_name": first_name,
-            "family_name": family_name,
-            "institution": institution,
-            "city": city,
-            "country": country,
-        },
-    )
-    if created:
-        print(f"created indexer {indexer_id}")
-
-
-def remove_extra():
-    waterloo_ids = get_id_list(INDEXER_ID_FILE)
-    our_ids = list(Indexer.objects.all().values_list("id", flat=True))
-    our_ids = [str(id) for id in our_ids]
-    waterloo_ids = set(waterloo_ids)
-    print(f"Our count: {len(our_ids)}")
-    print(f"Waterloo count: {len(waterloo_ids)}")
-    extra_ids = [id for id in our_ids if id not in waterloo_ids]
-    for id in extra_ids:
-        Indexer.objects.get(id=id).delete()
-        print(f"Extra item removed: {id}")
+    # check whether the current indexer has a user entry of the same name
+    indexer_full_name = f"{first_name} {family_name}"
+    print(f"{indexer_id} {indexer_full_name}")
+    homonymous_users = get_user_model().objects.filter(full_name__iexact=indexer_full_name)
+    # if the indexer also exists as a user
+    if homonymous_users:
+        assert homonymous_users.count() == 1
+        homonymous_user = homonymous_users.get()
+        print(f"homonymous: {homonymous_user.full_name}")
+        # keep the user as it is (merge the indexer into existing user)
+        # and store the ID of its indexer object
+        homonymous_user.old_indexer_id = indexer_id
+        homonymous_user.is_indexer = True
+        homonymous_user.save()
+    # if the indexer doesn't exist as a user
+    else:
+        faker = Faker()
+        # create a new user with the indexer information
+        get_user_model().objects.create(
+            institution=institution,
+            city=city,
+            country=country,
+            full_name=indexer_full_name,
+            # assign random email to dummy users
+            email=f"{faker.lexify('????????')}@fakeemail.com",
+            # leave the password empty for dummy users
+            # the password can't be empty in login form, so they can't log in
+            password="",
+            old_indexer_id = indexer_id,
+            is_indexer=True,
+        )
 
 
 class Command(BaseCommand):
     def add_arguments(self, parser):
-        parser.add_argument(
-            "--remove_extra",
-            action="store_true",
-            help="add this flag to remove the indexers in our database that are no longer present in waterloo database",
-        )
+        pass
 
     def handle(self, *args, **options):
         indexer_list = get_id_list(INDEXER_ID_FILE)
         for id in indexer_list:
             get_new_indexer(id)
-        if options["remove_extra"]:
-            remove_extra()
+            

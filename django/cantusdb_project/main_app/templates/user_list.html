@@ -1,12 +1,12 @@
 {% extends "base.html" %}
 {% block content %}
-<title>List of Users | Cantus Manuscript Database</title>
+<title>All Users | Cantus Manuscript Database</title>
 <div class="mr-3 p-3 col-md-12 mx-auto bg-white rounded">
     <!-- global search bar-->
     <object align="right">
         {% include "global_search_bar.html" %}
     </object>
-    <h3>List of Users</h3>
+    <h3>All Users</h3>
     <small>Displaying {{ page_obj.start_index }}-{{ page_obj.end_index }} of <b>{{ page_obj.paginator.count }}</b></small>
     <form method="get">
         <div class="input-group w-25">
@@ -25,19 +25,17 @@
                 <th scope="col">Institution</th>
                 <th scope="col">City</th>
                 <th scope="col">Country</th>
-                {% comment %} <th scope="col">Sources</th> {% endcomment %}
             </tr>
         </thead>
         <tbody>
             {% for user in users %}
                 <tr>
                     <td class="text-center text-wrap">
-                        <a href="{{ user.get_absolute_url }}">{{ user.first_name }} {{ user.last_name }}</a>
+                        <a href="{{ user.get_absolute_url }}">{{ user.full_name|default:"" }}</a>
                     </td>
                     <td>{{ user.institution|default:"" }}</td>
                     <td>{{ user.city|default:"" }}</td>
                     <td>{{ user.country|default:"" }}</td>
-                    {% comment %} <td><a href="{{ user.get_absolute_url }}">{{ user.source_count }} source{{ user.source_count|pluralize }}</a></td> {% endcomment %}
                 </tr>
             {% endfor %}
         </tbody>

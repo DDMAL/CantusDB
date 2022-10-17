@@ -8,7 +8,6 @@ from main_app.models import (
     Chant,
     Feast,
     Genre,
-    Indexer,
     Notation,
     Office,
     Provenance,
@@ -546,7 +545,6 @@ def json_node_export(request, id):
     chant = Chant.objects.filter(id=id)
     sequence = Sequence.objects.filter(id=id)
     source = Source.objects.filter(id=id)
-    indexer = Indexer.objects.filter(id=id)
 
     if chant:
         if not chant.first().source.published:
@@ -560,8 +558,6 @@ def json_node_export(request, id):
         if not source.first().published:
             return HttpResponseNotFound()
         requested_item = source
-    elif indexer:
-        requested_item = indexer
     else:
         # id does not correspond to a chant, sequence, source or indexer
         return HttpResponseNotFound()
@@ -646,7 +642,6 @@ def content_overview(request):
         Chant,
         Feast,
         Genre,
-        Indexer,
         Notation,
         Office,
         Provenance,

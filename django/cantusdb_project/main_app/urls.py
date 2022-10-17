@@ -1,4 +1,4 @@
-from django.urls import path, include
+from django.urls import path
 from main_app.views import *
 from main_app.views import views
 from main_app.views.century import CenturyDetailView
@@ -55,7 +55,6 @@ urlpatterns = [
     path("genre/<int:pk>", GenreDetailView.as_view(), name="genre-detail"),
     # indexer
     path("indexers/", IndexerListView.as_view(), name="indexer-list"),
-    path("indexer/<int:pk>", IndexerDetailView.as_view(), name="indexer-detail"),
     # notation
     path("notation/<int:pk>", NotationDetailView.as_view(), name="notation-detail"),
     # office

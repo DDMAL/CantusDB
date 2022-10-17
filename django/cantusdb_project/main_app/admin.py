@@ -28,9 +28,6 @@ class FeastAdmin(BaseModelAdmin):
 class GenreAdmin(BaseModelAdmin):
     pass
 
-class IndexerAdmin(BaseModelAdmin):
-    pass
-
 class NotationAdmin(BaseModelAdmin):
     pass
 
@@ -59,7 +56,6 @@ admin.site.register(Century, CenturyAdmin)
 admin.site.register(Chant, ChantAdmin)
 admin.site.register(Feast, FeastAdmin)
 admin.site.register(Genre, GenreAdmin)
-admin.site.register(Indexer, IndexerAdmin)
 admin.site.register(Notation, NotationAdmin)
 admin.site.register(Office, OfficeAdmin)
 admin.site.register(Provenance, ProvenanceAdmin)
