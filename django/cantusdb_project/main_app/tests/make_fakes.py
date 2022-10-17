@@ -158,10 +158,12 @@ def make_fake_feast() -> Feast:
     return feast
 
 
-def make_fake_genre() -> Genre:
+def make_fake_genre(name=None) -> Genre:
     """Generates a fake Genre object."""
+    if name is None:
+        name = faker.lexify("???")
     genre = Genre.objects.create(
-        name=faker.lexify("???"),
+        name=name,
         description=make_fake_text(
             max_size=MAX_NUMBER_TEXT_CHARS, min_size=MIN_NUMBER_TEXT_CHARS
         ),

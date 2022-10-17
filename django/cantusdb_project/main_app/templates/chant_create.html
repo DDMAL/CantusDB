@@ -1,5 +1,4 @@
 {% extends "base.html" %}
-{% load helper_tags %}
 {% block content %}
 <title>Create Chant | Cantus Manuscript Database</title>
 <div class="container">
@@ -123,12 +122,15 @@
                         {% if previous_chant %}
                             Feasts that follow:
                                {% for feast, count in suggested_feasts.items %}
-                                   <a href="" onclick="return false;">{{ feast.name }}</a> ({{ count }}x) |
+                                    <a href="javascript:" onclick="autoFillFeast{{ feast.id }}();">{{ feast.name }}</a> ({{ count }}x) |
+                                    <script>
+                                        function autoFillFeast{{ feast.id }}() {
+                                            document.getElementById('id_feast').value = "{{ feast.id }}";
+                                        }
+                                    </script>
                                {% endfor %}                                                                                                      
                             
-                            <strong>
-                                <a href="" onclick="return false;">Revert Changes</a>
-                            </strong>
+                            <!-- eventually, perhaps: implement a "Reverse Changes" button -->
                         {% endif %}
 
                     </small>
@@ -272,9 +274,8 @@
                                     <strong>{{ chant.genre }}</strong> - {{ chant.fulltext|truncatechars:100 }} (<strong>{{ chant.count }}x</strong>)<br>
                                     <script>
                                         function autoFill{{ chant.cid }}() {
-                                            const genreId = Array.prototype.find.call(document.getElementById('id_genre').children, ({ textContent }) => textContent === "{{ chant.genre }}");
                                             document.getElementById('id_cantus_id').value = "{{ chant.cid }}";
-                                            document.getElementById('id_genre').value = genreId.value;
+                                            document.getElementById('id_genre').value = {{ chant.genre_id }};
                                             document.getElementById('id_manuscript_full_text_std_spelling').value = "{{ chant.fulltext }}";
                                         }
                                     </script>

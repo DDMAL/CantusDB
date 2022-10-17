@@ -190,13 +190,15 @@
                 <div class=" card-body">
                     <small>
                         {% if source.provenance.name %}
-                            Provenance: <b><a href="#">{{source.provenance.name}}</a></b>
+                            Provenance: <b><a href="{{ source.provenance.get_absolute_url }}">{{source.provenance.name}}</a></b>
                             <br>
                         {% endif %}
                         {% if source.date %}
                             Date: 
                             {% for century in source.century.all %}
-                                <b><a href="#">{{ century.name }}</a></b>
+                                <b><a href="{{ century.get_absolute_url }}">
+                                    {{ century.name }}
+                                </a></b>
                             {% endfor %}
                             |
                             <b>{{ source.date|default_if_none:"" }}</b>
@@ -207,7 +209,9 @@
                             <br>
                         {% endif %}
                         {% if source.notation.all %}
-                            Notation: <b><a href="#">{{ source.notation.all.first.name }}</a></b>
+                            Notation: <b><a href="{{ source.notation.all.first.get_absolute_url }}">
+                                {{ source.notation.all.first.name }}
+                            </a></b>
                             <br>
                         {% endif %}
                         {% if source.inventoried_by.all %}
@@ -252,7 +256,7 @@
                                     <a href="{% url "chant-create" source.id%}">Add new chant</a>
                                 </li>
                                 <li>
-                                    <a href="{% url "source-edit-volpiano" source.id%}">Edit chants (fulltext & volpiano editor)</a>
+                                    <a href="{% url "source-edit-chants" source.id%}">Edit chants (fulltext & volpiano editor)</a>
                                 </li>
                                 <li>
                                     <a href="{% url "source-edit" source.id%}">Edit source description</a>

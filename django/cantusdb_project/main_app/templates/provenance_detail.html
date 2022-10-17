@@ -1,0 +1,20 @@
+{% extends "base.html" %}
+{% block content %}
+<title>{{ provenance.name }} | Cantus Manuscript Database</title>
+<div class="mr-3 p-3 mx-auto bg-white rounded">
+    <!-- global search bar-->
+    <object align="right">
+        {% include "global_search_bar.html" %}
+    </object>
+    <h3>{{ provenance.name }}</h3>
+    <ul>
+        {% for source in provenance.sources.all|dictsort:"title" %}
+            <li>
+                <a href="{{ source.get_absolute_url }}">
+                    {{ source.title }}
+                </a>
+            </li>
+        {% endfor %}
+    </ul>
+</div>
+{% endblock %}

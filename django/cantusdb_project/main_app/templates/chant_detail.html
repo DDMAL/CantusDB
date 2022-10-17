@@ -19,7 +19,7 @@
             <h3>{{ chant.incipit }}</h3>
             {% if user.is_authenticated %}
                 <p>
-                    View | <a href="{% url 'source-edit-volpiano' chant.source.id %}?pk={{ chant.id }}&folio={{ chant.folio }}">Edit</a>
+                    View | <a href="{% url 'source-edit-chants' chant.source.id %}?pk={{ chant.id }}&folio={{ chant.folio }}">Edit</a>
                 </p>
             {% endif %}
             <dl>
@@ -91,7 +91,11 @@
                     {% if chant.cantus_id %}
                         <div class="col">
                             <dt>Cantus ID</dt>
-                            <dd>{{ chant.cantus_id }}</dd>
+                            <dd>
+                                <a href="{{ chant.get_ci_url }}" target="_blank">
+                                    {{ chant.cantus_id }}
+                                </a>
+                            </dd>
                         </div>
                     {% endif %}
 
@@ -193,13 +197,67 @@
                     </dd>
                 {% endif %}
             </dl>
-
             {% if chant.cantus_id %}
                 <h4>List of concordances</h4>
-                <span id="concordanceLoadingPrompt" style="display: none; color: #922"><b>Loading concordances...</b></span>
-                <a id="concordanceButton" href="#" onclick="loadConcordances('{{ chant.cantus_id }}'); return false;">» Display all concordances of this chant</a>   
-                <div id="concordanceDiv"></div>
-                <br>
+                <small>{{ concordances_summary | safe }}</small>
+                <table id="concordanceTable" class="table table-bordered table-sm small" style="table-layout: fixed; width: 100%;">
+                    <thead>
+                        <tr>
+                            <th scope="col" class="text-wrap" style="width:15%">Siglum</th>
+                            <th scope="col" class="text-wrap" style="width:6%">Folio</th>
+                            <th scope="col" class="text-wrap" style="width:23%">Incipit</th>
+                            <th scope="col" class="text-wrap" style="width:4%"></th>
+                            <th scope="col" class="text-wrap" style="width:4%"></th>
+                            <th scope="col" class="text-wrap" style="width:4%"></th>
+                            <th scope="col" class="text-wrap" style="width:20%">Feast</th>
+                            <th scope="col" class="text-wrap" style="width:7%">Mode</th>
+                            <th scope="col" class="text-wrap" style="width:8%">Image</th>
+                            <th scope="col" class="text-wrap" style="width:9%">DB</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for chant in concordances %}
+                            <tr>
+                                <td>
+                                    <a href="{{ chant.srclink }}" target="_blank">
+                                    {{ chant.siglum }}
+                                    </a>
+                                </td>
+                                <td>
+                                    {{ chant.folio }}
+                                </td>
+                                <td>
+                                    <a href="{{ chant.chantlink }}" target="_blank">
+                                        {{ chant.incipit }}
+                                    </a>
+                                </td>
+                                <td>
+                                    {{ chant.office }}
+                                </td>
+                                <td>
+                                    {{ chant.genre }}
+                                </td>
+                                <td>
+                                    {{ chant.position }}
+                                </td>
+                                <td>
+                                    {{ chant.feast }}
+                                </td>
+                                <td>
+                                    {{ chant.mode }}
+                                </td>
+                                <td>
+                                    {% if chant.image %}
+                                        <a href="{{ chant.image }}" target="_blank">Image</a>
+                                    {% endif %}
+                                </td>
+                                <td>
+                                    {{ chant.db }}
+                                </td>
+                            </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
 
                 <h4>List of melodies</h4>
                 <span id="melodyLoadingPrompt" style="display: none; color: #922"><b>Loading melodies...</b></span>
@@ -322,14 +380,16 @@
                         <div class=" card-body">
                             <small>
                                 {% if source.provenance.name %}
-                                    Provenance: <b>{{ source.provenance.name }}</b>
+                                    Provenance: <b><a href="{{ source.provenance.get_absolute_url }}">{{source.provenance.name}}</a></b>
                                     <br>
                                 {% endif %}
 
                                 {% if source.date %}
                                     Date: 
                                     {% for century in source.century.all %}
-                                        <b>{{ century.name }}</b>
+                                        <b>
+                                            <a href="{{ century.get_absolute_url }}">{{ century.name }}</a>
+                                        </b>
                                     {% endfor %}
                                     |
                                     <b>{{ source.date|default_if_none:"" }}</b>
@@ -342,7 +402,9 @@
                                 {% endif %}
 
                                 {% if source.notation.all %}
-                                    Notation: <b>{{ source.notation.all.first.name }}</b>
+                                    <b>
+                                        <a href="{{ source.notation.all.first.get_absolute_url }}">{{ source.notation.all.first.name }}</a>
+                                    </b>
                                     <br>
                                 {% endif %}
 

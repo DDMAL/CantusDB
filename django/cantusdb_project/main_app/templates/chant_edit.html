@@ -237,7 +237,7 @@
 
             <div class="card mb-3 w-100">
                 <div class="card-header">
-                    <h4>{{ source.siglum }}</h4>
+                    <h4><a href="{{ source.get_absolute_url }}">{{ source.siglum }}</a></h4>
                 </div>
                 <div class="card-body">
                     <small>
@@ -254,10 +254,10 @@
                         </select>             
                         
                         {% if previous_folio %}
-                            <a href="{% url "source-edit-volpiano" source.id %}?folio={{ previous_folio }}">{{ previous_folio }} <</a>
+                            <a href="{% url "source-edit-chants" source.id %}?folio={{ previous_folio }}">{{ previous_folio }} <</a>
                         {% endif %}
                         {% if next_folio %}
-                            &nbsp;<a href="{% url "source-edit-volpiano" source.id %}?folio={{ next_folio }}">> {{ next_folio }}</a>
+                            &nbsp;<a href="{% url "source-edit-chants" source.id %}?folio={{ next_folio }}">> {{ next_folio }}</a>
                         {% endif %}             
 
                         <br>
@@ -283,7 +283,7 @@
                                         <td class="h-25" style="width: 20%"><a href="{{ chant.get_ci_url }}" target="_blank">{{ chant.cantus_id|default_if_none:"" }}</a></td>
                                         <td class="h-25" style="width: 5%">{{ chant.mode|default:"" }}</td>
                                         <td class="h-25" style="width: 10%">
-                                            <a href="{% url 'source-edit-volpiano' source.id %}?pk={{ chant.pk }}&folio={{ chant.folio }}">EDIT</button></td>
+                                            <a href="{% url 'source-edit-chants' source.id %}?pk={{ chant.pk }}&folio={{ chant.folio }}">EDIT</button></td>
                                     </tr>
                                 {% endfor %}
                             </table>
@@ -301,7 +301,7 @@
                                         <td class="h-25" style="width: 20%"><a href="{{ chant.get_ci_url }}" target="_blank">{{ chant.cantus_id|default_if_none:"" }}</a></td>
                                         <td class="h-25" style="width: 5%">{{ chant.mode|default:"" }}</td>
                                         <td class="h-25" style="width: 10%">
-                                            <a href="{% url 'source-edit-volpiano' source.id %}?pk={{ chant.pk }}&feast={{ chant.feast.id }}">EDIT</button>
+                                            <a href="{% url 'source-edit-chants' source.id %}?pk={{ chant.pk }}&feast={{ chant.feast.id }}">EDIT</button>
                                         </td>
                                     </tr>
                                 {% endfor %}

@@ -12,6 +12,12 @@ register = template.Library()
 
 @register.simple_tag(takes_context=False)
 def recent_articles():
+    """
+    Generates a html unordered list of recent articles for display on the homepage
+
+    Used in:
+        templates/flatpages/default.html
+    """
     articles = Article.objects.order_by("-date_created")[:5]
     list_item_template = '<li style="padding-bottom: 0.5em;"><a href="{url}">{title}</a><br><small>{date}</small></li>'
     list_items = [
@@ -30,6 +36,12 @@ def recent_articles():
 
 @register.simple_tag(takes_context=False)
 def my_sources(user):
+    """
+    Generates a html unordered list of sources the currently logged-in user has access to edit, for display on the homepage
+
+    Used in:
+        templates/flatpages/default.html
+    """
     def make_source_detail_link_with_siglum(source):
         id = source.id
         siglum = source.rism_siglum
@@ -49,7 +61,7 @@ def my_sources(user):
         return link
     def make_edit_chants_link(source):
         id = source.id
-        url = reverse("source-edit-volpiano", args=[id])
+        url = reverse("source-edit-chants", args=[id])
         link = '<a href="{}">Edit chants (Fulltext & Volpiano editor)</a>'.format(url) 
         return link
     def make_links_for_source(source):
@@ -81,7 +93,13 @@ def my_sources(user):
 
 @register.filter(name="month_to_string")
 def month_to_string(value: Optional[Union[str, int]]) -> Optional[Union[str, int]]:
-    """Converts month number to textual representation, 3 letters (Jan, Mar, etc)"""
+    """
+    Converts month number to textual representation, 3 letters (Jan, Mar, etc)
+
+    used in:
+        main_app/templates/feast_detail.html
+        main_app/templates/feast_list.html
+    """
     if type(value) == int and value in range(1, 13):
         return calendar.month_abbr[value]
     else:
@@ -90,8 +108,14 @@ def month_to_string(value: Optional[Union[str, int]]) -> Optional[Union[str, int
 
 @register.simple_tag(takes_context=True)
 def url_add_get_params(context, **kwargs):
+    """
+    accounts for the situations where there may be two paginations in one page
+
+    Used in:
+        main_app/templates/pagination.html
+        main_app/templates/user_source_list.html
+    """
     query = context["request"].GET.copy()
-    # accounts for the situations where there may be two paginations in one page
     if "page" in kwargs:
         query.pop("page", None)
     if "page2" in kwargs:
@@ -102,6 +126,12 @@ def url_add_get_params(context, **kwargs):
 
 @register.simple_tag(takes_context=False)
 def source_links():
+    """
+    Generates a series of html option tags linking to sources in Cantus Dabase, for display on the homepage
+
+    Used in:
+        templates/flatpages/default.html
+    """
     sources = (
         Source.objects.filter(published=True, segment__id=4063)
         .exclude(siglum=None)
@@ -124,6 +154,9 @@ def classname(obj):
     """
     Returns the name of the object's class
     A use-case is: {% if object|classname == "Notation" %}
+
+    Used in:
+        main_app/templates/content_overview.html
     """
     return obj.__class__.__name__
 
@@ -132,6 +165,9 @@ def admin_url_name(class_name, action):
     """
     Accepts the name of a class in "main_app", and an action (either "change" or "delete") as arguments.
     Returns the name of the URL for changing/deleting an object in the admin interface.
+
+    Used in:
+        main_app/templates/content_overview.html
     """
     class_name = class_name.lower()
     action = action.lower()
@@ -140,4 +176,8 @@ def admin_url_name(class_name, action):
 
 @register.filter(name='has_group') 
 def has_group(user, group_name):
+    """
+    Used in:
+        templates/base.html
+    """
     return user.groups.filter(name=group_name).exists() 

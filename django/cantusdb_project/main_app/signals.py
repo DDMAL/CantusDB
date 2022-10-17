@@ -11,6 +11,7 @@ import re
 
 from main_app.models import Chant
 from main_app.models import Sequence
+from main_app.models import Feast
 
 @receiver(post_save, sender=Chant)
 def on_chant_save(instance, **kwargs):
@@ -32,6 +33,10 @@ def on_sequence_save(instance, **kwargs):
 @receiver(post_delete, sender=Sequence)
 def on_sequence_delete(instance, **kwargs):
     update_source_chant_count(instance)
+
+@receiver(post_save, sender=Feast)
+def on_feast_save(instance, **kwargs):
+    update_prefix_field(instance)
 
 
 def update_chant_search_vector(instance):
@@ -170,3 +175,15 @@ def update_volpiano_fields(instance):
         volpiano_intervals=volpiano_intervals,
     )
 
+def update_prefix_field(instance):
+    pk = instance.pk
+
+    if instance.feast_code:
+        prefix = str(instance.feast_code)[0:2]
+        instance.__class__.objects.filter(pk=pk).update(
+            prefix=prefix
+        )
+    else: # feast_code is None, ""
+        instance.__class__.objects.filter(pk=pk).update(
+            prefix=""
+        )

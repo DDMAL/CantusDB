@@ -97,9 +97,9 @@ class PermissionsTest(TestCase):
         response = self.client.get(f'/chant-delete/{chant.id}')
         self.assertRedirects(response, f'/login/?next=/chant-delete/{chant.id}')        
         
-        # ChantEditVolpianoView
-        response = self.client.get(f'/edit-volpiano/{source.id}')
-        self.assertRedirects(response, f'/login/?next=/edit-volpiano/{source.id}')        
+        # SourceEditChantsView
+        response = self.client.get(f'/edit-chants/{source.id}')
+        self.assertRedirects(response, f'/login/?next=/edit-chants/{source.id}')        
 
         # SequenceEditView
         response = self.client.get(f'/edit-sequence/{sequence.id}')
@@ -139,8 +139,8 @@ class PermissionsTest(TestCase):
         response = self.client.get(f'/chant-delete/{chant.id}')
         self.assertEqual(response.status_code, 200)
 
-        # ChantEditVolpianoView
-        response = self.client.get(f'/edit-volpiano/{source.id}')
+        # SourceEditChantsView
+        response = self.client.get(f'/edit-chants/{source.id}')
         self.assertEqual(response.status_code, 200)
 
         # SequenceEditView
@@ -202,14 +202,14 @@ class PermissionsTest(TestCase):
         response = self.client.get(f'/chant-delete/{chant_in_assigned_source.id}')
         self.assertEqual(response.status_code, 200)
 
-        # ChantEditVolpianoView
-        response = self.client.get(f'/edit-volpiano/{restricted_source.id}')
+        # SourceEditChantsView
+        response = self.client.get(f'/edit-chants/{restricted_source.id}')
         self.assertEqual(response.status_code, 403)
 
-        response = self.client.get(f'/edit-volpiano/{source_created_by_contributor.id}')
+        response = self.client.get(f'/edit-chants/{source_created_by_contributor.id}')
         self.assertEqual(response.status_code, 200)
 
-        response = self.client.get(f'/edit-volpiano/{assigned_source.id}')
+        response = self.client.get(f'/edit-chants/{assigned_source.id}')
         self.assertEqual(response.status_code, 200)
 
         # SequenceEditView
@@ -277,14 +277,14 @@ class PermissionsTest(TestCase):
         response = self.client.get(f'/chant-delete/{chant_in_assigned_source.id}')
         self.assertEqual(response.status_code, 200)
 
-        # ChantEditVolpianoView
-        response = self.client.get(f'/edit-volpiano/{restricted_source.id}')
+        # SourceEditChantsView
+        response = self.client.get(f'/edit-chants/{restricted_source.id}')
         self.assertEqual(response.status_code, 403)
 
-        response = self.client.get(f'/edit-volpiano/{source_created_by_contributor.id}')
+        response = self.client.get(f'/edit-chants/{source_created_by_contributor.id}')
         self.assertEqual(response.status_code, 200)
 
-        response = self.client.get(f'/edit-volpiano/{assigned_source.id}')
+        response = self.client.get(f'/edit-chants/{assigned_source.id}')
         self.assertEqual(response.status_code, 200)
 
         # SequenceEditView
@@ -321,8 +321,8 @@ class PermissionsTest(TestCase):
         response = self.client.get(f'/chant-delete/{chant.id}')
         self.assertEqual(response.status_code, 403)
 
-        # ChantEditVolpianoView
-        response = self.client.get(f'/edit-volpiano/{source.id}')
+        # SourceEditChantsView
+        response = self.client.get(f'/edit-chants/{source.id}')
         self.assertEqual(response.status_code, 403)
 
         # SequenceEditView
@@ -336,6 +336,25 @@ class PermissionsTest(TestCase):
         # SourceEditView
         response = self.client.get(f'/edit-source/{source.id}')
         self.assertEqual(response.status_code, 403)
+
+
+class CenturyDetailViewTest(TestCase):
+    def test_view_url_path(self):
+        century = make_fake_century()
+        response = self.client.get(f"/century/{century.id}")
+        self.assertEqual(response.status_code, 200)
+
+    def test_view_url_reverse_name(self):
+        century = make_fake_century()
+        response = self.client.get(reverse("century-detail", args=[century.id]))
+        self.assertEqual(response.status_code, 200)
+
+    def test_url_and_templates(self):
+        century = make_fake_century()
+        response = self.client.get(reverse("century-detail", args=[century.id]))
+        self.assertEqual(response.status_code, 200)
+        self.assertTemplateUsed(response, "base.html")
+        self.assertTemplateUsed(response, "century_detail.html")
 
 
 class ChantListViewTest(TestCase):
@@ -478,6 +497,10 @@ class ChantListViewTest(TestCase):
 
 
 class ChantDetailViewTest(TestCase):
+    @classmethod
+    def setUpTestData(cls):
+        Group.objects.create(name="project manager")
+
     def test_url_and_templates(self):
         chant = make_fake_chant()
         response = self.client.get(reverse("chant-detail", args=[chant.id]))
@@ -548,6 +571,30 @@ class ChantDetailViewTest(TestCase):
             reverse("chant-detail", args=[chant.id])
         )
         self.assertEqual(response.status_code, 403)
+
+    def test_chant_edit_link(self):
+
+        source = make_fake_source()
+        chant = make_fake_chant(
+            source=source, folio="001r", 
+            manuscript_full_text_std_spelling="manuscript_full_text_std_spelling"
+        )
+
+        # have to create project manager user - "View | Edit" toggle only visible for those with edit access for a chant's source
+        self.user = get_user_model().objects.create(email='test@test.com')
+        self.user.set_password('pass')
+        self.user.save()
+        self.client = Client()
+        project_manager = Group.objects.get(name='project manager') 
+        project_manager.user_set.add(self.user)
+        self.client.login(email='test@test.com', password='pass')
+
+        response = self.client.get(
+            reverse("chant-detail", args=[chant.id])
+        )
+        expected_url_fragment = f"edit-chants/{source.id}?pk={chant.id}&folio={chant.folio}"
+
+        self.assertIn(expected_url_fragment, str(response.content))
 
 
 class ChantByCantusIDViewTest(TestCase):
@@ -925,6 +972,8 @@ class ChantCreateViewTest(TestCase):
 
     def test_suggest_one_folio(self):
         fake_source = make_fake_source()
+        # create fake genre to match fake_chant_2
+        fake_R_genre = make_fake_genre(name="R")
         fake_chant_3 = make_fake_chant(
             source=fake_source,
             cantus_id="333333",
@@ -962,6 +1011,9 @@ class ChantCreateViewTest(TestCase):
         self.assertEqual(1, len(response.context["suggested_chants"]))
         self.assertEqual(
             "007450", response.context["suggested_chants"][0]["cid"]
+        )
+        self.assertEqual(
+            fake_R_genre.id, response.context["suggested_chants"][0]["genre_id"]
         )
 
     def test_fake_source(self):
@@ -1109,7 +1161,7 @@ class ChantDeleteViewTest(TestCase):
         self.assertEqual(response.status_code, 404)
 
 
-class ChantEditVolpianoViewTest(TestCase):
+class SourceEditChantsViewTest(TestCase):
     @classmethod
     def setUpTestData(cls):
         Group.objects.create(name="project manager")
@@ -1126,21 +1178,21 @@ class ChantEditVolpianoViewTest(TestCase):
     def test_url_and_templates(self):
         source1 = make_fake_source()
 
-        # must specify folio, or ChantEditVolpianoView.get_queryset will fail when it tries to default to displaying the first folio
+        # must specify folio, or SourceEditChantsView.get_queryset will fail when it tries to default to displaying the first folio
         Chant.objects.create(source=source1, folio="001r")
 
-        response = self.client.get(reverse("source-edit-volpiano", args=[source1.id]))
+        response = self.client.get(reverse("source-edit-chants", args=[source1.id]))
         self.assertEqual(response.status_code, 200)
         self.assertTemplateUsed(response, "chant_edit.html")
 
-        response = self.client.get(reverse("source-edit-volpiano", args=[source1.id + 100]))
+        response = self.client.get(reverse("source-edit-chants", args=[source1.id + 100]))
         self.assertEqual(response.status_code, 404)
         self.assertTemplateUsed(response, "404.html")
 
         # trying to access chant-edit with a source that has no chant should return 404
         source2 = make_fake_source()
 
-        response = self.client.get(reverse("source-edit-volpiano", args=[source2.id]))
+        response = self.client.get(reverse("source-edit-chants", args=[source2.id]))
         self.assertEqual(response.status_code, 404)
         self.assertTemplateUsed(response, "404.html")
 
@@ -1149,17 +1201,17 @@ class ChantEditVolpianoViewTest(TestCase):
         chant = Chant.objects.create(source=source, manuscript_full_text_std_spelling="initial")
 
         response = self.client.get(
-            reverse('source-edit-volpiano', args=[source.id]), 
+            reverse('source-edit-chants', args=[source.id]), 
             {'pk': chant.id})
         self.assertEqual(response.status_code, 200)
         self.assertTemplateUsed(response, "chant_edit.html")
 
         response = self.client.post(
-            reverse('source-edit-volpiano', args=[source.id]), 
+            reverse('source-edit-chants', args=[source.id]), 
             {'manuscript_full_text_std_spelling': 'test', 'pk': chant.id})
         self.assertEqual(response.status_code, 302)
-        # Check that after the edit, the user is redirected to the source-edit-volpiano page
-        self.assertRedirects(response, reverse('source-edit-volpiano', args=[source.id]))  
+        # Check that after the edit, the user is redirected to the source-edit-chants page
+        self.assertRedirects(response, reverse('source-edit-chants', args=[source.id]))  
         chant.refresh_from_db()
         self.assertEqual(chant.manuscript_full_text_std_spelling, 'test')
     
@@ -1168,7 +1220,7 @@ class ChantEditVolpianoViewTest(TestCase):
         chant = make_fake_chant(source=source, manuscript_full_text_std_spelling="",
         cantus_id="007450")
         response = self.client.get(
-            reverse('source-edit-volpiano', args=[source.id]), 
+            reverse('source-edit-chants', args=[source.id]), 
             {'pk': chant.id}
         )
         # expected_suggestion is copied from Cantus Index. If this test is failing,
@@ -1187,7 +1239,7 @@ class ChantEditVolpianoViewTest(TestCase):
             sequence_number=1
         )
         self.client.post(
-            reverse('source-edit-volpiano', args=[source.id]),
+            reverse('source-edit-chants', args=[source.id]),
             {
                 "manuscript_full_text_std_spelling": "ut queant lactose",
                 "folio": "001r",
@@ -1212,7 +1264,7 @@ class ChantEditVolpianoViewTest(TestCase):
             sequence_number=2
         )
         self.client.post(
-            reverse('source-edit-volpiano', args=[source.id]),  
+            reverse('source-edit-chants', args=[source.id]),  
             {
                 "manuscript_full_text_std_spelling": "resonare foobaz",
                 "folio": "001r",
@@ -1823,6 +1875,26 @@ class OfficeDetailViewTest(TestCase):
         office = make_fake_office()
         response = self.client.get(reverse("office-detail", args=[office.id]))
         self.assertEqual(office, response.context["office"])
+
+
+class ProvenanceDetailViewTest(TestCase):
+    def test_view_url_path(self):
+        provenance = make_fake_provenance()
+        response = self.client.get(f"/provenance/{provenance.id}")
+        self.assertEqual(response.status_code, 200)
+
+    def test_view_url_reverse_name(self):
+        provenance = make_fake_provenance()
+        response = self.client.get(reverse("provenance-detail", args=[provenance.id]))
+        self.assertEqual(response.status_code, 200)
+
+    def test_url_and_templates(self):
+        provenance = make_fake_provenance()
+        response = self.client.get(reverse("provenance-detail", args=[provenance.id]))
+        self.assertEqual(response.status_code, 200)
+        self.assertTemplateUsed(response, "base.html")
+        self.assertTemplateUsed(response, "provenance_detail.html")
+
 
 
 class SequenceListViewTest(TestCase):
@@ -2727,6 +2799,7 @@ class CsvExportTest(TestCase):
             "mode",
             "finalis",
             "differentia",
+            "differentia_new",
             "fulltext_standardized",
             "fulltext_ms",
             "volpiano",
