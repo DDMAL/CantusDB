@@ -1,5 +1,5 @@
 from django.urls import reverse
-from urllib import request
+from django.db.models.aggregates import Count
 from django.views.generic import DetailView
 from django.contrib.auth import get_user_model, login as auth_login
 from main_app.models import Source
@@ -60,19 +60,57 @@ class CustomLogoutView(LogoutView):
         return next_page
 
 class UserListView(LoginRequiredMixin, SearchableListMixin, ListView):
-    """Searchable List view for User model
+    """A list of all User objects
 
-    Accessed by /users/
-
-    When passed a ``?q=<query>`` argument in the GET request, it will filter users
-    based on the fields defined in ``search_fields`` with the ``icontains`` lookup
+    This view is equivalent to the user list view on the old Cantus.
+    This includes all User objects on the old Cantus.
+    When passed a `?q=<query>` argument in the GET request, it will filter users
+    based on the fields defined in `search_fields` with the `icontains` lookup.
+    
+    Accessed by /users/    
     """
-
     model = get_user_model()
-    search_fields = ["first_name", "last_name", "institution", "city", "country"]
+    ordering = "full_name"
+    search_fields = ["full_name", "institution", "city", "country"]
     paginate_by = 100
     template_name = "user_list.html"
     context_object_name = "users"
+
+class IndexerListView(SearchableListMixin, ListView):
+    """A list of User objects shown to the public
+
+    This view replaces the indexer list view on the old Cantus. 
+    The indexers are considered a subset of all User objects, the subset shown to the public.
+    This includes the User objects corresponding to Indexer objects on the old Cantus.   
+    When passed a `?q=<query>` argument in the GET request, it will filter users
+    based on the fields defined in `search_fields` with the `icontains` lookup.
+
+    Accessed by /indexers/
+    """
+    model = get_user_model()
+    ordering = "full_name"
+    search_fields = ["full_name", "institution", "city", "country"]
+    paginate_by = 100
+    template_name = "indexer_list.html"
+    context_object_name = "indexers"
+
+    def get_queryset(self):
+        all_users = super().get_queryset()
+        indexers = all_users.filter(is_indexer=True)
+        display_unpublished = self.request.user.is_authenticated
+        if display_unpublished:
+            indexers = indexers.annotate(
+                source_count=Count("inventoried_sources")
+            )
+            # display those who have at least one source
+            return indexers.filter(source_count__gte=1)        
+        else:
+            indexers = indexers.annotate(
+                source_count=Count("inventoried_sources", filter=Q(inventoried_sources__published=True))
+            )
+            # display those who have at least one published source
+            return indexers.filter(source_count__gte=1)     
+
 
 class CustomLoginView(LoginView):
     def form_valid(self, form):

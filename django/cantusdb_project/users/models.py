@@ -15,22 +15,20 @@ class User(AbstractUser):
     email = models.EmailField(unique=True)
     # will be used to check if the user has changed the password assigned to them
     changed_initial_password = models.BooleanField(default=False)
+    # whether the user has an associated indexer object on old Cantus
+    # if True, list the user in indexer-list page
+    is_indexer = models.BooleanField(default=False)
+    # if the user has an associated indexer object on old Cantus, save its ID
+    old_indexer_id = models.IntegerField(blank=True, null=True)
 
     USERNAME_FIELD = 'email'
     REQUIRED_FIELDS = []
 
     objects = CustomUserManager()
 
-    @property
-    def name(self):
+    def __str__(self):
         if self.full_name:
             return self.full_name
-        elif self.first_name and self.last_name:
-            return f'{self.first_name} {self.last_name}'
-
-    def __str__(self):
-        if self.name:
-            return self.name
         else:
             return self.email
 

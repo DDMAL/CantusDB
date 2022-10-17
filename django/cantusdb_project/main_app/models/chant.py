@@ -1,9 +1,5 @@
-from django.contrib.postgres.search import SearchVectorField
-from django.db import models
 from django.db.models.query import QuerySet
 from main_app.models.base_chant import BaseChant
-from users.models import User
-
 
 class Chant(BaseChant):
     """The model for chants
