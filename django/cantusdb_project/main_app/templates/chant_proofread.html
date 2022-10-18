@@ -26,7 +26,7 @@
             {% if pk_specified %}
                 {% if user.is_authenticated %}
                     <p>
-                        <a href="{% url 'chant-detail' chant.id %}">View</a> | Edit
+                        Proofreading chant: {{ chant.incipit }} (<a href="{% url 'chant-detail' chant.id %}" target="_blank">View chant</a>)
                     </p>
                 {% endif %}
                 <form method="post" style="line-height: normal">{% csrf_token %}
@@ -248,10 +248,10 @@
                         </select>             
                         
                         {% if previous_folio %}
-                            <a href="{% url "source-edit-chants" source.id %}?folio={{ previous_folio }}">{{ previous_folio }} <</a>
+                            <a href="{% url "chant-proofread" source.id %}?folio={{ previous_folio }}">{{ previous_folio }} <</a>
                         {% endif %}
                         {% if next_folio %}
-                            &nbsp;<a href="{% url "source-edit-chants" source.id %}?folio={{ next_folio }}">> {{ next_folio }}</a>
+                            &nbsp;<a href="{% url "chant-proofread" source.id %}?folio={{ next_folio }}">> {{ next_folio }}</a>
                         {% endif %}             
 
                         <br>
