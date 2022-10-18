@@ -29,7 +29,6 @@
         <thead>
             <tr>
                 <th scope="col" class="text-wrap">Incipit (example)</th>
-                <th scope="col" class="text-wrap">Genre</th>
                 <th scope="col" class="text-wrap">Cantus ID</th>
                 <th scope="col" class="text-wrap">Number of Chants</th>
             </tr>
@@ -41,9 +40,6 @@
                         <a href="{{ chant.first_incipit_url }}">
                             {{ chant.first_incipit }}
                         </a>
-                    </td>
-                    <td class="text-wrap" style="text-align:left">
-                        {{ genre.name }}
                     </td>
                     <td class="text-wrap" style="text-align:center">
                         <a href="http://cantusindex.org/id/{{ chant.cantus_id }}">
