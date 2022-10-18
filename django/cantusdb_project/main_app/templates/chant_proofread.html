@@ -26,8 +26,7 @@
             {% if pk_specified %}
                 {% if user.is_authenticated %}
                     <p>
-                        <a href="{% url 'chant-detail' chant.id %}">View</a> | Edit
-                    </p>
+                        Proofreading chant: {{ chant.incipit }} (<a href="{% url 'chant-detail' chant.id %}" target="_blank">View chant</a>)
                 {% endif %}
                 <form method="post" style="line-height: normal">{% csrf_token %}
                     <div class="form-row">
