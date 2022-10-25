@@ -70,14 +70,18 @@
                     {% if chant.office %}
                         <div class="col">
                             <dt>Office/Mass</dt>
-                            <dd>{{ chant.office.name }}</dd>
+                            <dd>
+                                <a href="{{ chant.office.get_absolute_url }}">{{ chant.office.name }}</a>
+                            </dd>
                         </div>
                     {% endif %}
 
                     {% if chant.genre %}
                         <div class="col">
                             <dt>Genre</dt>
-                            <dd>{{ chant.genre.name }}</dd>
+                            <dd>
+                                <a href="{{ chant.genre.get_absolute_url }}">{{ chant.genre.name }}</a>
+                            </dd>
                         </div>
                     {% endif %}
 
