@@ -38,7 +38,7 @@
                     <td class="text-center text-wrap">{{ indexer.city|default:"" }}</td>
                     <td class="text-center text-wrap">{{ indexer.country|default:"" }}</td>
                     <td class="text-center text-wrap">
-                        <a href="{{ indexer.get_absolute_url }}">{{ indexer.source_count }} source{{ indexer.source_count|pluralize }}</a>
+                        <a href="{{ indexer.get_absolute_url }}#sources">{{ indexer.source_count }} source{{ indexer.source_count|pluralize }}</a>
                     </td>
                 </tr>
             {% endfor %}
