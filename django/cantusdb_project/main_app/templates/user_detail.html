@@ -9,23 +9,77 @@
     <h3>{{ user.full_name }}</h3>
     <dl class="list-inline">
         {% if user.institution %}
-        <dt>Institution</dt>
-        <dd>{{ user.institution }}</dd>
+            <dt>Institution</dt>
+            <dd>{{ user.institution }}</dd>
         {% endif %}
         {% if user.city %}
-        <dt>City</dt>
-        <dd>{{ user.city }}</dd>
+            <dt>City</dt>
+            <dd>{{ user.city }}</dd>
         {% endif %}
         {% if user.country %}
-        <dt>Country</dt>
-        <dd>{{ user.country }}</dd>
+            <dt>Country</dt>
+            <dd>{{ user.country }}</dd>
         {% endif %}
         {% if user.website %}
-        <dt>Website</dt>
-        <dd>
-            <a href="{{ user.website }}" target="_blank">{{ user.website }}</a>
-        </dd>
+            <dt>Website</dt>
+            <dd>
+                <a href="{{ user.website }}" target="_blank">{{ user.website }}</a>
+            </dd>
         {% endif %}
     </dl>
+    {% if user.inventoried_sources.all or user.entered_full_text_for_sources.all or user.entered_melody_for_sources.all or user.proofread_sources.all or user.edited_sources.all %}
+        <h4 id="sources">Sources</h4>
+        {% if user.inventoried_sources.all %}
+            <h5>Inventoried</h5>
+            <ul>
+                {% for source in user.inventoried_sources.all|dictsort:"siglum" %}
+                    <li>
+                        <a href="{{ source.get_absolute_url }}">{{ source.siglum }}</a> ({{ source.title }})
+                    </li>
+                {% endfor %}
+            </ul>
+        {% endif %}
+        {% if user.entered_full_text_for_sources.all %}
+            <h5>Entered Full Text</h5>
+            <ul>
+                {% for source in user.entered_full_text_for_sources.all|dictsort:"siglum" %}
+                    <li>
+                        <a href="{{ source.get_absolute_url }}">{{ source.siglum }}</a> ({{ source.title }})
+                    </li>
+                {% endfor %}
+            </ul>
+        {% endif %}
+        {% if user.entered_melody_for_sources.all %}
+            <h5>Entered Melodies</h5>
+            <ul>
+                {% for source in user.entered_melody_for_sources.all|dictsort:"siglum" %}
+                    <li>
+                        <a href="{{ source.get_absolute_url }}">{{ source.siglum }}</a> ({{ source.title }})
+                    </li>
+                {% endfor %}
+            </ul>
+        {% endif %}
+        {% if user.proofread_sources.all %}
+            <h5>Proofread</h5>
+            <ul>
+                {% for source in user.proofread_sources.all|dictsort:"siglum" %}
+                    <li>
+                        <a href="{{ source.get_absolute_url }}">{{ source.siglum }}</a> ({{ source.title }})
+                    </li>
+                {% endfor %}
+            </ul>
+        {% endif %}
+        {% if user.edited_sources.all %}
+            <h5>Edited</h5>
+            <ul>
+                {% for source in user.edited_sources.all|dictsort:"siglum" %}
+                    <li>
+                        <a href="{{ source.get_absolute_url }}">{{ source.siglum }}</a> ({{ source.title }})
+                    </li>
+                {% endfor %}
+            </ul>
+        {% endif %}
+    {% endif %}
+    <h4>
 </div>
 {% endblock %}
