@@ -43,9 +43,11 @@
             <h5>Entered Full Text</h5>
             <ul>
                 {% for source in user.entered_full_text_for_sources.all|dictsort:"siglum" %}
-                    <li>
-                        <a href="{{ source.get_absolute_url }}">{{ source.siglum }}</a> ({{ source.title }})
-                    </li>
+                    {% if source.published %}
+                        <li>
+                            <a href="{{ source.get_absolute_url }}">{{ source.siglum }}</a> ({{ source.title }})
+                        </li>
+                    {% endif %}
                 {% endfor %}
             </ul>
         {% endif %}
@@ -53,9 +55,11 @@
             <h5>Entered Melodies</h5>
             <ul>
                 {% for source in user.entered_melody_for_sources.all|dictsort:"siglum" %}
-                    <li>
-                        <a href="{{ source.get_absolute_url }}">{{ source.siglum }}</a> ({{ source.title }})
-                    </li>
+                    {% if source.published %}
+                        <li>
+                            <a href="{{ source.get_absolute_url }}">{{ source.siglum }}</a> ({{ source.title }})
+                        </li>
+                    {% endif %}
                 {% endfor %}
             </ul>
         {% endif %}
@@ -63,9 +67,11 @@
             <h5>Proofread</h5>
             <ul>
                 {% for source in user.proofread_sources.all|dictsort:"siglum" %}
-                    <li>
-                        <a href="{{ source.get_absolute_url }}">{{ source.siglum }}</a> ({{ source.title }})
-                    </li>
+                    {% if source.published %}
+                        <li>
+                            <a href="{{ source.get_absolute_url }}">{{ source.siglum }}</a> ({{ source.title }})
+                        </li>
+                    {% endif %}
                 {% endfor %}
             </ul>
         {% endif %}
@@ -73,9 +79,11 @@
             <h5>Edited</h5>
             <ul>
                 {% for source in user.edited_sources.all|dictsort:"siglum" %}
-                    <li>
-                        <a href="{{ source.get_absolute_url }}">{{ source.siglum }}</a> ({{ source.title }})
-                    </li>
+                    {% if source.published %}
+                        <li>
+                            <a href="{{ source.get_absolute_url }}">{{ source.siglum }}</a> ({{ source.title }})
+                        </li>
+                    {% endif %}
                 {% endfor %}
             </ul>
         {% endif %}
