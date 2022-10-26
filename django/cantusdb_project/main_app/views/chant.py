@@ -348,7 +348,6 @@ class ChantDetailView(DetailView):
                         </td>
                     </tr>
                 """
-                print(gregorien_response)
 
             if concordances_count:
                 context["concordances_summary"] += "</table><br>"
