@@ -4,6 +4,7 @@ from django.contrib.auth import get_user_model
 from django.contrib.postgres.search import SearchVectorField
 import threading
 import requests
+import json
 
 class BaseChant(BaseModel):
     """
@@ -149,6 +150,44 @@ class BaseChant(BaseModel):
         else:
             self.gregorien_cached = False
             self.save()
+
+    @property
+    def ci_concordances(self):
+        if self.cantus_id is None:
+            return None
+        if self.ci_concordances_cached is not None:
+            t = threading.Thread(target=self.update_ci_concordances)
+            t.start()
+            return self.ci_concordances_cached
+        else: # ci_concordances_cached is None, i.e. we've not yet stored the concordances
+            # Making a request without `/refresh` at the end pulls cached concordances from CI, which is
+            # faster than calling it with `/refresh`, but also potentially out-of-date.
+            # Since we don't have a stored copy of the concordances, we fetch CI's stored copy (so
+            # we can quickly return), and then call self.update_ci_concordances to make sure our stored
+            # copy is fully up-to-date.
+            response = requests.get(
+                "http://cantusindex.org/json-con/{}".format(self.cantus_id)
+            )
+            concordances = json.loads(response.text[2:])
+            concordance_chants = [c["chant"] for c in concordances]
+            t = threading.Thread(target=self.update_ci_concordances)
+            t.start()
+            return concordance_chants
+    
+    ci_concordances_cached = models.JSONField(blank=True, null=True)
+
+    def update_ci_concordances(self):
+        # making a request with `/refresh` at the end asks CI to update its concordances
+        response = requests.get(
+            "http://cantusindex.org/json-con/{}/refresh".format(self.cantus_id)
+        )
+        concordances = json.loads(response.text[2:])
+        # response.text is an array of JSON objects. Each has a single
+        # key, ["chant"], pointing to a nested object. We only need the
+        # nested object. 
+        concordance_chants = [c["chant"] for c in concordances]
+        self.ci_concordances_cached = concordance_chants
+        self.save()
 
 
     def get_ci_url(self) -> str:

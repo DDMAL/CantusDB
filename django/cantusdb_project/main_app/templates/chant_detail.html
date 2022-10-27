@@ -220,43 +220,43 @@
                         </tr>
                     </thead>
                     <tbody>
-                        {% for chant in concordances %}
+                        {% for c in concordances %}
                             <tr>
                                 <td>
-                                    <a href="{{ chant.srclink }}" target="_blank">
-                                    {{ chant.siglum }}
+                                    <a href="{{ c.srclink }}" target="_blank">
+                                    {{ c.siglum }}
                                     </a>
                                 </td>
                                 <td>
-                                    {{ chant.folio }}
+                                    {{ c.folio }}
                                 </td>
                                 <td>
-                                    <a href="{{ chant.chantlink }}" target="_blank">
-                                        {{ chant.incipit }}
+                                    <a href="{{ c.chantlink }}" target="_blank">
+                                        {{ c.incipit }}
                                     </a>
                                 </td>
                                 <td>
-                                    {{ chant.office }}
+                                    {{ c.office }}
                                 </td>
                                 <td>
-                                    {{ chant.genre }}
+                                    {{ c.genre }}
                                 </td>
                                 <td>
-                                    {{ chant.position }}
+                                    {{ c.position }}
                                 </td>
                                 <td>
-                                    {{ chant.feast }}
+                                    {{ c.feast }}
                                 </td>
                                 <td>
-                                    {{ chant.mode }}
+                                    {{ c.mode }}
                                 </td>
                                 <td>
-                                    {% if chant.image %}
-                                        <a href="{{ chant.image }}" target="_blank">Image</a>
+                                    {% if c.image %}
+                                        <a href="{{ c.image }}" target="_blank">Image</a>
                                     {% endif %}
                                 </td>
                                 <td>
-                                    {{ chant.db }}
+                                    {{ c.db }}
                                 </td>
                             </tr>
                         {% endfor %}

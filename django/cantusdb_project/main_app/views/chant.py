@@ -91,30 +91,14 @@ class ChantDetailView(DetailView):
             context["syllabized_text_with_melody"] = word_zip
 
         # If chant has a cantus ID, Create table of concordances
-        if chant.cantus_id:
-            response = requests.get(
-                "http://cantusindex.org/json-con/{}".format(chant.cantus_id)
-            )
-            concordances = json.loads(response.text[2:])
-            
-            ######################################
-            ### create context["concordances"] ###
-            # (data to be unpacked in chant_detail.html to make concordances table)
-            
-            # response.text is an array of JSON objects. Each has a single
-            # key, ["chant"], pointing to a nested object. We only need the
-            # nested object. 
-            concordance_chants = [c["chant"] for c in concordances] 
-            context["concordances"] = concordance_chants
-
-            ##############################################
-            ### create context["concordances_summary"] ###
-            # (tally of how many concordances come from which databases)
+        concordances = chant.ci_concordances
+        context["concordances"] = concordances
+        if concordances:
             context["concordances_summary"] = ""
 
             # tally from all databases
             concordances_count = len(
-                concordance_chants
+                concordances
             )
             if concordances_count:
                 if concordances_count > 1:
@@ -127,7 +111,7 @@ class ChantDetailView(DetailView):
             # Cantus Database
             cd_count = len(
                 [
-                    True for c in concordance_chants
+                    True for c in concordances
                     if c["db"] == "CD"
                 ]
             )
@@ -150,7 +134,7 @@ class ChantDetailView(DetailView):
             # Fontes Cantus Bohemiae
             fcb_count = len(
                 [
-                    True for c in concordance_chants
+                    True for c in concordances
                     if c["db"] == "FCB"
                 ]
             )
@@ -173,7 +157,7 @@ class ChantDetailView(DetailView):
             # Medieval Music Manuscripts Online
             mmmo_count = len(
                 [
-                    True for c in concordance_chants
+                    True for c in concordances
                     if c["db"] == "MMMO"
                 ]
             )
@@ -196,7 +180,7 @@ class ChantDetailView(DetailView):
             # Portuguese Early Music Database
             pem_count = len(
                 [
-                    True for c in concordance_chants
+                    True for c in concordances
                     if c["db"] == "PEM"
                 ]
             )
@@ -219,7 +203,7 @@ class ChantDetailView(DetailView):
             # Spanish Early Music Manuscripts
             semm_count = len( 
                 [
-                    True for c in concordance_chants
+                    True for c in concordances
                     if c["db"] == "SEMM"
                 ]
             )
@@ -242,7 +226,7 @@ class ChantDetailView(DetailView):
             # Cantus Planus in Polonia
             cpl_count = len(
                 [
-                    True for c in concordance_chants
+                    True for c in concordances
                     if c["db"] == "CPL"
                 ]
             )
@@ -265,7 +249,7 @@ class ChantDetailView(DetailView):
             # Hungarian Chant Database
             hcd_count = len(
                 [
-                    True for c in concordance_chants
+                    True for c in concordances
                     if c["db"] == "HCD"
                 ]
             )
@@ -288,7 +272,7 @@ class ChantDetailView(DetailView):
             # Slovak Early Music Database
             csk_count = len(
                 [
-                    True for c in concordance_chants
+                    True for c in concordances
                     if c["db"] == "CSK"
                 ]
             )
@@ -311,7 +295,7 @@ class ChantDetailView(DetailView):
             # Fragmenta Manuscriptorum Musicalium Hungariae
             frh_count = len(
                 [
-                    True for c in concordance_chants
+                    True for c in concordances
                     if c["db"] == "FRH"
                 ]
             )
@@ -346,19 +330,6 @@ class ChantDetailView(DetailView):
 
             if concordances_count:
                 context["concordances_summary"] += "</table><br>"
-
-            # http://cantusindex.org/json-con/{cantus_id} returns a cached
-            # copy of the concordances. Appending "/refresh" to the URL causes Cantus
-            # Index to recalculate the concordances, but this takes a few seconds.
-            # So, after fetching the cached version above, we make a call to
-            # http://cantusindex.org/json-con/{cantus_id}/refresh in a new thread,
-            # thus ensuring the current page doesn't take a long time to load, while also
-            # ensuring that concordances are up-to-date for future page loads.
-            t = threading.Thread(
-                target=requests.get,
-                args=[f"http://cantusindex.org/json-con/{chant.cantus_id}/refresh"]
-            )
-            t.start()
 
 
         # some chants don't have a source, for those chants, stop here without further calculating
