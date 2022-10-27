@@ -27,63 +27,55 @@
             </dd>
         {% endif %}
     </dl>
-    {% if user.inventoried_sources.all or user.entered_full_text_for_sources.all or user.entered_melody_for_sources.all or user.proofread_sources.all or user.edited_sources.all %}
+    {% if inventoried_sources or full_text_sources or melody_sources or proofread_sources or edited_sources %}
         <h4 id="sources">Sources</h4>
-        {% if user.inventoried_sources.all %}
+        {% if inventoried_sources %}
             <h5>Inventoried</h5>
             <ul>
-                {% for source in user.inventoried_sources.all|dictsort:"siglum" %}
+                {% for source in inventoried_sources %}
                     <li>
                         <a href="{{ source.get_absolute_url }}">{{ source.siglum }}</a> ({{ source.title }})
                     </li>
                 {% endfor %}
             </ul>
         {% endif %}
-        {% if user.entered_full_text_for_sources.all %}
+        {% if full_text_sources %}
             <h5>Entered Full Text</h5>
             <ul>
-                {% for source in user.entered_full_text_for_sources.all|dictsort:"siglum" %}
-                    {% if source.published %}
-                        <li>
-                            <a href="{{ source.get_absolute_url }}">{{ source.siglum }}</a> ({{ source.title }})
-                        </li>
-                    {% endif %}
+                {% for source in full_text_sources %}
+                    <li>
+                        <a href="{{ source.get_absolute_url }}">{{ source.siglum }}</a> ({{ source.title }})
+                    </li>
                 {% endfor %}
             </ul>
         {% endif %}
-        {% if user.entered_melody_for_sources.all %}
+        {% if melody_sources %}
             <h5>Entered Melodies</h5>
             <ul>
-                {% for source in user.entered_melody_for_sources.all|dictsort:"siglum" %}
-                    {% if source.published %}
-                        <li>
-                            <a href="{{ source.get_absolute_url }}">{{ source.siglum }}</a> ({{ source.title }})
-                        </li>
-                    {% endif %}
+                {% for source in melody_sources %}
+                    <li>
+                        <a href="{{ source.get_absolute_url }}">{{ source.siglum }}</a> ({{ source.title }})
+                    </li>
                 {% endfor %}
             </ul>
         {% endif %}
-        {% if user.proofread_sources.all %}
+        {% if proofread_sources %}
             <h5>Proofread</h5>
             <ul>
-                {% for source in user.proofread_sources.all|dictsort:"siglum" %}
-                    {% if source.published %}
-                        <li>
-                            <a href="{{ source.get_absolute_url }}">{{ source.siglum }}</a> ({{ source.title }})
-                        </li>
-                    {% endif %}
+                {% for source in proofread_sources %}
+                    <li>
+                        <a href="{{ source.get_absolute_url }}">{{ source.siglum }}</a> ({{ source.title }})
+                    </li>
                 {% endfor %}
             </ul>
         {% endif %}
-        {% if user.edited_sources.all %}
+        {% if edited_sources %}
             <h5>Edited</h5>
             <ul>
-                {% for source in user.edited_sources.all|dictsort:"siglum" %}
-                    {% if source.published %}
-                        <li>
-                            <a href="{{ source.get_absolute_url }}">{{ source.siglum }}</a> ({{ source.title }})
-                        </li>
-                    {% endif %}
+                {% for source in edited_sources %}
+                    <li>
+                        <a href="{{ source.get_absolute_url }}">{{ source.siglum }}</a> ({{ source.title }})
+                    </li>
                 {% endfor %}
             </ul>
         {% endif %}

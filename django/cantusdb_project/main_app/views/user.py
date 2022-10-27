@@ -22,6 +22,56 @@ class UserDetailView(DetailView):
     context_object_name = "user"
     template_name = "user_detail.html"
 
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        user = self.get_object()
+        display_unpublished = self.request.user.is_authenticated
+        sort_by_siglum = lambda source: source.siglum
+        if display_unpublished:
+            context["inventoried_sources"] = sorted(
+                user.inventoried_sources.all(),
+                key=sort_by_siglum
+            )
+            context["full_text_sources"] = sorted(
+                user.entered_full_text_for_sources.all(),
+                key=sort_by_siglum
+            )
+            context["melody_sources"] = sorted(
+                user.entered_melody_for_sources.all(),
+                key=sort_by_siglum
+            )
+            context["proofread_sources"] = sorted(
+                user.proofread_sources.all(),
+                key=sort_by_siglum
+            )
+            context["edited_sources"] = sorted(
+                user.edited_sources.all(),
+                key=sort_by_siglum
+            )
+        else:
+            context["inventoried_sources"] = sorted(
+                user.inventoried_sources.all().filter(published=True),
+                key=sort_by_siglum
+            )
+            context["full_text_sources"] = sorted(
+                user.entered_full_text_for_sources.all().filter(published=True),
+                key=sort_by_siglum
+            )
+            context["melody_sources"] = sorted(
+                user.entered_melody_for_sources.all().filter(published=True),
+                key=sort_by_siglum
+            )
+            context["proofread_sources"] = sorted(
+                user.proofread_sources.all().filter(published=True),
+                key=sort_by_siglum
+            )
+            context["edited_sources"] = sorted(
+                user.edited_sources.all().filter(published=True),
+                key=sort_by_siglum
+            )
+
+        return context
+
 class UserSourceListView(LoginRequiredMixin, ListView):
     model = Source
     context_object_name = "sources"
