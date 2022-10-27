@@ -2,6 +2,8 @@ from main_app.models import BaseModel
 from django.db import models
 from django.contrib.auth import get_user_model
 from django.contrib.postgres.search import SearchVectorField
+import threading
+import requests
 
 class BaseChant(BaseModel):
     """
@@ -122,6 +124,33 @@ class BaseChant(BaseModel):
     # dact = models.CharField(blank=True, null=True, max_length=64)
     # also a second differentia field
     
+    @property
+    def has_gregorien_page(self):
+        if self.gregorien_cached is not None:
+            # return previously stored value of gregorien_cached, and
+            # also update its value (in a new thread, so we don't have to wait
+            # for gregorien.info's response before returning)
+            t = threading.Thread(target=self.update_gregorien)
+            t.start()
+            return self.gregorien_cached
+        else: # gregorien_cached is None, i.e. we've never checked to see whether this chant has a gregorien.info page
+            self.update_gregorien()
+            return self.gregorien_cached
+    
+    gregorien_cached = models.BooleanField(blank=True, null=True)
+
+    def update_gregorien(self):
+        gregorien_response = requests.get(
+                "https://gregorien.info/chant/cid/{}/en".format(self.cantus_id)
+            )
+        if gregorien_response.status_code == 200:
+            self.gregorien_cached = True
+            self.save()
+        else:
+            self.gregorien_cached = False
+            self.save()
+
+
     def get_ci_url(self) -> str:
         """Construct the url to the entry in Cantus Index correponding to the chant.
 

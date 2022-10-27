@@ -332,12 +332,7 @@ class ChantDetailView(DetailView):
                 """
             
             # Gregorien.info
-            # check to see if the corresponding page exists. If it does, display
-            # links to gregorien.info in summary
-            gregorien_response = requests.get(
-                "https://gregorien.info/chant/cid/{}/en".format(chant.cantus_id)
-            )
-            if gregorien_response.status_code == 200:
+            if chant.has_gregorien_page:
                 context["concordances_summary"] += f"""
                     <tr>
                         <td>
