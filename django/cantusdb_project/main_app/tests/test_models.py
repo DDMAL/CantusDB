@@ -129,17 +129,17 @@ class ChantModelTest(TestCase):
         source2 = make_fake_source()
         current_folio = "555v"
         next_folio = "556r"
-        chant21 = make_fake_chant(
+        chant1 = make_fake_chant(
             source=source2,
             folio=current_folio,
             sequence_number=1,
         )
-        chant22 = make_fake_chant(
+        chant2 = make_fake_chant(
             source=source2,
             folio=next_folio,
             sequence_number=1,
         )
-        self.assertEqual(chant21.get_next_chant(), chant22)
+        self.assertEqual(chant1.get_next_chant(), chant2)
     
     def test_get_next_chant__one_numbered_page_to_the_next(self):
         source = make_fake_source()
@@ -180,24 +180,24 @@ class ChantModelTest(TestCase):
     def test_get_next_chant__collision(self):
         # if there are multiple chants with the same source, folio and sequence_number,
         # someone has messed up their data entry, and we should set next_chant to None
-        source4 = make_fake_source()
+        source = make_fake_source()
         current_folio = "444"
-        chant41 = make_fake_chant(
-            source=source4,
+        chant1 = make_fake_chant(
+            source=source,
             folio=current_folio,
             sequence_number=1,
         )
-        chant42a = make_fake_chant(
-            source=source4,
+        chant2a = make_fake_chant(
+            source=source,
             folio=current_folio,
             sequence_number=2,
         )
-        chant42b = make_fake_chant(
-            source=source4,
+        chant2b = make_fake_chant(
+            source=source,
             folio=current_folio,
             sequence_number=2,
         )
-        self.assertIsNone(chant41.get_next_chant())
+        self.assertIsNone(chant1.get_next_chant())
 
     def test_get_next_chant__lacuna(self):
         # if pages from a manuscript have been lost, the lacuna (gap) is often
