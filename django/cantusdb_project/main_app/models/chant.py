@@ -104,7 +104,7 @@ class Chant(BaseChant):
                 folio=self.folio,
                 sequence_number=self.sequence_number + 1,
             )
-        except Chant.DoesNotExist: # i.e. no chant with the subsequent sequence number
+        except Chant.DoesNotExist: # i.e. no chant with the subsequent sequence number on same folio
             
             # check to see whether there are more chants on this folio after a gap that must be skipped
             # e.g. situation with several sequential chants on a folio, followed by a lacuna with sequence_number 99
