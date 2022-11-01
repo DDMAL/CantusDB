@@ -199,13 +199,12 @@ class ChantModelTest(TestCase):
         )
         self.assertIsNone(chant41.get_next_chant())
 
-    def test_get_next_chant__lacuna_full_page(self):
-        # if a page is illegible, the lacuna (gap) is often given a sequence_number of 99.
-        # if the lacuna is the first "chant" on next_folio, get_next_chant() should find it. 
+    def test_get_next_chant__lacuna(self):
+        # if pages from a manuscript have been lost, the lacuna (gap) is often
+        # assigned to the previous folio and given a sequence_number of 99.
         source = make_fake_source()
-        first_folio = "500r"
-        second_folio = "500v"
-        third_folio = "501r"
+        first_folio = "500v"
+        second_folio = "501r"
         chant1 = make_fake_chant(
             source=source,
             folio=first_folio,
@@ -213,13 +212,13 @@ class ChantModelTest(TestCase):
         )
         lacuna = make_fake_chant(
             source=source,
-            folio=second_folio,
+            folio=first_folio,
             sequence_number=99,
             manuscript_full_text_std_spelling="LACUNA",
         )
         chant3 = make_fake_chant(
             source=source,
-            folio=third_folio,
+            folio=second_folio,
             sequence_number=1
         )
         self.assertEqual(chant1.get_next_chant(), lacuna)
