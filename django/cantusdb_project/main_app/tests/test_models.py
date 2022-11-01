@@ -109,6 +109,38 @@ class ChantModelTest(TestCase):
         )
         self.assertEqual(chant1.get_next_chant(), chant2)
     
+    def test_get_next_chant__recto_to_verso(self):
+        source = make_fake_source()
+        current_folio = "001r"
+        next_folio = "001v"
+        chant1 = make_fake_chant(
+            source=source,
+            folio=current_folio,
+            sequence_number=1,
+        )
+        chant2 = make_fake_chant(
+            source=source,
+            folio=next_folio,
+            sequence_number=1,
+        )
+        self.assertEqual(chant1.get_next_chant(), chant2)
+
+    def test_get_next_chant__verso_to_recto(self):
+        source2 = make_fake_source()
+        current_folio = "555v"
+        next_folio = "556r"
+        chant21 = make_fake_chant(
+            source=source2,
+            folio=current_folio,
+            sequence_number=1,
+        )
+        chant22 = make_fake_chant(
+            source=source2,
+            folio=next_folio,
+            sequence_number=1,
+        )
+        self.assertEqual(chant21.get_next_chant(), chant22)
+    
     def test_get_next_chant__one_numbered_page_to_the_next(self):
         source = make_fake_source()
         current_folio = "004"
@@ -144,38 +176,6 @@ class ChantModelTest(TestCase):
             sequence_number=98,
         )
         self.assertIsNone(chant2.get_next_chant())
-    
-    def test_get_next_chant__recto_to_verso(self):
-        source = make_fake_source()
-        current_folio = "001r"
-        next_folio = "001v"
-        chant1 = make_fake_chant(
-            source=source,
-            folio=current_folio,
-            sequence_number=1,
-        )
-        chant2 = make_fake_chant(
-            source=source,
-            folio=next_folio,
-            sequence_number=1,
-        )
-        self.assertEqual(chant1.get_next_chant(), chant2)
-
-    def test_get_next_chant__verso_to_recto(self):
-        source2 = make_fake_source()
-        current_folio = "555v"
-        next_folio = "556r"
-        chant21 = make_fake_chant(
-            source=source2,
-            folio=current_folio,
-            sequence_number=1,
-        )
-        chant22 = make_fake_chant(
-            source=source2,
-            folio=next_folio,
-            sequence_number=1,
-        )
-        self.assertEqual(chant21.get_next_chant(), chant22)
 
     def test_get_next_chant__collision(self):
         # if there are multiple chants with the same source, folio and sequence_number,
