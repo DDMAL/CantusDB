@@ -94,44 +94,74 @@ class ChantModelTest(TestCase):
         seq_fields = Sequence.get_fields_and_properties()
         self.assertEqual(chant_fields, seq_fields)
 
-    def test_get_next_chant(self):
-        source0 = make_fake_source()
+    def test_get_next_chant__same_folio_next_sequence_number(self):
+        source = make_fake_source()
         current_folio = "001"
-        next_folio = "002"
-        chant01 = make_fake_chant(
-            source=source0,
+        chant1 = make_fake_chant(
+            source=source,
             folio=current_folio,
             sequence_number=1,
         )
-        chant02 = make_fake_chant(
-            source=source0,
+        chant2 = make_fake_chant(
+            source=source,
             folio=current_folio,
             sequence_number=2,
         )
-        chant03 = make_fake_chant(
-            source=source0,
-            folio=next_folio,
-            sequence_number=1,
-        )
-        self.assertEqual(chant01.get_next_chant(), chant02)
-        self.assertEqual(chant02.get_next_chant(), chant03)
-        self.assertIsNone(chant03.get_next_chant()) # i.e. last chant in source
-
-        source1 = make_fake_source()
-        current_folio = "001r"
-        next_folio = "001v"
-        chant11 = make_fake_chant(
-            source=source1,
+        self.assertEqual(chant1.get_next_chant(), chant2)
+    
+    def test_get_next_chant__one_numbered_page_to_the_next(self):
+        source = make_fake_source()
+        current_folio = "004"
+        next_folio = "005"
+        chant1 = make_fake_chant(
+            source=source,
             folio=current_folio,
             sequence_number=1,
         )
-        chant12 = make_fake_chant(
-            source=source1,
+        chant2 = make_fake_chant(
+            source=source,
+            folio=current_folio,
+            sequence_number=2,
+        )
+        chant3 = make_fake_chant(
+            source=source,
             folio=next_folio,
             sequence_number=1,
         )
-        self.assertEqual(chant11.get_next_chant(), chant12)
+        self.assertEqual(chant2.get_next_chant(), chant3)
+    
+    def test_get_next_chant__last_chant_in_manuscript(self):
+        source = make_fake_source()
+        current_folio = "999r"
+        chant1 = make_fake_chant(
+            source=source,
+            folio=current_folio,
+            sequence_number=97,
+        )
+        chant2 = make_fake_chant(
+            source=source,
+            folio=current_folio,
+            sequence_number=98,
+        )
+        self.assertIsNone(chant2.get_next_chant())
+    
+    def test_get_next_chant__recto_to_verso(self):
+        source = make_fake_source()
+        current_folio = "001r"
+        next_folio = "001v"
+        chant1 = make_fake_chant(
+            source=source,
+            folio=current_folio,
+            sequence_number=1,
+        )
+        chant2 = make_fake_chant(
+            source=source,
+            folio=next_folio,
+            sequence_number=1,
+        )
+        self.assertEqual(chant1.get_next_chant(), chant2)
 
+    def test_get_next_chant__verso_to_recto(self):
         source2 = make_fake_source()
         current_folio = "555v"
         next_folio = "556r"
@@ -147,21 +177,9 @@ class ChantModelTest(TestCase):
         )
         self.assertEqual(chant21.get_next_chant(), chant22)
 
-        source3 = make_fake_source()
-        current_folio = "555"
-        next_folio = "556"
-        chant31 = make_fake_chant(
-            source=source3,
-            folio=current_folio,
-            sequence_number=1,
-        )
-        chant32 = make_fake_chant(
-            source=source3,
-            folio=next_folio,
-            sequence_number=1,
-        )
-        self.assertEqual(chant31.get_next_chant(), chant32)
-
+    def test_get_next_chant__collision(self):
+        # if there are multiple chants with the same source, folio and sequence_number,
+        # someone has messed up their data entry, and we should set next_chant to None
         source4 = make_fake_source()
         current_folio = "444"
         chant41 = make_fake_chant(
@@ -174,38 +192,37 @@ class ChantModelTest(TestCase):
             folio=current_folio,
             sequence_number=2,
         )
-        chant42a = make_fake_chant(
+        chant42b = make_fake_chant(
             source=source4,
             folio=current_folio,
             sequence_number=2,
         )
-        # if there are multiple chants with the same source, folio and sequence_number,
-        # someone has messed up their data entry, and we should set next_chant to None
         self.assertIsNone(chant41.get_next_chant())
 
-        source5 = make_fake_source()
+    def test_get_next_chant__lacuna(self):
+        # if a page is illegible, the lacuna (gap) is often given a sequence_number of 99.
+        # if the lacuna is the first "chant" on next_folio, get_next_chant() should find it. 
+        source = make_fake_source()
         first_folio = "500r"
         second_folio = "500v"
         third_folio = "501r"
-        chant51 = make_fake_chant(
-            source=source4,
+        chant1 = make_fake_chant(
+            source=source,
             folio=first_folio,
             sequence_number=51,
         )
         lacuna = make_fake_chant(
-            source=source4,
+            source=source,
             folio=second_folio,
             sequence_number=99,
         )
-        chant53 = make_fake_chant(
-            source=source5,
+        chant3 = make_fake_chant(
+            source=source,
             folio=third_folio,
             sequence_number=1
         )
-        # if a page is illegible, the lacuna (gap) is often given a sequence_number of 99.
-        # if the lacuna is the first "chant" on next_folio, get_next_chant() should find it. 
-        self.assertEqual(chant51.get_next_chant(), lacuna)
-        self.assertEqual(lacuna.get_next_chant(), chant53)
+        self.assertEqual(chant1.get_next_chant(), lacuna)
+        self.assertEqual(lacuna.get_next_chant(), chant3)
 
 
 class FeastModelTest(TestCase):
