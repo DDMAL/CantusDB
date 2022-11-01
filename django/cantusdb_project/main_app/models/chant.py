@@ -104,20 +104,34 @@ class Chant(BaseChant):
                 folio=self.folio,
                 sequence_number=self.sequence_number + 1,
             )
-        except Chant.DoesNotExist: # i.e. it's the last chant on the folio
-            chants_next_folio = Chant.objects.filter(
-                source=self.source, folio=get_next_folio(self.folio)
+        except Chant.DoesNotExist: # i.e. no chant with the subsequent sequence number
+            
+            # check to see whether there are more chants on this folio after a gap that must be skipped
+            # e.g. situation with several sequential chants on a folio, followed by a lacuna with sequence_number 99
+            subsequent_chants_this_folio = Chant.objects.filter(
+                source=self.source,
+                folio=self.folio,
+                sequence_number__gt=self.sequence_number,
             ).order_by("sequence_number")
-            try:
-                next_chant = chants_next_folio[0]
-            except AttributeError: # i.e. next folio is None
-                return None
-            except Chant.DoesNotExist: # i.e. next folio contains no chants (I think?)
-                return None
-            except IndexError: # i.e. next folio contains no chants (I think?)
-                return None
-            except ValueError: # i.e. next folio contains no chants
-                next_chant = None
+            if len(subsequent_chants_this_folio) >= 1:
+                next_chant = subsequent_chants_this_folio[0]
+            
+            # no more chant on this folio, so get the first chant on the next folio
+            else:
+                chants_next_folio = Chant.objects.filter(
+                    source=self.source,
+                    folio=get_next_folio(self.folio),
+                ).order_by("sequence_number")
+                try:
+                    next_chant = chants_next_folio[0]
+                except AttributeError: # i.e. next folio is None
+                    return None
+                except Chant.DoesNotExist: # i.e. next folio contains no chants (I think?)
+                    return None
+                except IndexError: # i.e. next folio contains no chants (I think?)
+                    return None
+                except ValueError: # i.e. next folio contains no chants
+                    next_chant = None
         except Chant.MultipleObjectsReturned: # i.e. multiple chants have the same source, folio and sequence_number
                                               # for example, the two chants on folio h001r sequence_number 1, in source with ID 123753 
             next_chant = None
