@@ -16,7 +16,6 @@ from main_app.models import (
     Sequence,
     Source
 )
-from main_app.forms import ContactForm
 from django.core.mail import send_mail, get_connection
 from django.contrib.auth.decorators import login_required, user_passes_test
 from next_chants import next_chants
@@ -255,67 +254,18 @@ def csv_export(request, source_id):
     return response
 
 
-def contact_us(request):
+def contact(request):
     """
-    Function-based view that renders a contact form, access with ``contact``
+    Function-based view that renders the contact page ``contact``
 
     Args:
         request (request): The request
 
     Returns:
-        HttpResponse: Render the contact form
+        HttpResponse: Render the contact page
     """
-    # submitted = False
-    if request.method == "GET":
-        skill_testing_questions = (
-            "_antusdatabase",
-            "c_ntusdatabase",
-            "ca_tusdatabase",
-            "can_usdatabase",
-            "cant_sdatabase",
-            "cantu_database",
-            "cantus_atabase",
-            "cantusd_tabase",
-            "cantusda_abase",
-            "cantusdat_base",
-            "cantusdata_ase",
-            "cantusdatab_se",
-            "cantusdataba_e",
-            "cantusdatabas_",
-        )
-        skill_testing_question = random.choice(skill_testing_questions)
-        form = ContactForm()
-        return render(request, "contact_form.html", {"form": form,
-                "skill_testing_question": skill_testing_question,
-            }
-        )
-    elif request.method == "POST":
-        form = ContactForm(request.POST)
-        if form.is_valid():
-            st_question = request.POST.get("hidden_skill_testing_question")
-            name = form.cleaned_data["name"]
-            sender_email = form.cleaned_data["sender_email"]
-            subject = form.cleaned_data["subject"]
-            message = form.cleaned_data["message"]
-            send_yourself_email = form.cleaned_data["send_yourself_email"]
-            skill_test_response = form.cleaned_data["skill_testing_response"]
-            # when changing recipients into a real email address, write it as an env variable
-            recipients = ["info@test.com"]
-
-            connection = get_connection(
-                "django.core.mail.backends.console.EmailBackend"
-                # "django.core.mail.backends.smtp.EmailBackend"
-            )
-            if st_question.replace("_", skill_test_response) == "cantusdatabase":
-                # to implement eventually:
-                #   the "name" field is currently not used
-                #   the send_yourself_copy field is currently not used
-                send_mail(subject, message, sender_email, recipients, connection=connection)
-                messages.success(request, "Email successfully sent!")
-                return HttpResponseRedirect("/contact")
-            else:
-                messages.error(request, "Incorrect missing character provided.")
-                return HttpResponseRedirect("/contact")
+    return render(request, 'contact.html')
+    
 
 
 def ajax_melody_search(request):
