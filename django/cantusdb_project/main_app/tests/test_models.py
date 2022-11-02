@@ -145,37 +145,27 @@ class ChantModelTest(TestCase):
         source = make_fake_source()
         current_folio = "004"
         next_folio = "005"
-        chant1 = make_fake_chant(
-            source=source,
-            folio=current_folio,
-            sequence_number=1,
-        )
-        chant2 = make_fake_chant(
+        end_of_page_chant = make_fake_chant(
             source=source,
             folio=current_folio,
             sequence_number=2,
         )
-        chant3 = make_fake_chant(
+        beginning_of_next_page_chant = make_fake_chant(
             source=source,
             folio=next_folio,
             sequence_number=1,
         )
-        self.assertEqual(chant2.get_next_chant(), chant3)
+        self.assertEqual(end_of_page_chant.get_next_chant(), beginning_of_next_page_chant)
     
     def test_get_next_chant__last_chant_in_manuscript(self):
         source = make_fake_source()
-        current_folio = "999r"
-        chant1 = make_fake_chant(
+        last_folio_in_ms = "999r"
+        last_chant_in_ms = make_fake_chant(
             source=source,
-            folio=current_folio,
-            sequence_number=97,
-        )
-        chant2 = make_fake_chant(
-            source=source,
-            folio=current_folio,
+            folio=last_folio_in_ms,
             sequence_number=98,
         )
-        self.assertIsNone(chant2.get_next_chant())
+        self.assertIsNone(last_chant_in_ms.get_next_chant())
 
     def test_get_next_chant__collision(self):
         # if there are multiple chants with the same source, folio and sequence_number,
