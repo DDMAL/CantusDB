@@ -1206,9 +1206,9 @@ class ChantIndexView(TemplateView):
 
         # 4064 is the id for the sequence database
         if source.segment.id == 4064:
-            queryset = source.sequence_set.order_by("id")
+            queryset = source.sequence_set.order_by("folio", "sequence_number")
         else:
-            queryset = source.chant_set.order_by("id")
+            queryset = source.chant_set.order_by("folio", "sequence")
 
         context["source"] = source
         context["chants"] = queryset

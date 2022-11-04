@@ -50,7 +50,7 @@
                         `default`: use the given default if the value evaluates to False
                         `default_if_none`: use the given default only if the value is None
                     {% endcomment %}
-                    <td>{{ chant.siglum|default_if_none:"" }}</td>
+                    <td>{{ chant.source.siglum|default_if_none:"" }}</td>
                     <td>{{ chant.marginalia|default_if_none:"" }}</td>
                     <td>{{ chant.folio|default_if_none:"" }}</td>
                     <td>{{ chant.sequence_number|default_if_none:"" }}</td>
