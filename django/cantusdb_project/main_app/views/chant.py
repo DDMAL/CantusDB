@@ -705,6 +705,7 @@ class ChantSearchView(ListView):
             if self.request.GET.get("genre"):
                 genre_id = int(self.request.GET.get("genre"))
                 q_obj_filter &= Q(genre__id=genre_id)
+
             if self.request.GET.get("cantus_id"):
                 cantus_id = self.request.GET.get("cantus_id")
                 q_obj_filter &= Q(cantus_id__icontains=cantus_id)
@@ -726,6 +727,34 @@ class ChantSearchView(ListView):
                 # as a substring
                 feasts = Feast.objects.filter(name__icontains=feast)
                 q_obj_filter &= Q(feast__in=feasts)
+            if self.request.GET.get('order'):
+                if self.request.GET.get('order') == 'siglum':
+                    order = 'siglum'
+                elif self.request.GET.get('order') == 'incipit':
+                    order = 'incipit'
+                elif self.request.GET.get('order') == 'office':
+                    order = 'office'
+                elif self.request.GET.get('order') == 'genre':
+                    order = 'genre'
+                elif self.request.GET.get('order') == 'cantus_id':
+                    order = 'cantus_id'
+                elif self.request.GET.get('order') == 'mode':
+                    order = 'mode'
+                elif self.request.GET.get('order') == 'has_fulltext':
+                    order = 'manuscript_full_text'
+                elif self.request.GET.get('order') == 'has_melody':
+                    order = 'volpiano'
+                elif self.request.GET.get('order') == 'has_image':
+                    order = 'image_link'
+                else:
+                    order = 'siglum'
+            else:
+                order = 'siglum'
+            if self.request.GET.get('sort'):
+                if self.request.GET.get('sort') == "asc":
+                    order = order
+                elif self.request.GET.get('sort') == 'desc':
+                    order = "-" + order
             if not display_unpublished:
                 chant_set = Chant.objects.filter(source__published=True)
                 sequence_set = Sequence.objects.filter(source__published=True)
@@ -748,10 +777,7 @@ class ChantSearchView(ListView):
 
             # once unioned, the queryset cannot be filtered/annotated anymore, so we put union to the last
             queryset = chant_set.union(sequence_set)
-            # ordering with the folio string gives wrong order
-            # old cantus is also not strictly ordered by folio (there are outliers)
-            # so we order by id for now, which is the order that the chants are entered into the DB
-            queryset = queryset.order_by("siglum", "id")
+            queryset = queryset.order_by(order, "id")
 
         return queryset
 
