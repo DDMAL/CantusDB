@@ -789,7 +789,7 @@ class ChantSearchView(ListView):
                 elif self.request.GET.get('order') == 'has_fulltext':
                     order = 'manuscript_full_text'
                 elif self.request.GET.get('order') == 'has_melody':
-                    order = 'volpiano__isnull'
+                    order = 'volpiano'
                 elif self.request.GET.get('order') == 'has_image':
                     order = 'image_link'
                 else:

@@ -8,7 +8,7 @@
     <object align="right">
         {% include "global_search_bar.html" %}
     </object>
-    <h3>Search Chants - {{ url_with_search_params }} - Order: {{ order }}; Sort: {{ sort }}</h3>
+    <h3>Search Chants</h3>
     {% if source %}
         <b>Searching in source: <a href="{{ source.get_absolute_url }}" target="_blank">{{ source.title }}</a></b>
     {% endif %}
@@ -171,14 +171,14 @@
                             {% endif %}
                         </th>
                         <th scope="col" class="text-wrap" style="text-align:center">
-                            {% if order == "has_volpiano" %}
+                            {% if order == "has_melody" %}
                                 {% if sort == "desc" %}
-                                    <a href="{{ url_with_search_params }}&order=has_volpiano&sort=asc">Mel</a> ▼
+                                    <a href="{{ url_with_search_params }}&order=has_melody&sort=asc">Mel</a> ▼
                                 {% else %}
-                                    <a href="{{ url_with_search_params }}&order=has_volpiano&sort=desc">Mel</a> ▲
+                                    <a href="{{ url_with_search_params }}&order=has_melody&sort=desc">Mel</a> ▲
                                 {% endif %}
                             {% else %}
-                                <a href="{{ url_with_search_params }}&order=has_volpiano&sort=asc">Mel</a>
+                                <a href="{{ url_with_search_params }}&order=has_melody&sort=asc">Mel</a>
                             {% endif %}
                         </th>
                         <th scope="col" class="text-wrap" style="text-align:center">
