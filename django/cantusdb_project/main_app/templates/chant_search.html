@@ -84,7 +84,7 @@
             <table class="table table-sm small table-bordered">
                 <thead>
                     <tr>
-                        <th scope="col" class="text-wrap" style="text-align:center" title="Unique identifier for the manuscript that contains the chant">
+                        <th scope="col" class="text-wrap" style="text-align:center">
                             {% if order == "siglum" %}
                                 {% if sort == "desc" %}
                                     <a href="{{ url_with_search_params }}&order=siglum&sort=asc">Siglum</a> ▼
@@ -159,7 +159,7 @@
                                 <a href="{{ url_with_search_params }}&order=mode&sort=asc">Mode</a>
                             {% endif %}
                         </th>
-                        <th scope="col" class="text-wrap" style="text-align:center" title="Chant record includes Manuscript Full Text">
+                        <th scope="col" class="text-wrap" style="text-align:center">
                             {% if order == "has_fulltext" %}
                                 {% if sort == "desc" %}
                                     <a href="{{ url_with_search_params }}&order=has_fulltext&sort=asc">MsFt</a> ▼
@@ -170,7 +170,7 @@
                                 <a href="{{ url_with_search_params }}&order=has_fulltext&sort=asc">MsFt</a>
                             {% endif %}
                         </th>
-                        <th scope="col" class="text-wrap" style="text-align:center" title="Chant record has Volpiano melody">
+                        <th scope="col" class="text-wrap" style="text-align:center">
                             {% if order == "has_volpiano" %}
                                 {% if sort == "desc" %}
                                     <a href="{{ url_with_search_params }}&order=has_volpiano&sort=asc">Mel</a> ▼
@@ -239,12 +239,12 @@
                             </td>
                             <td class="text-wrap" style="text-align:center">
                                 {% if chant.manuscript_full_text %}
-                                    ✔
+                                    <span title="Chant record includes Manuscript Full Text">✔</span>
                                 {% endif %}
                             </td>
                             <td class="text-wrap" style="text-align:center">
                                 {% if chant.volpiano %}
-                                    ♫
+                                    <span title="Chant record has Volpiano melody">♫</span>
                                 {% endif %}
                             </td>
                             <td class="text-wrap" style="text-align:center">
