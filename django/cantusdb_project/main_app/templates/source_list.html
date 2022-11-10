@@ -87,8 +87,8 @@
                         {{ source.summary|default:""|truncatechars_html:140 }}
                     </td>
                     <td class="text-wrap" style="text-align:center">
-                        {{ source.century.first.name }}<br>
-                        {{ source.provenance.name|default:"" }}
+                        <b><a href="{{ source.century.first.get_absolute_url }}">{{ source.century.first.name }}</a></b><br>
+                        <a href="{{ source.provenance.get_absolute_url }}">{{ source.provenance.name|default:"" }}</a>
                     </td>
                     <td class="text-wrap" style="text-align:center">
                         {% if source.image_link %}
