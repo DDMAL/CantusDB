@@ -335,7 +335,7 @@ class ChantDetailView(DetailView):
             # check to see if the corresponding page exists. If it does, display
             # links to gregorien.info in summary
             gregorien_response = requests.get(
-                "http://cantusindex.org/json-con/{}".format(chant.cantus_id)
+                "https://gregorien.info/chant/cid/{}/en".format(chant.cantus_id)
             )
             if gregorien_response.status_code == 200:
                 context["concordances_summary"] += f"""
@@ -1206,9 +1206,9 @@ class ChantIndexView(TemplateView):
 
         # 4064 is the id for the sequence database
         if source.segment.id == 4064:
-            queryset = source.sequence_set.order_by("id")
+            queryset = source.sequence_set.order_by("folio", "sequence_number")
         else:
-            queryset = source.chant_set.order_by("id")
+            queryset = source.chant_set.order_by("folio", "sequence")
 
         context["source"] = source
         context["chants"] = queryset

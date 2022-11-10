@@ -10,12 +10,12 @@ from main_app.views.provenance import ProvenanceDetailView
 from main_app.views.user import UserDetailView, UserSourceListView, CustomLogoutView, UserListView, CustomLoginView
 
 urlpatterns = [
-    path("contact/", views.contact_us, name="contact"),
+    path("contact/", views.contact, name="contact"),
     # login/logout/user
     path('login/', CustomLoginView.as_view(redirect_authenticated_user=True), name="login"),
     path('logout/', CustomLogoutView.as_view(), name="logout"),
     path("my-sources/", UserSourceListView.as_view(), name="my-sources"),
-    path("users/<int:pk>", UserDetailView.as_view(), name="user-detail"),
+    path("user/<int:pk>", UserDetailView.as_view(), name="user-detail"),
     path("users/", UserListView.as_view(), name="user-list"),
     path("change-password/", views.change_password, name="change-password"),
     # century

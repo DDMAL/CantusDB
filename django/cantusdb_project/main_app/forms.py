@@ -136,14 +136,6 @@ class ChantCreateForm(forms.ModelForm):
     incipit = forms.CharField(required=False)
 
 
-class ContactForm(forms.Form):
-    name = forms.CharField(max_length=100)
-    sender_email = forms.EmailField()
-    subject = forms.CharField(max_length=100)
-    message = forms.CharField(widget=forms.Textarea)
-    skill_testing_response = forms.CharField(max_length=1)
-    send_yourself_copy = forms.BooleanField(widget=CheckboxWidget, required=False)
-
 class SourceCreateForm(forms.ModelForm):
     class Meta:
         model = Source
