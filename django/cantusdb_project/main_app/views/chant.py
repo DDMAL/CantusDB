@@ -664,6 +664,52 @@ class ChantSearchView(ListView):
         context = super().get_context_data(**kwargs)
         # Add to context a QuerySet of dicts with id and name of each Genre
         context["genres"] = Genre.objects.all().order_by("name").values("id", "name")
+        context["order"] = self.request.GET.get("order")
+        context["sort"] = self.request.GET.get("sort")
+
+        # build a url containing all the search parameters, excluding ordering parameters.
+        # this way, when someone clicks on a column heading, we can append the ordering parameters
+        # while retaining the search parameters
+        current_url = self.request.path
+        search_parameters = []
+
+        search_op = self.request.GET.get('op')
+        if search_op:
+            search_parameters.append(f"op={search_op}")
+        search_keyword = self.request.GET.get('keyword')
+        if search_keyword:
+            search_parameters.append(f"keyword={search_keyword}")
+        search_office = self.request.GET.get('office')
+        if search_office:
+            search_parameters.append(f'office={search_office}')
+        search_genre = self.request.GET.get('genre')
+        if search_genre:
+            search_parameters.append(f'genre={search_genre}')
+        search_cantus_id = self.request.GET.get('cantus_id')
+        if search_cantus_id:
+            search_parameters.append(f'cantus_id={search_cantus_id}')
+        search_mode = self.request.GET.get('mode')
+        if search_mode:
+            search_parameters.append(f'mode={search_mode}')
+        search_feast = self.request.GET.get('feast')
+        if search_feast:
+            search_parameters.append(f'feast={search_feast}')
+        search_position = self.request.GET.get('position')
+        if search_position:
+            search_parameters.append(f'position={search_position}')
+        search_melodies = self.request.GET.get('melodies')
+        if search_melodies:
+            search_parameters.append(f'melodies={search_melodies}')
+
+        if search_parameters:
+            joined_search_parameters = "&".join(search_parameters)
+            url_with_search_params = current_url + "?" + joined_search_parameters
+        else:
+            url_with_search_params = current_url + "?"
+            
+        context["url_with_search_params"] = url_with_search_params
+        print(self.request)
+
         return context
 
     def get_queryset(self) -> QuerySet:
@@ -705,6 +751,7 @@ class ChantSearchView(ListView):
             if self.request.GET.get("genre"):
                 genre_id = int(self.request.GET.get("genre"))
                 q_obj_filter &= Q(genre__id=genre_id)
+
             if self.request.GET.get("cantus_id"):
                 cantus_id = self.request.GET.get("cantus_id")
                 q_obj_filter &= Q(cantus_id__icontains=cantus_id)
@@ -726,6 +773,34 @@ class ChantSearchView(ListView):
                 # as a substring
                 feasts = Feast.objects.filter(name__icontains=feast)
                 q_obj_filter &= Q(feast__in=feasts)
+            if self.request.GET.get('order'):
+                if self.request.GET.get('order') == 'siglum':
+                    order = 'siglum'
+                elif self.request.GET.get('order') == 'incipit':
+                    order = 'incipit'
+                elif self.request.GET.get('order') == 'office':
+                    order = 'office'
+                elif self.request.GET.get('order') == 'genre':
+                    order = 'genre'
+                elif self.request.GET.get('order') == 'cantus_id':
+                    order = 'cantus_id'
+                elif self.request.GET.get('order') == 'mode':
+                    order = 'mode'
+                elif self.request.GET.get('order') == 'has_fulltext':
+                    order = 'manuscript_full_text'
+                elif self.request.GET.get('order') == 'has_melody':
+                    order = 'volpiano'
+                elif self.request.GET.get('order') == 'has_image':
+                    order = 'image_link'
+                else:
+                    order = 'siglum'
+            else:
+                order = 'siglum'
+            if self.request.GET.get('sort'):
+                if self.request.GET.get('sort') == "asc":
+                    order = order
+                elif self.request.GET.get('sort') == 'desc':
+                    order = "-" + order
             if not display_unpublished:
                 chant_set = Chant.objects.filter(source__published=True)
                 sequence_set = Sequence.objects.filter(source__published=True)
@@ -748,10 +823,7 @@ class ChantSearchView(ListView):
 
             # once unioned, the queryset cannot be filtered/annotated anymore, so we put union to the last
             queryset = chant_set.union(sequence_set)
-            # ordering with the folio string gives wrong order
-            # old cantus is also not strictly ordered by folio (there are outliers)
-            # so we order by id for now, which is the order that the chants are entered into the DB
-            queryset = queryset.order_by("siglum", "id")
+            queryset = queryset.order_by(order, "id")
 
         return queryset
 
