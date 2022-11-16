@@ -1,30 +1,76 @@
-{% extends "base.html" %}
-{% block content %}
-<title>Search Chants | Cantus Manuscript Database</title>
-<script src="/static/js/chant_search.js"></script>
+<!DOCTYPE html>
+{% load static %}
+<html lang="en">
+<head>
+    <title>Search Chants (Printer-Friendly) | Cantus Manuscript Database</title>
+    
+    <!-- Required meta tags -->
+    <meta name="robots" content="noindex">
+    <meta name="google-site-verification" content="EwxpNpZ_ZOQnetVVLELGn5-aD_beT3EQqUuI6glkArI" />
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, 
+    initial-scale=1, shrink-to-fit=no">
+
+    <link rel="icon" href="{% static "favicon.ico" %}">
+
+    <!-- Bootstrap CSS -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@4.6.2/dist/css/bootstrap.min.css" integrity="sha384-xOolHFLEh07PJGoPkLv1IbcEPTNtaed2xpHsD9ESMhqIYd0nLMwNLD69Npy4HI+N" crossorigin="anonymous">
+
+    <!-- font-awesome CSS for icons -->
+    <link href="https://maxcdn.bootstrapcdn.com/font-awesome/4.7.0/css/font-awesome.min.css" rel="stylesheet">
+
+    <!-- JS, Popper.js, and jQuery -->
+    <script src="https://cdn.jsdelivr.net/npm/jquery@3.5.1/dist/jquery.slim.min.js" integrity="sha384-DfXdz2htPH0lsSSs5nCTpuj/zy4C+OGpamoFVy38MVBnE+IbbVYUew+OrCXaRkfj" crossorigin="anonymous"></script>
+    <script src="https://cdn.jsdelivr.net/npm/popper.js@1.16.1/dist/umd/popper.min.js" integrity="sha384-9/reFTGAW83EW2RDu2S0VKaIzap3H66lZH81PoYlFhbGU+6BZp6G7niu735Sk7lN" crossorigin="anonymous"></script>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@4.6.2/dist/js/bootstrap.min.js" integrity="sha384-+sLIOodYLS7CIrQpBjl+C7nPvqq+FbNUBDunl/OZv93DB7Ln/533i8e/mZXLi/P+" crossorigin="anonymous"></script>
+
+    <script src="/static/js/chant_search.js"></script>
+    <style>
+        html {
+            position: relative;
+            min-height: 90%;
+        }
+
+        body {
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 0 15px;
+            height: 100%;
+        }
+
+        a {
+            color: rgb(100,100,100);
+        }
+
+        a:hover {
+            color: rgb(200,200,200);
+            text-decoration: none;
+        }
+
+        table {
+            padding: 0px;
+            font-size: 70%;
+            line-height: normal;
+        }
+
+        table, th, td {
+            border: 1px solid;
+        }
+    </style>
+    <link href="{% static 'fonts/volpiano.css' %}" rel="stylesheet" media="screen">
+</head>
 
 <div class="mr-3 p-3 col-md-12 mx-auto bg-white rounded">
-    <!-- global search bar-->
-    <object align="right">
-        {% include "global_search_bar.html" %}
-    </object>
-    <h3>Search Chants</h3>
+    <p>
+        « <a href="{{ main_chant_search_url }}">Return to main search page</a>
+    </p>
     {% if source %}
         <b>Searching in source: <a href="{{ source.get_absolute_url }}" target="_blank">{{ source.title }}</a></b>
-    {% else %}
-        <p>
-            <small>
-                » <a href="{{ printer_friendly_url }}">Printer-friendly version</a>
-            </small>
-        </p>
     {% endif %}
 
     {% if chants.all %}
-        <p>
-            <small>
-                Displaying {{ page_obj.start_index }}-{{ page_obj.end_index }} of <b>{{ page_obj.paginator.count }} chants</b>
-            </small>
-        </p>
+        <small>Displaying {{ page_obj.start_index }}-{{ page_obj.end_index }} of <b>{{ page_obj.paginator.count }}
+                chants</b></small>
     {% endif %}
 
     <form method="get">
@@ -90,7 +136,7 @@
 
     {% if chants.all %}
         <small>
-            <table class="table table-sm small table-bordered">
+            <table>
                 <thead>
                     <tr>
                         <th scope="col" class="text-wrap" style="text-align:center">
@@ -110,12 +156,12 @@
                         <th scope="col" class="text-wrap" style="text-align:center">
                             {% if order == "incipit" %}
                                 {% if sort == "desc" %}
-                                    <a href="{{ url_with_search_params }}&order=incipit&sort=asc">Incipit/Full Text</a> ▼
+                                    <a href="{{ url_with_search_params }}&order=incipit&sort=asc">Incipit</a> ▼
                                 {% else %}
-                                    <a href="{{ url_with_search_params }}&order=incipit&sort=desc">Incipit/Full Text</a> ▲
+                                    <a href="{{ url_with_search_params }}&order=incipit&sort=desc">Incipit</a> ▲
                                 {% endif %}
                             {% else %}
-                                <a href="{{ url_with_search_params }}&order=incipit&sort=asc">Incipit/Full Text</a>
+                                <a href="{{ url_with_search_params }}&order=incipit&sort=asc">Incipit</a>
                             {% endif %}
                         </th>
                         <th scope="col" class="text-wrap" style="text-align:center">
@@ -210,7 +256,7 @@
                                 <a href="{{ chant.source.get_absolute_url }}">{{ chant.source.siglum }}</a>
                             </td>
                             <td class="text-wrap" style="text-align:center">
-                                {{ chant.folio|default:""|truncatechars_html:140 }}
+                                {{ chant.folio|default:"" }}
                             </td>
 
                             <td class="text-wrap" style="text-align:left">
@@ -224,9 +270,6 @@
                                 {% else %}
                                     <b><a href="{% url 'sequence-detail' chant.id %}">{{ chant.incipit|default:"" }}</a></b>
                                 {% endif %}
-                                <p>
-                                    {{ chant.manuscript_full_text_std_spelling|default:""|truncatewords_html:100 }}
-                                </p>           
                             </td>
                             <td class="text-wrap" style="text-align:center">
                                 <a href="{{ chant.feast.get_absolute_url }}">{{ chant.feast.name|default:"" }}</a>
@@ -270,5 +313,4 @@
         {% include "pagination.html" %}
     {% endif %}
 </div>
-        
-{% endblock %}
+</html>

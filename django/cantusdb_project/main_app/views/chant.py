@@ -671,7 +671,9 @@ class ChantSearchView(ListView):
         # this way, when someone clicks on a column heading, we can append the ordering parameters
         # while retaining the search parameters
         current_url = self.request.path
+        printer_friendly_url = reverse("chant-search-print")
         search_parameters = []
+        sorting_parameters = []
 
         search_op = self.request.GET.get('op')
         if search_op:
@@ -700,14 +702,230 @@ class ChantSearchView(ListView):
         search_melodies = self.request.GET.get('melodies')
         if search_melodies:
             search_parameters.append(f'melodies={search_melodies}')
+        search_order = self.request.GET.get("order")
+        if search_order:
+            sorting_parameters.append(f'order={search_order}')
+        search_sort = self.request.GET.get("sort")
+        if search_sort:
+            sorting_parameters.append(f'sort={search_sort}')
 
         if search_parameters:
             joined_search_parameters = "&".join(search_parameters)
             url_with_search_params = current_url + "?" + joined_search_parameters
+
+            joined_sorting_parameters = "&".join(sorting_parameters)
+            joined_search_and_sorting_parameters = "&".join((joined_search_parameters, joined_sorting_parameters))
+            printer_friendly_url = printer_friendly_url + "?" + joined_search_and_sorting_parameters
+            
+        context["url_with_search_params"] = url_with_search_params
+        context["printer_friendly_url"] = printer_friendly_url
+        print(self.request)
+
+        return context
+
+    def get_queryset(self) -> QuerySet:
+        # Create a Q object to filter the QuerySet of Chants
+        q_obj_filter = Q()
+        display_unpublished = self.request.user.is_authenticated
+        # if the search is accessed by the global search bar
+        if self.request.GET.get("search_bar"):
+            chant_set = Chant.objects.filter(source__published=True)
+            sequence_set = Sequence.objects.filter(source__published=True)
+            if self.request.GET.get("search_bar").replace(" ", "").isalpha():
+                # if search bar is doing incipit search
+                incipit = self.request.GET.get("search_bar")
+                chant_set = keyword_search(chant_set, incipit)
+                sequence_set = keyword_search(sequence_set, incipit)
+                queryset = chant_set.union(sequence_set)
+                # queryset = keyword_search(queryset, incipit)
+            else:
+                # if search bar is doing Cantus ID search
+                cantus_id = self.request.GET.get("search_bar")
+                q_obj_filter &= Q(cantus_id=cantus_id)
+                chant_set = chant_set.filter(q_obj_filter)
+                sequence_set = sequence_set.filter(q_obj_filter)
+                queryset = chant_set.union(sequence_set)
+                # queryset = queryset.filter(q_obj_filter)
+
+        else:
+            # The field names should be keys in the "GET" QueryDict if the search button has been clicked,
+            # even if the user put nothing into the search form and hit "apply" immediately.
+            # In that case, we return the all chants + seqs filtered by the search form.
+            # On the contrary, if the user just arrived at the search page, there should be no params in GET
+            # In that case, we return an empty queryset.
+            if not self.request.GET:
+                return Chant.objects.none()
+            # For every GET parameter other than incipit, add to the Q object
+            if self.request.GET.get("office"):
+                office = self.request.GET.get("office")
+                q_obj_filter &= Q(office__name__icontains=office)
+            if self.request.GET.get("genre"):
+                genre_id = int(self.request.GET.get("genre"))
+                q_obj_filter &= Q(genre__id=genre_id)
+
+            if self.request.GET.get("cantus_id"):
+                cantus_id = self.request.GET.get("cantus_id")
+                q_obj_filter &= Q(cantus_id__icontains=cantus_id)
+            if self.request.GET.get("mode"):
+                mode = self.request.GET.get("mode")
+                q_obj_filter &= Q(mode=mode)
+            if self.request.GET.get("position"):
+                position = self.request.GET.get("position")
+                q_obj_filter &= Q(position=position)
+            if self.request.GET.get("melodies") in ["true", "false"]:
+                melodies = self.request.GET.get("melodies")
+                if melodies == "true":
+                    q_obj_filter &= Q(volpiano__isnull=False)
+                if melodies == "false":
+                    q_obj_filter &= Q(volpiano__isnull=True)
+            if self.request.GET.get("feast"):
+                feast = self.request.GET.get("feast")
+                # This will match any feast whose name contains the feast parameter
+                # as a substring
+                feasts = Feast.objects.filter(name__icontains=feast)
+                q_obj_filter &= Q(feast__in=feasts)
+            if self.request.GET.get('order'):
+                if self.request.GET.get('order') == 'siglum':
+                    order = 'siglum'
+                elif self.request.GET.get('order') == 'incipit':
+                    order = 'incipit'
+                elif self.request.GET.get('order') == 'office':
+                    order = 'office'
+                elif self.request.GET.get('order') == 'genre':
+                    order = 'genre'
+                elif self.request.GET.get('order') == 'cantus_id':
+                    order = 'cantus_id'
+                elif self.request.GET.get('order') == 'mode':
+                    order = 'mode'
+                elif self.request.GET.get('order') == 'has_fulltext':
+                    order = 'manuscript_full_text'
+                elif self.request.GET.get('order') == 'has_melody':
+                    order = 'volpiano'
+                elif self.request.GET.get('order') == 'has_image':
+                    order = 'image_link'
+                else:
+                    order = 'siglum'
+            else:
+                order = 'siglum'
+            if self.request.GET.get('sort'):
+                if self.request.GET.get('sort') == "asc":
+                    order = order
+                elif self.request.GET.get('sort') == 'desc':
+                    order = "-" + order
+            if not display_unpublished:
+                chant_set = Chant.objects.filter(source__published=True)
+                sequence_set = Sequence.objects.filter(source__published=True)
+            else:
+                chant_set = Chant.objects
+                sequence_set = Sequence.objects
+            # Filter the QuerySet with Q object
+            chant_set = chant_set.filter(q_obj_filter)
+            sequence_set = sequence_set.filter(q_obj_filter)
+            # Finally, do keyword searching over the querySet
+            if self.request.GET.get("keyword"):
+                keyword = self.request.GET.get("keyword")
+                # the operation parameter can be "contains" or "starts_with"
+                if self.request.GET.get("op") == "contains":
+                    chant_set = keyword_search(chant_set, keyword)
+                    sequence_set = keyword_search(sequence_set, keyword)
+                else:
+                    chant_set = chant_set.filter(incipit__istartswith=keyword)
+                    sequence_set = sequence_set.filter(incipit__istartswith=keyword)
+
+            # once unioned, the queryset cannot be filtered/annotated anymore, so we put union to the last
+            queryset = chant_set.union(sequence_set)
+            queryset = queryset.order_by(order, "id")
+
+        return queryset
+
+
+class ChantSearchPrinterFriendlyView(ListView):
+    """
+    Searches Chants and displays them as a list, formatted in a printer-friendly  accessed with ``chant-search-print/``
+
+    This view uses the same template as ``ChantSearchMSView``
+
+    If no ``GET`` parameters, returns empty queryset
+
+    ``GET`` parameters:
+        ``office``: Filters by Office of Chant
+        ``genre``: Filters by Genre of Chant
+        ``cantus_id``: Filters by the Cantus ID field of Chant
+        ``mode``: Filters by mode of Chant
+        ``position``: Filters by position of chant
+        ``melodies``: Filters Chant by whether or not it contains a melody in
+                      Volpiano form. Valid values are "true" or "false".
+        ``feast``: Filters by Feast of Chant
+        ``keyword``: Searches text of Chant for keywords
+        ``op``: Operation to take with keyword search. Options are "contains" and "starts_with"
+    """
+
+    paginate_by = 100
+    context_object_name = "chants"
+    template_name = "chant_search_printer_friendly.html"
+
+    def get_context_data(self, **kwargs) -> dict:
+        context = super().get_context_data(**kwargs)
+        # Add to context a QuerySet of dicts with id and name of each Genre
+        context["genres"] = Genre.objects.all().order_by("name").values("id", "name")
+        context["order"] = self.request.GET.get("order")
+        context["sort"] = self.request.GET.get("sort")
+
+        # build a url containing all the search parameters, excluding ordering parameters.
+        # this way, when someone clicks on a column heading, we can append the ordering parameters
+        # while retaining the search parameters
+        current_url = self.request.path
+        main_chant_search_url = reverse("chant-search")
+        search_parameters = []
+        sorting_parameters = []
+
+        search_op = self.request.GET.get('op')
+        if search_op:
+            search_parameters.append(f"op={search_op}")
+        search_keyword = self.request.GET.get('keyword')
+        if search_keyword:
+            search_parameters.append(f"keyword={search_keyword}")
+        search_office = self.request.GET.get('office')
+        if search_office:
+            search_parameters.append(f'office={search_office}')
+        search_genre = self.request.GET.get('genre')
+        if search_genre:
+            search_parameters.append(f'genre={search_genre}')
+        search_cantus_id = self.request.GET.get('cantus_id')
+        if search_cantus_id:
+            search_parameters.append(f'cantus_id={search_cantus_id}')
+        search_mode = self.request.GET.get('mode')
+        if search_mode:
+            search_parameters.append(f'mode={search_mode}')
+        search_feast = self.request.GET.get('feast')
+        if search_feast:
+            search_parameters.append(f'feast={search_feast}')
+        search_position = self.request.GET.get('position')
+        if search_position:
+            search_parameters.append(f'position={search_position}')
+        search_melodies = self.request.GET.get('melodies')
+        if search_melodies:
+            search_parameters.append(f'melodies={search_melodies}')
+        search_order = self.request.GET.get("order")
+        if search_order:
+            sorting_parameters.append(f'order={search_order}')
+        search_sort = self.request.GET.get("sort")
+        if search_sort:
+            sorting_parameters.append(f'sort={search_sort}')
+
+        if search_parameters:
+            joined_search_parameters = "&".join(search_parameters)
+            url_with_search_params = current_url + "?" + joined_search_parameters
+
+            joined_sorting_parameters = "&".join(sorting_parameters)
+            joined_search_and_sorting_parameters = "&".join((joined_search_parameters, joined_sorting_parameters))
+            main_chant_search_url = main_chant_search_url + "?" + joined_search_and_sorting_parameters
+
         else:
             url_with_search_params = current_url + "?"
             
         context["url_with_search_params"] = url_with_search_params
+        context["main_chant_search_url"] = main_chant_search_url
         print(self.request)
 
         return context
