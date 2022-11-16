@@ -708,7 +708,6 @@ class ChantSearchView(ListView):
             url_with_search_params = current_url + "?"
             
         context["url_with_search_params"] = url_with_search_params
-        print(self.request)
 
         return context
 
