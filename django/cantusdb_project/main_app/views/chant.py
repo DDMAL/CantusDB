@@ -709,6 +709,19 @@ class ChantSearchView(ListView):
             
         context["url_with_search_params"] = url_with_search_params
 
+        if search_keyword:
+            cantus_index_url = "http://cantusindex.org/search?t={k}".format(k=search_keyword)
+            cantus_index_inner_text = "Search <b>{k}</b> on CantusIndex.org".format(k=search_keyword)
+            cantus_index_title_text = "Search {k} on CantusIndex.org".format(k=search_keyword)
+            cantus_index_link = '<a href="{url}" title="{title}" target="_blank">{inner_text}</a>'.format(
+                url=cantus_index_url,
+                title=cantus_index_title_text,
+                inner_text=cantus_index_inner_text,
+            )
+            context['cantus_index_link'] = cantus_index_link
+        else:
+            context['cantus_index_link'] = ""
+
         return context
 
     def get_queryset(self) -> QuerySet:

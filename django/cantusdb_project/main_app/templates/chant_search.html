@@ -13,6 +13,12 @@
         <p>
             <b>Searching in source: <a href="{{ source.get_absolute_url }}" target="_blank">{{ source.title }}</a></b>
         </p>
+    {% elif cantus_index_link %}
+        <p>
+            <small>
+                » {{ cantus_index_link|safe }}
+            </small>
+        </p>
     {% endif %}
 
     {% if chants.all %}
