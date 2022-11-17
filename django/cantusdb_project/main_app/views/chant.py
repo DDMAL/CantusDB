@@ -679,6 +679,7 @@ class ChantSearchView(ListView):
         search_keyword = self.request.GET.get('keyword')
         if search_keyword:
             search_parameters.append(f"keyword={search_keyword}")
+            context["keyword"] = search_keyword
         search_office = self.request.GET.get('office')
         if search_office:
             search_parameters.append(f'office={search_office}')
@@ -708,19 +709,6 @@ class ChantSearchView(ListView):
             url_with_search_params = current_url + "?"
             
         context["url_with_search_params"] = url_with_search_params
-
-        if search_keyword:
-            cantus_index_url = "http://cantusindex.org/search?t={k}".format(k=search_keyword)
-            cantus_index_inner_text = "Search <b>{k}</b> on CantusIndex.org".format(k=search_keyword)
-            cantus_index_title_text = "Search {k} on CantusIndex.org".format(k=search_keyword)
-            cantus_index_link = '<a href="{url}" title="{title}" target="_blank">{inner_text}</a>'.format(
-                url=cantus_index_url,
-                title=cantus_index_title_text,
-                inner_text=cantus_index_inner_text,
-            )
-            context['cantus_index_link'] = cantus_index_link
-        else:
-            context['cantus_index_link'] = ""
 
         return context
 
