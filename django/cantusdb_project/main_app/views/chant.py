@@ -679,6 +679,7 @@ class ChantSearchView(ListView):
         search_keyword = self.request.GET.get('keyword')
         if search_keyword:
             search_parameters.append(f"keyword={search_keyword}")
+            context["keyword"] = search_keyword
         search_office = self.request.GET.get('office')
         if search_office:
             search_parameters.append(f'office={search_office}')
@@ -708,7 +709,6 @@ class ChantSearchView(ListView):
             url_with_search_params = current_url + "?"
             
         context["url_with_search_params"] = url_with_search_params
-        print(self.request)
 
         return context
 

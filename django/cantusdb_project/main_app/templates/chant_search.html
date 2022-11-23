@@ -10,12 +10,24 @@
     </object>
     <h3>Search Chants</h3>
     {% if source %}
-        <b>Searching in source: <a href="{{ source.get_absolute_url }}" target="_blank">{{ source.title }}</a></b>
+        <p>
+            <b>Searching in source: <a href="{{ source.get_absolute_url }}" target="_blank">{{ source.title }}</a></b>
+        </p>
+    {% elif keyword %}
+        <p>
+            <small>
+                » <a href="http://cantusindex.org/search?t={{ keyword }}" title="Search {{ keyword }} on CantusIndex.org" target="_blank">
+                    Search <b>{{ keyword }}</b> on CantusIndex.org
+                </a>
+            </small>
+        </p>
     {% endif %}
 
     {% if chants.all %}
-        <small>Displaying {{ page_obj.start_index }}-{{ page_obj.end_index }} of <b>{{ page_obj.paginator.count }}
-                chants</b></small>
+        <p>
+            <small>Displaying {{ page_obj.start_index }}-{{ page_obj.end_index }} of <b>{{ page_obj.paginator.count }}
+                    chant{{ page_obj.paginator.count|pluralize }}</b></small>
+        </p>
     {% endif %}
 
     <form method="get">
