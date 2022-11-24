@@ -716,6 +716,8 @@ class ChantSearchView(ListView):
             joined_sorting_parameters = "&".join(sorting_parameters)
             joined_search_and_sorting_parameters = "&".join((joined_search_parameters, joined_sorting_parameters))
             printer_friendly_url = printer_friendly_url + "?" + joined_search_and_sorting_parameters
+        else:
+            url_with_search_params = current_url + "?"
             
         context["url_with_search_params"] = url_with_search_params
         context["printer_friendly_url"] = printer_friendly_url
