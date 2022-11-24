@@ -12,26 +12,26 @@
     {% if source %}
         <b>Searching in source: <a href="{{ source.get_absolute_url }}" target="_blank">{{ source.title }}</a></b>
     {% else %}
-        <p>
-            <small>
-                » <a href="{{ printer_friendly_url }}">Printer-friendly version</a>
-        <p>
-            <b>Searching in source: <a href="{{ source.get_absolute_url }}" target="_blank">{{ source.title }}</a></b>
-        </p>
-    {% elif keyword %}
-        <p>
-            <small>
-                » <a href="http://cantusindex.org/search?t={{ keyword }}" title="Search {{ keyword }} on CantusIndex.org" target="_blank">
-                    Search <b>{{ keyword }}</b> on CantusIndex.org
-                </a>
-            </small>
-        </p>
+        {% if keyword %}
+            <p style="margin-bottom: 0px;">
+                <small>
+                    » <a href="http://cantusindex.org/search?t={{ keyword }}" title="Search {{ keyword }} on CantusIndex.org" target="_blank">
+                        Search <b>{{ keyword }}</b> on CantusIndex.org
+                    </a>
+                </small>
+            </p>
+        {% endif %}
+    <p style="margin-bottom: 0px;">
+        <small>
+            » <a href="{{ printer_friendly_url }}">Printer-friendly version</a>
+        </small>
+    </p>
     {% endif %}
 
     {% if chants.all %}
         <p>
             <small>
-                Displaying {{ page_obj.start_index }}-{{ page_obj.end_index }} of <b>{{ page_obj.paginator.count }} chants</b>
+                Displaying {{ page_obj.start_index }}-{{ page_obj.end_index }} of <b>{{ page_obj.paginator.count }}</b> chants
             </small>
         </p>
     {% endif %}
