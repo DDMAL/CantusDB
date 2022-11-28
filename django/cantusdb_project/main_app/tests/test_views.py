@@ -2813,7 +2813,8 @@ class CsvExportTest(TestCase):
             self.assertIn(t, header)
 
         self.assertEqual(len(rows), NUM_CHANTS)
-        self.assertEqual(len(header), len(rows[0]))
+        for row in rows:
+            self.assertEqual(len(header), len(row))
     
     def test_published_vs_unpublished(self):
         published_source = make_fake_source(published=True)
