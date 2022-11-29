@@ -1,4 +1,3 @@
-import unittest
 from django.test import TestCase
 from latin_syllabification import (
         clean_transcript,
