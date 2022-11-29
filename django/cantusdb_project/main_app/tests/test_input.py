@@ -1,6 +1,4 @@
 import unittest
-from main_app.tests.make_fakes import make_fake_text
-import random
 
 from django.test import TestCase
 from django.urls import reverse
