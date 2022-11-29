@@ -99,7 +99,10 @@ class BaseChant(BaseModel):
     # It records the intervals between any two adjacent volpiano notes.
     volpiano_notes = models.TextField(null=True, blank=True)
     volpiano_intervals = models.TextField(null=True, blank=True)
-    cao_concordances = models.CharField(blank=True, null=True, max_length=63)
+
+    # NB: the cao_concordances field should not be used in public-facing views, as it contains data that may be out-of-date.
+    # For more information, see https://github.com/DDMAL/CantusDB/wiki/BaseChant-Model
+    cao_concordances = models.CharField(blank=True, null=True, max_length=63) # !! see lines immediately above
     proofread_by = models.ManyToManyField(
         get_user_model(), blank=True
     )

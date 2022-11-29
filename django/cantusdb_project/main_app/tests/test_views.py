@@ -2805,7 +2805,6 @@ class CsvExportTest(TestCase):
             "volpiano",
             "image_link",
             "melody_id",
-            "cao_concordances",
             "addendum",
             "extra",
             "node_id",
@@ -2814,6 +2813,8 @@ class CsvExportTest(TestCase):
             self.assertIn(t, header)
 
         self.assertEqual(len(rows), NUM_CHANTS)
+        for row in rows:
+            self.assertEqual(len(header), len(row))
     
     def test_published_vs_unpublished(self):
         published_source = make_fake_source(published=True)
