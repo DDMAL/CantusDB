@@ -1,7 +1,7 @@
 import csv
 from django.http.response import JsonResponse
 from django.http import HttpResponse, HttpResponseNotFound
-from django.shortcuts import render, redirect
+from django.shortcuts import render
 from django.urls.base import reverse
 from main_app.models import (
     Century,
