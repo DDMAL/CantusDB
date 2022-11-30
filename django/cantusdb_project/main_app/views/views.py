@@ -1,7 +1,7 @@
 import csv
-from django.http.response import HttpResponseRedirect, JsonResponse
+from django.http.response import JsonResponse
 from django.http import HttpResponse, HttpResponseNotFound
-from django.shortcuts import render, redirect
+from django.shortcuts import render
 from django.urls.base import reverse
 from main_app.models import (
     Century,
@@ -16,11 +16,9 @@ from main_app.models import (
     Sequence,
     Source
 )
-from django.core.mail import send_mail, get_connection
 from django.contrib.auth.decorators import login_required, user_passes_test
 from next_chants import next_chants
 from django.contrib import messages
-import random
 from django.http import Http404
 from django.contrib.auth import update_session_auth_hash
 from django.contrib.auth.forms import PasswordChangeForm
@@ -212,7 +210,6 @@ def csv_export(request, source_id):
             "volpiano",
             "image_link",
             "melody_id",
-            "cao_concordances",
             "addendum",
             "extra",
             "node_id",
@@ -244,7 +241,6 @@ def csv_export(request, source_id):
                 entry.volpiano,
                 entry.image_link,
                 entry.melody_id,
-                entry.cao_concordances,
                 entry.addendum,
                 entry.extra,
                 entry.id,

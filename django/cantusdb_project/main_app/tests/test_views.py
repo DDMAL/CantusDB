@@ -16,24 +16,19 @@ from .make_fakes import (make_fake_text,
     make_fake_chant,
     make_fake_feast,
     make_fake_genre,
-    make_fake_notation,
     make_fake_office,
     make_fake_provenance,
     make_fake_rism_siglum,
     make_fake_segment,
     make_fake_sequence,
     make_fake_source,
-    make_fake_user,
 )
 
 from main_app.models import Century
 from main_app.models import Chant
 from main_app.models import Feast
 from main_app.models import Genre
-from main_app.models import Notation
 from main_app.models import Office
-from main_app.models import Provenance
-from main_app.models import RismSiglum
 from main_app.models import Segment
 from main_app.models import Sequence
 from main_app.models import Source
@@ -2805,7 +2800,6 @@ class CsvExportTest(TestCase):
             "volpiano",
             "image_link",
             "melody_id",
-            "cao_concordances",
             "addendum",
             "extra",
             "node_id",
@@ -2814,6 +2808,8 @@ class CsvExportTest(TestCase):
             self.assertIn(t, header)
 
         self.assertEqual(len(rows), NUM_CHANTS)
+        for row in rows:
+            self.assertEqual(len(header), len(row))
     
     def test_published_vs_unpublished(self):
         published_source = make_fake_source(published=True)
