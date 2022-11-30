@@ -2,8 +2,8 @@ from django.test import TestCase
 from django.test import Client
 from django.contrib.auth import get_user_model
 from django.urls import reverse
-from main_app.models import Segment
-from main_app.tests.make_fakes import *
+from main_app.models import Segment, Source
+from main_app.tests.make_fakes import make_fake_user
 from main_app.tests.test_views import get_random_search_term
 
 # run with `python -Wa manage.py test users.tests`

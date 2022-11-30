@@ -1,4 +1,3 @@
-from operator import index
 from django.core.management.base import BaseCommand
 from main_app.models import Indexer
 from users.models import User

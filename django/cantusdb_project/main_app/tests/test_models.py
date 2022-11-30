@@ -1,7 +1,24 @@
 from django.forms import ValidationError
 from django.test import TestCase
 from django.urls import reverse
-from .make_fakes import *
+from main_app.models import (
+    Century,
+    Chant,
+    Feast,
+    Genre,
+    Office,
+    Sequence,
+    Source,
+)
+from .make_fakes import (
+    make_fake_century,
+    make_fake_chant,
+    make_fake_feast,
+    make_fake_genre,
+    make_fake_office,
+    make_fake_sequence,
+    make_fake_source,
+)
 
 # run with `python -Wa manage.py test main_app.tests.test_models`
 # the -Wa flag tells Python to display deprecation warnings
