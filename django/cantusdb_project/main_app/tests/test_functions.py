@@ -2,7 +2,6 @@ from django.test import TestCase
 from latin_syllabification import (
         clean_transcript,
         syllabify_word,
-        syllabify_text,
     )
 
 # run with `python -Wa manage.py test main_app.tests.test_functions`
