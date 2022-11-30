@@ -106,6 +106,12 @@
             transition: background-color .25s;
             background-color: #CC3333;
         }
+
+        @media print {
+            header, footer {
+                display: none;
+            }
+        }
     </style>
     <link href="{% static 'fonts/volpiano.css' %}" rel="stylesheet" media="screen">
 </head>
