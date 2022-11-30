@@ -1,13 +1,59 @@
 from django.urls import path
-from main_app.views import *
 from main_app.views import views
-from main_app.views.century import CenturyDetailView
-from main_app.views.sequence import SequenceEditView
-from main_app.views.source import SourceCreateView, SourceEditView
-from main_app.views.chant import SourceEditChantsView, ChantProofreadView, ChantEditSyllabificationView
-from main_app.views.notation import NotationDetailView
-from main_app.views.provenance import ProvenanceDetailView
-from main_app.views.user import UserDetailView, UserSourceListView, CustomLogoutView, UserListView, CustomLoginView
+from main_app.views.century import (
+    CenturyDetailView,
+)
+from main_app.views.chant import (
+    ChantByCantusIDView,
+    ChantCreateView,
+    ChantDeleteView,
+    ChantDetailView,
+    ChantEditSyllabificationView,
+    ChantIndexView,
+    ChantListView,
+    ChantProofreadView, 
+    ChantSearchView,
+    ChantSearchMSView,
+    CISearchView,
+    MelodySearchView,
+    SourceEditChantsView,)
+from main_app.views.feast import (
+    FeastDetailView,
+    FeastListView,
+)
+from main_app.views.genre import (
+    GenreDetailView,
+    GenreListView,
+)
+from main_app.views.notation import (
+    NotationDetailView,
+)
+from main_app.views.office import (
+    OfficeListView,
+    OfficeDetailView,
+)
+from main_app.views.provenance import (
+    ProvenanceDetailView,
+)
+from main_app.views.sequence import (
+    SequenceDetailView,
+    SequenceEditView,
+    SequenceListView,
+)
+from main_app.views.source import (
+    SourceCreateView,
+    SourceDetailView,
+    SourceEditView,
+    SourceListView,
+)
+from main_app.views.user import (
+    CustomLoginView,
+    CustomLogoutView,
+    IndexerListView,
+    UserDetailView,
+    UserListView,
+    UserSourceListView,
+)
 
 urlpatterns = [
     path("contact/", views.contact, name="contact"),
