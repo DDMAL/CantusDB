@@ -49,7 +49,7 @@
                         </div>
                     {% endif %}
 
-                    {% if chant.sequence_number is not None %}
+                    {% if chant.sequence_number is not None %} {# check that it isn't None, since sometimes sequence_number is 0 #}
                         <div class="col">
                             <dt>Sequence</dt>
                             <dd>{{ chant.sequence_number }}</dd>
