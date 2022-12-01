@@ -43,14 +43,14 @@
 
                 <div class="row">
                     {% if chant.folio %}
-                        <div class="col">
+                        <div class="col-2">
                             <dt>Folio</dt>
                             <dd>{{ chant.folio }}</dd>
                         </div>
                     {% endif %}
 
                     {% if chant.sequence_number is not None %} {# check that it isn't None, since sometimes sequence_number is 0 #}
-                        <div class="col">
+                        <div class="col-10">
                             <dt>Sequence</dt>
                             <dd>{{ chant.sequence_number }}</dd>
                         </div>
@@ -59,7 +59,7 @@
                 
                 <div class="row">
                     {% if chant.feast %}
-                        <div class="col">
+                        <div class="col-2">
                             <dt>Feast</dt>
                             <dd>
                                 <a href="{{ chant.feast.get_absolute_url }}">{{ chant.feast.name }}</a>
@@ -68,7 +68,7 @@
                     {% endif %}
 
                     {% if chant.office %}
-                        <div class="col">
+                        <div class="col-2">
                             <dt>Office/Mass</dt>
                             <dd>
                                 <a href="{{ chant.office.get_absolute_url }}">{{ chant.office.name }}</a>
@@ -77,7 +77,7 @@
                     {% endif %}
 
                     {% if chant.genre %}
-                        <div class="col">
+                        <div class="col-2">
                             <dt>Genre</dt>
                             <dd>
                                 <a href="{{ chant.genre.get_absolute_url }}">{{ chant.genre.name }}</a>
@@ -86,14 +86,14 @@
                     {% endif %}
 
                     {% if chant.position %}
-                        <div class="col">
+                        <div class="col-2">
                             <dt>Position</dt>
                             <dd>{{ chant.position }}</dd>
                         </div>
                     {% endif %}
 
                     {% if chant.cantus_id %}
-                        <div class="col">
+                        <div class="col-2">
                             <dt>Cantus ID</dt>
                             <dd>
                                 <a href="{{ chant.get_ci_url }}" target="_blank">
@@ -104,7 +104,7 @@
                     {% endif %}
 
                     {% if chant.mode %}
-                        <div class="col">
+                        <div class="col-2">
                             <dt>Mode</dt>
                             <dd>{{ chant.mode }}</dd>
                         </div>
