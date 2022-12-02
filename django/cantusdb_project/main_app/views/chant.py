@@ -71,7 +71,7 @@ class ChantDetailView(DetailView):
         if (source.published is False) and (not display_unpublished):
             raise PermissionDenied()
         
-        ### check whether user has edit access for this chant ##3
+        # check whether user has edit access for this chant - logic should match that in SourceEditChantsView.test_func
         source_id = source.id
         is_assigned_to_source = user.sources_user_can_edit.filter(id=source_id)
         # checks if the user is a project manager
@@ -1383,6 +1383,9 @@ class SourceEditChantsView(LoginRequiredMixin, UserPassesTestMixin, UpdateView):
     pk_url_kwarg = "source_id"
 
     def test_func(self):
+        # if the logic in this function is changed,
+        # it should also be updated in ChantDetailView.get_context, in order to properly choose
+        # whether to display the View/Edit toggle on chant-detail pages
         user = self.request.user
         source_id = self.kwargs.get(self.pk_url_kwarg)
         source = get_object_or_404(Source, id=source_id)
