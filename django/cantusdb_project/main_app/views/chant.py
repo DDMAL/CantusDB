@@ -1648,6 +1648,8 @@ class ChantProofreadView(SourceEditChantsView):
 
     def test_func(self):
         user = self.request.user
+        if user.is_anonymous:
+            return False
         source_id = self.kwargs.get(self.pk_url_kwarg)
 
         assigned_to_source = user.sources_user_can_edit.filter(id=source_id)
@@ -1720,6 +1722,9 @@ class ChantEditSyllabificationView(LoginRequiredMixin, UserPassesTestMixin, Upda
         return self.request.get_full_path()
 
 def user_can_edit_chants_in_source(user, source):
+    if user.is_anonymous:
+        return False
+    
     source_id = source.id
     user_is_assigned_to_source = user.sources_user_can_edit.filter(id=source_id)
 
