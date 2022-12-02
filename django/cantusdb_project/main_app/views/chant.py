@@ -63,12 +63,32 @@ class ChantDetailView(DetailView):
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
         chant = self.get_object()
+        user = self.request.user
         
         # if the chant's source isn't published, only logged-in users should be able to view the chant's detail page
         source = chant.source
-        display_unpublished = self.request.user.is_authenticated
+        display_unpublished = user.is_authenticated
         if (source.published is False) and (not display_unpublished):
             raise PermissionDenied()
+        
+        ### check whether user has edit access for this chant ##3
+        source_id = source.id
+        is_assigned_to_source = user.sources_user_can_edit.filter(id=source_id)
+        # checks if the user is a project manager
+        is_project_manager = user.groups.filter(name="project manager").exists()
+        # checks if the user is an editor,
+        is_editor = user.groups.filter(name="editor").exists()
+        # checks if the user is a contributor,
+        is_contributor = user.groups.filter(name="contributor").exists()
+
+        if ((is_project_manager) 
+            or (is_editor and is_assigned_to_source) 
+            or (is_editor and source.created_by == user)  
+            or (is_contributor and is_assigned_to_source)
+            or (is_contributor and source.created_by == user)):
+            context["user_can_edit_chant"] = True
+        else:
+            context["user_can_edit_chant"] = False
 
         # syllabification section
         if chant.volpiano:

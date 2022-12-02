@@ -17,7 +17,7 @@
             {% endif %}          
             
             <h3>{{ chant.incipit }}</h3>
-            {% if user.is_authenticated %}
+            {% if user_can_edit_chant %}
                 <p>
                     View | <a href="{% url 'source-edit-chants' chant.source.id %}?pk={{ chant.id }}&folio={{ chant.folio }}">Edit</a>
                 </p>
