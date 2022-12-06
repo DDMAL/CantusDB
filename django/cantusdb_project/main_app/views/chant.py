@@ -63,12 +63,15 @@ class ChantDetailView(DetailView):
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
         chant = self.get_object()
+        user = self.request.user
         
         # if the chant's source isn't published, only logged-in users should be able to view the chant's detail page
         source = chant.source
-        display_unpublished = self.request.user.is_authenticated
+        display_unpublished = user.is_authenticated
         if (source.published is False) and (not display_unpublished):
             raise PermissionDenied()
+        
+        context["user_can_edit_chant"] = user_can_edit_chants_in_source(user, source)
 
         # syllabification section
         if chant.volpiano:
@@ -1028,23 +1031,7 @@ class ChantCreateView(LoginRequiredMixin, UserPassesTestMixin, CreateView):
         source_id = self.kwargs.get(self.pk_url_kwarg)
         source = get_object_or_404(Source, id=source_id)
 
-        assigned_to_source = user.sources_user_can_edit.filter(id=source_id)
-
-        # checks if the user is a project manager
-        is_project_manager = user.groups.filter(name="project manager").exists()
-        # checks if the user is an editor
-        is_editor = user.groups.filter(name="editor").exists()
-        # checks if the user is a contributor
-        is_contributor = user.groups.filter(name="contributor").exists()
-
-        if ((is_project_manager) 
-            or (is_editor and assigned_to_source) 
-            or (is_editor and source.created_by == user)  
-            or (is_contributor and assigned_to_source)
-            or (is_contributor and source.created_by == user)):
-            return True
-        else:
-            return False
+        return user_can_edit_chants_in_source(user, source)
 
     # if success_url and get_success_url not specified, will direct to chant detail page
     def get_success_url(self):
@@ -1255,24 +1242,8 @@ class ChantDeleteView(LoginRequiredMixin, UserPassesTestMixin, DeleteView):
         chant_id = self.kwargs.get(self.pk_url_kwarg)
         chant = get_object_or_404(Chant, id=chant_id)
         source = chant.source
-
-        assigned_to_source = user.sources_user_can_edit.filter(id=source.id)
-
-        # checks if the user is a project manager
-        is_project_manager = user.groups.filter(name="project manager").exists()
-        # checks if the user is an editor,
-        is_editor = user.groups.filter(name="editor").exists()
-        # checks if the user is a contributor,
-        is_contributor = user.groups.filter(name="contributor").exists()
-
-        if ((is_project_manager) 
-            or (is_editor and assigned_to_source) 
-            or (is_editor and source.created_by == user)  
-            or (is_contributor and assigned_to_source)
-            or (is_contributor and source.created_by == user)):
-            return True
-        else:
-            return False
+        
+        return user_can_edit_chants_in_source(user, source)
 
     def get_success_url(self):
         return reverse("source-edit-chants", args=[self.object.source.id])
@@ -1367,23 +1338,7 @@ class SourceEditChantsView(LoginRequiredMixin, UserPassesTestMixin, UpdateView):
         source_id = self.kwargs.get(self.pk_url_kwarg)
         source = get_object_or_404(Source, id=source_id)
 
-        assigned_to_source = user.sources_user_can_edit.filter(id=source_id)
-
-        # checks if the user is a project manager
-        is_project_manager = user.groups.filter(name="project manager").exists()
-        # checks if the user is an editor,
-        is_editor = user.groups.filter(name="editor").exists()
-        # checks if the user is a contributor,
-        is_contributor = user.groups.filter(name="contributor").exists()
-
-        if ((is_project_manager) 
-            or (is_editor and assigned_to_source) 
-            or (is_editor and source.created_by == user)  
-            or (is_contributor and assigned_to_source)
-            or (is_contributor and source.created_by == user)):
-            return True
-        else:
-            return False
+        return user_can_edit_chants_in_source(user, source)
 
     def get_queryset(self):
         """
@@ -1693,6 +1648,8 @@ class ChantProofreadView(SourceEditChantsView):
 
     def test_func(self):
         user = self.request.user
+        if user.is_anonymous:
+            return False
         source_id = self.kwargs.get(self.pk_url_kwarg)
 
         assigned_to_source = user.sources_user_can_edit.filter(id=source_id)
@@ -1719,23 +1676,7 @@ class ChantEditSyllabificationView(LoginRequiredMixin, UserPassesTestMixin, Upda
         source = chant.source
         user = self.request.user
 
-        assigned_to_source = user.sources_user_can_edit.filter(id=source.id)
-
-        # checks if the user is a project manager
-        is_project_manager = user.groups.filter(name="project manager").exists()
-        # checks if the user is an editor,
-        is_editor = user.groups.filter(name="editor").exists()
-        # checks if the user is a contributor,
-        is_contributor = user.groups.filter(name="contributor").exists()
-
-        if ((is_project_manager)
-            or (is_editor and assigned_to_source)
-            or (is_editor and source.created_by == user)
-            or (is_contributor and assigned_to_source)
-            or (is_contributor and source.created_by == user)):
-            return True
-        else:
-            return False
+        return user_can_edit_chants_in_source(user, source)
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
@@ -1779,3 +1720,20 @@ class ChantEditSyllabificationView(LoginRequiredMixin, UserPassesTestMixin, Upda
     def get_success_url(self):
         # stay on the same page after save
         return self.request.get_full_path()
+
+def user_can_edit_chants_in_source(user, source):
+    if user.is_anonymous:
+        return False
+    
+    source_id = source.id
+    user_is_assigned_to_source = user.sources_user_can_edit.filter(id=source_id)
+
+    user_is_project_manager = user.groups.filter(name="project manager").exists()
+    user_is_editor = user.groups.filter(name="editor").exists()
+    user_is_contributor = user.groups.filter(name="contributor").exists()
+
+    return ((user_is_project_manager) 
+        or (user_is_editor and user_is_assigned_to_source) 
+        or (user_is_editor and source.created_by == user)  
+        or (user_is_contributor and user_is_assigned_to_source)
+        or (user_is_contributor and source.created_by == user))
