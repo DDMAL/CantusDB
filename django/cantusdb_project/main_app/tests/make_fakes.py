@@ -260,13 +260,29 @@ def make_fake_sequence(source=None, title=None, incipit=None, cantus_id=None) ->
     return sequence
 
 
-def make_fake_source(published=True, title=None, segment_name=None) -> Source:
+def make_fake_source(published=None, title=None, segment=None, segment_name=None, siglum=None, description=None, summary=None, provenance=None, full_source=None, rism_siglum=None, indexing_notes=None) -> Source:
     """Generates a fake Source object."""
     # The cursus_choices and source_status_choices lists in Source are lists of
     # tuples and we only need the first element of each tuple
 
     if title is None:
-        title=make_fake_text(LONG_CHAR_FIELD_MAX)
+        title = make_fake_text(LONG_CHAR_FIELD_MAX)
+    if siglum is None:
+        siglum = make_fake_text(SHORT_CHAR_FIELD_MAX)
+    if description is None:
+        description = make_fake_text(
+            max_size=MAX_NUMBER_TEXT_CHARS, min_size=MIN_NUMBER_TEXT_CHARS
+        )
+    if published is None:
+        published = True
+    if segment is None:
+        segment = make_fake_segment(name=segment_name)
+    if rism_siglum is None:
+        rism_siglum = make_fake_rism_siglum()
+    if summary is None:
+        summary = make_fake_text(
+            max_size=MAX_NUMBER_TEXT_CHARS, min_size=MIN_NUMBER_TEXT_CHARS
+        )
 
     cursus_choices = [x[0] for x in Source.cursus_choices]
     source_status_choices = [x[0] for x in Source.source_status_choices]
@@ -274,34 +290,28 @@ def make_fake_source(published=True, title=None, segment_name=None) -> Source:
     source = Source.objects.create(
         published=published,
         title=title,
-        siglum=make_fake_text(SHORT_CHAR_FIELD_MAX),
-        rism_siglum=make_fake_rism_siglum(),
-        provenance=make_fake_provenance(),
+        siglum=siglum,
+        rism_siglum=rism_siglum,
+        provenance=provenance,
         provenance_notes=make_fake_text(
             max_size=MAX_NUMBER_TEXT_CHARS, min_size=MIN_NUMBER_TEXT_CHARS
         ),
-        full_source=faker.boolean(),
+        full_source=full_source,
         date=make_fake_text(SHORT_CHAR_FIELD_MAX),
         cursus=random.choice(cursus_choices),
-        segment=make_fake_segment(name=segment_name),
+        segment=segment,
         source_status=random.choice(source_status_choices),
         complete_inventory=faker.boolean(),
-        summary=make_fake_text(
-            max_size=MAX_NUMBER_TEXT_CHARS, min_size=MIN_NUMBER_TEXT_CHARS
-        ),
+        summary=summary,
         liturgical_occasions=make_fake_text(
             max_size=MAX_NUMBER_TEXT_CHARS, min_size=MIN_NUMBER_TEXT_CHARS
         ),
-        description=make_fake_text(
-            max_size=MAX_NUMBER_TEXT_CHARS, min_size=MIN_NUMBER_TEXT_CHARS
-        ),
+        description=description,
         selected_bibliography=make_fake_text(
             max_size=MAX_NUMBER_TEXT_CHARS, min_size=MIN_NUMBER_TEXT_CHARS
         ),
         image_link=faker.image_url(),
-        indexing_notes=make_fake_text(
-            max_size=MAX_NUMBER_TEXT_CHARS, min_size=MIN_NUMBER_TEXT_CHARS
-        ),
+        indexing_notes=indexing_notes,
         indexing_date=make_fake_text(
             max_size=MAX_NUMBER_TEXT_CHARS, min_size=MIN_NUMBER_TEXT_CHARS
         ),
@@ -314,4 +324,5 @@ def make_fake_source(published=True, title=None, segment_name=None) -> Source:
     source.melodies_entered_by.set([make_fake_user()])
     source.proofreaders.set([make_fake_user()])
     source.other_editors.set([make_fake_user()])
+
     return source
