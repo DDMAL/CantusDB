@@ -12,7 +12,7 @@ def next_chants(cantus_id, display_unpublished=False):
         list of duples, each representing a cantusID-count pair
     """
     concordances = Chant.objects.filter(cantus_id=cantus_id).only(
-        "source", "folio", "sequence_number"
+        "source", "folio", "c_sequence"
     )
     if not display_unpublished:
         concordances = concordances.filter(source__published=True)

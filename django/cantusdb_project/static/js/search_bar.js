@@ -43,7 +43,7 @@ function globalSearch() {
                 const mode = chant.mode ?? "";
                 const siglum = chant.siglum ?? "";
                 const folio = chant.folio ?? "";
-                const sequence = chant.sequence_number ?? "";
+                const sequence = chant.c_sequence ?? "";
                 // add an entry to the list-group
                 listBox.innerHTML += `<a href=${chant.chant_link} class="list-group-item list-group-item-action flex-column align-items-start" target="_blank">
                                         <div class="w-100 justify-content-between">

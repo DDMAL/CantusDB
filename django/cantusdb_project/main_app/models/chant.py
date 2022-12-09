@@ -104,10 +104,10 @@ class Chant(BaseChant):
                 folio=self.folio,
                 c_sequence=self.c_sequence + 1,
             )
-        except Chant.DoesNotExist: # i.e. no chant with the subsequent sequence number on same folio
+        except Chant.DoesNotExist: # i.e. no chant with the subsequent c_sequence on same folio
             
             # check to see whether there are more chants on this folio after a gap in the numbering
-            # e.g. situation with several sequential chants on a folio, followed by a lacuna with sequence_number 99
+            # e.g. situation with several sequential chants on a folio, followed by a lacuna with c_sequence 99
             subsequent_chants_this_folio = Chant.objects.filter(
                 source=self.source,
                 folio=self.folio,

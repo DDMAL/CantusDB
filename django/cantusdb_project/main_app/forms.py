@@ -40,7 +40,7 @@ class ChantCreateForm(forms.ModelForm):
         fields = [
             "marginalia",
             "folio",
-            "sequence_number",
+            "c_sequence",
             "office",
             "genre",
             "position",
@@ -64,7 +64,7 @@ class ChantCreateForm(forms.ModelForm):
         widgets = {
             "marginalia": TextInputWidget(),
             "folio": TextInputWidget(),
-            "sequence_number": TextInputWidget(),
+            "c_sequence": TextInputWidget(),
             # the widgets dictionary is ignored for a model field with a non-empty choices attribute.
             # In this case, you must override the form field to use a different widget.
             # this goes for all foreignkey fields here, which are written explicitly below to override form field
@@ -104,7 +104,7 @@ class ChantCreateForm(forms.ModelForm):
         required=True, widget=TextInputWidget, help_text="Binding order",
     )
 
-    sequence_number = forms.CharField(
+    c_sequence = forms.CharField(
         required=True, widget=TextInputWidget, help_text="Each folio starts with '1'.",
     )
 

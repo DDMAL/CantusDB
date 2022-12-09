@@ -76,9 +76,9 @@ def get_new_sequence(seq_id):
         folio = None
 
     try:
-        sequence_number = json_response["field_sequence_text"]["und"][0]["value"]
+        s_sequence = json_response["field_sequence_text"]["und"][0]["value"]
     except (KeyError, TypeError):
-        sequence_number = None
+        s_sequence = None
 
     try:
         genre_id = json_response["field_mc_genre"]["und"][0]["tid"]
@@ -165,7 +165,7 @@ def get_new_sequence(seq_id):
             "siglum": siglum,
             "incipit": incipit,
             "folio": folio,
-            "sequence": sequence_number,
+            "s_sequence": s_sequence,
             "genre": genre,
             "rubrics": rubrics,
             "analecta_hymnica": analecta_hymnica,
