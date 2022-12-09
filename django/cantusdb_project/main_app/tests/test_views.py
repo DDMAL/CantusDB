@@ -1070,7 +1070,7 @@ class ChantCreateViewTest(TestCase):
             response,
             "form",
             None,
-            errors="Chant with the same c_sequence and folio already exists in this source.",
+            errors="Chant with the same sequence and folio already exists in this source.",
         )
 
     def test_view_url_reverse_name(self):
