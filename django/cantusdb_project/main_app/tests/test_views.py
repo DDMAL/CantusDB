@@ -932,7 +932,7 @@ class ChantCreateViewTest(TestCase):
         source = make_fake_source()
         response = self.client.post(
             reverse("chant-create", args=[source.id]), 
-            {"manuscript_full_text_std_spelling": "initial", "folio": "001r", "sequence_number": "1"})
+            {"manuscript_full_text_std_spelling": "initial", "folio": "001r", "c_sequence": "1"})
         self.assertEqual(response.status_code, 302)
         self.assertRedirects(response, reverse('chant-create', args=[source.id]))  
         chant = Chant.objects.first()
@@ -972,20 +972,20 @@ class ChantCreateViewTest(TestCase):
             source=fake_source,
             cantus_id="333333",
             folio="001",
-            sequence_number=3,
+            c_sequence=3,
         )
         fake_chant_2 = make_fake_chant(
             source=fake_source,
             cantus_id="007450", # this has to be an actual cantus ID, since next_chants pulls data from CantusIndex and we'll get an empty response if we use "222222" etc.
             folio="001",
-            sequence_number=2,
+            c_sequence=2,
             next_chant=fake_chant_3,
         )
         fake_chant_1 = make_fake_chant(
             source=fake_source,
             cantus_id="111111",
             folio="001",
-            sequence_number=1,
+            c_sequence=1,
             next_chant=fake_chant_2,
         )
 
@@ -1029,7 +1029,7 @@ class ChantCreateViewTest(TestCase):
             make_fake_chant(
                 source=source,
                 folio=fake_folio,
-                sequence_number=i,
+                c_sequence=i,
                 cantus_id=fake_cantus_id,
             )
         # go to the same source and access the input form
@@ -1037,7 +1037,7 @@ class ChantCreateViewTest(TestCase):
         response = self.client.get(url)
         self.assertEqual(response.status_code, 200)
         # assert context previous_chant, suggested_chants
-        self.assertEqual(i, response.context["previous_chant"].sequence_number)
+        self.assertEqual(i, response.context["previous_chant"].c_sequence)
         self.assertEqual(fake_cantus_id, response.context["previous_chant"].cantus_id)
         self.assertListEqual([], response.context["suggested_chants"])
 
@@ -1052,7 +1052,7 @@ class ChantCreateViewTest(TestCase):
                 source=source,
                 manuscript_full_text=faker.text(10),
                 folio=TEST_FOLIO,
-                sequence_number=i,
+                c_sequence=i,
             )
         # post a chant with the same folio and seq
         url = reverse("chant-create", args=[source.id])
@@ -1062,7 +1062,7 @@ class ChantCreateViewTest(TestCase):
             data={
                 "manuscript_full_text_std_spelling": fake_text,
                 "folio": TEST_FOLIO,
-                "sequence_number": random.randint(1, 4),
+                "c_sequence": random.randint(1, 4),
             },
             follow=True,
         )
@@ -1070,7 +1070,7 @@ class ChantCreateViewTest(TestCase):
             response,
             "form",
             None,
-            errors="Chant with the same sequence and folio already exists in this source.",
+            errors="Chant with the same c_sequence and folio already exists in this source.",
         )
 
     def test_view_url_reverse_name(self):
@@ -1094,7 +1094,7 @@ class ChantCreateViewTest(TestCase):
             {
                 "manuscript_full_text_std_spelling": "ut queant lactose",
                 "folio": "001r",
-                "sequence_number": "1",
+                "c_sequence": "1",
                 # liquescents, to be converted to lowercase
                 #                    vv v v v v v v  
                 "volpiano": "9abcdefg)A-B1C2D3E4F5G67?. yiz"
@@ -1107,7 +1107,7 @@ class ChantCreateViewTest(TestCase):
         self.assertEqual(chant_1.volpiano_notes, "9abcdefg9abcdefg")
         self.client.post(
             reverse("chant-create", args=[source.id]), 
-            {"manuscript_full_text_std_spelling": "resonare foobaz", "folio": "001r", "sequence_number": "2", "volpiano": "abacadaeafagahaja"}
+            {"manuscript_full_text_std_spelling": "resonare foobaz", "folio": "001r", "c_sequence": "2", "volpiano": "abacadaeafagahaja"}
         )
         chant_2 = Chant.objects.get(manuscript_full_text_std_spelling="resonare foobaz")
         self.assertEqual(chant_2.volpiano, "abacadaeafagahaja")
@@ -1230,14 +1230,14 @@ class SourceEditChantsViewTest(TestCase):
             manuscript_full_text_std_spelling="ut queant lactose",
             source=source,
             folio="001r",
-            sequence_number=1
+            c_sequence=1
         )
         self.client.post(
             reverse('source-edit-chants', args=[source.id]),
             {
                 "manuscript_full_text_std_spelling": "ut queant lactose",
                 "folio": "001r",
-                "sequence_number": "1",
+                "c_sequence": "1",
                 # liquescents, to be converted to lowercase
                 #                    vv v v v v v v  
                 "volpiano": "9abcdefg)A-B1C2D3E4F5G67?. yiz"
@@ -1255,14 +1255,14 @@ class SourceEditChantsViewTest(TestCase):
             manuscript_full_text_std_spelling="resonare foobaz",
             source=source,
             folio="001r",
-            sequence_number=2
+            c_sequence=2
         )
         self.client.post(
             reverse('source-edit-chants', args=[source.id]),  
             {
                 "manuscript_full_text_std_spelling": "resonare foobaz",
                 "folio": "001r",
-                "sequence_number": "2",
+                "c_sequence": "2",
                 "volpiano": "abacadaeafagahaja",
             }
         )
@@ -1292,7 +1292,7 @@ class ChantProofreadViewTest(TestCase):
         source_id = source.id
 
         for i in range(3):
-            chant = make_fake_chant(source=source, folio="001r", sequence_number=i)
+            chant = make_fake_chant(source=source, folio="001r", c_sequence=i)
             sample_folio = chant.folio
             sample_pk = chant.id
         nonexistent_folio = "001v"
@@ -1908,7 +1908,7 @@ class SequenceListViewTest(TestCase):
         # the sequences in the list should be ordered by the "siglum" and "sequence" fields
         response = self.client.get(reverse("sequence-list"))
         sequences = response.context["sequences"]
-        self.assertEqual(sequences.query.order_by, ("siglum", "sequence"))
+        self.assertEqual(sequences.query.order_by, ("siglum", "s_sequence"))
 
     def test_search_incipit(self):
         # create a published sequence source and some sequence in it
@@ -2414,7 +2414,7 @@ class SourceDetailViewTest(TestCase):
         # the sequence should be in the list of sequences
         self.assertIn(sequence, response.context["sequences"])
         # the list of sequences should be ordered by the "sequence" field
-        self.assertEqual(response.context["sequences"].query.order_by, ("sequence",))
+        self.assertEqual(response.context["sequences"].query.order_by, ("s_sequence",))
 
     def test_published_vs_unpublished(self):
         source = make_fake_source(published=False)
@@ -2648,14 +2648,14 @@ class JsonNextChantsTest(TestCase):
             source = fake_source_1,
             cantus_id = "2000",
             folio="001r",
-            sequence_number=2,
+            c_sequence=2,
         )
 
         fake_chant_1 = Chant.objects.create(
             source = fake_source_1,
             cantus_id = "1000",
             folio="001r",
-            sequence_number=1,
+            c_sequence=1,
             next_chant=fake_chant_2,
         )
 
@@ -2663,14 +2663,14 @@ class JsonNextChantsTest(TestCase):
             source = fake_source_2,
             cantus_id = "2000",
             folio="001r",
-            sequence_number=2,
+            c_sequence=2,
         )
 
         fake_chant_3 = Chant.objects.create(
             source = fake_source_2,
             cantus_id = "1000",
             folio="001r",
-            sequence_number=1,
+            c_sequence=1,
             next_chant=fake_chant_4,
         )
 
@@ -2714,14 +2714,14 @@ class JsonNextChantsTest(TestCase):
             source = fake_source_1,
             cantus_id = "2000",
             folio="001r",
-            sequence_number=2,
+            c_sequence=2,
         )
 
         fake_chant_1 = Chant.objects.create(
             source = fake_source_1,
             cantus_id = "1000",
             folio="001r",
-            sequence_number=1,
+            c_sequence=1,
             next_chant=fake_chant_2
         )
 
@@ -2729,14 +2729,14 @@ class JsonNextChantsTest(TestCase):
             source = fake_source_2,
             cantus_id = "2000",
             folio="001r",
-            sequence_number=2,
+            c_sequence=2,
         )
 
         fake_chant_3 = Chant.objects.create(
             source = fake_source_2,
             cantus_id = "1000",
             folio="001r",
-            sequence_number=1,
+            c_sequence=1,
             next_chant=fake_chant_4,
         )
 
