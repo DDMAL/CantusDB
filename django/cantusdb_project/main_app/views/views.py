@@ -225,7 +225,8 @@ def csv_export(request, source_id):
                 entry.siglum,
                 entry.marginalia,
                 entry.folio,
-                entry.sequence_number,
+                # if entry has a c_sequence, it's a Chant. If it doesn't, it's a Sequence, so write its s_sequence
+                entry.c_sequence if entry.c_sequence is not None else entry.s_sequence,
                 entry.incipit,
                 feast,
                 office,
@@ -415,7 +416,7 @@ def ajax_search_bar(request, search_term):
         "siglum",
         "office__name",
         "folio",
-        "sequence_number",
+        "c_sequence",
     )
     returned_values = list(returned_values)
     for i in range(chants.count()):
