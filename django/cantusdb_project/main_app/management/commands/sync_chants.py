@@ -100,9 +100,9 @@ def get_new_chant(chant_id):
         folio = None
 
     try:
-        sequence_number = int(json_response["field_sequence"]["und"][0]["value"])
+        c_sequence = int(json_response["field_sequence"]["und"][0]["value"])
     except (KeyError, TypeError):
-        sequence_number = None
+        c_sequence = None
 
     try:
         position = json_response["field_position"]["und"][0]["value"]
@@ -274,7 +274,7 @@ def get_new_chant(chant_id):
             "siglum": siglum,
             "marginalia": marginalia,
             "folio": folio,
-            "sequence_number": sequence_number,
+            "c_sequence": c_sequence,
             "office": office,
             "genre": genre,
             "position": position,
