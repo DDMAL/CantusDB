@@ -2852,6 +2852,7 @@ class CsvExportTest(TestCase):
         self.assertEqual(len(rows), NUM_SEQUENCES)
         for row in rows:
             self.assertEqual(len(header), len(row))
+            self.assertNotEqual(row[3], "") # ensure that the .s_sequence field is being written to the "sequence" column
 
 
 
