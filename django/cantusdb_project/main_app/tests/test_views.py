@@ -2835,6 +2835,24 @@ class CsvExportTest(TestCase):
         response_2 = self.client.get(reverse("csv-export", args=[unpublished_source.id]))
         self.assertEqual(response_2.status_code, 403)
 
+    def test_csv_export_on_source_with_sequences(self):
+        NUM_SEQUENCES = 5
+        bower_segment = make_fake_segment(name="Bower Sequence Database")
+        bower_segment.id = 4064
+        bower_segment.save()
+        source = make_fake_source(published=True)
+        source.segment = bower_segment
+        for _ in range(NUM_SEQUENCES):
+            make_fake_sequence(source=source)
+        response = self.client.get(reverse("csv-export", args=[source.id]))
+        content = response.content.decode('utf-8')
+        split_content = list(csv.reader(content.splitlines(), delimiter=','))
+        header, rows = split_content[0], split_content[1:]
+
+        self.assertEqual(len(rows), NUM_SEQUENCES)
+        for row in rows:
+            self.assertEqual(len(header), len(row))
+
 
 
 class ChangePasswordViewTest(TestCase):
