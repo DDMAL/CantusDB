@@ -77,7 +77,6 @@ class ChantCreateForm(forms.ModelForm):
             "finalis": TextInputWidget(),
             "extra": TextInputWidget(),
             "chant_range": VolpianoInputWidget(),
-            "manuscript_full_text_std_spelling": TextAreaWidget(),
             "manuscript_full_text": TextAreaWidget(),
             "volpiano": VolpianoAreaWidget(),
             "image_link": TextInputWidget(),
