@@ -61,20 +61,26 @@ class ChantCreateForm(forms.ModelForm):
             "indexing_notes",
             "addendum",
         ]
+        # the widgets dictionary is ignored for a model field with a non-empty
+        # choices attribute. In this case, you must override the form field to
+        # use a different widget. this goes for all foreignkey and required fields
+        # here, which are written explicitly below to override form field
         widgets = {
             "marginalia": TextInputWidget(),
-            # the widgets dictionary is ignored for a model field with a non-empty choices attribute.
-            # In this case, you must override the form field to use a different widget.
-            # this goes for all foreignkey fields here, which are written explicitly below to override form field
+            # folio: defined below (required)
+            # c_sequence: defined below (required)
+            # office: defined below (foreignkey)
+            # genre: defined below (foreignkey)
             "position": TextInputWidget(),
             "cantus_id": TextInputWidget(),
-            #'feast': SelectWidget(),
+            #'feast': defined below (foreignkey)
             "mode": TextInputWidget(),
             "differentia": TextInputWidget(),
             "differentia_new": TextInputWidget(),
             "finalis": TextInputWidget(),
             "extra": TextInputWidget(),
             "chant_range": VolpianoInputWidget(),
+            # manuscript_full_text_std_spelling: defined below (required)
             "manuscript_full_text": TextAreaWidget(),
             "volpiano": VolpianoAreaWidget(),
             "image_link": TextInputWidget(),
@@ -83,19 +89,6 @@ class ChantCreateForm(forms.ModelForm):
             "indexing_notes": TextAreaWidget(),
             "addendum": TextInputWidget(),
         }
-        # error_messages = {
-        #     # specify custom error messages for each field here
-        # }
-
-    manuscript_full_text_std_spelling = forms.CharField(
-        required=True,
-        widget=TextAreaWidget,
-        help_text="Manuscript full text with standardized spelling. Enter the words "
-        "according to the manuscript but normalize their spellings following "
-        "Classical Latin forms. Use upper-case letters for proper nouns, "
-        'the first word of each chant, and the first word after "Alleluia" for '
-        "Mass Alleluias. Punctuation is omitted.",
-    )
 
     folio = forms.CharField(
         required=True, widget=TextInputWidget, help_text="Binding order",
@@ -119,6 +112,16 @@ class ChantCreateForm(forms.ModelForm):
         queryset=Feast.objects.all().order_by("name"), required=False
     )
     feast.widget.attrs.update({"class": "form-control custom-select custom-select-sm"})
+
+    manuscript_full_text_std_spelling = forms.CharField(
+        required=True,
+        widget=TextAreaWidget,
+        help_text="Manuscript full text with standardized spelling. Enter the words "
+        "according to the manuscript but normalize their spellings following "
+        "Classical Latin forms. Use upper-case letters for proper nouns, "
+        'the first word of each chant, and the first word after "Alleluia" for '
+        "Mass Alleluias. Punctuation is omitted.",
+    )
 
     # automatically computed fields
     # source and incipit are mandatory fields in model,
