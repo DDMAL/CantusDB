@@ -247,12 +247,9 @@ class ChantEditForm(forms.ModelForm):
             "indexing_notes"
         ]
         widgets = {
-            "manuscript_full_text_std_spelling": TextAreaWidget(),
             "manuscript_full_text": TextAreaWidget(),
             "volpiano": VolpianoAreaWidget(),
             "marginalia": TextInputWidget(),
-            "folio": TextInputWidget(),
-            "c_sequence": TextInputWidget(),
             "position": TextInputWidget(),
             "cantus_id": TextInputWidget(),
             "melody_id": TextInputWidget(),
@@ -264,6 +261,16 @@ class ChantEditForm(forms.ModelForm):
             "image_link": TextInputWidget(),
             "indexing_notes": TextAreaWidget()
         }
+
+    manuscript_full_text_std_spelling = forms.CharField(
+        required=True,
+        widget=TextAreaWidget,
+        help_text="Manuscript full text with standardized spelling. Enter the words "
+        "according to the manuscript but normalize their spellings following "
+        "Classical Latin forms. Use upper-case letters for proper nouns, "
+        'the first word of each chant, and the first word after "Alleluia" for '
+        "Mass Alleluias. Punctuation is omitted.",
+    )
     feast = forms.ModelChoiceField(
         queryset=Feast.objects.all().order_by("name"), required=False
     )
@@ -278,6 +285,14 @@ class ChantEditForm(forms.ModelForm):
         queryset=Genre.objects.all().order_by("name"), required=False
     )
     genre.widget.attrs.update({"class": "form-control custom-select custom-select-sm"})
+
+    folio = forms.CharField(
+        required=True, widget=TextInputWidget, help_text="Binding order",
+    )
+
+    c_sequence = forms.CharField(
+        required=True, widget=TextInputWidget, help_text="Each folio starts with '1'.",
+    )
 
 class ChantProofreadForm(forms.ModelForm):
     class Meta:
