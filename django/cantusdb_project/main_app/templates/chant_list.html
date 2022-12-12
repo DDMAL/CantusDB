@@ -74,7 +74,7 @@
                     <tr>
                         <td class="text-wrap" style="text-align:center">{{ chant.siglum|default:"" }}</td>
                         <td class="text-wrap" style="text-align:center"><b>{{ chant.folio|default:"" }}</b></td>
-                        <td class="text-wrap" style="text-align:center">{{ chant.sequence_number|default_if_none:"" }}</td> {# default_if_none: sometimes, sequence_number is 0, and should still be displayed #}
+                        <td class="text-wrap" style="text-align:center">{{ chant.c_sequence|default_if_none:"" }}</td> {# default_if_none: sometimes, c_sequence is 0, and should still be displayed #}
                         <td class="text-wrap">
                             <a href="{{ chant.get_absolute_url }}"><b>{{ chant.incipit|default:"" }}</b></a>
                             <p>{{ chant.manuscript_full_text_std_spelling|default:"" }}<br>

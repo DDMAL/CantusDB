@@ -40,7 +40,7 @@ class ChantCreateForm(forms.ModelForm):
         fields = [
             "marginalia",
             "folio",
-            "sequence_number",
+            "c_sequence",
             "office",
             "genre",
             "position",
@@ -64,7 +64,7 @@ class ChantCreateForm(forms.ModelForm):
         widgets = {
             "marginalia": TextInputWidget(),
             "folio": TextInputWidget(),
-            "sequence_number": TextInputWidget(),
+            "c_sequence": TextInputWidget(),
             # the widgets dictionary is ignored for a model field with a non-empty choices attribute.
             # In this case, you must override the form field to use a different widget.
             # this goes for all foreignkey fields here, which are written explicitly below to override form field
@@ -104,7 +104,7 @@ class ChantCreateForm(forms.ModelForm):
         required=True, widget=TextInputWidget, help_text="Binding order",
     )
 
-    sequence_number = forms.CharField(
+    c_sequence = forms.CharField(
         required=True, widget=TextInputWidget, help_text="Each folio starts with '1'.",
     )
 
@@ -231,7 +231,7 @@ class ChantEditForm(forms.ModelForm):
             "volpiano",
             "marginalia",
             "folio",
-            "sequence",
+            "c_sequence",
             "feast",
             "office",
             "genre",
@@ -252,7 +252,7 @@ class ChantEditForm(forms.ModelForm):
             "volpiano": VolpianoAreaWidget(),
             "marginalia": TextInputWidget(),
             "folio": TextInputWidget(),
-            "sequence": TextInputWidget(),
+            "c_sequence": TextInputWidget(),
             "position": TextInputWidget(),
             "cantus_id": TextInputWidget(),
             "melody_id": TextInputWidget(),
@@ -288,7 +288,7 @@ class ChantProofreadForm(forms.ModelForm):
             "volpiano",
             "marginalia",
             "folio",
-            "sequence",
+            "c_sequence",
             "feast",
             "office",
             "genre",
@@ -318,7 +318,7 @@ class ChantProofreadForm(forms.ModelForm):
             "volpiano": VolpianoAreaWidget(),
             "marginalia": TextInputWidget(),
             "folio": TextInputWidget(),
-            "sequence": TextInputWidget(),
+            "c_sequence": TextInputWidget(),
             "office": TextInputWidget(),
             "genre": TextInputWidget(),
             "position": TextInputWidget(),
@@ -452,7 +452,7 @@ class SequenceEditForm(forms.ModelForm):
             "siglum",
             "incipit",
             "folio",
-            "sequence",
+            "s_sequence",
             "genre",
             "rubrics",
             "analecta_hymnica",
@@ -471,7 +471,7 @@ class SequenceEditForm(forms.ModelForm):
             "siglum": TextInputWidget(),
             "incipit": TextInputWidget(),
             "folio": TextInputWidget(),
-            "sequence": TextInputWidget(),
+            "s_sequence": TextInputWidget(),
             "rubrics": TextInputWidget(),
             "analecta_hymnica": TextInputWidget(),
             "indexing_notes": TextAreaWidget(),

@@ -36,7 +36,7 @@ class SourceDetailView(DetailView):
             # get all chants in the source, select those that have a feast
             chants_in_source = (
                 source.chant_set.exclude(feast=None)
-                .order_by("folio", "sequence_number")
+                .order_by("folio", "c_sequence")
                 .select_related("feast")
             )
             # initialize the feast selector options with the first chant in the source that has a feast
@@ -79,7 +79,7 @@ class SourceDetailView(DetailView):
 
         if source.segment and source.segment.id == 4064:
             # if this is a sequence source
-            context["sequences"] = source.sequence_set.order_by("sequence")
+            context["sequences"] = source.sequence_set.order_by("s_sequence")
             context["folios"] = (
                 source.sequence_set.values_list("folio", flat=True)
                 .distinct()

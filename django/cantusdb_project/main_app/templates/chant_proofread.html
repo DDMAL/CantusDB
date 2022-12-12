@@ -40,8 +40,8 @@
                             {{ form.folio }}
                         </div>
                         <div class="form-group m-1 col-lg-2">
-                            <small>{{ form.sequence.label_tag }}</small>
-                            {{ form.sequence }}
+                            <small>{{ form.c_sequence.label_tag }}</small>
+                            {{ form.c_sequence }}
                         </div>
                         <div class="form-group m-1 col-lg-4">
                             <small>{{ form.feast.label_tag }}</small>
@@ -272,7 +272,7 @@
                             <table class="table table-sm small table-bordered">     
                                 {% for chant in chants %}
                                     <tr>
-                                        <td class="h-25" style="width: 5%">{{ chant.sequence_number }}</td>
+                                        <td class="h-25" style="width: 5%">{{ chant.c_sequence }}</td>
                                         <td class="h-25" style="width: 20%">{{ chant.office.name|default_if_none:"" }} <b>{{ chant.genre.name|default_if_none:"" }}</b> {{ chant.position|default_if_none:"" }} </td>
                                         <td class="h-25" style="width: 40%; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; max-width: 0"><a href="{{ chant.get_absolute_url }}">{{ chant.incipit|default_if_none:"" }}</a></td>
                                         <td class="h-25" style="width: 20%"><a href="{{ chant.get_ci_url }}" target="_blank">{{ chant.cantus_id|default_if_none:"" }}</a></td>
@@ -290,7 +290,7 @@
                             <table class="table table-sm small table-bordered">     
                                 {% for chant in chants %}
                                     <tr>
-                                        <td class="h-25" style="width: 5%">{{ chant.sequence_number }}</td>
+                                        <td class="h-25" style="width: 5%">{{ chant.c_sequence }}</td>
                                         <td class="h-25" style="width: 20%">{{ chant.office.name|default_if_none:"" }} <b>{{ chant.genre.name|default_if_none:"" }}</b> {{ chant.position|default_if_none:"" }} </td>
                                         <td class="h-25" style="width: 40%; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; max-width: 0"><a href="{{ chant.get_absolute_url }}">{{ chant.incipit|default_if_none:"" }}</a></td>
                                         <td class="h-25" style="width: 20%"><a href="{{ chant.get_ci_url }}" target="_blank">{{ chant.cantus_id|default_if_none:"" }}</a></td>

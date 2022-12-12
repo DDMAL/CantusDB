@@ -27,11 +27,11 @@ class BaseChant(BaseModel):
     folio = models.CharField(
         help_text="Binding order", blank=True, null=True, max_length=255, db_index=True
     )
-    # The "sequence" char field, used for Sequences, is used to indicate the relative positions of sequences on the page.
+    # The "s_sequence" char field, used for Sequences, is used to indicate the relative positions of sequences on the page.
     # It sometimes features non-numeric characters and leading zeroes, so it's a CharField.
-    sequence = models.CharField(blank=True, null=True, max_length=255)
-    # The "sequence_number" integer field, used for Chants, similarly indicates the relative positions of chants on the page
-    sequence_number = models.PositiveIntegerField(
+    s_sequence = models.CharField(blank=True, null=True, max_length=255)
+    # The "c_sequence" integer field, used for Chants, similarly indicates the relative positions of chants on the page
+    c_sequence = models.PositiveIntegerField(
         help_text='Each folio starts with "1"', null=True, blank=True
     )
     genre = models.ForeignKey("Genre", blank=True, null=True, on_delete=models.PROTECT)

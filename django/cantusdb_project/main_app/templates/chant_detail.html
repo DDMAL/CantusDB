@@ -51,10 +51,10 @@
                         </div>
                     {% endif %}
 
-                    {% if chant.sequence_number is not None %} {# check that it isn't None, since sometimes sequence_number is 0 #}
+                    {% if chant.c_sequence is not None %} {# check that it isn't None, since sometimes c_sequence is 0 #}
                         <div class="col-10">
                             <dt>Sequence</dt>
-                            <dd>{{ chant.sequence_number }}</dd>
+                            <dd>{{ chant.c_sequence }}</dd>
                         </div>
                     {% endif %}
                 </div>
@@ -327,7 +327,7 @@
                                             <table class="table table-sm small table-bordered">     
                                                 {% for chant in chants %}
                                                     <tr>
-                                                        <td>{{ chant.sequence_number }}</td>
+                                                        <td>{{ chant.c_sequence }}</td>
                                                         <td>{{ chant.office.name|default_if_none:"" }} <b>{{ chant.genre.name|default_if_none:"" }}</b> {{ chant.position|default_if_none:"" }} </td>
                                                         <td><a href="{{ chant.get_absolute_url }}">{{ chant.incipit|default_if_none:"" }}</a></td>
                                                         <td><a href="{{ chant.get_ci_url }}" target="_blank">{{ chant.cantus_id|default_if_none:"" }}</a></td>
@@ -345,7 +345,7 @@
                                     <table class="table table-sm small table-bordered">     
                                         {% for chant in chants %}
                                             <tr>
-                                                <td>{{ chant.sequence_number }}</td>
+                                                <td>{{ chant.c_sequence }}</td>
                                                 <td>{{ chant.office.name|default_if_none:"" }} <b>{{ chant.genre.name|default_if_none:"" }}</b> {{ chant.position|default_if_none:"" }} </td>
                                                 <td><a href="{{ chant.get_absolute_url }}">{{ chant.incipit|default_if_none:"" }}</a></td>
                                                 <td><a href="{{ chant.get_ci_url }}" target="_blank">{{ chant.cantus_id|default_if_none:"" }}</a></td>
@@ -363,7 +363,7 @@
                                             <table class="table table-sm small table-bordered">     
                                                 {% for chant in chants %}
                                                     <tr>
-                                                        <td>{{ chant.sequence_number }}</td>
+                                                        <td>{{ chant.c_sequence }}</td>
                                                         <td>{{ chant.office.name|default_if_none:"" }} <b>{{ chant.genre.name|default_if_none:"" }}</b> {{ chant.position|default_if_none:"" }} </td>
                                                         <td><a href="{{ chant.get_absolute_url }}">{{ chant.incipit|default_if_none:"" }}</a></td>
                                                         <td><a href="{{ chant.get_ci_url }}" target="_blank">{{ chant.cantus_id|default_if_none:"" }}</a></td>

@@ -64,7 +64,7 @@ def make_fake_chant(source=None,
     folio=None,
     genre=None,
     position=None,
-    sequence_number=None,
+    c_sequence=None,
     cantus_id=None,
     feast=None,
     manuscript_full_text_std_spelling=None,
@@ -83,8 +83,8 @@ def make_fake_chant(source=None,
         genre = make_fake_genre()
     if position is None:
         position = make_fake_text(SHORT_CHAR_FIELD_MAX)
-    if sequence_number is None:
-        sequence_number = random.randint(1, MAX_SEQUENCE_NUMBER)
+    if c_sequence is None:
+        c_sequence = random.randint(1, MAX_SEQUENCE_NUMBER)
     if cantus_id is None:
         cantus_id = faker.numerify("######")
     if feast is None:
@@ -107,7 +107,7 @@ def make_fake_chant(source=None,
         source=source,
         marginalia=make_fake_text(SHORT_CHAR_FIELD_MAX),
         folio=folio,
-        sequence_number=sequence_number,
+        c_sequence=c_sequence,
         office=make_fake_office(),
         genre=genre,
         position=position,
@@ -243,7 +243,7 @@ def make_fake_sequence(source=None, title=None, incipit=None, cantus_id=None) ->
         incipit=incipit,
         # folio in the form of two digits and one letter
         folio=faker.bothify("##?"),
-        sequence=make_fake_text(LONG_CHAR_FIELD_MAX),
+        s_sequence=make_fake_text(LONG_CHAR_FIELD_MAX),
         genre=make_fake_genre(),
         rubrics=make_fake_text(LONG_CHAR_FIELD_MAX),
         analecta_hymnica=make_fake_text(LONG_CHAR_FIELD_MAX),
