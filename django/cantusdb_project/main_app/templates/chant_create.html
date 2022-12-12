@@ -39,13 +39,6 @@
                     <div class="form-group m-1 col-lg-2">
                         <small>{{ form.marginalia.label_tag }}</small>
                         {{ form.marginalia }}
-                        <!-- {% if form.marginalia.errors %}
-                            <ol>
-                            {% for error in form.marginalia.errors %}
-                                <li><strong>{{ error|escape }}</strong></li>
-                            {% endfor %}
-                            </ol>
-                        {% endif %} -->
                     </div>
 
                     <div class="form-group m-1 col-lg-2">
@@ -64,32 +57,11 @@
 
                 <div class="form-row">
 
-                    <!--div class="form-group m-1 col-lg-2">
-                        <label for="{{ form.office.id_for_label }}"><small>Office-Mass:</small></label>
-                        <select class="form-control custom-select custom-select-sm" id="{{ form.office.id_for_label }}" name="{{ form.office.html_name }}">
-                            <option value="">- Any -</option>
-                            {% for office in offices %}
-                            <option value="{{office.id}}">{{office.name}}</option>
-                            {% endfor %}
-                        </select>              
-                        <a class="text-muted" href="#"><small>?</small></a>
-                    </div-->
-
                     <div class="form-group m-1 col-lg-2">
                         <label for="{{ form.office.id_for_label }}"><small>Office/Mass:</small></label>
                         {{ form.office }}
                         <a href="/field-descriptions/#Office"><small>?</small></a>
                     </div>
-
-                    <!--div class="form-group m-1 col-lg-2">
-                        <small>{{ form.genre.label_tag }}</small>
-                        <select class="form-control custom-select custom-select-sm" id="{{ form.genre.id_for_label }}" name="{{ form.genre.html_name }}">
-                            <option value="">- Any -</option>
-                            {% for genre in genres %}
-                            <option value="{{genre.id}}">{{genre.name}}</option>
-                            {% endfor %}
-                        </select>
-                    </div-->
 
                     <div class="form-group m-1 col-lg-2">
                         <small>{{ form.genre.label_tag }}</small>
@@ -187,7 +159,6 @@
                         <label for="{{ form.manuscript_full_text_std_spelling.id_for_label }}"><small>Manuscript Reading
                                 Full Text (standardized spelling):<span class="text-danger" title="This field is required">*</span></small></label>
                         {{ form.manuscript_full_text_std_spelling }}
-                        <!--textarea class="form-control" rows="3" id="form.manuscript_full_text_std_spelling.id_for_label"></textarea-->
                         <p>
                             <small class="text-muted">{{ form.manuscript_full_text_std_spelling.help_text }}
                                 For more information, consult <a href="/field-descriptions/#Fulltext" target="_blank">Fields and Content Descriptions</a>.
@@ -211,7 +182,6 @@
 
                 <div class="form-row align-items-end">
                     <div class="form-group m-1 col-lg">
-                        <!--p style="font-family: Volpiano; font-size: xx-large;">abcdefg</p-->
                         <small>{{ form.volpiano.label_tag }}</small>
                         {{ form.volpiano }}
                     </div>
