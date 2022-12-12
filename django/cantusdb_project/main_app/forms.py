@@ -63,8 +63,6 @@ class ChantCreateForm(forms.ModelForm):
         ]
         widgets = {
             "marginalia": TextInputWidget(),
-            "folio": TextInputWidget(),
-            "c_sequence": TextInputWidget(),
             # the widgets dictionary is ignored for a model field with a non-empty choices attribute.
             # In this case, you must override the form field to use a different widget.
             # this goes for all foreignkey fields here, which are written explicitly below to override form field
