@@ -247,9 +247,14 @@ class ChantEditForm(forms.ModelForm):
             "indexing_notes"
         ]
         widgets = {
+            # manuscript_full_text_std_spelling: defined below (required)
             "manuscript_full_text": TextAreaWidget(),
             "volpiano": VolpianoAreaWidget(),
             "marginalia": TextInputWidget(),
+            # folio: defined below (required)
+            # feast: defined below (foreignkey)
+            # office: defined below (foreignkey)
+            # genre: defined below (foreignkey)
             "position": TextInputWidget(),
             "cantus_id": TextInputWidget(),
             "melody_id": TextInputWidget(),
@@ -272,6 +277,14 @@ class ChantEditForm(forms.ModelForm):
         "Mass Alleluias. Punctuation is omitted.",
     )
 
+    folio = forms.CharField(
+        required=True, widget=TextInputWidget, help_text="Binding order",
+    )
+
+    c_sequence = forms.CharField(
+        required=True, widget=TextInputWidget, help_text="Each folio starts with '1'.",
+    )
+
     feast = forms.ModelChoiceField(
         queryset=Feast.objects.all().order_by("name"), required=False
     )
@@ -286,14 +299,6 @@ class ChantEditForm(forms.ModelForm):
         queryset=Genre.objects.all().order_by("name"), required=False
     )
     genre.widget.attrs.update({"class": "form-control custom-select custom-select-sm"})
-
-    folio = forms.CharField(
-        required=True, widget=TextInputWidget, help_text="Binding order",
-    )
-
-    c_sequence = forms.CharField(
-        required=True, widget=TextInputWidget, help_text="Each folio starts with '1'.",
-    )
 
 class ChantProofreadForm(forms.ModelForm):
     class Meta:
