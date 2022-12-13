@@ -329,14 +329,14 @@ class ChantProofreadForm(forms.ModelForm):
             "differentia_new"
         ]
         widgets = {
-            # manuscript_full_text_std_spelling: defined below
+            # manuscript_full_text_std_spelling: defined below (required)
             "manuscript_full_text": TextAreaWidget(),
             "volpiano": VolpianoAreaWidget(),
             "marginalia": TextInputWidget(),
-            # folio: defined below
-            # c_sequence: defined below
-            # "office": TextInputWidget(),
-            # "genre": TextInputWidget(),
+            # folio: defined below (required)
+            # c_sequence: defined below (required)
+            # "office": defined below (foreignkey)
+            # "genre": defined below (foreignkey)
             "position": TextInputWidget(),
             "cantus_id": TextInputWidget(),
             "melody_id": TextInputWidget(),
