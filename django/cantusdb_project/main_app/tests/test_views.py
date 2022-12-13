@@ -1192,7 +1192,7 @@ class SourceEditChantsViewTest(TestCase):
 
     def test_update_chant(self):
         source = make_fake_source()
-        chant = Chant.objects.create(source=source, manuscript_full_text_std_spelling="initial")
+        chant = make_fake_chant(source=source, manuscript_full_text_std_spelling="initial")
 
         response = self.client.get(
             reverse('source-edit-chants', args=[source.id]), 
@@ -1200,9 +1200,16 @@ class SourceEditChantsViewTest(TestCase):
         self.assertEqual(response.status_code, 200)
         self.assertTemplateUsed(response, "chant_edit.html")
 
+        folio = chant.folio
+        c_sequence = chant.c_sequence
         response = self.client.post(
             reverse('source-edit-chants', args=[source.id]), 
-            {'manuscript_full_text_std_spelling': 'test', 'pk': chant.id})
+            {
+                'manuscript_full_text_std_spelling': 'test',
+                'pk': chant.id,
+                "folio": folio,
+                "c_sequence": c_sequence,
+            })
         self.assertEqual(response.status_code, 302)
         # Check that after the edit, the user is redirected to the source-edit-chants page
         self.assertRedirects(response, reverse('source-edit-chants', args=[source.id]))  
