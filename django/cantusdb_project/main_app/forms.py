@@ -252,6 +252,7 @@ class ChantEditForm(forms.ModelForm):
             "volpiano": VolpianoAreaWidget(),
             "marginalia": TextInputWidget(),
             # folio: defined below (required)
+            # c_sequence: defined below (required)
             # feast: defined below (foreignkey)
             # office: defined below (foreignkey)
             # genre: defined below (foreignkey)
