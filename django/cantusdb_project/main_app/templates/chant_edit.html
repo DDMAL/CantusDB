@@ -41,7 +41,7 @@
                     <div class="form-row">
                         <div class="form-group m-1 col-lg-12">
                             <label for="{{ form.manuscript_full_text_std_spelling.id_for_label }}">
-                                <small>Manuscript Reading Full Text (standardized spelling):</small>
+                                <small>Manuscript Reading Full Text (standardized spelling):<span class="text-danger" title="This field is required">*</span></small>
                             </label>
                             {{ form.manuscript_full_text_std_spelling }}
                             <script>
@@ -85,11 +85,13 @@
                             {{ form.marginalia }}
                         </div>
                         <div class="form-group m-1 col-lg-2">
-                            <small>{{ form.folio.label_tag }}</small>
+                            <small>{{ form.folio.label_tag }}<span class="text-danger" title="This field is required">*</span></small>
                             {{ form.folio }}
                         </div>
                         <div class="form-group m-1 col-lg-2">
-                            <small>{{ form.c_sequence.label_tag }}</small>
+                            <label for="{{ form.c_sequence.id_for_label }}">
+                                <small>Sequence:<span class="text-danger" title="This field is required">*</span></small>
+                            </label>
                             {{ form.c_sequence }}
                         </div>
                         <div class="form-group m-1 col-lg-4">
