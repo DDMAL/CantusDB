@@ -1192,7 +1192,7 @@ class SourceEditChantsViewTest(TestCase):
 
     def test_update_chant(self):
         source = make_fake_source()
-        chant = Chant.objects.create(source=source, manuscript_full_text_std_spelling="initial")
+        chant = make_fake_chant(source=source, manuscript_full_text_std_spelling="initial")
 
         response = self.client.get(
             reverse('source-edit-chants', args=[source.id]), 
@@ -1200,9 +1200,16 @@ class SourceEditChantsViewTest(TestCase):
         self.assertEqual(response.status_code, 200)
         self.assertTemplateUsed(response, "chant_edit.html")
 
+        folio = chant.folio
+        c_sequence = chant.c_sequence
         response = self.client.post(
             reverse('source-edit-chants', args=[source.id]), 
-            {'manuscript_full_text_std_spelling': 'test', 'pk': chant.id})
+            {
+                'manuscript_full_text_std_spelling': 'test',
+                'pk': chant.id,
+                "folio": folio,
+                "c_sequence": c_sequence,
+            })
         self.assertEqual(response.status_code, 302)
         # Check that after the edit, the user is redirected to the source-edit-chants page
         self.assertRedirects(response, reverse('source-edit-chants', args=[source.id]))  
@@ -1320,10 +1327,19 @@ class ChantProofreadViewTest(TestCase):
     
     def test_proofread_chant(self):
         chant = make_fake_chant(manuscript_full_text_std_spelling="lorem ipsum", folio="001r")
+        folio = chant.folio
+        c_sequence = chant.c_sequence
+        ms_std = chant.manuscript_full_text_std_spelling
         self.assertIs(chant.manuscript_full_text_std_proofread, False)
         source = chant.source
         response = self.client.post(f"/proofread-chant/{source.id}?pk={chant.id}&folio=001r", 
-            {'manuscript_full_text_std_proofread': 'True'})
+            {
+                'manuscript_full_text_std_proofread': 'True',
+                "folio": folio,
+                "c_sequence": c_sequence,
+                "manuscript_full_text_std_spelling": ms_std,
+            },
+        )
         self.assertEqual(response.status_code, 302) # 302 Found
         chant.refresh_from_db()
         self.assertIs(chant.manuscript_full_text_std_proofread, True)
