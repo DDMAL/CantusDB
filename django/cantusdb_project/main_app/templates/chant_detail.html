@@ -73,7 +73,7 @@
                         <div class="col-2">
                             <dt>Office/Mass</dt>
                             <dd>
-                                <a href="{{ chant.office.get_absolute_url }}">{{ chant.office.name }}</a>
+                                <a href="{{ chant.office.get_absolute_url }}" title="{{ chant.office.description }}">{{ chant.office.name }}</a>
                             </dd>
                         </div>
                     {% endif %}
@@ -82,7 +82,7 @@
                         <div class="col-2">
                             <dt>Genre</dt>
                             <dd>
-                                <a href="{{ chant.genre.get_absolute_url }}">{{ chant.genre.name }}</a>
+                                <a href="{{ chant.genre.get_absolute_url }}" title="{{ chant.genre.description }}">{{ chant.genre.name }}</a>
                             </dd>
                         </div>
                     {% endif %}
