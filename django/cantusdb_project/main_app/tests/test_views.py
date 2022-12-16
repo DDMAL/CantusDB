@@ -86,11 +86,7 @@ class PermissionsTest(TestCase):
 
         # ChantCreateView
         response = self.client.get(f'/chant-create/{source.id}')
-        self.assertRedirects(response, f'/login/?next=/chant-create/{source.id}')       
-
-        # ChantDeleteView
-        response = self.client.get(f'/chant-delete/{chant.id}')
-        self.assertRedirects(response, f'/login/?next=/chant-delete/{chant.id}')        
+        self.assertRedirects(response, f'/login/?next=/chant-create/{source.id}')             
         
         # SourceEditChantsView
         response = self.client.get(f'/edit-chants/{source.id}')
@@ -128,10 +124,6 @@ class PermissionsTest(TestCase):
 
         # ChantCreateView
         response = self.client.get(f'/chant-create/{source.id}')
-        self.assertEqual(response.status_code, 200)
-
-        # ChantDeleteView
-        response = self.client.get(f'/chant-delete/{chant.id}')
         self.assertEqual(response.status_code, 200)
 
         # SourceEditChantsView
@@ -185,16 +177,6 @@ class PermissionsTest(TestCase):
         self.assertEqual(response.status_code, 200)
 
         response = self.client.get(f'/chant-create/{assigned_source.id}')
-        self.assertEqual(response.status_code, 200)
-
-        # ChantDeleteView
-        response = self.client.get(f'/chant-delete/{restricted_chant.id}')
-        self.assertEqual(response.status_code, 403)
-
-        response = self.client.get(f'/chant-delete/{chant_in_source_created_by_contributor.id}')
-        self.assertEqual(response.status_code, 200)
-
-        response = self.client.get(f'/chant-delete/{chant_in_assigned_source.id}')
         self.assertEqual(response.status_code, 200)
 
         # SourceEditChantsView
@@ -262,16 +244,6 @@ class PermissionsTest(TestCase):
         response = self.client.get(f'/chant-create/{assigned_source.id}')
         self.assertEqual(response.status_code, 200)
 
-        # ChantDeleteView
-        response = self.client.get(f'/chant-delete/{restricted_chant.id}')
-        self.assertEqual(response.status_code, 403)
-
-        response = self.client.get(f'/chant-delete/{chant_in_source_created_by_contributor.id}')
-        self.assertEqual(response.status_code, 200)
-
-        response = self.client.get(f'/chant-delete/{chant_in_assigned_source.id}')
-        self.assertEqual(response.status_code, 200)
-
         # SourceEditChantsView
         response = self.client.get(f'/edit-chants/{restricted_source.id}')
         self.assertEqual(response.status_code, 403)
@@ -310,10 +282,6 @@ class PermissionsTest(TestCase):
 
         # ChantCreateView
         response = self.client.get(f'/chant-create/{source.id}')
-        self.assertEqual(response.status_code, 403)
-
-        # ChantDeleteView
-        response = self.client.get(f'/chant-delete/{chant.id}')
         self.assertEqual(response.status_code, 403)
 
         # SourceEditChantsView
@@ -1112,47 +1080,6 @@ class ChantCreateViewTest(TestCase):
         chant_2 = Chant.objects.get(manuscript_full_text_std_spelling="resonare foobaz")
         self.assertEqual(chant_2.volpiano, "abacadaeafagahaja")
         self.assertEqual(chant_2.volpiano_intervals, "1-12-23-34-45-56-67-78-8")
-
-
-class ChantDeleteViewTest(TestCase):
-    @classmethod
-    def setUpTestData(cls):
-        Group.objects.create(name="project manager")
-
-    def setUp(self):
-        self.user = get_user_model().objects.create(email='test@test.com')
-        self.user.set_password('pass')
-        self.user.save()
-        self.client = Client()
-        project_manager = Group.objects.get(name='project manager') 
-        project_manager.user_set.add(self.user)
-        self.client.login(email='test@test.com', password='pass')
-
-    def test_context(self):
-        chant = make_fake_chant()
-        response = self.client.get(reverse("chant-delete", args=[chant.id]))
-        self.assertEqual(chant, response.context["object"])
-
-    def test_url_and_templates(self):
-        chant = make_fake_chant()
-
-        response = self.client.get(reverse("chant-delete", args=[chant.id]))
-        self.assertEqual(response.status_code, 200)
-        self.assertTemplateUsed(response, "chant_confirm_delete.html")
-
-        response = self.client.get(reverse("chant-delete", args=[chant.id + 100]))
-        self.assertEqual(response.status_code, 404)
-        self.assertTemplateUsed(response, "404.html")
-
-    def test_existing_chant(self):
-        chant = make_fake_chant()
-        response = self.client.post(reverse("chant-delete", args=[chant.id]))
-        self.assertEqual(response.status_code, 302)
-
-    def test_non_existing_chant(self):
-        chant = make_fake_chant()
-        response = self.client.post(reverse("chant-delete", args=[chant.id + 100]))
-        self.assertEqual(response.status_code, 404)
 
 
 class SourceEditChantsViewTest(TestCase):

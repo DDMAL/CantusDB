@@ -1228,26 +1228,6 @@ class ChantCreateView(LoginRequiredMixin, UserPassesTestMixin, CreateView):
             return super().form_invalid(form)
 
 
-class ChantDeleteView(LoginRequiredMixin, UserPassesTestMixin, DeleteView):
-    """The view for deleting a chant object
-
-    This view is used in the chant-edit page, where an authorized user is allowed to
-    edit or delete chants in a certain source. 
-    """
-    model = Chant
-    template_name = "chant_confirm_delete.html"
-
-    def test_func(self):
-        user = self.request.user
-        chant_id = self.kwargs.get(self.pk_url_kwarg)
-        chant = get_object_or_404(Chant, id=chant_id)
-        source = chant.source
-        
-        return user_can_edit_chants_in_source(user, source)
-
-    def get_success_url(self):
-        return reverse("source-edit-chants", args=[self.object.source.id])
-
 class CISearchView(TemplateView):
     """search in CI and write results in get_context_data
     now this is implemented as [send a search request to CI -> scrape the returned html table]

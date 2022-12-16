@@ -6,7 +6,6 @@ from main_app.views.century import (
 from main_app.views.chant import (
     ChantByCantusIDView,
     ChantCreateView,
-    ChantDeleteView,
     ChantDetailView,
     ChantEditSyllabificationView,
     ChantIndexView,
@@ -76,7 +75,6 @@ urlpatterns = [
     path(
         "id/<str:cantus_id>", ChantByCantusIDView.as_view(), name="chant-by-cantus-id"
     ),
-    path("chant-delete/<int:pk>", ChantDeleteView.as_view(), name="chant-delete"),
     path(
         "edit-chants/<int:source_id>", 
         SourceEditChantsView.as_view(), 
