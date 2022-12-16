@@ -80,7 +80,7 @@
                     Genre
                 </dt>
                 <dd>
-                    <a href="{{ sequence.genre.get_absolute_url }}">{{ sequence.genre.name }}</a>
+                    <a href="{{ sequence.genre.get_absolute_url }}" title="{{ sequence.genre.description }}">{{ sequence.genre.name }}</a>
                 </dd>
             </div>
             {% endif %}
