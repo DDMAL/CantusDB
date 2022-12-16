@@ -234,10 +234,10 @@
                                 <a href="{{ chant.feast.get_absolute_url }}">{{ chant.feast.name|default:"" }}</a>
                             </td>
                             <td class="text-wrap" style="text-align:center">
-                                <a href="{{ chant.office.get_absolute_url }}">{{ chant.office.name|default:"" }}</a>
+                                <a href="{{ chant.office.get_absolute_url }}" title="{{ chant.office.description }}">{{ chant.office.name|default:"" }}</a>
                             </td>
                             <td class="text-wrap" style="text-align:center">
-                                <a href="{{ chant.genre.get_absolute_url }}">{{ chant.genre.name|default:"" }}</a>
+                                <a href="{{ chant.genre.get_absolute_url }}" title="{{ chant.genre.description }}">{{ chant.genre.name|default:"" }}</a>
                             </td>
                             <td class="text-wrap" style="text-align:center">
                                 {{ chant.position|default:"" }}
