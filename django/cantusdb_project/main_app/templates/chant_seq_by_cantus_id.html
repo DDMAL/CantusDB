@@ -44,7 +44,7 @@
                     {% else %}
                         <td class="text-wrap"><a href="{% url 'sequence-detail' chant.id %}">{{ chant.incipit }}</a></td>
                     {% endif %}
-                    <td class="text-wrap">{{ chant.office|default:"" }} </td>
+                    <td class="text-wrap">{{ chant.office.name|default:"" }} </td>
                     <td class="text-wrap">{{ chant.genre.name|default:"" }} </td>
                     <td class="text-wrap">{{ chant.position|default:"" }}</td>
                     <td class="text-wrap"><a href="{{ chant.feast.get_absolute_url }}">{{ chant.feast.name|default:"" }}</a></td>
