@@ -55,8 +55,8 @@
                     <td>{{ chant.folio|default_if_none:"" }}</td>
                     <td>{{ chant.c_sequence|default_if_none:"" }}</td>
                     <td>{{ chant.feast.name|default_if_none:"" }}</td>
-                    <td>{{ chant.office.name|default_if_none:"" }}</td>
-                    <td>{{ chant.genre.name|default_if_none:"" }}</td>
+                    <td><span title="{{ chant.office.description }}">{{ chant.office.name|default_if_none:"" }}</span></td>
+                    <td><span title="{{ chant.genre.description }}">{{ chant.genre.name|default_if_none:"" }}</span></td>
                     <td>{{ chant.position|default_if_none:"" }}</td>
                     <td><a href="{{ chant.get_absolute_url }}" target="_blank">{{ chant.incipit|default_if_none:"" }}</a></td>
                     <td>{{ chant.cantus_id|default_if_none:"" }}</td>
