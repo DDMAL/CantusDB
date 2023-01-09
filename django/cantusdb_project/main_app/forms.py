@@ -40,7 +40,7 @@ class ChantCreateForm(forms.ModelForm):
         fields = [
             "marginalia",
             "folio",
-            "sequence_number",
+            "c_sequence",
             "office",
             "genre",
             "position",
@@ -61,23 +61,26 @@ class ChantCreateForm(forms.ModelForm):
             "indexing_notes",
             "addendum",
         ]
+        # the widgets dictionary is ignored for a model field with a non-empty
+        # choices attribute. In this case, you must override the form field to
+        # use a different widget. this goes for all foreignkey and required fields
+        # here, which are written explicitly below to override form field
         widgets = {
             "marginalia": TextInputWidget(),
-            "folio": TextInputWidget(),
-            "sequence_number": TextInputWidget(),
-            # the widgets dictionary is ignored for a model field with a non-empty choices attribute.
-            # In this case, you must override the form field to use a different widget.
-            # this goes for all foreignkey fields here, which are written explicitly below to override form field
+            # folio: defined below (required)
+            # c_sequence: defined below (required)
+            # office: defined below (foreignkey)
+            # genre: defined below (foreignkey)
             "position": TextInputWidget(),
             "cantus_id": TextInputWidget(),
-            #'feast': SelectWidget(),
+            #'feast': defined below (foreignkey)
             "mode": TextInputWidget(),
             "differentia": TextInputWidget(),
             "differentia_new": TextInputWidget(),
             "finalis": TextInputWidget(),
             "extra": TextInputWidget(),
             "chant_range": VolpianoInputWidget(),
-            "manuscript_full_text_std_spelling": TextAreaWidget(),
+            # manuscript_full_text_std_spelling: defined below (required)
             "manuscript_full_text": TextAreaWidget(),
             "volpiano": VolpianoAreaWidget(),
             "image_link": TextInputWidget(),
@@ -86,25 +89,12 @@ class ChantCreateForm(forms.ModelForm):
             "indexing_notes": TextAreaWidget(),
             "addendum": TextInputWidget(),
         }
-        # error_messages = {
-        #     # specify custom error messages for each field here
-        # }
-
-    manuscript_full_text_std_spelling = forms.CharField(
-        required=True,
-        widget=TextAreaWidget,
-        help_text="Manuscript full text with standardized spelling. Enter the words "
-        "according to the manuscript but normalize their spellings following "
-        "Classical Latin forms. Use upper-case letters for proper nouns, "
-        'the first word of each chant, and the first word after "Alleluia" for '
-        "Mass Alleluias. Punctuation is omitted.",
-    )
 
     folio = forms.CharField(
         required=True, widget=TextInputWidget, help_text="Binding order",
     )
 
-    sequence_number = forms.CharField(
+    c_sequence = forms.CharField(
         required=True, widget=TextInputWidget, help_text="Each folio starts with '1'.",
     )
 
@@ -122,6 +112,16 @@ class ChantCreateForm(forms.ModelForm):
         queryset=Feast.objects.all().order_by("name"), required=False
     )
     feast.widget.attrs.update({"class": "form-control custom-select custom-select-sm"})
+
+    manuscript_full_text_std_spelling = forms.CharField(
+        required=True,
+        widget=TextAreaWidget,
+        help_text="Manuscript full text with standardized spelling. Enter the words "
+        "according to the manuscript but normalize their spellings following "
+        "Classical Latin forms. Use upper-case letters for proper nouns, "
+        'the first word of each chant, and the first word after "Alleluia" for '
+        "Mass Alleluias. Punctuation is omitted.",
+    )
 
     # automatically computed fields
     # source and incipit are mandatory fields in model,
@@ -231,7 +231,7 @@ class ChantEditForm(forms.ModelForm):
             "volpiano",
             "marginalia",
             "folio",
-            "sequence",
+            "c_sequence",
             "feast",
             "office",
             "genre",
@@ -247,12 +247,15 @@ class ChantEditForm(forms.ModelForm):
             "indexing_notes"
         ]
         widgets = {
-            "manuscript_full_text_std_spelling": TextAreaWidget(),
+            # manuscript_full_text_std_spelling: defined below (required)
             "manuscript_full_text": TextAreaWidget(),
             "volpiano": VolpianoAreaWidget(),
             "marginalia": TextInputWidget(),
-            "folio": TextInputWidget(),
-            "sequence": TextInputWidget(),
+            # folio: defined below (required)
+            # c_sequence: defined below (required)
+            # feast: defined below (foreignkey)
+            # office: defined below (foreignkey)
+            # genre: defined below (foreignkey)
             "position": TextInputWidget(),
             "cantus_id": TextInputWidget(),
             "melody_id": TextInputWidget(),
@@ -264,6 +267,25 @@ class ChantEditForm(forms.ModelForm):
             "image_link": TextInputWidget(),
             "indexing_notes": TextAreaWidget()
         }
+
+    manuscript_full_text_std_spelling = forms.CharField(
+        required=True,
+        widget=TextAreaWidget,
+        help_text="Manuscript full text with standardized spelling. Enter the words "
+        "according to the manuscript but normalize their spellings following "
+        "Classical Latin forms. Use upper-case letters for proper nouns, "
+        'the first word of each chant, and the first word after "Alleluia" for '
+        "Mass Alleluias. Punctuation is omitted.",
+    )
+
+    folio = forms.CharField(
+        required=True, widget=TextInputWidget, help_text="Binding order",
+    )
+
+    c_sequence = forms.CharField(
+        required=True, widget=TextInputWidget, help_text="Each folio starts with '1'.",
+    )
+
     feast = forms.ModelChoiceField(
         queryset=Feast.objects.all().order_by("name"), required=False
     )
@@ -288,7 +310,7 @@ class ChantProofreadForm(forms.ModelForm):
             "volpiano",
             "marginalia",
             "folio",
-            "sequence",
+            "c_sequence",
             "feast",
             "office",
             "genre",
@@ -313,14 +335,14 @@ class ChantProofreadForm(forms.ModelForm):
             "differentia_new"
         ]
         widgets = {
-            "manuscript_full_text_std_spelling": TextAreaWidget(),
+            # manuscript_full_text_std_spelling: defined below (required)
             "manuscript_full_text": TextAreaWidget(),
             "volpiano": VolpianoAreaWidget(),
             "marginalia": TextInputWidget(),
-            "folio": TextInputWidget(),
-            "sequence": TextInputWidget(),
-            "office": TextInputWidget(),
-            "genre": TextInputWidget(),
+            # folio: defined below (required)
+            # c_sequence: defined below (required)
+            # "office": defined below (foreignkey)
+            # "genre": defined below (foreignkey)
             "position": TextInputWidget(),
             "cantus_id": TextInputWidget(),
             "melody_id": TextInputWidget(),
@@ -340,10 +362,52 @@ class ChantProofreadForm(forms.ModelForm):
             "addendum": TextInputWidget(),
             "differentia_new": TextInputWidget()
         }
-    feast = forms.ModelChoiceField(
-        queryset=Feast.objects.all().order_by("name"), required=False
+
+    manuscript_full_text_std_spelling = forms.CharField(
+        required=True,
+        widget=TextAreaWidget,
+        help_text="Manuscript full text with standardized spelling. Enter the words "
+        "according to the manuscript but normalize their spellings following "
+        "Classical Latin forms. Use upper-case letters for proper nouns, "
+        'the first word of each chant, and the first word after "Alleluia" for '
+        "Mass Alleluias. Punctuation is omitted.",
     )
-    feast.widget.attrs.update({"class": "form-control custom-select custom-select-sm"})
+
+    folio = forms.CharField(
+        required=True,
+        widget=TextInputWidget,
+        help_text="Binding order",
+    )
+
+    c_sequence = forms.CharField(
+        required=True,
+        widget=TextInputWidget,
+        help_text="Each folio starts with '1'.", 
+    )
+
+    feast = forms.ModelChoiceField(
+        queryset=Feast.objects.all().order_by("name"),
+        required=False,
+    )
+    feast.widget.attrs.update(
+        {"class": "form-control custom-select custom-select-sm"}
+    )
+
+    office = forms.ModelChoiceField(
+        queryset=Office.objects.all().order_by("name"),
+        required=False,
+    )
+    office.widget.attrs.update(
+        {"class": "form-control custom-select custom-select-sm"}
+    )
+
+    genre = forms.ModelChoiceField(
+        queryset=Genre.objects.all().order_by("name"),
+        required=False
+    )
+    genre.widget.attrs.update(
+        {"class": "form-control custom-select custom-select-sm"}
+    )
 
     proofread_by = forms.ModelMultipleChoiceField(
         queryset=get_user_model().objects.filter(
@@ -351,7 +415,9 @@ class ChantProofreadForm(forms.ModelForm):
             Q(groups__name="editor")
         ).order_by("last_name"), required=False
     )
-    proofread_by.widget.attrs.update({"class": "form-control custom-select custom-select-sm"})
+    proofread_by.widget.attrs.update(
+        {"class": "form-control custom-select custom-select-sm"}
+    )
 
 class SourceEditForm(forms.ModelForm):
     class Meta:
@@ -452,7 +518,7 @@ class SequenceEditForm(forms.ModelForm):
             "siglum",
             "incipit",
             "folio",
-            "sequence",
+            "s_sequence",
             "genre",
             "rubrics",
             "analecta_hymnica",
@@ -471,7 +537,7 @@ class SequenceEditForm(forms.ModelForm):
             "siglum": TextInputWidget(),
             "incipit": TextInputWidget(),
             "folio": TextInputWidget(),
-            "sequence": TextInputWidget(),
+            "s_sequence": TextInputWidget(),
             "rubrics": TextInputWidget(),
             "analecta_hymnica": TextInputWidget(),
             "indexing_notes": TextAreaWidget(),

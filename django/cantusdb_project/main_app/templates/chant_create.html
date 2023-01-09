@@ -39,57 +39,29 @@
                     <div class="form-group m-1 col-lg-2">
                         <small>{{ form.marginalia.label_tag }}</small>
                         {{ form.marginalia }}
-                        <!-- {% if form.marginalia.errors %}
-                            <ol>
-                            {% for error in form.marginalia.errors %}
-                                <li><strong>{{ error|escape }}</strong></li>
-                            {% endfor %}
-                            </ol>
-                        {% endif %} -->
                     </div>
 
                     <div class="form-group m-1 col-lg-2">
-                        <small>{{ form.folio.label_tag }}</small>
+                        <small>{{ form.folio.label_tag }}<span class="text-danger" title="This field is required">*</span></small>
                         {{ form.folio }}
                         <p class=text-muted><small>{{ form.folio.help_text}}</small></p>
                     </div>
 
                     <div class="form-group m-1 col-lg-2">
-                        <label for="{{ form.sequence_number.id_for_label }}"><small>Sequence:</small></label>
-                        {{ form.sequence_number }}
-                        <p class=text-muted><small>{{ form.sequence_number.help_text}}</small></p>
+                        <label for="{{ form.c_sequence.id_for_label }}"><small>Sequence:</small><span class="text-danger" title="This field is required">*</span></label>
+                        {{ form.c_sequence }}
+                        <p class=text-muted><small>{{ form.c_sequence.help_text}}</small></p>
                     </div>
 
                 </div>
 
                 <div class="form-row">
 
-                    <!--div class="form-group m-1 col-lg-2">
-                        <label for="{{ form.office.id_for_label }}"><small>Office-Mass:</small></label>
-                        <select class="form-control custom-select custom-select-sm" id="{{ form.office.id_for_label }}" name="{{ form.office.html_name }}">
-                            <option value="">- Any -</option>
-                            {% for office in offices %}
-                            <option value="{{office.id}}">{{office.name}}</option>
-                            {% endfor %}
-                        </select>              
-                        <a class="text-muted" href="#"><small>?</small></a>
-                    </div-->
-
                     <div class="form-group m-1 col-lg-2">
                         <label for="{{ form.office.id_for_label }}"><small>Office/Mass:</small></label>
                         {{ form.office }}
                         <a href="/field-descriptions/#Office"><small>?</small></a>
                     </div>
-
-                    <!--div class="form-group m-1 col-lg-2">
-                        <small>{{ form.genre.label_tag }}</small>
-                        <select class="form-control custom-select custom-select-sm" id="{{ form.genre.id_for_label }}" name="{{ form.genre.html_name }}">
-                            <option value="">- Any -</option>
-                            {% for genre in genres %}
-                            <option value="{{genre.id}}">{{genre.name}}</option>
-                            {% endfor %}
-                        </select>
-                    </div-->
 
                     <div class="form-group m-1 col-lg-2">
                         <small>{{ form.genre.label_tag }}</small>
@@ -185,9 +157,8 @@
                 <div class="form-row align-items-end">
                     <div class="form-group m-1 col-lg">
                         <label for="{{ form.manuscript_full_text_std_spelling.id_for_label }}"><small>Manuscript Reading
-                                Full Text (standardized spelling): <span style="color:red;">*</span></small></label>
+                                Full Text (standardized spelling):<span class="text-danger" title="This field is required">*</span></small></label>
                         {{ form.manuscript_full_text_std_spelling }}
-                        <!--textarea class="form-control" rows="3" id="form.manuscript_full_text_std_spelling.id_for_label"></textarea-->
                         <p>
                             <small class="text-muted">{{ form.manuscript_full_text_std_spelling.help_text }}
                                 For more information, consult <a href="/field-descriptions/#Fulltext" target="_blank">Fields and Content Descriptions</a>.
@@ -211,7 +182,6 @@
 
                 <div class="form-row align-items-end">
                     <div class="form-group m-1 col-lg">
-                        <!--p style="font-family: Volpiano; font-size: xx-large;">abcdefg</p-->
                         <small>{{ form.volpiano.label_tag }}</small>
                         {{ form.volpiano }}
                     </div>
@@ -255,9 +225,10 @@
             </form>
         </div>
 
-        <div class="col p-0">
-            <!-- global search bar-->
-            {% include "global_search_bar.html" %}
+        <div class="col p-0 sidebar">
+            <div class="search-bar">
+                {% include "global_search_bar.html" %}
+            </div>
 
             <div class="card mb-3 w-100">
                 <div class="card-header">
@@ -266,7 +237,7 @@
                 <div class="card-body" style="font-size: 15px">
                     <b>Suggestions based on the previous chant:</b><br>
                     {% if previous_chant %}
-                        {{ previous_chant.folio }} {{ previous_chant.sequence_number}} <a href="{{ previous_chant.get_absolute_url }}" target="_blank">{{ previous_chant.incipit }}</a><br>
+                        {{ previous_chant.folio }} {{ previous_chant.c_sequence}} <a href="{{ previous_chant.get_absolute_url }}" target="_blank">{{ previous_chant.incipit }}</a><br>
                         Cantus ID: <a href="http://cantusindex.org/id/{{ previous_chant.cantus_id }}" target="_blank">{{ previous_chant.cantus_id }}</a><br>
                             {% if suggested_chants %}
                                 {% for chant in suggested_chants %}

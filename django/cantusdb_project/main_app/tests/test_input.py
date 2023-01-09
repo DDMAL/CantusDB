@@ -70,12 +70,12 @@ class ChantCreateViewTest(TestCase):
                 source=source,
                 manuscript_full_text=fake.text(10),
                 folio="010r",
-                sequence_number=i,
+                c_sequence=i,
             )
         chants_in_source = Chant.objects.all().filter(source=source).order_by("-id")
         last_chant = chants_in_source[0]
         last_folio = last_chant.folio
-        last_sequence = last_chant.sequence_number
+        last_sequence = last_chant.c_sequence
         # create a new chant using input form
         url = reverse("chant-create", args=[source.id])
         fake_text = fake.text(100)
@@ -89,9 +89,9 @@ class ChantCreateViewTest(TestCase):
         self.assertRedirects(response, reverse("chant-create", args=[source.id]))
         # get the newly created chant
         posted_chant = Chant.objects.get(manuscript_full_text_std_spelling=fake_text)
-        # see if it has the default folio and sequence
+        # see if it has the default folio and c_sequence
         self.assertEqual(posted_chant.folio, last_folio)
-        self.assertEqual(posted_chant.sequence_number, last_sequence + 1)
+        self.assertEqual(posted_chant.c_sequence, last_sequence + 1)
 
     @unittest.skip("post request fails to make chant - see comment above `response = ...`")
     def test_autofill_empty(self):
@@ -113,6 +113,6 @@ class ChantCreateViewTest(TestCase):
         self.assertRedirects(response, reverse("chant-create", args=[source.id]))
         # get the newly created chant
         posted_chant = Chant.objects.get(manuscript_full_text_std_spelling=fake_text)
-        # see if it has the default folio and sequence
+        # see if it has the default folio and c_sequence
         self.assertEqual(posted_chant.folio, DEFAULT_FOLIO)
-        self.assertEqual(posted_chant.sequence_number, DEFAULT_SEQ)
+        self.assertEqual(posted_chant.c_sequence, DEFAULT_SEQ)

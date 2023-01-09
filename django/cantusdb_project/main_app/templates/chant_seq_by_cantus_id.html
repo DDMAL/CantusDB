@@ -3,7 +3,7 @@
 <title>Chants by Cantus ID: {{ cantus_id }} | Cantus Manuscript Database</title>
 <div class="mr-3 p-3 col-md-12 mx-auto bg-white rounded">
     <!-- global search bar-->
-    <object align="right">
+    <object align="right" class="search-bar">
         {% include "global_search_bar.html" %}
     </object>
     <h3>
@@ -15,16 +15,16 @@
     <table class="table table-bordered table-sm small">
         <thead>
             <tr>
-                <th scope="col" class="text-wrap">Source</th>
-                <th scope="col" class="text-wrap">Folio</th>
-                <th scope="col" class="text-wrap">Title</th>
-                <th scope="col" class="text-wrap">Office </th>
-                <th scope="col" class="text-wrap">Genre </th>
-                <th scope="col" class="text-wrap">Position</th>
-                <th scope="col" class="text-wrap">Feast</th>
-                <th scope="col" class="text-wrap">Mode</th>
-                <th scope="col" class="text-wrap" style="font-family: volpiano; font-size:30px; font-weight:normal;">1</th>
-                <th scope="col" class="text-wrap">Facsimile</th>
+                <th scope="col" class="text-wrap" title="Source">Source</th>
+                <th scope="col" class="text-wrap" title="Folio">Folio</th>
+                <th scope="col" class="text-wrap" title="Title">Title</th>
+                <th scope="col" class="text-wrap" title="Office">Office </th>
+                <th scope="col" class="text-wrap" title="Genre">Genre </th>
+                <th scope="col" class="text-wrap" title="Position">Position</th>
+                <th scope="col" class="text-wrap" title="Feast">Feast</th>
+                <th scope="col" class="text-wrap" title="Mode">Mode</th>
+                <th scope="col" class="text-wrap" style="font-family: volpiano; font-size:30px; font-weight:normal;" title="Volpiano Melody">1</th>
+                <th scope="col" class="text-wrap" title="Image Link">Facsimile</th>
             </tr>
         </thead>
         <tbody>
@@ -44,8 +44,8 @@
                     {% else %}
                         <td class="text-wrap"><a href="{% url 'sequence-detail' chant.id %}">{{ chant.incipit }}</a></td>
                     {% endif %}
-                    <td class="text-wrap">{{ chant.office|default:"" }} </td>
-                    <td class="text-wrap">{{ chant.genre.name|default:"" }} </td>
+                    <td class="text-wrap" title="{{ chant.office.description }}">{{ chant.office.name|default:"" }} </td>
+                    <td class="text-wrap" title="{{ chant.genre.description }}">{{ chant.genre.name|default:"" }} </td>
                     <td class="text-wrap">{{ chant.position|default:"" }}</td>
                     <td class="text-wrap"><a href="{{ chant.feast.get_absolute_url }}">{{ chant.feast.name|default:"" }}</a></td>
                     <td class="text-wrap">{{ chant.mode|default:"" }}</td>

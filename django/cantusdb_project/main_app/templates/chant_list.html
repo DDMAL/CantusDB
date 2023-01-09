@@ -5,7 +5,7 @@
 
 <div class="container">
     <div class="row">
-        <div class="mr-3 p-3 col-lg-8 bg-white rounded">
+        <div class="mr-3 p-3 col-lg-8 bg-white rounded main-content">
             <h3>Browse Chants</h3>
             <small>Displaying <b>{{ page_obj.start_index }}-{{ page_obj.end_index }}</b> of <b>{{ page_obj.paginator.count }}</b> chants</small>
             
@@ -56,17 +56,17 @@
             <table class="table table-responsive table-sm table-bordered small">
                 <thead>
                     <tr>
-                        <th scope="col" class="text-wrap">Siglum</th>
-                        <th scope="col" class="text-wrap">Folio</th>
-                        <th scope="col" class="text-wrap"></th>
-                        <th scope="col" class="text-wrap">Incipit / Full text</th>
-                        <th scope="col" class="text-wrap">Feast</th>
-                        <th scope="col" class="text-wrap"></th>
-                        <th scope="col" class="text-wrap"></th>
-                        <th scope="col" class="text-wrap"></th>
-                        <th scope="col" class="text-wrap">CantusID</th>
-                        <th scope="col" class="text-wrap">Mode</th>
-                        <th scope="col" class="text-wrap"></th>
+                        <th scope="col" class="text-wrap" title="Siglum">Siglum</th>
+                        <th scope="col" class="text-wrap" title="Folio">Folio</th>
+                        <th scope="col" class="text-wrap" title="Sequence"></th>
+                        <th scope="col" class="text-wrap" title="Incipit / Full text">Incipit / Full text</th>
+                        <th scope="col" class="text-wrap" title="Feast">Feast</th>
+                        <th scope="col" class="text-wrap" title="Office"></th>
+                        <th scope="col" class="text-wrap" title="Genre"></th>
+                        <th scope="col" class="text-wrap" title="Position"></th>
+                        <th scope="col" class="text-wrap" title="Cantus ID">CantusID</th>
+                        <th scope="col" class="text-wrap" title="Mode">Mode</th>
+                        <th scope="col" class="text-wrap" title="Image link"></th>
                     </tr>
                 </thead>
                 <tbody>
@@ -74,7 +74,7 @@
                     <tr>
                         <td class="text-wrap" style="text-align:center">{{ chant.siglum|default:"" }}</td>
                         <td class="text-wrap" style="text-align:center"><b>{{ chant.folio|default:"" }}</b></td>
-                        <td class="text-wrap" style="text-align:center">{{ chant.sequence_number|default:"" }}</td>
+                        <td class="text-wrap" style="text-align:center">{{ chant.c_sequence|default_if_none:"" }}</td> {# default_if_none: sometimes, c_sequence is 0, and should still be displayed #}
                         <td class="text-wrap">
                             <a href="{{ chant.get_absolute_url }}"><b>{{ chant.incipit|default:"" }}</b></a>
                             <p>{{ chant.manuscript_full_text_std_spelling|default:"" }}<br>
@@ -87,10 +87,10 @@
                             <a href="{{ chant.feast.get_absolute_url }}">{{ chant.feast.name|default:"" }}</a>
                         </td>
                         <td class="text-wrap" style="text-align:center">
-                            <a href="{{ chant.office.get_absolute_url }}">{{ chant.office.name|default:"" }}</a>
+                            <a href="{{ chant.office.get_absolute_url }}" title="{{ chant.office.description }}">{{ chant.office.name|default:"" }}</a>
                         </td>
                         <td class="text-wrap" style="text-align:center">
-                            <a href="{{ chant.genre.get_absolute_url }}">{{ chant.genre.name|default:"" }}</a>
+                            <a href="{{ chant.genre.get_absolute_url }}" title="{{ chant.genre.description }}">{{ chant.genre.name|default:"" }}</a>
                         </td>
                         <td class="text-wrap" style="text-align:center">{{ chant.position|default:"" }}</td>
                         <td class="text-wrap" style="text-align:center">
@@ -109,9 +109,10 @@
             {% include "pagination.html" %}
         </div>
     
-        <div class="col p-0">
-            <!-- global search bar-->
-            {% include "global_search_bar.html" %}
+        <div class="col p-0 sidebar">
+            <div class="search-bar">
+                {% include "global_search_bar.html" %}
+            </div>
 
             <div class="card mb-3 w-100">
 

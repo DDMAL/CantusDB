@@ -33,8 +33,8 @@ class Source(BaseModel):
     # it is a human-readable ID for a source
     siglum = models.CharField(
         max_length=63, 
-        null=True, 
-        blank=True,
+        null=False, 
+        blank=False,
         help_text="RISM-style siglum + Shelf-mark (e.g. GB-Ob 202).",
     )
     # the RISM siglum uniquely identifies a library or holding institution

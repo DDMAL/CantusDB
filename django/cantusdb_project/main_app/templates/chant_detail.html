@@ -14,14 +14,16 @@
                         {{ message }}
                     {% endfor %}
                 </div>
-            {% endif %}          
+            {% endif %}
             
-            <h3>{{ chant.incipit }}</h3>
-            {% if user.is_authenticated %}
+            {% if user_can_edit_chant %}
                 <p>
                     View | <a href="{% url 'source-edit-chants' chant.source.id %}?pk={{ chant.id }}&folio={{ chant.folio }}">Edit</a>
                 </p>
             {% endif %}
+            
+            <h3>{{ chant.incipit }}</h3>
+
             <dl>
                 <div class="row">
                     {% if chant.source %}
@@ -43,23 +45,23 @@
 
                 <div class="row">
                     {% if chant.folio %}
-                        <div class="col">
+                        <div class="col-2">
                             <dt>Folio</dt>
                             <dd>{{ chant.folio }}</dd>
                         </div>
                     {% endif %}
 
-                    {% if chant.sequence_number %}
-                        <div class="col">
+                    {% if chant.c_sequence is not None %} {# check that it isn't None, since sometimes c_sequence is 0 #}
+                        <div class="col-10">
                             <dt>Sequence</dt>
-                            <dd>{{ chant.sequence_number }}</dd>
+                            <dd>{{ chant.c_sequence }}</dd>
                         </div>
                     {% endif %}
                 </div>
                 
                 <div class="row">
                     {% if chant.feast %}
-                        <div class="col">
+                        <div class="col-2">
                             <dt>Feast</dt>
                             <dd>
                                 <a href="{{ chant.feast.get_absolute_url }}">{{ chant.feast.name }}</a>
@@ -68,32 +70,32 @@
                     {% endif %}
 
                     {% if chant.office %}
-                        <div class="col">
+                        <div class="col-2">
                             <dt>Office/Mass</dt>
                             <dd>
-                                <a href="{{ chant.office.get_absolute_url }}">{{ chant.office.name }}</a>
+                                <a href="{{ chant.office.get_absolute_url }}" title="{{ chant.office.description }}">{{ chant.office.name }}</a>
                             </dd>
                         </div>
                     {% endif %}
 
                     {% if chant.genre %}
-                        <div class="col">
+                        <div class="col-2">
                             <dt>Genre</dt>
                             <dd>
-                                <a href="{{ chant.genre.get_absolute_url }}">{{ chant.genre.name }}</a>
+                                <a href="{{ chant.genre.get_absolute_url }}" title="{{ chant.genre.description }}">{{ chant.genre.name }}</a>
                             </dd>
                         </div>
                     {% endif %}
 
                     {% if chant.position %}
-                        <div class="col">
+                        <div class="col-2">
                             <dt>Position</dt>
                             <dd>{{ chant.position }}</dd>
                         </div>
                     {% endif %}
 
                     {% if chant.cantus_id %}
-                        <div class="col">
+                        <div class="col-2">
                             <dt>Cantus ID</dt>
                             <dd>
                                 <a href="{{ chant.get_ci_url }}" target="_blank">
@@ -104,7 +106,7 @@
                     {% endif %}
 
                     {% if chant.mode %}
-                        <div class="col">
+                        <div class="col-2">
                             <dt>Mode</dt>
                             <dd>{{ chant.mode }}</dd>
                         </div>
@@ -207,16 +209,16 @@
                 <table id="concordanceTable" class="table table-bordered table-sm small" style="table-layout: fixed; width: 100%;">
                     <thead>
                         <tr>
-                            <th scope="col" class="text-wrap" style="width:15%">Siglum</th>
-                            <th scope="col" class="text-wrap" style="width:6%">Folio</th>
-                            <th scope="col" class="text-wrap" style="width:23%">Incipit</th>
-                            <th scope="col" class="text-wrap" style="width:4%"></th>
-                            <th scope="col" class="text-wrap" style="width:4%"></th>
-                            <th scope="col" class="text-wrap" style="width:4%"></th>
-                            <th scope="col" class="text-wrap" style="width:20%">Feast</th>
-                            <th scope="col" class="text-wrap" style="width:7%">Mode</th>
-                            <th scope="col" class="text-wrap" style="width:8%">Image</th>
-                            <th scope="col" class="text-wrap" style="width:9%">DB</th>
+                            <th scope="col" class="text-wrap" style="width:15%" title="Siglum">Siglum</th>
+                            <th scope="col" class="text-wrap" style="width:6%" title="Folio">Folio</th>
+                            <th scope="col" class="text-wrap" style="width:23%" title="Incipit">Incipit</th>
+                            <th scope="col" class="text-wrap" style="width:4%" title="Office"></th>
+                            <th scope="col" class="text-wrap" style="width:4%" title="Genre"></th>
+                            <th scope="col" class="text-wrap" style="width:4%" title="Position"></th>
+                            <th scope="col" class="text-wrap" style="width:20%" title="Feast">Feast</th>
+                            <th scope="col" class="text-wrap" style="width:7%" title="Mode">Mode</th>
+                            <th scope="col" class="text-wrap" style="width:8%" title="Image Link">Image</th>
+                            <th scope="col" class="text-wrap" style="width:9%" title="Database">DB</th>
                         </tr>
                     </thead>
                     <tbody>
@@ -272,9 +274,10 @@
 
         </div>
 
-        <div class="col p-0">
-            <!-- global search bar-->
-            {% include "global_search_bar.html" %}
+        <div class="col p-0 sidebar">
+            <div class="search-bar">
+                {% include "global_search_bar.html" %}
+            </div>
 
             {% with source=chant.source %}
                 <div class="card mb-3 w-100">
@@ -324,7 +327,7 @@
                                             <table class="table table-sm small table-bordered">     
                                                 {% for chant in chants %}
                                                     <tr>
-                                                        <td>{{ chant.sequence_number }}</td>
+                                                        <td>{{ chant.c_sequence }}</td>
                                                         <td>{{ chant.office.name|default_if_none:"" }} <b>{{ chant.genre.name|default_if_none:"" }}</b> {{ chant.position|default_if_none:"" }} </td>
                                                         <td><a href="{{ chant.get_absolute_url }}">{{ chant.incipit|default_if_none:"" }}</a></td>
                                                         <td><a href="{{ chant.get_ci_url }}" target="_blank">{{ chant.cantus_id|default_if_none:"" }}</a></td>
@@ -342,7 +345,7 @@
                                     <table class="table table-sm small table-bordered">     
                                         {% for chant in chants %}
                                             <tr>
-                                                <td>{{ chant.sequence_number }}</td>
+                                                <td>{{ chant.c_sequence }}</td>
                                                 <td>{{ chant.office.name|default_if_none:"" }} <b>{{ chant.genre.name|default_if_none:"" }}</b> {{ chant.position|default_if_none:"" }} </td>
                                                 <td><a href="{{ chant.get_absolute_url }}">{{ chant.incipit|default_if_none:"" }}</a></td>
                                                 <td><a href="{{ chant.get_ci_url }}" target="_blank">{{ chant.cantus_id|default_if_none:"" }}</a></td>
@@ -360,7 +363,7 @@
                                             <table class="table table-sm small table-bordered">     
                                                 {% for chant in chants %}
                                                     <tr>
-                                                        <td>{{ chant.sequence_number }}</td>
+                                                        <td>{{ chant.c_sequence }}</td>
                                                         <td>{{ chant.office.name|default_if_none:"" }} <b>{{ chant.genre.name|default_if_none:"" }}</b> {{ chant.position|default_if_none:"" }} </td>
                                                         <td><a href="{{ chant.get_absolute_url }}">{{ chant.incipit|default_if_none:"" }}</a></td>
                                                         <td><a href="{{ chant.get_ci_url }}" target="_blank">{{ chant.cantus_id|default_if_none:"" }}</a></td>

@@ -3,8 +3,7 @@
 {% block content %}
 <title>{{ feast.name }} | Cantus Manuscript Database</title>
 <div class="mr-3 p-3 mx-auto bg-white rounded">
-    <!-- global search bar-->
-    <object align="right">
+    <object align="right" class="search-bar">
         {% include "global_search_bar.html" %}
     </object>
     <h3>{{ feast.name }}</h3>
@@ -58,7 +57,7 @@
                         {% comment %} use `urlencode` filter because 1 chant and 2 sequences have forward slash in their cantus_id (data error) {% endcomment %}
                         <td><a href="{% url 'chant-by-cantus-id' cantus_id|urlencode:"" %}">{{ cantus_id|default:"" }}</a></td>
                         <td>{{ incipit }}</td>
-                        <td><a href="{{ genre.get_absolute_url }}">{{ genre.name }}</a></td>
+                        <td><a href="{{ genre.get_absolute_url }}" title="{{ genre.description }}">{{ genre.name }}</a></td>
                         <td>{{ count }}</td>
                     </tr>
                     {% endfor %}

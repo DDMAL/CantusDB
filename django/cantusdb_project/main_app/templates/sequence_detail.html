@@ -9,9 +9,8 @@
                 {{ message }}
             {% endfor %}
         </div>
-    {% endif %}          
-    <!-- global search bar-->
-    <object align="right">
+    {% endif %}
+    <object align="right" class="search-bar">
         {% include "global_search_bar.html" %}
     </object>
     <h3>{{ sequence.title }}</h3>
@@ -47,12 +46,12 @@
                 {% endif %}
             </div>
             <div class="col">
-                {% if sequence.sequence %}
+                {% if sequence.s_sequence %}
                 <dt>
                     Sequence
                 </dt>
                 <dd>
-                    {{ sequence.sequence }}
+                    {{ sequence.s_sequence }}
                 </dd>
                 {% endif %}
             </div>
@@ -81,7 +80,7 @@
                     Genre
                 </dt>
                 <dd>
-                    <a href="{{ sequence.genre.get_absolute_url }}">{{ sequence.genre.name }}</a>
+                    <a href="{{ sequence.genre.get_absolute_url }}" title="{{ sequence.genre.description }}">{{ sequence.genre.name }}</a>
                 </dd>
             </div>
             {% endif %}
@@ -188,7 +187,7 @@
                     <td class="text-wrap" style="text-align:center">
                         <a href="{{ sequence.source.get_absolute_url }}"><b>{{ sequence.siglum }}</b></a>
                         <br>
-                        <b>{{ sequence.folio }}</b>  {{ sequence.sequence }}
+                        <b>{{ sequence.folio }}</b>  {{ sequence.s_sequence }}
                     </td>
                     <td class="text-wrap" style="text-align:center">
                         <a href={{ sequence.get_absolute_url}} >{{ sequence.incipit|default:"" }}</a>

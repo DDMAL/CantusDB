@@ -102,17 +102,17 @@ class Chant(BaseChant):
             next_chant = Chant.objects.get(
                 source=self.source,
                 folio=self.folio,
-                sequence_number=self.sequence_number + 1,
+                c_sequence=self.c_sequence + 1,
             )
-        except Chant.DoesNotExist: # i.e. no chant with the subsequent sequence number on same folio
+        except Chant.DoesNotExist: # i.e. no chant with the subsequent c_sequence on same folio
             
             # check to see whether there are more chants on this folio after a gap in the numbering
-            # e.g. situation with several sequential chants on a folio, followed by a lacuna with sequence_number 99
+            # e.g. situation with several sequential chants on a folio, followed by a lacuna with c_sequence 99
             subsequent_chants_this_folio = Chant.objects.filter(
                 source=self.source,
                 folio=self.folio,
-                sequence_number__gt=self.sequence_number,
-            ).order_by("sequence_number")
+                c_sequence__gt=self.c_sequence,
+            ).order_by("c_sequence")
             if len(subsequent_chants_this_folio) >= 1:
                 next_chant = subsequent_chants_this_folio[0]
             
@@ -121,7 +121,7 @@ class Chant(BaseChant):
                 chants_next_folio = Chant.objects.filter(
                     source=self.source,
                     folio=get_next_folio(self.folio),
-                ).order_by("sequence_number")
+                ).order_by("c_sequence")
                 try:
                     next_chant = chants_next_folio[0]
                 except AttributeError: # i.e. next folio is None
@@ -132,10 +132,10 @@ class Chant(BaseChant):
                     return None
                 except ValueError: # i.e. next folio contains no chants
                     next_chant = None
-        except Chant.MultipleObjectsReturned: # i.e. multiple chants have the same source, folio and sequence_number
-                                              # for example, the two chants on folio h001r sequence_number 1, in source with ID 123753 
+        except Chant.MultipleObjectsReturned: # i.e. multiple chants have the same source, folio and c_sequence
+                                              # for example, the two chants on folio h001r c_sequence 1, in source with ID 123753 
             next_chant = None
-        except TypeError: # sequence_number is None
+        except TypeError: # c_sequence is None
             next_chant = None
 
 
