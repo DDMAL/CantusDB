@@ -95,7 +95,7 @@
             <table class="table table-sm small table-bordered">
                 <thead>
                     <tr>
-                        <th scope="col" class="text-wrap" style="text-align:center">
+                        <th scope="col" class="text-wrap" style="text-align:center" title="Siglum">
                             {% if order == "siglum" %}
                                 {% if sort == "desc" %}
                                     <a href="{{ url_with_search_params }}&order=siglum&sort=asc">Siglum</a> ▼
@@ -106,10 +106,10 @@
                                 <a href="{{ url_with_search_params }}&order=siglum&sort=asc">Siglum</a>
                             {% endif %}
                         </th>
-                        <th scope="col" class="text-wrap" style="text-align:center">
+                        <th scope="col" class="text-wrap" style="text-align:center" title="Folio">
                             Folio
                         </th>
-                        <th scope="col" class="text-wrap" style="text-align:center">
+                        <th scope="col" class="text-wrap" style="text-align:center" title="Incipit/Full Text">
                             {% if order == "incipit" %}
                                 {% if sort == "desc" %}
                                     <a href="{{ url_with_search_params }}&order=incipit&sort=asc">Incipit/Full Text</a> ▼
@@ -120,10 +120,10 @@
                                 <a href="{{ url_with_search_params }}&order=incipit&sort=asc">Incipit/Full Text</a>
                             {% endif %}
                         </th>
-                        <th scope="col" class="text-wrap" style="text-align:center">
+                        <th scope="col" class="text-wrap" style="text-align:center" title="Feast">
                             Feast
                         </th>
-                        <th scope="col" class="text-wrap" style="text-align:center">
+                        <th scope="col" class="text-wrap" style="text-align:center" title="Office">
                             {% if order == "office" %}
                                 {% if sort == "desc" %}
                                     <a href="{{ url_with_search_params }}&order=office&sort=asc">Office<br>/Mass</a> ▼
@@ -134,7 +134,7 @@
                                 <a href="{{ url_with_search_params }}&order=office&sort=asc">Office<br>/Mass</a>
                             {% endif %}
                         </th>
-                        <th scope="col" class="text-wrap" style="text-align:center">
+                        <th scope="col" class="text-wrap" style="text-align:center" title="Genre">
                             {% if order == "genre" %}
                                 {% if sort == "desc" %}
                                     <a href="{{ url_with_search_params }}&order=genre&sort=asc">Genre</a> ▼
@@ -145,10 +145,10 @@
                                 <a href="{{ url_with_search_params }}&order=genre&sort=asc">Genre</a>
                             {% endif %}
                         </th>
-                        <th scope="col" class="text-wrap" style="text-align:center">
+                        <th scope="col" class="text-wrap" style="text-align:center" title="Position">
                             Position
                         </th>
-                        <th scope="col" class="text-wrap" style="text-align:center">
+                        <th scope="col" class="text-wrap" style="text-align:center" title="Cantus ID">
                             {% if order == "cantus_id" %}
                                 {% if sort == "desc" %}
                                     <a href="{{ url_with_search_params }}&order=cantus_id&sort=asc">Cantus ID</a> ▼
@@ -159,7 +159,7 @@
                                 <a href="{{ url_with_search_params }}&order=cantus_id&sort=asc">Cantus ID</a>
                             {% endif %}
                         </th>
-                        <th scope="col" class="text-wrap" style="text-align:center">
+                        <th scope="col" class="text-wrap" style="text-align:center" title="Mode">
                             {% if order == "mode" %}
                                 {% if sort == "desc" %}
                                     <a href="{{ url_with_search_params }}&order=mode&sort=asc">Mode</a> ▼
@@ -170,7 +170,7 @@
                                 <a href="{{ url_with_search_params }}&order=mode&sort=asc">Mode</a>
                             {% endif %}
                         </th>
-                        <th scope="col" class="text-wrap" style="text-align:center">
+                        <th scope="col" class="text-wrap" style="text-align:center" title="Manuscript Full Text">
                             {% if order == "has_fulltext" %}
                                 {% if sort == "desc" %}
                                     <a href="{{ url_with_search_params }}&order=has_fulltext&sort=asc">MsFt</a> ▼
@@ -181,7 +181,7 @@
                                 <a href="{{ url_with_search_params }}&order=has_fulltext&sort=asc">MsFt</a>
                             {% endif %}
                         </th>
-                        <th scope="col" class="text-wrap" style="text-align:center">
+                        <th scope="col" class="text-wrap" style="text-align:center" title="Volpiano Melody">
                             {% if order == "has_melody" %}
                                 {% if sort == "desc" %}
                                     <a href="{{ url_with_search_params }}&order=has_melody&sort=asc">Mel</a> ▼
@@ -192,7 +192,7 @@
                                 <a href="{{ url_with_search_params }}&order=has_melody&sort=asc">Mel</a>
                             {% endif %}
                         </th>
-                        <th scope="col" class="text-wrap" style="text-align:center">
+                        <th scope="col" class="text-wrap" style="text-align:center" title="Image Link">
                             {% if order == "has_image" %}
                                 {% if sort == "desc" %}
                                     <a href="{{ url_with_search_params }}&order=has_image&sort=asc">Image</a> ▼
@@ -234,10 +234,10 @@
                                 <a href="{{ chant.feast.get_absolute_url }}">{{ chant.feast.name|default:"" }}</a>
                             </td>
                             <td class="text-wrap" style="text-align:center">
-                                <a href="{{ chant.office.get_absolute_url }}">{{ chant.office.name|default:"" }}</a>
+                                <a href="{{ chant.office.get_absolute_url }}" title="{{ chant.office.description }}">{{ chant.office.name|default:"" }}</a>
                             </td>
                             <td class="text-wrap" style="text-align:center">
-                                <a href="{{ chant.genre.get_absolute_url }}">{{ chant.genre.name|default:"" }}</a>
+                                <a href="{{ chant.genre.get_absolute_url }}" title="{{ chant.genre.description }}">{{ chant.genre.name|default:"" }}</a>
                             </td>
                             <td class="text-wrap" style="text-align:center">
                                 {{ chant.position|default:"" }}
