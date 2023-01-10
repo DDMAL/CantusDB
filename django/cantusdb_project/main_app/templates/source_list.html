@@ -96,7 +96,7 @@
                         {% endif %}
                     </td>
                     <td class="text-wrap" style="text-align:center">
-                        <b>{{ source.number_of_chants }}</b>
+                        <b>{{ source.number_of_chants|default_if_none:"0" }}</b>
                         {% if source.number_of_melodies %}
                             <br>/ {{ source.number_of_melodies }}
                         {% endif %}
