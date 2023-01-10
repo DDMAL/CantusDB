@@ -53,7 +53,13 @@
                     <td>{{ chant.source.siglum|default_if_none:"" }}</td>
                     <td>{{ chant.marginalia|default_if_none:"" }}</td>
                     <td>{{ chant.folio|default_if_none:"" }}</td>
-                    <td>{{ chant.c_sequence|default_if_none:"" }}</td>
+                    <td>
+                        {% if chant.c_sequence is not None %}
+                            {{ chant.c_sequence }}
+                        {% else %}
+                            {{ chant.s_sequence|default_if_none:"" }}
+                        {% endif %}
+                    </td>
                     <td>{{ chant.feast.name|default_if_none:"" }}</td>
                     <td><span title="{{ chant.office.description }}">{{ chant.office.name|default_if_none:"" }}</span></td>
                     <td><span title="{{ chant.genre.description }}">{{ chant.genre.name|default_if_none:"" }}</span></td>
