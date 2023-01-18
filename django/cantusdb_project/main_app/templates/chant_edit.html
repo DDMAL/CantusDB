@@ -79,6 +79,28 @@
                         </div>
                     </div>
 
+                    {% if chant.volpiano %}
+                    <div class="form-row">
+                        <div class="form-group m-1 col-lg-12">
+                            <small>Preview of melody with text:</small>
+                            {% if chant.manuscript_syllabized_full_text %}
+                                <p><small>Syllabification is based on saved syllabized text.</small></p>
+                            {% endif %}
+                            <dd>
+                                {% for zip in syllabized_text_with_melody %}
+                                    {% for syl_mel, syl_text in zip %}
+                                        <span style="float: left">
+                                            <div style="font-family: volpiano; font-size: 36px">{{ syl_mel }}</div>
+                                            <!-- "mt" is margin at the top, so that the lowest note in volpiano don't overlap with text -->
+                                            <div class="mt-2" style="font-size: 12px; "><pre>{{ syl_text }}</pre></div>
+                                        </span>
+                                    {% endfor %}
+                                {% endfor %}
+                            </dd>
+                        </div>
+                    </div>
+                {% endif %}
+
                     <div class="form-row">
                         <div class="form-group m-1 col-lg-2">
                             <small>{{ form.marginalia.label_tag }}</small>
