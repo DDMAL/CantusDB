@@ -656,7 +656,19 @@ class ChantSearchView(ListView):
                       Volpiano form. Valid values are "true" or "false".
         ``feast``: Filters by Feast of Chant
         ``keyword``: Searches text of Chant for keywords
-        ``op``: Operation to take with keyword search. Options are "contains" and "starts_with"
+        ``op``: Operation to take with keyword search. Options are "contains" and "starts_with".
+        ``order``: which field to order search results by. Options are:
+                        "siglum",
+                        "incipit",
+                        "office",
+                        "genre",
+                        "cantus_id",
+                        "mode",
+                        "has_fulltext",
+                        "has_melody",
+                        "has_image".
+        ``sort``: whether to sort results in ascending or descending order.
+                  Options are "asc" and "desc".
     """
 
     paginate_by = 100
