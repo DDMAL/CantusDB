@@ -669,6 +669,7 @@ class ChantSearchView(ListView):
                         "has_image".
         ``sort``: whether to sort results in ascending or descending order.
                   Options are "asc" and "desc".
+        ``search_bar``: Text entered in the Global Search Bar
     """
 
     paginate_by = 100
