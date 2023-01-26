@@ -836,6 +836,47 @@ class ChantSearchView(ListView):
                     chant_set = chant_set.filter(incipit__istartswith=keyword)
                     sequence_set = sequence_set.filter(incipit__istartswith=keyword)
 
+            chant_set = chant_set.select_related(
+                # this allows the `name`, `description`, etc. of sources/feasts/etc.
+                # to be displayed in the template without having to run additional
+                # database queries
+                "source",
+                "feast",
+                "office",
+                "genre",
+            ).values(
+                # fetch only the properties that are needed to render the template
+                "id",
+                "folio",
+                "manuscript_full_text_std_spelling",
+                "incipit",
+                "position",
+                "mode",
+                "manuscript_full_text",
+                "volpiano",
+                "image_link",
+            )
+            sequence_set = sequence_set.select_related(
+                # this allows the `name`, `description` etc. of sources/feasts/etc.
+                # to be displayed in the template without having to run additional
+                # database queries
+                "source",
+                "feast",
+                "office",
+                "genre",
+            ).values(
+                # fetch only the properties that are needed to render the template
+                "id",
+                "folio",
+                "manuscript_full_text_std_spelling",
+                "incipit",
+                "position",
+                "mode",
+                "manuscript_full_text",
+                "volpiano",
+                "image_link",
+            )
+
             # once unioned, the queryset cannot be filtered/annotated anymore, so we put union to the last
             queryset = chant_set.union(sequence_set)
             queryset = queryset.order_by(order, "id")
