@@ -656,7 +656,20 @@ class ChantSearchView(ListView):
                       Volpiano form. Valid values are "true" or "false".
         ``feast``: Filters by Feast of Chant
         ``keyword``: Searches text of Chant for keywords
-        ``op``: Operation to take with keyword search. Options are "contains" and "starts_with"
+        ``op``: Operation to take with keyword search. Options are "contains" and "starts_with".
+        ``order``: which field to order search results by. Options are:
+                        "siglum",
+                        "incipit",
+                        "office",
+                        "genre",
+                        "cantus_id",
+                        "mode",
+                        "has_fulltext",
+                        "has_melody",
+                        "has_image".
+        ``sort``: whether to sort results in ascending or descending order.
+                  Options are "asc" and "desc".
+        ``search_bar``: Text entered in the Global Search Bar
     """
 
     paginate_by = 100
@@ -823,6 +836,47 @@ class ChantSearchView(ListView):
                 else:
                     chant_set = chant_set.filter(incipit__istartswith=keyword)
                     sequence_set = sequence_set.filter(incipit__istartswith=keyword)
+
+            chant_set = chant_set.select_related(
+                # this allows the `name`, `description`, etc. of sources/feasts/etc.
+                # to be displayed in the template without having to run additional
+                # database queries
+                "source",
+                "feast",
+                "office",
+                "genre",
+            ).values(
+                # fetch only the properties that are needed to render the template
+                "id",
+                "folio",
+                "manuscript_full_text_std_spelling",
+                "incipit",
+                "position",
+                "mode",
+                "manuscript_full_text",
+                "volpiano",
+                "image_link",
+            )
+            sequence_set = sequence_set.select_related(
+                # this allows the `name`, `description` etc. of sources/feasts/etc.
+                # to be displayed in the template without having to run additional
+                # database queries
+                "source",
+                "feast",
+                "office",
+                "genre",
+            ).values(
+                # fetch only the properties that are needed to render the template
+                "id",
+                "folio",
+                "manuscript_full_text_std_spelling",
+                "incipit",
+                "position",
+                "mode",
+                "manuscript_full_text",
+                "volpiano",
+                "image_link",
+            )
 
             # once unioned, the queryset cannot be filtered/annotated anymore, so we put union to the last
             queryset = chant_set.union(sequence_set)
