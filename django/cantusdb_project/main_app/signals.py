@@ -3,6 +3,7 @@ from functools import reduce
 
 from django.contrib.postgres.search import SearchVector
 from django.db import models
+from django.db.migrations import Migration
 from django.db.models import Value
 from django.db.models.signals import post_save, post_delete
 from django.dispatch import receiver
@@ -12,6 +13,13 @@ import re
 from main_app.models import Chant
 from main_app.models import Sequence
 from main_app.models import Feast
+
+@receiver(post_save)
+def on_object_save(instance, **kwargs):
+    # Migrations are objects, so without this check, Django tries to
+    # call .get_absolute_url on Migrations while running `manage.py migrate`
+    if "get_absolute_url" in dir(instance):
+        update_absolute_url(instance)
 
 @receiver(post_save, sender=Chant)
 def on_chant_save(instance, **kwargs):
@@ -38,6 +46,17 @@ def on_sequence_delete(instance, **kwargs):
 def on_feast_save(instance, **kwargs):
     update_prefix_field(instance)
 
+
+def update_absolute_url(instance):
+    """When saving an instance of any model, update its absolute URL field.
+
+    Called in on_object_save()
+    """
+    absolute_url = instance.get_absolute_url()
+    pk = instance.pk
+    instance.__class__.objects.filter(pk=pk).update(
+        absolute_url=absolute_url
+    )
 
 def update_chant_search_vector(instance):
     """When saving an instance of Chant, update its search vector field.
