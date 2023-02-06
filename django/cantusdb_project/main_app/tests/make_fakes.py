@@ -70,6 +70,7 @@ def make_fake_chant(source=None,
     feast=None,
     manuscript_full_text_std_spelling=None,
     manuscript_full_text_std_proofread=None,
+    manuscript_full_text=None,
     volpiano=None,
     manuscript_syllabized_full_text=None,
     next_chant=None,
@@ -98,6 +99,8 @@ def make_fake_chant(source=None,
         )
     if manuscript_full_text_std_proofread is None:
         manuscript_full_text_std_proofread = False
+    if manuscript_full_text is None:
+        manuscript_full_text = manuscript_full_text_std_spelling
     if volpiano is None:
         volpiano = make_fake_text(20)
     if manuscript_syllabized_full_text is None:
@@ -126,7 +129,7 @@ def make_fake_chant(source=None,
         manuscript_full_text_std_spelling=manuscript_full_text_std_spelling,
         incipit=manuscript_full_text_std_spelling[0:INCIPIT_LENGTH],
         manuscript_full_text_std_proofread=manuscript_full_text_std_proofread,
-        manuscript_full_text=manuscript_full_text_std_spelling,
+        manuscript_full_text=manuscript_full_text,
         manuscript_full_text_proofread=faker.boolean(),
         volpiano=volpiano,
         volpiano_proofread=faker.boolean(),
@@ -146,10 +149,8 @@ def make_fake_chant(source=None,
 def make_fake_feast() -> Feast:
     """Generates a fake Feast object."""
     feast = Feast.objects.create(
-        name=make_fake_text(LONG_CHAR_FIELD_MAX),
-        description=make_fake_text(
-            max_size=MAX_NUMBER_TEXT_CHARS, min_size=MIN_NUMBER_TEXT_CHARS
-        ),
+        name=faker.sentence(),
+        description=faker.sentence(),
         # feast_code in the form of eight digits
         feast_code=faker.numerify("########"),
         notes=make_fake_text(
