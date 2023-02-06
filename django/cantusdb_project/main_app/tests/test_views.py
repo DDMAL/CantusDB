@@ -807,7 +807,6 @@ class ChantSearchViewTest(TestCase):
         office = make_fake_office()
         office_name = office.name
         office_description = office.description
-        print("office_description:", office_description)
         url = office.get_absolute_url()
         fulltext = "manuscript full text"
         search_term = "full"
@@ -880,9 +879,92 @@ class ChantSearchViewTest(TestCase):
         self.assertIn(url, html)
         self.assertIn(f'<a href="{url}" target="_blank">{cantus_id}</a>', html)
 
-    def test_image_link_property_rendered(self):
+    def test_mode_properly_rendered(self):
         source = make_fake_source(published=True)
         fulltext = "manuscript full text"
+        search_term = "full"
+        chant = make_fake_chant(
+            source=source,
+            manuscript_full_text_std_spelling=fulltext,
+        )
+        mode = "this is the mode"   # not a representative value, but
+                                    # single numerals are found
+                                    # elsewhere in the template
+        chant.mode = mode
+        chant.save()
+        response = self.client.get(
+            reverse("chant-search"), {"keyword": search_term, "op": "contains"}
+        )
+        html = str(response.content)
+        self.assertIn(mode, html)
+
+    def test_manuscript_full_text_indicator_properly_rendered(self):
+        source = make_fake_source(published=True)
+        std_fulltext = "standard full text"
+        ms_fulltext = "manuscript full text"
+        search_term = "full"
+        chant = make_fake_chant(
+            source=source,
+            manuscript_full_text_std_spelling=std_fulltext,
+            manuscript_full_text=ms_fulltext,
+        )
+        response = self.client.get(
+            reverse("chant-search"), {"keyword": search_term, "op": "contains"}
+        )
+        html = str(response.content)
+        self.assertIn(
+            '\\xe2\\x9c\\x94', # checkmark character
+            html
+        )
+        self.assertIn(
+            '<span title="Chant record includes Manuscript Full Text">\\xe2\\x9c\\x94</span>',
+            html
+        )
+        
+        chant.manuscript_full_text = None
+        chant.save()
+        response = self.client.get(
+            reverse("chant-search"), {"keyword": search_term, "op": "contains"}
+        )
+        html = str(response.content)
+        self.assertNotIn(
+            '\\xe2\\x9c\\x94', # checkmark character
+            html,
+        )
+
+    def test_volpiano_indicator_properly_rendered(self):
+        source = make_fake_source(published=True)
+        full_text = "standard full text"
+        search_term = "full"
+        volpiano = "1---h--j---k--h---m---m---l"
+        chant = make_fake_chant(
+            source=source,
+            manuscript_full_text_std_spelling=full_text,
+            volpiano=volpiano,
+        )
+        response = self.client.get(
+            reverse("chant-search"), {"keyword": search_term, "op": "contains"}
+        )
+        html = str(response.content)
+        self.assertIn(
+            "\\xe2\\x99\\xab", # beamed eighth notes character
+            html
+        )
+        self.assertIn('<span title="Chant record has Volpiano melody">\\xe2\\x99\\xab</span>', html)
+        chant.volpiano = None
+        chant.save()
+        response = self.client.get(
+            reverse("chant-search"), {"keyword": search_term, "op": "contains"}
+        )
+        html = str(response.content)
+        self.assertNotIn(
+            "\\xe2\\x99\\xab", # beamed eighth notes character
+            html
+        )
+
+    def test_image_link_property_rendered(self):
+        source = make_fake_source(published=True)
+        fulltext = "standard full text"
         search_term = "full"
         chant = make_fake_chant(
             source=source,
@@ -893,7 +975,7 @@ class ChantSearchViewTest(TestCase):
         chant.save()
         response = self.client.get(
             reverse("chant-search"), {"keyword": search_term, "op": "contains"}
-        )        
+        )
         html = str(response.content)
         self.assertIn(image_link, html)
         self.assertIn(f'<a href="{image_link}" target="_blank">Image</a>', html)
