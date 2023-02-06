@@ -749,7 +749,7 @@ class ChantSearchViewTest(TestCase):
         )
         self.assertIn(chant, response.context["chants"])
 
-    def test_source_link_properly_rendered(self):
+    def test_source_link_column(self):
         siglum = "Sigl-01"
         source = make_fake_source(published=True, siglum=siglum)
         url = source.get_absolute_url()
@@ -767,7 +767,7 @@ class ChantSearchViewTest(TestCase):
         self.assertIn(url, html)
         self.assertIn(f'<a href="{url}">{siglum}</a>', html)
         
-    def test_folio_properly_rendered(self):
+    def test_folio_column(self):
         source = make_fake_source(published=True)
         fulltext = "manuscript full text"
         search_term = "full"
@@ -782,7 +782,7 @@ class ChantSearchViewTest(TestCase):
         html = str(response.content)
         self.assertIn(folio, html)
         
-    def test_feast_link_properly_rendered(self):
+    def test_feast_column(self):
         source = make_fake_source(published=True)
         feast = make_fake_feast()
         feast_name = feast.name
@@ -802,7 +802,7 @@ class ChantSearchViewTest(TestCase):
         self.assertIn(url, html)
         self.assertIn(f'<a href="{url}">{feast_name}</a>', html)
         
-    def test_office_link_properly_rendered(self):
+    def test_office_column(self):
         source = make_fake_source(published=True)
         office = make_fake_office()
         office_name = office.name
@@ -824,7 +824,7 @@ class ChantSearchViewTest(TestCase):
         self.assertIn(url, html)
         self.assertIn(f'<a href="{url}" title="{office_description}">{office_name}</a>', html)
         
-    def test_genre_link_properly_rendered(self):
+    def test_genre_column(self):
         source = make_fake_source(published=True)
         genre = make_fake_genre()
         genre_name = genre.name
@@ -846,7 +846,7 @@ class ChantSearchViewTest(TestCase):
         self.assertIn(url, html)
         self.assertIn(f'<a href="{url}" title="{genre_description}">{genre_name}</a>', html)
         
-    def test_position_properly_rendered(self):
+    def test_position_column(self):
         source = make_fake_source(published=True)
         fulltext = "manuscript full text"
         search_term = "full"
@@ -861,7 +861,7 @@ class ChantSearchViewTest(TestCase):
         html = str(response.content)
         self.assertIn(position, html)
 
-    def test_cantus_index_link_property_rendered(self):
+    def test_cantus_id_column(self):
         source = make_fake_source(published=True)
         fulltext = "manuscript full text"
         search_term = "full"
@@ -879,7 +879,7 @@ class ChantSearchViewTest(TestCase):
         self.assertIn(url, html)
         self.assertIn(f'<a href="{url}" target="_blank">{cantus_id}</a>', html)
 
-    def test_mode_properly_rendered(self):
+    def test_mode_column(self):
         source = make_fake_source(published=True)
         fulltext = "manuscript full text"
         search_term = "full"
@@ -898,7 +898,7 @@ class ChantSearchViewTest(TestCase):
         html = str(response.content)
         self.assertIn(mode, html)
 
-    def test_manuscript_full_text_indicator_properly_rendered(self):
+    def test_manuscript_full_text_column(self):
         source = make_fake_source(published=True)
         std_fulltext = "standard full text"
         ms_fulltext = "manuscript full text"
@@ -932,7 +932,7 @@ class ChantSearchViewTest(TestCase):
             html,
         )
 
-    def test_volpiano_indicator_properly_rendered(self):
+    def test_volpiano_column(self):
         source = make_fake_source(published=True)
         full_text = "standard full text"
         search_term = "full"
@@ -962,7 +962,7 @@ class ChantSearchViewTest(TestCase):
             html
         )
 
-    def test_image_link_property_rendered(self):
+    def test_image_link_column(self):
         source = make_fake_source(published=True)
         fulltext = "standard full text"
         search_term = "full"
