@@ -13,6 +13,10 @@ from main_app.models import (
     Source,
 )
 
+# Run with `python manage.py save_all_objects`.
+# This command runs through all objects in the database
+# and saves them, thus triggering any on_save hooks in signals.py.
+
 
 class Command(BaseCommand):
     def add_arguments(self, parser):
