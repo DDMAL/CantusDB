@@ -3,6 +3,7 @@ from typing import List
 from django.db import models
 from django.urls import reverse
 from django.contrib.auth import get_user_model
+from django.urls.exceptions import NoReverseMatch
 
 
 class BaseModel(models.Model):
@@ -60,7 +61,11 @@ class BaseModel(models.Model):
     def get_absolute_url(self) -> str:
         """Get the absolute URL for an instance of a model."""
         detail_name = self.__class__.__name__.lower() + "-detail"
-        return reverse(detail_name, kwargs={"pk": self.pk})
+        try:
+            return reverse(detail_name, kwargs={"pk": self.pk})
+        except NoReverseMatch: # model has no associated detail view
+            return None
+
 
     @classmethod
     def get_verbose_name_plural(cls) -> str:
