@@ -24,27 +24,27 @@
                 <tr>
                     {% if object.title %}
                         <td class="text-wrap" style="text-align:center">
-                            <a href="{{ object.get_absolute_url }}"><b>{{ object.title|truncatechars:30 }}</b></a>
+                            <a href="{{ object.absolute_url }}"><b>{{ object.title|truncatechars:30 }}</b></a>
                         </td>
                     {% elif object.manuscript_full_text_std_spelling %}
                         <td class="text-wrap" style="text-align:center">
-                            <a href="{{ object.get_absolute_url }}"><b>{{ object.manuscript_full_text_std_spelling|truncatechars:30 }}</b></a>
+                            <a href="{{ object.absolute_url }}"><b>{{ object.manuscript_full_text_std_spelling|truncatechars:30 }}</b></a>
                         </td>
                     {% elif object.name %}
                         <td class="text-wrap" style="text-align:center">
                             {% if object|classname == "Notation" or object|classname == "Provenance" or object|classname == "Segment" %}
                                 <b>{{ object.name|truncatechars:30 }}
                             {% else %}
-                                <a href="{{ object.get_absolute_url }}"><b>{{ object.name|truncatechars:30 }}</b></a>
+                                <a href="{{ object.absolute_url }}"><b>{{ object.name|truncatechars:30 }}</b></a>
                             {% endif %}
                         </td>
                     {% elif object.full_name %}
                         <td class="text-wrap" style="text-align:center">
-                            <a href="{{ object.get_absolute_url }}"><b>{{ object.full_name }}</b></a>
+                            <a href="{{ object.absolute_url }}"><b>{{ object.full_name }}</b></a>
                         </td>
                     {% else %}
                         <td class="text-wrap" style="text-align:center">
-                            <a href="{{ object.get_absolute_url }}"><b>{{ object|classname }} Object</b></a>
+                            <a href="{{ object.absolute_url }}"><b>{{ object|classname }} Object</b></a>
                         </td>
                     {% endif %}
                     <td class="text-wrap" style="text-align:center">{{ object|classname }}</td>

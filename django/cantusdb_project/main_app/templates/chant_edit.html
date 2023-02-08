@@ -249,7 +249,7 @@
                     <small><b>&plus; Add new source</b></small>
                 </a>
                 <br>
-                <a href="{{ source.get_absolute_url }}" style="display: inline-block; margin-top:5px;">
+                <a href="{{ source.absolute_url }}" style="display: inline-block; margin-top:5px;">
                     {{ source.siglum }}
                 </a>
             {% endif %}
@@ -262,7 +262,7 @@
 
             <div class="card mb-3 w-100">
                 <div class="card-header">
-                    <h4><a href="{{ source.get_absolute_url }}">{{ source.siglum }}</a></h4>
+                    <h4><a href="{{ source.absolute_url }}">{{ source.siglum }}</a></h4>
                 </div>
                 <div class="card-body">
                     <small>
@@ -304,7 +304,7 @@
                                     <tr>
                                         <td class="h-25" style="width: 5%">{{ chant.c_sequence }}</td>
                                         <td class="h-25" style="width: 20%">{{ chant.office.name|default_if_none:"" }} <b>{{ chant.genre.name|default_if_none:"" }}</b> {{ chant.position|default_if_none:"" }} </td>
-                                        <td class="h-25" style="width: 40%; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; max-width: 0"><a href="{{ chant.get_absolute_url }}" target="_blank">{{ chant.incipit|default_if_none:"" }}</a></td>
+                                        <td class="h-25" style="width: 40%; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; max-width: 0"><a href="{{ chant.absolute_url }}" target="_blank">{{ chant.incipit|default_if_none:"" }}</a></td>
                                         <td class="h-25" style="width: 20%"><a href="{{ chant.get_ci_url }}" target="_blank">{{ chant.cantus_id|default_if_none:"" }}</a></td>
                                         <td class="h-25" style="width: 5%">{{ chant.mode|default:"" }}</td>
                                         <td class="h-25" style="width: 10%">
@@ -322,7 +322,7 @@
                                     <tr>
                                         <td class="h-25" style="width: 5%">{{ chant.c_sequence }}</td>
                                         <td class="h-25" style="width: 20%">{{ chant.office.name|default_if_none:"" }} <b>{{ chant.genre.name|default_if_none:"" }}</b> {{ chant.position|default_if_none:"" }} </td>
-                                        <td class="h-25" style="width: 40%; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; max-width: 0"><a href="{{ chant.get_absolute_url }}" target="_blank">{{ chant.incipit|default_if_none:"" }}</a></td>
+                                        <td class="h-25" style="width: 40%; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; max-width: 0"><a href="{{ chant.absolute_url }}" target="_blank">{{ chant.incipit|default_if_none:"" }}</a></td>
                                         <td class="h-25" style="width: 20%"><a href="{{ chant.get_ci_url }}" target="_blank">{{ chant.cantus_id|default_if_none:"" }}</a></td>
                                         <td class="h-25" style="width: 5%">{{ chant.mode|default:"" }}</td>
                                         <td class="h-25" style="width: 10%">

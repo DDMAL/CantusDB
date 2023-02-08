@@ -9,7 +9,7 @@
     <ul>
         {% for source in century.sources.all|dictsort:"title" %}
             <li>
-                <a href="{{ source.get_absolute_url }}">
+                <a href="{{ source.absolute_url }}">
                     {{ source.title }}
                 </a>
             </li>
