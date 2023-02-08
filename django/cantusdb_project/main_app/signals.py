@@ -16,9 +16,10 @@ from main_app.models import Feast
 
 @receiver(post_save)
 def on_object_save(instance, **kwargs):
-    # Migrations are objects, so without this check, Django tries to
-    # call .get_absolute_url on Migrations while running `manage.py migrate`
-    if "get_absolute_url" in dir(instance):
+    # so without these checks, Django will try to
+    # call .get_absolute_url on Migrations while running `manage.py migrate`,
+    # and try to set the absolute_url of User objects.
+    if "get_absolute_url" in dir(instance) and "absolute_url" in dir(instance):
         update_absolute_url(instance)
 
 @receiver(post_save, sender=Chant)
