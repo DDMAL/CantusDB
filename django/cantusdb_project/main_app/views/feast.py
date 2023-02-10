@@ -1,4 +1,3 @@
-from django.db.models import query
 from django.views.generic import DetailView, ListView
 from main_app.models import Feast, Source
 from extra_views import SearchableListMixin

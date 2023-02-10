@@ -119,3 +119,6 @@ django/cantusdb_project/Drupal_scripts
 # django/cantusdb_project/chant_list.txt
 # django/cantusdb_project/feast_list.txt
 # django/cantusdb_project/error_log.txt
+
+# in case you're working on importing data from a database dump
+*.sql

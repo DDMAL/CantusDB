@@ -1,6 +1,5 @@
 from main_app.models import Chant
 from django.core.management.base import BaseCommand
-import json
 
 # In the past, the BaseChant model had a `.differentia` field and a `.differentia_id` field.
 # There was no data stored in the `differentia_id` field for any Chant or Sequence.

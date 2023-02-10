@@ -1,7 +1,24 @@
 from django.forms import ValidationError
 from django.test import TestCase
 from django.urls import reverse
-from .make_fakes import *
+from main_app.models import (
+    Century,
+    Chant,
+    Feast,
+    Genre,
+    Office,
+    Sequence,
+    Source,
+)
+from .make_fakes import (
+    make_fake_century,
+    make_fake_chant,
+    make_fake_feast,
+    make_fake_genre,
+    make_fake_office,
+    make_fake_sequence,
+    make_fake_source,
+)
 
 # run with `python -Wa manage.py test main_app.tests.test_models`
 # the -Wa flag tells Python to display deprecation warnings
@@ -93,6 +110,126 @@ class ChantModelTest(TestCase):
         chant_fields = Chant.get_fields_and_properties()
         seq_fields = Sequence.get_fields_and_properties()
         self.assertEqual(chant_fields, seq_fields)
+
+    def test_get_next_chant__same_folio_next_sequence_number(self):
+        source = make_fake_source()
+        current_folio = "001"
+        chant1 = make_fake_chant(
+            source=source,
+            folio=current_folio,
+            c_sequence=1,
+        )
+        chant2 = make_fake_chant(
+            source=source,
+            folio=current_folio,
+            c_sequence=2,
+        )
+        self.assertEqual(chant1.get_next_chant(), chant2)
+    
+    def test_get_next_chant__recto_to_verso(self):
+        source = make_fake_source()
+        current_folio = "001r"
+        next_folio = "001v"
+        chant1 = make_fake_chant(
+            source=source,
+            folio=current_folio,
+            c_sequence=1,
+        )
+        chant2 = make_fake_chant(
+            source=source,
+            folio=next_folio,
+            c_sequence=1,
+        )
+        self.assertEqual(chant1.get_next_chant(), chant2)
+
+    def test_get_next_chant__verso_to_recto(self):
+        source2 = make_fake_source()
+        current_folio = "555v"
+        next_folio = "556r"
+        chant1 = make_fake_chant(
+            source=source2,
+            folio=current_folio,
+            c_sequence=1,
+        )
+        chant2 = make_fake_chant(
+            source=source2,
+            folio=next_folio,
+            c_sequence=1,
+        )
+        self.assertEqual(chant1.get_next_chant(), chant2)
+    
+    def test_get_next_chant__one_numbered_page_to_the_next(self):
+        source = make_fake_source()
+        current_folio = "004"
+        next_folio = "005"
+        end_of_page_chant = make_fake_chant(
+            source=source,
+            folio=current_folio,
+            c_sequence=2,
+        )
+        beginning_of_next_page_chant = make_fake_chant(
+            source=source,
+            folio=next_folio,
+            c_sequence=1,
+        )
+        self.assertEqual(end_of_page_chant.get_next_chant(), beginning_of_next_page_chant)
+    
+    def test_get_next_chant__last_chant_in_manuscript(self):
+        source = make_fake_source()
+        last_folio_in_ms = "999r"
+        last_chant_in_ms = make_fake_chant(
+            source=source,
+            folio=last_folio_in_ms,
+            c_sequence=98,
+        )
+        self.assertIsNone(last_chant_in_ms.get_next_chant())
+
+    def test_get_next_chant__collision(self):
+        # if there are multiple chants with the same source, folio and c_sequence,
+        # someone has messed up their data entry, and we should set next_chant to None
+        source = make_fake_source()
+        current_folio = "444"
+        chant1 = make_fake_chant(
+            source=source,
+            folio=current_folio,
+            c_sequence=1,
+        )
+        chant2a = make_fake_chant(
+            source=source,
+            folio=current_folio,
+            c_sequence=2,
+        )
+        chant2b = make_fake_chant(
+            source=source,
+            folio=current_folio,
+            c_sequence=2,
+        )
+        self.assertIsNone(chant1.get_next_chant())
+
+    def test_get_next_chant__lacuna(self):
+        # if pages from a manuscript have been lost, the lacuna (gap) is often
+        # assigned to the previous folio and given a c_sequence of 99.
+        source = make_fake_source()
+        first_folio = "500v"
+        second_folio = "501r"
+        chant1 = make_fake_chant(
+            source=source,
+            folio=first_folio,
+            c_sequence=51,
+        )
+        lacuna = make_fake_chant(
+            source=source,
+            folio=first_folio,
+            c_sequence=99,
+            manuscript_full_text_std_spelling="LACUNA",
+        )
+        chant3 = make_fake_chant(
+            source=source,
+            folio=second_folio,
+            c_sequence=1
+        )
+        self.assertEqual(chant1.get_next_chant(), lacuna)
+        self.assertEqual(lacuna.get_next_chant(), chant3)
 
 
 class FeastModelTest(TestCase):

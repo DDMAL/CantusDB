@@ -41,7 +41,7 @@
                     <div class="form-row">
                         <div class="form-group m-1 col-lg-12">
                             <label for="{{ form.manuscript_full_text_std_spelling.id_for_label }}">
-                                <small>Manuscript Reading Full Text (standardized spelling):</small>
+                                <small>Manuscript Reading Full Text (standardized spelling):<span class="text-danger" title="This field is required">*</span></small>
                             </label>
                             {{ form.manuscript_full_text_std_spelling }}
                             <script>
@@ -85,12 +85,14 @@
                             {{ form.marginalia }}
                         </div>
                         <div class="form-group m-1 col-lg-2">
-                            <small>{{ form.folio.label_tag }}</small>
+                            <small>{{ form.folio.label_tag }}<span class="text-danger" title="This field is required">*</span></small>
                             {{ form.folio }}
                         </div>
                         <div class="form-group m-1 col-lg-2">
-                            <small>{{ form.sequence.label_tag }}</small>
-                            {{ form.sequence }}
+                            <label for="{{ form.c_sequence.id_for_label }}">
+                                <small>Sequence:<span class="text-danger" title="This field is required">*</span></small>
+                            </label>
+                            {{ form.c_sequence }}
                         </div>
                         <div class="form-group m-1 col-lg-4">
                             <small>{{ form.feast.label_tag }}</small>
@@ -231,9 +233,10 @@
             {% endif %}
         </div>
 
-        <div class="col p-0">
-            <!-- global search bar-->
-            {% include "global_search_bar.html" %}
+        <div class="col p-0 sidebar">
+            <div class="search-bar">
+                {% include "global_search_bar.html" %}
+            </div>
 
             <div class="card mb-3 w-100">
                 <div class="card-header">
@@ -277,7 +280,7 @@
                             <table class="table table-sm small table-bordered">     
                                 {% for chant in chants %}
                                     <tr>
-                                        <td class="h-25" style="width: 5%">{{ chant.sequence_number }}</td>
+                                        <td class="h-25" style="width: 5%">{{ chant.c_sequence }}</td>
                                         <td class="h-25" style="width: 20%">{{ chant.office.name|default_if_none:"" }} <b>{{ chant.genre.name|default_if_none:"" }}</b> {{ chant.position|default_if_none:"" }} </td>
                                         <td class="h-25" style="width: 40%; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; max-width: 0"><a href="{{ chant.get_absolute_url }}" target="_blank">{{ chant.incipit|default_if_none:"" }}</a></td>
                                         <td class="h-25" style="width: 20%"><a href="{{ chant.get_ci_url }}" target="_blank">{{ chant.cantus_id|default_if_none:"" }}</a></td>
@@ -295,7 +298,7 @@
                             <table class="table table-sm small table-bordered">     
                                 {% for chant in chants %}
                                     <tr>
-                                        <td class="h-25" style="width: 5%">{{ chant.sequence_number }}</td>
+                                        <td class="h-25" style="width: 5%">{{ chant.c_sequence }}</td>
                                         <td class="h-25" style="width: 20%">{{ chant.office.name|default_if_none:"" }} <b>{{ chant.genre.name|default_if_none:"" }}</b> {{ chant.position|default_if_none:"" }} </td>
                                         <td class="h-25" style="width: 40%; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; max-width: 0"><a href="{{ chant.get_absolute_url }}" target="_blank">{{ chant.incipit|default_if_none:"" }}</a></td>
                                         <td class="h-25" style="width: 20%"><a href="{{ chant.get_ci_url }}" target="_blank">{{ chant.cantus_id|default_if_none:"" }}</a></td>

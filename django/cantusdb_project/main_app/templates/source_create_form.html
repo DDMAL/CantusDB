@@ -37,7 +37,7 @@
 
                     <div class="form-group m-1 col-lg-6">
                         <label for="{{ form.title.id_for_label }}">
-                            <small>Full Manuscript Identification (City, Archive, Shelf-mark):</small>
+                            <small>Full Manuscript Identification (City, Archive, Shelf-mark):<span class="text-danger" title="This field is required">*</span></small>
                         </label>
                         {{ form.title }}
                     </div>
@@ -56,7 +56,7 @@
 
                 <div class="form-row">
                     <div class="form-group m-1 col-lg-4">
-                        <small>{{ form.siglum.label_tag }}</small>
+                        <small>{{ form.siglum.label_tag }}<span class="text-danger" title="This field is required">*</span></small>
                         {{ form.siglum }}
                         <p class=text-muted><small>{{ form.siglum.help_text }}</small></p>
                     </div>    

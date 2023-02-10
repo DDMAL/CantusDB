@@ -5,7 +5,7 @@
 
 <div class="mr-3 p-3 col-md-12 mx-auto bg-white rounded">
     <!-- global search bar-->
-    <object align="right">
+    <object align="right" class="search-bar">
         {% include "global_search_bar.html" %}
     </object>
     <h3>Browse Sources</h3>
@@ -87,8 +87,8 @@
                         {{ source.summary|default:""|truncatechars_html:140 }}
                     </td>
                     <td class="text-wrap" style="text-align:center">
-                        {{ source.century.first.name }}<br>
-                        {{ source.provenance.name|default:"" }}
+                        <b><a href="{{ source.century.first.get_absolute_url }}">{{ source.century.first.name }}</a></b><br>
+                        <a href="{{ source.provenance.get_absolute_url }}">{{ source.provenance.name|default:"" }}</a>
                     </td>
                     <td class="text-wrap" style="text-align:center">
                         {% if source.image_link %}

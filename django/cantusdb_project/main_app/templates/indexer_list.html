@@ -2,8 +2,7 @@
 {% block content %}
 <title>List of Indexers | Cantus Manuscript Database</title>
 <div class="mr-3 p-3 col-md-12 mx-auto bg-white rounded">
-    <!-- global search bar-->
-    <object align="right">
+    <object align="right" class="search-bar">
         {% include "global_search_bar.html" %}
     </object>
     <h3>List of Indexers</h3>
@@ -38,7 +37,7 @@
                     <td class="text-center text-wrap">{{ indexer.city|default:"" }}</td>
                     <td class="text-center text-wrap">{{ indexer.country|default:"" }}</td>
                     <td class="text-center text-wrap">
-                        <a href="{{ indexer.get_absolute_url }}">{{ indexer.source_count }} source{{ indexer.source_count|pluralize }}</a>
+                        <a href="{{ indexer.get_absolute_url }}#sources">{{ indexer.source_count }} source{{ indexer.source_count|pluralize }}</a>
                     </td>
                 </tr>
             {% endfor %}

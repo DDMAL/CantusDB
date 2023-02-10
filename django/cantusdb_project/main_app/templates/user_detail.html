@@ -3,29 +3,83 @@
 <title>{{ user.full_name }} | Cantus Manuscript Database</title>
 <div class="mr-3 p-3 mx-auto bg-white rounded">
     <!-- global search bar-->
-    <object align="right">
+    <object align="right" class="search-bar">
         {% include "global_search_bar.html" %}
     </object>
     <h3>{{ user.full_name }}</h3>
     <dl class="list-inline">
         {% if user.institution %}
-        <dt>Institution</dt>
-        <dd>{{ user.institution }}</dd>
+            <dt>Institution</dt>
+            <dd>{{ user.institution }}</dd>
         {% endif %}
         {% if user.city %}
-        <dt>City</dt>
-        <dd>{{ user.city }}</dd>
+            <dt>City</dt>
+            <dd>{{ user.city }}</dd>
         {% endif %}
         {% if user.country %}
-        <dt>Country</dt>
-        <dd>{{ user.country }}</dd>
+            <dt>Country</dt>
+            <dd>{{ user.country }}</dd>
         {% endif %}
         {% if user.website %}
-        <dt>Website</dt>
-        <dd>
-            <a href="{{ user.website }}" target="_blank">{{ user.website }}</a>
-        </dd>
+            <dt>Website</dt>
+            <dd>
+                <a href="{{ user.website }}" target="_blank">{{ user.website }}</a>
+            </dd>
         {% endif %}
     </dl>
+    {% if inventoried_sources or full_text_sources or melody_sources or proofread_sources or edited_sources %}
+        <h4 id="sources">Sources</h4>
+        {% if inventoried_sources %}
+            <h5>Inventoried</h5>
+            <ul>
+                {% for source in inventoried_sources %}
+                    <li>
+                        <a href="{{ source.get_absolute_url }}">{{ source.siglum }}</a> ({{ source.title }})
+                    </li>
+                {% endfor %}
+            </ul>
+        {% endif %}
+        {% if full_text_sources %}
+            <h5>Entered Full Text</h5>
+            <ul>
+                {% for source in full_text_sources %}
+                    <li>
+                        <a href="{{ source.get_absolute_url }}">{{ source.siglum }}</a> ({{ source.title }})
+                    </li>
+                {% endfor %}
+            </ul>
+        {% endif %}
+        {% if melody_sources %}
+            <h5>Entered Melodies</h5>
+            <ul>
+                {% for source in melody_sources %}
+                    <li>
+                        <a href="{{ source.get_absolute_url }}">{{ source.siglum }}</a> ({{ source.title }})
+                    </li>
+                {% endfor %}
+            </ul>
+        {% endif %}
+        {% if proofread_sources %}
+            <h5>Proofread</h5>
+            <ul>
+                {% for source in proofread_sources %}
+                    <li>
+                        <a href="{{ source.get_absolute_url }}">{{ source.siglum }}</a> ({{ source.title }})
+                    </li>
+                {% endfor %}
+            </ul>
+        {% endif %}
+        {% if edited_sources %}
+            <h5>Edited</h5>
+            <ul>
+                {% for source in edited_sources %}
+                    <li>
+                        <a href="{{ source.get_absolute_url }}">{{ source.siglum }}</a> ({{ source.title }})
+                    </li>
+                {% endfor %}
+            </ul>
+        {% endif %}
+    {% endif %}
+    <h4>
 </div>
 {% endblock %}

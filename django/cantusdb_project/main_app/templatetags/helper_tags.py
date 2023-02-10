@@ -1,6 +1,5 @@
 import calendar
 from typing import Union, Optional
-from django.utils.http import urlencode
 from django import template
 from main_app.models import Source
 from articles.models import Article
