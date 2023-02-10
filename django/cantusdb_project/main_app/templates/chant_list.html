@@ -145,21 +145,15 @@
                             {% endfor %}
                         </select>
                         <br>
-                        <a href="{% url "chant-list" %}?source={{ source.id }}" target="_blank">» View all chants</a>
-                        &nbsp;
-                        <a href="{% url "chant-index" %}?source={{ source.id }}" target="_blank">» View full inventory</a>
-                        &nbsp;
-                        <a href="{% url "csv-export" source.id%}" target="_blank">» CSV export</a>
-                        <br>
-                        <a href="{% url "chant-search-ms" source.id %}" target="_blank" >» Search chants in this manuscript</a>
-                        &nbsp;
+                        <a href="{% url "chant-list" %}?source={{ source.id }}" class="guillemet" target="_blank">View all chants</a>
+                        <a href="{% url "chant-index" %}?source={{ source.id }}" class="guillemet" target="_blank">View full inventory</a>
+                        <a href="{% url "csv-export" source.id%}" class="guillemet" target="_blank">CSV export</a>
+                        <a href="{% url "chant-search-ms" source.id %}" class="guillemet" target="_blank">Search chants in this manuscript</a>
                         {% if source.image_link %}
-                        <a href="{{ source.image_link }}" target="_blank">» Image gallery</a>
+                            <a href="{{ source.image_link }}" class="guillemet" target="_blank">Image gallery</a>
                         {% endif %}
-                        <br>
-                        <a href="{% url "melody-search" %}?source={{ source.id }}"  target="_blank">» Search melodies in this manuscript</a>
-                        <br>
-                        <a href="//cantusindex.org/analyse?src={{ source.id }}&db=CD" target="_blank">» Analyse this manuscript (Cantus Analysis Tool)</a>
+                        <a href="{% url "melody-search" %}?source={{ source.id }}"  class="guillemet" target="_blank">Search melodies in this manuscript</a>
+                        <a href="//cantusindex.org/analyse?src={{ source.id }}&db=CD" class="guillemet" target="_blank">Analyse this manuscript (Cantus Analysis Tool)</a>
                     </small>
                 </div>    
 
