@@ -62,6 +62,7 @@ def make_fake_century() -> Century:
 
 def make_fake_chant(source=None,
     folio=None,
+    office=None,
     genre=None,
     position=None,
     c_sequence=None,
@@ -69,6 +70,7 @@ def make_fake_chant(source=None,
     feast=None,
     manuscript_full_text_std_spelling=None,
     manuscript_full_text_std_proofread=None,
+    manuscript_full_text=None,
     volpiano=None,
     manuscript_syllabized_full_text=None,
     next_chant=None,
@@ -79,6 +81,8 @@ def make_fake_chant(source=None,
     if folio is None:
         # two digits and one letter
         folio = faker.bothify("##?")
+    if office is None:
+        office = make_fake_office()
     if genre is None:
         genre = make_fake_genre()
     if position is None:
@@ -95,6 +99,8 @@ def make_fake_chant(source=None,
         )
     if manuscript_full_text_std_proofread is None:
         manuscript_full_text_std_proofread = False
+    if manuscript_full_text is None:
+        manuscript_full_text = manuscript_full_text_std_spelling
     if volpiano is None:
         volpiano = make_fake_text(20)
     if manuscript_syllabized_full_text is None:
@@ -108,7 +114,7 @@ def make_fake_chant(source=None,
         marginalia=make_fake_text(SHORT_CHAR_FIELD_MAX),
         folio=folio,
         c_sequence=c_sequence,
-        office=make_fake_office(),
+        office=office,
         genre=genre,
         position=position,
         # cantus_id in the form of six digits
@@ -123,7 +129,7 @@ def make_fake_chant(source=None,
         manuscript_full_text_std_spelling=manuscript_full_text_std_spelling,
         incipit=manuscript_full_text_std_spelling[0:INCIPIT_LENGTH],
         manuscript_full_text_std_proofread=manuscript_full_text_std_proofread,
-        manuscript_full_text=manuscript_full_text_std_spelling,
+        manuscript_full_text=manuscript_full_text,
         manuscript_full_text_proofread=faker.boolean(),
         volpiano=volpiano,
         volpiano_proofread=faker.boolean(),
@@ -143,10 +149,8 @@ def make_fake_chant(source=None,
 def make_fake_feast() -> Feast:
     """Generates a fake Feast object."""
     feast = Feast.objects.create(
-        name=make_fake_text(LONG_CHAR_FIELD_MAX),
-        description=make_fake_text(
-            max_size=MAX_NUMBER_TEXT_CHARS, min_size=MIN_NUMBER_TEXT_CHARS
-        ),
+        name=faker.sentence(),
+        description=faker.sentence(),
         # feast_code in the form of eight digits
         feast_code=faker.numerify("########"),
         notes=make_fake_text(
@@ -164,9 +168,7 @@ def make_fake_genre(name=None) -> Genre:
         name = faker.lexify("???")
     genre = Genre.objects.create(
         name=name,
-        description=make_fake_text(
-            max_size=MAX_NUMBER_TEXT_CHARS, min_size=MIN_NUMBER_TEXT_CHARS
-        ),
+        description=faker.sentence(),
         mass_office=make_fake_text(SHORT_CHAR_FIELD_MAX),
     )
     return genre
@@ -195,9 +197,7 @@ def make_fake_office() -> Office:
     """Generates a fake Office object."""
     office = Office.objects.create(
         name=faker.lexify(text="??"),
-        description=make_fake_text(
-            max_size=MAX_NUMBER_TEXT_CHARS, min_size=MIN_NUMBER_TEXT_CHARS
-        ),
+        description=faker.sentence(),
     )
     return office
 

@@ -99,6 +99,15 @@
         .footer h5 {
             margin: 25px 0px 10px
         }
+        
+        /* links, appearing in sidebars, preceded with guillemets ("»"s) */
+        .guillemet {
+            display: block
+        }
+
+        .guillemet::before {
+            content: "» "
+        }
 
         /* this class is used for displaying results under the global search bar */
         .list-group-item-action:hover {
