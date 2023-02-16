@@ -5,7 +5,9 @@ Documentation for Cantus Database, including documentation on its APIs, can be f
 
 This repository contains code for "NewCantus," an updated version of Cantus Database built in Django. "OldCantus", built in Drupal, can be accessed at https://cantus.uwaterloo.ca.
 
-Discrepancies between text stored in the CantusDB database and the manuscript text are compiled by testers in the following Google Spreadsheet: https://docs.google.com/spreadsheets/d/133lVOVM15l7a6bQKIQije4op363ragG4OXewYop_cbQ/edit#gid=0
+Discrepancies between text stored in the CantusDB database and the manuscript text are compiled by testers in the following Google Spreadsheets: 
+- https://docs.google.com/spreadsheets/d/133lVOVM15l7a6bQKIQije4op363ragG4OXewYop_cbQ/edit#gid=0 (Salzinnes)
+- https://docs.google.com/spreadsheets/d/1zPq-6p8hklKKfTa5A4DXYpwOPOIi41Z7JoAfdGVKzig/edit#gid=0 (Einsiedeln)
 
 ### Differences in functionality/behavior:
 #### Visible to All Users (Logged-In and Anonymous)
