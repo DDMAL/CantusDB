@@ -10,7 +10,7 @@
         <div class="col">
             <small>{{ article.date_created|date:"D, m/d/Y - H:i" }}</small>
             <h4>
-                <a href="{{ article.get_absolute_url }}">{{ article.title }}</a>
+                <a href="{% url 'article-detail' article.id %}">{{ article.title }}</a>
             </h4>
             <div class="container">
                 {{ article.body|safe|truncatechars_html:3000 }}
