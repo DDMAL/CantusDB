@@ -44,8 +44,8 @@
                     {% else %}
                         <td class="text-wrap"><a href="{% url 'sequence-detail' chant.id %}">{{ chant.incipit }}</a></td>
                     {% endif %}
-                    <td class="text-wrap" title="{{ chant.office.description }}">{{ chant.office.name|default:"" }} </td>
-                    <td class="text-wrap" title="{{ chant.genre.description }}">{{ chant.genre.name|default:"" }} </td>
+                    <td class="text-wrap"><a href="{% url 'office-detail' chant.office.id %}" title="{{ chant.office.description }}">{{ chant.office.name|default:"" }}</a></td>
+                    <td class="text-wrap"><a href="{% url 'genre-detail' chant.genre.id %}" title="{{ chant.genre.description }}">{{ chant.genre.name|default:"" }}</a></td>
                     <td class="text-wrap">{{ chant.position|default:"" }}</td>
                     <td class="text-wrap"><a href="{% url 'feast-detail' chant.feast.id %}">{{ chant.feast.name|default:"" }}</a></td>
                     <td class="text-wrap">{{ chant.mode|default:"" }}</td>
