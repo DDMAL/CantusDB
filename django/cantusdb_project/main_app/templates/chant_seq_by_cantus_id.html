@@ -49,7 +49,7 @@
                     <td class="text-wrap">{{ chant.position|default:"" }}</td>
                     <td class="text-wrap"><a href="{% url 'feast-detail' chant.feast.id %}">{{ chant.feast.name|default:"" }}</a></td>
                     <td class="text-wrap">{{ chant.mode|default:"" }}</td>
-                    <td class="text-wrap" style="font-family: volpiano; font-size:30px">{% if chant.volpiano %}<a href="{{ chant.get_absolute_url }}" style="text-decoration: none" title="Chant has volpiano melody">1</a>{% endif %}</td>
+                    <td class="text-wrap" style="font-family: volpiano; font-size:30px">{% if chant.volpiano %}<a href="{% url 'chant-detail' chant.id %}" style="text-decoration: none" title="Chant has volpiano melody">1</a>{% endif %}</td>
                     <td class="text-wrap">{% if chant.image_link %}<a href="{{ chant.image_link }}" target="_blank">Image</a>{% endif %}</td>
                 </tr>
             {% endfor %}
