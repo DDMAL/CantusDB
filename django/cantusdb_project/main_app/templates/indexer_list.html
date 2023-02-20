@@ -31,13 +31,13 @@
             {% for indexer in indexers %}
                 <tr>
                     <td class="text-center text-wrap">
-                        <a href="{{ indexer.get_absolute_url }}">{{ indexer.full_name }}</a>
+                        <a href="{% url 'user-detail' indexer.id %}">{{ indexer.full_name }}</a>
                     </td>
                     <td class="text-center text-wrap">{{ indexer.institution|default:"" }}</td>
                     <td class="text-center text-wrap">{{ indexer.city|default:"" }}</td>
                     <td class="text-center text-wrap">{{ indexer.country|default:"" }}</td>
                     <td class="text-center text-wrap">
-                        <a href="{{ indexer.get_absolute_url }}#sources">{{ indexer.source_count }} source{{ indexer.source_count|pluralize }}</a>
+                        <a href="{% url 'user-detail' indexer.id %}#sources">{{ indexer.source_count }} source{{ indexer.source_count|pluralize }}</a>
                     </td>
                 </tr>
             {% endfor %}
