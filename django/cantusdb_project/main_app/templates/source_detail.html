@@ -110,7 +110,7 @@
                         {% for sequence in sequences %}
                             <tr>
                                 <td class="text-wrap" style="text-align:center">
-                                    <a href="{% url 'source-detail' source.id %}">{{ source.siglum }}</a>
+                                    <a href="{% url 'source-detail' source.id %}" title="{{ source.title }}">{{ source.siglum }}</a>
                                     <br>
                                     <b>{{ sequence.folio }}</b>  {{ sequence.s_sequence }}
                                 </td>
