@@ -260,7 +260,7 @@
 
             <div class="card mb-3 w-100">
                 <div class="card-header">
-                    <h4><a href="{% url 'source-detail' source.id %}">{{ source.siglum }}</a></h4>
+                    <h4><a href="{% url 'source-detail' source.id %}" title="{{ source.title }}">{{ source.siglum }}</a></h4>
                 </div>
                 <div class="card-body">
                     <small>

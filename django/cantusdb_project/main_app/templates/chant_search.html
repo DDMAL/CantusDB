@@ -209,7 +209,7 @@
                     {% for chant in chants %}
                         <tr>
                             <td class="text-wrap" style="text-align:left">
-                                <a href="{% url 'source-detail' chant.source.id %}">{{ chant.source.siglum }}</a>
+                                <a href="{% url 'source-detail' chant.source.id %}" title="{{ chant.source.title }}">{{ chant.source.siglum }}</a>
                             </td>
                             <td class="text-wrap" style="text-align:center">
                                 {{ chant.folio|default:""|truncatechars_html:140 }}
