@@ -31,7 +31,9 @@
             {% for chant in chants %}
                 <tr>
                     <td class="text-wrap">
-                        <a href="{% url 'source-detail' chant.source.id %}" title="{{ chant.source.title }}">{{ chant.source.siglum }}</a>
+                        {% if chant.source %}
+                            <a href="{% url 'source-detail' chant.source.id %}" title="{{ chant.source.title }}">{{ chant.source.siglum }}</a>
+                        {% endif %}
                     </td>
                     <td class="text-wrap">{{ chant.folio }}</td>
                     {% comment %} this is used for distinguishing chants from sequences,
