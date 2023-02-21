@@ -84,13 +84,19 @@
                             </p>
                         </td>
                         <td class="text-wrap" style="text-align:center">
-                            <a href="{% url 'feast-detail' chant.feast.id %}">{{ chant.feast.name|default:"" }}</a>
+                            {% if chant.feast %}
+                                <a href="{% url 'feast-detail' chant.feast.id %}">{{ chant.feast.name|default:"" }}</a>
+                            {% endif %}
                         </td>
                         <td class="text-wrap" style="text-align:center">
-                            <a href="{% url 'office-detail' chant.office.id %}" title="{{ chant.office.description }}">{{ chant.office.name|default:"" }}</a>
+                            {% if chant.office %}
+                                <a href="{% url 'office-detail' chant.office.id %}" title="{{ chant.office.description }}">{{ chant.office.name|default:"" }}</a>
+                            {% endif %}
                         </td>
                         <td class="text-wrap" style="text-align:center">
-                            <a href="{% url 'genre-detail' chant.genre.id %}" title="{{ chant.genre.description }}">{{ chant.genre.name|default:"" }}</a>
+                            {% if chant.genre %}
+                                <a href="{% url 'genre-detail' chant.genre.id %}" title="{{ chant.genre.description }}">{{ chant.genre.name|default:"" }}</a>
+                            {% endif %}
                         </td>
                         <td class="text-wrap" style="text-align:center">{{ chant.position|default:"" }}</td>
                         <td class="text-wrap" style="text-align:center">
