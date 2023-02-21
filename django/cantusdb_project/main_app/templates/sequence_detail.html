@@ -26,14 +26,16 @@
         <dd>
             {{ sequence.siglum }}
         </dd>
-        <dt>
-            Source
-        </dt>
-        <dd>
-            <a href="{% url 'source-detail' sequence.source.id %}">
-                {{ sequence.source.title }}
-            </a>
-        </dd>
+        {% if sequence.source %}
+            <dt>
+                Source
+            </dt>
+            <dd>
+                <a href="{% url 'source-detail' sequence.source.id %}">
+                    {{ sequence.source.title }}
+                </a>
+            </dd>
+        {% endif %}
         <div class="row">
             <div class="col">
                 {% if sequence.folio %}
@@ -185,9 +187,11 @@
             {% for sequence in concordances %}
                 <tr>
                     <td class="text-wrap" style="text-align:center">
-                        <a href="{% url 'source-detail' sequence.source.id %}"><b>{{ sequence.siglum }}</b></a>
-                        <br>
-                        <b>{{ sequence.folio }}</b>  {{ sequence.s_sequence }}
+                        {% if sequence.source %}
+                            <a href="{% url 'source-detail' sequence.source.id %}" title="{{ sequence.source.title }}"><b>{{ sequence.siglum }}</b></a>
+                            <br>
+                            <b>{{ sequence.folio }}</b>  {{ sequence.s_sequence }}
+                        {% endif %}
                     </td>
                     <td class="text-wrap" style="text-align:center">
                         <a href="{% url 'sequence-detail' sequence.id %}">{{ sequence.incipit|default:"" }}</a>
