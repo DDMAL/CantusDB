@@ -64,7 +64,7 @@
                         <div class="col-2">
                             <dt>Feast</dt>
                             <dd>
-                                <a href="{% url 'feast-detail' chant.feast.id %}">{{ chant.feast.name }}</a>
+                                <a href="{% url 'feast-detail' chant.feast.id %}" title="{{ chant.feast.description }}">{{ chant.feast.name }}</a>
                             </dd>
                         </div>
                     {% endif %}
@@ -325,10 +325,26 @@
                                             <table class="table table-sm small table-bordered">     
                                                 {% for chant in chants %}
                                                     <tr>
-                                                        <td>{{ chant.c_sequence }}</td>
-                                                        <td>{{ chant.office.name|default_if_none:"" }} <b>{{ chant.genre.name|default_if_none:"" }}</b> {{ chant.position|default_if_none:"" }} </td>
-                                                        <td><a href="{% url 'chant-detail' chant.id %}">{{ chant.incipit|default_if_none:"" }}</a></td>
-                                                        <td><a href="{{ chant.get_ci_url }}" target="_blank">{{ chant.cantus_id|default_if_none:"" }}</a></td>
+                                                        <td>
+                                                            {{ chant.c_sequence }}
+                                                        </td>
+                                                        <td>
+                                                            <span title="{{ chant.office.description }}">
+                                                                {{ chant.office.name|default_if_none:"" }}
+                                                            </span>
+                                                            <b title="{{ chant.genre.description }}">{{ chant.genre.name|default_if_none:"" }}</b>
+                                                            {{ chant.position|default_if_none:"" }}
+                                                        </td>
+                                                        <td>
+                                                            <a href="{% url 'chant-detail' chant.id %}">
+                                                                {{ chant.incipit|default_if_none:"" }}
+                                                            </a>
+                                                        </td>
+                                                        <td>
+                                                            <a href="{{ chant.get_ci_url }}" target="_blank">
+                                                                {{ chant.cantus_id|default_if_none:"" }}
+                                                            </a>
+                                                        </td>
                                                     </tr>
                                                 {% endfor %}
                                             </table>
@@ -337,34 +353,71 @@
                                     <a id="previousToggle" href="#" onclick="togglePrevious(); return false;">Display previous chants ▾</a>
                                 {% endif %}
                                 <br>
-
-                                {% for feast, chants in feasts_current_folio %}
-                                    Folio: <b>{{ chant.folio }}</b> - Feast: <b>{{ feast.name }}</b>
-                                    <table class="table table-sm small table-bordered">     
-                                        {% for chant in chants %}
-                                            <tr>
-                                                <td>{{ chant.c_sequence }}</td>
-                                                <td>{{ chant.office.name|default_if_none:"" }} <b>{{ chant.genre.name|default_if_none:"" }}</b> {{ chant.position|default_if_none:"" }} </td>
-                                                <td><a href="{% url 'chant-detail' chant.id %}">{{ chant.incipit|default_if_none:"" }}</a></td>
-                                                <td><a href="{{ chant.get_ci_url }}" target="_blank">{{ chant.cantus_id|default_if_none:"" }}</a></td>
-                                            </tr>
-                                        {% endfor %}
-                                    </table>
-                                {% endfor %}
+                                {% with chant.c_sequence as current_seq %}
+                                    {% for feast, chants in feasts_current_folio %}
+                                        Folio: <b>{{ chant.folio }}</b> - Feast: <b title="{{ feast.description }}">{{ feast.name }}</b>
+                                        <table class="table table-sm small table-bordered">     
+                                            {% for chant in chants %}
+                                                <tr>
+                                                    <td>
+                                                        {{ chant.c_sequence }}
+                                                    </td>
+                                                    <td>
+                                                        <span title="{{ chant.office.description }}">
+                                                            {{ chant.office.name|default_if_none:"" }}
+                                                        </span>
+                                                        <b title="{{ chant.genre.description }}">{{ chant.genre.name|default_if_none:"" }}</b>
+                                                        {{ chant.position|default_if_none:"" }}
+                                                    </td>
+                                                    <td>
+                                                        <a href="{% url 'chant-detail' chant.id %}">
+                                                            {% if chant.c_sequence == current_seq %}
+                                                                <b>{{ chant.incipit|default_if_none:"" }}</b>
+                                                            {% else %}
+                                                                {{ chant.incipit|default_if_none:"" }}
+                                                            {% endif %}
+                                                        </a>
+                                                    </td>
+                                                    <td>
+                                                        <a href="{{ chant.get_ci_url }}" target="_blank">
+                                                            {{ chant.cantus_id|default_if_none:"" }}
+                                                        </a>
+                                                    </td>
+                                                </tr>
+                                            {% endfor %}
+                                        </table>
+                                    {% endfor %}
+                                {% endwith %}
 
                                 {% if next_folio %}
                                     <a id="nextToggle" href="#" onclick="toggleNext(); return false;">Display next chants ▾</a>
                                     <br>
                                     <div id="nextDiv" style="display:none">
                                         {% for feast, chants in feasts_next_folio %}
-                                            Folio: <b>{{ next_folio }}</b> - Feast: <b>{{ feast.name }}</b>
+                                            Folio: <b>{{ next_folio }}</b> - Feast: <b title="{{ feast.description }}">{{ feast.name }}</b>
                                             <table class="table table-sm small table-bordered">     
                                                 {% for chant in chants %}
                                                     <tr>
-                                                        <td>{{ chant.c_sequence }}</td>
-                                                        <td>{{ chant.office.name|default_if_none:"" }} <b>{{ chant.genre.name|default_if_none:"" }}</b> {{ chant.position|default_if_none:"" }} </td>
-                                                        <td><a href="{% url 'chant-detail' chant.id %}">{{ chant.incipit|default_if_none:"" }}</a></td>
-                                                        <td><a href="{{ chant.get_ci_url }}" target="_blank">{{ chant.cantus_id|default_if_none:"" }}</a></td>
+                                                        <td>
+                                                            {{ chant.c_sequence }}
+                                                        </td>
+                                                        <td>
+                                                            <span title="{{ chant.office.description }}">
+                                                                {{ chant.office.name|default_if_none:"" }}
+                                                            </span>
+                                                            <b title="{{ chant.genre.description }}">{{ chant.genre.name|default_if_none:"" }}</b>
+                                                            {{ chant.position|default_if_none:"" }}
+                                                        </td>
+                                                        <td>
+                                                            <a href="{% url 'chant-detail' chant.id %}">
+                                                                {{ chant.incipit|default_if_none:"" }}
+                                                            </a>
+                                                        </td>
+                                                        <td>
+                                                             <a href="{{ chant.get_ci_url }}" target="_blank">
+                                                                {{ chant.cantus_id|default_if_none:"" }}
+                                                            </a>
+                                                        </td>
                                                     </tr>
                                                 {% endfor %}
                                             </table>
