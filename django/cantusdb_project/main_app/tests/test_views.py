@@ -752,6 +752,7 @@ class ChantSearchViewTest(TestCase):
     def test_source_link_column(self):
         siglum = "Sigl-01"
         source = make_fake_source(published=True, siglum=siglum)
+        source_title = source.title
         url = source.get_absolute_url()
         fulltext = "manuscript full text"
         search_term = "full"
@@ -764,8 +765,9 @@ class ChantSearchViewTest(TestCase):
         )
         html = str(response.content)
         self.assertIn(siglum, html)
+        self.assertIn(source_title, html)
         self.assertIn(url, html)
-        self.assertIn(f'<a href="{url}">{siglum}</a>', html)
+        self.assertIn(f'<a href="{url}" title="{source_title}">{siglum}</a>', html)
         
     def test_folio_column(self):
         source = make_fake_source(published=True)
@@ -786,6 +788,7 @@ class ChantSearchViewTest(TestCase):
         source = make_fake_source(published=True)
         feast = make_fake_feast()
         feast_name = feast.name
+        feast_description = feast.description
         url = feast.get_absolute_url()
         fulltext = "manuscript full text"
         search_term = "full"
@@ -799,8 +802,9 @@ class ChantSearchViewTest(TestCase):
         )
         html = str(response.content)
         self.assertIn(feast_name, html)
+        self.assertIn(feast_description, html)
         self.assertIn(url, html)
-        self.assertIn(f'<a href="{url}">{feast_name}</a>', html)
+        self.assertIn(f'<a href="{url}" title="{feast_description}">{feast_name}</a>', html)
         
     def test_office_column(self):
         source = make_fake_source(published=True)
