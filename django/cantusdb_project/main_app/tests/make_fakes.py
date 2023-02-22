@@ -266,7 +266,7 @@ def make_fake_source(published=None, title=None, segment=None, segment_name=None
     # tuples and we only need the first element of each tuple
 
     if title is None:
-        title = make_fake_text(LONG_CHAR_FIELD_MAX)
+        title = faker.sentence()
     if siglum is None:
         siglum = make_fake_text(SHORT_CHAR_FIELD_MAX)
     if description is None:
