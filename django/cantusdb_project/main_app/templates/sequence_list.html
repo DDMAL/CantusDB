@@ -45,9 +45,11 @@
             {% for sequence in sequences %}
                 <tr style="text-align:center">
                     <td class="text-wrap">
-                        <a href="{% url 'source-detail' sequence.source.id %}">
-                            <b>{{ sequence.source.siglum|default:"" }}</b><br>
-                        </a>
+                        {% if sequence.source %}
+                            <a href="{% url 'source-detail' sequence.source.id %}">
+                                <b>{{ sequence.source.siglum|default:"" }}</b><br>
+                            </a>
+                        {% endif %}
                         <b>{{ sequence.folio|default:"" }}</b> {{ sequence.s_sequence|default:"" }}
                     </td>
                     <td class="text-wrap">
