@@ -276,17 +276,40 @@
                     {% comment %} render if the user has selected a specific folio {% endcomment %}
                     {% if feasts_current_folio %}
                         {% for feast, chants in feasts_current_folio %}
-                            <small>Folio: <b>{{ chant.folio }}</b> - Feast: <b>{{ feast.name }}</b></small>
+                            <small>Folio: <b>{{ chant.folio }}</b> - Feast: <b title="{{ chant.feast.description }}">{{ feast.name }}</b></small>
                             <table class="table table-sm small table-bordered">     
                                 {% for chant in chants %}
                                     <tr>
-                                        <td class="h-25" style="width: 5%">{{ chant.c_sequence }}</td>
-                                        <td class="h-25" style="width: 20%">{{ chant.office.name|default_if_none:"" }} <b>{{ chant.genre.name|default_if_none:"" }}</b> {{ chant.position|default_if_none:"" }} </td>
-                                        <td class="h-25" style="width: 40%; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; max-width: 0"><a href="{% url 'chant-detail' chant.id %}" target="_blank">{{ chant.incipit|default_if_none:"" }}</a></td>
-                                        <td class="h-25" style="width: 20%"><a href="{{ chant.get_ci_url }}" target="_blank">{{ chant.cantus_id|default_if_none:"" }}</a></td>
-                                        <td class="h-25" style="width: 5%">{{ chant.mode|default:"" }}</td>
+                                        <td class="h-25" style="width: 5%">
+                                            {{ chant.c_sequence }}
+                                        </td>
+                                        <td class="h-25" style="width: 20%">
+                                            <span title="{{ chant.office.description }}">
+                                                {{ chant.office.name|default_if_none:"" }}
+                                            </span>
+                                            <b title="{{ chant.genre.description }}">
+                                                {{ chant.genre.name|default_if_none:"" }}
+                                            </b>
+                                            {{ chant.position|default_if_none:"" }}
+                                        </td>
+                                        <td class="h-25" style="width: 40%; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; max-width: 0">
+                                            <a href="{% url 'chant-detail' chant.id %}" target="_blank">
+                                                {{ chant.incipit|default_if_none:"" }}
+                                            </a>
+                                        </td>
+                                        <td class="h-25" style="width: 20%">
+                                            <a href="{{ chant.get_ci_url }}" target="_blank">
+                                                {{ chant.cantus_id|default_if_none:"" }}
+                                            </a>
+                                        </td>
+                                        <td class="h-25" style="width: 5%">
+                                            {{ chant.mode|default:"" }}
+                                        </td>
                                         <td class="h-25" style="width: 10%">
-                                            <a href="{% url 'source-edit-chants' source.id %}?pk={{ chant.pk }}&folio={{ chant.folio }}">EDIT</button></td>
+                                            <a href="{% url 'source-edit-chants' source.id %}?pk={{ chant.pk }}&folio={{ chant.folio }}">
+                                                EDIT
+                                            </a>
+                                        </td>
                                     </tr>
                                 {% endfor %}
                             </table>
@@ -294,17 +317,39 @@
                     {% comment %} render if the user has selected a specific feast {% endcomment %}
                     {% elif folios_current_feast %}
                         {% for folio, chants in folios_current_feast %}
-                            <small>Folio: <b>{{ folio }}</b> - Feast: <b>{{ chant.feast }}</b></small>
+                            <small>Folio: <b>{{ folio }}</b> - Feast: <b title="{{ chant.feast.description }}">{{ chant.feast }}</b></small>
                             <table class="table table-sm small table-bordered">     
                                 {% for chant in chants %}
                                     <tr>
-                                        <td class="h-25" style="width: 5%">{{ chant.c_sequence }}</td>
-                                        <td class="h-25" style="width: 20%">{{ chant.office.name|default_if_none:"" }} <b>{{ chant.genre.name|default_if_none:"" }}</b> {{ chant.position|default_if_none:"" }} </td>
-                                        <td class="h-25" style="width: 40%; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; max-width: 0"><a href="{% url 'chant-detail' chant.id %}" target="_blank">{{ chant.incipit|default_if_none:"" }}</a></td>
-                                        <td class="h-25" style="width: 20%"><a href="{{ chant.get_ci_url }}" target="_blank">{{ chant.cantus_id|default_if_none:"" }}</a></td>
-                                        <td class="h-25" style="width: 5%">{{ chant.mode|default:"" }}</td>
+                                        <td class="h-25" style="width: 5%">
+                                            {{ chant.c_sequence }}
+                                        </td>
+                                        <td class="h-25" style="width: 20%">
+                                            <span title="{{ chant.office.description }}">
+                                                {{ chant.office.name|default_if_none:"" }}
+                                            </span>
+                                            <b title="{{ chant.genre.description }}">
+                                                {{ chant.genre.name|default_if_none:"" }}
+                                            </b>
+                                            {{ chant.position|default_if_none:"" }}
+                                        </td>
+                                        <td class="h-25" style="width: 40%; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; max-width: 0">
+                                            <a href="{% url 'chant-detail' chant.id %}" target="_blank">
+                                                {{ chant.incipit|default_if_none:"" }}
+                                            </a>
+                                        </td>
+                                        <td class="h-25" style="width: 20%">
+                                            <a href="{{ chant.get_ci_url }}" target="_blank">
+                                                {{ chant.cantus_id|default_if_none:"" }}
+                                            </a>
+                                        </td>
+                                        <td class="h-25" style="width: 5%">
+                                            {{ chant.mode|default:"" }}
+                                        </td>
                                         <td class="h-25" style="width: 10%">
-                                            <a href="{% url 'source-edit-chants' source.id %}?pk={{ chant.pk }}&feast={{ chant.feast.id }}">EDIT</button>
+                                            <a href="{% url 'source-edit-chants' source.id %}?pk={{ chant.pk }}&feast={{ chant.feast.id }}">
+                                                EDIT
+                                            </a>
                                         </td>
                                     </tr>
                                 {% endfor %}
