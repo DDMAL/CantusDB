@@ -81,7 +81,7 @@
             {% for source in sources %}
                 <tr>
                     <td class="text-wrap" style="text-align:center">
-                        <a href="{% url 'source-detail' source.id %}"><b>{{ source.siglum }}</b></a>
+                        <a href="{% url 'source-detail' source.id %}" title="{{ source.title }}"><b>{{ source.siglum }}</b></a>
                     </td>
                     <td class="text-wrap" style="text-align:center">
                         {{ source.summary|default:""|truncatechars_html:140 }}
