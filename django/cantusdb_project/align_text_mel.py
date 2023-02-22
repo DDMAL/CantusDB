@@ -155,7 +155,6 @@ def syllabize_melody(volpiano):
         # remove the trailing "--" (added in previous line) from the last syllable
         syls[-1] = syls[-1][:-2]
         syls_melody.append(syls)
-    # print(syls_melody)
     return syls_melody
 
 
