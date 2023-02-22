@@ -234,7 +234,7 @@
                             </td>
                             <td class="text-wrap" style="text-align:center">
                                 {% if chant.feast %}
-                                    <a href="{% url 'feast-detail' chant.feast.id %}">{{ chant.feast.name|default:"" }}</a>
+                                    <a href="{% url 'feast-detail' chant.feast.id %}" title="{{ chant.feast.description }}">{{ chant.feast.name|default:"" }}</a>
                                 {% endif %}
                             </td>
                             <td class="text-wrap" style="text-align:center">
