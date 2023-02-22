@@ -74,7 +74,7 @@
             <ul>
                 {% for source in edited_sources %}
                     <li>
-                        <a href="{{ source.get_absolute_url }}">{{ source.siglum }}</a> ({{ source.title }})
+                        <a href="{% url 'source-detail' source.id %}" title="{{ source.title }}">{{ source.siglum }}</a> ({{ source.title }})
                     </li>
                 {% endfor %}
             </ul>
