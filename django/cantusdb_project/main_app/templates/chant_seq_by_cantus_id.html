@@ -48,12 +48,16 @@
                     {% endif %}
                     <td class="text-wrap">
                         {% if chant.office %}
-                            <a href="{% url 'office-detail' chant.office.id %}" title="{{ chant.office.description }}">{{ chant.office.name }}</a>
+                            <a href="{% url 'office-detail' chant.office.id %}" title="{{ chant.office.description }}">
+                                {{ chant.office.name }}
+                            </a>
                         {% endif %}
                     </td>
                     <td class="text-wrap">
                         {% if chant.genre %}
-                            <a href="{% url 'genre-detail' chant.genre.id %}" title="{{ chant.genre.description }}">{{ chant.genre.name }}</a>
+                            <a href="{% url 'genre-detail' chant.genre.id %}" title="{{ chant.genre.description }}">
+                                {{ chant.genre.name }}
+                            </a>
                         {% endif %}
                     </td>
                     <td class="text-wrap">
@@ -61,7 +65,9 @@
                     </td>
                     <td class="text-wrap">
                         {% if chant.feast %}
-                            <a href="{% url 'feast-detail' chant.feast.id %}">{{ chant.feast.name }}</a>
+                            <a href="{% url 'feast-detail' chant.feast.id %}" title="{{ chant.feast.description }}">
+                                {{ chant.feast.name }}
+                            </a>
                         {% endif %}
                     </td>
                     <td class="text-wrap">
