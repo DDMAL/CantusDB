@@ -46,8 +46,8 @@
                 <tr style="text-align:center">
                     <td class="text-wrap">
                         {% if sequence.source %}
-                            <a href="{% url 'source-detail' sequence.source.id %}">
-                                <b>{{ sequence.source.siglum|default:"" }}</b><br>
+                            <a href="{% url 'source-detail' sequence.source.id %}" title="{{ sequence.source.title }}">
+                                <b>{{ sequence.source.siglum }}</b><br>
                             </a>
                         {% endif %}
                         <b>{{ sequence.folio|default:"" }}</b> {{ sequence.s_sequence|default:"" }}
