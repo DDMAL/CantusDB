@@ -22,7 +22,7 @@
 <body>
     <title>Inventory | Cantus Manuscript Database</title>
     <h3>CANTUS Manuscript Inventory: 
-        <a href="{{ source.get_absolute_url }}" target="_href">{{ source.title }}</a>
+        <a href="{% url 'source-detail' source.id %}" target="_href">{{ source.title }}</a>
     </h3>
     This source inventory contains {{ chants.count }} chants.
     <table class="table table-sm small table-bordered table-striped table-hover">
@@ -50,7 +50,7 @@
                         `default`: use the given default if the value evaluates to False
                         `default_if_none`: use the given default only if the value is None
                     {% endcomment %}
-                    <td>{{ chant.source.siglum|default_if_none:"" }}</td>
+                    <td title="{{ chant.source.title }}">{{ chant.source.siglum|default_if_none:"" }}</td>
                     <td>{{ chant.marginalia|default_if_none:"" }}</td>
                     <td>{{ chant.folio|default_if_none:"" }}</td>
                     <td>
@@ -60,11 +60,23 @@
                             {{ chant.s_sequence|default_if_none:"" }}
                         {% endif %}
                     </td>
-                    <td>{{ chant.feast.name|default_if_none:"" }}</td>
-                    <td><span title="{{ chant.office.description }}">{{ chant.office.name|default_if_none:"" }}</span></td>
-                    <td><span title="{{ chant.genre.description }}">{{ chant.genre.name|default_if_none:"" }}</span></td>
+                    <td>
+                        <span title="{{ chant.feast.description }}">
+                            {{ chant.feast.name|default_if_none:"" }}
+                        </span>
+                    </td>
+                    <td>
+                        <span title="{{ chant.office.description }}">
+                            {{ chant.office.name|default_if_none:"" }}
+                        </span>
+                    </td>
+                    <td>
+                        <span title="{{ chant.genre.description }}">
+                            {{ chant.genre.name|default_if_none:"" }}
+                        </span>
+                    </td>
                     <td>{{ chant.position|default_if_none:"" }}</td>
-                    <td><a href="{{ chant.get_absolute_url }}" target="_blank">{{ chant.incipit|default_if_none:"" }}</a></td>
+                    <td><a href="{% url 'chant-detail' chant.id %}" target="_blank">{{ chant.incipit|default_if_none:"" }}</a></td>
                     <td>{{ chant.cantus_id|default_if_none:"" }}</td>
                     <td>{{ chant.mode|default_if_none:"" }}</td>
                     <td>{{ chant.differentia|default_if_none:"" }}</td>

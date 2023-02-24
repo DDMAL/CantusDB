@@ -18,7 +18,7 @@
             {% for office in offices %}
                 <tr>
                     <td class="text-wrap">
-                        <a href="{{ office.get_absolute_url }}"><b>{{ office.name }}</b></a>
+                        <a href="{% url 'office-detail' office.id %}"><b>{{ office.name }}</b></a>
                     </td>
                     <td class="text-wrap">{{ office.description }}</td>
                 </tr>
