@@ -716,6 +716,34 @@ class ChantSearchView(ListView):
         return context
 
     def get_queryset(self) -> QuerySet:
+        template_values = (
+            # fetch only those database columns necessary for rendering
+            # the template
+            "id",
+            "folio",
+            "search_vector",
+            "incipit",
+            "manuscript_full_text_std_spelling",
+            "position",
+            "cantus_id",
+            "mode",
+            "manuscript_full_text",
+            "volpiano",
+            "image_link",
+
+            "source__id",
+            "source__title",
+            "source__siglum",
+            "feast__id",
+            "feast__description",
+            "feast__name",
+            "office__id",
+            "office__description",
+            "office__name",
+            "genre__id",
+            "genre__description",
+            "genre__name",
+        )
         # Create a Q object to filter the QuerySet of Chants
         q_obj_filter = Q()
         display_unpublished = self.request.user.is_authenticated
@@ -726,18 +754,32 @@ class ChantSearchView(ListView):
             if self.request.GET.get("search_bar").replace(" ", "").isalpha():
                 # if search bar is doing incipit search
                 incipit = self.request.GET.get("search_bar")
-                chant_set = keyword_search(chant_set, incipit)
-                sequence_set = keyword_search(sequence_set, incipit)
-                queryset = chant_set.union(sequence_set)
-                # queryset = keyword_search(queryset, incipit)
+                chant_set = chant_set.filter(
+                    manuscript_full_text_std_spelling__istartswith=incipit
+                ).values(
+                    *template_values
+                )
+                sequence_set = sequence_set.filter(
+                    manuscript_full_text_std_spelling__istartswith=incipit
+                ).values(
+                    *template_values
+                )
+                queryset = chant_set.union(sequence_set, all=True)
             else:
                 # if search bar is doing Cantus ID search
                 cantus_id = self.request.GET.get("search_bar")
                 q_obj_filter &= Q(cantus_id=cantus_id)
-                chant_set = chant_set.filter(q_obj_filter)
-                sequence_set = sequence_set.filter(q_obj_filter)
-                queryset = chant_set.union(sequence_set)
-                # queryset = queryset.filter(q_obj_filter)
+                chant_set = chant_set.filter(
+                    q_obj_filter
+                ).values(
+                    *template_values
+                )
+                sequence_set = sequence_set.filter(
+                    q_obj_filter
+                ).values(
+                    *template_values
+                )
+                queryset = chant_set.union(sequence_set, all=True)
 
         else:
             # The field names should be keys in the "GET" QueryDict if the search button has been clicked,
@@ -813,20 +855,33 @@ class ChantSearchView(ListView):
             # Filter the QuerySet with Q object
             chant_set = chant_set.filter(q_obj_filter)
             sequence_set = sequence_set.filter(q_obj_filter)
+            # Fetch only the values necessary for rendering the template
+            chant_set = chant_set.values(*template_values)
+            sequence_set = sequence_set.values(*template_values)
             # Finally, do keyword searching over the querySet
             if self.request.GET.get("keyword"):
                 keyword = self.request.GET.get("keyword")
                 operation = self.request.GET.get("op")
                 if operation == "contains":
-                    chant_set = chant_set.filter(
+                    ms_spelling_filter = Q(
+                        manuscript_full_text__icontains=keyword
+                    )
+                    std_spelling_filter = Q(
                         manuscript_full_text_std_spelling__icontains=keyword
                     )
-                    sequence_set = sequence_set.filter(
-                        manuscript_full_text_std_spelling__icontains=keyword
-                    )
+                    keyword_filter = ms_spelling_filter | std_spelling_filter
+                    chant_set = chant_set.filter(keyword_filter)
+                    sequence_set = sequence_set.filter(keyword_filter)
                 elif operation == "starts_with":
-                    chant_set = chant_set.filter(incipit__istartswith=keyword)
-                    sequence_set = sequence_set.filter(incipit__istartswith=keyword)
+                    ms_spelling_filter = Q(
+                        manuscript_full_text__istartswith=keyword
+                    )
+                    std_spelling_filter = Q(
+                        manuscript_full_text_std_spelling__istartswith=keyword
+                    )
+                    keyword_filter = ms_spelling_filter | std_spelling_filter
+                    chant_set = chant_set.filter(keyword_filter)
+                    sequence_set = sequence_set.filter(keyword_filter)
 
             # once unioned, the queryset cannot be filtered/annotated anymore, so we put union to the last
             queryset = chant_set.union(sequence_set, all=True)
