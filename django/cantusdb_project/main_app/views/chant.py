@@ -846,7 +846,7 @@ class ChantSearchView(ListView):
                     keyword_filter = ms_spelling_filter | std_spelling_filter
                     chant_set = chant_set.filter(keyword_filter)
                     sequence_set = sequence_set.filter(keyword_filter)
-                elif operation == "starts_with":
+                else:
                     ms_spelling_filter = Q(
                         manuscript_full_text__istartswith=keyword
                     )
@@ -1076,7 +1076,7 @@ class ChantSearchMSView(ListView):
                 )
                 keyword_filter = ms_spelling_filter | std_spelling_filter
                 queryset.filter(keyword_filter)
-            elif operation == "starts_with":
+            else:
                 ms_spelling_filter = Q(
                     manuscript_full_text__istartswith=keyword
                 )
