@@ -1019,7 +1019,8 @@ class ChantSearchMSViewTest(TestCase):
         response = self.client.get(
             reverse("chant-search-ms", args=[source.id]), {"office": search_term}
         )
-        self.assertIn(chant, response.context["chants"])
+        context_chant_id = response.context["chants"][0]["id"]
+        self.assertEqual(chant.id, context_chant_id)
 
     def test_filter_by_genre(self):
         source = make_fake_source()
@@ -1028,7 +1029,8 @@ class ChantSearchMSViewTest(TestCase):
         response = self.client.get(
             reverse("chant-search-ms", args=[source.id]), {"genre": genre.id}
         )
-        self.assertIn(chant, response.context["chants"])
+        context_chant_id = response.context["chants"][0]["id"]
+        self.assertEqual(chant.id, context_chant_id)
 
     def test_search_by_cantus_id(self):
         source = make_fake_source()
@@ -1037,7 +1039,8 @@ class ChantSearchMSViewTest(TestCase):
         response = self.client.get(
             reverse("chant-search-ms", args=[source.id]), {"cantus_id": search_term}
         )
-        self.assertIn(chant, response.context["chants"])
+        context_chant_id = response.context["chants"][0]["id"]
+        self.assertEqual(chant.id, context_chant_id)
 
     def test_search_by_mode(self):
         source = make_fake_source()
@@ -1046,7 +1049,8 @@ class ChantSearchMSViewTest(TestCase):
         response = self.client.get(
             reverse("chant-search-ms", args=[source.id]), {"mode": search_term}
         )
-        self.assertIn(chant, response.context["chants"])
+        context_chant_id = response.context["chants"][0]["id"]
+        self.assertEqual(chant.id, context_chant_id)
 
     def test_search_by_feast(self):
         source = make_fake_source()
@@ -1056,7 +1060,8 @@ class ChantSearchMSViewTest(TestCase):
         response = self.client.get(
             reverse("chant-search-ms", args=[source.id]), {"feast": search_term}
         )
-        self.assertIn(chant, response.context["chants"])
+        context_chant_id = response.context["chants"][0]["id"]
+        self.assertEqual(chant.id, context_chant_id)
 
     def test_filter_by_melody(self):
         source = make_fake_source()
@@ -1068,8 +1073,9 @@ class ChantSearchMSViewTest(TestCase):
             reverse("chant-search-ms", args=[source.id]), {"melodies": "true"}
         )
         # only chants with melodies should be in the result
-        self.assertIn(chant_with_melody, response.context["chants"])
-        self.assertNotIn(chant_without_melody, response.context["chants"])
+        self.assertEqual(len(response.context["chants"]), 1)
+        context_chant_id = response.context["chants"][0]["id"]
+        self.assertEqual(context_chant_id, chant_with_melody.id)
 
     def test_keyword_search_starts_with(self):
         source = make_fake_source()
@@ -1082,7 +1088,8 @@ class ChantSearchMSViewTest(TestCase):
             reverse("chant-search-ms", args=[source.id]),
             {"keyword": search_term, "op": "starts_with"},
         )
-        self.assertIn(chant, response.context["chants"])
+        context_chant_id = response.context["chants"][0]["id"]
+        self.assertEqual(chant.id, context_chant_id)
 
     def test_keyword_search_contains(self):
         source = make_fake_source()
@@ -1101,7 +1108,256 @@ class ChantSearchMSViewTest(TestCase):
             reverse("chant-search-ms", args=[source.id]),
             {"keyword": search_term, "op": "contains"},
         )
-        self.assertIn(chant, response.context["chants"])
+        context_chant_id = response.context["chants"][0]["id"]
+        self.assertEqual(chant.id, context_chant_id)
+
+    def test_source_link_column(self):
+        siglum = "Sigl-01"
+        source = make_fake_source(published=True, siglum=siglum)
+        source_title = source.title
+        url = source.get_absolute_url()
+        fulltext = "manuscript full text"
+        search_term = "full"
+        chant = make_fake_chant(
+            source=source,
+            manuscript_full_text_std_spelling=fulltext
+        )
+        response = self.client.get(
+            reverse("chant-search-ms", args=[source.id]),
+            {"keyword": search_term, "op": "contains"}
+        )
+        html = str(response.content)
+        self.assertIn(siglum, html)
+        self.assertIn(source_title, html)
+        self.assertIn(url, html)
+        self.assertIn(f'<a href="{url}" title="{source_title}">{siglum}</a>', html)
+        
+    def test_folio_column(self):
+        source = make_fake_source(published=True)
+        fulltext = "manuscript full text"
+        search_term = "full"
+        chant = make_fake_chant(
+            source=source,
+            manuscript_full_text_std_spelling=fulltext
+        )
+        folio = chant.folio
+        response = self.client.get(
+            reverse("chant-search-ms", args=[source.id]),
+            {"keyword": search_term, "op": "contains"}
+        )
+        html = str(response.content)
+        self.assertIn(folio, html)
+        
+    def test_feast_column(self):
+        source = make_fake_source(published=True)
+        feast = make_fake_feast()
+        feast_name = feast.name
+        feast_description = feast.description
+        url = feast.get_absolute_url()
+        fulltext = "manuscript full text"
+        search_term = "full"
+        chant = make_fake_chant(
+            source=source,
+            manuscript_full_text_std_spelling=fulltext,
+            feast=feast,
+        )
+        response = self.client.get(
+            reverse("chant-search-ms", args=[source.id]),
+            {"keyword": search_term, "op": "contains"}
+        )
+        html = str(response.content)
+        self.assertIn(feast_name, html)
+        self.assertIn(feast_description, html)
+        self.assertIn(url, html)
+        self.assertIn(f'<a href="{url}" title="{feast_description}">{feast_name}</a>', html)
+        
+    def test_office_column(self):
+        source = make_fake_source(published=True)
+        office = make_fake_office()
+        office_name = office.name
+        office_description = office.description
+        url = office.get_absolute_url()
+        fulltext = "manuscript full text"
+        search_term = "full"
+        chant = make_fake_chant(
+            source=source,
+            manuscript_full_text_std_spelling=fulltext,
+            office=office,
+        )
+        response = self.client.get(
+            reverse("chant-search-ms", args=[source.id]),
+            {"keyword": search_term, "op": "contains"}
+        )
+        html = str(response.content)
+        self.assertIn(office_name, html)
+        self.assertIn(office_description, html)
+        self.assertIn(url, html)
+        self.assertIn(f'<a href="{url}" title="{office_description}">{office_name}</a>', html)
+        
+    def test_genre_column(self):
+        source = make_fake_source(published=True)
+        genre = make_fake_genre()
+        genre_name = genre.name
+        genre_description = genre.description
+        url = genre.get_absolute_url()
+        fulltext = "manuscript full text"
+        search_term = "full"
+        chant = make_fake_chant(
+            source=source,
+            manuscript_full_text_std_spelling=fulltext,
+            genre=genre,
+        )
+        response = self.client.get(
+            reverse("chant-search-ms", args=[source.id]),
+            {"keyword": search_term, "op": "contains"}
+        )
+        html = str(response.content)
+        self.assertIn(genre_name, html)
+        self.assertIn(genre_description, html)
+        self.assertIn(url, html)
+        self.assertIn(f'<a href="{url}" title="{genre_description}">{genre_name}</a>', html)
+        
+    def test_position_column(self):
+        source = make_fake_source(published=True)
+        fulltext = "manuscript full text"
+        search_term = "full"
+        chant = make_fake_chant(
+            source=source,
+            manuscript_full_text_std_spelling=fulltext,
+        )
+        position = chant.position
+        response = self.client.get(
+            reverse("chant-search-ms", args=[source.id]),
+            {"keyword": search_term, "op": "contains"}
+        )
+        html = str(response.content)
+        self.assertIn(position, html)
+
+    def test_cantus_id_column(self):
+        source = make_fake_source(published=True)
+        fulltext = "manuscript full text"
+        search_term = "full"
+        chant = make_fake_chant(
+            source=source,
+            manuscript_full_text_std_spelling=fulltext,
+        )
+        cantus_id = chant.cantus_id
+        url = chant.get_ci_url()
+        response = self.client.get(
+            reverse("chant-search-ms", args=[source.id]),
+            {"keyword": search_term, "op": "contains"}
+        )
+        html = str(response.content)
+        self.assertIn(cantus_id, html)
+        self.assertIn(url, html)
+        self.assertIn(f'<a href="{url}" target="_blank">{cantus_id}</a>', html)
+
+    def test_mode_column(self):
+        source = make_fake_source(published=True)
+        fulltext = "manuscript full text"
+        search_term = "full"
+        chant = make_fake_chant(
+            source=source,
+            manuscript_full_text_std_spelling=fulltext,
+        )
+        mode = "this is the mode"   # not a representative value, but
+                                    # single numerals are found
+                                    # elsewhere in the template
+        chant.mode = mode
+        chant.save()
+        response = self.client.get(
+            reverse("chant-search-ms", args=[source.id]),
+            {"keyword": search_term, "op": "contains"}
+        )
+        html = str(response.content)
+        self.assertIn(mode, html)
+
+    def test_manuscript_full_text_column(self):
+        source = make_fake_source(published=True)
+        std_fulltext = "standard full text"
+        ms_fulltext = "manuscript full text"
+        search_term = "full"
+        chant = make_fake_chant(
+            source=source,
+            manuscript_full_text_std_spelling=std_fulltext,
+            manuscript_full_text=ms_fulltext,
+        )
+        response = self.client.get(
+            reverse("chant-search-ms", args=[source.id]),
+            {"keyword": search_term, "op": "contains"}
+        )
+        html = str(response.content)
+        self.assertIn(
+            '\\xe2\\x9c\\x94', # checkmark character
+            html
+        )
+        self.assertIn(
+            '<span title="Chant record includes Manuscript Full Text">\\xe2\\x9c\\x94</span>',
+            html
+        )
+        
+        chant.manuscript_full_text = None
+        chant.save()
+        response = self.client.get(
+            reverse("chant-search-ms", args=[source.id]),
+            {"keyword": search_term, "op": "contains"}
+        )
+        html = str(response.content)
+        self.assertNotIn(
+            '\\xe2\\x9c\\x94', # checkmark character
+            html,
+        )
+
+    def test_volpiano_column(self):
+        source = make_fake_source(published=True)
+        full_text = "standard full text"
+        search_term = "full"
+        volpiano = "1---defg-e-cd"
+        chant = make_fake_chant(
+            source=source,
+            manuscript_full_text_std_spelling=full_text,
+            volpiano=volpiano,
+        )
+        response = self.client.get(
+            reverse("chant-search-ms", args=[source.id]),
+            {"keyword": search_term, "op": "contains"}
+        )
+        html = str(response.content)
+        self.assertIn(
+            "\\xe2\\x99\\xab", # beamed eighth notes character
+            html
+        )
+        self.assertIn('<span title="Chant record has Volpiano melody">\\xe2\\x99\\xab</span>', html)
+        chant.volpiano = None
+        chant.save()
+        response = self.client.get(
+            reverse("chant-search-ms", args=[source.id]),
+            {"keyword": search_term, "op": "contains"}
+        )
+        html = str(response.content)
+        self.assertNotIn(
+            "\\xe2\\x99\\xab", # beamed eighth notes character
+            html
+        )
+
+    def test_image_link_column(self):
+        source = make_fake_source(published=True)
+        fulltext = "standard full text"
+        search_term = "full"
+        chant = make_fake_chant(
+            source=source,
+            manuscript_full_text_std_spelling=fulltext,
+        )
+        image_link = 'http://www.example.com/image_link'
+        chant.image_link = image_link
+        chant.save()
+        response = self.client.get(
+            reverse("chant-search-ms", args=[source.id]),
+            {"keyword": search_term, "op": "contains"}
+        )
+        html = str(response.content)
+        self.assertIn(image_link, html)
+        self.assertIn(f'<a href="{image_link}" target="_blank">Image</a>', html)
 
 
 class ChantIndexViewTest(TestCase):
