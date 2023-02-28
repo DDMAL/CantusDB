@@ -992,6 +992,34 @@ class ChantSearchMSView(ListView):
         return context
 
     def get_queryset(self) -> QuerySet:
+        template_values = (
+            # fetch only those database columns necessary for rendering
+            # the template
+            "id",
+            "folio",
+            "search_vector",
+            "incipit",
+            "manuscript_full_text_std_spelling",
+            "position",
+            "cantus_id",
+            "mode",
+            "manuscript_full_text",
+            "volpiano",
+            "image_link",
+
+            "source__id",
+            "source__title",
+            "source__siglum",
+            "feast__id",
+            "feast__description",
+            "feast__name",
+            "office__id",
+            "office__description",
+            "office__name",
+            "genre__id",
+            "genre__description",
+            "genre__name",
+        )
         # Create a Q object to filter the QuerySet of Chants
         q_obj_filter = Q()
         # If the "apply" button hasn't been clicked, return empty queryset
@@ -1058,14 +1086,31 @@ class ChantSearchMSView(ListView):
         )
         # Filter the QuerySet with Q object
         queryset = queryset.filter(q_obj_filter)
+        # Fetch only the values necessary for rendering the template
+        queryset = queryset.values(*template_values)
         # Finally, do keyword searching over the QuerySet
         if self.request.GET.get("keyword"):
             keyword = self.request.GET.get("keyword")
+            operation = self.request.GET.get("op")
             # the operation parameter can be "contains" or "starts_with"
-            if self.request.GET.get("op") == "contains":
-                queryset = keyword_search(queryset, keyword)
-            else:
-                queryset = queryset.filter(incipit__istartswith=keyword)
+            if operation == "contains":
+                ms_spelling_filter = Q(
+                    manuscript_full_text__icontains=keyword
+                )
+                std_spelling_filter = Q(
+                    manuscript_full_text_std_spelling__icontains=keyword
+                )
+                keyword_filter = ms_spelling_filter | std_spelling_filter
+                queryset.filter(keyword_filter)
+            elif operation == "starts_with":
+                ms_spelling_filter = Q(
+                    manuscript_full_text__istartswith=keyword
+                )
+                std_spelling_filter = Q(
+                    manuscript_full_text_std_spelling__istartswith=keyword
+                )
+                keyword_filter = ms_spelling_filter | std_spelling_filter
+                queryset.filter(keyword_filter)
         # ordering with the folio string gives wrong order
         # old cantus is also not strictly ordered by folio (there are outliers)
         # so we order by id for now, which is the order that the chants are entered into the DB
