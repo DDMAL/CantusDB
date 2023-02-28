@@ -818,8 +818,12 @@ class ChantSearchView(ListView):
                 keyword = self.request.GET.get("keyword")
                 # the operation parameter can be "contains" or "starts_with"
                 if self.request.GET.get("op") == "contains":
-                    chant_set = keyword_search(chant_set, keyword)
-                    sequence_set = keyword_search(sequence_set, keyword)
+                    chant_set = chant_set.filter(
+                        manuscript_full_text_std_spelling__icontains=keyword
+                    )
+                    sequence_set = sequence_set.filter(
+                        manuscript_full_text_std_spelling__icontains=keyword
+                    )
                 else:
                     chant_set = chant_set.filter(incipit__istartswith=keyword)
                     sequence_set = sequence_set.filter(incipit__istartswith=keyword)
