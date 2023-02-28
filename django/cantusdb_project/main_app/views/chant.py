@@ -829,7 +829,7 @@ class ChantSearchView(ListView):
                     sequence_set = sequence_set.filter(incipit__istartswith=keyword)
 
             # once unioned, the queryset cannot be filtered/annotated anymore, so we put union to the last
-            queryset = chant_set.union(sequence_set)
+            queryset = chant_set.union(sequence_set, all=True)
             queryset = queryset.order_by(order, "id")
 
         return queryset
