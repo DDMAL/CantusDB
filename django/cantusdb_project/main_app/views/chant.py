@@ -692,9 +692,7 @@ class ChantSearchView(ListView):
         return context
 
     def get_queryset(self) -> QuerySet:
-        template_values = (
-            # fetch only those database columns necessary for rendering
-            # the template
+        values_for_rendering_template = (
             "id",
             "folio",
             "search_vector",
@@ -733,12 +731,12 @@ class ChantSearchView(ListView):
                 chant_set = chant_set.filter(
                     manuscript_full_text_std_spelling__istartswith=incipit
                 ).values(
-                    *template_values
+                    *values_for_rendering_template
                 )
                 sequence_set = sequence_set.filter(
                     manuscript_full_text_std_spelling__istartswith=incipit
                 ).values(
-                    *template_values
+                    *values_for_rendering_template
                 )
                 queryset = chant_set.union(sequence_set, all=True)
             else:
@@ -748,12 +746,12 @@ class ChantSearchView(ListView):
                 chant_set = chant_set.filter(
                     q_obj_filter
                 ).values(
-                    *template_values
+                    *values_for_rendering_template
                 )
                 sequence_set = sequence_set.filter(
                     q_obj_filter
                 ).values(
-                    *template_values
+                    *values_for_rendering_template
                 )
                 queryset = chant_set.union(sequence_set, all=True)
 
@@ -832,8 +830,8 @@ class ChantSearchView(ListView):
             chant_set = chant_set.filter(q_obj_filter)
             sequence_set = sequence_set.filter(q_obj_filter)
             # Fetch only the values necessary for rendering the template
-            chant_set = chant_set.values(*template_values)
-            sequence_set = sequence_set.values(*template_values)
+            chant_set = chant_set.values(*values_for_rendering_template)
+            sequence_set = sequence_set.values(*values_for_rendering_template)
             # Finally, do keyword searching over the querySet
             if self.request.GET.get("keyword"):
                 keyword = self.request.GET.get("keyword")
@@ -968,7 +966,7 @@ class ChantSearchMSView(ListView):
         return context
 
     def get_queryset(self) -> QuerySet:
-        template_values = (
+        values_for_rendering_template = (
             # fetch only those database columns necessary for rendering
             # the template
             "id",
@@ -1063,7 +1061,7 @@ class ChantSearchMSView(ListView):
         # Filter the QuerySet with Q object
         queryset = queryset.filter(q_obj_filter)
         # Fetch only the values necessary for rendering the template
-        queryset = queryset.values(*template_values)
+        queryset = queryset.values(*values_for_rendering_template)
         # Finally, do keyword searching over the QuerySet
         if self.request.GET.get("keyword"):
             keyword = self.request.GET.get("keyword")
