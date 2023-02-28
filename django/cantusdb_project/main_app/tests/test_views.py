@@ -654,14 +654,15 @@ class ChantSearchViewTest(TestCase):
         response = self.client.get(
             reverse("chant-search"), {"keyword": "lorem", "op": "contains"}
         )
-        self.assertIn(chant, response.context["chants"])
+        context_chant_id = response.context["chants"][0]["id"]
+        self.assertEqual(chant.id, context_chant_id)
 
         source.published = False
         source.save()
         response = self.client.get(
             reverse("chant-search"), {"keyword": "lorem", "op": "contains"}
         )
-        self.assertNotIn(chant, response.context["chants"])
+        self.assertEqual(len(response.context["chants"]), 0)
 
     def test_search_by_office(self):
         source = make_fake_source(published=True)
@@ -669,28 +670,32 @@ class ChantSearchViewTest(TestCase):
         chant = Chant.objects.create(source=source, office=office)
         search_term = get_random_search_term(office.name)
         response = self.client.get(reverse("chant-search"), {"office": search_term})
-        self.assertIn(chant, response.context["chants"])
+        context_chant_id = response.context["chants"][0]["id"]
+        self.assertEqual(chant.id, context_chant_id)
 
     def test_filter_by_genre(self):
         source = make_fake_source(published=True)
         genre = make_fake_genre()
         chant = Chant.objects.create(source=source, genre=genre)
         response = self.client.get(reverse("chant-search"), {"genre": genre.id})
-        self.assertIn(chant, response.context["chants"])
+        context_chant_id = response.context["chants"][0]["id"]
+        self.assertEqual(chant.id, context_chant_id)
 
     def test_search_by_cantus_id(self):
         source = make_fake_source(published=True)
         chant = Chant.objects.create(source=source, cantus_id=faker.numerify("######"))
         search_term = get_random_search_term(chant.cantus_id)
         response = self.client.get(reverse("chant-search"), {"cantus_id": search_term})
-        self.assertIn(chant, response.context["chants"])
+        context_chant_id = response.context["chants"][0]["id"]
+        self.assertEqual(chant.id, context_chant_id)
 
     def test_search_by_mode(self):
         source = make_fake_source(published=True)
         chant = Chant.objects.create(source=source, mode=faker.numerify("#"))
         search_term = get_random_search_term(chant.mode)
         response = self.client.get(reverse("chant-search"), {"mode": search_term})
-        self.assertIn(chant, response.context["chants"])
+        context_chant_id = response.context["chants"][0]["id"]
+        self.assertEqual(chant.id, context_chant_id)
 
     def test_search_by_feast(self):
         source = make_fake_source(published=True)
@@ -698,7 +703,8 @@ class ChantSearchViewTest(TestCase):
         chant = Chant.objects.create(source=source, feast=feast)
         search_term = get_random_search_term(feast.name)
         response = self.client.get(reverse("chant-search"), {"feast": search_term})
-        self.assertIn(chant, response.context["chants"])
+        context_chant_id = response.context["chants"][0]["id"]
+        self.assertEqual(chant.id, context_chant_id)
 
     def test_search_by_position(self):
         source = make_fake_source(published=True)
@@ -706,7 +712,8 @@ class ChantSearchViewTest(TestCase):
         chant = Chant.objects.create(source=source, position=position)
         search_term = "1"
         response = self.client.get(reverse("chant-search"), {"position": search_term})
-        self.assertIn(chant, response.context["chants"])
+        context_chant_id = response.context["chants"][0]["id"]
+        self.assertEqual(chant.id, context_chant_id)
 
     def test_filter_by_melody(self):
         source = make_fake_source(published=True)
@@ -716,38 +723,37 @@ class ChantSearchViewTest(TestCase):
         chant_without_melody = Chant.objects.create(source=source)
         response = self.client.get(reverse("chant-search"), {"melodies": "true"})
         # only chants with melodies should be in the result
-        self.assertIn(chant_with_melody, response.context["chants"])
-        self.assertNotIn(chant_without_melody, response.context["chants"])
+        self.assertEqual(len(response.context["chants"]), 1)
+        context_chant_id = response.context["chants"][0]["id"]
+        self.assertEqual(context_chant_id, chant_with_melody.id)
 
     def test_keyword_search_starts_with(self):
         source = make_fake_source(published=True)
         chant = Chant.objects.create(
-            source=source, incipit=make_fake_text(max_size=200)
+            source=source,
+            manuscript_full_text_std_spelling=make_fake_text(max_size=200),
         )
-        # use the beginning part of the incipit as search term
-        search_term = chant.incipit[0 : random.randint(1, len(chant.incipit))]
+        # use the beginning part of the full text as the search term
+        search_term = chant.manuscript_full_text_std_spelling[0 : random.randint(1, len(chant.manuscript_full_text_std_spelling))]
         response = self.client.get(
             reverse("chant-search"), {"keyword": search_term, "op": "starts_with"}
         )
-        self.assertIn(chant, response.context["chants"])
+        context_chant_id = response.context["chants"][0]["id"]
+        self.assertEqual(chant.id, context_chant_id)
 
     def test_keyword_search_contains(self):
         source = make_fake_source(published=True)
         chant = Chant.objects.create(
-            source=source, manuscript_full_text=make_fake_text(max_size=400)
+            source=source,
+            manuscript_full_text="hoc tantum possum dicere",
         )
-        # split full text into words
-        full_text_words = chant.manuscript_full_text.split(" ")
         # use a random subset of words as search term
-        search_term = " ".join(
-            random.choices(
-                full_text_words, k=random.randint(1, max(len(full_text_words) - 1, 1))
-            )
-        )
+        search_term = "tantum possum"
         response = self.client.get(
             reverse("chant-search"), {"keyword": search_term, "op": "contains"}
         )
-        self.assertIn(chant, response.context["chants"])
+        context_chant_id = response.context["chants"][0]["id"]
+        self.assertEqual(chant.id, context_chant_id)
 
     def test_source_link_column(self):
         siglum = "Sigl-01"
