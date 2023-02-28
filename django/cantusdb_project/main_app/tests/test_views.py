@@ -747,7 +747,6 @@ class ChantSearchViewTest(TestCase):
             source=source,
             manuscript_full_text="hoc tantum possum dicere",
         )
-        # use a random subset of words as search term
         search_term = "tantum possum"
         response = self.client.get(
             reverse("chant-search"), {"keyword": search_term, "op": "contains"}
