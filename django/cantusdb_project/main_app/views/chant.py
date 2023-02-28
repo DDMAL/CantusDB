@@ -27,30 +27,6 @@ from collections import Counter
 from django.contrib.auth.mixins import UserPassesTestMixin
 
 
-
-def keyword_search(queryset: QuerySet, keywords: str) -> QuerySet:
-    """
-    Performs a keyword search over a QuerySet
-
-    Uses PostgreSQL's full text search features
-
-    Args:
-        queryset (QuerySet): A QuerySet to be searched
-        keywords (str): A string of keywords to search the QuerySet
-
-    Returns:
-        QuerySet: A QuerySet filtered by keywords
-    """
-    query = SearchQuery(keywords)
-    rank_annotation = SearchRank(F("search_vector"), query)
-    filtered_queryset = (
-        queryset.annotate(rank=rank_annotation)
-        .filter(search_vector=query)
-        .order_by("-rank")
-    )
-    return filtered_queryset
-
-
 class ChantDetailView(DetailView):
     """
     Displays a single Chant object. Accessed with ``chants/<int:pk>``
