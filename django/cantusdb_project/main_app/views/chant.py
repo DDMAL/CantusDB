@@ -722,8 +722,8 @@ class ChantSearchView(ListView):
         return context
 
     def get_queryset(self) -> QuerySet:
-        global CHANT_SEARCH_TEMPLATE_VALUES # in order to fetch only those values necessary
-                                            # for rendering chant_search.html template
+        CHANT_SEARCH_TEMPLATE_VALUES # in order to fetch only those values necessary
+                                     # for rendering chant_search.html template
         # Create a Q object to filter the QuerySet of Chants
         q_obj_filter = Q()
         display_unpublished = self.request.user.is_authenticated
@@ -969,8 +969,8 @@ class ChantSearchMSView(ListView):
         return context
 
     def get_queryset(self) -> QuerySet:
-        global CHANT_SEARCH_TEMPLATE_VALUES # in order to fetch only those values necessary
-                                            # for rendering chant_search.html template
+        CHANT_SEARCH_TEMPLATE_VALUES # in order to fetch only those values necessary
+                                     # for rendering chant_search.html template
         # Create a Q object to filter the QuerySet of Chants
         q_obj_filter = Q()
         # If the "apply" button hasn't been clicked, return empty queryset
