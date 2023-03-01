@@ -25,6 +25,7 @@ from django.http import Http404
 from next_chants import next_chants
 from collections import Counter
 from django.contrib.auth.mixins import UserPassesTestMixin
+from typing import Optional
 
 
 class ChantDetailView(DetailView):
@@ -843,9 +844,6 @@ class ChantSearchView(ListView):
                     std_spelling_filter = Q(
                         manuscript_full_text_std_spelling__icontains=keyword
                     )
-                    keyword_filter = ms_spelling_filter | std_spelling_filter
-                    chant_set = chant_set.filter(keyword_filter)
-                    sequence_set = sequence_set.filter(keyword_filter)
                 else:
                     ms_spelling_filter = Q(
                         manuscript_full_text__istartswith=keyword
@@ -853,9 +851,9 @@ class ChantSearchView(ListView):
                     std_spelling_filter = Q(
                         manuscript_full_text_std_spelling__istartswith=keyword
                     )
-                    keyword_filter = ms_spelling_filter | std_spelling_filter
-                    chant_set = chant_set.filter(keyword_filter)
-                    sequence_set = sequence_set.filter(keyword_filter)
+                keyword_filter = ms_spelling_filter | std_spelling_filter
+                chant_set = chant_set.filter(keyword_filter)
+                sequence_set = sequence_set.filter(keyword_filter)
 
             # once unioned, the queryset cannot be filtered/annotated anymore, so we put union to the last
             queryset = chant_set.union(sequence_set, all=True)
