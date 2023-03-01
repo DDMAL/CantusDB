@@ -793,40 +793,40 @@ class ChantSearchView(ListView):
                 # as a substring
                 feasts = Feast.objects.filter(name__icontains=feast)
                 q_obj_filter &= Q(feast__in=feasts)
-            if self.request.GET.get('order'):
-                if self.request.GET.get('order') == 'siglum':
-                    order = 'siglum'
-                elif self.request.GET.get('order') == 'incipit':
+            order: str = 'siglum'
+            order_get_param: Optional[str] = self.request.GET.get('order')
+            sort_get_param: Optional[str] = self.request.GET.get('sort')
+            if order_get_param is not None:
+                if order_get_param == 'siglum':
+                    pass # this is the default
+                elif order_get_param == 'incipit':
                     order = 'incipit'
-                elif self.request.GET.get('order') == 'office':
+                elif order_get_param == 'office':
                     order = 'office'
-                elif self.request.GET.get('order') == 'genre':
+                elif order_get_param == 'genre':
                     order = 'genre'
-                elif self.request.GET.get('order') == 'cantus_id':
+                elif order_get_param == 'cantus_id':
                     order = 'cantus_id'
-                elif self.request.GET.get('order') == 'mode':
+                elif order_get_param == 'mode':
                     order = 'mode'
-                elif self.request.GET.get('order') == 'has_fulltext':
+                elif order_get_param == 'has_fulltext':
                     order = 'manuscript_full_text'
-                elif self.request.GET.get('order') == 'has_melody':
+                elif order_get_param == 'has_melody':
                     order = 'volpiano'
-                elif self.request.GET.get('order') == 'has_image':
+                elif order_get_param == 'has_image':
                     order = 'image_link'
-                else:
-                    order = 'siglum'
-            else:
-                order = 'siglum'
-            if self.request.GET.get('sort'):
-                if self.request.GET.get('sort') == "asc":
-                    order = order
-                elif self.request.GET.get('sort') == 'desc':
-                    order = "-" + order
+
+            if sort_get_param and sort_get_param == "asc":
+                pass # this is the default
+            elif sort_get_param and sort_get_param == 'desc':
+                order = "-" + order
+
             if not display_unpublished:
-                chant_set = Chant.objects.filter(source__published=True)
-                sequence_set = Sequence.objects.filter(source__published=True)
+                chant_set: QuerySet = Chant.objects.filter(source__published=True)
+                sequence_set: QuerySet = Sequence.objects.filter(source__published=True)
             else:
-                chant_set = Chant.objects
-                sequence_set = Sequence.objects
+                chant_set: QuerySet = Chant.objects.all()
+                sequence_set: QuerySet = Sequence.objects.all()
             # Filter the QuerySet with Q object
             chant_set = chant_set.filter(q_obj_filter)
             sequence_set = sequence_set.filter(q_obj_filter)
@@ -836,8 +836,8 @@ class ChantSearchView(ListView):
             # Finally, do keyword searching over the querySet
             if self.request.GET.get("keyword"):
                 keyword = self.request.GET.get("keyword")
-                operation = self.request.GET.get("op")
-                if operation == "contains":
+                operation: Optional[str] = self.request.GET.get("op")
+                if operation and operation == "contains":
                     ms_spelling_filter = Q(
                         manuscript_full_text__icontains=keyword
                     )
