@@ -28,6 +28,35 @@ from django.contrib.auth.mixins import UserPassesTestMixin
 from typing import Optional
 
 
+CHANT_SEARCH_TEMPLATE_VALUES = (
+    # for views that use chant_search.html, this allows them to
+    # fetch only those values needed for rendering the template
+    "id",
+    "folio",
+    "search_vector",
+    "incipit",
+    "manuscript_full_text_std_spelling",
+    "position",
+    "cantus_id",
+    "mode",
+    "manuscript_full_text",
+    "volpiano",
+    "image_link",
+
+    "source__id",
+    "source__title",
+    "source__siglum",
+    "feast__id",
+    "feast__description",
+    "feast__name",
+    "office__id",
+    "office__description",
+    "office__name",
+    "genre__id",
+    "genre__description",
+    "genre__name",
+)
+
 class ChantDetailView(DetailView):
     """
     Displays a single Chant object. Accessed with ``chants/<int:pk>``
@@ -693,32 +722,8 @@ class ChantSearchView(ListView):
         return context
 
     def get_queryset(self) -> QuerySet:
-        values_for_rendering_template = (
-            "id",
-            "folio",
-            "search_vector",
-            "incipit",
-            "manuscript_full_text_std_spelling",
-            "position",
-            "cantus_id",
-            "mode",
-            "manuscript_full_text",
-            "volpiano",
-            "image_link",
-
-            "source__id",
-            "source__title",
-            "source__siglum",
-            "feast__id",
-            "feast__description",
-            "feast__name",
-            "office__id",
-            "office__description",
-            "office__name",
-            "genre__id",
-            "genre__description",
-            "genre__name",
-        )
+        global CHANT_SEARCH_TEMPLATE_VALUES # in order to fetch only those values necessary
+                                            # for rendering chant_search.html template
         # Create a Q object to filter the QuerySet of Chants
         q_obj_filter = Q()
         display_unpublished = self.request.user.is_authenticated
@@ -732,12 +737,12 @@ class ChantSearchView(ListView):
                 chant_set = chant_set.filter(
                     manuscript_full_text_std_spelling__istartswith=incipit
                 ).values(
-                    *values_for_rendering_template
+                    *CHANT_SEARCH_TEMPLATE_VALUES
                 )
                 sequence_set = sequence_set.filter(
                     manuscript_full_text_std_spelling__istartswith=incipit
                 ).values(
-                    *values_for_rendering_template
+                    *CHANT_SEARCH_TEMPLATE_VALUES
                 )
                 queryset = chant_set.union(sequence_set, all=True)
             else:
@@ -747,12 +752,12 @@ class ChantSearchView(ListView):
                 chant_set = chant_set.filter(
                     q_obj_filter
                 ).values(
-                    *values_for_rendering_template
+                    *CHANT_SEARCH_TEMPLATE_VALUES
                 )
                 sequence_set = sequence_set.filter(
                     q_obj_filter
                 ).values(
-                    *values_for_rendering_template
+                    *CHANT_SEARCH_TEMPLATE_VALUES
                 )
                 queryset = chant_set.union(sequence_set, all=True)
 
@@ -831,8 +836,8 @@ class ChantSearchView(ListView):
             chant_set = chant_set.filter(q_obj_filter)
             sequence_set = sequence_set.filter(q_obj_filter)
             # Fetch only the values necessary for rendering the template
-            chant_set = chant_set.values(*values_for_rendering_template)
-            sequence_set = sequence_set.values(*values_for_rendering_template)
+            chant_set = chant_set.values(*CHANT_SEARCH_TEMPLATE_VALUES)
+            sequence_set = sequence_set.values(*CHANT_SEARCH_TEMPLATE_VALUES)
             # Finally, do keyword searching over the querySet
             if self.request.GET.get("keyword"):
                 keyword = self.request.GET.get("keyword")
@@ -964,34 +969,8 @@ class ChantSearchMSView(ListView):
         return context
 
     def get_queryset(self) -> QuerySet:
-        values_for_rendering_template = (
-            # fetch only those database columns necessary for rendering
-            # the template
-            "id",
-            "folio",
-            "search_vector",
-            "incipit",
-            "manuscript_full_text_std_spelling",
-            "position",
-            "cantus_id",
-            "mode",
-            "manuscript_full_text",
-            "volpiano",
-            "image_link",
-
-            "source__id",
-            "source__title",
-            "source__siglum",
-            "feast__id",
-            "feast__description",
-            "feast__name",
-            "office__id",
-            "office__description",
-            "office__name",
-            "genre__id",
-            "genre__description",
-            "genre__name",
-        )
+        global CHANT_SEARCH_TEMPLATE_VALUES # in order to fetch only those values necessary
+                                            # for rendering chant_search.html template
         # Create a Q object to filter the QuerySet of Chants
         q_obj_filter = Q()
         # If the "apply" button hasn't been clicked, return empty queryset
@@ -1059,7 +1038,7 @@ class ChantSearchMSView(ListView):
         # Filter the QuerySet with Q object
         queryset = queryset.filter(q_obj_filter)
         # Fetch only the values necessary for rendering the template
-        queryset = queryset.values(*values_for_rendering_template)
+        queryset = queryset.values(*CHANT_SEARCH_TEMPLATE_VALUES)
         # Finally, do keyword searching over the QuerySet
         if self.request.GET.get("keyword"):
             keyword = self.request.GET.get("keyword")
