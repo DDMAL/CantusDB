@@ -590,6 +590,38 @@ class ChantDetailViewTest(TestCase):
         expected_url_fragment = f"edit-chants/{source.id}?pk={chant.id}&folio={chant.folio}"
 
         self.assertIn(expected_url_fragment, str(response.content))
+    
+    def test_chant_with_volpiano_with_no_fulltext(self):
+        # in the past, a Chant Detail page will error rather than loading properly when the chant has volpiano but no fulltext
+        source = make_fake_source()
+        chant = make_fake_chant(
+            source=source,
+            volpiano="1---c--g--e---e---d---c---c---f---e---e--d---d---c",
+            incipit="somebody"
+        )
+        chant.manuscript_full_text = None
+        chant.manuscript_full_text_std_spelling = None
+        chant.save()
+        response = self.client.get(
+            reverse("chant-detail", args=[chant.id])
+        )
+        self.assertEqual(response.status_code, 200)
+
+    def test_chant_with_volpiano_with_no_incipit(self):
+        # in the past, a Chant Detail page will error rather than loading properly when the chant has volpiano but no fulltext/incipit
+        source = make_fake_source()
+        chant = make_fake_chant(
+            source=source,
+            volpiano="1---g---a---g--a---g---e---c--e---|---f---g--f--g---f--d---9--d",
+        )
+        chant.manuscript_full_text = None
+        chant.manuscript_full_text_std_spelling = None
+        chant.incipit = None
+        chant.save()
+        response = self.client.get(
+            reverse("chant-detail", args=[chant.id])
+        )
+        self.assertEqual(response.status_code, 200)
 
 
 class ChantByCantusIDViewTest(TestCase):
