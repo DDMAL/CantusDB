@@ -86,9 +86,11 @@ class ChantDetailView(DetailView):
                     chant.manuscript_full_text, pre_syllabized=False
                 )
                 syls_text, syls_melody = postprocess(syls_text, syls_melody)
-            else:
+            elif chant.incipit:
                 syls_text = syllabize_text(chant.incipit, pre_syllabized=False)
                 syls_text, syls_melody = postprocess(syls_text, syls_melody)
+            else:
+                syls_text = [[""]]
 
             word_zip = align(syls_text, syls_melody)
             context["syllabized_text_with_melody"] = word_zip
