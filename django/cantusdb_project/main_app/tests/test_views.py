@@ -1545,6 +1545,40 @@ class SourceEditChantsViewTest(TestCase):
         )
         self.assertEqual(chant_2.volpiano, "abacadaeafagahaja")
         self.assertEqual(chant_2.volpiano_intervals, "1-12-23-34-45-56-67-78-8")
+    
+    def test_chant_with_volpiano_with_no_fulltext(self):
+        # in the past, a Chant Edit page will error rather than loading properly when the chant has volpiano but no fulltext
+        source = make_fake_source()
+        chant = make_fake_chant(
+            source=source,
+            volpiano="1---f--e---f--d---e--c---d--d",
+            incipit="dies irae"
+        )
+        chant.manuscript_full_text = None
+        chant.manuscript_full_text_std_spelling = None
+        chant.save()
+        response = self.client.get(
+            reverse('source-edit-chants', args=[source.id]), 
+            {'pk': chant.id}
+        )
+        self.assertEqual(response.status_code, 200)
+
+    def test_chant_with_volpiano_with_no_incipit(self):
+        # in the past, a Chant Edit page will error rather than loading properly when the chant has volpiano but no fulltext/incipit
+        source = make_fake_source()
+        chant = make_fake_chant(
+            source=source,
+            volpiano="1---d---da--g--f--e---e-eg--fed---d-nmn-mn---d",
+        )
+        chant.manuscript_full_text = None
+        chant.manuscript_full_text_std_spelling = None
+        chant.incipit = None
+        chant.save()
+        response = self.client.get(
+            reverse('source-edit-chants', args=[source.id]), 
+            {'pk': chant.id}
+        )
+        self.assertEqual(response.status_code, 200)
 
 
 class ChantProofreadViewTest(TestCase):
@@ -1610,6 +1644,23 @@ class ChantProofreadViewTest(TestCase):
         self.assertEqual(response.status_code, 302) # 302 Found
         chant.refresh_from_db()
         self.assertIs(chant.manuscript_full_text_std_proofread, True)
+
+    def test_chant_with_volpiano_with_no_incipit(self):
+        # in the past, a Chant Proofread page will error rather than loading properly when the chant has volpiano but no fulltext/incipit
+        source = make_fake_source()
+        chant = make_fake_chant(
+            source=source,
+            volpiano="1---m---l---k---m---h",
+        )
+        chant.manuscript_full_text = None
+        chant.manuscript_full_text_std_spelling = None
+        chant.incipit = None
+        chant.save()
+        response = self.client.get(
+            reverse('source-edit-chants', args=[source.id]), 
+            {'pk': chant.id}
+        )
+        self.assertEqual(response.status_code, 200)
 
 
 class ChantEditSyllabificationViewTest(TestCase):
