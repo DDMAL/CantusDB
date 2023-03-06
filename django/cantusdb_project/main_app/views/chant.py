@@ -849,6 +849,9 @@ class ChantSearchView(ListView):
                     std_spelling_filter = Q(
                         manuscript_full_text_std_spelling__icontains=keyword
                     )
+                    incipit_filter = Q(
+                        incipit__icontains=keyword
+                    )
                 else:
                     ms_spelling_filter = Q(
                         manuscript_full_text__istartswith=keyword
@@ -856,7 +859,10 @@ class ChantSearchView(ListView):
                     std_spelling_filter = Q(
                         manuscript_full_text_std_spelling__istartswith=keyword
                     )
-                keyword_filter = ms_spelling_filter | std_spelling_filter
+                    incipit_filter = Q(
+                        incipit__istartswith=keyword
+                    )
+                keyword_filter = ms_spelling_filter | std_spelling_filter | incipit_filter
                 chant_set = chant_set.filter(keyword_filter)
                 sequence_set = sequence_set.filter(keyword_filter)
 
@@ -1051,8 +1057,9 @@ class ChantSearchMSView(ListView):
                 std_spelling_filter = Q(
                     manuscript_full_text_std_spelling__icontains=keyword
                 )
-                keyword_filter = ms_spelling_filter | std_spelling_filter
-                queryset.filter(keyword_filter)
+                incipit_filter = Q(
+                    incipit__icontains=keyword
+                )
             else:
                 ms_spelling_filter = Q(
                     manuscript_full_text__istartswith=keyword
@@ -1060,8 +1067,11 @@ class ChantSearchMSView(ListView):
                 std_spelling_filter = Q(
                     manuscript_full_text_std_spelling__istartswith=keyword
                 )
-                keyword_filter = ms_spelling_filter | std_spelling_filter
-                queryset.filter(keyword_filter)
+                incipit_filter = Q(
+                    incipit__istartswith=keyword
+                )
+            keyword_filter = ms_spelling_filter | std_spelling_filter | incipit_filter
+            queryset.filter(keyword_filter)
         # ordering with the folio string gives wrong order
         # old cantus is also not strictly ordered by folio (there are outliers)
         # so we order by id for now, which is the order that the chants are entered into the DB
