@@ -86,8 +86,14 @@ class ChantDetailView(DetailView):
                     chant.manuscript_full_text, pre_syllabized=False
                 )
                 syls_text, syls_melody = postprocess(syls_text, syls_melody)
+            elif chant.manuscript_full_text_std_spelling:
+                syls_text = syllabize_text(
+                    chant.manuscript_full_text_std_spelling, pre_syllabized=False
+                )
             elif chant.incipit:
-                syls_text = syllabize_text(chant.incipit, pre_syllabized=False)
+                syls_text = syllabize_text(
+                    chant.incipit, pre_syllabized=False
+                )
                 syls_text, syls_melody = postprocess(syls_text, syls_melody)
             else:
                 syls_text = [[""]]
