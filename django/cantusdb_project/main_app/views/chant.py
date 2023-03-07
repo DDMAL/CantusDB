@@ -722,6 +722,11 @@ class ChantSearchView(ListView):
         return context
 
     def get_queryset(self) -> QuerySet:
+        # if user has just arrived on the Chant Search page, there will be no
+        # GET parameters.
+        if not self.request.GET:
+            return Chant.objects.none()
+        
         # Create a Q object to filter the QuerySet of Chants
         q_obj_filter = Q()
         display_unpublished = self.request.user.is_authenticated
@@ -763,10 +768,6 @@ class ChantSearchView(ListView):
             # The field names should be keys in the "GET" QueryDict if the search button has been clicked,
             # even if the user put nothing into the search form and hit "apply" immediately.
             # In that case, we return the all chants + seqs filtered by the search form.
-            # On the contrary, if the user just arrived at the search page, there should be no params in GET
-            # In that case, we return an empty queryset.
-            if not self.request.GET:
-                return Chant.objects.none()
             # For every GET parameter other than incipit, add to the Q object
             if self.request.GET.get("office"):
                 office = self.request.GET.get("office")
