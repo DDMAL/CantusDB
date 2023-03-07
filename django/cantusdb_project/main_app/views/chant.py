@@ -797,33 +797,34 @@ class ChantSearchView(ListView):
                 # as a substring
                 feasts = Feast.objects.filter(name__icontains=feast)
                 q_obj_filter &= Q(feast__in=feasts)
-            order: str = 'siglum'
             order_get_param: Optional[str] = self.request.GET.get('order')
             sort_get_param: Optional[str] = self.request.GET.get('sort')
-            if order_get_param is not None:
-                if order_get_param == 'siglum':
-                    pass # this is the default
-                elif order_get_param == 'incipit':
-                    order = 'incipit'
-                elif order_get_param == 'office':
-                    order = 'office'
-                elif order_get_param == 'genre':
-                    order = 'genre'
-                elif order_get_param == 'cantus_id':
-                    order = 'cantus_id'
-                elif order_get_param == 'mode':
-                    order = 'mode'
-                elif order_get_param == 'has_fulltext':
-                    order = 'manuscript_full_text'
-                elif order_get_param == 'has_melody':
-                    order = 'volpiano'
-                elif order_get_param == 'has_image':
-                    order = 'image_link'
+            
+            order_param_options = (
+                'incipit',
+                'office',
+                'genre',
+                'cantus_id',
+                'mode',
+                'has_fulltext',
+                'has_melody',
+                'has_image',
+            )
+            if order_get_param in order_param_options:
+                if order_get_param == "has_fulltext":
+                    order = "manuscript_full_text"
+                elif order_get_param == "has_melody":
+                    order = "volpiano"
+                elif order_get_param == "has_image":
+                    order = "image_link"
+                else:
+                    order = order_get_param
+            else:
+                order = 'siglum'
 
-            if sort_get_param and sort_get_param == "asc":
-                pass # this is the default
-            elif sort_get_param and sort_get_param == 'desc':
-                order = "-" + order
+            # sort values: "asc" and "desc". Default is "asc"
+            if sort_get_param and sort_get_param == 'desc':
+                order = f"-{order}"
 
             if not display_unpublished:
                 chant_set: QuerySet = Chant.objects.filter(source__published=True)
