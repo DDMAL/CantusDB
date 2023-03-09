@@ -1634,7 +1634,7 @@ class SourceEditChantsView(LoginRequiredMixin, UserPassesTestMixin, UpdateView):
                 syls_text = syllabize_text(chant.incipit, pre_syllabized=False)
                 syls_text, syls_melody = postprocess(syls_text, syls_melody)
             else:
-                syls_text = [["(no saved Full Text or Incipit)"]]
+                syls_text = [[""]]
 
             word_zip = align(syls_text, syls_melody)
             context["syllabized_text_with_melody"] = word_zip
