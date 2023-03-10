@@ -10,6 +10,7 @@ Discrepancies between text stored in the CantusDB database and the manuscript te
 - https://docs.google.com/spreadsheets/d/1zPq-6p8hklKKfTa5A4DXYpwOPOIi41Z7JoAfdGVKzig/edit#gid=0 (Einsiedeln)
 
 ### Differences in functionality/behavior:
+(this list is out-of-date)
 #### Visible to All Users (Logged-In and Anonymous)
 - Several of the APIs from OldCantus are not implemented in NewCantus, or are implemented differently:
   - json-activity (accessed via https://cantus.uwaterloo.ca/json-activity and https://cantus.uwaterloo.ca/json-activity?all) is not implemented in NewCantus ([Discussion](https://github.com/DDMAL/CantusDB/issues/126))
