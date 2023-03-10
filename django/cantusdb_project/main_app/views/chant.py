@@ -86,9 +86,17 @@ class ChantDetailView(DetailView):
                     chant.manuscript_full_text, pre_syllabized=False
                 )
                 syls_text, syls_melody = postprocess(syls_text, syls_melody)
-            else:
-                syls_text = syllabize_text(chant.incipit, pre_syllabized=False)
+            elif chant.manuscript_full_text_std_spelling:
+                syls_text = syllabize_text(
+                    chant.manuscript_full_text_std_spelling, pre_syllabized=False
+                )
+            elif chant.incipit:
+                syls_text = syllabize_text(
+                    chant.incipit, pre_syllabized=False
+                )
                 syls_text, syls_melody = postprocess(syls_text, syls_melody)
+            else:
+                syls_text = [[""]]
 
             word_zip = align(syls_text, syls_melody)
             context["syllabized_text_with_melody"] = word_zip
@@ -1599,10 +1607,13 @@ class SourceEditChantsView(LoginRequiredMixin, UserPassesTestMixin, UpdateView):
         chant = self.get_object()
 
         # Preview of melody and text:
-        # in the old CantusDB,
+        # in OldCantus,
         # 'manuscript_syllabized_full_text' exists => preview constructed from 'manuscript_syllabized_full_text'
         # no 'manuscript_syllabized_full_text', but 'manuscript_full_text' exists => preview constructed from 'manuscript_full_text'
         # no 'manuscript_syllabized_full_text' and no 'manuscript_full_text' => preview constructed from 'manuscript_full_text_std_spelling'
+        # to this we add:
+        # no full text of any kind => preview constructed from `incipit`
+        # none of the above => show message explaining why melody preview has no text
 
         if chant.volpiano:
             syls_melody = syllabize_melody(chant.volpiano)
@@ -1619,6 +1630,11 @@ class SourceEditChantsView(LoginRequiredMixin, UserPassesTestMixin, UpdateView):
             elif chant.manuscript_full_text_std_spelling:
                 syls_text = syllabize_text(chant.manuscript_full_text_std_spelling, pre_syllabized=False)
                 syls_text, syls_melody = postprocess(syls_text, syls_melody)
+            elif chant.incipit:
+                syls_text = syllabize_text(chant.incipit, pre_syllabized=False)
+                syls_text, syls_melody = postprocess(syls_text, syls_melody)
+            else:
+                syls_text = [[""]]
 
             word_zip = align(syls_text, syls_melody)
             context["syllabized_text_with_melody"] = word_zip
