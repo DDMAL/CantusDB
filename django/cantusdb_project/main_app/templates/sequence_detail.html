@@ -26,14 +26,16 @@
         <dd>
             {{ sequence.siglum }}
         </dd>
-        <dt>
-            Source
-        </dt>
-        <dd>
-            <a href="{{ sequence.source.get_absolute_url }}">
-                {{ sequence.source.title }}
-            </a>
-        </dd>
+        {% if sequence.source %}
+            <dt>
+                Source
+            </dt>
+            <dd>
+                <a href="{% url 'source-detail' sequence.source.id %}">
+                    {{ sequence.source.title }}
+                </a>
+            </dd>
+        {% endif %}
         <div class="row">
             <div class="col">
                 {% if sequence.folio %}
@@ -80,7 +82,7 @@
                     Genre
                 </dt>
                 <dd>
-                    <a href="{{ sequence.genre.get_absolute_url }}" title="{{ sequence.genre.description }}">{{ sequence.genre.name }}</a>
+                    <a href="{% url 'genre-detail' sequence.genre.id %}" title="{{ sequence.genre.description }}">{{ sequence.genre.name }}</a>
                 </dd>
             </div>
             {% endif %}
@@ -185,12 +187,14 @@
             {% for sequence in concordances %}
                 <tr>
                     <td class="text-wrap" style="text-align:center">
-                        <a href="{{ sequence.source.get_absolute_url }}"><b>{{ sequence.siglum }}</b></a>
-                        <br>
-                        <b>{{ sequence.folio }}</b>  {{ sequence.s_sequence }}
+                        {% if sequence.source %}
+                            <a href="{% url 'source-detail' sequence.source.id %}" title="{{ sequence.source.title }}"><b>{{ sequence.siglum }}</b></a>
+                            <br>
+                            <b>{{ sequence.folio }}</b>  {{ sequence.s_sequence }}
+                        {% endif %}
                     </td>
                     <td class="text-wrap" style="text-align:center">
-                        <a href={{ sequence.get_absolute_url}} >{{ sequence.incipit|default:"" }}</a>
+                        <a href="{% url 'sequence-detail' sequence.id %}">{{ sequence.incipit|default:"" }}</a>
                     </td>
                     <td class="text-wrap" style="text-align:center">
                         {{ sequence.rubrics|default:"" }}

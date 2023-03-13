@@ -49,7 +49,7 @@
                     <dt>Other Editors</dt>
                     <dd>
                         {% for editor in source.other_editors.all %}
-                            <a href={{ editor.get_absolute_url }}>{{ editor.full_name }}</a><br>
+                            <a href="{% url 'user-detail' editor.id %}">{{ editor.full_name }}</a><br>
                         {% endfor %}
                     </dd>
                 {% endif %}
@@ -58,7 +58,7 @@
                     <dt>Full Text Entered by</dt>
                     <dd>
                         {% for editor in source.full_text_entered_by.all %}
-                            <a href={{ editor.get_absolute_url }}>{{ editor.full_name }}</a><br>
+                            <a href="{% url 'user-detail' editor.id %}">{{ editor.full_name }}</a><br>
                         {% endfor %}
                     </dd>
                 {% endif %}
@@ -67,7 +67,7 @@
                     <dt>Melodies Entered by</dt>
                     <dd>
                         {% for editor in source.melodies_entered_by.all %}
-                            <a href={{ editor.get_absolute_url }}>{{ editor.full_name }}</a><br>
+                            <a href="{% url 'user-detail' editor.id %}">{{ editor.full_name }}</a><br>
                         {% endfor %}
                     </dd>
                 {% endif %}
@@ -110,12 +110,12 @@
                         {% for sequence in sequences %}
                             <tr>
                                 <td class="text-wrap" style="text-align:center">
-                                    <a href="{{ source.get_absolute_url }}">{{ source.siglum }}</a>
+                                    <a href="{% url 'source-detail' source.id %}" title="{{ source.title }}">{{ source.siglum }}</a>
                                     <br>
                                     <b>{{ sequence.folio }}</b>  {{ sequence.s_sequence }}
                                 </td>
                                 <td class="text-wrap" style="text-align:center">
-                                    <a href={{ sequence.get_absolute_url }} >{{ sequence.incipit|default:"" }}</a>
+                                    <a href="{% url 'sequence-detail' sequence.id %}" >{{ sequence.incipit|default:"" }}</a>
                                 </td>
                                 <td class="text-wrap" style="text-align:center">
                                     {{ sequence.rubrics|default:"" }}
@@ -185,13 +185,13 @@
                 <div class=" card-body">
                     <small>
                         {% if source.provenance.name %}
-                            Provenance: <b><a href="{{ source.provenance.get_absolute_url }}">{{source.provenance.name}}</a></b>
+                            Provenance: <b><a href="{% url 'provenance-detail' source.provenance.id %}">{{source.provenance.name}}</a></b>
                             <br>
                         {% endif %}
                         {% if source.date %}
                             Date: 
                             {% for century in source.century.all %}
-                                <b><a href="{{ century.get_absolute_url }}">
+                                <b><a href="{% url 'century-detail' century.id %}">
                                     {{ century.name }}
                                 </a></b>
                             {% endfor %}
@@ -204,7 +204,7 @@
                             <br>
                         {% endif %}
                         {% if source.notation.all %}
-                            Notation: <b><a href="{{ source.notation.all.first.get_absolute_url }}">
+                            Notation: <b><a href="{% url 'notation-detail' source.notation.all.first.id %}">
                                 {{ source.notation.all.first.name }}
                             </a></b>
                             <br>
@@ -214,7 +214,7 @@
                             <ul>
                                 {% for editor in source.inventoried_by.all %}
                                     <li>
-                                        <a href={{ editor.get_absolute_url }}><b>{{ editor.full_name }}</b></a><br>
+                                        <a href={% url 'user-detail' editor.id %}><b>{{ editor.full_name }}</b></a><br>
                                         {{ editor.institution|default_if_none:"" }}
                                     </li>
                                 {% endfor %}
@@ -226,7 +226,7 @@
                             <ul>
                                 {% for editor in source.proofreaders.all %}
                                     <li>
-                                        <a href={{ editor.get_absolute_url }}><b>{{ editor.full_name }}</b></a><br>
+                                        <a href={% url 'user-detail' editor.id %}><b>{{ editor.full_name }}</b></a><br>
                                     </li>
                                 {% endfor %}
                             </ul>

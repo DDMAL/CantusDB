@@ -31,26 +31,58 @@
             {% for chant in chants %}
                 <tr>
                     <td class="text-wrap">
-                        <a href="{{ chant.source.get_absolute_url }}">{{ chant.source.siglum }}</a>
+                        {% if chant.source %}
+                            <a href="{% url 'source-detail' chant.source.id %}" title="{{ chant.source.title }}">{{ chant.source.siglum }}</a>
+                        {% endif %}
                     </td>
                     <td class="text-wrap">{{ chant.folio }}</td>
                     {% comment %} this is used for distinguishing chants from sequences,
-                    if the object is chant, use chant.get_absolute_url,
-                    otherwise, use sequence.get_absolute_url
+                    if the object is chant, use chant-detail view,
+                    otherwise, use sequence-detail view.
                     the combined queryset turned all objects into chants
                     so this is the only way to make the distinction {% endcomment %}
                     {% if chant.search_vector %}
-                        <td class="text-wrap"><a href="{{ chant.get_absolute_url }}">{{ chant.incipit }}</a></td>
+                        <td class="text-wrap"><a href="{% url 'chant-detail' chant.id %}">{{ chant.incipit }}</a></td>
                     {% else %}
                         <td class="text-wrap"><a href="{% url 'sequence-detail' chant.id %}">{{ chant.incipit }}</a></td>
                     {% endif %}
-                    <td class="text-wrap" title="{{ chant.office.description }}">{{ chant.office.name|default:"" }} </td>
-                    <td class="text-wrap" title="{{ chant.genre.description }}">{{ chant.genre.name|default:"" }} </td>
-                    <td class="text-wrap">{{ chant.position|default:"" }}</td>
-                    <td class="text-wrap"><a href="{{ chant.feast.get_absolute_url }}">{{ chant.feast.name|default:"" }}</a></td>
-                    <td class="text-wrap">{{ chant.mode|default:"" }}</td>
-                    <td class="text-wrap" style="font-family: volpiano; font-size:30px">{% if chant.volpiano %}<a href="{{ chant.get_absolute_url }}" style="text-decoration: none" title="Chant has volpiano melody">1</a>{% endif %}</td>
-                    <td class="text-wrap">{% if chant.image_link %}<a href="{{ chant.image_link }}" target="_blank">Image</a>{% endif %}</td>
+                    <td class="text-wrap">
+                        {% if chant.office %}
+                            <a href="{% url 'office-detail' chant.office.id %}" title="{{ chant.office.description }}">
+                                {{ chant.office.name }}
+                            </a>
+                        {% endif %}
+                    </td>
+                    <td class="text-wrap">
+                        {% if chant.genre %}
+                            <a href="{% url 'genre-detail' chant.genre.id %}" title="{{ chant.genre.description }}">
+                                {{ chant.genre.name }}
+                            </a>
+                        {% endif %}
+                    </td>
+                    <td class="text-wrap">
+                        {{ chant.position|default:"" }}
+                    </td>
+                    <td class="text-wrap">
+                        {% if chant.feast %}
+                            <a href="{% url 'feast-detail' chant.feast.id %}" title="{{ chant.feast.description }}">
+                                {{ chant.feast.name }}
+                            </a>
+                        {% endif %}
+                    </td>
+                    <td class="text-wrap">
+                        {{ chant.mode|default:"" }}
+                    </td>
+                    <td class="text-wrap" style="font-family: volpiano; font-size:30px">
+                        {% if chant.volpiano %}
+                            <a href="{% url 'chant-detail' chant.id %}" style="text-decoration: none" title="Chant has volpiano melody">1</a>
+                        {% endif %}
+                    </td>
+                    <td class="text-wrap">
+                        {% if chant.image_link %}
+                            <a href="{{ chant.image_link }}" target="_blank">Image</a>
+                        {% endif %}
+                    </td>
                 </tr>
             {% endfor %}
         </tbody>

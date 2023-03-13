@@ -81,14 +81,18 @@
             {% for source in sources %}
                 <tr>
                     <td class="text-wrap" style="text-align:center">
-                        <a href="{{ source.get_absolute_url }}"><b>{{ source.siglum }}</b></a>
+                        <a href="{% url 'source-detail' source.id %}" title="{{ source.title }}"><b>{{ source.siglum }}</b></a>
                     </td>
                     <td class="text-wrap" style="text-align:center">
                         {{ source.summary|default:""|truncatechars_html:140 }}
                     </td>
                     <td class="text-wrap" style="text-align:center">
-                        <b><a href="{{ source.century.first.get_absolute_url }}">{{ source.century.first.name }}</a></b><br>
-                        <a href="{{ source.provenance.get_absolute_url }}">{{ source.provenance.name|default:"" }}</a>
+                        {% if source.century.all %}
+                            <b><a href="{% url 'century-detail' source.century.first.id %}">{{ source.century.first.name }}</a></b><br>
+                        {% endif %}
+                        {% if source.provenance %}
+                            <a href="{% url 'provenance-detail' source.provenance.id %}">{{ source.provenance.name }}</a>
+                        {% endif %}
                     </td>
                     <td class="text-wrap" style="text-align:center">
                         {% if source.image_link %}

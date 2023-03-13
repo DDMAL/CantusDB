@@ -10,7 +10,7 @@
     <h3>Search Chants</h3>
     {% if source %}
         <p>
-            <b>Searching in source: <a href="{{ source.get_absolute_url }}" target="_blank">{{ source.title }}</a></b>
+            <b>Searching in source: <a href="{% url 'source-detail' source.id %}" target="_blank">{{ source.title }}</a></b>
         </p>
     {% elif keyword %}
         <p>
@@ -209,7 +209,9 @@
                     {% for chant in chants %}
                         <tr>
                             <td class="text-wrap" style="text-align:left">
-                                <a href="{{ chant.source.get_absolute_url }}">{{ chant.source.siglum }}</a>
+                                {% if chant.source__id %}
+                                    <a href="{% url 'source-detail' chant.source__id %}" title="{{ chant.source__title }}">{{ chant.source__siglum }}</a>
+                                {% endif %}
                             </td>
                             <td class="text-wrap" style="text-align:center">
                                 {{ chant.folio|default:""|truncatechars_html:140 }}
@@ -217,12 +219,12 @@
 
                             <td class="text-wrap" style="text-align:left">
                                 {% comment %} this is used for distinguishing chants from sequences,
-                                if the object is chant, use chant.get_absolute_url,
-                                otherwise, use sequence.get_absolute_url
+                                if the object is chant, use chant-detail view,
+                                otherwise, use sequence-detail view.
                                 the combined queryset turned all objects into chants
                                 so this is the only way to make the distinction {% endcomment %}
                                 {% if chant.search_vector %}
-                                    <b><a href="{{ chant.get_absolute_url }}">{{ chant.incipit|default:"" }}</a></b>
+                                    <b><a href="{% url 'chant-detail' chant.id %}">{{ chant.incipit|default:"" }}</a></b>
                                 {% else %}
                                     <b><a href="{% url 'sequence-detail' chant.id %}">{{ chant.incipit|default:"" }}</a></b>
                                 {% endif %}
@@ -231,19 +233,25 @@
                                 </p>           
                             </td>
                             <td class="text-wrap" style="text-align:center">
-                                <a href="{{ chant.feast.get_absolute_url }}">{{ chant.feast.name|default:"" }}</a>
+                                {% if chant.feast__id %}
+                                    <a href="{% url 'feast-detail' chant.feast__id %}" title="{{ chant.feast__description }}">{{ chant.feast__name|default:"" }}</a>
+                                {% endif %}
                             </td>
                             <td class="text-wrap" style="text-align:center">
-                                <a href="{{ chant.office.get_absolute_url }}" title="{{ chant.office.description }}">{{ chant.office.name|default:"" }}</a>
+                                {% if chant.office__id %}
+                                    <a href="{% url 'office-detail' chant.office__id %}" title="{{ chant.office__description }}">{{ chant.office__name|default:"" }}</a>
+                                {% endif %}
                             </td>
                             <td class="text-wrap" style="text-align:center">
-                                <a href="{{ chant.genre.get_absolute_url }}" title="{{ chant.genre.description }}">{{ chant.genre.name|default:"" }}</a>
+                                {% if chant.genre__id %}
+                                    <a href="{% url 'genre-detail' chant.genre__id %}" title="{{ chant.genre__description }}">{{ chant.genre__name|default:"" }}</a>
+                                {% endif %}
                             </td>
                             <td class="text-wrap" style="text-align:center">
                                 {{ chant.position|default:"" }}
                             </td>
                             <td class="text-wrap" style="text-align:center">
-                                <a href="{{ chant.get_ci_url }}" target="_blank">{{chant.cantus_id|default:"" }}</a>
+                                <a href="http://cantusindex.org/id/{{ chant.cantus_id }}" target="_blank">{{chant.cantus_id|default:"" }}</a>
                             </td>
                             <td class="text-wrap" style="text-align:center">
                                 {{ chant.mode|default:"" }}

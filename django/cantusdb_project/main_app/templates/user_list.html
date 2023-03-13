@@ -30,7 +30,7 @@
             {% for user in users %}
                 <tr>
                     <td class="text-center text-wrap">
-                        <a href="{{ user.get_absolute_url }}">{{ user.full_name|default:"" }}</a>
+                        <a href="{% url 'user-detail' user.id %}">{{ user.full_name|default:"" }}</a>
                     </td>
                     <td>{{ user.institution|default:"" }}</td>
                     <td>{{ user.city|default:"" }}</td>

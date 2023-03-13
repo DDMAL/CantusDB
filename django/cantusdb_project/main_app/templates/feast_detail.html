@@ -57,7 +57,11 @@
                         {% comment %} use `urlencode` filter because 1 chant and 2 sequences have forward slash in their cantus_id (data error) {% endcomment %}
                         <td><a href="{% url 'chant-by-cantus-id' cantus_id|urlencode:"" %}">{{ cantus_id|default:"" }}</a></td>
                         <td>{{ incipit }}</td>
-                        <td><a href="{{ genre.get_absolute_url }}" title="{{ genre.description }}">{{ genre.name }}</a></td>
+                        <td>
+                            {% if genre %}
+                                <a href="{% url 'genre-detail' genre.id %}" title="{{ genre.description }}">{{ genre.name }}</a>
+                            {% endif %}
+                        </td>
                         <td>{{ count }}</td>
                     </tr>
                     {% endfor %}
@@ -78,7 +82,7 @@
                 <tbody>
                     {% for source, count in sources_zip %}
                         <tr>
-                            <td><a href="{% url 'chant-list' %}?source={{ source.id }}">{{ source.siglum }}</a></td>
+                            <td><a href="{% url 'chant-list' %}?source={{ source.id }}" title="{{ source.title }}">{{ source.siglum }}</a></td>
                             <td><a href="{% url 'chant-list' %}?source={{ source.id }}&feast={{ feast.id }}">{{ count }}</a></td>
                         </tr>
                     {% endfor %}

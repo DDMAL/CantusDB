@@ -69,6 +69,7 @@ def make_fake_chant(source=None,
     cantus_id=None,
     feast=None,
     manuscript_full_text_std_spelling=None,
+    incipit=None,
     manuscript_full_text_std_proofread=None,
     manuscript_full_text=None,
     volpiano=None,
@@ -97,6 +98,8 @@ def make_fake_chant(source=None,
         manuscript_full_text_std_spelling = make_fake_text(
             max_size=MAX_NUMBER_TEXT_CHARS, min_size=MIN_NUMBER_TEXT_CHARS
         )
+    if incipit is None:
+        incipit = manuscript_full_text_std_spelling[0:INCIPIT_LENGTH]
     if manuscript_full_text_std_proofread is None:
         manuscript_full_text_std_proofread = False
     if manuscript_full_text is None:
@@ -127,7 +130,7 @@ def make_fake_chant(source=None,
         chant_range=make_fake_text(LONG_CHAR_FIELD_MAX),
         addendum=make_fake_text(LONG_CHAR_FIELD_MAX),
         manuscript_full_text_std_spelling=manuscript_full_text_std_spelling,
-        incipit=manuscript_full_text_std_spelling[0:INCIPIT_LENGTH],
+        incipit=incipit,
         manuscript_full_text_std_proofread=manuscript_full_text_std_proofread,
         manuscript_full_text=manuscript_full_text,
         manuscript_full_text_proofread=faker.boolean(),
@@ -266,7 +269,7 @@ def make_fake_source(published=None, title=None, segment=None, segment_name=None
     # tuples and we only need the first element of each tuple
 
     if title is None:
-        title = make_fake_text(LONG_CHAR_FIELD_MAX)
+        title = faker.sentence()
     if siglum is None:
         siglum = make_fake_text(SHORT_CHAR_FIELD_MAX)
     if description is None:
