@@ -25,31 +25,37 @@ from django.http import Http404
 from next_chants import next_chants
 from collections import Counter
 from django.contrib.auth.mixins import UserPassesTestMixin
+from typing import Optional
 
 
+CHANT_SEARCH_TEMPLATE_VALUES = (
+    # for views that use chant_search.html, this allows them to
+    # fetch only those values needed for rendering the template
+    "id",
+    "folio",
+    "search_vector",
+    "incipit",
+    "manuscript_full_text_std_spelling",
+    "position",
+    "cantus_id",
+    "mode",
+    "manuscript_full_text",
+    "volpiano",
+    "image_link",
 
-def keyword_search(queryset: QuerySet, keywords: str) -> QuerySet:
-    """
-    Performs a keyword search over a QuerySet
-
-    Uses PostgreSQL's full text search features
-
-    Args:
-        queryset (QuerySet): A QuerySet to be searched
-        keywords (str): A string of keywords to search the QuerySet
-
-    Returns:
-        QuerySet: A QuerySet filtered by keywords
-    """
-    query = SearchQuery(keywords)
-    rank_annotation = SearchRank(F("search_vector"), query)
-    filtered_queryset = (
-        queryset.annotate(rank=rank_annotation)
-        .filter(search_vector=query)
-        .order_by("-rank")
-    )
-    return filtered_queryset
-
+    "source__id",
+    "source__title",
+    "source__siglum",
+    "feast__id",
+    "feast__description",
+    "feast__name",
+    "office__id",
+    "office__description",
+    "office__name",
+    "genre__id",
+    "genre__description",
+    "genre__name",
+)
 
 class ChantDetailView(DetailView):
     """
@@ -724,6 +730,11 @@ class ChantSearchView(ListView):
         return context
 
     def get_queryset(self) -> QuerySet:
+        # if user has just arrived on the Chant Search page, there will be no
+        # GET parameters.
+        if not self.request.GET:
+            return Chant.objects.none()
+        
         # Create a Q object to filter the QuerySet of Chants
         q_obj_filter = Q()
         display_unpublished = self.request.user.is_authenticated
@@ -734,27 +745,37 @@ class ChantSearchView(ListView):
             if self.request.GET.get("search_bar").replace(" ", "").isalpha():
                 # if search bar is doing incipit search
                 incipit = self.request.GET.get("search_bar")
-                chant_set = keyword_search(chant_set, incipit)
-                sequence_set = keyword_search(sequence_set, incipit)
-                queryset = chant_set.union(sequence_set)
-                # queryset = keyword_search(queryset, incipit)
+                chant_set = chant_set.filter(
+                    manuscript_full_text_std_spelling__istartswith=incipit
+                ).values(
+                    *CHANT_SEARCH_TEMPLATE_VALUES
+                )
+                sequence_set = sequence_set.filter(
+                    manuscript_full_text_std_spelling__istartswith=incipit
+                ).values(
+                    *CHANT_SEARCH_TEMPLATE_VALUES
+                )
+                queryset = chant_set.union(sequence_set, all=True)
             else:
                 # if search bar is doing Cantus ID search
                 cantus_id = self.request.GET.get("search_bar")
                 q_obj_filter &= Q(cantus_id=cantus_id)
-                chant_set = chant_set.filter(q_obj_filter)
-                sequence_set = sequence_set.filter(q_obj_filter)
-                queryset = chant_set.union(sequence_set)
-                # queryset = queryset.filter(q_obj_filter)
+                chant_set = chant_set.filter(
+                    q_obj_filter
+                ).values(
+                    *CHANT_SEARCH_TEMPLATE_VALUES
+                )
+                sequence_set = sequence_set.filter(
+                    q_obj_filter
+                ).values(
+                    *CHANT_SEARCH_TEMPLATE_VALUES
+                )
+                queryset = chant_set.union(sequence_set, all=True)
 
         else:
             # The field names should be keys in the "GET" QueryDict if the search button has been clicked,
             # even if the user put nothing into the search form and hit "apply" immediately.
             # In that case, we return the all chants + seqs filtered by the search form.
-            # On the contrary, if the user just arrived at the search page, there should be no params in GET
-            # In that case, we return an empty queryset.
-            if not self.request.GET:
-                return Chant.objects.none()
             # For every GET parameter other than incipit, add to the Q object
             if self.request.GET.get("office"):
                 office = self.request.GET.get("office")
@@ -784,56 +805,77 @@ class ChantSearchView(ListView):
                 # as a substring
                 feasts = Feast.objects.filter(name__icontains=feast)
                 q_obj_filter &= Q(feast__in=feasts)
-            if self.request.GET.get('order'):
-                if self.request.GET.get('order') == 'siglum':
-                    order = 'siglum'
-                elif self.request.GET.get('order') == 'incipit':
-                    order = 'incipit'
-                elif self.request.GET.get('order') == 'office':
-                    order = 'office'
-                elif self.request.GET.get('order') == 'genre':
-                    order = 'genre'
-                elif self.request.GET.get('order') == 'cantus_id':
-                    order = 'cantus_id'
-                elif self.request.GET.get('order') == 'mode':
-                    order = 'mode'
-                elif self.request.GET.get('order') == 'has_fulltext':
-                    order = 'manuscript_full_text'
-                elif self.request.GET.get('order') == 'has_melody':
-                    order = 'volpiano'
-                elif self.request.GET.get('order') == 'has_image':
-                    order = 'image_link'
+            order_get_param: Optional[str] = self.request.GET.get('order')
+            sort_get_param: Optional[str] = self.request.GET.get('sort')
+            
+            order_param_options = (
+                'incipit',
+                'office',
+                'genre',
+                'cantus_id',
+                'mode',
+                'has_fulltext',
+                'has_melody',
+                'has_image',
+            )
+            if order_get_param in order_param_options:
+                if order_get_param == "has_fulltext":
+                    order = "manuscript_full_text"
+                elif order_get_param == "has_melody":
+                    order = "volpiano"
+                elif order_get_param == "has_image":
+                    order = "image_link"
                 else:
-                    order = 'siglum'
+                    order = order_get_param
             else:
                 order = 'siglum'
-            if self.request.GET.get('sort'):
-                if self.request.GET.get('sort') == "asc":
-                    order = order
-                elif self.request.GET.get('sort') == 'desc':
-                    order = "-" + order
+
+            # sort values: "asc" and "desc". Default is "asc"
+            if sort_get_param and sort_get_param == 'desc':
+                order = f"-{order}"
+
             if not display_unpublished:
-                chant_set = Chant.objects.filter(source__published=True)
-                sequence_set = Sequence.objects.filter(source__published=True)
+                chant_set: QuerySet = Chant.objects.filter(source__published=True)
+                sequence_set: QuerySet = Sequence.objects.filter(source__published=True)
             else:
-                chant_set = Chant.objects
-                sequence_set = Sequence.objects
+                chant_set: QuerySet = Chant.objects.all()
+                sequence_set: QuerySet = Sequence.objects.all()
             # Filter the QuerySet with Q object
             chant_set = chant_set.filter(q_obj_filter)
             sequence_set = sequence_set.filter(q_obj_filter)
+            # Fetch only the values necessary for rendering the template
+            chant_set = chant_set.values(*CHANT_SEARCH_TEMPLATE_VALUES)
+            sequence_set = sequence_set.values(*CHANT_SEARCH_TEMPLATE_VALUES)
             # Finally, do keyword searching over the querySet
             if self.request.GET.get("keyword"):
                 keyword = self.request.GET.get("keyword")
-                # the operation parameter can be "contains" or "starts_with"
-                if self.request.GET.get("op") == "contains":
-                    chant_set = keyword_search(chant_set, keyword)
-                    sequence_set = keyword_search(sequence_set, keyword)
+                operation: Optional[str] = self.request.GET.get("op")
+                if operation and operation == "contains":
+                    ms_spelling_filter = Q(
+                        manuscript_full_text__icontains=keyword
+                    )
+                    std_spelling_filter = Q(
+                        manuscript_full_text_std_spelling__icontains=keyword
+                    )
+                    incipit_filter = Q(
+                        incipit__icontains=keyword
+                    )
                 else:
-                    chant_set = chant_set.filter(incipit__istartswith=keyword)
-                    sequence_set = sequence_set.filter(incipit__istartswith=keyword)
+                    ms_spelling_filter = Q(
+                        manuscript_full_text__istartswith=keyword
+                    )
+                    std_spelling_filter = Q(
+                        manuscript_full_text_std_spelling__istartswith=keyword
+                    )
+                    incipit_filter = Q(
+                        incipit__istartswith=keyword
+                    )
+                keyword_filter = ms_spelling_filter | std_spelling_filter | incipit_filter
+                chant_set = chant_set.filter(keyword_filter)
+                sequence_set = sequence_set.filter(keyword_filter)
 
             # once unioned, the queryset cannot be filtered/annotated anymore, so we put union to the last
-            queryset = chant_set.union(sequence_set)
+            queryset = chant_set.union(sequence_set, all=True)
             queryset = queryset.order_by(order, "id")
 
         return queryset
@@ -1007,14 +1049,35 @@ class ChantSearchMSView(ListView):
         )
         # Filter the QuerySet with Q object
         queryset = queryset.filter(q_obj_filter)
+        # Fetch only the values necessary for rendering the template
+        queryset = queryset.values(*CHANT_SEARCH_TEMPLATE_VALUES)
         # Finally, do keyword searching over the QuerySet
         if self.request.GET.get("keyword"):
             keyword = self.request.GET.get("keyword")
+            operation = self.request.GET.get("op")
             # the operation parameter can be "contains" or "starts_with"
-            if self.request.GET.get("op") == "contains":
-                queryset = keyword_search(queryset, keyword)
+            if operation == "contains":
+                ms_spelling_filter = Q(
+                    manuscript_full_text__icontains=keyword
+                )
+                std_spelling_filter = Q(
+                    manuscript_full_text_std_spelling__icontains=keyword
+                )
+                incipit_filter = Q(
+                    incipit__icontains=keyword
+                )
             else:
-                queryset = queryset.filter(incipit__istartswith=keyword)
+                ms_spelling_filter = Q(
+                    manuscript_full_text__istartswith=keyword
+                )
+                std_spelling_filter = Q(
+                    manuscript_full_text_std_spelling__istartswith=keyword
+                )
+                incipit_filter = Q(
+                    incipit__istartswith=keyword
+                )
+            keyword_filter = ms_spelling_filter | std_spelling_filter | incipit_filter
+            queryset.filter(keyword_filter)
         # ordering with the folio string gives wrong order
         # old cantus is also not strictly ordered by folio (there are outliers)
         # so we order by id for now, which is the order that the chants are entered into the DB
