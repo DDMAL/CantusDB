@@ -1393,7 +1393,7 @@ class ChantIndexView(TemplateView):
                 is_sequence=Value(True)
             ).annotate(
                 is_chant=Value(False)
-            ).order_by("folio", "s_sequence")
+            ).order_by("s_sequence")
         else:
             queryset = source.chant_set.annotate(
                 is_sequence=Value(False)
