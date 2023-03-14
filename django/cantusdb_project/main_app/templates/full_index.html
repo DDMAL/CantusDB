@@ -54,10 +54,10 @@
                     <td>{{ chant.marginalia|default_if_none:"" }}</td>
                     <td>{{ chant.folio|default_if_none:"" }}</td>
                     <td>
-                        {% if chant.c_sequence is not None %}
+                        {% if chant.is_chant %}
                             {{ chant.c_sequence }}
-                        {% else %}
-                            {{ chant.s_sequence|default_if_none:"" }}
+                        {% elif chant.is_sequence %}
+                            {{ chant.s_sequence }}
                         {% endif %}
                     </td>
                     <td>
