@@ -12,10 +12,9 @@ class CenturyDetailView(DetailView):
         century = self.get_object()
         user = self.request.user
         display_unpublished = user.is_authenticated
-        print(display_unpublished)
         sources = Source.objects.filter(century=century)
         if not display_unpublished:
-            print("filtering chants!    ")
             sources = sources.filter(published=True)
+        sources=sources.only("title", "id")
         context["sources"] = sources
         return context
