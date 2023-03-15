@@ -54,10 +54,10 @@
                     <td>{{ chant.marginalia|default_if_none:"" }}</td>
                     <td>{{ chant.folio|default_if_none:"" }}</td>
                     <td>
-                        {% if chant.c_sequence is not None %}
+                        {% if chant.record_type == "chant" %}
                             {{ chant.c_sequence }}
-                        {% else %}
-                            {{ chant.s_sequence|default_if_none:"" }}
+                        {% elif chant.record_type == "sequence" %}
+                            {{ chant.s_sequence }}
                         {% endif %}
                     </td>
                     <td>
@@ -76,7 +76,13 @@
                         </span>
                     </td>
                     <td>{{ chant.position|default_if_none:"" }}</td>
-                    <td><a href="{% url 'chant-detail' chant.id %}" target="_blank">{{ chant.incipit|default_if_none:"" }}</a></td>
+                    <td>
+                        {% if chant.record_type == "chant" %}
+                            <a href="{% url 'chant-detail' chant.id %}" target="_blank">{{ chant.incipit|default_if_none:"" }}</a>
+                        {% elif chant.record_type == "sequence" %}
+                            <a href="{% url 'sequence-detail' chant.id %}" target="_blank">{{ chant.incipit|default_if_none:"" }}</a>
+                        {% endif %}
+                    </td>
                     <td>{{ chant.cantus_id|default_if_none:"" }}</td>
                     <td>{{ chant.mode|default_if_none:"" }}</td>
                     <td>{{ chant.differentia|default_if_none:"" }}</td>

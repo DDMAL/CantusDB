@@ -5,7 +5,7 @@ import json
 import threading
 from django.contrib import messages
 from django.contrib.postgres.search import SearchQuery, SearchRank
-from django.db.models import F, Q, QuerySet
+from django.db.models import F, Q, QuerySet, Value
 from django.shortcuts import get_object_or_404
 from django.urls import reverse
 from django.views.generic import (
@@ -1389,9 +1389,13 @@ class ChantIndexView(TemplateView):
 
         # 4064 is the id for the sequence database
         if source.segment.id == 4064:
-            queryset = source.sequence_set.order_by("folio", "s_sequence")
+            queryset = source.sequence_set.annotate(
+                record_type=Value("sequence")
+            ).order_by("s_sequence")
         else:
-            queryset = source.chant_set.order_by("folio", "c_sequence")
+            queryset = source.chant_set.annotate(
+                record_type=Value("chant")
+            ).order_by("folio", "c_sequence")
 
         context["source"] = source
         context["chants"] = queryset

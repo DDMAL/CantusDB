@@ -15,6 +15,8 @@ from main_app.models import Sequence
 from main_app.models import Source
 from django.contrib.auth import get_user_model
 
+from typing import Optional
+
 # Max values for two types of Char fields
 LONG_CHAR_FIELD_MAX = 255
 SHORT_CHAR_FIELD_MAX = 63
@@ -263,28 +265,56 @@ def make_fake_sequence(source=None, title=None, incipit=None, cantus_id=None) ->
     return sequence
 
 
-def make_fake_source(published=None, title=None, segment=None, segment_name=None, siglum=None, description=None, summary=None, provenance=None, full_source=None, rism_siglum=None, indexing_notes=None) -> Source:
+def make_fake_source(
+        published: bool = True,
+        title: Optional[str] = None,
+        segment_name: Optional[str] = None,
+        segment: Optional[Segment] = None,
+        siglum: Optional[str] = None,
+        rism_siglum: Optional[RismSiglum] = None,
+        description: Optional[str] = None,
+        summary: Optional[str] = None,
+        provenance: Optional[Provenance] = None,
+        century: Optional[Century] = None,
+        full_source: bool = True,
+        indexing_notes: Optional[str] = None,
+    ) -> Source:
     """Generates a fake Source object."""
     # The cursus_choices and source_status_choices lists in Source are lists of
     # tuples and we only need the first element of each tuple
 
+    # if published...
+    #     published already defaults to True
     if title is None:
         title = faker.sentence()
-    if siglum is None:
-        siglum = make_fake_text(SHORT_CHAR_FIELD_MAX)
-    if description is None:
-        description = make_fake_text(
-            max_size=MAX_NUMBER_TEXT_CHARS, min_size=MIN_NUMBER_TEXT_CHARS
-        )
-    if published is None:
-        published = True
+    if segment_name is None:
+        segment_name = faker.sentence(nb_words=2)
     if segment is None:
         segment = make_fake_segment(name=segment_name)
+    if siglum is None:
+        siglum = make_fake_text(SHORT_CHAR_FIELD_MAX)
     if rism_siglum is None:
         rism_siglum = make_fake_rism_siglum()
+    if description is None:
+        description = make_fake_text(
+            max_size=MAX_NUMBER_TEXT_CHARS,
+            min_size=MIN_NUMBER_TEXT_CHARS,
+        )
     if summary is None:
         summary = make_fake_text(
-            max_size=MAX_NUMBER_TEXT_CHARS, min_size=MIN_NUMBER_TEXT_CHARS
+            max_size=MAX_NUMBER_TEXT_CHARS,
+            min_size=MIN_NUMBER_TEXT_CHARS,
+        )
+    if provenance is None:
+        provenance = make_fake_provenance()
+    if century is None:
+        century = make_fake_century()
+    # if full_source...
+    #     full_source already defaults to True
+    if indexing_notes is None:
+        indexing_notes = make_fake_text(
+            max_size=MAX_NUMBER_TEXT_CHARS,
+            min_size=MIN_NUMBER_TEXT_CHARS,
         )
 
     cursus_choices = [x[0] for x in Source.cursus_choices]
@@ -293,34 +323,35 @@ def make_fake_source(published=None, title=None, segment=None, segment_name=None
     source = Source.objects.create(
         published=published,
         title=title,
+        segment=segment,
         siglum=siglum,
         rism_siglum=rism_siglum,
+        description=description,
+        summary=summary,
         provenance=provenance,
+        # century: ManyToManyField, must be set below
+        full_source=full_source,
+        indexing_notes=indexing_notes,
         provenance_notes=make_fake_text(
             max_size=MAX_NUMBER_TEXT_CHARS, min_size=MIN_NUMBER_TEXT_CHARS
         ),
-        full_source=full_source,
         date=make_fake_text(SHORT_CHAR_FIELD_MAX),
         cursus=random.choice(cursus_choices),
-        segment=segment,
         source_status=random.choice(source_status_choices),
         complete_inventory=faker.boolean(),
-        summary=summary,
         liturgical_occasions=make_fake_text(
             max_size=MAX_NUMBER_TEXT_CHARS, min_size=MIN_NUMBER_TEXT_CHARS
         ),
-        description=description,
         selected_bibliography=make_fake_text(
             max_size=MAX_NUMBER_TEXT_CHARS, min_size=MIN_NUMBER_TEXT_CHARS
         ),
         image_link=faker.image_url(),
-        indexing_notes=indexing_notes,
         indexing_date=make_fake_text(
             max_size=MAX_NUMBER_TEXT_CHARS, min_size=MIN_NUMBER_TEXT_CHARS
         ),
         json_info=None,
     )
-    source.century.set([make_fake_century()])
+    source.century.set([century])
     source.notation.set([make_fake_notation()])
     source.inventoried_by.set([make_fake_user()])
     source.full_text_entered_by.set([make_fake_user()])
