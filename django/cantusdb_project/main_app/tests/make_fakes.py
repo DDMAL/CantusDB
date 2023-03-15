@@ -266,25 +266,25 @@ def make_fake_sequence(source=None, title=None, incipit=None, cantus_id=None) ->
 
 
 def make_fake_source(
-        published:Optional[bool] = None,
-        title:Optional[str] = None,
-        segment_name:Optional[str] = None,
-        segment:Optional[Segment] = None,
-        siglum:Optional[str] = None,
-        rism_siglum:Optional[RismSiglum] = None,
-        description:Optional[str] = None,
-        summary:Optional[str] = None,
-        provenance:Optional[Provenance] = None,
-        century:Optional[Century] = None,
-        full_source:Optional[bool] = None,
-        indexing_notes:Optional[str] = None,
+        published: bool = True,
+        title: Optional[str] = None,
+        segment_name: Optional[str] = None,
+        segment: Optional[Segment] = None,
+        siglum: Optional[str] = None,
+        rism_siglum: Optional[RismSiglum] = None,
+        description: Optional[str] = None,
+        summary: Optional[str] = None,
+        provenance: Optional[Provenance] = None,
+        century: Optional[Century] = None,
+        full_source: bool = True,
+        indexing_notes: Optional[str] = None,
     ) -> Source:
     """Generates a fake Source object."""
     # The cursus_choices and source_status_choices lists in Source are lists of
     # tuples and we only need the first element of each tuple
 
-    if published is None:
-        published = True
+    # if published...
+    #     published already defaults to True
     if title is None:
         title = faker.sentence()
     if segment_name is None:
@@ -309,8 +309,8 @@ def make_fake_source(
         provenance = make_fake_provenance()
     if century is None:
         century = make_fake_century()
-    if full_source is None:
-        full_source = True
+    # if full_source...
+    #     full_source already defaults to True
     if indexing_notes is None:
         indexing_notes = make_fake_text(
             max_size=MAX_NUMBER_TEXT_CHARS,
@@ -329,6 +329,7 @@ def make_fake_source(
         description=description,
         summary=summary,
         provenance=provenance,
+        # century: ManyToManyField, must be set below
         full_source=full_source,
         indexing_notes=indexing_notes,
         provenance_notes=make_fake_text(
