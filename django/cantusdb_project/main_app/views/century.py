@@ -1,13 +1,13 @@
 from django.views.generic import DetailView
 from main_app.models import Century, Source
-from typing import Any, Dict
+from typing import Any
 
 class CenturyDetailView(DetailView):
     model = Century
     context_object_name = "century"
     template_name = "century_detail.html"
 
-    def get_context_data(self, **kwargs: Any) -> Dict[str, Any]:
+    def get_context_data(self, **kwargs: Any) -> dict[str, Any]:
         context = super().get_context_data(**kwargs)
         century = self.get_object()
         user = self.request.user
