@@ -54,9 +54,9 @@
                     <td>{{ chant.marginalia|default_if_none:"" }}</td>
                     <td>{{ chant.folio|default_if_none:"" }}</td>
                     <td>
-                        {% if chant.is_chant %}
+                        {% if chant.record_type == "chant" %}
                             {{ chant.c_sequence }}
-                        {% elif chant.is_sequence %}
+                        {% elif chant.record_type == "sequence" %}
                             {{ chant.s_sequence }}
                         {% endif %}
                     </td>
@@ -77,9 +77,9 @@
                     </td>
                     <td>{{ chant.position|default_if_none:"" }}</td>
                     <td>
-                        {% if chant.is_chant %}
+                        {% if chant.record_type == "chant" %}
                             <a href="{% url 'chant-detail' chant.id %}" target="_blank">{{ chant.incipit|default_if_none:"" }}</a>
-                        {% elif chant.is_sequence %}
+                        {% elif chant.record_type == "sequence" %}
                             <a href="{% url 'sequence-detail' chant.id %}" target="_blank">{{ chant.incipit|default_if_none:"" }}</a>
                         {% endif %}
                     </td>
