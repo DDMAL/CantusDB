@@ -266,18 +266,18 @@ def make_fake_sequence(source=None, title=None, incipit=None, cantus_id=None) ->
 
 
 def make_fake_source(
-        published:Optional[bool]=None,
-        title:Optional[str]=None,
-        segment_name:Optional[str]=None,
-        segment:Optional[Segment]=None,
-        siglum:Optional[str]=None,
-        rism_siglum:Optional[RismSiglum]=None,
-        description:Optional[str]=None,
-        summary:Optional[str]=None,
-        provenance:Optional[Provenance]=None,
-        century:Optional[Century]=None,
-        full_source:Optional[bool]=None,
-        indexing_notes:Optional[str]=None,
+        published:Optional[bool] = None,
+        title:Optional[str] = None,
+        segment_name:Optional[str] = None,
+        segment:Optional[Segment] = None,
+        siglum:Optional[str] = None,
+        rism_siglum:Optional[RismSiglum] = None,
+        description:Optional[str] = None,
+        summary:Optional[str] = None,
+        provenance:Optional[Provenance] = None,
+        century:Optional[Century] = None,
+        full_source:Optional[bool] = None,
+        indexing_notes:Optional[str] = None,
     ) -> Source:
     """Generates a fake Source object."""
     # The cursus_choices and source_status_choices lists in Source are lists of
