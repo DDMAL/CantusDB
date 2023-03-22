@@ -12,7 +12,6 @@ FIXTURES_LIST=(
    group_fixture.json
    user_fixture.json
    flatpage_fixture.json
-   indexer_fixture.json
    office_fixture.json
    genre_fixture.json
    feast_fixture.json
