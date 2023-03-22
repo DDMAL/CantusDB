@@ -22,6 +22,7 @@ FIXTURES_LIST=(
    segment_fixture.json
    source_fixture.json
    sequence_fixture.json
+   article_fixture.json
 )
 
 for fixture in ${FIXTURES_LIST[*]}
