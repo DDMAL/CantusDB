@@ -1,5 +1,5 @@
 # start from an official image
-FROM python:3.8
+FROM python:3.9
 
 ENV PYTHONDONTWRITEBYTECODE 1
 ENV PYTHONUNBUFFERED 1
