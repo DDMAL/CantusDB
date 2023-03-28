@@ -62,7 +62,9 @@ def make_fake_century() -> Century:
     return century
 
 
-def make_fake_chant(source=None,
+def make_fake_chant(
+    source=None,
+    marginalia=None,
     folio=None,
     office=None,
     genre=None,
@@ -81,6 +83,8 @@ def make_fake_chant(source=None,
     """Generates a fake Chant object."""
     if source is None:
         source = make_fake_source(segment_name="CANTUS Database")
+    if marginalia is None:
+        marginalia = make_fake_text(63)
     if folio is None:
         # two digits and one letter
         folio = faker.bothify("##?")
@@ -116,7 +120,7 @@ def make_fake_chant(source=None,
 
     chant = Chant.objects.create(
         source=source,
-        marginalia=make_fake_text(SHORT_CHAR_FIELD_MAX),
+        marginalia=marginalia,
         folio=folio,
         c_sequence=c_sequence,
         office=office,
