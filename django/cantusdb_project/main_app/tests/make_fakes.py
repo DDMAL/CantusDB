@@ -79,6 +79,7 @@ def make_fake_chant(
     volpiano=None,
     manuscript_syllabized_full_text=None,
     next_chant=None,
+    differentia=None,
 ) -> Chant:
     """Generates a fake Chant object."""
     if source is None:
@@ -101,9 +102,7 @@ def make_fake_chant(
     if feast is None:
         feast = make_fake_feast()
     if manuscript_full_text_std_spelling is None:
-        manuscript_full_text_std_spelling = make_fake_text(
-            max_size=MAX_NUMBER_TEXT_CHARS, min_size=MIN_NUMBER_TEXT_CHARS
-        )
+        manuscript_full_text_std_spelling = faker.sentence()
     if incipit is None:
         incipit = manuscript_full_text_std_spelling[0:INCIPIT_LENGTH]
     if manuscript_full_text_std_proofread is None:
@@ -116,6 +115,8 @@ def make_fake_chant(
         manuscript_syllabized_full_text = make_fake_text(
             max_size=MAX_NUMBER_TEXT_CHARS, min_size=MIN_NUMBER_TEXT_CHARS
         )
+    if differentia is None:
+        differentia = make_fake_text(SHORT_CHAR_FIELD_MAX)
         
 
     chant = Chant.objects.create(
@@ -130,7 +131,7 @@ def make_fake_chant(
         cantus_id=cantus_id,
         feast=feast,
         mode=make_fake_text(SHORT_CHAR_FIELD_MAX),
-        differentia=make_fake_text(SHORT_CHAR_FIELD_MAX),
+        differentia=differentia,
         finalis=make_fake_text(SHORT_CHAR_FIELD_MAX),
         extra=make_fake_text(SHORT_CHAR_FIELD_MAX),
         chant_range=make_fake_text(LONG_CHAR_FIELD_MAX),
@@ -252,7 +253,7 @@ def make_fake_sequence(source=None, title=None, incipit=None, cantus_id=None) ->
         incipit=incipit,
         # folio in the form of two digits and one letter
         folio=faker.bothify("##?"),
-        s_sequence=make_fake_text(LONG_CHAR_FIELD_MAX),
+        s_sequence=make_fake_text(SHORT_CHAR_FIELD_MAX),
         genre=make_fake_genre(),
         rubrics=make_fake_text(LONG_CHAR_FIELD_MAX),
         analecta_hymnica=make_fake_text(LONG_CHAR_FIELD_MAX),
