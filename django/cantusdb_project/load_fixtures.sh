@@ -31,6 +31,11 @@ do
    python manage.py loaddata $fixture
 done
 
+# N.B. As of March 2023, the following part of this script is broken.
+# Most Chants in the database have another Chant specified as their `next_chant`.
+# If a given Chant's `next_chant` has not yet been loaded, the given Chant
+# will also fail to be loaded into the database.
+
 # load all the chants, this takes a few hours as we have half a million chants
 FILES=./main_app/fixtures/chant_fixtures/*
 for f in $FILES
