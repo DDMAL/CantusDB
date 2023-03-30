@@ -1443,7 +1443,7 @@ class ChantIndexViewTest(TestCase):
 
     def test_chant_source_queryset(self):
         chant_source = make_fake_source()
-        chant = Chant.objects.create(source=chant_source)
+        chant = make_fake_chant(source=chant_source)
         response = self.client.get(reverse("chant-index"), {"source": chant_source.id})
         self.assertEqual(chant_source, response.context["source"])
         self.assertIn(chant, response.context["chants"])
@@ -1458,6 +1458,185 @@ class ChantIndexViewTest(TestCase):
         response = self.client.get(reverse("chant-index"), {"source": seq_source.id})
         self.assertEqual(seq_source, response.context["source"])
         self.assertIn(sequence, response.context["chants"])
+
+    def test_siglum_column(self):
+        siglum = "Sigl-01"
+        source = make_fake_source(published=True, siglum=siglum)
+        source_title = source.title
+        make_fake_chant(source=source)
+        response = self.client.get(reverse("chant-index"), {"source": source.id})
+        html = str(response.content)
+        self.assertIn(siglum, html)
+        self.assertIn(source_title, html)
+        expected_html_substring = f'<td title="{source_title}">{siglum}</td>'
+        self.assertIn(expected_html_substring, html)
+    
+    def test_marginalia_column(self):
+        source = make_fake_source(published=True)
+        chant = make_fake_chant(source=source)
+        marginalia = chant.marginalia
+        response = self.client.get(reverse("chant-index"), {"source": source.id})
+        html = str(response.content)
+        self.assertIn(marginalia, html)
+        expected_html_substring = f'<td>{marginalia}</td>'
+        self.assertIn(expected_html_substring, html)
+        
+    def test_folio_column(self):
+        source = make_fake_source(published=True)
+        chant = make_fake_chant(
+            source=source
+        )
+        folio = chant.folio
+        response = self.client.get(reverse("chant-index"), {"source": source.id})
+        html = str(response.content)
+        self.assertIn(folio, html)
+        expected_html_substring = f'<td>{folio}</td>'
+        self.assertIn(expected_html_substring, html)
+    
+    def test_sequence_column_for_chant_source(self):
+        source = make_fake_source(published=True)
+        chant = make_fake_chant(
+            source=source
+        )
+        c_sequence = str(chant.c_sequence)
+        response = self.client.get(reverse("chant-index"), {"source": source.id})
+        html = str(response.content)
+        self.assertIn(c_sequence, html)
+    
+    def test_sequence_column_for_sequence_source(self):
+        bower_segment = Segment.objects.create(id=4064, name="Bower Sequence Database")
+        source = make_fake_source(published=True, segment=bower_segment)
+        sequence = make_fake_sequence(
+            source=source
+        )
+        s_sequence = sequence.s_sequence
+        response = self.client.get(reverse("chant-index"), {"source": source.id})
+        html = str(response.content)
+        self.assertIn(s_sequence, html)
+    
+    def test_feast_column(self):
+        source = make_fake_source(published=True)
+        feast = make_fake_feast()
+        feast_name = feast.name
+        feast_description = feast.description
+        make_fake_chant(
+            source=source,
+            feast=feast,
+        )
+        response = self.client.get(reverse("chant-index"), {"source": source.id})
+        html = str(response.content)
+        self.assertIn(feast_name, html)
+        self.assertIn(feast_description, html)
+    
+    def test_office_column(self):
+        source = make_fake_source(published=True)
+        office = make_fake_office()
+        office_name = office.name
+        office_description = office.description
+        fulltext = "manuscript full text"
+        make_fake_chant(
+            source=source,
+            manuscript_full_text_std_spelling=fulltext,
+            office=office,
+        )
+        response = self.client.get(reverse("chant-index"), {"source": source.id})
+        html = str(response.content)
+        self.assertIn(office_name, html)
+        self.assertIn(office_description, html)
+    
+    def test_genre_column(self):
+        source = make_fake_source(published=True)
+        genre = make_fake_genre()
+        genre_name = genre.name
+        genre_description = genre.description
+        make_fake_chant(
+            source=source,
+            genre=genre,
+        )
+        response = self.client.get(reverse("chant-index"), {"source": source.id})
+        html = str(response.content)
+        self.assertIn(genre_name, html)
+        self.assertIn(genre_description, html)
+    
+    def test_position_column(self):
+        source = make_fake_source(published=True)
+        chant = make_fake_chant(
+            source=source,
+        )
+        position = chant.position
+        response = self.client.get(reverse("chant-index"), {"source": source.id})
+        html = str(response.content)
+        self.assertIn(position, html)
+    
+    def test_incipit_column_for_chant_source(self):
+        source = make_fake_source(published=True)
+        chant = make_fake_chant(source=source)
+        incipit = chant.incipit
+        url = reverse("chant-detail", args=[chant.id])
+        response = self.client.get(reverse("chant-index"), {"source": source.id})
+        html = str(response.content)
+        self.assertIn(incipit, html)
+        self.assertIn(url, html)
+        expected_html_substring = f'<a href="{url}" target="_blank">{incipit}</a>'
+        self.assertIn(expected_html_substring, html)
+
+    def test_incipit_column_for_sequence_source(self):
+        bower_segment = Segment.objects.create(id=4064, name="Bower Sequence Database")
+        source = make_fake_source(published=True, segment=bower_segment)
+        sequence = make_fake_sequence(
+            source=source
+        )
+        incipit = sequence.incipit
+        url = reverse("sequence-detail", args=[sequence.id])
+        response = self.client.get(reverse("chant-index"), {"source": source.id})
+        html = str(response.content)
+        self.assertIn(incipit, html)
+        self.assertIn(url, html)
+        expected_html_substring = f'<a href="{url}" target="_blank">{incipit}</a>'
+        self.assertIn(expected_html_substring, html)
+
+    def test_cantus_id_column(self):
+        source = make_fake_source(published=True)
+        chant = make_fake_chant(
+            source=source
+        )
+        cantus_id = chant.cantus_id
+        response = self.client.get(reverse("chant-index"), {"source": source.id})
+        html = str(response.content)
+        self.assertIn(cantus_id, html)
+        expected_html_substring = f'<td>{cantus_id}</td>'
+        self.assertIn(expected_html_substring, html)
+
+    def test_mode_column(self):
+        source = make_fake_source(published=True)
+        chant = make_fake_chant(
+            source=source,
+        )
+        mode = "this is the mode"   # not a representative value, but
+                                    # single numerals are found
+                                    # elsewhere in the template
+        chant.mode = mode
+        chant.save()
+        response = self.client.get(reverse("chant-index"), {"source": source.id})
+        html = str(response.content)
+        self.assertIn(mode, html)
+        expected_html_substring = f'<td>{mode}</td>'
+        self.assertIn(expected_html_substring, html)
+
+    def test_differentia_column(self):
+        source = make_fake_source(published=True)
+        differentia = "this is a differentia" # not a representative value, but
+                                    # most differentia are one or two characters,
+                                    # likely to be found elsewhere in the template
+        make_fake_chant(
+            source=source,
+            differentia=differentia,
+        )
+        response = self.client.get(reverse("chant-index"), {"source": source.id})
+        html = str(response.content)
+        self.assertIn(differentia, html)
+        expected_html_substring = f'<td>{differentia}</td>'
+        self.assertIn(expected_html_substring, html)
 
 
 class ChantCreateViewTest(TestCase):
