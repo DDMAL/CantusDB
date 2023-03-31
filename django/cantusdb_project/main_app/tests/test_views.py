@@ -2702,6 +2702,21 @@ class SequenceDetailViewTest(TestCase):
         response = self.client.get(reverse("sequence-detail", args=[sequence.id]))
         concordances = response.context["concordances"]
         self.assertIn(sequence_with_same_cantus_id, concordances)
+    
+    def test_sequence_without_cantus_id(self):
+        sequence = make_fake_sequence()
+        sequence.cantus_id = None
+        sequence.save()
+        response = self.client.get(reverse("sequence-detail", args=[sequence.id]))
+        html = str(response.content)
+        # Since sequence's cantus_id is None, there should be no table of
+        # concordances displayed, and we shouldn't display "None" anywhere
+        self.assertNotIn("Concordances", html)
+        self.assertNotIn("None", html)
+        # This is just to ensure that `html`, `response`, etc. are working
+        # correctly, i.e. that the `self.assertNotIn`s above are not passing
+        # for an unrelated reason
+        self.assertIn("Siglum", html)
 
 
 class SequenceEditViewTest(TestCase):
