@@ -17,17 +17,8 @@ from django.contrib.auth import get_user_model
 
 from typing import Optional, List
 
-# Max values for two types of Char fields
-LONG_CHAR_FIELD_MAX = 255
-SHORT_CHAR_FIELD_MAX = 63
-
 # Max positive integer accepted by Django's positive integer field
 MAX_SEQUENCE_NUMBER = 2147483647
-
-# The smallest full text would have 10 chars at least
-MIN_NUMBER_TEXT_CHARS = 10
-# Picked 10000 for performance reasons, much bigger than that got slow
-MAX_NUMBER_TEXT_CHARS = 10000
 
 # The incipit will be up to 100 characters of the full text
 INCIPIT_LENGTH = 100
