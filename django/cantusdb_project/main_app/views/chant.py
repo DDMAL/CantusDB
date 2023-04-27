@@ -114,7 +114,7 @@ class ChantDetailView(DetailView):
                 timeout=5,
             )
             concordances = json.loads(response.text[2:])
-            
+
             ######################################
             ### create context["concordances"] ###
             # (data to be unpacked in chant_detail.html to make concordances table)
@@ -380,7 +380,10 @@ class ChantDetailView(DetailView):
             # ensuring that concordances are up-to-date for future page loads.
             t = threading.Thread(
                 target=requests.get,
-                args=[f"https://cantusindex.org/json-con/{chant.cantus_id}/refresh"]
+                args={
+                    "url":f"https://cantusindex.org/json-con/{chant.cantus_id}/refresh",
+                    "timeout":5,
+                }
             )
             t.start()
 
