@@ -110,7 +110,8 @@ class ChantDetailView(DetailView):
         # If chant has a cantus ID, Create table of concordances
         if chant.cantus_id:
             response = requests.get(
-                "https://cantusindex.org/json-con/{}".format(chant.cantus_id)
+                f"https://cantusindex.org/json-con/{chant.cantus_id}",
+                timeout=5,
             )
             concordances = json.loads(response.text[2:])
             
@@ -352,7 +353,8 @@ class ChantDetailView(DetailView):
             # check to see if the corresponding page exists. If it does, display
             # links to gregorien.info in summary
             gregorien_response = requests.get(
-                "https://gregorien.info/chant/cid/{}/en".format(chant.cantus_id)
+                f"https://gregorien.info/chant/cid/{chant.cantus_id}/en",
+                timeout=5,
             )
             if gregorien_response.status_code == 200:
                 context["concordances_summary"] += f"""
@@ -1191,7 +1193,8 @@ class ChantCreateView(LoginRequiredMixin, UserPassesTestMixin, CreateView):
             sugg_chant_cantus_id, sugg_chant_count = suggested_chant
             # search Cantus Index
             response = requests.get(
-                "https://cantusindex.org/json-cid/{}".format(sugg_chant_cantus_id)
+                f"https://cantusindex.org/json-cid/{sugg_chant_cantus_id}",
+                timeout=5,
             )
             assert response.status_code == 200
             # parse the json export to a dict
@@ -1349,7 +1352,11 @@ class CISearchView(TemplateView):
                 "ghisp": "All",
                 "page": page,
             }
-            page = requests.get("https://cantusindex.org/search", params=p)
+            page = requests.get(
+                "https://cantusindex.org/search",
+                params=p,
+                timeout=5,
+            )
             doc = lh.fromstring(page.content)
             # Parse data that are stored between <tr>..</tr> of HTML
             tr_elements = doc.xpath("//tr")
@@ -1663,7 +1670,8 @@ class SourceEditChantsView(LoginRequiredMixin, UserPassesTestMixin, UpdateView):
             cantus_id = current_chant.cantus_id
 
             request = requests.get(
-                "https://cantusindex.org/json-cid/{}".format(cantus_id)
+                "https://cantusindex.org/json-cid/{cantus_id}",
+                timeout=5,
             )
             request_text = json.loads(request.text[2:])
             if request_text:
