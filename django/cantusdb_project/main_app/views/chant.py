@@ -110,7 +110,7 @@ class ChantDetailView(DetailView):
         # If chant has a cantus ID, Create table of concordances
         if chant.cantus_id:
             response = requests.get(
-                "http://cantusindex.org/json-con/{}".format(chant.cantus_id)
+                "https://cantusindex.org/json-con/{}".format(chant.cantus_id)
             )
             concordances = json.loads(response.text[2:])
             
@@ -135,9 +135,9 @@ class ChantDetailView(DetailView):
             )
             if concordances_count:
                 if concordances_count > 1:
-                    context["concordances_summary"] += f'Displaying <b>{concordances_count}</b> concordances from the following databases (Cantus ID <b><a href="http://cantusindex.org/id/{chant.cantus_id}" target="_blank" title="{chant.cantus_id} on Cantus Index">{chant.cantus_id}</a></b>):'
+                    context["concordances_summary"] += f'Displaying <b>{concordances_count}</b> concordances from the following databases (Cantus ID <b><a href="https://cantusindex.org/id/{chant.cantus_id}" target="_blank" title="{chant.cantus_id} on Cantus Index">{chant.cantus_id}</a></b>):'
                 else:
-                    context["concordances_summary"] += f'Displaying <b>1</b> concordance from the following database (Cantus ID <b><a href="http://cantusindex.org/id/{chant.cantus_id}" target="_blank" title="{chant.cantus_id} on Cantus Index">{chant.cantus_id}</a></b>):'
+                    context["concordances_summary"] += f'Displaying <b>1</b> concordance from the following database (Cantus ID <b><a href="https://cantusindex.org/id/{chant.cantus_id}" target="_blank" title="{chant.cantus_id} on Cantus Index">{chant.cantus_id}</a></b>):'
 
                 context["concordances_summary"] += "<table>"
 
@@ -225,10 +225,10 @@ class ChantDetailView(DetailView):
                 context["concordances_summary"] += f"""
                     <tr>
                         <td>
-                            <a href="http://pemdatabase.eu" target="_blank">Portuguese Early Music Database</a> (PEM)
+                            <a href="https://pemdatabase.eu" target="_blank">Portuguese Early Music Database</a> (PEM)
                         </td>
                         <td>
-                            <a href="http://pemdatabase.eu/id/{chant.cantus_id}" target="_blank">{chant_tally}</a>
+                            <a href="https://pemdatabase.eu/id/{chant.cantus_id}" target="_blank">{chant_tally}</a>
                         </td>
                     </tr>
                 """
@@ -369,16 +369,16 @@ class ChantDetailView(DetailView):
             if concordances_count:
                 context["concordances_summary"] += "</table><br>"
 
-            # http://cantusindex.org/json-con/{cantus_id} returns a cached
+            # https://cantusindex.org/json-con/{cantus_id} returns a cached
             # copy of the concordances. Appending "/refresh" to the URL causes Cantus
             # Index to recalculate the concordances, but this takes a few seconds.
             # So, after fetching the cached version above, we make a call to
-            # http://cantusindex.org/json-con/{cantus_id}/refresh in a new thread,
+            # https://cantusindex.org/json-con/{cantus_id}/refresh in a new thread,
             # thus ensuring the current page doesn't take a long time to load, while also
             # ensuring that concordances are up-to-date for future page loads.
             t = threading.Thread(
                 target=requests.get,
-                args=[f"http://cantusindex.org/json-con/{chant.cantus_id}/refresh"]
+                args=[f"https://cantusindex.org/json-con/{chant.cantus_id}/refresh"]
             )
             t.start()
 
@@ -1191,7 +1191,7 @@ class ChantCreateView(LoginRequiredMixin, UserPassesTestMixin, CreateView):
             sugg_chant_cantus_id, sugg_chant_count = suggested_chant
             # search Cantus Index
             response = requests.get(
-                "http://cantusindex.org/json-cid/{}".format(sugg_chant_cantus_id)
+                "https://cantusindex.org/json-cid/{}".format(sugg_chant_cantus_id)
             )
             assert response.status_code == 200
             # parse the json export to a dict
@@ -1323,7 +1323,7 @@ class CISearchView(TemplateView):
     """search in CI and write results in get_context_data
     now this is implemented as [send a search request to CI -> scrape the returned html table]
     But, it is possible to use CI json export.
-    To do a text search on CI, use 'http://cantusindex.org/json-text/<text to search>'
+    To do a text search on CI, use 'https://cantusindex.org/json-text/<text to search>'
     """
 
     template_name = "ci_search.html"
@@ -1349,7 +1349,7 @@ class CISearchView(TemplateView):
                 "ghisp": "All",
                 "page": page,
             }
-            page = requests.get("http://cantusindex.org/search", params=p)
+            page = requests.get("https://cantusindex.org/search", params=p)
             doc = lh.fromstring(page.content)
             # Parse data that are stored between <tr>..</tr> of HTML
             tr_elements = doc.xpath("//tr")
@@ -1663,7 +1663,7 @@ class SourceEditChantsView(LoginRequiredMixin, UserPassesTestMixin, UpdateView):
             cantus_id = current_chant.cantus_id
 
             request = requests.get(
-                    "http://cantusindex.org/json-cid/{}".format(cantus_id)
+                "https://cantusindex.org/json-cid/{}".format(cantus_id)
             )
             request_text = json.loads(request.text[2:])
             if request_text:
