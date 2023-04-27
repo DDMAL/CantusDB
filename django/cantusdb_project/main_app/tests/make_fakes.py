@@ -27,7 +27,7 @@ INCIPIT_LENGTH = 100
 faker = Faker("la")
 
 def make_random_string(length: int,
-                       characters: str = "ABCDEFGHIJKLMNOPQRSTUVWXYZ"):
+                       characters: str = "ABCDEFGHIJKLMNOPQRSTUVWXYZ") -> str:
     """Return a random string of a specified length.
 
     Args:

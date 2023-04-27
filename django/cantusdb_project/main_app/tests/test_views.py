@@ -11,7 +11,7 @@ from django.db.models import Q
 import csv
 
 from faker import Faker
-from .make_fakes import (make_fake_text,
+from .make_fakes import (
     make_fake_century,
     make_fake_chant,
     make_fake_feast,
@@ -22,6 +22,8 @@ from .make_fakes import (make_fake_text,
     make_fake_segment,
     make_fake_sequence,
     make_fake_source,
+    make_fake_volpiano,
+    make_random_string,
 )
 
 from main_app.models import Century
@@ -452,7 +454,7 @@ class ChantListViewTest(TestCase):
     def test_search_full_text(self):
         source = make_fake_source()
         chant = Chant.objects.create(
-            source=source, manuscript_full_text=make_fake_text(max_size=100)
+            source=source, manuscript_full_text=faker.sentence()
         )
         search_term = get_random_search_term(chant.manuscript_full_text)
         response = self.client.get(
@@ -462,7 +464,10 @@ class ChantListViewTest(TestCase):
 
     def test_search_incipit(self):
         source = make_fake_source()
-        chant = Chant.objects.create(source=source, incipit=make_fake_text(max_size=30))
+        chant = Chant.objects.create(
+            source=source,
+            incipit=faker.sentence(),
+        )
         search_term = get_random_search_term(chant.incipit)
         response = self.client.get(
             reverse("chant-list"), {"source": source.id, "search_text": search_term}
@@ -473,7 +478,7 @@ class ChantListViewTest(TestCase):
         source = make_fake_source()
         chant = Chant.objects.create(
             source=source,
-            manuscript_full_text_std_spelling=make_fake_text(max_size=100),
+            manuscript_full_text_std_spelling=faker.sentence(),
         )
         search_term = get_random_search_term(chant.manuscript_full_text_std_spelling)
         response = self.client.get(
@@ -779,7 +784,8 @@ class ChantSearchViewTest(TestCase):
     def test_filter_by_melody(self):
         source = make_fake_source(published=True)
         chant_with_melody = Chant.objects.create(
-            source=source, volpiano=make_fake_text(max_size=20)
+            source=source,
+            volpiano=make_fake_volpiano(),
         )
         chant_without_melody = Chant.objects.create(source=source)
         response = self.client.get(reverse("chant-search"), {"melodies": "true"})
@@ -792,7 +798,7 @@ class ChantSearchViewTest(TestCase):
         source = make_fake_source(published=True)
         chant = Chant.objects.create(
             source=source,
-            manuscript_full_text_std_spelling=make_fake_text(max_size=200),
+            manuscript_full_text_std_spelling=faker.sentence(),
         )
         # use the beginning part of the full text as the search term
         search_term = chant.manuscript_full_text_std_spelling[0 : random.randint(1, len(chant.manuscript_full_text_std_spelling))]
@@ -1127,7 +1133,8 @@ class ChantSearchMSViewTest(TestCase):
     def test_filter_by_melody(self):
         source = make_fake_source()
         chant_with_melody = Chant.objects.create(
-            source=source, volpiano=make_fake_text(max_size=20)
+            source=source,
+            volpiano=make_fake_volpiano,
         )
         chant_without_melody = Chant.objects.create(source=source)
         response = self.client.get(
@@ -1141,7 +1148,8 @@ class ChantSearchMSViewTest(TestCase):
     def test_keyword_search_starts_with(self):
         source = make_fake_source()
         chant = Chant.objects.create(
-            source=source, incipit=make_fake_text(max_size=200)
+            source=source,
+            incipit=faker.sentence(),
         )
         # use the beginning part of the incipit as search term
         search_term = chant.incipit[0 : random.randint(1, len(chant.incipit))]
@@ -1155,7 +1163,8 @@ class ChantSearchMSViewTest(TestCase):
     def test_keyword_search_contains(self):
         source = make_fake_source()
         chant = Chant.objects.create(
-            source=source, manuscript_full_text=make_fake_text(max_size=400)
+            source=source,
+            manuscript_full_text=faker.sentence(),
         )
         # split full text into words
         full_text_words = chant.manuscript_full_text.split(" ")
@@ -2221,7 +2230,7 @@ class FeastListViewTest(TestCase):
 
         # Anything other than name and feast_code should default to ordering by name
         response = self.client.get(
-            reverse("feast-list"), {"sort_by": make_fake_text(max_size=5)}
+            reverse("feast-list"), {"sort_by": make_random_string(4)}
         )
         self.assertEqual(response.status_code, 200)
         feasts = response.context["feasts"]
@@ -2647,10 +2656,12 @@ class SequenceListViewTest(TestCase):
     def test_search_incipit(self):
         # create a published sequence source and some sequence in it
         source = make_fake_source(
-            published=True, title="a sequence source"
+            published=True,
+            title="a sequence source",
         )
         sequence = Sequence.objects.create(
-            incipit=make_fake_text(max_size=30), source=source
+            incipit=faker.sentence(),
+            source=source,
         )
         search_term = get_random_search_term(sequence.incipit)
         # request the page, search for the incipit
@@ -2661,10 +2672,11 @@ class SequenceListViewTest(TestCase):
     def test_search_siglum(self):
         # create a published sequence source and some sequence in it
         source = make_fake_source(
-            published=True, title="a sequence source"
+            published=True,
+            title="a sequence source",
         )
         sequence = Sequence.objects.create(
-            siglum=make_fake_text(max_size=10), source=source
+            siglum=make_random_string(6), source=source
         )
         search_term = get_random_search_term(sequence.siglum)
         # request the page, search for the siglum
@@ -2937,7 +2949,8 @@ class SourceListViewTest(TestCase):
     def test_search_by_title(self):
         """The "general search" field searches in `title`, `siglum`, `rism_siglum`, `description`, and `summary`"""
         source = make_fake_source(
-            title=make_fake_text(max_size=20), published=True
+            title=faker.sentence(),
+            published=True,
         )
         search_term = get_random_search_term(source.title)
         response = self.client.get(reverse("source-list"), {"general": search_term})
@@ -2945,7 +2958,9 @@ class SourceListViewTest(TestCase):
 
     def test_search_by_siglum(self):
         source = make_fake_source(
-            siglum=make_fake_text(max_size=20), published=True, title="title"
+            siglum=make_random_string(6),
+            published=True,
+            title="title",
         )
         search_term = get_random_search_term(source.siglum)
         response = self.client.get(reverse("source-list"), {"general": search_term})
@@ -2971,7 +2986,7 @@ class SourceListViewTest(TestCase):
 
     def test_search_by_description(self):
         source = make_fake_source(
-            description=make_fake_text(max_size=200),
+            description=faker.sentence(),
             published=True,
             title="title",
         )
@@ -2981,7 +2996,7 @@ class SourceListViewTest(TestCase):
 
     def test_search_by_summary(self):
         source = make_fake_source(
-            summary=make_fake_text(max_size=200),
+            summary=faker.sentence(),
             published=True,
             title="title",
         )
@@ -2992,7 +3007,7 @@ class SourceListViewTest(TestCase):
     def test_search_by_indexing_notes(self):
         """The "indexing notes" field searches in `indexing_notes` and indexer/editor related fields"""
         source = make_fake_source(
-            indexing_notes=make_fake_text(max_size=200),
+            indexing_notes=faker.sentence(),
             published=True,
             title="title",
         )
