@@ -28,7 +28,7 @@ diphthongs = [
     "ya",
     "ex",
     "ix",
-    "ihe", # ihe-sus, # ihe-ru-sa-lem
+    "ihe",  # ihe-sus, # ihe-ru-sa-lem
 ]
 vowels = [
     "a",
@@ -99,7 +99,6 @@ def syllabify_word(inp, verbose=False):
 
         # check each segment of the word for this unit
         for segment in word:
-
             # if this segment is marked as unbreakable or does not have the unit we care about,
             # just add the segment back into new_word and continue
             if "*" in segment or unit not in segment:
@@ -144,7 +143,6 @@ def syllabify_word(inp, verbose=False):
     # begin merging units together until all units are marked with a *.
     escape_counter = 0
     while not all([("*" in x) for x in word]):
-
         # first stick consonants / consonant groups to syllables ahead of them
         new_word = []
         i = 0

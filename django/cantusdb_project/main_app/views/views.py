@@ -14,7 +14,7 @@ from main_app.models import (
     RismSiglum,
     Segment,
     Sequence,
-    Source
+    Source,
 )
 from django.contrib.auth.decorators import login_required, user_passes_test
 from next_chants import next_chants
@@ -23,6 +23,7 @@ from django.http import Http404
 from django.contrib.auth import update_session_auth_hash
 from django.contrib.auth.forms import PasswordChangeForm
 from django.core.exceptions import PermissionDenied
+
 
 @login_required
 def items_count(request):
@@ -71,7 +72,7 @@ def ajax_concordance_list(request, cantus_id):
     if not display_unpublished:
         chants = chants.filter(source__published=True)
         seqs = seqs.filter(source__published=True)
-        
+
     if seqs:
         chants = chants.union(seqs).order_by("siglum", "folio")
     else:
@@ -126,7 +127,7 @@ def ajax_melody_list(request, cantus_id):
     display_unpublished = request.user.is_authenticated
     if not display_unpublished:
         chants = chants.filter(source__published=True)
-    
+
     # queryset(list of dictionaries)
     concordance_values = chants.values(
         "siglum",
@@ -176,7 +177,7 @@ def csv_export(request, source_id):
 
     if not source.published:
         raise PermissionDenied
-    
+
     # "4064" is the segment id of the sequence DB, sources in that segment have sequences instead of chants
     if source.segment and source.segment.id == 4064:
         entries = source.sequence_set.order_by("id")
@@ -261,8 +262,7 @@ def contact(request):
     Returns:
         HttpResponse: Render the contact page
     """
-    return render(request, 'contact.html')
-    
+    return render(request, "contact.html")
 
 
 def ajax_melody_search(request):
@@ -298,7 +298,7 @@ def ajax_melody_search(request):
     feast_name = request.GET.get("feast")
     mode = request.GET.get("mode")
     source = request.GET.get("source")
-    
+
     display_unpublished = request.user.is_authenticated
     if not display_unpublished:
         chants = Chant.objects.filter(source__published=True)
@@ -380,7 +380,7 @@ def ajax_melody_search(request):
 
 def ajax_search_bar(request, search_term):
     """
-    Function-based view responding to global search bar AJAX calls, 
+    Function-based view responding to global search bar AJAX calls,
     accessed with the search bar on the top-right corner of almost every page.
 
     Args:
@@ -394,9 +394,7 @@ def ajax_search_bar(request, search_term):
 
     if any(char.isdigit() for char in search_term):
         # if the search term contains at least one digit, assume user is searching by Cantus ID
-        chants = Chant.objects.filter(cantus_id__istartswith=search_term).order_by(
-            "id"
-        )
+        chants = Chant.objects.filter(cantus_id__istartswith=search_term).order_by("id")
     else:
         # if the search term does not contain any digits, assume user is searching by incipit
         chants = Chant.objects.filter(incipit__icontains=search_term).order_by("id")
@@ -404,7 +402,7 @@ def ajax_search_bar(request, search_term):
     display_unpublished = request.user.is_authenticated
     if not display_unpublished:
         chants = chants.filter(source__published=True)
-    
+
     chants = chants[:CHANT_CNT]
 
     returned_values = chants.values(
@@ -426,14 +424,17 @@ def ajax_search_bar(request, search_term):
 
 
 def json_melody_export(request, cantus_id):
-    chants = Chant.objects.filter(cantus_id=cantus_id, volpiano__isnull=False, source__published=True)
+    chants = Chant.objects.filter(
+        cantus_id=cantus_id, volpiano__isnull=False, source__published=True
+    )
 
-    db_keys = ["melody_id",
+    db_keys = [
+        "melody_id",
         "id",
         "cantus_id",
         "siglum",
-        "source__id", # don't fetch the entire Source object, just the id of
-                      # the source. __id is removed in standardize_for_api below
+        "source__id",  # don't fetch the entire Source object, just the id of
+        # the source. __id is removed in standardize_for_api below
         "folio",
         "incipit",
         "manuscript_full_text",
@@ -443,43 +444,49 @@ def json_melody_export(request, cantus_id):
         "office__id",
         "genre__id",
         "position",
-        ]
+    ]
 
-    chants_values = list(chants.values(*db_keys)) # a list of dictionaries. Each
-                                                  # dictionary represents metadata on one chant
+    chants_values = list(chants.values(*db_keys))  # a list of dictionaries. Each
+    # dictionary represents metadata on one chant
 
     def standardize_for_api(chant_values):
-        keymap = { # map attribute names from Chant model (i.e. db_keys
+        keymap = {  # map attribute names from Chant model (i.e. db_keys
             # in list above) to corresponding attribute names
             # in old API, and remove artifacts of query process (i.e. __id suffixes)
-        "melody_id": "mid",                 # <-
-        "id": "nid",                        # <-
-        "cantus_id": "cid",                 # <-
-        "siglum": "siglum",
-        "source__id": "srcnid",             # <-
-        "folio": "folio",
-        "incipit": "incipit",
-        "manuscript_full_text": "fulltext", # <-
-        "volpiano": "volpiano",
-        "mode": "mode",
-        "feast__id": "feast",               # <-
-        "office__id": "office",             # <-
-        "genre__id": "genre",               # <-
-        "position": "position",
+            "melody_id": "mid",  # <-
+            "id": "nid",  # <-
+            "cantus_id": "cid",  # <-
+            "siglum": "siglum",
+            "source__id": "srcnid",  # <-
+            "folio": "folio",
+            "incipit": "incipit",
+            "manuscript_full_text": "fulltext",  # <-
+            "volpiano": "volpiano",
+            "mode": "mode",
+            "feast__id": "feast",  # <-
+            "office__id": "office",  # <-
+            "genre__id": "genre",  # <-
+            "position": "position",
         }
-        
-        standardized_chant_values = {keymap[key]: chant_values[key] for key in chant_values}
+
+        standardized_chant_values = {
+            keymap[key]: chant_values[key] for key in chant_values
+        }
 
         # manually build a couple of last fields that aren't represented in Chant object
-        chant_uri = request.build_absolute_uri(reverse("chant-detail", args=[chant_values["id"]]))
+        chant_uri = request.build_absolute_uri(
+            reverse("chant-detail", args=[chant_values["id"]])
+        )
         standardized_chant_values["chantlink"] = chant_uri
-        src_uri = request.build_absolute_uri(reverse("source-detail", args=[chant_values["source__id"]]))
+        src_uri = request.build_absolute_uri(
+            reverse("source-detail", args=[chant_values["source__id"]])
+        )
         standardized_chant_values["srclink"] = src_uri
 
         return standardized_chant_values
 
     standardized_chants_values = [standardize_for_api(cv) for cv in chants_values]
-    
+
     return JsonResponse(standardized_chants_values, safe=False)
 
 
@@ -487,7 +494,7 @@ def json_node_export(request, id):
     """
     returns all fields of the chant/sequence/source/indexer with the specified `id`
     """
-    
+
     # future possible optimization: use .get() instead of .filter()
     chant = Chant.objects.filter(id=id)
     sequence = Sequence.objects.filter(id=id)
@@ -525,11 +532,11 @@ def json_sources_export(request):
         # in OldCantus, json-sources creates a json file with each id attribute pointing to a dictionary
         # containing a single key, "csv", which itself points to a link to the relevant csv file.
         # inner_dictionary() is used to build this single-keyed dictionary.
-        
+
         # To avoid confusion, note that the `id` parameter refers to an identifier, and is not
         # an abbreviation of `inner_dictionary`!
         return {"csv": request.build_absolute_uri(reverse("csv-export", args=[id]))}
-    
+
     csv_links = {id: inner_dictionary(id) for id in ids}
 
     return JsonResponse(csv_links)
@@ -539,14 +546,15 @@ def json_nextchants(request, cantus_id):
     ids_and_counts = next_chants(cantus_id, display_unpublished=False)
     suggested_chants_dict = {id: count for (id, count) in ids_and_counts}
     return JsonResponse(suggested_chants_dict)
-    
+
 
 def handle404(request, exception):
     return render(request, "404.html")
 
+
 @login_required
 def change_password(request):
-    if request.method == 'POST':
+    if request.method == "POST":
         form = PasswordChangeForm(request.user, request.POST)
         if form.is_valid():
             # if the user is trying to change their password for the first time (the password that was given to them),
@@ -555,17 +563,16 @@ def change_password(request):
                 form.user.changed_initial_password = True
             user = form.save()
             update_session_auth_hash(request, user)
-            messages.success(request, 'Your password was successfully updated!')
+            messages.success(request, "Your password was successfully updated!")
     else:
         form = PasswordChangeForm(request.user)
         if request.user.changed_initial_password == False:
             messages.warning(
                 request,
-                "The current password was assigned to you by default and is unsecure. Please make sure to change it for security purposes."
+                "The current password was assigned to you by default and is unsecure. Please make sure to change it for security purposes.",
             )
-    return render(request, 'registration/change_password.html', {
-        'form': form
-    })
+    return render(request, "registration/change_password.html", {"form": form})
+
 
 def project_manager_check(user):
     """
@@ -577,6 +584,7 @@ def project_manager_check(user):
     if user.groups.filter(name="project manager").exists():
         return True
     raise PermissionDenied
+
 
 # first give the user a chance to login
 @login_required
@@ -595,7 +603,7 @@ def content_overview(request):
         RismSiglum,
         Segment,
         Sequence,
-        Source
+        Source,
     ]
 
     # get the 50 most recently updated objects for all of the models
@@ -606,6 +614,6 @@ def content_overview(request):
     objects.sort(key=lambda x: x.date_updated, reverse=True)
     recently_updated_50_objects = objects[:50]
 
-    return render(request, "content_overview.html", {
-        "objects": recently_updated_50_objects
-    })
+    return render(
+        request, "content_overview.html", {"objects": recently_updated_50_objects}
+    )

@@ -42,12 +42,13 @@ from main_app.models import Source
 # Create a Faker instance with locale set to Latin
 faker = Faker("la")
 
+
 def get_random_search_term(target):
     """Helper function for generating a random slice of a string.
 
     Args:
         target (str): The content of the field to search.
-    
+
     Returns:
         str: A random slice of `target`
     """
@@ -72,10 +73,10 @@ class PermissionsTest(TestCase):
             for i in range(5):
                 Chant.objects.create(source=source)
                 Sequence.objects.create(source=source)
-                
+
     def setUp(self):
-        self.user = get_user_model().objects.create(email='test@test.com')
-        self.user.set_password('pass')
+        self.user = get_user_model().objects.create(email="test@test.com")
+        self.user.set_password("pass")
         self.user.save()
         self.client = Client()
 
@@ -87,82 +88,84 @@ class PermissionsTest(TestCase):
         # currently not logged in, should redirect
 
         # ChantCreateView
-        response = self.client.get(f'/chant-create/{source.id}')
-        self.assertRedirects(response, f'/login/?next=/chant-create/{source.id}')       
+        response = self.client.get(f"/chant-create/{source.id}")
+        self.assertRedirects(response, f"/login/?next=/chant-create/{source.id}")
 
         # ChantDeleteView
-        response = self.client.get(f'/chant-delete/{chant.id}')
-        self.assertRedirects(response, f'/login/?next=/chant-delete/{chant.id}')        
-        
+        response = self.client.get(f"/chant-delete/{chant.id}")
+        self.assertRedirects(response, f"/login/?next=/chant-delete/{chant.id}")
+
         # SourceEditChantsView
-        response = self.client.get(f'/edit-chants/{source.id}')
-        self.assertRedirects(response, f'/login/?next=/edit-chants/{source.id}')        
+        response = self.client.get(f"/edit-chants/{source.id}")
+        self.assertRedirects(response, f"/login/?next=/edit-chants/{source.id}")
 
         # SequenceEditView
-        response = self.client.get(f'/edit-sequence/{sequence.id}')
-        self.assertRedirects(response, f'/login/?next=/edit-sequence/{sequence.id}')        
+        response = self.client.get(f"/edit-sequence/{sequence.id}")
+        self.assertRedirects(response, f"/login/?next=/edit-sequence/{sequence.id}")
 
         # SourceCreateView
-        response = self.client.get('/source-create/')
-        self.assertRedirects(response, '/login/?next=/source-create/')    
+        response = self.client.get("/source-create/")
+        self.assertRedirects(response, "/login/?next=/source-create/")
 
         # SourceEditView
-        response = self.client.get(f'/edit-source/{source.id}')
-        self.assertRedirects(response, f'/login/?next=/edit-source/{source.id}')
+        response = self.client.get(f"/edit-source/{source.id}")
+        self.assertRedirects(response, f"/login/?next=/edit-source/{source.id}")
 
         # UserSourceListView
-        response = self.client.get('/my-sources/')
-        self.assertRedirects(response, '/login/?next=/my-sources/')        
+        response = self.client.get("/my-sources/")
+        self.assertRedirects(response, "/login/?next=/my-sources/")
 
         # UserListView
-        response = self.client.get('/users/')
-        self.assertRedirects(response, '/login/?next=/users/')        
+        response = self.client.get("/users/")
+        self.assertRedirects(response, "/login/?next=/users/")
 
     def test_permissions_project_manager(self):
-        project_manager = Group.objects.get(name='project manager') 
+        project_manager = Group.objects.get(name="project manager")
         project_manager.user_set.add(self.user)
-        self.client.login(email='test@test.com', password='pass')
+        self.client.login(email="test@test.com", password="pass")
 
         # get random source, chant and sequence
-        source = Source.objects.order_by('?').first()
-        chant = Chant.objects.order_by('?').first()
-        sequence = Sequence.objects.order_by('?').first()
+        source = Source.objects.order_by("?").first()
+        chant = Chant.objects.order_by("?").first()
+        sequence = Sequence.objects.order_by("?").first()
 
         # ChantCreateView
-        response = self.client.get(f'/chant-create/{source.id}')
+        response = self.client.get(f"/chant-create/{source.id}")
         self.assertEqual(response.status_code, 200)
 
         # ChantDeleteView
-        response = self.client.get(f'/chant-delete/{chant.id}')
+        response = self.client.get(f"/chant-delete/{chant.id}")
         self.assertEqual(response.status_code, 200)
 
         # SourceEditChantsView
-        response = self.client.get(f'/edit-chants/{source.id}')
+        response = self.client.get(f"/edit-chants/{source.id}")
         self.assertEqual(response.status_code, 200)
 
         # SequenceEditView
-        response = self.client.get(f'/edit-sequence/{sequence.id}')
+        response = self.client.get(f"/edit-sequence/{sequence.id}")
         self.assertEqual(response.status_code, 200)
 
         # SourceCreateView
-        response = self.client.get('/source-create/')
+        response = self.client.get("/source-create/")
         self.assertEqual(response.status_code, 200)
 
         # SourceEditView
-        response = self.client.get(f'/edit-source/{source.id}')
+        response = self.client.get(f"/edit-source/{source.id}")
         self.assertEqual(response.status_code, 200)
 
     def test_permissions_contributor(self):
-        contributor = Group.objects.get(name='contributor') 
+        contributor = Group.objects.get(name="contributor")
         contributor.user_set.add(self.user)
-        self.client.login(email='test@test.com', password='pass')
+        self.client.login(email="test@test.com", password="pass")
 
         # a source assigned to the current user
         assigned_source = make_fake_source()
         self.user.sources_user_can_edit.add(assigned_source)
         for i in range(5):
             Chant.objects.create(source=assigned_source)
-        chant_in_assigned_source = Chant.objects.filter(source=assigned_source).order_by('?').first()
+        chant_in_assigned_source = (
+            Chant.objects.filter(source=assigned_source).order_by("?").first()
+        )
 
         # a source created by the current user
         source_created_by_contributor = make_fake_source()
@@ -170,74 +173,88 @@ class PermissionsTest(TestCase):
         source_created_by_contributor.save()
         for i in range(5):
             Chant.objects.create(source=source_created_by_contributor)
-        chant_in_source_created_by_contributor = Chant.objects.filter(source=source_created_by_contributor).order_by('?').first()
+        chant_in_source_created_by_contributor = (
+            Chant.objects.filter(source=source_created_by_contributor)
+            .order_by("?")
+            .first()
+        )
 
         # did not create the source, was not assigned the source
-        restricted_source = Source.objects.filter(~Q(created_by=self.user)&~Q(id=assigned_source.id)).order_by('?').first()
-        restricted_chant = Chant.objects.filter(source=restricted_source).order_by('?').first()
-        
+        restricted_source = (
+            Source.objects.filter(~Q(created_by=self.user) & ~Q(id=assigned_source.id))
+            .order_by("?")
+            .first()
+        )
+        restricted_chant = (
+            Chant.objects.filter(source=restricted_source).order_by("?").first()
+        )
+
         # a random sequence
-        sequence = Sequence.objects.order_by('?').first()
+        sequence = Sequence.objects.order_by("?").first()
 
         # ChantCreateView
-        response = self.client.get(f'/chant-create/{restricted_source.id}')
+        response = self.client.get(f"/chant-create/{restricted_source.id}")
         self.assertEqual(response.status_code, 403)
 
-        response = self.client.get(f'/chant-create/{source_created_by_contributor.id}')
+        response = self.client.get(f"/chant-create/{source_created_by_contributor.id}")
         self.assertEqual(response.status_code, 200)
 
-        response = self.client.get(f'/chant-create/{assigned_source.id}')
+        response = self.client.get(f"/chant-create/{assigned_source.id}")
         self.assertEqual(response.status_code, 200)
 
         # ChantDeleteView
-        response = self.client.get(f'/chant-delete/{restricted_chant.id}')
+        response = self.client.get(f"/chant-delete/{restricted_chant.id}")
         self.assertEqual(response.status_code, 403)
 
-        response = self.client.get(f'/chant-delete/{chant_in_source_created_by_contributor.id}')
+        response = self.client.get(
+            f"/chant-delete/{chant_in_source_created_by_contributor.id}"
+        )
         self.assertEqual(response.status_code, 200)
 
-        response = self.client.get(f'/chant-delete/{chant_in_assigned_source.id}')
+        response = self.client.get(f"/chant-delete/{chant_in_assigned_source.id}")
         self.assertEqual(response.status_code, 200)
 
         # SourceEditChantsView
-        response = self.client.get(f'/edit-chants/{restricted_source.id}')
+        response = self.client.get(f"/edit-chants/{restricted_source.id}")
         self.assertEqual(response.status_code, 403)
 
-        response = self.client.get(f'/edit-chants/{source_created_by_contributor.id}')
+        response = self.client.get(f"/edit-chants/{source_created_by_contributor.id}")
         self.assertEqual(response.status_code, 200)
 
-        response = self.client.get(f'/edit-chants/{assigned_source.id}')
+        response = self.client.get(f"/edit-chants/{assigned_source.id}")
         self.assertEqual(response.status_code, 200)
 
         # SequenceEditView
-        response = self.client.get(f'/edit-sequence/{sequence.id}')
+        response = self.client.get(f"/edit-sequence/{sequence.id}")
         self.assertEqual(response.status_code, 403)
 
         # SourceCreateView
-        response = self.client.get('/source-create/')
+        response = self.client.get("/source-create/")
         self.assertEqual(response.status_code, 200)
 
         # SourceEditView
-        response = self.client.get(f'/edit-source/{restricted_source.id}')
+        response = self.client.get(f"/edit-source/{restricted_source.id}")
         self.assertEqual(response.status_code, 403)
 
-        response = self.client.get(f'/edit-source/{source_created_by_contributor.id}')
+        response = self.client.get(f"/edit-source/{source_created_by_contributor.id}")
         self.assertEqual(response.status_code, 200)
 
-        response = self.client.get(f'/edit-source/{assigned_source.id}')
+        response = self.client.get(f"/edit-source/{assigned_source.id}")
         self.assertEqual(response.status_code, 403)
 
     def test_permissions_editor(self):
-        editor = Group.objects.get(name='editor') 
+        editor = Group.objects.get(name="editor")
         editor.user_set.add(self.user)
-        self.client.login(email='test@test.com', password='pass')
+        self.client.login(email="test@test.com", password="pass")
 
         # a source assigned to the current user
         assigned_source = make_fake_source()
         self.user.sources_user_can_edit.add(assigned_source)
         for i in range(5):
             Chant.objects.create(source=assigned_source)
-        chant_in_assigned_source = Chant.objects.filter(source=assigned_source).order_by('?').first()
+        chant_in_assigned_source = (
+            Chant.objects.filter(source=assigned_source).order_by("?").first()
+        )
 
         # a source created by the current user
         source_created_by_contributor = make_fake_source()
@@ -245,93 +262,105 @@ class PermissionsTest(TestCase):
         source_created_by_contributor.save()
         for i in range(5):
             Chant.objects.create(source=source_created_by_contributor)
-        chant_in_source_created_by_contributor = Chant.objects.filter(source=source_created_by_contributor).order_by('?').first()
+        chant_in_source_created_by_contributor = (
+            Chant.objects.filter(source=source_created_by_contributor)
+            .order_by("?")
+            .first()
+        )
 
         # did not create the source, was not assigned the source
-        restricted_source = Source.objects.filter(~Q(created_by=self.user)&~Q(id=assigned_source.id)).order_by('?').first()
-        restricted_chant = Chant.objects.filter(source=restricted_source).order_by('?').first()
-        
+        restricted_source = (
+            Source.objects.filter(~Q(created_by=self.user) & ~Q(id=assigned_source.id))
+            .order_by("?")
+            .first()
+        )
+        restricted_chant = (
+            Chant.objects.filter(source=restricted_source).order_by("?").first()
+        )
+
         # a random sequence
-        sequence = Sequence.objects.order_by('?').first()
+        sequence = Sequence.objects.order_by("?").first()
 
         # ChantCreateView
-        response = self.client.get(f'/chant-create/{restricted_source.id}')
+        response = self.client.get(f"/chant-create/{restricted_source.id}")
         self.assertEqual(response.status_code, 403)
 
-        response = self.client.get(f'/chant-create/{source_created_by_contributor.id}')
+        response = self.client.get(f"/chant-create/{source_created_by_contributor.id}")
         self.assertEqual(response.status_code, 200)
 
-        response = self.client.get(f'/chant-create/{assigned_source.id}')
+        response = self.client.get(f"/chant-create/{assigned_source.id}")
         self.assertEqual(response.status_code, 200)
 
         # ChantDeleteView
-        response = self.client.get(f'/chant-delete/{restricted_chant.id}')
+        response = self.client.get(f"/chant-delete/{restricted_chant.id}")
         self.assertEqual(response.status_code, 403)
 
-        response = self.client.get(f'/chant-delete/{chant_in_source_created_by_contributor.id}')
+        response = self.client.get(
+            f"/chant-delete/{chant_in_source_created_by_contributor.id}"
+        )
         self.assertEqual(response.status_code, 200)
 
-        response = self.client.get(f'/chant-delete/{chant_in_assigned_source.id}')
+        response = self.client.get(f"/chant-delete/{chant_in_assigned_source.id}")
         self.assertEqual(response.status_code, 200)
 
         # SourceEditChantsView
-        response = self.client.get(f'/edit-chants/{restricted_source.id}')
+        response = self.client.get(f"/edit-chants/{restricted_source.id}")
         self.assertEqual(response.status_code, 403)
 
-        response = self.client.get(f'/edit-chants/{source_created_by_contributor.id}')
+        response = self.client.get(f"/edit-chants/{source_created_by_contributor.id}")
         self.assertEqual(response.status_code, 200)
 
-        response = self.client.get(f'/edit-chants/{assigned_source.id}')
+        response = self.client.get(f"/edit-chants/{assigned_source.id}")
         self.assertEqual(response.status_code, 200)
 
         # SequenceEditView
-        response = self.client.get(f'/edit-sequence/{sequence.id}')
+        response = self.client.get(f"/edit-sequence/{sequence.id}")
         self.assertEqual(response.status_code, 403)
 
         # SourceCreateView
-        response = self.client.get('/source-create/')
+        response = self.client.get("/source-create/")
         self.assertEqual(response.status_code, 200)
 
         # SourceEditView
-        response = self.client.get(f'/edit-source/{restricted_source.id}')
+        response = self.client.get(f"/edit-source/{restricted_source.id}")
         self.assertEqual(response.status_code, 403)
 
-        response = self.client.get(f'/edit-source/{source_created_by_contributor.id}')
+        response = self.client.get(f"/edit-source/{source_created_by_contributor.id}")
         self.assertEqual(response.status_code, 200)
 
-        response = self.client.get(f'/edit-source/{assigned_source.id}')
+        response = self.client.get(f"/edit-source/{assigned_source.id}")
         self.assertEqual(response.status_code, 200)
 
     def test_permissions_default(self):
-        self.client.login(email='test@test.com', password='pass')
+        self.client.login(email="test@test.com", password="pass")
 
         # get random source, chant and sequence
-        source = Source.objects.order_by('?').first()
-        chant = Chant.objects.order_by('?').first()
-        sequence = Sequence.objects.order_by('?').first()
+        source = Source.objects.order_by("?").first()
+        chant = Chant.objects.order_by("?").first()
+        sequence = Sequence.objects.order_by("?").first()
 
         # ChantCreateView
-        response = self.client.get(f'/chant-create/{source.id}')
+        response = self.client.get(f"/chant-create/{source.id}")
         self.assertEqual(response.status_code, 403)
 
         # ChantDeleteView
-        response = self.client.get(f'/chant-delete/{chant.id}')
+        response = self.client.get(f"/chant-delete/{chant.id}")
         self.assertEqual(response.status_code, 403)
 
         # SourceEditChantsView
-        response = self.client.get(f'/edit-chants/{source.id}')
+        response = self.client.get(f"/edit-chants/{source.id}")
         self.assertEqual(response.status_code, 403)
 
         # SequenceEditView
-        response = self.client.get(f'/edit-sequence/{sequence.id}')
+        response = self.client.get(f"/edit-sequence/{sequence.id}")
         self.assertEqual(response.status_code, 403)
 
         # SourceCreateView
-        response = self.client.get('/source-create/')
+        response = self.client.get("/source-create/")
         self.assertEqual(response.status_code, 403)
 
         # SourceEditView
-        response = self.client.get(f'/edit-source/{source.id}')
+        response = self.client.get(f"/edit-source/{source.id}")
         self.assertEqual(response.status_code, 403)
 
 
@@ -352,12 +381,11 @@ class CenturyDetailViewTest(TestCase):
         self.assertEqual(response.status_code, 200)
         self.assertTemplateUsed(response, "base.html")
         self.assertTemplateUsed(response, "century_detail.html")
-    
+
     def test_listed_sources(self):
         century = make_fake_century()
         century_sources = [
-            make_fake_source(century=century, published=True)
-            for _ in range(5)
+            make_fake_source(century=century, published=True) for _ in range(5)
         ]
         response = self.client.get(reverse("century-detail", args=[century.id]))
         returned_sources = response.context["sources"]
@@ -367,12 +395,10 @@ class CenturyDetailViewTest(TestCase):
     def test_unpublished_sources_not_listed(self):
         century = make_fake_century()
         published_sources = [
-            make_fake_source(century=century, published=True)
-            for _ in range(5)
+            make_fake_source(century=century, published=True) for _ in range(5)
         ]
         unpublished_sources = [
-            make_fake_source(century=century, published=False)
-            for _ in range(5)
+            make_fake_source(century=century, published=False) for _ in range(5)
         ]
         response = self.client.get(reverse("century-detail", args=[century.id]))
         returned_sources = response.context["sources"]
@@ -380,7 +406,6 @@ class CenturyDetailViewTest(TestCase):
             self.assertIn(source, returned_sources)
         for source in unpublished_sources:
             self.assertNotIn(source, returned_sources)
-
 
 
 class ChantListViewTest(TestCase):
@@ -393,11 +418,15 @@ class ChantListViewTest(TestCase):
 
     def test_published_vs_unpublished(self):
         published_source = make_fake_source(published=True)
-        response_1 = self.client.get(reverse("chant-list"), {"source": published_source.id})
+        response_1 = self.client.get(
+            reverse("chant-list"), {"source": published_source.id}
+        )
         self.assertEqual(response_1.status_code, 200)
 
         unpublished_source = make_fake_source(published=False)
-        response_2 = self.client.get(reverse("chant-list"), {"source": unpublished_source.id})
+        response_2 = self.client.get(
+            reverse("chant-list"), {"source": unpublished_source.id}
+        )
         self.assertEqual(response_2.status_code, 403)
 
     def test_filter_by_source(self):
@@ -587,58 +616,52 @@ class ChantDetailViewTest(TestCase):
         source = make_fake_source()
         chant = make_fake_chant(source=source)
 
-        source.published=True
+        source.published = True
         source.save()
-        response = self.client.get(
-            reverse("chant-detail", args=[chant.id])
-        )
+        response = self.client.get(reverse("chant-detail", args=[chant.id]))
         self.assertEqual(response.status_code, 200)
 
-        source.published=False
+        source.published = False
         source.save()
-        response = self.client.get(
-            reverse("chant-detail", args=[chant.id])
-        )
+        response = self.client.get(reverse("chant-detail", args=[chant.id]))
         self.assertEqual(response.status_code, 403)
 
     def test_chant_edit_link(self):
-
         source = make_fake_source()
         chant = make_fake_chant(
-            source=source, folio="001r", 
-            manuscript_full_text_std_spelling="manuscript_full_text_std_spelling"
+            source=source,
+            folio="001r",
+            manuscript_full_text_std_spelling="manuscript_full_text_std_spelling",
         )
 
         # have to create project manager user - "View | Edit" toggle only visible for those with edit access for a chant's source
-        self.user = get_user_model().objects.create(email='test@test.com')
-        self.user.set_password('pass')
+        self.user = get_user_model().objects.create(email="test@test.com")
+        self.user.set_password("pass")
         self.user.save()
         self.client = Client()
-        project_manager = Group.objects.get(name='project manager') 
+        project_manager = Group.objects.get(name="project manager")
         project_manager.user_set.add(self.user)
-        self.client.login(email='test@test.com', password='pass')
+        self.client.login(email="test@test.com", password="pass")
 
-        response = self.client.get(
-            reverse("chant-detail", args=[chant.id])
+        response = self.client.get(reverse("chant-detail", args=[chant.id]))
+        expected_url_fragment = (
+            f"edit-chants/{source.id}?pk={chant.id}&folio={chant.folio}"
         )
-        expected_url_fragment = f"edit-chants/{source.id}?pk={chant.id}&folio={chant.folio}"
 
         self.assertIn(expected_url_fragment, str(response.content))
-    
+
     def test_chant_with_volpiano_with_no_fulltext(self):
         # in the past, a Chant Detail page will error rather than loading properly when the chant has volpiano but no fulltext
         source = make_fake_source()
         chant = make_fake_chant(
             source=source,
             volpiano="1---c--g--e---e---d---c---c---f---e---e--d---d---c",
-            incipit="somebody"
+            incipit="somebody",
         )
         chant.manuscript_full_text = None
         chant.manuscript_full_text_std_spelling = None
         chant.save()
-        response = self.client.get(
-            reverse("chant-detail", args=[chant.id])
-        )
+        response = self.client.get(reverse("chant-detail", args=[chant.id]))
         self.assertEqual(response.status_code, 200)
 
     def test_chant_with_volpiano_with_no_incipit(self):
@@ -652,9 +675,7 @@ class ChantDetailViewTest(TestCase):
         chant.manuscript_full_text_std_spelling = None
         chant.incipit = None
         chant.save()
-        response = self.client.get(
-            reverse("chant-detail", args=[chant.id])
-        )
+        response = self.client.get(reverse("chant-detail", args=[chant.id]))
         self.assertEqual(response.status_code, 200)
 
 
@@ -713,7 +734,9 @@ class ChantSearchViewTest(TestCase):
 
     def test_published_vs_unpublished(self):
         source = make_fake_source()
-        chant = make_fake_chant(source=source, manuscript_full_text_std_spelling="lorem ipsum")
+        chant = make_fake_chant(
+            source=source, manuscript_full_text_std_spelling="lorem ipsum"
+        )
 
         source.published = True
         source.save()
@@ -801,7 +824,9 @@ class ChantSearchViewTest(TestCase):
             manuscript_full_text_std_spelling=faker.sentence(),
         )
         # use the beginning part of the full text as the search term
-        search_term = chant.manuscript_full_text_std_spelling[0 : random.randint(1, len(chant.manuscript_full_text_std_spelling))]
+        search_term = chant.manuscript_full_text_std_spelling[
+            0 : random.randint(1, len(chant.manuscript_full_text_std_spelling))
+        ]
         response = self.client.get(
             reverse("chant-search"), {"keyword": search_term, "op": "starts_with"}
         )
@@ -829,8 +854,7 @@ class ChantSearchViewTest(TestCase):
         fulltext = "manuscript full text"
         search_term = "full"
         chant = make_fake_chant(
-            source=source,
-            manuscript_full_text_std_spelling=fulltext
+            source=source, manuscript_full_text_std_spelling=fulltext
         )
         response = self.client.get(
             reverse("chant-search"), {"keyword": search_term, "op": "contains"}
@@ -840,14 +864,13 @@ class ChantSearchViewTest(TestCase):
         self.assertIn(source_title, html)
         self.assertIn(url, html)
         self.assertIn(f'<a href="{url}" title="{source_title}">{siglum}</a>', html)
-        
+
     def test_folio_column(self):
         source = make_fake_source(published=True)
         fulltext = "manuscript full text"
         search_term = "full"
         chant = make_fake_chant(
-            source=source,
-            manuscript_full_text_std_spelling=fulltext
+            source=source, manuscript_full_text_std_spelling=fulltext
         )
         folio = chant.folio
         response = self.client.get(
@@ -855,7 +878,7 @@ class ChantSearchViewTest(TestCase):
         )
         html = str(response.content)
         self.assertIn(folio, html)
-        
+
     def test_feast_column(self):
         source = make_fake_source(published=True)
         feast = make_fake_feast()
@@ -876,8 +899,10 @@ class ChantSearchViewTest(TestCase):
         self.assertIn(feast_name, html)
         self.assertIn(feast_description, html)
         self.assertIn(url, html)
-        self.assertIn(f'<a href="{url}" title="{feast_description}">{feast_name}</a>', html)
-        
+        self.assertIn(
+            f'<a href="{url}" title="{feast_description}">{feast_name}</a>', html
+        )
+
     def test_office_column(self):
         source = make_fake_source(published=True)
         office = make_fake_office()
@@ -898,8 +923,10 @@ class ChantSearchViewTest(TestCase):
         self.assertIn(office_name, html)
         self.assertIn(office_description, html)
         self.assertIn(url, html)
-        self.assertIn(f'<a href="{url}" title="{office_description}">{office_name}</a>', html)
-        
+        self.assertIn(
+            f'<a href="{url}" title="{office_description}">{office_name}</a>', html
+        )
+
     def test_genre_column(self):
         source = make_fake_source(published=True)
         genre = make_fake_genre()
@@ -920,8 +947,10 @@ class ChantSearchViewTest(TestCase):
         self.assertIn(genre_name, html)
         self.assertIn(genre_description, html)
         self.assertIn(url, html)
-        self.assertIn(f'<a href="{url}" title="{genre_description}">{genre_name}</a>', html)
-        
+        self.assertIn(
+            f'<a href="{url}" title="{genre_description}">{genre_name}</a>', html
+        )
+
     def test_position_column(self):
         source = make_fake_source(published=True)
         fulltext = "manuscript full text"
@@ -963,9 +992,9 @@ class ChantSearchViewTest(TestCase):
             source=source,
             manuscript_full_text_std_spelling=fulltext,
         )
-        mode = "this is the mode"   # not a representative value, but
-                                    # single numerals are found
-                                    # elsewhere in the template
+        mode = "this is the mode"  # not a representative value, but
+        # single numerals are found
+        # elsewhere in the template
         chant.mode = mode
         chant.save()
         response = self.client.get(
@@ -988,15 +1017,12 @@ class ChantSearchViewTest(TestCase):
             reverse("chant-search"), {"keyword": search_term, "op": "contains"}
         )
         html = str(response.content)
-        self.assertIn(
-            '\\xe2\\x9c\\x94', # checkmark character
-            html
-        )
+        self.assertIn("\\xe2\\x9c\\x94", html)  # checkmark character
         self.assertIn(
             '<span title="Chant record includes Manuscript Full Text">\\xe2\\x9c\\x94</span>',
-            html
+            html,
         )
-        
+
         chant.manuscript_full_text = None
         chant.save()
         response = self.client.get(
@@ -1004,7 +1030,7 @@ class ChantSearchViewTest(TestCase):
         )
         html = str(response.content)
         self.assertNotIn(
-            '\\xe2\\x9c\\x94', # checkmark character
+            "\\xe2\\x9c\\x94",  # checkmark character
             html,
         )
 
@@ -1022,21 +1048,18 @@ class ChantSearchViewTest(TestCase):
             reverse("chant-search"), {"keyword": search_term, "op": "contains"}
         )
         html = str(response.content)
+        self.assertIn("\\xe2\\x99\\xab", html)  # beamed eighth notes character
         self.assertIn(
-            "\\xe2\\x99\\xab", # beamed eighth notes character
-            html
+            '<span title="Chant record has Volpiano melody">\\xe2\\x99\\xab</span>',
+            html,
         )
-        self.assertIn('<span title="Chant record has Volpiano melody">\\xe2\\x99\\xab</span>', html)
         chant.volpiano = None
         chant.save()
         response = self.client.get(
             reverse("chant-search"), {"keyword": search_term, "op": "contains"}
         )
         html = str(response.content)
-        self.assertNotIn(
-            "\\xe2\\x99\\xab", # beamed eighth notes character
-            html
-        )
+        self.assertNotIn("\\xe2\\x99\\xab", html)  # beamed eighth notes character
 
     def test_image_link_column(self):
         source = make_fake_source(published=True)
@@ -1046,7 +1069,7 @@ class ChantSearchViewTest(TestCase):
             source=source,
             manuscript_full_text_std_spelling=fulltext,
         )
-        image_link = 'http://www.example.com/image_link'
+        image_link = "http://www.example.com/image_link"
         chant.image_link = image_link
         chant.save()
         response = self.client.get(
@@ -1055,7 +1078,7 @@ class ChantSearchViewTest(TestCase):
         html = str(response.content)
         self.assertIn(image_link, html)
         self.assertIn(f'<a href="{image_link}" target="_blank">Image</a>', html)
-        
+
 
 class ChantSearchMSViewTest(TestCase):
     def test_url_and_templates(self):
@@ -1189,35 +1212,33 @@ class ChantSearchMSViewTest(TestCase):
         fulltext = "manuscript full text"
         search_term = "full"
         chant = make_fake_chant(
-            source=source,
-            manuscript_full_text_std_spelling=fulltext
+            source=source, manuscript_full_text_std_spelling=fulltext
         )
         response = self.client.get(
             reverse("chant-search-ms", args=[source.id]),
-            {"keyword": search_term, "op": "contains"}
+            {"keyword": search_term, "op": "contains"},
         )
         html = str(response.content)
         self.assertIn(siglum, html)
         self.assertIn(source_title, html)
         self.assertIn(url, html)
         self.assertIn(f'<a href="{url}" title="{source_title}">{siglum}</a>', html)
-        
+
     def test_folio_column(self):
         source = make_fake_source(published=True)
         fulltext = "manuscript full text"
         search_term = "full"
         chant = make_fake_chant(
-            source=source,
-            manuscript_full_text_std_spelling=fulltext
+            source=source, manuscript_full_text_std_spelling=fulltext
         )
         folio = chant.folio
         response = self.client.get(
             reverse("chant-search-ms", args=[source.id]),
-            {"keyword": search_term, "op": "contains"}
+            {"keyword": search_term, "op": "contains"},
         )
         html = str(response.content)
         self.assertIn(folio, html)
-        
+
     def test_feast_column(self):
         source = make_fake_source(published=True)
         feast = make_fake_feast()
@@ -1233,14 +1254,16 @@ class ChantSearchMSViewTest(TestCase):
         )
         response = self.client.get(
             reverse("chant-search-ms", args=[source.id]),
-            {"keyword": search_term, "op": "contains"}
+            {"keyword": search_term, "op": "contains"},
         )
         html = str(response.content)
         self.assertIn(feast_name, html)
         self.assertIn(feast_description, html)
         self.assertIn(url, html)
-        self.assertIn(f'<a href="{url}" title="{feast_description}">{feast_name}</a>', html)
-        
+        self.assertIn(
+            f'<a href="{url}" title="{feast_description}">{feast_name}</a>', html
+        )
+
     def test_office_column(self):
         source = make_fake_source(published=True)
         office = make_fake_office()
@@ -1256,14 +1279,16 @@ class ChantSearchMSViewTest(TestCase):
         )
         response = self.client.get(
             reverse("chant-search-ms", args=[source.id]),
-            {"keyword": search_term, "op": "contains"}
+            {"keyword": search_term, "op": "contains"},
         )
         html = str(response.content)
         self.assertIn(office_name, html)
         self.assertIn(office_description, html)
         self.assertIn(url, html)
-        self.assertIn(f'<a href="{url}" title="{office_description}">{office_name}</a>', html)
-        
+        self.assertIn(
+            f'<a href="{url}" title="{office_description}">{office_name}</a>', html
+        )
+
     def test_genre_column(self):
         source = make_fake_source(published=True)
         genre = make_fake_genre()
@@ -1279,14 +1304,16 @@ class ChantSearchMSViewTest(TestCase):
         )
         response = self.client.get(
             reverse("chant-search-ms", args=[source.id]),
-            {"keyword": search_term, "op": "contains"}
+            {"keyword": search_term, "op": "contains"},
         )
         html = str(response.content)
         self.assertIn(genre_name, html)
         self.assertIn(genre_description, html)
         self.assertIn(url, html)
-        self.assertIn(f'<a href="{url}" title="{genre_description}">{genre_name}</a>', html)
-        
+        self.assertIn(
+            f'<a href="{url}" title="{genre_description}">{genre_name}</a>', html
+        )
+
     def test_position_column(self):
         source = make_fake_source(published=True)
         fulltext = "manuscript full text"
@@ -1298,7 +1325,7 @@ class ChantSearchMSViewTest(TestCase):
         position = chant.position
         response = self.client.get(
             reverse("chant-search-ms", args=[source.id]),
-            {"keyword": search_term, "op": "contains"}
+            {"keyword": search_term, "op": "contains"},
         )
         html = str(response.content)
         self.assertIn(position, html)
@@ -1315,7 +1342,7 @@ class ChantSearchMSViewTest(TestCase):
         url = chant.get_ci_url()
         response = self.client.get(
             reverse("chant-search-ms", args=[source.id]),
-            {"keyword": search_term, "op": "contains"}
+            {"keyword": search_term, "op": "contains"},
         )
         html = str(response.content)
         self.assertIn(cantus_id, html)
@@ -1330,14 +1357,14 @@ class ChantSearchMSViewTest(TestCase):
             source=source,
             manuscript_full_text_std_spelling=fulltext,
         )
-        mode = "this is the mode"   # not a representative value, but
-                                    # single numerals are found
-                                    # elsewhere in the template
+        mode = "this is the mode"  # not a representative value, but
+        # single numerals are found
+        # elsewhere in the template
         chant.mode = mode
         chant.save()
         response = self.client.get(
             reverse("chant-search-ms", args=[source.id]),
-            {"keyword": search_term, "op": "contains"}
+            {"keyword": search_term, "op": "contains"},
         )
         html = str(response.content)
         self.assertIn(mode, html)
@@ -1354,27 +1381,24 @@ class ChantSearchMSViewTest(TestCase):
         )
         response = self.client.get(
             reverse("chant-search-ms", args=[source.id]),
-            {"keyword": search_term, "op": "contains"}
+            {"keyword": search_term, "op": "contains"},
         )
         html = str(response.content)
-        self.assertIn(
-            '\\xe2\\x9c\\x94', # checkmark character
-            html
-        )
+        self.assertIn("\\xe2\\x9c\\x94", html)  # checkmark character
         self.assertIn(
             '<span title="Chant record includes Manuscript Full Text">\\xe2\\x9c\\x94</span>',
-            html
+            html,
         )
-        
+
         chant.manuscript_full_text = None
         chant.save()
         response = self.client.get(
             reverse("chant-search-ms", args=[source.id]),
-            {"keyword": search_term, "op": "contains"}
+            {"keyword": search_term, "op": "contains"},
         )
         html = str(response.content)
         self.assertNotIn(
-            '\\xe2\\x9c\\x94', # checkmark character
+            "\\xe2\\x9c\\x94",  # checkmark character
             html,
         )
 
@@ -1390,25 +1414,22 @@ class ChantSearchMSViewTest(TestCase):
         )
         response = self.client.get(
             reverse("chant-search-ms", args=[source.id]),
-            {"keyword": search_term, "op": "contains"}
+            {"keyword": search_term, "op": "contains"},
         )
         html = str(response.content)
+        self.assertIn("\\xe2\\x99\\xab", html)  # beamed eighth notes character
         self.assertIn(
-            "\\xe2\\x99\\xab", # beamed eighth notes character
-            html
+            '<span title="Chant record has Volpiano melody">\\xe2\\x99\\xab</span>',
+            html,
         )
-        self.assertIn('<span title="Chant record has Volpiano melody">\\xe2\\x99\\xab</span>', html)
         chant.volpiano = None
         chant.save()
         response = self.client.get(
             reverse("chant-search-ms", args=[source.id]),
-            {"keyword": search_term, "op": "contains"}
+            {"keyword": search_term, "op": "contains"},
         )
         html = str(response.content)
-        self.assertNotIn(
-            "\\xe2\\x99\\xab", # beamed eighth notes character
-            html
-        )
+        self.assertNotIn("\\xe2\\x99\\xab", html)  # beamed eighth notes character
 
     def test_image_link_column(self):
         source = make_fake_source(published=True)
@@ -1418,12 +1439,12 @@ class ChantSearchMSViewTest(TestCase):
             source=source,
             manuscript_full_text_std_spelling=fulltext,
         )
-        image_link = 'http://www.example.com/image_link'
+        image_link = "http://www.example.com/image_link"
         chant.image_link = image_link
         chant.save()
         response = self.client.get(
             reverse("chant-search-ms", args=[source.id]),
-            {"keyword": search_term, "op": "contains"}
+            {"keyword": search_term, "op": "contains"},
         )
         html = str(response.content)
         self.assertIn(image_link, html)
@@ -1461,7 +1482,7 @@ class ChantIndexViewTest(TestCase):
         seq_source = make_fake_source(
             segment=Segment.objects.create(id=4064, name="Clavis Sequentiarium"),
             title="a sequence source",
-            published=True
+            published=True,
         )
         sequence = Sequence.objects.create(source=seq_source)
         response = self.client.get(reverse("chant-index"), {"source": seq_source.id})
@@ -1479,7 +1500,7 @@ class ChantIndexViewTest(TestCase):
         self.assertIn(source_title, html)
         expected_html_substring = f'<td title="{source_title}">{siglum}</td>'
         self.assertIn(expected_html_substring, html)
-    
+
     def test_marginalia_column(self):
         source = make_fake_source(published=True)
         chant = make_fake_chant(source=source)
@@ -1487,42 +1508,36 @@ class ChantIndexViewTest(TestCase):
         response = self.client.get(reverse("chant-index"), {"source": source.id})
         html = str(response.content)
         self.assertIn(marginalia, html)
-        expected_html_substring = f'<td>{marginalia}</td>'
+        expected_html_substring = f"<td>{marginalia}</td>"
         self.assertIn(expected_html_substring, html)
-        
+
     def test_folio_column(self):
         source = make_fake_source(published=True)
-        chant = make_fake_chant(
-            source=source
-        )
+        chant = make_fake_chant(source=source)
         folio = chant.folio
         response = self.client.get(reverse("chant-index"), {"source": source.id})
         html = str(response.content)
         self.assertIn(folio, html)
-        expected_html_substring = f'<td>{folio}</td>'
+        expected_html_substring = f"<td>{folio}</td>"
         self.assertIn(expected_html_substring, html)
-    
+
     def test_sequence_column_for_chant_source(self):
         source = make_fake_source(published=True)
-        chant = make_fake_chant(
-            source=source
-        )
+        chant = make_fake_chant(source=source)
         c_sequence = str(chant.c_sequence)
         response = self.client.get(reverse("chant-index"), {"source": source.id})
         html = str(response.content)
         self.assertIn(c_sequence, html)
-    
+
     def test_sequence_column_for_sequence_source(self):
         bower_segment = Segment.objects.create(id=4064, name="Bower Sequence Database")
         source = make_fake_source(published=True, segment=bower_segment)
-        sequence = make_fake_sequence(
-            source=source
-        )
+        sequence = make_fake_sequence(source=source)
         s_sequence = sequence.s_sequence
         response = self.client.get(reverse("chant-index"), {"source": source.id})
         html = str(response.content)
         self.assertIn(s_sequence, html)
-    
+
     def test_feast_column(self):
         source = make_fake_source(published=True)
         feast = make_fake_feast()
@@ -1536,7 +1551,7 @@ class ChantIndexViewTest(TestCase):
         html = str(response.content)
         self.assertIn(feast_name, html)
         self.assertIn(feast_description, html)
-    
+
     def test_office_column(self):
         source = make_fake_source(published=True)
         office = make_fake_office()
@@ -1552,7 +1567,7 @@ class ChantIndexViewTest(TestCase):
         html = str(response.content)
         self.assertIn(office_name, html)
         self.assertIn(office_description, html)
-    
+
     def test_genre_column(self):
         source = make_fake_source(published=True)
         genre = make_fake_genre()
@@ -1566,7 +1581,7 @@ class ChantIndexViewTest(TestCase):
         html = str(response.content)
         self.assertIn(genre_name, html)
         self.assertIn(genre_description, html)
-    
+
     def test_position_column(self):
         source = make_fake_source(published=True)
         chant = make_fake_chant(
@@ -1576,7 +1591,7 @@ class ChantIndexViewTest(TestCase):
         response = self.client.get(reverse("chant-index"), {"source": source.id})
         html = str(response.content)
         self.assertIn(position, html)
-    
+
     def test_incipit_column_for_chant_source(self):
         source = make_fake_source(published=True)
         chant = make_fake_chant(source=source)
@@ -1592,9 +1607,7 @@ class ChantIndexViewTest(TestCase):
     def test_incipit_column_for_sequence_source(self):
         bower_segment = Segment.objects.create(id=4064, name="Bower Sequence Database")
         source = make_fake_source(published=True, segment=bower_segment)
-        sequence = make_fake_sequence(
-            source=source
-        )
+        sequence = make_fake_sequence(source=source)
         incipit = sequence.incipit
         url = reverse("sequence-detail", args=[sequence.id])
         response = self.client.get(reverse("chant-index"), {"source": source.id})
@@ -1606,14 +1619,12 @@ class ChantIndexViewTest(TestCase):
 
     def test_cantus_id_column(self):
         source = make_fake_source(published=True)
-        chant = make_fake_chant(
-            source=source
-        )
+        chant = make_fake_chant(source=source)
         cantus_id = chant.cantus_id
         response = self.client.get(reverse("chant-index"), {"source": source.id})
         html = str(response.content)
         self.assertIn(cantus_id, html)
-        expected_html_substring = f'<td>{cantus_id}</td>'
+        expected_html_substring = f"<td>{cantus_id}</td>"
         self.assertIn(expected_html_substring, html)
 
     def test_mode_column(self):
@@ -1621,22 +1632,22 @@ class ChantIndexViewTest(TestCase):
         chant = make_fake_chant(
             source=source,
         )
-        mode = "this is the mode"   # not a representative value, but
-                                    # single numerals are found
-                                    # elsewhere in the template
+        mode = "this is the mode"  # not a representative value, but
+        # single numerals are found
+        # elsewhere in the template
         chant.mode = mode
         chant.save()
         response = self.client.get(reverse("chant-index"), {"source": source.id})
         html = str(response.content)
         self.assertIn(mode, html)
-        expected_html_substring = f'<td>{mode}</td>'
+        expected_html_substring = f"<td>{mode}</td>"
         self.assertIn(expected_html_substring, html)
 
     def test_differentia_column(self):
         source = make_fake_source(published=True)
-        differentia = "this is a differentia" # not a representative value, but
-                                    # most differentia are one or two characters,
-                                    # likely to be found elsewhere in the template
+        differentia = "this is a differentia"  # not a representative value, but
+        # most differentia are one or two characters,
+        # likely to be found elsewhere in the template
         make_fake_chant(
             source=source,
             differentia=differentia,
@@ -1644,7 +1655,7 @@ class ChantIndexViewTest(TestCase):
         response = self.client.get(reverse("chant-index"), {"source": source.id})
         html = str(response.content)
         self.assertIn(differentia, html)
-        expected_html_substring = f'<td>{differentia}</td>'
+        expected_html_substring = f"<td>{differentia}</td>"
         self.assertIn(expected_html_substring, html)
 
 
@@ -1654,13 +1665,13 @@ class ChantCreateViewTest(TestCase):
         Group.objects.create(name="project manager")
 
     def setUp(self):
-        self.user = get_user_model().objects.create(email='test@test.com')
-        self.user.set_password('pass')
+        self.user = get_user_model().objects.create(email="test@test.com")
+        self.user.set_password("pass")
         self.user.save()
         self.client = Client()
-        project_manager = Group.objects.get(name='project manager') 
+        project_manager = Group.objects.get(name="project manager")
         project_manager.user_set.add(self.user)
-        self.client.login(email='test@test.com', password='pass')
+        self.client.login(email="test@test.com", password="pass")
 
     def test_url_and_templates(self):
         source = make_fake_source()
@@ -1676,29 +1687,32 @@ class ChantCreateViewTest(TestCase):
     def test_create_chant(self):
         source = make_fake_source()
         response = self.client.post(
-            reverse("chant-create", args=[source.id]), 
-            {"manuscript_full_text_std_spelling": "initial", "folio": "001r", "c_sequence": "1"})
+            reverse("chant-create", args=[source.id]),
+            {
+                "manuscript_full_text_std_spelling": "initial",
+                "folio": "001r",
+                "c_sequence": "1",
+            },
+        )
         self.assertEqual(response.status_code, 302)
-        self.assertRedirects(response, reverse('chant-create', args=[source.id]))  
+        self.assertRedirects(response, reverse("chant-create", args=[source.id]))
         chant = Chant.objects.first()
         self.assertEqual(chant.manuscript_full_text_std_spelling, "initial")
-    
+
     def test_view_url_path(self):
         source = make_fake_source()
         response = self.client.get(f"/chant-create/{source.id}")
         self.assertEqual(response.status_code, 200)
 
     def test_context(self):
-        """some context variable passed to templates
-        """
+        """some context variable passed to templates"""
         source = make_fake_source()
         url = reverse("chant-create", args=[source.id])
         response = self.client.get(url)
         self.assertEqual(response.context["source"].title, source.title)
 
     def test_post_error(self):
-        """post with correct source and empty full-text
-        """
+        """post with correct source and empty full-text"""
         source = make_fake_source()
         url = reverse("chant-create", args=[source.id])
         response = self.client.post(url, data={"manuscript_full_text_std_spelling": ""})
@@ -1721,7 +1735,7 @@ class ChantCreateViewTest(TestCase):
         )
         fake_chant_2 = make_fake_chant(
             source=fake_source,
-            cantus_id="007450", # this has to be an actual cantus ID, since next_chants pulls data from CantusIndex and we'll get an empty response if we use "222222" etc.
+            cantus_id="007450",  # this has to be an actual cantus ID, since next_chants pulls data from CantusIndex and we'll get an empty response if we use "222222" etc.
             folio="001",
             c_sequence=2,
             next_chant=fake_chant_3,
@@ -1748,16 +1762,13 @@ class ChantCreateViewTest(TestCase):
         self.assertEqual(response.status_code, 200)
         # only one chant, i.e. fake_chant_2, should be returned
         self.assertEqual(1, len(response.context["suggested_chants"]))
-        self.assertEqual(
-            "007450", response.context["suggested_chants"][0]["cid"]
-        )
+        self.assertEqual("007450", response.context["suggested_chants"][0]["cid"])
         self.assertEqual(
             fake_R_genre.id, response.context["suggested_chants"][0]["genre_id"]
         )
 
     def test_fake_source(self):
-        """cannot go to input form with a fake source
-        """
+        """cannot go to input form with a fake source"""
         fake_source = faker.numerify(
             "#####"
         )  # there's not supposed to be 5-digits source id
@@ -1787,8 +1798,7 @@ class ChantCreateViewTest(TestCase):
         self.assertListEqual([], response.context["suggested_chants"])
 
     def test_repeated_seq(self):
-        """post with a folio and seq that already exists in the source
-        """
+        """post with a folio and seq that already exists in the source"""
         TEST_FOLIO = "001r"
         # create some chants in the test source
         source = make_fake_source()
@@ -1831,28 +1841,35 @@ class ChantCreateViewTest(TestCase):
             self.assertEqual(response.status_code, 200)
             self.assertTemplateUsed(response, "base.html")
             self.assertTemplateUsed(response, "chant_create.html")
-    
+
     def test_volpiano_signal(self):
         source = make_fake_source()
         self.client.post(
-            reverse("chant-create", args=[source.id]), 
+            reverse("chant-create", args=[source.id]),
             {
                 "manuscript_full_text_std_spelling": "ut queant lactose",
                 "folio": "001r",
                 "c_sequence": "1",
                 # liquescents, to be converted to lowercase
-                #                    vv v v v v v v  
+                #                    vv v v v v v v
                 "volpiano": "9abcdefg)A-B1C2D3E4F5G67?. yiz"
                 #                      ^ ^ ^ ^ ^ ^ ^^^^^^^^
                 # clefs, accidentals, etc., to be deleted
-            }
+            },
         )
-        chant_1 = Chant.objects.get(manuscript_full_text_std_spelling="ut queant lactose")
+        chant_1 = Chant.objects.get(
+            manuscript_full_text_std_spelling="ut queant lactose"
+        )
         self.assertEqual(chant_1.volpiano, "9abcdefg)A-B1C2D3E4F5G67?. yiz")
         self.assertEqual(chant_1.volpiano_notes, "9abcdefg9abcdefg")
         self.client.post(
-            reverse("chant-create", args=[source.id]), 
-            {"manuscript_full_text_std_spelling": "resonare foobaz", "folio": "001r", "c_sequence": "2", "volpiano": "abacadaeafagahaja"}
+            reverse("chant-create", args=[source.id]),
+            {
+                "manuscript_full_text_std_spelling": "resonare foobaz",
+                "folio": "001r",
+                "c_sequence": "2",
+                "volpiano": "abacadaeafagahaja",
+            },
         )
         chant_2 = Chant.objects.get(manuscript_full_text_std_spelling="resonare foobaz")
         self.assertEqual(chant_2.volpiano, "abacadaeafagahaja")
@@ -1865,13 +1882,13 @@ class ChantDeleteViewTest(TestCase):
         Group.objects.create(name="project manager")
 
     def setUp(self):
-        self.user = get_user_model().objects.create(email='test@test.com')
-        self.user.set_password('pass')
+        self.user = get_user_model().objects.create(email="test@test.com")
+        self.user.set_password("pass")
         self.user.save()
         self.client = Client()
-        project_manager = Group.objects.get(name='project manager') 
+        project_manager = Group.objects.get(name="project manager")
         project_manager.user_set.add(self.user)
-        self.client.login(email='test@test.com', password='pass')
+        self.client.login(email="test@test.com", password="pass")
 
     def test_context(self):
         chant = make_fake_chant()
@@ -1906,13 +1923,13 @@ class SourceEditChantsViewTest(TestCase):
         Group.objects.create(name="project manager")
 
     def setUp(self):
-        self.user = get_user_model().objects.create(email='test@test.com')
-        self.user.set_password('pass')
+        self.user = get_user_model().objects.create(email="test@test.com")
+        self.user.set_password("pass")
         self.user.save()
         self.client = Client()
-        project_manager = Group.objects.get(name='project manager') 
+        project_manager = Group.objects.get(name="project manager")
         project_manager.user_set.add(self.user)
-        self.client.login(email='test@test.com', password='pass')
+        self.client.login(email="test@test.com", password="pass")
 
     def test_url_and_templates(self):
         source1 = make_fake_source()
@@ -1924,7 +1941,9 @@ class SourceEditChantsViewTest(TestCase):
         self.assertEqual(response.status_code, 200)
         self.assertTemplateUsed(response, "chant_edit.html")
 
-        response = self.client.get(reverse("source-edit-chants", args=[source1.id + 100]))
+        response = self.client.get(
+            reverse("source-edit-chants", args=[source1.id + 100])
+        )
         self.assertEqual(response.status_code, 404)
         self.assertTemplateUsed(response, "404.html")
 
@@ -1937,37 +1956,40 @@ class SourceEditChantsViewTest(TestCase):
 
     def test_update_chant(self):
         source = make_fake_source()
-        chant = make_fake_chant(source=source, manuscript_full_text_std_spelling="initial")
+        chant = make_fake_chant(
+            source=source, manuscript_full_text_std_spelling="initial"
+        )
 
         response = self.client.get(
-            reverse('source-edit-chants', args=[source.id]), 
-            {'pk': chant.id})
+            reverse("source-edit-chants", args=[source.id]), {"pk": chant.id}
+        )
         self.assertEqual(response.status_code, 200)
         self.assertTemplateUsed(response, "chant_edit.html")
 
         folio = chant.folio
         c_sequence = chant.c_sequence
         response = self.client.post(
-            reverse('source-edit-chants', args=[source.id]), 
+            reverse("source-edit-chants", args=[source.id]),
             {
-                'manuscript_full_text_std_spelling': 'test',
-                'pk': chant.id,
+                "manuscript_full_text_std_spelling": "test",
+                "pk": chant.id,
                 "folio": folio,
                 "c_sequence": c_sequence,
-            })
+            },
+        )
         self.assertEqual(response.status_code, 302)
         # Check that after the edit, the user is redirected to the source-edit-chants page
-        self.assertRedirects(response, reverse('source-edit-chants', args=[source.id]))  
+        self.assertRedirects(response, reverse("source-edit-chants", args=[source.id]))
         chant.refresh_from_db()
-        self.assertEqual(chant.manuscript_full_text_std_spelling, 'test')
-    
+        self.assertEqual(chant.manuscript_full_text_std_spelling, "test")
+
     def test_provide_suggested_fulltext(self):
         source = make_fake_source()
-        chant = make_fake_chant(source=source, manuscript_full_text_std_spelling="",
-        cantus_id="007450")
+        chant = make_fake_chant(
+            source=source, manuscript_full_text_std_spelling="", cantus_id="007450"
+        )
         response = self.client.get(
-            reverse('source-edit-chants', args=[source.id]), 
-            {'pk': chant.id}
+            reverse("source-edit-chants", args=[source.id]), {"pk": chant.id}
         )
         # expected_suggestion is copied from Cantus Index. If this test is failing,
         # it could be because the value stored in Cantus Index has changed.
@@ -1975,27 +1997,27 @@ class SourceEditChantsViewTest(TestCase):
         expected_suggestion = "Puer natus est nobis alleluia alleluia"
         suggested_fulltext = response.context["suggested_fulltext"]
         self.assertEqual(suggested_fulltext, expected_suggestion)
-    
+
     def test_volpiano_signal(self):
         source = make_fake_source()
         chant_1 = make_fake_chant(
             manuscript_full_text_std_spelling="ut queant lactose",
             source=source,
             folio="001r",
-            c_sequence=1
+            c_sequence=1,
         )
         self.client.post(
-            reverse('source-edit-chants', args=[source.id]),
+            reverse("source-edit-chants", args=[source.id]),
             {
                 "manuscript_full_text_std_spelling": "ut queant lactose",
                 "folio": "001r",
                 "c_sequence": "1",
                 # liquescents, to be converted to lowercase
-                #                    vv v v v v v v  
+                #                    vv v v v v v v
                 "volpiano": "9abcdefg)A-B1C2D3E4F5G67?. yiz"
                 #                      ^ ^ ^ ^ ^ ^ ^^^^^^^^
                 # clefs, accidentals, etc., to be deleted
-            }
+            },
         )
         chant_1 = Chant.objects.get(
             manuscript_full_text_std_spelling="ut queant lactose"
@@ -2007,37 +2029,32 @@ class SourceEditChantsViewTest(TestCase):
             manuscript_full_text_std_spelling="resonare foobaz",
             source=source,
             folio="001r",
-            c_sequence=2
+            c_sequence=2,
         )
         self.client.post(
-            reverse('source-edit-chants', args=[source.id]),  
+            reverse("source-edit-chants", args=[source.id]),
             {
                 "manuscript_full_text_std_spelling": "resonare foobaz",
                 "folio": "001r",
                 "c_sequence": "2",
                 "volpiano": "abacadaeafagahaja",
-            }
+            },
         )
-        chant_2 = Chant.objects.get(
-            manuscript_full_text_std_spelling="resonare foobaz"
-        )
+        chant_2 = Chant.objects.get(manuscript_full_text_std_spelling="resonare foobaz")
         self.assertEqual(chant_2.volpiano, "abacadaeafagahaja")
         self.assertEqual(chant_2.volpiano_intervals, "1-12-23-34-45-56-67-78-8")
-    
+
     def test_chant_with_volpiano_with_no_fulltext(self):
         # in the past, a Chant Edit page will error rather than loading properly when the chant has volpiano but no fulltext
         source = make_fake_source()
         chant = make_fake_chant(
-            source=source,
-            volpiano="1---f--e---f--d---e--c---d--d",
-            incipit="dies irae"
+            source=source, volpiano="1---f--e---f--d---e--c---d--d", incipit="dies irae"
         )
         chant.manuscript_full_text = None
         chant.manuscript_full_text_std_spelling = None
         chant.save()
         response = self.client.get(
-            reverse('source-edit-chants', args=[source.id]), 
-            {'pk': chant.id}
+            reverse("source-edit-chants", args=[source.id]), {"pk": chant.id}
         )
         self.assertEqual(response.status_code, 200)
 
@@ -2053,8 +2070,7 @@ class SourceEditChantsViewTest(TestCase):
         chant.incipit = None
         chant.save()
         response = self.client.get(
-            reverse('source-edit-chants', args=[source.id]), 
-            {'pk': chant.id}
+            reverse("source-edit-chants", args=[source.id]), {"pk": chant.id}
         )
         self.assertEqual(response.status_code, 200)
 
@@ -2065,13 +2081,13 @@ class ChantProofreadViewTest(TestCase):
         Group.objects.create(name="project manager")
 
     def setUp(self):
-        self.user = get_user_model().objects.create(email='test@test.com')
-        self.user.set_password('pass')
+        self.user = get_user_model().objects.create(email="test@test.com")
+        self.user.set_password("pass")
         self.user.save()
         self.client = Client()
-        project_manager = Group.objects.get(name='project manager') 
+        project_manager = Group.objects.get(name="project manager")
         project_manager.user_set.add(self.user)
-        self.client.login(email='test@test.com', password='pass')
+        self.client.login(email="test@test.com", password="pass")
 
     def test_view_url_and_templates(self):
         source = make_fake_source()
@@ -2091,35 +2107,44 @@ class ChantProofreadViewTest(TestCase):
         response_2 = self.client.get(reverse("chant-proofread", args=[source_id]))
         self.assertEqual(response_2.status_code, 200)
 
-        response_3 = self.client.get(f"/proofread-chant/{source_id}?folio={sample_folio}")
+        response_3 = self.client.get(
+            f"/proofread-chant/{source_id}?folio={sample_folio}"
+        )
         self.assertEqual(response_3.status_code, 200)
 
-        response_4 = self.client.get(f"/proofread-chant/{source_id}?folio={nonexistent_folio}")
+        response_4 = self.client.get(
+            f"/proofread-chant/{source_id}?folio={nonexistent_folio}"
+        )
         self.assertEqual(response_4.status_code, 404)
 
-        response_5 = self.client.get(f"/proofread-chant/{source_id}?pk={sample_pk}&folio={sample_folio}")
+        response_5 = self.client.get(
+            f"/proofread-chant/{source_id}?pk={sample_pk}&folio={sample_folio}"
+        )
         self.assertEqual(response_5.status_code, 200)
 
         self.client.logout()
         response_6 = self.client.get(reverse("chant-proofread", args=[source_id]))
-        self.assertEqual(response_6.status_code, 302) # 302 Found
-    
+        self.assertEqual(response_6.status_code, 302)  # 302 Found
+
     def test_proofread_chant(self):
-        chant = make_fake_chant(manuscript_full_text_std_spelling="lorem ipsum", folio="001r")
+        chant = make_fake_chant(
+            manuscript_full_text_std_spelling="lorem ipsum", folio="001r"
+        )
         folio = chant.folio
         c_sequence = chant.c_sequence
         ms_std = chant.manuscript_full_text_std_spelling
         self.assertIs(chant.manuscript_full_text_std_proofread, False)
         source = chant.source
-        response = self.client.post(f"/proofread-chant/{source.id}?pk={chant.id}&folio=001r", 
+        response = self.client.post(
+            f"/proofread-chant/{source.id}?pk={chant.id}&folio=001r",
             {
-                'manuscript_full_text_std_proofread': 'True',
+                "manuscript_full_text_std_proofread": "True",
                 "folio": folio,
                 "c_sequence": c_sequence,
                 "manuscript_full_text_std_spelling": ms_std,
             },
         )
-        self.assertEqual(response.status_code, 302) # 302 Found
+        self.assertEqual(response.status_code, 302)  # 302 Found
         chant.refresh_from_db()
         self.assertIs(chant.manuscript_full_text_std_proofread, True)
 
@@ -2135,8 +2160,7 @@ class ChantProofreadViewTest(TestCase):
         chant.incipit = None
         chant.save()
         response = self.client.get(
-            reverse('source-edit-chants', args=[source.id]), 
-            {'pk': chant.id}
+            reverse("source-edit-chants", args=[source.id]), {"pk": chant.id}
         )
         self.assertEqual(response.status_code, 200)
 
@@ -2147,13 +2171,13 @@ class ChantEditSyllabificationViewTest(TestCase):
         Group.objects.create(name="project manager")
 
     def setUp(self):
-        self.user = get_user_model().objects.create(email='test@test.com')
-        self.user.set_password('pass')
+        self.user = get_user_model().objects.create(email="test@test.com")
+        self.user.set_password("pass")
         self.user.save()
         self.client = Client()
-        project_manager = Group.objects.get(name='project manager') 
+        project_manager = Group.objects.get(name="project manager")
         project_manager.user_set.add(self.user)
-        self.client.login(email='test@test.com', password='pass')
+        self.client.login(email="test@test.com", password="pass")
 
     def test_view_url_and_templates(self):
         chant = make_fake_chant()
@@ -2164,20 +2188,25 @@ class ChantEditSyllabificationViewTest(TestCase):
         self.assertTemplateUsed(response_1, "base.html")
         self.assertTemplateUsed(response_1, "chant_syllabification_edit.html")
 
-        response_2 = self.client.get(reverse("source-edit-syllabification", args=[chant_id]))
+        response_2 = self.client.get(
+            reverse("source-edit-syllabification", args=[chant_id])
+        )
         self.assertEqual(response_2.status_code, 200)
 
         self.client.logout()
-        response_3 = self.client.get(reverse("source-edit-syllabification", args=[chant_id]))
-        self.assertEqual(response_3.status_code, 302) # 302: redirect to login page
+        response_3 = self.client.get(
+            reverse("source-edit-syllabification", args=[chant_id])
+        )
+        self.assertEqual(response_3.status_code, 302)  # 302: redirect to login page
 
     def test_edit_syllabification(self):
-        chant = make_fake_chant(
-            manuscript_syllabized_full_text="lorem ipsum"
-        )
+        chant = make_fake_chant(manuscript_syllabized_full_text="lorem ipsum")
         self.assertIs(chant.manuscript_syllabized_full_text, "lorem ipsum")
-        response = self.client.post(f"/edit-syllabification/{chant.id}", {"manuscript_syllabized_full_text": "lo-rem ip-sum"})
-        self.assertEqual(response.status_code, 302) # 302 Found
+        response = self.client.post(
+            f"/edit-syllabification/{chant.id}",
+            {"manuscript_syllabized_full_text": "lo-rem ip-sum"},
+        )
+        self.assertEqual(response.status_code, 302)  # 302 Found
         chant.refresh_from_db()
         self.assertEqual(chant.manuscript_syllabized_full_text, "lo-rem ip-sum")
 
@@ -2366,11 +2395,9 @@ class FeastDetailViewTest(TestCase):
         frequent_chants_zip = response_1.context["frequent_chants_zip"]
         cantus_ids = [x[0] for x in frequent_chants_zip]
         self.assertNotIn(chant.cantus_id, cantus_ids)
-        
+
     def test_sources_containing_this_feast(self):
-        big_source = make_fake_source(
-            published=True, title="big_source", siglum="big"
-        )
+        big_source = make_fake_source(published=True, title="big_source", siglum="big")
         small_source = make_fake_source(
             published=True, title="small_source", siglum="small"
         )
@@ -2404,7 +2431,9 @@ class FeastDetailViewTest(TestCase):
 
         response = self.client.get(reverse("feast-detail", args=[feast.id]))
         sources_zip = response.context["sources_zip"]
-        self.assertEqual(len(sources_zip), 1) # only item should be a duple corresponding to published_source
+        self.assertEqual(
+            len(sources_zip), 1
+        )  # only item should be a duple corresponding to published_source
         self.assertEqual(sources_zip[0][0].title, "published source")
         self.assertEqual(sources_zip[0][1], 2)
 
@@ -2417,7 +2446,7 @@ class GenreListViewTest(TestCase):
     def test_view_url_reverse_name(self):
         response = self.client.get(reverse("genre-list"))
         self.assertEqual(response.status_code, 200)
-    
+
     def test_url_and_templates(self):
         """Test the url and templates used"""
         response = self.client.get(reverse("genre-list"))
@@ -2427,7 +2456,9 @@ class GenreListViewTest(TestCase):
 
     def test_filter_by_mass(self):
         mass_office_genre = Genre.objects.create(
-            name="genre1", description="test", mass_office="Mass, Office",
+            name="genre1",
+            description="test",
+            mass_office="Mass, Office",
         )
         mass_genre = Genre.objects.create(
             name="genre2", description="test", mass_office="Mass"
@@ -2436,7 +2467,9 @@ class GenreListViewTest(TestCase):
             name="genre3", description="test", mass_office="Office"
         )
         old_hispanic_genre = Genre.objects.create(
-            name="genre4", description="test", mass_office="Old Hispanic",
+            name="genre4",
+            description="test",
+            mass_office="Old Hispanic",
         )
         # filter by Mass
         response = self.client.get(reverse("genre-list"), {"mass_office": "Mass"})
@@ -2449,7 +2482,9 @@ class GenreListViewTest(TestCase):
 
     def test_filter_by_office(self):
         mass_office_genre = Genre.objects.create(
-            name="genre1", description="test", mass_office="Mass, Office",
+            name="genre1",
+            description="test",
+            mass_office="Mass, Office",
         )
         mass_genre = Genre.objects.create(
             name="genre2", description="test", mass_office="Mass"
@@ -2458,7 +2493,9 @@ class GenreListViewTest(TestCase):
             name="genre3", description="test", mass_office="Office"
         )
         old_hispanic_genre = Genre.objects.create(
-            name="genre4", description="test", mass_office="Old Hispanic",
+            name="genre4",
+            description="test",
+            mass_office="Old Hispanic",
         )
         # filter by Office
         response = self.client.get(reverse("genre-list"), {"mass_office": "Office"})
@@ -2471,7 +2508,9 @@ class GenreListViewTest(TestCase):
 
     def test_no_filtering(self):
         mass_office_genre = Genre.objects.create(
-            name="genre1", description="test", mass_office="Mass, Office",
+            name="genre1",
+            description="test",
+            mass_office="Mass, Office",
         )
         mass_genre = Genre.objects.create(
             name="genre2", description="test", mass_office="Mass"
@@ -2480,7 +2519,9 @@ class GenreListViewTest(TestCase):
             name="genre3", description="test", mass_office="Office"
         )
         old_hispanic_genre = Genre.objects.create(
-            name="genre4", description="test", mass_office="Old Hispanic",
+            name="genre4",
+            description="test",
+            mass_office="Old Hispanic",
         )
         # default is no filtering
         response = self.client.get(reverse("genre-list"))
@@ -2493,7 +2534,9 @@ class GenreListViewTest(TestCase):
 
     def test_invalid_filtering(self):
         mass_office_genre = Genre.objects.create(
-            name="genre1", description="test", mass_office="Mass, Office",
+            name="genre1",
+            description="test",
+            mass_office="Mass, Office",
         )
         mass_genre = Genre.objects.create(
             name="genre2", description="test", mass_office="Mass"
@@ -2502,7 +2545,9 @@ class GenreListViewTest(TestCase):
             name="genre3", description="test", mass_office="Office"
         )
         old_hispanic_genre = Genre.objects.create(
-            name="genre4", description="test", mass_office="Old Hispanic",
+            name="genre4",
+            description="test",
+            mass_office="Old Hispanic",
         )
         # invalid filtering parameter should default to no filtering
         response = self.client.get(
@@ -2633,7 +2678,6 @@ class ProvenanceDetailViewTest(TestCase):
         self.assertTemplateUsed(response, "provenance_detail.html")
 
 
-
 class SequenceListViewTest(TestCase):
     def setUp(self):
         # unless a segment is specified when a source is created, the source is automatically assigned
@@ -2675,9 +2719,7 @@ class SequenceListViewTest(TestCase):
             published=True,
             title="a sequence source",
         )
-        sequence = Sequence.objects.create(
-            siglum=make_random_string(6), source=source
-        )
+        sequence = Sequence.objects.create(siglum=make_random_string(6), source=source)
         search_term = get_random_search_term(sequence.siglum)
         # request the page, search for the siglum
         response = self.client.get(reverse("sequence-list"), {"siglum": search_term})
@@ -2686,9 +2728,7 @@ class SequenceListViewTest(TestCase):
 
     def test_search_cantus_id(self):
         # create a published sequence source and some sequence in it
-        source = make_fake_source(
-            published=True, title="a sequence source"
-        )
+        source = make_fake_source(published=True, title="a sequence source")
         # faker generates a fake cantus id, in the form of two letters followed by five digits
         sequence = Sequence.objects.create(
             cantus_id=faker.bothify("??#####"), source=source
@@ -2714,7 +2754,7 @@ class SequenceDetailViewTest(TestCase):
         response = self.client.get(reverse("sequence-detail", args=[sequence.id]))
         concordances = response.context["concordances"]
         self.assertIn(sequence_with_same_cantus_id, concordances)
-    
+
     def test_sequence_without_cantus_id(self):
         sequence = make_fake_sequence()
         sequence.cantus_id = None
@@ -2737,13 +2777,13 @@ class SequenceEditViewTest(TestCase):
         Group.objects.create(name="project manager")
 
     def setUp(self):
-        self.user = get_user_model().objects.create(email='test@test.com')
-        self.user.set_password('pass')
+        self.user = get_user_model().objects.create(email="test@test.com")
+        self.user.set_password("pass")
         self.user.save()
         self.client = Client()
-        project_manager = Group.objects.get(name='project manager') 
+        project_manager = Group.objects.get(name="project manager")
         project_manager.user_set.add(self.user)
-        self.client.login(email='test@test.com', password='pass')
+        self.client.login(email="test@test.com", password="pass")
 
     def test_context(self):
         sequence = make_fake_sequence()
@@ -2765,11 +2805,12 @@ class SequenceEditViewTest(TestCase):
         sequence = make_fake_sequence(incipit="test_update_sequence")
         sequence_id = str(sequence.id)
         response = self.client.post(
-            reverse('sequence-edit', args=[sequence_id]), 
-            {'title': 'test', 'source': sequence.source.id})
+            reverse("sequence-edit", args=[sequence_id]),
+            {"title": "test", "source": sequence.source.id},
+        )
         self.assertEqual(response.status_code, 302)
         sequence.refresh_from_db()
-        self.assertEqual(sequence.title, 'test')
+        self.assertEqual(sequence.title, "test")
 
 
 class SourceListViewTest(TestCase):
@@ -2797,12 +2838,8 @@ class SourceListViewTest(TestCase):
 
     def test_only_published_sources_visible(self):
         """For a source to be displayed in the list, its `published` field must be `True`"""
-        published_source = make_fake_source(
-            published=True, title="published source"
-        )
-        private_source = make_fake_source(
-            published=False, title="private source"
-        )
+        published_source = make_fake_source(published=True, title="published source")
+        private_source = make_fake_source(published=False, title="private source")
         response = self.client.get(reverse("source-list"))
         sources = response.context["sources"]
         self.assertIn(published_source, sources)
@@ -2870,17 +2907,20 @@ class SourceListViewTest(TestCase):
         tenth_century = Century.objects.create(name="10th century")
 
         ninth_century_source = make_fake_source(
-            published=True, title="source",
+            published=True,
+            title="source",
         )
         ninth_century_source.century.set([ninth_century])
 
         ninth_century_first_half_source = make_fake_source(
-            published=True, title="source",
+            published=True,
+            title="source",
         )
         ninth_century_first_half_source.century.set([ninth_century_first_half])
 
         multiple_century_source = make_fake_source(
-            published=True, title="source",
+            published=True,
+            title="source",
         )
         multiple_century_source.century.set([ninth_century, tenth_century])
 
@@ -2917,7 +2957,7 @@ class SourceListViewTest(TestCase):
             title="fragment",
         )
         unknown = make_fake_source(
-            full_source = None,
+            full_source=None,
             published=True,
             title="full_source field is empty",
         )
@@ -2969,7 +3009,9 @@ class SourceListViewTest(TestCase):
     def test_search_by_rism_siglum_name(self):
         rism_siglum = make_fake_rism_siglum()
         source = make_fake_source(
-            rism_siglum=rism_siglum, published=True, title="title",
+            rism_siglum=rism_siglum,
+            published=True,
+            title="title",
         )
         search_term = get_random_search_term(source.rism_siglum.name)
         response = self.client.get(reverse("source-list"), {"general": search_term})
@@ -2978,7 +3020,9 @@ class SourceListViewTest(TestCase):
     def test_search_by_rism_siglum_description(self):
         rism_siglum = make_fake_rism_siglum()
         source = make_fake_source(
-            rism_siglum=rism_siglum, published=True, title="title",
+            rism_siglum=rism_siglum,
+            published=True,
+            title="title",
         )
         search_term = get_random_search_term(source.rism_siglum.description)
         response = self.client.get(reverse("source-list"), {"general": search_term})
@@ -3022,13 +3066,13 @@ class SourceCreateViewTest(TestCase):
         Group.objects.create(name="project manager")
 
     def setUp(self):
-        self.user = get_user_model().objects.create(email='test@test.com')
-        self.user.set_password('pass')
+        self.user = get_user_model().objects.create(email="test@test.com")
+        self.user.set_password("pass")
         self.user.save()
         self.client = Client()
-        project_manager = Group.objects.get(name='project manager') 
+        project_manager = Group.objects.get(name="project manager")
         project_manager.user_set.add(self.user)
-        self.client.login(email='test@test.com', password='pass')
+        self.client.login(email="test@test.com", password="pass")
         # unless a segment is specified when a source is created, the source is automatically assigned
         # to the segment with the name "CANTUS Database" - to prevent errors, we must make sure that
         # such a segment exists
@@ -3041,18 +3085,15 @@ class SourceCreateViewTest(TestCase):
 
     def test_create_source(self):
         response = self.client.post(
-            reverse('source-create'), 
-            {
-                'title': 'test',
-                'siglum': 'test-siglum' # siglum is a required field
-            }
+            reverse("source-create"),
+            {"title": "test", "siglum": "test-siglum"},  # siglum is a required field
         )
 
         self.assertEqual(response.status_code, 302)
-        self.assertRedirects(response, reverse('source-create'))       
+        self.assertRedirects(response, reverse("source-create"))
 
         source = Source.objects.first()
-        self.assertEqual(source.title, 'test')
+        self.assertEqual(source.title, "test")
 
 
 class SourceEditViewTest(TestCase):
@@ -3061,13 +3102,13 @@ class SourceEditViewTest(TestCase):
         Group.objects.create(name="project manager")
 
     def setUp(self):
-        self.user = get_user_model().objects.create(email='test@test.com')
-        self.user.set_password('pass')
+        self.user = get_user_model().objects.create(email="test@test.com")
+        self.user.set_password("pass")
         self.user.save()
         self.client = Client()
-        project_manager = Group.objects.get(name='project manager') 
+        project_manager = Group.objects.get(name="project manager")
         project_manager.user_set.add(self.user)
-        self.client.login(email='test@test.com', password='pass')
+        self.client.login(email="test@test.com", password="pass")
 
     def test_context(self):
         source = make_fake_source()
@@ -3089,17 +3130,17 @@ class SourceEditViewTest(TestCase):
         source = make_fake_source()
 
         response = self.client.post(
-            reverse('source-edit', args=[source.id]),
+            reverse("source-edit", args=[source.id]),
             {
-                'title': 'test',
-                'siglum' : 'test-siglum', # siglum is a required field,
+                "title": "test",
+                "siglum": "test-siglum",  # siglum is a required field,
             },
         )
 
         self.assertEqual(response.status_code, 302)
-        self.assertRedirects(response, reverse('source-detail', args=[source.id]))       
+        self.assertRedirects(response, reverse("source-detail", args=[source.id]))
         source.refresh_from_db()
-        self.assertEqual(source.title, 'test')
+        self.assertEqual(source.title, "test")
 
 
 class SourceDetailViewTest(TestCase):
@@ -3129,9 +3170,7 @@ class SourceDetailViewTest(TestCase):
         # create a sequence source and several sequences in it
         bower_segment = Segment.objects.create(id=4064, name="Bower Sequence Database")
         source = make_fake_source(
-            title="a sequence source",
-            published=True,
-            segment=bower_segment
+            title="a sequence source", published=True, segment=bower_segment
         )
         Sequence.objects.create(source=source, folio="001r")
         Sequence.objects.create(source=source, folio="001r")
@@ -3170,7 +3209,7 @@ class SourceDetailViewTest(TestCase):
         source = make_fake_source(
             segment=Segment.objects.create(id=4064, name="Bower Sequence Database"),
             title="a sequence source",
-            published=True
+            published=True,
         )
         sequence = Sequence.objects.create(source=source)
         # request the page
@@ -3202,7 +3241,9 @@ class JsonMelodyExportTest(TestCase):
         self.assertEqual(response_1.status_code, 200)
         self.assertIsInstance(response_1, JsonResponse)
 
-        response_2 = self.client.get(reverse("json-melody-export", args=[FAKE_CANTUS_ID]))
+        response_2 = self.client.get(
+            reverse("json-melody-export", args=[FAKE_CANTUS_ID])
+        )
         self.assertEqual(response_1.status_code, 200)
         self.assertIsInstance(response_2, JsonResponse)
         unpacked_response = json.loads(response_2.content)
@@ -3233,7 +3274,7 @@ class JsonMelodyExportTest(TestCase):
         unpacked = json.loads(response.content)[0]
         response_fields = set(unpacked.keys())
         self.assertEqual(response_fields, CORRECT_FIELDS)
-    
+
     def test_json_melody_published_vs_unpublished(self):
         FAKE_CANTUS_ID = "111111"
         published_source = make_fake_source(published=True)
@@ -3250,8 +3291,10 @@ class JsonMelodyExportTest(TestCase):
         )
         response = self.client.get(reverse("json-melody-export", args=[FAKE_CANTUS_ID]))
         unpacked_response = json.loads(response.content)
-        self.assertEqual(len(unpacked_response), 1) # just published_chant
-        self.assertEqual(unpacked_response[0]["fulltext"], "I'm a chant from a published source!")
+        self.assertEqual(len(unpacked_response), 1)  # just published_chant
+        self.assertEqual(
+            unpacked_response[0]["fulltext"], "I'm a chant from a published source!"
+        )
 
 
 class JsonNodeExportTest(TestCase):
@@ -3267,9 +3310,9 @@ class JsonNodeExportTest(TestCase):
         self.assertEqual(response_2.status_code, 200)
         self.assertIsInstance(response_2, JsonResponse)
 
-        response_3 = self.client.get(reverse('json-node-export', args=["1000000000"]))
+        response_3 = self.client.get(reverse("json-node-export", args=["1000000000"]))
         self.assertEqual(response_3.status_code, 404)
-        
+
     def test_json_node_for_chant(self):
         chant = make_fake_chant()
         id = chant.id
@@ -3279,11 +3322,11 @@ class JsonNodeExportTest(TestCase):
 
         unpacked_response = json.loads(response.content)
 
-        response_cantus_id = unpacked_response['cantus_id']
+        response_cantus_id = unpacked_response["cantus_id"]
         self.assertIsInstance(response_cantus_id, str)
         self.assertEqual(response_cantus_id, chant.cantus_id)
 
-        response_id = unpacked_response['id']
+        response_id = unpacked_response["id"]
         self.assertIsInstance(response_id, int)
         self.assertEqual(response_id, id)
 
@@ -3296,11 +3339,11 @@ class JsonNodeExportTest(TestCase):
 
         unpacked_response = json.loads(response.content)
 
-        response_cantus_id = unpacked_response['cantus_id']
+        response_cantus_id = unpacked_response["cantus_id"]
         self.assertIsInstance(response_cantus_id, str)
         self.assertEqual(response_cantus_id, sequence.cantus_id)
 
-        response_id = unpacked_response['id']
+        response_id = unpacked_response["id"]
         self.assertIsInstance(response_id, int)
         self.assertEqual(response_id, id)
 
@@ -3313,11 +3356,11 @@ class JsonNodeExportTest(TestCase):
 
         unpacked_response = json.loads(response.content)
 
-        response_title = unpacked_response['title']
+        response_title = unpacked_response["title"]
         self.assertIsInstance(response_title, str)
         self.assertEqual(response_title, source.title)
 
-        response_id = unpacked_response['id']
+        response_id = unpacked_response["id"]
         self.assertIsInstance(response_id, int)
         self.assertEqual(response_id, id)
 
@@ -3330,21 +3373,33 @@ class JsonNodeExportTest(TestCase):
         chant_id = chant.id
         sequence_id = sequence.id
 
-        published_source_response = self.client.get(reverse("json-node-export", args=[source_id]))
+        published_source_response = self.client.get(
+            reverse("json-node-export", args=[source_id])
+        )
         self.assertEqual(published_source_response.status_code, 200)
-        published_chant_response = self.client.get(reverse("json-node-export", args=[chant_id]))
+        published_chant_response = self.client.get(
+            reverse("json-node-export", args=[chant_id])
+        )
         self.assertEqual(published_chant_response.status_code, 200)
-        published_sequence_response = self.client.get(reverse("json-node-export", args=[sequence_id]))
+        published_sequence_response = self.client.get(
+            reverse("json-node-export", args=[sequence_id])
+        )
         self.assertEqual(published_sequence_response.status_code, 200)
 
         source.published = False
         source.save()
 
-        unpublished_source_response = self.client.get(reverse("json-node-export", args=[source_id]))
+        unpublished_source_response = self.client.get(
+            reverse("json-node-export", args=[source_id])
+        )
         self.assertEqual(unpublished_source_response.status_code, 404)
-        unpublished_chant_response = self.client.get(reverse("json-node-export", args=[chant_id]))
+        unpublished_chant_response = self.client.get(
+            reverse("json-node-export", args=[chant_id])
+        )
         self.assertEqual(unpublished_chant_response.status_code, 404)
-        unpublished_sequence_response = self.client.get(reverse("json-node-export", args=[sequence_id]))
+        unpublished_sequence_response = self.client.get(
+            reverse("json-node-export", args=[sequence_id])
+        )
         self.assertEqual(unpublished_sequence_response.status_code, 404)
 
 
@@ -3377,7 +3432,7 @@ class JsonSourcesExportTest(TestCase):
         self.assertIn(sample_id, unpacked_response.keys())
         sample_item = unpacked_response[sample_id]
         sample_item_keys = list(sample_item.keys())
-        self.assertEqual(sample_item_keys, ['csv'])
+        self.assertEqual(sample_item_keys, ["csv"])
 
         # the single value should be a link in form `cantusdatabase.com/csv/{source.id}`
         expected_substring = f"/csv/{sample_id}"
@@ -3409,30 +3464,30 @@ class JsonNextChantsTest(TestCase):
         fake_source_2 = make_fake_source()
 
         fake_chant_2 = Chant.objects.create(
-            source = fake_source_1,
-            cantus_id = "2000",
+            source=fake_source_1,
+            cantus_id="2000",
             folio="001r",
             c_sequence=2,
         )
 
         fake_chant_1 = Chant.objects.create(
-            source = fake_source_1,
-            cantus_id = "1000",
+            source=fake_source_1,
+            cantus_id="1000",
             folio="001r",
             c_sequence=1,
             next_chant=fake_chant_2,
         )
 
         fake_chant_4 = Chant.objects.create(
-            source = fake_source_2,
-            cantus_id = "2000",
+            source=fake_source_2,
+            cantus_id="2000",
             folio="001r",
             c_sequence=2,
         )
 
         fake_chant_3 = Chant.objects.create(
-            source = fake_source_2,
-            cantus_id = "1000",
+            source=fake_source_2,
+            cantus_id="1000",
             folio="001r",
             c_sequence=1,
             next_chant=fake_chant_4,
@@ -3449,19 +3504,17 @@ class JsonNextChantsTest(TestCase):
         fake_source_2 = make_fake_source()
 
         fake_chant_2 = Chant.objects.create(
-            source = fake_source_1,
+            source=fake_source_1,
         )
         fake_chant_1 = Chant.objects.create(
-            source = fake_source_1,
-            next_chant = fake_chant_2
+            source=fake_source_1, next_chant=fake_chant_2
         )
-        
+
         fake_chant_4 = Chant.objects.create(
-            source = fake_source_2,
+            source=fake_source_2,
         )
         fake_chant_3 = Chant.objects.create(
-            source = fake_source_2,
-            next_chant = fake_chant_4
+            source=fake_source_2, next_chant=fake_chant_4
         )
 
         path = reverse("json-nextchants", args=["9000"])
@@ -3475,30 +3528,30 @@ class JsonNextChantsTest(TestCase):
         fake_source_2 = make_fake_source(published=False)
 
         fake_chant_2 = Chant.objects.create(
-            source = fake_source_1,
-            cantus_id = "2000",
+            source=fake_source_1,
+            cantus_id="2000",
             folio="001r",
             c_sequence=2,
         )
 
         fake_chant_1 = Chant.objects.create(
-            source = fake_source_1,
-            cantus_id = "1000",
+            source=fake_source_1,
+            cantus_id="1000",
             folio="001r",
             c_sequence=1,
-            next_chant=fake_chant_2
+            next_chant=fake_chant_2,
         )
 
         fake_chant_4 = Chant.objects.create(
-            source = fake_source_2,
-            cantus_id = "2000",
+            source=fake_source_2,
+            cantus_id="2000",
             folio="001r",
             c_sequence=2,
         )
 
         fake_chant_3 = Chant.objects.create(
-            source = fake_source_2,
-            cantus_id = "1000",
+            source=fake_source_2,
+            cantus_id="1000",
             folio="001r",
             c_sequence=1,
             next_chant=fake_chant_4,
@@ -3516,7 +3569,6 @@ class JsonNextChantsTest(TestCase):
         self.assertIsInstance(response_2, JsonResponse)
         unpacked_response_2 = json.loads(response_2.content)
         self.assertEqual(unpacked_response_2, {"2000": 2})
-
 
 
 class CISearchViewTest(TestCase):
@@ -3547,19 +3599,19 @@ class CsvExportTest(TestCase):
         source = make_fake_source(published=True)
         response_1 = self.client.get(reverse("csv-export", args=[source.id]))
         self.assertEqual(response_1.status_code, 200)
-        response_2 = self.client.get(f'/csv/{source.id}')
+        response_2 = self.client.get(f"/csv/{source.id}")
         self.assertEqual(response_2.status_code, 200)
-    
+
     def test_content(self):
         NUM_CHANTS = 5
         source = make_fake_source(published=True)
         for _ in range(NUM_CHANTS):
             make_fake_chant(source=source)
         response = self.client.get(reverse("csv-export", args=[source.id]))
-        content = response.content.decode('utf-8')
-        split_content = list(csv.reader(content.splitlines(), delimiter=','))
+        content = response.content.decode("utf-8")
+        split_content = list(csv.reader(content.splitlines(), delimiter=","))
         header, rows = split_content[0], split_content[1:]
-        
+
         expected_column_titles = [
             "siglum",
             "marginalia",
@@ -3590,13 +3642,15 @@ class CsvExportTest(TestCase):
         self.assertEqual(len(rows), NUM_CHANTS)
         for row in rows:
             self.assertEqual(len(header), len(row))
-    
+
     def test_published_vs_unpublished(self):
         published_source = make_fake_source(published=True)
         response_1 = self.client.get(reverse("csv-export", args=[published_source.id]))
         self.assertEqual(response_1.status_code, 200)
         unpublished_source = make_fake_source(published=False)
-        response_2 = self.client.get(reverse("csv-export", args=[unpublished_source.id]))
+        response_2 = self.client.get(
+            reverse("csv-export", args=[unpublished_source.id])
+        )
         self.assertEqual(response_2.status_code, 403)
 
     def test_csv_export_on_source_with_sequences(self):
@@ -3609,23 +3663,24 @@ class CsvExportTest(TestCase):
         for _ in range(NUM_SEQUENCES):
             make_fake_sequence(source=source)
         response = self.client.get(reverse("csv-export", args=[source.id]))
-        content = response.content.decode('utf-8')
-        split_content = list(csv.reader(content.splitlines(), delimiter=','))
+        content = response.content.decode("utf-8")
+        split_content = list(csv.reader(content.splitlines(), delimiter=","))
         header, rows = split_content[0], split_content[1:]
 
         self.assertEqual(len(rows), NUM_SEQUENCES)
         for row in rows:
             self.assertEqual(len(header), len(row))
-            self.assertNotEqual(row[3], "") # ensure that the .s_sequence field is being written to the "sequence" column
-
+            self.assertNotEqual(
+                row[3], ""
+            )  # ensure that the .s_sequence field is being written to the "sequence" column
 
 
 class ChangePasswordViewTest(TestCase):
     def setUp(self):
-        self.user = get_user_model().objects.create(email='test@test.com')
-        self.user.set_password('pass')
+        self.user = get_user_model().objects.create(email="test@test.com")
+        self.user.set_password("pass")
         self.user.save()
-        self.client.login(email='test@test.com', password='pass')
+        self.client.login(email="test@test.com", password="pass")
 
     def test_url_and_templates(self):
         response_1 = self.client.get(reverse("change-password"))
@@ -3638,9 +3693,18 @@ class ChangePasswordViewTest(TestCase):
         self.assertTemplateUsed(response_2, "registration/change_password.html")
 
     def test_change_password(self):
-        response_1 = self.client.post(reverse("change-password"), {"old_password": "pass", "new_password1": "updated_pass", "new_password2": "updated_pass"})
+        response_1 = self.client.post(
+            reverse("change-password"),
+            {
+                "old_password": "pass",
+                "new_password1": "updated_pass",
+                "new_password2": "updated_pass",
+            },
+        )
         self.assertEqual(response_1.status_code, 200)
         self.client.logout()
-        self.client.login(email='test@test.com', password='updated_pass')
+        self.client.login(email="test@test.com", password="updated_pass")
         response_2 = self.client.get(reverse("change-password"))
-        self.assertEqual(response_2.status_code, 200) # if login failed, status code will be 302
+        self.assertEqual(
+            response_2.status_code, 200
+        )  # if login failed, status code will be 302

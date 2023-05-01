@@ -13,14 +13,15 @@ from django.core.management.base import BaseCommand
 # to calculate all chants' next_chants from scratch: `python manage.py populate_next_chant_fields --overwrite`
 # to calculate next_chants for all chants that don't already have a next_chant specified: `python manage.py populate_next_chant_fields`
 
+
 class Command(BaseCommand):
     def add_arguments(self, parser):
         parser.add_argument(
             "-o",
-            "--overwrite", 
-            action="store_true", 
-            help="Overwrites next_chant of chants that already have a next_chant set."
-            )
+            "--overwrite",
+            action="store_true",
+            help="Overwrites next_chant of chants that already have a next_chant set.",
+        )
 
     def handle(self, *args, **kwargs):
         CHUNK_SIZE = 1_000
@@ -30,15 +31,18 @@ class Command(BaseCommand):
         start_index = 0
         while start_index <= chants_count:
             print("processing chunk with start_index of", start_index)
-            chunk = chants[start_index:start_index+CHUNK_SIZE]
+            chunk = chants[start_index : start_index + CHUNK_SIZE]
             for chant in chunk:
-                if chant.next_chant and not overwrite: # unless -o or -overwrite flag has been supplied, skip chants that already have a next_chant
+                if (
+                    chant.next_chant and not overwrite
+                ):  # unless -o or -overwrite flag has been supplied, skip chants that already have a next_chant
                     continue
                 try:
                     chant.next_chant = chant.get_next_chant()
                     chant.save()
-                except ValidationError: # another chant's next_chant already points to this chant's next_chant
+                except (
+                    ValidationError
+                ):  # another chant's next_chant already points to this chant's next_chant
                     pass
-            del chunk # make sure we don't use too much RAM
+            del chunk  # make sure we don't use too much RAM
             start_index += CHUNK_SIZE
-

@@ -86,9 +86,7 @@ def get_new_source(source_id):
             provenance = None
 
     try:
-        source_status_id = json_response["field_source_status_tax"]["und"][0][
-            "tid"
-        ]
+        source_status_id = json_response["field_source_status_tax"]["und"][0]["tid"]
 
         # these codes and the actual source status string have been carefully matched
         # when logged-in at project manager level, old Cantus displays the source status
@@ -99,7 +97,7 @@ def get_new_source(source_id):
             source_status = "Editing process (not all the fields have been proofread)"
         elif source_status_id == "4210":
             source_status = "Unpublished / Proofread pending"
-        elif source_status_id == "4211": 
+        elif source_status_id == "4211":
             # as of 2022-08-03, no source in this status
             source_status = "Unpublished / Proofreading process"
         elif source_status_id == "4212":
@@ -108,7 +106,7 @@ def get_new_source(source_id):
             source_status = "Unpublished / Editing process"
         elif source_status_id == "4217":
             source_status = "Published / Proofread pending"
-        elif source_status_id == "4547": 
+        elif source_status_id == "4547":
             source_status = "Unpublished / No indexing activity"
         else:
             raise Exception(f"UNKNOWN SOURCE STATUS ID {source_status_id}")
@@ -267,7 +265,7 @@ def get_new_source(source_id):
     # True for published, False for unpublished
     published = status_published and source_status_published
 
-    # current editors are User, the other "people" fields were originally Indexer, 
+    # current editors are User, the other "people" fields were originally Indexer,
     # but we harmonize them to User anyways
     current_editors = []
     try:
@@ -370,4 +368,3 @@ class Command(BaseCommand):
 
         if options["remove_extra"]:
             remove_extra_sources()
-

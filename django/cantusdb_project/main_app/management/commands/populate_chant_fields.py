@@ -10,6 +10,7 @@ from django.core.management.base import BaseCommand
 
 # Run with `python manage.py populate_chant_fields`.
 
+
 class Command(BaseCommand):
     def handle(self, *args, **kwargs):
         CHUNK_SIZE = 1_000
@@ -18,9 +19,9 @@ class Command(BaseCommand):
         start_index = 0
         while start_index <= chants_count:
             print("processing chunk with start_index of", start_index)
-            chunk = chants[start_index:start_index+CHUNK_SIZE]
-            
+            chunk = chants[start_index : start_index + CHUNK_SIZE]
+
             for chant in chunk:
                 chant.save()
-            del chunk # make sure we don't use too much RAM
+            del chunk  # make sure we don't use too much RAM
             start_index += CHUNK_SIZE

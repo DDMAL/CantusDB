@@ -26,8 +26,10 @@ INCIPIT_LENGTH = 100
 # Create a Faker instance with locale set to Latin
 faker = Faker("la")
 
-def make_random_string(length: int,
-                       characters: str = "ABCDEFGHIJKLMNOPQRSTUVWXYZ") -> str:
+
+def make_random_string(
+    length: int, characters: str = "ABCDEFGHIJKLMNOPQRSTUVWXYZ"
+) -> str:
     """Return a random string of a specified length.
 
     Args:
@@ -38,20 +40,19 @@ def make_random_string(length: int,
     Returns:
         str: a string composed of random characters.
     """
-    return "".join(
-        characters[random.randrange(len(characters))]
-        for _
-        in range(length)
-    )
+    return "".join(characters[random.randrange(len(characters))] for _ in range(length))
 
-def make_fake_volpiano(words: int = 5,
-                       syllables_per_word: int = 2,
-                       neumes_per_syllable: int = 2,
-                       notes_per_neume: int = 2) -> str:
+
+def make_fake_volpiano(
+    words: int = 5,
+    syllables_per_word: int = 2,
+    neumes_per_syllable: int = 2,
+    notes_per_neume: int = 2,
+) -> str:
     """Generates a random string of volpiano.
 
     Args:
-        words (int, optional): The number of volpiano words (i.e. substrings separated by "---") to generate. 
+        words (int, optional): The number of volpiano words (i.e. substrings separated by "---") to generate.
             Defaults to 5.
         syllables_per_word (int, optional): The number of volpiano syllables (i.e. substrings separated by "--") to generate in each word.
             Defaults to 2.
@@ -67,7 +68,7 @@ def make_fake_volpiano(words: int = 5,
         str: A string of valid volpiano, with a treble clef at the beginning and a barline at the end.
     """
     NOTES = "abcdefghklmnABCDEFGHKLMN"
-    BARLINES = ("3", "4") # 3: single barline, 4: double barline
+    BARLINES = ("3", "4")  # 3: single barline, 4: double barline
     if not words >= 1:
         raise ValueError("words must be >= 1")
     elif not syllables_per_word >= 1:
@@ -76,57 +77,51 @@ def make_fake_volpiano(words: int = 5,
         raise ValueError("neumes_per_syllable must be >= 1")
     elif not notes_per_neume >= 1:
         raise ValueError("notes_per_neume must be >= 1")
-    
+
     words_: List[List[List[str]]] = []
     for _ in range(words):
-        syllables: List[List[str]]= []
+        syllables: List[List[str]] = []
         for __ in range(syllables_per_word):
             neumes: List[str] = []
             for ___ in range(neumes_per_syllable):
                 notes = []
                 for ____ in range(notes_per_neume):
                     note = random.choice(NOTES)
-                    notes.append(
-                        note
-                    )
-                neumes.append(
-                    "".join(notes)
-                )
-            syllables.append(
-                "-".join(neumes)
-            )
-        words_.append(
-            "--".join(syllables)
-        )
+                    notes.append(note)
+                neumes.append("".join(notes))
+            syllables.append("-".join(neumes))
+        words_.append("--".join(syllables))
     treble_clef = "1---"
     final_barline = f"---{random.choice(BARLINES)}"
     volpiano = treble_clef + "---".join(words_) + final_barline
     return volpiano
-            
-            
+
+
 def make_fake_century() -> Century:
     """Generates a fake Century object."""
     century = Century.objects.create(name=faker.sentence(nb_words=3))
     return century
 
 
-def make_fake_chant(source=None,
-                    marginalia=None,
-                    folio=None,
-                    office=None,
-                    genre=None,
-                    position=None,
-                    c_sequence=None,
-                    cantus_id=None,
-                    feast=None,
-                    manuscript_full_text_std_spelling=None,
-                    incipit=None,
-                    manuscript_full_text_std_proofread=None,
-                    manuscript_full_text=None,
-                    volpiano=None,
-                    manuscript_syllabized_full_text=None,
-                    next_chant=None,
-                    differentia=None) -> Chant:
+def make_fake_chant(
+    source=None,
+    marginalia=None,
+    folio=None,
+    office=None,
+    genre=None,
+    position=None,
+    c_sequence=None,
+    cantus_id=None,
+    feast=None,
+    manuscript_full_text_std_spelling=None,
+    incipit=None,
+    manuscript_full_text_std_proofread=None,
+    manuscript_full_text=None,
+    volpiano=None,
+    manuscript_syllabized_full_text=None,
+    next_chant=None,
+    differentia=None,
+) -> Chant:
     """Generates a fake Chant object."""
     if source is None:
         source = make_fake_source(segment_name="CANTUS Database")
@@ -161,7 +156,6 @@ def make_fake_chant(source=None,
         manuscript_syllabized_full_text = faker.sentence(20)
     if differentia is None:
         differentia = make_random_string(2)
-        
 
     chant = Chant.objects.create(
         source=source,
@@ -178,11 +172,10 @@ def make_fake_chant(source=None,
         finalis=make_random_string(1, "abcdefg"),
         extra=make_random_string(3, "0123456789"),
         chant_range=make_fake_volpiano(
-            words=1,
-            syllables_per_word=1,
-            neumes_per_syllable=1,
-            notes_per_neume=1
-        ).replace("---", "-"), # chant_range is of the form "1-x-y-4", x, y are volpiano notes
+            words=1, syllables_per_word=1, neumes_per_syllable=1, notes_per_neume=1
+        ).replace(
+            "---", "-"
+        ),  # chant_range is of the form "1-x-y-4", x, y are volpiano notes
         addendum=make_random_string(3, "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789"),
         manuscript_full_text_std_spelling=manuscript_full_text_std_spelling,
         incipit=incipit,
@@ -278,7 +271,9 @@ def make_fake_segment(name=None) -> Segment:
     return segment
 
 
-def make_fake_sequence(source=None, title=None, incipit=None, cantus_id=None) -> Sequence:
+def make_fake_sequence(
+    source=None, title=None, incipit=None, cantus_id=None
+) -> Sequence:
     """Generates a fake Sequence object."""
     if source is None:
         source = make_fake_source(segment_name="Bower Sequence Database")
@@ -309,19 +304,19 @@ def make_fake_sequence(source=None, title=None, incipit=None, cantus_id=None) ->
 
 
 def make_fake_source(
-        published: bool = True,
-        title: Optional[str] = None,
-        segment_name: Optional[str] = None,
-        segment: Optional[Segment] = None,
-        siglum: Optional[str] = None,
-        rism_siglum: Optional[RismSiglum] = None,
-        description: Optional[str] = None,
-        summary: Optional[str] = None,
-        provenance: Optional[Provenance] = None,
-        century: Optional[Century] = None,
-        full_source: bool = True,
-        indexing_notes: Optional[str] = None,
-    ) -> Source:
+    published: bool = True,
+    title: Optional[str] = None,
+    segment_name: Optional[str] = None,
+    segment: Optional[Segment] = None,
+    siglum: Optional[str] = None,
+    rism_siglum: Optional[RismSiglum] = None,
+    description: Optional[str] = None,
+    summary: Optional[str] = None,
+    provenance: Optional[Provenance] = None,
+    century: Optional[Century] = None,
+    full_source: bool = True,
+    indexing_notes: Optional[str] = None,
+) -> Source:
     """Generates a fake Source object."""
     # The cursus_choices and source_status_choices lists in Source are lists of
     # tuples and we only need the first element of each tuple

@@ -19,9 +19,9 @@ class Source(BaseModel):
         ("Unpublished / No indexing activity", "Unpublished / No indexing activity"),
     ]
 
-    # The old Cantus uses two fields to jointly control the access to sources. 
+    # The old Cantus uses two fields to jointly control the access to sources.
     # Here in the new Cantus, we only use one field, and there are two levels: published and unpublished.
-    # Published sources are available to the public. 
+    # Published sources are available to the public.
     # Unpublished sources are hidden from the list and cannot be accessed by URL until the user logs in.
     published = models.BooleanField(blank=False, null=False, default=False)
 
@@ -32,14 +32,17 @@ class Source(BaseModel):
     # the siglum field as implemented on the old Cantus is composed of both the RISM siglum and the shelfmark
     # it is a human-readable ID for a source
     siglum = models.CharField(
-        max_length=63, 
-        null=False, 
+        max_length=63,
+        null=False,
         blank=False,
         help_text="RISM-style siglum + Shelf-mark (e.g. GB-Ob 202).",
     )
     # the RISM siglum uniquely identifies a library or holding institution
     rism_siglum = models.ForeignKey(
-        "RismSiglum", on_delete=models.PROTECT, null=True, blank=True,
+        "RismSiglum",
+        on_delete=models.PROTECT,
+        null=True,
+        blank=True,
     )
     provenance = models.ForeignKey(
         "Provenance",
@@ -68,8 +71,10 @@ class Source(BaseModel):
     cursus = models.CharField(
         blank=True, null=True, choices=cursus_choices, max_length=63
     )
-    current_editors = models.ManyToManyField(get_user_model(), related_name="sources_user_can_edit", blank=True)
-    
+    current_editors = models.ManyToManyField(
+        get_user_model(), related_name="sources_user_can_edit", blank=True
+    )
+
     inventoried_by = models.ManyToManyField(
         get_user_model(), related_name="inventoried_sources", blank=True
     )
@@ -79,23 +84,28 @@ class Source(BaseModel):
     melodies_entered_by = models.ManyToManyField(
         get_user_model(), related_name="entered_melody_for_sources", blank=True
     )
-    proofreaders = models.ManyToManyField(get_user_model(), related_name="proofread_sources", blank=True)
-    other_editors = models.ManyToManyField(get_user_model(), related_name="edited_sources", blank=True)
-    
+    proofreaders = models.ManyToManyField(
+        get_user_model(), related_name="proofread_sources", blank=True
+    )
+    other_editors = models.ManyToManyField(
+        get_user_model(), related_name="edited_sources", blank=True
+    )
 
     segment = models.ForeignKey(
         "Segment", on_delete=models.PROTECT, blank=True, null=True
     )
-    source_status = models.CharField(blank=True, null=True, choices=source_status_choices, max_length=255)
+    source_status = models.CharField(
+        blank=True, null=True, choices=source_status_choices, max_length=255
+    )
     complete_inventory = models.BooleanField(blank=True, null=True)
     summary = models.TextField(blank=True, null=True)
     liturgical_occasions = models.TextField(blank=True, null=True)
     description = models.TextField(blank=True, null=True)
     selected_bibliography = models.TextField(blank=True, null=True)
     image_link = models.URLField(
-        blank=True, 
+        blank=True,
         null=True,
-        help_text='HTTP link to the image gallery of the source.',
+        help_text="HTTP link to the image gallery of the source.",
     )
     indexing_notes = models.TextField(blank=True, null=True)
     indexing_date = models.TextField(blank=True, null=True)
@@ -110,7 +120,7 @@ class Source(BaseModel):
     number_of_melodies = models.IntegerField(blank=True, null=True)
 
     def __str__(self):
-        string = '[{s}] {t} ({i})'.format(s=self.rism_siglum, t=self.title, i=self.id)
+        string = "[{s}] {t} ({i})".format(s=self.rism_siglum, t=self.title, i=self.id)
         return string
 
     def save(self, *args, **kwargs):
