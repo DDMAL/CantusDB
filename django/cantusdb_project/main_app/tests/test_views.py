@@ -993,8 +993,7 @@ class ChantSearchViewTest(TestCase):
             manuscript_full_text_std_spelling=fulltext,
         )
         mode = "this is the mode"  # not a representative value, but
-        # single numerals are found
-        # elsewhere in the template
+        # single numerals are found elsewhere in the template
         chant.mode = mode
         chant.save()
         response = self.client.get(
