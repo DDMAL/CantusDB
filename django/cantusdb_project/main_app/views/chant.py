@@ -1400,7 +1400,8 @@ class SourceEditChantsView(LoginRequiredMixin, UserPassesTestMixin, UpdateView):
             chants = chants.filter(feast__id=feast_id)
         elif folio:
             chants = chants.filter(folio=folio)
-        # if none of the optional search params are specified, the first folio in the source is selected by default
+        # if none of the optional search params are specified, the first folio in the
+        # source is selected by default
         else:
             folios = chants.values_list("folio", flat=True).distinct().order_by("folio")
             if not folios:
@@ -1557,7 +1558,8 @@ class SourceEditChantsView(LoginRequiredMixin, UserPassesTestMixin, UpdateView):
 
         chants_in_source = source.chant_set
 
-        # the following code block is sort of obsolete because if there is no Chant in the Source, a 404 will be raised
+        # the following code block is sort of obsolete because if there is no Chant
+        # in the Source, a 404 will be raised
         if chants_in_source.count() == 0:
             # these are needed in the selectors and hyperlinks on the right side of the page
             # if there's no chant in the source, there should be no options in those selectors
@@ -1578,7 +1580,8 @@ class SourceEditChantsView(LoginRequiredMixin, UserPassesTestMixin, UpdateView):
         context["feasts_with_folios"] = get_feast_selector_options(source, folios)
 
         # the user has selected a folio, or,
-        # they have just navigated to the edit-chant page (where the first folio gets selected by default)
+        # they have just navigated to the edit-chant page (where the first folio gets
+        # selected by default)
         if self.request.GET.get("folio") or (
             not self.request.GET.get("folio") and not self.request.GET.get("feast")
         ):
@@ -1632,9 +1635,12 @@ class SourceEditChantsView(LoginRequiredMixin, UserPassesTestMixin, UpdateView):
 
         # Preview of melody and text:
         # in OldCantus,
-        # 'manuscript_syllabized_full_text' exists => preview constructed from 'manuscript_syllabized_full_text'
-        # no 'manuscript_syllabized_full_text', but 'manuscript_full_text' exists => preview constructed from 'manuscript_full_text'
-        # no 'manuscript_syllabized_full_text' and no 'manuscript_full_text' => preview constructed from 'manuscript_full_text_std_spelling'
+        # 'manuscript_syllabized_full_text' exists =>
+        #   preview constructed from 'manuscript_syllabized_full_text'
+        # no 'manuscript_syllabized_full_text', but 'manuscript_full_text' exists =>
+        #   preview constructed from 'manuscript_full_text'
+        # no 'manuscript_syllabized_full_text' and no 'manuscript_full_text' =>
+        #   preview constructed from 'manuscript_full_text_std_spelling'
         # to this we add:
         # no full text of any kind => preview constructed from `incipit`
         # none of the above => show message explaining why melody preview has no text
