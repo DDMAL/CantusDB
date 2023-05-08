@@ -1016,7 +1016,10 @@ class ChantSearchViewTest(TestCase):
             reverse("chant-search"), {"keyword": search_term, "op": "contains"}
         )
         html = str(response.content)
-        self.assertIn("\\xe2\\x9c\\x94", html)  # checkmark character
+        self.assertIn(
+            "\\xe2\\x9c\\x94",  # checkmark character
+            html,
+        )
         self.assertIn(
             '<span title="Chant record includes Manuscript Full Text">\\xe2\\x9c\\x94</span>',
             html,
@@ -1047,7 +1050,10 @@ class ChantSearchViewTest(TestCase):
             reverse("chant-search"), {"keyword": search_term, "op": "contains"}
         )
         html = str(response.content)
-        self.assertIn("\\xe2\\x99\\xab", html)  # beamed eighth notes character
+        self.assertIn(
+            "\\xe2\\x99\\xab",  # beamed eighth notes character
+            html,
+        )
         self.assertIn(
             '<span title="Chant record has Volpiano melody">\\xe2\\x99\\xab</span>',
             html,
@@ -1058,7 +1064,10 @@ class ChantSearchViewTest(TestCase):
             reverse("chant-search"), {"keyword": search_term, "op": "contains"}
         )
         html = str(response.content)
-        self.assertNotIn("\\xe2\\x99\\xab", html)  # beamed eighth notes character
+        self.assertNotIn(
+            "\\xe2\\x99\\xab",  # beamed eighth notes character
+            html,
+        )
 
     def test_image_link_column(self):
         source = make_fake_source(published=True)
@@ -1357,8 +1366,7 @@ class ChantSearchMSViewTest(TestCase):
             manuscript_full_text_std_spelling=fulltext,
         )
         mode = "this is the mode"  # not a representative value, but
-        # single numerals are found
-        # elsewhere in the template
+        # single numerals are found elsewhere in the template
         chant.mode = mode
         chant.save()
         response = self.client.get(
@@ -1383,7 +1391,10 @@ class ChantSearchMSViewTest(TestCase):
             {"keyword": search_term, "op": "contains"},
         )
         html = str(response.content)
-        self.assertIn("\\xe2\\x9c\\x94", html)  # checkmark character
+        self.assertIn(
+            "\\xe2\\x9c\\x94",  # checkmark character
+            html,
+        )
         self.assertIn(
             '<span title="Chant record includes Manuscript Full Text">\\xe2\\x9c\\x94</span>',
             html,
@@ -1416,7 +1427,10 @@ class ChantSearchMSViewTest(TestCase):
             {"keyword": search_term, "op": "contains"},
         )
         html = str(response.content)
-        self.assertIn("\\xe2\\x99\\xab", html)  # beamed eighth notes character
+        self.assertIn(
+            "\\xe2\\x99\\xab",  # beamed eighth notes character
+            html,
+        )
         self.assertIn(
             '<span title="Chant record has Volpiano melody">\\xe2\\x99\\xab</span>',
             html,
@@ -1428,7 +1442,10 @@ class ChantSearchMSViewTest(TestCase):
             {"keyword": search_term, "op": "contains"},
         )
         html = str(response.content)
-        self.assertNotIn("\\xe2\\x99\\xab", html)  # beamed eighth notes character
+        self.assertNotIn(
+            "\\xe2\\x99\\xab",  # beamed eighth notes character
+            html,
+        )
 
     def test_image_link_column(self):
         source = make_fake_source(published=True)
@@ -1632,8 +1649,7 @@ class ChantIndexViewTest(TestCase):
             source=source,
         )
         mode = "this is the mode"  # not a representative value, but
-        # single numerals are found
-        # elsewhere in the template
+        # single numerals are found elsewhere in the template
         chant.mode = mode
         chant.save()
         response = self.client.get(reverse("chant-index"), {"source": source.id})
@@ -1645,8 +1661,8 @@ class ChantIndexViewTest(TestCase):
     def test_differentia_column(self):
         source = make_fake_source(published=True)
         differentia = "this is a differentia"  # not a representative value, but
-        # most differentia are one or two characters,
-        # likely to be found elsewhere in the template
+        # most differentia are one or two characters, likely to be found elsewhere
+        # in the template
         make_fake_chant(
             source=source,
             differentia=differentia,
@@ -1734,7 +1750,9 @@ class ChantCreateViewTest(TestCase):
         )
         fake_chant_2 = make_fake_chant(
             source=fake_source,
-            cantus_id="007450",  # this has to be an actual cantus ID, since next_chants pulls data from CantusIndex and we'll get an empty response if we use "222222" etc.
+            cantus_id="007450",  # this has to be an actual cantus ID, since
+            # next_chants pulls data from CantusIndex and we'll get an empty
+            # response if we use "222222" etc.
             folio="001",
             c_sequence=2,
             next_chant=fake_chant_3,
@@ -3085,7 +3103,10 @@ class SourceCreateViewTest(TestCase):
     def test_create_source(self):
         response = self.client.post(
             reverse("source-create"),
-            {"title": "test", "siglum": "test-siglum"},  # siglum is a required field
+            {
+                "title": "test",
+                "siglum": "test-siglum",  # siglum is a required field
+            },
         )
 
         self.assertEqual(response.status_code, 302)
