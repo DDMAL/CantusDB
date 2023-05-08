@@ -3,6 +3,7 @@ from django.db import models
 from django.contrib.auth import get_user_model
 from django.contrib.postgres.search import SearchVectorField
 
+
 class BaseChant(BaseModel):
     """
     the Chant and Sequence models inherit from BaseChant.
@@ -12,7 +13,7 @@ class BaseChant(BaseModel):
     properties and attributes should be declared in BaseChant in order to keep the two
     models harmonized, even if only one of the two models uses a particular field.
     """
-    
+
     class Meta:
         abstract = True
 
@@ -102,10 +103,10 @@ class BaseChant(BaseModel):
 
     # NB: the cao_concordances field should not be used in public-facing views, as it contains data that may be out-of-date.
     # For more information, see https://github.com/DDMAL/CantusDB/wiki/BaseChant-Model
-    cao_concordances = models.CharField(blank=True, null=True, max_length=63) # !! see lines immediately above
-    proofread_by = models.ManyToManyField(
-        get_user_model(), blank=True
-    )
+    cao_concordances = models.CharField(
+        blank=True, null=True, max_length=63
+    )  # !! see lines immediately above
+    proofread_by = models.ManyToManyField(get_user_model(), blank=True)
     melody_id = models.CharField(blank=True, null=True, max_length=63)
     search_vector = SearchVectorField(null=True, editable=False)
     content_structure = models.CharField(
@@ -114,8 +115,14 @@ class BaseChant(BaseModel):
         max_length=64,
         help_text="Additional folio number field, if folio numbers appear on the leaves but are not in the 'binding order'.",
     )
-    next_chant = models.OneToOneField("self", related_name="prev_chant", null=True, blank=True, on_delete=models.SET_NULL)
-    # prev_chant = ...  # prev_chant is created when next_chant is calculated 
+    next_chant = models.OneToOneField(
+        "self",
+        related_name="prev_chant",
+        null=True,
+        blank=True,
+        on_delete=models.SET_NULL,
+    )
+    # prev_chant = ...  # prev_chant is created when next_chant is calculated
 
     # this field, populated by the populate_is_last_chant_in_feast script, exists in order to optimize .get_suggested_feasts() on the chant-create page
     is_last_chant_in_feast = models.BooleanField(blank=True, null=True)
@@ -124,7 +131,7 @@ class BaseChant(BaseModel):
     # # Digital Analysis of Chant Transmission
     # dact = models.CharField(blank=True, null=True, max_length=64)
     # also a second differentia field
-    
+
     def get_ci_url(self) -> str:
         """Construct the url to the entry in Cantus Index correponding to the chant.
 
@@ -132,7 +139,7 @@ class BaseChant(BaseModel):
             str: The url to the Cantus Index page
         """
         return f"http://cantusindex.org/id/{self.cantus_id}"
-    
+
     def __str__(self):
         incipit = ""
         if self.incipit:
@@ -140,4 +147,4 @@ class BaseChant(BaseModel):
         elif self.manuscript_full_text:
             split_text = self.manuscript_full_text.split()
             incipit = " ".join(split_text[:4])
-        return '"{incip}" ({id})'.format(incip = incipit, id = self.id)
+        return '"{incip}" ({id})'.format(incip=incipit, id=self.id)

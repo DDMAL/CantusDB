@@ -4,10 +4,10 @@ import csv
 from django.contrib.auth.models import Group
 from main_app.models import Source, Chant
 
-class Command(BaseCommand):
 
+class Command(BaseCommand):
     def handle(self, *args, **kwargs):
-        with open('oldcantususer_uid_role_detailed.csv','r') as csvinput:
+        with open("oldcantususer_uid_role_detailed.csv", "r") as csvinput:
             reader = csv.reader(csvinput)
             next(reader, None)
 
@@ -40,19 +40,19 @@ class Command(BaseCommand):
                     old_role = user.groups.first().name
 
                 roles_weights = {
-                    "project manager": 3, 
-                    "editor": 2, 
+                    "project manager": 3,
+                    "editor": 2,
                     "contributor": 1,
-                    "none": 0
+                    "none": 0,
                 }
-                
+
                 if new_role != "none":
                     if roles_weights[new_role] > roles_weights[old_role]:
                         user.groups.clear()
-                        group = Group.objects.get(name=new_role) 
+                        group = Group.objects.get(name=new_role)
                         group.user_set.add(user)
 
-        with open('editors_source.csv','r') as csvinput:
+        with open("editors_source.csv", "r") as csvinput:
             reader = csv.reader(csvinput)
 
             User = get_user_model()
@@ -73,7 +73,7 @@ class Command(BaseCommand):
                 if user is not None and source is not None:
                     user.sources_user_can_edit.add(source)
 
-        with open('editors_chant.csv','r') as csvinput:
+        with open("editors_chant.csv", "r") as csvinput:
             reader = csv.reader(csvinput)
 
             User = get_user_model()

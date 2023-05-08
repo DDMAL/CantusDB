@@ -1,11 +1,22 @@
 from django import forms
-from .models import Chant, Office, Genre, Feast, Source, RismSiglum, Provenance, Century, Sequence
-from .widgets import (TextInputWidget,
-                VolpianoInputWidget,
-                TextAreaWidget,
-                VolpianoAreaWidget,
-                SelectWidget,
-                CheckboxWidget,
+from .models import (
+    Chant,
+    Office,
+    Genre,
+    Feast,
+    Source,
+    RismSiglum,
+    Provenance,
+    Century,
+    Sequence,
+)
+from .widgets import (
+    TextInputWidget,
+    VolpianoInputWidget,
+    TextAreaWidget,
+    VolpianoAreaWidget,
+    SelectWidget,
+    CheckboxWidget,
 )
 from django.contrib.auth import get_user_model
 from django.db.models import Q
@@ -32,6 +43,8 @@ class CommentForm(forms.ModelForm):
         self.fields['name'].widget.attrs.update({'class': 'special'})
         self.fields['comment'].widget.attrs.update(size='40')
 """
+
+
 # 3 best
 class ChantCreateForm(forms.ModelForm):
     class Meta:
@@ -91,11 +104,15 @@ class ChantCreateForm(forms.ModelForm):
         }
 
     folio = forms.CharField(
-        required=True, widget=TextInputWidget, help_text="Binding order",
+        required=True,
+        widget=TextInputWidget,
+        help_text="Binding order",
     )
 
     c_sequence = forms.CharField(
-        required=True, widget=TextInputWidget, help_text="Each folio starts with '1'.",
+        required=True,
+        widget=TextInputWidget,
+        help_text="Each folio starts with '1'.",
     )
 
     office = forms.ModelChoiceField(
@@ -158,7 +175,7 @@ class SourceCreateForm(forms.ModelForm):
             "image_link",
             "fragmentarium_id",
             "dact_id",
-            "indexing_notes"
+            "indexing_notes",
         ]
         widgets = {
             "title": TextInputWidget(),
@@ -172,55 +189,70 @@ class SourceCreateForm(forms.ModelForm):
             "image_link": TextInputWidget(),
             "fragmentarium_id": TextInputWidget(),
             "dact_id": TextInputWidget(),
-            "indexing_notes": TextAreaWidget()
+            "indexing_notes": TextAreaWidget(),
         }
+
     rism_siglum = forms.ModelChoiceField(
         queryset=RismSiglum.objects.all().order_by("name"), required=False
     )
-    rism_siglum.widget.attrs.update({"class": "form-control custom-select custom-select-sm"})
+    rism_siglum.widget.attrs.update(
+        {"class": "form-control custom-select custom-select-sm"}
+    )
 
     provenance = forms.ModelChoiceField(
         queryset=Provenance.objects.all().order_by("name"), required=False
     )
-    provenance.widget.attrs.update({"class": "form-control custom-select custom-select-sm"})
+    provenance.widget.attrs.update(
+        {"class": "form-control custom-select custom-select-sm"}
+    )
 
     TRUE_FALSE_CHOICES_SOURCE = (
-        (True, "Full source"), 
-        (False, "Fragment or Fragmented")
+        (True, "Full source"),
+        (False, "Fragment or Fragmented"),
     )
 
-    full_source = forms.ChoiceField(
-        choices=TRUE_FALSE_CHOICES_SOURCE, required=False
+    full_source = forms.ChoiceField(choices=TRUE_FALSE_CHOICES_SOURCE, required=False)
+    full_source.widget.attrs.update(
+        {"class": "form-control custom-select custom-select-sm"}
     )
-    full_source.widget.attrs.update({"class": "form-control custom-select custom-select-sm"})
 
     century = forms.ModelMultipleChoiceField(
         queryset=Century.objects.all().order_by("name"), required=False
     )
-    century.widget.attrs.update({"class": "form-control custom-select custom-select-sm"})
+    century.widget.attrs.update(
+        {"class": "form-control custom-select custom-select-sm"}
+    )
 
     current_editors = forms.ModelMultipleChoiceField(
-        queryset=get_user_model().objects.filter(
-            Q(groups__name="project manager")|
-            Q(groups__name="editor")|
-            Q(groups__name="contributor")).order_by("last_name"), required=False
+        queryset=get_user_model()
+        .objects.filter(
+            Q(groups__name="project manager")
+            | Q(groups__name="editor")
+            | Q(groups__name="contributor")
+        )
+        .order_by("last_name"),
+        required=False,
     )
-    current_editors.widget.attrs.update({"class": "form-control custom-select custom-select-sm"})
+    current_editors.widget.attrs.update(
+        {"class": "form-control custom-select custom-select-sm"}
+    )
 
     melodies_entered_by = forms.ModelMultipleChoiceField(
         queryset=get_user_model().objects.all().order_by("full_name"), required=False
     )
-    melodies_entered_by.widget.attrs.update({"class": "form-control custom-select custom-select-sm"})
-
-    TRUE_FALSE_CHOICES_INVEN = (
-        (True, "Complete"), 
-        (False, "Incomplete")
+    melodies_entered_by.widget.attrs.update(
+        {"class": "form-control custom-select custom-select-sm"}
     )
+
+    TRUE_FALSE_CHOICES_INVEN = ((True, "Complete"), (False, "Incomplete"))
 
     complete_inventory = forms.ChoiceField(
         choices=TRUE_FALSE_CHOICES_INVEN, required=False
     )
-    complete_inventory.widget.attrs.update({"class": "form-control custom-select custom-select-sm"})
+    complete_inventory.widget.attrs.update(
+        {"class": "form-control custom-select custom-select-sm"}
+    )
+
 
 class ChantEditForm(forms.ModelForm):
     class Meta:
@@ -244,7 +276,7 @@ class ChantEditForm(forms.ModelForm):
             "differentia_new",
             "extra",
             "image_link",
-            "indexing_notes"
+            "indexing_notes",
         ]
         widgets = {
             # manuscript_full_text_std_spelling: defined below (required)
@@ -265,7 +297,7 @@ class ChantEditForm(forms.ModelForm):
             "differentia_new": TextInputWidget(),
             "extra": TextInputWidget(),
             "image_link": TextInputWidget(),
-            "indexing_notes": TextAreaWidget()
+            "indexing_notes": TextAreaWidget(),
         }
 
     manuscript_full_text_std_spelling = forms.CharField(
@@ -279,11 +311,15 @@ class ChantEditForm(forms.ModelForm):
     )
 
     folio = forms.CharField(
-        required=True, widget=TextInputWidget, help_text="Binding order",
+        required=True,
+        widget=TextInputWidget,
+        help_text="Binding order",
     )
 
     c_sequence = forms.CharField(
-        required=True, widget=TextInputWidget, help_text="Each folio starts with '1'.",
+        required=True,
+        widget=TextInputWidget,
+        help_text="Each folio starts with '1'.",
     )
 
     feast = forms.ModelChoiceField(
@@ -300,6 +336,7 @@ class ChantEditForm(forms.ModelForm):
         queryset=Genre.objects.all().order_by("name"), required=False
     )
     genre.widget.attrs.update({"class": "form-control custom-select custom-select-sm"})
+
 
 class ChantProofreadForm(forms.ModelForm):
     class Meta:
@@ -332,7 +369,7 @@ class ChantProofreadForm(forms.ModelForm):
             "chant_range",
             "siglum",
             "addendum",
-            "differentia_new"
+            "differentia_new",
         ]
         widgets = {
             # manuscript_full_text_std_spelling: defined below (required)
@@ -360,7 +397,7 @@ class ChantProofreadForm(forms.ModelForm):
             "chant_range": VolpianoAreaWidget(),
             "siglum": TextInputWidget(),
             "addendum": TextInputWidget(),
-            "differentia_new": TextInputWidget()
+            "differentia_new": TextInputWidget(),
         }
 
     manuscript_full_text_std_spelling = forms.CharField(
@@ -382,42 +419,36 @@ class ChantProofreadForm(forms.ModelForm):
     c_sequence = forms.CharField(
         required=True,
         widget=TextInputWidget,
-        help_text="Each folio starts with '1'.", 
+        help_text="Each folio starts with '1'.",
     )
 
     feast = forms.ModelChoiceField(
         queryset=Feast.objects.all().order_by("name"),
         required=False,
     )
-    feast.widget.attrs.update(
-        {"class": "form-control custom-select custom-select-sm"}
-    )
+    feast.widget.attrs.update({"class": "form-control custom-select custom-select-sm"})
 
     office = forms.ModelChoiceField(
         queryset=Office.objects.all().order_by("name"),
         required=False,
     )
-    office.widget.attrs.update(
-        {"class": "form-control custom-select custom-select-sm"}
-    )
+    office.widget.attrs.update({"class": "form-control custom-select custom-select-sm"})
 
     genre = forms.ModelChoiceField(
-        queryset=Genre.objects.all().order_by("name"),
-        required=False
+        queryset=Genre.objects.all().order_by("name"), required=False
     )
-    genre.widget.attrs.update(
-        {"class": "form-control custom-select custom-select-sm"}
-    )
+    genre.widget.attrs.update({"class": "form-control custom-select custom-select-sm"})
 
     proofread_by = forms.ModelMultipleChoiceField(
-        queryset=get_user_model().objects.filter(
-            Q(groups__name="project manager")|
-            Q(groups__name="editor")
-        ).order_by("last_name"), required=False
+        queryset=get_user_model()
+        .objects.filter(Q(groups__name="project manager") | Q(groups__name="editor"))
+        .order_by("last_name"),
+        required=False,
     )
     proofread_by.widget.attrs.update(
         {"class": "form-control custom-select custom-select-sm"}
     )
+
 
 class SourceEditForm(forms.ModelForm):
     class Meta:
@@ -441,7 +472,7 @@ class SourceEditForm(forms.ModelForm):
             "image_link",
             "fragmentarium_id",
             "dact_id",
-            "indexing_notes"
+            "indexing_notes",
         ]
         widgets = {
             "title": TextInputWidget(),
@@ -457,58 +488,69 @@ class SourceEditForm(forms.ModelForm):
             "dact_id": TextInputWidget(),
             "indexing_notes": TextAreaWidget(),
         }
-    
+
     provenance = forms.ModelChoiceField(
         queryset=Provenance.objects.all().order_by("name"), required=False
     )
-    provenance.widget.attrs.update({"class": "form-control custom-select custom-select-sm"}) # adds styling
-    
+    provenance.widget.attrs.update(
+        {"class": "form-control custom-select custom-select-sm"}
+    )  # adds styling
+
     century = forms.ModelMultipleChoiceField(
-        queryset=Century.objects.all().order_by("name"), required = False
+        queryset=Century.objects.all().order_by("name"), required=False
     )
-    century.widget.attrs.update({"class": "form-control custom-select custom-select-sm"})
+    century.widget.attrs.update(
+        {"class": "form-control custom-select custom-select-sm"}
+    )
 
     CHOICES_FULL_SOURCE = (
         (None, "None"),
         (True, "Full source"),
-        (False, "Fragment or Fragmented"),        
+        (False, "Fragment or Fragmented"),
     )
-    full_source = forms.ChoiceField(
-        choices=CHOICES_FULL_SOURCE, required=False
+    full_source = forms.ChoiceField(choices=CHOICES_FULL_SOURCE, required=False)
+    full_source.widget.attrs.update(
+        {"class": "form-control custom-select custom-select-sm"}
     )
-    full_source.widget.attrs.update({"class": "form-control custom-select custom-select-sm"})
 
     CHOICES_CURSUS = (
         (None, "None"),
         ("Monastic", "Monastic"),
         ("Secular", "Secular"),
     )
-    cursus = forms.ChoiceField(
-        choices=CHOICES_CURSUS, required=False
-    )
+    cursus = forms.ChoiceField(choices=CHOICES_CURSUS, required=False)
     cursus.widget.attrs.update({"class": "form-control custom-select custom-select-sm"})
 
     current_editors = forms.ModelMultipleChoiceField(
-        queryset=get_user_model().objects.filter(
-            Q(groups__name="project manager")|
-            Q(groups__name="editor")|
-            Q(groups__name="contributor")).order_by("last_name"), required=False
+        queryset=get_user_model()
+        .objects.filter(
+            Q(groups__name="project manager")
+            | Q(groups__name="editor")
+            | Q(groups__name="contributor")
+        )
+        .order_by("last_name"),
+        required=False,
     )
-    current_editors.widget.attrs.update({"class": "form-control custom-select custom-select-sm"})
+    current_editors.widget.attrs.update(
+        {"class": "form-control custom-select custom-select-sm"}
+    )
 
     melodies_entered_by = forms.ModelMultipleChoiceField(
         queryset=get_user_model().objects.all().order_by("full_name"), required=False
     )
-    melodies_entered_by.widget.attrs.update({"class": "form-control custom-select custom-select-sm"})
+    melodies_entered_by.widget.attrs.update(
+        {"class": "form-control custom-select custom-select-sm"}
+    )
 
     CHOICES_COMPLETE_INV = (
         (True, "complete inventory"),
         (False, "partial inventory"),
     )
-    complete_inventory = forms.ChoiceField(
-        choices=CHOICES_COMPLETE_INV, required=False
+    complete_inventory = forms.ChoiceField(choices=CHOICES_COMPLETE_INV, required=False)
+    complete_inventory.widget.attrs.update(
+        {"class": "form-control custom-select custom-select-sm"}
     )
-    complete_inventory.widget.attrs.update({"class": "form-control custom-select custom-select-sm"})
+
 
 class SequenceEditForm(forms.ModelForm):
     class Meta:
@@ -549,16 +591,17 @@ class SequenceEditForm(forms.ModelForm):
             "cantus_id": TextInputWidget(),
             "image_link": TextInputWidget(),
         }
-    
+
     genre = forms.ModelChoiceField(
         queryset=Genre.objects.all().order_by("name"), required=False
     )
     genre.widget.attrs.update({"class": "form-control custom-select custom-select-sm"})
-    
+
     source = forms.ModelChoiceField(
-        queryset=Source.objects.all().order_by("title"), required = False
+        queryset=Source.objects.all().order_by("title"), required=False
     )
     source.widget.attrs.update({"class": "form-control custom-select custom-select-sm"})
+
 
 class ChantEditSyllabificationForm(forms.ModelForm):
     class Meta:

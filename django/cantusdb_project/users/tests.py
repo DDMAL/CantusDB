@@ -12,11 +12,11 @@ from main_app.tests.test_views import get_random_search_term
 
 class UserListViewTest(TestCase):
     def setUp(self):
-        self.user = get_user_model().objects.create(email='test@test.com')
-        self.user.set_password('pass')
+        self.user = get_user_model().objects.create(email="test@test.com")
+        self.user.set_password("pass")
         self.user.save()
         self.client = Client()
-        self.client.login(email='test@test.com', password='pass')
+        self.client.login(email="test@test.com", password="pass")
 
     def test_url_and_templates(self):
         response = self.client.get(reverse("user-list"))
@@ -62,14 +62,19 @@ class IndexerListViewTest(TestCase):
         indexer_with_no_source = make_fake_user()
 
         # generate published/unpublished sources and assign indexers to them
-        unpublished_source = Source.objects.create(title="unpublished source", published=False)
+        unpublished_source = Source.objects.create(
+            title="unpublished source", published=False
+        )
         unpublished_source.inventoried_by.set([indexer_with_unpublished_source])
 
-        published_source = Source.objects.create(title="published source", published=True)
+        published_source = Source.objects.create(
+            title="published source", published=True
+        )
         published_source.inventoried_by.set([indexer_with_published_source])
 
         source_with_multiple_indexers = Source.objects.create(
-            title="unpublished source with multiple indexers", published=False,
+            title="unpublished source with multiple indexers",
+            published=False,
         )
         source_with_multiple_indexers.inventoried_by.set(
             [indexer_with_published_source, indexer_with_unpublished_source]
@@ -89,7 +94,9 @@ class IndexerListViewTest(TestCase):
         Only public indexers should appear in the results
         """
         indexer_with_published_source = make_fake_user()
-        published_source = Source.objects.create(title="published source", published=True)
+        published_source = Source.objects.create(
+            title="published source", published=True
+        )
         published_source.inventoried_by.set([indexer_with_published_source])
 
         # search with a random slice of first name
@@ -101,7 +108,9 @@ class IndexerListViewTest(TestCase):
 
     def test_search_country(self):
         indexer_with_published_source = make_fake_user()
-        published_source = Source.objects.create(title="published source", published=True)
+        published_source = Source.objects.create(
+            title="published source", published=True
+        )
         published_source.inventoried_by.set([indexer_with_published_source])
 
         target = indexer_with_published_source.country
@@ -112,7 +121,9 @@ class IndexerListViewTest(TestCase):
 
     def test_search_city(self):
         indexer_with_published_source = make_fake_user()
-        published_source = Source.objects.create(title="published source", published=True)
+        published_source = Source.objects.create(
+            title="published source", published=True
+        )
         published_source.inventoried_by.set([indexer_with_published_source])
 
         target = indexer_with_published_source.city
@@ -123,7 +134,9 @@ class IndexerListViewTest(TestCase):
 
     def test_search_institution(self):
         indexer_with_published_source = make_fake_user()
-        published_source = Source.objects.create(title="published source", published=True)
+        published_source = Source.objects.create(
+            title="published source", published=True
+        )
         published_source.inventoried_by.set([indexer_with_published_source])
 
         target = indexer_with_published_source.institution
@@ -136,16 +149,16 @@ class IndexerListViewTest(TestCase):
 class UserDetailViewTest(TestCase):
     @classmethod
     def setUpTestData(cls):
-        get_user_model().objects.create(email='test@test.com')
+        get_user_model().objects.create(email="test@test.com")
 
     def test_url_and_templates(self):
         user = get_user_model().objects.first()
-        response = self.client.get(reverse('user-detail', args=[user.id]))
+        response = self.client.get(reverse("user-detail", args=[user.id]))
         self.assertEqual(response.status_code, 200)
         self.assertTemplateUsed(response, "user_detail.html")
 
     def test_context(self):
         user = get_user_model().objects.first()
-        response = self.client.get(reverse('user-detail', args=[user.id]))
+        response = self.client.get(reverse("user-detail", args=[user.id]))
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response.context["user"], user)

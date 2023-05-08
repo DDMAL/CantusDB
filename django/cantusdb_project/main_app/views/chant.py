@@ -17,7 +17,12 @@ from django.views.generic import (
     UpdateView,
 )
 from django.core.exceptions import PermissionDenied
-from main_app.forms import ChantCreateForm, ChantEditForm, ChantProofreadForm, ChantEditSyllabificationForm
+from main_app.forms import (
+    ChantCreateForm,
+    ChantEditForm,
+    ChantProofreadForm,
+    ChantEditSyllabificationForm,
+)
 from main_app.models import Chant, Feast, Genre, Source, Sequence
 from align_text_mel import *
 from django.contrib.auth.mixins import LoginRequiredMixin
@@ -42,7 +47,6 @@ CHANT_SEARCH_TEMPLATE_VALUES = (
     "manuscript_full_text",
     "volpiano",
     "image_link",
-
     "source__id",
     "source__title",
     "source__siglum",
@@ -57,6 +61,7 @@ CHANT_SEARCH_TEMPLATE_VALUES = (
     "genre__name",
 )
 
+
 class ChantDetailView(DetailView):
     """
     Displays a single Chant object. Accessed with ``chants/<int:pk>``
@@ -70,13 +75,13 @@ class ChantDetailView(DetailView):
         context = super().get_context_data(**kwargs)
         chant = self.get_object()
         user = self.request.user
-        
+
         # if the chant's source isn't published, only logged-in users should be able to view the chant's detail page
         source = chant.source
         display_unpublished = user.is_authenticated
         if (source.published is False) and (not display_unpublished):
             raise PermissionDenied()
-        
+
         context["user_can_edit_chant"] = user_can_edit_chants_in_source(user, source)
 
         # syllabification section
@@ -97,9 +102,7 @@ class ChantDetailView(DetailView):
                     chant.manuscript_full_text_std_spelling, pre_syllabized=False
                 )
             elif chant.incipit:
-                syls_text = syllabize_text(
-                    chant.incipit, pre_syllabized=False
-                )
+                syls_text = syllabize_text(chant.incipit, pre_syllabized=False)
                 syls_text, syls_melody = postprocess(syls_text, syls_melody)
             else:
                 syls_text = [[""]]
@@ -113,15 +116,15 @@ class ChantDetailView(DetailView):
                 "http://cantusindex.org/json-con/{}".format(chant.cantus_id)
             )
             concordances = json.loads(response.text[2:])
-            
+
             ######################################
             ### create context["concordances"] ###
             # (data to be unpacked in chant_detail.html to make concordances table)
-            
+
             # response.text is an array of JSON objects. Each has a single
             # key, ["chant"], pointing to a nested object. We only need the
-            # nested object. 
-            concordance_chants = [c["chant"] for c in concordances] 
+            # nested object.
+            concordance_chants = [c["chant"] for c in concordances]
             context["concordances"] = concordance_chants
 
             ##############################################
@@ -130,30 +133,29 @@ class ChantDetailView(DetailView):
             context["concordances_summary"] = ""
 
             # tally from all databases
-            concordances_count = len(
-                concordance_chants
-            )
+            concordances_count = len(concordance_chants)
             if concordances_count:
                 if concordances_count > 1:
-                    context["concordances_summary"] += f'Displaying <b>{concordances_count}</b> concordances from the following databases (Cantus ID <b><a href="http://cantusindex.org/id/{chant.cantus_id}" target="_blank" title="{chant.cantus_id} on Cantus Index">{chant.cantus_id}</a></b>):'
+                    context[
+                        "concordances_summary"
+                    ] += f'Displaying <b>{concordances_count}</b> concordances from the following databases (Cantus ID <b><a href="http://cantusindex.org/id/{chant.cantus_id}" target="_blank" title="{chant.cantus_id} on Cantus Index">{chant.cantus_id}</a></b>):'
                 else:
-                    context["concordances_summary"] += f'Displaying <b>1</b> concordance from the following database (Cantus ID <b><a href="http://cantusindex.org/id/{chant.cantus_id}" target="_blank" title="{chant.cantus_id} on Cantus Index">{chant.cantus_id}</a></b>):'
+                    context[
+                        "concordances_summary"
+                    ] += f'Displaying <b>1</b> concordance from the following database (Cantus ID <b><a href="http://cantusindex.org/id/{chant.cantus_id}" target="_blank" title="{chant.cantus_id} on Cantus Index">{chant.cantus_id}</a></b>):'
 
                 context["concordances_summary"] += "<table>"
 
             # Cantus Database
-            cd_count = len(
-                [
-                    True for c in concordance_chants
-                    if c["db"] == "CD"
-                ]
-            )
+            cd_count = len([True for c in concordance_chants if c["db"] == "CD"])
             if cd_count:
                 if cd_count == 1:
                     chant_tally = "<b>1</b> chant"
                 else:
                     chant_tally = f"<b>{cd_count}</b> chants"
-                context["concordances_summary"] += f"""
+                context[
+                    "concordances_summary"
+                ] += f"""
                     <tr>
                         <td>
                             <a href="/" target="_blank">Cantus Database</a> (CD)
@@ -163,20 +165,17 @@ class ChantDetailView(DetailView):
                         </td>
                     </tr>
                 """
-            
+
             # Fontes Cantus Bohemiae
-            fcb_count = len(
-                [
-                    True for c in concordance_chants
-                    if c["db"] == "FCB"
-                ]
-            )
+            fcb_count = len([True for c in concordance_chants if c["db"] == "FCB"])
             if fcb_count:
                 if fcb_count == 1:
                     chant_tally = "<b>1</b> chant"
                 else:
                     chant_tally = f"<b>{fcb_count}</b> chants"
-                context["concordances_summary"] += f"""
+                context[
+                    "concordances_summary"
+                ] += f"""
                     <tr>
                         <td>
                             <a href="http://cantusbohemiae.cz" target="_blank">Fontes Cantus Bohemiae</a> (FCB)
@@ -188,18 +187,15 @@ class ChantDetailView(DetailView):
                 """
 
             # Medieval Music Manuscripts Online
-            mmmo_count = len(
-                [
-                    True for c in concordance_chants
-                    if c["db"] == "MMMO"
-                ]
-            )
+            mmmo_count = len([True for c in concordance_chants if c["db"] == "MMMO"])
             if mmmo_count:
                 if mmmo_count == 1:
                     chant_tally = "<b>1</b> chant"
                 else:
                     chant_tally = f"<b>{mmmo_count}</b> chants"
-                context["concordances_summary"] += f"""
+                context[
+                    "concordances_summary"
+                ] += f"""
                     <tr>
                         <td>
                             <a href="http://musmed.eu" target="_blank">Medieval Music Manuscripts Online</a> (MMMO)
@@ -209,20 +205,17 @@ class ChantDetailView(DetailView):
                         </td>
                     </tr>
                 """
-            
+
             # Portuguese Early Music Database
-            pem_count = len(
-                [
-                    True for c in concordance_chants
-                    if c["db"] == "PEM"
-                ]
-            )
+            pem_count = len([True for c in concordance_chants if c["db"] == "PEM"])
             if pem_count:
                 if pem_count == 1:
                     chant_tally = "<b>1</b> chant"
                 else:
                     chant_tally = f"<b>{pem_count}</b> chants"
-                context["concordances_summary"] += f"""
+                context[
+                    "concordances_summary"
+                ] += f"""
                     <tr>
                         <td>
                             <a href="http://pemdatabase.eu" target="_blank">Portuguese Early Music Database</a> (PEM)
@@ -232,20 +225,17 @@ class ChantDetailView(DetailView):
                         </td>
                     </tr>
                 """
-            
+
             # Spanish Early Music Manuscripts
-            semm_count = len( 
-                [
-                    True for c in concordance_chants
-                    if c["db"] == "SEMM"
-                ]
-            )
+            semm_count = len([True for c in concordance_chants if c["db"] == "SEMM"])
             if semm_count:
                 if semm_count == 1:
                     chant_tally = "<b>1</b> chant"
                 else:
                     chant_tally = f"<b>{semm_count}</b> chants"
-                context["concordances_summary"] += f"""
+                context[
+                    "concordances_summary"
+                ] += f"""
                     <tr>
                         <td>
                             <a href="http://musicahispanica.eu" target="_blank">Spanish Early Music Manuscript Database</a> (SEMM)
@@ -257,18 +247,15 @@ class ChantDetailView(DetailView):
                 """
 
             # Cantus Planus in Polonia
-            cpl_count = len(
-                [
-                    True for c in concordance_chants
-                    if c["db"] == "CPL"
-                ]
-            )
+            cpl_count = len([True for c in concordance_chants if c["db"] == "CPL"])
             if cpl_count:
                 if cpl_count == 1:
                     chant_tally = "<b>1</b> chant"
                 else:
                     chant_tally = f"<b>{cpl_count}</b> chants"
-                context["concordances_summary"] += f"""
+                context[
+                    "concordances_summary"
+                ] += f"""
                     <tr>
                         <td>
                             <a href="http://cantus.ispan.pl" target="_blank">Cantus Planus in Polonia</a> (CPL)
@@ -280,18 +267,15 @@ class ChantDetailView(DetailView):
                 """
 
             # Hungarian Chant Database
-            hcd_count = len(
-                [
-                    True for c in concordance_chants
-                    if c["db"] == "HCD"
-                ]
-            )
+            hcd_count = len([True for c in concordance_chants if c["db"] == "HCD"])
             if hcd_count:
                 if hcd_count == 1:
                     chant_tally = "<b>1</b> chant"
                 else:
                     chant_tally = f"<b>{hcd_count}</b> chants"
-                context["concordances_summary"] += f"""
+                context[
+                    "concordances_summary"
+                ] += f"""
                     <tr>
                         <td>
                             <a href="http://hun-chant.eu" target="_blank">Hungarian Chant Database</a> (HCD)
@@ -303,18 +287,15 @@ class ChantDetailView(DetailView):
                 """
 
             # Slovak Early Music Database
-            csk_count = len(
-                [
-                    True for c in concordance_chants
-                    if c["db"] == "CSK"
-                ]
-            )
+            csk_count = len([True for c in concordance_chants if c["db"] == "CSK"])
             if csk_count:
                 if csk_count == 1:
                     chant_tally = "<b>1</b> chant"
                 else:
                     chant_tally = f"<b>{csk_count}</b> chants"
-                context["concordances_summary"] += f"""
+                context[
+                    "concordances_summary"
+                ] += f"""
                     <tr>
                         <td>
                             <a href="http://cantus.sk" target="_blank">Slovak Early Music Database</a> (CSK)
@@ -326,18 +307,15 @@ class ChantDetailView(DetailView):
                 """
 
             # Fragmenta Manuscriptorum Musicalium Hungariae
-            frh_count = len(
-                [
-                    True for c in concordance_chants
-                    if c["db"] == "FRH"
-                ]
-            )
+            frh_count = len([True for c in concordance_chants if c["db"] == "FRH"])
             if frh_count:
                 if frh_count == 1:
                     chant_tally = "<b>1</b> chant"
                 else:
                     chant_tally = f"<b>{frh_count}</b> chants"
-                context["concordances_summary"] += f"""
+                context[
+                    "concordances_summary"
+                ] += f"""
                     <tr>
                         <td>
                             <a href="http://fragmenta.zti.hu/en/" target="_blank">Fragmenta Manuscriptorum Musicalium Hungariae</a> (FRH)
@@ -347,7 +325,7 @@ class ChantDetailView(DetailView):
                         </td>
                     </tr>
                 """
-            
+
             # Gregorien.info
             # check to see if the corresponding page exists. If it does, display
             # links to gregorien.info in summary
@@ -355,7 +333,9 @@ class ChantDetailView(DetailView):
                 "https://gregorien.info/chant/cid/{}/en".format(chant.cantus_id)
             )
             if gregorien_response.status_code == 200:
-                context["concordances_summary"] += f"""
+                context[
+                    "concordances_summary"
+                ] += f"""
                     <tr>
                         <td>
                             <a href="https://gregorien.info/" target="_blank">Gregorien.info</a>
@@ -378,10 +358,9 @@ class ChantDetailView(DetailView):
             # ensuring that concordances are up-to-date for future page loads.
             t = threading.Thread(
                 target=requests.get,
-                args=[f"http://cantusindex.org/json-con/{chant.cantus_id}/refresh"]
+                args=[f"http://cantusindex.org/json-con/{chant.cantus_id}/refresh"],
             )
             t.start()
-
 
         # some chants don't have a source, for those chants, stop here without further calculating
         # other context variables
@@ -409,13 +388,13 @@ class ChantDetailView(DetailView):
         def get_chants_with_feasts(chants_in_folio):
             # this will be a nested list of the following format:
             # [
-            #   [feast_id_1, [chant, chant, ...]], 
-            #   [feast_id_2, [chant, chant, ...]], 
+            #   [feast_id_1, [chant, chant, ...]],
+            #   [feast_id_2, [chant, chant, ...]],
             #   ...
             # ]
             feasts_chants = []
             for chant in chants_in_folio.order_by("c_sequence"):
-                # if feasts_chants is empty, append a new list 
+                # if feasts_chants is empty, append a new list
                 if not feasts_chants:
                     # if the chant has a feast, append the following: [feast_id, []]
                     if chant.feast:
@@ -485,9 +464,9 @@ class ChantListView(ListView):
     template_name = "chant_list.html"
 
     def get_queryset(self):
-        """Gather the chants to be displayed. 
+        """Gather the chants to be displayed.
 
-        When in the `browse chants` page, there must be a source specified. 
+        When in the `browse chants` page, there must be a source specified.
         The chants in the specified source are filtered by a set of optional search parameters.
 
         Returns:
@@ -496,7 +475,7 @@ class ChantListView(ListView):
         # when arriving at this page, the url must have a source specified
         source_id = self.request.GET.get("source")
         source = Source.objects.get(id=source_id)
-        
+
         display_unpublished = self.request.user.is_authenticated
         if (source.published is False) and (not display_unpublished):
             raise PermissionDenied()
@@ -530,7 +509,7 @@ class ChantListView(ListView):
             """Generate folio-feast pairs as options for the feast selector
 
             Going through all chants in the source, folio by folio,
-            a new entry (in the form of folio-feast) is added when the feast changes. 
+            a new entry (in the form of folio-feast) is added when the feast changes.
 
             Args:
                 source (Source object): The source that the user is browsing in.
@@ -690,41 +669,41 @@ class ChantSearchView(ListView):
         current_url = self.request.path
         search_parameters = []
 
-        search_op = self.request.GET.get('op')
+        search_op = self.request.GET.get("op")
         if search_op:
             search_parameters.append(f"op={search_op}")
-        search_keyword = self.request.GET.get('keyword')
+        search_keyword = self.request.GET.get("keyword")
         if search_keyword:
             search_parameters.append(f"keyword={search_keyword}")
             context["keyword"] = search_keyword
-        search_office = self.request.GET.get('office')
+        search_office = self.request.GET.get("office")
         if search_office:
-            search_parameters.append(f'office={search_office}')
-        search_genre = self.request.GET.get('genre')
+            search_parameters.append(f"office={search_office}")
+        search_genre = self.request.GET.get("genre")
         if search_genre:
-            search_parameters.append(f'genre={search_genre}')
-        search_cantus_id = self.request.GET.get('cantus_id')
+            search_parameters.append(f"genre={search_genre}")
+        search_cantus_id = self.request.GET.get("cantus_id")
         if search_cantus_id:
-            search_parameters.append(f'cantus_id={search_cantus_id}')
-        search_mode = self.request.GET.get('mode')
+            search_parameters.append(f"cantus_id={search_cantus_id}")
+        search_mode = self.request.GET.get("mode")
         if search_mode:
-            search_parameters.append(f'mode={search_mode}')
-        search_feast = self.request.GET.get('feast')
+            search_parameters.append(f"mode={search_mode}")
+        search_feast = self.request.GET.get("feast")
         if search_feast:
-            search_parameters.append(f'feast={search_feast}')
-        search_position = self.request.GET.get('position')
+            search_parameters.append(f"feast={search_feast}")
+        search_position = self.request.GET.get("position")
         if search_position:
-            search_parameters.append(f'position={search_position}')
-        search_melodies = self.request.GET.get('melodies')
+            search_parameters.append(f"position={search_position}")
+        search_melodies = self.request.GET.get("melodies")
         if search_melodies:
-            search_parameters.append(f'melodies={search_melodies}')
+            search_parameters.append(f"melodies={search_melodies}")
 
         if search_parameters:
             joined_search_parameters = "&".join(search_parameters)
             url_with_search_params = current_url + "?" + joined_search_parameters
         else:
             url_with_search_params = current_url + "?"
-            
+
         context["url_with_search_params"] = url_with_search_params
 
         return context
@@ -734,7 +713,7 @@ class ChantSearchView(ListView):
         # GET parameters.
         if not self.request.GET:
             return Chant.objects.none()
-        
+
         # Create a Q object to filter the QuerySet of Chants
         q_obj_filter = Q()
         display_unpublished = self.request.user.is_authenticated
@@ -747,27 +726,19 @@ class ChantSearchView(ListView):
                 incipit = self.request.GET.get("search_bar")
                 chant_set = chant_set.filter(
                     manuscript_full_text_std_spelling__istartswith=incipit
-                ).values(
-                    *CHANT_SEARCH_TEMPLATE_VALUES
-                )
+                ).values(*CHANT_SEARCH_TEMPLATE_VALUES)
                 sequence_set = sequence_set.filter(
                     manuscript_full_text_std_spelling__istartswith=incipit
-                ).values(
-                    *CHANT_SEARCH_TEMPLATE_VALUES
-                )
+                ).values(*CHANT_SEARCH_TEMPLATE_VALUES)
                 queryset = chant_set.union(sequence_set, all=True)
             else:
                 # if search bar is doing Cantus ID search
                 cantus_id = self.request.GET.get("search_bar")
                 q_obj_filter &= Q(cantus_id=cantus_id)
-                chant_set = chant_set.filter(
-                    q_obj_filter
-                ).values(
+                chant_set = chant_set.filter(q_obj_filter).values(
                     *CHANT_SEARCH_TEMPLATE_VALUES
                 )
-                sequence_set = sequence_set.filter(
-                    q_obj_filter
-                ).values(
+                sequence_set = sequence_set.filter(q_obj_filter).values(
                     *CHANT_SEARCH_TEMPLATE_VALUES
                 )
                 queryset = chant_set.union(sequence_set, all=True)
@@ -805,18 +776,18 @@ class ChantSearchView(ListView):
                 # as a substring
                 feasts = Feast.objects.filter(name__icontains=feast)
                 q_obj_filter &= Q(feast__in=feasts)
-            order_get_param: Optional[str] = self.request.GET.get('order')
-            sort_get_param: Optional[str] = self.request.GET.get('sort')
-            
+            order_get_param: Optional[str] = self.request.GET.get("order")
+            sort_get_param: Optional[str] = self.request.GET.get("sort")
+
             order_param_options = (
-                'incipit',
-                'office',
-                'genre',
-                'cantus_id',
-                'mode',
-                'has_fulltext',
-                'has_melody',
-                'has_image',
+                "incipit",
+                "office",
+                "genre",
+                "cantus_id",
+                "mode",
+                "has_fulltext",
+                "has_melody",
+                "has_image",
             )
             if order_get_param in order_param_options:
                 if order_get_param == "has_fulltext":
@@ -828,10 +799,10 @@ class ChantSearchView(ListView):
                 else:
                     order = order_get_param
             else:
-                order = 'siglum'
+                order = "siglum"
 
             # sort values: "asc" and "desc". Default is "asc"
-            if sort_get_param and sort_get_param == 'desc':
+            if sort_get_param and sort_get_param == "desc":
                 order = f"-{order}"
 
             if not display_unpublished:
@@ -851,26 +822,20 @@ class ChantSearchView(ListView):
                 keyword = self.request.GET.get("keyword")
                 operation: Optional[str] = self.request.GET.get("op")
                 if operation and operation == "contains":
-                    ms_spelling_filter = Q(
-                        manuscript_full_text__icontains=keyword
-                    )
+                    ms_spelling_filter = Q(manuscript_full_text__icontains=keyword)
                     std_spelling_filter = Q(
                         manuscript_full_text_std_spelling__icontains=keyword
                     )
-                    incipit_filter = Q(
-                        incipit__icontains=keyword
-                    )
+                    incipit_filter = Q(incipit__icontains=keyword)
                 else:
-                    ms_spelling_filter = Q(
-                        manuscript_full_text__istartswith=keyword
-                    )
+                    ms_spelling_filter = Q(manuscript_full_text__istartswith=keyword)
                     std_spelling_filter = Q(
                         manuscript_full_text_std_spelling__istartswith=keyword
                     )
-                    incipit_filter = Q(
-                        incipit__istartswith=keyword
-                    )
-                keyword_filter = ms_spelling_filter | std_spelling_filter | incipit_filter
+                    incipit_filter = Q(incipit__istartswith=keyword)
+                keyword_filter = (
+                    ms_spelling_filter | std_spelling_filter | incipit_filter
+                )
                 chant_set = chant_set.filter(keyword_filter)
                 sequence_set = sequence_set.filter(keyword_filter)
 
@@ -883,7 +848,7 @@ class ChantSearchView(ListView):
 
 class MelodySearchView(TemplateView):
     """
-    Searches chants by the melody, accessed with `melody` (searching across all sources) 
+    Searches chants by the melody, accessed with `melody` (searching across all sources)
     or `melody?src=<source_id>` (searching in one specific source)
 
     This view only pass in the context variable `source`
@@ -941,44 +906,44 @@ class ChantSearchMSView(ListView):
         display_unpublished = self.request.user.is_authenticated
         if (source.published == False) and (not display_unpublished):
             raise PermissionDenied
-        
+
         current_url = self.request.path
         search_parameters = []
 
-        search_op = self.request.GET.get('op')
+        search_op = self.request.GET.get("op")
         if search_op:
             search_parameters.append(f"op={search_op}")
-        search_keyword = self.request.GET.get('keyword')
+        search_keyword = self.request.GET.get("keyword")
         if search_keyword:
             search_parameters.append(f"keyword={search_keyword}")
-        search_office = self.request.GET.get('office')
+        search_office = self.request.GET.get("office")
         if search_office:
-            search_parameters.append(f'office={search_office}')
-        search_genre = self.request.GET.get('genre')
+            search_parameters.append(f"office={search_office}")
+        search_genre = self.request.GET.get("genre")
         if search_genre:
-            search_parameters.append(f'genre={search_genre}')
-        search_cantus_id = self.request.GET.get('cantus_id')
+            search_parameters.append(f"genre={search_genre}")
+        search_cantus_id = self.request.GET.get("cantus_id")
         if search_cantus_id:
-            search_parameters.append(f'cantus_id={search_cantus_id}')
-        search_mode = self.request.GET.get('mode')
+            search_parameters.append(f"cantus_id={search_cantus_id}")
+        search_mode = self.request.GET.get("mode")
         if search_mode:
-            search_parameters.append(f'mode={search_mode}')
-        search_feast = self.request.GET.get('feast')
+            search_parameters.append(f"mode={search_mode}")
+        search_feast = self.request.GET.get("feast")
         if search_feast:
-            search_parameters.append(f'feast={search_feast}')
-        search_position = self.request.GET.get('position')
+            search_parameters.append(f"feast={search_feast}")
+        search_position = self.request.GET.get("position")
         if search_position:
-            search_parameters.append(f'position={search_position}')
-        search_melodies = self.request.GET.get('melodies')
+            search_parameters.append(f"position={search_position}")
+        search_melodies = self.request.GET.get("melodies")
         if search_melodies:
-            search_parameters.append(f'melodies={search_melodies}')
+            search_parameters.append(f"melodies={search_melodies}")
 
         if search_parameters:
             joined_search_parameters = "&".join(search_parameters)
             url_with_search_params = current_url + "?" + joined_search_parameters
         else:
             url_with_search_params = current_url + "?"
-            
+
         context["url_with_search_params"] = url_with_search_params
         return context
 
@@ -1013,33 +978,33 @@ class ChantSearchMSView(ListView):
             # as a substring
             feasts = Feast.objects.filter(name__icontains=feast)
             q_obj_filter &= Q(feast__in=feasts)
-        if self.request.GET.get('order'):
-            if self.request.GET.get('order') == 'siglum':
-                order = 'siglum'
-            elif self.request.GET.get('order') == 'incipit':
-                order = 'incipit'
-            elif self.request.GET.get('order') == 'office':
-                order = 'office'
-            elif self.request.GET.get('order') == 'genre':
-                order = 'genre'
-            elif self.request.GET.get('order') == 'cantus_id':
-                order = 'cantus_id'
-            elif self.request.GET.get('order') == 'mode':
-                order = 'mode'
-            elif self.request.GET.get('order') == 'has_fulltext':
-                order = 'manuscript_full_text'
-            elif self.request.GET.get('order') == 'has_melody':
-                order = 'volpiano'
-            elif self.request.GET.get('order') == 'has_image':
-                order = 'image_link'
+        if self.request.GET.get("order"):
+            if self.request.GET.get("order") == "siglum":
+                order = "siglum"
+            elif self.request.GET.get("order") == "incipit":
+                order = "incipit"
+            elif self.request.GET.get("order") == "office":
+                order = "office"
+            elif self.request.GET.get("order") == "genre":
+                order = "genre"
+            elif self.request.GET.get("order") == "cantus_id":
+                order = "cantus_id"
+            elif self.request.GET.get("order") == "mode":
+                order = "mode"
+            elif self.request.GET.get("order") == "has_fulltext":
+                order = "manuscript_full_text"
+            elif self.request.GET.get("order") == "has_melody":
+                order = "volpiano"
+            elif self.request.GET.get("order") == "has_image":
+                order = "image_link"
             else:
-                order = 'siglum'
+                order = "siglum"
         else:
-            order = 'siglum'
-        if self.request.GET.get('sort'):
-            if self.request.GET.get('sort') == "asc":
+            order = "siglum"
+        if self.request.GET.get("sort"):
+            if self.request.GET.get("sort") == "asc":
                 order = order
-            elif self.request.GET.get('sort') == 'desc':
+            elif self.request.GET.get("sort") == "desc":
                 order = "-" + order
 
         source_id = self.kwargs["source_pk"]
@@ -1057,25 +1022,17 @@ class ChantSearchMSView(ListView):
             operation = self.request.GET.get("op")
             # the operation parameter can be "contains" or "starts_with"
             if operation == "contains":
-                ms_spelling_filter = Q(
-                    manuscript_full_text__icontains=keyword
-                )
+                ms_spelling_filter = Q(manuscript_full_text__icontains=keyword)
                 std_spelling_filter = Q(
                     manuscript_full_text_std_spelling__icontains=keyword
                 )
-                incipit_filter = Q(
-                    incipit__icontains=keyword
-                )
+                incipit_filter = Q(incipit__icontains=keyword)
             else:
-                ms_spelling_filter = Q(
-                    manuscript_full_text__istartswith=keyword
-                )
+                ms_spelling_filter = Q(manuscript_full_text__istartswith=keyword)
                 std_spelling_filter = Q(
                     manuscript_full_text_std_spelling__istartswith=keyword
                 )
-                incipit_filter = Q(
-                    incipit__istartswith=keyword
-                )
+                incipit_filter = Q(incipit__istartswith=keyword)
             keyword_filter = ms_spelling_filter | std_spelling_filter | incipit_filter
             queryset.filter(keyword_filter)
         # ordering with the folio string gives wrong order
@@ -1088,14 +1045,14 @@ class ChantSearchMSView(ListView):
 class ChantCreateView(LoginRequiredMixin, UserPassesTestMixin, CreateView):
     """Create chants in a certain manuscript, accessed with `chant-create/<int:source_pk>`.
 
-    This view displays the chant input form and provide access to 
+    This view displays the chant input form and provide access to
     "input tool" and "chant suggestion tool" to facilitate the input process.
     """
 
     model = Chant
     template_name = "chant_create.html"
     form_class = ChantCreateForm
-    pk_url_kwarg = 'source_pk'
+    pk_url_kwarg = "source_pk"
 
     def test_func(self):
         user = self.request.user
@@ -1111,8 +1068,8 @@ class ChantCreateView(LoginRequiredMixin, UserPassesTestMixin, CreateView):
     def get_initial(self):
         """Get intial data from the latest chant in source.
 
-        Some fields of the chant input form (`folio`, `feast`, `c_sequence`, and `image_link`) 
-        are pre-populated upon loading. These fields are computed based on the latest chant in the source. 
+        Some fields of the chant input form (`folio`, `feast`, `c_sequence`, and `image_link`)
+        are pre-populated upon loading. These fields are computed based on the latest chant in the source.
 
         Returns:
             dict: field names and corresponding data
@@ -1129,7 +1086,9 @@ class ChantCreateView(LoginRequiredMixin, UserPassesTestMixin, CreateView):
             }
         latest_folio = latest_chant.folio if latest_chant.folio else "001r"
         latest_feast = latest_chant.feast.id if latest_chant.feast else ""
-        latest_seq = latest_chant.c_sequence if latest_chant.c_sequence is not None else 0
+        latest_seq = (
+            latest_chant.c_sequence if latest_chant.c_sequence is not None else 0
+        )
         latest_image = latest_chant.image_link if latest_chant.image_link else ""
         return {
             "folio": latest_folio,
@@ -1146,7 +1105,7 @@ class ChantCreateView(LoginRequiredMixin, UserPassesTestMixin, CreateView):
     def get_suggested_chants(self):
         """based on the previous chant entered, get data and metadata on
         chants that follow the most recently entered chant in other manuscripts
-        
+
         Returns:
             a list of dictionaries: for every potential chant,
             each dictionary includes data on that chant,
@@ -1168,10 +1127,9 @@ class ChantCreateView(LoginRequiredMixin, UserPassesTestMixin, CreateView):
         suggested_chants = next_chants(cantus_id, display_unpublished=True)
 
         # sort by number of occurrences
-        sorted_suggested_chants = sorted(suggested_chants,
-                                         key=lambda id_count_pair: id_count_pair[1],
-                                         reverse=True
-                                         )
+        sorted_suggested_chants = sorted(
+            suggested_chants, key=lambda id_count_pair: id_count_pair[1], reverse=True
+        )
         # if there are more chants than NUM_SUGGESTIONS, remove chants that
         # don't frequently appear after the most recently entered chant
         trimmed_suggested_chants = sorted_suggested_chants[:NUM_SUGGESTIONS]
@@ -1206,10 +1164,8 @@ class ChantCreateView(LoginRequiredMixin, UserPassesTestMixin, CreateView):
             return chant_dict
 
         suggested_chants_dicts = [
-            make_suggested_chant_dict(chant)
-            for chant
-            in trimmed_suggested_chants
-            ]
+            make_suggested_chant_dict(chant) for chant in trimmed_suggested_chants
+        ]
 
         return suggested_chants_dicts
 
@@ -1225,22 +1181,21 @@ class ChantCreateView(LoginRequiredMixin, UserPassesTestMixin, CreateView):
             return None
 
         current_feast = latest_chant.feast
-        chants_that_end_feast = Chant.objects.filter(is_last_chant_in_feast = True)
-        chants_that_end_current_feast = chants_that_end_feast.filter(feast=current_feast)
-        next_chants = [chant.next_chant
-            for chant
-            in chants_that_end_current_feast
-            ]
-        next_feasts = [chant.feast
-            for chant
-            in next_chants
-            if type(chant) is Chant # .get_next_chant() sometimes returns None
-                and chant.feast is not None # some chants aren't associated with a feast
-            ]
+        chants_that_end_feast = Chant.objects.filter(is_last_chant_in_feast=True)
+        chants_that_end_current_feast = chants_that_end_feast.filter(
+            feast=current_feast
+        )
+        next_chants = [chant.next_chant for chant in chants_that_end_current_feast]
+        next_feasts = [
+            chant.feast
+            for chant in next_chants
+            if type(chant) is Chant  # .get_next_chant() sometimes returns None
+            and chant.feast is not None  # some chants aren't associated with a feast
+        ]
         feast_counts = Counter(next_feasts)
-        sorted_feast_counts = dict( sorted(feast_counts.items(),
-                           key=lambda item: item[1],
-                           reverse=True))
+        sorted_feast_counts = dict(
+            sorted(feast_counts.items(), key=lambda item: item[1], reverse=True)
+        )
         return sorted_feast_counts
 
     def get_context_data(self, **kwargs):
@@ -1303,8 +1258,9 @@ class ChantDeleteView(LoginRequiredMixin, UserPassesTestMixin, DeleteView):
     """The view for deleting a chant object
 
     This view is used in the chant-edit page, where an authorized user is allowed to
-    edit or delete chants in a certain source. 
+    edit or delete chants in a certain source.
     """
+
     model = Chant
     template_name = "chant_confirm_delete.html"
 
@@ -1313,11 +1269,12 @@ class ChantDeleteView(LoginRequiredMixin, UserPassesTestMixin, DeleteView):
         chant_id = self.kwargs.get(self.pk_url_kwarg)
         chant = get_object_or_404(Chant, id=chant_id)
         source = chant.source
-        
+
         return user_can_edit_chants_in_source(user, source)
 
     def get_success_url(self):
         return reverse("source-edit-chants", args=[self.object.source.id])
+
 
 class CISearchView(TemplateView):
     """search in CI and write results in get_context_data
@@ -1377,7 +1334,6 @@ class ChantIndexView(TemplateView):
     template_name = "full_index.html"
 
     def get_context_data(self, **kwargs):
-
         context = super().get_context_data(**kwargs)
 
         source_id = self.request.GET.get("source")
@@ -1393,14 +1349,15 @@ class ChantIndexView(TemplateView):
                 record_type=Value("sequence")
             ).order_by("s_sequence")
         else:
-            queryset = source.chant_set.annotate(
-                record_type=Value("chant")
-            ).order_by("folio", "c_sequence")
+            queryset = source.chant_set.annotate(record_type=Value("chant")).order_by(
+                "folio", "c_sequence"
+            )
 
         context["source"] = source
         context["chants"] = queryset
 
         return context
+
 
 class SourceEditChantsView(LoginRequiredMixin, UserPassesTestMixin, UpdateView):
     template_name = "chant_edit.html"
@@ -1417,15 +1374,15 @@ class SourceEditChantsView(LoginRequiredMixin, UserPassesTestMixin, UpdateView):
 
     def get_queryset(self):
         """
-            When a user visits the edit-chant page for a certain Source,
-            there are 2 dropdowns on the right side of the page: one for folio, and the other for feast.
+        When a user visits the edit-chant page for a certain Source,
+        there are 2 dropdowns on the right side of the page: one for folio, and the other for feast.
 
-            When either a folio or a feast is selected, a list of Chants in the selected folio/feast will be rendered.
+        When either a folio or a feast is selected, a list of Chants in the selected folio/feast will be rendered.
 
-            Returns:
-                a QuerySet of Chants in the Source, filtered by the optional search parameters.
+        Returns:
+            a QuerySet of Chants in the Source, filtered by the optional search parameters.
 
-            Note: the first folio is selected by default.
+        Note: the first folio is selected by default.
         """
 
         # when arriving at this page, the url must have a source specified
@@ -1445,11 +1402,7 @@ class SourceEditChantsView(LoginRequiredMixin, UserPassesTestMixin, UpdateView):
             chants = chants.filter(folio=folio)
         # if none of the optional search params are specified, the first folio in the source is selected by default
         else:
-            folios = (
-                chants.values_list("folio", flat=True)
-                .distinct()
-                .order_by("folio")
-            )
+            folios = chants.values_list("folio", flat=True).distinct().order_by("folio")
             if not folios:
                 # if the source has no chants (conceivable), or if it has chants but
                 # none of them have folios specified (we don't really expect this to happen)
@@ -1458,7 +1411,7 @@ class SourceEditChantsView(LoginRequiredMixin, UserPassesTestMixin, UpdateView):
             chants = chants.filter(folio=initial_folio)
         self.queryset = chants
         return self.queryset
-    
+
     def get_object(self):
         """
             If the Source has no Chant, an Http404 is raised.
@@ -1484,7 +1437,7 @@ class SourceEditChantsView(LoginRequiredMixin, UserPassesTestMixin, UpdateView):
             """Generate folio-feast pairs as options for the feast selector
 
             Going through all chants in the source, folio by folio,
-            a new entry (in the form of folio-feast) is added when the feast changes. 
+            a new entry (in the form of folio-feast) is added when the feast changes.
 
             Args:
                 source (Source object): The source that the user is browsing in.
@@ -1532,17 +1485,17 @@ class SourceEditChantsView(LoginRequiredMixin, UserPassesTestMixin, UpdateView):
                     for i in range(len(feast_selector_folios))
                 ]
             return folios_with_feasts
-            
+
         def get_chants_with_feasts(chants_in_folio):
             # this will be a nested list of the following format:
             # [
-            #   [feast_id_1, [chant, chant, ...]], 
-            #   [feast_id_2, [chant, chant, ...]], 
+            #   [feast_id_1, [chant, chant, ...]],
+            #   [feast_id_2, [chant, chant, ...]],
             #   ...
             # ]
             feasts_chants = []
             for chant in chants_in_folio.order_by("c_sequence"):
-                # if feasts_chants is empty, append a new list 
+                # if feasts_chants is empty, append a new list
                 if not feasts_chants:
                     # if the chant has a feast, append the following: [feast_id, []]
                     if chant.feast:
@@ -1571,20 +1524,22 @@ class SourceEditChantsView(LoginRequiredMixin, UserPassesTestMixin, UpdateView):
                 feast_chants[0] = Feast.objects.get(id=feast_chants[0])
 
             return feasts_chants
-        
+
         def get_chants_with_folios(chants_in_feast):
             # this will be a nested list of the following format:
             # [
-            #   [folio_1, [chant, chant, ...]], 
-            #   [folio_2, [chant, chant, ...]], 
+            #   [folio_1, [chant, chant, ...]],
+            #   [folio_2, [chant, chant, ...]],
             #   ...
             # ]
             folios_chants = []
             for chant in chants_in_feast.order_by("folio"):
-                # if folios_chants is empty, or if your current chant in the for loop 
+                # if folios_chants is empty, or if your current chant in the for loop
                 # belongs in a different folio than the last chant,
                 # append a new list with your current chant's folio
-                if chant.folio and (not folios_chants or chant.folio != folios_chants[-1][0]):
+                if chant.folio and (
+                    not folios_chants or chant.folio != folios_chants[-1][0]
+                ):
                     folios_chants.append([chant.folio, []])
                 # add the chant
                 folios_chants[-1][1].append(chant)
@@ -1624,7 +1579,9 @@ class SourceEditChantsView(LoginRequiredMixin, UserPassesTestMixin, UpdateView):
 
         # the user has selected a folio, or,
         # they have just navigated to the edit-chant page (where the first folio gets selected by default)
-        if self.request.GET.get("folio") or (not self.request.GET.get("folio") and not self.request.GET.get("feast")):
+        if self.request.GET.get("folio") or (
+            not self.request.GET.get("folio") and not self.request.GET.get("feast")
+        ):
             # if browsing chants on a specific folio
             if self.request.GET.get("folio"):
                 folio = self.request.GET.get("folio")
@@ -1641,7 +1598,7 @@ class SourceEditChantsView(LoginRequiredMixin, UserPassesTestMixin, UpdateView):
             # if there is a "folio" query parameter, it means the user has chosen a specific folio
             # need to render a list of chants, ordered by c_sequence and grouped by feast
             context["feasts_current_folio"] = get_chants_with_feasts(self.queryset)
-        
+
         elif self.request.GET.get("feast"):
             # if there is a "feast" query parameter, it means the user has chosen a specific feast
             # need to render a list of chants, grouped and ordered by folio and within each group,
@@ -1663,7 +1620,7 @@ class SourceEditChantsView(LoginRequiredMixin, UserPassesTestMixin, UpdateView):
             cantus_id = current_chant.cantus_id
 
             request = requests.get(
-                    "http://cantusindex.org/json-cid/{}".format(cantus_id)
+                "http://cantusindex.org/json-cid/{}".format(cantus_id)
             )
             request_text = json.loads(request.text[2:])
             if request_text:
@@ -1695,7 +1652,9 @@ class SourceEditChantsView(LoginRequiredMixin, UserPassesTestMixin, UpdateView):
                 )
                 syls_text, syls_melody = postprocess(syls_text, syls_melody)
             elif chant.manuscript_full_text_std_spelling:
-                syls_text = syllabize_text(chant.manuscript_full_text_std_spelling, pre_syllabized=False)
+                syls_text = syllabize_text(
+                    chant.manuscript_full_text_std_spelling, pre_syllabized=False
+                )
                 syls_text, syls_melody = postprocess(syls_text, syls_melody)
             elif chant.incipit:
                 syls_text = syllabize_text(chant.incipit, pre_syllabized=False)
@@ -1707,7 +1666,7 @@ class SourceEditChantsView(LoginRequiredMixin, UserPassesTestMixin, UpdateView):
             context["syllabized_text_with_melody"] = word_zip
 
         return context
-    
+
     def form_valid(self, form):
         if form.is_valid():
             form.instance.last_updated_by = self.request.user
@@ -1722,6 +1681,7 @@ class SourceEditChantsView(LoginRequiredMixin, UserPassesTestMixin, UpdateView):
     def get_success_url(self):
         # stay on the same page after save
         return self.request.get_full_path()
+
 
 class ChantProofreadView(SourceEditChantsView):
     template_name = "chant_proofread.html"
@@ -1746,6 +1706,7 @@ class ChantProofreadView(SourceEditChantsView):
             return True
         else:
             return False
+
 
 class ChantEditSyllabificationView(LoginRequiredMixin, UserPassesTestMixin, UpdateView):
     template_name = "chant_syllabification_edit.html"
@@ -1784,7 +1745,9 @@ class ChantEditSyllabificationView(LoginRequiredMixin, UserPassesTestMixin, Upda
                 )
                 syls_text, syls_melody = postprocess(syls_text, syls_melody)
             elif chant.manuscript_full_text_std_spelling:
-                syls_text = syllabize_text(chant.manuscript_full_text_std_spelling, pre_syllabized=False)
+                syls_text = syllabize_text(
+                    chant.manuscript_full_text_std_spelling, pre_syllabized=False
+                )
                 syls_text, syls_melody = postprocess(syls_text, syls_melody)
 
             word_zip = align(syls_text, syls_melody)
@@ -1804,10 +1767,11 @@ class ChantEditSyllabificationView(LoginRequiredMixin, UserPassesTestMixin, Upda
         # stay on the same page after save
         return self.request.get_full_path()
 
+
 def user_can_edit_chants_in_source(user, source):
     if user.is_anonymous:
         return False
-    
+
     source_id = source.id
     user_is_assigned_to_source = user.sources_user_can_edit.filter(id=source_id)
 
@@ -1815,8 +1779,10 @@ def user_can_edit_chants_in_source(user, source):
     user_is_editor = user.groups.filter(name="editor").exists()
     user_is_contributor = user.groups.filter(name="contributor").exists()
 
-    return ((user_is_project_manager) 
-        or (user_is_editor and user_is_assigned_to_source) 
-        or (user_is_editor and source.created_by == user)  
+    return (
+        (user_is_project_manager)
+        or (user_is_editor and user_is_assigned_to_source)
+        or (user_is_editor and source.created_by == user)
         or (user_is_contributor and user_is_assigned_to_source)
-        or (user_is_contributor and source.created_by == user))
+        or (user_is_contributor and source.created_by == user)
+    )

@@ -9,6 +9,7 @@ from main_app.tests.make_fakes import (
 # run with `python -Wa manage.py test articles.tests.test_articles`
 # the -Wa flag tells Python to display deprecation warnings
 
+
 def make_fake_article(user=None):
     if user is None:
         user = make_fake_user()
@@ -53,4 +54,3 @@ class ArticleListViewTest(TestCase):
         response = self.client.get(reverse("article-detail", args=[article.id]))
         self.assertEqual(response.status_code, 200)
         self.assertEqual(article, response.context["article"])
-

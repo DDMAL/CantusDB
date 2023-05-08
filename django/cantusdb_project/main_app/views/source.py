@@ -21,7 +21,7 @@ class SourceDetailView(DetailView):
             """Generate folio-feast pairs as options for the feast selector
 
             Going through all chants in the source, folio by folio,
-            a new entry (in the form of folio-feast) is added when the feast changes. 
+            a new entry (in the form of folio-feast) is added when the feast changes.
 
             Args:
                 source (Source object): The source object for this source detail page.
@@ -97,6 +97,7 @@ class SourceDetailView(DetailView):
             context["feasts_with_folios"] = get_feast_selector_options(source, folios)
         return context
 
+
 class SourceListView(ListView):
     paginate_by = 100
     context_object_name = "sources"
@@ -114,7 +115,9 @@ class SourceListView(ListView):
 
     def get_queryset(self):
         # use select_related() for foreign keys to reduce DB queries
-        queryset = Source.objects.select_related("rism_siglum", "segment", "provenance").order_by("siglum")
+        queryset = Source.objects.select_related(
+            "rism_siglum", "segment", "provenance"
+        ).order_by("siglum")
 
         display_unpublished = self.request.user.is_authenticated
         if display_unpublished:
@@ -219,6 +222,7 @@ class SourceListView(ListView):
 
         return queryset.filter(q_obj_filter).distinct()
 
+
 class SourceCreateView(LoginRequiredMixin, UserPassesTestMixin, CreateView):
     model = Source
     template_name = "source_create_form.html"
@@ -227,7 +231,9 @@ class SourceCreateView(LoginRequiredMixin, UserPassesTestMixin, CreateView):
     def test_func(self):
         user = self.request.user
         # checks if the user is allowed to create sources
-        is_authorized = user.groups.filter(Q(name="project manager")|Q(name="editor")|Q(name="contributor")).exists()
+        is_authorized = user.groups.filter(
+            Q(name="project manager") | Q(name="editor") | Q(name="contributor")
+        ).exists()
 
         if is_authorized:
             return True
@@ -243,30 +249,31 @@ class SourceCreateView(LoginRequiredMixin, UserPassesTestMixin, CreateView):
 
         # assign this source to the "current_editors"
         current_editors = source.current_editors.all()
-        
+
         for editor in current_editors:
             editor.sources_user_can_edit.add(source)
-        
+
         messages.success(
             self.request,
             "Source created successfully!",
         )
-        
+
         return HttpResponseRedirect(self.get_success_url())
+
 
 class SourceEditView(LoginRequiredMixin, UserPassesTestMixin, UpdateView):
     template_name = "source_edit.html"
     model = Source
-    form_class = SourceEditForm 
+    form_class = SourceEditForm
     pk_url_kwarg = "source_id"
 
     def test_func(self):
         user = self.request.user
         source_id = self.kwargs.get(self.pk_url_kwarg)
         source = get_object_or_404(Source, id=source_id)
-        
+
         assigned_to_source = user.sources_user_can_edit.filter(id=source_id)
-        
+
         # checks if the user is a project manager
         is_project_manager = user.groups.filter(name="project manager").exists()
         # checks if the user is an editor
@@ -274,10 +281,12 @@ class SourceEditView(LoginRequiredMixin, UserPassesTestMixin, UpdateView):
         # checks if the user is a contributor
         is_contributor = user.groups.filter(name="contributor").exists()
 
-        if ((is_project_manager)
+        if (
+            (is_project_manager)
             or (is_editor and assigned_to_source)
-            or (is_editor and source.created_by == user) 
-            or (is_contributor and source.created_by == user)):
+            or (is_editor and source.created_by == user)
+            or (is_contributor and source.created_by == user)
+        ):
             return True
         else:
             return False
@@ -288,14 +297,16 @@ class SourceEditView(LoginRequiredMixin, UserPassesTestMixin, UpdateView):
         # remove this source from the old "current_editors"
         # assign this source to the new "current_editors"
 
-        old_current_editors = list(Source.objects.get(id=form.instance.id).current_editors.all())
+        old_current_editors = list(
+            Source.objects.get(id=form.instance.id).current_editors.all()
+        )
         new_current_editors = form.cleaned_data["current_editors"]
         source = form.save()
 
         for old_editor in old_current_editors:
             old_editor.sources_user_can_edit.remove(source)
-        
+
         for new_editor in new_current_editors:
             new_editor.sources_user_can_edit.add(source)
-        
+
         return HttpResponseRedirect(self.get_success_url())

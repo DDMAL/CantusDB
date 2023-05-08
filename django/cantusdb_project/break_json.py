@@ -13,6 +13,7 @@ if not os.path.exists(TARGET_PATH):
     os.makedirs(TARGET_PATH)
 RESULT_BATCH_SIZE = 100  # how many chants in a resulting smaller json file
 
+
 # to count how many chants are in the iterator
 # to do this, it has to iterate till the end
 def count_iterator(i):

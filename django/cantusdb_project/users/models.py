@@ -3,6 +3,7 @@ from django.contrib.auth.models import AbstractUser
 from django.urls.base import reverse
 from .managers import CustomUserManager
 
+
 class User(AbstractUser):
     institution = models.CharField(max_length=255, blank=True, null=True)
     city = models.CharField(max_length=255, blank=True, null=True)
@@ -21,7 +22,7 @@ class User(AbstractUser):
     # if the user has an associated indexer object on old Cantus, save its ID
     old_indexer_id = models.IntegerField(blank=True, null=True)
 
-    USERNAME_FIELD = 'email'
+    USERNAME_FIELD = "email"
     REQUIRED_FIELDS = []
 
     objects = CustomUserManager()
