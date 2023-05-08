@@ -453,19 +453,19 @@ def json_melody_export(request, cantus_id):
         keymap = {  # map attribute names from Chant model (i.e. db_keys
             # in list above) to corresponding attribute names
             # in old API, and remove artifacts of query process (i.e. __id suffixes)
-            "melody_id": "mid",  # <-
-            "id": "nid",  # <-
-            "cantus_id": "cid",  # <-
+            "melody_id": "mid",  #                  <-
+            "id": "nid",  #                         <-
+            "cantus_id": "cid",  #                  <-
             "siglum": "siglum",
-            "source__id": "srcnid",  # <-
+            "source__id": "srcnid",  #              <-
             "folio": "folio",
             "incipit": "incipit",
-            "manuscript_full_text": "fulltext",  # <-
+            "manuscript_full_text": "fulltext",  #  <-
             "volpiano": "volpiano",
             "mode": "mode",
-            "feast__id": "feast",  # <-
-            "office__id": "office",  # <-
-            "genre__id": "genre",  # <-
+            "feast__id": "feast",  #                <-
+            "office__id": "office",  #              <-
+            "genre__id": "genre",  #                <-
             "position": "position",
         }
 
