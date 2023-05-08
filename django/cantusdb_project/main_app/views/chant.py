@@ -1400,7 +1400,8 @@ class SourceEditChantsView(LoginRequiredMixin, UserPassesTestMixin, UpdateView):
             chants = chants.filter(feast__id=feast_id)
         elif folio:
             chants = chants.filter(folio=folio)
-        # if none of the optional search params are specified, the first folio in the source is selected by default
+        # if none of the optional search params are specified, the first folio in the
+        # source is selected by default
         else:
             folios = chants.values_list("folio", flat=True).distinct().order_by("folio")
             if not folios:
