@@ -1,9 +1,9 @@
 from main_app.models import Chant
 from django.core.management.base import BaseCommand
 
+
 # Run with `python manage.py populate_is_last_chant_in_feast`.
 class Command(BaseCommand):
-
     def handle(self, *args, **kwargs):
         CHUNK_SIZE = 1_000
         chants = Chant.objects.all()
@@ -11,8 +11,8 @@ class Command(BaseCommand):
         start_index = 0
         while start_index <= chants_count:
             print("processing chunk with start_index of", start_index)
-            chunk = chants[start_index:start_index+CHUNK_SIZE]
-            
+            chunk = chants[start_index : start_index + CHUNK_SIZE]
+
             for chant in chunk:
                 this_chant_feast = chant.feast
                 if this_chant_feast is None:
@@ -26,8 +26,8 @@ class Command(BaseCommand):
                         chant.is_last_chant_in_feast = True
                     else:
                         chant.is_last_chant_in_feast = False
-                except AttributeError: # next_chant is None
+                except AttributeError:  # next_chant is None
                     chant.is_last_chant_in_feast = True
                 chant.save()
-            del chunk # make sure we don't use too much RAM
+            del chunk  # make sure we don't use too much RAM
             start_index += CHUNK_SIZE

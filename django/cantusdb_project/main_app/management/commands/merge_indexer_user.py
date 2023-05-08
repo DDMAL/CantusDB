@@ -3,6 +3,7 @@ from main_app.models import Indexer
 from users.models import User
 from faker import Faker
 
+
 class Command(BaseCommand):
     def add_arguments(self, parser):
         pass
@@ -49,6 +50,6 @@ class Command(BaseCommand):
                     # leave the password empty for dummy users
                     # the password can't be empty in login form, so they can't log in
                     password="",
-                    old_indexer_id = indexer.id,
+                    old_indexer_id=indexer.id,
                     is_indexer=True,
                 )

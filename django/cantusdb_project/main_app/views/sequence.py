@@ -12,6 +12,7 @@ class SequenceDetailView(DetailView):
     """
     Displays a single Sequence object. Accessed with ``sequences/<int:pk>``
     """
+
     model = Sequence
     context_object_name = "sequence"
     template_name = "sequence_detail.html"
@@ -19,15 +20,21 @@ class SequenceDetailView(DetailView):
     def get_context_data(self, **kwargs):
         sequence = self.get_object()
         source = sequence.source
-        # if the sequence's source isn't published, 
+        # if the sequence's source isn't published,
         # only logged-in users should be able to view the sequence's detail page
-        if (source is not None) and (source.published is False) and (not self.request.user.is_authenticated):
+        if (
+            (source is not None)
+            and (source.published is False)
+            and (not self.request.user.is_authenticated)
+        ):
             raise PermissionDenied()
-        
+
         context = super().get_context_data(**kwargs)
-        context["concordances"] = Sequence.objects.filter(
-            cantus_id=sequence.cantus_id
-        ).select_related("source").order_by("siglum")
+        context["concordances"] = (
+            Sequence.objects.filter(cantus_id=sequence.cantus_id)
+            .select_related("source")
+            .order_by("siglum")
+        )
         return context
 
 
@@ -35,6 +42,7 @@ class SequenceListView(ListView):
     """
     Displays a list of Sequence objects. Accessed with ``sequences/``
     """
+
     paginate_by = 100
     context_object_name = "sequences"
     template_name = "sequence_list.html"

@@ -3,9 +3,10 @@ from django.db import models
 from django.urls import reverse
 from django_quill.fields import QuillField
 
+
 class Article(models.Model):
     title = models.CharField(max_length=255)
-    body = QuillField() # rich text field
+    body = QuillField()  # rich text field
     author = models.ForeignKey(
         get_user_model(),
         on_delete=models.CASCADE,

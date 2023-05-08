@@ -307,6 +307,7 @@ def get_new_chant(chant_id):
 
     chant_obj.proofread_by.set(proofread_by)
 
+
 def remove_extra():
     waterloo_ids = get_chant_list(CHANT_ID_FILE)
     our_ids = list(Chant.objects.all().values_list("id", flat=True))

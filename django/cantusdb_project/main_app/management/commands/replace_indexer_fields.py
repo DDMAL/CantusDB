@@ -2,11 +2,12 @@ from main_app.models import Source
 from django.contrib.auth import get_user_model
 from django.core.management.base import BaseCommand
 
-# This command is intended as a temporary approach to 
-# populate the user-related fields using the indexer-related fields. 
-# The goal is to eventually remove the Indexer model and point all fields to User. 
+
+# This command is intended as a temporary approach to
+# populate the user-related fields using the indexer-related fields.
+# The goal is to eventually remove the Indexer model and point all fields to User.
 # After running this command, the indexer-related fields can be removed from the Source model.
-# The user-related fields can then be renamed as needed. 
+# The user-related fields can then be renamed as needed.
 # Run with `python manage.py replace_indexer_fields`.
 class Command(BaseCommand):
     def handle(self, *args, **options):
