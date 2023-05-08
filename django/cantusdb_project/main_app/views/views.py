@@ -569,7 +569,10 @@ def change_password(request):
         if request.user.changed_initial_password == False:
             messages.warning(
                 request,
-                "The current password was assigned to you by default and is unsecure. Please make sure to change it for security purposes.",
+                (
+                    "The current password was assigned to you by default and is unsecure. "
+                    "Please make sure to change it for security purposes."
+                ),
             )
     return render(request, "registration/change_password.html", {"form": form})
 
