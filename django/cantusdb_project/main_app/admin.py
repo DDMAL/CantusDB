@@ -6,7 +6,7 @@ from main_app.models import *
 
 class BaseModelAdmin(admin.ModelAdmin):
     # these fields should not be editable
-    exclude = ("created_by", "last_updated_by")
+    exclude = ("created_by", "last_updated_by", "json_info", "col1", "col2", "col3", "next_chant", "number_of_chants", "number_of_melodies")
 
     # if an object is created in the admin interface, assign the user to the created_by field
     # else if an object is updated in the admin interface, assign the user to the last_updated_by field
@@ -23,8 +23,7 @@ class CenturyAdmin(BaseModelAdmin):
 
 
 class ChantAdmin(BaseModelAdmin):
-    pass
-
+    exclude = BaseModelAdmin.exclude + ("s_sequence",)
 
 class FeastAdmin(BaseModelAdmin):
     pass
@@ -55,8 +54,7 @@ class SegmentAdmin(BaseModelAdmin):
 
 
 class SequenceAdmin(BaseModelAdmin):
-    pass
-
+    exclude = BaseModelAdmin.exclude + ("c_sequence",)
 
 class SourceAdmin(BaseModelAdmin):
     # from the Django docs:
