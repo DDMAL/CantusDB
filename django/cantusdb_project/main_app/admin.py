@@ -22,7 +22,7 @@ class CenturyAdmin(BaseModelAdmin):
 
 
 class ChantAdmin(BaseModelAdmin):
-    exclude = EXCLUDE + ("col1", "col2", "col3", "next_chant", "s_sequence")
+    exclude = EXCLUDE + ("col1", "col2", "col3", "next_chant", "s_sequence", "is_last_chant_in_feast")
 
 class FeastAdmin(BaseModelAdmin):
     pass
@@ -53,7 +53,7 @@ class SegmentAdmin(BaseModelAdmin):
 
 
 class SequenceAdmin(BaseModelAdmin):
-    exclude = EXCLUDE + ("c_sequence", "next_chant")
+    exclude = EXCLUDE + ("c_sequence", "next_chant", "is_last_chant_in_feast")
 
 class SourceAdmin(BaseModelAdmin):
     # from the Django docs:
