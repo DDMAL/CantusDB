@@ -361,9 +361,9 @@ class ChantDetailView(DetailView):
             t = threading.Thread(
                 target=requests.get,
                 args={
-                    "url":f"https://cantusindex.org/json-con/{chant.cantus_id}/refresh",
-                    "timeout":5,
-                }
+                    "url": f"https://cantusindex.org/json-con/{chant.cantus_id}/refresh",
+                    "timeout": 5,
+                },
             )
             t.start()
 
@@ -1633,7 +1633,7 @@ class SourceEditChantsView(LoginRequiredMixin, UserPassesTestMixin, UpdateView):
             cantus_id = current_chant.cantus_id
 
             request = requests.get(
-                "https://cantusindex.org/json-cid/{cantus_id}",
+                f"https://cantusindex.org/json-cid/{cantus_id}",
                 timeout=5,
             )
             request_text = json.loads(request.text[2:])
