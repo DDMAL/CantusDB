@@ -1379,7 +1379,9 @@ class CISearchView(TemplateView):
                     params=p,
                     timeout=5,
                 )
-            except (SSLError, Timeout):
+            except (SSLError, Timeout) as exc:
+                # change to log in future
+                print("encountered error in CISearchView.get_context_data:", exc)
                 break
             doc = lh.fromstring(page.content)
             # Parse data that are stored between <tr>..</tr> of HTML
