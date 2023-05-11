@@ -354,16 +354,37 @@ class ChantDetailView(DetailView):
                                 </td>
                             </tr>
                         """
-                except (SSLError, Timeout):
-                    pass
+                except (SSLError, Timeout) as exc_inner:
+                    # we're using nested try blocks here because:
+                    # - if our request to cantusindex.org fails, we should load the page,
+                    #     set context["concordances"] to an empty dictionary, and display a
+                    #     brief error message.
+                    # - if our request to gregorien.info fails, we should not display the
+                    #     gregorien.info link, but still display the rest of the
+                    #     concordances.
+                    # if we didn't have this inner try/except, an error on gregorien.info
+                    # would be caught by the outer try/except, causing none of the
+                    # concordances to be displayed.
+
+                    print(  # eventually, we could log this rather than printing it
+                        "Encountered an error in ChantDetailView.get_context_data",
+                        "while making a request to gregorien.info:",
+                        exc_inner,
+                    )
 
                 if concordances_count:
                     context["concordances_summary"] += "</table><br>"
-            except (SSLError, Timeout):
+            except (SSLError, Timeout) as exc_outer:
                 context["concordances"] = {}
                 context[
                     "concordances_summary"
                 ] = "Cantus Database encountered an error while loading concordances."
+
+                print(  # eventually, we could log this rather than printing it
+                    "Encountered an error in ChantDetailView.get_context_data",
+                    "while making a request to cantusindex.org:",
+                    exc_outer,
+                )
 
             # https://cantusindex.org/json-con/{cantus_id} returns a cached
             # copy of the concordances. Appending "/refresh" to the URL causes Cantus
