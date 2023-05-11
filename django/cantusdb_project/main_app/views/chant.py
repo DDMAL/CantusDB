@@ -358,12 +358,45 @@ class ChantDetailView(DetailView):
             # https://cantusindex.org/json-con/{cantus_id}/refresh in a new thread,
             # thus ensuring the current page doesn't take a long time to load, while also
             # ensuring that concordances are up-to-date for future page loads.
+
+            def refresh_ci_json_con_api(cantus_id: str) -> None:
+                """
+                Send a request to CantusIndex's "refresh" json-con API, causing it to
+                update its cached concordances for the specified Cantus ID. This
+                function is meant to be run in a separate thread, so all warnings/errors
+                are suppressed.
+
+                Args:
+                    cantus_id (string): a Cantus ID
+
+                Returns:
+                    None
+                """
+                try:
+                    requests.get(
+                        url=f"https://cantusindex.org/json-con/{chant.cantus_id}/refresh",
+                        timeout=1,
+                        verify=False,  # since we're not doing anything with the data from
+                        # this requests.get call, we don't care whether or not Cantus Index
+                        # has a valid SSL certificate
+                    )
+                except Exception as exc:  # since this is meant to be run in a separate thread
+                    # and we don't want errors to propagate, we summarily catch and dismiss
+                    # all exceptions
+                    error_message = (
+                        "Exception encountered within "
+                        "ChantDetailView.get_context_data.refresh_ci_json_con_api "
+                        "(cantus_id: {cid}):"
+                    )
+                    print(
+                        # in the future, we should log this rather than printing it.
+                        error_message.format(cid=cantus_id),
+                        exc,
+                    )
+
             t = threading.Thread(
-                target=requests.get,
-                args={
-                    "url": f"https://cantusindex.org/json-con/{chant.cantus_id}/refresh",
-                    "timeout": 5,
-                },
+                target=refresh_ci_json_con_api,
+                args={"cantus_id": f"{chant.cantus_id}"},
             )
             t.start()
 
