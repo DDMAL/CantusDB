@@ -333,26 +333,29 @@ class ChantDetailView(DetailView):
                         </tr>
                     """
 
-                # Gregorien.info
-                # check to see if the corresponding page exists. If it does, display
-                # links to gregorien.info in summary
-                gregorien_response = requests.get(
-                    f"https://gregorien.info/chant/cid/{chant.cantus_id}/en",
-                    timeout=5,
-                )
-                if gregorien_response.status_code == 200:
-                    context[
-                        "concordances_summary"
-                    ] += f"""
-                        <tr>
-                            <td>
-                                <a href="https://gregorien.info/" target="_blank">Gregorien.info</a>
-                            </td>
-                            <td>
-                                <a href="https://gregorien.info/chant/cid/{chant.cantus_id}/en" target="_blank">» VIEW AT GREGORIEN.INFO</a>
-                            </td>
-                        </tr>
-                    """
+                try:
+                    # Gregorien.info
+                    # check to see if the corresponding page exists. If it does, display
+                    # links to gregorien.info in summary
+                    gregorien_response = requests.get(
+                        f"https://gregorien.info/chant/cid/{chant.cantus_id}/en",
+                        timeout=5,
+                    )
+                    if gregorien_response.status_code == 200:
+                        context[
+                            "concordances_summary"
+                        ] += f"""
+                            <tr>
+                                <td>
+                                    <a href="https://gregorien.info/" target="_blank">Gregorien.info</a>
+                                </td>
+                                <td>
+                                    <a href="https://gregorien.info/chant/cid/{chant.cantus_id}/en" target="_blank">» VIEW AT GREGORIEN.INFO</a>
+                                </td>
+                            </tr>
+                        """
+                except (SSLError, Timeout):
+                    pass
 
                 if concordances_count:
                     context["concordances_summary"] += "</table><br>"
