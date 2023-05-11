@@ -1373,11 +1373,14 @@ class CISearchView(TemplateView):
                 "ghisp": "All",
                 "page": page,
             }
-            page = requests.get(
-                "https://cantusindex.org/search",
-                params=p,
-                timeout=5,
-            )
+            try:
+                page = requests.get(
+                    "https://cantusindex.org/search",
+                    params=p,
+                    timeout=5,
+                )
+            except (SSLError, Timeout):
+                break
             doc = lh.fromstring(page.content)
             # Parse data that are stored between <tr>..</tr> of HTML
             tr_elements = doc.xpath("//tr")
