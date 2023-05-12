@@ -573,6 +573,9 @@ class ChantListView(ListView):
         source = Source.objects.get(id=source_id)
         context["source"] = source
 
+        user = self.request.user
+        context["user_can_edit_chant"] = user_can_edit_chants_in_source(user, source)
+
         chants_in_source = source.chant_set
         if chants_in_source.count() == 0:
             # these are needed in the selectors and hyperlinks on the right side of the page
