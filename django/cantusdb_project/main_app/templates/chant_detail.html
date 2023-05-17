@@ -205,8 +205,38 @@
             </dl>
             {% if chant.cantus_id %}
                 <h4 id="concordances">List of concordances</h4>
-                <small>{{ concordances_summary | safe }}</small>
-                {% if concordances %}
+                {% if concordances_loaded_successfully %}
+                    <small>
+                        Displaying <b>{{ concordances_count }}</b> concordance{{ concordances_count|pluralize }} from the following database{{ concordances_databases|pluralize }}
+                        (Cantus ID <b><a href="http://cantusindex.org/id/{{ chant.cantus_id }}" target="_blank" title="{{ chant.cantus_id }} on Cantus Index">{{ chant.cantus_id }}</a></b>):
+                        <table id="concordancesSummary" style="margin-bottom: 10px">
+                            <tbody>
+                                {% for database in concordances_databases %}
+                                    <tr>
+                                        <td>
+                                            <a href="{{ database.base_url }}" target="_blank">
+                                                {{ database.name }}
+                                            </a>
+                                            {% if database.initialism %}
+                                                ({{ database.initialism }})
+                                            {% endif %}
+                                        </td>
+                                        <td>
+                                            {% if database.alternate_results_count_text %}
+                                                <a href="{{ database.results_url }}" target="_blank" class="guillemet">
+                                                    {{ database.alternate_results_count_text }}
+                                                </a>
+                                            {% else %}
+                                                <a href="{{ database.results_url }}" target="_blank"><b>
+                                                    {{ database.results_count }}</b> chant{{ database.results_count|pluralize }}
+                                                </a>
+                                            {% endif %}
+                                        </td>
+                                    </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </small>
                     <table id="concordanceTable" class="table table-bordered table-sm small" style="table-layout: fixed; width: 100%;">
                         <thead>
                             <tr>
@@ -265,6 +295,10 @@
                             {% endfor %}
                         </tbody>
                     </table>
+                {% else %}
+                    <p>Cantus Database encountered an error while loading concordances
+                        (Cantus ID <b><a href="http://cantusindex.org/id/{{ chant.cantus_id }}" target="_blank" title="{{ chant.cantus_id }} on Cantus Index">{{ chant.cantus_id }}</a></b>).
+                    </p>
                 {% endif %}
                 <p>
                     <a href="#concordances" onclick="window.location.href = '#concordances'; window.location.reload(true);">Refresh concordances</a><br>
