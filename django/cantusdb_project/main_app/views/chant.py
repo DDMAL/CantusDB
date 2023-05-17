@@ -119,272 +119,162 @@ class ChantDetailView(DetailView):
                     timeout=5,
                 )
                 concordances = json.loads(response.text[2:])
-
-                ######################################
-                ### create context["concordances"] ###
-                # (data to be unpacked in chant_detail.html to make concordances table)
-
-                # response.text is an array of JSON objects. Each has a single
-                # key, ["chant"], pointing to a nested object. We only need the
-                # nested object.
-                concordance_chants = [c["chant"] for c in concordances]
-                context["concordances"] = concordance_chants
-
-                ##############################################
-                ### create context["concordances_summary"] ###
-                # (tally of how many concordances come from which databases)
-                context["concordances_summary"] = ""
-
-                # tally from all databases
-                concordances_count = len(concordance_chants)
-                if concordances_count:
-                    if concordances_count > 1:
-                        context[
-                            "concordances_summary"
-                        ] += f'Displaying <b>{concordances_count}</b> concordances from the following databases (Cantus ID <b><a href="http://cantusindex.org/id/{chant.cantus_id}" target="_blank" title="{chant.cantus_id} on Cantus Index">{chant.cantus_id}</a></b>):'
-                    else:
-                        context[
-                            "concordances_summary"
-                        ] += f'Displaying <b>1</b> concordance from the following database (Cantus ID <b><a href="http://cantusindex.org/id/{chant.cantus_id}" target="_blank" title="{chant.cantus_id} on Cantus Index">{chant.cantus_id}</a></b>):'
-
-                    context["concordances_summary"] += "<table>"
-
-                # Cantus Database
-                cd_count = len([True for c in concordance_chants if c["db"] == "CD"])
-                if cd_count:
-                    if cd_count == 1:
-                        chant_tally = "<b>1</b> chant"
-                    else:
-                        chant_tally = f"<b>{cd_count}</b> chants"
-                    context[
-                        "concordances_summary"
-                    ] += f"""
-                        <tr>
-                            <td>
-                                <a href="/" target="_blank">Cantus Database</a> (CD)
-                            </td>
-                            <td>
-                                <a href="{reverse("chant-by-cantus-id", args=[chant.cantus_id])}" target="_blank">{chant_tally}</a>
-                            </td>
-                        </tr>
-                    """
-
-                # Fontes Cantus Bohemiae
-                fcb_count = len([True for c in concordance_chants if c["db"] == "FCB"])
-                if fcb_count:
-                    if fcb_count == 1:
-                        chant_tally = "<b>1</b> chant"
-                    else:
-                        chant_tally = f"<b>{fcb_count}</b> chants"
-                    context[
-                        "concordances_summary"
-                    ] += f"""
-                        <tr>
-                            <td>
-                                <a href="http://cantusbohemiae.cz" target="_blank">Fontes Cantus Bohemiae</a> (FCB)
-                            </td>
-                            <td>
-                                <a href="http://cantusbohemiae.cz/id/{chant.cantus_id}" target="_blank">{chant_tally}</a>
-                            </td>
-                        </tr>
-                    """
-
-                # Medieval Music Manuscripts Online
-                mmmo_count = len(
-                    [True for c in concordance_chants if c["db"] == "MMMO"]
-                )
-                if mmmo_count:
-                    if mmmo_count == 1:
-                        chant_tally = "<b>1</b> chant"
-                    else:
-                        chant_tally = f"<b>{mmmo_count}</b> chants"
-                    context[
-                        "concordances_summary"
-                    ] += f"""
-                        <tr>
-                            <td>
-                                <a href="http://musmed.eu" target="_blank">Medieval Music Manuscripts Online</a> (MMMO)
-                            </td>
-                            <td>
-                                <a href="http://musmed.eu/id/{chant.cantus_id}" target="_blank">{chant_tally}</a>
-                            </td>
-                        </tr>
-                    """
-
-                # Portuguese Early Music Database
-                pem_count = len([True for c in concordance_chants if c["db"] == "PEM"])
-                if pem_count:
-                    if pem_count == 1:
-                        chant_tally = "<b>1</b> chant"
-                    else:
-                        chant_tally = f"<b>{pem_count}</b> chants"
-                    context[
-                        "concordances_summary"
-                    ] += f"""
-                        <tr>
-                            <td>
-                                <a href="https://pemdatabase.eu" target="_blank">Portuguese Early Music Database</a> (PEM)
-                            </td>
-                            <td>
-                                <a href="https://pemdatabase.eu/id/{chant.cantus_id}" target="_blank">{chant_tally}</a>
-                            </td>
-                        </tr>
-                    """
-
-                # Spanish Early Music Manuscripts
-                semm_count = len(
-                    [True for c in concordance_chants if c["db"] == "SEMM"]
-                )
-                if semm_count:
-                    if semm_count == 1:
-                        chant_tally = "<b>1</b> chant"
-                    else:
-                        chant_tally = f"<b>{semm_count}</b> chants"
-                    context[
-                        "concordances_summary"
-                    ] += f"""
-                        <tr>
-                            <td>
-                                <a href="http://musicahispanica.eu" target="_blank">Spanish Early Music Manuscript Database</a> (SEMM)
-                            </td>
-                            <td>
-                                <a href="http://musicahispanica.eu/id/{chant.cantus_id}" target="_blank">{chant_tally}</a>
-                            </td>
-                        </tr>
-                    """
-
-                # Cantus Planus in Polonia
-                cpl_count = len([True for c in concordance_chants if c["db"] == "CPL"])
-                if cpl_count:
-                    if cpl_count == 1:
-                        chant_tally = "<b>1</b> chant"
-                    else:
-                        chant_tally = f"<b>{cpl_count}</b> chants"
-                    context[
-                        "concordances_summary"
-                    ] += f"""
-                        <tr>
-                            <td>
-                                <a href="http://cantus.ispan.pl" target="_blank">Cantus Planus in Polonia</a> (CPL)
-                            </td>
-                            <td>
-                                <a href="http://cantus.ispan.pl/id/{chant.cantus_id}" target="_blank">{chant_tally}</a>
-                            </td>
-                        </tr>
-                    """
-
-                # Hungarian Chant Database
-                hcd_count = len([True for c in concordance_chants if c["db"] == "HCD"])
-                if hcd_count:
-                    if hcd_count == 1:
-                        chant_tally = "<b>1</b> chant"
-                    else:
-                        chant_tally = f"<b>{hcd_count}</b> chants"
-                    context[
-                        "concordances_summary"
-                    ] += f"""
-                        <tr>
-                            <td>
-                                <a href="http://hun-chant.eu" target="_blank">Hungarian Chant Database</a> (HCD)
-                            </td>
-                            <td>
-                                <a href="http://hun-chant.eu/id/{chant.cantus_id}" target="_blank">{chant_tally}</a>
-                            </td>
-                        </tr>
-                    """
-
-                # Slovak Early Music Database
-                csk_count = len([True for c in concordance_chants if c["db"] == "CSK"])
-                if csk_count:
-                    if csk_count == 1:
-                        chant_tally = "<b>1</b> chant"
-                    else:
-                        chant_tally = f"<b>{csk_count}</b> chants"
-                    context[
-                        "concordances_summary"
-                    ] += f"""
-                        <tr>
-                            <td>
-                                <a href="http://cantus.sk" target="_blank">Slovak Early Music Database</a> (CSK)
-                            </td>
-                            <td>
-                                <a href="http://cantus.sk/id/{chant.cantus_id}" target="_blank">{chant_tally}</a>
-                            </td>
-                        </tr>
-                    """
-
-                # Fragmenta Manuscriptorum Musicalium Hungariae
-                frh_count = len([True for c in concordance_chants if c["db"] == "FRH"])
-                if frh_count:
-                    if frh_count == 1:
-                        chant_tally = "<b>1</b> chant"
-                    else:
-                        chant_tally = f"<b>{frh_count}</b> chants"
-                    context[
-                        "concordances_summary"
-                    ] += f"""
-                        <tr>
-                            <td>
-                                <a href="http://fragmenta.zti.hu/en/" target="_blank">Fragmenta Manuscriptorum Musicalium Hungariae</a> (FRH)
-                            </td>
-                            <td>
-                                <a href="http://fragmenta.zti.hu/en/id/{chant.cantus_id}" target="_blank">{chant_tally}</a>
-                            </td>
-                        </tr>
-                    """
-
-                try:
-                    # Gregorien.info
-                    # check to see if the corresponding page exists. If it does, display
-                    # links to gregorien.info in summary
-                    gregorien_response = requests.get(
-                        f"https://gregorien.info/chant/cid/{chant.cantus_id}/en",
-                        timeout=5,
-                    )
-                    if gregorien_response.status_code == 200:
-                        context[
-                            "concordances_summary"
-                        ] += f"""
-                            <tr>
-                                <td>
-                                    <a href="https://gregorien.info/" target="_blank">Gregorien.info</a>
-                                </td>
-                                <td>
-                                    <a href="https://gregorien.info/chant/cid/{chant.cantus_id}/en" target="_blank">» VIEW AT GREGORIEN.INFO</a>
-                                </td>
-                            </tr>
-                        """
-                except (SSLError, Timeout) as exc_inner:
-                    # we're using nested try blocks here because:
-                    # - if our request to cantusindex.org fails, we should load the page,
-                    #     set context["concordances"] to an empty dictionary, and display a
-                    #     brief error message.
-                    # - if our request to gregorien.info fails, we should not display the
-                    #     gregorien.info link, but still display the rest of the
-                    #     concordances.
-                    # if we didn't have this inner try/except, an error on gregorien.info
-                    # would be caught by the outer try/except, causing none of the
-                    # concordances to be displayed.
-
-                    print(  # eventually, we could log this rather than printing it
-                        "Encountered an error in ChantDetailView.get_context_data",
-                        "while making a request to gregorien.info:",
-                        exc_inner,
-                    )
-
-                if concordances_count:
-                    context["concordances_summary"] += "</table><br>"
-            except (SSLError, Timeout) as exc_outer:
-                context["concordances"] = {}
-                context[
-                    "concordances_summary"
-                ] = "Cantus Database encountered an error while loading concordances."
-
+                context["concordances_loaded_successfully"] = True
+            except (
+                SSLError,  # possibly raised by requests.get
+                Timeout,  # possibly raised by requests.get
+                TypeError,  # in case of json.loads(None)
+                json.decoder.JSONDecodeError,  # in case of json.loads("not valid json")
+            ) as exc:
                 print(  # eventually, we could log this rather than printing it
                     "Encountered an error in ChantDetailView.get_context_data",
                     "while making a request to cantusindex.org:",
-                    exc_outer,
+                    exc,
                 )
+                concordances = []
+                context["concordances_loaded_successfully"] = False
+
+            ######################################
+            ### create context["concordances"] ###
+            # (data to be unpacked in chant_detail.html to make concordances table)
+
+            # response.text is an array of JSON objects. Each has a single
+            # key, ["chant"], pointing to a nested object. We only need the
+            # nested object.
+            concordance_chants = [c["chant"] for c in concordances]
+            context["concordances"] = concordance_chants
+
+            ################################################
+            ### create context["concordances_databases"] ###
+            # (data to be unpacked in chant_detail.html to make concordances summary)
+            # i.e. this summary:
+            #   Displaying N concordances from the following databases:
+            #   Cantus Database (CD) - N chants
+            #   Fontes Cantus Bohemiae (FCB) - N chants
+            #   etc...
+            #   Gregorien.info - VIEW AT GREGORIEN.INFO
+            concordances_databases = [
+                {
+                    "name": "Cantus Database",
+                    "initialism": "CD",
+                    "base_url": "/",
+                    "results_url": f"{reverse('chant-by-cantus-id', args=[chant.cantus_id])}",
+                    "results_count": len(
+                        [True for c in concordance_chants if c["db"] == "CD"]
+                    ),
+                    "alternate_results_count_text": None,
+                },
+                {
+                    "name": "Fontes Cantus Bohemiae",
+                    "initialism": "FCB",
+                    "base_url": "http://cantusbohemiae.cz",
+                    "results_url": f"http://cantusbohemiae.cz/id/{chant.cantus_id}",
+                    "results_count": len(
+                        [True for c in concordance_chants if c["db"] == "FCB"]
+                    ),
+                    "alternate_results_count_text": None,
+                },
+                {
+                    "name": "Medieval Music Manuscripts Online",
+                    "initialism": "MMMO",
+                    "base_url": "http://musmed.eu",
+                    "results_url": f"http://musmed.eu/id/{chant.cantus_id}",
+                    "results_count": len(
+                        [True for c in concordance_chants if c["db"] == "MMMO"]
+                    ),
+                    "alternate_results_count_text": None,
+                },
+                {
+                    "name": "Portuguese Early Music Database",
+                    "initialism": "MMMO",
+                    "base_url": "https://pemdatabase.eu",
+                    "results_url": f"https://pemdatabase.eu/id/{chant.cantus_id}",
+                    "results_count": len(
+                        [True for c in concordance_chants if c["db"] == "PEM"]
+                    ),
+                    "alternate_results_count_text": None,
+                },
+                {
+                    "name": "Spanish Early Music Manuscript Database",
+                    "initialism": "SEMM",
+                    "base_url": "http://musicahispanica.eu",
+                    "results_url": f"http://musicahispanica.eu/id/{chant.cantus_id}",
+                    "results_count": len(
+                        [True for c in concordance_chants if c["db"] == "SEMM"]
+                    ),
+                    "alternate_results_count_text": None,
+                },
+                {
+                    "name": "Cantus Planus in Polonia",
+                    "initialism": "CPL",
+                    "base_url": "http://cantus.ispan.pl",
+                    "results_url": f"http://cantus.ispan.pl/id/{chant.cantus_id}",
+                    "results_count": len(
+                        [True for c in concordance_chants if c["db"] == "CPL"]
+                    ),
+                    "alternate_results_count_text": None,
+                },
+                {
+                    "name": "Hungarian Chant Database",
+                    "initialism": "HCD",
+                    "base_url": "http://hun-chant.eu",
+                    "results_url": f"http://hun-chant.eu/id/{chant.cantus_id}",
+                    "results_count": len(
+                        [True for c in concordance_chants if c["db"] == "HCD"]
+                    ),
+                    "alternate_results_count_text": None,
+                },
+                {
+                    "name": "Slovak Early Music Database",
+                    "initialism": "CSK",
+                    "base_url": "http://cantus.sk",
+                    "results_url": f"http://cantus.sk/id/{chant.cantus_id}",
+                    "results_count": len(
+                        [True for c in concordance_chants if c["db"] == "CSK"]
+                    ),
+                    "alternate_results_count_text": None,
+                },
+                {
+                    "name": "Fragmenta Manuscriptorum Musicalium Hungariae",
+                    "initialism": "FRH",
+                    "base_url": "http://fragmenta.zti.hu/en/",
+                    "results_url": f"http://fragmenta.zti.hu/en/id/{chant.cantus_id}",
+                    "results_count": len(
+                        [True for c in concordance_chants if c["db"] == "FRH"]
+                    ),
+                    "alternate_results_count_text": None,
+                },
+            ]
+
+            context["concordances_databases"] = list(
+                filter(lambda d: d["results_count"], concordances_databases)
+            )  # we only include a database in the list if its results_count is greater than 0
+
+            try:
+                gregorien_response = requests.get(
+                    f"https://gregorien.info/chant/cid/{chant.cantus_id}/en",
+                    timeout=5,
+                )
+                if gregorien_response.status_code == 200:
+                    gregorien_database_dict: dict = {
+                        "name": "Gregorien.info",
+                        "initialism": None,
+                        "base_url": "https://gregorien.info/",
+                        "results_url": f"https://gregorien.info/chant/cid/{chant.cantus_id}/en",
+                        "results_count": None,
+                        "alternate_results_count_text": "VIEW AT GREGORIEN.INFO",
+                    }
+                    context["concordances_databases"].append(gregorien_database_dict)
+            except (SSLError, Timeout) as exc:
+                print(  # eventually, we could log this rather than printing it
+                    "Encountered an error in ChantDetailView.get_context_data",
+                    "while making a request to gregorien.info:",
+                    exc,
+                )
+
+            # tally from all databases
+            concordances_count = len(concordance_chants)
+            context["concordances_count"] = concordances_count
 
             # https://cantusindex.org/json-con/{cantus_id} returns a cached
             # copy of the concordances. Appending "/refresh" to the URL causes Cantus
