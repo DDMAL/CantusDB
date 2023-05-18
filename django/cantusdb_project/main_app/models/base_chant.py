@@ -32,8 +32,8 @@ class BaseChant(BaseModel):
     # It sometimes features non-numeric characters and leading zeroes, so it's a CharField.
     s_sequence = models.CharField("Sequence", blank=True, null=True, max_length=255)
     # The "c_sequence" integer field, used for Chants, similarly indicates the relative positions of chants on the page
-    c_sequence = models.PositiveIntegerField("Sequence",
-        help_text='Each folio starts with "1"', null=True, blank=True
+    c_sequence = models.PositiveIntegerField(
+        "Sequence", help_text='Each folio starts with "1"', null=True, blank=True
     )
     genre = models.ForeignKey("Genre", blank=True, null=True, on_delete=models.PROTECT)
     rubrics = models.CharField(blank=True, null=True, max_length=255)
@@ -138,7 +138,7 @@ class BaseChant(BaseModel):
         Returns:
             str: The url to the Cantus Index page
         """
-        return f"http://cantusindex.org/id/{self.cantus_id}"
+        return f"https://cantusindex.org/id/{self.cantus_id}"
 
     def __str__(self):
         incipit = ""
