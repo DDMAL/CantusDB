@@ -1140,7 +1140,13 @@ class ChantCreateView(LoginRequiredMixin, UserPassesTestMixin, CreateView):
                 genre_name = cid_dict["genre"]
                 genre_id = Genre.objects.get(name=genre_name).id
                 cid_dict["genre_id"] = genre_id
-            except (SSLError, Timeout, AssertionError):
+            except (SSLError, Timeout, AssertionError) as exc:
+                print(  # eventually, we should log this rather than printing it to the console
+                    "Encountered an error in",
+                    "ChantCreateView.get_suggested_chants.make_suggested_chant_dict",
+                    f"while making a request to https://cantusindex.org/json-cid/{cantus_id}:",
+                    exc,
+                )
                 cid_dict = {}
             return cid_dict
 
@@ -1151,8 +1157,8 @@ class ChantCreateView(LoginRequiredMixin, UserPassesTestMixin, CreateView):
         return suggested_chants_dicts
 
     def get_suggested_feasts(self):
-        """based on the feast of the most recently edited chant, provide a list of suggested feasts that
-        might follow the feast of that chant.
+        """based on the feast of the most recently edited chant, provide a
+        list of suggested feasts that might follow the feast of that chant.
 
         Returns: a dictionary, with feast objects as keys and counts as values
         """
@@ -1295,7 +1301,11 @@ class CISearchView(TemplateView):
                 )
             except (SSLError, Timeout) as exc:
                 # change to log in future
-                print("encountered error in CISearchView.get_context_data:", exc)
+                print(
+                    "encountered an error in CISearchView.get_context_data",
+                    "while making a request to https://cantusindex.org/search:",
+                    exc,
+                )
                 break
             doc = lh.fromstring(page.content)
             # Parse data that are stored between <tr>..</tr> of HTML
@@ -1612,15 +1622,20 @@ class SourceEditChantsView(LoginRequiredMixin, UserPassesTestMixin, UpdateView):
             current_chant = Chant.objects.filter(pk=pk).first()
             cantus_id = current_chant.cantus_id
 
-            request = requests.get(
-                f"https://cantusindex.org/json-cid/{cantus_id}",
-                timeout=5,
-            )
-            request_text = json.loads(request.text[2:])
-            if request_text:
-                context["suggested_fulltext"] = request_text[0]["fulltext"]
-            else:
-                context["suggested_fulltext"] = ""
+            try:
+                request = requests.get(
+                    f"https://cantusindex.org/json-cid/{cantus_id}",
+                    timeout=5,
+                )
+                request_text = json.loads(request.text[2:])
+                if request_text:
+                    context["suggested_fulltext"] = request_text[0]["fulltext"]
+            except (SSLError, Timeout) as exc:
+                print(  # eventually, we should log this rather than printing it to the console
+                    "encountered an error in CISearchView.get_context_data",
+                    f"https://cantusindex.org/json-cid/{cantus_id}:",
+                    exc,
+                )
 
         chant = self.get_object()
 
