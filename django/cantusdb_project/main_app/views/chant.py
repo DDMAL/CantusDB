@@ -86,29 +86,8 @@ class ChantDetailView(DetailView):
 
         # syllabification section
         if chant.volpiano:
-            syls_melody = syllabize_melody(chant.volpiano)
-
-            if chant.manuscript_syllabized_full_text:
-                syls_text = syllabize_text(
-                    chant.manuscript_syllabized_full_text, pre_syllabized=True
-                )
-            elif chant.manuscript_full_text:
-                syls_text = syllabize_text(
-                    chant.manuscript_full_text, pre_syllabized=False
-                )
-                syls_text, syls_melody = postprocess(syls_text, syls_melody)
-            elif chant.manuscript_full_text_std_spelling:
-                syls_text = syllabize_text(
-                    chant.manuscript_full_text_std_spelling, pre_syllabized=False
-                )
-            elif chant.incipit:
-                syls_text = syllabize_text(chant.incipit, pre_syllabized=False)
-                syls_text, syls_melody = postprocess(syls_text, syls_melody)
-            else:
-                syls_text = [[""]]
-
-            word_zip = align(syls_text, syls_melody)
-            context["syllabized_text_with_melody"] = word_zip
+            text_and_mel = chant.get_syllabized_text_and_melody()
+            context["syllabized_text_with_melody"] = text_and_mel
 
         # If chant has a cantus ID, Create table of concordances
         if chant.cantus_id:
@@ -1644,43 +1623,9 @@ class SourceEditChantsView(LoginRequiredMixin, UserPassesTestMixin, UpdateView):
 
         chant = self.get_object()
 
-        # Preview of melody and text:
-        # in OldCantus,
-        # 'manuscript_syllabized_full_text' exists =>
-        #   preview constructed from 'manuscript_syllabized_full_text'
-        # no 'manuscript_syllabized_full_text', but 'manuscript_full_text' exists =>
-        #   preview constructed from 'manuscript_full_text'
-        # no 'manuscript_syllabized_full_text' and no 'manuscript_full_text' =>
-        #   preview constructed from 'manuscript_full_text_std_spelling'
-        # to this we add:
-        # no full text of any kind => preview constructed from `incipit`
-        # none of the above => show message explaining why melody preview has no text
-
         if chant.volpiano:
-            syls_melody = syllabize_melody(chant.volpiano)
-
-            if chant.manuscript_syllabized_full_text:
-                syls_text = syllabize_text(
-                    chant.manuscript_syllabized_full_text, pre_syllabized=True
-                )
-            elif chant.manuscript_full_text:
-                syls_text = syllabize_text(
-                    chant.manuscript_full_text, pre_syllabized=False
-                )
-                syls_text, syls_melody = postprocess(syls_text, syls_melody)
-            elif chant.manuscript_full_text_std_spelling:
-                syls_text = syllabize_text(
-                    chant.manuscript_full_text_std_spelling, pre_syllabized=False
-                )
-                syls_text, syls_melody = postprocess(syls_text, syls_melody)
-            elif chant.incipit:
-                syls_text = syllabize_text(chant.incipit, pre_syllabized=False)
-                syls_text, syls_melody = postprocess(syls_text, syls_melody)
-            else:
-                syls_text = [[""]]
-
-            word_zip = align(syls_text, syls_melody)
-            context["syllabized_text_with_melody"] = word_zip
+            text_and_mel = chant.get_syllabized_text_and_melody()
+            context["syllabized_text_with_melody"] = text_and_mel
 
         return context
 
@@ -1743,34 +1688,18 @@ class ChantEditSyllabificationView(LoginRequiredMixin, UserPassesTestMixin, Upda
         context = super().get_context_data(**kwargs)
         chant = self.get_object()
 
-        # Preview of melody and text:
-        # in the old CantusDB,
-        # 'manuscript_syllabized_full_text' exists => preview constructed from 'manuscript_syllabized_full_text'
-        # no 'manuscript_syllabized_full_text', but 'manuscript_full_text' exists => preview constructed from 'manuscript_full_text'
-        # no 'manuscript_syllabized_full_text' and no 'manuscript_full_text' => preview constructed from 'manuscript_full_text_std_spelling'
-
         if chant.volpiano:
-            syls_melody = syllabize_melody(chant.volpiano)
-
-            if chant.manuscript_syllabized_full_text:
-                syls_text = syllabize_text(
-                    chant.manuscript_syllabized_full_text, pre_syllabized=True
-                )
-            elif chant.manuscript_full_text:
-                syls_text = syllabize_text(
-                    chant.manuscript_full_text, pre_syllabized=False
-                )
-                syls_text, syls_melody = postprocess(syls_text, syls_melody)
-            elif chant.manuscript_full_text_std_spelling:
-                syls_text = syllabize_text(
-                    chant.manuscript_full_text_std_spelling, pre_syllabized=False
-                )
-                syls_text, syls_melody = postprocess(syls_text, syls_melody)
-
-            word_zip = align(syls_text, syls_melody)
-            context["syllabized_text_with_melody"] = word_zip
+            text_and_mel = chant.get_syllabized_text_and_melody()
+            context["syllabized_text_with_melody"] = text_and_mel
 
         return context
+
+    def get_initial(self):
+        initial = super().get_initial()
+        chant = self.get_object()
+        syls_text = chant.get_syllabized_text()
+        initial["manuscript_syllabized_full_text"] = syls_text
+        return initial
 
     def form_valid(self, form):
         form.instance.last_updated_by = self.request.user

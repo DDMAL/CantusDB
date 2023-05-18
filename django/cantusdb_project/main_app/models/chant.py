@@ -1,5 +1,6 @@
 from django.db.models.query import QuerySet
 from main_app.models.base_chant import BaseChant
+from align_text_mel import *
 
 
 class Chant(BaseChant):
@@ -148,3 +149,62 @@ class Chant(BaseChant):
             next_chant = None
 
         return next_chant
+
+    def get_syllabized_text_and_melody(self):
+        """Returns the syllabized text with the melody of a chant. If volpiano is not established return None
+
+        Returns:
+            list: Returns a list of zip_longest objects containing syllabized melody and corresponding
+            syllabized text elements
+        """
+
+        if self.volpiano:
+            syls_melody = syllabize_melody(self.volpiano)
+
+            if self.manuscript_syllabized_full_text:
+                syls_text = syllabize_text(
+                    self.manuscript_syllabized_full_text, pre_syllabized=True
+                )
+            elif self.manuscript_full_text:
+                syls_text = syllabize_text(
+                    self.manuscript_full_text, pre_syllabized=False
+                )
+                syls_text, syls_melody = postprocess(syls_text, syls_melody)
+            elif self.manuscript_full_text_std_spelling:
+                syls_text = syllabize_text(
+                    self.manuscript_full_text_std_spelling, pre_syllabized=False
+                )
+            elif self.incipit:
+                syls_text = syllabize_text(self.incipit, pre_syllabized=False)
+                syls_text, syls_melody = postprocess(syls_text, syls_melody)
+            else:
+                syls_text = [[""]]
+
+            word_zip = align(syls_text, syls_melody)
+            return word_zip
+
+    def get_syllabized_text(self):
+        """Returns the syllabized text of a chant
+
+        Returns:
+            String: A String with words separated by spaces and syllables separated by "-"
+
+        """
+        if self.manuscript_syllabized_full_text:
+            print("hello")
+            syls_text = syllabize_text(
+                self.manuscript_syllabized_full_text, pre_syllabized=True
+            )
+        elif self.manuscript_full_text:
+            syls_text = syllabize_text(self.manuscript_full_text, pre_syllabized=False)
+        elif self.manuscript_full_text_std_spelling:
+            syls_text = syllabize_text(
+                self.manuscript_full_text_std_spelling, pre_syllabized=False
+            )
+        elif self.incipit:
+            syls_text = syllabize_text(self.incipit, pre_syllabized=False)
+        else:
+            return [[""]]
+
+        human_readable_text = " ".join(["".join(word) for word in syls_text])
+        return human_readable_text
