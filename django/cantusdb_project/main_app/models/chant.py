@@ -153,7 +153,7 @@ class Chant(BaseChant):
     def get_syllabized_text_and_melody(self, text_only=False):
         """Returns the syllabized text with the melody of a chant. Syllabized text splits the words from the
          full text into its syllable components based on the volpiano protocols
-         (ex: IOcundare plebs fidelis cuius pater => I-O-cun-da-re plebs fi-de-lis cu-ius pa-ter)
+         (ex: Hanc vero quam lucas peccatricem => Hanc ve-ro quam lu-cas pec-ca-tri-cem)
          If volpiano is not established return None
 
                         Preview of melody and text:
