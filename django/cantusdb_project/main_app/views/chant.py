@@ -118,6 +118,7 @@ class ChantDetailView(DetailView):
                     f"https://cantusindex.org/json-con/{chant.cantus_id}",
                     timeout=5,
                 )
+                # we can't use response.json() directly because of the BOM at the beginning of json export
                 concordances = json.loads(response.text[2:])
                 context["concordances_loaded_successfully"] = True
             except (
@@ -1630,6 +1631,7 @@ class SourceEditChantsView(LoginRequiredMixin, UserPassesTestMixin, UpdateView):
                     f"https://cantusindex.org/json-cid/{cantus_id}",
                     timeout=5,
                 )
+                # we can't use response.json() directly because of the BOM at the beginning of json export
                 request_text = json.loads(request.text[2:])
                 if request_text:
                     context["suggested_fulltext"] = request_text[0]["fulltext"]
