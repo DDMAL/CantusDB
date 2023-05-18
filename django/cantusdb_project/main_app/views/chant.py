@@ -1697,7 +1697,7 @@ class ChantEditSyllabificationView(LoginRequiredMixin, UserPassesTestMixin, Upda
     def get_initial(self):
         initial = super().get_initial()
         chant = self.get_object()
-        syls_text = chant.get_syllabized_text()
+        syls_text = chant.get_syllabized_text_and_melody(text_only=True)
         initial["manuscript_syllabized_full_text"] = syls_text
         return initial
 
