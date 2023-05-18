@@ -301,9 +301,6 @@ class ChantDetailView(DetailView):
                     requests.get(
                         url=f"https://cantusindex.org/json-con/{chant.cantus_id}/refresh",
                         timeout=1,
-                        verify=False,  # since we're not doing anything with the data from
-                        # this requests.get call, we don't care whether or not Cantus Index
-                        # has a valid SSL certificate
                     )
                 except Exception as exc:  # since this is meant to be run in a separate thread
                     # and we don't want errors to propagate, we summarily catch and dismiss
