@@ -131,6 +131,8 @@ class ChantDetailView(DetailView):
                     "fhttps://cantusindex.org/json-con/{chant.cantus_id}:",
                     exc,
                 )
+                concordances = []
+                context["concordances_loaded_successfully"] = False
             except (
                 TypeError,  # in case of json.loads(None)
                 json.decoder.JSONDecodeError,  # in case of json.loads("not valid json")
