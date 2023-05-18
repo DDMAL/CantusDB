@@ -122,14 +122,23 @@ class ChantDetailView(DetailView):
                 concordances = json.loads(response.text[2:])
                 context["concordances_loaded_successfully"] = True
             except (
-                SSLError,  # possibly raised by requests.get
-                Timeout,  # possibly raised by requests.get
+                SSLError,
+                Timeout,
+            ) as exc:
+                print(  # eventually, we could log this rather than printing it
+                    "Encountered an error in ChantDetailView.get_context_data",
+                    "while making a request to",
+                    "fhttps://cantusindex.org/json-con/{chant.cantus_id}:",
+                    exc,
+                )
+            except (
                 TypeError,  # in case of json.loads(None)
                 json.decoder.JSONDecodeError,  # in case of json.loads("not valid json")
             ) as exc:
                 print(  # eventually, we could log this rather than printing it
                     "Encountered an error in ChantDetailView.get_context_data",
-                    "while making a request to cantusindex.org:",
+                    "while parsing the response from",
+                    f"https://cantusindex.org/json-con/{chant.cantus_id}:",
                     exc,
                 )
                 concordances = []
@@ -269,7 +278,8 @@ class ChantDetailView(DetailView):
             except (SSLError, Timeout) as exc:
                 print(  # eventually, we could log this rather than printing it
                     "Encountered an error in ChantDetailView.get_context_data",
-                    "while making a request to gregorien.info:",
+                    "while making a request to,"
+                    f"https://gregorien.info/chant/cid/{chant.cantus_id}/en:",
                     exc,
                 )
 
@@ -1140,15 +1150,25 @@ class ChantCreateView(LoginRequiredMixin, UserPassesTestMixin, CreateView):
                 cid_dict["genre_id"] = genre_id
             except (
                 AssertionError,
-                SSLError,  # possibly raised by requests.get
-                Timeout,  # possibly raised by requests.get
+                SSLError,
+                Timeout,
+            ) as exc:
+                print(  # eventually, we should log this rather than printing it to the console
+                    "Encountered an error in",
+                    "ChantCreateView.get_suggested_chants.make_suggested_chant_dict",
+                    f"while making a request to https://cantusindex.org/json-cid/{cantus_id}:",
+                    exc,
+                )
+                cid_dict = {}
+            except (
                 TypeError,  # in case of json.loads(None)
                 json.decoder.JSONDecodeError,  # in case of json.loads("not valid json")
             ) as exc:
                 print(  # eventually, we should log this rather than printing it to the console
                     "Encountered an error in",
                     "ChantCreateView.get_suggested_chants.make_suggested_chant_dict",
-                    f"while making a request to https://cantusindex.org/json-cid/{cantus_id}:",
+                    "while parsing the response from",
+                    f"https://cantusindex.org/json-cid/{cantus_id}:",
                     exc,
                 )
                 cid_dict = {}
@@ -1636,13 +1656,22 @@ class SourceEditChantsView(LoginRequiredMixin, UserPassesTestMixin, UpdateView):
                 if request_text:
                     context["suggested_fulltext"] = request_text[0]["fulltext"]
             except (
-                SSLError,  # possibly raised by requests.get
-                Timeout,  # possibly raised by requests.get
+                SSLError,
+                Timeout,
+            ) as exc:
+                print(  # eventually, we should log this rather than printing it to the console
+                    "encountered an error in CISearchView.get_context_data",
+                    "while making a request to",
+                    f"https://cantusindex.org/json-cid/{cantus_id}:",
+                    exc,
+                )
+            except (
                 TypeError,  # in case of json.loads(None)
                 json.decoder.JSONDecodeError,  # in case of json.loads("not valid json")
             ) as exc:
                 print(  # eventually, we should log this rather than printing it to the console
                     "encountered an error in CISearchView.get_context_data",
+                    "while parsing the response from",
                     f"https://cantusindex.org/json-cid/{cantus_id}:",
                     exc,
                 )
