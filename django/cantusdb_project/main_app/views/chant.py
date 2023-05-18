@@ -1140,7 +1140,13 @@ class ChantCreateView(LoginRequiredMixin, UserPassesTestMixin, CreateView):
                 genre_name = cid_dict["genre"]
                 genre_id = Genre.objects.get(name=genre_name).id
                 cid_dict["genre_id"] = genre_id
-            except (SSLError, Timeout, AssertionError) as exc:
+            except (
+                AssertionError,
+                SSLError,  # possibly raised by requests.get
+                Timeout,  # possibly raised by requests.get
+                TypeError,  # in case of json.loads(None)
+                json.decoder.JSONDecodeError,  # in case of json.loads("not valid json")
+            ) as exc:
                 print(  # eventually, we should log this rather than printing it to the console
                     "Encountered an error in",
                     "ChantCreateView.get_suggested_chants.make_suggested_chant_dict",
@@ -1630,7 +1636,12 @@ class SourceEditChantsView(LoginRequiredMixin, UserPassesTestMixin, UpdateView):
                 request_text = json.loads(request.text[2:])
                 if request_text:
                     context["suggested_fulltext"] = request_text[0]["fulltext"]
-            except (SSLError, Timeout) as exc:
+            except (
+                SSLError,  # possibly raised by requests.get
+                Timeout,  # possibly raised by requests.get
+                TypeError,  # in case of json.loads(None)
+                json.decoder.JSONDecodeError,  # in case of json.loads("not valid json")
+            ) as exc:
                 print(  # eventually, we should log this rather than printing it to the console
                     "encountered an error in CISearchView.get_context_data",
                     f"https://cantusindex.org/json-cid/{cantus_id}:",
