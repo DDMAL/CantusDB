@@ -1,6 +1,5 @@
 from django.db.models.query import QuerySet
 from main_app.models.base_chant import BaseChant
-from align_text_mel import *
 
 
 class Chant(BaseChant):
