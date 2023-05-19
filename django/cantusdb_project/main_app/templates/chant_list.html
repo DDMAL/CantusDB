@@ -113,7 +113,7 @@
                         </td>
                         {% if user_can_edit_chant %}
                             <td class="text-wrap" style="text-align:center">
-                                <a href="{% url 'source-edit-chants' chant.source.id %}?pk={{ chant.id }}&folio={{ chant.folio }}">Edit</a>
+                                <a href="{% url 'source-edit-chants' chant.source.id %}?pk={{ chant.id }}&folio={{ chant.folio }}&ref=chant-list">Edit</a>
                             </td>
                         {% endif %}
                     </tr>
