@@ -150,48 +150,28 @@ class Chant(BaseChant):
 
         return next_chant
 
-    def get_syllabized_text_and_melody(self, text_only=False):
-        """Returns the syllabized text with the melody of a chant. Syllabized text splits the words from the
-         full text into its syllable components based on the volpiano protocols
-         (ex: Hanc vero quam lucas peccatricem => Hanc ve-ro quam lu-cas pec-ca-tri-cem)
-         If volpiano is not established return None
+    def get_most_descriptive_text(self):
+        """Finds the most descriptive text from the available fields of the chant.
 
-                        Preview of melody and text:
-         'manuscript_syllabized_full_text' exists =>
-           preview constructed from 'manuscript_syllabized_full_text'
-         no 'manuscript_syllabized_full_text', but 'manuscript_full_text' exists =>
-           preview constructed from 'manuscript_full_text'
-         no 'manuscript_syllabized_full_text' and no 'manuscript_full_text' =>
-           preview constructed from 'manuscript_full_text_std_spelling'
-        to this we add:
-        no full text of any kind => preview constructed from `incipit`
-        none of the above => show message explaining why melody preview has no text
-
+        Preview of melody and text:
+            - If 'manuscript_syllabized_full_text' exists, the preview is constructed from it.
+            - If 'manuscript_syllabized_full_text' doesn't exist but 'manuscript_full_text' exists,
+              the preview is constructed from 'manuscript_full_text'.
+            - If neither 'manuscript_syllabized_full_text' nor 'manuscript_full_text' exist but
+              'manuscript_full_text_std_spelling' exists, the preview is constructed from 'manuscript_full_text_std_spelling'.
+            - If none of the above fields exist, the preview is constructed from 'incipit'.
+            - If there is no available text, return None
         Returns:
-            list/string: Returns a list of zip_longest objects containing syllabized melody and corresponding
-            syllabized text elements. If text_only=True return a String with words separated by spaces and
-            syllables separated by "-"
+            String: The most descriptive text from the available fields of the chant.
         """
-        if self.manuscript_syllabized_full_text:
-            syls_text = syllabize_text(
-                self.manuscript_syllabized_full_text, pre_syllabized=True
-            )
-        elif self.manuscript_full_text:
-            syls_text = syllabize_text(self.manuscript_full_text, pre_syllabized=False)
-        elif self.manuscript_full_text_std_spelling:
-            syls_text = syllabize_text(
-                self.manuscript_full_text_std_spelling, pre_syllabized=False
-            )
-        elif self.incipit:
-            syls_text = syllabize_text(self.incipit, pre_syllabized=False)
-        else:
-            syls_text = [[""]]
 
-        if not text_only and self.volpiano:
-            syls_melody = syllabize_melody(self.volpiano)
-            syls_text, syls_melody = postprocess(syls_text, syls_melody)
-            word_zip = align(syls_text, syls_melody)
-            return word_zip
-        elif text_only:
-            human_readable_text = " ".join(["".join(word) for word in syls_text])
-            return human_readable_text
+        if self.manuscript_syllabized_full_text:
+            return self.manuscript_syllabized_full_text
+        elif self.manuscript_full_text:
+            return self.manuscript_full_text
+        elif self.manuscript_full_text_std_spelling:
+            return self.manuscript_full_text_std_spelling
+        elif self.incipit:
+            return self.incipit
+        else:
+            return None

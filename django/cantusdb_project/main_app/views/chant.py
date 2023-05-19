@@ -86,7 +86,10 @@ class ChantDetailView(DetailView):
 
         # syllabification section
         if chant.volpiano:
-            text_and_mel = chant.get_syllabized_text_and_melody()
+            has_syl_text = bool(chant.manuscript_syllabized_full_text)
+            text_and_mel = syllabize_text_and_melody(
+                chant.get_most_descriptive_text(), has_syl_text, chant.volpiano
+            )
             context["syllabized_text_with_melody"] = text_and_mel
 
         # If chant has a cantus ID, Create table of concordances
@@ -1624,7 +1627,10 @@ class SourceEditChantsView(LoginRequiredMixin, UserPassesTestMixin, UpdateView):
         chant = self.get_object()
 
         if chant.volpiano:
-            text_and_mel = chant.get_syllabized_text_and_melody()
+            has_syl_text = bool(chant.manuscript_syllabized_full_text)
+            text_and_mel = syllabize_text_and_melody(
+                chant.get_most_descriptive_text(), has_syl_text, chant.volpiano
+            )
             context["syllabized_text_with_melody"] = text_and_mel
 
         return context
@@ -1689,7 +1695,10 @@ class ChantEditSyllabificationView(LoginRequiredMixin, UserPassesTestMixin, Upda
         chant = self.get_object()
 
         if chant.volpiano:
-            text_and_mel = chant.get_syllabized_text_and_melody()
+            has_syl_text = bool(chant.manuscript_syllabized_full_text)
+            text_and_mel = syllabize_text_and_melody(
+                chant.get_most_descriptive_text(), has_syl_text, chant.volpiano
+            )
             context["syllabized_text_with_melody"] = text_and_mel
 
         return context
@@ -1697,7 +1706,10 @@ class ChantEditSyllabificationView(LoginRequiredMixin, UserPassesTestMixin, Upda
     def get_initial(self):
         initial = super().get_initial()
         chant = self.get_object()
-        syls_text = chant.get_syllabized_text_and_melody(text_only=True)
+        has_syl_text = bool(chant.manuscript_syllabized_full_text)
+        syls_text = syllabize_text_to_string(
+            chant.get_most_descriptive_text(), has_syl_text
+        )
         initial["manuscript_syllabized_full_text"] = syls_text
         return initial
 

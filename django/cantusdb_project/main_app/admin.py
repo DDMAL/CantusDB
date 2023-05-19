@@ -22,7 +22,11 @@ class CenturyAdmin(BaseModelAdmin):
     pass
 
 
+@admin.register(Chant)
 class ChantAdmin(BaseModelAdmin):
+    list_display = ("incipit", "siglum", "genre")
+    search_fields = ("title", "incipit", "cantus_id")
+    list_filter = ("genre",)
     exclude = EXCLUDE + (
         "col1",
         "col2",
@@ -82,7 +86,6 @@ class SourceAdmin(BaseModelAdmin):
 
 
 admin.site.register(Century, CenturyAdmin)
-admin.site.register(Chant, ChantAdmin)
 admin.site.register(Feast, FeastAdmin)
 admin.site.register(Genre, GenreAdmin)
 admin.site.register(Notation, NotationAdmin)
