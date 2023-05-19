@@ -24,7 +24,7 @@ from main_app.forms import (
     ChantEditSyllabificationForm,
 )
 from main_app.models import Chant, Feast, Genre, Source, Sequence
-from align_text_mel import *
+from align_text_mel import syllabize_text_and_melody, syllabize_text_to_string
 from django.contrib.auth.mixins import LoginRequiredMixin
 from django.http import Http404
 from next_chants import next_chants

@@ -327,7 +327,7 @@ def syllabize_text_and_melody(text, pre_syllabized, melody):
 
     Args:
         text (str): The input text to be syllabized.
-        pre_syllabized (list): A list of pre-syllabized words corresponding to the input text.
+        pre_syllabized (bool): A list of pre-syllabized words corresponding to the input text.
         melody (list): A list representing the melody.
     Returns:
         list: A list of tuples containing the aligned words and syllables.
