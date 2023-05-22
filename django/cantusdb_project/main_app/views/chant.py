@@ -1699,8 +1699,12 @@ class SourceEditChantsView(LoginRequiredMixin, UserPassesTestMixin, UpdateView):
             return super().form_invalid(form)
 
     def get_success_url(self):
-        # stay on the same page after save
-        return self.request.get_full_path()
+        next_url = self.request.GET.get("ref")
+        if next_url:
+            return self.request.POST.get("referrer")
+        else:
+            # stay on the same page after save
+            return self.request.get_full_path()
 
 
 class ChantProofreadView(SourceEditChantsView):
