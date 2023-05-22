@@ -38,7 +38,7 @@
                     </p>
                 {% endif %}
                 <form method="post" style="line-height: normal">{% csrf_token %}
-                    <input type="hidden" name="referrer" value="{{ referrer }}">
+                    <input type="hidden" name="referrer" value="{{ request.META.HTTP_REFERER }}">
                     <div class="form-row">
                         <div class="form-group m-1 col-lg-12">
                             <label for="{{ form.manuscript_full_text_std_spelling.id_for_label }}">
