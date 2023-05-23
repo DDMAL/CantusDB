@@ -23,6 +23,9 @@ class CenturyAdmin(BaseModelAdmin):
 
 
 class ChantAdmin(BaseModelAdmin):
+    list_display = ("incipit", "siglum", "genre")
+    search_fields = ("title", "incipit", "cantus_id")
+    list_filter = ("genre",)
     exclude = EXCLUDE + (
         "col1",
         "col2",

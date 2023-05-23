@@ -148,3 +148,29 @@ class Chant(BaseChant):
             next_chant = None
 
         return next_chant
+
+    def get_best_text_for_syllabizing(self):
+        """Finds the most descriptive text from the available fields of the chant.
+
+        Preview of melody and text:
+            - If 'manuscript_syllabized_full_text' exists, the preview is constructed from it.
+            - If 'manuscript_syllabized_full_text' doesn't exist but 'manuscript_full_text' exists,
+              the preview is constructed from 'manuscript_full_text'.
+            - If neither 'manuscript_syllabized_full_text' nor 'manuscript_full_text' exist but
+              'manuscript_full_text_std_spelling' exists, the preview is constructed from 'manuscript_full_text_std_spelling'.
+            - If none of the above fields exist, the preview is constructed from 'incipit'.
+            - If there is no available text, return None
+        Returns:
+            String: The most descriptive text from the available fields of the chant.
+        """
+
+        if self.manuscript_syllabized_full_text:
+            return self.manuscript_syllabized_full_text
+        elif self.manuscript_full_text:
+            return self.manuscript_full_text
+        elif self.manuscript_full_text_std_spelling:
+            return self.manuscript_full_text_std_spelling
+        elif self.incipit:
+            return self.incipit
+        else:
+            return None
