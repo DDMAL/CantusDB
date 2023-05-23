@@ -87,7 +87,7 @@ def _refresh_ci_json_con_api(cantus_id: str) -> None:
         # all exceptions
         error_message = (
             "Exception encountered within "
-            f"refresh_ci_json_con_api (cantus_id: {cantus_id}):"
+            f"_refresh_ci_json_con_api (cantus_id: {cantus_id}):"
         )
         print(
             # in the future, we should log this rather than printing it.
@@ -1651,36 +1651,34 @@ class SourceEditChantsView(LoginRequiredMixin, UserPassesTestMixin, UpdateView):
             cantus_id = current_chant.cantus_id
 
             try:
-                request = requests.get(
+                response: Optional[Response] = requests.get(
                     f"https://cantusindex.org/json-cid/{cantus_id}",
                     timeout=5,
                 )
-                # we can't use response.json() directly because of the BOM at the beginning of json export
-                request_text = json.loads(request.text[2:])
-                if request_text:
-                    context["suggested_fulltext"] = request_text[0]["fulltext"]
-            except (
-                SSLError,
-                Timeout,
-            ) as exc:
+            except (SSLError, Timeout) as exc:
                 print(  # eventually, we should log this rather than printing it to the console
                     "encountered an error in CISearchView.get_context_data",
                     "while making a request to",
                     f"https://cantusindex.org/json-cid/{cantus_id}:",
                     exc,
                 )
-            except (
-                TypeError,  # in case of json.loads(None)
-                json.decoder.JSONDecodeError,  # in case of json.loads("not valid json")
-            ) as exc:
-                print(  # eventually, we should log this rather than printing it to the console
-                    "encountered an error in CISearchView.get_context_data",
-                    "while parsing the response from",
-                    f"https://cantusindex.org/json-cid/{cantus_id}:",
-                    exc,
-                )
-
-        chant = self.get_object()
+                response: Optional[Response] = None
+            if response:
+                try:
+                    # we can't use response.json() directly because of the BOM at the beginning of json export
+                    response_json: list = json.loads(response.text[2:])
+                except json.decoder.JSONDecodeError as exc:  # in case of json.loads("not valid json")
+                    response_json: list = []
+                    print(  # eventually, we should log this rather than printing it to the console
+                        "encountered an error in CISearchView.get_context_data",
+                        "while parsing the response from",
+                        f"https://cantusindex.org/json-cid/{cantus_id}:",
+                        exc,
+                    )
+            else:
+                response_json: list = []
+            if response_json:
+                context["suggested_fulltext"] = response_json[0]["fulltext"]
 
         # Preview of melody and text:
         # in OldCantus,
@@ -1694,6 +1692,7 @@ class SourceEditChantsView(LoginRequiredMixin, UserPassesTestMixin, UpdateView):
         # no full text of any kind => preview constructed from `incipit`
         # none of the above => show message explaining why melody preview has no text
 
+        chant = self.get_object()
         if chant.volpiano:
             syls_melody = syllabize_melody(chant.volpiano)
 
