@@ -67,6 +67,9 @@
                         <th scope="col" class="text-wrap" title="Cantus ID">CantusID</th>
                         <th scope="col" class="text-wrap" title="Mode">Mode</th>
                         <th scope="col" class="text-wrap" title="Image link"></th>
+                        {% if user_can_edit_chant %}
+                            <th scope="col" class="text-wrap" title="Edit Chant"></th>
+                        {% endif %}
                     </tr>
                 </thead>
                 <tbody>
@@ -108,6 +111,11 @@
                                 <a href="{{ chant.image_link }}" target="_blank">Image</a>
                             {% endif %}
                         </td>
+                        {% if user_can_edit_chant %}
+                            <td class="text-wrap" style="text-align:center">
+                                <a href="{% url 'source-edit-chants' chant.source.id %}?pk={{ chant.id }}&folio={{ chant.folio }}&ref=chant-list">Edit</a>
+                            </td>
+                        {% endif %}
                     </tr>
                     {% endfor %}
                 </tbody>
