@@ -88,7 +88,9 @@ class ChantDetailView(DetailView):
         if chant.volpiano:
             has_syl_text = bool(chant.manuscript_syllabized_full_text)
             text_and_mel = syllabize_text_and_melody(
-                chant.get_most_descriptive_text(), has_syl_text, chant.volpiano
+                chant.get_best_text_for_syllabizing(),
+                pre_syllabized=has_syl_text,
+                melody=chant.volpiano,
             )
             context["syllabized_text_with_melody"] = text_and_mel
 
@@ -1629,7 +1631,9 @@ class SourceEditChantsView(LoginRequiredMixin, UserPassesTestMixin, UpdateView):
         if chant.volpiano:
             has_syl_text = bool(chant.manuscript_syllabized_full_text)
             text_and_mel = syllabize_text_and_melody(
-                chant.get_most_descriptive_text(), has_syl_text, chant.volpiano
+                chant.get_best_text_for_syllabizing(),
+                pre_syllabized=has_syl_text,
+                melody=chant.volpiano,
             )
             context["syllabized_text_with_melody"] = text_and_mel
 
@@ -1697,7 +1701,9 @@ class ChantEditSyllabificationView(LoginRequiredMixin, UserPassesTestMixin, Upda
         if chant.volpiano:
             has_syl_text = bool(chant.manuscript_syllabized_full_text)
             text_and_mel = syllabize_text_and_melody(
-                chant.get_most_descriptive_text(), has_syl_text, chant.volpiano
+                chant.get_best_text_for_syllabizing(),
+                pre_syllabized=has_syl_text,
+                melody=chant.volpiano,
             )
             context["syllabized_text_with_melody"] = text_and_mel
 
@@ -1708,7 +1714,7 @@ class ChantEditSyllabificationView(LoginRequiredMixin, UserPassesTestMixin, Upda
         chant = self.get_object()
         has_syl_text = bool(chant.manuscript_syllabized_full_text)
         syls_text = syllabize_text_to_string(
-            chant.get_most_descriptive_text(), has_syl_text
+            chant.get_best_text_for_syllabizing(), pre_syllabized=has_syl_text
         )
         initial["manuscript_syllabized_full_text"] = syls_text
         return initial

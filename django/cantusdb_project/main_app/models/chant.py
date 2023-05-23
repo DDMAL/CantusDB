@@ -149,7 +149,7 @@ class Chant(BaseChant):
 
         return next_chant
 
-    def get_most_descriptive_text(self):
+    def get_best_text_for_syllabizing(self):
         """Finds the most descriptive text from the available fields of the chant.
 
         Preview of melody and text:
