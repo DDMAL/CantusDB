@@ -64,6 +64,52 @@ CHANT_SEARCH_TEMPLATE_VALUES = (
 )
 
 
+def parse_json_from_api(url: str) -> Optional[dict]:
+    """Queries a remote api that returns a json object, processes it and returns
+    a dict containing its information
+
+    Args:
+        url (str): Url of the API
+
+    Returns:
+        Optional[dict]: contents of json response
+    """
+    try:
+        response: Optional[Response] = requests.get(
+            url,
+            timeout=5,
+        )
+        print("response.text:", response.text)
+        print("response.text 2:", response.text[2:])
+    except (
+        SSLError,
+        Timeout,
+    ) as exc:
+        print(  # eventually, we should log this rather than printing it to the console
+            "Encountered an error in parse_json_from_api",
+            f"while making a request to {url}:",
+            exc,
+        )
+        return None
+    if response:
+        # we can't use response.json() because of the BOM at the beginning of json export
+        try:
+            return json.loads(response.text[2:])[0]
+        except (
+            json.decoder.JSONDecodeError
+        ) as exc:  # in case of json.loads("not valid json")
+            print(  # eventually, we should log this rather than printing it to the console
+                "Encountered an error in",
+                "ChantCreateView.get_suggested_chants.make_suggested_chant_dict",
+                "while parsing the response from",
+                f"https://cantusindex.org/json-cid/{cantus_id}:",
+                exc,
+            )
+            return None
+    else:
+        return None
+
+
 def _refresh_ci_json_con_api(cantus_id: str) -> None:
     """
     Send a request to CantusIndex's "refresh" json-con API, causing it to
@@ -140,39 +186,11 @@ def make_suggested_chant_dict(
             - how many times chants with this Cantus ID follow chants with a
                 Cantus ID of 123456 (int)
     """
-    try:
-        response: Optional[Response] = requests.get(
-            f"https://cantusindex.org/json-cid/{cantus_id}",
-            timeout=5,
-        )
-    except (
-        SSLError,
-        Timeout,
-    ) as exc:
-        print(  # eventually, we should log this rather than printing it to the console
-            "Encountered an error in",
-            "ChantCreateView.get_suggested_chants.make_suggested_chant_dict",
-            f"while making a request to https://cantusindex.org/json-cid/{cantus_id}:",
-            exc,
-        )
-        cid_dict = {}
-        response: Optional[Response] = None
-    if response:
-        # we can't use response.json() because of the BOM at the beginning of json export
-        try:
-            cid_dict: dict = json.loads(response.text[2:])[0]
-        except json.decoder.JSONDecodeError as exc:  # in case of json.loads("not valid json")
-            print(  # eventually, we should log this rather than printing it to the console
-                "Encountered an error in",
-                "ChantCreateView.get_suggested_chants.make_suggested_chant_dict",
-                "while parsing the response from",
-                f"https://cantusindex.org/json-cid/{cantus_id}:",
-                exc,
-            )
-            cid_dict = {}
-    else:
-        cid_dict = {}
-        # add number of occurence to the dict, so that we can display it easily
+    url = f"https://cantusindex.org/json-cid/{cantus_id}"
+    cid_dict = parse_json_from_api(url)
+    if cid_dict is None:
+        return {}
+
     cid_dict["count"] = count
     # figure out the id of the genre of the chant, to easily populate the Genre selector
     genre_name = cid_dict["genre"]
@@ -237,7 +255,9 @@ class ChantDetailView(DetailView):
             if response:
                 try:
                     concordances = json.loads(response.text[2:])
-                except json.decoder.JSONDecodeError as exc:  # in case of json.loads("not valid json")
+                except (
+                    json.decoder.JSONDecodeError
+                ) as exc:  # in case of json.loads("not valid json")
                     print(  # eventually, we could log this rather than printing it
                         "Encountered an error in ChantDetailView.get_context_data",
                         "while parsing the response from",
@@ -1655,7 +1675,9 @@ class SourceEditChantsView(LoginRequiredMixin, UserPassesTestMixin, UpdateView):
                 try:
                     # we can't use response.json() directly because of the BOM at the beginning of json export
                     response_json: list = json.loads(response.text[2:])
-                except json.decoder.JSONDecodeError as exc:  # in case of json.loads("not valid json")
+                except (
+                    json.decoder.JSONDecodeError
+                ) as exc:  # in case of json.loads("not valid json")
                     response_json: list = []
                     print(  # eventually, we should log this rather than printing it to the console
                         "encountered an error in CISearchView.get_context_data",
