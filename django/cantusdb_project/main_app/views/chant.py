@@ -79,8 +79,6 @@ def parse_json_from_api(url: str) -> Optional[dict]:
             url,
             timeout=5,
         )
-        print("response.text:", response.text)
-        print("response.text 2:", response.text[2:])
     except (
         SSLError,
         Timeout,
