@@ -277,8 +277,7 @@ class ChantDetailView(DetailView):
                 )
 
             # tally from all databases
-            concordances_count = len(concordance_chants)
-            context["concordances_count"] = concordances_count
+            context["concordances_count"] = len(concordance_chants)
 
             # https://cantusindex.org/json-con/{cantus_id} returns a cached
             # copy of the concordances. Appending "/refresh" to the URL causes Cantus
