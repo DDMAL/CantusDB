@@ -174,7 +174,6 @@ class ChantDetailView(DetailView):
                     "results_count": len(
                         [True for c in concordance_chants if c["db"] == "CD"]
                     ),
-                    "alternate_results_count_text": None,
                 },
                 {
                     "name": "Fontes Cantus Bohemiae",
@@ -184,7 +183,6 @@ class ChantDetailView(DetailView):
                     "results_count": len(
                         [True for c in concordance_chants if c["db"] == "FCB"]
                     ),
-                    "alternate_results_count_text": None,
                 },
                 {
                     "name": "Medieval Music Manuscripts Online",
@@ -194,7 +192,6 @@ class ChantDetailView(DetailView):
                     "results_count": len(
                         [True for c in concordance_chants if c["db"] == "MMMO"]
                     ),
-                    "alternate_results_count_text": None,
                 },
                 {
                     "name": "Portuguese Early Music Database",
@@ -204,7 +201,6 @@ class ChantDetailView(DetailView):
                     "results_count": len(
                         [True for c in concordance_chants if c["db"] == "PEM"]
                     ),
-                    "alternate_results_count_text": None,
                 },
                 {
                     "name": "Spanish Early Music Manuscript Database",
@@ -214,7 +210,6 @@ class ChantDetailView(DetailView):
                     "results_count": len(
                         [True for c in concordance_chants if c["db"] == "SEMM"]
                     ),
-                    "alternate_results_count_text": None,
                 },
                 {
                     "name": "Cantus Planus in Polonia",
@@ -224,7 +219,6 @@ class ChantDetailView(DetailView):
                     "results_count": len(
                         [True for c in concordance_chants if c["db"] == "CPL"]
                     ),
-                    "alternate_results_count_text": None,
                 },
                 {
                     "name": "Hungarian Chant Database",
@@ -234,7 +228,6 @@ class ChantDetailView(DetailView):
                     "results_count": len(
                         [True for c in concordance_chants if c["db"] == "HCD"]
                     ),
-                    "alternate_results_count_text": None,
                 },
                 {
                     "name": "Slovak Early Music Database",
@@ -244,7 +237,6 @@ class ChantDetailView(DetailView):
                     "results_count": len(
                         [True for c in concordance_chants if c["db"] == "CSK"]
                     ),
-                    "alternate_results_count_text": None,
                 },
                 {
                     "name": "Fragmenta Manuscriptorum Musicalium Hungariae",
@@ -254,7 +246,6 @@ class ChantDetailView(DetailView):
                     "results_count": len(
                         [True for c in concordance_chants if c["db"] == "FRH"]
                     ),
-                    "alternate_results_count_text": None,
                 },
             ]
 
