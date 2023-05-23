@@ -63,6 +63,53 @@ CHANT_SEARCH_TEMPLATE_VALUES = (
 )
 
 
+def _refresh_ci_json_con_api(cantus_id: str) -> None:
+    """
+    Send a request to CantusIndex's "refresh" json-con API, causing it to
+    update its cached concordances for the specified Cantus ID. This
+    function is meant to be run in a separate thread, so all warnings/errors
+    are suppressed.
+
+    Args:
+        cantus_id (string): a Cantus ID
+
+    Returns:
+        None
+    """
+    try:
+        requests.get(
+            url=f"https://cantusindex.org/json-con/{cantus_id}/refresh",
+            timeout=1,
+        )
+    except Exception as exc:  # since this is meant to be run in a separate thread
+        # and we don't want errors to propagate, we summarily catch and dismiss
+        # all exceptions
+        error_message = (
+            "Exception encountered within "
+            f"refresh_ci_json_con_api (cantus_id: {cantus_id}):"
+        )
+        print(
+            # in the future, we should log this rather than printing it.
+            error_message.format(cid=cantus_id),
+            exc,
+        )
+
+
+def touch_ci_json_con_api(cantus_id: str) -> None:
+    """
+    In a new thread, send a request to CantusIndex's "refresh" json-con API,
+    causing it to update its cached concordances for the specified Cantus ID.
+
+    Args:
+        cantus_id (str): A Cantus ID.
+    """
+    t = threading.Thread(
+        target=_refresh_ci_json_con_api,
+        args={"cantus_id": f"{cantus_id}"},
+    )
+    t.start()
+
+
 class ChantDetailView(DetailView):
     """
     Displays a single Chant object. Accessed with ``chants/<int:pk>``
@@ -279,51 +326,11 @@ class ChantDetailView(DetailView):
             # tally from all databases
             context["concordances_count"] = len(concordance_chants)
 
-            # https://cantusindex.org/json-con/{cantus_id} returns a cached
-            # copy of the concordances. Appending "/refresh" to the URL causes Cantus
-            # Index to recalculate the concordances, but this takes a few seconds.
-            # So, after fetching the cached version above, we make a call to
-            # https://cantusindex.org/json-con/{cantus_id}/refresh in a new thread,
-            # thus ensuring the current page doesn't take a long time to load, while also
-            # ensuring that concordances are up-to-date for future page loads.
-
-            def refresh_ci_json_con_api(cantus_id: str) -> None:
-                """
-                Send a request to CantusIndex's "refresh" json-con API, causing it to
-                update its cached concordances for the specified Cantus ID. This
-                function is meant to be run in a separate thread, so all warnings/errors
-                are suppressed.
-
-                Args:
-                    cantus_id (string): a Cantus ID
-
-                Returns:
-                    None
-                """
-                try:
-                    requests.get(
-                        url=f"https://cantusindex.org/json-con/{chant.cantus_id}/refresh",
-                        timeout=1,
-                    )
-                except Exception as exc:  # since this is meant to be run in a separate thread
-                    # and we don't want errors to propagate, we summarily catch and dismiss
-                    # all exceptions
-                    error_message = (
-                        "Exception encountered within "
-                        "ChantDetailView.get_context_data.refresh_ci_json_con_api "
-                        "(cantus_id: {cid}):"
-                    )
-                    print(
-                        # in the future, we should log this rather than printing it.
-                        error_message.format(cid=cantus_id),
-                        exc,
-                    )
-
-            t = threading.Thread(
-                target=refresh_ci_json_con_api,
-                args={"cantus_id": f"{chant.cantus_id}"},
-            )
-            t.start()
+            # touch CI's "refresh" json-con api, causing it to update its cached concordances
+            # for this chant's Cantus ID. In the future, we probably want to set up a cron job
+            # to ping the relevant url for each Cantus ID in the database, rather than doing
+            # it at request time.
+            touch_ci_json_con_api(chant.cantus_id)
 
         # some chants don't have a source, for those chants, stop here without further calculating
         # other context variables
