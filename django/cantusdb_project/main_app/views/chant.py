@@ -368,10 +368,11 @@ class ChantDetailView(DetailView):
                     ),
                 },
             ]
-
-            context["concordances_databases"] = list(
-                filter(lambda d: d["results_count"], concordances_databases)
-            )  # we only include a database in the list if its results_count is greater than 0
+            context["concordances_databases"] = [
+                d["results_count"]
+                for d in concordances_databases
+                if "results_count" in d and d["results_count"] > 0
+            ]
 
             try:
                 gregorien_response = requests.get(
