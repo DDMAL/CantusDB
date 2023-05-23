@@ -32,6 +32,7 @@ from collections import Counter
 from django.contrib.auth.mixins import UserPassesTestMixin
 from typing import Optional
 from requests.exceptions import SSLError, Timeout
+from requests import Response
 
 
 CHANT_SEARCH_TEMPLATE_VALUES = (
@@ -124,7 +125,8 @@ class ChantDetailView(DetailView):
         chant = self.get_object()
         user = self.request.user
 
-        # if the chant's source isn't published, only logged-in users should be able to view the chant's detail page
+        # if the chant's source isn't published, only logged-in users should be able to
+        # view the chant's detail page
         source = chant.source
         display_unpublished = user.is_authenticated
         if (source.published is False) and (not display_unpublished):
@@ -159,15 +161,13 @@ class ChantDetailView(DetailView):
             context["syllabized_text_with_melody"] = word_zip
 
         # If chant has a cantus ID, Create table of concordances
+        context["concordances_loaded_successfully"] = True
         if chant.cantus_id:
             try:
-                response = requests.get(
+                response: Optional[Response] = requests.get(
                     f"https://cantusindex.org/json-con/{chant.cantus_id}",
                     timeout=5,
                 )
-                # we can't use response.json() directly because of the BOM at the beginning of json export
-                concordances = json.loads(response.text[2:])
-                context["concordances_loaded_successfully"] = True
             except (
                 SSLError,
                 Timeout,
@@ -178,18 +178,21 @@ class ChantDetailView(DetailView):
                     "fhttps://cantusindex.org/json-con/{chant.cantus_id}:",
                     exc,
                 )
-                concordances = []
+                response: Optional[Response] = None
                 context["concordances_loaded_successfully"] = False
-            except (
-                TypeError,  # in case of json.loads(None)
-                json.decoder.JSONDecodeError,  # in case of json.loads("not valid json")
-            ) as exc:
-                print(  # eventually, we could log this rather than printing it
-                    "Encountered an error in ChantDetailView.get_context_data",
-                    "while parsing the response from",
-                    f"https://cantusindex.org/json-con/{chant.cantus_id}:",
-                    exc,
-                )
+            if response:
+                try:
+                    concordances = json.loads(response.text[2:])
+                except json.decoder.JSONDecodeError as exc:  # in case of json.loads("not valid json")
+                    print(  # eventually, we could log this rather than printing it
+                        "Encountered an error in ChantDetailView.get_context_data",
+                        "while parsing the response from",
+                        f"https://cantusindex.org/json-con/{chant.cantus_id}:",
+                        exc,
+                    )
+                    concordances = []
+                    context["concordances_loaded_successfully"] = False
+            else:
                 concordances = []
                 context["concordances_loaded_successfully"] = False
 
