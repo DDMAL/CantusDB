@@ -146,7 +146,6 @@ def make_suggested_chant_dict(
             timeout=5,
         )
     except (
-        AssertionError,
         SSLError,
         Timeout,
     ) as exc:
