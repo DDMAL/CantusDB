@@ -111,6 +111,77 @@ def touch_ci_json_con_api(cantus_id: str) -> None:
     t.start()
 
 
+def make_suggested_chant_dict(
+    cantus_id: str,
+    count: int,
+) -> dict:
+    """
+    Request information from Cantus Index about a given Cantus ID,
+    adding keys "count" and "genre_id" to this dictionary and returning it.
+
+    For the following explanation, assume the user has just added a chant
+    with a Cantus ID of "123456" to the database
+
+    Args:
+        cantus_id (str): a Cantus ID (i.e. we've looked through the database
+            for chants with a Cantus ID of "123456", and we've found all the
+            chants that follow those chants. `cantus_id` is the Cantus ID of
+            one of those following chants.)
+        count (int): The number of times a chant with a Cantus ID of `cantus_id`
+            follows a chant with a Cantus ID of "123456" among all sources in
+            the database
+
+    Returns:
+        dict: a dictionary with data about a specific Cantus ID, including:
+            - a canonical fulltext (str)
+            - an incipit (str)
+            - a genre (str)
+            - the ID of that genre in Cantus Database (int)
+            - how many times chants with this Cantus ID follow chants with a
+                Cantus ID of 123456 (int)
+    """
+    try:
+        response: Optional[Response] = requests.get(
+            f"https://cantusindex.org/json-cid/{cantus_id}",
+            timeout=5,
+        )
+    except (
+        AssertionError,
+        SSLError,
+        Timeout,
+    ) as exc:
+        print(  # eventually, we should log this rather than printing it to the console
+            "Encountered an error in",
+            "ChantCreateView.get_suggested_chants.make_suggested_chant_dict",
+            f"while making a request to https://cantusindex.org/json-cid/{cantus_id}:",
+            exc,
+        )
+        cid_dict = {}
+        response: Optional[Response] = None
+    if response:
+        # we can't use response.json() because of the BOM at the beginning of json export
+        try:
+            cid_dict: dict = json.loads(response.text[2:])[0]
+        except json.decoder.JSONDecodeError as exc:  # in case of json.loads("not valid json")
+            print(  # eventually, we should log this rather than printing it to the console
+                "Encountered an error in",
+                "ChantCreateView.get_suggested_chants.make_suggested_chant_dict",
+                "while parsing the response from",
+                f"https://cantusindex.org/json-cid/{cantus_id}:",
+                exc,
+            )
+            cid_dict = {}
+    else:
+        cid_dict = {}
+        # add number of occurence to the dict, so that we can display it easily
+    cid_dict["count"] = count
+    # figure out the id of the genre of the chant, to easily populate the Genre selector
+    genre_name = cid_dict["genre"]
+    genre_id = Genre.objects.get(name=genre_name).id
+    cid_dict["genre_id"] = genre_id
+    return cid_dict
+
+
 class ChantDetailView(DetailView):
     """
     Displays a single Chant object. Accessed with ``chants/<int:pk>``
@@ -1107,75 +1178,6 @@ class ChantCreateView(LoginRequiredMixin, UserPassesTestMixin, CreateView):
         # if there are more chants than NUM_SUGGESTIONS, remove chants that
         # don't frequently appear after the most recently entered chant
         trimmed_suggested_chants = sorted_suggested_chants[:NUM_SUGGESTIONS]
-
-        def make_suggested_chant_dict(
-            cantus_id: str,
-            count: int,
-        ) -> dict:
-            """
-            Request information from Cantus Index about a given Cantus ID,
-            adding keys "count" and "genre_id" to this dictionary and returning it.
-
-            For the following explanation, assume the user has just added a chant
-            with a Cantus ID of "123456" to the database
-
-            Args:
-                cantus_id (str): a Cantus ID (i.e. we've looked through the database
-                    for chants with a Cantus ID of "123456", and we've found all the
-                    chants that follow those chants. `cantus_id` is the Cantus ID of
-                    one of those following chants.)
-                count (int): The number of times a chant with a Cantus ID of `cantus_id`
-                    follows a chant with a Cantus ID of "123456" among all sources in
-                    the database
-
-            Returns:
-                dict: a dictionary with data about a specific Cantus ID, including:
-                    - a canonical fulltext (str)
-                    - an incipit (str)
-                    - a genre (str)
-                    - the ID of that genre in Cantus Database (int)
-                    - how many times chants with this Cantus ID follow chants with a
-                        Cantus ID of 123456 (int)
-            """
-            try:
-                response = requests.get(
-                    f"https://cantusindex.org/json-cid/{cantus_id}",
-                    timeout=5,
-                )
-                assert response.status_code == 200
-                # we can't use response.json() because of the BOM at the beginning of json export
-                cid_dict: dict = json.loads(response.text[2:])[0]
-                # add number of occurence to the dict, so that we can display it easily
-                cid_dict["count"] = count
-                # figure out the id of the genre of the chant, to easily populate the Genre selector
-                genre_name = cid_dict["genre"]
-                genre_id = Genre.objects.get(name=genre_name).id
-                cid_dict["genre_id"] = genre_id
-            except (
-                AssertionError,
-                SSLError,
-                Timeout,
-            ) as exc:
-                print(  # eventually, we should log this rather than printing it to the console
-                    "Encountered an error in",
-                    "ChantCreateView.get_suggested_chants.make_suggested_chant_dict",
-                    f"while making a request to https://cantusindex.org/json-cid/{cantus_id}:",
-                    exc,
-                )
-                cid_dict = {}
-            except (
-                TypeError,  # in case of json.loads(None)
-                json.decoder.JSONDecodeError,  # in case of json.loads("not valid json")
-            ) as exc:
-                print(  # eventually, we should log this rather than printing it to the console
-                    "Encountered an error in",
-                    "ChantCreateView.get_suggested_chants.make_suggested_chant_dict",
-                    "while parsing the response from",
-                    f"https://cantusindex.org/json-cid/{cantus_id}:",
-                    exc,
-                )
-                cid_dict = {}
-            return cid_dict
 
         suggested_chants_dicts = [
             make_suggested_chant_dict(cid, cnt) for cid, cnt in trimmed_suggested_chants
