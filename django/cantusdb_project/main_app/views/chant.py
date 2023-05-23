@@ -308,16 +308,6 @@ class ChantDetailView(DetailView):
                     f"https://gregorien.info/chant/cid/{chant.cantus_id}/en",
                     timeout=5,
                 )
-                if gregorien_response.status_code == 200:
-                    gregorien_database_dict: dict = {
-                        "name": "Gregorien.info",
-                        "initialism": None,
-                        "base_url": "https://gregorien.info/",
-                        "results_url": f"https://gregorien.info/chant/cid/{chant.cantus_id}/en",
-                        "results_count": None,
-                        "alternate_results_count_text": "VIEW AT GREGORIEN.INFO",
-                    }
-                    context["concordances_databases"].append(gregorien_database_dict)
             except (SSLError, Timeout) as exc:
                 print(  # eventually, we could log this rather than printing it
                     "Encountered an error in ChantDetailView.get_context_data",
@@ -325,6 +315,17 @@ class ChantDetailView(DetailView):
                     f"https://gregorien.info/chant/cid/{chant.cantus_id}/en:",
                     exc,
                 )
+
+            if gregorien_response and gregorien_response.status_code == 200:
+                gregorien_database_dict: dict = {
+                    "name": "Gregorien.info",
+                    "initialism": None,
+                    "base_url": "https://gregorien.info/",
+                    "results_url": f"https://gregorien.info/chant/cid/{chant.cantus_id}/en",
+                    "results_count": None,
+                    "alternate_results_count_text": "VIEW AT GREGORIEN.INFO",
+                }
+                context["concordances_databases"].append(gregorien_database_dict)
 
             # tally from all databases
             context["concordances_count"] = len(concordance_chants)
