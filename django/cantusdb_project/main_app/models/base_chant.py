@@ -138,7 +138,7 @@ class BaseChant(BaseModel):
         Returns:
             str: The url to the Cantus Index page
         """
-        return f"http://cantusindex.org/id/{self.cantus_id}"
+        return f"https://cantusindex.org/id/{self.cantus_id}"
 
     def __str__(self):
         incipit = ""
