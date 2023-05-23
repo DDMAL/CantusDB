@@ -1700,7 +1700,7 @@ class SourceEditChantsView(LoginRequiredMixin, UserPassesTestMixin, UpdateView):
 
     def get_success_url(self):
         next_url = self.request.GET.get("ref")
-        if next_url:
+        if next_url == "chant-list":
             return self.request.POST.get("referrer")
         else:
             # stay on the same page after save
