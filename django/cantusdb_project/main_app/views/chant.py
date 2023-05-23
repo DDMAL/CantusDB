@@ -24,7 +24,7 @@ from main_app.forms import (
     ChantEditSyllabificationForm,
 )
 from main_app.models import Chant, Feast, Genre, Source, Sequence
-from align_text_mel import *
+from align_text_mel import syllabize_text_and_melody, syllabize_text_to_string
 from django.contrib.auth.mixins import LoginRequiredMixin
 from django.http import Http404
 from next_chants import next_chants
@@ -206,29 +206,13 @@ class ChantDetailView(DetailView):
 
         # syllabification section
         if chant.volpiano:
-            syls_melody = syllabize_melody(chant.volpiano)
-
-            if chant.manuscript_syllabized_full_text:
-                syls_text = syllabize_text(
-                    chant.manuscript_syllabized_full_text, pre_syllabized=True
-                )
-            elif chant.manuscript_full_text:
-                syls_text = syllabize_text(
-                    chant.manuscript_full_text, pre_syllabized=False
-                )
-                syls_text, syls_melody = postprocess(syls_text, syls_melody)
-            elif chant.manuscript_full_text_std_spelling:
-                syls_text = syllabize_text(
-                    chant.manuscript_full_text_std_spelling, pre_syllabized=False
-                )
-            elif chant.incipit:
-                syls_text = syllabize_text(chant.incipit, pre_syllabized=False)
-                syls_text, syls_melody = postprocess(syls_text, syls_melody)
-            else:
-                syls_text = [[""]]
-
-            word_zip = align(syls_text, syls_melody)
-            context["syllabized_text_with_melody"] = word_zip
+            has_syl_text = bool(chant.manuscript_syllabized_full_text)
+            text_and_mel = syllabize_text_and_melody(
+                chant.get_best_text_for_syllabizing(),
+                pre_syllabized=has_syl_text,
+                melody=chant.volpiano,
+            )
+            context["syllabized_text_with_melody"] = text_and_mel
 
         # If chant has a cantus ID, Create table of concordances
         context["concordances_loaded_successfully"] = True
@@ -611,6 +595,9 @@ class ChantListView(ListView):
         source_id = self.request.GET.get("source")
         source = Source.objects.get(id=source_id)
         context["source"] = source
+
+        user = self.request.user
+        context["user_can_edit_chant"] = user_can_edit_chants_in_source(user, source)
 
         chants_in_source = source.chant_set
         if chants_in_source.count() == 0:
@@ -1680,44 +1667,15 @@ class SourceEditChantsView(LoginRequiredMixin, UserPassesTestMixin, UpdateView):
             if response_json:
                 context["suggested_fulltext"] = response_json[0]["fulltext"]
 
-        # Preview of melody and text:
-        # in OldCantus,
-        # 'manuscript_syllabized_full_text' exists =>
-        #   preview constructed from 'manuscript_syllabized_full_text'
-        # no 'manuscript_syllabized_full_text', but 'manuscript_full_text' exists =>
-        #   preview constructed from 'manuscript_full_text'
-        # no 'manuscript_syllabized_full_text' and no 'manuscript_full_text' =>
-        #   preview constructed from 'manuscript_full_text_std_spelling'
-        # to this we add:
-        # no full text of any kind => preview constructed from `incipit`
-        # none of the above => show message explaining why melody preview has no text
-
         chant = self.get_object()
         if chant.volpiano:
-            syls_melody = syllabize_melody(chant.volpiano)
-
-            if chant.manuscript_syllabized_full_text:
-                syls_text = syllabize_text(
-                    chant.manuscript_syllabized_full_text, pre_syllabized=True
-                )
-            elif chant.manuscript_full_text:
-                syls_text = syllabize_text(
-                    chant.manuscript_full_text, pre_syllabized=False
-                )
-                syls_text, syls_melody = postprocess(syls_text, syls_melody)
-            elif chant.manuscript_full_text_std_spelling:
-                syls_text = syllabize_text(
-                    chant.manuscript_full_text_std_spelling, pre_syllabized=False
-                )
-                syls_text, syls_melody = postprocess(syls_text, syls_melody)
-            elif chant.incipit:
-                syls_text = syllabize_text(chant.incipit, pre_syllabized=False)
-                syls_text, syls_melody = postprocess(syls_text, syls_melody)
-            else:
-                syls_text = [[""]]
-
-            word_zip = align(syls_text, syls_melody)
-            context["syllabized_text_with_melody"] = word_zip
+            has_syl_text = bool(chant.manuscript_syllabized_full_text)
+            text_and_mel = syllabize_text_and_melody(
+                chant.get_best_text_for_syllabizing(),
+                pre_syllabized=has_syl_text,
+                melody=chant.volpiano,
+            )
+            context["syllabized_text_with_melody"] = text_and_mel
 
         return context
 
@@ -1733,8 +1691,14 @@ class SourceEditChantsView(LoginRequiredMixin, UserPassesTestMixin, UpdateView):
             return super().form_invalid(form)
 
     def get_success_url(self):
-        # stay on the same page after save
-        return self.request.get_full_path()
+        # Take user back to chant list page if that is the referrer page
+        # `ref` url parameter is used to indicate referring page
+        next_url = self.request.GET.get("ref")
+        if next_url == "chant-list":
+            return self.request.POST.get("referrer")
+        else:
+            # stay on the same page after save
+            return self.request.get_full_path()
 
 
 class ChantProofreadView(SourceEditChantsView):
@@ -1780,34 +1744,26 @@ class ChantEditSyllabificationView(LoginRequiredMixin, UserPassesTestMixin, Upda
         context = super().get_context_data(**kwargs)
         chant = self.get_object()
 
-        # Preview of melody and text:
-        # in the old CantusDB,
-        # 'manuscript_syllabized_full_text' exists => preview constructed from 'manuscript_syllabized_full_text'
-        # no 'manuscript_syllabized_full_text', but 'manuscript_full_text' exists => preview constructed from 'manuscript_full_text'
-        # no 'manuscript_syllabized_full_text' and no 'manuscript_full_text' => preview constructed from 'manuscript_full_text_std_spelling'
-
         if chant.volpiano:
-            syls_melody = syllabize_melody(chant.volpiano)
-
-            if chant.manuscript_syllabized_full_text:
-                syls_text = syllabize_text(
-                    chant.manuscript_syllabized_full_text, pre_syllabized=True
-                )
-            elif chant.manuscript_full_text:
-                syls_text = syllabize_text(
-                    chant.manuscript_full_text, pre_syllabized=False
-                )
-                syls_text, syls_melody = postprocess(syls_text, syls_melody)
-            elif chant.manuscript_full_text_std_spelling:
-                syls_text = syllabize_text(
-                    chant.manuscript_full_text_std_spelling, pre_syllabized=False
-                )
-                syls_text, syls_melody = postprocess(syls_text, syls_melody)
-
-            word_zip = align(syls_text, syls_melody)
-            context["syllabized_text_with_melody"] = word_zip
+            has_syl_text = bool(chant.manuscript_syllabized_full_text)
+            text_and_mel = syllabize_text_and_melody(
+                chant.get_best_text_for_syllabizing(),
+                pre_syllabized=has_syl_text,
+                melody=chant.volpiano,
+            )
+            context["syllabized_text_with_melody"] = text_and_mel
 
         return context
+
+    def get_initial(self):
+        initial = super().get_initial()
+        chant = self.get_object()
+        has_syl_text = bool(chant.manuscript_syllabized_full_text)
+        syls_text = syllabize_text_to_string(
+            chant.get_best_text_for_syllabizing(), pre_syllabized=has_syl_text
+        )
+        initial["manuscript_syllabized_full_text"] = syls_text
+        return initial
 
     def form_valid(self, form):
         form.instance.last_updated_by = self.request.user
