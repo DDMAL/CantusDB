@@ -64,8 +64,10 @@ CHANT_SEARCH_TEMPLATE_VALUES = (
 
 
 def parse_json_from_api(url: str) -> Union[list, None]:
-    """Queries a remote api that returns a json object, processes it and returns
-    a list containing its information
+    """Queries a remote api from cantusindex.org that returns a json object, processes it and returns
+    a list containing its information.
+
+    We expect an array of javascript objects with a byte order mark (BOM) at the beginning
 
     Args:
         url (str): Url of the API
