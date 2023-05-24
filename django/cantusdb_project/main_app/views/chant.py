@@ -184,12 +184,11 @@ def make_suggested_chant_dict(
             - how many times chants with this Cantus ID follow chants with a
                 Cantus ID of 123456 (int)
     """
-    url = f"https://cantusindex.org/json-cid/{cantus_id}"
-    cid_dict = parse_json_from_api(url)
-    # it is possible for parse_json_from_api to return a list
-    # so we must check that cid_dict is actually a dictionary
+    json_cid_url: str = f"https://cantusindex.org/json-cid/{cantus_id}"
+    cid_dict: Union[list, dict, None] = parse_json_from_api(json_cid_url)
     try:
-        assert isinstance(cid_dict, dict)
+        assert isinstance(cid_dict, list)
+        assert isinstance(cid_dict[0], dict)
     except AssertionError:
         return {}
 
@@ -237,11 +236,15 @@ class ChantDetailView(DetailView):
         # If chant has a cantus ID, Create table of concordances
         context["concordances_loaded_successfully"] = True
         if chant.cantus_id:
-            url = f"https://cantusindex.org/json-con/{chant.cantus_id}"
-            concordances = parse_json_from_api(url)
-            # parse_json_from_api may return None or dict
+            json_concordances_url: str = (
+                f"https://cantusindex.org/json-con/{chant.cantus_id}"
+            )
+            concordances: Union[list, dict, None] = parse_json_from_api(
+                json_concordances_url
+            )
             try:
                 assert isinstance(concordances, list)
+                assert isinstance(concordances[0], dict)
             except AssertionError:
                 concordances = []
                 context["concordances_loaded_successfully"] = False
@@ -1634,10 +1637,11 @@ class SourceEditChantsView(LoginRequiredMixin, UserPassesTestMixin, UpdateView):
             current_chant = Chant.objects.filter(pk=pk).first()
             cantus_id = current_chant.cantus_id
 
-            url = f"https://cantusindex.org/json-cid/{cantus_id}"
-            json_response = parse_json_from_api(url)
+            json_cid_url: str = f"https://cantusindex.org/json-cid/{cantus_id}"
+            json_response: Union[list, dict, None] = parse_json_from_api(json_cid_url)
             try:
                 assert isinstance(json_response, list)
+                assert isinstance(json_response[0], dict)
             except AssertionError:
                 json_response = None
             if json_response:
