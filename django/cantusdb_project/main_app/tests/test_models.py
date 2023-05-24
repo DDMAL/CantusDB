@@ -59,7 +59,7 @@ class ChantModelTest(TestCase):
     def test_get_ci_url(self):
         chant = Chant.objects.first()
         ci_url = chant.get_ci_url()
-        ci_url_correct = "http://cantusindex.org/id/{}".format(chant.cantus_id)
+        ci_url_correct = "https://cantusindex.org/id/{}".format(chant.cantus_id)
         self.assertEqual(ci_url, ci_url_correct)
 
     def test_index_components(self):
