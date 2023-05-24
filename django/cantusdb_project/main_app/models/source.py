@@ -120,7 +120,7 @@ class Source(BaseModel):
     number_of_melodies = models.IntegerField(blank=True, null=True)
 
     def __str__(self):
-        string = "[{s}] {t} ({i})".format(s=self.rism_siglum, t=self.title, i=self.id)
+        string = '[{s}] {t} ({i})'.format(s=self.siglum, t=self.title, i=self.id)
         return string
 
     def save(self, *args, **kwargs):
