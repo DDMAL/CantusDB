@@ -186,8 +186,6 @@ def make_suggested_chant_dict(
     """
     url = f"https://cantusindex.org/json-cid/{cantus_id}"
     cid_dict = parse_json_from_api(url)
-    if cid_dict is None:
-        return {}
     # it is possible for parse_json_from_api to return a list
     # so we must check that cid_dict is actually a dictionary
     try:
