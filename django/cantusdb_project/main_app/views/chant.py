@@ -65,13 +65,13 @@ CHANT_SEARCH_TEMPLATE_VALUES = (
 
 def parse_json_from_api(url: str) -> Union[list, None]:
     """Queries a remote api that returns a json object, processes it and returns
-    a dict or list containing its information
+    a list containing its information
 
     Args:
         url (str): Url of the API
 
     Returns:
-        dict, list, None: contents of json response in the form of a list or dict
+        list, None: contents of json response in the form of a list
     """
     try:
         response: Optional[Response] = requests.get(
