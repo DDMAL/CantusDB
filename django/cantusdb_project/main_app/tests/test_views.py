@@ -1193,10 +1193,7 @@ class ChantSearchMSViewTest(TestCase):
 
     def test_keyword_search_contains(self):
         source = make_fake_source()
-        chant = Chant.objects.create(
-            source=source,
-            manuscript_full_text=faker.sentence(),
-        )
+        chant = make_fake_chant(source=source)
         # split full text into words
         full_text_words = chant.manuscript_full_text.split(" ")
         # use a random subset of words as search term
