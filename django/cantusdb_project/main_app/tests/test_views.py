@@ -1203,21 +1203,27 @@ class ChantSearchMSViewTest(TestCase):
 
     def test_keyword_search_contains(self):
         source = make_fake_source()
-        chant = make_fake_chant(source=source)
-        # split full text into words
-        full_text_words = chant.manuscript_full_text.split(" ")
-        # use a random subset of words as search term
-        search_term = " ".join(
-            random.choices(
-                full_text_words, k=random.randint(1, max(len(full_text_words) - 1, 1))
-            )
+        search_term = "quick"
+        chant_1 = make_fake_chant(
+            source=source,
+            manuscript_full_text_std_spelling="Quick brown fox jumps over the lazy dog",
+        )
+        chant_2 = make_fake_chant(
+            source=source,
+            manuscript_full_text_std_spelling="brown fox jumps over the lazy dog",
+        )
+        chant_3 = make_fake_chant(
+            source=source,
+            manuscript_full_text_std_spelling="lazy brown fox jumps quickly over the dog",
         )
         response = self.client.get(
             reverse("chant-search-ms", args=[source.id]),
             {"keyword": search_term, "op": "contains"},
         )
-        context_chant_id = response.context["chants"][0]["id"]
-        self.assertEqual(chant.id, context_chant_id)
+        first_context_chant_id = response.context["chants"][0]["id"]
+        self.assertEqual(chant_1.id, first_context_chant_id)
+        second_context_chant_id = response.context["chants"][1]["id"]
+        self.assertEqual(chant_3.id, second_context_chant_id)
 
     def test_source_link_column(self):
         siglum = "Sigl-01"
