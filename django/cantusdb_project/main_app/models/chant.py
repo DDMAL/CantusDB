@@ -1,6 +1,7 @@
 from django.db.models.query import QuerySet
 from main_app.models.base_chant import BaseChant
 
+
 class Chant(BaseChant):
     """The model for chants
 
@@ -31,7 +32,10 @@ class Chant(BaseChant):
         return {
             "A": (
                 " ".join(
-                    filter(None, [incipit, full_text, full_text_std_spelling, source],)
+                    filter(
+                        None,
+                        [incipit, full_text, full_text_std_spelling, source],
+                    )
                 )
             ),
             "B": (" ".join(filter(None, [genre, feast, office]))),
@@ -54,7 +58,7 @@ class Chant(BaseChant):
                 str: the folio number of the next folio
             """
             # For chants that end with ra, rb, va, vb - don't do anything about those. That formatting will not stay.
-            
+
             if folio is None:
                 # this shouldn't happen, but during testing, we may have some chants without folio
                 next_folio = None
@@ -104,8 +108,9 @@ class Chant(BaseChant):
                 folio=self.folio,
                 c_sequence=self.c_sequence + 1,
             )
-        except Chant.DoesNotExist: # i.e. no chant with the subsequent c_sequence on same folio
-            
+        except (
+            Chant.DoesNotExist
+        ):  # i.e. no chant with the subsequent c_sequence on same folio
             # check to see whether there are more chants on this folio after a gap in the numbering
             # e.g. situation with several sequential chants on a folio, followed by a lacuna with c_sequence 99
             subsequent_chants_this_folio = Chant.objects.filter(
@@ -115,7 +120,7 @@ class Chant(BaseChant):
             ).order_by("c_sequence")
             if len(subsequent_chants_this_folio) >= 1:
                 next_chant = subsequent_chants_this_folio[0]
-            
+
             # no more chant on this folio, so get the first chant on the next folio
             else:
                 chants_next_folio = Chant.objects.filter(
@@ -124,20 +129,48 @@ class Chant(BaseChant):
                 ).order_by("c_sequence")
                 try:
                     next_chant = chants_next_folio[0]
-                except AttributeError: # i.e. next folio is None
+                except AttributeError:  # i.e. next folio is None
                     return None
-                except Chant.DoesNotExist: # i.e. next folio contains no chants (I think?)
+                except (
+                    Chant.DoesNotExist
+                ):  # i.e. next folio contains no chants (I think?)
                     return None
-                except IndexError: # i.e. next folio contains no chants (I think?)
+                except IndexError:  # i.e. next folio contains no chants (I think?)
                     return None
-                except ValueError: # i.e. next folio contains no chants
+                except ValueError:  # i.e. next folio contains no chants
                     next_chant = None
-        except Chant.MultipleObjectsReturned: # i.e. multiple chants have the same source, folio and c_sequence
-                                              # for example, the two chants on folio h001r c_sequence 1, in source with ID 123753 
+        except (
+            Chant.MultipleObjectsReturned
+        ):  # i.e. multiple chants have the same source, folio and c_sequence
+            # for example, the two chants on folio h001r c_sequence 1, in source with ID 123753
             next_chant = None
-        except TypeError: # c_sequence is None
+        except TypeError:  # c_sequence is None
             next_chant = None
-
 
         return next_chant
 
+    def get_best_text_for_syllabizing(self):
+        """Finds the most descriptive text from the available fields of the chant.
+
+        Preview of melody and text:
+            - If 'manuscript_syllabized_full_text' exists, the preview is constructed from it.
+            - If 'manuscript_syllabized_full_text' doesn't exist but 'manuscript_full_text' exists,
+              the preview is constructed from 'manuscript_full_text'.
+            - If neither 'manuscript_syllabized_full_text' nor 'manuscript_full_text' exist but
+              'manuscript_full_text_std_spelling' exists, the preview is constructed from 'manuscript_full_text_std_spelling'.
+            - If none of the above fields exist, the preview is constructed from 'incipit'.
+            - If there is no available text, return None
+        Returns:
+            String: The most descriptive text from the available fields of the chant.
+        """
+
+        if self.manuscript_syllabized_full_text:
+            return self.manuscript_syllabized_full_text
+        elif self.manuscript_full_text:
+            return self.manuscript_full_text
+        elif self.manuscript_full_text_std_spelling:
+            return self.manuscript_full_text_std_spelling
+        elif self.incipit:
+            return self.incipit
+        else:
+            return None

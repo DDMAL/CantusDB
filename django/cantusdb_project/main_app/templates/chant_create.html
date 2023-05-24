@@ -238,7 +238,7 @@
                     <b>Suggestions based on the previous chant:</b><br>
                     {% if previous_chant %}
                         {{ previous_chant.folio }} {{ previous_chant.c_sequence}} <a href="{% url 'chant-detail' previous_chant.id %}" target="_blank">{{ previous_chant.incipit }}</a><br>
-                        Cantus ID: <a href="http://cantusindex.org/id/{{ previous_chant.cantus_id }}" target="_blank">{{ previous_chant.cantus_id }}</a><br>
+                        Cantus ID: <a href="https://cantusindex.org/id/{{ previous_chant.cantus_id }}" target="_blank">{{ previous_chant.cantus_id }}</a><br>
                             {% if suggested_chants %}
                                 {% for chant in suggested_chants %}
                                     <input type="button" style="width: 80px" value="{{ chant.cid }}" onclick="autoFill{{ chant.cid }}()"></input>
