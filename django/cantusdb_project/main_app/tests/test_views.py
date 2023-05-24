@@ -1225,6 +1225,46 @@ class ChantSearchMSViewTest(TestCase):
         second_context_chant_id = response.context["chants"][1]["id"]
         self.assertEqual(chant_3.id, second_context_chant_id)
 
+    def test_keyword_search_searching_all_fields(self):
+        search_term = "brevity"
+        includes_search_term = "brevity is the soul of wit"
+        doesnt_include_search_term = "longevity is the soul of wit"
+        source = make_fake_source()
+        chant_incipit = make_fake_chant(
+            source=source,
+            incipit=includes_search_term,  # <==
+            manuscript_full_text=doesnt_include_search_term,
+            manuscript_full_text_std_spelling=doesnt_include_search_term,
+        )
+        chant_ms_spelling = make_fake_chant(
+            source=source,
+            incipit=doesnt_include_search_term,
+            manuscript_full_text=includes_search_term,  # <==
+            manuscript_full_text_std_spelling=doesnt_include_search_term,
+        )
+        chant_std_spelling = make_fake_chant(
+            source=source,
+            incipit=doesnt_include_search_term,
+            manuscript_full_text=doesnt_include_search_term,
+            manuscript_full_text_std_spelling=includes_search_term,  # <==
+        )
+        chant_without_search_term = make_fake_chant(
+            source=source,
+            incipit=doesnt_include_search_term,
+            manuscript_full_text=doesnt_include_search_term,
+            manuscript_full_text_std_spelling=doesnt_include_search_term,
+        )
+        response_starts_with = self.client.get(
+            reverse("chant-search-ms", args=[source.id]),
+            {"keyword": search_term, "op": "starts_with"},
+        )
+        self.assertEqual(len(response_starts_with.context["chants"]), 3)
+        response_contains = self.client.get(
+            reverse("chant-search-ms", args=[source.id]),
+            {"keyword": search_term, "op": "contains"},
+        )
+        self.assertEqual(len(response_contains.context["chants"]), 3)
+
     def test_source_link_column(self):
         siglum = "Sigl-01"
         source = make_fake_source(published=True, siglum=siglum)
