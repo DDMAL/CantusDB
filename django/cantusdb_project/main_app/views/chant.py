@@ -1066,7 +1066,7 @@ class ChantSearchMSView(ListView):
                 )
                 incipit_filter = Q(incipit__istartswith=keyword)
             keyword_filter = ms_spelling_filter | std_spelling_filter | incipit_filter
-            queryset.filter(keyword_filter)
+            queryset = queryset.filter(keyword_filter)
         # ordering with the folio string gives wrong order
         # old cantus is also not strictly ordered by folio (there are outliers)
         # so we order by id for now, which is the order that the chants are entered into the DB
