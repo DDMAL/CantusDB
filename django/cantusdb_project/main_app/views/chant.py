@@ -30,10 +30,9 @@ from django.http import Http404
 from next_chants import next_chants
 from collections import Counter
 from django.contrib.auth.mixins import UserPassesTestMixin
-from typing import Optional
+from typing import Optional, Union
 from requests.exceptions import SSLError, Timeout
 from requests import Response
-
 
 CHANT_SEARCH_TEMPLATE_VALUES = (
     # for views that use chant_search.html, this allows them to
@@ -62,6 +61,50 @@ CHANT_SEARCH_TEMPLATE_VALUES = (
     "genre__description",
     "genre__name",
 )
+
+
+def parse_json_from_api(url: str) -> Union[list, None]:
+    """Queries a remote api that returns a json object, processes it and returns
+    a list containing its information
+
+    Args:
+        url (str): Url of the API
+
+    Returns:
+        list, None: contents of json response in the form of a list
+    """
+    try:
+        response: Optional[Response] = requests.get(
+            url,
+            timeout=5,
+        )
+    except (
+        SSLError,
+        Timeout,
+    ) as exc:
+        print(  # eventually, we should log this rather than printing it to the console
+            "Encountered an error in parse_json_from_api",
+            f"while making a request to {url}:",
+            exc,
+        )
+        return None
+    if response:
+        # we can't use response.json() because of the BOM at the beginning of json export
+        try:
+            return json.loads(response.text[2:])
+        except (
+            json.decoder.JSONDecodeError
+        ) as exc:  # in case of json.loads("not valid json")
+            print(  # eventually, we should log this rather than printing it to the console
+                "Encountered an error in",
+                "ChantCreateView.get_suggested_chants.make_suggested_chant_dict",
+                "while parsing the response from",
+                f"https://cantusindex.org/json-cid/{cantus_id}:",
+                exc,
+            )
+            return None
+    else:
+        return None
 
 
 def _refresh_ci_json_con_api(cantus_id: str) -> None:
@@ -140,39 +183,15 @@ def make_suggested_chant_dict(
             - how many times chants with this Cantus ID follow chants with a
                 Cantus ID of 123456 (int)
     """
+    json_cid_url: str = f"https://cantusindex.org/json-cid/{cantus_id}"
+    cid_list: Union[list, None] = parse_json_from_api(json_cid_url)
     try:
-        response: Optional[Response] = requests.get(
-            f"https://cantusindex.org/json-cid/{cantus_id}",
-            timeout=5,
-        )
-    except (
-        SSLError,
-        Timeout,
-    ) as exc:
-        print(  # eventually, we should log this rather than printing it to the console
-            "Encountered an error in",
-            "ChantCreateView.get_suggested_chants.make_suggested_chant_dict",
-            f"while making a request to https://cantusindex.org/json-cid/{cantus_id}:",
-            exc,
-        )
-        cid_dict = {}
-        response: Optional[Response] = None
-    if response:
-        # we can't use response.json() because of the BOM at the beginning of json export
-        try:
-            cid_dict: dict = json.loads(response.text[2:])[0]
-        except json.decoder.JSONDecodeError as exc:  # in case of json.loads("not valid json")
-            print(  # eventually, we should log this rather than printing it to the console
-                "Encountered an error in",
-                "ChantCreateView.get_suggested_chants.make_suggested_chant_dict",
-                "while parsing the response from",
-                f"https://cantusindex.org/json-cid/{cantus_id}:",
-                exc,
-            )
-            cid_dict = {}
-    else:
-        cid_dict = {}
-        # add number of occurence to the dict, so that we can display it easily
+        assert isinstance(cid_list, list)
+        assert len(cid_list) == 1
+        assert isinstance(cid_list[0], dict)
+    except AssertionError:
+        return {}
+    cid_dict = cid_list[0]
     cid_dict["count"] = count
     # figure out the id of the genre of the chant, to easily populate the Genre selector
     genre_name = cid_dict["genre"]
@@ -217,36 +236,15 @@ class ChantDetailView(DetailView):
         # If chant has a cantus ID, Create table of concordances
         context["concordances_loaded_successfully"] = True
         if chant.cantus_id:
+            json_concordances_url: str = (
+                f"https://cantusindex.org/json-con/{chant.cantus_id}"
+            )
+            concordances: Union[list, None] = parse_json_from_api(json_concordances_url)
             try:
-                response: Optional[Response] = requests.get(
-                    f"https://cantusindex.org/json-con/{chant.cantus_id}",
-                    timeout=5,
-                )
-            except (
-                SSLError,
-                Timeout,
-            ) as exc:
-                print(  # eventually, we could log this rather than printing it
-                    "Encountered an error in ChantDetailView.get_context_data",
-                    "while making a request to",
-                    "fhttps://cantusindex.org/json-con/{chant.cantus_id}:",
-                    exc,
-                )
-                response: Optional[Response] = None
-                context["concordances_loaded_successfully"] = False
-            if response:
-                try:
-                    concordances = json.loads(response.text[2:])
-                except json.decoder.JSONDecodeError as exc:  # in case of json.loads("not valid json")
-                    print(  # eventually, we could log this rather than printing it
-                        "Encountered an error in ChantDetailView.get_context_data",
-                        "while parsing the response from",
-                        f"https://cantusindex.org/json-con/{chant.cantus_id}:",
-                        exc,
-                    )
-                    concordances = []
-                    context["concordances_loaded_successfully"] = False
-            else:
+                assert isinstance(concordances, list)
+                assert len(concordances) > 0
+                assert isinstance(concordances[0], dict)
+            except AssertionError:
                 concordances = []
                 context["concordances_loaded_successfully"] = False
 
@@ -1638,35 +1636,16 @@ class SourceEditChantsView(LoginRequiredMixin, UserPassesTestMixin, UpdateView):
             current_chant = Chant.objects.filter(pk=pk).first()
             cantus_id = current_chant.cantus_id
 
+            json_cid_url: str = f"https://cantusindex.org/json-cid/{cantus_id}"
+            json_response: Union[list, None] = parse_json_from_api(json_cid_url)
             try:
-                response: Optional[Response] = requests.get(
-                    f"https://cantusindex.org/json-cid/{cantus_id}",
-                    timeout=5,
-                )
-            except (SSLError, Timeout) as exc:
-                print(  # eventually, we should log this rather than printing it to the console
-                    "encountered an error in CISearchView.get_context_data",
-                    "while making a request to",
-                    f"https://cantusindex.org/json-cid/{cantus_id}:",
-                    exc,
-                )
-                response: Optional[Response] = None
-            if response:
-                try:
-                    # we can't use response.json() directly because of the BOM at the beginning of json export
-                    response_json: list = json.loads(response.text[2:])
-                except json.decoder.JSONDecodeError as exc:  # in case of json.loads("not valid json")
-                    response_json: list = []
-                    print(  # eventually, we should log this rather than printing it to the console
-                        "encountered an error in CISearchView.get_context_data",
-                        "while parsing the response from",
-                        f"https://cantusindex.org/json-cid/{cantus_id}:",
-                        exc,
-                    )
-            else:
-                response_json: list = []
-            if response_json:
-                context["suggested_fulltext"] = response_json[0]["fulltext"]
+                assert isinstance(json_response, list)
+                assert len(json_response) > 0
+                assert isinstance(json_response[0], dict)
+            except AssertionError:
+                json_response = None
+            if json_response:
+                context["suggested_fulltext"] = json_response[0]["fulltext"]
 
         chant = self.get_object()
         if chant.volpiano:
