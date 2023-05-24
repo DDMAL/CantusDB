@@ -30,10 +30,9 @@ from django.http import Http404
 from next_chants import next_chants
 from collections import Counter
 from django.contrib.auth.mixins import UserPassesTestMixin
-from typing import Optional
+from typing import Optional, Union
 from requests.exceptions import SSLError, Timeout
 from requests import Response
-from typing import Union
 
 CHANT_SEARCH_TEMPLATE_VALUES = (
     # for views that use chant_search.html, this allows them to
@@ -64,7 +63,7 @@ CHANT_SEARCH_TEMPLATE_VALUES = (
 )
 
 
-def parse_json_from_api(url: str) -> Union[list, dict, None]:
+def parse_json_from_api(url: str) -> Union[list, None]:
     """Queries a remote api that returns a json object, processes it and returns
     a dict or list containing its information
 
@@ -92,7 +91,7 @@ def parse_json_from_api(url: str) -> Union[list, dict, None]:
     if response:
         # we can't use response.json() because of the BOM at the beginning of json export
         try:
-            return json.loads(response.text[2:])[0]
+            return json.loads(response.text[2:])
         except (
             json.decoder.JSONDecodeError
         ) as exc:  # in case of json.loads("not valid json")
@@ -185,13 +184,14 @@ def make_suggested_chant_dict(
                 Cantus ID of 123456 (int)
     """
     json_cid_url: str = f"https://cantusindex.org/json-cid/{cantus_id}"
-    cid_dict: Union[list, dict, None] = parse_json_from_api(json_cid_url)
+    cid_list: Union[list, None] = parse_json_from_api(json_cid_url)
     try:
-        assert isinstance(cid_dict, list)
-        assert isinstance(cid_dict[0], dict)
+        assert isinstance(cid_list, list)
+        assert len(cid_list) == 1
+        assert isinstance(cid_list[0], dict)
     except AssertionError:
         return {}
-
+    cid_dict = cid_list[0]
     cid_dict["count"] = count
     # figure out the id of the genre of the chant, to easily populate the Genre selector
     genre_name = cid_dict["genre"]
@@ -239,11 +239,10 @@ class ChantDetailView(DetailView):
             json_concordances_url: str = (
                 f"https://cantusindex.org/json-con/{chant.cantus_id}"
             )
-            concordances: Union[list, dict, None] = parse_json_from_api(
-                json_concordances_url
-            )
+            concordances: Union[list, None] = parse_json_from_api(json_concordances_url)
             try:
                 assert isinstance(concordances, list)
+                assert len(concordances) > 0
                 assert isinstance(concordances[0], dict)
             except AssertionError:
                 concordances = []
@@ -1638,9 +1637,10 @@ class SourceEditChantsView(LoginRequiredMixin, UserPassesTestMixin, UpdateView):
             cantus_id = current_chant.cantus_id
 
             json_cid_url: str = f"https://cantusindex.org/json-cid/{cantus_id}"
-            json_response: Union[list, dict, None] = parse_json_from_api(json_cid_url)
+            json_response: Union[list, None] = parse_json_from_api(json_cid_url)
             try:
                 assert isinstance(json_response, list)
+                assert len(json_response) > 0
                 assert isinstance(json_response[0], dict)
             except AssertionError:
                 json_response = None
