@@ -42,8 +42,9 @@
             var cantus_id = document.getElementById(rowId).cells[1].innerText;
             var genre = document.getElementById(rowId).cells[2].innerText;
             var full_text = document.getElementById(rowId).cells[3].innerText;
-            var genres = {{ genres|safe }}; // genres contains "id" and "name" of Genre model
-            var genreId = (genres.find(item => item.name === genre) ?? {}).id;
+            var genres = {{ genres|safe }}; // genres contains "id" and "name" of all Genre objects in the database
+            var genreObj = genres.find(item => item.name === genre);
+            var genreId = genreId = genreObj ? genreObj.id : null;
 
             opener.document.getElementById('id_cantus_id').value = cantus_id;
             opener.document.getElementById('id_genre').value = genreId;
