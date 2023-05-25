@@ -42,12 +42,11 @@
             var cantus_id = document.getElementById(rowId).cells[1].innerText;
             var genre = document.getElementById(rowId).cells[2].innerText;
             var full_text = document.getElementById(rowId).cells[3].innerText;
-
-            // get the option value corresponding to the genre name
-            const genreId = Array.prototype.find.call(opener.document.getElementById('id_genre').children, ({ textContent }) => textContent === genre);
+            var genres = {{ genres|safe }}; // genres contains "id" and "name" of Genre model
+            var genreId = (genres.find(item => item.name === genre) ?? {}).id;
 
             opener.document.getElementById('id_cantus_id').value = cantus_id;
-            opener.document.getElementById('id_genre').value = genreId.value;
+            opener.document.getElementById('id_genre').value = genreId;
             opener.document.getElementById('id_manuscript_full_text_std_spelling').value = full_text;
             close()
         }
