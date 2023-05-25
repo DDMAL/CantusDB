@@ -1290,8 +1290,10 @@ class CISearchView(TemplateView):
 
     def get_context_data(self, **kwargs):
         MAX_PAGE_NUMBER_CI = 5
-
         context = super().get_context_data(**kwargs)
+        context["genres"] = list(
+            Genre.objects.all().order_by("name").values("id", "name")
+        )
         search_term = kwargs["search_term"]
         search_term = search_term.replace(" ", "+")  # for multiple keywords
         # Create empty list for the 3 types of info
