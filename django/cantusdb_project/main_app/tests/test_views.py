@@ -1178,39 +1178,92 @@ class ChantSearchMSViewTest(TestCase):
 
     def test_keyword_search_starts_with(self):
         source = make_fake_source()
-        chant = Chant.objects.create(
+        search_term = "quick"
+
+        # We have three chants to make sure the result is only chant 1 where quick is the first word
+        chant_1 = make_fake_chant(
             source=source,
-            incipit=faker.sentence(),
+            manuscript_full_text_std_spelling="quick brown fox jumps over the lazy dog",
         )
-        # use the beginning part of the incipit as search term
-        search_term = chant.incipit[0 : random.randint(1, len(chant.incipit))]
+        chant_2 = make_fake_chant(
+            source=source,
+            manuscript_full_text_std_spelling="brown fox jumps over the lazy dog",
+        )
+        chant_3 = make_fake_chant(
+            source=source,
+            manuscript_full_text_std_spelling="lazy brown fox jumps quick over the dog",
+        )
         response = self.client.get(
             reverse("chant-search-ms", args=[source.id]),
             {"keyword": search_term, "op": "starts_with"},
         )
+        self.assertEqual(len(response.context["chants"]), 1)
         context_chant_id = response.context["chants"][0]["id"]
-        self.assertEqual(chant.id, context_chant_id)
+        self.assertEqual(chant_1.id, context_chant_id)
 
     def test_keyword_search_contains(self):
         source = make_fake_source()
-        chant = Chant.objects.create(
+        search_term = "quick"
+        chant_1 = make_fake_chant(
             source=source,
-            manuscript_full_text=faker.sentence(),
+            manuscript_full_text_std_spelling="Quick brown fox jumps over the lazy dog",
         )
-        # split full text into words
-        full_text_words = chant.manuscript_full_text.split(" ")
-        # use a random subset of words as search term
-        search_term = " ".join(
-            random.choices(
-                full_text_words, k=random.randint(1, max(len(full_text_words) - 1, 1))
-            )
+        chant_2 = make_fake_chant(
+            source=source,
+            manuscript_full_text_std_spelling="brown fox jumps over the lazy dog",
+        )
+        chant_3 = make_fake_chant(
+            source=source,
+            manuscript_full_text_std_spelling="lazy brown fox jumps quickly over the dog",
         )
         response = self.client.get(
             reverse("chant-search-ms", args=[source.id]),
             {"keyword": search_term, "op": "contains"},
         )
-        context_chant_id = response.context["chants"][0]["id"]
-        self.assertEqual(chant.id, context_chant_id)
+        first_context_chant_id = response.context["chants"][0]["id"]
+        self.assertEqual(chant_1.id, first_context_chant_id)
+        second_context_chant_id = response.context["chants"][1]["id"]
+        self.assertEqual(chant_3.id, second_context_chant_id)
+
+    def test_keyword_search_searching_all_fields(self):
+        search_term = "brevity"
+        includes_search_term = "brevity is the soul of wit"
+        doesnt_include_search_term = "longevity is the soul of wit"
+        source = make_fake_source()
+        chant_incipit = make_fake_chant(
+            source=source,
+            incipit=includes_search_term,  # <==
+            manuscript_full_text=doesnt_include_search_term,
+            manuscript_full_text_std_spelling=doesnt_include_search_term,
+        )
+        chant_ms_spelling = make_fake_chant(
+            source=source,
+            incipit=doesnt_include_search_term,
+            manuscript_full_text=includes_search_term,  # <==
+            manuscript_full_text_std_spelling=doesnt_include_search_term,
+        )
+        chant_std_spelling = make_fake_chant(
+            source=source,
+            incipit=doesnt_include_search_term,
+            manuscript_full_text=doesnt_include_search_term,
+            manuscript_full_text_std_spelling=includes_search_term,  # <==
+        )
+        chant_without_search_term = make_fake_chant(
+            source=source,
+            incipit=doesnt_include_search_term,
+            manuscript_full_text=doesnt_include_search_term,
+            manuscript_full_text_std_spelling=doesnt_include_search_term,
+        )
+        response_starts_with = self.client.get(
+            reverse("chant-search-ms", args=[source.id]),
+            {"keyword": search_term, "op": "starts_with"},
+        )
+        self.assertEqual(len(response_starts_with.context["chants"]), 3)
+        response_contains = self.client.get(
+            reverse("chant-search-ms", args=[source.id]),
+            {"keyword": search_term, "op": "contains"},
+        )
+        self.assertEqual(len(response_contains.context["chants"]), 3)
 
     def test_source_link_column(self):
         siglum = "Sigl-01"
