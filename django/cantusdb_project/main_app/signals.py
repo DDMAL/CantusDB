@@ -13,6 +13,7 @@ from main_app.models import Chant
 from main_app.models import Sequence
 from main_app.models import Feast
 
+
 @receiver(post_save, sender=Chant)
 def on_chant_save(instance, **kwargs):
     update_source_chant_count(instance)
@@ -21,18 +22,22 @@ def on_chant_save(instance, **kwargs):
     update_chant_search_vector(instance)
     update_volpiano_fields(instance)
 
+
 @receiver(post_delete, sender=Chant)
 def on_chant_delete(instance, **kwargs):
     update_source_chant_count(instance)
     update_source_melody_count(instance)
 
+
 @receiver(post_save, sender=Sequence)
 def on_sequence_save(instance, **kwargs):
     update_source_chant_count(instance)
 
+
 @receiver(post_delete, sender=Sequence)
 def on_sequence_delete(instance, **kwargs):
     update_source_chant_count(instance)
+
 
 @receiver(post_save, sender=Feast)
 def on_feast_save(instance, **kwargs):
@@ -41,7 +46,7 @@ def on_feast_save(instance, **kwargs):
 
 def update_chant_search_vector(instance):
     """When saving an instance of Chant, update its search vector field.
-    
+
     Called in on_chant_save()
     """
     index_components = instance.index_components()
@@ -50,17 +55,16 @@ def update_chant_search_vector(instance):
 
     for weight, data in index_components.items():
         search_vectors.append(
-            SearchVector(
-                Value(data, output_field=models.TextField()), weight=weight
-            )
+            SearchVector(Value(data, output_field=models.TextField()), weight=weight)
         )
     instance.__class__.objects.filter(pk=pk).update(
         search_vector=reduce(operator.add, search_vectors)
     )
 
+
 def update_source_chant_count(instance):
     """When saving or deleting a Chant or Sequence, update its Source's number_of_chants field
-    
+
     Called in on_chant_save(), on_chant_delete(), on_sequence_save() and on_sequence_delete()
     """
 
@@ -69,21 +73,26 @@ def update_source_chant_count(instance):
         source.number_of_chants = source.chant_set.count() + source.sequence_set.count()
         source.save()
 
+
 def update_source_melody_count(instance):
     """When saving or deleting a Chant, update its Source's number_of_melodies field
-    
+
     Called in on_chant_save() and on_chant_delete()
     """
     source = instance.source
     if source is not None:
-        source.number_of_melodies = source.chant_set.filter(volpiano__isnull=False).count()
+        source.number_of_melodies = source.chant_set.filter(
+            volpiano__isnull=False
+        ).count()
         source.save()
+
 
 def update_volpiano_fields(instance):
     """When saving a Chant, make sure the chant's volpiano_notes and volpiano_intervals are up-to-date
-    
+
     Called in on_chant_save()
     """
+
     def generate_volpiano_notes(volpiano):
         """
         Populate the ``volpiano_notes`` field of the ``Chant`` model
@@ -163,27 +172,20 @@ def update_volpiano_fields(instance):
     if instance.volpiano is None:
         return
 
-    volpiano_notes = generate_volpiano_notes(
-        instance.volpiano
-    )
-    volpiano_intervals = generate_volpiano_intervals(
-        volpiano_notes
-    )
+    volpiano_notes = generate_volpiano_notes(instance.volpiano)
+    volpiano_intervals = generate_volpiano_intervals(volpiano_notes)
 
     Chant.objects.filter(id=instance.id).update(
         volpiano_notes=volpiano_notes,
         volpiano_intervals=volpiano_intervals,
     )
 
+
 def update_prefix_field(instance):
     pk = instance.pk
 
     if instance.feast_code:
         prefix = str(instance.feast_code)[0:2]
-        instance.__class__.objects.filter(pk=pk).update(
-            prefix=prefix
-        )
-    else: # feast_code is None, ""
-        instance.__class__.objects.filter(pk=pk).update(
-            prefix=""
-        )
+        instance.__class__.objects.filter(pk=pk).update(prefix=prefix)
+    else:  # feast_code is None, ""
+        instance.__class__.objects.filter(pk=pk).update(prefix="")

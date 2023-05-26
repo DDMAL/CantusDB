@@ -4,6 +4,7 @@ from django.db import models
 from django.urls import reverse
 from django.contrib.auth import get_user_model
 
+
 class BaseModel(models.Model):
     """Base model that containing fields and functionality used in all models.
 
@@ -23,18 +24,18 @@ class BaseModel(models.Model):
         auto_now=True, help_text="The date this entry was updated"
     )
     created_by = models.ForeignKey(
-        get_user_model(), 
+        get_user_model(),
         related_name="%(class)s_created_by_user",
-        on_delete=models.CASCADE, 
-        blank=True, 
-        null=True
+        on_delete=models.CASCADE,
+        blank=True,
+        null=True,
     )
     last_updated_by = models.ForeignKey(
-        get_user_model(), 
+        get_user_model(),
         related_name="%(class)s_last_updated_by_user",
-        on_delete=models.CASCADE, 
-        blank=True, 
-        null=True
+        on_delete=models.CASCADE,
+        blank=True,
+        null=True,
     )
 
     class Meta:

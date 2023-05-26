@@ -39,5 +39,6 @@ class VolpianoInputWidget(TextInput):
             "style": "font-family: Volpiano; font-size: xx-large",
         }
 
+
 class CheckboxWidget(CheckboxInput):
     pass

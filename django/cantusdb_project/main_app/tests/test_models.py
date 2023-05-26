@@ -59,7 +59,7 @@ class ChantModelTest(TestCase):
     def test_get_ci_url(self):
         chant = Chant.objects.first()
         ci_url = chant.get_ci_url()
-        ci_url_correct = "http://cantusindex.org/id/{}".format(chant.cantus_id)
+        ci_url_correct = "https://cantusindex.org/id/{}".format(chant.cantus_id)
         self.assertEqual(ci_url, ci_url_correct)
 
     def test_index_components(self):
@@ -91,7 +91,9 @@ class ChantModelTest(TestCase):
 
     def test_get_concordances(self):
         chant = Chant.objects.get(id=1)
-        chant_with_same_cantus_id = Chant.objects.create(cantus_id=chant.cantus_id, source=chant.source)
+        chant_with_same_cantus_id = Chant.objects.create(
+            cantus_id=chant.cantus_id, source=chant.source
+        )
         concordances = chant.related_chants_by_cantus_id()
         self.assertIn(chant_with_same_cantus_id, concordances)
 
@@ -125,7 +127,7 @@ class ChantModelTest(TestCase):
             c_sequence=2,
         )
         self.assertEqual(chant1.get_next_chant(), chant2)
-    
+
     def test_get_next_chant__recto_to_verso(self):
         source = make_fake_source()
         current_folio = "001r"
@@ -157,7 +159,7 @@ class ChantModelTest(TestCase):
             c_sequence=1,
         )
         self.assertEqual(chant1.get_next_chant(), chant2)
-    
+
     def test_get_next_chant__one_numbered_page_to_the_next(self):
         source = make_fake_source()
         current_folio = "004"
@@ -172,8 +174,10 @@ class ChantModelTest(TestCase):
             folio=next_folio,
             c_sequence=1,
         )
-        self.assertEqual(end_of_page_chant.get_next_chant(), beginning_of_next_page_chant)
-    
+        self.assertEqual(
+            end_of_page_chant.get_next_chant(), beginning_of_next_page_chant
+        )
+
     def test_get_next_chant__last_chant_in_manuscript(self):
         source = make_fake_source()
         last_folio_in_ms = "999r"
@@ -223,11 +227,7 @@ class ChantModelTest(TestCase):
             c_sequence=99,
             manuscript_full_text_std_spelling="LACUNA",
         )
-        chant3 = make_fake_chant(
-            source=source,
-            folio=second_folio,
-            c_sequence=1
-        )
+        chant3 = make_fake_chant(source=source, folio=second_folio, c_sequence=1)
         self.assertEqual(chant1.get_next_chant(), lacuna)
         self.assertEqual(lacuna.get_next_chant(), chant3)
 
@@ -314,10 +314,7 @@ class OfficeModelTest(TestCase):
 
     def test_object_string_representation(self):
         office = Office.objects.first()
-        self.assertEqual(
-            str(office),
-            f"[{office.name}] {office.description}"
-        )
+        self.assertEqual(str(office), f"[{office.name}] {office.description}")
 
     def test_display_name(self):
         office = Office.objects.first()
@@ -383,6 +380,7 @@ class SourceModelTest(TestCase):
         absolute_url = reverse("source-detail", args=[str(source.id)])
         self.assertEqual(source.get_absolute_url(), absolute_url)
 
+
 class ChantSequenceSyncTest(TestCase):
     def test_chant_sequence_sync(self):
         # for each of the models:
@@ -397,6 +395,10 @@ class ChantSequenceSyncTest(TestCase):
         # they specify the same fields (with the same name and type) in the same order,
         # we assert true
 
-        chant_field_names = [(f.name, f.get_internal_type()) for f in Chant._meta.get_fields()]
-        sequence_field_names = [(f.name, f.get_internal_type()) for f in Sequence._meta.get_fields()]
+        chant_field_names = [
+            (f.name, f.get_internal_type()) for f in Chant._meta.get_fields()
+        ]
+        sequence_field_names = [
+            (f.name, f.get_internal_type()) for f in Sequence._meta.get_fields()
+        ]
         self.assertEqual(chant_field_names, sequence_field_names)

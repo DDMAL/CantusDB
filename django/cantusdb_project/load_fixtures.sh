@@ -12,7 +12,6 @@ FIXTURES_LIST=(
    group_fixture.json
    user_fixture.json
    flatpage_fixture.json
-   indexer_fixture.json
    office_fixture.json
    genre_fixture.json
    feast_fixture.json
@@ -23,6 +22,7 @@ FIXTURES_LIST=(
    segment_fixture.json
    source_fixture.json
    sequence_fixture.json
+   article_fixture.json
 )
 
 for fixture in ${FIXTURES_LIST[*]}
@@ -30,6 +30,11 @@ do
    echo $fixture
    python manage.py loaddata $fixture
 done
+
+# N.B. As of March 2023, the following part of this script is broken.
+# Most Chants in the database have another Chant specified as their `next_chant`.
+# If a given Chant's `next_chant` has not yet been loaded, the given Chant
+# will also fail to be loaded into the database.
 
 # load all the chants, this takes a few hours as we have half a million chants
 FILES=./main_app/fixtures/chant_fixtures/*

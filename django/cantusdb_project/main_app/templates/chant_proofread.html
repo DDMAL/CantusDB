@@ -195,6 +195,14 @@
                     {% endif %}
 
                     <div class="form-row">
+                        <div class="form-group m-1 col-lg-4">
+                            <a href="{% url "source-edit-syllabification" chant.id %}" style="display: inline-block; margin-top:5px;" target="_blank">
+                                <small>Edit syllabification (new window)</small>
+                            </a>
+                        </div>
+                    </div>
+
+                    <div class="form-row">
                         <div class="form-group m-1 col-lg-12">
                             <small>{{ form.image_link.label_tag }}</small>
                             {{ form.image_link }}
