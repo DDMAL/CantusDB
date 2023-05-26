@@ -42,6 +42,8 @@
             var cantus_id = document.getElementById(rowId).cells[1].innerText;
             var genre = document.getElementById(rowId).cells[2].innerText;
             var full_text = document.getElementById(rowId).cells[3].innerText;
+
+            // get the option value corresponding to the genre name
             var genres = {{ genres|safe }}; // genres contains "id" and "name" of all Genre objects in the database
             var genreObj = genres.find(item => item.name === genre);
             var genreId = genreId = genreObj ? genreObj.id : null;
