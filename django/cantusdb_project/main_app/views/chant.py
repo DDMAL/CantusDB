@@ -100,8 +100,7 @@ def parse_json_from_api(url: str) -> Union[list, None]:
             print(  # eventually, we should log this rather than printing it to the console
                 "Encountered an error in",
                 "ChantCreateView.get_suggested_chants.make_suggested_chant_dict",
-                "while parsing the response from",
-                f"https://cantusindex.org/json-cid/{cantus_id}:",
+                f"while parsing the response from {url}",
                 exc,
             )
             return None
