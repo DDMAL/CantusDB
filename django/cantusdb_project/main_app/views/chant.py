@@ -1673,13 +1673,13 @@ class SourceEditChantsView(LoginRequiredMixin, UserPassesTestMixin, UpdateView):
             return super().form_invalid(form)
 
     def get_success_url(self):
-        # Take user back to chant list page if that is the referrer page
+        # Take user back to the referring page
         # `ref` url parameter is used to indicate referring page
         next_url = self.request.GET.get("ref")
-        if next_url == "chant-list":
+        if next_url:
             return self.request.POST.get("referrer")
         else:
-            # stay on the same page after save
+            # ref not found, stay on the same page after save
             return self.request.get_full_path()
 
 
