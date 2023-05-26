@@ -3665,6 +3665,7 @@ class CISearchViewTest(TestCase):
         fake_search_term = faker.word()
         response = self.client.get(f"/ci-search/{fake_search_term}")
         self.assertTrue("results" in response.context)
+        self.assertTrue("genres" in response.context)
 
 
 class CsvExportTest(TestCase):
