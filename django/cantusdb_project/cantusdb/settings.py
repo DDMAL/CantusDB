@@ -61,6 +61,7 @@ INSTALLED_APPS = [
     "articles",
     "django_quill",  # to provide rich-text field for articles
     "users",
+    "debug_toolbar",
 ]
 
 MIDDLEWARE = [
@@ -72,6 +73,7 @@ MIDDLEWARE = [
     "django.contrib.messages.middleware.MessageMiddleware",
     "django.middleware.clickjacking.XFrameOptionsMiddleware",
     "django.contrib.flatpages.middleware.FlatpageFallbackMiddleware",
+    "debug_toolbar.middleware.DebugToolbarMiddleware",
 ]
 
 ROOT_URLCONF = "cantusdb.urls"
@@ -164,3 +166,5 @@ SITE_ID = 4
 DEFAULT_AUTO_FIELD = "django.db.models.AutoField"
 
 EMAIL_BACKEND = "django.core.mail.backends.console.EmailBackend"
+
+INTERNAL_IPS = ["127.0.0.1"]
