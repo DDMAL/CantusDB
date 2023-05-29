@@ -220,7 +220,14 @@ class SourceListView(ListView):
             )
             q_obj_filter &= indexing_search_q
 
-        return queryset.filter(q_obj_filter).distinct()
+        print(Century.objects.all().order_by("name").values("id", "name"))
+        return (
+            queryset.filter(q_obj_filter)
+            .distinct()
+            .prefetch_related(
+                Prefetch("century", queryset=Century.objects.all().order_by("name"))
+            )
+        )
 
 
 class SourceCreateView(LoginRequiredMixin, UserPassesTestMixin, CreateView):
