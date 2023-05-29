@@ -515,7 +515,7 @@ class ChantListView(ListView):
         search_text = self.request.GET.get("search_text")
 
         # get all chants in the specified source
-        chants = source.chant_set
+        chants = source.chant_set.select_related("feast", "office", "genre")
         # filter the chants with optional search params
         if feast_id:
             chants = chants.filter(feast__id=feast_id)
