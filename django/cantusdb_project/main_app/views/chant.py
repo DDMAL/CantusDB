@@ -5,7 +5,7 @@ import json
 import threading
 from django.contrib import messages
 from django.contrib.postgres.search import SearchQuery, SearchRank
-from django.db.models import F, Q, QuerySet, Value
+from django.db.models import F, Q, QuerySet, Value, Prefetch
 from django.shortcuts import get_object_or_404
 from django.urls import reverse
 from django.views.generic import (
@@ -553,7 +553,7 @@ class ChantListView(ListView):
             chants_in_source = (
                 source.chant_set.exclude(feast=None)
                 .order_by("folio", "c_sequence")
-                .prefetch_related("feast", "folio")
+                .prefetch_related(Prefetch("feast", queryset=Feast.objects.all()))
             )
             # initialize the feast selector options with the first chant in the source that has a feast
             first_feast_chant = chants_in_source.first()
@@ -570,16 +570,24 @@ class ChantListView(ListView):
                 chants_by_folio = chants_in_source.filter(folio__in=folios).order_by(
                     "folio"
                 )
-                for folio in folios:
-                    # get all chants on each folio
-                    chants_on_folio = chants_by_folio[folio]
-                    for chant in chants_on_folio:
-                        if chant.feast != current_feast:
-                            # if the feast changes, add the new feast and the corresponding folio to the lists
-                            feast_selector_feasts.append(chant.feast)
-                            feast_selector_folios.append(folio)
-                            # update the current_feast to track future changes
-                            current_feast = chant.feast
+                for chant in chants_by_folio:
+                    if chant.feast != current_feast:
+                        # if the feast changes, add the new feast and the corresponding folio to the lists
+                        feast_selector_feasts.append(chant.feast)
+                        feast_selector_folios.append(chant.folio)
+                        # update the current_feast to track future changes
+                        current_feast = chant.feast
+
+                # for folio in folios:
+                #     # get all chants on each folio
+                #     chants_on_folio = chants_by_folio[folio]
+                #     for chant in chants_on_folio:
+                #         if chant.feast != current_feast:
+                #             # if the feast changes, add the new feast and the corresponding folio to the lists
+                #             feast_selector_feasts.append(chant.feast)
+                #             feast_selector_folios.append(folio)
+                #             # update the current_feast to track future changes
+                #             current_feast = chant.feast
                 # as the two lists will always be of the same length, no need for zip,
                 # just naively combine them
                 # if we use zip, the returned generator will be exhausted in rendering templates, making it hard to test the returned value
