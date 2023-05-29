@@ -577,17 +577,6 @@ class ChantListView(ListView):
                         feast_selector_folios.append(chant.folio)
                         # update the current_feast to track future changes
                         current_feast = chant.feast
-
-                # for folio in folios:
-                #     # get all chants on each folio
-                #     chants_on_folio = chants_by_folio[folio]
-                #     for chant in chants_on_folio:
-                #         if chant.feast != current_feast:
-                #             # if the feast changes, add the new feast and the corresponding folio to the lists
-                #             feast_selector_feasts.append(chant.feast)
-                #             feast_selector_folios.append(folio)
-                #             # update the current_feast to track future changes
-                #             current_feast = chant.feast
                 # as the two lists will always be of the same length, no need for zip,
                 # just naively combine them
                 # if we use zip, the returned generator will be exhausted in rendering templates, making it hard to test the returned value
