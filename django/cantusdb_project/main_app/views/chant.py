@@ -544,7 +544,7 @@ class ChantListView(ListView):
                 folios (list of strs): A list of folios in the source.
 
             Returns:
-                zip object: A zip object combining a list of folios and Feast objects, to be unpacked in template.
+                list of tuples: A list of folios and Feast objects, to be unpacked in template.
             """
             # the two lists to be zipped
             feast_selector_feasts = []
@@ -1462,7 +1462,7 @@ class SourceEditChantsView(LoginRequiredMixin, UserPassesTestMixin, UpdateView):
                 folios (list of strs): A list of folios in the source.
 
             Returns:
-                zip object: A zip object combining a list of folios and Feast objects, to be unpacked in template.
+                list of tuples: A list of folios and Feast objects, to be unpacked in template.
             """
             # the two lists to be zipped
             feast_selector_feasts = []
