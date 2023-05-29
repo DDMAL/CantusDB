@@ -62,12 +62,12 @@ INSTALLED_APPS = [
     "django_quill",  # to provide rich-text field for articles
     "users",
     "debug_toolbar",
-    "silk",
+    # "silk",
 ]
 
 MIDDLEWARE = [
     "debug_toolbar.middleware.DebugToolbarMiddleware",
-    "silk.middleware.SilkyMiddleware",
+    # "silk.middleware.SilkyMiddleware",
     "django.middleware.security.SecurityMiddleware",
     "django.contrib.sessions.middleware.SessionMiddleware",
     "django.middleware.common.CommonMiddleware",
@@ -174,3 +174,7 @@ if DEBUG:
 
     hostname, _, ips = socket.gethostbyname_ex(socket.gethostname())
     INTERNAL_IPS = [ip[: ip.rfind(".")] + ".1" for ip in ips] + ["127.0.0.1"]
+
+SILKY_MAX_REQUEST_BODY_SIZE = -1  # Silk takes anything <0 as no limit
+SILKY_MAX_RESPONSE_BODY_SIZE = 1024  # If response body>1024 bytes, ignore
+SILKY_META = True

@@ -553,7 +553,7 @@ class ChantListView(ListView):
             chants_in_source = (
                 source.chant_set.exclude(feast=None)
                 .order_by("folio", "c_sequence")
-                .select_related("feast")
+                .prefetch_related("feast", "folio")
             )
             # initialize the feast selector options with the first chant in the source that has a feast
             first_feast_chant = chants_in_source.first()
@@ -567,9 +567,12 @@ class ChantListView(ListView):
                 current_folio = first_feast_chant.folio
                 feast_selector_folios.append(current_folio)
 
+                chants_by_folio = chants_in_source.filter(folio__in=folios).order_by(
+                    "folio"
+                )
                 for folio in folios:
                     # get all chants on each folio
-                    chants_on_folio = chants_in_source.filter(folio=folio)
+                    chants_on_folio = chants_by_folio[folio]
                     for chant in chants_on_folio:
                         if chant.feast != current_feast:
                             # if the feast changes, add the new feast and the corresponding folio to the lists
