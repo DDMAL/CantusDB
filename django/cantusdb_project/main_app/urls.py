@@ -59,6 +59,7 @@ from main_app.views.user import (
 
 urlpatterns = [
     path("__debug__/", include(debug_toolbar.urls)),
+    path("silk/", include("silk.urls", namespace="silk")),
     path(
         "contact/",
         views.contact,
