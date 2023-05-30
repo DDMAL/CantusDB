@@ -42,7 +42,7 @@ class SourceDetailView(DetailView):
             # initialize the feast selector options with the first chant in the source that has a feast
             first_feast_chant = chants_in_source.first()
             if not first_feast_chant:
-                # if none of the chants in this source has a feast, return an empty zip
+                # if none of the chants in this source has a feast, return an empty list
                 folios_with_feasts = []
             else:
                 # if there is at least one chant that has a feast
