@@ -37,7 +37,7 @@ class SourceDetailView(DetailView):
             chants_in_source = (
                 source.chant_set.exclude(feast=None)
                 .order_by("folio", "c_sequence")
-                .prefetch_related(Prefetch("feast", queryset=Feast.objects.all()))
+                .select_related("feast")
             )
             # initialize the feast selector options with the first chant in the source that has a feast
             first_feast_chant = chants_in_source.first()
