@@ -226,30 +226,29 @@ def get_feast_selector_options(source, folios):
     # initialize the feast selector options with the first chant in the source that has a feast
     first_feast_chant = chants_in_source.first()
     if not first_feast_chant:
-        # if none of the chants in this source has a feast, return an empty zip
-        folios_with_feasts = []
-    else:
-        # if there is at least one chant that has a feast
-        current_feast = first_feast_chant.feast
-        feast_selector_feasts.append(current_feast)
-        current_folio = first_feast_chant.folio
-        feast_selector_folios.append(current_folio)
+        # if none of the chants in this source has a feast, return an empty list
+        return []
+    # if there is at least one chant that has a feast
+    current_feast = first_feast_chant.feast
+    feast_selector_feasts.append(current_feast)
+    current_folio = first_feast_chant.folio
+    feast_selector_folios.append(current_folio)
 
-        chants_by_folio = chants_in_source.filter(folio__in=folios).order_by("folio")
-        for chant in chants_by_folio:
-            if chant.feast != current_feast:
-                # if the feast changes, add the new feast and the corresponding folio to the lists
-                feast_selector_feasts.append(chant.feast)
-                feast_selector_folios.append(chant.folio)
-                # update the current_feast to track future changes
-                current_feast = chant.feast
-        # as the two lists will always be of the same length, no need for zip,
-        # just naively combine them
-        # if we use zip, the returned generator will be exhausted in rendering templates, making it hard to test the returned value
-        folios_with_feasts = [
-            (feast_selector_folios[i], feast_selector_feasts[i])
-            for i in range(len(feast_selector_folios))
-        ]
+    chants_by_folio = chants_in_source.filter(folio__in=folios).order_by("folio")
+    for chant in chants_by_folio:
+        if chant.feast != current_feast:
+            # if the feast changes, add the new feast and the corresponding folio to the lists
+            feast_selector_feasts.append(chant.feast)
+            feast_selector_folios.append(chant.folio)
+            # update the current_feast to track future changes
+            current_feast = chant.feast
+    # as the two lists will always be of the same length, no need for zip,
+    # just naively combine them
+    # if we use zip, the returned generator will be exhausted in rendering templates, making it hard to test the returned value
+    folios_with_feasts = [
+        (feast_selector_folios[i], feast_selector_feasts[i])
+        for i in range(len(feast_selector_folios))
+    ]
     return folios_with_feasts
 
 
