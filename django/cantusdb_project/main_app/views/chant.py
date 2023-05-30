@@ -5,7 +5,7 @@ import json
 import threading
 from django.contrib import messages
 from django.contrib.postgres.search import SearchQuery, SearchRank
-from django.db.models import F, Q, QuerySet, Value, Prefetch
+from django.db.models import F, Q, QuerySet, Value
 from django.shortcuts import get_object_or_404
 from django.urls import reverse
 from django.views.generic import (

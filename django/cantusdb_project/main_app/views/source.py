@@ -1,6 +1,6 @@
 from django.views.generic import DetailView, ListView, CreateView, UpdateView
 from django.db.models import Q, Prefetch
-from main_app.models import Source, Provenance, Century, Feast
+from main_app.models import Source, Provenance, Century
 from main_app.forms import SourceCreateForm, SourceEditForm
 from django.contrib import messages
 from django.urls import reverse
