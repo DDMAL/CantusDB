@@ -61,11 +61,9 @@ INSTALLED_APPS = [
     "articles",
     "django_quill",  # to provide rich-text field for articles
     "users",
-    "debug_toolbar",
 ]
 
 MIDDLEWARE = [
-    "debug_toolbar.middleware.DebugToolbarMiddleware",
     "django.middleware.security.SecurityMiddleware",
     "django.contrib.sessions.middleware.SessionMiddleware",
     "django.middleware.common.CommonMiddleware",
@@ -171,3 +169,7 @@ EMAIL_BACKEND = "django.core.mail.backends.console.EmailBackend"
 INTERNAL_IPS = [
     "127.0.0.1",
 ]
+
+if DEBUG:
+    INSTALLED_APPS.append("debug_toolbar")
+    MIDDLEWARE.append("debug_toolbar.middleware.DebugToolbarMiddleware")
