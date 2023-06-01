@@ -172,4 +172,5 @@ INTERNAL_IPS = [
 
 if DEBUG:
     INSTALLED_APPS.append("debug_toolbar")
+    # debug toolbar must be inserted as early in the middleware as possible
     MIDDLEWARE.insert(0, "debug_toolbar.middleware.DebugToolbarMiddleware")
