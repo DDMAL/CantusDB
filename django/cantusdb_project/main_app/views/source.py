@@ -168,12 +168,8 @@ class SourceListView(ListView):
             )
             q_obj_filter &= indexing_search_q
 
-        return (
-            queryset.filter(q_obj_filter)
-            .distinct()
-            .prefetch_related(
-                Prefetch("century", queryset=Century.objects.all().order_by("id"))
-            )
+        return queryset.filter(q_obj_filter).prefetch_related(
+            Prefetch("century", queryset=Century.objects.all().order_by("id"))
         )
 
 
