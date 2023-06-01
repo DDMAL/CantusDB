@@ -165,6 +165,7 @@ DEFAULT_AUTO_FIELD = "django.db.models.AutoField"
 
 EMAIL_BACKEND = "django.core.mail.backends.console.EmailBackend"
 
+# automatically disable all panels which user can then manually enable
 DEBUG_TOOLBAR_CONFIG = {
     "DISABLE_PANELS": {
         "debug_toolbar.panels.history.HistoryPanel",
@@ -178,6 +179,7 @@ DEBUG_TOOLBAR_CONFIG = {
         "debug_toolbar.panels.templates.TemplatesPanel",
         "debug_toolbar.panels.cache.CachePanel",
         "debug_toolbar.panels.signals.SignalsPanel",
+        "debug_toolbar.panels.logging.LoggingPanel",
         "debug_toolbar.panels.redirects.RedirectsPanel",
         "debug_toolbar.panels.profiling.ProfilingPanel",
     },
