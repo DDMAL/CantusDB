@@ -39,77 +39,7 @@
                 {% endif %}
                 <form method="post" style="line-height: normal">{% csrf_token %}
                     <input type="hidden" name="referrer" value="{{ request.META.HTTP_REFERER }}">
-                    <div class="form-row">
-                        <div class="form-group m-1 col-lg-12">
-                            <label for="{{ form.manuscript_full_text_std_spelling.id_for_label }}">
-                                <small>Manuscript Reading Full Text (standardized spelling):<span class="text-danger" title="This field is required">*</span></small>
-                            </label>
-                            {{ form.manuscript_full_text_std_spelling }}
-                            <script>
-                                function autoFillSuggestedFulltext() {
-                                    if (document.getElementById('id_manuscript_full_text_std_spelling').value == "") {
-                                        document.getElementById('id_manuscript_full_text_std_spelling').value = "{{ suggested_fulltext }}";
-                                    }
-                                }
-                                autoFillSuggestedFulltext();
-                            </script>
-                        </div>
-                    </div>
-
-                    <div class="form-row">
-                        <div class="form-group m-1 col-lg-4">
-                            <button type="button" class="btn btn-dark btn-sm" id="copyFullTextBelow">Copy full text below</button>                
-                        </div>
-                    </div>
-
-                    <div class="form-row">
-                        <div class="form-group m-1 col-lg-12">
-                            <label for="{{ form.manuscript_full_text.id_for_label }}">
-                                <small>Manuscript Reading Full Text (MS spelling):</small>
-                            </label>
-                            {{ form.manuscript_full_text }}
-                        </div>
-                    </div>
-
-                    <div class="form-row">
-                        <div class="form-group m-1 col-lg-12">
-                            <label for="{{ form.volpiano.id_for_label }}">
-                                <small>Volpiano:</small>
-                            </label>
-                            {{ form.volpiano }}
-                        </div>
-                    </div>
-
-                    {% if chant.volpiano %}
-                        <div class="form-row">
-                            <div class="form-group m-1 col-lg-12">
-                                <small>Preview of melody with text:</small>
-                                {% if chant.manuscript_syllabized_full_text %}
-                                    <p><small>Syllabification is based on saved syllabized text.</small></p>
-                                {% endif %}
-                                <dd>
-                                    {% for zip in syllabized_text_with_melody %}
-                                        {% for syl_mel, syl_text in zip %}
-                                            <span style="float: left">
-                                                <div style="font-family: volpiano; font-size: 36px">{{ syl_mel }}</div>
-                                                <!-- "mt" is margin at the top, so that the lowest note in volpiano don't overlap with text -->
-                                                <div class="mt-2" style="font-size: 12px; "><pre>{{ syl_text }}</pre></div>
-                                            </span>
-                                        {% endfor %}
-                                    {% endfor %}
-                                </dd>
-                            </div>
-                        </div>
-                    {% endif %}
-
-                    <div class="form-row">
-                        <div class="form-group m-1 col-lg-4">
-                            <a href="{% url "source-edit-syllabification" chant.id %}" style="display: inline-block; margin-top:5px;" target="_blank">
-                                <small>Edit syllabification (new window)</small>
-                            </a>
-                        </div>
-                    </div>
-
+                    
                     <div class="form-row">
                         <div class="form-group m-1 col-lg-2">
                             <small>{{ form.marginalia.label_tag }}</small>
@@ -180,6 +110,85 @@
                         <div class="form-group m-1 col-lg-2">
                             <small>{{ form.extra.label_tag }}</small>
                             {{ form.extra }}
+                        </div>
+                    </div>
+                    <div class="form-row">
+                        <div class="form-row align-items-top"> 
+                            <div class="form-group m-1 col-lg-8">
+                                <small>{{ form.addendum.label_tag }}</small>
+                                {{ form.addendum }}
+                            </div>
+                        </div>
+                    </div>
+                                        
+                    <div class="form-row">
+                        <div class="form-group m-1 col-lg-12">
+                            <label for="{{ form.manuscript_full_text_std_spelling.id_for_label }}">
+                                <small>Manuscript Reading Full Text (standardized spelling):<span class="text-danger" title="This field is required">*</span></small>
+                            </label>
+                            {{ form.manuscript_full_text_std_spelling }}
+                            <script>
+                                function autoFillSuggestedFulltext() {
+                                    if (document.getElementById('id_manuscript_full_text_std_spelling').value == "") {
+                                        document.getElementById('id_manuscript_full_text_std_spelling').value = "{{ suggested_fulltext }}";
+                                    }
+                                }
+                                autoFillSuggestedFulltext();
+                            </script>
+                        </div>
+                    </div>
+
+                    <div class="form-row">
+                        <div class="form-group m-1 col-lg-4">
+                            <button type="button" class="btn btn-dark btn-sm" id="copyFullTextBelow">Copy full text below</button>                
+                        </div>
+                    </div>
+
+                    <div class="form-row">
+                        <div class="form-group m-1 col-lg-12">
+                            <label for="{{ form.manuscript_full_text.id_for_label }}">
+                                <small>Manuscript Reading Full Text (MS spelling):</small>
+                            </label>
+                            {{ form.manuscript_full_text }}
+                        </div>
+                    </div>
+
+                    <div class="form-row">
+                        <div class="form-group m-1 col-lg-12">
+                            <label for="{{ form.volpiano.id_for_label }}">
+                                <small>Volpiano:</small>
+                            </label>
+                            {{ form.volpiano }}
+                        </div>
+                    </div>
+
+                    {% if chant.volpiano %}
+                        <div class="form-row">
+                            <div class="form-group m-1 col-lg-12">
+                                <small>Preview of melody with text:</small>
+                                {% if chant.manuscript_syllabized_full_text %}
+                                    <p><small>Syllabification is based on saved syllabized text.</small></p>
+                                {% endif %}
+                                <dd>
+                                    {% for zip in syllabized_text_with_melody %}
+                                        {% for syl_mel, syl_text in zip %}
+                                            <span style="float: left">
+                                                <div style="font-family: volpiano; font-size: 36px">{{ syl_mel }}</div>
+                                                <!-- "mt" is margin at the top, so that the lowest note in volpiano don't overlap with text -->
+                                                <div class="mt-2" style="font-size: 12px; "><pre>{{ syl_text }}</pre></div>
+                                            </span>
+                                        {% endfor %}
+                                    {% endfor %}
+                                </dd>
+                            </div>
+                        </div>
+                    {% endif %}
+
+                    <div class="form-row">
+                        <div class="form-group m-1 col-lg-4">
+                            <a href="{% url "source-edit-syllabification" chant.id %}" style="display: inline-block; margin-top:5px;" target="_blank">
+                                <small>Edit syllabification (new window)</small>
+                            </a>
                         </div>
                     </div>
 

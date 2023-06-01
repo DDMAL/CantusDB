@@ -152,6 +152,13 @@
                         {{ form.melody_id }}
                     </div>
 
+                    <div class="form-row align-items-top">
+                        <div class="form-group m-1 col-lg">
+                            <small>{{ form.addendum.label_tag }}</small>
+                            {{ form.addendum }}
+                        </div>
+                    </div>
+
                 </div>
             
                 <div class="form-row align-items-end">
@@ -208,13 +215,6 @@
                     <div class="form-group m-1 col-lg">
                         <small>{{ form.indexing_notes.label_tag }}</small>
                         {{ form.indexing_notes }}
-                    </div>
-                </div>
-
-                <div class="form-row align-items-end"> <!-- the Addendum field is no longer there in OldCantus... -->
-                    <div class="form-group m-1 col-lg">
-                        <small>{{ form.addendum.label_tag }}</small>
-                        {{ form.addendum }}
                     </div>
                 </div>
 
