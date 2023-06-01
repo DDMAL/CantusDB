@@ -530,7 +530,7 @@ class ChantListView(ListView):
                 | Q(incipit__icontains=search_text)
                 | Q(manuscript_full_text__icontains=search_text)
             )
-        return chants.order_by("id")
+        return chants.order_by("folio", "c_sequence")
 
     def get_context_data(self, **kwargs):
         def get_feast_selector_options(source, folios):
