@@ -1,4 +1,5 @@
-from django.urls import path
+from django.urls import path, include
+import debug_toolbar
 from main_app.views import views
 from main_app.views.century import (
     CenturyDetailView,
@@ -57,6 +58,7 @@ from main_app.views.user import (
 )
 
 urlpatterns = [
+    path("__debug__/", include(debug_toolbar.urls)),
     path(
         "contact/",
         views.contact,
