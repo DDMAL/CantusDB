@@ -164,3 +164,13 @@ SITE_ID = 4
 DEFAULT_AUTO_FIELD = "django.db.models.AutoField"
 
 EMAIL_BACKEND = "django.core.mail.backends.console.EmailBackend"
+
+
+INTERNAL_IPS = [
+    "127.0.0.1",
+]
+
+if DEBUG:
+    INSTALLED_APPS.append("debug_toolbar")
+    # debug toolbar must be inserted as early in the middleware as possible
+    MIDDLEWARE.insert(0, "debug_toolbar.middleware.DebugToolbarMiddleware")

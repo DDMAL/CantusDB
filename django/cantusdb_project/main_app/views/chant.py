@@ -100,8 +100,7 @@ def parse_json_from_api(url: str) -> Union[list, None]:
             print(  # eventually, we should log this rather than printing it to the console
                 "Encountered an error in",
                 "ChantCreateView.get_suggested_chants.make_suggested_chant_dict",
-                "while parsing the response from",
-                f"https://cantusindex.org/json-cid/{cantus_id}:",
+                f"while parsing the response from {url}",
                 exc,
             )
             return None
@@ -200,6 +199,57 @@ def make_suggested_chant_dict(
     genre_id = Genre.objects.get(name=genre_name).id
     cid_dict["genre_id"] = genre_id
     return cid_dict
+
+
+def get_feast_selector_options(source, folios):
+    """Generate folio-feast pairs as options for the feast selector
+
+    Going through all chants in the source, folio by folio,
+    a new entry (in the form of folio-feast) is added when the feast changes.
+
+    Args:
+        source (Source object): The source that the user is browsing in.
+        folios (list of strs): A list of folios in the source.
+
+    Returns:
+        list of tuples: A list of folios and Feast objects, to be unpacked in template.
+    """
+    # the two lists to be zipped
+    feast_selector_feasts = []
+    feast_selector_folios = []
+    # get all chants in the source, select those that have a feast
+    chants_in_source = (
+        source.chant_set.exclude(feast=None)
+        .order_by("folio", "c_sequence")
+        .select_related("feast")
+    )
+    # initialize the feast selector options with the first chant in the source that has a feast
+    first_feast_chant = chants_in_source.first()
+    if not first_feast_chant:
+        # if none of the chants in this source has a feast, return an empty list
+        return []
+    # if there is at least one chant that has a feast
+    current_feast = first_feast_chant.feast
+    feast_selector_feasts.append(current_feast)
+    current_folio = first_feast_chant.folio
+    feast_selector_folios.append(current_folio)
+
+    chants_by_folio = chants_in_source.filter(folio__in=folios).order_by("folio")
+    for chant in chants_by_folio:
+        if chant.feast != current_feast:
+            # if the feast changes, add the new feast and the corresponding folio to the lists
+            feast_selector_feasts.append(chant.feast)
+            feast_selector_folios.append(chant.folio)
+            # update the current_feast to track future changes
+            current_feast = chant.feast
+    # as the two lists will always be of the same length, no need for zip,
+    # just naively combine them
+    # if we use zip, the returned generator will be exhausted in rendering templates, making it hard to test the returned value
+    folios_with_feasts = [
+        (feast_selector_folios[i], feast_selector_feasts[i])
+        for i in range(len(feast_selector_folios))
+    ]
+    return folios_with_feasts
 
 
 class ChantDetailView(DetailView):
@@ -516,7 +566,7 @@ class ChantListView(ListView):
         search_text = self.request.GET.get("search_text")
 
         # get all chants in the specified source
-        chants = source.chant_set
+        chants = source.chant_set.select_related("feast", "office", "genre")
         # filter the chants with optional search params
         if feast_id:
             chants = chants.filter(feast__id=feast_id)
@@ -531,62 +581,9 @@ class ChantListView(ListView):
                 | Q(incipit__icontains=search_text)
                 | Q(manuscript_full_text__icontains=search_text)
             )
-        return chants.order_by("id")
+        return chants.order_by("folio", "c_sequence")
 
     def get_context_data(self, **kwargs):
-        def get_feast_selector_options(source, folios):
-            """Generate folio-feast pairs as options for the feast selector
-
-            Going through all chants in the source, folio by folio,
-            a new entry (in the form of folio-feast) is added when the feast changes.
-
-            Args:
-                source (Source object): The source that the user is browsing in.
-                folios (list of strs): A list of folios in the source.
-
-            Returns:
-                zip object: A zip object combining a list of folios and Feast objects, to be unpacked in template.
-            """
-            # the two lists to be zipped
-            feast_selector_feasts = []
-            feast_selector_folios = []
-            # get all chants in the source, select those that have a feast
-            chants_in_source = (
-                source.chant_set.exclude(feast=None)
-                .order_by("folio", "c_sequence")
-                .select_related("feast")
-            )
-            # initialize the feast selector options with the first chant in the source that has a feast
-            first_feast_chant = chants_in_source.first()
-            if not first_feast_chant:
-                # if none of the chants in this source has a feast, return an empty zip
-                folios_with_feasts = []
-            else:
-                # if there is at least one chant that has a feast
-                current_feast = first_feast_chant.feast
-                feast_selector_feasts.append(current_feast)
-                current_folio = first_feast_chant.folio
-                feast_selector_folios.append(current_folio)
-
-                for folio in folios:
-                    # get all chants on each folio
-                    chants_on_folio = chants_in_source.filter(folio=folio)
-                    for chant in chants_on_folio:
-                        if chant.feast != current_feast:
-                            # if the feast changes, add the new feast and the corresponding folio to the lists
-                            feast_selector_feasts.append(chant.feast)
-                            feast_selector_folios.append(folio)
-                            # update the current_feast to track future changes
-                            current_feast = chant.feast
-                # as the two lists will always be of the same length, no need for zip,
-                # just naively combine them
-                # if we use zip, the returned generator will be exhausted in rendering templates, making it hard to test the returned value
-                folios_with_feasts = [
-                    (feast_selector_folios[i], feast_selector_feasts[i])
-                    for i in range(len(feast_selector_folios))
-                ]
-            return folios_with_feasts
-
         context = super().get_context_data(**kwargs)
         # these are needed in the selectors on the left side of the page
         context["sources"] = Source.objects.order_by("siglum")
@@ -831,7 +828,7 @@ class ChantSearchView(ListView):
                 else:
                     order = order_get_param
             else:
-                order = "siglum"
+                order = "source__siglum"
 
             # sort values: "asc" and "desc". Default is "asc"
             if sort_get_param and sort_get_param == "desc":
@@ -1452,59 +1449,6 @@ class SourceEditChantsView(LoginRequiredMixin, UserPassesTestMixin, UpdateView):
         return queryset.get()
 
     def get_context_data(self, **kwargs):
-        def get_feast_selector_options(source, folios):
-            """Generate folio-feast pairs as options for the feast selector
-
-            Going through all chants in the source, folio by folio,
-            a new entry (in the form of folio-feast) is added when the feast changes.
-
-            Args:
-                source (Source object): The source that the user is browsing in.
-                folios (list of strs): A list of folios in the source.
-
-            Returns:
-                zip object: A zip object combining a list of folios and Feast objects, to be unpacked in template.
-            """
-            # the two lists to be zipped
-            feast_selector_feasts = []
-            feast_selector_folios = []
-            # get all chants in the source, select those that have a feast
-            chants_in_source = (
-                source.chant_set.exclude(feast=None)
-                .order_by("folio", "c_sequence")
-                .select_related("feast")
-            )
-            # initialize the feast selector options with the first chant in the source that has a feast
-            first_feast_chant = chants_in_source.first()
-            if not first_feast_chant:
-                # if none of the chants in this source has a feast, return an empty zip
-                folios_with_feasts = []
-            else:
-                # if there is at least one chant that has a feast
-                current_feast = first_feast_chant.feast
-                feast_selector_feasts.append(current_feast)
-                current_folio = first_feast_chant.folio
-                feast_selector_folios.append(current_folio)
-
-                for folio in folios:
-                    # get all chants on each folio
-                    chants_on_folio = chants_in_source.filter(folio=folio)
-                    for chant in chants_on_folio:
-                        if chant.feast != current_feast:
-                            # if the feast changes, add the new feast and the corresponding folio to the lists
-                            feast_selector_feasts.append(chant.feast)
-                            feast_selector_folios.append(folio)
-                            # update the current_feast to track future changes
-                            current_feast = chant.feast
-                # as the two lists will always be of the same length, no need for zip,
-                # just naively combine them
-                # if we use zip, the returned generator will be exhausted in rendering templates, making it hard to test the returned value
-                folios_with_feasts = [
-                    (feast_selector_folios[i], feast_selector_feasts[i])
-                    for i in range(len(feast_selector_folios))
-                ]
-            return folios_with_feasts
-
         def get_chants_with_feasts(chants_in_folio):
             # this will be a nested list of the following format:
             # [

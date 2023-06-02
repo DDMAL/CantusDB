@@ -277,6 +277,7 @@ class ChantEditForm(forms.ModelForm):
             "extra",
             "image_link",
             "indexing_notes",
+            "addendum",
         ]
         widgets = {
             # manuscript_full_text_std_spelling: defined below (required)
@@ -298,6 +299,7 @@ class ChantEditForm(forms.ModelForm):
             "extra": TextInputWidget(),
             "image_link": TextInputWidget(),
             "indexing_notes": TextAreaWidget(),
+            "addendum": TextInputWidget(),
         }
 
     manuscript_full_text_std_spelling = forms.CharField(

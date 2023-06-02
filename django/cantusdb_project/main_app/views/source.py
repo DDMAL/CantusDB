@@ -1,5 +1,5 @@
 from django.views.generic import DetailView, ListView, CreateView, UpdateView
-from django.db.models import Q
+from django.db.models import Q, Prefetch
 from main_app.models import Source, Provenance, Century
 from main_app.forms import SourceCreateForm, SourceEditForm
 from django.contrib import messages
@@ -9,6 +9,7 @@ from django.http import HttpResponseRedirect
 from django.contrib.auth.mixins import UserPassesTestMixin
 from django.core.exceptions import PermissionDenied
 from django.shortcuts import get_object_or_404
+from main_app.views.chant import get_feast_selector_options
 
 
 class SourceDetailView(DetailView):
@@ -17,59 +18,6 @@ class SourceDetailView(DetailView):
     template_name = "source_detail.html"
 
     def get_context_data(self, **kwargs):
-        def get_feast_selector_options(source, folios):
-            """Generate folio-feast pairs as options for the feast selector
-
-            Going through all chants in the source, folio by folio,
-            a new entry (in the form of folio-feast) is added when the feast changes.
-
-            Args:
-                source (Source object): The source object for this source detail page.
-                folios (list of strs): A list of folios in the source.
-
-            Returns:
-                list of tuples: A list of folios and Feast objects, to be unpacked in template.
-            """
-            # the two lists to be zipped
-            feast_selector_feasts = []
-            feast_selector_folios = []
-            # get all chants in the source, select those that have a feast
-            chants_in_source = (
-                source.chant_set.exclude(feast=None)
-                .order_by("folio", "c_sequence")
-                .select_related("feast")
-            )
-            # initialize the feast selector options with the first chant in the source that has a feast
-            first_feast_chant = chants_in_source.first()
-            if not first_feast_chant:
-                # if none of the chants in this source has a feast, return an empty list
-                folios_with_feasts = []
-            else:
-                # if there is at least one chant that has a feast
-                current_feast = first_feast_chant.feast
-                feast_selector_feasts.append(current_feast)
-                current_folio = first_feast_chant.folio
-                feast_selector_folios.append(current_folio)
-
-                for folio in folios:
-                    # get all chants on each folio
-                    chants_on_folio = chants_in_source.filter(folio=folio)
-                    for chant in chants_on_folio:
-                        if chant.feast != current_feast:
-                            # if the feast changes, add the new feast and the corresponding folio to the lists
-                            feast_selector_feasts.append(chant.feast)
-                            feast_selector_folios.append(folio)
-                            # update the current_feast to track future changes
-                            current_feast = chant.feast
-                # as the two lists will always be of the same length, no need for zip,
-                # just naively combine them
-                # if we use zip, the returned generator will be exhausted in rendering templates, making it hard to test the returned value
-                folios_with_feasts = [
-                    (feast_selector_folios[i], feast_selector_feasts[i])
-                    for i in range(len(feast_selector_folios))
-                ]
-            return folios_with_feasts
-
         source = self.get_object()
         display_unpublished = self.request.user.is_authenticated
         if (source.published is False) and (not display_unpublished):
@@ -220,7 +168,9 @@ class SourceListView(ListView):
             )
             q_obj_filter &= indexing_search_q
 
-        return queryset.filter(q_obj_filter).distinct()
+        return queryset.filter(q_obj_filter).prefetch_related(
+            Prefetch("century", queryset=Century.objects.all().order_by("id"))
+        )
 
 
 class SourceCreateView(LoginRequiredMixin, UserPassesTestMixin, CreateView):
