@@ -11,6 +11,8 @@ Discrepancies between text stored in the CantusDB database and the manuscript te
 
 ### Differences in functionality/behavior:
 #### Visible to All Users (Logged-In and Anonymous)
+- Homepage:
+  - When logged out, OldCantus displays a sidebar displaying recently posted articles. NewCantus displays this sidebar, but only displays the articles' titles, rather than the full content of the article (Currently, we don't plan to display the full content of news articles here)
 - Article List page:
   - Images from within the news stories are not displayed on the Article List page, whereas they are in OldCantus. (Currently, we don't plan to display images on this page)
   - Articles were manually copied from OldCantus to New, and when I initially did this, I preserved the date but not the time. It's fine that most of the timestamps say "00:00".
