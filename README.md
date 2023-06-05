@@ -11,6 +11,10 @@ Discrepancies between text stored in the CantusDB database and the manuscript te
 
 ### Differences in functionality/behavior:
 #### Visible to All Users (Logged-In and Anonymous)
+- General:
+  - The formatting/style of the entire site is slightly different.
+  - In some places, links (to Genre, Office, Feast detail pages, etc.) have been added where there were no links in OldCantus.
+  - In some places, title attributes have been added, especially where abbreviations are displayed (visible on mouse-over).
 - Homepage:
   - When logged out, OldCantus displays a sidebar displaying recently posted articles. NewCantus displays this sidebar, but only displays the articles' titles, rather than the full content of the article (Currently, we don't plan to display the full content of news articles here)
 - Article List page:
