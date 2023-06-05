@@ -155,7 +155,6 @@ def syllabize_melody(volpiano):
         # remove the trailing "--" (added in previous line) from the last syllable
         syls[-1] = syls[-1][:-2]
         syls_melody.append(syls)
-    # print(syls_melody)
     return syls_melody
 
 
@@ -315,3 +314,40 @@ def align(syls_text, syls_melody):
         list_of_zips.append(word_zip)
 
     return list_of_zips
+
+
+def syllabize_text_and_melody(text, pre_syllabized, melody):
+    """Syllabizes the given text and melody, aligns the syllables, and returns a zip of words and syllables.
+
+    This function takes a text, pre-syllabized text, and a melody as input. It performs syllabization on the text
+    and melody separately based on the volpiano protocols. The syllabized text and melody are then postprocessed,
+    and syllables of the text and melody are aligned to create a zip
+    of words and syllables.
+
+
+    Args:
+        text (str): The input text to be syllabized.
+        pre_syllabized (bool): A list of pre-syllabized words corresponding to the input text.
+        melody (list): A list representing the melody.
+    Returns:
+        list: A list of tuples containing the aligned words and syllables.
+    """
+    syls_melody = syllabize_melody(melody)
+    syls_text = syllabize_text(text, pre_syllabized=pre_syllabized)
+    syls_text, syls_melody = postprocess(syls_text, syls_melody)
+    word_zip = align(syls_text, syls_melody)
+    return word_zip
+
+
+def syllabize_text_to_string(text, pre_syllabized):
+    """Syllabizes the given text using pre-syllabized information and returns a human-readable string.
+
+    Args:
+        text (str): The input text to be syllabized.
+        pre_syllabized (bool): Indicates whether the input text is already pre-syllabized.
+    Returns:
+        str: The syllabized text as a human-readable string.
+    """
+    syls_text = syllabize_text(text, pre_syllabized)
+    human_readable_text = " ".join(["".join(word) for word in syls_text])
+    return human_readable_text

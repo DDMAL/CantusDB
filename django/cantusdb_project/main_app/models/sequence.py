@@ -1,5 +1,6 @@
 from main_app.models.base_chant import BaseChant
 
+
 class Sequence(BaseChant):
     """The model for sequences
 
@@ -8,5 +9,5 @@ class Sequence(BaseChant):
     properties and attributes should be declared in BaseChant in order to keep the two
     models harmonized, even if only one of the two models uses a particular field.
     """
-    
+
     pass

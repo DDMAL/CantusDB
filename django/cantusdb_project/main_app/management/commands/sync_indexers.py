@@ -5,6 +5,7 @@ from faker import Faker
 
 INDEXER_ID_FILE = "indexer_list.txt"
 
+
 def get_id_list(file_path):
     indexer_list = []
     file = open(file_path, "r")
@@ -13,6 +14,7 @@ def get_id_list(file_path):
         indexer_list.append(line)
     file.close()
     return indexer_list
+
 
 def get_new_indexer(indexer_id):
     # use json-export to get indexer information
@@ -43,7 +45,9 @@ def get_new_indexer(indexer_id):
     # check whether the current indexer has a user entry of the same name
     indexer_full_name = f"{first_name} {family_name}"
     print(f"{indexer_id} {indexer_full_name}")
-    homonymous_users = get_user_model().objects.filter(full_name__iexact=indexer_full_name)
+    homonymous_users = get_user_model().objects.filter(
+        full_name__iexact=indexer_full_name
+    )
     # if the indexer also exists as a user
     if homonymous_users:
         assert homonymous_users.count() == 1
@@ -68,7 +72,7 @@ def get_new_indexer(indexer_id):
             # leave the password empty for dummy users
             # the password can't be empty in login form, so they can't log in
             password="",
-            old_indexer_id = indexer_id,
+            old_indexer_id=indexer_id,
             is_indexer=True,
         )
 
@@ -81,4 +85,3 @@ class Command(BaseCommand):
         indexer_list = get_id_list(INDEXER_ID_FILE)
         for id in indexer_list:
             get_new_indexer(id)
-            

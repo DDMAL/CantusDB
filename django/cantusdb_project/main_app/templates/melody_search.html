@@ -10,7 +10,7 @@
                 This melody search provides results based on the Cantus Database chants.
                 <br>
                 For searching in chant melody catalogues 
-                go here: <a href="http://cantusindex.org/melody" target="_blank">Cantus Index Melody Search</a>.
+                go here: <a href="https://cantusindex.org/melody" target="_blank">Cantus Index Melody Search</a>.
             </p>
 
             <div id="drawArea" style="font-size:0">
@@ -82,7 +82,7 @@
             </form>
 
             {% if source %}
-                <b>Searching in source: <a href="{{ source.get_absolute_url }}" target="_blank">{{ source.title }}</a></b>
+                <b>Searching in source: <a href="{% url 'source-detail' source.id %}" target="_blank">{{ source.title }}</a></b>
             {% endif %}
 
             <div id="resultsDiv"></div>

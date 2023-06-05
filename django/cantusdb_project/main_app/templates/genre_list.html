@@ -43,7 +43,7 @@
             {% for genre in genres %}
                 <tr>
                     <td style="text-align:center">
-                        <a href="{{ genre.get_absolute_url }}"><b>{{ genre.name }}</b></a>
+                        <a href="{% url 'genre-detail' genre.id %}"><b>{{ genre.name }}</b></a>
                     </td>
                     <td style="text-align:center">
                         {{ genre.description|default:"" }}

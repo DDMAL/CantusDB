@@ -1,5 +1,5 @@
 from django.views.generic import DetailView, ListView, CreateView, UpdateView
-from django.db.models import Q
+from django.db.models import Q, Prefetch
 from main_app.models import Source, Provenance, Century
 from main_app.forms import SourceCreateForm, SourceEditForm
 from django.contrib import messages
@@ -9,6 +9,7 @@ from django.http import HttpResponseRedirect
 from django.contrib.auth.mixins import UserPassesTestMixin
 from django.core.exceptions import PermissionDenied
 from django.shortcuts import get_object_or_404
+from main_app.views.chant import get_feast_selector_options
 
 
 class SourceDetailView(DetailView):
@@ -17,59 +18,6 @@ class SourceDetailView(DetailView):
     template_name = "source_detail.html"
 
     def get_context_data(self, **kwargs):
-        def get_feast_selector_options(source, folios):
-            """Generate folio-feast pairs as options for the feast selector
-
-            Going through all chants in the source, folio by folio,
-            a new entry (in the form of folio-feast) is added when the feast changes. 
-
-            Args:
-                source (Source object): The source object for this source detail page.
-                folios (list of strs): A list of folios in the source.
-
-            Returns:
-                list of tuples: A list of folios and Feast objects, to be unpacked in template.
-            """
-            # the two lists to be zipped
-            feast_selector_feasts = []
-            feast_selector_folios = []
-            # get all chants in the source, select those that have a feast
-            chants_in_source = (
-                source.chant_set.exclude(feast=None)
-                .order_by("folio", "c_sequence")
-                .select_related("feast")
-            )
-            # initialize the feast selector options with the first chant in the source that has a feast
-            first_feast_chant = chants_in_source.first()
-            if not first_feast_chant:
-                # if none of the chants in this source has a feast, return an empty list
-                folios_with_feasts = []
-            else:
-                # if there is at least one chant that has a feast
-                current_feast = first_feast_chant.feast
-                feast_selector_feasts.append(current_feast)
-                current_folio = first_feast_chant.folio
-                feast_selector_folios.append(current_folio)
-
-                for folio in folios:
-                    # get all chants on each folio
-                    chants_on_folio = chants_in_source.filter(folio=folio)
-                    for chant in chants_on_folio:
-                        if chant.feast != current_feast:
-                            # if the feast changes, add the new feast and the corresponding folio to the lists
-                            feast_selector_feasts.append(chant.feast)
-                            feast_selector_folios.append(folio)
-                            # update the current_feast to track future changes
-                            current_feast = chant.feast
-                # as the two lists will always be of the same length, no need for zip,
-                # just naively combine them
-                # if we use zip, the returned generator will be exhausted in rendering templates, making it hard to test the returned value
-                folios_with_feasts = [
-                    (feast_selector_folios[i], feast_selector_feasts[i])
-                    for i in range(len(feast_selector_folios))
-                ]
-            return folios_with_feasts
-
         source = self.get_object()
         display_unpublished = self.request.user.is_authenticated
         if (source.published is False) and (not display_unpublished):
@@ -97,6 +45,7 @@ class SourceDetailView(DetailView):
             context["feasts_with_folios"] = get_feast_selector_options(source, folios)
         return context
 
+
 class SourceListView(ListView):
     paginate_by = 100
     context_object_name = "sources"
@@ -114,7 +63,9 @@ class SourceListView(ListView):
 
     def get_queryset(self):
         # use select_related() for foreign keys to reduce DB queries
-        queryset = Source.objects.select_related("rism_siglum", "segment", "provenance").order_by("siglum")
+        queryset = Source.objects.select_related(
+            "rism_siglum", "segment", "provenance"
+        ).order_by("siglum")
 
         display_unpublished = self.request.user.is_authenticated
         if display_unpublished:
@@ -217,7 +168,10 @@ class SourceListView(ListView):
             )
             q_obj_filter &= indexing_search_q
 
-        return queryset.filter(q_obj_filter).distinct()
+        return queryset.filter(q_obj_filter).prefetch_related(
+            Prefetch("century", queryset=Century.objects.all().order_by("id"))
+        )
+
 
 class SourceCreateView(LoginRequiredMixin, UserPassesTestMixin, CreateView):
     model = Source
@@ -227,7 +181,9 @@ class SourceCreateView(LoginRequiredMixin, UserPassesTestMixin, CreateView):
     def test_func(self):
         user = self.request.user
         # checks if the user is allowed to create sources
-        is_authorized = user.groups.filter(Q(name="project manager")|Q(name="editor")|Q(name="contributor")).exists()
+        is_authorized = user.groups.filter(
+            Q(name="project manager") | Q(name="editor") | Q(name="contributor")
+        ).exists()
 
         if is_authorized:
             return True
@@ -243,30 +199,31 @@ class SourceCreateView(LoginRequiredMixin, UserPassesTestMixin, CreateView):
 
         # assign this source to the "current_editors"
         current_editors = source.current_editors.all()
-        
+
         for editor in current_editors:
             editor.sources_user_can_edit.add(source)
-        
+
         messages.success(
             self.request,
             "Source created successfully!",
         )
-        
+
         return HttpResponseRedirect(self.get_success_url())
+
 
 class SourceEditView(LoginRequiredMixin, UserPassesTestMixin, UpdateView):
     template_name = "source_edit.html"
     model = Source
-    form_class = SourceEditForm 
+    form_class = SourceEditForm
     pk_url_kwarg = "source_id"
 
     def test_func(self):
         user = self.request.user
         source_id = self.kwargs.get(self.pk_url_kwarg)
         source = get_object_or_404(Source, id=source_id)
-        
+
         assigned_to_source = user.sources_user_can_edit.filter(id=source_id)
-        
+
         # checks if the user is a project manager
         is_project_manager = user.groups.filter(name="project manager").exists()
         # checks if the user is an editor
@@ -274,10 +231,12 @@ class SourceEditView(LoginRequiredMixin, UserPassesTestMixin, UpdateView):
         # checks if the user is a contributor
         is_contributor = user.groups.filter(name="contributor").exists()
 
-        if ((is_project_manager)
+        if (
+            (is_project_manager)
             or (is_editor and assigned_to_source)
-            or (is_editor and source.created_by == user) 
-            or (is_contributor and source.created_by == user)):
+            or (is_editor and source.created_by == user)
+            or (is_contributor and source.created_by == user)
+        ):
             return True
         else:
             return False
@@ -288,14 +247,16 @@ class SourceEditView(LoginRequiredMixin, UserPassesTestMixin, UpdateView):
         # remove this source from the old "current_editors"
         # assign this source to the new "current_editors"
 
-        old_current_editors = list(Source.objects.get(id=form.instance.id).current_editors.all())
+        old_current_editors = list(
+            Source.objects.get(id=form.instance.id).current_editors.all()
+        )
         new_current_editors = form.cleaned_data["current_editors"]
         source = form.save()
 
         for old_editor in old_current_editors:
             old_editor.sources_user_can_edit.remove(source)
-        
+
         for new_editor in new_current_editors:
             new_editor.sources_user_can_edit.add(source)
-        
+
         return HttpResponseRedirect(self.get_success_url())

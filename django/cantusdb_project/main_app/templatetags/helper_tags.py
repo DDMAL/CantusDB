@@ -25,8 +25,7 @@ def recent_articles():
             title=a.title,
             date=a.date_created.strftime("%A %B %-d, %Y"),
         )
-        for a
-        in articles
+        for a in articles
     ]
     list_items_string = "".join(list_items)
     recent_articles_string = "<ul>{lis}</ul>".format(lis=list_items_string)
@@ -41,28 +40,33 @@ def my_sources(user):
     Used in:
         templates/flatpages/default.html
     """
+
     def make_source_detail_link_with_siglum(source):
         id = source.id
         siglum = source.rism_siglum
         url = reverse("source-detail", args=[id])
         link = '<a href="{}">{}</a>'.format(url, siglum)
         return link
+
     def make_source_detail_link_with_title(source):
         id = source.id
         title = source.title
         url = reverse("source-detail", args=[id])
-        link = '<a href="{}">{}</a>'.format(url, title) 
+        link = '<a href="{}">{}</a>'.format(url, title)
         return link
+
     def make_add_new_chants_link(source):
         id = source.id
         url = reverse("chant-create", args=[id])
-        link = '<a href="{}">+ Add new chant</a>'.format(url) 
+        link = '<a href="{}">+ Add new chant</a>'.format(url)
         return link
+
     def make_edit_chants_link(source):
         id = source.id
         url = reverse("source-edit-chants", args=[id])
-        link = '<a href="{}">Edit chants (Fulltext & Volpiano editor)</a>'.format(url) 
+        link = '<a href="{}">Edit chants (Fulltext & Volpiano editor)</a>'.format(url)
         return link
+
     def make_links_for_source(source):
         link_with_siglum = make_source_detail_link_with_siglum(source)
         link_with_title = make_source_detail_link_with_title(source)
@@ -82,6 +86,7 @@ def my_sources(user):
             edit=edit_chants_link,
         )
         return links_string
+
     MAX_SOURCES_TO_DISPLAY = 6
     sources = list(user.sources_user_can_edit.all())[:MAX_SOURCES_TO_DISPLAY]
     source_links = [make_links_for_source(source) for source in sources]
@@ -89,6 +94,7 @@ def my_sources(user):
     joined_list_items = "".join(list_items)
     links_ul = "<ul>{}</ul>".format(joined_list_items)
     return mark_safe(links_ul)
+
 
 @register.filter(name="month_to_string")
 def month_to_string(value: Optional[Union[str, int]]) -> Optional[Union[str, int]]:
@@ -147,7 +153,6 @@ def source_links():
     return mark_safe(options)
 
 
-
 @register.filter
 def classname(obj):
     """
@@ -158,6 +163,7 @@ def classname(obj):
         main_app/templates/content_overview.html
     """
     return obj.__class__.__name__
+
 
 @register.filter
 def admin_url_name(class_name, action):
@@ -173,10 +179,11 @@ def admin_url_name(class_name, action):
 
     return f"admin:main_app_{class_name}_{action}"
 
-@register.filter(name='has_group') 
+
+@register.filter(name="has_group")
 def has_group(user, group_name):
     """
     Used in:
         templates/base.html
     """
-    return user.groups.filter(name=group_name).exists() 
+    return user.groups.filter(name=group_name).exists()

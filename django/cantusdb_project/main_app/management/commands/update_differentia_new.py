@@ -15,7 +15,6 @@ from django.core.management.base import BaseCommand
 
 
 class Command(BaseCommand):
-
     def handle(self, *args, **kwargs):
         CHUNK_SIZE = 1_000
         chants = Chant.objects.all()
@@ -23,14 +22,15 @@ class Command(BaseCommand):
         start_index = 0
         while start_index <= chants_count:
             print("processing chunk with start_index of", start_index)
-            chunk = chants[start_index:start_index+CHUNK_SIZE]
+            chunk = chants[start_index : start_index + CHUNK_SIZE]
             for chant in chunk:
                 try:
-                    differentia_new = chant.json_info["field_differentia_new"]["und"][0]["value"]
+                    differentia_new = chant.json_info["field_differentia_new"]["und"][
+                        0
+                    ]["value"]
                     chant.differentia_new = differentia_new
-                except TypeError: # json_info["field_differentia_new"] is empty
+                except TypeError:  # json_info["field_differentia_new"] is empty
                     chant.differentia_new = None
                 chant.save()
-            del chunk # make sure we don't use too much RAM
+            del chunk  # make sure we don't use too much RAM
             start_index += CHUNK_SIZE
-

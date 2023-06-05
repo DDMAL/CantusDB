@@ -7,9 +7,9 @@
     </object>
     <h3>{{ century.name }}</h3>
     <ul>
-        {% for source in century.sources.all|dictsort:"title" %}
+        {% for source in sources|dictsort:"title" %}
             <li>
-                <a href="{{ source.get_absolute_url }}">
+                <a href="{% url 'source-detail' source.id %}">
                     {{ source.title }}
                 </a>
             </li>

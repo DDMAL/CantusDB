@@ -11,7 +11,7 @@
             <div class="alert alert-success alert-dismissible">
                 {% for message in messages %}
                 <a href="#" class="close" data-dismiss="alert" aria-label="close">&times;</a>
-                <a href="{{ previous_chant.get_absolute_url }}" style="color:#155724" target="_blank">{{ message }}</a>
+                <a href="{% url 'chant-detail' previous_chant.id %}" style="color:#155724" target="_blank">{{ message }}</a>
                 {% endfor %}
             </div>
             {% endif %}
@@ -152,6 +152,13 @@
                         {{ form.melody_id }}
                     </div>
 
+                    <div class="form-row align-items-top">
+                        <div class="form-group m-1 col-lg">
+                            <small>{{ form.addendum.label_tag }}</small>
+                            {{ form.addendum }}
+                        </div>
+                    </div>
+
                 </div>
             
                 <div class="form-row align-items-end">
@@ -211,13 +218,6 @@
                     </div>
                 </div>
 
-                <div class="form-row align-items-end"> <!-- the Addendum field is no longer there in OldCantus... -->
-                    <div class="form-group m-1 col-lg">
-                        <small>{{ form.addendum.label_tag }}</small>
-                        {{ form.addendum }}
-                    </div>
-                </div>
-
                 <div class="form-group m-1 col-lg-2">
                     <button type="submit" class="btn btn-dark btn-sm" id="btn-submit"> Save
                     </button>
@@ -232,13 +232,13 @@
 
             <div class="card mb-3 w-100">
                 <div class="card-header">
-                    <h5><a id="source" href="{{ source.get_absolute_url }}">{{ source.title }}</a></h5>
+                    <h5><a id="source" href="{% url 'source-detail' source.id %}">{{ source.title }}</a></h5>
                 </div>
                 <div class="card-body" style="font-size: 15px">
                     <b>Suggestions based on the previous chant:</b><br>
                     {% if previous_chant %}
-                        {{ previous_chant.folio }} {{ previous_chant.c_sequence}} <a href="{{ previous_chant.get_absolute_url }}" target="_blank">{{ previous_chant.incipit }}</a><br>
-                        Cantus ID: <a href="http://cantusindex.org/id/{{ previous_chant.cantus_id }}" target="_blank">{{ previous_chant.cantus_id }}</a><br>
+                        {{ previous_chant.folio }} {{ previous_chant.c_sequence}} <a href="{% url 'chant-detail' previous_chant.id %}" target="_blank">{{ previous_chant.incipit }}</a><br>
+                        Cantus ID: <a href="https://cantusindex.org/id/{{ previous_chant.cantus_id }}" target="_blank">{{ previous_chant.cantus_id }}</a><br>
                             {% if suggested_chants %}
                                 {% for chant in suggested_chants %}
                                     <input type="button" style="width: 80px" value="{{ chant.cid }}" onclick="autoFill{{ chant.cid }}()"></input>

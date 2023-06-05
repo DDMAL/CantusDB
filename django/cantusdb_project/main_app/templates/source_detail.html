@@ -49,7 +49,7 @@
                     <dt>Other Editors</dt>
                     <dd>
                         {% for editor in source.other_editors.all %}
-                            <a href={{ editor.get_absolute_url }}>{{ editor.full_name }}</a><br>
+                            <a href="{% url 'user-detail' editor.id %}">{{ editor.full_name }}</a><br>
                         {% endfor %}
                     </dd>
                 {% endif %}
@@ -58,7 +58,7 @@
                     <dt>Full Text Entered by</dt>
                     <dd>
                         {% for editor in source.full_text_entered_by.all %}
-                            <a href={{ editor.get_absolute_url }}>{{ editor.full_name }}</a><br>
+                            <a href="{% url 'user-detail' editor.id %}">{{ editor.full_name }}</a><br>
                         {% endfor %}
                     </dd>
                 {% endif %}
@@ -67,7 +67,7 @@
                     <dt>Melodies Entered by</dt>
                     <dd>
                         {% for editor in source.melodies_entered_by.all %}
-                            <a href={{ editor.get_absolute_url }}>{{ editor.full_name }}</a><br>
+                            <a href="{% url 'user-detail' editor.id %}">{{ editor.full_name }}</a><br>
                         {% endfor %}
                     </dd>
                 {% endif %}
@@ -110,12 +110,12 @@
                         {% for sequence in sequences %}
                             <tr>
                                 <td class="text-wrap" style="text-align:center">
-                                    <a href="{{ source.get_absolute_url }}">{{ source.siglum }}</a>
+                                    <a href="{% url 'source-detail' source.id %}" title="{{ source.title }}">{{ source.siglum }}</a>
                                     <br>
                                     <b>{{ sequence.folio }}</b>  {{ sequence.s_sequence }}
                                 </td>
                                 <td class="text-wrap" style="text-align:center">
-                                    <a href={{ sequence.get_absolute_url }} >{{ sequence.incipit|default:"" }}</a>
+                                    <a href="{% url 'sequence-detail' sequence.id %}" >{{ sequence.incipit|default:"" }}</a>
                                 </td>
                                 <td class="text-wrap" style="text-align:center">
                                     {{ sequence.rubrics|default:"" }}
@@ -161,21 +161,15 @@
                         </select>
 
                         <br>
-                        <a href="{% url "chant-list" %}?source={{ source.id }}" target="_blank">» View all chants</a>
-                        &nbsp;
-                        <a href="{% url "chant-index" %}?source={{ source.id }}" target="_blank">» View full index</a>
-                        &nbsp;
-                        <a href="{% url "csv-export" source.id%}" target="_blank">» CSV export</a>
-                        <br>
-                        <a href="{% url "chant-search-ms" source.id %}" target="_blank" >» Search chants in this manuscript</a>
-                        &nbsp;
+                        <a href="{% url "chant-list" %}?source={{ source.id }}" class="guillemet" target="_blank">View all chants</a>
+                        <a href="{% url "chant-index" %}?source={{ source.id }}" class="guillemet" target="_blank">View full inventory</a>
+                        <a href="{% url "csv-export" source.id%}" class="guillemet" target="_blank">CSV export</a>
+                        <a href="{% url "chant-search-ms" source.id %}" class="guillemet" target="_blank">Search chants in this manuscript</a>
                         {% if source.image_link %}
-                            <a href="{{ source.image_link }}" target="_blank">» Image gallery</a>
+                            <a href="{{ source.image_link }}" class="guillemet" target="_blank">Image gallery</a>
                         {% endif %}
-                        <br>
-                        <a href="{% url "melody-search" %}?source={{ source.id }}"  target="_blank">» Search melodies in this manuscript</a>
-                        <br>
-                        <a href="//cantusindex.org/analyse?src={{ source.id }}&db=CD" target="_blank">» Analyse this manuscript (Cantus Analysis Tool)</a>
+                        <a href="{% url "melody-search" %}?source={{ source.id }}"  class="guillemet" target="_blank">Search melodies in this manuscript</a>
+                        <a href="//cantusindex.org/analyse?src={{ source.id }}&db=CD" class="guillemet" target="_blank">Analyse this manuscript (Cantus Analysis Tool)</a>
                     </small>
                 </div>    
             </div>
@@ -191,13 +185,13 @@
                 <div class=" card-body">
                     <small>
                         {% if source.provenance.name %}
-                            Provenance: <b><a href="{{ source.provenance.get_absolute_url }}">{{source.provenance.name}}</a></b>
+                            Provenance: <b><a href="{% url 'provenance-detail' source.provenance.id %}">{{source.provenance.name}}</a></b>
                             <br>
                         {% endif %}
                         {% if source.date %}
                             Date: 
                             {% for century in source.century.all %}
-                                <b><a href="{{ century.get_absolute_url }}">
+                                <b><a href="{% url 'century-detail' century.id %}">
                                     {{ century.name }}
                                 </a></b>
                             {% endfor %}
@@ -210,7 +204,7 @@
                             <br>
                         {% endif %}
                         {% if source.notation.all %}
-                            Notation: <b><a href="{{ source.notation.all.first.get_absolute_url }}">
+                            Notation: <b><a href="{% url 'notation-detail' source.notation.all.first.id %}">
                                 {{ source.notation.all.first.name }}
                             </a></b>
                             <br>
@@ -220,7 +214,7 @@
                             <ul>
                                 {% for editor in source.inventoried_by.all %}
                                     <li>
-                                        <a href={{ editor.get_absolute_url }}><b>{{ editor.full_name }}</b></a><br>
+                                        <a href={% url 'user-detail' editor.id %}><b>{{ editor.full_name }}</b></a><br>
                                         {{ editor.institution|default_if_none:"" }}
                                     </li>
                                 {% endfor %}
@@ -232,7 +226,7 @@
                             <ul>
                                 {% for editor in source.proofreaders.all %}
                                     <li>
-                                        <a href={{ editor.get_absolute_url }}><b>{{ editor.full_name }}</b></a><br>
+                                        <a href={% url 'user-detail' editor.id %}><b>{{ editor.full_name }}</b></a><br>
                                     </li>
                                 {% endfor %}
                             </ul>
@@ -256,9 +250,11 @@
                                 <li>
                                     <a href="{% url "chant-create" source.id%}">Add new chant</a>
                                 </li>
-                                <li>
-                                    <a href="{% url "source-edit-chants" source.id%}">Edit chants (fulltext & volpiano editor)</a>
-                                </li>
+                                {% if source.number_of_chants %}
+                                    <li>
+                                        <a href="{% url "source-edit-chants" source.id%}">Edit chants (fulltext & volpiano editor)</a>
+                                    </li>
+                                {% endif %}
                                 <li>
                                     <a href="{% url "source-edit" source.id%}">Edit source description</a>
                                 </li>

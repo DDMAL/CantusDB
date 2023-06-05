@@ -1,17 +1,18 @@
 {% extends "base.html" %}
 {% block content %}
+<title>{{ article.title }} | Cantus Manuscript Database</title>
 <div class="mr-3 p-3 col-md-12 bg-white rounded">
     <object align="right" class="search-bar">
         {% include "global_search_bar.html" %}
     </object>
     <h3>
-        {{article.title}}
+        {{ article.title }}
     </h3>
     <div class="row">
         <div class="col">
             <div class="container">
                 <div class="container text-wrap">
-                    <small>Submitted by <a href="{{ article.author.get_absolute_url }}">{{ article.author }}</a> on {{ article.date_created|date:"D, m/d/Y - H:i" }}</small>
+                    <small>Submitted by <a href="{% url 'user-detail' article.author.id %}">{{ article.author }}</a> on {{ article.date_created|date:"D, m/d/Y - H:i" }}</small>
                     <div style="padding-top: 1em;">
                         {{ article.body.html|safe }}
                     </div>

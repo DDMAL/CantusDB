@@ -38,47 +38,8 @@
                     </p>
                 {% endif %}
                 <form method="post" style="line-height: normal">{% csrf_token %}
-                    <div class="form-row">
-                        <div class="form-group m-1 col-lg-12">
-                            <label for="{{ form.manuscript_full_text_std_spelling.id_for_label }}">
-                                <small>Manuscript Reading Full Text (standardized spelling):<span class="text-danger" title="This field is required">*</span></small>
-                            </label>
-                            {{ form.manuscript_full_text_std_spelling }}
-                            <script>
-                                function autoFillSuggestedFulltext() {
-                                    if (document.getElementById('id_manuscript_full_text_std_spelling').value == "") {
-                                        document.getElementById('id_manuscript_full_text_std_spelling').value = "{{ suggested_fulltext }}";
-                                    }
-                                }
-                                autoFillSuggestedFulltext();
-                            </script>
-                        </div>
-                    </div>
-
-                    <div class="form-row">
-                        <div class="form-group m-1 col-lg-4">
-                            <button type="button" class="btn btn-dark btn-sm" id="copyFullTextBelow">Copy full text below</button>                
-                        </div>
-                    </div>
-
-                    <div class="form-row">
-                        <div class="form-group m-1 col-lg-12">
-                            <label for="{{ form.manuscript_full_text.id_for_label }}">
-                                <small>Manuscript Reading Full Text (MS spelling):</small>
-                            </label>
-                            {{ form.manuscript_full_text }}
-                        </div>
-                    </div>
-
-                    <div class="form-row">
-                        <div class="form-group m-1 col-lg-12">
-                            <label for="{{ form.volpiano.id_for_label }}">
-                                <small>Volpiano:</small>
-                            </label>
-                            {{ form.volpiano }}
-                        </div>
-                    </div>
-
+                    <input type="hidden" name="referrer" value="{{ request.META.HTTP_REFERER }}">
+                    
                     <div class="form-row">
                         <div class="form-group m-1 col-lg-2">
                             <small>{{ form.marginalia.label_tag }}</small>
@@ -151,6 +112,85 @@
                             {{ form.extra }}
                         </div>
                     </div>
+                    <div class="form-row">
+                        <div class="form-row align-items-top"> 
+                            <div class="form-group m-1 col-lg-8">
+                                <small>{{ form.addendum.label_tag }}</small>
+                                {{ form.addendum }}
+                            </div>
+                        </div>
+                    </div>
+                                        
+                    <div class="form-row">
+                        <div class="form-group m-1 col-lg-12">
+                            <label for="{{ form.manuscript_full_text_std_spelling.id_for_label }}">
+                                <small>Manuscript Reading Full Text (standardized spelling):<span class="text-danger" title="This field is required">*</span></small>
+                            </label>
+                            {{ form.manuscript_full_text_std_spelling }}
+                            <script>
+                                function autoFillSuggestedFulltext() {
+                                    if (document.getElementById('id_manuscript_full_text_std_spelling').value == "") {
+                                        document.getElementById('id_manuscript_full_text_std_spelling').value = "{{ suggested_fulltext }}";
+                                    }
+                                }
+                                autoFillSuggestedFulltext();
+                            </script>
+                        </div>
+                    </div>
+
+                    <div class="form-row">
+                        <div class="form-group m-1 col-lg-4">
+                            <button type="button" class="btn btn-dark btn-sm" id="copyFullTextBelow">Copy full text below</button>                
+                        </div>
+                    </div>
+
+                    <div class="form-row">
+                        <div class="form-group m-1 col-lg-12">
+                            <label for="{{ form.manuscript_full_text.id_for_label }}">
+                                <small>Manuscript Reading Full Text (MS spelling):</small>
+                            </label>
+                            {{ form.manuscript_full_text }}
+                        </div>
+                    </div>
+
+                    <div class="form-row">
+                        <div class="form-group m-1 col-lg-12">
+                            <label for="{{ form.volpiano.id_for_label }}">
+                                <small>Volpiano:</small>
+                            </label>
+                            {{ form.volpiano }}
+                        </div>
+                    </div>
+
+                    {% if chant.volpiano %}
+                        <div class="form-row">
+                            <div class="form-group m-1 col-lg-12">
+                                <small>Preview of melody with text:</small>
+                                {% if chant.manuscript_syllabized_full_text %}
+                                    <p><small>Syllabification is based on saved syllabized text.</small></p>
+                                {% endif %}
+                                <dd>
+                                    {% for zip in syllabized_text_with_melody %}
+                                        {% for syl_mel, syl_text in zip %}
+                                            <span style="float: left">
+                                                <div style="font-family: volpiano; font-size: 36px">{{ syl_mel }}</div>
+                                                <!-- "mt" is margin at the top, so that the lowest note in volpiano don't overlap with text -->
+                                                <div class="mt-2" style="font-size: 12px; "><pre>{{ syl_text }}</pre></div>
+                                            </span>
+                                        {% endfor %}
+                                    {% endfor %}
+                                </dd>
+                            </div>
+                        </div>
+                    {% endif %}
+
+                    <div class="form-row">
+                        <div class="form-group m-1 col-lg-4">
+                            <a href="{% url "source-edit-syllabification" chant.id %}" style="display: inline-block; margin-top:5px;" target="_blank">
+                                <small>Edit syllabification (new window)</small>
+                            </a>
+                        </div>
+                    </div>
 
                     <div class="form-row">
                         <div class="form-group m-1 col-lg-12">
@@ -163,36 +203,6 @@
                         <div class="form-group m-1 col-lg-12">
                             <small>{{ form.indexing_notes.label_tag }}</small>
                             {{ form.indexing_notes }}
-                        </div>
-                    </div>
-
-                    {% if chant.volpiano %}
-                        <div class="form-row">
-                            <div class="form-group m-1 col-lg-12">
-                                <small>Preview of melody and text:</small>
-                                <br>
-                                {% if chant.manuscript_syllabized_full_text %}
-                                    <small>Syllabification is based on saved syllabized text.</small>
-                                    <br>
-                                {% endif %}
-                                {% for zip in syllabized_text_with_melody %}
-                                    {% for syl_mel, syl_text in zip %}
-                                        <span style="float: left">
-                                            <div style="font-family: volpiano; font-size: 28px">{{ syl_mel }}</div>
-                                            <!-- "mt" is margin at the top, so that the lowest note in volpiano don't overlap with text -->
-                                            <div class="mt-2" style="font-size: 10px"><pre>{{ syl_text }}</pre></div>
-                                        </span>
-                                    {% endfor %}
-                                {% endfor %}
-                            </div>
-                        </div>
-                    {% endif %}
-
-                    <div class="form-row">
-                        <div class="form-group m-1 col-lg-4">
-                            <a href="{% url "source-edit-syllabification" chant.id %}" style="display: inline-block; margin-top:5px;" target="_blank">
-                                <small>Edit syllabification (new window):</small>
-                            </a>
                         </div>
                     </div>
 
@@ -227,7 +237,7 @@
                     <small><b>&plus; Add new source</b></small>
                 </a>
                 <br>
-                <a href="{{ source.get_absolute_url }}" style="display: inline-block; margin-top:5px;">
+                <a href="{% url 'source-detail' source.id %}" title="{{ source.title }}" style="display: inline-block; margin-top:5px;">
                     {{ source.siglum }}
                 </a>
             {% endif %}
@@ -240,7 +250,7 @@
 
             <div class="card mb-3 w-100">
                 <div class="card-header">
-                    <h4><a href="{{ source.get_absolute_url }}">{{ source.siglum }}</a></h4>
+                    <h4><a href="{% url 'source-detail' source.id %}" title="{{ source.title }}">{{ source.siglum }}</a></h4>
                 </div>
                 <div class="card-body">
                     <small>
@@ -276,17 +286,40 @@
                     {% comment %} render if the user has selected a specific folio {% endcomment %}
                     {% if feasts_current_folio %}
                         {% for feast, chants in feasts_current_folio %}
-                            <small>Folio: <b>{{ chant.folio }}</b> - Feast: <b>{{ feast.name }}</b></small>
+                            <small>Folio: <b>{{ chant.folio }}</b> - Feast: <b title="{{ chant.feast.description }}">{{ feast.name }}</b></small>
                             <table class="table table-sm small table-bordered">     
                                 {% for chant in chants %}
                                     <tr>
-                                        <td class="h-25" style="width: 5%">{{ chant.c_sequence }}</td>
-                                        <td class="h-25" style="width: 20%">{{ chant.office.name|default_if_none:"" }} <b>{{ chant.genre.name|default_if_none:"" }}</b> {{ chant.position|default_if_none:"" }} </td>
-                                        <td class="h-25" style="width: 40%; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; max-width: 0"><a href="{{ chant.get_absolute_url }}" target="_blank">{{ chant.incipit|default_if_none:"" }}</a></td>
-                                        <td class="h-25" style="width: 20%"><a href="{{ chant.get_ci_url }}" target="_blank">{{ chant.cantus_id|default_if_none:"" }}</a></td>
-                                        <td class="h-25" style="width: 5%">{{ chant.mode|default:"" }}</td>
+                                        <td class="h-25" style="width: 5%">
+                                            {{ chant.c_sequence }}
+                                        </td>
+                                        <td class="h-25" style="width: 20%">
+                                            <span title="{{ chant.office.description }}">
+                                                {{ chant.office.name|default_if_none:"" }}
+                                            </span>
+                                            <b title="{{ chant.genre.description }}">
+                                                {{ chant.genre.name|default_if_none:"" }}
+                                            </b>
+                                            {{ chant.position|default_if_none:"" }}
+                                        </td>
+                                        <td class="h-25" style="width: 40%; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; max-width: 0">
+                                            <a href="{% url 'chant-detail' chant.id %}" target="_blank">
+                                                {{ chant.incipit|default_if_none:"" }}
+                                            </a>
+                                        </td>
+                                        <td class="h-25" style="width: 20%">
+                                            <a href="{{ chant.get_ci_url }}" target="_blank">
+                                                {{ chant.cantus_id|default_if_none:"" }}
+                                            </a>
+                                        </td>
+                                        <td class="h-25" style="width: 5%">
+                                            {{ chant.mode|default:"" }}
+                                        </td>
                                         <td class="h-25" style="width: 10%">
-                                            <a href="{% url 'source-edit-chants' source.id %}?pk={{ chant.pk }}&folio={{ chant.folio }}">EDIT</button></td>
+                                            <a href="{% url 'source-edit-chants' source.id %}?pk={{ chant.pk }}&folio={{ chant.folio }}">
+                                                EDIT
+                                            </a>
+                                        </td>
                                     </tr>
                                 {% endfor %}
                             </table>
@@ -294,17 +327,39 @@
                     {% comment %} render if the user has selected a specific feast {% endcomment %}
                     {% elif folios_current_feast %}
                         {% for folio, chants in folios_current_feast %}
-                            <small>Folio: <b>{{ folio }}</b> - Feast: <b>{{ chant.feast }}</b></small>
+                            <small>Folio: <b>{{ folio }}</b> - Feast: <b title="{{ chant.feast.description }}">{{ chant.feast }}</b></small>
                             <table class="table table-sm small table-bordered">     
                                 {% for chant in chants %}
                                     <tr>
-                                        <td class="h-25" style="width: 5%">{{ chant.c_sequence }}</td>
-                                        <td class="h-25" style="width: 20%">{{ chant.office.name|default_if_none:"" }} <b>{{ chant.genre.name|default_if_none:"" }}</b> {{ chant.position|default_if_none:"" }} </td>
-                                        <td class="h-25" style="width: 40%; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; max-width: 0"><a href="{{ chant.get_absolute_url }}" target="_blank">{{ chant.incipit|default_if_none:"" }}</a></td>
-                                        <td class="h-25" style="width: 20%"><a href="{{ chant.get_ci_url }}" target="_blank">{{ chant.cantus_id|default_if_none:"" }}</a></td>
-                                        <td class="h-25" style="width: 5%">{{ chant.mode|default:"" }}</td>
+                                        <td class="h-25" style="width: 5%">
+                                            {{ chant.c_sequence }}
+                                        </td>
+                                        <td class="h-25" style="width: 20%">
+                                            <span title="{{ chant.office.description }}">
+                                                {{ chant.office.name|default_if_none:"" }}
+                                            </span>
+                                            <b title="{{ chant.genre.description }}">
+                                                {{ chant.genre.name|default_if_none:"" }}
+                                            </b>
+                                            {{ chant.position|default_if_none:"" }}
+                                        </td>
+                                        <td class="h-25" style="width: 40%; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; max-width: 0">
+                                            <a href="{% url 'chant-detail' chant.id %}" target="_blank">
+                                                {{ chant.incipit|default_if_none:"" }}
+                                            </a>
+                                        </td>
+                                        <td class="h-25" style="width: 20%">
+                                            <a href="{{ chant.get_ci_url }}" target="_blank">
+                                                {{ chant.cantus_id|default_if_none:"" }}
+                                            </a>
+                                        </td>
+                                        <td class="h-25" style="width: 5%">
+                                            {{ chant.mode|default:"" }}
+                                        </td>
                                         <td class="h-25" style="width: 10%">
-                                            <a href="{% url 'source-edit-chants' source.id %}?pk={{ chant.pk }}&feast={{ chant.feast.id }}">EDIT</button>
+                                            <a href="{% url 'source-edit-chants' source.id %}?pk={{ chant.pk }}&feast={{ chant.feast.id }}">
+                                                EDIT
+                                            </a>
                                         </td>
                                     </tr>
                                 {% endfor %}

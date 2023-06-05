@@ -41,10 +41,11 @@ class ChantCreateViewTest(TestCase):
     def setUp(self):
         return super().setUp()
 
-    @unittest.skip("post request fails to make chant - see comment above `response = ...`")
+    @unittest.skip(
+        "post request fails to make chant - see comment above `response = ...`"
+    )
     def test_post_success(self):
-        """post with correct source and random full-text
-        """
+        """post with correct source and random full-text"""
         source = make_fake_source()
         url = reverse("chant-create", args=[source.id])
         fake_text = fake.text(100)
@@ -59,10 +60,11 @@ class ChantCreateViewTest(TestCase):
         )
         self.assertRedirects(response, reverse("chant-create", args=[source.id]))
 
-    @unittest.skip("post request fails to make chant - see comment above `response = ...`")
+    @unittest.skip(
+        "post request fails to make chant - see comment above `response = ...`"
+    )
     def test_autofill(self):
-        """Test pre-prepopulate when input chants to a non-empty source
-        """
+        """Test pre-prepopulate when input chants to a non-empty source"""
         # create some chants in the test source
         source = Source.objects.all()[self.rand_source]
         for i in range(1, 5):
@@ -83,7 +85,9 @@ class ChantCreateViewTest(TestCase):
         # post request seems to be failing to make a chant
         # at least, `Chant.objects.get(manuscript_full_text_std_spelling=fake_text)` can't find it...
         response = self.client.post(
-            url, data={"manuscript_full_text_std_spelling": fake_text}, follow=True,
+            url,
+            data={"manuscript_full_text_std_spelling": fake_text},
+            follow=True,
         )
         # after inputting, should redirect to another input form
         self.assertRedirects(response, reverse("chant-create", args=[source.id]))
@@ -93,10 +97,11 @@ class ChantCreateViewTest(TestCase):
         self.assertEqual(posted_chant.folio, last_folio)
         self.assertEqual(posted_chant.c_sequence, last_sequence + 1)
 
-    @unittest.skip("post request fails to make chant - see comment above `response = ...`")
+    @unittest.skip(
+        "post request fails to make chant - see comment above `response = ...`"
+    )
     def test_autofill_empty(self):
-        """Test pre-prepopulate when input chants to an empty source
-        """
+        """Test pre-prepopulate when input chants to an empty source"""
         DEFAULT_FOLIO = "001r"
         DEFAULT_SEQ = 1
         source = Source.objects.all()[self.rand_source]
@@ -107,7 +112,9 @@ class ChantCreateViewTest(TestCase):
         # post request seems to be failing to make a chant
         # at least, `Chant.objects.get(manuscript_full_text_std_spelling=fake_text)` can't find it...
         response = self.client.post(
-            url, data={"manuscript_full_text_std_spelling": fake_text}, follow=True,
+            url,
+            data={"manuscript_full_text_std_spelling": fake_text},
+            follow=True,
         )
         # after inputting, should redirect to another input form
         self.assertRedirects(response, reverse("chant-create", args=[source.id]))

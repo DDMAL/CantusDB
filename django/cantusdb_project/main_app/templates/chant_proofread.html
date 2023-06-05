@@ -172,6 +172,36 @@
                         </div>
                     </div>
 
+                    {% if chant.volpiano %}
+                        <div class="form-row">
+                            <div class="form-group m-1 col-lg-12">
+                                <small>Preview of melody with text:</small>
+                                {% if chant.manuscript_syllabized_full_text %}
+                                    <p><small>Syllabification is based on saved syllabized text.</small></p>
+                                {% endif %}
+                                <dd>
+                                    {% for zip in syllabized_text_with_melody %}
+                                        {% for syl_mel, syl_text in zip %}
+                                            <span style="float: left">
+                                                <div style="font-family: volpiano; font-size: 36px">{{ syl_mel }}</div>
+                                                <!-- "mt" is margin at the top, so that the lowest note in volpiano don't overlap with text -->
+                                                <div class="mt-2" style="font-size: 12px; "><pre>{{ syl_text }}</pre></div>
+                                            </span>
+                                        {% endfor %}
+                                    {% endfor %}
+                                </dd>
+                            </div>
+                        </div>
+                    {% endif %}
+
+                    <div class="form-row">
+                        <div class="form-group m-1 col-lg-4">
+                            <a href="{% url "source-edit-syllabification" chant.id %}" style="display: inline-block; margin-top:5px;" target="_blank">
+                                <small>Edit syllabification (new window)</small>
+                            </a>
+                        </div>
+                    </div>
+
                     <div class="form-row">
                         <div class="form-group m-1 col-lg-12">
                             <small>{{ form.image_link.label_tag }}</small>
@@ -181,22 +211,8 @@
 
                     <div class="form-row">
                         <div class="form-group m-1 col-lg-12">
-                            <small>{{ form.siglum.label_tag }}</small>
-                            {{ form.siglum }}
-                        </div>
-                    </div>
-
-                    <div class="form-row">
-                        <div class="form-group m-1 col-lg-12">
                             <small>{{ form.proofread_by.label_tag }}</small>
                             {{ form.proofread_by }}
-                        </div>
-                    </div>
-
-                    <div class="form-row">
-                        <div class="form-group m-1 col-lg-12">
-                            <small>{{ form.manuscript_syllabized_full_text.label_tag }}</small>
-                            {{ form.manuscript_syllabized_full_text }}
                         </div>
                     </div>
 
@@ -238,7 +254,7 @@
 
             <div class="card mb-3 w-100">
                 <div class="card-header">
-                    <h4><a href="{{ source.get_absolute_url }}">{{ source.siglum }}</a></h4>
+                    <h4><a href="{% url 'source-detail' source.id %}" title="{{ source.title }}">{{ source.siglum }}</a></h4>
                 </div>
                 <div class="card-body">
                     <small>
@@ -274,13 +290,34 @@
                             <table class="table table-sm small table-bordered">     
                                 {% for chant in chants %}
                                     <tr>
-                                        <td class="h-25" style="width: 5%">{{ chant.c_sequence }}</td>
-                                        <td class="h-25" style="width: 20%">{{ chant.office.name|default_if_none:"" }} <b>{{ chant.genre.name|default_if_none:"" }}</b> {{ chant.position|default_if_none:"" }} </td>
-                                        <td class="h-25" style="width: 40%; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; max-width: 0"><a href="{{ chant.get_absolute_url }}">{{ chant.incipit|default_if_none:"" }}</a></td>
-                                        <td class="h-25" style="width: 20%"><a href="{{ chant.get_ci_url }}" target="_blank">{{ chant.cantus_id|default_if_none:"" }}</a></td>
-                                        <td class="h-25" style="width: 5%">{{ chant.mode|default:"" }}</td>
+                                        <td class="h-25" style="width: 5%">
+                                            {{ chant.c_sequence }}
+                                        </td>
+                                        <td class="h-25" style="width: 20%">
+                                            <span title="{{ chant.office.description }}">{{ chant.office.name|default_if_none:"" }}</span>
+                                            <b title="{{ chant.genre.description }}">
+                                                {{ chant.genre.name|default_if_none:"" }}
+                                            </b>
+                                            {{ chant.position|default_if_none:"" }}
+                                        </td>
+                                        <td class="h-25" style="width: 40%; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; max-width: 0">
+                                            <a href="{% url 'chant-detail' chant.id %}">
+                                                {{ chant.incipit|default_if_none:"" }}
+                                            </a>
+                                        </td>
+                                        <td class="h-25" style="width: 20%">
+                                            <a href="{{ chant.get_ci_url }}" target="_blank">
+                                                {{ chant.cantus_id|default_if_none:"" }}
+                                            </a>
+                                        </td>
+                                        <td class="h-25" style="width: 5%">
+                                            {{ chant.mode|default:"" }}
+                                        </td>
                                         <td class="h-25" style="width: 10%">
-                                            <a href="{% url 'chant-proofread' source.id %}?pk={{ chant.pk }}&folio={{ chant.folio }}">EDIT</button></td>
+                                            <a href="{% url 'chant-proofread' source.id %}?pk={{ chant.pk }}&folio={{ chant.folio }}">
+                                                EDIT
+                                            </a>
+                                        </td>
                                     </tr>
                                 {% endfor %}
                             </table>
@@ -292,13 +329,33 @@
                             <table class="table table-sm small table-bordered">     
                                 {% for chant in chants %}
                                     <tr>
-                                        <td class="h-25" style="width: 5%">{{ chant.c_sequence }}</td>
-                                        <td class="h-25" style="width: 20%">{{ chant.office.name|default_if_none:"" }} <b>{{ chant.genre.name|default_if_none:"" }}</b> {{ chant.position|default_if_none:"" }} </td>
-                                        <td class="h-25" style="width: 40%; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; max-width: 0"><a href="{{ chant.get_absolute_url }}">{{ chant.incipit|default_if_none:"" }}</a></td>
-                                        <td class="h-25" style="width: 20%"><a href="{{ chant.get_ci_url }}" target="_blank">{{ chant.cantus_id|default_if_none:"" }}</a></td>
-                                        <td class="h-25" style="width: 5%">{{ chant.mode|default:"" }}</td>
+                                        <td class="h-25" style="width: 5%">
+                                            {{ chant.c_sequence }}
+                                        </td>
+                                        <td class="h-25" style="width: 20%">
+                                            <span title="{{ chant.office.description }}">{{ chant.office.name|default_if_none:"" }}</span>
+                                            <b title="{{ chant.genre.description }}">
+                                                {{ chant.genre.name|default_if_none:"" }}
+                                            </b>
+                                            {{ chant.position|default_if_none:"" }}
+                                        </td>
+                                        <td class="h-25" style="width: 40%; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; max-width: 0">
+                                            <a href="{% url 'chant-detail' chant.id %}">
+                                                {{ chant.incipit|default_if_none:"" }}
+                                            </a>
+                                        </td>
+                                        <td class="h-25" style="width: 20%">
+                                            <a href="{{ chant.get_ci_url }}" target="_blank">
+                                                {{ chant.cantus_id|default_if_none:"" }}
+                                            </a>
+                                        </td>
+                                        <td class="h-25" style="width: 5%">
+                                            {{ chant.mode|default:"" }}
+                                        </td>
                                         <td class="h-25" style="width: 10%">
-                                            <a href="{% url 'chant-proofread' source.id %}?pk={{ chant.pk }}&feast={{ chant.feast.id }}">EDIT</button>
+                                            <a href="{% url 'chant-proofread' source.id %}?pk={{ chant.pk }}&feast={{ chant.feast.id }}">
+                                                EDIT
+                                            </a>
                                         </td>
                                     </tr>
                                 {% endfor %}

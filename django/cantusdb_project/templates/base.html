@@ -99,6 +99,15 @@
         .footer h5 {
             margin: 25px 0px 10px
         }
+        
+        /* links, appearing in sidebars, preceded with guillemets ("»"s) */
+        .guillemet {
+            display: block
+        }
+
+        .guillemet::before {
+            content: "» "
+        }
 
         /* this class is used for displaying results under the global search bar */
         .list-group-item-action:hover {
@@ -269,12 +278,12 @@
                     </div>
                     <div class="col-md" id="license">
                         <h5>Creative Commons License</h5>
-                        <a href="http://creativecommons.org/licenses/by-nc-sa/4.0/">
+                        <a href="https://creativecommons.org/licenses/by-nc-sa/4.0/">
                             <img src="{% static "creative-commons-logo.png" %}" alt="Creative Commons Logo" loading="lazy">
                         </a>
                         <p>
                             This work is licensed under a <a
-                                href="http://creativecommons.org/licenses/by-nc-sa/4.0/">Creative Commons
+                                href="https://creativecommons.org/licenses/by-nc-sa/4.0/">Creative Commons
                                 Attribution-NonCommercial-ShareAlike 4.0 International License.</a>
                         </p>
                     </div>
@@ -282,7 +291,7 @@
                         <h5>Contact Us</h5>
                         <div>
                             <a href="{% url 'contact' %}">      
-                                <svg xmlns="http://www.w3.org/2000/svg" width="30" height="30" fill="currentColor" class="bi bi-envelope" viewBox="0 0 16 16">
+                                <svg xmlns="https://www.w3.org/2000/svg" width="30" height="30" fill="currentColor" class="bi bi-envelope" viewBox="0 0 16 16">
                                     <!-- draw the envelope icon -->
                                     <path d="M0 4a2 2 0 0 1 2-2h12a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H2a2 2 0 0 1-2-2V4Zm2-1a1 1 0 0 0-1 1v.217l7 4.2 7-4.2V4a1 1 0 0 0-1-1H2Zm13 2.383-4.708 2.825L15 11.105V5.383Zm-.034 6.876-5.64-3.471L8 9.583l-1.326-.795-5.64 3.47A1 1 0 0 0 2 13h12a1 1 0 0 0 .966-.741ZM1 11.105l4.708-2.897L1 5.383v5.722Z"/>
                                 </svg>
@@ -298,34 +307,64 @@
                     <div class="col-md-6" id="logos">
                         <div class="row">
                             <div class="col-md-6">
-                                <a href="https://uwaterloo.ca/margot/" target="_blank">
-                                    <img class="img-fluid p-2" style="max-width: 100%;" src="{% static "uwaterloo-logo.png" %}" alt="University of Waterloo Logo"
+                                <a href="https://uwaterloo.ca/" target="_blank">
+                                    <img
+                                        class="img-fluid p-2"
+                                        style="max-width: 100%;"
+                                        src="{% static "uwaterloo-logo.png" %}"
+                                        alt="University of Waterloo Logo"
+                                        title="University of Waterloo"
                                         loading="lazy">
                                 </a>
                             </div>
                             <div class="col-md-6">
                                 <a href="https://www.dal.ca/faculty/arts/school-of-performing-arts.html" target="_blank">
-                                    <img class="img-fluid p-2" style="max-width: 100%;" src="{% static "dalhousie-logo.png" %}" alt="Dalhousie University Logo"
+                                    <img
+                                        class="img-fluid p-2"
+                                        style="max-width: 100%;"
+                                        src="{% static "dalhousie-logo.png" %}"
+                                        alt="Dalhousie University Logo"
+                                        title="Dalhousie University"
                                         loading="lazy">
                                 </a>
                             </div>
                         </div>
-                        <img class="img-fluid p-2" style="max-width: 100%;" src="{% static "sshrc-logo.jpg" %}" alt="SSHRC Logo" loading="lazy">
+                        <img
+                            class="img-fluid p-2"
+                            style="max-width: 100%;"
+                            src="{% static "sshrc-logo.jpg" %}"
+                            alt="Social Sciences and Humanities Research Council Logo"
+                            title="Social Sciences and Humanities Research Council of Canada"
+                            loading="lazy">
                         <a href="https://alliancecan.ca/" target="_blank">
-                            <img class="img-fluid p-2" style="max-width: 100%;" src="{% static "digital-alliance-logo.png" %}" alt="Digital Alliance Logo"
+                            <img
+                                class="img-fluid p-2"
+                                style="max-width: 100%;"
+                                src="{% static "digital-alliance-logo.png" %}"
+                                alt="Digital Research Alliance Logo"
+                                title="Digital Research Alliance"
                                 loading="lazy">
                         </a>
+                        <div class="col-md-6">
+                            <a href="https://uwaterloo.ca/margot/" target="_blank">
+                                <img class="img-fluid p-2"
+                                    src="{% static "margot-logo.png" %}"
+                                    alt="MARGOT Logo"
+                                    title="MARGOT"
+                                    loading="lazy">
+                            </a>
+                        </div>
                     </div>
                     <div class="col-md-3" id="database-links">
                         <h5>Database Links</h5>
                         <ul class="list-group list-group-flush">
                             <li class="list-group-item p-0">
-                                <a href="http://cantusindex.org/" target="_blank">
+                                <a href="https://cantusindex.org/" target="_blank">
                                     Cantus Index (all chants catalogue)
                                 </a>
                             </li>
                             <li class="list-group-item p-0">
-                                <a href="http://pemdatabase.eu/" target="_blank">
+                                <a href="https://pemdatabase.eu/" target="_blank">
                                     Portuguese Early Music Database
                                 </a>
                             </li>

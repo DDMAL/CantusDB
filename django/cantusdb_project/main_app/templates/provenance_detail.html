@@ -9,7 +9,7 @@
     <ul>
         {% for source in provenance.sources.all|dictsort:"title" %}
             <li>
-                <a href="{{ source.get_absolute_url }}">
+                <a href="{% url 'source-detail' source.id %}">
                     {{ source.title }}
                 </a>
             </li>

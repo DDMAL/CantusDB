@@ -8,50 +8,5 @@
 
     <h3>{{ genre.name }}</h3>
     <p>{{ genre.description }}</p>
-
-    <h3>Chants by genre</h3>
-    <small>Displaying {{ page_obj.start_index }}-{{ page_obj.end_index }} of <b>{{ page_obj.paginator.count }}</b></small>
-
-    <form method="get">
-        <div class="form-row align-items-end">
-            <div class="form-group m-1">
-                <label for="incipit"><small><b>Search incipit</b></small></label>
-                <input type="text" class="form-control form-control-sm" name="incipit" value="{{ request.GET.incipit }}" id="incipit">
-            </div>
-            <div class="form-group m-1">
-                <button type="submit" class="btn btn-dark btn-sm" id="btn-submit"> Apply </button>
-            </div>
-        </div>
-    </form>
-
-    <table class="table table-bordered table-sm small">
-        <thead>
-            <tr>
-                <th scope="col" class="text-wrap">Incipit (example)</th>
-                <th scope="col" class="text-wrap">Cantus ID</th>
-                <th scope="col" class="text-wrap">Number of Chants</th>
-            </tr>
-        </thead>
-        <tbody>
-            {% for chant in page_obj %}
-                <tr>
-                    <td class="text-wrap" style="text-align:left">
-                        <a href="{{ chant.first_incipit_url }}">
-                            {{ chant.first_incipit }}
-                        </a>
-                    </td>
-                    <td class="text-wrap" style="text-align:center">
-                        <a href="http://cantusindex.org/id/{{ chant.cantus_id }}">
-                            {{ chant.cantus_id }}
-                        </a>
-                    <td class="text-wrap" style="text-align:center">
-                        {{ chant.num_chants }}
-                    </td>
-                </tr>
-            {% endfor %}
-        </tbody>
-    </table>
-
-    {% include "pagination.html" %}
 </div>
 {% endblock %}

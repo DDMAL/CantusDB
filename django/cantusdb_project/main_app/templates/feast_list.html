@@ -69,7 +69,9 @@
             {% for feast in feasts %}
                 <tr>
                     <td class="text-wrap">
-                        <a href="{{ feast.get_absolute_url }}"><b>{{ feast.name }}</b></a>
+                        <a href="{% url 'feast-detail' feast.id %}" title="{{ feast.description }}">
+                            <b>{{ feast.name }}</b>
+                        </a>
                     </td>
                     <td class="text-wrap">{{ feast.description|default:"" }}</td>
                     <td class="text-wrap">
