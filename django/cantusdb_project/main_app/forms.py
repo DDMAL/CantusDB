@@ -129,12 +129,16 @@ class ChantCreateForm(forms.ModelForm):
         help_text="Each folio starts with '1'.",
     )
 
+    # We use NameModelChoiceField here so the dropdown list of office/mass displays the name
+    # instead of [name] + description
     office = NameModelChoiceField(
         queryset=Office.objects.all().order_by("name"),
         required=False,
     )
     office.widget.attrs.update({"class": "form-control custom-select custom-select-sm"})
 
+    # We use NameModelChoiceField here so the dropdown list of genres displays the name
+    # instead of [name] + description
     genre = NameModelChoiceField(
         queryset=Genre.objects.all().order_by("name"),
         required=False,
@@ -345,12 +349,16 @@ class ChantEditForm(forms.ModelForm):
     )
     feast.widget.attrs.update({"class": "form-control custom-select custom-select-sm"})
 
+    # We use NameModelChoiceField here so the dropdown list of office/mass displays the name
+    # instead of [name] + description
     office = NameModelChoiceField(
         queryset=Office.objects.all().order_by("name"),
         required=False,
     )
     office.widget.attrs.update({"class": "form-control custom-select custom-select-sm"})
 
+    # We use NameModelChoiceField here so the dropdown list of genres displays the name
+    # instead of [name] + description
     genre = NameModelChoiceField(
         queryset=Genre.objects.all().order_by("name"),
         required=False,
@@ -448,12 +456,16 @@ class ChantProofreadForm(forms.ModelForm):
     )
     feast.widget.attrs.update({"class": "form-control custom-select custom-select-sm"})
 
+    # We use NameModelChoiceField here so the dropdown list of office/mass displays the name
+    # instead of [name] + description
     office = NameModelChoiceField(
         queryset=Office.objects.all().order_by("name"),
         required=False,
     )
     office.widget.attrs.update({"class": "form-control custom-select custom-select-sm"})
 
+    # We use NameModelChoiceField here so the dropdown list of genres displays the name
+    # instead of [name] + description
     genre = NameModelChoiceField(
         queryset=Genre.objects.all().order_by("name"), required=False
     )
@@ -612,6 +624,8 @@ class SequenceEditForm(forms.ModelForm):
             "image_link": TextInputWidget(),
         }
 
+    # We use NameModelChoiceField here so the dropdown list of genres displays the name
+    # instead of [name] + description
     genre = NameModelChoiceField(
         queryset=Genre.objects.all().order_by("name"), required=False
     )
