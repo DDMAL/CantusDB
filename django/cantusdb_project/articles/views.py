@@ -12,6 +12,6 @@ class ArticleDetailView(DetailView):
 class ArticleListView(ListView):
     model = Article
     queryset = Article.objects.order_by("-date_created")
-    paginate_by = 100
+    paginate_by = 10
     context_object_name = "articles"
     template_name = "article_list.html"
