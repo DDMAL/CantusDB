@@ -301,6 +301,11 @@ urlpatterns = [
         name="csv-export",
     ),
     path(
+        "sites/default/files/csv/<str:source_id>.csv",
+        views.csv_export_redirect_from_old_path,
+        name="csv-export-old-path",
+    ),
+    path(
         "ajax/concordance/<str:cantus_id>",
         views.ajax_concordance_list,
         name="ajax-concordance",
