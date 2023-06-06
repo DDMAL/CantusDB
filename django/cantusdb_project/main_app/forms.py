@@ -116,12 +116,14 @@ class ChantCreateForm(forms.ModelForm):
     )
 
     office = forms.ModelChoiceField(
-        queryset=Office.objects.all().order_by("name"), required=False
+        queryset=Office.objects.all().order_by("name").values_list("name", flat=True),
+        required=False,
     )
     office.widget.attrs.update({"class": "form-control custom-select custom-select-sm"})
 
     genre = forms.ModelChoiceField(
-        queryset=Genre.objects.all().order_by("name"), required=False
+        queryset=Genre.objects.all().order_by("name").values_list("name", flat=True),
+        required=False,
     )
     genre.widget.attrs.update({"class": "form-control custom-select custom-select-sm"})
 
@@ -330,12 +332,14 @@ class ChantEditForm(forms.ModelForm):
     feast.widget.attrs.update({"class": "form-control custom-select custom-select-sm"})
 
     office = forms.ModelChoiceField(
-        queryset=Office.objects.all().order_by("name"), required=False
+        queryset=Office.objects.all().order_by("name").values_list("name", flat=True),
+        required=False,
     )
     office.widget.attrs.update({"class": "form-control custom-select custom-select-sm"})
 
     genre = forms.ModelChoiceField(
-        queryset=Genre.objects.all().order_by("name"), required=False
+        queryset=Genre.objects.all().order_by("name").values_list("name", flat=True),
+        required=False,
     )
     genre.widget.attrs.update({"class": "form-control custom-select custom-select-sm"})
 
