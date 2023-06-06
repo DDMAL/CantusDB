@@ -54,75 +54,74 @@
             </form>
 
             {% if chants %}
-
-            <table class="table table-responsive table-sm table-bordered small">
-                <thead>
-                    <tr>
-                        <th scope="col" class="text-wrap" title="Siglum">Siglum</th>
-                        <th scope="col" class="text-wrap" title="Folio">Folio</th>
-                        <th scope="col" class="text-wrap" title="Sequence"></th>
-                        <th scope="col" class="text-wrap" title="Incipit / Full text">Incipit / Full text</th>
-                        <th scope="col" class="text-wrap" title="Feast">Feast</th>
-                        <th scope="col" class="text-wrap" title="Office"></th>
-                        <th scope="col" class="text-wrap" title="Genre"></th>
-                        <th scope="col" class="text-wrap" title="Position"></th>
-                        <th scope="col" class="text-wrap" title="Cantus ID">CantusID</th>
-                        <th scope="col" class="text-wrap" title="Mode">Mode</th>
-                        <th scope="col" class="text-wrap" title="Image link"></th>
-                        {% if user_can_edit_chant %}
-                            <th scope="col" class="text-wrap" title="Edit Chant"></th>
-                        {% endif %}
-                    </tr>
-                </thead>
-                <tbody>
-                    {% for chant in chants %}
-                    <tr>
-                        <td class="text-wrap" style="text-align:center" title="{{ chant.source.title }}">{{ chant.source.siglum|default:"" }}</td>
-                        <td class="text-wrap" style="text-align:center"><b>{{ chant.folio|default:"" }}</b></td>
-                        <td class="text-wrap" style="text-align:center">{{ chant.c_sequence|default_if_none:"" }}</td> {# default_if_none: sometimes, c_sequence is 0, and should still be displayed #}
-                        <td class="text-wrap">
-                            <a href="{% url 'chant-detail' chant.id %}"><b>{{ chant.incipit|default:"" }}</b></a>
-                            <p>{{ chant.manuscript_full_text_std_spelling|default:"" }}<br>
-                            {% if chant.volpiano %}
-                                <span style="font-family: volpiano; font-size:25px">{{ chant.volpiano|default:"" }}</span>
+                <table class="table table-responsive table-sm table-bordered small">
+                    <thead>
+                        <tr>
+                            <th scope="col" class="text-wrap" title="Siglum">Siglum</th>
+                            <th scope="col" class="text-wrap" title="Folio">Folio</th>
+                            <th scope="col" class="text-wrap" title="Sequence"></th>
+                            <th scope="col" class="text-wrap" title="Incipit / Full text">Incipit / Full text</th>
+                            <th scope="col" class="text-wrap" title="Feast">Feast</th>
+                            <th scope="col" class="text-wrap" title="Office"></th>
+                            <th scope="col" class="text-wrap" title="Genre"></th>
+                            <th scope="col" class="text-wrap" title="Position"></th>
+                            <th scope="col" class="text-wrap" title="Cantus ID">CantusID</th>
+                            <th scope="col" class="text-wrap" title="Mode">Mode</th>
+                            <th scope="col" class="text-wrap" title="Image link"></th>
+                            {% if user_can_edit_chant %}
+                                <th scope="col" class="text-wrap" title="Edit Chant"></th>
                             {% endif %}
-                            </p>
-                        </td>
-                        <td class="text-wrap" style="text-align:center">
-                            {% if chant.feast %}
-                                <a href="{% url 'feast-detail' chant.feast.id %}" title="{{ chant.feast.description }}">{{ chant.feast.name|default:"" }}</a>
-                            {% endif %}
-                        </td>
-                        <td class="text-wrap" style="text-align:center">
-                            {% if chant.office %}
-                                <a href="{% url 'office-detail' chant.office.id %}" title="{{ chant.office.description }}">{{ chant.office.name|default:"" }}</a>
-                            {% endif %}
-                        </td>
-                        <td class="text-wrap" style="text-align:center">
-                            {% if chant.genre %}
-                                <a href="{% url 'genre-detail' chant.genre.id %}" title="{{ chant.genre.description }}">{{ chant.genre.name|default:"" }}</a>
-                            {% endif %}
-                        </td>
-                        <td class="text-wrap" style="text-align:center">{{ chant.position|default:"" }}</td>
-                        <td class="text-wrap" style="text-align:center">
-                            <a href="{{ chant.get_ci_url }}" target="_blank">{{ chant.cantus_id|default:"" }}</a>
-                        </td>
-                        <td class="text-wrap" style="text-align:center">{{ chant.mode|default:"" }}</td>
-                        <td class="text-wrap" style="text-align:center">
-                            {% if chant.image_link %}
-                                <a href="{{ chant.image_link }}" target="_blank">Image</a>
-                            {% endif %}
-                        </td>
-                        {% if user_can_edit_chant %}
-                            <td class="text-wrap" style="text-align:center">
-                                <a href="{% url 'source-edit-chants' chant.source.id %}?pk={{ chant.id }}&folio={{ chant.folio }}&ref=chant-list">Edit</a>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for chant in chants %}
+                        <tr>
+                            <td class="text-wrap" style="text-align:center" title="{{ chant.source.title }}">{{ chant.source.siglum|default:"" }}</td>
+                            <td class="text-wrap" style="text-align:center"><b>{{ chant.folio|default:"" }}</b></td>
+                            <td class="text-wrap" style="text-align:center">{{ chant.c_sequence|default_if_none:"" }}</td> {# default_if_none: sometimes, c_sequence is 0, and should still be displayed #}
+                            <td class="text-wrap">
+                                <a href="{% url 'chant-detail' chant.id %}"><b>{{ chant.incipit|default:"" }}</b></a>
+                                <p>{{ chant.manuscript_full_text_std_spelling|default:"" }}<br>
+                                {% if chant.volpiano %}
+                                    <span style="font-family: volpiano; font-size:25px">{{ chant.volpiano|default:"" }}</span>
+                                {% endif %}
+                                </p>
                             </td>
-                        {% endif %}
-                    </tr>
-                    {% endfor %}
-                </tbody>
-            </table>
-            {% include "pagination.html" %}
+                            <td class="text-wrap" style="text-align:center">
+                                {% if chant.feast %}
+                                    <a href="{% url 'feast-detail' chant.feast.id %}" title="{{ chant.feast.description }}">{{ chant.feast.name|default:"" }}</a>
+                                {% endif %}
+                            </td>
+                            <td class="text-wrap" style="text-align:center">
+                                {% if chant.office %}
+                                    <a href="{% url 'office-detail' chant.office.id %}" title="{{ chant.office.description }}">{{ chant.office.name|default:"" }}</a>
+                                {% endif %}
+                            </td>
+                            <td class="text-wrap" style="text-align:center">
+                                {% if chant.genre %}
+                                    <a href="{% url 'genre-detail' chant.genre.id %}" title="{{ chant.genre.description }}">{{ chant.genre.name|default:"" }}</a>
+                                {% endif %}
+                            </td>
+                            <td class="text-wrap" style="text-align:center">{{ chant.position|default:"" }}</td>
+                            <td class="text-wrap" style="text-align:center">
+                                <a href="{{ chant.get_ci_url }}" target="_blank">{{ chant.cantus_id|default:"" }}</a>
+                            </td>
+                            <td class="text-wrap" style="text-align:center">{{ chant.mode|default:"" }}</td>
+                            <td class="text-wrap" style="text-align:center">
+                                {% if chant.image_link %}
+                                    <a href="{{ chant.image_link }}" target="_blank">Image</a>
+                                {% endif %}
+                            </td>
+                            {% if user_can_edit_chant %}
+                                <td class="text-wrap" style="text-align:center">
+                                    <a href="{% url 'source-edit-chants' chant.source.id %}?pk={{ chant.id }}&folio={{ chant.folio }}&ref=chant-list">Edit</a>
+                                </td>
+                            {% endif %}
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+                {% include "pagination.html" %}
             {% endif %}
         </div>
     
