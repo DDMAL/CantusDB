@@ -16,6 +16,7 @@ Discrepancies between text stored in the CantusDB database and the manuscript te
   - In some places, links (to Genre, Office, Feast detail pages, etc.) have been added where there were no links in OldCantus.
   - In some places, title attributes have been added, especially where abbreviations are displayed (visible on mouse-over).
   - Certain pages have an upward-pointing arrow at the bottom that brings the user back to the top of the page. We don't currently plan to implement this.
+  - If you click on the items in the header on OldCantus, it usually links you to one of the pages within the dropdown. On NewCantus, you need to open the dropdown and click on an item before you go to any of the pages. We have no plans to implement this on NewCantus, as OldCantus's system is hard to use on mobile devices (for a sad chuckle, check out https://cantus.uwaterloo.ca/about, which you get when you click/tap on "About")
 - Homepage:
   - When logged out, OldCantus displays a sidebar displaying recently posted articles. NewCantus displays this sidebar, but only displays the articles' titles, rather than the full content of the article (Currently, we don't plan to display the full content of news articles here)
 - Article List page:
