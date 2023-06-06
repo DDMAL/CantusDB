@@ -50,6 +50,9 @@ class NameModelChoiceField(forms.ModelChoiceField):
     A custom ModelChoiceField that overrides the label_from_instance method
     to display the object's name attribute instead of str(object).
     This field is specifically designed for handling genre and office objects.
+    Rather than displaying the name along with its description, sometimes we
+    only want the shorthand notation for the genre and office objects.
+    (Eg. [AV] Antiphon verse --> AV)
     """
 
     def label_from_instance(self, obj):
