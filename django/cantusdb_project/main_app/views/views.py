@@ -1,7 +1,7 @@
 import csv
 from django.http.response import JsonResponse
 from django.http import HttpResponse, HttpResponseNotFound
-from django.shortcuts import render
+from django.shortcuts import render, redirect
 from django.urls.base import reverse
 from main_app.models import (
     Century,
@@ -175,7 +175,9 @@ def csv_export(request, source_id):
     except:
         raise Http404("This source does not exist")
 
-    if not source.published:
+    display_unpublished = request.user.is_authenticated
+
+    if (not source.published) and (not display_unpublished):
         raise PermissionDenied
 
     # "4064" is the segment id of the sequence DB, sources in that segment have sequences instead of chants
@@ -250,6 +252,10 @@ def csv_export(request, source_id):
         )
 
     return response
+
+
+def csv_export_redirect_from_old_path(request, source_id):
+    return redirect(reverse("csv-export", args=[source_id]))
 
 
 def contact(request):

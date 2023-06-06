@@ -296,9 +296,14 @@ urlpatterns = [
         name="items-count",
     ),
     path(
-        "csv/<str:source_id>",
+        "source/<str:source_id>/csv/",
         views.csv_export,
         name="csv-export",
+    ),
+    path(
+        "sites/default/files/csv/<str:source_id>.csv",
+        views.csv_export_redirect_from_old_path,
+        name="csv-export-old-path",
     ),
     path(
         "ajax/concordance/<str:cantus_id>",
