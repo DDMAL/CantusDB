@@ -88,7 +88,7 @@ def syllabize_melody(volpiano):
     # if a chant essentially has no volpiano, bail out early.
     volpiano = volpiano.strip()
     if not volpiano:
-        return None
+        return []
 
     # the clef in volpiano should be 1--- with three dashes, if missing any dash, insert it
     if volpiano[1] != "-":
