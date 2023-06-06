@@ -175,7 +175,9 @@ def csv_export(request, source_id):
     except:
         raise Http404("This source does not exist")
 
-    if not source.published:
+    display_unpublished = request.user.is_authenticated
+
+    if (not source.published) and (not display_unpublished):
         raise PermissionDenied
 
     # "4064" is the segment id of the sequence DB, sources in that segment have sequences instead of chants
