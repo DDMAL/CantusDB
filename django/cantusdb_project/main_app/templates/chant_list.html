@@ -53,6 +53,8 @@
 
             </form>
 
+            {% if chants %}
+
             <table class="table table-responsive table-sm table-bordered small">
                 <thead>
                     <tr>
@@ -121,6 +123,7 @@
                 </tbody>
             </table>
             {% include "pagination.html" %}
+            {% endif %}
         </div>
     
         <div class="col p-0 sidebar">
