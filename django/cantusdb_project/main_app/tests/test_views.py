@@ -3508,7 +3508,7 @@ class JsonSourcesExportTest(TestCase):
         self.assertEqual(sample_item_keys, ["csv"])
 
         # the single value should be a link in form `cantusdatabase.com/csv/{source.id}`
-        expected_substring = f"/csv/{sample_id}"
+        expected_substring = f"source/{sample_id}/csv"
         sample_item_value = list(sample_item.values())[0]
         self.assertIn(expected_substring, sample_item_value)
 
@@ -3673,8 +3673,6 @@ class CsvExportTest(TestCase):
         source = make_fake_source(published=True)
         response_1 = self.client.get(reverse("csv-export", args=[source.id]))
         self.assertEqual(response_1.status_code, 200)
-        response_2 = self.client.get(f"/csv/{source.id}")
-        self.assertEqual(response_2.status_code, 200)
 
     def test_content(self):
         NUM_CHANTS = 5
