@@ -84,6 +84,12 @@ def syllabize_text(text, pre_syllabized=False):
 
 
 def syllabize_melody(volpiano):
+    # there exist several chants in the database whose volpiano is just `\n` -
+    # if a chant essentially has no volpiano, bail out early.
+    volpiano = volpiano.strip()
+    if not volpiano:
+        return []
+
     # the clef in volpiano should be 1--- with three dashes, if missing any dash, insert it
     if volpiano[1] != "-":
         volpiano = volpiano[:1] + "-" + volpiano[1:]
