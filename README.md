@@ -24,6 +24,7 @@ Discrepancies between text stored in the CantusDB database and the manuscript te
   - Articles were manually copied from OldCantus to New, and when I initially did this, I preserved the date but not the time. It's fine that most of the timestamps say "00:00".
 - Chant Search:
   - New Cantus will do a full text search by keyword by default whereas OldCantus will display options to do either a full text search or a Cantus Index search (if the user clicks on the main Chant Search menu option)
+- Provenance detail page - on OldCantus, the Provenance Detail page displays only the provenance's name/title. On NewCantus, this page displays a list of sources that have this provenance.
 - Several of the APIs from OldCantus are not implemented in NewCantus, or are implemented differently:
   - json-activity (accessed via https://cantus.uwaterloo.ca/json-activity and https://cantus.uwaterloo.ca/json-activity?all) is not implemented in NewCantus ([Discussion](https://github.com/DDMAL/CantusDB/issues/126))
   - json-analysis-export (accessed, we think, via [https://cantus.uwaterloo.ca/json-analysis-export/?src=\<source id\>](https://cantus.uwaterloo.ca/json-analysis-export/?src=123591)) is not implemented in NewCantus ([Discussion](https://github.com/DDMAL/CantusDB/issues/124))
