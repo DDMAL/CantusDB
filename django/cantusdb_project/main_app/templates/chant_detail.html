@@ -43,59 +43,59 @@
                     {% endif %}
                 </div>
 
-                <div class="row">
+                <div class="form-row">
                     {% if chant.folio %}
-                        <div class="col-2">
+                        <div class="form-group col-lg-2  col-sm-6 col-6">
                             <dt>Folio</dt>
                             <dd>{{ chant.folio }}</dd>
                         </div>
                     {% endif %}
 
                     {% if chant.c_sequence is not None %} {# check that it isn't None, since sometimes c_sequence is 0 #}
-                        <div class="col-10">
+                        <div class="form-group col-lg-2  col-sm-6 col-6">
                             <dt>Sequence</dt>
                             <dd>{{ chant.c_sequence }}</dd>
                         </div>
                     {% endif %}
                 </div>
                 
-                <div class="row">
+                <div class="form-row">
                     {% if chant.feast %}
-                        <div class="col-2">
+                        <div class="form-group col-lg-2  col-sm-6 col-6">
                             <dt>Feast</dt>
                             <dd>
                                 <a href="{% url 'feast-detail' chant.feast.id %}" title="{{ chant.feast.description }}">{{ chant.feast.name }}</a>
                             </dd>
                         </div>
                     {% endif %}
-
+                
                     {% if chant.office %}
-                        <div class="col-2">
+                        <div class="form-group col-lg-2 col-sm-6 col-6">
                             <dt>Office/Mass</dt>
                             <dd>
                                 <a href="{% url 'office-detail' chant.office.id %}" title="{{ chant.office.description }}">{{ chant.office.name }}</a>
                             </dd>
                         </div>
                     {% endif %}
-
+                
                     {% if chant.genre %}
-                        <div class="col-2">
+                        <div class="form-group col-lg-2 col-sm-6 col-6">
                             <dt>Genre</dt>
                             <dd>
                                 <a href="{% url 'genre-detail' chant.genre.id %}" title="{{ chant.genre.description }}">{{ chant.genre.name }}</a>
                             </dd>
                         </div>
                     {% endif %}
-
+                
                     {% if chant.position %}
-                        <div class="col-2">
+                        <div class="form-group col-lg-2 col-sm-6 col-6">
                             <dt>Position</dt>
                             <dd>{{ chant.position }}</dd>
                         </div>
                     {% endif %}
-
+                
                     {% if chant.cantus_id %}
-                        <div class="col-2">
+                        <div class="form-group col-lg-2 col-sm-6 col-6">
                             <dt>Cantus ID</dt>
                             <dd>
                                 <a href="{{ chant.get_ci_url }}" target="_blank">
@@ -104,14 +104,15 @@
                             </dd>
                         </div>
                     {% endif %}
-
+                
                     {% if chant.mode %}
-                        <div class="col-2">
+                        <div class="form-group col-lg-2 col-sm-6 col-6">
                             <dt>Mode</dt>
                             <dd>{{ chant.mode }}</dd>
                         </div>
                     {% endif %}
                 </div>
+                
 
                 <div class="row">
                     {% if chant.finalis %}
@@ -237,7 +238,7 @@
                             </tbody>
                         </table>
                     </small>
-                    <table id="concordanceTable" class="table table-bordered table-sm small" style="table-layout: fixed; width: 100%;">
+                    <table id="concordanceTable" class="table table-responsive table-bordered table-sm small" style="table-layout: fixed; width: 100%;">
                         <thead>
                             <tr>
                                 <th scope="col" class="text-wrap" style="width:15%" title="Siglum">Siglum</th>
