@@ -36,6 +36,10 @@
                     <button type="submit" class="btn btn-dark" id="btn-submit">
                         Log in
                     </button>
+                    <br><br>
+                    <div class="form-group">
+                        Forgotten your password? <a href="{% url "password_reset" %}">Request a new password</a>
+                    </div>
                     <input type="hidden" name="next" value="{{ next }}">
                 </form>
             </div>
