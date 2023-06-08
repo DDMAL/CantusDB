@@ -1,8 +1,9 @@
 import csv
 from django.http.response import JsonResponse
 from django.http import HttpResponse, HttpResponseNotFound
-from django.shortcuts import render
+from django.shortcuts import render, redirect
 from django.urls.base import reverse
+from articles.models import Article
 from main_app.models import (
     Century,
     Chant,
@@ -23,6 +24,10 @@ from django.http import Http404
 from django.contrib.auth import update_session_auth_hash
 from django.contrib.auth.forms import PasswordChangeForm
 from django.core.exceptions import PermissionDenied
+from django.urls import resolve, reverse
+from django.urls.exceptions import Resolver404
+
+from users.models import User
 
 
 @login_required
@@ -620,3 +625,40 @@ def content_overview(request):
     return render(
         request, "content_overview.html", {"objects": recently_updated_50_objects}
     )
+
+def redirect_node_url(request, pk):
+    not_found = handle404(request, HttpResponseNotFound)
+    if pk >= 1_000_000:
+        return not_found
+    
+    # chant, source, sequence, article
+    possible_types = [
+        (Chant, 'chant-detail'),
+        (Source, 'source-detail'),
+        (Sequence, 'sequence-detail'),
+        (Article, 'article-detail')
+    ]
+
+    user_id = get_user_id(pk)
+    if get_user_id(pk) is not None:
+        return redirect('user-detail', user_id)
+    
+    response = next((redirect(view, pk) for (rec_type, view) in possible_types if record_exists(rec_type, pk)), not_found)
+    return response
+
+# used to determine whether record of specific type (chant, source, sequence, article) exists for a given pk
+def record_exists(rec_type, pk):
+    try:
+        result = rec_type.objects.get(id=pk)
+        print(f'result: {result}')
+        return True
+    except rec_type.DoesNotExist:
+        return False
+
+# special case for User (using indexer ID)
+def get_user_id(pk):
+    try:
+        result = User.objects.get(old_indexer_id=pk)
+        return result.id
+    except User.DoesNotExist:
+        return None
