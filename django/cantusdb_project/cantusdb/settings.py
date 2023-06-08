@@ -167,11 +167,11 @@ EMAIL_BACKEND = "django.core.mail.backends.smtp.EmailBackend"
 
 EMAIL_HOST = "email-smtp.us-west-2.amazonaws.com"
 EMAIL_PORT = 587
-EMAIL_HOST_USER = os.getenv("AWS_USERNAME")
-EMAIL_HOST_PASSWORD = os.getenv("AWS_PASSWORD")
+EMAIL_HOST_USER = os.getenv("AWS_EMAIL_HOST_USER")
+EMAIL_HOST_PASSWORD = os.getenv("AWS_EMAIL_HOST_PASSWORD")
 EMAIL_USE_TLS = True
 
-DEFAULT_FROM_EMAIL = "noreply@cantusdb.simssa.ca"
+DEFAULT_FROM_EMAIL = "noreply@cantusdatabase.simssa.ca"
 
 INTERNAL_IPS = [
     "127.0.0.1",
