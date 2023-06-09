@@ -1,4 +1,4 @@
-from django.urls import include, path
+from django.urls import include, path, reverse
 from django.contrib.auth.views import (
     PasswordResetView,
     PasswordResetDoneView,
@@ -105,40 +105,39 @@ urlpatterns = [
     path(
         # here, user can initiate a request to send a password reset email
         "reset-password/",
-        PasswordResetView.as_view(template_name="registration/password_reset.html"),
-        name="password_reset",
+        PasswordResetView.as_view(
+            template_name="registration/reset_password.html",
+            email_template_name="registration/reset_password_email.html",
+            success_url=reverse("reset_password_done"),
+        ),
+        name="reset_password",
     ),
     path(
         # we display this page once the password reset email has been sent
         "reset-password-sent/",
         PasswordResetDoneView.as_view(
-            template_name="registration/password_reset_sent.html"
+            template_name="registration/reset_password_sent.html",
         ),
-        name="password_reset_done",
+        name="reset_password_done",
     ),
     path(
         # here, the user can specify their new password
         "reset/<uidb64>/<token>",
-        # Template filename below includes an intentional trailing underscore.
-        # Without this extra underscore, django will find a django built-in template when
-        # it looks for registration/password_reset_confirm.html, rather than finding our
-        # own custom template
         PasswordResetConfirmView.as_view(
-            template_name="registration/password_reset_confirm_.html"
+            template_name="registration/reset_password_confirm.html",
+            success_url=reverse("reset_password_complete"),
         ),
-        name="password_reset_confirm",
+        name="reset_password_confirm",
     ),
     path(
         # we display this page once a user has completed a password reset
         # depending on whether their attempt was successful, this page either shows
         # a success message or a non-success message.
         "reset-password-complete/",
-        # Template filename below includes an intentional trailing underscore. See
-        # comment in previous path(), above.
         PasswordResetCompleteView.as_view(
-            template_name="registration/password_reset_complete_.html"
+            template_name="registration/reset_password_complete.html"
         ),
-        name="password_reset_complete",
+        name="reset_password_complete",
     ),
     # century
     path("century/<int:pk>", CenturyDetailView.as_view(), name="century-detail"),
