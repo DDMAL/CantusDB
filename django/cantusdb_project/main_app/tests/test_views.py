@@ -3830,3 +3830,19 @@ class NodeURLRedirectTest(TestCase):
         print(f'url: {url}')
         response_1 = self.client.get(reverse("redirect-node-url", args=[over_limit_node_id]))
         self.assertEqual(response_1.status_code, 404)
+
+class IndexerRedirectTest(TestCase):
+    def setUp(self):
+        self.client = Client()
+
+    def test_indexer_redirect_good(self):
+        example_indexer_id = 710908 # Junhao Wang
+        example_matching_user_id = 251435
+        User.objects.create(id=example_matching_user_id, old_indexer_id=example_indexer_id)
+        response_1 = self.client.get(reverse("redirect-indexer", args=[example_indexer_id]))
+        self.assertEqual(response_1.status_code, 302)
+    
+    def test_indexer_redirect_bad(self):
+        example_bad_indexer_id = 123456
+        response_1 = self.client.get(reverse("redirect-indexer", args=[example_bad_indexer_id]))
+        self.assertEqual(response_1.status_code, 404)

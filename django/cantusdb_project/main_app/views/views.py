@@ -684,3 +684,17 @@ def get_user_id(pk: int) -> int:
         return result.id
     except User.DoesNotExist:
         return None
+
+def redirect_indexer(request, pk: int) -> HttpResponse:
+    """
+    A function that will redirect /indexer/ URLs from OldCantus to their corresponding /user/ page in NewCantus.
+    This makes NewCantus links backwards compatible for users who may have bookmarked these types of URLs in OldCantus.
+
+    Takes in a request and the Indexer ID as arguments.
+    Returns the matUser page in NewCantus if it exists and a 404 otherwise.
+    """
+    user_id = get_user_id(pk)
+    if get_user_id(pk) is not None:
+        return redirect('user-detail', user_id)
+    
+    return HttpResponseNotFound()
