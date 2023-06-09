@@ -18,14 +18,14 @@ from main_app.models import (
     Source,
 )
 from django.contrib.auth.decorators import login_required, user_passes_test
+from main_app.models.base_model import BaseModel
 from next_chants import next_chants
 from django.contrib import messages
 from django.http import Http404
 from django.contrib.auth import update_session_auth_hash
 from django.contrib.auth.forms import PasswordChangeForm
 from django.core.exceptions import PermissionDenied
-from django.urls import resolve, reverse
-from django.urls.exceptions import Resolver404
+from django.urls import reverse
 
 from users.models import User
 
@@ -626,8 +626,20 @@ def content_overview(request):
         request, "content_overview.html", {"objects": recently_updated_50_objects}
     )
 
-def redirect_node_url(request, pk):
-    not_found = handle404(request, HttpResponseNotFound)
+def redirect_node_url(request, pk: int) -> HttpResponse:
+    """
+    A function that will redirect /node/ URLs from OldCantus to their corresponding page in NewCantus.
+    This makes NewCantus links backwards compatible for users who may have bookmarked these types of URLs in OldCantus.
+    In addition, this function (paired with get_user_id() below) account for the different numbering systems in both versions of CantusDB, notably for /indexer/ paths which are now at /user/.
+
+    Takes in a request and the primary key (ID following /node/ in the URL) as arguments.
+    Returns the matching page in NewCantus if it exists and a 404 otherwise.
+    """
+    not_found = HttpResponseNotFound()
+    
+    # all IDs above this value are created in NewCantus and thus could have conflicts between types.
+    # this number is a placeholder and will be updated post-migration.
+    # we will manually create (unpublished) dummy objects in the database to ensure that all subqequent objects created will have IDs above this number.
     if pk >= 1_000_000:
         return not_found
     
@@ -643,11 +655,14 @@ def redirect_node_url(request, pk):
     if get_user_id(pk) is not None:
         return redirect('user-detail', user_id)
     
+    # the next() method will call record_exists() iteratively, passing in each of the object types and the ID.
+    # - if an object is found, a redirect() call to the appropriate view is returned
+    # - if it reaches the end of the types with finding an existing object, a 404 will be returned
     response = next((redirect(view, pk) for (rec_type, view) in possible_types if record_exists(rec_type, pk)), not_found)
     return response
 
 # used to determine whether record of specific type (chant, source, sequence, article) exists for a given pk
-def record_exists(rec_type, pk):
+def record_exists(rec_type: BaseModel, pk: int) -> bool:
     try:
         result = rec_type.objects.get(id=pk)
         print(f'result: {result}')
@@ -655,8 +670,15 @@ def record_exists(rec_type, pk):
     except rec_type.DoesNotExist:
         return False
 
-# special case for User (using indexer ID)
-def get_user_id(pk):
+def get_user_id(pk: int) -> int:
+    """
+    A function that and finds the matching User ID in NewCantus for an Indexer ID in OldCantus.
+    This is stored in the User table's old_indexer_id column.
+    This is necessary because indexers were originally stored in the general Node table in OldCantus, but are now represented as users in NewCantus.
+    
+    Takes in an indexer ID from OldCantus as an argument.
+    Returns the user ID from NewCantus if a match is found and None otherwise.
+    """
     try:
         result = User.objects.get(old_indexer_id=pk)
         return result.id

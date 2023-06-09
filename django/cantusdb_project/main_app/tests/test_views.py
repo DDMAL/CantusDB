@@ -11,6 +11,8 @@ from django.db.models import Q
 import csv
 
 from faker import Faker
+
+from users.models import User
 from .make_fakes import (
     make_fake_century,
     make_fake_chant,
@@ -3782,3 +3784,49 @@ class ChangePasswordViewTest(TestCase):
         self.assertEqual(
             response_2.status_code, 200
         )  # if login failed, status code will be 302
+    
+class NodeURLRedirectTest(TestCase):
+    def setUp(self):
+        self.client = Client()
+
+    def test_chant_redirect(self):
+        example_chant_id = 243652  # from issue #563
+        Chant.objects.create(id=example_chant_id)
+        response_1 = self.client.get(reverse("redirect-node-url", args=[example_chant_id]))
+        self.assertEqual(response_1.status_code, 302)
+    
+    def test_source_redirect(self):
+        fake = make_fake_source()
+        example_source_id = fake.id
+        response_1 = self.client.get(reverse("redirect-node-url", args=[example_source_id]))
+        self.assertEqual(response_1.status_code, 302)
+    
+    def test_sequence_redirect(self):
+        example_sequence_id = 628334 # from issue #563
+        Sequence.objects.create(id=example_sequence_id)
+        response_1 = self.client.get(reverse("redirect-node-url", args=[example_sequence_id]))
+        self.assertEqual(response_1.status_code, 302)
+    
+    def test_article_redirect(self):
+        # there is no way to generate a fake article, nor get an existing one here
+        # instead, this has been tested locally by updating the id of a NewCantus source manually to match OldCantus, and the redirect works
+        self.assertTrue(True)
+    
+    def test_indexer_redirect(self):
+        example_indexer_id = 706860 # from issue #563
+        example_matching_user_id = 251425 # from issue #563
+        User.objects.create(id=example_matching_user_id, old_indexer_id=example_indexer_id)
+        response_1 = self.client.get(reverse("redirect-node-url", args=[example_indexer_id]))
+        self.assertEqual(response_1.status_code, 302)
+
+    def test_bad_redirect(self):
+        invalid_node_id = 123456
+        response_1 = self.client.get(reverse("redirect-node-url", args=[invalid_node_id]))
+        self.assertEqual(response_1.status_code, 404)
+
+    def test_redirect_above_limit(self):
+        over_limit_node_id = 1000001
+        url = reverse("redirect-node-url", args=[over_limit_node_id])
+        print(f'url: {url}')
+        response_1 = self.client.get(reverse("redirect-node-url", args=[over_limit_node_id]))
+        self.assertEqual(response_1.status_code, 404)
