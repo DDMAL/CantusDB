@@ -108,7 +108,7 @@ urlpatterns = [
         PasswordResetView.as_view(
             template_name="registration/reset_password.html",
             email_template_name="registration/reset_password_email.html",
-            success_url=reverse("reset_password_done"),
+            success_url="/reset-password-sent/",
         ),
         name="reset_password",
     ),
@@ -125,7 +125,7 @@ urlpatterns = [
         "reset/<uidb64>/<token>",
         PasswordResetConfirmView.as_view(
             template_name="registration/reset_password_confirm.html",
-            success_url=reverse("reset_password_complete"),
+            success_url="/reset-password-complete/",
         ),
         name="reset_password_confirm",
     ),
