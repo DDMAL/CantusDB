@@ -17,7 +17,7 @@ def make_fake_article(user=None):
         user = make_fake_user()
     article = Article.objects.create(
         # updated to use Faker (previously called method from make_fakes that no longer exists)
-        title=faker.text(12),
+        title=faker.sentence(),
         author=make_fake_user(),
     )
     return article
