@@ -1,4 +1,5 @@
 import csv
+from typing import Optional
 from django.http.response import JsonResponse
 from django.http import HttpResponse, HttpResponseNotFound
 from django.shortcuts import render, redirect
@@ -655,11 +656,13 @@ def redirect_node_url(request, pk: int) -> HttpResponse:
     if get_user_id(pk) is not None:
         return redirect('user-detail', user_id)
     
-    # the next() method will call record_exists() iteratively, passing in each of the object types and the ID.
-    # - if an object is found, a redirect() call to the appropriate view is returned
-    # - if it reaches the end of the types with finding an existing object, a 404 will be returned
-    response = next((redirect(view, pk) for (rec_type, view) in possible_types if record_exists(rec_type, pk)), not_found)
-    return response
+    for (rec_type, view) in possible_types:
+        if record_exists(rec_type, pk):
+            # if an object is found, a redirect() call to the appropriate view is returned
+            return redirect(view, pk)
+        
+    # if it reaches the end of the types with finding an existing object, a 404 will be returned
+    return not_found
 
 # used to determine whether record of specific type (chant, source, sequence, article) exists for a given pk
 def record_exists(rec_type: BaseModel, pk: int) -> bool:
@@ -670,7 +673,7 @@ def record_exists(rec_type: BaseModel, pk: int) -> bool:
     except rec_type.DoesNotExist:
         return False
 
-def get_user_id(pk: int) -> int:
+def get_user_id(pk: int) -> Optional[int]:
     """
     A function that and finds the matching User ID in NewCantus for an Indexer ID in OldCantus.
     This is stored in the User table's old_indexer_id column.
