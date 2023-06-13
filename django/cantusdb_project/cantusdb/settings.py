@@ -163,7 +163,14 @@ SITE_ID = 4
 # https://docs.djangoproject.com/en/3.2/releases/3.2/#customizing-type-of-auto-created-primary-keys
 DEFAULT_AUTO_FIELD = "django.db.models.AutoField"
 
-EMAIL_BACKEND = "django.core.mail.backends.console.EmailBackend"
+EMAIL_BACKEND = "django.core.mail.backends.smtp.EmailBackend"
+EMAIL_HOST = "email-smtp.us-west-2.amazonaws.com"
+EMAIL_PORT = 587
+EMAIL_HOST_USER = os.getenv("AWS_EMAIL_HOST_USER")
+EMAIL_HOST_PASSWORD = os.getenv("AWS_EMAIL_HOST_PASSWORD")
+EMAIL_USE_TLS = True
+
+DEFAULT_FROM_EMAIL = "noreply@cantusdatabase.simssa.ca"
 
 # automatically disable all panels which user can then manually enable
 DEBUG_TOOLBAR_CONFIG = {
