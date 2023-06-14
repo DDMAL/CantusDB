@@ -12,6 +12,7 @@ from main_app.tests.make_fakes import (
 # Create a Faker instance with locale set to Latin
 faker = Faker("la")
 
+
 def make_fake_article(user=None):
     if user is None:
         user = make_fake_user()
