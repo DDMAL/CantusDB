@@ -1,4 +1,10 @@
-from django.urls import include, path
+from django.urls import include, path, reverse
+from django.contrib.auth.views import (
+    PasswordResetView,
+    PasswordResetDoneView,
+    PasswordResetConfirmView,
+    PasswordResetCompleteView,
+)
 from main_app.views import views
 import debug_toolbar
 from main_app.views.century import (
@@ -94,6 +100,44 @@ urlpatterns = [
         "change-password/",
         views.change_password,
         name="change-password",
+    ),
+    # password reset views
+    path(
+        # here, user can initiate a request to send a password reset email
+        "reset-password/",
+        PasswordResetView.as_view(
+            template_name="registration/reset_password.html",
+            email_template_name="registration/reset_password_email.html",
+            success_url="/reset-password-sent/",
+        ),
+        name="reset_password",
+    ),
+    path(
+        # we display this page once the password reset email has been sent
+        "reset-password-sent/",
+        PasswordResetDoneView.as_view(
+            template_name="registration/reset_password_sent.html",
+        ),
+        name="reset_password_done",
+    ),
+    path(
+        # here, the user can specify their new password
+        "reset/<uidb64>/<token>",
+        PasswordResetConfirmView.as_view(
+            template_name="registration/reset_password_confirm.html",
+            success_url="/reset-password-complete/",
+        ),
+        name="reset_password_confirm",
+    ),
+    path(
+        # we display this page once a user has completed a password reset
+        # depending on whether their attempt was successful, this page either shows
+        # a success message or a non-success message.
+        "reset-password-complete/",
+        PasswordResetCompleteView.as_view(
+            template_name="registration/reset_password_complete.html"
+        ),
+        name="reset_password_complete",
     ),
     # century
     path("century/<int:pk>", CenturyDetailView.as_view(), name="century-detail"),
@@ -296,9 +340,14 @@ urlpatterns = [
         name="items-count",
     ),
     path(
-        "csv/<str:source_id>",
+        "source/<str:source_id>/csv/",
         views.csv_export,
         name="csv-export",
+    ),
+    path(
+        "sites/default/files/csv/<str:source_id>.csv",
+        views.csv_export_redirect_from_old_path,
+        name="csv-export-old-path",
     ),
     path(
         "ajax/concordance/<str:cantus_id>",

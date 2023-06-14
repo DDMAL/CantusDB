@@ -45,6 +45,20 @@ class CommentForm(forms.ModelForm):
 """
 
 
+class NameModelChoiceField(forms.ModelChoiceField):
+    """
+    A custom ModelChoiceField that overrides the label_from_instance method
+    to display the object's name attribute instead of str(object).
+    This field is specifically designed for handling genre and office objects.
+    Rather than displaying the name along with its description, sometimes we
+    only want the shorthand notation for the genre and office objects.
+    (Eg. [AV] Antiphon verse --> AV)
+    """
+
+    def label_from_instance(self, obj):
+        return obj.name
+
+
 # 3 best
 class ChantCreateForm(forms.ModelForm):
     class Meta:
@@ -115,13 +129,19 @@ class ChantCreateForm(forms.ModelForm):
         help_text="Each folio starts with '1'.",
     )
 
-    office = forms.ModelChoiceField(
-        queryset=Office.objects.all().order_by("name"), required=False
+    # We use NameModelChoiceField here so the dropdown list of office/mass displays the name
+    # instead of [name] + description
+    office = NameModelChoiceField(
+        queryset=Office.objects.all().order_by("name"),
+        required=False,
     )
     office.widget.attrs.update({"class": "form-control custom-select custom-select-sm"})
 
-    genre = forms.ModelChoiceField(
-        queryset=Genre.objects.all().order_by("name"), required=False
+    # We use NameModelChoiceField here so the dropdown list of genres displays the name
+    # instead of [name] + description
+    genre = NameModelChoiceField(
+        queryset=Genre.objects.all().order_by("name"),
+        required=False,
     )
     genre.widget.attrs.update({"class": "form-control custom-select custom-select-sm"})
 
@@ -329,13 +349,19 @@ class ChantEditForm(forms.ModelForm):
     )
     feast.widget.attrs.update({"class": "form-control custom-select custom-select-sm"})
 
-    office = forms.ModelChoiceField(
-        queryset=Office.objects.all().order_by("name"), required=False
+    # We use NameModelChoiceField here so the dropdown list of office/mass displays the name
+    # instead of [name] + description
+    office = NameModelChoiceField(
+        queryset=Office.objects.all().order_by("name"),
+        required=False,
     )
     office.widget.attrs.update({"class": "form-control custom-select custom-select-sm"})
 
-    genre = forms.ModelChoiceField(
-        queryset=Genre.objects.all().order_by("name"), required=False
+    # We use NameModelChoiceField here so the dropdown list of genres displays the name
+    # instead of [name] + description
+    genre = NameModelChoiceField(
+        queryset=Genre.objects.all().order_by("name"),
+        required=False,
     )
     genre.widget.attrs.update({"class": "form-control custom-select custom-select-sm"})
 
@@ -430,13 +456,17 @@ class ChantProofreadForm(forms.ModelForm):
     )
     feast.widget.attrs.update({"class": "form-control custom-select custom-select-sm"})
 
-    office = forms.ModelChoiceField(
+    # We use NameModelChoiceField here so the dropdown list of office/mass displays the name
+    # instead of [name] + description
+    office = NameModelChoiceField(
         queryset=Office.objects.all().order_by("name"),
         required=False,
     )
     office.widget.attrs.update({"class": "form-control custom-select custom-select-sm"})
 
-    genre = forms.ModelChoiceField(
+    # We use NameModelChoiceField here so the dropdown list of genres displays the name
+    # instead of [name] + description
+    genre = NameModelChoiceField(
         queryset=Genre.objects.all().order_by("name"), required=False
     )
     genre.widget.attrs.update({"class": "form-control custom-select custom-select-sm"})
@@ -594,7 +624,9 @@ class SequenceEditForm(forms.ModelForm):
             "image_link": TextInputWidget(),
         }
 
-    genre = forms.ModelChoiceField(
+    # We use NameModelChoiceField here so the dropdown list of genres displays the name
+    # instead of [name] + description
+    genre = NameModelChoiceField(
         queryset=Genre.objects.all().order_by("name"), required=False
     )
     genre.widget.attrs.update({"class": "form-control custom-select custom-select-sm"})
