@@ -3864,7 +3864,9 @@ class NodeURLRedirectTest(TestCase):
         self.assertEqual(response_1.status_code, 404)
 
     def test_redirect_above_limit(self):
+        # generate dummy object with ID outside of valid range
         over_limit_node_id = 1000001
+        Chant.objects.create(id=over_limit_node_id)
 
         # ID above limit
         response_1 = self.client.get(reverse("redirect-node-url", args=[over_limit_node_id]))

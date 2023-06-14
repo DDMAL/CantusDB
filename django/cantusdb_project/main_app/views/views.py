@@ -27,8 +27,7 @@ from django.contrib.auth import update_session_auth_hash
 from django.contrib.auth.forms import PasswordChangeForm
 from django.core.exceptions import PermissionDenied
 from django.urls import reverse
-
-from users.models import User
+from django.contrib.auth import get_user_model
 
 
 @login_required
@@ -652,8 +651,8 @@ def redirect_node_url(request, pk: int) -> HttpResponse:
         (Article, 'article-detail')
     ]
 
-    user_id = get_user_id(pk)
-    if get_user_id(pk) is not None:
+    user_id = get_user_id_from_old_indexer_id(pk)
+    if get_user_id_from_old_indexer_id(pk) is not None:
         return redirect('user-detail', user_id)
     
     for (rec_type, view) in possible_types:
@@ -667,13 +666,12 @@ def redirect_node_url(request, pk: int) -> HttpResponse:
 # used to determine whether record of specific type (chant, source, sequence, article) exists for a given pk
 def record_exists(rec_type: BaseModel, pk: int) -> bool:
     try:
-        result = rec_type.objects.get(id=pk)
-        print(f'result: {result}')
+        rec_type.objects.get(id=pk)
         return True
     except rec_type.DoesNotExist:
         return False
 
-def get_user_id(pk: int) -> Optional[int]:
+def get_user_id_from_old_indexer_id(pk: int) -> Optional[int]:
     """
     A function that and finds the matching User ID in NewCantus for an Indexer ID in OldCantus.
     This is stored in the User table's old_indexer_id column.
@@ -683,7 +681,7 @@ def get_user_id(pk: int) -> Optional[int]:
     Returns the user ID from NewCantus if a match is found and None otherwise.
     """
     try:
-        result = User.objects.get(old_indexer_id=pk)
+        result = get_user_model().objects.get(old_indexer_id=pk)
         return result.id
-    except User.DoesNotExist:
+    except get_user_model().DoesNotExist:
         return None
