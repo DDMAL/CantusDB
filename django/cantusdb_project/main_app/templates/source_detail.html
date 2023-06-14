@@ -250,9 +250,11 @@
                                 <li>
                                     <a href="{% url "chant-create" source.id%}">Add new chant</a>
                                 </li>
-                                {% if source.number_of_chants %}
+                                {% if source.chant_set.all %}
                                     <li>
-                                        <a href="{% url "source-edit-chants" source.id%}">Edit chants (fulltext & volpiano editor)</a>
+                                        <a href="{% url "source-edit-chants" source.pk %}">
+                                            Full text &amp; volpiano editor
+                                        </a>
                                     </li>
                                 {% endif %}
                                 <li>
