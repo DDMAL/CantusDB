@@ -700,8 +700,8 @@ def redirect_indexer(request, pk: int) -> HttpResponse:
     Takes in a request and the Indexer ID as arguments.
     Returns the matUser page in NewCantus if it exists and a 404 otherwise.
     """
-    user_id = get_user_id(pk)
-    if get_user_id(pk) is not None:
+    user_id = get_user_id_from_old_indexer_id(pk)
+    if get_user_id_from_old_indexer_id(pk) is not None:
         return redirect('user-detail', user_id)
     
     return HttpResponseNotFound()
