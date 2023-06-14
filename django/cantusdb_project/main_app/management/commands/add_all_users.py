@@ -3,6 +3,10 @@ from django.core.management.base import BaseCommand
 import csv
 from django.contrib.auth.models import Group
 from main_app.models import Source, Chant
+import string
+import secrets
+
+ALPHABET: str = string.ascii_letters + string.digits
 
 
 class Command(BaseCommand):
@@ -28,10 +32,14 @@ class Command(BaseCommand):
                 if created:
                     user.first_name = name
                     user.last_name = surname
+
                     user.institution = institution
                     user.city = city
                     user.country = country
-                    user.set_password("cantusdb")
+
+                    password: str = "".join(secrets.choice(ALPHABET) for _ in range(32))
+                    user.set_password(password)
+
                     user.save()
 
                 if user.groups.first() is None:
