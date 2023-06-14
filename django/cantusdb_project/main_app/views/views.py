@@ -686,10 +686,11 @@ def get_user_id_from_old_indexer_id(pk: int) -> Optional[int]:
     Takes in an indexer ID from OldCantus as an argument.
     Returns the user ID from NewCantus if a match is found and None otherwise.
     """
+    User = get_user_model()
     try:
-        result = get_user_model().objects.get(old_indexer_id=pk)
+        result = User.objects.get(old_indexer_id=pk)
         return result.id
-    except get_user_model().DoesNotExist:
+    except User.DoesNotExist:
         return None
 
 def redirect_indexer(request, pk: int) -> HttpResponse:
@@ -698,7 +699,7 @@ def redirect_indexer(request, pk: int) -> HttpResponse:
     This makes NewCantus links backwards compatible for users who may have bookmarked these types of URLs in OldCantus.
 
     Takes in a request and the Indexer ID as arguments.
-    Returns the matUser page in NewCantus if it exists and a 404 otherwise.
+    Returns the matching User page in NewCantus if it exists and a 404 otherwise.
     """
     user_id = get_user_id_from_old_indexer_id(pk)
     if get_user_id_from_old_indexer_id(pk) is not None:
