@@ -32,6 +32,8 @@ class Command(BaseCommand):
                 if created:
                     user.first_name = name
                     user.last_name = surname
+                    full_name = " ".join((name, surname))
+                    user.full_name = full_name
 
                     user.institution = institution
                     user.city = city
