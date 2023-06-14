@@ -360,6 +360,12 @@ urlpatterns = [
         views.content_overview,
         name="content-overview",
     ),
+    # /node/ url redirects
+    path(
+        "node/<int:pk>",
+        views.redirect_node_url,
+        name="redirect-node-url",
+    ),
 ]
 
 handler404 = "main_app.views.views.handle404"

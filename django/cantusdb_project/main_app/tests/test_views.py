@@ -1,6 +1,7 @@
 import random
 from django.urls import reverse
 from django.test import TestCase
+from articles.tests.test_articles import make_fake_article
 from main_app.views.feast import FeastListView
 from django.http.response import JsonResponse
 import json
@@ -11,6 +12,8 @@ from django.db.models import Q
 import csv
 
 from faker import Faker
+
+from users.models import User
 from .make_fakes import (
     make_fake_century,
     make_fake_chant,
@@ -3805,3 +3808,89 @@ class ChangePasswordViewTest(TestCase):
         self.assertEqual(
             response_2.status_code, 200
         )  # if login failed, status code will be 302
+    
+class NodeURLRedirectTest(TestCase):
+    def setUp(self):
+        self.client = Client()
+
+    def test_chant_redirect(self):
+        # generate dummy object with ID in valid range
+        example_chant_id = random.randrange(1, 1000000)
+        Chant.objects.create(id=example_chant_id)
+
+        # find dummy object using /node/ path
+        response_1 = self.client.get(reverse("redirect-node-url", args=[example_chant_id]))
+        expected_url = reverse("chant-detail", args=[example_chant_id])
+        
+        self.assertEqual(response_1.status_code, 302)
+        self.assertEqual(response_1.url, expected_url)
+    
+    def test_source_redirect(self):
+        # generate dummy object with ID in valid range
+        example_source_id = random.randrange(1, 1000000)
+        source_1 = make_fake_source()
+        source_1.id = example_source_id
+        source_1.save()
+
+        # find dummy object using /node/ path
+        response_1 = self.client.get(reverse("redirect-node-url", args=[example_source_id]))
+        expected_url = reverse("source-detail", args=[example_source_id])
+        
+        self.assertEqual(response_1.status_code, 302)
+        self.assertEqual(response_1.url, expected_url)
+    
+    def test_sequence_redirect(self):
+        # generate dummy object with ID in valid range
+        example_sequence_id = random.randrange(1, 1000000)
+        Sequence.objects.create(id=example_sequence_id)
+
+        # find dummy object using /node/ path
+        response_1 = self.client.get(reverse("redirect-node-url", args=[example_sequence_id]))
+        expected_url = reverse("sequence-detail", args=[example_sequence_id])
+        
+        self.assertEqual(response_1.status_code, 302)
+        self.assertEqual(response_1.url, expected_url)
+
+    
+    def test_article_redirect(self):
+        # generate dummy object with ID in valid range
+        example_article_id = random.randrange(1, 1000000)
+        article_1 = make_fake_article()
+        article_1.id = example_article_id
+        article_1.save()
+
+        # find dummy object using /node/ path
+        response_1 = self.client.get(reverse("redirect-node-url", args=[example_article_id]))
+        expected_url = reverse("article-detail", args=[example_article_id])
+        
+        self.assertEqual(response_1.status_code, 302)
+        self.assertEqual(response_1.url, expected_url)
+    
+    def test_indexer_redirect(self):
+        # generate dummy object with ID in valid range
+        example_indexer_id = random.randrange(1, 1000000)
+        example_matching_user_id = random.randrange(1, 1000000)
+        User.objects.create(id=example_matching_user_id, old_indexer_id=example_indexer_id)
+        
+        # find dummy object using /node/ path
+        response_1 = self.client.get(reverse("redirect-node-url", args=[example_indexer_id]))
+        expected_url = reverse("user-detail", args=[example_matching_user_id])
+        
+        self.assertEqual(response_1.status_code, 302)
+        self.assertEqual(response_1.url, expected_url)
+
+    def test_bad_redirect(self):
+        invalid_node_id = random.randrange(1, 1000000)
+        
+        # try to find object that doesn't exist
+        response_1 = self.client.get(reverse("redirect-node-url", args=[invalid_node_id]))
+        self.assertEqual(response_1.status_code, 404)
+
+    def test_redirect_above_limit(self):
+        # generate dummy object with ID outside of valid range
+        over_limit_node_id = 1000001
+        Chant.objects.create(id=over_limit_node_id)
+
+        # ID above limit
+        response_1 = self.client.get(reverse("redirect-node-url", args=[over_limit_node_id]))
+        self.assertEqual(response_1.status_code, 404)
