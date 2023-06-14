@@ -366,6 +366,12 @@ urlpatterns = [
         views.redirect_node_url,
         name="redirect-node-url",
     ),
+    # /indexer/ url redirects
+    path(
+        "indexer/<int:pk>",
+        views.redirect_indexer,
+        name="redirect-indexer",
+    ),
 ]
 
 handler404 = "main_app.views.views.handle404"

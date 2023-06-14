@@ -3894,3 +3894,25 @@ class NodeURLRedirectTest(TestCase):
         # ID above limit
         response_1 = self.client.get(reverse("redirect-node-url", args=[over_limit_node_id]))
         self.assertEqual(response_1.status_code, 404)
+
+class IndexerRedirectTest(TestCase):
+    def setUp(self):
+        self.client = Client()
+
+    def test_indexer_redirect_good(self):
+        # generate dummy object
+        example_indexer_id = random.randrange(1, 1000000)
+        example_matching_user_id = random.randrange(1, 1000000)
+        User.objects.create(id=example_matching_user_id, old_indexer_id=example_indexer_id)
+        
+        # find dummy object using /indexer/ path
+        response_1 = self.client.get(reverse("redirect-indexer", args=[example_indexer_id]))
+        expected_url = reverse("user-detail", args=[example_matching_user_id])
+       
+        self.assertEqual(response_1.status_code, 302)
+        self.assertEqual(response_1.url, expected_url)
+    
+    def test_indexer_redirect_bad(self):
+        example_bad_indexer_id = random.randrange(1, 1000000)
+        response_1 = self.client.get(reverse("redirect-indexer", args=[example_bad_indexer_id]))
+        self.assertEqual(response_1.status_code, 404)
