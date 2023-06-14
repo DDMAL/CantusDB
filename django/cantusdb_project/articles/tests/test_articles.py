@@ -1,20 +1,23 @@
 from django.test import TestCase
 from django.urls import reverse
 from articles.models import Article
+from faker import Faker
 from main_app.tests.make_fakes import (
-    make_fake_text,
     make_fake_user,
 )
 
 # run with `python -Wa manage.py test articles.tests.test_articles`
 # the -Wa flag tells Python to display deprecation warnings
 
+# Create a Faker instance with locale set to Latin
+faker = Faker("la")
 
 def make_fake_article(user=None):
     if user is None:
         user = make_fake_user()
     article = Article.objects.create(
-        title=make_fake_text(max_size=12),
+        # updated to use Faker (previously called method from make_fakes that no longer exists)
+        title=faker.sentence(),
         author=make_fake_user(),
     )
     return article
