@@ -3808,7 +3808,8 @@ class ChangePasswordViewTest(TestCase):
         self.assertEqual(
             response_2.status_code, 200
         )  # if login failed, status code will be 302
-    
+
+
 class NodeURLRedirectTest(TestCase):
     def setUp(self):
         self.client = Client()
@@ -3819,12 +3820,14 @@ class NodeURLRedirectTest(TestCase):
         Chant.objects.create(id=example_chant_id)
 
         # find dummy object using /node/ path
-        response_1 = self.client.get(reverse("redirect-node-url", args=[example_chant_id]))
+        response_1 = self.client.get(
+            reverse("redirect-node-url", args=[example_chant_id])
+        )
         expected_url = reverse("chant-detail", args=[example_chant_id])
-        
+
         self.assertEqual(response_1.status_code, 302)
         self.assertEqual(response_1.url, expected_url)
-    
+
     def test_source_redirect(self):
         # generate dummy object with ID in valid range
         example_source_id = random.randrange(1, 1000000)
@@ -3833,25 +3836,28 @@ class NodeURLRedirectTest(TestCase):
         source_1.save()
 
         # find dummy object using /node/ path
-        response_1 = self.client.get(reverse("redirect-node-url", args=[example_source_id]))
+        response_1 = self.client.get(
+            reverse("redirect-node-url", args=[example_source_id])
+        )
         expected_url = reverse("source-detail", args=[example_source_id])
-        
+
         self.assertEqual(response_1.status_code, 302)
         self.assertEqual(response_1.url, expected_url)
-    
+
     def test_sequence_redirect(self):
         # generate dummy object with ID in valid range
         example_sequence_id = random.randrange(1, 1000000)
         Sequence.objects.create(id=example_sequence_id)
 
         # find dummy object using /node/ path
-        response_1 = self.client.get(reverse("redirect-node-url", args=[example_sequence_id]))
+        response_1 = self.client.get(
+            reverse("redirect-node-url", args=[example_sequence_id])
+        )
         expected_url = reverse("sequence-detail", args=[example_sequence_id])
-        
+
         self.assertEqual(response_1.status_code, 302)
         self.assertEqual(response_1.url, expected_url)
 
-    
     def test_article_redirect(self):
         # generate dummy object with ID in valid range
         example_article_id = random.randrange(1, 1000000)
@@ -3860,30 +3866,38 @@ class NodeURLRedirectTest(TestCase):
         article_1.save()
 
         # find dummy object using /node/ path
-        response_1 = self.client.get(reverse("redirect-node-url", args=[example_article_id]))
+        response_1 = self.client.get(
+            reverse("redirect-node-url", args=[example_article_id])
+        )
         expected_url = reverse("article-detail", args=[example_article_id])
-        
+
         self.assertEqual(response_1.status_code, 302)
         self.assertEqual(response_1.url, expected_url)
-    
+
     def test_indexer_redirect(self):
         # generate dummy object with ID in valid range
         example_indexer_id = random.randrange(1, 1000000)
         example_matching_user_id = random.randrange(1, 1000000)
-        User.objects.create(id=example_matching_user_id, old_indexer_id=example_indexer_id)
-        
+        User.objects.create(
+            id=example_matching_user_id, old_indexer_id=example_indexer_id
+        )
+
         # find dummy object using /node/ path
-        response_1 = self.client.get(reverse("redirect-node-url", args=[example_indexer_id]))
+        response_1 = self.client.get(
+            reverse("redirect-node-url", args=[example_indexer_id])
+        )
         expected_url = reverse("user-detail", args=[example_matching_user_id])
-        
+
         self.assertEqual(response_1.status_code, 302)
         self.assertEqual(response_1.url, expected_url)
 
     def test_bad_redirect(self):
         invalid_node_id = random.randrange(1, 1000000)
-        
+
         # try to find object that doesn't exist
-        response_1 = self.client.get(reverse("redirect-node-url", args=[invalid_node_id]))
+        response_1 = self.client.get(
+            reverse("redirect-node-url", args=[invalid_node_id])
+        )
         self.assertEqual(response_1.status_code, 404)
 
     def test_redirect_above_limit(self):
@@ -3892,5 +3906,7 @@ class NodeURLRedirectTest(TestCase):
         Chant.objects.create(id=over_limit_node_id)
 
         # ID above limit
-        response_1 = self.client.get(reverse("redirect-node-url", args=[over_limit_node_id]))
+        response_1 = self.client.get(
+            reverse("redirect-node-url", args=[over_limit_node_id])
+        )
         self.assertEqual(response_1.status_code, 404)

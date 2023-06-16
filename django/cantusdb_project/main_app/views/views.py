@@ -632,6 +632,7 @@ def content_overview(request):
         request, "content_overview.html", {"objects": recently_updated_50_objects}
     )
 
+
 def redirect_node_url(request, pk: int) -> HttpResponse:
     """
     A function that will redirect /node/ URLs from OldCantus to their corresponding page in NewCantus.
@@ -642,32 +643,33 @@ def redirect_node_url(request, pk: int) -> HttpResponse:
     Returns the matching page in NewCantus if it exists and a 404 otherwise.
     """
     not_found = HttpResponseNotFound()
-    
+
     # all IDs above this value are created in NewCantus and thus could have conflicts between types.
     # this number is a placeholder and will be updated post-migration.
     # we will manually create (unpublished) dummy objects in the database to ensure that all subqequent objects created will have IDs above this number.
     if pk >= 1_000_000:
         return not_found
-    
+
     # chant, source, sequence, article
     possible_types = [
-        (Chant, 'chant-detail'),
-        (Source, 'source-detail'),
-        (Sequence, 'sequence-detail'),
-        (Article, 'article-detail')
+        (Chant, "chant-detail"),
+        (Source, "source-detail"),
+        (Sequence, "sequence-detail"),
+        (Article, "article-detail"),
     ]
 
     user_id = get_user_id_from_old_indexer_id(pk)
     if get_user_id_from_old_indexer_id(pk) is not None:
-        return redirect('user-detail', user_id)
-    
-    for (rec_type, view) in possible_types:
+        return redirect("user-detail", user_id)
+
+    for rec_type, view in possible_types:
         if record_exists(rec_type, pk):
             # if an object is found, a redirect() call to the appropriate view is returned
             return redirect(view, pk)
-        
+
     # if it reaches the end of the types with finding an existing object, a 404 will be returned
     return not_found
+
 
 # used to determine whether record of specific type (chant, source, sequence, article) exists for a given pk
 def record_exists(rec_type: BaseModel, pk: int) -> bool:
@@ -677,12 +679,13 @@ def record_exists(rec_type: BaseModel, pk: int) -> bool:
     except rec_type.DoesNotExist:
         return False
 
+
 def get_user_id_from_old_indexer_id(pk: int) -> Optional[int]:
     """
     A function that and finds the matching User ID in NewCantus for an Indexer ID in OldCantus.
     This is stored in the User table's old_indexer_id column.
     This is necessary because indexers were originally stored in the general Node table in OldCantus, but are now represented as users in NewCantus.
-    
+
     Takes in an indexer ID from OldCantus as an argument.
     Returns the user ID from NewCantus if a match is found and None otherwise.
     """
