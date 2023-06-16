@@ -3,7 +3,7 @@ from django.test import Client
 from django.contrib.auth import get_user_model
 from django.urls import reverse
 from main_app.models import Segment, Source
-from main_app.tests.make_fakes import make_fake_user
+from main_app.tests.make_fakes import make_fake_user, make_fake_source
 from main_app.tests.test_views import get_random_search_term
 
 # run with `python -Wa manage.py test users.tests`
@@ -62,17 +62,15 @@ class IndexerListViewTest(TestCase):
         indexer_with_no_source = make_fake_user()
 
         # generate published/unpublished sources and assign indexers to them
-        unpublished_source = Source.objects.create(
+        unpublished_source = make_fake_source(
             title="unpublished source", published=False
         )
         unpublished_source.inventoried_by.set([indexer_with_unpublished_source])
 
-        published_source = Source.objects.create(
-            title="published source", published=True
-        )
+        published_source = make_fake_source(title="published source", published=True)
         published_source.inventoried_by.set([indexer_with_published_source])
 
-        source_with_multiple_indexers = Source.objects.create(
+        source_with_multiple_indexers = make_fake_source(
             title="unpublished source with multiple indexers",
             published=False,
         )
@@ -94,9 +92,7 @@ class IndexerListViewTest(TestCase):
         Only public indexers should appear in the results
         """
         indexer_with_published_source = make_fake_user()
-        published_source = Source.objects.create(
-            title="published source", published=True
-        )
+        published_source = make_fake_source(title="published source", published=True)
         published_source.inventoried_by.set([indexer_with_published_source])
 
         # search with a random slice of first name
@@ -108,9 +104,7 @@ class IndexerListViewTest(TestCase):
 
     def test_search_country(self):
         indexer_with_published_source = make_fake_user()
-        published_source = Source.objects.create(
-            title="published source", published=True
-        )
+        published_source = make_fake_source(title="published source", published=True)
         published_source.inventoried_by.set([indexer_with_published_source])
 
         target = indexer_with_published_source.country
@@ -121,9 +115,7 @@ class IndexerListViewTest(TestCase):
 
     def test_search_city(self):
         indexer_with_published_source = make_fake_user()
-        published_source = Source.objects.create(
-            title="published source", published=True
-        )
+        published_source = make_fake_source(title="published source", published=True)
         published_source.inventoried_by.set([indexer_with_published_source])
 
         target = indexer_with_published_source.city
@@ -134,9 +126,7 @@ class IndexerListViewTest(TestCase):
 
     def test_search_institution(self):
         indexer_with_published_source = make_fake_user()
-        published_source = Source.objects.create(
-            title="published source", published=True
-        )
+        published_source = make_fake_source(title="published source", published=True)
         published_source.inventoried_by.set([indexer_with_published_source])
 
         target = indexer_with_published_source.institution
