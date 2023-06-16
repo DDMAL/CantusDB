@@ -412,47 +412,47 @@
                     </div>
                     <div class="col-md-3" id="login">
                         {% if not request.user.is_anonymous %}
-                            <h5>Admin Navigation</h5>
-                            <ul class="list-group list-group-flush">
-                                {% if request.user|has_group:"contributor" or request.user|has_group:"editor" or request.user|has_group:"project manager" %}
+                            {% if request.user|has_group:"contributor" or request.user|has_group:"editor" or request.user|has_group:"project manager" %}
+                                <h5>Admin Navigation</h5>
+                                <ul class="list-group list-group-flush">
                                     <li class="list-group-item p-0">
                                         <a href="{% url 'my-sources' %}">My Sources</a>
                                     </li>
                                     <li class="list-group-item p-0">
                                         <a href="{% url 'source-create' %}">Add Source</a>
                                     </li>
-                                {% endif %}
-                                {% if request.user|has_group:"project manager" %}
-                                    <li class="list-group-item p-0">
-                                        <a href="{% url 'admin:articles_article_add' %}">Add News</a>
-                                    </li>
-                                    <li class="list-group-item p-0">
-                                        <a href="{% url 'admin:main_app_feast_add' %}">Add Feast</a>
-                                    </li>
-                                    <li class="list-group-item p-0">
-                                        <a href="{% url 'indexer-list' %}">List of Indexers</a>
-                                    </li>
-                                    <li class="list-group-item p-0">
-                                        <a href="{% url 'admin:users_user_changelist' %}">Administer Users</a>
-                                    </li>
-                                    <li class="list-group-item p-0">
-                                        <a href="{% url 'admin:index' %}">Taxonomy Manager</a>
-                                    </li>
-                                    <li class="list-group-item p-0">
-                                        <a href="{% url 'content-overview' %}">Content Overview</a>
-                                    </li>
-                                {% endif %}
-                            </ul>
+                                    {% if request.user|has_group:"project manager" %}
+                                        <li class="list-group-item p-0">
+                                            <a href="{% url 'admin:articles_article_add' %}">Add News</a>
+                                        </li>
+                                        <li class="list-group-item p-0">
+                                            <a href="{% url 'admin:main_app_feast_add' %}">Add Feast</a>
+                                        </li>
+                                        <li class="list-group-item p-0">
+                                            <a href="{% url 'indexer-list' %}">List of Indexers</a>
+                                        </li>
+                                        <li class="list-group-item p-0">
+                                            <a href="{% url 'admin:users_user_changelist' %}">Administer Users</a>
+                                        </li>
+                                        <li class="list-group-item p-0">
+                                            <a href="{% url 'admin:index' %}">Taxonomy Manager</a>
+                                        </li>
+                                        <li class="list-group-item p-0">
+                                            <a href="{% url 'content-overview' %}">Content Overview</a>
+                                        </li>
+                                    {% endif %}
+                                </ul>
+                            {% endif %}
                             <h5>User Profile</h5>
                             <a href="{% url 'user-detail' request.user.id %}">{{ request.user }}</a>
                             |
                             <a href="{% url 'change-password' %}">Change Password</a>
                             |
-                            <a href="{% url 'logout' %}">Logout</a>
+                            <a href="{% url 'logout' %}">Log out</a>
                         {% else %}
                             <h5>Login for Contributors</h5>
                             <a href="{% url 'login' %}?next={{ request.path }}">
-                                <button type="button" class="btn btn-dark">Login</button>
+                                <button type="button" class="btn btn-dark">Log in</button>
                             </a>                        
                         {% endif %}
                     </div>
