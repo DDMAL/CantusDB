@@ -43,7 +43,7 @@
                         {% recent_articles %}
                     </div>
                 </div>
-            {% else %}
+            {% elif request.user|has_group:"contributor" or request.user|has_group:"editor" or request.user|has_group:"project manager" %}
                 <div class="card mt-3 w-100">
                     <div class="card-header">
                         My Sources
