@@ -199,6 +199,6 @@ def get_user_source_pagination(context):
         .distinct()
     )
     paginator = Paginator(user_created_sources, 10)
-    page_number = context["request"].GET.get("page2")
+    page_number = context["request"].GET.get("page")
     page_obj = paginator.get_page(page_number)
     return page_obj
