@@ -34,16 +34,7 @@
                 </script>
             </div>
 
-            {% if request.user.is_anonymous %}
-                <div class="card mt-3 w-100">
-                    <div class="card-header">
-                        What's New
-                    </div>
-                    <div class="card-body">
-                        {% recent_articles %}
-                    </div>
-                </div>
-            {% elif request.user|has_group:"contributor" or request.user|has_group:"editor" or request.user|has_group:"project manager" %}
+            {% if request.user|has_group:"contributor" or request.user|has_group:"editor" or request.user|has_group:"project manager" %}
                 <div class="card mt-3 w-100">
                     <div class="card-header">
                         My Sources
