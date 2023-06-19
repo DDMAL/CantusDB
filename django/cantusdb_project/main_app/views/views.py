@@ -648,7 +648,7 @@ def redirect_node_url(request, pk: int) -> HttpResponse:
     # we will manually create (unpublished) dummy objects in the database to ensure that all subqequent objects created will have IDs above this number.
     if pk >= 1_000_000:
         raise Http404("Invalid ID for /node/ path.")
-    
+
     # chant, source, sequence, article
     possible_types = [
         (Chant, "chant-detail"),
@@ -668,7 +668,6 @@ def redirect_node_url(request, pk: int) -> HttpResponse:
 
     # if it reaches the end of the types with finding an existing object, a 404 will be returned
     raise Http404("No record found matching the /node/ query.")
-
 
 
 # used to determine whether record of specific type (chant, source, sequence, article) exists for a given pk
@@ -707,6 +706,6 @@ def redirect_indexer(request, pk: int) -> HttpResponse:
     """
     user_id = get_user_id_from_old_indexer_id(pk)
     if get_user_id_from_old_indexer_id(pk) is not None:
-        return redirect('user-detail', user_id)
-    
+        return redirect("user-detail", user_id)
+
     raise Http404("No indexer found matching the query.")
