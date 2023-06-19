@@ -251,36 +251,40 @@
                     <h4><a href="{% url 'source-detail' source.id %}" title="{{ source.title }}">{{ source.siglum }}</a></h4>
                 </div>
                 <div class="card-body">
-                    <small>
-                        <!--a small selector of all folios of this source-->
-                        <select id="folioSelect" class="w-30">
-                            <option value="">Select a folio:</option>
-                            {% for folio in folios %}
-                                {% if folio == initial_GET_folio %}
-                                    <option value="{{ folio }}" selected>{{ folio }}</option>
-                                {% else %}
-                                    <option value="{{ folio }}">{{ folio }}</option>
-                                {% endif %}
-                            {% endfor %}
-                        </select>             
-                        
-                        {% if previous_folio %}
-                            <a href="{% url "source-edit-chants" source.id %}?folio={{ previous_folio }}">{{ previous_folio }} <</a>
-                        {% endif %}
-                        {% if next_folio %}
-                            &nbsp;<a href="{% url "source-edit-chants" source.id %}?folio={{ next_folio }}">> {{ next_folio }}</a>
-                        {% endif %}             
+                    {% if source.chant_set.exists %}
+                        <small>
+                            <!--a small selector of all folios of this source-->
+                            <select id="folioSelect" class="w-30">
+                                <option value="">Select a folio:</option>
+                                {% for folio in folios %}
+                                    {% if folio == initial_GET_folio %}
+                                        <option value="{{ folio }}" selected>{{ folio }}</option>
+                                    {% else %}
+                                        <option value="{{ folio }}">{{ folio }}</option>
+                                    {% endif %}
+                                {% endfor %}
+                            </select>             
+                            
+                            {% if previous_folio %}
+                                <a href="{% url "source-edit-chants" source.id %}?folio={{ previous_folio }}">{{ previous_folio }} <</a>
+                            {% endif %}
+                            {% if next_folio %}
+                                &nbsp;<a href="{% url "source-edit-chants" source.id %}?folio={{ next_folio }}">> {{ next_folio }}</a>
+                            {% endif %}             
 
-                        <br>
+                            <br>
 
-                        <select id="feastSelect" style="width: 200px;"> <!-- style attribute prevents select element from extending beyond left edge of div element -->
-                            <option value="">Select a feast:</option>
-                            {% for folio, feast in feasts_with_folios %}
-                                <option value="{{ feast.id }}">{{ folio }} - {{ feast.name }}</option>
-                            {% endfor %}
-                        </select>
-                        <br>
-                    </small>
+                            <select id="feastSelect" style="width: 200px;"> <!-- style attribute prevents select element from extending beyond left edge of div element -->
+                                <option value="">Select a feast:</option>
+                                {% for folio, feast in feasts_with_folios %}
+                                    <option value="{{ feast.id }}">{{ folio }} - {{ feast.name }}</option>
+                                {% endfor %}
+                            </select>
+                            <br>
+                        </small>
+                    {% else %}
+                        <small>Source contains no chants – <a href="{% url "chant-create" source.pk %}">Add new chant</a></small>
+                    {% endif %}
                     {% comment %} render if the user has selected a specific folio {% endcomment %}
                     {% if feasts_current_folio %}
                         {% for feast, chants in feasts_current_folio %}

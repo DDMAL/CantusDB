@@ -1410,6 +1410,9 @@ class SourceEditChantsView(LoginRequiredMixin, UserPassesTestMixin, UpdateView):
 
         # get all chants in the specified source
         chants = source.chant_set
+        if not source.chant_set.exists():
+            # return empty queryset
+            return chants.all()
         # filter the chants with optional search params
         if feast_id:
             chants = chants.filter(feast__id=feast_id)
@@ -1437,8 +1440,8 @@ class SourceEditChantsView(LoginRequiredMixin, UserPassesTestMixin, UpdateView):
             the Chant that we wish to edit (specified by the Chant's pk)
         """
         queryset = self.get_queryset()
-        if len(queryset) == 0:
-            raise Http404("There are no chants associated with this source to edit")
+        if queryset.count() == 0:
+            return None
         pk = self.request.GET.get("pk")
         # if a pk is not specified, this means that the user has not yet selected a Chant to edit
         # thus, we will not render the update form
@@ -1594,16 +1597,16 @@ class SourceEditChantsView(LoginRequiredMixin, UserPassesTestMixin, UpdateView):
                 json_response = None
             if json_response:
                 context["suggested_fulltext"] = json_response[0]["fulltext"]
-
-        chant = self.get_object()
-        if chant.volpiano:
-            has_syl_text = bool(chant.manuscript_syllabized_full_text)
-            text_and_mel = syllabize_text_and_melody(
-                chant.get_best_text_for_syllabizing(),
-                pre_syllabized=has_syl_text,
-                melody=chant.volpiano,
-            )
-            context["syllabized_text_with_melody"] = text_and_mel
+        if source.chant_set.exists():
+            chant = self.get_object()
+            if chant.volpiano:
+                has_syl_text = bool(chant.manuscript_syllabized_full_text)
+                text_and_mel = syllabize_text_and_melody(
+                    chant.get_best_text_for_syllabizing(),
+                    pre_syllabized=has_syl_text,
+                    melody=chant.volpiano,
+                )
+                context["syllabized_text_with_melody"] = text_and_mel
 
         return context
 
