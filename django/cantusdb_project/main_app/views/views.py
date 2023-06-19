@@ -642,14 +642,13 @@ def redirect_node_url(request, pk: int) -> HttpResponse:
     Takes in a request and the primary key (ID following /node/ in the URL) as arguments.
     Returns the matching page in NewCantus if it exists and a 404 otherwise.
     """
-    not_found = HttpResponseNotFound()
 
     # all IDs above this value are created in NewCantus and thus could have conflicts between types.
     # this number is a placeholder and will be updated post-migration.
     # we will manually create (unpublished) dummy objects in the database to ensure that all subqequent objects created will have IDs above this number.
     if pk >= 1_000_000:
-        return not_found
-
+        raise Http404("Invalid ID for /node/ path.")
+    
     # chant, source, sequence, article
     possible_types = [
         (Chant, "chant-detail"),
@@ -668,7 +667,8 @@ def redirect_node_url(request, pk: int) -> HttpResponse:
             return redirect(view, pk)
 
     # if it reaches the end of the types with finding an existing object, a 404 will be returned
-    return not_found
+    raise Http404("No record found matching the /node/ query.")
+
 
 
 # used to determine whether record of specific type (chant, source, sequence, article) exists for a given pk
@@ -707,6 +707,6 @@ def redirect_indexer(request, pk: int) -> HttpResponse:
     """
     user_id = get_user_id_from_old_indexer_id(pk)
     if get_user_id_from_old_indexer_id(pk) is not None:
-        return redirect("user-detail", user_id)
-
-    return HttpResponseNotFound()
+        return redirect('user-detail', user_id)
+    
+    raise Http404("No indexer found matching the query.")
