@@ -2024,8 +2024,8 @@ class SourceEditChantsViewTest(TestCase):
         source2 = make_fake_source()
 
         response = self.client.get(reverse("source-edit-chants", args=[source2.id]))
-        self.assertEqual(response.status_code, 404)
-        self.assertTemplateUsed(response, "404.html")
+        self.assertEqual(response.status_code, 200)
+        self.assertTemplateUsed(response, "chant_edit.html")
 
     def test_update_chant(self):
         source = make_fake_source()
