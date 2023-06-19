@@ -2020,7 +2020,7 @@ class SourceEditChantsViewTest(TestCase):
         self.assertEqual(response.status_code, 404)
         self.assertTemplateUsed(response, "404.html")
 
-        # trying to access chant-edit with a source that has no chant should return 404
+        # trying to access chant-edit with a source that has no chant should return 200
         source2 = make_fake_source()
 
         response = self.client.get(reverse("source-edit-chants", args=[source2.id]))
