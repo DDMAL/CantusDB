@@ -662,7 +662,7 @@ def redirect_node_url(request, pk: int) -> HttpResponse:
     if get_user_id_from_old_indexer_id(pk) is not None:
         return redirect("user-detail", user_id)
 
-    for (rec_type, view) in possible_types:
+    for rec_type, view in possible_types:
         if record_exists(rec_type, pk):
             # if an object is found, a redirect() call to the appropriate view is returned
             return redirect(view, pk)

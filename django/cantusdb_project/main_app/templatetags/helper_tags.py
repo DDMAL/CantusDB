@@ -5,6 +5,8 @@ from main_app.models import Source
 from articles.models import Article
 from django.utils.safestring import mark_safe
 from django.urls import reverse
+from django.core.paginator import Paginator
+
 
 register = template.Library()
 
@@ -187,3 +189,16 @@ def has_group(user, group_name):
         templates/base.html
     """
     return user.groups.filter(name=group_name).exists()
+
+
+@register.simple_tag(takes_context=True)
+def get_user_source_pagination(context):
+    user_created_sources = (
+        Source.objects.filter(created_by=context["user"])
+        .order_by("-date_created")
+        .distinct()
+    )
+    paginator = Paginator(user_created_sources, 10)
+    page_number = context["request"].GET.get("page")
+    page_obj = paginator.get_page(page_number)
+    return page_obj
