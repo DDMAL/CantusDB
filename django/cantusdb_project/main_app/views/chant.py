@@ -1597,16 +1597,16 @@ class SourceEditChantsView(LoginRequiredMixin, UserPassesTestMixin, UpdateView):
                 json_response = None
             if json_response:
                 context["suggested_fulltext"] = json_response[0]["fulltext"]
-        if source.chant_set.exists():
-            chant = self.get_object()
-            if chant.volpiano:
-                has_syl_text = bool(chant.manuscript_syllabized_full_text)
-                text_and_mel = syllabize_text_and_melody(
-                    chant.get_best_text_for_syllabizing(),
-                    pre_syllabized=has_syl_text,
-                    melody=chant.volpiano,
-                )
-                context["syllabized_text_with_melody"] = text_and_mel
+
+        chant = self.get_object()
+        if chant.volpiano:
+            has_syl_text = bool(chant.manuscript_syllabized_full_text)
+            text_and_mel = syllabize_text_and_melody(
+                chant.get_best_text_for_syllabizing(),
+                pre_syllabized=has_syl_text,
+                melody=chant.volpiano,
+            )
+            context["syllabized_text_with_melody"] = text_and_mel
 
         return context
 
