@@ -1560,9 +1560,10 @@ class SourceEditChantsView(LoginRequiredMixin, UserPassesTestMixin, UpdateView):
                 folio = folios[0]
                 # will be used in the template to pre-select the first folio in the drop-down
                 context["initial_GET_folio"] = folio
-            print("line 1560")
-            index = list(folios).index(folio)
-            print("line 1561")
+            try:
+                index = list(folios).index(folio)
+            except ValueError:
+                raise Http404("No chants within source match the specified folio")
             # get the previous and next folio, if available
             context["previous_folio"] = folios[index - 1] if index != 0 else None
             context["next_folio"] = (
