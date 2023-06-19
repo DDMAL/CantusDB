@@ -1525,7 +1525,7 @@ class SourceEditChantsView(LoginRequiredMixin, UserPassesTestMixin, UpdateView):
 
         # the following code block is sort of obsolete because if there is no Chant
         # in the Source, a 404 will be raised
-        if chants_in_source.count() == 0:
+        if not chants_in_source.exists():
             # these are needed in the selectors and hyperlinks on the right side of the page
             # if there's no chant in the source, there should be no options in those selectors
             context["folios"] = None
