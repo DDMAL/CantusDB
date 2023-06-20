@@ -73,7 +73,10 @@ def my_sources(user):
         link_with_siglum = make_source_detail_link_with_siglum(source)
         link_with_title = make_source_detail_link_with_title(source)
         add_new_chants_link = make_add_new_chants_link(source)
-        edit_chants_link = make_edit_chants_link(source)
+        if source.chant_set.exists():
+            edit_chants_link = make_edit_chants_link(source)
+        else:
+            edit_chants_link = ""
         template = """{sigl}<br>
         <small>
             <b>{title}</b><br>
