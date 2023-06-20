@@ -9,6 +9,7 @@ from main_app.models import Source
 # this will allow us to assign sources to users in the User admin page
 class SourceInline(admin.TabularInline):
     model = Source.current_editors.through
+    raw_id_fields = ["source"]
 
 
 class UserAdmin(BaseUserAdmin):
