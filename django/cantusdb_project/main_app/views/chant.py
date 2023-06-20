@@ -1410,6 +1410,9 @@ class SourceEditChantsView(LoginRequiredMixin, UserPassesTestMixin, UpdateView):
 
         # get all chants in the specified source
         chants = source.chant_set
+        if not source.chant_set.exists():
+            # return empty queryset
+            return chants.all()
         # filter the chants with optional search params
         if feast_id:
             chants = chants.filter(feast__id=feast_id)
@@ -1437,8 +1440,8 @@ class SourceEditChantsView(LoginRequiredMixin, UserPassesTestMixin, UpdateView):
             the Chant that we wish to edit (specified by the Chant's pk)
         """
         queryset = self.get_queryset()
-        if len(queryset) == 0:
-            raise Http404("There are no chants associated with this source to edit")
+        if queryset.count() == 0:
+            return None
         pk = self.request.GET.get("pk")
         # if a pk is not specified, this means that the user has not yet selected a Chant to edit
         # thus, we will not render the update form
@@ -1522,7 +1525,7 @@ class SourceEditChantsView(LoginRequiredMixin, UserPassesTestMixin, UpdateView):
 
         # the following code block is sort of obsolete because if there is no Chant
         # in the Source, a 404 will be raised
-        if chants_in_source.count() == 0:
+        if not chants_in_source.exists():
             # these are needed in the selectors and hyperlinks on the right side of the page
             # if there's no chant in the source, there should be no options in those selectors
             context["folios"] = None
@@ -1541,20 +1544,26 @@ class SourceEditChantsView(LoginRequiredMixin, UserPassesTestMixin, UpdateView):
         # the options for the feast selector on the right, same as the source detail page
         context["feasts_with_folios"] = get_feast_selector_options(source, folios)
 
-        # the user has selected a folio, or,
-        # they have just navigated to the edit-chant page (where the first folio gets
-        # selected by default)
-        if self.request.GET.get("folio") or (
-            not self.request.GET.get("folio") and not self.request.GET.get("feast")
-        ):
-            # if browsing chants on a specific folio
+        if self.request.GET.get("feast"):
+            # if there is a "feast" query parameter, it means the user has chosen a specific feast
+            # need to render a list of chants, grouped and ordered by folio and within each group,
+            # ordered by c_sequence
+            context["folios_current_feast"] = get_chants_with_folios(self.queryset)
+        else:
+            # the user has selected a folio, or,
+            # they have just navigated to the edit-chant page (where the first folio gets
+            # selected by default)
             if self.request.GET.get("folio"):
+                # if browsing chants on a specific folio
                 folio = self.request.GET.get("folio")
             else:
                 folio = folios[0]
                 # will be used in the template to pre-select the first folio in the drop-down
                 context["initial_GET_folio"] = folio
-            index = list(folios).index(folio)
+            try:
+                index = list(folios).index(folio)
+            except ValueError:
+                raise Http404("No chants within source match the specified folio")
             # get the previous and next folio, if available
             context["previous_folio"] = folios[index - 1] if index != 0 else None
             context["next_folio"] = (
@@ -1563,12 +1572,6 @@ class SourceEditChantsView(LoginRequiredMixin, UserPassesTestMixin, UpdateView):
             # if there is a "folio" query parameter, it means the user has chosen a specific folio
             # need to render a list of chants, ordered by c_sequence and grouped by feast
             context["feasts_current_folio"] = get_chants_with_feasts(self.queryset)
-
-        elif self.request.GET.get("feast"):
-            # if there is a "feast" query parameter, it means the user has chosen a specific feast
-            # need to render a list of chants, grouped and ordered by folio and within each group,
-            # ordered by c_sequence
-            context["folios_current_feast"] = get_chants_with_folios(self.queryset)
 
         # this boolean lets us decide whether to show the user the instructions or the editing form
         # if the pk hasn't been specified, a user hasn't selected a specific chant they want to edit
