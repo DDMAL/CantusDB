@@ -55,7 +55,7 @@ from main_app.views.source import (
     SourceListView,
 )
 from main_app.views.user import (
-    CustomLoginView,
+    LoginView,
     CustomLogoutView,
     IndexerListView,
     UserDetailView,
@@ -73,7 +73,7 @@ urlpatterns = [
     # login/logout/user
     path(
         "login/",
-        CustomLoginView.as_view(redirect_authenticated_user=True),
+        LoginView.as_view(redirect_authenticated_user=True),
         name="login",
     ),
     path(

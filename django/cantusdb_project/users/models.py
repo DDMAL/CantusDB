@@ -14,8 +14,6 @@ class User(AbstractUser):
     # i.e. users will log in with their emails
     username = None
     email = models.EmailField(unique=True)
-    # will be used to check if the user has changed the password assigned to them
-    changed_initial_password = models.BooleanField(default=False)
     # whether the user has an associated indexer object on old Cantus
     # if True, list the user in indexer-list page
     is_indexer = models.BooleanField(default=False)
