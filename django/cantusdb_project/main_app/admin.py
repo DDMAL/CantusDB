@@ -69,6 +69,7 @@ class SequenceAdmin(BaseModelAdmin):
 
 
 class SourceAdmin(BaseModelAdmin):
+    search_fields = ("siglum", "title")
     # from the Django docs:
     # Adding a ManyToManyField to this list will instead use a nifty unobtrusive JavaScript “filter” interface
     # that allows searching within the options. The unselected and selected options appear in two boxes side by side.
