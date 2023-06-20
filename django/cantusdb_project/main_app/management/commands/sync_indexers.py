@@ -69,12 +69,9 @@ def get_new_indexer(indexer_id):
             full_name=indexer_full_name,
             # assign random email to dummy users
             email=f"{faker.lexify('????????')}@fakeemail.com",
-            # leave the password empty for dummy users
-            # the password can't be empty in login form, so they can't log in
-            password="",
             old_indexer_id=indexer_id,
             is_indexer=True,
-        )
+        ).set_unusable_password()  # Set unusable password so the user can't log in or access reset password page
 
 
 class Command(BaseCommand):

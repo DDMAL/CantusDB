@@ -75,6 +75,10 @@ class Source(BaseModel):
         get_user_model(), related_name="sources_user_can_edit", blank=True
     )
 
+    ######
+    # The following five fields have nothing to do with user permissions,
+    # instead they give credit to users who are indexers and are displayed
+    # on the user detail page as sources the user has contributed to.
     inventoried_by = models.ManyToManyField(
         get_user_model(), related_name="inventoried_sources", blank=True
     )
@@ -90,6 +94,7 @@ class Source(BaseModel):
     other_editors = models.ManyToManyField(
         get_user_model(), related_name="edited_sources", blank=True
     )
+    ######
 
     segment = models.ForeignKey(
         "Segment", on_delete=models.PROTECT, blank=True, null=True

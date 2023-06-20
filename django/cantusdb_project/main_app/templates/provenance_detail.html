@@ -7,9 +7,9 @@
     </object>
     <h3>{{ provenance.name }}</h3>
     <ul>
-        {% for source in provenance.sources.all|dictsort:"title" %}
+        {% for source in sources|dictsort:"title" %}
             <li>
-                <a href="{% url 'source-detail' source.id %}">
+                <a href="{% url 'source-detail' source.id %}" title="{{ source.siglum }}">
                     {{ source.title }}
                 </a>
             </li>

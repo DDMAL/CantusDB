@@ -1,6 +1,7 @@
 import random
 from django.urls import reverse
 from django.test import TestCase
+from articles.tests.test_articles import make_fake_article
 from main_app.views.feast import FeastListView
 from django.http.response import JsonResponse
 import json
@@ -11,6 +12,8 @@ from django.db.models import Q
 import csv
 
 from faker import Faker
+
+from users.models import User
 from .make_fakes import (
     make_fake_century,
     make_fake_chant,
@@ -2017,12 +2020,12 @@ class SourceEditChantsViewTest(TestCase):
         self.assertEqual(response.status_code, 404)
         self.assertTemplateUsed(response, "404.html")
 
-        # trying to access chant-edit with a source that has no chant should return 404
+        # trying to access chant-edit with a source that has no chant should return 200
         source2 = make_fake_source()
 
         response = self.client.get(reverse("source-edit-chants", args=[source2.id]))
-        self.assertEqual(response.status_code, 404)
-        self.assertTemplateUsed(response, "404.html")
+        self.assertEqual(response.status_code, 200)
+        self.assertTemplateUsed(response, "chant_edit.html")
 
     def test_update_chant(self):
         source = make_fake_source()
@@ -2746,6 +2749,31 @@ class ProvenanceDetailViewTest(TestCase):
         self.assertEqual(response.status_code, 200)
         self.assertTemplateUsed(response, "base.html")
         self.assertTemplateUsed(response, "provenance_detail.html")
+
+    def test_listed_sources(self):
+        provenance = make_fake_provenance()
+        provenance_sources = [
+            make_fake_source(provenance=provenance, published=True) for _ in range(5)
+        ]
+        response = self.client.get(reverse("provenance-detail", args=[provenance.id]))
+        returned_sources = response.context["sources"]
+        for source in provenance_sources:
+            self.assertIn(source, returned_sources)
+
+    def test_unpublished_sources_not_listed(self):
+        provenance = make_fake_provenance()
+        published_sources = [
+            make_fake_source(provenance=provenance, published=True) for _ in range(5)
+        ]
+        unpublished_sources = [
+            make_fake_source(provenance=provenance, published=False) for _ in range(5)
+        ]
+        response = self.client.get(reverse("provenance-detail", args=[provenance.id]))
+        returned_sources = response.context["sources"]
+        for source in published_sources:
+            self.assertIn(source, returned_sources)
+        for source in unpublished_sources:
+            self.assertNotIn(source, returned_sources)
 
 
 class SequenceListViewTest(TestCase):
@@ -3508,7 +3536,7 @@ class JsonSourcesExportTest(TestCase):
         self.assertEqual(sample_item_keys, ["csv"])
 
         # the single value should be a link in form `cantusdatabase.com/csv/{source.id}`
-        expected_substring = f"/csv/{sample_id}"
+        expected_substring = f"source/{sample_id}/csv"
         sample_item_value = list(sample_item.values())[0]
         self.assertIn(expected_substring, sample_item_value)
 
@@ -3673,8 +3701,6 @@ class CsvExportTest(TestCase):
         source = make_fake_source(published=True)
         response_1 = self.client.get(reverse("csv-export", args=[source.id]))
         self.assertEqual(response_1.status_code, 200)
-        response_2 = self.client.get(f"/csv/{source.id}")
-        self.assertEqual(response_2.status_code, 200)
 
     def test_content(self):
         NUM_CHANTS = 5
@@ -3782,3 +3808,134 @@ class ChangePasswordViewTest(TestCase):
         self.assertEqual(
             response_2.status_code, 200
         )  # if login failed, status code will be 302
+
+
+class NodeURLRedirectTest(TestCase):
+    def setUp(self):
+        self.client = Client()
+
+    def test_chant_redirect(self):
+        # generate dummy object with ID in valid range
+        example_chant_id = random.randrange(1, 1000000)
+        Chant.objects.create(id=example_chant_id)
+
+        # find dummy object using /node/ path
+        response_1 = self.client.get(
+            reverse("redirect-node-url", args=[example_chant_id])
+        )
+        expected_url = reverse("chant-detail", args=[example_chant_id])
+
+        self.assertEqual(response_1.status_code, 302)
+        self.assertEqual(response_1.url, expected_url)
+
+    def test_source_redirect(self):
+        # generate dummy object with ID in valid range
+        example_source_id = random.randrange(1, 1000000)
+        source_1 = make_fake_source()
+        source_1.id = example_source_id
+        source_1.save()
+
+        # find dummy object using /node/ path
+        response_1 = self.client.get(
+            reverse("redirect-node-url", args=[example_source_id])
+        )
+        expected_url = reverse("source-detail", args=[example_source_id])
+
+        self.assertEqual(response_1.status_code, 302)
+        self.assertEqual(response_1.url, expected_url)
+
+    def test_sequence_redirect(self):
+        # generate dummy object with ID in valid range
+        example_sequence_id = random.randrange(1, 1000000)
+        Sequence.objects.create(id=example_sequence_id)
+
+        # find dummy object using /node/ path
+        response_1 = self.client.get(
+            reverse("redirect-node-url", args=[example_sequence_id])
+        )
+        expected_url = reverse("sequence-detail", args=[example_sequence_id])
+
+        self.assertEqual(response_1.status_code, 302)
+        self.assertEqual(response_1.url, expected_url)
+
+    def test_article_redirect(self):
+        # generate dummy object with ID in valid range
+        example_article_id = random.randrange(1, 1000000)
+        article_1 = make_fake_article()
+        article_1.id = example_article_id
+        article_1.save()
+
+        # find dummy object using /node/ path
+        response_1 = self.client.get(
+            reverse("redirect-node-url", args=[example_article_id])
+        )
+        expected_url = reverse("article-detail", args=[example_article_id])
+
+        self.assertEqual(response_1.status_code, 302)
+        self.assertEqual(response_1.url, expected_url)
+
+    def test_indexer_redirect(self):
+        # generate dummy object with ID in valid range
+        example_indexer_id = random.randrange(1, 1000000)
+        example_matching_user_id = random.randrange(1, 1000000)
+        User.objects.create(
+            id=example_matching_user_id, old_indexer_id=example_indexer_id
+        )
+
+        # find dummy object using /node/ path
+        response_1 = self.client.get(
+            reverse("redirect-node-url", args=[example_indexer_id])
+        )
+        expected_url = reverse("user-detail", args=[example_matching_user_id])
+
+        self.assertEqual(response_1.status_code, 302)
+        self.assertEqual(response_1.url, expected_url)
+
+    def test_bad_redirect(self):
+        invalid_node_id = random.randrange(1, 1000000)
+
+        # try to find object that doesn't exist
+        response_1 = self.client.get(
+            reverse("redirect-node-url", args=[invalid_node_id])
+        )
+        self.assertEqual(response_1.status_code, 404)
+
+    def test_redirect_above_limit(self):
+        # generate dummy object with ID outside of valid range
+        over_limit_node_id = 1000001
+        Chant.objects.create(id=over_limit_node_id)
+
+        # ID above limit
+        response_1 = self.client.get(
+            reverse("redirect-node-url", args=[over_limit_node_id])
+        )
+        self.assertEqual(response_1.status_code, 404)
+
+
+class IndexerRedirectTest(TestCase):
+    def setUp(self):
+        self.client = Client()
+
+    def test_indexer_redirect_good(self):
+        # generate dummy object
+        example_indexer_id = random.randrange(1, 1000000)
+        example_matching_user_id = random.randrange(1, 1000000)
+        User.objects.create(
+            id=example_matching_user_id, old_indexer_id=example_indexer_id
+        )
+
+        # find dummy object using /indexer/ path
+        response_1 = self.client.get(
+            reverse("redirect-indexer", args=[example_indexer_id])
+        )
+        expected_url = reverse("user-detail", args=[example_matching_user_id])
+
+        self.assertEqual(response_1.status_code, 302)
+        self.assertEqual(response_1.url, expected_url)
+
+    def test_indexer_redirect_bad(self):
+        example_bad_indexer_id = random.randrange(1, 1000000)
+        response_1 = self.client.get(
+            reverse("redirect-indexer", args=[example_bad_indexer_id])
+        )
+        self.assertEqual(response_1.status_code, 404)

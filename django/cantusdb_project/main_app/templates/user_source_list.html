@@ -16,16 +16,23 @@
                                     <b>{{ source.siglum }}</b>
                                 </a>
                             </td>
-                            <td class="h-25" style="width: 30%; text-align:center">
-                                <a href="{% url "source-edit-chants" source.pk %}">
-                                    Full text &amp; volpiano editor
-                                </a>
-                            </td>
-                            <td class="h-25" style="width: 30%; text-align:center">
-                                <a href="{% url "chant-proofread" source.pk %}">
-                                    Proofreading form
-                                </a>
-                            </td>
+                            {% if source.chant_set.all%}
+                                <td class="h-25" style="width: 30%; text-align:center">
+                                    <a href="{% url "source-edit-chants" source.pk %}">
+                                        Full text &amp; volpiano editor
+                                    </a>
+                                </td>
+                                <td class="h-25" style="width: 30%; text-align:center">
+                                    <a href="{% url "chant-proofread" source.pk %}">
+                                        Proofreading form
+                                    </a>
+                                </td>
+                            {% else %}
+                            <td class="h-25" style="width: 30%; text-align:center" colspan="2">
+                                Source contains no chants –
+                                <a href="{% url "chant-create" source.pk %}">Add new chant</a> 
+                            </td> 
+                            {% endif %}
                         </tr>
                     {% endfor %}
                 </tbody>
@@ -55,9 +62,11 @@
                                             &plus; Add new chant
                                         </a>
                                         <br>
-                                        <a href="{% url "source-edit-chants" my_source.pk %}">
-                                            &bull; Full text &amp; volpiano editor
-                                        </a>
+                                        {% if my_source.chant_set.all %}
+                                            <a href="{% url "source-edit-chants" my_source.pk %}">
+                                                Full text &amp; volpiano editor
+                                            </a>
+                                        {% endif %}
                                     </td>
                                 </tr>
                             {% endfor %}

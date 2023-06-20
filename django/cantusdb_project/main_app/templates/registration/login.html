@@ -1,5 +1,6 @@
 {% extends "base.html" %}
 {% block content %}
+<title>Log in | Cantus Manuscript Database</title>
 <div class="container">
     <div class="row">
         <div class="mr-3 p-3 col-md-8 bg-white rounded">
@@ -35,6 +36,10 @@
                     <button type="submit" class="btn btn-dark" id="btn-submit">
                         Log in
                     </button>
+                    <br><br>
+                    <div class="form-group">
+                        Forgotten your password? <a href="{% url "reset_password" %}">Request a new password</a>
+                    </div>
                     <input type="hidden" name="next" value="{{ next }}">
                 </form>
             </div>

@@ -16,6 +16,6 @@ class CenturyDetailView(DetailView):
         sources = Source.objects.filter(century=century)
         if not display_unpublished:
             sources = sources.filter(published=True)
-        sources = sources.only("title", "id")
+        sources = sources.only("title", "id", "siglum")
         context["sources"] = sources
         return context

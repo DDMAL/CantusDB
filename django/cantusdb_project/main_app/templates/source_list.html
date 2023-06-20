@@ -63,52 +63,55 @@
             <div class="form-group m-1 col-lg">
                 <button type="submit" class="btn btn-dark btn-sm" id="btn-submit"> Apply </button>
                 <a href="/sources/?segment={{ request.GET.segment }}" class="btn btn-dark btn-sm" id="btn-reset"> Reset </a>
-            </div>
+            </div> 
         </div>
     </form>
-
-    <table class="table table-sm small table-bordered">
-        <thead>
-            <tr>
-                <th scope="col" class="text-wrap" style="text-align:center">Siglum</th>
-                <th scope="col" class="text-wrap" style="text-align:center">Summary</th>
-                <th scope="col" class="text-wrap" style="text-align:center">Date/Origin</th>
-                <th scope="col" class="text-wrap" style="text-align:center">Image Link</th>
-                <th scope="col" class="text-wrap" style="text-align:center">Chants/Melodies</th>
-            </tr>
-        </thead>
-        <tbody>
-            {% for source in sources %}
+    {% if sources %}
+        <table class="table table-sm small table-bordered table-responsive">
+            <thead>
                 <tr>
-                    <td class="text-wrap" style="text-align:center">
-                        <a href="{% url 'source-detail' source.id %}" title="{{ source.title }}"><b>{{ source.siglum }}</b></a>
-                    </td>
-                    <td class="text-wrap" style="text-align:center">
-                        {{ source.summary|default:""|truncatechars_html:140 }}
-                    </td>
-                    <td class="text-wrap" style="text-align:center">
-                        {% if source.century.all %}
-                            <b><a href="{% url 'century-detail' source.century.first.id %}">{{ source.century.first.name }}</a></b><br>
-                        {% endif %}
-                        {% if source.provenance %}
-                            <a href="{% url 'provenance-detail' source.provenance.id %}">{{ source.provenance.name }}</a>
-                        {% endif %}
-                    </td>
-                    <td class="text-wrap" style="text-align:center">
-                        {% if source.image_link %}
-                            <a href="{{ source.image_link }}" target="_blank">Images</a>
-                        {% endif %}
-                    </td>
-                    <td class="text-wrap" style="text-align:center">
-                        <b>{{ source.number_of_chants|default_if_none:"0" }}</b>
-                        {% if source.number_of_melodies %}
-                            <br>/ {{ source.number_of_melodies }}
-                        {% endif %}
-                    </td>
+                    <th scope="col" class="text-wrap" style="text-align:center">Siglum</th>
+                    <th scope="col" class="text-wrap" style="text-align:center">Summary</th>
+                    <th scope="col" class="text-wrap" style="text-align:center">Date/Origin</th>
+                    <th scope="col" class="text-wrap" style="text-align:center">Image Link</th>
+                    <th scope="col" class="text-wrap" style="text-align:center">Chants/Melodies</th>
                 </tr>
-            {% endfor %}
-        </tbody>
-    </table>
+            </thead>
+            <tbody>
+                {% for source in sources %}
+                    <tr>
+                        <td class="text-wrap" style="text-align:center">
+                            <a href="{% url 'source-detail' source.id %}" title="{{ source.title }}"><b>{{ source.siglum }}</b></a>
+                        </td>
+                        <td class="text-wrap" style="text-align:center">
+                            {{ source.summary|default:""|truncatechars_html:140 }}
+                        </td>
+                        <td class="text-wrap" style="text-align:center">
+                            {% if source.century.all %}
+                                <b><a href="{% url 'century-detail' source.century.first.id %}">{{ source.century.first.name }}</a></b><br>
+                            {% endif %}
+                            {% if source.provenance %}
+                                <a href="{% url 'provenance-detail' source.provenance.id %}">{{ source.provenance.name }}</a>
+                            {% endif %}
+                        </td>
+                        <td class="text-wrap" style="text-align:center">
+                            {% if source.image_link %}
+                                <a href="{{ source.image_link }}" target="_blank">Images</a>
+                            {% endif %}
+                        </td>
+                        <td class="text-wrap" style="text-align:center">
+                            <b>{{ source.number_of_chants|default_if_none:"0" }}</b>
+                            {% if source.number_of_melodies %}
+                                <br>/ {{ source.number_of_melodies }}
+                            {% endif %}
+                        </td>
+                    </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    {% else %}
+        No sources found.
+    {% endif %}
     {% include "pagination.html" %}
 </div>
 {% endblock %}
