@@ -199,6 +199,7 @@ class SourceCreateView(LoginRequiredMixin, UserPassesTestMixin, CreateView):
 
         # assign this source to the "current_editors"
         current_editors = source.current_editors.all()
+        self.request.user.sources_user_can_edit.add(source)
 
         for editor in current_editors:
             editor.sources_user_can_edit.add(source)
