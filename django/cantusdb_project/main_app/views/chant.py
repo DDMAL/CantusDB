@@ -771,6 +771,7 @@ class ChantSearchView(ListView):
                     *CHANT_SEARCH_TEMPLATE_VALUES
                 )
                 queryset = chant_set.union(sequence_set, all=True)
+            queryset = queryset.order_by("source__siglum", "id")
 
         else:
             # The field names should be keys in the "GET" QueryDict if the search button has been clicked,
