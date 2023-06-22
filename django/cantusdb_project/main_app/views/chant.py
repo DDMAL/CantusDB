@@ -726,6 +726,9 @@ class ChantSearchView(ListView):
         search_melodies = self.request.GET.get("melodies")
         if search_melodies:
             search_parameters.append(f"melodies={search_melodies}")
+        search_bar = self.request.GET.get("search_bar")
+        if search_bar:
+            search_parameters.append(f"search_bar={search_bar}")
 
         if search_parameters:
             joined_search_parameters = "&".join(search_parameters)
