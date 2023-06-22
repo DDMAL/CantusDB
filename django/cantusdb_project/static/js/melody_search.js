@@ -221,8 +221,8 @@ function melodySearch() {
                                             <br>
                                             fol. <b>${chant.folio}</b>
                                             <br>
-                                            <b>${chant.genre__name}</b> | Mode: <b>${chant.mode}</b>
-                                    </td>`;
+                                            <b>${chant.genre__name != null ? chant.genre__name : ""}</b> | Mode: <b>${chant.mode != null ? chant.mode : ""}</b>
+                                    </td>`; // ternary operator for chant.genre__name and .mode ensures "null" and "undefined" are never displayed
                 // pb-2 = bottom padding, so that the lower notes in volpiano do not get cut off
                 newRow.innerHTML += `<td style="width:80%">
                                             <a href="${chant.chant_link}" target="_blank"><b>${chant.incipit}</b></a>
