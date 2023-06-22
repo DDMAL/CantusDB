@@ -695,43 +695,45 @@ class ChantSearchView(ListView):
         # build a url containing all the search parameters, excluding ordering parameters.
         # this way, when someone clicks on a column heading, we can append the ordering parameters
         # while retaining the search parameters
-        current_url = self.request.path
-        search_parameters = []
+        current_url: str = self.request.path
+        search_parameters: list[str] = []
 
-        search_op = self.request.GET.get("op")
+        search_op: Optional[str] = self.request.GET.get("op")
         if search_op:
             search_parameters.append(f"op={search_op}")
-        search_keyword = self.request.GET.get("keyword")
+        search_keyword: Optional[str] = self.request.GET.get("keyword")
         if search_keyword:
             search_parameters.append(f"keyword={search_keyword}")
             context["keyword"] = search_keyword
-        search_office = self.request.GET.get("office")
+        search_office: Optional[str] = self.request.GET.get("office")
         if search_office:
             search_parameters.append(f"office={search_office}")
-        search_genre = self.request.GET.get("genre")
+        search_genre: Optional[str] = self.request.GET.get("genre")
         if search_genre:
             search_parameters.append(f"genre={search_genre}")
-        search_cantus_id = self.request.GET.get("cantus_id")
+        search_cantus_id: Optional[str] = self.request.GET.get("cantus_id")
         if search_cantus_id:
             search_parameters.append(f"cantus_id={search_cantus_id}")
-        search_mode = self.request.GET.get("mode")
+        search_mode: Optional[str] = self.request.GET.get("mode")
         if search_mode:
             search_parameters.append(f"mode={search_mode}")
-        search_feast = self.request.GET.get("feast")
+        search_feast: Optional[str] = self.request.GET.get("feast")
         if search_feast:
             search_parameters.append(f"feast={search_feast}")
-        search_position = self.request.GET.get("position")
+        search_position: Optional[str] = self.request.GET.get("position")
         if search_position:
             search_parameters.append(f"position={search_position}")
-        search_melodies = self.request.GET.get("melodies")
+        search_melodies: Optional[str] = self.request.GET.get("melodies")
         if search_melodies:
             search_parameters.append(f"melodies={search_melodies}")
+        search_bar: Optional[str] = self.request.GET.get("search_bar")
+        if search_bar:
+            search_parameters.append(f"search_bar={search_bar}")
 
+        url_with_search_params: str = current_url + "?"
         if search_parameters:
-            joined_search_parameters = "&".join(search_parameters)
-            url_with_search_params = current_url + "?" + joined_search_parameters
-        else:
-            url_with_search_params = current_url + "?"
+            joined_search_parameters: str = "&".join(search_parameters)
+            url_with_search_params += joined_search_parameters
 
         context["url_with_search_params"] = url_with_search_params
 
@@ -771,6 +773,7 @@ class ChantSearchView(ListView):
                     *CHANT_SEARCH_TEMPLATE_VALUES
                 )
                 queryset = chant_set.union(sequence_set, all=True)
+            queryset = queryset.order_by("source__siglum", "id")
 
         else:
             # The field names should be keys in the "GET" QueryDict if the search button has been clicked,
