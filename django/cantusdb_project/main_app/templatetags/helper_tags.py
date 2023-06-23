@@ -45,7 +45,7 @@ def my_sources(user):
 
     def make_source_detail_link_with_siglum(source):
         id = source.id
-        siglum = source.rism_siglum
+        siglum = source.siglum
         url = reverse("source-detail", args=[id])
         link = '<a href="{}">{}</a>'.format(url, siglum)
         return link
