@@ -588,13 +588,23 @@ class ChantListView(ListView):
         # these are needed in the selectors on the left side of the page
         context["feasts"] = Feast.objects.all().order_by("name")
         context["genres"] = Genre.objects.all().order_by("name")
+
         # sources in the Bower Segment contain only Sequences and no Chants,
         # so they should not appear among the list of sources
-        bower_segment = Segment.objects.get(id=4063)
-        context["sources"] = bower_segment.source_set.order_by("siglum")
+        cantus_segment = Segment.objects.get(id=4063)
+        sources = cantus_segment.source_set.order_by(
+            "siglum"
+        )  # to be displayed in the "Source" dropdown in the form
+        context["sources"] = sources
 
         source_id = self.request.GET.get("source")
         source = Source.objects.get(id=source_id)
+        if source not in sources:
+            # the chant list ("Browse Chants") page should only be visitable
+            # for sources in the CANTUS Database segment, as sources in the Bower
+            # segment contain no chants
+            raise Http404()
+
         context["source"] = source
 
         user = self.request.user
