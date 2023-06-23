@@ -435,6 +435,19 @@ class ChantListViewTest(TestCase):
         )
         self.assertEqual(response_2.status_code, 403)
 
+    def test_visibility_by_segment(self):
+        cantus_segment = make_fake_segment(id=4063)
+        cantus_source = make_fake_source(segment=cantus_segment, published=True)
+        response_1 = self.client.get(
+            reverse("chant-list"), {"source": cantus_source.id}
+        )
+        self.assertEqual(response_1.status_code, 200)
+
+        bower_segment = make_fake_segment(id=4064)
+        bower_source = make_fake_source(segment=bower_segment, published=True)
+        response_1 = self.client.get(reverse("chant-list"), {"source": bower_source.id})
+        self.assertEqual(response_1.status_code, 404)
+
     def test_filter_by_source(self):
         cantus_segment = make_fake_segment(id=4063)
         source = make_fake_source(segment=cantus_segment)
