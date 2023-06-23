@@ -3352,6 +3352,28 @@ class SourceDetailViewTest(TestCase):
         response_2 = self.client.get(reverse("source-detail", args=[source.id]))
         self.assertEqual(response_2.status_code, 200)
 
+    def test_chant_list_link(self):
+        chant_list_link = reverse("chant-list")
+
+        cantus_segment = make_fake_segment(id=4063)
+        cantus_source = make_fake_source(segment=cantus_segment)
+        cantus_chant_list_link = chant_list_link + f"?source={cantus_source.id}"
+
+        cantus_source_response = self.client.get(
+            reverse("source-detail", args=[cantus_source.id])
+        )
+        cantus_source_html = str(cantus_source_response.content)
+        self.assertIn(cantus_chant_list_link, cantus_source_html)
+
+        bower_segment = make_fake_segment(id=4064)
+        bower_source = make_fake_source(segment=bower_segment)
+        bower_chant_list_link = chant_list_link + f"?source={bower_source.id}"
+        bower_source_response = self.client.get(
+            reverse("source-detail", args=[bower_source.id])
+        )
+        bower_source_html = str(bower_source_response.content)
+        self.assertNotIn(bower_chant_list_link, bower_source_html)
+
 
 class JsonMelodyExportTest(TestCase):
     def test_json_melody_response(self):
