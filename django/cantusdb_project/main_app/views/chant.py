@@ -750,8 +750,12 @@ class ChantSearchView(ListView):
         display_unpublished = self.request.user.is_authenticated
         # if the search is accessed by the global search bar
         if self.request.GET.get("search_bar"):
-            chant_set = Chant.objects.filter(source__published=True)
-            sequence_set = Sequence.objects.filter(source__published=True)
+            if display_unpublished:
+                chant_set = Chant.objects.all()
+                sequence_set = Sequence.objects.all()
+            else:
+                chant_set = Chant.objects.filter(source__published=True)
+                sequence_set = Sequence.objects.filter(source__published=True)
             if self.request.GET.get("search_bar").replace(" ", "").isalpha():
                 # if search bar is doing incipit search
                 incipit = self.request.GET.get("search_bar")
