@@ -319,7 +319,7 @@ urlpatterns = [
     ),
     # misc search
     path(
-        "chant-search-ms/<int:source_pk>",
+        "searchms/<int:source_pk>",
         ChantSearchMSView.as_view(),
         name="chant-search-ms",
     ),

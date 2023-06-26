@@ -11,6 +11,7 @@ from django.contrib.auth.views import LogoutView, LoginView
 from django.contrib import messages
 from extra_views import SearchableListMixin
 from django.http import HttpResponseRedirect
+from django.core.exceptions import PermissionDenied
 
 
 class UserDetailView(DetailView):
@@ -24,9 +25,16 @@ class UserDetailView(DetailView):
     template_name = "user_detail.html"
 
     def get_context_data(self, **kwargs):
-        context = super().get_context_data(**kwargs)
         user = self.get_object()
-        display_unpublished = self.request.user.is_authenticated
+        # to begin, if the person viewing the site is not logged in,
+        # they should only be able to view the detail pages of indexers,
+        # and not the detail pages of run-of-the-mill users
+        viewing_user = self.request.user
+        if not (viewing_user.is_authenticated or user.is_indexer):
+            raise PermissionDenied()
+
+        context = super().get_context_data(**kwargs)
+        display_unpublished = viewing_user.is_authenticated
         sort_by_siglum = lambda source: source.siglum
         if display_unpublished:
             context["inventoried_sources"] = sorted(
