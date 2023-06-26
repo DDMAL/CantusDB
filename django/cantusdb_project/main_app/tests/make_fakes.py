@@ -263,11 +263,14 @@ def make_fake_rism_siglum() -> RismSiglum:
     return rism_siglum
 
 
-def make_fake_segment(name=None) -> Segment:
+def make_fake_segment(name: str = None, id: int = None) -> Segment:
     """Generates a fake Segment object."""
-    if not name:
-        name = faker.sentence()
-    segment = Segment.objects.create(name=name)
+    if name is None:
+        name = faker.sentence(nb_words=2)
+    if id is None:
+        segment = Segment.objects.create(name=name)
+        return segment
+    segment = Segment.objects.create(name=name, id=id)
     return segment
 
 

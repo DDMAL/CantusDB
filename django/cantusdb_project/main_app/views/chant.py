@@ -23,7 +23,7 @@ from main_app.forms import (
     ChantProofreadForm,
     ChantEditSyllabificationForm,
 )
-from main_app.models import Chant, Feast, Genre, Source, Sequence
+from main_app.models import Chant, Feast, Genre, Source, Sequence, Segment
 from align_text_mel import syllabize_text_and_melody, syllabize_text_to_string
 from django.contrib.auth.mixins import LoginRequiredMixin
 from django.http import Http404
@@ -586,12 +586,25 @@ class ChantListView(ListView):
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
         # these are needed in the selectors on the left side of the page
-        context["sources"] = Source.objects.order_by("siglum")
         context["feasts"] = Feast.objects.all().order_by("name")
         context["genres"] = Genre.objects.all().order_by("name")
 
+        # sources in the Bower Segment contain only Sequences and no Chants,
+        # so they should not appear among the list of sources
+        cantus_segment = Segment.objects.get(id=4063)
+        sources = cantus_segment.source_set.order_by(
+            "siglum"
+        )  # to be displayed in the "Source" dropdown in the form
+        context["sources"] = sources
+
         source_id = self.request.GET.get("source")
         source = Source.objects.get(id=source_id)
+        if source not in sources:
+            # the chant list ("Browse Chants") page should only be visitable
+            # for sources in the CANTUS Database segment, as sources in the Bower
+            # segment contain no chants
+            raise Http404()
+
         context["source"] = source
 
         user = self.request.user
