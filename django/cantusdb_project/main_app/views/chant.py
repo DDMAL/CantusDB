@@ -763,17 +763,29 @@ class ChantSearchView(ListView):
         display_unpublished = self.request.user.is_authenticated
         # if the search is accessed by the global search bar
         if self.request.GET.get("search_bar"):
-            chant_set = Chant.objects.filter(source__published=True)
-            sequence_set = Sequence.objects.filter(source__published=True)
+            if display_unpublished:
+                chant_set = Chant.objects.all()
+                sequence_set = Sequence.objects.all()
+            else:
+                chant_set = Chant.objects.filter(source__published=True)
+                sequence_set = Sequence.objects.filter(source__published=True)
             if self.request.GET.get("search_bar").replace(" ", "").isalpha():
                 # if search bar is doing incipit search
-                incipit = self.request.GET.get("search_bar")
-                chant_set = chant_set.filter(
-                    manuscript_full_text_std_spelling__istartswith=incipit
-                ).values(*CHANT_SEARCH_TEMPLATE_VALUES)
-                sequence_set = sequence_set.filter(
-                    manuscript_full_text_std_spelling__istartswith=incipit
-                ).values(*CHANT_SEARCH_TEMPLATE_VALUES)
+                search_term = self.request.GET.get("search_bar")
+                ms_spelling_filter = Q(manuscript_full_text__istartswith=search_term)
+                std_spelling_filter = Q(
+                    manuscript_full_text_std_spelling__istartswith=search_term
+                )
+                incipit_filter = Q(incipit__istartswith=search_term)
+                search_term_filter = (
+                    ms_spelling_filter | std_spelling_filter | incipit_filter
+                )
+                chant_set = chant_set.filter(search_term_filter).values(
+                    *CHANT_SEARCH_TEMPLATE_VALUES
+                )
+                sequence_set = sequence_set.filter(search_term_filter).values(
+                    *CHANT_SEARCH_TEMPLATE_VALUES
+                )
                 queryset = chant_set.union(sequence_set, all=True)
             else:
                 # if search bar is doing Cantus ID search
