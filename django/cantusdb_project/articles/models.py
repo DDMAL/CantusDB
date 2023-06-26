@@ -2,6 +2,7 @@ from django.contrib.auth import get_user_model
 from django.db import models
 from django.urls import reverse
 from django_quill.fields import QuillField
+from django.utils import timezone
 
 
 class Article(models.Model):
@@ -13,6 +14,7 @@ class Article(models.Model):
     )
     date_created = models.DateTimeField(
         help_text="The date this article was created",
+        default=timezone.now,
         null=True,
         blank=True,
     )
