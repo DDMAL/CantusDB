@@ -341,6 +341,43 @@ def remove_extra_sources():
         print(f"Extra source removed: {source}")
 
 
+def make_dummy_source() -> None:
+    """
+    creates a dummy source with an ID of 1_000_000. This ensures that all new sources
+    created in NewCantus have IDs greater than 1_000_000. This, in turn, ensures that
+    requests to /node/<id> URLS can be redirected to their proper chant/source/article
+    detail page (all objects originally created in OldCantus have unique IDs, so there
+    is no ambiguity as to which page a /node/ URL should lead.)
+    """
+    try:
+        Source.objects.get(id=1_000_000)
+        print(
+            "Tried to create a dummy source with id=1000000. "
+            "A source with id=1000000 already exists. "
+            "Aborting attempt to create a new dummy source."
+        )
+        return
+    except Source.DoesNotExist:
+        pass
+
+    cantus_segment = Segment.objects.get(id=4063)
+    dummy_source = Source.objects.create(
+        segment=cantus_segment,
+        siglum="DUMMY",
+        published=False,
+        title="Unpublished Dummy Source",
+        description=(
+            "This unpublished dummy source exists in order that all newly created "
+            "sources have IDs greater than 1,000,000 (which ensures that requests "
+            "made to /node/<id> URLs can be redirected to their proper "
+            "chant/source/article detail page). Once a source with an ID greater than "
+            "1,000,000 has been created, this dummy source may be safely deleted."
+        ),
+    )
+    dummy_source.update(id=1_000_000)
+    return dummy_source
+
+
 class Command(BaseCommand):
     def add_arguments(self, parser):
         parser.add_argument(
@@ -362,6 +399,7 @@ class Command(BaseCommand):
             for source_id in all_sources:
                 print(source_id)
                 source = get_new_source(source_id)
+            make_dummy_source()
         else:
             new_source = get_new_source(id)
             print(new_source.title)
