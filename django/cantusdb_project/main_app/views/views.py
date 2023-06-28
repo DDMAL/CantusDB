@@ -559,6 +559,75 @@ def json_nextchants(request, cantus_id):
     return JsonResponse(suggested_chants_dict)
 
 
+def json_cid_export(request, cantus_id: str) -> JsonResponse:
+    """Return a JsonResponse containing information on all chants with a given
+    Cantus ID, in the following format:
+    {
+        "chants": [
+            "chant": {
+                a bunch of keys, created in build_json_cid_dictionary
+            },
+            "chant": {
+                etc.
+            },
+        ]
+    }
+    We believe Cantus Index uses this API in building its list of concordances
+    for a given Cantus ID across the databases in the Cantus Network
+
+    Args:
+        request: the incoming request
+        cantus_id (string): A Cantus ID
+    """
+
+    # the API in OldCantus appears to only return chants, and no sequences.
+    chants = Chant.objects.filter(cantus_id=cantus_id).filter(source__published=True)
+    chant_dicts = [{"chant": build_json_cid_dictionary(c, request)} for c in chants]
+    response = {"chants": chant_dicts}
+    return JsonResponse(response)
+
+
+def build_json_cid_dictionary(chant, request) -> dict:
+    """Return a dictionary with information on a given chant in the database
+
+    Args:
+        chant: a Chant
+        request: passed when this is called in json_cid_export. Used to get the domain
+            while building the chant link
+
+    Returns:
+        dict: a dictionary with information about the chant and its source, including
+            absolute URLs for the chant and source detail pages
+    """
+    source_relative_url = reverse("source-detail", args=[chant.source.id])
+    source_absolute_url = request.build_absolute_uri(source_relative_url)
+    chant_relative_url = reverse("chant-detail", args=[chant.id])
+    chant_absolute_url = request.build_absolute_uri(chant_relative_url)
+    dictionary = {
+        "siglum": chant.source.siglum,
+        "srclink": source_absolute_url,
+        "chantlink": chant_absolute_url,
+        # "chantlinkOLD":  # OldCantus included a URL using http:// here,
+        #                  # whereas "chantlink" had a URL with https://
+        "folio": chant.folio,
+        "incipit": chant.incipit,
+        "feast": chant.feast.name if chant.feast else "",
+        "genre": chant.genre.name if chant.genre else "",
+        "office": chant.office.name if chant.office else "",
+        "position": chant.position,
+        "mode": chant.mode if chant.mode else "",
+        "image": chant.image_link if chant.image_link else "",
+        "melody": chant.volpiano if chant.volpiano else "",
+        "fulltext": (
+            chant.manuscript_full_text_std_spelling
+            if chant.manuscript_full_text_std_spelling
+            else ""
+        ),
+        "db": "CD",
+    }
+    return dictionary
+
+
 def handle404(request, exception):
     return render(request, "404.html")
 
