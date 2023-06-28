@@ -28,6 +28,7 @@ from django.contrib.auth.forms import PasswordChangeForm
 from django.core.exceptions import PermissionDenied
 from django.urls import reverse
 from django.contrib.auth import get_user_model
+from typing import List
 
 
 @login_required
@@ -434,7 +435,7 @@ def ajax_search_bar(request, search_term):
     return JsonResponse({"chants": returned_values}, safe=True)
 
 
-def json_melody_export(request, cantus_id):
+def json_melody_export(request, cantus_id: str) -> JsonResponse:
     chants = Chant.objects.filter(
         cantus_id=cantus_id, volpiano__isnull=False, source__published=True
     )
@@ -460,48 +461,63 @@ def json_melody_export(request, cantus_id):
     chants_values = list(chants.values(*db_keys))  # a list of dictionaries. Each
     # dictionary represents metadata on one chant
 
-    def standardize_for_api(chant_values):
-        keymap = {  # map attribute names from Chant model (i.e. db_keys
-            # in list above) to corresponding attribute names
-            # in old API, and remove artifacts of query process (i.e. __id suffixes)
-            "melody_id": "mid",  #                  <-
-            "id": "nid",  #                         <-
-            "cantus_id": "cid",  #                  <-
-            "siglum": "siglum",
-            "source__id": "srcnid",  #              <-
-            "folio": "folio",
-            "incipit": "incipit",
-            "manuscript_full_text": "fulltext",  #  <-
-            "volpiano": "volpiano",
-            "mode": "mode",
-            "feast__id": "feast",  #                <-
-            "office__id": "office",  #              <-
-            "genre__id": "genre",  #                <-
-            "position": "position",
-        }
-
-        standardized_chant_values = {
-            keymap[key]: chant_values[key] for key in chant_values
-        }
-
-        # manually build a couple of last fields that aren't represented in Chant object
-        chant_uri = request.build_absolute_uri(
-            reverse("chant-detail", args=[chant_values["id"]])
-        )
-        standardized_chant_values["chantlink"] = chant_uri
-        src_uri = request.build_absolute_uri(
-            reverse("source-detail", args=[chant_values["source__id"]])
-        )
-        standardized_chant_values["srclink"] = src_uri
-
-        return standardized_chant_values
-
-    standardized_chants_values = [standardize_for_api(cv) for cv in chants_values]
+    standardized_chants_values = [
+        standardize_dict_for_json_melody_export(cv, request) for cv in chants_values
+    ]
 
     return JsonResponse(standardized_chants_values, safe=False)
 
 
-def json_node_export(request, id):
+def standardize_dict_for_json_melody_export(
+    chant_values: List[dict], request
+) -> List[dict]:
+    """Take a list of dictionaries, and in each dictionary, change several
+    of the keys to match their values in OldCantus
+
+    Args:
+        chant_values (List[dict]): a list of dictionaries, each containing
+            information on a single chant in the database
+        request: passed when this is called in json_melody_export. Used to get the domain
+            while building the chant links
+
+    Returns:
+        List[dict]: a list of dictionaries, with updated keys
+    """
+    keymap = {  # map attribute names from Chant model (i.e. db_keys
+        # in json_melody_export) to corresponding attribute names
+        # in old API, and remove artifacts of query process (i.e. __id suffixes)
+        "melody_id": "mid",  #                  <-
+        "id": "nid",  #                         <-
+        "cantus_id": "cid",  #                  <-
+        "siglum": "siglum",
+        "source__id": "srcnid",  #              <-
+        "folio": "folio",
+        "incipit": "incipit",
+        "manuscript_full_text": "fulltext",  #  <-
+        "volpiano": "volpiano",
+        "mode": "mode",
+        "feast__id": "feast",  #                <-
+        "office__id": "office",  #              <-
+        "genre__id": "genre",  #                <-
+        "position": "position",
+    }
+
+    standardized_chant_values = {keymap[key]: chant_values[key] for key in chant_values}
+
+    # manually build a couple of last fields that aren't represented in Chant object
+    chant_uri = request.build_absolute_uri(
+        reverse("chant-detail", args=[chant_values["id"]])
+    )
+    standardized_chant_values["chantlink"] = chant_uri
+    src_uri = request.build_absolute_uri(
+        reverse("source-detail", args=[chant_values["source__id"]])
+    )
+    standardized_chant_values["srclink"] = src_uri
+
+    return standardized_chant_values
+
+
+def json_node_export(request, id: int) -> JsonResponse:
     """
     returns all fields of the chant/sequence/source/indexer with the specified `id`
     """
@@ -532,25 +548,31 @@ def json_node_export(request, id):
     return JsonResponse(vals)
 
 
-def json_sources_export(request):
+def json_sources_export(request) -> JsonResponse:
     """
-    generates a json object of published sources with their IDs and CSV links
+    Generate a json object of published sources with their IDs and CSV links
     """
     sources = Source.objects.filter(published=True)
     ids = [source.id for source in sources]
 
-    def inner_dictionary(id):
-        # in OldCantus, json-sources creates a json file with each id attribute pointing to a dictionary
-        # containing a single key, "csv", which itself points to a link to the relevant csv file.
-        # inner_dictionary() is used to build this single-keyed dictionary.
-
-        # To avoid confusion, note that the `id` parameter refers to an identifier, and is not
-        # an abbreviation of `inner_dictionary`!
-        return {"csv": request.build_absolute_uri(reverse("csv-export", args=[id]))}
-
-    csv_links = {id: inner_dictionary(id) for id in ids}
+    csv_links = {id: build_json_sources_export_dictionary(id, request) for id in ids}
 
     return JsonResponse(csv_links)
+
+
+def build_json_sources_export_dictionary(id: int, request) -> dict:
+    """Return a dictionary containing a link to the csv-export page for a source
+
+    Args:
+        id (int): the pk of the source
+        request: passed when this is called in json_sources_export. Used to get the domain
+            while building the CSV link
+
+    Returns:
+        dict: a dictionary with a single key, "csv", and a link to the source's csv-export
+            page
+    """
+    return {"csv": request.build_absolute_uri(reverse("csv-export", args=[id]))}
 
 
 def json_nextchants(request, cantus_id):
