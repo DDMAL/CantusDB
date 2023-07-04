@@ -48,30 +48,33 @@
                     <h4>Sources created by user</h4>
                 </div>
                 <div class="card-body">
-                    <a href="{% url "source-create" %}"><b>+ Add new source</b></a>
-                    <table class="table table-sm small table-bordered">
-                        <tbody>
-                            {% for my_source in user_created_sources_page_obj %}
-                                <tr>
-                                    <td class="h-25" style="width: 50%; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; max-width: 0; text-align:center">
-                                        <a href="{% url "source-detail" my_source.pk %}">
-                                            <b>&bull; {{ my_source.siglum }}</b>
+                    <small><a href="{% url "source-create" %}"><b>+ Add new source</b></a></small>
+                    <ul>
+                        {% for my_source in page_obj %}
+                            <li>
+                                <a href="{% url "source-detail" my_source.pk %}">
+                                    <b> {{ my_source.siglum }}</b>
+                                </a>
+                                <br>
+                                <small>
+                                    <a href="{% url "source-detail" my_source.pk %}">
+                                        <b> {{ my_source.title }}</b>
+                                    </a>
+                                    <br>
+                                    <a href="{% url "chant-create" my_source.pk %}" style="display: inline-block; margin-top:5px;">
+                                        &plus; Add new chant
+                                    </a>
+                                    <br>
+                                    {% if my_source.chant_set.all %}
+                                        <a href="{% url "source-edit-chants" my_source.pk %}">
+                                            &bull; Full text &amp; volpiano editor
                                         </a>
-                                        <br>
-                                        <a href="{% url "chant-create" my_source.pk %}" style="display: inline-block; margin-top:5px;">
-                                            &plus; Add new chant
-                                        </a>
-                                        <br>
-                                        {% if my_source.chant_set.all %}
-                                            <a href="{% url "source-edit-chants" my_source.pk %}">
-                                                Full text &amp; volpiano editor
-                                            </a>
-                                        {% endif %}
-                                    </td>
-                                </tr>
-                            {% endfor %}
-                        </tbody>
-                    </table>
+                                    {% endif %}
+                                </small>
+
+                            </li>
+                        {% endfor %}
+                    </ul>
                     <div class="pagination">
                         <span class="step-links">
                             {% if user_created_sources_page_obj.has_previous %}
