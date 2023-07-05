@@ -198,6 +198,40 @@ def remove_extra():
         print(f"Extra item removed: {id}")
 
 
+def make_dummy_sequence() -> None:
+    """
+    creates a dummy seqence with an ID of 1_000_000. This ensures that all new sequences
+    created in NewCantus have IDs greater than 1_000_000. This, in turn, ensures that
+    requests to /node/<id> URLS can be redirected to their proper chant/source/article
+    detail page (all objects originally created in OldCantus have unique IDs, so there
+    is no ambiguity as to which page a /node/ URL should lead.)
+    """
+    try:
+        Sequence.objects.get(id=1_000_000)
+        print(
+            "Tried to create a dummy sequence with id=1000000. "
+            "A sequence with id=1000000 already exists. "
+            "Aborting attempt to create a new dummy sequence."
+        )
+        return
+    except Source.DoesNotExist:
+        pass
+
+    dummy_source = Source.objects.get(id=1_000_000, published=False)
+    dummy_sequence = Sequence.objects.create(
+        source=dummy_source,
+        manuscript_full_text_std_spelling=(
+            "This unpublished dummy sequence exists in order that all newly created "
+            "sequences have IDs greater than 1,000,000 (which ensures that requests "
+            "made to /node/<id> URLs can be redirected to their proper "
+            "chant/sequence/article detail page). Once a sequence with an ID greater than "
+            "1,000,000 has been created, this dummy sequence may be safely deleted."
+        ),
+    )
+    dummy_sequence.update(id=1_000_000)
+    return dummy_sequence
+
+
 class Command(BaseCommand):
     def add_arguments(self, parser):
         parser.add_argument(
@@ -219,6 +253,7 @@ class Command(BaseCommand):
             for i, seq_id in enumerate(all_seqs):
                 # print(seq_id)
                 get_new_sequence(seq_id)
+            make_dummy_sequence()
         else:
             get_new_sequence(id)
 
