@@ -55,36 +55,38 @@
             </div>
         </div>
     </form>
-    
-    <table class="table table-bordered table-sm small">
-        <thead>
-            <tr>
-                <th scope="col" class="text-wrap">Feast Name</th>
-                <th scope="col" class="text-wrap">Description</th>
-                <th scope="col" class="text-wrap">Date</th>
-                <th scope="col" class="text-wrap">Feast Code</th>
-            </tr>
-        </thead>
-        <tbody>
-            {% for feast in feasts %}
+    {% if feasts %}
+        <table class="table table-bordered table-sm small">
+            <thead>
                 <tr>
-                    <td class="text-wrap">
-                        <a href="{% url 'feast-detail' feast.id %}" title="{{ feast.description }}">
-                            <b>{{ feast.name }}</b>
-                        </a>
-                    </td>
-                    <td class="text-wrap">{{ feast.description|default:"" }}</td>
-                    <td class="text-wrap">
-                        {% if feast.month and feast.day %}
-                            {{ feast.month|month_to_string|default:"" }}.{{ feast.day|default:"" }}
-                        {% endif %}
-                    </td>
-                    <td class="text-wrap">{{ feast.feast_code|default:"" }}</td>
+                    <th scope="col" class="text-wrap">Feast Name</th>
+                    <th scope="col" class="text-wrap">Description</th>
+                    <th scope="col" class="text-wrap">Date</th>
+                    <th scope="col" class="text-wrap">Feast Code</th>
                 </tr>
-            {% endfor %}
-        </tbody>
-    </table>
-
-    {% include "pagination.html" %}
+            </thead>
+            <tbody>
+                {% for feast in feasts %}
+                    <tr>
+                        <td class="text-wrap">
+                            <a href="{% url 'feast-detail' feast.id %}" title="{{ feast.description }}">
+                                <b>{{ feast.name }}</b>
+                            </a>
+                        </td>
+                        <td class="text-wrap">{{ feast.description|default:"" }}</td>
+                        <td class="text-wrap">
+                            {% if feast.month and feast.day %}
+                                {{ feast.month|month_to_string|default:"" }}.{{ feast.day|default:"" }}
+                            {% endif %}
+                        </td>
+                        <td class="text-wrap">{{ feast.feast_code|default:"" }}</td>
+                    </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+        {% include "pagination.html" %}    
+    {% else %}
+        No feasts found.
+    {% endif %}
 </div>
 {% endblock %}
