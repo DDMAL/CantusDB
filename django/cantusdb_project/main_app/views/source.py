@@ -211,7 +211,9 @@ class SourceCreateView(LoginRequiredMixin, UserPassesTestMixin, CreateView):
         return HttpResponseRedirect(self.get_success_url())
 
 
-class SourceEditView(LoginRequiredMixin, UserPassesTestMixin, UpdateView):
+class SourceEditView(
+    LoginRequiredMixin, UserPassesTestMixin, UpdateView, SourceDetailView
+):
     template_name = "source_edit.html"
     model = Source
     form_class = SourceEditForm
