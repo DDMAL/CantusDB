@@ -190,8 +190,8 @@ class SourceCreateView(LoginRequiredMixin, UserPassesTestMixin, CreateView):
         else:
             return False
 
-    def get_success_url(self):
-        return reverse("source-create")
+    def get_success_url(self, source):
+        return reverse("source-detail", args=[source.id])
 
     def form_valid(self, form):
         form.instance.created_by = self.request.user
@@ -208,7 +208,7 @@ class SourceCreateView(LoginRequiredMixin, UserPassesTestMixin, CreateView):
             "Source created successfully!",
         )
 
-        return HttpResponseRedirect(self.get_success_url())
+        return HttpResponseRedirect(self.get_success_url(source))
 
 
 class SourceEditView(LoginRequiredMixin, UserPassesTestMixin, UpdateView):
