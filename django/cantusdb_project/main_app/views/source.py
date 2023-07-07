@@ -190,25 +190,26 @@ class SourceCreateView(LoginRequiredMixin, UserPassesTestMixin, CreateView):
         else:
             return False
 
-    def get_success_url(self, source):
-        return reverse("source-detail", args=[source.id])
+    def get_success_url(self):
+        return reverse("source-detail", args=[self.object.id])
 
     def form_valid(self, form):
-        form.instance.created_by = self.request.user
-        source = form.save()
+        if form.is_valid():
+            form.instance.created_by = self.request.user
+            self.object = form.save()
 
-        # assign this source to the "current_editors"
-        current_editors = source.current_editors.all()
+            # assign this source to the "current_editors"
+            current_editors = self.object.current_editors.all()
 
-        for editor in current_editors:
-            editor.sources_user_can_edit.add(source)
+            for editor in current_editors:
+                editor.sources_user_can_edit.add(self.object)
 
-        messages.success(
-            self.request,
-            "Source created successfully!",
-        )
-
-        return HttpResponseRedirect(self.get_success_url(source))
+            messages.success(
+                self.request,
+                "Source created successfully!",
+            )
+            return HttpResponseRedirect(self.get_success_url())
+        return super().form_valid(form)
 
 
 class SourceEditView(LoginRequiredMixin, UserPassesTestMixin, UpdateView):
