@@ -82,6 +82,11 @@
                     <dd>{{ source.full_source|yesno:"Full Source,Fragment" }}</dd>
                 {% endif %}
 
+                {% if user.is_authenticated %}
+                    <dt>Source Status</dt>
+                    <dd>{{ source.published|yesno:"Published,Unpublished" }}</dd>
+                {% endif %}
+                
                 {% if source.fragmentarium_id is not None %}
                     <dt>Fragment ID</dt>
                     <dd>{{ source.fragmentarium_id }}</dd>

@@ -200,6 +200,7 @@ class SourceCreateView(LoginRequiredMixin, UserPassesTestMixin, CreateView):
 
             # assign this source to the "current_editors"
             current_editors = self.object.current_editors.all()
+            self.request.user.sources_user_can_edit.add(self.object)
 
             for editor in current_editors:
                 editor.sources_user_can_edit.add(self.object)
@@ -212,7 +213,9 @@ class SourceCreateView(LoginRequiredMixin, UserPassesTestMixin, CreateView):
         return super().form_valid(form)
 
 
-class SourceEditView(LoginRequiredMixin, UserPassesTestMixin, UpdateView):
+class SourceEditView(
+    LoginRequiredMixin, UserPassesTestMixin, UpdateView, SourceDetailView
+):
     template_name = "source_edit.html"
     model = Source
     form_class = SourceEditForm

@@ -3716,6 +3716,183 @@ class JsonNextChantsTest(TestCase):
         self.assertEqual(unpacked_response_2, {"2000": 2})
 
 
+class JsonCidTest(TestCase):
+    def test_published_vs_unpublished(self):
+        published_source = make_fake_source(published=True)
+        published_chant = make_fake_chant(
+            cantus_id="123.publ",
+            source=published_source,
+        )
+        pub_response = self.client.get(
+            reverse("json-cid-export", args=["123.publ"]),
+        )
+        pub_json = pub_response.json()
+        pub_chants = pub_json["chants"]
+        self.assertEqual(len(pub_chants), 1)
+
+        unpublished_source = make_fake_source(published=False)
+        unpublished_chant = make_fake_chant(
+            cantus_id="456.unpub",
+            source=unpublished_source,
+        )
+        unpub_response = self.client.get(
+            reverse("json-cid-export", args=["456.unpub"]),
+        )
+        unpub_json = unpub_response.json()
+        unpub_chants = unpub_json["chants"]
+        self.assertEqual(len(unpub_chants), 0)
+
+    def test_chant_vs_sequence(self):
+        chant = make_fake_chant(cantus_id="123456")
+        response_1 = self.client.get(
+            reverse("json-cid-export", args=["123456"]),
+        )
+        json_1 = response_1.json()
+        chants_1 = json_1["chants"]
+        self.assertEqual(len(chants_1), 1)
+
+        sequence = make_fake_sequence(cantus_id="123456")
+        response_2 = self.client.get(
+            reverse("json-cid-export", args=["123456"]),
+        )
+        json_2 = response_2.json()
+        chants_2 = json_2["chants"]
+        self.assertEqual(
+            len(chants_2), 1
+        )  # should return the chant, but not the sequence
+
+        chant.delete()
+        response_3 = self.client.get(
+            reverse("json-cid-export", args=["123456"]),
+        )
+        json_3 = response_3.json()
+        chants_3 = json_3["chants"]
+        self.assertEqual(len(chants_3), 0)  # should not return the sequence
+
+    def test_structure(self):
+        """
+        should be structured thus:
+        {
+            "chants": [
+                "chant": {
+                    "siglum": "some value"
+                    "srclink": "some value"
+                    "chantlink": "some value"
+                    "folio": "some value"
+                    "incipit": "some value"
+                    "feast": "some value"
+                    "genre": "some value"
+                    "office": "some value"
+                    "position": "some value"
+                    "mode": "some value"
+                    "image": "some value"
+                    "melody": "some value"
+                    "fulltext": "some value"
+                    "db": "CD"
+                },
+                "chant": {
+                    etc.
+                },
+            ]
+        }
+        """
+        for _ in range(7):
+            make_fake_chant(cantus_id="3.14159")
+        response = self.client.get(
+            reverse("json-cid-export", args=["3.14159"]),
+        )
+        json_obj = response.json()
+        json_keys = json_obj.keys()
+        self.assertEqual(list(json_keys), ["chants"])
+
+        chants = json_obj["chants"]
+        self.assertIsInstance(chants, list)
+        self.assertEqual(len(chants), 7)
+
+        first_item = chants[0]
+        item_keys = first_item.keys()
+        self.assertIsInstance(first_item, dict)
+        self.assertEqual(list(item_keys), ["chant"])
+
+        first_chant = first_item["chant"]
+        chant_keys = first_chant.keys()
+        expected_keys = [
+            "siglum",
+            "srclink",
+            "chantlink",
+            "folio",
+            "incipit",
+            "feast",
+            "genre",
+            "office",
+            "position",
+            "mode",
+            "image",
+            "melody",
+            "fulltext",
+            "db",
+        ]
+        self.assertEqual(list(chant_keys), expected_keys)
+
+    def test_values(self):
+        chant = make_fake_chant(cantus_id="100000")
+        expected_values = {
+            "siglum": chant.source.siglum,
+            "folio": chant.folio,
+            "incipit": chant.incipit,
+            "feast": chant.feast.name,
+            "genre": chant.genre.name,
+            "office": chant.office.name,
+            "position": chant.position,
+            "mode": chant.mode,
+            "image": chant.image_link,
+            "melody": chant.volpiano,
+            "fulltext": chant.manuscript_full_text_std_spelling,
+            "db": "CD",
+        }
+        response_1 = self.client.get(
+            reverse("json-cid-export", args=["100000"]),
+        )
+        json_for_one_chant_1 = response_1.json()["chants"][0]["chant"]
+        for key in expected_values.keys():
+            self.assertEqual(expected_values[key], json_for_one_chant_1[key])
+
+        chant.manuscript_full_text = None
+        chant.manuscript_full_text_std_spelling = None
+        chant.folio = None
+        chant.incipit = None
+        chant.feast = None
+        chant.genre = None
+        chant.office = None
+        chant.position = None
+        chant.mode = None
+        chant.image_link = None
+        chant.volpiano = None
+        chant.manuscript_full_text_std_spelling = None
+        chant.save()
+
+        response_2 = self.client.get(
+            reverse("json-cid-export", args=["100000"]),
+        )
+        json_for_one_chant_2 = response_2.json()["chants"][0]["chant"]
+        for item in json_for_one_chant_2.items():
+            try:
+                assert isinstance(item[1], str)
+            except AssertionError:
+                print(item)
+
+            self.assertIsInstance(item[1], str)  # we shouldn't see any Nones or nulls
+
+        chant.manuscript_full_text = "nahn-staendrd spillynge"
+        chant.manuscript_full_text_std_spelling = "standard spelling"
+        chant.save()
+        response_3 = self.client.get(
+            reverse("json-cid-export", args=["100000"]),
+        )
+        json_for_one_chant_3 = response_3.json()["chants"][0]["chant"]
+        self.assertEqual(json_for_one_chant_3["fulltext"], "standard spelling")
+
+
 class CISearchViewTest(TestCase):
     def test_view_url_path(self):
         fake_search_term = faker.word()
