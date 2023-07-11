@@ -22,11 +22,13 @@
                                         Full text &amp; volpiano editor
                                     </a>
                                 </td>
-                                <td class="h-25" style="width: 30%; text-align:center">
-                                    <a href="{% url "chant-proofread" source.pk %}">
-                                        Proofreading form
-                                    </a>
-                                </td>
+                                {% if request.user|has_group:"project manager" or request.user|has_group:"editor" %}
+                                    <td class="h-25" style="width: 30%; text-align:center">
+                                        <a href="{% url "chant-proofread" source.pk %}">
+                                            Proofreading form
+                                        </a>
+                                    </td>
+                                {% endif %}
                             {% else %}
                             <td class="h-25" style="width: 30%; text-align:center" colspan="2">
                                 Source contains no chants –
