@@ -28,6 +28,7 @@ from django.contrib.auth.forms import PasswordChangeForm
 from django.core.exceptions import PermissionDenied
 from django.urls import reverse
 from django.contrib.auth import get_user_model
+from typing import List
 
 
 @login_required
@@ -434,7 +435,7 @@ def ajax_search_bar(request, search_term):
     return JsonResponse({"chants": returned_values}, safe=True)
 
 
-def json_melody_export(request, cantus_id):
+def json_melody_export(request, cantus_id: str) -> JsonResponse:
     chants = Chant.objects.filter(
         cantus_id=cantus_id, volpiano__isnull=False, source__published=True
     )
@@ -460,48 +461,63 @@ def json_melody_export(request, cantus_id):
     chants_values = list(chants.values(*db_keys))  # a list of dictionaries. Each
     # dictionary represents metadata on one chant
 
-    def standardize_for_api(chant_values):
-        keymap = {  # map attribute names from Chant model (i.e. db_keys
-            # in list above) to corresponding attribute names
-            # in old API, and remove artifacts of query process (i.e. __id suffixes)
-            "melody_id": "mid",  #                  <-
-            "id": "nid",  #                         <-
-            "cantus_id": "cid",  #                  <-
-            "siglum": "siglum",
-            "source__id": "srcnid",  #              <-
-            "folio": "folio",
-            "incipit": "incipit",
-            "manuscript_full_text": "fulltext",  #  <-
-            "volpiano": "volpiano",
-            "mode": "mode",
-            "feast__id": "feast",  #                <-
-            "office__id": "office",  #              <-
-            "genre__id": "genre",  #                <-
-            "position": "position",
-        }
-
-        standardized_chant_values = {
-            keymap[key]: chant_values[key] for key in chant_values
-        }
-
-        # manually build a couple of last fields that aren't represented in Chant object
-        chant_uri = request.build_absolute_uri(
-            reverse("chant-detail", args=[chant_values["id"]])
-        )
-        standardized_chant_values["chantlink"] = chant_uri
-        src_uri = request.build_absolute_uri(
-            reverse("source-detail", args=[chant_values["source__id"]])
-        )
-        standardized_chant_values["srclink"] = src_uri
-
-        return standardized_chant_values
-
-    standardized_chants_values = [standardize_for_api(cv) for cv in chants_values]
+    standardized_chants_values = [
+        standardize_dict_for_json_melody_export(cv, request) for cv in chants_values
+    ]
 
     return JsonResponse(standardized_chants_values, safe=False)
 
 
-def json_node_export(request, id):
+def standardize_dict_for_json_melody_export(
+    chant_values: List[dict], request
+) -> List[dict]:
+    """Take a list of dictionaries, and in each dictionary, change several
+    of the keys to match their values in OldCantus
+
+    Args:
+        chant_values (List[dict]): a list of dictionaries, each containing
+            information on a single chant in the database
+        request: passed when this is called in json_melody_export. Used to get the domain
+            while building the chant links
+
+    Returns:
+        List[dict]: a list of dictionaries, with updated keys
+    """
+    keymap = {  # map attribute names from Chant model (i.e. db_keys
+        # in json_melody_export) to corresponding attribute names
+        # in old API, and remove artifacts of query process (i.e. __id suffixes)
+        "melody_id": "mid",  #                  <-
+        "id": "nid",  #                         <-
+        "cantus_id": "cid",  #                  <-
+        "siglum": "siglum",
+        "source__id": "srcnid",  #              <-
+        "folio": "folio",
+        "incipit": "incipit",
+        "manuscript_full_text": "fulltext",  #  <-
+        "volpiano": "volpiano",
+        "mode": "mode",
+        "feast__id": "feast",  #                <-
+        "office__id": "office",  #              <-
+        "genre__id": "genre",  #                <-
+        "position": "position",
+    }
+
+    standardized_chant_values = {keymap[key]: chant_values[key] for key in chant_values}
+
+    # manually build a couple of last fields that aren't represented in Chant object
+    chant_uri = request.build_absolute_uri(
+        reverse("chant-detail", args=[chant_values["id"]])
+    )
+    standardized_chant_values["chantlink"] = chant_uri
+    src_uri = request.build_absolute_uri(
+        reverse("source-detail", args=[chant_values["source__id"]])
+    )
+    standardized_chant_values["srclink"] = src_uri
+
+    return standardized_chant_values
+
+
+def json_node_export(request, id: int) -> JsonResponse:
     """
     returns all fields of the chant/sequence/source/indexer with the specified `id`
     """
@@ -532,31 +548,106 @@ def json_node_export(request, id):
     return JsonResponse(vals)
 
 
-def json_sources_export(request):
+def json_sources_export(request) -> JsonResponse:
     """
-    generates a json object of published sources with their IDs and CSV links
+    Generate a json object of published sources with their IDs and CSV links
     """
     sources = Source.objects.filter(published=True)
     ids = [source.id for source in sources]
 
-    def inner_dictionary(id):
-        # in OldCantus, json-sources creates a json file with each id attribute pointing to a dictionary
-        # containing a single key, "csv", which itself points to a link to the relevant csv file.
-        # inner_dictionary() is used to build this single-keyed dictionary.
-
-        # To avoid confusion, note that the `id` parameter refers to an identifier, and is not
-        # an abbreviation of `inner_dictionary`!
-        return {"csv": request.build_absolute_uri(reverse("csv-export", args=[id]))}
-
-    csv_links = {id: inner_dictionary(id) for id in ids}
+    csv_links = {id: build_json_sources_export_dictionary(id, request) for id in ids}
 
     return JsonResponse(csv_links)
+
+
+def build_json_sources_export_dictionary(id: int, request) -> dict:
+    """Return a dictionary containing a link to the csv-export page for a source
+
+    Args:
+        id (int): the pk of the source
+        request: passed when this is called in json_sources_export. Used to get the domain
+            while building the CSV link
+
+    Returns:
+        dict: a dictionary with a single key, "csv", and a link to the source's csv-export
+            page
+    """
+    return {"csv": request.build_absolute_uri(reverse("csv-export", args=[id]))}
 
 
 def json_nextchants(request, cantus_id):
     ids_and_counts = next_chants(cantus_id, display_unpublished=False)
     suggested_chants_dict = {id: count for (id, count) in ids_and_counts}
     return JsonResponse(suggested_chants_dict)
+
+
+def json_cid_export(request, cantus_id: str) -> JsonResponse:
+    """Return a JsonResponse containing information on all chants with a given
+    Cantus ID, in the following format:
+    {
+        "chants": [
+            "chant": {
+                a bunch of keys, created in build_json_cid_dictionary
+            },
+            "chant": {
+                etc.
+            },
+        ]
+    }
+    We believe Cantus Index uses this API in building its list of concordances
+    for a given Cantus ID across the databases in the Cantus Network
+
+    Args:
+        request: the incoming request
+        cantus_id (string): A Cantus ID
+    """
+
+    # the API in OldCantus appears to only return chants, and no sequences.
+    chants = Chant.objects.filter(cantus_id=cantus_id).filter(source__published=True)
+    chant_dicts = [{"chant": build_json_cid_dictionary(c, request)} for c in chants]
+    response = {"chants": chant_dicts}
+    return JsonResponse(response)
+
+
+def build_json_cid_dictionary(chant, request) -> dict:
+    """Return a dictionary with information on a given chant in the database
+
+    Args:
+        chant: a Chant
+        request: passed when this is called in json_cid_export. Used to get the domain
+            while building the chant link
+
+    Returns:
+        dict: a dictionary with information about the chant and its source, including
+            absolute URLs for the chant and source detail pages
+    """
+    source_relative_url = reverse("source-detail", args=[chant.source.id])
+    source_absolute_url = request.build_absolute_uri(source_relative_url)
+    chant_relative_url = reverse("chant-detail", args=[chant.id])
+    chant_absolute_url = request.build_absolute_uri(chant_relative_url)
+    dictionary = {
+        "siglum": chant.source.siglum,
+        "srclink": source_absolute_url,
+        "chantlink": chant_absolute_url,
+        # "chantlinkOLD":  # OldCantus included a URL using http:// here,
+        #                  # whereas "chantlink" had a URL with https://
+        "folio": chant.folio if chant.folio else "",
+        "incipit": chant.incipit if chant.incipit else "",
+        "feast": chant.feast.name if chant.feast else "",
+        "genre": chant.genre.name if chant.genre else "",
+        "office": chant.office.name if chant.office else "",
+        "position": chant.position if chant.position else "",
+        "mode": chant.mode if chant.mode else "",
+        "image": chant.image_link if chant.image_link else "",
+        "melody": chant.volpiano if chant.volpiano else "",
+        "fulltext": (
+            chant.manuscript_full_text_std_spelling
+            if chant.manuscript_full_text_std_spelling
+            else ""
+        ),
+        "db": "CD",
+    }
+    return dictionary
 
 
 def handle404(request, exception):

@@ -278,6 +278,10 @@
         </small>
 
         {% include "pagination.html" %}
+    {% else %} 
+        {% if request.GET %}
+            No chants found.
+        {% endif %}
     {% endif %}
 </div>
         

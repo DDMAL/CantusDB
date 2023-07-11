@@ -14,14 +14,14 @@ function globalSearch() {
     var lastXhttp = new XMLHttpRequest();
 
     function loadChants() {
+        // whenever a new search begins, abort the previous one, so that it does not update the result table with wrong data
+        lastXhttp.abort()
         const searchTerm = searchBar.value;
         // if the search bar is empty, clear the target area and don't proceed to search
         if (searchTerm == "") {
             chantsDiv.innerHTML = "";
             return;
         }
-        // whenever a new search begins, abort the previous one, so that it does not update the result table with wrong data
-        lastXhttp.abort()
 
         const xhttp = new XMLHttpRequest();
         // construct the ajax url with the search term

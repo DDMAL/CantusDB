@@ -317,6 +317,11 @@ urlpatterns = [
         views.json_melody_export,
         name="json-melody-export",
     ),
+    path(
+        "json-cid/<str:cantus_id>",
+        views.json_cid_export,
+        name="json-cid-export",
+    ),
     # misc search
     path(
         "searchms/<int:source_pk>",
