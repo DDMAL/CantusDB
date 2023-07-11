@@ -51,6 +51,12 @@ def get_new_source(source_id):
     title = json_response["title"]
 
     try:
+        author_id = json_response["uid"]
+        author = get_user_model().objects.get(id=author_id)
+    except (KeyError, TypeError, ObjectDoesNotExist):
+        author = None
+
+    try:
         siglum = json_response["field_siglum"]["und"][0]["value"]
     except (KeyError, TypeError):
         siglum = None
@@ -287,6 +293,7 @@ def get_new_source(source_id):
         id=source_id,
         defaults={
             "title": title,
+            "created_by": author,
             "published": published,
             "siglum": siglum,
             "rism_siglum": rism_siglum,

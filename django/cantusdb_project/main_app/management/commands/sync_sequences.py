@@ -3,6 +3,7 @@ from django.core.management.base import BaseCommand
 from django.core.exceptions import ObjectDoesNotExist, ValidationError
 from django.core.validators import URLValidator
 import requests, json
+from django.contrib.auth import get_user_model
 
 SEQUENCE_ID_FILE = "sequence_list.txt"
 USER_AGENTS = [
@@ -48,6 +49,12 @@ def get_new_sequence(seq_id):
             error_file.write(f"sequence {seq_id} json not found")
             error_file.write("\n")
         return
+
+    try:
+        author_id = json_response["uid"]
+        author = get_user_model().objects.get(id=author_id)
+    except (KeyError, TypeError, ObjectDoesNotExist):
+        author = None
 
     try:
         title = json_response["title"]
@@ -161,6 +168,7 @@ def get_new_sequence(seq_id):
         id=seq_id,
         defaults={
             "visible_status": status,
+            "created_by": author,
             "title": title,
             "siglum": siglum,
             "incipit": incipit,

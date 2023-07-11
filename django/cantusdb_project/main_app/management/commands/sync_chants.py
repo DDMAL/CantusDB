@@ -76,6 +76,12 @@ def get_new_chant(chant_id):
         return
 
     try:
+        author_id = json_response["uid"]
+        author = get_user_model().objects.get(id=author_id)
+    except (KeyError, TypeError, ObjectDoesNotExist):
+        author = None
+
+    try:
         incipit = json_response["title"]
     except KeyError:
         incipit = None
@@ -268,6 +274,7 @@ def get_new_chant(chant_id):
     chant_obj, created = Chant.objects.update_or_create(
         id=chant_id,
         defaults={
+            "created_by": author,
             "incipit": incipit,
             "visible_status": status,
             "source": source,
