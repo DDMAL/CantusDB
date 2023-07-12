@@ -211,13 +211,35 @@ class SourceCreateView(LoginRequiredMixin, UserPassesTestMixin, CreateView):
         return HttpResponseRedirect(self.get_success_url())
 
 
-class SourceEditView(
-    LoginRequiredMixin, UserPassesTestMixin, UpdateView, SourceDetailView
-):
+class SourceEditView(LoginRequiredMixin, UserPassesTestMixin, UpdateView):
     template_name = "source_edit.html"
     model = Source
     form_class = SourceEditForm
     pk_url_kwarg = "source_id"
+
+    def get_context_data(self, **kwargs):
+        source = self.get_object()
+        context = super().get_context_data(**kwargs)
+
+        if source.segment and source.segment.id == 4064:
+            # if this is a sequence source
+            context["sequences"] = source.sequence_set.order_by("s_sequence")
+            context["folios"] = (
+                source.sequence_set.values_list("folio", flat=True)
+                .distinct()
+                .order_by("folio")
+            )
+        else:
+            # if this is a chant source
+            folios = (
+                source.chant_set.values_list("folio", flat=True)
+                .distinct()
+                .order_by("folio")
+            )
+            context["folios"] = folios
+            # the options for the feast selector on the right, only chant sources have this
+            context["feasts_with_folios"] = get_feast_selector_options(source, folios)
+        return context
 
     def test_func(self):
         user = self.request.user
