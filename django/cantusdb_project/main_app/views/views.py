@@ -517,37 +517,6 @@ def standardize_dict_for_json_melody_export(
     return standardized_chant_values
 
 
-def json_node_export(request, id: int) -> JsonResponse:
-    """
-    returns all fields of the chant/sequence/source/indexer with the specified `id`
-    """
-
-    # future possible optimization: use .get() instead of .filter()
-    chant = Chant.objects.filter(id=id)
-    sequence = Sequence.objects.filter(id=id)
-    source = Source.objects.filter(id=id)
-
-    if chant:
-        if not chant.first().source.published:
-            return HttpResponseNotFound()
-        requested_item = chant
-    elif sequence:
-        if not sequence.first().source.published:
-            return HttpResponseNotFound()
-        requested_item = sequence
-    elif source:
-        if not source.first().published:
-            return HttpResponseNotFound()
-        requested_item = source
-    else:
-        # id does not correspond to a chant, sequence, source or indexer
-        return HttpResponseNotFound()
-
-    vals = dict(*requested_item.values())
-
-    return JsonResponse(vals)
-
-
 def json_sources_export(request) -> JsonResponse:
     """
     Generate a json object of published sources with their IDs and CSV links
@@ -654,66 +623,35 @@ def build_json_cid_dictionary(chant, request) -> dict:
     return dictionary
 
 
-def handle404(request, exception):
-    return render(request, "404.html")
+def json_node_export(request, id: int) -> JsonResponse:
+    """
+    returns all fields of the chant/sequence/source/indexer with the specified `id`
+    """
 
+    # future possible optimization: use .get() instead of .filter()
+    chant = Chant.objects.filter(id=id)
+    sequence = Sequence.objects.filter(id=id)
+    source = Source.objects.filter(id=id)
 
-@login_required
-def change_password(request):
-    if request.method == "POST":
-        form = PasswordChangeForm(request.user, request.POST)
-        if form.is_valid():
-            user = form.save()
-            update_session_auth_hash(request, user)
-            messages.success(request, "Your password was successfully updated!")
+    if chant:
+        if not chant.first().source.published:
+            return HttpResponseNotFound()
+        requested_item = chant
+    elif sequence:
+        if not sequence.first().source.published:
+            return HttpResponseNotFound()
+        requested_item = sequence
+    elif source:
+        if not source.first().published:
+            return HttpResponseNotFound()
+        requested_item = source
     else:
-        form = PasswordChangeForm(request.user)
-    return render(request, "registration/change_password.html", {"form": form})
+        # id does not correspond to a chant, sequence, source or indexer
+        return HttpResponseNotFound()
 
+    vals = dict(*requested_item.values())
 
-def project_manager_check(user):
-    """
-    A callback function that will be called by the user_passes_test decorator of content_overview.
-
-    Takes in a logged-in user as an argument.
-    Returns True if they are in a "project manager" group, raises PermissionDenied otherwise.
-    """
-    if user.groups.filter(name="project manager").exists():
-        return True
-    raise PermissionDenied
-
-
-# first give the user a chance to login
-@login_required
-# if they're logged in but they're not a project manager, raise 403
-@user_passes_test(project_manager_check)
-def content_overview(request):
-    objects = []
-    models = [
-        Century,
-        Chant,
-        Feast,
-        Genre,
-        Notation,
-        Office,
-        Provenance,
-        RismSiglum,
-        Segment,
-        Sequence,
-        Source,
-    ]
-
-    # get the 50 most recently updated objects for all of the models
-    for model in models:
-        for object in model.objects.all().order_by("-date_updated")[:50]:
-            objects.append(object)
-
-    objects.sort(key=lambda x: x.date_updated, reverse=True)
-    recently_updated_50_objects = objects[:50]
-
-    return render(
-        request, "content_overview.html", {"objects": recently_updated_50_objects}
-    )
+    return JsonResponse(vals)
 
 
 def redirect_node_url(request, pk: int) -> HttpResponse:
@@ -777,6 +715,68 @@ def get_user_id_from_old_indexer_id(pk: int) -> Optional[int]:
         return result.id
     except User.DoesNotExist:
         return None
+
+
+def handle404(request, exception):
+    return render(request, "404.html")
+
+
+@login_required
+def change_password(request):
+    if request.method == "POST":
+        form = PasswordChangeForm(request.user, request.POST)
+        if form.is_valid():
+            user = form.save()
+            update_session_auth_hash(request, user)
+            messages.success(request, "Your password was successfully updated!")
+    else:
+        form = PasswordChangeForm(request.user)
+    return render(request, "registration/change_password.html", {"form": form})
+
+
+def project_manager_check(user):
+    """
+    A callback function that will be called by the user_passes_test decorator of content_overview.
+
+    Takes in a logged-in user as an argument.
+    Returns True if they are in a "project manager" group, raises PermissionDenied otherwise.
+    """
+    if user.groups.filter(name="project manager").exists():
+        return True
+    raise PermissionDenied
+
+
+# first give the user a chance to login
+@login_required
+# if they're logged in but they're not a project manager, raise 403
+@user_passes_test(project_manager_check)
+def content_overview(request):
+    objects = []
+    models = [
+        Century,
+        Chant,
+        Feast,
+        Genre,
+        Notation,
+        Office,
+        Provenance,
+        RismSiglum,
+        Segment,
+        Sequence,
+        Source,
+    ]
+
+    # get the 50 most recently updated objects for all of the models
+    for model in models:
+        for object in model.objects.all().order_by("-date_updated")[:50]:
+            objects.append(object)
+
+    objects.sort(key=lambda x: x.date_updated, reverse=True)
+    recently_updated_50_objects = objects[:50]
+
+    return render(
+        request, "content_overview.html", {"objects": recently_updated_50_objects}
+    )
 
 
 def redirect_indexer(request, pk: int) -> HttpResponse:
