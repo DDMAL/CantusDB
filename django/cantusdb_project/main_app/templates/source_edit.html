@@ -223,7 +223,7 @@
                         <a href="//cantusindex.org/analyse?src={{ source.id }}&db=CD" class="guillemet" target="_blank">Analyse this manuscript (Cantus Analysis Tool)</a>
 
                     </small>
-                    {% if chants.all %}
+                    {% if chants.exists %}
                         <table class="table table-sm small table-bordered">
                             <tbody>
                                 {% for chant in chants %}

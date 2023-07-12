@@ -45,7 +45,7 @@
                     <dd>{{ source.indexing_notes|safe }}</dd>
                 {% endif %}
 
-                {% if source.other_editors.all %}
+                {% if source.other_editors.exists %}
                     <dt>Other Editors</dt>
                     <dd>
                         {% for editor in source.other_editors.all %}
@@ -54,7 +54,7 @@
                     </dd>
                 {% endif %}
 
-                {% if source.full_text_entered_by.all %}
+                {% if source.full_text_entered_by.exists %}
                     <dt>Full Text Entered by</dt>
                     <dd>
                         {% for editor in source.full_text_entered_by.all %}
@@ -63,7 +63,7 @@
                     </dd>
                 {% endif %}
 
-                {% if source.melodies_entered_by.all %}
+                {% if source.melodies_entered_by.exists %}
                     <dt>Melodies Entered by</dt>
                     <dd>
                         {% for editor in source.melodies_entered_by.all %}
@@ -225,13 +225,13 @@
                             Cursus: <b>{{ source.cursus|default_if_none:"" }}</b>
                             <br>
                         {% endif %}
-                        {% if source.notation.all %}
+                        {% if source.notation.exists %}
                             Notation: <b><a href="{% url 'notation-detail' source.notation.all.first.id %}">
                                 {{ source.notation.all.first.name }}
                             </a></b>
                             <br>
                         {% endif %}
-                        {% if source.inventoried_by.all %}
+                        {% if source.inventoried_by.exists %}
                             Inventoried by:
                             <ul>
                                 {% for editor in source.inventoried_by.all %}
@@ -242,7 +242,7 @@
                                 {% endfor %}
                             </ul>
                         {% endif %}
-                        {% if source.proofreaders.all %}
+                        {% if source.proofreaders.exists %}
                             Proofreader{{ source.proofreaders.all|pluralize }}:
                             <br>
                             <ul>
@@ -272,7 +272,7 @@
                                 <li>
                                     <a href="{% url "chant-create" source.id%}">Add new chant</a>
                                 </li>
-                                {% if source.chant_set.all %}
+                                {% if source.chant_set.exists %}
                                     <li>
                                         <a href="{% url "source-edit-chants" source.pk %}">
                                             Full text &amp; volpiano editor

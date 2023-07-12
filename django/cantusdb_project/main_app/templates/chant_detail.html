@@ -499,14 +499,14 @@
                                     <br>
                                 {% endif %}
 
-                                {% if source.notation.all %}
+                                {% if source.notation.exists %}
                                     <b>
                                         <a href="{% url 'notation-detail' source.notation.all.first.id %}">{{ source.notation.all.first.name }}</a>
                                     </b>
                                     <br>
                                 {% endif %}
 
-                                {% if source.inventoried_by.all %}
+                                {% if source.inventoried_by.exists %}
                                     Inventoried by:
                                     <ul>
                                         {% for editor in source.inventoried_by.all %}
@@ -519,7 +519,7 @@
                                     </ul>
                                 {% endif %}
 
-                                {% if source.proofreaders.all %}
+                                {% if source.proofreaders.exists %}
                                     Proofreader{{ source.proofreaders.all|pluralize }}:
                                     <br>
                                     <ul>

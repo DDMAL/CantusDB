@@ -420,6 +420,7 @@ class ChantDetailView(DetailView):
                     f"https://gregorien.info/chant/cid/{chant.cantus_id}/en:",
                     exc,
                 )
+                gregorien_response = None
 
             if gregorien_response and gregorien_response.status_code == 200:
                 gregorien_database_dict: dict = {
