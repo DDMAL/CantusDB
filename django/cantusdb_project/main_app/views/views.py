@@ -663,23 +663,11 @@ def change_password(request):
     if request.method == "POST":
         form = PasswordChangeForm(request.user, request.POST)
         if form.is_valid():
-            # if the user is trying to change their password for the first time (the password that was given to them),
-            # update the user's changed_initial_password boolean field to True
-            if request.user.changed_initial_password == False:
-                form.user.changed_initial_password = True
             user = form.save()
             update_session_auth_hash(request, user)
             messages.success(request, "Your password was successfully updated!")
     else:
         form = PasswordChangeForm(request.user)
-        if request.user.changed_initial_password == False:
-            messages.warning(
-                request,
-                (
-                    "The current password was assigned to you by default and is unsecure. "
-                    "Please make sure to change it for security purposes."
-                ),
-            )
     return render(request, "registration/change_password.html", {"form": form})
 
 

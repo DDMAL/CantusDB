@@ -10,6 +10,9 @@ Discrepancies between text stored in the CantusDB database and the manuscript te
 - https://docs.google.com/spreadsheets/d/1zPq-6p8hklKKfTa5A4DXYpwOPOIi41Z7JoAfdGVKzig/edit#gid=0 (Einsiedeln)
 
 ### Differences in functionality/behavior:
+
+- In OldCantus, there were two different properties for sources/chants etc. to dictate whether their detail pages should be accessible to users or whether they should appear in lists: `published` and `visible`. In NewCantus, this system has been simplified - both fields have been combined into a single `published` field. Published sources, and the chants/sequences contained within them, are visible/accessible to all users. Unpublished sources and their chants/sequences are visible/accessible to all logged-in users, and are inaccessible to logged-out users.
+
 #### Visible to All Users (Logged-In and Anonymous)
 - General:
   - The formatting/style of the entire site is slightly different.
