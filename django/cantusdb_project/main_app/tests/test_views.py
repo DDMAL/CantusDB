@@ -3458,6 +3458,17 @@ class JsonNodeExportTest(TestCase):
         response_3 = self.client.get(reverse("json-node-export", args=["1000000000"]))
         self.assertEqual(response_3.status_code, 404)
 
+    def test_404_for_objects_created_in_newcantus(self):
+        # json_node should only work for items created in OldCantus, where objects of different
+        # types are all guaranteed to have unique IDs.
+        # objects created in NewCantus should all have ID >= 1_000_000
+        chant = make_fake_chant()
+        chant.id = 1_000_001
+        chant.save()
+
+        response_3 = self.client.get(reverse("json-node-export", args=["1000001"]))
+        self.assertEqual(response_3.status_code, 404)
+
     def test_json_node_for_chant(self):
         chant = make_fake_chant()
         id = chant.id
