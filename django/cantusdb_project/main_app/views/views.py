@@ -586,11 +586,15 @@ def json_cid_export(request, cantus_id: str) -> JsonResponse:
     Cantus ID, in the following format:
     {
         "chants": [
-            "chant": {
-                a bunch of keys, created in build_json_cid_dictionary
+            {
+                "chant": {
+                    a bunch of keys and values, created in build_json_cid_dictionary
+                },
             },
-            "chant": {
-                etc.
+            {
+                "chant": {
+                    etc.
+                },
             },
         ]
     }
