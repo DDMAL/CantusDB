@@ -1,5 +1,5 @@
 import csv
-from typing import Optional
+from typing import Optional, Union
 from django.http.response import JsonResponse
 from django.http import HttpResponse, HttpResponseNotFound
 from django.shortcuts import render, redirect
@@ -623,35 +623,113 @@ def build_json_cid_dictionary(chant, request) -> dict:
     return dictionary
 
 
+def record_exists(rec_type: BaseModel, pk: int) -> bool:
+    """Determines whether record of specific type (chant, source, sequence, article) exists for a given pk
+
+    Args:
+        rec_type (BaseModel): Which model to check to see if an object of that type exists
+        pk (int): The ID of the object being checked for.
+
+    Returns:
+        bool: True if an object of the specified model with the specified ID exists, False otherwise.
+    """
+    try:
+        rec_type.objects.get(id=pk)
+        return True
+    except rec_type.DoesNotExist:
+        return False
+
+
+def get_user_id_from_old_indexer_id(pk: int) -> Optional[int]:
+    """
+    Finds the matching User ID in NewCantus for an Indexer ID in OldCantus.
+    This is stored in the User table's old_indexer_id column.
+    This is necessary because indexers were originally stored in the general Node
+    table in OldCantus, but are now represented as users in NewCantus.
+
+    Args:
+        pk (int): the ID of an indexer in OldCantus
+
+    Returns:
+        Optional int: the ID of the corresponding User in NewCantus
+    """
+    User = get_user_model()
+    try:
+        result = User.objects.get(old_indexer_id=pk)
+        return result.id
+    except User.DoesNotExist:
+        return None
+
+
+def check_for_unpublished(item: Union[Chant, Sequence, Source]) -> None:
+    """Raises an Http404 exception if item is unpublished
+
+    Args:
+        item (Chant, Sequence, or Source): An item to check whether it is published or not
+
+    Raises:
+        Http404 if the item is a source and it's unpublished,
+            or if it's a chant/sequence and its source is unpublished
+
+    Returns:
+        None
+    """
+    if isinstance(item, Source):
+        if not item.published:
+            raise Http404()
+    if isinstance(item, Chant) or isinstance(item, Sequence):
+        if not item.source.published:
+            raise Http404()
+
+
+NODE_TYPES_AND_VIEWS = [
+    (Chant, "chant-detail"),
+    (Source, "source-detail"),
+    (Sequence, "sequence-detail"),
+    (Article, "article-detail"),
+]
+
+
+# all IDs above this value are created in NewCantus and thus could have conflicts between types.
+# when data is migrated from OldCantus to NewCantus, (unpublished) dummy objects are created
+# in the database to ensure that all newly created objects have IDs above this number.
+NODE_ID_CUTOFF = 1_000_000
+
+
 def json_node_export(request, id: int) -> JsonResponse:
     """
     returns all fields of the chant/sequence/source/indexer with the specified `id`
     """
 
-    # future possible optimization: use .get() instead of .filter()
-    chant = Chant.objects.filter(id=id)
-    sequence = Sequence.objects.filter(id=id)
-    source = Source.objects.filter(id=id)
+    # all IDs above this value are created in NewCantus and thus could have conflicts between types.
+    # when data is migrated from OldCantus to NewCantus, (unpublished) dummy objects are created
+    # in the database to ensure that all newly created objects have IDs above this number.
+    if id >= NODE_ID_CUTOFF:
+        raise Http404()
 
-    if chant:
-        if not chant.first().source.published:
-            return HttpResponseNotFound()
-        requested_item = chant
-    elif sequence:
-        if not sequence.first().source.published:
-            return HttpResponseNotFound()
-        requested_item = sequence
-    elif source:
-        if not source.first().published:
-            return HttpResponseNotFound()
-        requested_item = source
-    else:
-        # id does not correspond to a chant, sequence, source or indexer
-        return HttpResponseNotFound()
+    user_id = get_user_id_from_old_indexer_id(id)
+    if get_user_id_from_old_indexer_id(id) is not None:
+        User = get_user_model()
+        user = User.objects.filter(id=user_id)
+        # in order to easily unpack the object's properties in `vals` below, `user` needs to be
+        # a queryset rather than an individual object.
+        vals = dict(*user.values())
+        return JsonResponse(vals)
 
-    vals = dict(*requested_item.values())
+    for rec_type, _ in NODE_TYPES_AND_VIEWS:
+        if record_exists(rec_type, id):
+            requested_item = rec_type.objects.filter(id=id)
+            # in order to easily unpack the object's properties in `vals` below, `requested_item`
+            # needs to be a queryset rather than an individual object. But in order to
+            # `check_for_unpublished`, we need a single object rather than a queryset, hence
+            # `.first()`
+            check_for_unpublished(
+                requested_item.first()
+            )  # raises a 404 if item is unpublished
+            vals = dict(*requested_item.values())
+            return JsonResponse(vals)
 
-    return JsonResponse(vals)
+    return HttpResponseNotFound()
 
 
 def redirect_node_url(request, pk: int) -> HttpResponse:
@@ -664,57 +742,20 @@ def redirect_node_url(request, pk: int) -> HttpResponse:
     Returns the matching page in NewCantus if it exists and a 404 otherwise.
     """
 
-    # all IDs above this value are created in NewCantus and thus could have conflicts between types.
-    # this number is a placeholder and will be updated post-migration.
-    # we will manually create (unpublished) dummy objects in the database to ensure that all subqequent objects created will have IDs above this number.
-    if pk >= 1_000_000:
+    if pk >= NODE_ID_CUTOFF:
         raise Http404("Invalid ID for /node/ path.")
-
-    # chant, source, sequence, article
-    possible_types = [
-        (Chant, "chant-detail"),
-        (Source, "source-detail"),
-        (Sequence, "sequence-detail"),
-        (Article, "article-detail"),
-    ]
 
     user_id = get_user_id_from_old_indexer_id(pk)
     if get_user_id_from_old_indexer_id(pk) is not None:
         return redirect("user-detail", user_id)
 
-    for rec_type, view in possible_types:
+    for rec_type, view in NODE_TYPES_AND_VIEWS:
         if record_exists(rec_type, pk):
             # if an object is found, a redirect() call to the appropriate view is returned
             return redirect(view, pk)
 
     # if it reaches the end of the types with finding an existing object, a 404 will be returned
     raise Http404("No record found matching the /node/ query.")
-
-
-# used to determine whether record of specific type (chant, source, sequence, article) exists for a given pk
-def record_exists(rec_type: BaseModel, pk: int) -> bool:
-    try:
-        rec_type.objects.get(id=pk)
-        return True
-    except rec_type.DoesNotExist:
-        return False
-
-
-def get_user_id_from_old_indexer_id(pk: int) -> Optional[int]:
-    """
-    A function that and finds the matching User ID in NewCantus for an Indexer ID in OldCantus.
-    This is stored in the User table's old_indexer_id column.
-    This is necessary because indexers were originally stored in the general Node table in OldCantus, but are now represented as users in NewCantus.
-
-    Takes in an indexer ID from OldCantus as an argument.
-    Returns the user ID from NewCantus if a match is found and None otherwise.
-    """
-    User = get_user_model()
-    try:
-        result = User.objects.get(old_indexer_id=pk)
-        return result.id
-    except User.DoesNotExist:
-        return None
 
 
 def handle404(request, exception):
