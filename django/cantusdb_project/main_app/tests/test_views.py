@@ -871,6 +871,36 @@ class ChantSearchViewTest(TestCase):
         context_chant_id = response.context["chants"][0]["id"]
         self.assertEqual(chant.id, context_chant_id)
 
+    def test_order_by_siglum(self):
+        pass
+
+    def test_order_by_incipit(self):
+        pass
+
+    def test_order_by_office(self):
+        pass
+
+    def test_order_by_genre(self):
+        pass
+
+    def test_order_by_cantus_id(self):
+        pass
+
+    def test_order_by_mode(self):
+        pass
+
+    def test_order_by_ms_fulltext(self):
+        pass
+
+    def test_order_by_volpiano(self):
+        pass
+
+    def test_order_by_image_link(self):
+        pass
+
+    def test_column_header_links(self):
+        pass
+
     def test_source_link_column(self):
         siglum = "Sigl-01"
         source = make_fake_source(published=True, siglum=siglum)
