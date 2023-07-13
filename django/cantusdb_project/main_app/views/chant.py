@@ -1118,9 +1118,9 @@ class ChantCreateView(LoginRequiredMixin, UserPassesTestMixin, CreateView):
 
         return user_can_edit_chants_in_source(user, source)
 
-    # will direct to chant detail page
+    # if success_url and get_success_url not specified, will direct to chant detail page
     def get_success_url(self):
-        return reverse("chant-detail", args=[self.object.id])
+        return reverse("chant-create", args=[self.source.id])
 
     def get_initial(self):
         """Get intial data from the latest chant in source.
