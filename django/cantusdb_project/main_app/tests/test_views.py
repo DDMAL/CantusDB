@@ -1063,7 +1063,47 @@ class ChantSearchViewTest(TestCase):
         self.assertEqual(last_result_incipit, chant_2.incipit)
 
     def test_order_by_mode(self):
-        pass
+        chant_1 = make_fake_chant(
+            incipit="For first he looks upon his forepaws to see if they are clean",
+            mode="1",
+        )
+        chant_2 = make_fake_chant(
+            incipit="For secondly he kicks up behind to clear away there",
+            mode="2",
+        )
+
+        search_term = "for"
+
+        response_ascending = self.client.get(
+            reverse("chant-search"),
+            {
+                "keyword": search_term,
+                "op": "contains",
+                "order": "cantus_id",
+                "sort": "asc",
+            },
+        )
+        ascending_results = response_ascending.context["chants"]
+        first_result_incipit = ascending_results[0]["incipit"]
+        print(ascending_results[0]["incipit"], ascending_results[0]["mode"])
+        self.assertEqual(first_result_incipit, chant_1.incipit)
+        last_result_incipit = ascending_results[1]["incipit"]
+        self.assertEqual(last_result_incipit, chant_2.incipit)
+
+        response_descending = self.client.get(
+            reverse("chant-search"),
+            {
+                "keyword": search_term,
+                "op": "contains",
+                "order": "cantus_id",
+                "sort": "desc",
+            },
+        )
+        descending_results = response_descending.context["chants"]
+        first_result_incipit = descending_results[1]["incipit"]
+        self.assertEqual(first_result_incipit, chant_1.incipit)
+        last_result_incipit = descending_results[0]["incipit"]
+        self.assertEqual(last_result_incipit, chant_2.incipit)
 
     def test_order_by_ms_fulltext(self):
         pass
