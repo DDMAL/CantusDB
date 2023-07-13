@@ -113,6 +113,7 @@ def make_fake_chant(
     c_sequence=None,
     cantus_id=None,
     feast=None,
+    mode=None,
     manuscript_full_text_std_spelling=None,
     incipit=None,
     manuscript_full_text_std_proofread=None,
@@ -142,6 +143,8 @@ def make_fake_chant(
         cantus_id = make_random_string(6, "0123456789")
     if feast is None:
         feast = make_fake_feast()
+    if mode is None:
+        mode = make_random_string(1, "0123456789*?")
     if manuscript_full_text_std_spelling is None:
         manuscript_full_text_std_spelling = faker.sentence()
     if incipit is None:
@@ -167,7 +170,7 @@ def make_fake_chant(
         position=position,
         cantus_id=cantus_id,
         feast=feast,
-        mode=make_random_string(1, "0123456789*?"),
+        mode=mode,
         differentia=differentia,
         finalis=make_random_string(1, "abcdefg"),
         extra=make_random_string(3, "0123456789"),
