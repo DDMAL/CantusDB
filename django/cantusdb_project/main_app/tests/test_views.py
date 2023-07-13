@@ -1085,7 +1085,6 @@ class ChantSearchViewTest(TestCase):
         )
         ascending_results = response_ascending.context["chants"]
         first_result_incipit = ascending_results[0]["incipit"]
-        print(ascending_results[0]["incipit"], ascending_results[0]["mode"])
         self.assertEqual(first_result_incipit, chant_1.incipit)
         last_result_incipit = ascending_results[1]["incipit"]
         self.assertEqual(last_result_incipit, chant_2.incipit)
@@ -1106,7 +1105,47 @@ class ChantSearchViewTest(TestCase):
         self.assertEqual(last_result_incipit, chant_2.incipit)
 
     def test_order_by_ms_fulltext(self):
-        pass
+        chant_1 = make_fake_chant(
+            incipit="this is a chant with a MS spelling fulltext",
+            manuscript_full_text="this is a chant with a MS spelling fylltexte",
+        )
+        chant_2 = make_fake_chant(
+            incipit="this is a chant without",
+        )
+        chant_2.manuscript_full_text = None
+        chant_2.save()
+
+        search_term = "s is a ch"
+
+        response_ascending = self.client.get(
+            reverse("chant-search"),
+            {
+                "keyword": search_term,
+                "op": "contains",
+                "order": "has_fulltext",
+                "sort": "asc",
+            },
+        )
+        ascending_results = response_ascending.context["chants"]
+        first_result_incipit = ascending_results[0]["incipit"]
+        self.assertEqual(first_result_incipit, chant_1.incipit)
+        last_result_incipit = ascending_results[1]["incipit"]
+        self.assertEqual(last_result_incipit, chant_2.incipit)
+
+        response_descending = self.client.get(
+            reverse("chant-search"),
+            {
+                "keyword": search_term,
+                "op": "contains",
+                "order": "has_fulltext",
+                "sort": "desc",
+            },
+        )
+        descending_results = response_descending.context["chants"]
+        first_result_incipit = descending_results[1]["incipit"]
+        self.assertEqual(first_result_incipit, chant_1.incipit)
+        last_result_incipit = descending_results[0]["incipit"]
+        self.assertEqual(last_result_incipit, chant_2.incipit)
 
     def test_order_by_volpiano(self):
         pass
