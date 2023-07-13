@@ -947,7 +947,44 @@ class ChantSearchViewTest(TestCase):
         self.assertEqual(last_result_incipit, chant_2.incipit)
 
     def test_order_by_office(self):
-        pass
+        # currently, office sort works by ID rather than by name
+        office_1 = make_fake_office()
+        office_2 = make_fake_office()
+        assert office_1.id < office_2.id
+        chant_1 = make_fake_chant(office=office_1, incipit="hocus")
+        chant_2 = make_fake_chant(office=office_2, incipit="pocus")
+
+        search_term = "ocu"
+
+        response_ascending = self.client.get(
+            reverse("chant-search"),
+            {
+                "keyword": search_term,
+                "op": "contains",
+                "order": "office",
+                "sort": "asc",
+            },
+        )
+        ascending_results = response_ascending.context["chants"]
+        first_result_incipit = ascending_results[0]["incipit"]
+        self.assertEqual(first_result_incipit, chant_1.incipit)
+        last_result_incipit = ascending_results[1]["incipit"]
+        self.assertEqual(last_result_incipit, chant_2.incipit)
+
+        response_descending = self.client.get(
+            reverse("chant-search"),
+            {
+                "keyword": search_term,
+                "op": "contains",
+                "order": "office",
+                "sort": "desc",
+            },
+        )
+        descending_results = response_descending.context["chants"]
+        first_result_incipit = descending_results[1]["incipit"]
+        self.assertEqual(first_result_incipit, chant_1.incipit)
+        last_result_incipit = descending_results[0]["incipit"]
+        self.assertEqual(last_result_incipit, chant_2.incipit)
 
     def test_order_by_genre(self):
         pass
