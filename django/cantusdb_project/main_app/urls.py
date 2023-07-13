@@ -303,7 +303,7 @@ urlpatterns = [
         name="json-sources-export",
     ),
     path(
-        "json-node/<str:id>",
+        "json-node/<int:id>",
         views.json_node_export,
         name="json-node-export",
     ),
