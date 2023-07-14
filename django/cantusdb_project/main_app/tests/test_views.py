@@ -4372,11 +4372,6 @@ class JsonCidTest(TestCase):
         )
         json_for_one_chant_2 = response_2.json()["chants"][0]["chant"]
         for item in json_for_one_chant_2.items():
-            try:
-                assert isinstance(item[1], str)
-            except AssertionError:
-                print(item)
-
             self.assertIsInstance(item[1], str)  # we shouldn't see any Nones or nulls
 
         chant.manuscript_full_text = "nahn-staendrd spillynge"
