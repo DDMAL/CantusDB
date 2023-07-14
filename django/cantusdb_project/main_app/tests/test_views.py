@@ -3694,7 +3694,11 @@ class SourceCreateViewTest(TestCase):
         )
 
         self.assertEqual(response.status_code, 302)
-        self.assertRedirects(response, reverse("source-create"))
+        created_source = Source.objects.get(siglum="test-siglum")
+        self.assertRedirects(
+            response,
+            reverse("source-detail", args=[created_source.id]),
+        )
 
         source = Source.objects.first()
         self.assertEqual(source.title, "test")
