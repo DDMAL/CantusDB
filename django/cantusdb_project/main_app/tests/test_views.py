@@ -1223,7 +1223,7 @@ class ChantSearchViewTest(TestCase):
             {
                 "keyword": search_term,
                 "op": "contains",
-                "order": "has_fulltext",
+                "order": "has_image",
                 "sort": "desc",
             },
         )
