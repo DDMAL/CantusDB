@@ -1234,7 +1234,123 @@ class ChantSearchViewTest(TestCase):
         self.assertEqual(last_result_incipit, chant_2.incipit)
 
     def test_column_header_links(self):
-        pass
+        # these are the 9 column headers users can order by:
+        siglum = "glum-01"
+        incipit = "so it begins"
+        office = make_fake_office()
+        genre = make_fake_genre()
+        cantus_id = make_random_string(6, "0123456789")
+        mode = make_random_string(1, "0123456789*?")
+        ms_ft = faker.sentence()
+        mel = make_fake_volpiano()
+        image = faker.image_url()
+
+        source = make_fake_source(siglum=siglum, published=True)
+
+        # additional properties for which there are search fields
+        feast = make_fake_feast()
+        position = make_random_string(1)
+        chant = make_fake_chant(
+            incipit=incipit,
+            office=office,
+            genre=genre,
+            cantus_id=cantus_id,
+            mode=mode,
+            manuscript_full_text_std_spelling=ms_ft,
+            volpiano=mel,
+            image_link=image,
+            source=source,
+            feast=feast,
+            position=position,
+        )
+        search_term = "so it be"
+
+        response_1 = self.client.get(
+            reverse("chant-search"),
+            {
+                "keyword": search_term,
+            },
+        )
+        html_1 = str(response_1.content)
+        # if no ordering specified, all 9 links should include "&sort=asc"
+        self.assertEqual(html_1.count("&sort=asc"), 9)
+
+        # test that all query parameters are present in all 9 links
+        query_keys_and_values = {
+            "op": "contains",
+            "keyword": search_term,
+            "office": office.name,
+            "genre": genre.id,
+            "cantus_id": cantus_id,
+            "mode": mode,
+            "feast": feast.name,
+            "position": position,
+            "melodies": "true",
+        }
+        response_2 = self.client.get(
+            reverse("chant-search"),
+            query_keys_and_values,
+        )
+        html_2 = str(response_2.content)
+        for k, v in query_keys_and_values.items():
+            expected_query_param = f"{k}={v}"
+            self.assertEqual(html_2.count(expected_query_param), 9)
+        self.assertEqual(html_2.count("sort=asc"), 9)
+
+        # test links maintain search_bar
+        response_3 = self.client.get(
+            reverse("chant-search"),
+            {
+                "search_bar": search_term,
+            },
+        )
+        html_3 = str(response_3.content)
+        self.assertEqual(html_3.count(f"search_bar={search_term}"), 9)
+
+        # for each orderable column, check that 'asc' flips to 'desc', and vice versa
+        orderings = (
+            "siglum",
+            "incipit",
+            "office",
+            "genre",
+            "cantus_id",
+            "mode",
+            "has_fulltext",
+            "has_melody",
+            "has_image",
+        )
+        for ordering in orderings:
+            response_asc = self.client.get(
+                reverse("chant-search"),
+                {
+                    "search_bar": search_term,
+                    "order": ordering,
+                    "sort": "asc",
+                },
+            )
+            html_asc = str(response_asc.content)
+            expected_substring = f"&order={ordering}&sort=desc"
+            self.assertIn(expected_substring, html_asc)
+            self.assertEqual(html_asc.count("sort=asc"), 8)
+            response_desc = self.client.get(
+                reverse("chant-search"),
+                {
+                    "search_bar": search_term,
+                    "order": ordering,
+                    "sort": "desc",
+                },
+            )
+            response_desc = self.client.get(
+                reverse("chant-search"),
+                {
+                    "search_bar": search_term,
+                    "order": ordering,
+                    "sort": "desc",
+                },
+            )
+            html_desc = str(response_desc.content)
+            expected_substring = f"&order={ordering}&sort=asc"
+            self.assertIn(expected_substring, html_desc)
 
     def test_source_link_column(self):
         siglum = "Sigl-01"
