@@ -1079,7 +1079,7 @@ class ChantSearchViewTest(TestCase):
             {
                 "keyword": search_term,
                 "op": "contains",
-                "order": "cantus_id",
+                "order": "mode",
                 "sort": "asc",
             },
         )
@@ -1094,7 +1094,7 @@ class ChantSearchViewTest(TestCase):
             {
                 "keyword": search_term,
                 "op": "contains",
-                "order": "cantus_id",
+                "order": "mode",
                 "sort": "desc",
             },
         )
@@ -1180,7 +1180,7 @@ class ChantSearchViewTest(TestCase):
             {
                 "keyword": search_term,
                 "op": "contains",
-                "order": "has_fulltext",
+                "order": "has_melody",
                 "sort": "desc",
             },
         )
