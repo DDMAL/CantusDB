@@ -13,6 +13,7 @@ services:
       - 3000:3000
     depends_on:
       - postgres
+    restart: always
 
   nginx:
     image: nginx:alpine
@@ -22,6 +23,7 @@ services:
       - ./config/nginx/conf.d:/etc/nginx/conf.d
       - static_volume:/resources/static
       - media_volume:/resources/media
+    restart: always
     depends_on:
       - django
 
@@ -30,6 +32,7 @@ services:
     env_file: ./config/envs/dev_env
     volumes:
       - postgres_data:/var/lib/postgresql/data/
+    restart: always
 
 volumes:
   postgres_data:
