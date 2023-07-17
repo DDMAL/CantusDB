@@ -904,10 +904,10 @@ class ChantSearchViewTest(TestCase):
             },
         )
         descending_results = response_descending.context["chants"]
-        first_result_incipit = descending_results[1]["incipit"]
-        self.assertEqual(first_result_incipit, chant_1.incipit)
-        last_result_incipit = descending_results[0]["incipit"]
-        self.assertEqual(last_result_incipit, chant_2.incipit)
+        first_result_incipit = descending_results[0]["incipit"]
+        self.assertEqual(first_result_incipit, chant_2.incipit)
+        last_result_incipit = descending_results[1]["incipit"]
+        self.assertEqual(last_result_incipit, chant_1.incipit)
 
     def test_order_by_incipit(self):
         source = make_fake_source(published=True)
@@ -941,10 +941,10 @@ class ChantSearchViewTest(TestCase):
             },
         )
         descending_results = response_descending.context["chants"]
-        first_result_incipit = descending_results[1]["incipit"]
-        self.assertEqual(first_result_incipit, chant_1.incipit)
-        last_result_incipit = descending_results[0]["incipit"]
-        self.assertEqual(last_result_incipit, chant_2.incipit)
+        first_result_incipit = descending_results[0]["incipit"]
+        self.assertEqual(first_result_incipit, chant_2.incipit)
+        last_result_incipit = descending_results[1]["incipit"]
+        self.assertEqual(last_result_incipit, chant_1.incipit)
 
     def test_order_by_office(self):
         # currently, office sort works by ID rather than by name
@@ -981,10 +981,10 @@ class ChantSearchViewTest(TestCase):
             },
         )
         descending_results = response_descending.context["chants"]
-        first_result_incipit = descending_results[1]["incipit"]
-        self.assertEqual(first_result_incipit, chant_1.incipit)
-        last_result_incipit = descending_results[0]["incipit"]
-        self.assertEqual(last_result_incipit, chant_2.incipit)
+        first_result_incipit = descending_results[0]["incipit"]
+        self.assertEqual(first_result_incipit, chant_2.incipit)
+        last_result_incipit = descending_results[1]["incipit"]
+        self.assertEqual(last_result_incipit, chant_1.incipit)
 
     def test_order_by_genre(self):
         # currently, genre sort works by ID rather than by name
@@ -1021,10 +1021,10 @@ class ChantSearchViewTest(TestCase):
             },
         )
         descending_results = response_descending.context["chants"]
-        first_result_incipit = descending_results[1]["incipit"]
-        self.assertEqual(first_result_incipit, chant_1.incipit)
-        last_result_incipit = descending_results[0]["incipit"]
-        self.assertEqual(last_result_incipit, chant_2.incipit)
+        first_result_incipit = descending_results[0]["incipit"]
+        self.assertEqual(first_result_incipit, chant_2.incipit)
+        last_result_incipit = descending_results[1]["incipit"]
+        self.assertEqual(last_result_incipit, chant_1.incipit)
 
     def test_order_by_cantus_id(self):
         chant_1 = make_fake_chant(incipit="isaac", cantus_id="121393")
@@ -1057,10 +1057,10 @@ class ChantSearchViewTest(TestCase):
             },
         )
         descending_results = response_descending.context["chants"]
-        first_result_incipit = descending_results[1]["incipit"]
-        self.assertEqual(first_result_incipit, chant_1.incipit)
-        last_result_incipit = descending_results[0]["incipit"]
-        self.assertEqual(last_result_incipit, chant_2.incipit)
+        first_result_incipit = descending_results[0]["incipit"]
+        self.assertEqual(first_result_incipit, chant_2.incipit)
+        last_result_incipit = descending_results[1]["incipit"]
+        self.assertEqual(last_result_incipit, chant_1.incipit)
 
     def test_order_by_mode(self):
         chant_1 = make_fake_chant(
@@ -1099,10 +1099,10 @@ class ChantSearchViewTest(TestCase):
             },
         )
         descending_results = response_descending.context["chants"]
-        first_result_incipit = descending_results[1]["incipit"]
-        self.assertEqual(first_result_incipit, chant_1.incipit)
-        last_result_incipit = descending_results[0]["incipit"]
-        self.assertEqual(last_result_incipit, chant_2.incipit)
+        first_result_incipit = descending_results[0]["incipit"]
+        self.assertEqual(first_result_incipit, chant_2.incipit)
+        last_result_incipit = descending_results[1]["incipit"]
+        self.assertEqual(last_result_incipit, chant_1.incipit)
 
     def test_order_by_ms_fulltext(self):
         chant_1 = make_fake_chant(
@@ -1142,10 +1142,10 @@ class ChantSearchViewTest(TestCase):
             },
         )
         descending_results = response_descending.context["chants"]
-        first_result_incipit = descending_results[1]["incipit"]
-        self.assertEqual(first_result_incipit, chant_1.incipit)
-        last_result_incipit = descending_results[0]["incipit"]
-        self.assertEqual(last_result_incipit, chant_2.incipit)
+        first_result_incipit = descending_results[0]["incipit"]
+        self.assertEqual(first_result_incipit, chant_2.incipit)
+        last_result_incipit = descending_results[1]["incipit"]
+        self.assertEqual(last_result_incipit, chant_1.incipit)
 
     def test_order_by_volpiano(self):
         chant_1 = make_fake_chant(
@@ -1185,10 +1185,10 @@ class ChantSearchViewTest(TestCase):
             },
         )
         descending_results = response_descending.context["chants"]
-        first_result_incipit = descending_results[1]["incipit"]
-        self.assertEqual(first_result_incipit, chant_1.incipit)
-        last_result_incipit = descending_results[0]["incipit"]
-        self.assertEqual(last_result_incipit, chant_2.incipit)
+        first_result_incipit = descending_results[0]["incipit"]
+        self.assertEqual(first_result_incipit, chant_2.incipit)
+        last_result_incipit = descending_results[1]["incipit"]
+        self.assertEqual(last_result_incipit, chant_1.incipit)
 
     def test_order_by_image_link(self):
         chant_1 = make_fake_chant(
@@ -1228,10 +1228,10 @@ class ChantSearchViewTest(TestCase):
             },
         )
         descending_results = response_descending.context["chants"]
-        first_result_incipit = descending_results[1]["incipit"]
-        self.assertEqual(first_result_incipit, chant_1.incipit)
-        last_result_incipit = descending_results[0]["incipit"]
-        self.assertEqual(last_result_incipit, chant_2.incipit)
+        first_result_incipit = descending_results[0]["incipit"]
+        self.assertEqual(first_result_incipit, chant_2.incipit)
+        last_result_incipit = descending_results[1]["incipit"]
+        self.assertEqual(last_result_incipit, chant_1.incipit)
 
     def test_column_header_links(self):
         # these are the 9 column headers users can order by:
