@@ -52,7 +52,7 @@
                 <div class="card-body">
                     <small><a href="{% url "source-create" %}"><b>+ Add new source</b></a></small>
                     <ul>
-                        {% for my_source in page_obj %}
+                        {% for my_source in user_created_sources_page_obj %}
                             <li>
                                 <a href="{% url "source-detail" my_source.pk %}">
                                     <b> {{ my_source.siglum }}</b>
