@@ -132,7 +132,7 @@ def get_new_chant(chant_id):
 
     try:
         differentia_new = json_response["field_differentia_new"]["und"][0]["value"]
-    except (KeyError, TypeError):
+    except (KeyError, TypeError, IndexError):
         differentia_new = None
 
     try:
