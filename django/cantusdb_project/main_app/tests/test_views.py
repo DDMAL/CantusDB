@@ -1329,8 +1329,15 @@ class ChantSearchViewTest(TestCase):
                 },
             )
             html_asc = str(response_asc.content)
+            # the expected substring should be found in the `href` attribute of the `a` tag
+            # in the column header in question. Since the results are currently being ordered
+            # by that column, sorted ascending, this link should switch the results to being
+            # sorted descending.
             expected_substring = f"&order={ordering}&sort=desc"
             self.assertIn(expected_substring, html_asc)
+            # when no `sort=` is specified, all 9 columns should contain a `sort=asc` in
+            # their column header link. Since an ascending sorting _is_ specified for one
+            # of the columns, that column should have switched from `sort=asc` to `sort=desc`
             self.assertEqual(html_asc.count("sort=asc"), 8)
             response_desc = self.client.get(
                 reverse("chant-search"),
@@ -1349,6 +1356,10 @@ class ChantSearchViewTest(TestCase):
                 },
             )
             html_desc = str(response_desc.content)
+            # the expected substring should be found in the `href` attribute of the `a` tag
+            # in the column header in question. Since the results are currently being ordered
+            # by that column, sorted descending, this link should switch the results to being
+            # sorted ascending.
             expected_substring = f"&order={ordering}&sort=asc"
             self.assertIn(expected_substring, html_desc)
 
@@ -2207,8 +2218,15 @@ class ChantSearchMSViewTest(TestCase):
                 },
             )
             html_asc = str(response_asc.content)
+            # the expected substring should be found in the `href` attribute of the `a` tag
+            # in the column header in question. Since the results are currently being ordered
+            # by that column, sorted ascending, this link should switch the results to being
+            # sorted descending.
             expected_substring = f"&order={ordering}&sort=desc"
             self.assertIn(expected_substring, html_asc)
+            # when no `sort=` is specified, all 9 columns should contain a `sort=asc` in
+            # their column header link. Since an ascending sorting _is_ specified for one
+            # of the columns, that column should have switched from `sort=asc` to `sort=desc`
             self.assertEqual(html_asc.count("sort=asc"), 8)
             response_desc = self.client.get(
                 reverse("chant-search-ms", args=[source.id]),
@@ -2227,6 +2245,10 @@ class ChantSearchMSViewTest(TestCase):
                 },
             )
             html_desc = str(response_desc.content)
+            # the expected substring should be found in the `href` attribute of the `a` tag
+            # in the column header in question. Since the results are currently being ordered
+            # by that column, sorted descending, this link should switch the results to being
+            # sorted ascending.
             expected_substring = f"&order={ordering}&sort=asc"
             self.assertIn(expected_substring, html_desc)
 
