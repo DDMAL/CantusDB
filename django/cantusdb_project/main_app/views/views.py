@@ -1,5 +1,5 @@
 import csv
-from typing import Optional
+from typing import Optional, Union
 from django.http.response import JsonResponse
 from django.http import HttpResponse, HttpResponseNotFound
 from django.shortcuts import render, redirect
@@ -28,6 +28,7 @@ from django.contrib.auth.forms import PasswordChangeForm
 from django.core.exceptions import PermissionDenied
 from django.urls import reverse
 from django.contrib.auth import get_user_model
+from typing import List
 
 
 @login_required
@@ -434,7 +435,7 @@ def ajax_search_bar(request, search_term):
     return JsonResponse({"chants": returned_values}, safe=True)
 
 
-def json_melody_export(request, cantus_id):
+def json_melody_export(request, cantus_id: str) -> JsonResponse:
     chants = Chant.objects.filter(
         cantus_id=cantus_id, volpiano__isnull=False, source__published=True
     )
@@ -460,103 +461,301 @@ def json_melody_export(request, cantus_id):
     chants_values = list(chants.values(*db_keys))  # a list of dictionaries. Each
     # dictionary represents metadata on one chant
 
-    def standardize_for_api(chant_values):
-        keymap = {  # map attribute names from Chant model (i.e. db_keys
-            # in list above) to corresponding attribute names
-            # in old API, and remove artifacts of query process (i.e. __id suffixes)
-            "melody_id": "mid",  #                  <-
-            "id": "nid",  #                         <-
-            "cantus_id": "cid",  #                  <-
-            "siglum": "siglum",
-            "source__id": "srcnid",  #              <-
-            "folio": "folio",
-            "incipit": "incipit",
-            "manuscript_full_text": "fulltext",  #  <-
-            "volpiano": "volpiano",
-            "mode": "mode",
-            "feast__id": "feast",  #                <-
-            "office__id": "office",  #              <-
-            "genre__id": "genre",  #                <-
-            "position": "position",
-        }
-
-        standardized_chant_values = {
-            keymap[key]: chant_values[key] for key in chant_values
-        }
-
-        # manually build a couple of last fields that aren't represented in Chant object
-        chant_uri = request.build_absolute_uri(
-            reverse("chant-detail", args=[chant_values["id"]])
-        )
-        standardized_chant_values["chantlink"] = chant_uri
-        src_uri = request.build_absolute_uri(
-            reverse("source-detail", args=[chant_values["source__id"]])
-        )
-        standardized_chant_values["srclink"] = src_uri
-
-        return standardized_chant_values
-
-    standardized_chants_values = [standardize_for_api(cv) for cv in chants_values]
+    standardized_chants_values = [
+        standardize_dict_for_json_melody_export(cv, request) for cv in chants_values
+    ]
 
     return JsonResponse(standardized_chants_values, safe=False)
 
 
-def json_node_export(request, id):
+def standardize_dict_for_json_melody_export(
+    chant_values: List[dict], request
+) -> List[dict]:
+    """Take a list of dictionaries, and in each dictionary, change several
+    of the keys to match their values in OldCantus
+
+    Args:
+        chant_values (List[dict]): a list of dictionaries, each containing
+            information on a single chant in the database
+        request: passed when this is called in json_melody_export. Used to get the domain
+            while building the chant links
+
+    Returns:
+        List[dict]: a list of dictionaries, with updated keys
     """
-    returns all fields of the chant/sequence/source/indexer with the specified `id`
+    keymap = {  # map attribute names from Chant model (i.e. db_keys
+        # in json_melody_export) to corresponding attribute names
+        # in old API, and remove artifacts of query process (i.e. __id suffixes)
+        "melody_id": "mid",  #                  <-
+        "id": "nid",  #                         <-
+        "cantus_id": "cid",  #                  <-
+        "siglum": "siglum",
+        "source__id": "srcnid",  #              <-
+        "folio": "folio",
+        "incipit": "incipit",
+        "manuscript_full_text": "fulltext",  #  <-
+        "volpiano": "volpiano",
+        "mode": "mode",
+        "feast__id": "feast",  #                <-
+        "office__id": "office",  #              <-
+        "genre__id": "genre",  #                <-
+        "position": "position",
+    }
+
+    standardized_chant_values = {keymap[key]: chant_values[key] for key in chant_values}
+
+    # manually build a couple of last fields that aren't represented in Chant object
+    chant_uri = request.build_absolute_uri(
+        reverse("chant-detail", args=[chant_values["id"]])
+    )
+    standardized_chant_values["chantlink"] = chant_uri
+    src_uri = request.build_absolute_uri(
+        reverse("source-detail", args=[chant_values["source__id"]])
+    )
+    standardized_chant_values["srclink"] = src_uri
+
+    return standardized_chant_values
+
+
+def json_sources_export(request) -> JsonResponse:
     """
-
-    # future possible optimization: use .get() instead of .filter()
-    chant = Chant.objects.filter(id=id)
-    sequence = Sequence.objects.filter(id=id)
-    source = Source.objects.filter(id=id)
-
-    if chant:
-        if not chant.first().source.published:
-            return HttpResponseNotFound()
-        requested_item = chant
-    elif sequence:
-        if not sequence.first().source.published:
-            return HttpResponseNotFound()
-        requested_item = sequence
-    elif source:
-        if not source.first().published:
-            return HttpResponseNotFound()
-        requested_item = source
-    else:
-        # id does not correspond to a chant, sequence, source or indexer
-        return HttpResponseNotFound()
-
-    vals = dict(*requested_item.values())
-
-    return JsonResponse(vals)
-
-
-def json_sources_export(request):
-    """
-    generates a json object of published sources with their IDs and CSV links
+    Generate a json object of published sources with their IDs and CSV links
     """
     sources = Source.objects.filter(published=True)
     ids = [source.id for source in sources]
 
-    def inner_dictionary(id):
-        # in OldCantus, json-sources creates a json file with each id attribute pointing to a dictionary
-        # containing a single key, "csv", which itself points to a link to the relevant csv file.
-        # inner_dictionary() is used to build this single-keyed dictionary.
-
-        # To avoid confusion, note that the `id` parameter refers to an identifier, and is not
-        # an abbreviation of `inner_dictionary`!
-        return {"csv": request.build_absolute_uri(reverse("csv-export", args=[id]))}
-
-    csv_links = {id: inner_dictionary(id) for id in ids}
+    csv_links = {id: build_json_sources_export_dictionary(id, request) for id in ids}
 
     return JsonResponse(csv_links)
+
+
+def build_json_sources_export_dictionary(id: int, request) -> dict:
+    """Return a dictionary containing a link to the csv-export page for a source
+
+    Args:
+        id (int): the pk of the source
+        request: passed when this is called in json_sources_export. Used to get the domain
+            while building the CSV link
+
+    Returns:
+        dict: a dictionary with a single key, "csv", and a link to the source's csv-export
+            page
+    """
+    return {"csv": request.build_absolute_uri(reverse("csv-export", args=[id]))}
 
 
 def json_nextchants(request, cantus_id):
     ids_and_counts = next_chants(cantus_id, display_unpublished=False)
     suggested_chants_dict = {id: count for (id, count) in ids_and_counts}
     return JsonResponse(suggested_chants_dict)
+
+
+def json_cid_export(request, cantus_id: str) -> JsonResponse:
+    """Return a JsonResponse containing information on all chants with a given
+    Cantus ID, in the following format:
+    {
+        "chants": [
+            {
+                "chant": {
+                    a bunch of keys and values, created in build_json_cid_dictionary
+                },
+            },
+            {
+                "chant": {
+                    etc.
+                },
+            },
+        ]
+    }
+    We believe Cantus Index uses this API in building its list of concordances
+    for a given Cantus ID across the databases in the Cantus Network
+
+    Args:
+        request: the incoming request
+        cantus_id (string): A Cantus ID
+    """
+
+    # the API in OldCantus appears to only return chants, and no sequences.
+    chants = Chant.objects.filter(cantus_id=cantus_id).filter(source__published=True)
+    chant_dicts = [{"chant": build_json_cid_dictionary(c, request)} for c in chants]
+    response = {"chants": chant_dicts}
+    return JsonResponse(response)
+
+
+def build_json_cid_dictionary(chant, request) -> dict:
+    """Return a dictionary with information on a given chant in the database
+
+    Args:
+        chant: a Chant
+        request: passed when this is called in json_cid_export. Used to get the domain
+            while building the chant link
+
+    Returns:
+        dict: a dictionary with information about the chant and its source, including
+            absolute URLs for the chant and source detail pages
+    """
+    source_relative_url = reverse("source-detail", args=[chant.source.id])
+    source_absolute_url = request.build_absolute_uri(source_relative_url)
+    chant_relative_url = reverse("chant-detail", args=[chant.id])
+    chant_absolute_url = request.build_absolute_uri(chant_relative_url)
+    dictionary = {
+        "siglum": chant.source.siglum,
+        "srclink": source_absolute_url,
+        "chantlink": chant_absolute_url,
+        # "chantlinkOLD":  # OldCantus included a URL using http:// here,
+        #                  # whereas "chantlink" had a URL with https://
+        "folio": chant.folio if chant.folio else "",
+        "incipit": chant.incipit if chant.incipit else "",
+        "feast": chant.feast.name if chant.feast else "",
+        "genre": chant.genre.name if chant.genre else "",
+        "office": chant.office.name if chant.office else "",
+        "position": chant.position if chant.position else "",
+        "mode": chant.mode if chant.mode else "",
+        "image": chant.image_link if chant.image_link else "",
+        "melody": chant.volpiano if chant.volpiano else "",
+        "fulltext": (
+            chant.manuscript_full_text_std_spelling
+            if chant.manuscript_full_text_std_spelling
+            else ""
+        ),
+        "db": "CD",
+    }
+    return dictionary
+
+
+def record_exists(rec_type: BaseModel, pk: int) -> bool:
+    """Determines whether record of specific type (chant, source, sequence, article) exists for a given pk
+
+    Args:
+        rec_type (BaseModel): Which model to check to see if an object of that type exists
+        pk (int): The ID of the object being checked for.
+
+    Returns:
+        bool: True if an object of the specified model with the specified ID exists, False otherwise.
+    """
+    try:
+        rec_type.objects.get(id=pk)
+        return True
+    except rec_type.DoesNotExist:
+        return False
+
+
+def get_user_id_from_old_indexer_id(pk: int) -> Optional[int]:
+    """
+    Finds the matching User ID in NewCantus for an Indexer ID in OldCantus.
+    This is stored in the User table's old_indexer_id column.
+    This is necessary because indexers were originally stored in the general Node
+    table in OldCantus, but are now represented as users in NewCantus.
+
+    Args:
+        pk (int): the ID of an indexer in OldCantus
+
+    Returns:
+        Optional int: the ID of the corresponding User in NewCantus
+    """
+    User = get_user_model()
+    try:
+        result = User.objects.get(old_indexer_id=pk)
+        return result.id
+    except User.DoesNotExist:
+        return None
+
+
+def check_for_unpublished(item: Union[Chant, Sequence, Source]) -> None:
+    """Raises an Http404 exception if item is unpublished
+
+    Args:
+        item (Chant, Sequence, or Source): An item to check whether it is published or not
+
+    Raises:
+        Http404 if the item is a source and it's unpublished,
+            or if it's a chant/sequence and its source is unpublished
+
+    Returns:
+        None
+    """
+    if isinstance(item, Source):
+        if not item.published:
+            raise Http404()
+    if isinstance(item, Chant) or isinstance(item, Sequence):
+        if not item.source.published:
+            raise Http404()
+
+
+NODE_TYPES_AND_VIEWS = [
+    (Chant, "chant-detail"),
+    (Source, "source-detail"),
+    (Sequence, "sequence-detail"),
+    (Article, "article-detail"),
+]
+
+
+# all IDs above this value are created in NewCantus and thus could have conflicts between types.
+# when data is migrated from OldCantus to NewCantus, (unpublished) dummy objects are created
+# in the database to ensure that all newly created objects have IDs above this number.
+NODE_ID_CUTOFF = 1_000_000
+
+
+def json_node_export(request, id: int) -> JsonResponse:
+    """
+    returns all fields of the chant/sequence/source/indexer with the specified `id`
+    """
+
+    # all IDs above this value are created in NewCantus and thus could have conflicts between types.
+    # when data is migrated from OldCantus to NewCantus, (unpublished) dummy objects are created
+    # in the database to ensure that all newly created objects have IDs above this number.
+    if id >= NODE_ID_CUTOFF:
+        raise Http404()
+
+    user_id = get_user_id_from_old_indexer_id(id)
+    if get_user_id_from_old_indexer_id(id) is not None:
+        User = get_user_model()
+        user = User.objects.filter(id=user_id)
+        # in order to easily unpack the object's properties in `vals` below, `user` needs to be
+        # a queryset rather than an individual object.
+        vals = dict(*user.values())
+        return JsonResponse(vals)
+
+    for rec_type, _ in NODE_TYPES_AND_VIEWS:
+        if record_exists(rec_type, id):
+            requested_item = rec_type.objects.filter(id=id)
+            # in order to easily unpack the object's properties in `vals` below, `requested_item`
+            # needs to be a queryset rather than an individual object. But in order to
+            # `check_for_unpublished`, we need a single object rather than a queryset, hence
+            # `.first()`
+            check_for_unpublished(
+                requested_item.first()
+            )  # raises a 404 if item is unpublished
+            vals = dict(*requested_item.values())
+            return JsonResponse(vals)
+
+    return HttpResponseNotFound()
+
+
+def redirect_node_url(request, pk: int) -> HttpResponse:
+    """
+    A function that will redirect /node/ URLs from OldCantus to their corresponding page in NewCantus.
+    This makes NewCantus links backwards compatible for users who may have bookmarked these types of URLs in OldCantus.
+    In addition, this function (paired with get_user_id() below) account for the different numbering systems in both versions of CantusDB, notably for /indexer/ paths which are now at /user/.
+
+    Takes in a request and the primary key (ID following /node/ in the URL) as arguments.
+    Returns the matching page in NewCantus if it exists and a 404 otherwise.
+    """
+
+    if pk >= NODE_ID_CUTOFF:
+        raise Http404("Invalid ID for /node/ path.")
+
+    user_id = get_user_id_from_old_indexer_id(pk)
+    if get_user_id_from_old_indexer_id(pk) is not None:
+        return redirect("user-detail", user_id)
+
+    for rec_type, view in NODE_TYPES_AND_VIEWS:
+        if record_exists(rec_type, pk):
+            # if an object is found, a redirect() call to the appropriate view is returned
+            return redirect(view, pk)
+
+    # if it reaches the end of the types with finding an existing object, a 404 will be returned
+    raise Http404("No record found matching the /node/ query.")
 
 
 def handle404(request, exception):
@@ -568,23 +767,11 @@ def change_password(request):
     if request.method == "POST":
         form = PasswordChangeForm(request.user, request.POST)
         if form.is_valid():
-            # if the user is trying to change their password for the first time (the password that was given to them),
-            # update the user's changed_initial_password boolean field to True
-            if request.user.changed_initial_password == False:
-                form.user.changed_initial_password = True
             user = form.save()
             update_session_auth_hash(request, user)
             messages.success(request, "Your password was successfully updated!")
     else:
         form = PasswordChangeForm(request.user)
-        if request.user.changed_initial_password == False:
-            messages.warning(
-                request,
-                (
-                    "The current password was assigned to you by default and is unsecure. "
-                    "Please make sure to change it for security purposes."
-                ),
-            )
     return render(request, "registration/change_password.html", {"form": form})
 
 
@@ -631,69 +818,6 @@ def content_overview(request):
     return render(
         request, "content_overview.html", {"objects": recently_updated_50_objects}
     )
-
-
-def redirect_node_url(request, pk: int) -> HttpResponse:
-    """
-    A function that will redirect /node/ URLs from OldCantus to their corresponding page in NewCantus.
-    This makes NewCantus links backwards compatible for users who may have bookmarked these types of URLs in OldCantus.
-    In addition, this function (paired with get_user_id() below) account for the different numbering systems in both versions of CantusDB, notably for /indexer/ paths which are now at /user/.
-
-    Takes in a request and the primary key (ID following /node/ in the URL) as arguments.
-    Returns the matching page in NewCantus if it exists and a 404 otherwise.
-    """
-
-    # all IDs above this value are created in NewCantus and thus could have conflicts between types.
-    # this number is a placeholder and will be updated post-migration.
-    # we will manually create (unpublished) dummy objects in the database to ensure that all subqequent objects created will have IDs above this number.
-    if pk >= 1_000_000:
-        raise Http404("Invalid ID for /node/ path.")
-
-    # chant, source, sequence, article
-    possible_types = [
-        (Chant, "chant-detail"),
-        (Source, "source-detail"),
-        (Sequence, "sequence-detail"),
-        (Article, "article-detail"),
-    ]
-
-    user_id = get_user_id_from_old_indexer_id(pk)
-    if get_user_id_from_old_indexer_id(pk) is not None:
-        return redirect("user-detail", user_id)
-
-    for rec_type, view in possible_types:
-        if record_exists(rec_type, pk):
-            # if an object is found, a redirect() call to the appropriate view is returned
-            return redirect(view, pk)
-
-    # if it reaches the end of the types with finding an existing object, a 404 will be returned
-    raise Http404("No record found matching the /node/ query.")
-
-
-# used to determine whether record of specific type (chant, source, sequence, article) exists for a given pk
-def record_exists(rec_type: BaseModel, pk: int) -> bool:
-    try:
-        rec_type.objects.get(id=pk)
-        return True
-    except rec_type.DoesNotExist:
-        return False
-
-
-def get_user_id_from_old_indexer_id(pk: int) -> Optional[int]:
-    """
-    A function that and finds the matching User ID in NewCantus for an Indexer ID in OldCantus.
-    This is stored in the User table's old_indexer_id column.
-    This is necessary because indexers were originally stored in the general Node table in OldCantus, but are now represented as users in NewCantus.
-
-    Takes in an indexer ID from OldCantus as an argument.
-    Returns the user ID from NewCantus if a match is found and None otherwise.
-    """
-    User = get_user_model()
-    try:
-        result = User.objects.get(old_indexer_id=pk)
-        return result.id
-    except User.DoesNotExist:
-        return None
 
 
 def redirect_indexer(request, pk: int) -> HttpResponse:

@@ -10,6 +10,9 @@ Discrepancies between text stored in the CantusDB database and the manuscript te
 - https://docs.google.com/spreadsheets/d/1zPq-6p8hklKKfTa5A4DXYpwOPOIi41Z7JoAfdGVKzig/edit#gid=0 (Einsiedeln)
 
 ### Differences in functionality/behavior:
+
+- In OldCantus, there were two different properties for sources/chants etc. to dictate whether their detail pages should be accessible to users or whether they should appear in lists: `published` and `visible`. In NewCantus, this system has been simplified - both fields have been combined into a single `published` field. Published sources, and the chants/sequences contained within them, are visible/accessible to all users. Unpublished sources and their chants/sequences are visible/accessible to all logged-in users, and are inaccessible to logged-out users.
+
 #### Visible to All Users (Logged-In and Anonymous)
 - General:
   - The formatting/style of the entire site is slightly different.
@@ -23,7 +26,7 @@ Discrepancies between text stored in the CantusDB database and the manuscript te
   - Images from within the news stories are not displayed on the Article List page, whereas they are in OldCantus. (Currently, we don't plan to display images on this page)
   - Articles were manually copied from OldCantus to New, and when I initially did this, I preserved the date but not the time. It's fine that most of the timestamps say "00:00".
 - Source List:
-  - NewCantus is paginating the sources list page to display 100 sources per page. This is not implemented in OldCantus and is an intentional chant
+  - NewCantus is paginating the sources list page to display 100 sources per page. This is not implemented in OldCantus and is an intentional change.
 - Chant Search:
   - New Cantus will do a full text search by keyword by default whereas OldCantus will display options to do either a full text search or a Cantus Index search (if the user clicks on the main Chant Search menu option)
 - Provenance detail page - on OldCantus, the Provenance Detail page displays only the provenance's name/title. On NewCantus, this page displays a list of sources that have this provenance.

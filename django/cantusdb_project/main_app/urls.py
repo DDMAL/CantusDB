@@ -55,7 +55,7 @@ from main_app.views.source import (
     SourceListView,
 )
 from main_app.views.user import (
-    CustomLoginView,
+    LoginView,
     CustomLogoutView,
     IndexerListView,
     UserDetailView,
@@ -73,7 +73,7 @@ urlpatterns = [
     # login/logout/user
     path(
         "login/",
-        CustomLoginView.as_view(redirect_authenticated_user=True),
+        LoginView.as_view(redirect_authenticated_user=True),
         name="login",
     ),
     path(
@@ -303,7 +303,7 @@ urlpatterns = [
         name="json-sources-export",
     ),
     path(
-        "json-node/<str:id>",
+        "json-node/<int:id>",
         views.json_node_export,
         name="json-node-export",
     ),
@@ -317,9 +317,14 @@ urlpatterns = [
         views.json_melody_export,
         name="json-melody-export",
     ),
+    path(
+        "json-cid/<str:cantus_id>",
+        views.json_cid_export,
+        name="json-cid-export",
+    ),
     # misc search
     path(
-        "chant-search-ms/<int:source_pk>",
+        "searchms/<int:source_pk>",
         ChantSearchMSView.as_view(),
         name="chant-search-ms",
     ),

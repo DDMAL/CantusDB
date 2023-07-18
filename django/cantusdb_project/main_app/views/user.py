@@ -11,6 +11,7 @@ from django.contrib.auth.views import LogoutView, LoginView
 from django.contrib import messages
 from extra_views import SearchableListMixin
 from django.http import HttpResponseRedirect
+from django.core.exceptions import PermissionDenied
 
 
 class UserDetailView(DetailView):
@@ -24,9 +25,16 @@ class UserDetailView(DetailView):
     template_name = "user_detail.html"
 
     def get_context_data(self, **kwargs):
-        context = super().get_context_data(**kwargs)
         user = self.get_object()
-        display_unpublished = self.request.user.is_authenticated
+        # to begin, if the person viewing the site is not logged in,
+        # they should only be able to view the detail pages of indexers,
+        # and not the detail pages of run-of-the-mill users
+        viewing_user = self.request.user
+        if not (viewing_user.is_authenticated or user.is_indexer):
+            raise PermissionDenied()
+
+        context = super().get_context_data(**kwargs)
+        display_unpublished = viewing_user.is_authenticated
         sort_by_siglum = lambda source: source.siglum
         if display_unpublished:
             context["inventoried_sources"] = sorted(
@@ -96,7 +104,7 @@ class UserSourceListView(LoginRequiredMixin, ListView):
             .order_by("-date_created")
             .distinct()
         )
-        paginator = Paginator(user_created_sources, 10)
+        paginator = Paginator(user_created_sources, 6)
         page_number = self.request.GET.get("page2")
         page_obj = paginator.get_page(page_number)
 
@@ -165,14 +173,3 @@ class IndexerListView(SearchableListMixin, ListView):
             )
             # display those who have at least one published source
             return indexers.filter(source_count__gte=1)
-
-
-class CustomLoginView(LoginView):
-    def form_valid(self, form):
-        auth_login(self.request, form.get_user())
-        # if the user has not yet changed the initial password that was assigned to them,
-        # redirect them to the change-password page everytime they log in
-        # with warning messages prompting them to change their password
-        if form.get_user().changed_initial_password == False:
-            return HttpResponseRedirect(reverse("change-password"))
-        return HttpResponseRedirect(self.get_success_url())

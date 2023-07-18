@@ -6,6 +6,7 @@ from articles.models import Article
 from django.utils.safestring import mark_safe
 from django.urls import reverse
 from django.core.paginator import Paginator
+from django.db.models import Q
 
 
 register = template.Library()
@@ -32,73 +33,6 @@ def recent_articles():
     list_items_string = "".join(list_items)
     recent_articles_string = "<ul>{lis}</ul>".format(lis=list_items_string)
     return mark_safe(recent_articles_string)
-
-
-@register.simple_tag(takes_context=False)
-def my_sources(user):
-    """
-    Generates a html unordered list of sources the currently logged-in user has access to edit, for display on the homepage
-
-    Used in:
-        templates/flatpages/default.html
-    """
-
-    def make_source_detail_link_with_siglum(source):
-        id = source.id
-        siglum = source.rism_siglum
-        url = reverse("source-detail", args=[id])
-        link = '<a href="{}">{}</a>'.format(url, siglum)
-        return link
-
-    def make_source_detail_link_with_title(source):
-        id = source.id
-        title = source.title
-        url = reverse("source-detail", args=[id])
-        link = '<a href="{}">{}</a>'.format(url, title)
-        return link
-
-    def make_add_new_chants_link(source):
-        id = source.id
-        url = reverse("chant-create", args=[id])
-        link = '<a href="{}">+ Add new chant</a>'.format(url)
-        return link
-
-    def make_edit_chants_link(source):
-        id = source.id
-        url = reverse("source-edit-chants", args=[id])
-        link = '<a href="{}">Edit chants (Fulltext & Volpiano editor)</a>'.format(url)
-        return link
-
-    def make_links_for_source(source):
-        link_with_siglum = make_source_detail_link_with_siglum(source)
-        link_with_title = make_source_detail_link_with_title(source)
-        add_new_chants_link = make_add_new_chants_link(source)
-        if source.chant_set.exists():
-            edit_chants_link = make_edit_chants_link(source)
-        else:
-            edit_chants_link = ""
-        template = """{sigl}<br>
-        <small>
-            <b>{title}</b><br>
-            {add}<br>
-            {edit}<br>
-        </small>
-        """
-        links_string = template.format(
-            sigl=link_with_siglum,
-            title=link_with_title,
-            add=add_new_chants_link,
-            edit=edit_chants_link,
-        )
-        return links_string
-
-    MAX_SOURCES_TO_DISPLAY = 6
-    sources = list(user.sources_user_can_edit.all())[:MAX_SOURCES_TO_DISPLAY]
-    source_links = [make_links_for_source(source) for source in sources]
-    list_items = ["<li>{}</li>".format(link) for link in source_links]
-    joined_list_items = "".join(list_items)
-    links_ul = "<ul>{}</ul>".format(joined_list_items)
-    return mark_safe(links_ul)
 
 
 @register.filter(name="month_to_string")
@@ -197,11 +131,26 @@ def has_group(user, group_name):
 @register.simple_tag(takes_context=True)
 def get_user_source_pagination(context):
     user_created_sources = (
+        Source.objects.filter(
+            Q(current_editors=context["user"]) | Q(created_by=context["user"])
+        )
+        .order_by("-date_created")
+        .distinct()
+    )
+    paginator = Paginator(user_created_sources, 6)
+    page_number = context["request"].GET.get("page")
+    user_sources_page_obj = paginator.get_page(page_number)
+    return user_sources_page_obj
+
+
+@register.simple_tag(takes_context=True)
+def get_user_created_source_pagination(context):
+    user_created_sources = (
         Source.objects.filter(created_by=context["user"])
         .order_by("-date_created")
         .distinct()
     )
-    paginator = Paginator(user_created_sources, 10)
-    page_number = context["request"].GET.get("page")
-    page_obj = paginator.get_page(page_number)
-    return page_obj
+    paginator = Paginator(user_created_sources, 6)
+    page_number = context["request"].GET.get("page2")
+    user_created_sources_page_obj = paginator.get_page(page_number)
+    return user_created_sources_page_obj

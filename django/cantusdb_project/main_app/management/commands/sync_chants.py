@@ -76,6 +76,12 @@ def get_new_chant(chant_id):
         return
 
     try:
+        author_id = json_response["uid"]
+        author = get_user_model().objects.get(id=author_id)
+    except (KeyError, TypeError, ObjectDoesNotExist):
+        author = None
+
+    try:
         incipit = json_response["title"]
     except KeyError:
         incipit = None
@@ -268,6 +274,7 @@ def get_new_chant(chant_id):
     chant_obj, created = Chant.objects.update_or_create(
         id=chant_id,
         defaults={
+            "created_by": author,
             "incipit": incipit,
             "visible_status": status,
             "source": source,
@@ -321,6 +328,40 @@ def remove_extra():
         print(f"Extra item removed: {id}")
 
 
+def make_dummy_chant() -> None:
+    """
+    creates a dummy chant with an ID of 1_000_000. This ensures that all new chants
+    created in NewCantus have IDs greater than 1_000_000. This, in turn, ensures that
+    requests to /node/<id> URLS can be redirected to their proper chant/source/article
+    detail page (all objects originally created in OldCantus have unique IDs, so there
+    is no ambiguity as to which page a /node/ URL should lead.)
+    """
+    try:
+        Chant.objects.get(id=1_000_000)
+        print(
+            "Tried to create a dummy chant with id=1000000. "
+            "A chant with id=1000000 already exists. "
+            "Aborting attempt to create a new dummy chant."
+        )
+        return
+    except Source.DoesNotExist:
+        pass
+
+    dummy_source = Source.objects.get(id=1_000_000, published=False)
+    dummy_chant = Chant.objects.create(
+        source=dummy_source,
+        manuscript_full_text_std_spelling=(
+            "This unpublished dummy chant exists in order that all newly created "
+            "chants have IDs greater than 1,000,000 (which ensures that requests "
+            "made to /node/<id> URLs can be redirected to their proper "
+            "chant/sequence/article detail page). Once a chant with an ID greater than "
+            "1,000,000 has been created, this dummy chant may be safely deleted."
+        ),
+    )
+    dummy_chant.update(id=1_000_000)
+    return dummy_chant
+
+
 class Command(BaseCommand):
     def add_arguments(self, parser):
         parser.add_argument(
@@ -341,6 +382,7 @@ class Command(BaseCommand):
             all_chants = get_chant_list(CHANT_ID_FILE)
             for chant_id in all_chants:
                 get_new_chant(chant_id)
+            make_dummy_chant()
         else:
             get_new_chant(id)
 

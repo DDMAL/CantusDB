@@ -23,7 +23,7 @@ from main_app.forms import (
     ChantProofreadForm,
     ChantEditSyllabificationForm,
 )
-from main_app.models import Chant, Feast, Genre, Source, Sequence
+from main_app.models import Chant, Feast, Genre, Source, Sequence, Segment
 from align_text_mel import syllabize_text_and_melody, syllabize_text_to_string
 from django.contrib.auth.mixins import LoginRequiredMixin
 from django.http import Http404
@@ -420,6 +420,7 @@ class ChantDetailView(DetailView):
                     f"https://gregorien.info/chant/cid/{chant.cantus_id}/en:",
                     exc,
                 )
+                gregorien_response = None
 
             if gregorien_response and gregorien_response.status_code == 200:
                 gregorien_database_dict: dict = {
@@ -586,12 +587,25 @@ class ChantListView(ListView):
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
         # these are needed in the selectors on the left side of the page
-        context["sources"] = Source.objects.order_by("siglum")
         context["feasts"] = Feast.objects.all().order_by("name")
         context["genres"] = Genre.objects.all().order_by("name")
 
+        # sources in the Bower Segment contain only Sequences and no Chants,
+        # so they should not appear among the list of sources
+        cantus_segment = Segment.objects.get(id=4063)
+        sources = cantus_segment.source_set.order_by(
+            "siglum"
+        )  # to be displayed in the "Source" dropdown in the form
+        context["sources"] = sources
+
         source_id = self.request.GET.get("source")
         source = Source.objects.get(id=source_id)
+        if source not in sources:
+            # the chant list ("Browse Chants") page should only be visitable
+            # for sources in the CANTUS Database segment, as sources in the Bower
+            # segment contain no chants
+            raise Http404()
+
         context["source"] = source
 
         user = self.request.user
@@ -695,43 +709,45 @@ class ChantSearchView(ListView):
         # build a url containing all the search parameters, excluding ordering parameters.
         # this way, when someone clicks on a column heading, we can append the ordering parameters
         # while retaining the search parameters
-        current_url = self.request.path
-        search_parameters = []
+        current_url: str = self.request.path
+        search_parameters: list[str] = []
 
-        search_op = self.request.GET.get("op")
+        search_op: Optional[str] = self.request.GET.get("op")
         if search_op:
             search_parameters.append(f"op={search_op}")
-        search_keyword = self.request.GET.get("keyword")
+        search_keyword: Optional[str] = self.request.GET.get("keyword")
         if search_keyword:
             search_parameters.append(f"keyword={search_keyword}")
             context["keyword"] = search_keyword
-        search_office = self.request.GET.get("office")
+        search_office: Optional[str] = self.request.GET.get("office")
         if search_office:
             search_parameters.append(f"office={search_office}")
-        search_genre = self.request.GET.get("genre")
+        search_genre: Optional[str] = self.request.GET.get("genre")
         if search_genre:
             search_parameters.append(f"genre={search_genre}")
-        search_cantus_id = self.request.GET.get("cantus_id")
+        search_cantus_id: Optional[str] = self.request.GET.get("cantus_id")
         if search_cantus_id:
             search_parameters.append(f"cantus_id={search_cantus_id}")
-        search_mode = self.request.GET.get("mode")
+        search_mode: Optional[str] = self.request.GET.get("mode")
         if search_mode:
             search_parameters.append(f"mode={search_mode}")
-        search_feast = self.request.GET.get("feast")
+        search_feast: Optional[str] = self.request.GET.get("feast")
         if search_feast:
             search_parameters.append(f"feast={search_feast}")
-        search_position = self.request.GET.get("position")
+        search_position: Optional[str] = self.request.GET.get("position")
         if search_position:
             search_parameters.append(f"position={search_position}")
-        search_melodies = self.request.GET.get("melodies")
+        search_melodies: Optional[str] = self.request.GET.get("melodies")
         if search_melodies:
             search_parameters.append(f"melodies={search_melodies}")
+        search_bar: Optional[str] = self.request.GET.get("search_bar")
+        if search_bar:
+            search_parameters.append(f"search_bar={search_bar}")
 
+        url_with_search_params: str = current_url + "?"
         if search_parameters:
-            joined_search_parameters = "&".join(search_parameters)
-            url_with_search_params = current_url + "?" + joined_search_parameters
-        else:
-            url_with_search_params = current_url + "?"
+            joined_search_parameters: str = "&".join(search_parameters)
+            url_with_search_params += joined_search_parameters
 
         context["url_with_search_params"] = url_with_search_params
 
@@ -748,17 +764,29 @@ class ChantSearchView(ListView):
         display_unpublished = self.request.user.is_authenticated
         # if the search is accessed by the global search bar
         if self.request.GET.get("search_bar"):
-            chant_set = Chant.objects.filter(source__published=True)
-            sequence_set = Sequence.objects.filter(source__published=True)
+            if display_unpublished:
+                chant_set = Chant.objects.all()
+                sequence_set = Sequence.objects.all()
+            else:
+                chant_set = Chant.objects.filter(source__published=True)
+                sequence_set = Sequence.objects.filter(source__published=True)
             if self.request.GET.get("search_bar").replace(" ", "").isalpha():
                 # if search bar is doing incipit search
-                incipit = self.request.GET.get("search_bar")
-                chant_set = chant_set.filter(
-                    manuscript_full_text_std_spelling__istartswith=incipit
-                ).values(*CHANT_SEARCH_TEMPLATE_VALUES)
-                sequence_set = sequence_set.filter(
-                    manuscript_full_text_std_spelling__istartswith=incipit
-                ).values(*CHANT_SEARCH_TEMPLATE_VALUES)
+                search_term = self.request.GET.get("search_bar")
+                ms_spelling_filter = Q(manuscript_full_text__istartswith=search_term)
+                std_spelling_filter = Q(
+                    manuscript_full_text_std_spelling__istartswith=search_term
+                )
+                incipit_filter = Q(incipit__istartswith=search_term)
+                search_term_filter = (
+                    ms_spelling_filter | std_spelling_filter | incipit_filter
+                )
+                chant_set = chant_set.filter(search_term_filter).values(
+                    *CHANT_SEARCH_TEMPLATE_VALUES
+                )
+                sequence_set = sequence_set.filter(search_term_filter).values(
+                    *CHANT_SEARCH_TEMPLATE_VALUES
+                )
                 queryset = chant_set.union(sequence_set, all=True)
             else:
                 # if search bar is doing Cantus ID search
@@ -771,6 +799,7 @@ class ChantSearchView(ListView):
                     *CHANT_SEARCH_TEMPLATE_VALUES
                 )
                 queryset = chant_set.union(sequence_set, all=True)
+            queryset = queryset.order_by("source__siglum", "id")
 
         else:
             # The field names should be keys in the "GET" QueryDict if the search button has been clicked,

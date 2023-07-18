@@ -142,13 +142,54 @@ class UserDetailViewTest(TestCase):
         get_user_model().objects.create(email="test@test.com")
 
     def test_url_and_templates(self):
-        user = get_user_model().objects.first()
+        User = get_user_model()
+        user = User.objects.create(
+            email="example@example.com",
+            is_indexer=True,
+        )
         response = self.client.get(reverse("user-detail", args=[user.id]))
         self.assertEqual(response.status_code, 200)
         self.assertTemplateUsed(response, "user_detail.html")
 
     def test_context(self):
-        user = get_user_model().objects.first()
+        User = get_user_model()
+        user = User.objects.create(
+            email="example@example.com",
+            is_indexer=True,
+        )
         response = self.client.get(reverse("user-detail", args=[user.id]))
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response.context["user"], user)
+
+    def test_permissions(self):
+        User = get_user_model()
+        viewing_user = User.objects.create(email="viewing@example.com")
+        viewing_user.set_password("cantusdb_optimus_est!!1!")
+        viewing_user.save()
+        indexer = User.objects.create(
+            email="indexer@example.com",
+            is_indexer=True,
+        )
+        non_indexer = User.objects.create(
+            email="not_an_indexer@example.com",
+            is_indexer=False,
+        )
+
+        # logged-out
+        response_1 = self.client.get(reverse("user-detail", args=[indexer.id]))
+        self.assertEqual(response_1.status_code, 200)
+
+        response_2 = self.client.get(reverse("user-detail", args=[non_indexer.id]))
+        self.assertEqual(response_2.status_code, 403)  # 403 Forbidden
+
+        # logged-in
+        self.client = Client()
+        self.client.login(
+            email="viewing@example.com",
+            password="cantusdb_optimus_est!!1!",
+        )
+        response_3 = self.client.get(reverse("user-detail", args=[indexer.id]))
+        self.assertEqual(response_3.status_code, 200)
+
+        response_4 = self.client.get(reverse("user-detail", args=[non_indexer.id]))
+        self.assertEqual(response_4.status_code, 200)

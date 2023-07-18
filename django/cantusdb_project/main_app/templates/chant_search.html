@@ -31,23 +31,27 @@
 
     <form method="get">
         <div class="form-row align-items-end">
-            <div class="form-group m-1 col-lg">
+            <div class="form-group m-1 col-12">
+                <label for="keywordSearch"><small>Keyword search</small></label>
+            </div>
+        </div>
+        <div class="form-row align-items-end">
+            <div class="form-group m-1 col-lg-3 col-sm-3 col-3">
                 <select class="form-control custom-select custom-select-sm" id="opFilter" name="op">
                     <option selected value="contains">Contains</option>
                     <option value="starts_with">Starts with</option>
                 </select>
             </div>
-            <div class="form-group m-1 col-lg">
-                <label for="keywordSearch"><small>Keyword search</small></label>
+            <div class="form-group m-1 col-lg col-sm col-">
                 <input type="text" class="form-control form-control-sm" name="keyword" id="keywordSearch" value="{{ request.GET.keyword }}">
             </div>
         </div>
         <div class="form-row align-items-end">
-            <div class="form-group m-1 col-lg">
+            <div class="form-group m-1 col-lg-3 col-sm-6">
                 <label for="office"><small>Office/Mass</small></label>
                 <input type="text" class="form-control form-control-sm" name="office" id="office" value="{{ request.GET.office }}">
             </div>
-            <div class="form-group m-1 col-lg">
+            <div class="form-group m-1 col-lg-3 col-sm">
                 <label for="genreFilter"><small>Genre</small></label>
                 <select id="genreFilter" name="genre" class="form-control custom-select custom-select-sm">
                     <option value="">- Any -</option>
@@ -56,23 +60,23 @@
                     {% endfor %}
                 </select>
             </div>
-            <div class="form-group m-1 col-lg">
+            <div class="form-group m-1 col-lg-3 col-sm-6">
                 <label for="cantus_id"><small>Cantus ID</small></label>
                 <input type="text" class="form-control form-control-sm" name="cantus_id" id="cantus_id" value="{{ request.GET.cantus_id }}">
             </div>
-            <div class="form-group m-1 col-lg">
+            <div class="form-group m-1 col-lg col-sm">
                 <label for="mode"><small>Mode</small></label>
                 <input type="text" class="form-control form-control-sm" name="mode" id="mode" value="{{ request.GET.mode }}">
             </div>
-            <div class="form-group m-1 col-lg">
+            <div class="form-group m-1 col-lg-3 col-sm-6">
                 <label for="feast"><small>Feast</small></label>
                 <input type="text" class="form-control form-control-sm" name="feast" id="feast" value="{{ request.GET.feast }}">
             </div>
-            <div class="form-group m-1 col-lg">
+            <div class="form-group m-1 col-lg-3 col-sm">
                 <label for="position"><small>Position</small></label>
                 <input type="text" class="form-control form-control-sm" name="position" id="position" value="{{ request.GET.position }}">
             </div>
-            <div class="form-group m-1 col-lg">
+            <div class="form-group m-1 col-lg-3 col-sm-6">
                 <label for="melodiesFilter"><small>Melodies</small></label>
                 <select class="form-control custom-select custom-select-sm" id="melodiesFilter" name="melodies">
                     <option value="">- Any -</option>
@@ -90,7 +94,7 @@
         
     </form>
 
-    {% if chants.all %}
+    {% if chants.exists %}
         <small>
             <table class="table table-responsive table-sm small table-bordered">
                 <thead>
@@ -278,6 +282,10 @@
         </small>
 
         {% include "pagination.html" %}
+    {% else %} 
+        {% if request.GET %}
+            No chants found.
+        {% endif %}
     {% endif %}
 </div>
         

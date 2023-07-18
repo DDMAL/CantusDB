@@ -12,6 +12,7 @@ import re
 from main_app.models import Chant
 from main_app.models import Sequence
 from main_app.models import Feast
+from main_app.models import Source
 
 
 @receiver(post_save, sender=Chant)
@@ -68,7 +69,11 @@ def update_source_chant_count(instance):
     Called in on_chant_save(), on_chant_delete(), on_sequence_save() and on_sequence_delete()
     """
 
-    source = instance.source
+    # When a source is deleted (which in turn calls on_chant_delete() on all of its chants) instance.source does not exist
+    try:
+        source = instance.source
+    except Source.DoesNotExist:
+        source = None
     if source is not None:
         source.number_of_chants = source.chant_set.count() + source.sequence_set.count()
         source.save()
@@ -79,11 +84,18 @@ def update_source_melody_count(instance):
 
     Called in on_chant_save() and on_chant_delete()
     """
-    source = instance.source
+
+    # When a source is deleted (which in turn calls on_chant_delete() on all of its chants) instance.source does not exist
+    try:
+        source = instance.source
+    except Source.DoesNotExist:
+        source = None
     if source is not None:
-        source.number_of_melodies = source.chant_set.filter(
-            volpiano__isnull=False
-        ).count()
+        source.number_of_melodies = (
+            source.chant_set.exclude(volpiano__isnull=True)
+            .exclude(volpiano__exact="")
+            .count()
+        )
         source.save()
 
 

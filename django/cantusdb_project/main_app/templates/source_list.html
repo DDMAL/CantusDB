@@ -87,7 +87,7 @@
                             {{ source.summary|default:""|truncatechars_html:140 }}
                         </td>
                         <td class="text-wrap" style="text-align:center">
-                            {% if source.century.all %}
+                            {% if source.century.exists %}
                                 <b><a href="{% url 'century-detail' source.century.first.id %}">{{ source.century.first.name }}</a></b><br>
                             {% endif %}
                             {% if source.provenance %}

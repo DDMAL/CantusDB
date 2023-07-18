@@ -112,7 +112,9 @@ def make_fake_chant(
     position=None,
     c_sequence=None,
     cantus_id=None,
+    image_link=None,
     feast=None,
+    mode=None,
     manuscript_full_text_std_spelling=None,
     incipit=None,
     manuscript_full_text_std_proofread=None,
@@ -140,8 +142,12 @@ def make_fake_chant(
         c_sequence = random.randint(1, MAX_SEQUENCE_NUMBER)
     if cantus_id is None:
         cantus_id = make_random_string(6, "0123456789")
+    if image_link is None:
+        image_link = faker.image_url()
     if feast is None:
         feast = make_fake_feast()
+    if mode is None:
+        mode = make_random_string(1, "0123456789*?")
     if manuscript_full_text_std_spelling is None:
         manuscript_full_text_std_spelling = faker.sentence()
     if incipit is None:
@@ -167,7 +173,7 @@ def make_fake_chant(
         position=position,
         cantus_id=cantus_id,
         feast=feast,
-        mode=make_random_string(1, "0123456789*?"),
+        mode=mode,
         differentia=differentia,
         finalis=make_random_string(1, "abcdefg"),
         extra=make_random_string(3, "0123456789"),
@@ -184,7 +190,7 @@ def make_fake_chant(
         manuscript_full_text_proofread=faker.boolean(),
         volpiano=volpiano,
         volpiano_proofread=faker.boolean(),
-        image_link=faker.image_url(),
+        image_link=image_link,
         cao_concordances=make_random_string(12, "ABCDEFGHIJKLMNOPQRSTUVWXYZ  "),
         melody_id="m" + make_random_string(8, "0123456789."),
         manuscript_syllabized_full_text=manuscript_syllabized_full_text,
@@ -263,11 +269,14 @@ def make_fake_rism_siglum() -> RismSiglum:
     return rism_siglum
 
 
-def make_fake_segment(name=None) -> Segment:
+def make_fake_segment(name: str = None, id: int = None) -> Segment:
     """Generates a fake Segment object."""
-    if not name:
-        name = faker.sentence()
-    segment = Segment.objects.create(name=name)
+    if name is None:
+        name = faker.sentence(nb_words=2)
+    if id is None:
+        segment = Segment.objects.create(name=name)
+        return segment
+    segment = Segment.objects.create(name=name, id=id)
     return segment
 
 

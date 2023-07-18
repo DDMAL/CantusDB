@@ -2,6 +2,8 @@ from django.test import TestCase
 from django.urls import reverse
 from articles.models import Article
 from faker import Faker
+from django.utils import timezone
+
 from main_app.tests.make_fakes import (
     make_fake_user,
 )
@@ -20,6 +22,7 @@ def make_fake_article(user=None):
         # updated to use Faker (previously called method from make_fakes that no longer exists)
         title=faker.sentence(),
         author=make_fake_user(),
+        date_created=timezone.now(),
     )
     return article
 
