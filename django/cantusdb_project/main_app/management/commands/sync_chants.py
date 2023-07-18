@@ -261,14 +261,14 @@ def get_new_chant(chant_id):
         genre_id = json_response["field_mc_genre"]["und"][0]["tid"]
         # run this after running sync_genres
         genre = Genre.objects.get(id=genre_id)
-    except (KeyError, TypeError):
+    except (KeyError, TypeError, ObjectDoesNotExist):
         genre = None
 
     try:
         feast_id = json_response["field_mc_feast"]["und"][0]["tid"]
         # run sync_feasts before running this, so we should already have all feasts
         feast = Feast.objects.get(id=feast_id)
-    except (KeyError, TypeError):
+    except (KeyError, TypeError, ObjectDoesNotExist):
         feast = None
 
     chant_obj, created = Chant.objects.update_or_create(
@@ -348,7 +348,8 @@ def make_dummy_chant() -> None:
         pass
 
     dummy_source = Source.objects.get(id=1_000_000, published=False)
-    dummy_chant = Chant.objects.create(
+    Chant.objects.create(
+        title="DUMMY",
         source=dummy_source,
         manuscript_full_text_std_spelling=(
             "This unpublished dummy chant exists in order that all newly created "
@@ -358,6 +359,7 @@ def make_dummy_chant() -> None:
             "1,000,000 has been created, this dummy chant may be safely deleted."
         ),
     )
+    dummy_chant = Chant.objects.filter(title="DUMMY")
     dummy_chant.update(id=1_000_000)
     return dummy_chant
 
@@ -380,8 +382,15 @@ class Command(BaseCommand):
         id = options["id"]
         if id == "all":
             all_chants = get_chant_list(CHANT_ID_FILE)
+            total = len(all_chants)
+            counter = 0
             for chant_id in all_chants:
                 get_new_chant(chant_id)
+                if counter % 500 == 0:
+                    print(
+                        f"---------------- {counter} of {total} chants synced --------------"
+                    )
+                counter += 1
             make_dummy_chant()
         else:
             get_new_chant(id)

@@ -343,6 +343,8 @@ def remove_extra_sources():
     print(len(our_sources))
     print(len(waterloo_sources))
     extra_sources = [id for id in our_sources if id not in waterloo_sources]
+    if 1_000_000 in extra_sources:
+        extra_sources.remove(1_000_000)
     for source in extra_sources:
         Source.objects.get(id=source).delete()
         print(f"Extra source removed: {source}")
@@ -368,7 +370,7 @@ def make_dummy_source() -> None:
         pass
 
     cantus_segment = Segment.objects.get(id=4063)
-    dummy_source = Source.objects.create(
+    Source.objects.create(
         segment=cantus_segment,
         siglum="DUMMY",
         published=False,
@@ -381,6 +383,7 @@ def make_dummy_source() -> None:
             "1,000,000 has been created, this dummy source may be safely deleted."
         ),
     )
+    dummy_source = Source.objects.filter(siglum="DUMMY")
     dummy_source.update(id=1_000_000)
     return dummy_source
 
