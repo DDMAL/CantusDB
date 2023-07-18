@@ -1667,6 +1667,17 @@ class ChantSearchMSViewTest(TestCase):
         context_chant_id = response.context["chants"][0]["id"]
         self.assertEqual(chant.id, context_chant_id)
 
+    def test_search_by_position(self):
+        source = make_fake_source(published=True)
+        position = 1
+        chant = Chant.objects.create(source=source, position=position)
+        search_term = "1"
+        response = self.client.get(
+            reverse("chant-search-ms", args=[source.id]), {"position": search_term}
+        )
+        context_chant_id = response.context["chants"][0]["id"]
+        self.assertEqual(chant.id, context_chant_id)
+
     def test_filter_by_melody(self):
         source = make_fake_source()
         chant_with_melody = Chant.objects.create(
