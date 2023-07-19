@@ -37,7 +37,7 @@ class ChantAdmin(BaseModelAdmin):
 
 
 class FeastAdmin(BaseModelAdmin):
-    pass
+    search_fields = ("name", "feast_code")
 
 
 class GenreAdmin(BaseModelAdmin):
@@ -53,7 +53,7 @@ class OfficeAdmin(BaseModelAdmin):
 
 
 class ProvenanceAdmin(BaseModelAdmin):
-    pass
+    search_fields = ("name",)
 
 
 class RismSiglumAdmin(BaseModelAdmin):
@@ -65,7 +65,10 @@ class SegmentAdmin(BaseModelAdmin):
 
 
 class SequenceAdmin(BaseModelAdmin):
+    search_fields = ("title", "incipit", "cantus_id",)
     exclude = EXCLUDE + ("c_sequence", "next_chant", "is_last_chant_in_feast")
+    list_display = ("incipit", "siglum", "genre")
+    list_filter = ("genre",)
 
 
 class SourceAdmin(BaseModelAdmin):
