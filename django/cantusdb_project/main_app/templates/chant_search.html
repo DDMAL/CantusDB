@@ -92,189 +92,191 @@
 
     {% if chants.exists %}
         <small>
-            <table class="table table-responsive table-sm small table-bordered">
-                <thead>
-                    <tr>
-                        <th scope="col" class="text-wrap" style="text-align:center" title="Siglum">
-                            {% if order == "siglum" %}
-                                {% if sort == "desc" %}
-                                    <a href="{{ url_with_search_params }}&order=siglum&sort=asc">Siglum</a> ▼
-                                {% else %}
-                                    <a href="{{ url_with_search_params }}&order=siglum&sort=desc">Siglum</a> ▲
-                                {% endif %}
-                            {% else %}
-                                <a href="{{ url_with_search_params }}&order=siglum&sort=asc">Siglum</a>
-                            {% endif %}
-                        </th>
-                        <th scope="col" class="text-wrap" style="text-align:center" title="Folio">
-                            Folio
-                        </th>
-                        <th scope="col" class="text-wrap" style="text-align:center" title="Incipit/Full Text">
-                            {% if order == "incipit" %}
-                                {% if sort == "desc" %}
-                                    <a href="{{ url_with_search_params }}&order=incipit&sort=asc">Incipit/Full Text</a> ▼
-                                {% else %}
-                                    <a href="{{ url_with_search_params }}&order=incipit&sort=desc">Incipit/Full Text</a> ▲
-                                {% endif %}
-                            {% else %}
-                                <a href="{{ url_with_search_params }}&order=incipit&sort=asc">Incipit/Full Text</a>
-                            {% endif %}
-                        </th>
-                        <th scope="col" class="text-wrap" style="text-align:center" title="Feast">
-                            Feast
-                        </th>
-                        <th scope="col" class="text-wrap" style="text-align:center" title="Office">
-                            {% if order == "office" %}
-                                {% if sort == "desc" %}
-                                    <a href="{{ url_with_search_params }}&order=office&sort=asc">Office<br>/Mass</a> ▼
-                                {% else %}
-                                    <a href="{{ url_with_search_params }}&order=office&sort=desc">Office<br>/Mass</a> ▲
-                                {% endif %}
-                            {% else %}
-                                <a href="{{ url_with_search_params }}&order=office&sort=asc">Office<br>/Mass</a>
-                            {% endif %}
-                        </th>
-                        <th scope="col" class="text-wrap" style="text-align:center" title="Genre">
-                            {% if order == "genre" %}
-                                {% if sort == "desc" %}
-                                    <a href="{{ url_with_search_params }}&order=genre&sort=asc">Genre</a> ▼
-                                {% else %}
-                                    <a href="{{ url_with_search_params }}&order=genre&sort=desc">Genre</a> ▲
-                                {% endif %}
-                            {% else %}
-                                <a href="{{ url_with_search_params }}&order=genre&sort=asc">Genre</a>
-                            {% endif %}
-                        </th>
-                        <th scope="col" class="text-wrap" style="text-align:center" title="Position">
-                            Position
-                        </th>
-                        <th scope="col" class="text-wrap" style="text-align:center" title="Cantus ID">
-                            {% if order == "cantus_id" %}
-                                {% if sort == "desc" %}
-                                    <a href="{{ url_with_search_params }}&order=cantus_id&sort=asc">Cantus ID</a> ▼
-                                {% else %}
-                                    <a href="{{ url_with_search_params }}&order=cantus_id&sort=desc">Cantus ID</a> ▲
-                                {% endif %}
-                            {% else %}
-                                <a href="{{ url_with_search_params }}&order=cantus_id&sort=asc">Cantus ID</a>
-                            {% endif %}
-                        </th>
-                        <th scope="col" class="text-wrap" style="text-align:center" title="Mode">
-                            {% if order == "mode" %}
-                                {% if sort == "desc" %}
-                                    <a href="{{ url_with_search_params }}&order=mode&sort=asc">Mode</a> ▼
-                                {% else %}
-                                    <a href="{{ url_with_search_params }}&order=mode&sort=desc">Mode</a> ▲
-                                {% endif %}
-                            {% else %}
-                                <a href="{{ url_with_search_params }}&order=mode&sort=asc">Mode</a>
-                            {% endif %}
-                        </th>
-                        <th scope="col" class="text-wrap" style="text-align:center" title="Manuscript Full Text">
-                            {% if order == "has_fulltext" %}
-                                {% if sort == "desc" %}
-                                    <a href="{{ url_with_search_params }}&order=has_fulltext&sort=asc">MsFt</a> ▼
-                                {% else %}
-                                    <a href="{{ url_with_search_params }}&order=has_fulltext&sort=desc">MsFt</a> ▲
-                                {% endif %}
-                            {% else %}
-                                <a href="{{ url_with_search_params }}&order=has_fulltext&sort=asc">MsFt</a>
-                            {% endif %}
-                        </th>
-                        <th scope="col" class="text-wrap" style="text-align:center" title="Volpiano Melody">
-                            {% if order == "has_melody" %}
-                                {% if sort == "desc" %}
-                                    <a href="{{ url_with_search_params }}&order=has_melody&sort=asc">Mel</a> ▼
-                                {% else %}
-                                    <a href="{{ url_with_search_params }}&order=has_melody&sort=desc">Mel</a> ▲
-                                {% endif %}
-                            {% else %}
-                                <a href="{{ url_with_search_params }}&order=has_melody&sort=asc">Mel</a>
-                            {% endif %}
-                        </th>
-                        <th scope="col" class="text-wrap" style="text-align:center" title="Image Link">
-                            {% if order == "has_image" %}
-                                {% if sort == "desc" %}
-                                    <a href="{{ url_with_search_params }}&order=has_image&sort=asc">Image</a> ▼
-                                {% else %}
-                                    <a href="{{ url_with_search_params }}&order=has_image&sort=desc">Image</a> ▲
-                                {% endif %}
-                            {% else %}
-                                <a href="{{ url_with_search_params }}&order=has_image&sort=asc">Image</a>
-                            {% endif %}
-                        </th>
-                    </tr>
-                </thead>
-                <tbody>
-                    {% for chant in chants %}
+            <div class="table-responsive">
+                <table class="table table-sm small table-bordered">
+                    <thead>
                         <tr>
-                            <td class="text-wrap" style="text-align:left">
-                                {% if chant.source__id %}
-                                    <a href="{% url 'source-detail' chant.source__id %}" title="{{ chant.source__title }}">{{ chant.source__siglum }}</a>
-                                {% endif %}
-                            </td>
-                            <td class="text-wrap" style="text-align:center">
-                                {{ chant.folio|default:""|truncatechars_html:140 }}
-                            </td>
-
-                            <td class="text-wrap" style="text-align:left">
-                                {% comment %} this is used for distinguishing chants from sequences,
-                                if the object is chant, use chant-detail view,
-                                otherwise, use sequence-detail view.
-                                the combined queryset turned all objects into chants
-                                so this is the only way to make the distinction {% endcomment %}
-                                {% if chant.search_vector %}
-                                    <b><a href="{% url 'chant-detail' chant.id %}">{{ chant.incipit|default:"" }}</a></b>
+                            <th scope="col" class="text-wrap" style="text-align:center" title="Siglum">
+                                {% if order == "siglum" %}
+                                    {% if sort == "desc" %}
+                                        <a href="{{ url_with_search_params }}&order=siglum&sort=asc">Siglum</a> ▼
+                                    {% else %}
+                                        <a href="{{ url_with_search_params }}&order=siglum&sort=desc">Siglum</a> ▲
+                                    {% endif %}
                                 {% else %}
-                                    <b><a href="{% url 'sequence-detail' chant.id %}">{{ chant.incipit|default:"" }}</a></b>
+                                    <a href="{{ url_with_search_params }}&order=siglum&sort=asc">Siglum</a>
                                 {% endif %}
-                                <p>
-                                    {{ chant.manuscript_full_text_std_spelling|default:""|truncatewords_html:100 }}
-                                </p>           
-                            </td>
-                            <td class="text-wrap" style="text-align:center">
-                                {% if chant.feast__id %}
-                                    <a href="{% url 'feast-detail' chant.feast__id %}" title="{{ chant.feast__description }}">{{ chant.feast__name|default:"" }}</a>
+                            </th>
+                            <th scope="col" class="text-wrap" style="text-align:center" title="Folio">
+                                Folio
+                            </th>
+                            <th scope="col" class="text-wrap" style="text-align:center" title="Incipit/Full Text">
+                                {% if order == "incipit" %}
+                                    {% if sort == "desc" %}
+                                        <a href="{{ url_with_search_params }}&order=incipit&sort=asc">Incipit/Full Text</a> ▼
+                                    {% else %}
+                                        <a href="{{ url_with_search_params }}&order=incipit&sort=desc">Incipit/Full Text</a> ▲
+                                    {% endif %}
+                                {% else %}
+                                    <a href="{{ url_with_search_params }}&order=incipit&sort=asc">Incipit/Full Text</a>
                                 {% endif %}
-                            </td>
-                            <td class="text-wrap" style="text-align:center">
-                                {% if chant.office__id %}
-                                    <a href="{% url 'office-detail' chant.office__id %}" title="{{ chant.office__description }}">{{ chant.office__name|default:"" }}</a>
+                            </th>
+                            <th scope="col" class="text-wrap" style="text-align:center" title="Feast">
+                                Feast
+                            </th>
+                            <th scope="col" class="text-wrap" style="text-align:center" title="Office">
+                                {% if order == "office" %}
+                                    {% if sort == "desc" %}
+                                        <a href="{{ url_with_search_params }}&order=office&sort=asc">Office<br>/Mass</a> ▼
+                                    {% else %}
+                                        <a href="{{ url_with_search_params }}&order=office&sort=desc">Office<br>/Mass</a> ▲
+                                    {% endif %}
+                                {% else %}
+                                    <a href="{{ url_with_search_params }}&order=office&sort=asc">Office<br>/Mass</a>
                                 {% endif %}
-                            </td>
-                            <td class="text-wrap" style="text-align:center">
-                                {% if chant.genre__id %}
-                                    <a href="{% url 'genre-detail' chant.genre__id %}" title="{{ chant.genre__description }}">{{ chant.genre__name|default:"" }}</a>
+                            </th>
+                            <th scope="col" class="text-wrap" style="text-align:center" title="Genre">
+                                {% if order == "genre" %}
+                                    {% if sort == "desc" %}
+                                        <a href="{{ url_with_search_params }}&order=genre&sort=asc">Genre</a> ▼
+                                    {% else %}
+                                        <a href="{{ url_with_search_params }}&order=genre&sort=desc">Genre</a> ▲
+                                    {% endif %}
+                                {% else %}
+                                    <a href="{{ url_with_search_params }}&order=genre&sort=asc">Genre</a>
                                 {% endif %}
-                            </td>
-                            <td class="text-wrap" style="text-align:center">
-                                {{ chant.position|default:"" }}
-                            </td>
-                            <td class="text-wrap" style="text-align:center">
-                                <a href="https://cantusindex.org/id/{{ chant.cantus_id }}" target="_blank">{{chant.cantus_id|default:"" }}</a>
-                            </td>
-                            <td class="text-wrap" style="text-align:center">
-                                {{ chant.mode|default:"" }}
-                            </td>
-                            <td class="text-wrap" style="text-align:center">
-                                {% if chant.manuscript_full_text %}
-                                    <span title="Chant record includes Manuscript Full Text">✔</span>
+                            </th>
+                            <th scope="col" class="text-wrap" style="text-align:center" title="Position">
+                                Position
+                            </th>
+                            <th scope="col" class="text-wrap" style="text-align:center" title="Cantus ID">
+                                {% if order == "cantus_id" %}
+                                    {% if sort == "desc" %}
+                                        <a href="{{ url_with_search_params }}&order=cantus_id&sort=asc">Cantus ID</a> ▼
+                                    {% else %}
+                                        <a href="{{ url_with_search_params }}&order=cantus_id&sort=desc">Cantus ID</a> ▲
+                                    {% endif %}
+                                {% else %}
+                                    <a href="{{ url_with_search_params }}&order=cantus_id&sort=asc">Cantus ID</a>
                                 {% endif %}
-                            </td>
-                            <td class="text-wrap" style="text-align:center">
-                                {% if chant.volpiano %}
-                                    <span title="Chant record has Volpiano melody">♫</span>
+                            </th>
+                            <th scope="col" class="text-wrap" style="text-align:center" title="Mode">
+                                {% if order == "mode" %}
+                                    {% if sort == "desc" %}
+                                        <a href="{{ url_with_search_params }}&order=mode&sort=asc">Mode</a> ▼
+                                    {% else %}
+                                        <a href="{{ url_with_search_params }}&order=mode&sort=desc">Mode</a> ▲
+                                    {% endif %}
+                                {% else %}
+                                    <a href="{{ url_with_search_params }}&order=mode&sort=asc">Mode</a>
                                 {% endif %}
-                            </td>
-                            <td class="text-wrap" style="text-align:center">
-                                {% if chant.image_link %}
-                                    <a href="{{ chant.image_link }}" target="_blank">Image</a>
+                            </th>
+                            <th scope="col" class="text-wrap" style="text-align:center" title="Manuscript Full Text">
+                                {% if order == "has_fulltext" %}
+                                    {% if sort == "desc" %}
+                                        <a href="{{ url_with_search_params }}&order=has_fulltext&sort=asc">MsFt</a> ▼
+                                    {% else %}
+                                        <a href="{{ url_with_search_params }}&order=has_fulltext&sort=desc">MsFt</a> ▲
+                                    {% endif %}
+                                {% else %}
+                                    <a href="{{ url_with_search_params }}&order=has_fulltext&sort=asc">MsFt</a>
                                 {% endif %}
-                            </td>
+                            </th>
+                            <th scope="col" class="text-wrap" style="text-align:center" title="Volpiano Melody">
+                                {% if order == "has_melody" %}
+                                    {% if sort == "desc" %}
+                                        <a href="{{ url_with_search_params }}&order=has_melody&sort=asc">Mel</a> ▼
+                                    {% else %}
+                                        <a href="{{ url_with_search_params }}&order=has_melody&sort=desc">Mel</a> ▲
+                                    {% endif %}
+                                {% else %}
+                                    <a href="{{ url_with_search_params }}&order=has_melody&sort=asc">Mel</a>
+                                {% endif %}
+                            </th>
+                            <th scope="col" class="text-wrap" style="text-align:center" title="Image Link">
+                                {% if order == "has_image" %}
+                                    {% if sort == "desc" %}
+                                        <a href="{{ url_with_search_params }}&order=has_image&sort=asc">Image</a> ▼
+                                    {% else %}
+                                        <a href="{{ url_with_search_params }}&order=has_image&sort=desc">Image</a> ▲
+                                    {% endif %}
+                                {% else %}
+                                    <a href="{{ url_with_search_params }}&order=has_image&sort=asc">Image</a>
+                                {% endif %}
+                            </th>
                         </tr>
-                    {% endfor %}
-                </tbody>
-            </table>
+                    </thead>
+                    <tbody>
+                        {% for chant in chants %}
+                            <tr>
+                                <td class="text-wrap" style="text-align:left">
+                                    {% if chant.source__id %}
+                                        <a href="{% url 'source-detail' chant.source__id %}" title="{{ chant.source__title }}">{{ chant.source__siglum }}</a>
+                                    {% endif %}
+                                </td>
+                                <td class="text-wrap" style="text-align:center">
+                                    {{ chant.folio|default:""|truncatechars_html:140 }}
+                                </td>
+
+                                <td class="text-wrap" style="text-align:left">
+                                    {% comment %} this is used for distinguishing chants from sequences,
+                                    if the object is chant, use chant-detail view,
+                                    otherwise, use sequence-detail view.
+                                    the combined queryset turned all objects into chants
+                                    so this is the only way to make the distinction {% endcomment %}
+                                    {% if chant.search_vector %}
+                                        <b><a href="{% url 'chant-detail' chant.id %}">{{ chant.incipit|default:"" }}</a></b>
+                                    {% else %}
+                                        <b><a href="{% url 'sequence-detail' chant.id %}">{{ chant.incipit|default:"" }}</a></b>
+                                    {% endif %}
+                                    <p>
+                                        {{ chant.manuscript_full_text_std_spelling|default:""|truncatewords_html:100 }}
+                                    </p>           
+                                </td>
+                                <td class="text-wrap" style="text-align:center">
+                                    {% if chant.feast__id %}
+                                        <a href="{% url 'feast-detail' chant.feast__id %}" title="{{ chant.feast__description }}">{{ chant.feast__name|default:"" }}</a>
+                                    {% endif %}
+                                </td>
+                                <td class="text-wrap" style="text-align:center">
+                                    {% if chant.office__id %}
+                                        <a href="{% url 'office-detail' chant.office__id %}" title="{{ chant.office__description }}">{{ chant.office__name|default:"" }}</a>
+                                    {% endif %}
+                                </td>
+                                <td class="text-wrap" style="text-align:center">
+                                    {% if chant.genre__id %}
+                                        <a href="{% url 'genre-detail' chant.genre__id %}" title="{{ chant.genre__description }}">{{ chant.genre__name|default:"" }}</a>
+                                    {% endif %}
+                                </td>
+                                <td class="text-wrap" style="text-align:center">
+                                    {{ chant.position|default:"" }}
+                                </td>
+                                <td class="text-wrap" style="text-align:center">
+                                    <a href="https://cantusindex.org/id/{{ chant.cantus_id }}" target="_blank">{{chant.cantus_id|default:"" }}</a>
+                                </td>
+                                <td class="text-wrap" style="text-align:center">
+                                    {{ chant.mode|default:"" }}
+                                </td>
+                                <td class="text-wrap" style="text-align:center">
+                                    {% if chant.manuscript_full_text %}
+                                        <span title="Chant record includes Manuscript Full Text">✔</span>
+                                    {% endif %}
+                                </td>
+                                <td class="text-wrap" style="text-align:center">
+                                    {% if chant.volpiano %}
+                                        <span title="Chant record has Volpiano melody">♫</span>
+                                    {% endif %}
+                                </td>
+                                <td class="text-wrap" style="text-align:center">
+                                    {% if chant.image_link %}
+                                        <a href="{{ chant.image_link }}" target="_blank">Image</a>
+                                    {% endif %}
+                                </td>
+                            </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
         </small>
 
         {% include "pagination.html" %}
