@@ -91,9 +91,11 @@ def update_source_melody_count(instance):
     except Source.DoesNotExist:
         source = None
     if source is not None:
-        source.number_of_melodies = source.chant_set.filter(
-            volpiano__isnull=False
-        ).count()
+        source.number_of_melodies = (
+            source.chant_set.exclude(volpiano__isnull=True)
+            .exclude(volpiano__exact="")
+            .count()
+        )
         source.save()
 
 

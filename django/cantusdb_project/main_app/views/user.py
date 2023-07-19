@@ -104,7 +104,7 @@ class UserSourceListView(LoginRequiredMixin, ListView):
             .order_by("-date_created")
             .distinct()
         )
-        paginator = Paginator(user_created_sources, 10)
+        paginator = Paginator(user_created_sources, 6)
         page_number = self.request.GET.get("page2")
         page_obj = paginator.get_page(page_number)
 
