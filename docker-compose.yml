@@ -15,7 +15,8 @@ services:
       - postgres
 
   nginx:
-    image: nginx:alpine
+    build:
+      context: ./nginx
     ports:
       - 80:80
     volumes:
@@ -26,7 +27,8 @@ services:
       - django
 
   postgres:
-    image: postgres:14-alpine
+    build:
+      context: ./postgres
     env_file: ./config/envs/dev_env
     volumes:
       - postgres_data:/var/lib/postgresql/data/
