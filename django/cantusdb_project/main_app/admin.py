@@ -23,7 +23,7 @@ class CenturyAdmin(BaseModelAdmin):
 
 
 class ChantAdmin(BaseModelAdmin):
-    list_display = ("incipit", "siglum", "genre")
+    list_display = ("incipit", "get_source_siglum", "genre")
     search_fields = ("title", "incipit", "cantus_id")
     list_filter = ("genre",)
     exclude = EXCLUDE + (
@@ -34,6 +34,9 @@ class ChantAdmin(BaseModelAdmin):
         "s_sequence",
         "is_last_chant_in_feast",
     )
+
+    def get_source_siglum(self, obj):
+        return obj.source.siglum
 
 
 class FeastAdmin(BaseModelAdmin):
@@ -65,10 +68,17 @@ class SegmentAdmin(BaseModelAdmin):
 
 
 class SequenceAdmin(BaseModelAdmin):
-    search_fields = ("title", "incipit", "cantus_id",)
+    search_fields = (
+        "title",
+        "incipit",
+        "cantus_id",
+    )
     exclude = EXCLUDE + ("c_sequence", "next_chant", "is_last_chant_in_feast")
-    list_display = ("incipit", "siglum", "genre")
+    list_display = ("incipit", "get_source_siglum", "genre")
     list_filter = ("genre",)
+
+    def get_source_siglum(self, obj):
+        return obj.source.siglum
 
 
 class SourceAdmin(BaseModelAdmin):
