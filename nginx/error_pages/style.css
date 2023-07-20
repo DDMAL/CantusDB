@@ -1,0 +1,15 @@
+body {
+	background-image: url("background.jpg");
+	font-family: "Segoe UI", Roboto, "Helvetica Neue", Arial, "Noto Sans", "Liberation Sans", sans-serif;
+}
+
+.page {
+	margin: auto;
+	max-width: 600px;
+	background-color: white;
+	padding: 20px;
+}
+
+h1 {
+	font-weight: 500;
+}
