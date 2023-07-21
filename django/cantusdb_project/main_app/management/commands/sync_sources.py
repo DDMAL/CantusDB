@@ -409,7 +409,6 @@ class Command(BaseCommand):
             for source_id in all_sources:
                 print(source_id)
                 source = get_new_source(source_id)
-            make_dummy_source()
         else:
             new_source = get_new_source(id)
             print(new_source.title)

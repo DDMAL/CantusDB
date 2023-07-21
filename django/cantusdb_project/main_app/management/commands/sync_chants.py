@@ -344,7 +344,7 @@ def make_dummy_chant() -> None:
             "Aborting attempt to create a new dummy chant."
         )
         return
-    except Source.DoesNotExist:
+    except Chant.DoesNotExist:
         pass
 
     dummy_source = Source.objects.get(id=1_000_000, published=False)
@@ -391,7 +391,6 @@ class Command(BaseCommand):
                         f"---------------- {counter} of {total} chants synced --------------"
                     )
                 counter += 1
-            make_dummy_chant()
         else:
             get_new_chant(id)
 

@@ -260,10 +260,16 @@ class Command(BaseCommand):
         id = options["id"]
         if id == "all":
             all_seqs = get_seq_list(SEQUENCE_ID_FILE)
+            total = len(all_seqs)
+            counter = 0
             for i, seq_id in enumerate(all_seqs):
                 # print(seq_id)
                 get_new_sequence(seq_id)
-            make_dummy_sequence()
+                if counter % 500 == 0:
+                    print(
+                        f"---------------- {counter} of {total} chants synced --------------"
+                    )
+                counter += 1
         else:
             get_new_sequence(id)
 
