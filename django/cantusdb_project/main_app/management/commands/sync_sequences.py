@@ -230,11 +230,11 @@ def make_dummy_sequence() -> None:
         title="DUMMY",
         source=dummy_source,
         manuscript_full_text_std_spelling=(
-            "This unpublished dummy chant exists in order that all newly created "
-            "chants have IDs greater than 1,000,000 (which ensures that requests "
+            "This unpublished dummy sequence exists in order that all newly created "
+            "sequences have IDs greater than 1,000,000 (which ensures that requests "
             "made to /node/<id> URLs can be redirected to their proper "
-            "chant/sequence/article detail page). Once a chant with an ID greater than "
-            "1,000,000 has been created, this dummy chant may be safely deleted."
+            "sequence/sequence/article detail page). Once a sequence with an ID greater than "
+            "1,000,000 has been created, this dummy sequence may be safely deleted."
         ),
     )
     dummy_sequence = Sequence.objects.filter(title="DUMMY")
