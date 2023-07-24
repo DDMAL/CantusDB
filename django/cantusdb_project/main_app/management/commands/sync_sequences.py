@@ -226,7 +226,8 @@ def make_dummy_sequence() -> None:
         pass
 
     dummy_source = Source.objects.get(id=1_000_000, published=False)
-    dummy_sequence = Sequence.objects.create(
+    Sequence.objects.create(
+        title="DUMMY",
         source=dummy_source,
         manuscript_full_text_std_spelling=(
             "This unpublished dummy sequence exists in order that all newly created "
@@ -236,6 +237,7 @@ def make_dummy_sequence() -> None:
             "1,000,000 has been created, this dummy sequence may be safely deleted."
         ),
     )
+    dummy_sequence = Sequence.objects.filter(title="DUMMY")
     dummy_sequence.update(id=1_000_000)
     return dummy_sequence
 
@@ -258,10 +260,16 @@ class Command(BaseCommand):
         id = options["id"]
         if id == "all":
             all_seqs = get_seq_list(SEQUENCE_ID_FILE)
+            total = len(all_seqs)
+            counter = 0
             for i, seq_id in enumerate(all_seqs):
                 # print(seq_id)
                 get_new_sequence(seq_id)
-            make_dummy_sequence()
+                if counter % 500 == 0:
+                    print(
+                        f"---------------- {counter} of {total} chants synced --------------"
+                    )
+                counter += 1
         else:
             get_new_sequence(id)
 
