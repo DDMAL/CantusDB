@@ -196,6 +196,8 @@ INTERNAL_IPS = [
     "127.0.0.1",
 ]
 
+CSRF_TRUSTED_ORIGINS = ["https://cantusdatabase.org", "https://www.cantusdatabase.org"]
+
 if DEBUG:
     INSTALLED_APPS.append("debug_toolbar")
     # debug toolbar must be inserted as early in the middleware as possible
