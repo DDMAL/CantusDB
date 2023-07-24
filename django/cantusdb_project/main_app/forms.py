@@ -648,3 +648,82 @@ class ChantEditSyllabificationForm(forms.ModelForm):
             "manuscript_full_text": TextAreaWidget(),
             "manuscript_syllabized_full_text": TextAreaWidget(),
         }
+
+class AdminChantForm(forms.ModelForm):
+    class Meta:
+        model = Chant
+        fields = "__all__"
+        widgets = {
+            "volpiano": VolpianoAreaWidget(),
+            "marginalia": TextInputWidget(),
+            "position": TextInputWidget(),
+            "cantus_id": TextInputWidget(),
+            "melody_id": TextInputWidget(),
+            "mode": TextInputWidget(),
+            "finalis": TextInputWidget(),
+            "differentia": TextInputWidget(),
+            "extra": TextInputWidget(),
+            "image_link": TextInputWidget(),
+            "indexing_notes": TextAreaWidget(),
+            "manuscript_full_text_std_proofread": CheckboxWidget(),
+            "manuscript_full_text_proofread": CheckboxWidget(),
+            "volpiano_proofread": CheckboxWidget(),
+            "manuscript_syllabized_full_text": TextAreaWidget(),
+            "chant_range": VolpianoAreaWidget(),
+            "siglum": TextInputWidget(),
+            "addendum": TextInputWidget(),
+            "differentia_new": TextInputWidget(),
+        }
+
+    manuscript_full_text_std_spelling = forms.CharField(
+        required=True,
+        widget=TextAreaWidget,
+        help_text="Manuscript full text with standardized spelling. Enter the words "
+        "according to the manuscript but normalize their spellings following "
+        "Classical Latin forms. Use upper-case letters for proper nouns, "
+        'the first word of each chant, and the first word after "Alleluia" for '
+        "Mass Alleluias. Punctuation is omitted.",
+    )
+
+    folio = forms.CharField(
+        required=True,
+        widget=TextInputWidget,
+        help_text="Binding order",
+    )
+
+    c_sequence = forms.CharField(
+        required=True,
+        widget=TextInputWidget,
+        help_text="Each folio starts with '1'.",
+    )
+
+    feast = forms.ModelChoiceField(
+        queryset=Feast.objects.all().order_by("name"),
+        required=False,
+    )
+    feast.widget.attrs.update({"class": "form-control custom-select custom-select-sm"})
+
+    # We use NameModelChoiceField here so the dropdown list of office/mass displays the name
+    # instead of [name] + description
+    office = NameModelChoiceField(
+        queryset=Office.objects.all().order_by("name"),
+        required=False,
+    )
+    office.widget.attrs.update({"class": "form-control custom-select custom-select-sm"})
+
+    # We use NameModelChoiceField here so the dropdown list of genres displays the name
+    # instead of [name] + description
+    genre = NameModelChoiceField(
+        queryset=Genre.objects.all().order_by("name"), required=False
+    )
+    genre.widget.attrs.update({"class": "form-control custom-select custom-select-sm"})
+
+    proofread_by = forms.ModelMultipleChoiceField(
+        queryset=get_user_model()
+        .objects.filter(Q(groups__name="project manager") | Q(groups__name="editor"))
+        .order_by("last_name"),
+        required=False,
+    )
+    proofread_by.widget.attrs.update(
+        {"class": "form-control custom-select custom-select-sm"}
+    )

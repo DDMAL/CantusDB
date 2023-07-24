@@ -1,5 +1,6 @@
 from django.contrib import admin
 from main_app.models import *
+from main_app.forms import AdminChantForm
 
 # these fields should not be editable by all classes
 EXCLUDE = ("created_by", "last_updated_by", "json_info")
@@ -33,7 +34,9 @@ class ChantAdmin(BaseModelAdmin):
         "next_chant",
         "s_sequence",
         "is_last_chant_in_feast",
+        "visible_status"
     )
+    form = AdminChantForm
 
     def get_source_siglum(self, obj):
         return obj.source.siglum
