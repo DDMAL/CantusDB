@@ -1392,7 +1392,7 @@ class ChantIndexView(TemplateView):
             queryset = (
                 source.sequence_set.annotate(record_type=Value("sequence"))
                 .order_by("s_sequence")
-                .select_related("feast", "office", "genre")
+                .select_related("genre")
             )
         else:
             queryset = (
