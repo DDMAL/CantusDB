@@ -233,7 +233,7 @@ def make_dummy_sequence() -> None:
             "This unpublished dummy sequence exists in order that all newly created "
             "sequences have IDs greater than 1,000,000 (which ensures that requests "
             "made to /node/<id> URLs can be redirected to their proper "
-            "sequence/sequence/article detail page). Once a sequence with an ID greater than "
+            "chant/sequence/article detail page). Once a sequence with an ID greater than "
             "1,000,000 has been created, this dummy sequence may be safely deleted."
         ),
     )
