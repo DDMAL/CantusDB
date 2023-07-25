@@ -13,8 +13,9 @@ class Article(models.Model):
     )
     date_created = models.DateTimeField(
         help_text="The date this article was created",
-        null=True,
-        blank=True,
+        null=False,
+        blank=False,
+        auto_now_add=True,
     )
     date_updated = models.DateTimeField(
         help_text="The date this article was most recently updated",
