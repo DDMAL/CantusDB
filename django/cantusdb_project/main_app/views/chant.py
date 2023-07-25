@@ -1389,12 +1389,16 @@ class ChantIndexView(TemplateView):
 
         # 4064 is the id for the sequence database
         if source.segment.id == 4064:
-            queryset = source.sequence_set.annotate(
-                record_type=Value("sequence")
-            ).order_by("s_sequence")
+            queryset = (
+                source.sequence_set.annotate(record_type=Value("sequence"))
+                .order_by("s_sequence")
+                .select_related("genre")
+            )
         else:
-            queryset = source.chant_set.annotate(record_type=Value("chant")).order_by(
-                "folio", "c_sequence"
+            queryset = (
+                source.chant_set.annotate(record_type=Value("chant"))
+                .order_by("folio", "c_sequence")
+                .select_related("feast", "office", "genre")
             )
 
         context["source"] = source
