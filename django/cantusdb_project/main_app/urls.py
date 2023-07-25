@@ -168,7 +168,7 @@ urlpatterns = [
         name="chant-by-cantus-id",
     ),
     path(
-        "chant-delete/<int:pk>",
+        "chant/<int:pk>/delete",
         ChantDeleteView.as_view(),
         name="chant-delete",
     ),
