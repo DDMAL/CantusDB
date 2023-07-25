@@ -34,9 +34,14 @@ class ChantAdmin(BaseModelAdmin):
         "next_chant",
         "s_sequence",
         "is_last_chant_in_feast",
-        "visible_status"
+        "visible_status",
+        "date",
     )
     form = AdminChantForm
+    raw_id_fields = (
+        "source",
+        "feast",
+    )
 
     def get_source_siglum(self, obj):
         return obj.source.siglum
@@ -76,9 +81,18 @@ class SequenceAdmin(BaseModelAdmin):
         "incipit",
         "cantus_id",
     )
-    exclude = EXCLUDE + ("c_sequence", "next_chant", "is_last_chant_in_feast")
+    exclude = EXCLUDE + (
+        "c_sequence",
+        "next_chant",
+        "is_last_chant_in_feast",
+        "visible_status",
+    )
     list_display = ("incipit", "get_source_siglum", "genre")
     list_filter = ("genre",)
+    raw_id_fields = (
+        "source",
+        "feast",
+    )
 
     def get_source_siglum(self, obj):
         return obj.source.siglum
