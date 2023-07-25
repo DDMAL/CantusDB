@@ -1,11 +1,20 @@
-<form method="post">{% csrf_token %}
-    <p style="font-size: xx-large">Are you sure you want to delete this chant: <span
-            style="color: #CC3000; font-size: xx-large;">{{ object.incipit }}</span>?</p>
-    <p style="font-size: xx-large;">This item was created on
-        <span style="color: #CC3000; font-size: xx-large;">{{ object.date_created }}</span>
-    </p>
-    <p style="font-size: xx-large;">Most recent update: 
-        <span style="color: #CC3000; font-size: xx-large;">{{ object.date_updated }}</span>
-    </p>
-    <input type="submit" value="Confirm" style="font-size: xx-large;">
-</form>
+{% extends "base.html" %}
+{% block content %}
+<title>Delete Chant | Cantus Manuscript Database</title>
+<div class="mr-3 p-3 col-md-8 bg-white rounded">
+    <form method="post">{% csrf_token %}
+        <p>
+            <span class="text-danger">
+                Are you sure you want to delete this chant:
+                <b><a href={% url "chant-detail" object.id %} target="_blank">{{ object.incipit }}</a></b>?
+            </span></p>
+        <p>
+            Created: <b>{{ object.date_created }}</b>
+        </p>
+        <p>
+            Most recent update: <b>{{ object.date_updated }}</b>
+        </p>
+        <input type="submit" value="Confirm">
+    </form>
+</div>
+{% endblock %}
