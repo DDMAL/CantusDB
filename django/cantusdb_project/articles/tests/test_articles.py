@@ -22,7 +22,6 @@ def make_fake_article(user=None):
         # updated to use Faker (previously called method from make_fakes that no longer exists)
         title=faker.sentence(),
         author=make_fake_user(),
-        date_created=timezone.now(),
     )
     return article
 
