@@ -13,20 +13,27 @@ services:
       - 3000:3000
     depends_on:
       - postgres
-    restart: always
 
   nginx:
     build:
       context: ./nginx
     ports:
       - 80:80
+      - 443:443
     volumes:
       - ./config/nginx/conf.d:/etc/nginx/conf.d
       - static_volume:/resources/static
       - media_volume:/resources/media
-    restart: always
+      - certbot_data:/var/www/certbot/:ro
+      - certificates:/etc/nginx/ssl/:ro
     depends_on:
       - django
+
+  certbot:
+    image: certbot/certbot:latest
+    volumes:
+      - certbot_data:/var/www/certbot/:rw
+      - certificates:/etc/letsencrypt/:rw
 
   postgres:
     build:
@@ -34,9 +41,10 @@ services:
     env_file: ./config/envs/dev_env
     volumes:
       - postgres_data:/var/lib/postgresql/data/
-    restart: always
 
 volumes:
   postgres_data:
   static_volume:
   media_volume:
+  certbot_data:
+  certificates:
