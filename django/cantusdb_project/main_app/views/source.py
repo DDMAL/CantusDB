@@ -1,4 +1,10 @@
-from django.views.generic import DetailView, ListView, CreateView, UpdateView
+from django.views.generic import (
+    DetailView,
+    ListView,
+    CreateView,
+    UpdateView,
+    DeleteView,
+)
 from django.db.models import Q, Prefetch
 from main_app.models import Source, Provenance, Century
 from main_app.forms import SourceCreateForm, SourceEditForm
@@ -211,6 +217,40 @@ class SourceCreateView(LoginRequiredMixin, UserPassesTestMixin, CreateView):
         return HttpResponseRedirect(self.get_success_url())
 
 
+class SourceDeleteView(LoginRequiredMixin, UserPassesTestMixin, DeleteView):
+    """The view for deleting a source object
+
+    This view is linked to in the source-edit page.
+    """
+
+    model = Source
+    template_name = "source_confirm_delete.html"
+
+    def test_func(self):
+        user = self.request.user
+        source_id = self.kwargs.get(self.pk_url_kwarg)
+        source = get_object_or_404(Source, id=source_id)
+
+        assigned_to_source = user.sources_user_can_edit.filter(id=source_id)
+
+        is_project_manager = user.groups.filter(name="project manager").exists()
+        is_editor = user.groups.filter(name="editor").exists()
+        is_contributor = user.groups.filter(name="contributor").exists()
+
+        if (
+            (is_project_manager)
+            or (is_editor and assigned_to_source)
+            or (is_editor and source.created_by == user)
+            or (is_contributor and source.created_by == user)
+        ):
+            return True
+        return False
+
+    def get_success_url(self):
+        # redirect to homepage
+        return "/"
+
+
 class SourceEditView(LoginRequiredMixin, UserPassesTestMixin, UpdateView):
     template_name = "source_edit.html"
     model = Source
@@ -262,8 +302,7 @@ class SourceEditView(LoginRequiredMixin, UserPassesTestMixin, UpdateView):
             or (is_contributor and source.created_by == user)
         ):
             return True
-        else:
-            return False
+        return False
 
     def form_valid(self, form):
         form.instance.last_updated_by = self.request.user

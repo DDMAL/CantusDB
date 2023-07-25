@@ -53,6 +53,7 @@ from main_app.views.source import (
     SourceDetailView,
     SourceEditView,
     SourceListView,
+    SourceDeleteView,
 )
 from main_app.views.user import (
     LoginView,
@@ -279,6 +280,11 @@ urlpatterns = [
         "edit-source/<int:source_id>",
         SourceEditView.as_view(),
         name="source-edit",
+    ),
+    path(
+        "source/<int:pk>/delete",
+        SourceDeleteView.as_view(),
+        name="source-delete",
     ),
     # melody
     path(
