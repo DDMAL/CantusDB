@@ -83,6 +83,9 @@ class ArticleListViewTest(TestCase):
         self.assertLess(time_difference, timedelta(minutes=1))
 
     def test_null_date_created(self):
+        # Since we have null=True in our model definition, we want to ensure that objects cannot
+        # be created with date_created not specified or specified to None. auto_add_now should
+        # populate this field automatically.
         article = Article.objects.create(
             title=faker.sentence(),
             author=make_fake_user(),
