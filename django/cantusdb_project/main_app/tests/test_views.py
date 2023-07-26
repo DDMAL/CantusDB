@@ -139,6 +139,15 @@ class PermissionsTest(TestCase):
         )
         self.assertRedirects(response, f"/login/?next=/edit-source/{source.id}")
 
+        # SourceDeleteView
+        response = self.client.get(
+            reverse(
+                "source-delete",
+                args=[source.id],
+            )
+        )
+        self.assertRedirects(response, f"/login/?next=/source/{source.id}/delete")
+
         # UserSourceListView
         response = self.client.get(reverse("my-sources"))
         self.assertRedirects(response, "/login/?next=/my-sources/")
@@ -179,6 +188,10 @@ class PermissionsTest(TestCase):
 
         # SourceEditView
         response = self.client.get(f"/edit-source/{source.id}")
+        self.assertEqual(response.status_code, 200)
+
+        # SourceDeleteView
+        response = self.client.get(f"/source/{source.id}/delete")
         self.assertEqual(response.status_code, 200)
 
     def test_permissions_contributor(self):
@@ -270,6 +283,16 @@ class PermissionsTest(TestCase):
         response = self.client.get(f"/edit-source/{assigned_source.id}")
         self.assertEqual(response.status_code, 403)
 
+        # SourceDeleteView
+        response = self.client.get(f"/source/{restricted_source.id}/delete")
+        self.assertEqual(response.status_code, 403)
+
+        response = self.client.get(f"/source/{source_created_by_contributor.id}/delete")
+        self.assertEqual(response.status_code, 200)
+
+        response = self.client.get(f"/source/{assigned_source.id}/delete")
+        self.assertEqual(response.status_code, 403)
+
     def test_permissions_editor(self):
         editor = Group.objects.get(name="editor")
         editor.user_set.add(self.user)
@@ -359,6 +382,16 @@ class PermissionsTest(TestCase):
         response = self.client.get(f"/edit-source/{assigned_source.id}")
         self.assertEqual(response.status_code, 200)
 
+        # SourceDeleteView
+        response = self.client.get(f"/source/{restricted_source.id}/delete")
+        self.assertEqual(response.status_code, 403)
+
+        response = self.client.get(f"/source/{source_created_by_contributor.id}/delete")
+        self.assertEqual(response.status_code, 200)
+
+        response = self.client.get(f"/source/{assigned_source.id}/delete")
+        self.assertEqual(response.status_code, 200)
+
     def test_permissions_default(self):
         self.client.login(email="test@test.com", password="pass")
 
@@ -389,6 +422,10 @@ class PermissionsTest(TestCase):
 
         # SourceEditView
         response = self.client.get(f"/edit-source/{source.id}")
+        self.assertEqual(response.status_code, 403)
+
+        # SourceDeleteView
+        response = self.client.get(f"/source/{source.id}/delete")
         self.assertEqual(response.status_code, 403)
 
 
