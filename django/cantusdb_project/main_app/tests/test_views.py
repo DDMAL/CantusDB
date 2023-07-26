@@ -91,35 +91,60 @@ class PermissionsTest(TestCase):
         # currently not logged in, should redirect
 
         # ChantCreateView
-        response = self.client.get(f"/chant-create/{source.id}")
+        response = self.client.get(
+            reverse(
+                "chant-create",
+                args=[source.id],
+            )
+        )
         self.assertRedirects(response, f"/login/?next=/chant-create/{source.id}")
 
         # ChantDeleteView
-        response = self.client.get(f"/chant/{chant.id}/delete")
+        response = self.client.get(
+            reverse(
+                "chant-delete",
+                args=[chant.id],
+            )
+        )
         self.assertRedirects(response, f"/login/?next=/chant/{chant.id}/delete")
 
         # SourceEditChantsView
-        response = self.client.get(f"/edit-chants/{source.id}")
+        response = self.client.get(
+            reverse(
+                "source-edit-chants",
+                args=[source.id],
+            )
+        )
         self.assertRedirects(response, f"/login/?next=/edit-chants/{source.id}")
 
         # SequenceEditView
-        response = self.client.get(f"/edit-sequence/{sequence.id}")
+        response = self.client.get(
+            reverse(
+                "sequence-edit",
+                args=[sequence.id],
+            )
+        )
         self.assertRedirects(response, f"/login/?next=/edit-sequence/{sequence.id}")
 
         # SourceCreateView
-        response = self.client.get("/source-create/")
+        response = self.client.get(reverse("source-create"))
         self.assertRedirects(response, "/login/?next=/source-create/")
 
         # SourceEditView
-        response = self.client.get(f"/edit-source/{source.id}")
+        response = self.client.get(
+            reverse(
+                "source-edit",
+                args=[source.id],
+            )
+        )
         self.assertRedirects(response, f"/login/?next=/edit-source/{source.id}")
 
         # UserSourceListView
-        response = self.client.get("/my-sources/")
+        response = self.client.get(reverse("my-sources"))
         self.assertRedirects(response, "/login/?next=/my-sources/")
 
         # UserListView
-        response = self.client.get("/users/")
+        response = self.client.get(reverse("user-list"))
         self.assertRedirects(response, "/login/?next=/users/")
 
     def test_permissions_project_manager(self):
