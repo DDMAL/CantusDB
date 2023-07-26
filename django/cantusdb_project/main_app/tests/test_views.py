@@ -167,31 +167,65 @@ class PermissionsTest(TestCase):
         sequence = Sequence.objects.order_by("?").first()
 
         # ChantCreateView
-        response = self.client.get(f"/chant-create/{source.id}")
+        response = self.client.get(
+            reverse(
+                "chant-create",
+                args=[source.id],
+            )
+        )
         self.assertEqual(response.status_code, 200)
 
         # ChantDeleteView
-        response = self.client.get(f"/chant/{chant.id}/delete")
+        response = self.client.get(
+            reverse(
+                "chant-delete",
+                args=[chant.id],
+            )
+        )
         self.assertEqual(response.status_code, 200)
 
         # SourceEditChantsView
-        response = self.client.get(f"/edit-chants/{source.id}")
+        response = self.client.get(
+            reverse(
+                "source-edit-chants",
+                args=[source.id],
+            )
+        )
         self.assertEqual(response.status_code, 200)
 
         # SequenceEditView
-        response = self.client.get(f"/edit-sequence/{sequence.id}")
+        response = self.client.get(
+            reverse(
+                "sequence-edit",
+                args=[sequence.id],
+            )
+        )
         self.assertEqual(response.status_code, 200)
 
         # SourceCreateView
-        response = self.client.get("/source-create/")
+        response = self.client.get(
+            reverse(
+                "source-create",
+            )
+        )
         self.assertEqual(response.status_code, 200)
 
         # SourceEditView
-        response = self.client.get(f"/edit-source/{source.id}")
+        response = self.client.get(
+            reverse(
+                "source-edit",
+                args=[source.id],
+            )
+        )
         self.assertEqual(response.status_code, 200)
 
         # SourceDeleteView
-        response = self.client.get(f"/source/{source.id}/delete")
+        response = self.client.get(
+            reverse(
+                "source-delete",
+                args=[source.id],
+            )
+        )
         self.assertEqual(response.status_code, 200)
 
     def test_permissions_contributor(self):
@@ -234,7 +268,13 @@ class PermissionsTest(TestCase):
         sequence = Sequence.objects.order_by("?").first()
 
         # ChantCreateView
-        response = self.client.get(f"/chant-create/{restricted_source.id}")
+        # response = self.client.get(f"/chant-create/{restricted_source.id}")
+        response = self.client.get(
+            reverse(
+                "chant-create",
+                args=[restricted_source.id],
+            )
+        )
         self.assertEqual(response.status_code, 403)
 
         response = self.client.get(f"/chant-create/{source_created_by_contributor.id}")
