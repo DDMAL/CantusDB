@@ -795,29 +795,6 @@ class AdminSequenceForm(forms.ModelForm):
             "chant_range": VolpianoAreaWidget(),
         }
 
-    manuscript_full_text_std_spelling = forms.CharField(
-        required=True,
-        widget=AdminTextAreaWidget,
-        help_text="Manuscript full text with standardized spelling. Enter the words "
-        "according to the manuscript but normalize their spellings following "
-        "Classical Latin forms. Use upper-case letters for proper nouns, "
-        'the first word of each chant, and the first word after "Alleluia" for '
-        "Mass Alleluias. Punctuation is omitted.",
-    )
-
-    folio = forms.CharField(
-        required=True,
-        widget=AdminTextInputWidget,
-        help_text="Binding order",
-    )
-
-    s_sequence = forms.CharField(
-        required=True,
-        widget=AdminTextInputWidget,
-        help_text="Each folio starts with '1'.",
-        label="Sequence",
-    )
-
     # We use NameModelChoiceField here so the dropdown list of office/mass displays the name
     # instead of [name] + description
     office = NameModelChoiceField(
