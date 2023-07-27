@@ -1,6 +1,18 @@
 from django.contrib import admin
 from main_app.models import *
-from main_app.forms import AdminChantForm, AdminSourceForm
+from main_app.forms import (
+    AdminCenturyForm,
+    AdminChantForm,
+    AdminFeastForm,
+    AdminGenreForm,
+    AdminNotationForm,
+    AdminOfficeForm,
+    AdminProvenanceForm,
+    AdminRismSiglumForm,
+    AdminSegmentForm,
+    AdminSequenceForm,
+    AdminSourceForm,
+)
 
 # these fields should not be editable by all classes
 EXCLUDE = ("created_by", "last_updated_by", "json_info")
@@ -21,6 +33,7 @@ class BaseModelAdmin(admin.ModelAdmin):
 
 class CenturyAdmin(BaseModelAdmin):
     search_fields = ("name",)
+    form = AdminCenturyForm
 
 
 class ChantAdmin(BaseModelAdmin):
@@ -63,30 +76,37 @@ class ChantAdmin(BaseModelAdmin):
 class FeastAdmin(BaseModelAdmin):
     search_fields = ("name", "feast_code")
     list_display = ("name", "month", "day", "feast_code")
+    form = AdminFeastForm
 
 
 class GenreAdmin(BaseModelAdmin):
     search_fields = ("name",)
+    form = AdminGenreForm
 
 
 class NotationAdmin(BaseModelAdmin):
     search_fields = ("name",)
+    form = AdminNotationForm
 
 
 class OfficeAdmin(BaseModelAdmin):
     search_fields = ("name",)
+    form = AdminOfficeForm
 
 
 class ProvenanceAdmin(BaseModelAdmin):
     search_fields = ("name",)
+    form = AdminProvenanceForm
 
 
 class RismSiglumAdmin(BaseModelAdmin):
     search_fields = ("name",)
+    form = AdminRismSiglumForm
 
 
 class SegmentAdmin(BaseModelAdmin):
     search_fields = ("name",)
+    form = AdminSegmentForm
 
 
 class SequenceAdmin(BaseModelAdmin):
@@ -114,6 +134,7 @@ class SequenceAdmin(BaseModelAdmin):
         "source",
         "feast",
     )
+    form = AdminSequenceForm
 
 
 class SourceAdmin(BaseModelAdmin):

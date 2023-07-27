@@ -3,9 +3,11 @@ from .models import (
     Chant,
     Office,
     Genre,
+    Notation,
     Feast,
     Source,
     RismSiglum,
+    Segment,
     Provenance,
     Century,
     Sequence,
@@ -655,6 +657,14 @@ class ChantEditSyllabificationForm(forms.ModelForm):
         }
 
 
+class AdminCenturyForm(forms.ModelForm):
+    class Meta:
+        model = Century
+        fields = "__all__"
+
+    name = forms.CharField(required=True, widget=AdminTextInputWidget)
+
+
 class AdminChantForm(forms.ModelForm):
     class Meta:
         model = Chant
@@ -685,6 +695,123 @@ class AdminChantForm(forms.ModelForm):
     )
 
     c_sequence = forms.CharField(
+        required=True,
+        widget=AdminTextInputWidget,
+        help_text="Each folio starts with '1'.",
+        label="Sequence",
+    )
+
+    # We use NameModelChoiceField here so the dropdown list of office/mass displays the name
+    # instead of [name] + description
+    office = NameModelChoiceField(
+        queryset=Office.objects.all().order_by("name"),
+        required=False,
+    )
+    # We use NameModelChoiceField here so the dropdown list of genres displays the name
+    # instead of [name] + description
+    genre = NameModelChoiceField(
+        queryset=Genre.objects.all().order_by("name"), required=False
+    )
+
+    proofread_by = forms.ModelMultipleChoiceField(
+        queryset=get_user_model()
+        .objects.filter(Q(groups__name="project manager") | Q(groups__name="editor"))
+        .order_by("last_name"),
+        required=False,
+        widget=FilteredSelectMultiple(verbose_name="proofread by", is_stacked=False),
+    )
+
+
+class AdminFeastForm(forms.ModelForm):
+    class Meta:
+        model = Feast
+        fields = "__all__"
+
+    name = forms.CharField(required=True, widget=AdminTextInputWidget)
+
+
+class AdminGenreForm(forms.ModelForm):
+    class Meta:
+        model = Genre
+        fields = "__all__"
+
+    name = forms.CharField(required=True, widget=AdminTextInputWidget)
+    description = forms.CharField(required=True, widget=AdminTextAreaWidget)
+
+
+class AdminNotationForm(forms.ModelForm):
+    class Meta:
+        model = Notation
+        fields = "__all__"
+
+    name = forms.CharField(required=True, widget=AdminTextInputWidget)
+    name.widget.attrs.update({"style": "width: 400px;"})
+
+
+class AdminOfficeForm(forms.ModelForm):
+    class Meta:
+        model = Office
+        fields = "__all__"
+
+    name = forms.CharField(required=True, widget=AdminTextInputWidget)
+    description = forms.CharField(required=True, widget=AdminTextAreaWidget)
+
+
+class AdminProvenanceForm(forms.ModelForm):
+    class Meta:
+        model = Provenance
+        fields = "__all__"
+
+    name = forms.CharField(required=True, widget=AdminTextInputWidget)
+
+
+class AdminRismSiglumForm(forms.ModelForm):
+    class Meta:
+        model = RismSiglum
+        fields = "__all__"
+
+    name = forms.CharField(required=True, widget=AdminTextInputWidget)
+
+
+class AdminSegmentForm(forms.ModelForm):
+    class Meta:
+        model = Segment
+        fields = "__all__"
+
+    name = forms.CharField(required=True, widget=AdminTextInputWidget)
+    name.widget.attrs.update({"style": "width: 400px;"})
+
+
+class AdminSequenceForm(forms.ModelForm):
+    class Meta:
+        model = Sequence
+        fields = "__all__"
+        widgets = {
+            "volpiano": VolpianoAreaWidget(),
+            "indexing_notes": TextAreaWidget(),
+            "manuscript_full_text_std_proofread": CheckboxWidget(),
+            "manuscript_full_text_proofread": CheckboxWidget(),
+            "volpiano_proofread": CheckboxWidget(),
+            "chant_range": VolpianoAreaWidget(),
+        }
+
+    manuscript_full_text_std_spelling = forms.CharField(
+        required=True,
+        widget=AdminTextAreaWidget,
+        help_text="Manuscript full text with standardized spelling. Enter the words "
+        "according to the manuscript but normalize their spellings following "
+        "Classical Latin forms. Use upper-case letters for proper nouns, "
+        'the first word of each chant, and the first word after "Alleluia" for '
+        "Mass Alleluias. Punctuation is omitted.",
+    )
+
+    folio = forms.CharField(
+        required=True,
+        widget=AdminTextInputWidget,
+        help_text="Binding order",
+    )
+
+    s_sequence = forms.CharField(
         required=True,
         widget=AdminTextInputWidget,
         help_text="Each folio starts with '1'.",
