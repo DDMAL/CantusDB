@@ -1,6 +1,6 @@
 from django.contrib import admin
 from main_app.models import *
-from main_app.forms import AdminChantForm
+from main_app.forms import AdminChantForm, AdminSourceForm
 
 # these fields should not be editable by all classes
 EXCLUDE = ("created_by", "last_updated_by", "json_info")
@@ -20,13 +20,28 @@ class BaseModelAdmin(admin.ModelAdmin):
 
 
 class CenturyAdmin(BaseModelAdmin):
-    pass
+    search_fields = ("name",)
 
 
 class ChantAdmin(BaseModelAdmin):
-    list_display = ("incipit", "get_source_siglum", "genre")
-    search_fields = ("title", "incipit", "cantus_id")
-    list_filter = ("genre",)
+    @admin.display(description="Source Siglum")
+    def get_source_siglum(self, obj):
+        return obj.source.siglum
+
+    list_display = (
+        "incipit",
+        "get_source_siglum",
+        "genre",
+    )
+    search_fields = (
+        "title",
+        "incipit",
+        "cantus_id",
+    )
+    list_filter = (
+        "genre",
+        "office",
+    )
     exclude = EXCLUDE + (
         "col1",
         "col2",
@@ -42,25 +57,24 @@ class ChantAdmin(BaseModelAdmin):
         "source",
         "feast",
     )
-
-    def get_source_siglum(self, obj):
-        return obj.source.siglum
+    ordering = ("source__siglum",)
 
 
 class FeastAdmin(BaseModelAdmin):
     search_fields = ("name", "feast_code")
+    list_display = ("name", "month", "day", "feast_code")
 
 
 class GenreAdmin(BaseModelAdmin):
-    pass
+    search_fields = ("name",)
 
 
 class NotationAdmin(BaseModelAdmin):
-    pass
+    search_fields = ("name",)
 
 
 class OfficeAdmin(BaseModelAdmin):
-    pass
+    search_fields = ("name",)
 
 
 class ProvenanceAdmin(BaseModelAdmin):
@@ -68,14 +82,18 @@ class ProvenanceAdmin(BaseModelAdmin):
 
 
 class RismSiglumAdmin(BaseModelAdmin):
-    pass
+    search_fields = ("name",)
 
 
 class SegmentAdmin(BaseModelAdmin):
-    pass
+    search_fields = ("name",)
 
 
 class SequenceAdmin(BaseModelAdmin):
+    @admin.display(description="Source Siglum")
+    def get_source_siglum(self, obj):
+        return obj.source.siglum
+
     search_fields = (
         "title",
         "incipit",
@@ -88,14 +106,14 @@ class SequenceAdmin(BaseModelAdmin):
         "visible_status",
     )
     list_display = ("incipit", "get_source_siglum", "genre")
-    list_filter = ("genre",)
+    list_filter = (
+        "genre",
+        "office",
+    )
     raw_id_fields = (
         "source",
         "feast",
     )
-
-    def get_source_siglum(self, obj):
-        return obj.source.siglum
 
 
 class SourceAdmin(BaseModelAdmin):
@@ -117,6 +135,23 @@ class SourceAdmin(BaseModelAdmin):
         "proofreaders",
         "other_editors",
     )
+
+    list_display = (
+        "title",
+        "siglum",
+    )
+
+    list_filter = (
+        "full_source",
+        "segment",
+        "source_status",
+        "published",
+        "century",
+    )
+
+    ordering = ("siglum",)
+
+    form = AdminSourceForm
 
 
 admin.site.register(Century, CenturyAdmin)
