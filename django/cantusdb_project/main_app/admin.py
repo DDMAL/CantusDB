@@ -134,6 +134,7 @@ class SequenceAdmin(BaseModelAdmin):
         "source",
         "feast",
     )
+    ordering = ("source__siglum",)
     form = AdminSequenceForm
 
 
