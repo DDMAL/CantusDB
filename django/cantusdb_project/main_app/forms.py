@@ -22,6 +22,9 @@ from .widgets import (
 )
 from django.contrib.auth import get_user_model
 from django.db.models import Q
+from django.contrib.admin.widgets import (
+    FilteredSelectMultiple,
+)
 
 # ModelForm allows to build a form directly from a model
 # see https://docs.djangoproject.com/en/3.0/topics/forms/modelforms/
@@ -674,7 +677,7 @@ class AdminChantForm(forms.ModelForm):
         'the first word of each chant, and the first word after "Alleluia" for '
         "Mass Alleluias. Punctuation is omitted.",
     )
-    
+
     folio = forms.CharField(
         required=True,
         widget=AdminTextInputWidget,
@@ -694,21 +697,80 @@ class AdminChantForm(forms.ModelForm):
         queryset=Office.objects.all().order_by("name"),
         required=False,
     )
-    office.widget.attrs.update({"class": "form-control custom-select custom-select-sm"})
-
     # We use NameModelChoiceField here so the dropdown list of genres displays the name
     # instead of [name] + description
     genre = NameModelChoiceField(
         queryset=Genre.objects.all().order_by("name"), required=False
     )
-    genre.widget.attrs.update({"class": "form-control custom-select custom-select-sm"})
 
     proofread_by = forms.ModelMultipleChoiceField(
         queryset=get_user_model()
         .objects.filter(Q(groups__name="project manager") | Q(groups__name="editor"))
         .order_by("last_name"),
         required=False,
+        widget=FilteredSelectMultiple(verbose_name="proofread by", is_stacked=False),
     )
-    proofread_by.widget.attrs.update(
-        {"class": "form-control custom-select custom-select-sm"}
+
+
+class AdminSourceForm(forms.ModelForm):
+    class Meta:
+        model = Source
+        fields = "__all__"
+
+    title = forms.CharField(
+        required=True,
+        widget=AdminTextInputWidget,
+        help_text="Full Manuscript Identification (City, Archive, Shelf-mark)",
+    )
+
+    siglum = forms.CharField(
+        required=True,
+        widget=AdminTextInputWidget,
+        help_text="RISM-style siglum + Shelf-mark (e.g. GB-Ob 202).",
+    )
+
+    rism_siglum = forms.ModelChoiceField(
+        queryset=RismSiglum.objects.all().order_by("name"),
+        required=False,
+    )
+
+    provenance = forms.ModelChoiceField(
+        queryset=Provenance.objects.all().order_by("name"),
+        required=False,
+    )
+    TRUE_FALSE_CHOICES_SOURCE = (
+        (True, "Full source"),
+        (False, "Fragment or Fragmented"),
+    )
+
+    full_source = forms.ChoiceField(choices=TRUE_FALSE_CHOICES_SOURCE, required=False)
+
+    century = forms.ModelMultipleChoiceField(
+        queryset=Century.objects.all().order_by("name"),
+        required=False,
+        widget=FilteredSelectMultiple(verbose_name="Century", is_stacked=False),
+    )
+
+    current_editors = forms.ModelMultipleChoiceField(
+        queryset=get_user_model()
+        .objects.filter(
+            Q(groups__name="project manager")
+            | Q(groups__name="editor")
+            | Q(groups__name="contributor")
+        )
+        .order_by("last_name"),
+        required=False,
+        widget=FilteredSelectMultiple(verbose_name="Century", is_stacked=False),
+    )
+
+    melodies_entered_by = forms.ModelMultipleChoiceField(
+        queryset=get_user_model().objects.all().order_by("full_name"),
+        required=False,
+        widget=FilteredSelectMultiple(verbose_name="Century", is_stacked=False),
+    )
+
+    TRUE_FALSE_CHOICES_INVEN = ((True, "Complete"), (False, "Incomplete"))
+
+    complete_inventory = forms.ChoiceField(
+        choices=TRUE_FALSE_CHOICES_INVEN, required=False
     )
