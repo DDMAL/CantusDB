@@ -13,6 +13,7 @@ class Article(models.Model):
     )
     date_created = models.DateTimeField(
         help_text="The date this article was created",
+        auto_now_add=True,
         null=True,
         blank=True,
     )
