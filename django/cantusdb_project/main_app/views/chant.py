@@ -31,7 +31,7 @@ from next_chants import next_chants
 from collections import Counter
 from django.contrib.auth.mixins import UserPassesTestMixin
 from typing import Optional, Union
-from requests.exceptions import SSLError, Timeout
+from requests.exceptions import SSLError, Timeout, ConnectionError
 from requests import Response
 
 CHANT_SEARCH_TEMPLATE_VALUES = (
@@ -83,6 +83,7 @@ def parse_json_from_api(url: str) -> Union[list, None]:
     except (
         SSLError,
         Timeout,
+        ConnectionError,
     ) as exc:
         print(  # eventually, we should log this rather than printing it to the console
             "Encountered an error in parse_json_from_api",
