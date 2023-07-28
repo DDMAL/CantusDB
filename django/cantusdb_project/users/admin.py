@@ -10,6 +10,7 @@ from main_app.models import Source
 class SourceInline(admin.TabularInline):
     model = Source.current_editors.through
     raw_id_fields = ["source"]
+    verbose_name_plural = "Sources assigned to User"
 
 
 class UserAdmin(BaseUserAdmin):
@@ -102,6 +103,7 @@ class UserAdmin(BaseUserAdmin):
     # order the list of users by email
     ordering = ("email",)
     filter_horizontal = ("groups",)
+    exclude = ("current_editors",)
     inlines = [SourceInline]
 
 
