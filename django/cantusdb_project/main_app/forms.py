@@ -878,3 +878,21 @@ class AdminSourceForm(forms.ModelForm):
     complete_inventory = forms.ChoiceField(
         choices=TRUE_FALSE_CHOICES_INVEN, required=False
     )
+
+
+class AdminUserForm(forms.ModelForm):
+    class Meta:
+        model = get_user_model()
+        fields = "__all__"
+
+    first_name = forms.CharField(
+        required=False,
+        help_text="We have full name, first name, and last name defined in our User model which can be seen "
+        "in the admin area, but we are only using full name to represent users.",
+    )
+
+    last_name = forms.CharField(
+        required=False,
+        help_text="We have full name, first name, and last name defined in our User model which can be seen "
+        "in the admin area, but we are only using full name to represent users.",
+    )
