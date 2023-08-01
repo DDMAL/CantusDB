@@ -350,7 +350,7 @@ class ChantDetailView(DetailView):
                 },
                 {
                     "name": "Portuguese Early Music Database",
-                    "initialism": "MMMO",
+                    "initialism": "PEM",
                     "base_url": "https://pemdatabase.eu",
                     "results_url": f"https://pemdatabase.eu/id/{chant.cantus_id}",
                     "results_count": len(

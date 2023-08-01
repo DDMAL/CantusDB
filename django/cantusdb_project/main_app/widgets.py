@@ -1,6 +1,7 @@
 from django.forms.widgets import TextInput, Select, Textarea, CheckboxInput
 from django.utils.safestring import mark_safe
 
+
 class TextInputWidget(TextInput):
     def __init__(self):
         self.attrs = {"class": "form-control form-control-sm"}
