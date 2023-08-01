@@ -14,7 +14,6 @@ from main_app.models import (
     Office,
     Provenance,
     RismSiglum,
-    Segment,
     Sequence,
     Source,
 )
@@ -30,7 +29,6 @@ from django.urls import reverse
 from django.contrib.auth import get_user_model
 from typing import List
 from django.core.paginator import Paginator
-from django.db.models import Q
 
 
 @login_required
