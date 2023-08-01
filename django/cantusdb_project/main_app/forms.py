@@ -826,6 +826,7 @@ class AdminSourceForm(forms.ModelForm):
         widget=AdminTextInputWidget,
         help_text="Full Manuscript Identification (City, Archive, Shelf-mark)",
     )
+    title.widget.attrs.update({"style": "width: 400px;"})
 
     siglum = forms.CharField(
         required=True,
