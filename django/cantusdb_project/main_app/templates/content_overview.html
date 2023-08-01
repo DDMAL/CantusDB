@@ -5,79 +5,98 @@
 
 <div class="mr-3 p-3 col-md-12 mx-auto bg-white rounded">
     <h3>Content Overview</h3>
-    <table class="table table-sm small table-bordered">
-        <small>Displaying the <b>50</b> most recently updated objects</small>
-        <div style="height:10px;"></div>
-        <thead>
-            <tr>
-                <th scope="col" class="text-wrap" style="text-align:center">Title / Manuscript Full Text / Name</th>
-                <th scope="col" class="text-wrap" style="text-align:center">Type</th>
-                <th scope="col" class="text-wrap" style="text-align:center">Creation Date</th>
-                <th scope="col" class="text-wrap" style="text-align:center">Creator</th>
-                <th scope="col" class="text-wrap" style="text-align:center">Last Updated Date</th>
-                <th scope="col" class="text-wrap" style="text-align:center">Last Updated By</th>
-                <th scope="col" class="text-wrap" style="text-align:center">Operations</th>
-            </tr>
-        </thead>
-        <tbody>
-            {% for object in objects %}
+
+    <div class="row justify-content-center">
+        {% for model_name in models %}
+            <div class="col-auto">
+                {% if model_name == selected_model_name %}
+                    <b>{{ model_name|capfirst }}</b>
+                {% else %}
+                    <a href="?model={{ model_name }}">{{ model_name|capfirst }}</a>
+                {% endif %}
+            </div>
+        {% endfor %}
+    </div>
+    <div style="height:10px;"></div>
+    {% if selected_model_name %}
+        <table class="table table-sm small table-bordered">
+            <small>Displaying {{ page_obj.start_index }}-{{ page_obj.end_index }} of <b>{{ page_obj.paginator.count }}
+                {{ selected_model_name|capfirst }}</b></small>
+            <thead>
                 <tr>
-                    {% if object.title %}
+                    <th scope="col" class="text-wrap" style="text-align:center">Title / Manuscript Full Text / Name</th>
+                    <th scope="col" class="text-wrap" style="text-align:center">Type</th>
+                    <th scope="col" class="text-wrap" style="text-align:center">Creation Date</th>
+                    <th scope="col" class="text-wrap" style="text-align:center">Creator</th>
+                    <th scope="col" class="text-wrap" style="text-align:center">Last Updated Date</th>
+                    <th scope="col" class="text-wrap" style="text-align:center">Last Updated By</th>
+                    <th scope="col" class="text-wrap" style="text-align:center">Operations</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for object in page_obj %}
+                    <tr>
+                        {% if object.title %}
+                            <td class="text-wrap" style="text-align:center">
+                                <a href="{{ object.get_absolute_url }}"><b>{{ object.title|truncatechars:30 }}</b></a>
+                            </td>
+                        {% elif object.manuscript_full_text_std_spelling %}
+                            <td class="text-wrap" style="text-align:center">
+                                <a href="{{ object.get_absolute_url }}"><b>{{ object.manuscript_full_text_std_spelling|truncatechars:30 }}</b></a>
+                            </td>
+                        {% elif object.name %}
+                            <td class="text-wrap" style="text-align:center">
+                                {% if object|classname == "Notation" or object|classname == "Segment" or object|classname == "RismSiglum" %}
+                                    <b>{{ object.name|truncatechars:30 }}
+                                {% else %}
+                                    <a href="{{ object.get_absolute_url }}"><b>{{ object.name|truncatechars:30 }}</b></a>
+                                {% endif %}
+                            </td>
+                        {% elif object.full_name %}
+                            <td class="text-wrap" style="text-align:center">
+                                <a href="{{ object.get_absolute_url }}"><b>{{ object.full_name }}</b></a>
+                            </td>
+                        {% else %}
+                            <td class="text-wrap" style="text-align:center">
+                                <a href="{{ object.get_absolute_url }}"><b>{{ object|classname }} Object</b></a>
+                            </td>
+                        {% endif %}
+                        <td class="text-wrap" style="text-align:center">{{ object|classname }}</td>
+                        <td class="text-wrap" style="text-align:center">{{ object.date_created|date:'Y-m-d H:i' }}</td>
                         <td class="text-wrap" style="text-align:center">
-                            <a href="{{ object.get_absolute_url }}"><b>{{ object.title|truncatechars:30 }}</b></a>
-                        </td>
-                    {% elif object.manuscript_full_text_std_spelling %}
-                        <td class="text-wrap" style="text-align:center">
-                            <a href="{{ object.get_absolute_url }}"><b>{{ object.manuscript_full_text_std_spelling|truncatechars:30 }}</b></a>
-                        </td>
-                    {% elif object.name %}
-                        <td class="text-wrap" style="text-align:center">
-                            {% if object|classname == "Notation" or object|classname == "Provenance" or object|classname == "Segment" %}
-                                <b>{{ object.name|truncatechars:30 }}
+                            {% if object.created_by is None %}
+                                {{ object.created_by }}
                             {% else %}
-                                <a href="{{ object.get_absolute_url }}"><b>{{ object.name|truncatechars:30 }}</b></a>
+                                <a href="{% url 'admin:users_user_change' object.created_by.id %}">
+                                    {{ object.created_by }}
+                                </a>
                             {% endif %}
                         </td>
-                    {% elif object.full_name %}
+                        <td class="text-wrap" style="text-align:center">{{ object.date_updated|date:'Y-m-d H:i' }}</td>
                         <td class="text-wrap" style="text-align:center">
-                            <a href="{{ object.get_absolute_url }}"><b>{{ object.full_name }}</b></a>
-                        </td>
-                    {% else %}
-                        <td class="text-wrap" style="text-align:center">
-                            <a href="{{ object.get_absolute_url }}"><b>{{ object|classname }} Object</b></a>
-                        </td>
-                    {% endif %}
-                    <td class="text-wrap" style="text-align:center">{{ object|classname }}</td>
-                    <td class="text-wrap" style="text-align:center">{{ object.date_created|date:'Y-m-d H:i' }}</td>
-                    <td class="text-wrap" style="text-align:center">
-                        {% if object.created_by is None %}
-                            {{ object.created_by }}
-                        {% else %}
-                            <a href="{% url 'admin:users_user_change' object.created_by.id %}">
-                                {{ object.created_by }}
-                            </a>
-                        {% endif %}
-                    </td>
-                    <td class="text-wrap" style="text-align:center">{{ object.date_updated|date:'Y-m-d H:i' }}</td>
-                    <td class="text-wrap" style="text-align:center">
-                        {% if object.last_updated_by is None %}
-                            {{ object.last_updated_by }}
-                        {% else %}
-                            <a href="{% url 'admin:users_user_change' object.last_updated_by.id %}">
+                            {% if object.last_updated_by is None %}
                                 {{ object.last_updated_by }}
-                            </a>
-                        {% endif %}
-                    </td>
-                    <td class="text-wrap" style="text-align:center">
-                        {% with class=object|classname %}
-                            <a href={% url class|admin_url_name:"change" object.id %}><b>Edit</b></a>
-                            |
-                            <a href={% url class|admin_url_name:"delete" object.id %}><b>Delete</b></a>
-                        {% endwith %}
-                    </td>
-                </tr>
-            {% endfor %}
-        </tbody>
-    </table>
+                            {% else %}
+                                <a href="{% url 'admin:users_user_change' object.last_updated_by.id %}">
+                                    {{ object.last_updated_by }}
+                                </a>
+                            {% endif %}
+                        </td>
+                        <td class="text-wrap" style="text-align:center">
+                            {% with class=object|classname %}
+                                <a href={% url class|admin_url_name:"change" object.id %}><b>Edit</b></a>
+                                |
+                                <a href={% url class|admin_url_name:"delete" object.id %}><b>Delete</b></a>
+                            {% endwith %}
+                        </td>
+                    </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+        {% include "pagination.html" %}
+    {% else %}
+        <div style="height:10px;"></div>
+        Please select a model from the tabs to view the most recently updated objects.
+    {% endif %}
 </div>
 {% endblock %}
