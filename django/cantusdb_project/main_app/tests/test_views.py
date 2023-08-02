@@ -157,7 +157,8 @@ class PermissionsTest(TestCase):
         response = self.client.get(f"/edit-source/{source.id}")
         self.assertEqual(response.status_code, 200)
 
-        response = self.client.get("content-overview")
+        # ContentOverview
+        response = self.client.get(reverse("content-overview"))
         self.assertEqual(response.status_code, 200)
 
     def test_permissions_contributor(self):
@@ -249,6 +250,9 @@ class PermissionsTest(TestCase):
         response = self.client.get(f"/edit-source/{assigned_source.id}")
         self.assertEqual(response.status_code, 403)
 
+        response = self.client.get(reverse("content-overview"))
+        self.assertEqual(response.status_code, 403)
+
     def test_permissions_editor(self):
         editor = Group.objects.get(name="editor")
         editor.user_set.add(self.user)
@@ -338,6 +342,9 @@ class PermissionsTest(TestCase):
         response = self.client.get(f"/edit-source/{assigned_source.id}")
         self.assertEqual(response.status_code, 200)
 
+        response = self.client.get(reverse("content-overview"))
+        self.assertEqual(response.status_code, 403)
+
     def test_permissions_default(self):
         self.client.login(email="test@test.com", password="pass")
 
@@ -368,6 +375,9 @@ class PermissionsTest(TestCase):
 
         # SourceEditView
         response = self.client.get(f"/edit-source/{source.id}")
+        self.assertEqual(response.status_code, 403)
+
+        response = self.client.get(reverse("content-overview"))
         self.assertEqual(response.status_code, 403)
 
 
