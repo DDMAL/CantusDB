@@ -233,9 +233,9 @@
                                     {% else %}
                                         <b><a href="{% url 'sequence-detail' chant.id %}">{{ chant.incipit|default:"" }}</a></b>
                                     {% endif %}
-                                    <p>
+                                    <div>
                                         {{ chant.manuscript_full_text_std_spelling|default:""|truncatewords_html:100 }}
-                                    </p>           
+                                    </div>
                                 </td>
                                 <td class="text-wrap" style="text-align:center">
                                     {% if chant.feast__id %}
