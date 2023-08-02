@@ -1182,6 +1182,12 @@ class ChantCreateView(LoginRequiredMixin, UserPassesTestMixin, CreateView):
         cantus_id = latest_chant.cantus_id
         if cantus_id is None:
             return None
+        if cantus_id == "909000":
+            # 909000 is the Cantus ID for "Gloria patri", the most common Cantus ID in the
+            # database by about a factor of ~10 compared to the second most common Cantus ID.
+            # It takes too long to calculate suggested chants for this Cantus ID, and the
+            # results aren't particularly useful anyways.
+            return None
 
         suggested_chants = next_chants(cantus_id, display_unpublished=True)
 
