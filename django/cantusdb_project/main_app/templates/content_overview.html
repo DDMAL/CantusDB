@@ -24,7 +24,7 @@
                 {{ selected_model_name|capfirst }}</b></small>
             <thead>
                 <tr>
-                    <th scope="col" class="text-wrap" style="text-align:center">Title / Manuscript Full Text / Name</th>
+                    <th scope="col" class="text-wrap" style="text-align:center">Title / Incipit / Name</th>
                     <th scope="col" class="text-wrap" style="text-align:center">Type</th>
                     <th scope="col" class="text-wrap" style="text-align:center">Creation Date</th>
                     <th scope="col" class="text-wrap" style="text-align:center">Creator</th>
@@ -40,9 +40,9 @@
                             <td class="text-wrap" style="text-align:center">
                                 <a href="{{ object.get_absolute_url }}"><b>{{ object.title|truncatechars:30 }}</b></a>
                             </td>
-                        {% elif object.manuscript_full_text_std_spelling %}
+                        {% elif object.incipit %}
                             <td class="text-wrap" style="text-align:center">
-                                <a href="{{ object.get_absolute_url }}"><b>{{ object.manuscript_full_text_std_spelling|truncatechars:30 }}</b></a>
+                                <a href="{{ object.get_absolute_url }}"><b>{{ object.incipit|truncatechars:30 }}</b></a>
                             </td>
                         {% elif object.name %}
                             <td class="text-wrap" style="text-align:center">
