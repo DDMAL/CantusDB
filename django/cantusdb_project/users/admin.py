@@ -56,8 +56,9 @@ class UserAdmin(BaseUserAdmin):
                     ("city", "country"),
                     "website",
                 ),
-                "description": "We have full name, first name, and last name defined in our User model which can be seen "
-                "in the admin area, but we are only using full name to represent users.",
+                "description": "You can enter a user's first and last name, but these are "
+                "only ever displayed in the Admin area - on the main site, users' "
+                "full names are always used rather than their first and last name.",
             },
         ),
         (
