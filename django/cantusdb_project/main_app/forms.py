@@ -1,4 +1,5 @@
 from django import forms
+from django.contrib.auth.forms import ReadOnlyPasswordHashField
 from .models import (
     Chant,
     Office,
@@ -881,19 +882,15 @@ class AdminSourceForm(forms.ModelForm):
     )
 
 
-class AdminUserForm(forms.ModelForm):
+class AdminUserChangeForm(forms.ModelForm):
     class Meta:
         model = get_user_model()
         fields = "__all__"
 
-    first_name = forms.CharField(
-        required=False,
-        help_text="We have full name, first name, and last name defined in our User model which can be seen "
-        "in the admin area, but we are only using full name to represent users.",
+    email = forms.CharField(
+        required=True,
+        widget=AdminTextInputWidget,
     )
+    email.widget.attrs.update({"style": "width: 300px;"})
 
-    last_name = forms.CharField(
-        required=False,
-        help_text="We have full name, first name, and last name defined in our User model which can be seen "
-        "in the admin area, but we are only using full name to represent users.",
-    )
+    password = ReadOnlyPasswordHashField()
