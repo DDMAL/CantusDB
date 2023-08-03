@@ -893,4 +893,10 @@ class AdminUserChangeForm(forms.ModelForm):
     )
     email.widget.attrs.update({"style": "width: 300px;"})
 
-    password = ReadOnlyPasswordHashField()
+    password = ReadOnlyPasswordHashField(
+        help_text=(
+            "Raw passwords are not stored, so there is no way to see "
+            "this user's password, but you can change the password "
+            'using <a href="../password/">this form</a>.'
+        )
+    )
