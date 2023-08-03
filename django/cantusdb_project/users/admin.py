@@ -2,7 +2,7 @@ from django.contrib import admin
 from .models import *
 from django.contrib.auth.admin import UserAdmin as BaseUserAdmin
 from main_app.models import Source
-from main_app.forms import AdminUserForm
+from main_app.forms import AdminUserChangeForm
 
 # Register your models here.
 
@@ -19,7 +19,6 @@ class UserAdmin(BaseUserAdmin):
     readonly_fields = (
         "date_joined",
         "last_login",
-        "is_superuser",
     )
     # fields that are displayed on the user list page of the admin
     list_display = (
@@ -30,7 +29,12 @@ class UserAdmin(BaseUserAdmin):
         "institution",
     )
     # creates a filter on the right side of the page to filter users by group
-    list_filter = ("groups",)
+    list_filter = (
+        "groups",
+        "is_indexer",
+        "is_superuser",
+        "is_staff",
+    )
     fieldsets = (
         (
             "Account info",
@@ -51,7 +55,9 @@ class UserAdmin(BaseUserAdmin):
                     "institution",
                     ("city", "country"),
                     "website",
-                )
+                ),
+                "description": "We have full name, first name, and last name defined in our User model which can be seen "
+                "in the admin area, but we are only using full name to represent users.",
             },
         ),
         (
@@ -61,6 +67,7 @@ class UserAdmin(BaseUserAdmin):
                     "is_superuser",
                     "groups",
                     "is_staff",
+                    "is_indexer",
                 )
             },
         ),
@@ -91,9 +98,10 @@ class UserAdmin(BaseUserAdmin):
             "Permissions",
             {
                 "fields": (
-                    "is_staff",
                     "is_superuser",
                     "groups",
+                    "is_staff",
+                    "is_indexer",
                 )
             },
         ),
@@ -109,7 +117,7 @@ class UserAdmin(BaseUserAdmin):
     filter_horizontal = ("groups",)
     exclude = ("current_editors",)
     inlines = [SourceInline]
-    form = AdminUserForm
+    form = AdminUserChangeForm
 
 
 admin.site.register(User, UserAdmin)
