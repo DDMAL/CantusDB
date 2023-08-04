@@ -1,0 +1,11 @@
+######################
+# CantusDB Cron Jobs #
+######################
+
+# Note: This is set up to run on the production server. If you want to run it on your local machine, you will need to change the paths.
+
+# min   hour    day     month   weekday command
+0       4       *       *       *       bash /home/ubuntu/code/CantusDB/cron/postgres/daily.sh
+0       4       *       *       0       bash /home/ubuntu/code/CantusDB/cron/postgres/weekly.sh
+0       4       1       *       *       bash /home/ubuntu/code/CantusDB/cron/postgres/monthly.sh
+0       4       1       1       *       bash /home/ubuntu/code/CantusDB/cron/postgres/yearly.sh
