@@ -1,5 +1,6 @@
 {% extends "base.html" %}
 {% block content %}
+{% load helper_tags %}
 <title>{{ source.title }} | Cantus Manuscript Database</title>
 <script src="/static/js/source_detail.js"></script>
 
@@ -269,7 +270,7 @@
                     </small>
                 </div>
             </div>
-            {% if not request.user.is_anonymous %}
+            {% if user_can_edit_chants %}
                 <div class="card mb-3 w-100">
                     <div class="card-header">
                         Source edit options
@@ -289,12 +290,16 @@
                                         </a>
                                     </li>
                                 {% endif %}
-                                <li>
-                                    <a href="{% url "source-edit" source.id%}">Edit source description</a>
-                                </li>
-                                <li>
-                                    <a href={% url 'admin:main_app_source_change' source.id %}>Manage source editors</a>
-                                </li>
+                                {% if user_can_edit_source %}
+                                    <li>
+                                        <a href="{% url "source-edit" source.id%}">Edit source description</a>
+                                    </li>
+                                {% endif %}
+                                {% if request.user.is_staff or request.user|has_group:"project_manager" %}
+                                    <li>
+                                        <a href={% url 'admin:main_app_source_change' source.id %}>Manage source editors</a>
+                                    </li>
+                                {% endif %}
                             </ul>
                         </small>
                     </div>
