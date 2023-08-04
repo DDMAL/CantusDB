@@ -10,6 +10,6 @@ BACKUP_DIR=/home/ubuntu/backups/postgres/daily                      # This is th
 RETENTION_COUNT=7                                                   # This is the number of daily backups to keep.
 
 mkdir -p $BACKUP_DIR
-/usr/local/bin/docker compose -f $DOCKER_COMPOSE_FILE exec postgres pg_dump cantusdb -U cantusdb | gzip > $BACKUP_DIR/$(date "+%Y-%m-%dT%H:%M:%S").sql.gz
+/usr/local/bin/docker-compose -f $DOCKER_COMPOSE_FILE exec postgres pg_dump cantusdb -U cantusdb | gzip > $BACKUP_DIR/$(date "+%Y-%m-%dT%H:%M:%S").sql.gz
 FILES_TO_REMOVE=$(ls -td $BACKUP_DIR/* | tail -n +$(($RETENTION_COUNT + 1)))
 [[ ! -z "$FILES_TO_REMOVE" ]] && rm $FILES_TO_REMOVE
