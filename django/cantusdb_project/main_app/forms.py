@@ -1,4 +1,5 @@
 from django import forms
+from django.contrib.auth.forms import ReadOnlyPasswordHashField
 from .models import (
     Chant,
     Office,
@@ -906,4 +907,24 @@ class AdminSourceForm(forms.ModelForm):
 
     complete_inventory = forms.ChoiceField(
         choices=TRUE_FALSE_CHOICES_INVEN, required=False
+    )
+
+
+class AdminUserChangeForm(forms.ModelForm):
+    class Meta:
+        model = get_user_model()
+        fields = "__all__"
+
+    email = forms.CharField(
+        required=True,
+        widget=AdminTextInputWidget,
+    )
+    email.widget.attrs.update({"style": "width: 300px;"})
+
+    password = ReadOnlyPasswordHashField(
+        help_text=(
+            "Raw passwords are not stored, so there is no way to see "
+            "this user's password, but you can change the password "
+            'using <a href="../password/">this form</a>.'
+        )
     )
