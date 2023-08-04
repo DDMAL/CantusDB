@@ -21,6 +21,7 @@ from .make_fakes import (
     make_fake_genre,
     make_fake_office,
     make_fake_provenance,
+    make_fake_notation,
     make_fake_rism_siglum,
     make_fake_segment,
     make_fake_sequence,
@@ -156,6 +157,10 @@ class PermissionsTest(TestCase):
         response = self.client.get(f"/edit-source/{source.id}")
         self.assertEqual(response.status_code, 200)
 
+        # ContentOverview
+        response = self.client.get(reverse("content-overview"))
+        self.assertEqual(response.status_code, 200)
+
     def test_permissions_contributor(self):
         contributor = Group.objects.get(name="contributor")
         contributor.user_set.add(self.user)
@@ -243,6 +248,9 @@ class PermissionsTest(TestCase):
         self.assertEqual(response.status_code, 200)
 
         response = self.client.get(f"/edit-source/{assigned_source.id}")
+        self.assertEqual(response.status_code, 403)
+
+        response = self.client.get(reverse("content-overview"))
         self.assertEqual(response.status_code, 403)
 
     def test_permissions_editor(self):
@@ -334,6 +342,9 @@ class PermissionsTest(TestCase):
         response = self.client.get(f"/edit-source/{assigned_source.id}")
         self.assertEqual(response.status_code, 200)
 
+        response = self.client.get(reverse("content-overview"))
+        self.assertEqual(response.status_code, 403)
+
     def test_permissions_default(self):
         self.client.login(email="test@test.com", password="pass")
 
@@ -364,6 +375,9 @@ class PermissionsTest(TestCase):
 
         # SourceEditView
         response = self.client.get(f"/edit-source/{source.id}")
+        self.assertEqual(response.status_code, 403)
+
+        response = self.client.get(reverse("content-overview"))
         self.assertEqual(response.status_code, 403)
 
 
@@ -5132,3 +5146,78 @@ class IndexerRedirectTest(TestCase):
             reverse("redirect-indexer", args=[example_bad_indexer_id])
         )
         self.assertEqual(response_1.status_code, 404)
+
+
+class ContentOverviewTest(TestCase):
+    @classmethod
+    def setUpTestData(cls):
+        Group.objects.create(name="project manager")
+
+    def setUp(self):
+        self.user = get_user_model().objects.create(email="test@test.com")
+        self.user.set_password("pass")
+        self.user.save()
+        self.client = Client()
+
+        project_manager = Group.objects.get(name="project manager")
+        project_manager.user_set.add(self.user)
+        self.client.login(email="test@test.com", password="pass")
+
+    def test_templates_used(self):
+        response = self.client.get(reverse("content-overview"))
+        self.assertTemplateUsed(response, "base.html")
+        self.assertTemplateUsed(response, "content_overview.html")
+
+    def test_project_manager_permission(self):
+        response = self.client.get(reverse("content-overview"))
+        self.assertEqual(response.status_code, 200)
+
+    def test_content_overview_view_with_login_required(self):
+        self.client.logout()
+        response = self.client.get(reverse("content-overview"))
+        self.assertRedirects(response, "/login/?next=/content-overview/")
+
+    def test_content_overview_view_for_non_project_manager(self):
+        user = get_user_model().objects.create(email="non_project_manager@test.com")
+        user.set_password("pass")
+        user.save()
+        self.client.login(email="non_project_manager@test.com", password="pass")
+
+        response = self.client.get(reverse("content-overview"))
+        self.assertEqual(response.status_code, 403)
+
+    def test_content_overview_view_selected_model(self):
+        response = self.client.get(reverse("content-overview"), {"model": "sources"})
+        self.assertEqual(response.status_code, 200)
+
+        self.assertIsNotNone(response.context["models"])
+        models = response.context["models"]
+        self.assertIsNotNone(response.context["page_obj"])
+        page_obj = response.context["page_obj"]
+        self.assertEqual(response.context["selected_model_name"], "sources")
+
+    def test_source_selected_model(self):
+        source = make_fake_source(title="Test Source")
+        chant = make_fake_chant(incipit="Test Chant")
+        response = self.client.get(reverse("content-overview"), {"model": "sources"})
+        self.assertContains(response, f"<b>Sources</b>", html=True)
+        self.assertContains(
+            response,
+            f'<a href="?model=chants">Chants</a>',
+            html=True,
+        )
+        self.assertContains(response, "Test Source", html=True)
+        self.assertNotContains(response, "Test Chant", html=True)
+
+    def test_chant_selected_model(self):
+        source = make_fake_source(title="Test Source")
+        chant = make_fake_chant(manuscript_full_text_std_spelling="Test Chant")
+        response = self.client.get(reverse("content-overview"), {"model": "chants"})
+        self.assertContains(response, f"<b>Chants</b>", html=True)
+        self.assertContains(
+            response,
+            f'<a href="?model=sources">Sources</a>',
+            html=True,
+        )
+        self.assertContains(response, "Test Chant", html=True)
+        self.assertNotContains(response, "Test Source", html=True)
