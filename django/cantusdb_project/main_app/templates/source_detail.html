@@ -17,7 +17,7 @@
             {% endif %}
             <h3>{{ source.title }}</h3>
 
-            {% if user.is_authenticated %}
+            {% if user_can_edit_source %}
                 <p>
                     View | <a href="{% url 'source-edit' source.id %}">Edit</a>
                 </p>
