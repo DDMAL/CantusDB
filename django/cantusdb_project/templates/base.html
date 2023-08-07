@@ -463,6 +463,12 @@
             </div>
         </div>
         <div class="col-12" style="background-color: #CC3333;">
+            {% if PROJECT_ENVIRONMENT == "DEVELOPMENT" %}
+                <span title="Project Environment: Development">DEVELOPMENT</span>
+            {% endif %}
+            {% if PROJECT_ENVIRONMENT == "STAGING" %}
+                <span title="Project Environment: Staging">STAGING</span>
+            {% endif %}
             <a href="https://www.facebook.com/CantusDatabase">
                 <img src="{% static "facebookIcon.png" %}" alt="Facebook link" loading="lazy">
             </a>
