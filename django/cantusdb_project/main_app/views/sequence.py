@@ -6,6 +6,7 @@ from django.contrib.auth.mixins import LoginRequiredMixin
 from django.contrib import messages
 from django.contrib.auth.mixins import UserPassesTestMixin
 from django.core.exceptions import PermissionDenied
+from main_app.views.chant import user_can_edit_chants_in_source
 
 
 class SequenceDetailView(DetailView):
@@ -20,6 +21,8 @@ class SequenceDetailView(DetailView):
     def get_context_data(self, **kwargs):
         sequence = self.get_object()
         source = sequence.source
+        user = self.request.user
+
         # if the sequence's source isn't published,
         # only logged-in users should be able to view the sequence's detail page
         if (
@@ -35,6 +38,7 @@ class SequenceDetailView(DetailView):
             .select_related("source")
             .order_by("siglum")
         )
+        context["user_can_edit_sequence"] = user_can_edit_chants_in_source(user, source)
         return context
 
 
