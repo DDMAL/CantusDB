@@ -5,6 +5,7 @@
 
 <head>
     {% if PROJECT_ENVIRONMENT == "PRODUCTION" %}
+        {# To ensure site is tracked in Google Analytics #}
         <!-- Google tag (gtag.js) -->
         <script async src="https://www.googletagmanager.com/gtag/js?id=G-YSGM9EQBGL"></script>
         <script>
@@ -14,6 +15,10 @@
             
             gtag('config', 'G-YSGM9EQBGL');
         </script>
+    {% endif %}
+    {% if not PROJECT_ENVIRONMENT == "PRODUCTION" %}
+        {# to ensure Google/etc. only indexes the main production site, and not staging #}
+        <meta name="robots" content="noindex">
     {% endif %}
     <!-- Required meta tags -->
     <meta name="google-site-verification" content="EwxpNpZ_ZOQnetVVLELGn5-aD_beT3EQqUuI6glkArI" />
