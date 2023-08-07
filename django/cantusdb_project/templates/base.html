@@ -4,6 +4,22 @@
 <html lang="en">
 
 <head>
+    {% if PROJECT_ENVIRONMENT == "PRODUCTION" %}
+        {# To ensure site is tracked in Google Analytics #}
+        <!-- Google tag (gtag.js) -->
+        <script async src="https://www.googletagmanager.com/gtag/js?id=G-YSGM9EQBGL"></script>
+        <script>
+            window.dataLayer = window.dataLayer || [];
+            function gtag(){dataLayer.push(arguments);}
+            gtag('js', new Date());
+            
+            gtag('config', 'G-YSGM9EQBGL');
+        </script>
+    {% endif %}
+    {% if not PROJECT_ENVIRONMENT == "PRODUCTION" %}
+        {# to ensure Google/etc. only indexes the main production site, and not staging #}
+        <meta name="robots" content="noindex">
+    {% endif %}
     <!-- Required meta tags -->
     <meta name="google-site-verification" content="EwxpNpZ_ZOQnetVVLELGn5-aD_beT3EQqUuI6glkArI" />
     <meta charset="utf-8">
@@ -463,6 +479,12 @@
             </div>
         </div>
         <div class="col-12" style="background-color: #CC3333;">
+            {% if PROJECT_ENVIRONMENT == "DEVELOPMENT" %}
+                <span title="Project Environment: Development">DEVELOPMENT</span>
+            {% endif %}
+            {% if PROJECT_ENVIRONMENT == "STAGING" %}
+                <span title="Project Environment: Staging">STAGING</span>
+            {% endif %}
             <a href="https://www.facebook.com/CantusDatabase">
                 <img src="{% static "facebookIcon.png" %}" alt="Facebook link" loading="lazy">
             </a>
