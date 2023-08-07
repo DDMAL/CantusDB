@@ -4,6 +4,17 @@
 <html lang="en">
 
 <head>
+    {% if PROJECT_ENVIRONMENT == "PRODUCTION" %}
+        <!-- Google tag (gtag.js) -->
+        <script async src="https://www.googletagmanager.com/gtag/js?id=G-YSGM9EQBGL"></script>
+        <script>
+            window.dataLayer = window.dataLayer || [];
+            function gtag(){dataLayer.push(arguments);}
+            gtag('js', new Date());
+            
+            gtag('config', 'G-YSGM9EQBGL');
+        </script>
+    {% endif %}
     <!-- Required meta tags -->
     <meta name="google-site-verification" content="EwxpNpZ_ZOQnetVVLELGn5-aD_beT3EQqUuI6glkArI" />
     <meta charset="utf-8">
