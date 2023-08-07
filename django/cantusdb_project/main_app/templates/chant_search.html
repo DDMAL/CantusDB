@@ -49,7 +49,12 @@
         <div class="form-row align-items-end">
             <div class="form-group m-1 col-lg-3 col-sm-6">
                 <label for="office"><small>Office/Mass</small></label>
-                <input type="text" class="form-control form-control-sm" name="office" id="office" value="{{ request.GET.office }}">
+                <select id="office" name="office" class="form-control custom-select custom-select-sm">
+                    <option value="">- Any -</option>
+                    {% for office in offices %}
+                        <option value="{{ office.id }}">{{ office.name }}</option>
+                    {% endfor %}
+                </select>
             </div>
             <div class="form-group m-1 col-lg-3 col-sm">
                 <label for="genreFilter"><small>Genre</small></label>

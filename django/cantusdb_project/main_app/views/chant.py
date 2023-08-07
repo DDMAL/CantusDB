@@ -23,7 +23,7 @@ from main_app.forms import (
     ChantProofreadForm,
     ChantEditSyllabificationForm,
 )
-from main_app.models import Chant, Feast, Genre, Source, Sequence, Segment
+from main_app.models import Chant, Feast, Genre, Source, Sequence, Segment, Office
 from align_text_mel import syllabize_text_and_melody, syllabize_text_to_string
 from django.contrib.auth.mixins import LoginRequiredMixin
 from django.http import Http404
@@ -704,6 +704,7 @@ class ChantSearchView(ListView):
         context = super().get_context_data(**kwargs)
         # Add to context a QuerySet of dicts with id and name of each Genre
         context["genres"] = Genre.objects.all().order_by("name").values("id", "name")
+        context["offices"] = Office.objects.all().order_by("name").values("id", "name")
         context["order"] = self.request.GET.get("order")
         context["sort"] = self.request.GET.get("sort")
 
@@ -808,8 +809,8 @@ class ChantSearchView(ListView):
             # In that case, we return the all chants + seqs filtered by the search form.
             # For every GET parameter other than incipit, add to the Q object
             if self.request.GET.get("office"):
-                office = self.request.GET.get("office")
-                q_obj_filter &= Q(office__name__icontains=office)
+                office_id = self.request.GET.get("office")
+                q_obj_filter &= Q(office__id=office_id)
             if self.request.GET.get("genre"):
                 genre_id = int(self.request.GET.get("genre"))
                 q_obj_filter &= Q(genre__id=genre_id)
@@ -953,6 +954,7 @@ class ChantSearchMSView(ListView):
         context = super().get_context_data(**kwargs)
         # Add to context a QuerySet of dicts with id and name of each Genre
         context["genres"] = Genre.objects.all().order_by("name").values("id", "name")
+        context["offices"] = Office.objects.all().order_by("name").values("id", "name")
         context["order"] = self.request.GET.get("order")
         context["sort"] = self.request.GET.get("sort")
         # This is searching in a specific source, pass the source into context
@@ -1014,8 +1016,8 @@ class ChantSearchMSView(ListView):
             return Chant.objects.none()
         # For every GET parameter other than incipit, add to the Q object
         if self.request.GET.get("office"):
-            office = self.request.GET.get("office")
-            q_obj_filter &= Q(office__name__icontains=office)
+            office_id = self.request.GET.get("office")
+            q_obj_filter &= Q(office__id=office_id)
         if self.request.GET.get("genre"):
             genre_id = int(self.request.GET.get("genre"))
             q_obj_filter &= Q(genre__id=genre_id)
