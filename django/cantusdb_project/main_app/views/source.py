@@ -277,6 +277,8 @@ class SourceEditView(LoginRequiredMixin, UserPassesTestMixin, UpdateView):
 
 
 def user_can_edit_source(user, source):
+    if user.is_anonymous:
+        return False
     source_id = source.id
     assigned_to_source = user.sources_user_can_edit.filter(id=source_id)
 
