@@ -1,6 +1,7 @@
 {% extends "base.html" %}
 {% block content %}
 <title>Create Chant | Cantus Manuscript Database</title>
+<script src="/static/js/chant_create.js"></script>
 <div class="container">
     <div class="row">
         <div class="mr-3 p-3 col-md-8 bg-white rounded">
@@ -169,6 +170,12 @@
                                 For more information, consult <a href="/field-descriptions/#Fulltext" target="_blank">Fields and Content Descriptions</a>.
                             </small>
                         </p>
+                    </div>
+                </div>
+
+                <div class="form-row">
+                    <div class="form-group m-1 col-lg-4">
+                        <button type="button" class="btn btn-dark btn-sm" id="copyFullTextBelow">Copy full text below</button>                
                     </div>
                 </div>
 

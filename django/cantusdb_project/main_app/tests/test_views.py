@@ -9,6 +9,7 @@ from django.contrib.auth import get_user_model
 from django.contrib.auth.models import Group
 from django.test import Client
 from django.db.models import Q
+from django.db.models.functions import Lower
 import csv
 
 from faker import Faker
@@ -92,35 +93,69 @@ class PermissionsTest(TestCase):
         # currently not logged in, should redirect
 
         # ChantCreateView
-        response = self.client.get(f"/chant-create/{source.id}")
+        response = self.client.get(
+            reverse(
+                "chant-create",
+                args=[source.id],
+            )
+        )
         self.assertRedirects(response, f"/login/?next=/chant-create/{source.id}")
 
         # ChantDeleteView
-        response = self.client.get(f"/chant-delete/{chant.id}")
-        self.assertRedirects(response, f"/login/?next=/chant-delete/{chant.id}")
+        response = self.client.get(
+            reverse(
+                "chant-delete",
+                args=[chant.id],
+            )
+        )
+        self.assertRedirects(response, f"/login/?next=/chant/{chant.id}/delete")
 
         # SourceEditChantsView
-        response = self.client.get(f"/edit-chants/{source.id}")
+        response = self.client.get(
+            reverse(
+                "source-edit-chants",
+                args=[source.id],
+            )
+        )
         self.assertRedirects(response, f"/login/?next=/edit-chants/{source.id}")
 
         # SequenceEditView
-        response = self.client.get(f"/edit-sequence/{sequence.id}")
+        response = self.client.get(
+            reverse(
+                "sequence-edit",
+                args=[sequence.id],
+            )
+        )
         self.assertRedirects(response, f"/login/?next=/edit-sequence/{sequence.id}")
 
         # SourceCreateView
-        response = self.client.get("/source-create/")
+        response = self.client.get(reverse("source-create"))
         self.assertRedirects(response, "/login/?next=/source-create/")
 
         # SourceEditView
-        response = self.client.get(f"/edit-source/{source.id}")
+        response = self.client.get(
+            reverse(
+                "source-edit",
+                args=[source.id],
+            )
+        )
         self.assertRedirects(response, f"/login/?next=/edit-source/{source.id}")
 
+        # SourceDeleteView
+        response = self.client.get(
+            reverse(
+                "source-delete",
+                args=[source.id],
+            )
+        )
+        self.assertRedirects(response, f"/login/?next=/source/{source.id}/delete")
+
         # UserSourceListView
-        response = self.client.get("/my-sources/")
+        response = self.client.get(reverse("my-sources"))
         self.assertRedirects(response, "/login/?next=/my-sources/")
 
         # UserListView
-        response = self.client.get("/users/")
+        response = self.client.get(reverse("user-list"))
         self.assertRedirects(response, "/login/?next=/users/")
 
     def test_permissions_project_manager(self):
@@ -134,27 +169,65 @@ class PermissionsTest(TestCase):
         sequence = Sequence.objects.order_by("?").first()
 
         # ChantCreateView
-        response = self.client.get(f"/chant-create/{source.id}")
+        response = self.client.get(
+            reverse(
+                "chant-create",
+                args=[source.id],
+            )
+        )
         self.assertEqual(response.status_code, 200)
 
         # ChantDeleteView
-        response = self.client.get(f"/chant-delete/{chant.id}")
+        response = self.client.get(
+            reverse(
+                "chant-delete",
+                args=[chant.id],
+            )
+        )
         self.assertEqual(response.status_code, 200)
 
         # SourceEditChantsView
-        response = self.client.get(f"/edit-chants/{source.id}")
+        response = self.client.get(
+            reverse(
+                "source-edit-chants",
+                args=[source.id],
+            )
+        )
         self.assertEqual(response.status_code, 200)
 
         # SequenceEditView
-        response = self.client.get(f"/edit-sequence/{sequence.id}")
+        response = self.client.get(
+            reverse(
+                "sequence-edit",
+                args=[sequence.id],
+            )
+        )
         self.assertEqual(response.status_code, 200)
 
         # SourceCreateView
-        response = self.client.get("/source-create/")
+        response = self.client.get(
+            reverse(
+                "source-create",
+            )
+        )
         self.assertEqual(response.status_code, 200)
 
         # SourceEditView
-        response = self.client.get(f"/edit-source/{source.id}")
+        response = self.client.get(
+            reverse(
+                "source-edit",
+                args=[source.id],
+            )
+        )
+        self.assertEqual(response.status_code, 200)
+
+        # SourceDeleteView
+        response = self.client.get(
+            reverse(
+                "source-delete",
+                args=[source.id],
+            )
+        )
         self.assertEqual(response.status_code, 200)
 
         # ContentOverview
@@ -201,7 +274,13 @@ class PermissionsTest(TestCase):
         sequence = Sequence.objects.order_by("?").first()
 
         # ChantCreateView
-        response = self.client.get(f"/chant-create/{restricted_source.id}")
+        # response = self.client.get(f"/chant-create/{restricted_source.id}")
+        response = self.client.get(
+            reverse(
+                "chant-create",
+                args=[restricted_source.id],
+            )
+        )
         self.assertEqual(response.status_code, 403)
 
         response = self.client.get(f"/chant-create/{source_created_by_contributor.id}")
@@ -211,15 +290,15 @@ class PermissionsTest(TestCase):
         self.assertEqual(response.status_code, 200)
 
         # ChantDeleteView
-        response = self.client.get(f"/chant-delete/{restricted_chant.id}")
+        response = self.client.get(f"/chant/{restricted_chant.id}/delete")
         self.assertEqual(response.status_code, 403)
 
         response = self.client.get(
-            f"/chant-delete/{chant_in_source_created_by_contributor.id}"
+            f"/chant/{chant_in_source_created_by_contributor.id}/delete"
         )
         self.assertEqual(response.status_code, 200)
 
-        response = self.client.get(f"/chant-delete/{chant_in_assigned_source.id}")
+        response = self.client.get(f"/chant/{chant_in_assigned_source.id}/delete")
         self.assertEqual(response.status_code, 200)
 
         # SourceEditChantsView
@@ -250,6 +329,17 @@ class PermissionsTest(TestCase):
         response = self.client.get(f"/edit-source/{assigned_source.id}")
         self.assertEqual(response.status_code, 403)
 
+        # SourceDeleteView
+        response = self.client.get(f"/source/{restricted_source.id}/delete")
+        self.assertEqual(response.status_code, 403)
+
+        response = self.client.get(f"/source/{source_created_by_contributor.id}/delete")
+        self.assertEqual(response.status_code, 200)
+
+        response = self.client.get(f"/source/{assigned_source.id}/delete")
+        self.assertEqual(response.status_code, 403)
+        
+        # Content Overview
         response = self.client.get(reverse("content-overview"))
         self.assertEqual(response.status_code, 403)
 
@@ -303,15 +393,15 @@ class PermissionsTest(TestCase):
         self.assertEqual(response.status_code, 200)
 
         # ChantDeleteView
-        response = self.client.get(f"/chant-delete/{restricted_chant.id}")
+        response = self.client.get(f"/chant/{restricted_chant.id}/delete")
         self.assertEqual(response.status_code, 403)
 
         response = self.client.get(
-            f"/chant-delete/{chant_in_source_created_by_contributor.id}"
+            f"/chant/{chant_in_source_created_by_contributor.id}/delete"
         )
         self.assertEqual(response.status_code, 200)
 
-        response = self.client.get(f"/chant-delete/{chant_in_assigned_source.id}")
+        response = self.client.get(f"/chant/{chant_in_assigned_source.id}/delete")
         self.assertEqual(response.status_code, 200)
 
         # SourceEditChantsView
@@ -342,6 +432,17 @@ class PermissionsTest(TestCase):
         response = self.client.get(f"/edit-source/{assigned_source.id}")
         self.assertEqual(response.status_code, 200)
 
+        # SourceDeleteView
+        response = self.client.get(f"/source/{restricted_source.id}/delete")
+        self.assertEqual(response.status_code, 403)
+
+        response = self.client.get(f"/source/{source_created_by_contributor.id}/delete")
+        self.assertEqual(response.status_code, 200)
+
+        response = self.client.get(f"/source/{assigned_source.id}/delete")
+        self.assertEqual(response.status_code, 200)
+        
+        # Content Overview
         response = self.client.get(reverse("content-overview"))
         self.assertEqual(response.status_code, 403)
 
@@ -358,7 +459,7 @@ class PermissionsTest(TestCase):
         self.assertEqual(response.status_code, 403)
 
         # ChantDeleteView
-        response = self.client.get(f"/chant-delete/{chant.id}")
+        response = self.client.get(f"/chant/{chant.id}/delete")
         self.assertEqual(response.status_code, 403)
 
         # SourceEditChantsView
@@ -377,6 +478,10 @@ class PermissionsTest(TestCase):
         response = self.client.get(f"/edit-source/{source.id}")
         self.assertEqual(response.status_code, 403)
 
+        # SourceDeleteView
+        response = self.client.get(f"/source/{source.id}/delete")
+        self.assertEqual(response.status_code, 403)
+        
         response = self.client.get(reverse("content-overview"))
         self.assertEqual(response.status_code, 403)
 
@@ -796,7 +901,7 @@ class ChantSearchViewTest(TestCase):
         source = make_fake_source(published=True)
         office = make_fake_office()
         chant = Chant.objects.create(source=source, office=office)
-        search_term = get_random_search_term(office.name)
+        search_term = office.id
         response = self.client.get(reverse("chant-search"), {"office": search_term})
         context_chant_id = response.context["chants"][0]["id"]
         self.assertEqual(chant.id, context_chant_id)
@@ -1293,7 +1398,7 @@ class ChantSearchViewTest(TestCase):
         query_keys_and_values = {
             "op": "contains",
             "keyword": search_term,
-            "office": office.name,
+            "office": office.id,
             "genre": genre.id,
             "cantus_id": cantus_id,
             "mode": mode,
@@ -1644,7 +1749,7 @@ class ChantSearchMSViewTest(TestCase):
         source = make_fake_source()
         office = make_fake_office()
         chant = Chant.objects.create(source=source, office=office)
-        search_term = get_random_search_term(office.name)
+        search_term = office.id
         response = self.client.get(
             reverse("chant-search-ms", args=[source.id]), {"office": search_term}
         )
@@ -2192,7 +2297,7 @@ class ChantSearchMSViewTest(TestCase):
         query_keys_and_values = {
             "op": "contains",
             "keyword": search_term,
-            "office": office.name,
+            "office": office.id,
             "genre": genre.id,
             "cantus_id": cantus_id,
             "mode": mode,
@@ -3320,13 +3425,13 @@ class FeastListViewTest(TestCase):
         response = self.client.get(reverse("feast-list"), {"sort_by": "name"})
         self.assertEqual(response.status_code, 200)
         feasts = response.context["feasts"]
-        self.assertEqual(feasts.query.order_by[0], "name")
+        self.assertEqual(feasts.query.order_by[0], Lower("name"))
 
         # Empty ordering parameters in GET request should default to ordering by name
         response = self.client.get(reverse("feast-list"), {"sort_by": ""})
         self.assertEqual(response.status_code, 200)
         feasts = response.context["feasts"]
-        self.assertEqual(feasts.query.order_by[0], "name")
+        self.assertEqual(feasts.query.order_by[0], Lower("name"))
 
         # Anything other than name and feast_code should default to ordering by name
         response = self.client.get(
@@ -3334,7 +3439,7 @@ class FeastListViewTest(TestCase):
         )
         self.assertEqual(response.status_code, 200)
         feasts = response.context["feasts"]
-        self.assertEqual(feasts.query.order_by[0], "name")
+        self.assertEqual(feasts.query.order_by[0], Lower("name"))
 
     def test_search_name(self):
         """Feast can be searched by any part of its name, description, or feast_code"""

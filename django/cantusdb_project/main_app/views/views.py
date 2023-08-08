@@ -404,12 +404,12 @@ def ajax_search_bar(request, search_term):
     # load only the first seven chants
     CHANT_CNT = 7
 
-    if any(char.isdigit() for char in search_term):
+    if not search_term.replace(" ", "").isalpha():
         # if the search term contains at least one digit, assume user is searching by Cantus ID
         chants = Chant.objects.filter(cantus_id__istartswith=search_term).order_by("id")
     else:
         # if the search term does not contain any digits, assume user is searching by incipit
-        chants = Chant.objects.filter(incipit__icontains=search_term).order_by("id")
+        chants = Chant.objects.filter(incipit__istartswith=search_term).order_by("id")
 
     display_unpublished = request.user.is_authenticated
     if not display_unpublished:

@@ -1,4 +1,5 @@
 from django import forms
+from django.contrib.auth.forms import ReadOnlyPasswordHashField
 from .models import (
     Chant,
     Office,
@@ -863,19 +864,67 @@ class AdminSourceForm(forms.ModelForm):
             | Q(groups__name="editor")
             | Q(groups__name="contributor")
         )
-        .order_by("last_name"),
+        .order_by("full_name"),
         required=False,
-        widget=FilteredSelectMultiple(verbose_name="Century", is_stacked=False),
+        widget=FilteredSelectMultiple(verbose_name="current editors", is_stacked=False),
+    )
+
+    inventoried_by = forms.ModelMultipleChoiceField(
+        queryset=get_user_model().objects.all().order_by("full_name"),
+        required=False,
+        widget=FilteredSelectMultiple(verbose_name="inventoried by", is_stacked=False),
+    )
+
+    full_text_entered_by = forms.ModelMultipleChoiceField(
+        queryset=get_user_model().objects.all().order_by("full_name"),
+        required=False,
+        widget=FilteredSelectMultiple(
+            verbose_name="full text entered by", is_stacked=False
+        ),
     )
 
     melodies_entered_by = forms.ModelMultipleChoiceField(
         queryset=get_user_model().objects.all().order_by("full_name"),
         required=False,
-        widget=FilteredSelectMultiple(verbose_name="Century", is_stacked=False),
+        widget=FilteredSelectMultiple(
+            verbose_name="melodies entered by", is_stacked=False
+        ),
+    )
+
+    proofreaders = forms.ModelMultipleChoiceField(
+        queryset=get_user_model().objects.all().order_by("full_name"),
+        required=False,
+        widget=FilteredSelectMultiple(verbose_name="proofreaders", is_stacked=False),
+    )
+
+    other_editors = forms.ModelMultipleChoiceField(
+        queryset=get_user_model().objects.all().order_by("full_name"),
+        required=False,
+        widget=FilteredSelectMultiple(verbose_name="other editors", is_stacked=False),
     )
 
     TRUE_FALSE_CHOICES_INVEN = ((True, "Complete"), (False, "Incomplete"))
 
     complete_inventory = forms.ChoiceField(
         choices=TRUE_FALSE_CHOICES_INVEN, required=False
+    )
+
+
+class AdminUserChangeForm(forms.ModelForm):
+    class Meta:
+        model = get_user_model()
+        fields = "__all__"
+
+    email = forms.CharField(
+        required=True,
+        widget=AdminTextInputWidget,
+    )
+    email.widget.attrs.update({"style": "width: 300px;"})
+
+    password = ReadOnlyPasswordHashField(
+        help_text=(
+            "Raw passwords are not stored, so there is no way to see "
+            "this user's password, but you can change the password "
+            'using <a href="../password/">this form</a>.'
+        )
     )
