@@ -1,4 +1,10 @@
-from django.views.generic import DetailView, ListView, CreateView, UpdateView
+from django.views.generic import (
+    DetailView,
+    ListView,
+    CreateView,
+    UpdateView,
+    DeleteView,
+)
 from django.db.models import Q, Prefetch
 from main_app.models import Source, Provenance, Century
 from main_app.forms import SourceCreateForm, SourceEditForm
@@ -218,6 +224,26 @@ class SourceCreateView(LoginRequiredMixin, UserPassesTestMixin, CreateView):
         return HttpResponseRedirect(self.get_success_url())
 
 
+class SourceDeleteView(LoginRequiredMixin, UserPassesTestMixin, DeleteView):
+    """The view for deleting a source object
+
+    This view is linked to in the source-edit page.
+    """
+
+    model = Source
+    template_name = "source_confirm_delete.html"
+
+    def test_func(self):
+        user = self.request.user
+        source_id = self.kwargs.get(self.pk_url_kwarg)
+        source = get_object_or_404(Source, id=source_id)
+        return user_can_edit_source(user, source)
+
+    def get_success_url(self):
+        # redirect to homepage
+        return "/"
+
+
 class SourceEditView(LoginRequiredMixin, UserPassesTestMixin, UpdateView):
     template_name = "source_edit.html"
     model = Source
@@ -296,5 +322,4 @@ def user_can_edit_source(user, source):
         or (is_contributor and source.created_by == user)
     ):
         return True
-    else:
-        return False
+    return False

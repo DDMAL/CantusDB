@@ -93,35 +93,69 @@ class PermissionsTest(TestCase):
         # currently not logged in, should redirect
 
         # ChantCreateView
-        response = self.client.get(f"/chant-create/{source.id}")
+        response = self.client.get(
+            reverse(
+                "chant-create",
+                args=[source.id],
+            )
+        )
         self.assertRedirects(response, f"/login/?next=/chant-create/{source.id}")
 
         # ChantDeleteView
-        response = self.client.get(f"/chant-delete/{chant.id}")
-        self.assertRedirects(response, f"/login/?next=/chant-delete/{chant.id}")
+        response = self.client.get(
+            reverse(
+                "chant-delete",
+                args=[chant.id],
+            )
+        )
+        self.assertRedirects(response, f"/login/?next=/chant/{chant.id}/delete")
 
         # SourceEditChantsView
-        response = self.client.get(f"/edit-chants/{source.id}")
+        response = self.client.get(
+            reverse(
+                "source-edit-chants",
+                args=[source.id],
+            )
+        )
         self.assertRedirects(response, f"/login/?next=/edit-chants/{source.id}")
 
         # SequenceEditView
-        response = self.client.get(f"/edit-sequence/{sequence.id}")
+        response = self.client.get(
+            reverse(
+                "sequence-edit",
+                args=[sequence.id],
+            )
+        )
         self.assertRedirects(response, f"/login/?next=/edit-sequence/{sequence.id}")
 
         # SourceCreateView
-        response = self.client.get("/source-create/")
+        response = self.client.get(reverse("source-create"))
         self.assertRedirects(response, "/login/?next=/source-create/")
 
         # SourceEditView
-        response = self.client.get(f"/edit-source/{source.id}")
+        response = self.client.get(
+            reverse(
+                "source-edit",
+                args=[source.id],
+            )
+        )
         self.assertRedirects(response, f"/login/?next=/edit-source/{source.id}")
 
+        # SourceDeleteView
+        response = self.client.get(
+            reverse(
+                "source-delete",
+                args=[source.id],
+            )
+        )
+        self.assertRedirects(response, f"/login/?next=/source/{source.id}/delete")
+
         # UserSourceListView
-        response = self.client.get("/my-sources/")
+        response = self.client.get(reverse("my-sources"))
         self.assertRedirects(response, "/login/?next=/my-sources/")
 
         # UserListView
-        response = self.client.get("/users/")
+        response = self.client.get(reverse("user-list"))
         self.assertRedirects(response, "/login/?next=/users/")
 
     def test_permissions_project_manager(self):
@@ -135,27 +169,65 @@ class PermissionsTest(TestCase):
         sequence = Sequence.objects.order_by("?").first()
 
         # ChantCreateView
-        response = self.client.get(f"/chant-create/{source.id}")
+        response = self.client.get(
+            reverse(
+                "chant-create",
+                args=[source.id],
+            )
+        )
         self.assertEqual(response.status_code, 200)
 
         # ChantDeleteView
-        response = self.client.get(f"/chant-delete/{chant.id}")
+        response = self.client.get(
+            reverse(
+                "chant-delete",
+                args=[chant.id],
+            )
+        )
         self.assertEqual(response.status_code, 200)
 
         # SourceEditChantsView
-        response = self.client.get(f"/edit-chants/{source.id}")
+        response = self.client.get(
+            reverse(
+                "source-edit-chants",
+                args=[source.id],
+            )
+        )
         self.assertEqual(response.status_code, 200)
 
         # SequenceEditView
-        response = self.client.get(f"/edit-sequence/{sequence.id}")
+        response = self.client.get(
+            reverse(
+                "sequence-edit",
+                args=[sequence.id],
+            )
+        )
         self.assertEqual(response.status_code, 200)
 
         # SourceCreateView
-        response = self.client.get("/source-create/")
+        response = self.client.get(
+            reverse(
+                "source-create",
+            )
+        )
         self.assertEqual(response.status_code, 200)
 
         # SourceEditView
-        response = self.client.get(f"/edit-source/{source.id}")
+        response = self.client.get(
+            reverse(
+                "source-edit",
+                args=[source.id],
+            )
+        )
+        self.assertEqual(response.status_code, 200)
+
+        # SourceDeleteView
+        response = self.client.get(
+            reverse(
+                "source-delete",
+                args=[source.id],
+            )
+        )
         self.assertEqual(response.status_code, 200)
 
         # ContentOverview
@@ -202,7 +274,13 @@ class PermissionsTest(TestCase):
         sequence = Sequence.objects.order_by("?").first()
 
         # ChantCreateView
-        response = self.client.get(f"/chant-create/{restricted_source.id}")
+        # response = self.client.get(f"/chant-create/{restricted_source.id}")
+        response = self.client.get(
+            reverse(
+                "chant-create",
+                args=[restricted_source.id],
+            )
+        )
         self.assertEqual(response.status_code, 403)
 
         response = self.client.get(f"/chant-create/{source_created_by_contributor.id}")
@@ -212,15 +290,15 @@ class PermissionsTest(TestCase):
         self.assertEqual(response.status_code, 200)
 
         # ChantDeleteView
-        response = self.client.get(f"/chant-delete/{restricted_chant.id}")
+        response = self.client.get(f"/chant/{restricted_chant.id}/delete")
         self.assertEqual(response.status_code, 403)
 
         response = self.client.get(
-            f"/chant-delete/{chant_in_source_created_by_contributor.id}"
+            f"/chant/{chant_in_source_created_by_contributor.id}/delete"
         )
         self.assertEqual(response.status_code, 200)
 
-        response = self.client.get(f"/chant-delete/{chant_in_assigned_source.id}")
+        response = self.client.get(f"/chant/{chant_in_assigned_source.id}/delete")
         self.assertEqual(response.status_code, 200)
 
         # SourceEditChantsView
@@ -251,6 +329,17 @@ class PermissionsTest(TestCase):
         response = self.client.get(f"/edit-source/{assigned_source.id}")
         self.assertEqual(response.status_code, 403)
 
+        # SourceDeleteView
+        response = self.client.get(f"/source/{restricted_source.id}/delete")
+        self.assertEqual(response.status_code, 403)
+
+        response = self.client.get(f"/source/{source_created_by_contributor.id}/delete")
+        self.assertEqual(response.status_code, 200)
+
+        response = self.client.get(f"/source/{assigned_source.id}/delete")
+        self.assertEqual(response.status_code, 403)
+        
+        # Content Overview
         response = self.client.get(reverse("content-overview"))
         self.assertEqual(response.status_code, 403)
 
@@ -304,15 +393,15 @@ class PermissionsTest(TestCase):
         self.assertEqual(response.status_code, 200)
 
         # ChantDeleteView
-        response = self.client.get(f"/chant-delete/{restricted_chant.id}")
+        response = self.client.get(f"/chant/{restricted_chant.id}/delete")
         self.assertEqual(response.status_code, 403)
 
         response = self.client.get(
-            f"/chant-delete/{chant_in_source_created_by_contributor.id}"
+            f"/chant/{chant_in_source_created_by_contributor.id}/delete"
         )
         self.assertEqual(response.status_code, 200)
 
-        response = self.client.get(f"/chant-delete/{chant_in_assigned_source.id}")
+        response = self.client.get(f"/chant/{chant_in_assigned_source.id}/delete")
         self.assertEqual(response.status_code, 200)
 
         # SourceEditChantsView
@@ -343,6 +432,17 @@ class PermissionsTest(TestCase):
         response = self.client.get(f"/edit-source/{assigned_source.id}")
         self.assertEqual(response.status_code, 200)
 
+        # SourceDeleteView
+        response = self.client.get(f"/source/{restricted_source.id}/delete")
+        self.assertEqual(response.status_code, 403)
+
+        response = self.client.get(f"/source/{source_created_by_contributor.id}/delete")
+        self.assertEqual(response.status_code, 200)
+
+        response = self.client.get(f"/source/{assigned_source.id}/delete")
+        self.assertEqual(response.status_code, 200)
+        
+        # Content Overview
         response = self.client.get(reverse("content-overview"))
         self.assertEqual(response.status_code, 403)
 
@@ -359,7 +459,7 @@ class PermissionsTest(TestCase):
         self.assertEqual(response.status_code, 403)
 
         # ChantDeleteView
-        response = self.client.get(f"/chant-delete/{chant.id}")
+        response = self.client.get(f"/chant/{chant.id}/delete")
         self.assertEqual(response.status_code, 403)
 
         # SourceEditChantsView
@@ -378,6 +478,10 @@ class PermissionsTest(TestCase):
         response = self.client.get(f"/edit-source/{source.id}")
         self.assertEqual(response.status_code, 403)
 
+        # SourceDeleteView
+        response = self.client.get(f"/source/{source.id}/delete")
+        self.assertEqual(response.status_code, 403)
+        
         response = self.client.get(reverse("content-overview"))
         self.assertEqual(response.status_code, 403)
 
