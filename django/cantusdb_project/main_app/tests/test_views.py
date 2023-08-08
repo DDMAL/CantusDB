@@ -797,7 +797,7 @@ class ChantSearchViewTest(TestCase):
         source = make_fake_source(published=True)
         office = make_fake_office()
         chant = Chant.objects.create(source=source, office=office)
-        search_term = get_random_search_term(office.name)
+        search_term = office.id
         response = self.client.get(reverse("chant-search"), {"office": search_term})
         context_chant_id = response.context["chants"][0]["id"]
         self.assertEqual(chant.id, context_chant_id)
@@ -1294,7 +1294,7 @@ class ChantSearchViewTest(TestCase):
         query_keys_and_values = {
             "op": "contains",
             "keyword": search_term,
-            "office": office.name,
+            "office": office.id,
             "genre": genre.id,
             "cantus_id": cantus_id,
             "mode": mode,
@@ -1645,7 +1645,7 @@ class ChantSearchMSViewTest(TestCase):
         source = make_fake_source()
         office = make_fake_office()
         chant = Chant.objects.create(source=source, office=office)
-        search_term = get_random_search_term(office.name)
+        search_term = office.id
         response = self.client.get(
             reverse("chant-search-ms", args=[source.id]), {"office": search_term}
         )
@@ -2193,7 +2193,7 @@ class ChantSearchMSViewTest(TestCase):
         query_keys_and_values = {
             "op": "contains",
             "keyword": search_term,
-            "office": office.name,
+            "office": office.id,
             "genre": genre.id,
             "cantus_id": cantus_id,
             "mode": mode,
