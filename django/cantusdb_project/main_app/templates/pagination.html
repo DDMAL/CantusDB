@@ -7,12 +7,12 @@
             <a href="?{% url_add_get_params page=page_obj.previous_page_number %}">previous</a>
         {% endif %}
 
-        {% if page_obj.number > 5 %}
+        {% if page_obj.number > 6 %}
             <span class="ellipsis">...</span>
         {% endif %}
 
         {% for num in page_obj.paginator.page_range %}
-            {% if num > page_obj.number|add:'-5' and num < page_obj.number|add:'5' %}
+            {% if num > page_obj.number|add:'-6' and num < page_obj.number|add:'6' %}
                 {% if num == page_obj.number %}
                     <b>{{ num }}</b>
                 {% else %}
@@ -21,7 +21,7 @@
             {% endif %}
         {% endfor %}
 
-        {% if page_obj.number < page_obj.paginator.num_pages|add:'-5' %}
+        {% if page_obj.number < page_obj.paginator.num_pages|add:'-6' %}
             <span class="ellipsis">...</span>
         {% endif %}
 
