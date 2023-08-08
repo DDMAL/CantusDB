@@ -237,21 +237,7 @@ class SourceDeleteView(LoginRequiredMixin, UserPassesTestMixin, DeleteView):
         user = self.request.user
         source_id = self.kwargs.get(self.pk_url_kwarg)
         source = get_object_or_404(Source, id=source_id)
-
-        assigned_to_source = user.sources_user_can_edit.filter(id=source_id)
-
-        is_project_manager = user.groups.filter(name="project manager").exists()
-        is_editor = user.groups.filter(name="editor").exists()
-        is_contributor = user.groups.filter(name="contributor").exists()
-
-        if (
-            (is_project_manager)
-            or (is_editor and assigned_to_source)
-            or (is_editor and source.created_by == user)
-            or (is_contributor and source.created_by == user)
-        ):
-            return True
-        return False
+        return user_can_edit_source(user, source)
 
     def get_success_url(self):
         # redirect to homepage
@@ -308,7 +294,7 @@ class SourceEditView(LoginRequiredMixin, UserPassesTestMixin, UpdateView):
         source = form.save()
 
         for old_editor in old_current_editors:
-            old_editor.sources_3.remove(source)
+            old_editor.sources_user_can_edit.remove(source)
 
         for new_editor in new_current_editors:
             new_editor.sources_user_can_edit.add(source)
