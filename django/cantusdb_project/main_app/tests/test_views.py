@@ -9,6 +9,7 @@ from django.contrib.auth import get_user_model
 from django.contrib.auth.models import Group
 from django.test import Client
 from django.db.models import Q
+from django.db.models.functions import Lower
 import csv
 
 from faker import Faker
@@ -3320,13 +3321,13 @@ class FeastListViewTest(TestCase):
         response = self.client.get(reverse("feast-list"), {"sort_by": "name"})
         self.assertEqual(response.status_code, 200)
         feasts = response.context["feasts"]
-        self.assertEqual(feasts.query.order_by[0], "name")
+        self.assertEqual(feasts.query.order_by[0], Lower("name"))
 
         # Empty ordering parameters in GET request should default to ordering by name
         response = self.client.get(reverse("feast-list"), {"sort_by": ""})
         self.assertEqual(response.status_code, 200)
         feasts = response.context["feasts"]
-        self.assertEqual(feasts.query.order_by[0], "name")
+        self.assertEqual(feasts.query.order_by[0], Lower("name"))
 
         # Anything other than name and feast_code should default to ordering by name
         response = self.client.get(
@@ -3334,7 +3335,7 @@ class FeastListViewTest(TestCase):
         )
         self.assertEqual(response.status_code, 200)
         feasts = response.context["feasts"]
-        self.assertEqual(feasts.query.order_by[0], "name")
+        self.assertEqual(feasts.query.order_by[0], Lower("name"))
 
     def test_search_name(self):
         """Feast can be searched by any part of its name, description, or feast_code"""
