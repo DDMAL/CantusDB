@@ -31,7 +31,7 @@ from next_chants import next_chants
 from collections import Counter
 from django.contrib.auth.mixins import UserPassesTestMixin
 from typing import Optional, Union
-from requests.exceptions import SSLError, Timeout
+from requests.exceptions import SSLError, Timeout, ConnectionError
 from requests import Response
 
 CHANT_SEARCH_TEMPLATE_VALUES = (
@@ -83,6 +83,7 @@ def parse_json_from_api(url: str) -> Union[list, None]:
     except (
         SSLError,
         Timeout,
+        ConnectionError,
     ) as exc:
         print(  # eventually, we should log this rather than printing it to the console
             "Encountered an error in parse_json_from_api",
@@ -349,7 +350,7 @@ class ChantDetailView(DetailView):
                 },
                 {
                     "name": "Portuguese Early Music Database",
-                    "initialism": "MMMO",
+                    "initialism": "PEM",
                     "base_url": "https://pemdatabase.eu",
                     "results_url": f"https://pemdatabase.eu/id/{chant.cantus_id}",
                     "results_count": len(
@@ -791,7 +792,7 @@ class ChantSearchView(ListView):
             else:
                 # if search bar is doing Cantus ID search
                 cantus_id = self.request.GET.get("search_bar")
-                q_obj_filter &= Q(cantus_id=cantus_id)
+                q_obj_filter &= Q(cantus_id__icontains=cantus_id)
                 chant_set = chant_set.filter(q_obj_filter).values(
                     *CHANT_SEARCH_TEMPLATE_VALUES
                 )
@@ -1180,6 +1181,12 @@ class ChantCreateView(LoginRequiredMixin, UserPassesTestMixin, CreateView):
 
         cantus_id = latest_chant.cantus_id
         if cantus_id is None:
+            return None
+        if cantus_id == "909000":
+            # 909000 is the Cantus ID for "Gloria patri", the most common Cantus ID in the
+            # database by about a factor of ~10 compared to the second most common Cantus ID.
+            # It takes too long to calculate suggested chants for this Cantus ID, and the
+            # results aren't particularly useful anyways.
             return None
 
         suggested_chants = next_chants(cantus_id, display_unpublished=True)

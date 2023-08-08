@@ -14,7 +14,6 @@ from main_app.models import (
     Office,
     Provenance,
     RismSiglum,
-    Segment,
     Sequence,
     Source,
 )
@@ -29,6 +28,7 @@ from django.core.exceptions import PermissionDenied
 from django.urls import reverse
 from django.contrib.auth import get_user_model
 from typing import List
+from django.core.paginator import Paginator
 
 
 @login_required
@@ -404,12 +404,12 @@ def ajax_search_bar(request, search_term):
     # load only the first seven chants
     CHANT_CNT = 7
 
-    if any(char.isdigit() for char in search_term):
+    if not search_term.replace(" ", "").isalpha():
         # if the search term contains at least one digit, assume user is searching by Cantus ID
         chants = Chant.objects.filter(cantus_id__istartswith=search_term).order_by("id")
     else:
         # if the search term does not contain any digits, assume user is searching by incipit
-        chants = Chant.objects.filter(incipit__icontains=search_term).order_by("id")
+        chants = Chant.objects.filter(incipit__istartswith=search_term).order_by("id")
 
     display_unpublished = request.user.is_authenticated
     if not display_unpublished:
@@ -794,30 +794,39 @@ def project_manager_check(user):
 def content_overview(request):
     objects = []
     models = [
-        Century,
+        Source,
         Chant,
         Feast,
-        Genre,
-        Notation,
+        Sequence,
         Office,
         Provenance,
+        Genre,
+        Notation,
+        Century,
         RismSiglum,
-        Segment,
-        Sequence,
-        Source,
     ]
 
-    # get the 50 most recently updated objects for all of the models
-    for model in models:
-        for object in model.objects.all().order_by("-date_updated")[:50]:
-            objects.append(object)
+    model_names = [model._meta.verbose_name_plural for model in models]
+    selected_model_name = request.GET.get("model", None)
+    selected_model = None
+    if selected_model_name in model_names:
+        selected_model = models[model_names.index(selected_model_name)]
 
-    objects.sort(key=lambda x: x.date_updated, reverse=True)
-    recently_updated_50_objects = objects[:50]
+    objects = []
+    if selected_model:
+        objects = selected_model.objects.all().order_by("-date_created")
 
-    return render(
-        request, "content_overview.html", {"objects": recently_updated_50_objects}
-    )
+    paginator = Paginator(objects, 100)
+    page_number = request.GET.get("page")
+    page_obj = paginator.get_page(page_number)
+
+    context = {
+        "models": model_names,
+        "selected_model_name": selected_model_name,
+        "page_obj": page_obj,
+    }
+
+    return render(request, "content_overview.html", context)
 
 
 def redirect_indexer(request, pk: int) -> HttpResponse:

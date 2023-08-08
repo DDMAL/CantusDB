@@ -1,8 +1,25 @@
 from django.contrib import admin
 from main_app.models import *
+from main_app.forms import (
+    AdminCenturyForm,
+    AdminChantForm,
+    AdminFeastForm,
+    AdminGenreForm,
+    AdminNotationForm,
+    AdminOfficeForm,
+    AdminProvenanceForm,
+    AdminRismSiglumForm,
+    AdminSegmentForm,
+    AdminSequenceForm,
+    AdminSourceForm,
+)
 
 # these fields should not be editable by all classes
-EXCLUDE = ("created_by", "last_updated_by", "json_info")
+EXCLUDE = (
+    "created_by",
+    "last_updated_by",
+    "json_info",
+)
 
 
 class BaseModelAdmin(admin.ModelAdmin):
@@ -19,13 +36,29 @@ class BaseModelAdmin(admin.ModelAdmin):
 
 
 class CenturyAdmin(BaseModelAdmin):
-    pass
+    search_fields = ("name",)
+    form = AdminCenturyForm
 
 
 class ChantAdmin(BaseModelAdmin):
-    list_display = ("incipit", "get_source_siglum", "genre")
-    search_fields = ("title", "incipit", "cantus_id")
-    list_filter = ("genre",)
+    @admin.display(description="Source Siglum")
+    def get_source_siglum(self, obj):
+        return obj.source.siglum
+
+    list_display = (
+        "incipit",
+        "get_source_siglum",
+        "genre",
+    )
+    search_fields = (
+        "title",
+        "incipit",
+        "cantus_id",
+    )
+    list_filter = (
+        "genre",
+        "office",
+    )
     exclude = EXCLUDE + (
         "col1",
         "col2",
@@ -33,52 +66,88 @@ class ChantAdmin(BaseModelAdmin):
         "next_chant",
         "s_sequence",
         "is_last_chant_in_feast",
+        "visible_status",
+        "date",
     )
-
-    def get_source_siglum(self, obj):
-        return obj.source.siglum
+    form = AdminChantForm
+    raw_id_fields = (
+        "source",
+        "feast",
+    )
+    ordering = ("source__siglum",)
 
 
 class FeastAdmin(BaseModelAdmin):
-    search_fields = ("name", "feast_code")
+    search_fields = (
+        "name",
+        "feast_code",
+    )
+    list_display = (
+        "name",
+        "month",
+        "day",
+        "feast_code",
+    )
+    form = AdminFeastForm
 
 
 class GenreAdmin(BaseModelAdmin):
-    pass
+    search_fields = ("name",)
+    form = AdminGenreForm
 
 
 class NotationAdmin(BaseModelAdmin):
-    pass
+    search_fields = ("name",)
+    form = AdminNotationForm
 
 
 class OfficeAdmin(BaseModelAdmin):
-    pass
+    search_fields = ("name",)
+    form = AdminOfficeForm
 
 
 class ProvenanceAdmin(BaseModelAdmin):
     search_fields = ("name",)
+    form = AdminProvenanceForm
 
 
 class RismSiglumAdmin(BaseModelAdmin):
-    pass
+    search_fields = ("name",)
+    form = AdminRismSiglumForm
 
 
 class SegmentAdmin(BaseModelAdmin):
-    pass
+    search_fields = ("name",)
+    form = AdminSegmentForm
 
 
 class SequenceAdmin(BaseModelAdmin):
+    @admin.display(description="Source Siglum")
+    def get_source_siglum(self, obj):
+        return obj.source.siglum
+
     search_fields = (
         "title",
         "incipit",
         "cantus_id",
     )
-    exclude = EXCLUDE + ("c_sequence", "next_chant", "is_last_chant_in_feast")
+    exclude = EXCLUDE + (
+        "c_sequence",
+        "next_chant",
+        "is_last_chant_in_feast",
+        "visible_status",
+    )
     list_display = ("incipit", "get_source_siglum", "genre")
-    list_filter = ("genre",)
-
-    def get_source_siglum(self, obj):
-        return obj.source.siglum
+    list_filter = (
+        "genre",
+        "office",
+    )
+    raw_id_fields = (
+        "source",
+        "feast",
+    )
+    ordering = ("source__siglum",)
+    form = AdminSequenceForm
 
 
 class SourceAdmin(BaseModelAdmin):
@@ -86,6 +155,7 @@ class SourceAdmin(BaseModelAdmin):
     search_fields = (
         "siglum",
         "title",
+        "id",
     )
     # from the Django docs:
     # Adding a ManyToManyField to this list will instead use a nifty unobtrusive JavaScript “filter” interface
@@ -100,6 +170,24 @@ class SourceAdmin(BaseModelAdmin):
         "proofreaders",
         "other_editors",
     )
+
+    list_display = (
+        "title",
+        "siglum",
+        "id",
+    )
+
+    list_filter = (
+        "full_source",
+        "segment",
+        "source_status",
+        "published",
+        "century",
+    )
+
+    ordering = ("siglum",)
+
+    form = AdminSourceForm
 
 
 admin.site.register(Century, CenturyAdmin)
