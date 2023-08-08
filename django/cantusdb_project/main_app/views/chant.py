@@ -792,7 +792,7 @@ class ChantSearchView(ListView):
             else:
                 # if search bar is doing Cantus ID search
                 cantus_id = self.request.GET.get("search_bar")
-                q_obj_filter &= Q(cantus_id=cantus_id)
+                q_obj_filter &= Q(cantus_id__icontains=cantus_id)
                 chant_set = chant_set.filter(q_obj_filter).values(
                     *CHANT_SEARCH_TEMPLATE_VALUES
                 )
