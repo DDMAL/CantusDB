@@ -338,7 +338,7 @@ class PermissionsTest(TestCase):
 
         response = self.client.get(f"/source/{assigned_source.id}/delete")
         self.assertEqual(response.status_code, 403)
-        
+
         # Content Overview
         response = self.client.get(reverse("content-overview"))
         self.assertEqual(response.status_code, 403)
@@ -441,7 +441,7 @@ class PermissionsTest(TestCase):
 
         response = self.client.get(f"/source/{assigned_source.id}/delete")
         self.assertEqual(response.status_code, 200)
-        
+
         # Content Overview
         response = self.client.get(reverse("content-overview"))
         self.assertEqual(response.status_code, 403)
@@ -481,7 +481,7 @@ class PermissionsTest(TestCase):
         # SourceDeleteView
         response = self.client.get(f"/source/{source.id}/delete")
         self.assertEqual(response.status_code, 403)
-        
+
         response = self.client.get(reverse("content-overview"))
         self.assertEqual(response.status_code, 403)
 
