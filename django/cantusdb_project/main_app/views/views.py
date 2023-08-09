@@ -742,7 +742,6 @@ def articles_list_export(request) -> HttpResponse:
     Returns:
         HttpResponse: A list of URLs, separated by newline characters
     """
-    # request.build_absolute_uri(reverse("csv-export", args=[id]))
     articles = Article.objects.all()
     article_urls = [
         request.build_absolute_uri(reverse("article-detail", args=[article.id]))
