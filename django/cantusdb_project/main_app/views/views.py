@@ -29,6 +29,7 @@ from django.urls import reverse
 from django.contrib.auth import get_user_model
 from typing import List
 from django.core.paginator import Paginator
+from django.contrib.flatpages.models import FlatPage
 
 
 @login_required
@@ -748,6 +749,24 @@ def articles_list_export(request) -> HttpResponse:
         for article in articles
     ]
     return HttpResponse(" ".join(article_urls))
+
+
+def flatpages_list_export(request) -> HttpResponse:
+    """Returns a list of URLs of all articles on the site
+
+    Args:
+        request: the incoming request
+
+    Returns:
+        HttpResponse: A list of URLs, separated by newline characters
+    """
+
+    flatpages = FlatPage.objects.all()
+    flatpage_urls = [
+        request.build_absolute_uri(flatpage.get_absolute_url())
+        for flatpage in flatpages
+    ]
+    return HttpResponse(" ".join(flatpage_urls))
 
 
 def redirect_node_url(request, pk: int) -> HttpResponse:
