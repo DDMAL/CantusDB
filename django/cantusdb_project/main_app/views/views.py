@@ -747,7 +747,7 @@ def articles_list_export(request) -> HttpResponse:
         request.build_absolute_uri(reverse("article-detail", args=[article.id]))
         for article in articles
     ]
-    return HttpResponse(" ".join(article_urls))
+    return HttpResponse(" ".join(article_urls), content_type="text/plain")
 
 
 def flatpages_list_export(request) -> HttpResponse:
@@ -765,7 +765,7 @@ def flatpages_list_export(request) -> HttpResponse:
         request.build_absolute_uri(flatpage.get_absolute_url())
         for flatpage in flatpages
     ]
-    return HttpResponse(" ".join(flatpage_urls))
+    return HttpResponse(" ".join(flatpage_urls), content_type="text/plain")
 
 
 def redirect_node_url(request, pk: int) -> HttpResponse:
