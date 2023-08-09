@@ -732,6 +732,24 @@ def json_node_export(request, id: int) -> JsonResponse:
     return HttpResponseNotFound()
 
 
+def articles_list_export(request) -> HttpResponse:
+    """Returns a list of URLs of all articles on the site
+
+    Args:
+        request: the incoming request
+
+    Returns:
+        HttpResponse: A list of URLs, separated by newline characters
+    """
+    # request.build_absolute_uri(reverse("csv-export", args=[id]))
+    articles = Article.objects.all()
+    article_urls = [
+        request.build_absolute_uri(reverse("article-detail", args=[article.id]))
+        for article in articles
+    ]
+    return HttpResponse(" ".join(article_urls))
+
+
 def redirect_node_url(request, pk: int) -> HttpResponse:
     """
     A function that will redirect /node/ URLs from OldCantus to their corresponding page in NewCantus.
