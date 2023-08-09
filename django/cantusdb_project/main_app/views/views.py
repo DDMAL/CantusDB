@@ -29,6 +29,7 @@ from django.urls import reverse
 from django.contrib.auth import get_user_model
 from typing import List
 from django.core.paginator import Paginator
+from django.templatetags.static import static
 
 
 @login_required
@@ -842,3 +843,47 @@ def redirect_indexer(request, pk: int) -> HttpResponse:
         return redirect("user-detail", user_id)
 
     raise Http404("No indexer found matching the query.")
+
+
+def redirect_documents(request) -> HttpResponse:
+    """Handle requests to old paths for various
+    documents on OldCantus, returning an HTTP Response
+    redirecting the user to the updated path
+
+    Args:
+        request: the request to the old path
+
+    Returns:
+        HttpResponse: response redirecting to the new path
+    """
+    mapping = {
+        "/sites/default/files/documents/1. Quick Guide to Liturgy.pdf": static(
+            "documents/1. Quick Guide to Liturgy.pdf"
+        ),
+        "/sites/default/files/documents/2. Volpiano Protocols.pdf": static(
+            "documents/2. Volpiano Protocols.pdf"
+        ),
+        "/sites/default/files/documents/3. Volpiano Neumes for Review.docx": static(
+            "documents/3. Volpiano Neumes for Review.docx"
+        ),
+        "/sites/default/files/documents/4. Volpiano Neume Protocols.pdf": static(
+            "documents/4. Volpiano Neume Protocols.pdf"
+        ),
+        "/sites/default/files/documents/5. Volpiano Editing Guidelines.pdf": static(
+            "documents/5. Volpiano Editing Guidelines.pdf"
+        ),
+        "/sites/default/files/documents/7. Guide to Graduals.pdf": static(
+            "documents/7. Guide to Graduals.pdf"
+        ),
+        "/sites/default/files/HOW TO - manuscript descriptions-Nov6-20.pdf": static(
+            "documents/HOW TO - manuscript descriptions-Nov6-20.pdf"
+        ),
+    }
+    old_path = request.path
+    try:
+        new_path = mapping[old_path]
+    except KeyError:
+        print("key error!")
+        print(old_path)
+        raise Http404
+    return redirect(new_path)
