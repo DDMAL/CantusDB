@@ -215,6 +215,11 @@ urlpatterns = [
         GenreDetailView.as_view(),
         name="genre-detail",
     ),
+    path(
+        "genre/",
+        views.redirect_genre,
+        name="redirect-genre",
+    ),
     # indexer
     path(
         "indexers/",

@@ -885,6 +885,10 @@ def redirect_office(request) -> HttpResponse:
     return redirect("office-list")
 
 
+def redirect_genre(request) -> HttpResponse:
+    return redirect("genre-list")
+
+
 def redirect_documents(request) -> HttpResponse:
     """Handle requests to old paths for various
     documents on OldCantus, returning an HTTP Response
