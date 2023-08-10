@@ -56,6 +56,7 @@ INSTALLED_APPS = [
     "django.contrib.sites",
     "django.contrib.flatpages",
     "django.contrib.humanize",
+    "django.contrib.postgres",
     "extra_views",
     "main_app",
     "articles",
