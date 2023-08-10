@@ -383,6 +383,7 @@ urlpatterns = [
         views.redirect_indexer,
         name="redirect-indexer",
     ),
+    # links to APIs that list URLs of all pages that live in the database
     path(
         "articles-list/",
         views.articles_list_export,
