@@ -388,18 +388,18 @@ urlpatterns = [
         views.redirect_indexer,
         name="redirect-indexer",
     ),
-    re_path(
-        r"^current-editors-autocomplete/$",
+    path(
+        "current-editors-autocomplete/",
         CurrentEditorsAutocomplete.as_view(),
         name="current-editors-autocomplete",
     ),
-    re_path(
-        r"^all-users-autocomplete/$",
+    path(
+        "all-users-autocomplete/",
         AllUsersAutocomplete.as_view(),
         name="all-users-autocomplete",
     ),
-    re_path(
-        r"^century-autocomplete/$",
+    path(
+        "century-autocomplete/",
         CenturyAutocomplete.as_view(),
         name="century-autocomplete",
     ),

@@ -848,6 +848,8 @@ def redirect_indexer(request, pk: int) -> HttpResponse:
 
 class CurrentEditorsAutocomplete(autocomplete.Select2QuerySetView):
     def get_queryset(self):
+        if not self.request.user.is_authenticated:
+            return Century().objects.none()
         qs = (
             get_user_model()
             .objects.filter(
@@ -866,6 +868,8 @@ class CurrentEditorsAutocomplete(autocomplete.Select2QuerySetView):
 
 class AllUsersAutocomplete(autocomplete.Select2QuerySetView):
     def get_queryset(self):
+        if not self.request.user.is_authenticated:
+            return get_user_model().objects.none()
         qs = get_user_model().objects.all().order_by("full_name")
         if self.q:
             qs = qs.filter(
@@ -876,6 +880,8 @@ class AllUsersAutocomplete(autocomplete.Select2QuerySetView):
 
 class CenturyAutocomplete(autocomplete.Select2QuerySetView):
     def get_queryset(self):
+        if not self.request.user.is_authenticated:
+            return get_user_model().objects.none()
         qs = Century.objects.all().order_by("name")
         if self.q:
             qs = qs.filter(name__istartswith=self.q)
