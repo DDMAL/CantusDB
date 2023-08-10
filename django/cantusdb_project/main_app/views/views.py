@@ -30,6 +30,7 @@ from django.contrib.auth import get_user_model
 from typing import List
 from django.core.paginator import Paginator
 from django.templatetags.static import static
+from django.contrib.flatpages.models import FlatPage
 
 
 @login_required
@@ -731,6 +732,41 @@ def json_node_export(request, id: int) -> JsonResponse:
             return JsonResponse(vals)
 
     return HttpResponseNotFound()
+
+
+def articles_list_export(request) -> HttpResponse:
+    """Returns a list of URLs of all articles on the site
+
+    Args:
+        request: the incoming request
+
+    Returns:
+        HttpResponse: A list of URLs, separated by newline characters
+    """
+    articles = Article.objects.all()
+    article_urls = [
+        request.build_absolute_uri(reverse("article-detail", args=[article.id]))
+        for article in articles
+    ]
+    return HttpResponse(" ".join(article_urls), content_type="text/plain")
+
+
+def flatpages_list_export(request) -> HttpResponse:
+    """Returns a list of URLs of all articles on the site
+
+    Args:
+        request: the incoming request
+
+    Returns:
+        HttpResponse: A list of URLs, separated by newline characters
+    """
+
+    flatpages = FlatPage.objects.all()
+    flatpage_urls = [
+        request.build_absolute_uri(flatpage.get_absolute_url())
+        for flatpage in flatpages
+    ]
+    return HttpResponse(" ".join(flatpage_urls), content_type="text/plain")
 
 
 def redirect_node_url(request, pk: int) -> HttpResponse:

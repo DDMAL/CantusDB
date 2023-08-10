@@ -482,6 +482,7 @@ class PermissionsTest(TestCase):
         response = self.client.get(f"/source/{source.id}/delete")
         self.assertEqual(response.status_code, 403)
 
+        # Content Overview
         response = self.client.get(reverse("content-overview"))
         self.assertEqual(response.status_code, 403)
 

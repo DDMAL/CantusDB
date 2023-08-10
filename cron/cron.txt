@@ -10,4 +10,4 @@
 20      4       1       *       *       bash /home/ubuntu/code/CantusDB/cron/postgres/monthly.sh
 30      4       1       1       *       bash /home/ubuntu/code/CantusDB/cron/postgres/yearly.sh
 40      4       1       *       *       bash /home/ubuntu/code/CantusDB/cron/management/manage.sh populate_next_chant_fields; bash /home/ubuntu/code/CantusDB/cron/management/manage.sh populate_is_last_chant_in_feast
-50      4       1       */2     *       /usr/local/bin/docker-compose run --rm certbot certonly --webroot --webroot-path /var/www/certbot/ -d cantusdatabase.org
+50      4       *       *       0       /usr/local/bin/docker-compose run --rm certbot certonly --webroot --webroot-path /var/www/certbot/ -d cantusdatabase.org --renew-hook "nginx -s reload"
