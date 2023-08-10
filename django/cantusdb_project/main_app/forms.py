@@ -498,8 +498,6 @@ class SourceEditForm(forms.ModelForm):
             "date",
             "century",
             "cursus",
-            "current_editors",
-            "melodies_entered_by",
             "complete_inventory",
             "summary",
             "description",
@@ -508,6 +506,12 @@ class SourceEditForm(forms.ModelForm):
             "fragmentarium_id",
             "dact_id",
             "indexing_notes",
+            "current_editors",
+            "melodies_entered_by",
+            "inventoried_by",
+            "full_text_entered_by",
+            "proofreaders",
+            "other_editors",
         ]
         widgets = {
             "title": TextInputWidget(),
@@ -522,6 +526,25 @@ class SourceEditForm(forms.ModelForm):
             "fragmentarium_id": TextInputWidget(),
             "dact_id": TextInputWidget(),
             "indexing_notes": TextAreaWidget(),
+            "current_editors": autocomplete.ModelSelect2Multiple(
+                url="current-editors-autocomplete"
+            ),
+            "melodies_entered_by": autocomplete.ModelSelect2Multiple(
+                url="all-users-autocomplete"
+            ),
+            "century": autocomplete.ModelSelect2Multiple(url="century-autocomplete"),
+            "inventoried_by": autocomplete.ModelSelect2Multiple(
+                url="all-users-autocomplete"
+            ),
+            "full_text_entered_by": autocomplete.ModelSelect2Multiple(
+                url="all-users-autocomplete"
+            ),
+            "proofreaders": autocomplete.ModelSelect2Multiple(
+                url="all-users-autocomplete"
+            ),
+            "other_editors": autocomplete.ModelSelect2Multiple(
+                url="all-users-autocomplete"
+            ),
         }
 
     provenance = forms.ModelChoiceField(
@@ -530,13 +553,6 @@ class SourceEditForm(forms.ModelForm):
     provenance.widget.attrs.update(
         {"class": "form-control custom-select custom-select-sm"}
     )  # adds styling
-
-    century = forms.ModelMultipleChoiceField(
-        queryset=Century.objects.all().order_by("name"), required=False
-    )
-    century.widget.attrs.update(
-        {"class": "form-control custom-select custom-select-sm"}
-    )
 
     CHOICES_FULL_SOURCE = (
         (None, "None"),
@@ -555,27 +571,6 @@ class SourceEditForm(forms.ModelForm):
     )
     cursus = forms.ChoiceField(choices=CHOICES_CURSUS, required=False)
     cursus.widget.attrs.update({"class": "form-control custom-select custom-select-sm"})
-
-    current_editors = forms.ModelMultipleChoiceField(
-        queryset=get_user_model()
-        .objects.filter(
-            Q(groups__name="project manager")
-            | Q(groups__name="editor")
-            | Q(groups__name="contributor")
-        )
-        .order_by("last_name"),
-        required=False,
-    )
-    current_editors.widget.attrs.update(
-        {"class": "form-control custom-select custom-select-sm"}
-    )
-
-    melodies_entered_by = forms.ModelMultipleChoiceField(
-        queryset=get_user_model().objects.all().order_by("full_name"), required=False
-    )
-    melodies_entered_by.widget.attrs.update(
-        {"class": "form-control custom-select custom-select-sm"}
-    )
 
     CHOICES_COMPLETE_INV = (
         (True, "complete inventory"),
