@@ -1,4 +1,4 @@
-from django.urls import include, path, reverse, re_path
+from django.urls import include, path, reverse
 from django.contrib.auth.views import (
     PasswordResetView,
     PasswordResetDoneView,
