@@ -197,6 +197,10 @@ class SourceCreateForm(forms.ModelForm):
             "cursus",
             "current_editors",
             "melodies_entered_by",
+            "inventoried_by",
+            "full_text_entered_by",
+            "proofreaders",
+            "other_editors",
             "complete_inventory",
             "summary",
             "description",
@@ -226,6 +230,18 @@ class SourceCreateForm(forms.ModelForm):
                 url="all-users-autocomplete"
             ),
             "century": autocomplete.ModelSelect2Multiple(url="century-autocomplete"),
+            "inventoried_by": autocomplete.ModelSelect2Multiple(
+                url="all-users-autocomplete"
+            ),
+            "full_text_entered_by": autocomplete.ModelSelect2Multiple(
+                url="all-users-autocomplete"
+            ),
+            "proofreaders": autocomplete.ModelSelect2Multiple(
+                url="all-users-autocomplete"
+            ),
+            "other_editors": autocomplete.ModelSelect2Multiple(
+                url="all-users-autocomplete"
+            ),
         }
 
     rism_siglum = forms.ModelChoiceField(
