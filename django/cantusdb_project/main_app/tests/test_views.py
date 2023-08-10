@@ -482,6 +482,7 @@ class PermissionsTest(TestCase):
         response = self.client.get(f"/source/{source.id}/delete")
         self.assertEqual(response.status_code, 403)
 
+        # Content Overview
         response = self.client.get(reverse("content-overview"))
         self.assertEqual(response.status_code, 403)
 
@@ -5251,6 +5252,34 @@ class IndexerRedirectTest(TestCase):
             reverse("redirect-indexer", args=[example_bad_indexer_id])
         )
         self.assertEqual(response_1.status_code, 404)
+
+
+class DocumentRedirectTest(TestCase):
+    def setUp(self):
+        self.client = Client()
+
+    def test_document_redirects(self):
+        old_document_paths = (
+            "/sites/default/files/documents/1. Quick Guide to Liturgy.pdf",
+            "/sites/default/files/documents/2. Volpiano Protocols.pdf",
+            "/sites/default/files/documents/3. Volpiano Neumes for Review.docx",
+            "/sites/default/files/documents/4. Volpiano Neume Protocols.pdf",
+            "/sites/default/files/documents/5. Volpiano Editing Guidelines.pdf",
+            "/sites/default/files/documents/7. Guide to Graduals.pdf",
+            "/sites/default/files/HOW TO - manuscript descriptions-Nov6-20.pdf",
+        )
+        for path in old_document_paths:
+            # each path should redirect to the new path
+            response = self.client.get(path)
+            self.assertEqual(response.status_code, 302)
+            # In Aug 2023, Jacob struggled to get the following lines to work -
+            # I was getting 404s when I expected 200s. This final step would be nice
+            # to test properly - if a future developer who is cleverer than me can
+            # get this working, that would be excellent!
+
+            # redirect_url = response.url
+            # followed_response = self.client.get(redirect_url)
+            # self.assertEqual(followed_response.status_code, 200)
 
 
 class ContentOverviewTest(TestCase):

@@ -1283,6 +1283,7 @@ class ChantCreateView(LoginRequiredMixin, UserPassesTestMixin, CreateView):
 
         if form.is_valid():
             form.instance.created_by = self.request.user
+            form.instance.last_updated_by = self.request.user
             messages.success(
                 self.request,
                 "Chant '" + form.instance.incipit + "' created successfully!",

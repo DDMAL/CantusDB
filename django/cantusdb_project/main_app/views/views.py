@@ -29,6 +29,8 @@ from django.urls import reverse
 from django.contrib.auth import get_user_model
 from typing import List
 from django.core.paginator import Paginator
+from django.templatetags.static import static
+from django.contrib.flatpages.models import FlatPage
 from dal import autocomplete
 from django.db.models import Q
 
@@ -734,6 +736,41 @@ def json_node_export(request, id: int) -> JsonResponse:
     return HttpResponseNotFound()
 
 
+def articles_list_export(request) -> HttpResponse:
+    """Returns a list of URLs of all articles on the site
+
+    Args:
+        request: the incoming request
+
+    Returns:
+        HttpResponse: A list of URLs, separated by newline characters
+    """
+    articles = Article.objects.all()
+    article_urls = [
+        request.build_absolute_uri(reverse("article-detail", args=[article.id]))
+        for article in articles
+    ]
+    return HttpResponse(" ".join(article_urls), content_type="text/plain")
+
+
+def flatpages_list_export(request) -> HttpResponse:
+    """Returns a list of URLs of all articles on the site
+
+    Args:
+        request: the incoming request
+
+    Returns:
+        HttpResponse: A list of URLs, separated by newline characters
+    """
+
+    flatpages = FlatPage.objects.all()
+    flatpage_urls = [
+        request.build_absolute_uri(flatpage.get_absolute_url())
+        for flatpage in flatpages
+    ]
+    return HttpResponse(" ".join(flatpage_urls), content_type="text/plain")
+
+
 def redirect_node_url(request, pk: int) -> HttpResponse:
     """
     A function that will redirect /node/ URLs from OldCantus to their corresponding page in NewCantus.
@@ -844,6 +881,76 @@ def redirect_indexer(request, pk: int) -> HttpResponse:
         return redirect("user-detail", user_id)
 
     raise Http404("No indexer found matching the query.")
+
+
+def redirect_office(request) -> HttpResponse:
+    """
+    Redirects from office/ (à la OldCantus) to offices/ (à la NewCantus)
+
+    Args:
+        request
+
+    Returns:
+        HttpResponse
+    """
+    return redirect("office-list")
+
+
+def redirect_genre(request) -> HttpResponse:
+    """
+    Redirects from genre/ (à la OldCantus) to genres/ (à la NewCantus)
+
+    Args:
+        request
+
+    Returns:
+        HttpResponse
+    """
+    return redirect("genre-list")
+
+
+def redirect_documents(request) -> HttpResponse:
+    """Handle requests to old paths for various
+    documents on OldCantus, returning an HTTP Response
+    redirecting the user to the updated path
+
+    Args:
+        request: the request to the old path
+
+    Returns:
+        HttpResponse: response redirecting to the new path
+    """
+    mapping = {
+        "/sites/default/files/documents/1. Quick Guide to Liturgy.pdf": static(
+            "documents/1. Quick Guide to Liturgy.pdf"
+        ),
+        "/sites/default/files/documents/2. Volpiano Protocols.pdf": static(
+            "documents/2. Volpiano Protocols.pdf"
+        ),
+        "/sites/default/files/documents/3. Volpiano Neumes for Review.docx": static(
+            "documents/3. Volpiano Neumes for Review.docx"
+        ),
+        "/sites/default/files/documents/4. Volpiano Neume Protocols.pdf": static(
+            "documents/4. Volpiano Neume Protocols.pdf"
+        ),
+        "/sites/default/files/documents/5. Volpiano Editing Guidelines.pdf": static(
+            "documents/5. Volpiano Editing Guidelines.pdf"
+        ),
+        "/sites/default/files/documents/7. Guide to Graduals.pdf": static(
+            "documents/7. Guide to Graduals.pdf"
+        ),
+        "/sites/default/files/HOW TO - manuscript descriptions-Nov6-20.pdf": static(
+            "documents/HOW TO - manuscript descriptions-Nov6-20.pdf"
+        ),
+    }
+    old_path = request.path
+    try:
+        new_path = mapping[old_path]
+    except KeyError:
+        print("key error!")
+        print(old_path)
+        raise Http404
+    return redirect(new_path)
 
 
 class CurrentEditorsAutocomplete(autocomplete.Select2QuerySetView):

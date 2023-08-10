@@ -220,6 +220,11 @@ urlpatterns = [
         GenreDetailView.as_view(),
         name="genre-detail",
     ),
+    path(
+        "genre/",
+        views.redirect_genre,
+        name="redirect-genre",
+    ),
     # indexer
     path(
         "indexers/",
@@ -242,6 +247,11 @@ urlpatterns = [
         "office/<int:pk>",
         OfficeDetailView.as_view(),
         name="office-detail",
+    ),
+    path(
+        "office/",
+        views.redirect_office,
+        name="redirect-office",
     ),
     # provenance
     path(
@@ -387,6 +397,53 @@ urlpatterns = [
         "indexer/<int:pk>",
         views.redirect_indexer,
         name="redirect-indexer",
+    ),
+    # links to APIs that list URLs of all pages that live in the database
+    path(
+        "articles-list/",
+        views.articles_list_export,
+        name="articles-list-export",
+    ),
+    path(
+        "flatpages-list/",
+        views.flatpages_list_export,
+        name="flatpages-list-export",
+    ),
+    # redirects for static files present on OldCantus
+    path(
+        "sites/default/files/documents/1. Quick Guide to Liturgy.pdf",
+        views.redirect_documents,
+        name="redirect-quick-guide-to-liturgy",
+    ),
+    path(
+        "sites/default/files/documents/2. Volpiano Protocols.pdf",
+        views.redirect_documents,
+        name="redirect-volpiano-protocols",
+    ),
+    path(
+        "sites/default/files/documents/3. Volpiano Neumes for Review.docx",
+        views.redirect_documents,
+        name="redirect-volpiano-neumes-for-review",
+    ),
+    path(
+        "sites/default/files/documents/4. Volpiano Neume Protocols.pdf",
+        views.redirect_documents,
+        name="redirect-volpiano-neume-protocols",
+    ),
+    path(
+        "sites/default/files/documents/5. Volpiano Editing Guidelines.pdf",
+        views.redirect_documents,
+        name="redirect-volpiano-editing-guidelines",
+    ),
+    path(
+        "sites/default/files/documents/7. Guide to Graduals.pdf",
+        views.redirect_documents,
+        name="redirect-guide-to-graduals",
+    ),
+    path(
+        "sites/default/files/HOW TO - manuscript descriptions-Nov6-20.pdf",
+        views.redirect_documents,
+        name="redirect-how-to-manuscript-descriptions",
     ),
     path(
         "current-editors-autocomplete/",

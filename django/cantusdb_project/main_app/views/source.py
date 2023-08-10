@@ -208,6 +208,7 @@ class SourceCreateView(LoginRequiredMixin, UserPassesTestMixin, CreateView):
 
     def form_valid(self, form):
         form.instance.created_by = self.request.user
+        form.instance.last_updated_by = self.request.user
         self.object = form.save()
 
         # assign this source to the "current_editors"
