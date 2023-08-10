@@ -215,6 +215,11 @@ urlpatterns = [
         GenreDetailView.as_view(),
         name="genre-detail",
     ),
+    path(
+        "genre/",
+        views.redirect_genre,
+        name="redirect-genre",
+    ),
     # indexer
     path(
         "indexers/",
@@ -237,6 +242,11 @@ urlpatterns = [
         "office/<int:pk>",
         OfficeDetailView.as_view(),
         name="office-detail",
+    ),
+    path(
+        "office/",
+        views.redirect_office,
+        name="redirect-office",
     ),
     # provenance
     path(
@@ -383,6 +393,7 @@ urlpatterns = [
         views.redirect_indexer,
         name="redirect-indexer",
     ),
+    # links to APIs that list URLs of all pages that live in the database
     path(
         "articles-list/",
         views.articles_list_export,
