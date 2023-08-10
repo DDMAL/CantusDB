@@ -881,6 +881,10 @@ def redirect_indexer(request, pk: int) -> HttpResponse:
     raise Http404("No indexer found matching the query.")
 
 
+def redirect_office(request) -> HttpResponse:
+    return redirect("office-list")
+
+
 def redirect_documents(request) -> HttpResponse:
     """Handle requests to old paths for various
     documents on OldCantus, returning an HTTP Response

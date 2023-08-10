@@ -238,6 +238,11 @@ urlpatterns = [
         OfficeDetailView.as_view(),
         name="office-detail",
     ),
+    path(
+        "office/",
+        views.redirect_office,
+        name="redirect-office",
+    ),
     # provenance
     path(
         "provenance/<int:pk>",
