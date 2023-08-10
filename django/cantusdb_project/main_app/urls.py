@@ -383,6 +383,16 @@ urlpatterns = [
         views.redirect_indexer,
         name="redirect-indexer",
     ),
+    path(
+        "articles-list/",
+        views.articles_list_export,
+        name="articles-list-export",
+    ),
+    path(
+        "flatpages-list/",
+        views.flatpages_list_export,
+        name="flatpages-list-export",
+    ),
 ]
 
 handler404 = "main_app.views.views.handle404"
