@@ -882,10 +882,28 @@ def redirect_indexer(request, pk: int) -> HttpResponse:
 
 
 def redirect_office(request) -> HttpResponse:
+    """
+    Redirects from office/ (à la OldCantus) to offices/ (à la NewCantus)
+
+    Args:
+        request
+
+    Returns:
+        HttpResponse
+    """
     return redirect("office-list")
 
 
 def redirect_genre(request) -> HttpResponse:
+    """
+    Redirects from genre/ (à la OldCantus) to genres/ (à la NewCantus)
+
+    Args:
+        request
+
+    Returns:
+        HttpResponse
+    """
     return redirect("genre-list")
 
 
