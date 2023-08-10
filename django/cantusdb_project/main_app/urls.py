@@ -383,7 +383,6 @@ urlpatterns = [
         views.redirect_indexer,
         name="redirect-indexer",
     ),
-
     path(
         "articles-list/",
         views.articles_list_export,
@@ -394,7 +393,6 @@ urlpatterns = [
         views.flatpages_list_export,
         name="flatpages-list-export",
     ),
-
     # redirects for static files present on OldCantus
     path(
         "sites/default/files/documents/1. Quick Guide to Liturgy.pdf",
@@ -430,6 +428,7 @@ urlpatterns = [
         "sites/default/files/HOW TO - manuscript descriptions-Nov6-20.pdf",
         views.redirect_documents,
         name="redirect-how-to-manuscript-descriptions",
+    ),
 ]
 
 handler404 = "main_app.views.views.handle404"
