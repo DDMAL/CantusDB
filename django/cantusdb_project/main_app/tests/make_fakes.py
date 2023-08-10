@@ -43,6 +43,36 @@ def make_random_string(
     return "".join(characters[random.randrange(len(characters))] for _ in range(length))
 
 
+def add_accents_to_string(s: str) -> str:
+    """Replace some letters in a string
+    with their accented versions.
+
+    Args:
+        s (str): A string
+
+    Returns:
+        str: The same string, but with vowels, c's and n's
+            replaced with accented versions of the same letter
+    """
+    accented_string = (
+        s.replace("a", "à")
+        .replace("e", "é")
+        .replace("i", "ï")
+        .replace("o", "ô")
+        .replace("u", "ū")
+        .replace("c", "ç")
+        .replace("n", "ñ")
+        .replace("A", "À")
+        .replace("E", "É")
+        .replace("I", "Ï")
+        .replace("O", "Ô")
+        .replace("U", "Ū")
+        .replace("C", "Ç")
+        .replace("N", "Ñ")
+    )
+    return accented_string
+
+
 def make_fake_volpiano(
     words: int = 5,
     syllables_per_word: int = 2,
