@@ -28,6 +28,7 @@ from django.db.models import Q
 from django.contrib.admin.widgets import (
     FilteredSelectMultiple,
 )
+from dal import autocomplete
 
 # ModelForm allows to build a form directly from a model
 # see https://docs.djangoproject.com/en/3.0/topics/forms/modelforms/
@@ -218,6 +219,13 @@ class SourceCreateForm(forms.ModelForm):
             "fragmentarium_id": TextInputWidget(),
             "dact_id": TextInputWidget(),
             "indexing_notes": TextAreaWidget(),
+            "current_editors": autocomplete.ModelSelect2Multiple(
+                url="current-editors-autocomplete"
+            ),
+            "melodies_entered_by": autocomplete.ModelSelect2Multiple(
+                url="all-users-autocomplete"
+            ),
+            "century": autocomplete.ModelSelect2Multiple(url="century-autocomplete"),
         }
 
     rism_siglum = forms.ModelChoiceField(
@@ -243,35 +251,6 @@ class SourceCreateForm(forms.ModelForm):
     full_source.widget.attrs.update(
         {"class": "form-control custom-select custom-select-sm"}
     )
-
-    century = forms.ModelMultipleChoiceField(
-        queryset=Century.objects.all().order_by("name"), required=False
-    )
-    century.widget.attrs.update(
-        {"class": "form-control custom-select custom-select-sm"}
-    )
-
-    current_editors = forms.ModelMultipleChoiceField(
-        queryset=get_user_model()
-        .objects.filter(
-            Q(groups__name="project manager")
-            | Q(groups__name="editor")
-            | Q(groups__name="contributor")
-        )
-        .order_by("last_name"),
-        required=False,
-    )
-    current_editors.widget.attrs.update(
-        {"class": "form-control custom-select custom-select-sm"}
-    )
-
-    melodies_entered_by = forms.ModelMultipleChoiceField(
-        queryset=get_user_model().objects.all().order_by("full_name"), required=False
-    )
-    melodies_entered_by.widget.attrs.update(
-        {"class": "form-control custom-select custom-select-sm"}
-    )
-
     TRUE_FALSE_CHOICES_INVEN = ((True, "Complete"), (False, "Incomplete"))
 
     complete_inventory = forms.ChoiceField(

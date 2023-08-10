@@ -29,6 +29,8 @@ from django.urls import reverse
 from django.contrib.auth import get_user_model
 from typing import List
 from django.core.paginator import Paginator
+from dal import autocomplete
+from django.db.models import Q
 
 
 @login_required
@@ -842,3 +844,39 @@ def redirect_indexer(request, pk: int) -> HttpResponse:
         return redirect("user-detail", user_id)
 
     raise Http404("No indexer found matching the query.")
+
+
+class CurrentEditorsAutocomplete(autocomplete.Select2QuerySetView):
+    def get_queryset(self):
+        qs = (
+            get_user_model()
+            .objects.filter(
+                Q(groups__name="project manager")
+                | Q(groups__name="editor")
+                | Q(groups__name="contributor")
+            )
+            .order_by("full_name")
+        )
+        if self.q:
+            qs = qs.filter(
+                Q(full_name__istartswith=self.q) | Q(email__istartswith=self.q)
+            )
+        return qs
+
+
+class AllUsersAutocomplete(autocomplete.Select2QuerySetView):
+    def get_queryset(self):
+        qs = get_user_model().objects.all().order_by("full_name")
+        if self.q:
+            qs = qs.filter(
+                Q(full_name__istartswith=self.q) | Q(email__istartswith=self.q)
+            )
+        return qs
+
+
+class CenturyAutocomplete(autocomplete.Select2QuerySetView):
+    def get_queryset(self):
+        qs = Century.objects.all().order_by("name")
+        if self.q:
+            qs = qs.filter(name__istartswith=self.q)
+        return qs

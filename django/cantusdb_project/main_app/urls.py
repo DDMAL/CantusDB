@@ -1,4 +1,4 @@
-from django.urls import include, path, reverse
+from django.urls import include, path, reverse, re_path
 from django.contrib.auth.views import (
     PasswordResetView,
     PasswordResetDoneView,
@@ -62,6 +62,11 @@ from main_app.views.user import (
     UserDetailView,
     UserListView,
     UserSourceListView,
+)
+from main_app.views.views import (
+    CurrentEditorsAutocomplete,
+    AllUsersAutocomplete,
+    CenturyAutocomplete,
 )
 
 urlpatterns = [
@@ -382,6 +387,21 @@ urlpatterns = [
         "indexer/<int:pk>",
         views.redirect_indexer,
         name="redirect-indexer",
+    ),
+    re_path(
+        r"^current-editors-autocomplete/$",
+        CurrentEditorsAutocomplete.as_view(),
+        name="current-editors-autocomplete",
+    ),
+    re_path(
+        r"^all-users-autocomplete/$",
+        AllUsersAutocomplete.as_view(),
+        name="all-users-autocomplete",
+    ),
+    re_path(
+        r"^century-autocomplete/$",
+        CenturyAutocomplete.as_view(),
+        name="century-autocomplete",
     ),
 ]
 
