@@ -541,6 +541,13 @@ class SourceEditForm(forms.ModelForm):
             ),
         }
 
+    rism_siglum = forms.ModelChoiceField(
+        queryset=RismSiglum.objects.all().order_by("name"), required=False
+    )
+    rism_siglum.widget.attrs.update(
+        {"class": "form-control custom-select custom-select-sm"}
+    )
+
     provenance = forms.ModelChoiceField(
         queryset=Provenance.objects.all().order_by("name"), required=False
     )
