@@ -212,6 +212,7 @@ class SourceCreateForm(forms.ModelForm):
         ]
         widgets = {
             "title": TextInputWidget(),
+            "rism_siglum": TextInputWidget(),
             "siglum": TextInputWidget(),
             "provenance_notes": TextInputWidget(),
             "date": TextInputWidget(),
@@ -546,6 +547,13 @@ class SourceEditForm(forms.ModelForm):
                 url="all-users-autocomplete"
             ),
         }
+
+    rism_siglum = forms.ModelChoiceField(
+        queryset=RismSiglum.objects.all().order_by("name"), required=False
+    )
+    rism_siglum.widget.attrs.update(
+        {"class": "form-control custom-select custom-select-sm"}
+    )
 
     provenance = forms.ModelChoiceField(
         queryset=Provenance.objects.all().order_by("name"), required=False
