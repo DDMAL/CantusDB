@@ -212,7 +212,6 @@ class SourceCreateForm(forms.ModelForm):
         ]
         widgets = {
             "title": TextInputWidget(),
-            "rism_siglum": TextInputWidget(),
             "siglum": TextInputWidget(),
             "provenance_notes": TextInputWidget(),
             "date": TextInputWidget(),
@@ -516,7 +515,6 @@ class SourceEditForm(forms.ModelForm):
         ]
         widgets = {
             "title": TextInputWidget(),
-            "rism_siglum": TextInputWidget(),
             "siglum": TextInputWidget(),
             "provenance_notes": TextInputWidget(),
             "date": TextInputWidget(),
