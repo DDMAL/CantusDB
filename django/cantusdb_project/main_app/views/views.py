@@ -31,6 +31,8 @@ from typing import List
 from django.core.paginator import Paginator
 from django.templatetags.static import static
 from django.contrib.flatpages.models import FlatPage
+from dal import autocomplete
+from django.db.models import Q
 
 
 @login_required
@@ -881,6 +883,32 @@ def redirect_indexer(request, pk: int) -> HttpResponse:
     raise Http404("No indexer found matching the query.")
 
 
+def redirect_office(request) -> HttpResponse:
+    """
+    Redirects from office/ (à la OldCantus) to offices/ (à la NewCantus)
+
+    Args:
+        request
+
+    Returns:
+        HttpResponse
+    """
+    return redirect("office-list")
+
+
+def redirect_genre(request) -> HttpResponse:
+    """
+    Redirects from genre/ (à la OldCantus) to genres/ (à la NewCantus)
+
+    Args:
+        request
+
+    Returns:
+        HttpResponse
+    """
+    return redirect("genre-list")
+
+
 def redirect_documents(request) -> HttpResponse:
     """Handle requests to old paths for various
     documents on OldCantus, returning an HTTP Response
@@ -923,3 +951,45 @@ def redirect_documents(request) -> HttpResponse:
         print(old_path)
         raise Http404
     return redirect(new_path)
+
+
+class CurrentEditorsAutocomplete(autocomplete.Select2QuerySetView):
+    def get_queryset(self):
+        if not self.request.user.is_authenticated:
+            return get_user_model().objects.none()
+        qs = (
+            get_user_model()
+            .objects.filter(
+                Q(groups__name="project manager")
+                | Q(groups__name="editor")
+                | Q(groups__name="contributor")
+            )
+            .order_by("full_name")
+        )
+        if self.q:
+            qs = qs.filter(
+                Q(full_name__istartswith=self.q) | Q(email__istartswith=self.q)
+            )
+        return qs
+
+
+class AllUsersAutocomplete(autocomplete.Select2QuerySetView):
+    def get_queryset(self):
+        if not self.request.user.is_authenticated:
+            return get_user_model().objects.none()
+        qs = get_user_model().objects.all().order_by("full_name")
+        if self.q:
+            qs = qs.filter(
+                Q(full_name__istartswith=self.q) | Q(email__istartswith=self.q)
+            )
+        return qs
+
+
+class CenturyAutocomplete(autocomplete.Select2QuerySetView):
+    def get_queryset(self):
+        if not self.request.user.is_authenticated:
+            return Century.objects.none()
+        qs = Century.objects.all().order_by("name")
+        if self.q:
+            qs = qs.filter(name__istartswith=self.q)
+        return qs

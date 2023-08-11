@@ -122,13 +122,13 @@ class SourceListView(ListView):
             # field, allowing for a more flexible search, and a field needs
             # to match only one of the terms
             for term in general_search_terms:
-                title_q |= Q(title__icontains=term)
-                siglum_q |= Q(siglum__icontains=term)
-                rism_siglum_q |= Q(rism_siglum__name__icontains=term) | Q(
-                    rism_siglum__description__icontains=term
+                title_q |= Q(title__unaccent__icontains=term)
+                siglum_q |= Q(siglum__unaccent__icontains=term)
+                rism_siglum_q |= Q(rism_siglum__name__unaccent__icontains=term) | Q(
+                    rism_siglum__description__unaccent__icontains=term
                 )
-                description_q |= Q(description__icontains=term)
-                summary_q |= Q(summary__icontains=term)
+                description_q |= Q(description__unaccent__icontains=term)
+                summary_q |= Q(summary__unaccent__icontains=term)
                 # provenance_q |= Q(provenance__name__icontains=term)
             # All the Q objects are put together with OR.
             # The end result is that at least one term has to match in at least one
@@ -208,6 +208,7 @@ class SourceCreateView(LoginRequiredMixin, UserPassesTestMixin, CreateView):
 
     def form_valid(self, form):
         form.instance.created_by = self.request.user
+        form.instance.last_updated_by = self.request.user
         self.object = form.save()
 
         # assign this source to the "current_editors"

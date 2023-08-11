@@ -63,6 +63,11 @@ from main_app.views.user import (
     UserListView,
     UserSourceListView,
 )
+from main_app.views.views import (
+    CurrentEditorsAutocomplete,
+    AllUsersAutocomplete,
+    CenturyAutocomplete,
+)
 
 urlpatterns = [
     path("__debug__/", include(debug_toolbar.urls)),
@@ -215,6 +220,11 @@ urlpatterns = [
         GenreDetailView.as_view(),
         name="genre-detail",
     ),
+    path(
+        "genre/",
+        views.redirect_genre,
+        name="redirect-genre",
+    ),
     # indexer
     path(
         "indexers/",
@@ -237,6 +247,11 @@ urlpatterns = [
         "office/<int:pk>",
         OfficeDetailView.as_view(),
         name="office-detail",
+    ),
+    path(
+        "office/",
+        views.redirect_office,
+        name="redirect-office",
     ),
     # provenance
     path(
@@ -383,6 +398,7 @@ urlpatterns = [
         views.redirect_indexer,
         name="redirect-indexer",
     ),
+    # links to APIs that list URLs of all pages that live in the database
     path(
         "articles-list/",
         views.articles_list_export,
@@ -428,6 +444,21 @@ urlpatterns = [
         "sites/default/files/HOW TO - manuscript descriptions-Nov6-20.pdf",
         views.redirect_documents,
         name="redirect-how-to-manuscript-descriptions",
+    ),
+    path(
+        "current-editors-autocomplete/",
+        CurrentEditorsAutocomplete.as_view(),
+        name="current-editors-autocomplete",
+    ),
+    path(
+        "all-users-autocomplete/",
+        AllUsersAutocomplete.as_view(),
+        name="all-users-autocomplete",
+    ),
+    path(
+        "century-autocomplete/",
+        CenturyAutocomplete.as_view(),
+        name="century-autocomplete",
     ),
 ]
 

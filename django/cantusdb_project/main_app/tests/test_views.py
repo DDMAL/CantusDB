@@ -29,6 +29,7 @@ from .make_fakes import (
     make_fake_source,
     make_fake_volpiano,
     make_random_string,
+    add_accents_to_string,
 )
 
 from main_app.models import Century
@@ -4198,6 +4199,14 @@ class SourceListViewTest(TestCase):
         response = self.client.get(reverse("source-list"), {"general": search_term})
         self.assertIn(source, response.context["sources"])
 
+        # Test that postgres searches unaccented version of title
+        unaccented_title = source.title
+        accented_title = add_accents_to_string(unaccented_title)
+        source.title = accented_title
+        source.save()
+        response = self.client.get(reverse("source-list"), {"general": search_term})
+        self.assertIn(source, response.context["sources"])
+
     def test_search_by_siglum(self):
         source = make_fake_source(
             siglum=make_random_string(6),
@@ -4205,6 +4214,14 @@ class SourceListViewTest(TestCase):
             title="title",
         )
         search_term = get_random_search_term(source.siglum)
+        response = self.client.get(reverse("source-list"), {"general": search_term})
+        self.assertIn(source, response.context["sources"])
+
+        # Test that postgres searches unaccented version of siglum
+        unaccented_siglum = source.siglum
+        accented_siglum = add_accents_to_string(unaccented_siglum)
+        source.siglum = accented_siglum
+        source.save()
         response = self.client.get(reverse("source-list"), {"general": search_term})
         self.assertIn(source, response.context["sources"])
 
@@ -4219,6 +4236,14 @@ class SourceListViewTest(TestCase):
         response = self.client.get(reverse("source-list"), {"general": search_term})
         self.assertIn(source, response.context["sources"])
 
+        # Test that postgres searches unaccented version of RISM siglum name
+        unaccented_name = rism_siglum.name
+        accented_name = add_accents_to_string(unaccented_name)
+        rism_siglum.name = accented_name
+        rism_siglum.save()
+        response = self.client.get(reverse("source-list"), {"general": search_term})
+        self.assertIn(source, response.context["sources"])
+
     def test_search_by_rism_siglum_description(self):
         rism_siglum = make_fake_rism_siglum()
         source = make_fake_source(
@@ -4227,6 +4252,14 @@ class SourceListViewTest(TestCase):
             title="title",
         )
         search_term = get_random_search_term(source.rism_siglum.description)
+        response = self.client.get(reverse("source-list"), {"general": search_term})
+        self.assertIn(source, response.context["sources"])
+
+        # Test that postgres searches unaccented version of RISM siglum description
+        unaccented_description = rism_siglum.description
+        accented_description = add_accents_to_string(unaccented_description)
+        rism_siglum.description = accented_description
+        rism_siglum.save()
         response = self.client.get(reverse("source-list"), {"general": search_term})
         self.assertIn(source, response.context["sources"])
 
@@ -4240,6 +4273,14 @@ class SourceListViewTest(TestCase):
         response = self.client.get(reverse("source-list"), {"general": search_term})
         self.assertIn(source, response.context["sources"])
 
+        # Test that postgres searches unaccented version of description
+        unaccented_description = source.description
+        accented_description = add_accents_to_string(unaccented_description)
+        source.title = accented_description
+        source.save()
+        response = self.client.get(reverse("source-list"), {"general": search_term})
+        self.assertIn(source, response.context["sources"])
+
     def test_search_by_summary(self):
         source = make_fake_source(
             summary=faker.sentence(),
@@ -4247,6 +4288,14 @@ class SourceListViewTest(TestCase):
             title="title",
         )
         search_term = get_random_search_term(source.summary)
+        response = self.client.get(reverse("source-list"), {"general": search_term})
+        self.assertIn(source, response.context["sources"])
+
+        # Test that postgres searches unaccented version of summary
+        unaccented_summary = source.summary
+        accented_summary = add_accents_to_string(unaccented_summary)
+        source.title = accented_summary
+        source.save()
         response = self.client.get(reverse("source-list"), {"general": search_term})
         self.assertIn(source, response.context["sources"])
 
@@ -4259,6 +4308,14 @@ class SourceListViewTest(TestCase):
         )
         search_term = get_random_search_term(source.indexing_notes)
         response = self.client.get(reverse("source-list"), {"indexing": search_term})
+        self.assertIn(source, response.context["sources"])
+
+        # Test that postgres searches unaccented version of indexing_notes
+        unaccented_indexing_notes = source.indexing_notes
+        accented_indexing_notes = add_accents_to_string(unaccented_indexing_notes)
+        source.title = accented_indexing_notes
+        source.save()
+        response = self.client.get(reverse("source-list"), {"general": search_term})
         self.assertIn(source, response.context["sources"])
 
 
@@ -5355,3 +5412,64 @@ class ContentOverviewTest(TestCase):
         )
         self.assertContains(response, "Test Chant", html=True)
         self.assertNotContains(response, "Test Source", html=True)
+
+
+class AutocompleteViewsTest(TestCase):
+    def setUp(self):
+        self.user = get_user_model().objects.create(email="test@test.com")
+        self.user.set_password("pass")
+        self.user.save()
+        self.client = Client()
+        self.client.login(email="test@test.com", password="pass")
+
+    @classmethod
+    def setUpTestData(cls):
+        Group.objects.create(name="editor")
+        u1 = get_user_model().objects.create(email="hello@test.com")
+        u2 = get_user_model().objects.create(full_name="Lucas")
+        editor = Group.objects.get(name="editor")
+        editor.user_set.add(u1)
+
+        for i in range(10):
+            make_fake_century()
+
+    def test_current_editors_autocomplete(self):
+        response = self.client.get(reverse("current-editors-autocomplete"))
+        self.assertEqual(response.status_code, 200)
+
+        data = response.json()
+        self.assertEqual(len(data["results"]), 1)
+
+    def test_all_users_autocomplete(self):
+        response = self.client.get(reverse("all-users-autocomplete"))
+        self.assertEqual(response.status_code, 200)
+        data = response.json()
+        self.assertEqual(len(data["results"]), 3)
+
+        response2 = self.client.get(reverse("all-users-autocomplete"), {"q": "L"})
+        self.assertEqual(response2.status_code, 200)
+        data = response2.json()
+        self.assertEqual(len(data["results"]), 1)
+
+    def test_century_autocomplete(self):
+        response = self.client.get(reverse("century-autocomplete"))
+        self.assertEqual(response.status_code, 200)
+        data = response.json()
+        self.assertEqual(len(data["results"]), 10)
+
+    def test_non_authenticated_user(self):
+        self.client.logout()
+        response = self.client.get(reverse("current-editors-autocomplete"))
+        self.assertEqual(response.status_code, 200)
+        data = response.json()
+        self.assertEqual(len(data["results"]), 0)
+
+        response = self.client.get(reverse("all-users-autocomplete"))
+        self.assertEqual(response.status_code, 200)
+        data = response.json()
+        self.assertEqual(len(data["results"]), 0)
+
+        response = self.client.get(reverse("century-autocomplete"))
+        self.assertEqual(response.status_code, 200)
+        data = response.json()
+        self.assertEqual(len(data["results"]), 0)

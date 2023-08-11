@@ -1,7 +1,10 @@
 {% extends "base.html" %}
+{% load static %}
 {% block content %}
 <title>{{ source.title }} | Cantus Manuscript Database</title>
 <script src="/static/js/source_detail.js"></script>
+<script type="text/javascript" src="{% static 'admin/js/vendor/jquery/jquery.js' %}"></script>
+{{ form.media }}
 
 <div class="container">
     <div class="row">
@@ -43,10 +46,13 @@
                 <div class="form-row mb-3">
                     <div class="form-group m-1 col-lg-4">
                         <label for="{{ form.rism_siglum.id_for_label }}">
-                            RISM:
+                            <small>RISM:</small>
                         </label>
                         {{ form.rism_siglum }}
-                        <small><a href="https://www.rism.info/sigla.html" target="_blank">Browse RISM sigla</a> (opens in new tab)</small>
+                        <small>
+                            <a href="https://rism.info/community/sigla.html" target="_blank">Browse RISM sigla</a>
+                            (opens in new tab)
+                        </small>
                     </div>
                     <div class="form-group m-1 col-lg-7">
                         <label for="{{ form.siglum.id_for_label }}">
@@ -82,14 +88,17 @@
                 </div>
 
                 <div class="form-row mb-3">
+                    <div class="form-group m-1 col-lg-3">
+                        {{ form.century.label_tag }}
+                        {{ form.century }}
+                    </div>
+                </div>
+
+                <div class="form-row mb-3">
                     <div class="form-group m-1 col-lg-7">
                         {{ form.date.label_tag }}
                         {{ form.date }}
                         <small>Date of the manuscript (e.g. "1200s", "1300-1350", etc.)</small>
-                    </div>
-                    <div class="form-group m-1 col-lg-4">
-                        {{ form.century.label_tag }}
-                        {{ form.century }}
                     </div>
                 </div>
 
@@ -101,16 +110,39 @@
                 </div>
 
                 <div class="form-row mb-3">
-                    <div class="form-group m-1 col-lg-12">
+                    <div class="form-group m-1 col-lg-3">
                         {{ form.current_editors.label_tag }}
                         {{ form.current_editors }}
                     </div>
-                </div>
-
+                </div> 
                 <div class="form-row mb-3">
-                    <div class="form-group m-1 col-lg-12">
+                    <div class="form-group m-1 col-lg-3">
                         {{ form.melodies_entered_by.label_tag }}
                         {{ form.melodies_entered_by }}
+                    </div>
+                </div>
+                <div class="form-row mb-3">
+                    <div class="form-group m-1 col-lg-3">
+                        {{ form.inventoried_by.label_tag }}
+                        {{ form.inventoried_by }}
+                    </div>
+                </div>
+                <div class="form-row mb-3">
+                    <div class="form-group m-1 col-lg-3">
+                        {{ form.full_text_entered_by.label_tag }}
+                        {{ form.full_text_entered_by }}
+                    </div>
+                </div>
+                <div class="form-row mb-3">
+                    <div class="form-group m-1 col-lg-3">
+                        {{ form.proofreaders.label_tag }}
+                        {{ form.proofreaders }}
+                    </div>
+                </div>
+                <div class="form-row mb-3">
+                    <div class="form-group m-1 col-lg-3">
+                        {{ form.other_editors.label_tag }}
+                        {{ form.other_editors }}
                     </div>
                 </div>
 
