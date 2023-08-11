@@ -223,6 +223,7 @@ class SourceCreateForm(forms.ModelForm):
             "fragmentarium_id": TextInputWidget(),
             "dact_id": TextInputWidget(),
             "indexing_notes": TextAreaWidget(),
+            "rism_siglum": autocomplete.ModelSelect2(url="rismsiglum-autocomplete"),
             "current_editors": autocomplete.ModelSelect2Multiple(
                 url="current-editors-autocomplete"
             ),
@@ -243,13 +244,6 @@ class SourceCreateForm(forms.ModelForm):
                 url="all-users-autocomplete"
             ),
         }
-
-    rism_siglum = forms.ModelChoiceField(
-        queryset=RismSiglum.objects.all().order_by("name"), required=False
-    )
-    rism_siglum.widget.attrs.update(
-        {"class": "form-control custom-select custom-select-sm"}
-    )
 
     provenance = forms.ModelChoiceField(
         queryset=Provenance.objects.all().order_by("name"), required=False
@@ -515,7 +509,7 @@ class SourceEditForm(forms.ModelForm):
         ]
         widgets = {
             "title": TextInputWidget(),
-            "rism_siglum": TextInputWidget(),
+            "rism_siglum": autocomplete.ModelSelect2(url="rismsiglum-autocomplete"),
             "siglum": TextInputWidget(),
             "provenance_notes": TextInputWidget(),
             "date": TextInputWidget(),
