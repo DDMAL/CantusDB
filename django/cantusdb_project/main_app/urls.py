@@ -63,6 +63,11 @@ from main_app.views.user import (
     UserListView,
     UserSourceListView,
 )
+from main_app.views.views import (
+    CurrentEditorsAutocomplete,
+    AllUsersAutocomplete,
+    CenturyAutocomplete,
+)
 
 urlpatterns = [
     path("__debug__/", include(debug_toolbar.urls)),
@@ -439,6 +444,21 @@ urlpatterns = [
         "sites/default/files/HOW TO - manuscript descriptions-Nov6-20.pdf",
         views.redirect_documents,
         name="redirect-how-to-manuscript-descriptions",
+    ),
+    path(
+        "current-editors-autocomplete/",
+        CurrentEditorsAutocomplete.as_view(),
+        name="current-editors-autocomplete",
+    ),
+    path(
+        "all-users-autocomplete/",
+        AllUsersAutocomplete.as_view(),
+        name="all-users-autocomplete",
+    ),
+    path(
+        "century-autocomplete/",
+        CenturyAutocomplete.as_view(),
+        name="century-autocomplete",
     ),
 ]
 
