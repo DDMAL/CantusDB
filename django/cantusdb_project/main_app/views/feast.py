@@ -1,4 +1,5 @@
 from django.views.generic import DetailView, ListView
+from django.db.models.functions import Lower
 from main_app.models import Feast, Source
 from extra_views import SearchableListMixin
 
@@ -90,13 +91,14 @@ class FeastListView(SearchableListMixin, ListView):
     context_object_name = "feasts"
     template_name = "feast_list.html"
 
-    def get_ordering(self):
+    def get_ordering(self) -> tuple:
         ordering = self.request.GET.get("sort_by")
         # feasts can be ordered by name or feast_code,
         # default to ordering by name if given anything else
         if ordering not in ["name", "feast_code"]:
             ordering = "name"
-        return ordering
+        # case insensitive ordering by name
+        return (Lower(ordering),) if ordering == "name" else (ordering,)
 
     def get_queryset(self):
         queryset = super().get_queryset()

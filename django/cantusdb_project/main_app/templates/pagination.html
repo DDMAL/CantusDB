@@ -3,18 +3,30 @@
 <div class="pagination">
     <span class="step-links">
         {% if page_obj.has_previous %}
-        <a href="?{% url_add_get_params page=1%}">&laquo;
-            first</a>
-        <a href="?{% url_add_get_params page=page_obj.previous_page_number %}">previous</a>
+            <a href="?{% url_add_get_params page=1 %}">&laquo; first</a>
         {% endif %}
-        <span class="current">
-            Page {{ page_obj.number }} of {{ page_obj.paginator.num_pages }}
-        </span>
+
+        {% if page_obj.number > 6 %}
+            <span class="ellipsis">...</span>
+        {% endif %}
+
+        {% for num in page_obj.paginator.page_range %}
+            {% if num > page_obj.number|add:'-6' and num < page_obj.number|add:'6' %}
+                {% if num == page_obj.number %}
+                    <b>{{ num }}</b>
+                {% else %}
+                    <a href="?{% url_add_get_params page=num %}">{{ num }}</a>
+                {% endif %}
+            {% endif %}
+        {% endfor %}
+
+        {% if page_obj.number < page_obj.paginator.num_pages|add:'-6' %}
+            <span class="ellipsis">...</span>
+        {% endif %}
 
         {% if page_obj.has_next %}
-        <a href="?{% url_add_get_params page=page_obj.next_page_number %}">next</a>
-        <a href="?{% url_add_get_params page=page_obj.paginator.num_pages %}">last
-            &raquo;</a>
+            <a href="?{% url_add_get_params page=page_obj.paginator.num_pages %}">last &raquo;</a>
         {% endif %}
     </span>
 </div>
+<span class="current">Page {{ page_obj.number }} of {{ page_obj.paginator.num_pages }}</span>

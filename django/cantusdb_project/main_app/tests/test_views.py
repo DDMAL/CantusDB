@@ -9,6 +9,7 @@ from django.contrib.auth import get_user_model
 from django.contrib.auth.models import Group
 from django.test import Client
 from django.db.models import Q
+from django.db.models.functions import Lower
 import csv
 
 from faker import Faker
@@ -28,6 +29,7 @@ from .make_fakes import (
     make_fake_source,
     make_fake_volpiano,
     make_random_string,
+    add_accents_to_string,
 )
 
 from main_app.models import Century
@@ -92,35 +94,69 @@ class PermissionsTest(TestCase):
         # currently not logged in, should redirect
 
         # ChantCreateView
-        response = self.client.get(f"/chant-create/{source.id}")
+        response = self.client.get(
+            reverse(
+                "chant-create",
+                args=[source.id],
+            )
+        )
         self.assertRedirects(response, f"/login/?next=/chant-create/{source.id}")
 
         # ChantDeleteView
-        response = self.client.get(f"/chant-delete/{chant.id}")
-        self.assertRedirects(response, f"/login/?next=/chant-delete/{chant.id}")
+        response = self.client.get(
+            reverse(
+                "chant-delete",
+                args=[chant.id],
+            )
+        )
+        self.assertRedirects(response, f"/login/?next=/chant/{chant.id}/delete")
 
         # SourceEditChantsView
-        response = self.client.get(f"/edit-chants/{source.id}")
+        response = self.client.get(
+            reverse(
+                "source-edit-chants",
+                args=[source.id],
+            )
+        )
         self.assertRedirects(response, f"/login/?next=/edit-chants/{source.id}")
 
         # SequenceEditView
-        response = self.client.get(f"/edit-sequence/{sequence.id}")
+        response = self.client.get(
+            reverse(
+                "sequence-edit",
+                args=[sequence.id],
+            )
+        )
         self.assertRedirects(response, f"/login/?next=/edit-sequence/{sequence.id}")
 
         # SourceCreateView
-        response = self.client.get("/source-create/")
+        response = self.client.get(reverse("source-create"))
         self.assertRedirects(response, "/login/?next=/source-create/")
 
         # SourceEditView
-        response = self.client.get(f"/edit-source/{source.id}")
+        response = self.client.get(
+            reverse(
+                "source-edit",
+                args=[source.id],
+            )
+        )
         self.assertRedirects(response, f"/login/?next=/edit-source/{source.id}")
 
+        # SourceDeleteView
+        response = self.client.get(
+            reverse(
+                "source-delete",
+                args=[source.id],
+            )
+        )
+        self.assertRedirects(response, f"/login/?next=/source/{source.id}/delete")
+
         # UserSourceListView
-        response = self.client.get("/my-sources/")
+        response = self.client.get(reverse("my-sources"))
         self.assertRedirects(response, "/login/?next=/my-sources/")
 
         # UserListView
-        response = self.client.get("/users/")
+        response = self.client.get(reverse("user-list"))
         self.assertRedirects(response, "/login/?next=/users/")
 
     def test_permissions_project_manager(self):
@@ -134,27 +170,65 @@ class PermissionsTest(TestCase):
         sequence = Sequence.objects.order_by("?").first()
 
         # ChantCreateView
-        response = self.client.get(f"/chant-create/{source.id}")
+        response = self.client.get(
+            reverse(
+                "chant-create",
+                args=[source.id],
+            )
+        )
         self.assertEqual(response.status_code, 200)
 
         # ChantDeleteView
-        response = self.client.get(f"/chant-delete/{chant.id}")
+        response = self.client.get(
+            reverse(
+                "chant-delete",
+                args=[chant.id],
+            )
+        )
         self.assertEqual(response.status_code, 200)
 
         # SourceEditChantsView
-        response = self.client.get(f"/edit-chants/{source.id}")
+        response = self.client.get(
+            reverse(
+                "source-edit-chants",
+                args=[source.id],
+            )
+        )
         self.assertEqual(response.status_code, 200)
 
         # SequenceEditView
-        response = self.client.get(f"/edit-sequence/{sequence.id}")
+        response = self.client.get(
+            reverse(
+                "sequence-edit",
+                args=[sequence.id],
+            )
+        )
         self.assertEqual(response.status_code, 200)
 
         # SourceCreateView
-        response = self.client.get("/source-create/")
+        response = self.client.get(
+            reverse(
+                "source-create",
+            )
+        )
         self.assertEqual(response.status_code, 200)
 
         # SourceEditView
-        response = self.client.get(f"/edit-source/{source.id}")
+        response = self.client.get(
+            reverse(
+                "source-edit",
+                args=[source.id],
+            )
+        )
+        self.assertEqual(response.status_code, 200)
+
+        # SourceDeleteView
+        response = self.client.get(
+            reverse(
+                "source-delete",
+                args=[source.id],
+            )
+        )
         self.assertEqual(response.status_code, 200)
 
         # ContentOverview
@@ -201,7 +275,13 @@ class PermissionsTest(TestCase):
         sequence = Sequence.objects.order_by("?").first()
 
         # ChantCreateView
-        response = self.client.get(f"/chant-create/{restricted_source.id}")
+        # response = self.client.get(f"/chant-create/{restricted_source.id}")
+        response = self.client.get(
+            reverse(
+                "chant-create",
+                args=[restricted_source.id],
+            )
+        )
         self.assertEqual(response.status_code, 403)
 
         response = self.client.get(f"/chant-create/{source_created_by_contributor.id}")
@@ -211,15 +291,15 @@ class PermissionsTest(TestCase):
         self.assertEqual(response.status_code, 200)
 
         # ChantDeleteView
-        response = self.client.get(f"/chant-delete/{restricted_chant.id}")
+        response = self.client.get(f"/chant/{restricted_chant.id}/delete")
         self.assertEqual(response.status_code, 403)
 
         response = self.client.get(
-            f"/chant-delete/{chant_in_source_created_by_contributor.id}"
+            f"/chant/{chant_in_source_created_by_contributor.id}/delete"
         )
         self.assertEqual(response.status_code, 200)
 
-        response = self.client.get(f"/chant-delete/{chant_in_assigned_source.id}")
+        response = self.client.get(f"/chant/{chant_in_assigned_source.id}/delete")
         self.assertEqual(response.status_code, 200)
 
         # SourceEditChantsView
@@ -250,6 +330,17 @@ class PermissionsTest(TestCase):
         response = self.client.get(f"/edit-source/{assigned_source.id}")
         self.assertEqual(response.status_code, 403)
 
+        # SourceDeleteView
+        response = self.client.get(f"/source/{restricted_source.id}/delete")
+        self.assertEqual(response.status_code, 403)
+
+        response = self.client.get(f"/source/{source_created_by_contributor.id}/delete")
+        self.assertEqual(response.status_code, 200)
+
+        response = self.client.get(f"/source/{assigned_source.id}/delete")
+        self.assertEqual(response.status_code, 403)
+
+        # Content Overview
         response = self.client.get(reverse("content-overview"))
         self.assertEqual(response.status_code, 403)
 
@@ -303,15 +394,15 @@ class PermissionsTest(TestCase):
         self.assertEqual(response.status_code, 200)
 
         # ChantDeleteView
-        response = self.client.get(f"/chant-delete/{restricted_chant.id}")
+        response = self.client.get(f"/chant/{restricted_chant.id}/delete")
         self.assertEqual(response.status_code, 403)
 
         response = self.client.get(
-            f"/chant-delete/{chant_in_source_created_by_contributor.id}"
+            f"/chant/{chant_in_source_created_by_contributor.id}/delete"
         )
         self.assertEqual(response.status_code, 200)
 
-        response = self.client.get(f"/chant-delete/{chant_in_assigned_source.id}")
+        response = self.client.get(f"/chant/{chant_in_assigned_source.id}/delete")
         self.assertEqual(response.status_code, 200)
 
         # SourceEditChantsView
@@ -342,6 +433,17 @@ class PermissionsTest(TestCase):
         response = self.client.get(f"/edit-source/{assigned_source.id}")
         self.assertEqual(response.status_code, 200)
 
+        # SourceDeleteView
+        response = self.client.get(f"/source/{restricted_source.id}/delete")
+        self.assertEqual(response.status_code, 403)
+
+        response = self.client.get(f"/source/{source_created_by_contributor.id}/delete")
+        self.assertEqual(response.status_code, 200)
+
+        response = self.client.get(f"/source/{assigned_source.id}/delete")
+        self.assertEqual(response.status_code, 200)
+
+        # Content Overview
         response = self.client.get(reverse("content-overview"))
         self.assertEqual(response.status_code, 403)
 
@@ -358,7 +460,7 @@ class PermissionsTest(TestCase):
         self.assertEqual(response.status_code, 403)
 
         # ChantDeleteView
-        response = self.client.get(f"/chant-delete/{chant.id}")
+        response = self.client.get(f"/chant/{chant.id}/delete")
         self.assertEqual(response.status_code, 403)
 
         # SourceEditChantsView
@@ -377,6 +479,11 @@ class PermissionsTest(TestCase):
         response = self.client.get(f"/edit-source/{source.id}")
         self.assertEqual(response.status_code, 403)
 
+        # SourceDeleteView
+        response = self.client.get(f"/source/{source.id}/delete")
+        self.assertEqual(response.status_code, 403)
+
+        # Content Overview
         response = self.client.get(reverse("content-overview"))
         self.assertEqual(response.status_code, 403)
 
@@ -796,7 +903,7 @@ class ChantSearchViewTest(TestCase):
         source = make_fake_source(published=True)
         office = make_fake_office()
         chant = Chant.objects.create(source=source, office=office)
-        search_term = get_random_search_term(office.name)
+        search_term = office.id
         response = self.client.get(reverse("chant-search"), {"office": search_term})
         context_chant_id = response.context["chants"][0]["id"]
         self.assertEqual(chant.id, context_chant_id)
@@ -1293,7 +1400,7 @@ class ChantSearchViewTest(TestCase):
         query_keys_and_values = {
             "op": "contains",
             "keyword": search_term,
-            "office": office.name,
+            "office": office.id,
             "genre": genre.id,
             "cantus_id": cantus_id,
             "mode": mode,
@@ -1644,7 +1751,7 @@ class ChantSearchMSViewTest(TestCase):
         source = make_fake_source()
         office = make_fake_office()
         chant = Chant.objects.create(source=source, office=office)
-        search_term = get_random_search_term(office.name)
+        search_term = office.id
         response = self.client.get(
             reverse("chant-search-ms", args=[source.id]), {"office": search_term}
         )
@@ -2192,7 +2299,7 @@ class ChantSearchMSViewTest(TestCase):
         query_keys_and_values = {
             "op": "contains",
             "keyword": search_term,
-            "office": office.name,
+            "office": office.id,
             "genre": genre.id,
             "cantus_id": cantus_id,
             "mode": mode,
@@ -3320,13 +3427,13 @@ class FeastListViewTest(TestCase):
         response = self.client.get(reverse("feast-list"), {"sort_by": "name"})
         self.assertEqual(response.status_code, 200)
         feasts = response.context["feasts"]
-        self.assertEqual(feasts.query.order_by[0], "name")
+        self.assertEqual(feasts.query.order_by[0], Lower("name"))
 
         # Empty ordering parameters in GET request should default to ordering by name
         response = self.client.get(reverse("feast-list"), {"sort_by": ""})
         self.assertEqual(response.status_code, 200)
         feasts = response.context["feasts"]
-        self.assertEqual(feasts.query.order_by[0], "name")
+        self.assertEqual(feasts.query.order_by[0], Lower("name"))
 
         # Anything other than name and feast_code should default to ordering by name
         response = self.client.get(
@@ -3334,7 +3441,7 @@ class FeastListViewTest(TestCase):
         )
         self.assertEqual(response.status_code, 200)
         feasts = response.context["feasts"]
-        self.assertEqual(feasts.query.order_by[0], "name")
+        self.assertEqual(feasts.query.order_by[0], Lower("name"))
 
     def test_search_name(self):
         """Feast can be searched by any part of its name, description, or feast_code"""
@@ -4092,6 +4199,14 @@ class SourceListViewTest(TestCase):
         response = self.client.get(reverse("source-list"), {"general": search_term})
         self.assertIn(source, response.context["sources"])
 
+        # Test that postgres searches unaccented version of title
+        unaccented_title = source.title
+        accented_title = add_accents_to_string(unaccented_title)
+        source.title = accented_title
+        source.save()
+        response = self.client.get(reverse("source-list"), {"general": search_term})
+        self.assertIn(source, response.context["sources"])
+
     def test_search_by_siglum(self):
         source = make_fake_source(
             siglum=make_random_string(6),
@@ -4099,6 +4214,14 @@ class SourceListViewTest(TestCase):
             title="title",
         )
         search_term = get_random_search_term(source.siglum)
+        response = self.client.get(reverse("source-list"), {"general": search_term})
+        self.assertIn(source, response.context["sources"])
+
+        # Test that postgres searches unaccented version of siglum
+        unaccented_siglum = source.siglum
+        accented_siglum = add_accents_to_string(unaccented_siglum)
+        source.siglum = accented_siglum
+        source.save()
         response = self.client.get(reverse("source-list"), {"general": search_term})
         self.assertIn(source, response.context["sources"])
 
@@ -4113,6 +4236,14 @@ class SourceListViewTest(TestCase):
         response = self.client.get(reverse("source-list"), {"general": search_term})
         self.assertIn(source, response.context["sources"])
 
+        # Test that postgres searches unaccented version of RISM siglum name
+        unaccented_name = rism_siglum.name
+        accented_name = add_accents_to_string(unaccented_name)
+        rism_siglum.name = accented_name
+        rism_siglum.save()
+        response = self.client.get(reverse("source-list"), {"general": search_term})
+        self.assertIn(source, response.context["sources"])
+
     def test_search_by_rism_siglum_description(self):
         rism_siglum = make_fake_rism_siglum()
         source = make_fake_source(
@@ -4121,6 +4252,14 @@ class SourceListViewTest(TestCase):
             title="title",
         )
         search_term = get_random_search_term(source.rism_siglum.description)
+        response = self.client.get(reverse("source-list"), {"general": search_term})
+        self.assertIn(source, response.context["sources"])
+
+        # Test that postgres searches unaccented version of RISM siglum description
+        unaccented_description = rism_siglum.description
+        accented_description = add_accents_to_string(unaccented_description)
+        rism_siglum.description = accented_description
+        rism_siglum.save()
         response = self.client.get(reverse("source-list"), {"general": search_term})
         self.assertIn(source, response.context["sources"])
 
@@ -4134,6 +4273,14 @@ class SourceListViewTest(TestCase):
         response = self.client.get(reverse("source-list"), {"general": search_term})
         self.assertIn(source, response.context["sources"])
 
+        # Test that postgres searches unaccented version of description
+        unaccented_description = source.description
+        accented_description = add_accents_to_string(unaccented_description)
+        source.title = accented_description
+        source.save()
+        response = self.client.get(reverse("source-list"), {"general": search_term})
+        self.assertIn(source, response.context["sources"])
+
     def test_search_by_summary(self):
         source = make_fake_source(
             summary=faker.sentence(),
@@ -4141,6 +4288,14 @@ class SourceListViewTest(TestCase):
             title="title",
         )
         search_term = get_random_search_term(source.summary)
+        response = self.client.get(reverse("source-list"), {"general": search_term})
+        self.assertIn(source, response.context["sources"])
+
+        # Test that postgres searches unaccented version of summary
+        unaccented_summary = source.summary
+        accented_summary = add_accents_to_string(unaccented_summary)
+        source.title = accented_summary
+        source.save()
         response = self.client.get(reverse("source-list"), {"general": search_term})
         self.assertIn(source, response.context["sources"])
 
@@ -4153,6 +4308,14 @@ class SourceListViewTest(TestCase):
         )
         search_term = get_random_search_term(source.indexing_notes)
         response = self.client.get(reverse("source-list"), {"indexing": search_term})
+        self.assertIn(source, response.context["sources"])
+
+        # Test that postgres searches unaccented version of indexing_notes
+        unaccented_indexing_notes = source.indexing_notes
+        accented_indexing_notes = add_accents_to_string(unaccented_indexing_notes)
+        source.title = accented_indexing_notes
+        source.save()
+        response = self.client.get(reverse("source-list"), {"general": search_term})
         self.assertIn(source, response.context["sources"])
 
 
@@ -5148,6 +5311,34 @@ class IndexerRedirectTest(TestCase):
         self.assertEqual(response_1.status_code, 404)
 
 
+class DocumentRedirectTest(TestCase):
+    def setUp(self):
+        self.client = Client()
+
+    def test_document_redirects(self):
+        old_document_paths = (
+            "/sites/default/files/documents/1. Quick Guide to Liturgy.pdf",
+            "/sites/default/files/documents/2. Volpiano Protocols.pdf",
+            "/sites/default/files/documents/3. Volpiano Neumes for Review.docx",
+            "/sites/default/files/documents/4. Volpiano Neume Protocols.pdf",
+            "/sites/default/files/documents/5. Volpiano Editing Guidelines.pdf",
+            "/sites/default/files/documents/7. Guide to Graduals.pdf",
+            "/sites/default/files/HOW TO - manuscript descriptions-Nov6-20.pdf",
+        )
+        for path in old_document_paths:
+            # each path should redirect to the new path
+            response = self.client.get(path)
+            self.assertEqual(response.status_code, 302)
+            # In Aug 2023, Jacob struggled to get the following lines to work -
+            # I was getting 404s when I expected 200s. This final step would be nice
+            # to test properly - if a future developer who is cleverer than me can
+            # get this working, that would be excellent!
+
+            # redirect_url = response.url
+            # followed_response = self.client.get(redirect_url)
+            # self.assertEqual(followed_response.status_code, 200)
+
+
 class ContentOverviewTest(TestCase):
     @classmethod
     def setUpTestData(cls):
@@ -5221,3 +5412,64 @@ class ContentOverviewTest(TestCase):
         )
         self.assertContains(response, "Test Chant", html=True)
         self.assertNotContains(response, "Test Source", html=True)
+
+
+class AutocompleteViewsTest(TestCase):
+    def setUp(self):
+        self.user = get_user_model().objects.create(email="test@test.com")
+        self.user.set_password("pass")
+        self.user.save()
+        self.client = Client()
+        self.client.login(email="test@test.com", password="pass")
+
+    @classmethod
+    def setUpTestData(cls):
+        Group.objects.create(name="editor")
+        u1 = get_user_model().objects.create(email="hello@test.com")
+        u2 = get_user_model().objects.create(full_name="Lucas")
+        editor = Group.objects.get(name="editor")
+        editor.user_set.add(u1)
+
+        for i in range(10):
+            make_fake_century()
+
+    def test_current_editors_autocomplete(self):
+        response = self.client.get(reverse("current-editors-autocomplete"))
+        self.assertEqual(response.status_code, 200)
+
+        data = response.json()
+        self.assertEqual(len(data["results"]), 1)
+
+    def test_all_users_autocomplete(self):
+        response = self.client.get(reverse("all-users-autocomplete"))
+        self.assertEqual(response.status_code, 200)
+        data = response.json()
+        self.assertEqual(len(data["results"]), 3)
+
+        response2 = self.client.get(reverse("all-users-autocomplete"), {"q": "L"})
+        self.assertEqual(response2.status_code, 200)
+        data = response2.json()
+        self.assertEqual(len(data["results"]), 1)
+
+    def test_century_autocomplete(self):
+        response = self.client.get(reverse("century-autocomplete"))
+        self.assertEqual(response.status_code, 200)
+        data = response.json()
+        self.assertEqual(len(data["results"]), 10)
+
+    def test_non_authenticated_user(self):
+        self.client.logout()
+        response = self.client.get(reverse("current-editors-autocomplete"))
+        self.assertEqual(response.status_code, 200)
+        data = response.json()
+        self.assertEqual(len(data["results"]), 0)
+
+        response = self.client.get(reverse("all-users-autocomplete"))
+        self.assertEqual(response.status_code, 200)
+        data = response.json()
+        self.assertEqual(len(data["results"]), 0)
+
+        response = self.client.get(reverse("century-autocomplete"))
+        self.assertEqual(response.status_code, 200)
+        data = response.json()
+        self.assertEqual(len(data["results"]), 0)

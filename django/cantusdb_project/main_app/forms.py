@@ -1,4 +1,5 @@
 from django import forms
+from django.contrib.auth.forms import ReadOnlyPasswordHashField
 from .models import (
     Chant,
     Office,
@@ -27,6 +28,7 @@ from django.db.models import Q
 from django.contrib.admin.widgets import (
     FilteredSelectMultiple,
 )
+from dal import autocomplete
 
 # ModelForm allows to build a form directly from a model
 # see https://docs.djangoproject.com/en/3.0/topics/forms/modelforms/
@@ -195,6 +197,10 @@ class SourceCreateForm(forms.ModelForm):
             "cursus",
             "current_editors",
             "melodies_entered_by",
+            "inventoried_by",
+            "full_text_entered_by",
+            "proofreaders",
+            "other_editors",
             "complete_inventory",
             "summary",
             "description",
@@ -217,6 +223,25 @@ class SourceCreateForm(forms.ModelForm):
             "fragmentarium_id": TextInputWidget(),
             "dact_id": TextInputWidget(),
             "indexing_notes": TextAreaWidget(),
+            "current_editors": autocomplete.ModelSelect2Multiple(
+                url="current-editors-autocomplete"
+            ),
+            "melodies_entered_by": autocomplete.ModelSelect2Multiple(
+                url="all-users-autocomplete"
+            ),
+            "century": autocomplete.ModelSelect2Multiple(url="century-autocomplete"),
+            "inventoried_by": autocomplete.ModelSelect2Multiple(
+                url="all-users-autocomplete"
+            ),
+            "full_text_entered_by": autocomplete.ModelSelect2Multiple(
+                url="all-users-autocomplete"
+            ),
+            "proofreaders": autocomplete.ModelSelect2Multiple(
+                url="all-users-autocomplete"
+            ),
+            "other_editors": autocomplete.ModelSelect2Multiple(
+                url="all-users-autocomplete"
+            ),
         }
 
     rism_siglum = forms.ModelChoiceField(
@@ -242,35 +267,6 @@ class SourceCreateForm(forms.ModelForm):
     full_source.widget.attrs.update(
         {"class": "form-control custom-select custom-select-sm"}
     )
-
-    century = forms.ModelMultipleChoiceField(
-        queryset=Century.objects.all().order_by("name"), required=False
-    )
-    century.widget.attrs.update(
-        {"class": "form-control custom-select custom-select-sm"}
-    )
-
-    current_editors = forms.ModelMultipleChoiceField(
-        queryset=get_user_model()
-        .objects.filter(
-            Q(groups__name="project manager")
-            | Q(groups__name="editor")
-            | Q(groups__name="contributor")
-        )
-        .order_by("last_name"),
-        required=False,
-    )
-    current_editors.widget.attrs.update(
-        {"class": "form-control custom-select custom-select-sm"}
-    )
-
-    melodies_entered_by = forms.ModelMultipleChoiceField(
-        queryset=get_user_model().objects.all().order_by("full_name"), required=False
-    )
-    melodies_entered_by.widget.attrs.update(
-        {"class": "form-control custom-select custom-select-sm"}
-    )
-
     TRUE_FALSE_CHOICES_INVEN = ((True, "Complete"), (False, "Incomplete"))
 
     complete_inventory = forms.ChoiceField(
@@ -502,8 +498,6 @@ class SourceEditForm(forms.ModelForm):
             "date",
             "century",
             "cursus",
-            "current_editors",
-            "melodies_entered_by",
             "complete_inventory",
             "summary",
             "description",
@@ -512,10 +506,15 @@ class SourceEditForm(forms.ModelForm):
             "fragmentarium_id",
             "dact_id",
             "indexing_notes",
+            "current_editors",
+            "melodies_entered_by",
+            "inventoried_by",
+            "full_text_entered_by",
+            "proofreaders",
+            "other_editors",
         ]
         widgets = {
             "title": TextInputWidget(),
-            "rism_siglum": TextInputWidget(),
             "siglum": TextInputWidget(),
             "provenance_notes": TextInputWidget(),
             "date": TextInputWidget(),
@@ -526,7 +525,33 @@ class SourceEditForm(forms.ModelForm):
             "fragmentarium_id": TextInputWidget(),
             "dact_id": TextInputWidget(),
             "indexing_notes": TextAreaWidget(),
+            "current_editors": autocomplete.ModelSelect2Multiple(
+                url="current-editors-autocomplete"
+            ),
+            "melodies_entered_by": autocomplete.ModelSelect2Multiple(
+                url="all-users-autocomplete"
+            ),
+            "century": autocomplete.ModelSelect2Multiple(url="century-autocomplete"),
+            "inventoried_by": autocomplete.ModelSelect2Multiple(
+                url="all-users-autocomplete"
+            ),
+            "full_text_entered_by": autocomplete.ModelSelect2Multiple(
+                url="all-users-autocomplete"
+            ),
+            "proofreaders": autocomplete.ModelSelect2Multiple(
+                url="all-users-autocomplete"
+            ),
+            "other_editors": autocomplete.ModelSelect2Multiple(
+                url="all-users-autocomplete"
+            ),
         }
+
+    rism_siglum = forms.ModelChoiceField(
+        queryset=RismSiglum.objects.all().order_by("name"), required=False
+    )
+    rism_siglum.widget.attrs.update(
+        {"class": "form-control custom-select custom-select-sm"}
+    )
 
     provenance = forms.ModelChoiceField(
         queryset=Provenance.objects.all().order_by("name"), required=False
@@ -534,13 +559,6 @@ class SourceEditForm(forms.ModelForm):
     provenance.widget.attrs.update(
         {"class": "form-control custom-select custom-select-sm"}
     )  # adds styling
-
-    century = forms.ModelMultipleChoiceField(
-        queryset=Century.objects.all().order_by("name"), required=False
-    )
-    century.widget.attrs.update(
-        {"class": "form-control custom-select custom-select-sm"}
-    )
 
     CHOICES_FULL_SOURCE = (
         (None, "None"),
@@ -559,27 +577,6 @@ class SourceEditForm(forms.ModelForm):
     )
     cursus = forms.ChoiceField(choices=CHOICES_CURSUS, required=False)
     cursus.widget.attrs.update({"class": "form-control custom-select custom-select-sm"})
-
-    current_editors = forms.ModelMultipleChoiceField(
-        queryset=get_user_model()
-        .objects.filter(
-            Q(groups__name="project manager")
-            | Q(groups__name="editor")
-            | Q(groups__name="contributor")
-        )
-        .order_by("last_name"),
-        required=False,
-    )
-    current_editors.widget.attrs.update(
-        {"class": "form-control custom-select custom-select-sm"}
-    )
-
-    melodies_entered_by = forms.ModelMultipleChoiceField(
-        queryset=get_user_model().objects.all().order_by("full_name"), required=False
-    )
-    melodies_entered_by.widget.attrs.update(
-        {"class": "form-control custom-select custom-select-sm"}
-    )
 
     CHOICES_COMPLETE_INV = (
         (True, "complete inventory"),
@@ -863,19 +860,67 @@ class AdminSourceForm(forms.ModelForm):
             | Q(groups__name="editor")
             | Q(groups__name="contributor")
         )
-        .order_by("last_name"),
+        .order_by("full_name"),
         required=False,
-        widget=FilteredSelectMultiple(verbose_name="Century", is_stacked=False),
+        widget=FilteredSelectMultiple(verbose_name="current editors", is_stacked=False),
+    )
+
+    inventoried_by = forms.ModelMultipleChoiceField(
+        queryset=get_user_model().objects.all().order_by("full_name"),
+        required=False,
+        widget=FilteredSelectMultiple(verbose_name="inventoried by", is_stacked=False),
+    )
+
+    full_text_entered_by = forms.ModelMultipleChoiceField(
+        queryset=get_user_model().objects.all().order_by("full_name"),
+        required=False,
+        widget=FilteredSelectMultiple(
+            verbose_name="full text entered by", is_stacked=False
+        ),
     )
 
     melodies_entered_by = forms.ModelMultipleChoiceField(
         queryset=get_user_model().objects.all().order_by("full_name"),
         required=False,
-        widget=FilteredSelectMultiple(verbose_name="Century", is_stacked=False),
+        widget=FilteredSelectMultiple(
+            verbose_name="melodies entered by", is_stacked=False
+        ),
+    )
+
+    proofreaders = forms.ModelMultipleChoiceField(
+        queryset=get_user_model().objects.all().order_by("full_name"),
+        required=False,
+        widget=FilteredSelectMultiple(verbose_name="proofreaders", is_stacked=False),
+    )
+
+    other_editors = forms.ModelMultipleChoiceField(
+        queryset=get_user_model().objects.all().order_by("full_name"),
+        required=False,
+        widget=FilteredSelectMultiple(verbose_name="other editors", is_stacked=False),
     )
 
     TRUE_FALSE_CHOICES_INVEN = ((True, "Complete"), (False, "Incomplete"))
 
     complete_inventory = forms.ChoiceField(
         choices=TRUE_FALSE_CHOICES_INVEN, required=False
+    )
+
+
+class AdminUserChangeForm(forms.ModelForm):
+    class Meta:
+        model = get_user_model()
+        fields = "__all__"
+
+    email = forms.CharField(
+        required=True,
+        widget=AdminTextInputWidget,
+    )
+    email.widget.attrs.update({"style": "width: 300px;"})
+
+    password = ReadOnlyPasswordHashField(
+        help_text=(
+            "Raw passwords are not stored, so there is no way to see "
+            "this user's password, but you can change the password "
+            'using <a href="../password/">this form</a>.'
+        )
     )

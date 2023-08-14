@@ -534,7 +534,9 @@
 
                                 {{ source.indexing_notes|default_if_none:"" }}
                                 <br>
-                                Contributor: <a href="#" onclick="return false;"></a>
+                                {% if source.created_by %}
+                                    Contributor: <a href={% url 'user-detail' source.created_by.id %}><b>{{ source.created_by.full_name }}</b></a>
+                                {% endif %}
                             </small>
                         </div>
                     </div>

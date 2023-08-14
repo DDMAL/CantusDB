@@ -15,7 +15,11 @@ from main_app.forms import (
 )
 
 # these fields should not be editable by all classes
-EXCLUDE = ("created_by", "last_updated_by", "json_info")
+EXCLUDE = (
+    "created_by",
+    "last_updated_by",
+    "json_info",
+)
 
 
 class BaseModelAdmin(admin.ModelAdmin):
@@ -74,8 +78,16 @@ class ChantAdmin(BaseModelAdmin):
 
 
 class FeastAdmin(BaseModelAdmin):
-    search_fields = ("name", "feast_code")
-    list_display = ("name", "month", "day", "feast_code")
+    search_fields = (
+        "name",
+        "feast_code",
+    )
+    list_display = (
+        "name",
+        "month",
+        "day",
+        "feast_code",
+    )
     form = AdminFeastForm
 
 
@@ -143,6 +155,7 @@ class SourceAdmin(BaseModelAdmin):
     search_fields = (
         "siglum",
         "title",
+        "id",
     )
     # from the Django docs:
     # Adding a ManyToManyField to this list will instead use a nifty unobtrusive JavaScript “filter” interface
@@ -161,6 +174,7 @@ class SourceAdmin(BaseModelAdmin):
     list_display = (
         "title",
         "siglum",
+        "id",
     )
 
     list_filter = (

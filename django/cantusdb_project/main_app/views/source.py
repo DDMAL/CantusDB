@@ -1,4 +1,10 @@
-from django.views.generic import DetailView, ListView, CreateView, UpdateView
+from django.views.generic import (
+    DetailView,
+    ListView,
+    CreateView,
+    UpdateView,
+    DeleteView,
+)
 from django.db.models import Q, Prefetch
 from main_app.models import Source, Provenance, Century
 from main_app.forms import SourceCreateForm, SourceEditForm
@@ -9,7 +15,10 @@ from django.http import HttpResponseRedirect
 from django.contrib.auth.mixins import UserPassesTestMixin
 from django.core.exceptions import PermissionDenied
 from django.shortcuts import get_object_or_404
-from main_app.views.chant import get_feast_selector_options
+from main_app.views.chant import (
+    get_feast_selector_options,
+    user_can_edit_chants_in_source,
+)
 
 
 class SourceDetailView(DetailView):
@@ -19,6 +28,7 @@ class SourceDetailView(DetailView):
 
     def get_context_data(self, **kwargs):
         source = self.get_object()
+        user = self.request.user
         display_unpublished = self.request.user.is_authenticated
         if (source.published is False) and (not display_unpublished):
             raise PermissionDenied()
@@ -43,6 +53,9 @@ class SourceDetailView(DetailView):
             context["folios"] = folios
             # the options for the feast selector on the right, only chant sources have this
             context["feasts_with_folios"] = get_feast_selector_options(source, folios)
+
+        context["user_can_edit_chants"] = user_can_edit_chants_in_source(user, source)
+        context["user_can_edit_source"] = user_can_edit_source(user, source)
         return context
 
 
@@ -109,13 +122,13 @@ class SourceListView(ListView):
             # field, allowing for a more flexible search, and a field needs
             # to match only one of the terms
             for term in general_search_terms:
-                title_q |= Q(title__icontains=term)
-                siglum_q |= Q(siglum__icontains=term)
-                rism_siglum_q |= Q(rism_siglum__name__icontains=term) | Q(
-                    rism_siglum__description__icontains=term
+                title_q |= Q(title__unaccent__icontains=term)
+                siglum_q |= Q(siglum__unaccent__icontains=term)
+                rism_siglum_q |= Q(rism_siglum__name__unaccent__icontains=term) | Q(
+                    rism_siglum__description__unaccent__icontains=term
                 )
-                description_q |= Q(description__icontains=term)
-                summary_q |= Q(summary__icontains=term)
+                description_q |= Q(description__unaccent__icontains=term)
+                summary_q |= Q(summary__unaccent__icontains=term)
                 # provenance_q |= Q(provenance__name__icontains=term)
             # All the Q objects are put together with OR.
             # The end result is that at least one term has to match in at least one
@@ -195,6 +208,7 @@ class SourceCreateView(LoginRequiredMixin, UserPassesTestMixin, CreateView):
 
     def form_valid(self, form):
         form.instance.created_by = self.request.user
+        form.instance.last_updated_by = self.request.user
         self.object = form.save()
 
         # assign this source to the "current_editors"
@@ -209,6 +223,26 @@ class SourceCreateView(LoginRequiredMixin, UserPassesTestMixin, CreateView):
             "Source created successfully!",
         )
         return HttpResponseRedirect(self.get_success_url())
+
+
+class SourceDeleteView(LoginRequiredMixin, UserPassesTestMixin, DeleteView):
+    """The view for deleting a source object
+
+    This view is linked to in the source-edit page.
+    """
+
+    model = Source
+    template_name = "source_confirm_delete.html"
+
+    def test_func(self):
+        user = self.request.user
+        source_id = self.kwargs.get(self.pk_url_kwarg)
+        source = get_object_or_404(Source, id=source_id)
+        return user_can_edit_source(user, source)
+
+    def get_success_url(self):
+        # redirect to homepage
+        return "/"
 
 
 class SourceEditView(LoginRequiredMixin, UserPassesTestMixin, UpdateView):
@@ -246,24 +280,7 @@ class SourceEditView(LoginRequiredMixin, UserPassesTestMixin, UpdateView):
         source_id = self.kwargs.get(self.pk_url_kwarg)
         source = get_object_or_404(Source, id=source_id)
 
-        assigned_to_source = user.sources_user_can_edit.filter(id=source_id)
-
-        # checks if the user is a project manager
-        is_project_manager = user.groups.filter(name="project manager").exists()
-        # checks if the user is an editor
-        is_editor = user.groups.filter(name="editor").exists()
-        # checks if the user is a contributor
-        is_contributor = user.groups.filter(name="contributor").exists()
-
-        if (
-            (is_project_manager)
-            or (is_editor and assigned_to_source)
-            or (is_editor and source.created_by == user)
-            or (is_contributor and source.created_by == user)
-        ):
-            return True
-        else:
-            return False
+        return user_can_edit_source(user, source)
 
     def form_valid(self, form):
         form.instance.last_updated_by = self.request.user
@@ -284,3 +301,26 @@ class SourceEditView(LoginRequiredMixin, UserPassesTestMixin, UpdateView):
             new_editor.sources_user_can_edit.add(source)
 
         return HttpResponseRedirect(self.get_success_url())
+
+
+def user_can_edit_source(user, source):
+    if user.is_anonymous:
+        return False
+    source_id = source.id
+    assigned_to_source = user.sources_user_can_edit.filter(id=source_id)
+
+    # checks if the user is a project manager
+    is_project_manager = user.groups.filter(name="project manager").exists()
+    # checks if the user is an editor
+    is_editor = user.groups.filter(name="editor").exists()
+    # checks if the user is a contributor
+    is_contributor = user.groups.filter(name="contributor").exists()
+
+    if (
+        (is_project_manager)
+        or (is_editor and assigned_to_source)
+        or (is_editor and source.created_by == user)
+        or (is_contributor and source.created_by == user)
+    ):
+        return True
+    return False
