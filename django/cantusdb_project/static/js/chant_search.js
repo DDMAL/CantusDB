@@ -2,14 +2,6 @@ function containsOnlyLettersAndSpaces(str) {
     return /^[A-Za-z\s]*$/.test(str);
   }
 
-function showLoaderOnClick(url) {
-    showLoader();
-    window.location=url;
-}
-function showLoader(){
-    $('body').append('<div style="" id="loadingDiv"><div class="loader">Loading...</div></div>');
-}
-
 window.addEventListener("load", function () {
     // Make sure the select components keep their values across multiple GET requests
     // so the user can "drill down" on what they want
