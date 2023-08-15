@@ -358,4 +358,8 @@ def syllabize_text_to_string(text, pre_syllabized):
     """
     syls_text = syllabize_text(text, pre_syllabized)
     human_readable_text = " ".join(["".join(word) for word in syls_text])
+    # in another step, we add a space at the beginning to account for the initial clef.
+    # When we perform the .join above, this means we get two leading spaces.
+    # The following line is necessary to remove these leading spaces
+    human_readable_text = human_readable_text.strip()
     return human_readable_text
