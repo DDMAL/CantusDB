@@ -73,6 +73,8 @@ def syllabize_text(text, pre_syllabized=False):
             if word:
                 syls = [syl + "-" for syl in word.split("-")]
                 syls[-1] = syls[-1][:-1]
+                # remove empty syllables
+                syls = [syl for syl in syls if syl]
                 syls_text.append(syls)
     else:
         for word in words_text:
