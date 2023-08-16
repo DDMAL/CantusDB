@@ -12,6 +12,7 @@ from django.contrib import messages
 from extra_views import SearchableListMixin
 from django.http import HttpResponseRedirect
 from django.core.exceptions import PermissionDenied
+from main_app.permissions import user_can_view_user_detail, user_is_proofreader
 
 
 class UserDetailView(DetailView):
@@ -30,7 +31,7 @@ class UserDetailView(DetailView):
         # they should only be able to view the detail pages of indexers,
         # and not the detail pages of run-of-the-mill users
         viewing_user = self.request.user
-        if not (viewing_user.is_authenticated or user.is_indexer):
+        if not user_can_view_user_detail(viewing_user, user):
             raise PermissionDenied()
 
         context = super().get_context_data(**kwargs)
@@ -109,6 +110,7 @@ class UserSourceListView(LoginRequiredMixin, ListView):
         page_obj = paginator.get_page(page_number)
 
         context["user_created_sources_page_obj"] = page_obj
+        context["user_is_proofreader"] = user_is_proofreader(self.request.user)
         return context
 
 
