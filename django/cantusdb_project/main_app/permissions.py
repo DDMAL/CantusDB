@@ -5,7 +5,7 @@ def user_can_edit_chants_in_source(user, source):
     """
     Checks if the user can edit Chants in a given Source.
     Used in ChantDetail, ChantList, ChantCreate, ChantDelete, ChantEdit,
-    ChantEditSyllabification, and SourceDetail views
+    ChantEditSyllabification, and SourceDetail views.
     """
     if user.is_anonymous or (source is None):
         return False
@@ -29,7 +29,7 @@ def user_can_edit_chants_in_source(user, source):
 def user_is_proofreader(user):
     """
     Checks if the user is a proofreader.
-    Used in UserSourceListView
+    Used in UserSourceListView.
     """
     if user.groups.filter(Q(name="project manager") | Q(name="editor")).exists():
         return True
@@ -39,7 +39,7 @@ def user_is_proofreader(user):
 def user_can_proofread_chants_in_source(user, source_id):
     """
     Checks if the user can access the proofreading page of a given Source.
-    Used in ChantProofreadView
+    Used in ChantProofreadView.
     """
     if user.is_anonymous:
         return False
@@ -57,7 +57,7 @@ def user_can_view_unpublished_source(user, source):
     """
     Checks if the user can view unpublished Sources or Chants/Sequences belonging
     to unpublished sources on the site.
-    Used in ChantDetail, SequenceDetail, SourceDetail
+    Used in ChantDetail, SequenceDetail, and SourceDetail views.
     """
     display_unpublished = user.is_authenticated
     if (
@@ -84,7 +84,7 @@ def user_can_edit_sequence(user):
 def user_can_create_source(user):
     """
     Checks if the user has permission to create a Source object.
-    Used in SourceCreateView
+    Used in SourceCreateView.
     """
 
     is_authorized = user.groups.filter(
