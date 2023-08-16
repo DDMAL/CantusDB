@@ -48,17 +48,15 @@ def user_can_proofread_chants_in_source(user, source_id) -> bool:
     ).exists()
 
     user_is_project_manager: bool = user.groups.filter(name="project manager").exists()
-    user_id_editor: bool = user.groups.filter(name="editor").exists()
+    user_is_editor: bool = user.groups.filter(name="editor").exists()
 
-    if (user_is_project_manager) or (user_id_editor and user_is_assigned_to_source):
-        return True
-    return False
+    return (user_is_project_manager) or (user_is_editor and user_is_assigned_to_source)
 
 
 def user_can_view_unpublished_source(user, source) -> bool:
     """
-    Checks if the user can view unpublished Sources or Chants/Sequences belonging
-    to unpublished sources on the site.
+    Checks if the user can view an unpublished Source or Chant/Sequence belonging
+    to an unpublished Source on the site.
     Used in ChantDetail, SequenceDetail, and SourceDetail views.
     """
     user_is_authenticated: bool = user.is_authenticated
