@@ -80,7 +80,7 @@ def user_can_edit_sequence(user: User) -> bool:
     return user.groups.filter(name="project manager").exists()
 
 
-def user_can_create_source(user: User) -> bool:
+def user_can_create_sources(user: User) -> bool:
     """
     Checks if the user has permission to create a Source object.
     Used in SourceCreateView.
