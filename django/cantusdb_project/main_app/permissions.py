@@ -125,9 +125,9 @@ def user_can_view_user_detail(viewing_user, user):
     Checks if the user can view the user detail pages of regular users in the database or just indexers.
     Used in UserDetailView.
     """
-    if not (viewing_user.is_authenticated or user.is_indexer):
-        return False
-    return True
+    if viewing_user.is_authenticated or user.is_indexer:
+        return True
+    return False
 
 
 def user_can_manage_source_editors(user):
