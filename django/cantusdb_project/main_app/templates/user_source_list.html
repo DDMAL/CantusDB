@@ -16,13 +16,13 @@
                                     <b>{{ source.siglum }}</b>
                                 </a>
                             </td>
-                            {% if source.chant_set.all%}
+                            {% if source.chant_set.all %}
                                 <td class="h-25" style="width: 30%; text-align:center">
                                     <a href="{% url "source-edit-chants" source.pk %}">
                                         Full text &amp; volpiano editor
                                     </a>
                                 </td>
-                                {% if request.user|has_group:"project manager" or request.user|has_group:"editor" %}
+                                {% if user_is_proofreader %}
                                     <td class="h-25" style="width: 30%; text-align:center">
                                         <a href="{% url "chant-proofread" source.pk %}">
                                             Proofreading form
