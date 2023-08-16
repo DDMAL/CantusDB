@@ -109,7 +109,7 @@ class ChantCreateForm(forms.ModelForm):
             # genre: defined below (foreignkey)
             "position": TextInputWidget(),
             "cantus_id": TextInputWidget(),
-            #'feast': defined below (foreignkey)
+            "feast": autocomplete.ModelSelect2(url="feast-autocomplete"),
             "mode": TextInputWidget(),
             "differentia": TextInputWidget(),
             "differentia_new": TextInputWidget(),
@@ -153,11 +153,6 @@ class ChantCreateForm(forms.ModelForm):
         required=False,
     )
     genre.widget.attrs.update({"class": "form-control custom-select custom-select-sm"})
-
-    feast = forms.ModelChoiceField(
-        queryset=Feast.objects.all().order_by("name"), required=False
-    )
-    feast.widget.attrs.update({"class": "form-control custom-select custom-select-sm"})
 
     manuscript_full_text_std_spelling = forms.CharField(
         required=True,

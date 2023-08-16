@@ -1,7 +1,10 @@
 {% extends "base.html" %}
+{% load static %}
 {% block content %}
 <title>Create Chant | Cantus Manuscript Database</title>
 <script src="/static/js/chant_create.js"></script>
+<script type="text/javascript" src="{% static 'admin/js/vendor/jquery/jquery.js' %}"></script>
+{{ form.media }}
 <div class="container">
     <div class="row">
         <div class="mr-3 p-3 col-md-8 bg-white rounded">
@@ -83,7 +86,7 @@
 
                 <div class="form-row">
 
-                    <div class="form-group m-1 col-lg-5">
+                    <div class="form-group m-1 col-lg-3">
                         <small>{{ form.feast.label_tag }}</small>
                         {{ form.feast }}
                     </div>

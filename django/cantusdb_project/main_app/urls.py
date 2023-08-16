@@ -68,6 +68,7 @@ from main_app.views.views import (
     AllUsersAutocomplete,
     CenturyAutocomplete,
     RismSiglumAutocomplete,
+    FeastAutocomplete,
 )
 
 urlpatterns = [
@@ -465,6 +466,11 @@ urlpatterns = [
         "rismsiglum-autocomplete/",
         RismSiglumAutocomplete.as_view(),
         name="rismsiglum-autocomplete",
+    ),
+    path(
+        "feast-autocomplete/",
+        FeastAutocomplete.as_view(),
+        name="feast-autocomplete",
     ),
 ]
 

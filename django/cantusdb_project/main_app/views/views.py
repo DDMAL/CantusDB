@@ -1003,3 +1003,15 @@ class RismSiglumAutocomplete(autocomplete.Select2QuerySetView):
         if self.q:
             qs = qs.filter(name__istartswith=self.q)
         return qs
+
+
+class FeastAutocomplete(autocomplete.Select2QuerySetView):
+    def get_queryset(self):
+        if not self.request.user.is_authenticated:
+            return Feast.objects.none()
+        qs = Feast.objects.all().order_by("name")
+        if self.q:
+            qs = qs.filter(
+                Q(name__istartswith=self.q) | Q(feast_code__istartswith=self.q)
+            )
+        return qs
