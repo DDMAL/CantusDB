@@ -1,7 +1,7 @@
 from django.db.models import Q
 
 
-def user_can_edit_chants_in_source(user, source):
+def user_can_edit_chants_in_source(user, source) -> bool:
     """
     Checks if the user can edit Chants in a given Source.
     Used in ChantDetail, ChantList, ChantCreate, ChantDelete, ChantEdit,
@@ -26,7 +26,7 @@ def user_can_edit_chants_in_source(user, source):
     )
 
 
-def user_is_proofreader(user):
+def user_is_proofreader(user) -> bool:
     """
     Checks if the user is a proofreader.
     Used in UserSourceListView.
@@ -36,7 +36,7 @@ def user_is_proofreader(user):
     return False
 
 
-def user_can_proofread_chants_in_source(user, source_id):
+def user_can_proofread_chants_in_source(user, source_id) -> bool:
     """
     Checks if the user can access the proofreading page of a given Source.
     Used in ChantProofreadView.
@@ -53,7 +53,7 @@ def user_can_proofread_chants_in_source(user, source_id):
     return False
 
 
-def user_can_view_unpublished_source(user, source):
+def user_can_view_unpublished_source(user, source) -> bool:
     """
     Checks if the user can view unpublished Sources or Chants/Sequences belonging
     to unpublished sources on the site.
@@ -69,7 +69,7 @@ def user_can_view_unpublished_source(user, source):
     return True
 
 
-def user_can_edit_sequence(user):
+def user_can_edit_sequence(user) -> bool:
     """
     Checks if the user has permission to edit a Sequence object.
     Used in SequenceDetail and SequenceEdit views.
@@ -81,7 +81,7 @@ def user_can_edit_sequence(user):
     return False
 
 
-def user_can_create_source(user):
+def user_can_create_source(user) -> bool:
     """
     Checks if the user has permission to create a Source object.
     Used in SourceCreateView.
@@ -96,7 +96,7 @@ def user_can_create_source(user):
     return False
 
 
-def user_can_edit_source(user, source):
+def user_can_edit_source(user, source) -> bool:
     """
     Checks if the user has permission to edit a Source object.
     Used in SourceDetail, SourceEdit, and SourceDelete views.
@@ -120,17 +120,15 @@ def user_can_edit_source(user, source):
     return False
 
 
-def user_can_view_user_detail(viewing_user, user):
+def user_can_view_user_detail(viewing_user, user) -> bool:
     """
     Checks if the user can view the user detail pages of regular users in the database or just indexers.
     Used in UserDetailView.
     """
-    if viewing_user.is_authenticated or user.is_indexer:
-        return True
-    return False
+    return viewing_user.is_authenticated or user.is_indexer
 
 
-def user_can_manage_source_editors(user):
+def user_can_manage_source_editors(user) -> bool:
     """
     Checks if the user has permission to change the editors assigned to a Source.
     Used in SourceDetailView.
