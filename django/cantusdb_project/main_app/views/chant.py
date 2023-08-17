@@ -1687,8 +1687,8 @@ class ChantProofreadView(SourceEditChantsView):
 
     def test_func(self):
         user = self.request.user
-        chant = self.get_object()
-        source = chant.source
+        source_id = self.kwargs.get(self.pk_url_kwarg)
+        source = Source.objects.get(id=source_id)
         return user_can_proofread_chants_in_source(user, source)
 
 
