@@ -115,14 +115,12 @@ def user_can_edit_source(user: User, source: Source) -> bool:
     is_editor: bool = user.groups.filter(name="editor").exists()
     is_contributor: bool = user.groups.filter(name="contributor").exists()
 
-    if (
+    return (
         (is_project_manager)
         or (is_editor and assigned_to_source)
         or (is_editor and source.created_by == user)
         or (is_contributor and source.created_by == user)
-    ):
-        return True
-    return False
+    )
 
 
 def user_can_view_user_detail(viewing_user: User, user: User) -> bool:
