@@ -298,7 +298,7 @@ class ChantEditForm(forms.ModelForm):
             "marginalia": TextInputWidget(),
             # folio: defined below (required)
             # c_sequence: defined below (required)
-            # feast: defined below (foreignkey)
+            "feast": autocomplete.ModelSelect2(url="feast-autocomplete"),
             # office: defined below (foreignkey)
             # genre: defined below (foreignkey)
             "position": TextInputWidget(),
@@ -335,11 +335,6 @@ class ChantEditForm(forms.ModelForm):
         widget=TextInputWidget,
         help_text="Each folio starts with '1'.",
     )
-
-    feast = forms.ModelChoiceField(
-        queryset=Feast.objects.all().order_by("name"), required=False
-    )
-    feast.widget.attrs.update({"class": "form-control custom-select custom-select-sm"})
 
     # We use NameModelChoiceField here so the dropdown list of office/mass displays the name
     # instead of [name] + description
