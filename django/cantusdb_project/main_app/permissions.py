@@ -1,6 +1,10 @@
 from django.db.models import Q
 from typing import Optional
-from main_app.models import Source
+from main_app.models import (
+    Source,
+    Chant,
+    Sequence,
+)
 from users.models import User
 
 
@@ -39,11 +43,12 @@ def user_is_proofreader(user: User) -> bool:
     return user.groups.filter(Q(name="project manager") | Q(name="editor")).exists()
 
 
-def user_can_proofread_chants_in_source(user: User, source_id: int) -> bool:
+def user_can_proofread_chants_in_source(user: User, source: Source) -> bool:
     """
     Checks if the user can access the proofreading page of a given Source.
     Used in ChantProofreadView.
     """
+    source_id = source.id
     if user.is_anonymous:
         return False
     user_is_assigned_to_source: bool = user.sources_user_can_edit.filter(
@@ -56,20 +61,33 @@ def user_can_proofread_chants_in_source(user: User, source_id: int) -> bool:
     return (user_is_project_manager) or (user_is_editor and user_is_assigned_to_source)
 
 
-def user_can_view_unpublished_source(user: User, source: Optional[Source]) -> bool:
+def user_can_view_unpublished_source(user: User, source: Source) -> bool:
     """
-    Checks if the user can view an unpublished Source or Chant/Sequence belonging
-    to an unpublished Source on the site.
+    Checks if the user can view an unpublished Source on the site.
     Used in ChantDetail, SequenceDetail, and SourceDetail views.
     """
     user_is_authenticated: bool = user.is_authenticated
-    if (
-        (source is not None)
-        and (source.published is False)
-        and (not user_is_authenticated)
-    ):
-        return False
-    return True
+    return (source.published) or (user_is_authenticated)
+
+
+def user_can_view_unpublished_chant(user: User, chant: Chant) -> bool:
+    """
+    Checks if the user can view a Chant belonging to an unpublished Source on the site.
+    Used in ChantDetail, SequenceDetail, and SourceDetail views.
+    """
+    source = chant.source
+    user_is_authenticated: bool = user.is_authenticated
+    return (source.published) or (user_is_authenticated)
+
+
+def user_can_view_unpublished_sequence(user: User, sequence: Sequence) -> bool:
+    """
+    Checks if the user can view a Sequence belonging to an unpublished Source on the site.
+    Used in ChantDetail, SequenceDetail, and SourceDetail views.
+    """
+    source = sequence.source
+    user_is_authenticated: bool = user.is_authenticated
+    return (source is None) or (source.published) or (user_is_authenticated)
 
 
 def user_can_edit_sequence(user: User) -> bool:
