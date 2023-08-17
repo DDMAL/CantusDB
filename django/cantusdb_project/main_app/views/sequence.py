@@ -7,7 +7,7 @@ from django.contrib import messages
 from django.contrib.auth.mixins import UserPassesTestMixin
 from django.core.exceptions import PermissionDenied
 from main_app.permissions import (
-    user_can_view_unpublished_source,
+    user_can_view_unpublished_sequence,
     user_can_edit_sequence,
 )
 
@@ -23,12 +23,11 @@ class SequenceDetailView(DetailView):
 
     def get_context_data(self, **kwargs):
         sequence = self.get_object()
-        source = sequence.source
         user = self.request.user
 
         # if the sequence's source isn't published,
         # only logged-in users should be able to view the sequence's detail page
-        if not user_can_view_unpublished_source(user, source):
+        if not user_can_view_unpublished_sequence(user, sequence):
             raise PermissionDenied()
 
         context = super().get_context_data(**kwargs)

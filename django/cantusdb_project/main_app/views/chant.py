@@ -36,7 +36,7 @@ from requests import Response
 from main_app.permissions import (
     user_can_edit_chants_in_source,
     user_can_proofread_chants_in_source,
-    user_can_view_unpublished_source,
+    user_can_view_unpublished_chant,
 )
 
 CHANT_SEARCH_TEMPLATE_VALUES = (
@@ -271,11 +271,11 @@ class ChantDetailView(DetailView):
         context = super().get_context_data(**kwargs)
         chant = self.get_object()
         user = self.request.user
+        source = chant.source
 
         # if the chant's source isn't published, only logged-in users should be able to
         # view the chant's detail page
-        source = chant.source
-        if not user_can_view_unpublished_source(user, source):
+        if not user_can_view_unpublished_chant(user, chant):
             raise PermissionDenied()
 
         context["user_can_edit_chant"] = user_can_edit_chants_in_source(user, source)
@@ -1687,9 +1687,9 @@ class ChantProofreadView(SourceEditChantsView):
 
     def test_func(self):
         user = self.request.user
-
-        source_id = self.kwargs.get(self.pk_url_kwarg)
-        return user_can_proofread_chants_in_source(user, source_id)
+        chant = self.get_object()
+        source = chant.source
+        return user_can_proofread_chants_in_source(user, source)
 
 
 class ChantEditSyllabificationView(LoginRequiredMixin, UserPassesTestMixin, UpdateView):
@@ -1742,4 +1742,3 @@ class ChantEditSyllabificationView(LoginRequiredMixin, UserPassesTestMixin, Upda
     def get_success_url(self):
         # stay on the same page after save
         return self.request.get_full_path()
-

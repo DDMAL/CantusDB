@@ -20,7 +20,7 @@ from main_app.views.chant import (
     user_can_edit_chants_in_source,
 )
 from main_app.permissions import (
-    user_can_create_source,
+    user_can_create_sources,
     user_can_edit_source,
     user_can_view_unpublished_source,
     user_can_manage_source_editors,
@@ -200,7 +200,7 @@ class SourceCreateView(LoginRequiredMixin, UserPassesTestMixin, CreateView):
 
     def test_func(self):
         user = self.request.user
-        return user_can_create_source(user)
+        return user_can_create_sources(user)
 
     def get_success_url(self):
         return reverse("source-detail", args=[self.object.id])
