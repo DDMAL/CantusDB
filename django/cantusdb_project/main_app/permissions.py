@@ -35,14 +35,6 @@ def user_can_edit_chants_in_source(user: User, source: Optional[Source]) -> bool
     )
 
 
-def user_is_proofreader(user: User) -> bool:
-    """
-    Checks if the user is a proofreader.
-    Used in UserSourceListView.
-    """
-    return user.groups.filter(Q(name="project manager") | Q(name="editor")).exists()
-
-
 def user_can_proofread_chants_in_source(user: User, source: Source) -> bool:
     """
     Checks if the user can access the proofreading page of a given Source.
