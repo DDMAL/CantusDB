@@ -22,7 +22,7 @@ from main_app.views.chant import (
 from main_app.permissions import (
     user_can_create_sources,
     user_can_edit_source,
-    user_can_view_unpublished_source,
+    user_can_view_source,
     user_can_manage_source_editors,
 )
 
@@ -36,7 +36,7 @@ class SourceDetailView(DetailView):
         source = self.get_object()
         user = self.request.user
 
-        if not user_can_view_unpublished_source(user, source):
+        if not user_can_view_source(user, source):
             raise PermissionDenied()
 
         context = super().get_context_data(**kwargs)

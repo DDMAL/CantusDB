@@ -53,7 +53,7 @@ def user_can_proofread_chants_in_source(user: User, source: Source) -> bool:
     return (user_is_project_manager) or (user_is_editor and user_is_assigned_to_source)
 
 
-def user_can_view_unpublished_source(user: User, source: Source) -> bool:
+def user_can_view_source(user: User, source: Source) -> bool:
     """
     Checks if the user can view an unpublished Source on the site.
     Used in ChantDetail, SequenceDetail, and SourceDetail views.
@@ -62,7 +62,7 @@ def user_can_view_unpublished_source(user: User, source: Source) -> bool:
     return (source.published) or (user_is_authenticated)
 
 
-def user_can_view_unpublished_chant(user: User, chant: Chant) -> bool:
+def user_can_view_chant(user: User, chant: Chant) -> bool:
     """
     Checks if the user can view a Chant belonging to an unpublished Source on the site.
     Used in ChantDetail, SequenceDetail, and SourceDetail views.
@@ -72,7 +72,7 @@ def user_can_view_unpublished_chant(user: User, chant: Chant) -> bool:
     return (source is not None) or (source.published) or (user_is_authenticated)
 
 
-def user_can_view_unpublished_sequence(user: User, sequence: Sequence) -> bool:
+def user_can_view_sequence(user: User, sequence: Sequence) -> bool:
     """
     Checks if the user can view a Sequence belonging to an unpublished Source on the site.
     Used in ChantDetail, SequenceDetail, and SourceDetail views.

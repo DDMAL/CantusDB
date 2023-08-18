@@ -36,7 +36,7 @@ from requests import Response
 from main_app.permissions import (
     user_can_edit_chants_in_source,
     user_can_proofread_chants_in_source,
-    user_can_view_unpublished_chant,
+    user_can_view_chant,
 )
 
 CHANT_SEARCH_TEMPLATE_VALUES = (
@@ -275,7 +275,7 @@ class ChantDetailView(DetailView):
 
         # if the chant's source isn't published, only logged-in users should be able to
         # view the chant's detail page
-        if not user_can_view_unpublished_chant(user, chant):
+        if not user_can_view_chant(user, chant):
             raise PermissionDenied()
 
         context["user_can_edit_chant"] = user_can_edit_chants_in_source(user, source)
