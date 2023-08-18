@@ -1,8 +1,10 @@
 {% extends "base.html" %}
 {% block content %}
+{% load static %}
 <title>{{ source.title }} | Cantus Manuscript Database</title>
 <script src="/static/js/chant_edit.js"></script>
-
+<script type="text/javascript" src="{% static 'admin/js/vendor/jquery/jquery.js' %}"></script>
+{{ form.media }}
 <div class="container">
     <div class="row">
         <div class="mr-3 p-3 col-lg-8 bg-white rounded">
@@ -55,9 +57,12 @@
                             </label>
                             {{ form.c_sequence }}
                         </div>
-                        <div class="form-group m-1 col-lg-4">
+                    </div>
+
+                    <div class="form-row">
+                        <div class="form-group m-1 col-lg-3">
                             <small>{{ form.feast.label_tag }}</small>
-                            {{ form.feast }}
+                            <br>{{ form.feast }}
                         </div>
                     </div>
 
