@@ -82,7 +82,7 @@ def user_can_view_sequence(user: User, sequence: Sequence) -> bool:
     return (source is not None) or (source.published) or (user_is_authenticated)
 
 
-def user_can_edit_sequence(user: User) -> bool:
+def user_can_edit_sequences(user: User) -> bool:
     """
     Checks if the user has permission to edit a Sequence object.
     Used in SequenceDetail and SequenceEdit views.
