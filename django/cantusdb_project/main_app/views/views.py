@@ -853,7 +853,7 @@ def content_overview(request):
 
     objects = []
     if selected_model:
-        objects = selected_model.objects.all().order_by("-date_created")
+        objects = selected_model.objects.all().order_by("-date_updated")
 
     paginator = Paginator(objects, 100)
     page_number = request.GET.get("page")
