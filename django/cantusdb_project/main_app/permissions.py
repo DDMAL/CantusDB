@@ -69,7 +69,7 @@ def user_can_view_chant(user: User, chant: Chant) -> bool:
     """
     source = chant.source
     user_is_authenticated: bool = user.is_authenticated
-    return (source is not None) or (source.published) or (user_is_authenticated)
+    return (source is not None) and ((source.published) or (user_is_authenticated))
 
 
 def user_can_view_sequence(user: User, sequence: Sequence) -> bool:
@@ -79,7 +79,7 @@ def user_can_view_sequence(user: User, sequence: Sequence) -> bool:
     """
     source = sequence.source
     user_is_authenticated: bool = user.is_authenticated
-    return (source is not None) or (source.published) or (user_is_authenticated)
+    return (source is not None) and ((source.published) or (user_is_authenticated))
 
 
 def user_can_edit_sequences(user: User) -> bool:
