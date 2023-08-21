@@ -8,7 +8,7 @@ from django.contrib.auth.mixins import UserPassesTestMixin
 from django.core.exceptions import PermissionDenied
 from main_app.permissions import (
     user_can_view_sequence,
-    user_can_edit_sequence,
+    user_can_edit_sequences,
 )
 
 
@@ -36,7 +36,7 @@ class SequenceDetailView(DetailView):
             .select_related("source")
             .order_by("siglum")
         )
-        context["user_can_edit_sequence"] = user_can_edit_sequence(user)
+        context["user_can_edit_sequence"] = user_can_edit_sequences(user)
         return context
 
 
@@ -86,4 +86,4 @@ class SequenceEditView(LoginRequiredMixin, UserPassesTestMixin, UpdateView):
 
     def test_func(self):
         user = self.request.user
-        return user_can_edit_sequence(user)
+        return user_can_edit_sequences(user)
