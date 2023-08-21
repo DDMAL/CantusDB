@@ -19,6 +19,12 @@ from main_app.views.chant import (
     get_feast_selector_options,
     user_can_edit_chants_in_source,
 )
+from main_app.permissions import (
+    user_can_create_sources,
+    user_can_edit_source,
+    user_can_view_source,
+    user_can_manage_source_editors,
+)
 
 
 class SourceDetailView(DetailView):
@@ -29,8 +35,8 @@ class SourceDetailView(DetailView):
     def get_context_data(self, **kwargs):
         source = self.get_object()
         user = self.request.user
-        display_unpublished = self.request.user.is_authenticated
-        if (source.published is False) and (not display_unpublished):
+
+        if not user_can_view_source(user, source):
             raise PermissionDenied()
 
         context = super().get_context_data(**kwargs)
@@ -56,6 +62,7 @@ class SourceDetailView(DetailView):
 
         context["user_can_edit_chants"] = user_can_edit_chants_in_source(user, source)
         context["user_can_edit_source"] = user_can_edit_source(user, source)
+        context["user_can_manage_source_editors"] = user_can_manage_source_editors(user)
         return context
 
 
@@ -193,15 +200,7 @@ class SourceCreateView(LoginRequiredMixin, UserPassesTestMixin, CreateView):
 
     def test_func(self):
         user = self.request.user
-        # checks if the user is allowed to create sources
-        is_authorized = user.groups.filter(
-            Q(name="project manager") | Q(name="editor") | Q(name="contributor")
-        ).exists()
-
-        if is_authorized:
-            return True
-        else:
-            return False
+        return user_can_create_sources(user)
 
     def get_success_url(self):
         return reverse("source-detail", args=[self.object.id])
@@ -301,26 +300,3 @@ class SourceEditView(LoginRequiredMixin, UserPassesTestMixin, UpdateView):
             new_editor.sources_user_can_edit.add(source)
 
         return HttpResponseRedirect(self.get_success_url())
-
-
-def user_can_edit_source(user, source):
-    if user.is_anonymous:
-        return False
-    source_id = source.id
-    assigned_to_source = user.sources_user_can_edit.filter(id=source_id)
-
-    # checks if the user is a project manager
-    is_project_manager = user.groups.filter(name="project manager").exists()
-    # checks if the user is an editor
-    is_editor = user.groups.filter(name="editor").exists()
-    # checks if the user is a contributor
-    is_contributor = user.groups.filter(name="contributor").exists()
-
-    if (
-        (is_project_manager)
-        or (is_editor and assigned_to_source)
-        or (is_editor and source.created_by == user)
-        or (is_contributor and source.created_by == user)
-    ):
-        return True
-    return False

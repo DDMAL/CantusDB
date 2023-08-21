@@ -6,7 +6,10 @@ from django.contrib.auth.mixins import LoginRequiredMixin
 from django.contrib import messages
 from django.contrib.auth.mixins import UserPassesTestMixin
 from django.core.exceptions import PermissionDenied
-from main_app.views.chant import user_can_edit_chants_in_source
+from main_app.permissions import (
+    user_can_view_sequence,
+    user_can_edit_sequences,
+)
 
 
 class SequenceDetailView(DetailView):
@@ -20,16 +23,11 @@ class SequenceDetailView(DetailView):
 
     def get_context_data(self, **kwargs):
         sequence = self.get_object()
-        source = sequence.source
         user = self.request.user
 
         # if the sequence's source isn't published,
         # only logged-in users should be able to view the sequence's detail page
-        if (
-            (source is not None)
-            and (source.published is False)
-            and (not self.request.user.is_authenticated)
-        ):
+        if not user_can_view_sequence(user, sequence):
             raise PermissionDenied()
 
         context = super().get_context_data(**kwargs)
@@ -38,7 +36,7 @@ class SequenceDetailView(DetailView):
             .select_related("source")
             .order_by("siglum")
         )
-        context["user_can_edit_sequence"] = user_can_edit_chants_in_source(user, source)
+        context["user_can_edit_sequence"] = user_can_edit_sequences(user)
         return context
 
 
@@ -88,10 +86,4 @@ class SequenceEditView(LoginRequiredMixin, UserPassesTestMixin, UpdateView):
 
     def test_func(self):
         user = self.request.user
-        # checks if the user is a project manager (they should have the privilege to edit any sequence)
-        is_project_manager = user.groups.filter(name="project manager").exists()
-
-        if is_project_manager:
-            return True
-        else:
-            return False
+        return user_can_edit_sequences(user)

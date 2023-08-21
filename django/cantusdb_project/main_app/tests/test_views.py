@@ -766,6 +766,7 @@ class ChantDetailViewTest(TestCase):
         source.save()
         response = self.client.get(reverse("chant-detail", args=[chant.id]))
         self.assertEqual(response.status_code, 200)
+        print(response.context)
 
         source.published = False
         source.save()

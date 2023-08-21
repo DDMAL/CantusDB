@@ -109,7 +109,7 @@ class ChantCreateForm(forms.ModelForm):
             # genre: defined below (foreignkey)
             "position": TextInputWidget(),
             "cantus_id": TextInputWidget(),
-            #'feast': defined below (foreignkey)
+            "feast": autocomplete.ModelSelect2(url="feast-autocomplete"),
             "mode": TextInputWidget(),
             "differentia": TextInputWidget(),
             "differentia_new": TextInputWidget(),
@@ -153,11 +153,6 @@ class ChantCreateForm(forms.ModelForm):
         required=False,
     )
     genre.widget.attrs.update({"class": "form-control custom-select custom-select-sm"})
-
-    feast = forms.ModelChoiceField(
-        queryset=Feast.objects.all().order_by("name"), required=False
-    )
-    feast.widget.attrs.update({"class": "form-control custom-select custom-select-sm"})
 
     manuscript_full_text_std_spelling = forms.CharField(
         required=True,
@@ -223,6 +218,7 @@ class SourceCreateForm(forms.ModelForm):
             "fragmentarium_id": TextInputWidget(),
             "dact_id": TextInputWidget(),
             "indexing_notes": TextAreaWidget(),
+            "rism_siglum": autocomplete.ModelSelect2(url="rismsiglum-autocomplete"),
             "current_editors": autocomplete.ModelSelect2Multiple(
                 url="current-editors-autocomplete"
             ),
@@ -243,13 +239,6 @@ class SourceCreateForm(forms.ModelForm):
                 url="all-users-autocomplete"
             ),
         }
-
-    rism_siglum = forms.ModelChoiceField(
-        queryset=RismSiglum.objects.all().order_by("name"), required=False
-    )
-    rism_siglum.widget.attrs.update(
-        {"class": "form-control custom-select custom-select-sm"}
-    )
 
     provenance = forms.ModelChoiceField(
         queryset=Provenance.objects.all().order_by("name"), required=False
@@ -309,7 +298,7 @@ class ChantEditForm(forms.ModelForm):
             "marginalia": TextInputWidget(),
             # folio: defined below (required)
             # c_sequence: defined below (required)
-            # feast: defined below (foreignkey)
+            "feast": autocomplete.ModelSelect2(url="feast-autocomplete"),
             # office: defined below (foreignkey)
             # genre: defined below (foreignkey)
             "position": TextInputWidget(),
@@ -346,11 +335,6 @@ class ChantEditForm(forms.ModelForm):
         widget=TextInputWidget,
         help_text="Each folio starts with '1'.",
     )
-
-    feast = forms.ModelChoiceField(
-        queryset=Feast.objects.all().order_by("name"), required=False
-    )
-    feast.widget.attrs.update({"class": "form-control custom-select custom-select-sm"})
 
     # We use NameModelChoiceField here so the dropdown list of office/mass displays the name
     # instead of [name] + description
@@ -515,6 +499,7 @@ class SourceEditForm(forms.ModelForm):
         ]
         widgets = {
             "title": TextInputWidget(),
+            "rism_siglum": autocomplete.ModelSelect2(url="rismsiglum-autocomplete"),
             "siglum": TextInputWidget(),
             "provenance_notes": TextInputWidget(),
             "date": TextInputWidget(),
@@ -545,13 +530,6 @@ class SourceEditForm(forms.ModelForm):
                 url="all-users-autocomplete"
             ),
         }
-
-    rism_siglum = forms.ModelChoiceField(
-        queryset=RismSiglum.objects.all().order_by("name"), required=False
-    )
-    rism_siglum.widget.attrs.update(
-        {"class": "form-control custom-select custom-select-sm"}
-    )
 
     provenance = forms.ModelChoiceField(
         queryset=Provenance.objects.all().order_by("name"), required=False
