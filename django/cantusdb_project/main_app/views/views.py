@@ -947,8 +947,6 @@ def redirect_documents(request) -> HttpResponse:
     try:
         new_path = mapping[old_path]
     except KeyError:
-        print("key error!")
-        print(old_path)
         raise Http404
     return redirect(new_path)
 
