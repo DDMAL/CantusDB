@@ -243,7 +243,18 @@
                     <dd><small>1) Select a <b>folio</b> or a <b>feast</b> (in the right block)</small></dd>
                     <dd><small>2) Click <b>"EDIT"</b> next to any chant</small></dd>
                     <dd><small>3) Proofread the chant and click <b>"SAVE"</b></small></dd>
-                </dl> 
+                </dl>
+                <a href="{% url 'source-detail' source.id %}" title="{{ source.title }}" style="display: inline-block; margin-top:5px;">
+                    {{ source.siglum }}
+                </a>
+                <br>
+                <a href="{% url "chant-create" source.pk %}" style="display: inline-block; margin-top:5px;">
+                    <small><b>&plus; Add new chant</b></small>
+                </a>
+                <br>
+                <a href="{% url "source-create" %}" style="display: inline-block; margin-top:5px;">
+                    <small><b>&plus; Add new source</b></small>
+                </a>
             {% endif %}
         </div>
 
