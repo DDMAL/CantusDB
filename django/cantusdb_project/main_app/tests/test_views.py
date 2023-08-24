@@ -5188,7 +5188,8 @@ class NodeURLRedirectTest(TestCase):
     def test_chant_redirect(self):
         # generate dummy object with ID in valid range
         example_chant_id = random.randrange(1, 1000000)
-        Chant.objects.create(id=example_chant_id)
+        source = make_fake_source()
+        Chant.objects.create(id=example_chant_id, source=source)
 
         # find dummy object using /node/ path
         response_1 = self.client.get(
@@ -5218,7 +5219,8 @@ class NodeURLRedirectTest(TestCase):
     def test_sequence_redirect(self):
         # generate dummy object with ID in valid range
         example_sequence_id = random.randrange(1, 1000000)
-        Sequence.objects.create(id=example_sequence_id)
+        source = make_fake_source()
+        Sequence.objects.create(id=example_sequence_id, source=source)
 
         # find dummy object using /node/ path
         response_1 = self.client.get(
@@ -5274,7 +5276,8 @@ class NodeURLRedirectTest(TestCase):
     def test_redirect_above_limit(self):
         # generate dummy object with ID outside of valid range
         over_limit_node_id = 1000001
-        Chant.objects.create(id=over_limit_node_id)
+        source = make_fake_source()
+        Chant.objects.create(id=over_limit_node_id, source=source)
 
         # ID above limit
         response_1 = self.client.get(
