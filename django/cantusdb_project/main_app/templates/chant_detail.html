@@ -129,6 +129,17 @@
                         </div>
                     {% endif %}
 
+                    {% if chant.differentia_new %}
+                        <div class="col">
+                            <dt>Differentia&nbsp;Database</dt>
+                            <dd>
+                                <a href="https://differentiaedatabase.ca/differentia/{{ chant.differentia_new }}" target="_blank">
+                                    {{ chant.differentia_new }}
+                                </a>
+                            </dd>
+                        </div>
+                    {% endif %}
+
                     {% if chant.chant_range %}
                         <div class="col">
                             <dt>Range</dt>
