@@ -12,6 +12,10 @@ from django.contrib import messages
 from extra_views import SearchableListMixin
 from django.http import HttpResponseRedirect
 from django.core.exceptions import PermissionDenied
+from main_app.permissions import (
+    user_can_view_user_detail,
+    user_can_proofread_chants_in_source,
+)
 
 
 class UserDetailView(DetailView):
@@ -30,7 +34,7 @@ class UserDetailView(DetailView):
         # they should only be able to view the detail pages of indexers,
         # and not the detail pages of run-of-the-mill users
         viewing_user = self.request.user
-        if not (viewing_user.is_authenticated or user.is_indexer):
+        if not user_can_view_user_detail(viewing_user, user):
             raise PermissionDenied()
 
         context = super().get_context_data(**kwargs)
@@ -79,10 +83,11 @@ class UserSourceListView(LoginRequiredMixin, ListView):
     model = Source
     context_object_name = "sources"
     template_name = "user_source_list.html"
-    paginate_by = 100
 
-    def get_queryset(self):
-        return (
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+
+        my_sources = (
             Source.objects.filter(
                 Q(current_editors=self.request.user)
                 | Q(created_by=self.request.user)
@@ -95,20 +100,27 @@ class UserSourceListView(LoginRequiredMixin, ListView):
             .order_by("-date_created")
             .distinct()
         )
+        user = self.request.user
+        sources_with_proofread_permissions = [
+            (source, user_can_proofread_chants_in_source(user, source))
+            for source in my_sources
+        ]
 
-    def get_context_data(self, **kwargs):
-        context = super().get_context_data(**kwargs)
+        user_sources_paginator = Paginator(sources_with_proofread_permissions, 10)
+        user_sources_page_num = self.request.GET.get("page")
+        user_sources_page_obj = user_sources_paginator.get_page(user_sources_page_num)
 
         user_created_sources = (
             Source.objects.filter(created_by=self.request.user)
             .order_by("-date_created")
             .distinct()
         )
-        paginator = Paginator(user_created_sources, 6)
-        page_number = self.request.GET.get("page2")
-        page_obj = paginator.get_page(page_number)
+        user_created_paginator = Paginator(user_created_sources, 6)
+        user_created_page_num = self.request.GET.get("page2")
+        user_created_page_obj = user_created_paginator.get_page(user_created_page_num)
 
-        context["user_created_sources_page_obj"] = page_obj
+        context["page_obj"] = user_sources_page_obj
+        context["user_created_sources_page_obj"] = user_created_page_obj
         return context
 
 

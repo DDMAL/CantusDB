@@ -33,6 +33,11 @@ from django.contrib.auth.mixins import UserPassesTestMixin
 from typing import Optional, Union
 from requests.exceptions import SSLError, Timeout, ConnectionError
 from requests import Response
+from main_app.permissions import (
+    user_can_edit_chants_in_source,
+    user_can_proofread_chants_in_source,
+    user_can_view_chant,
+)
 
 CHANT_SEARCH_TEMPLATE_VALUES = (
     # for views that use chant_search.html, this allows them to
@@ -266,12 +271,11 @@ class ChantDetailView(DetailView):
         context = super().get_context_data(**kwargs)
         chant = self.get_object()
         user = self.request.user
+        source = chant.source
 
         # if the chant's source isn't published, only logged-in users should be able to
         # view the chant's detail page
-        source = chant.source
-        display_unpublished = user.is_authenticated
-        if (source.published is False) and (not display_unpublished):
+        if not user_can_view_chant(user, chant):
             raise PermissionDenied()
 
         context["user_can_edit_chant"] = user_can_edit_chants_in_source(user, source)
@@ -1683,21 +1687,9 @@ class ChantProofreadView(SourceEditChantsView):
 
     def test_func(self):
         user = self.request.user
-        if user.is_anonymous:
-            return False
         source_id = self.kwargs.get(self.pk_url_kwarg)
-
-        assigned_to_source = user.sources_user_can_edit.filter(id=source_id)
-
-        # checks if the user is a project manager
-        is_project_manager = user.groups.filter(name="project manager").exists()
-        # checks if the user is an editor,
-        is_editor = user.groups.filter(name="editor").exists()
-
-        if (is_project_manager) or (is_editor and assigned_to_source):
-            return True
-        else:
-            return False
+        source = Source.objects.get(id=source_id)
+        return user_can_proofread_chants_in_source(user, source)
 
 
 class ChantEditSyllabificationView(LoginRequiredMixin, UserPassesTestMixin, UpdateView):
@@ -1750,23 +1742,3 @@ class ChantEditSyllabificationView(LoginRequiredMixin, UserPassesTestMixin, Upda
     def get_success_url(self):
         # stay on the same page after save
         return self.request.get_full_path()
-
-
-def user_can_edit_chants_in_source(user, source):
-    if user.is_anonymous:
-        return False
-
-    source_id = source.id
-    user_is_assigned_to_source = user.sources_user_can_edit.filter(id=source_id)
-
-    user_is_project_manager = user.groups.filter(name="project manager").exists()
-    user_is_editor = user.groups.filter(name="editor").exists()
-    user_is_contributor = user.groups.filter(name="contributor").exists()
-
-    return (
-        (user_is_project_manager)
-        or (user_is_editor and user_is_assigned_to_source)
-        or (user_is_editor and source.created_by == user)
-        or (user_is_contributor and user_is_assigned_to_source)
-        or (user_is_contributor and source.created_by == user)
-    )

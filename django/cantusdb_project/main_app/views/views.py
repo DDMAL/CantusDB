@@ -853,7 +853,7 @@ def content_overview(request):
 
     objects = []
     if selected_model:
-        objects = selected_model.objects.all().order_by("-date_created")
+        objects = selected_model.objects.all().order_by("-date_updated")
 
     paginator = Paginator(objects, 100)
     page_number = request.GET.get("page")
@@ -992,4 +992,26 @@ class CenturyAutocomplete(autocomplete.Select2QuerySetView):
         qs = Century.objects.all().order_by("name")
         if self.q:
             qs = qs.filter(name__istartswith=self.q)
+        return qs
+
+
+class RismSiglumAutocomplete(autocomplete.Select2QuerySetView):
+    def get_queryset(self):
+        if not self.request.user.is_authenticated:
+            return RismSiglum.objects.none()
+        qs = RismSiglum.objects.all().order_by("name")
+        if self.q:
+            qs = qs.filter(name__istartswith=self.q)
+        return qs
+
+
+class FeastAutocomplete(autocomplete.Select2QuerySetView):
+    def get_queryset(self):
+        if not self.request.user.is_authenticated:
+            return Feast.objects.none()
+        qs = Feast.objects.all().order_by("name")
+        if self.q:
+            qs = qs.filter(
+                Q(name__istartswith=self.q) | Q(feast_code__istartswith=self.q)
+            )
         return qs

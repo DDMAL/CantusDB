@@ -9,20 +9,20 @@
             <a href="{% url "source-create" %}"><b>+ Add new source</b></a>
             <table class="table table-sm small table-bordered">
                 <tbody>
-                    {% for source in page_obj %}
+                    {% for source, user_can_proofread_source in page_obj %}
                         <tr>
                             <td class="h-25" style="width: 40%; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; max-width: 0; text-align:center">
                                 <a href="{% url "source-detail" source.pk %}">
                                     <b>{{ source.siglum }}</b>
                                 </a>
                             </td>
-                            {% if source.chant_set.all%}
+                            {% if source.chant_set.exists %}
                                 <td class="h-25" style="width: 30%; text-align:center">
                                     <a href="{% url "source-edit-chants" source.pk %}">
                                         Full text &amp; volpiano editor
                                     </a>
                                 </td>
-                                {% if request.user|has_group:"project manager" or request.user|has_group:"editor" %}
+                                {% if user_can_proofread_source %}
                                     <td class="h-25" style="width: 30%; text-align:center">
                                         <a href="{% url "chant-proofread" source.pk %}">
                                             Proofreading form
@@ -67,7 +67,7 @@
                                         &plus; Add new chant
                                     </a>
                                     <br>
-                                    {% if my_source.chant_set.all %}
+                                    {% if my_source.chant_set.exists %}
                                         <a href="{% url "source-edit-chants" my_source.pk %}">
                                             &bull; Full text &amp; volpiano editor
                                         </a>
