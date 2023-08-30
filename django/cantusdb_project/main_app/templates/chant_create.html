@@ -249,10 +249,10 @@
                         Cantus ID: <a href="https://cantusindex.org/id/{{ previous_chant.cantus_id }}" target="_blank">{{ previous_chant.cantus_id }}</a><br>
                             {% if suggested_chants %}
                                 {% for chant in suggested_chants %}
-                                    <input type="button" style="width: 80px" value="{{ chant.cid }}" onclick="autoFill{{ chant.cid }}()"></input>
+                                    <input type="button" style="width: 80px" value="{{ chant.cid }}" onclick="autoFill{{ chant.cid_clean }}()"></input>
                                     <strong>{{ chant.genre }}</strong> - {{ chant.fulltext|truncatechars:100 }} (<strong>{{ chant.count }}x</strong>)<br>
                                     <script>
-                                        function autoFill{{ chant.cid }}() {
+                                        function autoFill{{ chant.cid_clean }}() {
                                             document.getElementById('id_cantus_id').value = "{{ chant.cid }}";
                                             document.getElementById('id_genre').value = {{ chant.genre_id }};
                                             document.getElementById('id_manuscript_full_text_std_spelling').value = "{{ chant.fulltext }}";
