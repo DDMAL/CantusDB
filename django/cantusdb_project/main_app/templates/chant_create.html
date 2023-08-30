@@ -249,8 +249,8 @@
                         Cantus ID: <a href="https://cantusindex.org/id/{{ previous_chant.cantus_id }}" target="_blank">{{ previous_chant.cantus_id }}</a><br>
                             {% if suggested_chants %}
                                 {% for chant in suggested_chants %}
-                                    <input type="button" style="width: 80px" value="{{ chant.cid }}" onclick="autoFill{{ chant.cid_clean }}()"></input>
-                                    <strong>{{ chant.genre }}</strong> - {{ chant.fulltext|truncatechars:100 }} (<strong>{{ chant.count }}x</strong>)<br>
+                                    <input type="button" style="width: 80px" value="{{ chant.cid }}" onclick="autoFill{{ chant.cid_clean }}()" title="{{ chant.cid }}"></input>
+                                    <strong>{{ chant.genre }}</strong> - <span title="{{ chant.fulltext }}">{{ chant.fulltext|truncatechars:100 }}</span> (<strong>{{ chant.count }}x</strong>)<br>
                                     <script>
                                         function autoFill{{ chant.cid_clean }}() {
                                             document.getElementById('id_cantus_id').value = "{{ chant.cid }}";
