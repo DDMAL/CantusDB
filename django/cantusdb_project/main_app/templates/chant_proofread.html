@@ -244,17 +244,21 @@
                     <dd><small>2) Click <b>"EDIT"</b> next to any chant</small></dd>
                     <dd><small>3) Proofread the chant and click <b>"SAVE"</b></small></dd>
                 </dl>
-                <a href="{% url 'source-detail' source.id %}" title="{{ source.title }}" style="display: inline-block; margin-top:5px;">
-                    {{ source.siglum }}
-                </a>
-                <br>
-                <a href="{% url "chant-create" source.pk %}" style="display: inline-block; margin-top:5px;">
-                    <small><b>&plus; Add new chant</b></small>
-                </a>
-                <br>
-                <a href="{% url "source-create" %}" style="display: inline-block; margin-top:5px;">
-                    <small><b>&plus; Add new source</b></small>
-                </a>
+                <div style="margin-top:5px;">
+                    <a href="{% url 'source-detail' source.id %}" title="{{ source.title }}">
+                        {{ source.siglum }}
+                    </a>
+                </div>
+                <div style="margin-top:5px;">
+                    <a href="{% url "chant-create" source.pk %}">
+                        <small><b>&plus; Add new chant</b></small>
+                    </a>
+                </div>
+                <div style="margin-top:5px;">
+                    <a href="{% url "source-create" %}">
+                        <small><b>&plus; Add new source</b></small>
+                    </a>
+                </div>
             {% endif %}
         </div>
 
