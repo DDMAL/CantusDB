@@ -838,6 +838,7 @@ class AdminSourceForm(forms.ModelForm):
             | Q(groups__name="editor")
             | Q(groups__name="contributor")
         )
+        .distinct()
         .order_by("full_name"),
         required=False,
         widget=FilteredSelectMultiple(verbose_name="current editors", is_stacked=False),
