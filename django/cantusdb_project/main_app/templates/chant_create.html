@@ -248,14 +248,14 @@
                         {{ previous_chant.folio }} {{ previous_chant.c_sequence}} <a href="{% url 'chant-detail' previous_chant.id %}" target="_blank">{{ previous_chant.incipit }}</a><br>
                         Cantus ID: <a href="https://cantusindex.org/id/{{ previous_chant.cantus_id }}" target="_blank">{{ previous_chant.cantus_id }}</a><br>
                             {% if suggested_chants %}
-                                {% for chant in suggested_chants %}
-                                    <input type="button" style="width: 80px" value="{{ chant.cid }}" onclick="autoFill{{ chant.cid }}()"></input>
-                                    <strong>{{ chant.genre }}</strong> - {{ chant.fulltext|truncatechars:100 }} (<strong>{{ chant.count }}x</strong>)<br>
+                                {% for cantus_id in suggested_chants %}
+                                    <input type="button" style="width: 80px" value="{{ cantus_id.cid }}" onclick="autoFill{{ cantus_id.cid_clean }}()" title="{{ cantus_id.cid }}"></input>
+                                    <strong>{{ cantus_id.genre }}</strong> - <span title="{{ cantus_id.fulltext }}">{{ cantus_id.fulltext|truncatechars:100 }}</span> (<strong>{{ cantus_id.count }}x</strong>)<br>
                                     <script>
-                                        function autoFill{{ chant.cid }}() {
-                                            document.getElementById('id_cantus_id').value = "{{ chant.cid }}";
-                                            document.getElementById('id_genre').value = {{ chant.genre_id }};
-                                            document.getElementById('id_manuscript_full_text_std_spelling').value = "{{ chant.fulltext }}";
+                                        function autoFill{{ cantus_id.cid_clean }}() {
+                                            document.getElementById('id_cantus_id').value = "{{ cantus_id.cid }}";
+                                            document.getElementById('id_genre').value = {{ cantus_id.genre_id }};
+                                            document.getElementById('id_manuscript_full_text_std_spelling').value = "{{ cantus_id.fulltext }}";
                                         }
                                     </script>
                                 {% endfor %}

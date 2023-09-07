@@ -204,6 +204,11 @@ def make_suggested_chant_dict(
     genre_name = cid_dict["genre"]
     genre_id = Genre.objects.get(name=genre_name).id
     cid_dict["genre_id"] = genre_id
+    # in the template, we create a js function based on the cantus ID. The function name
+    # cannot include a "." or a ":", so we have to use a cleaned version
+    cid_clean = cantus_id.replace(".", "d").replace(":", "c")
+    #                                  "d"ot             "c"olon
+    cid_dict["cid_clean"] = cid_clean
     return cid_dict
 
 
