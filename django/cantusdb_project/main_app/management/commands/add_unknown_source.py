@@ -9,23 +9,24 @@ class Command(BaseCommand):
         chants = Chant.objects.all().filter(source__isnull=True)
         sequences = Sequence.objects.all().filter(source__isnull=True)
 
-        if len(chants) > 0 and len(sequences) > 0:
+        if len(chants) > 0:
             unknown_source_chants = Source.objects.create(
                 segment=cantus_segment,
                 siglum="Unknown",
                 published=False,
                 title="Unknown Source (Chants)",
             )
+            for c in chants:
+                c.source = unknown_source_chants
+                c.save()
+
+        if len(sequences) > 0:
             unknown_source_sequences = Source.objects.create(
                 segment=calvin_segment,
                 siglum="Unknown",
                 published=False,
                 title="Unknown Source (Sequences)",
             )
-
-            for c in chants:
-                c.source = unknown_source_chants
-                c.save()
             for s in sequences:
                 s.source = unknown_source_sequences
                 s.save()
