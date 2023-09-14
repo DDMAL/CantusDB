@@ -20,7 +20,6 @@ from django.core.exceptions import PermissionDenied
 from main_app.forms import (
     ChantCreateForm,
     ChantEditForm,
-    ChantProofreadForm,
     ChantEditSyllabificationForm,
 )
 from main_app.models import Chant, Feast, Genre, Source, Sequence, Segment, Office
