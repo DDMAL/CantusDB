@@ -18,7 +18,6 @@ from main_app.views.chant import (
     ChantEditSyllabificationView,
     ChantIndexView,
     ChantListView,
-    ChantProofreadView,
     ChantSearchView,
     ChantSearchMSView,
     CISearchView,
@@ -185,11 +184,6 @@ urlpatterns = [
         "edit-chants/<int:source_id>",
         SourceEditChantsView.as_view(),
         name="source-edit-chants",
-    ),
-    path(
-        "proofread-chant/<int:source_id>",
-        ChantProofreadView.as_view(),
-        name="chant-proofread",
     ),
     path(
         "edit-syllabification/<int:chant_id>",

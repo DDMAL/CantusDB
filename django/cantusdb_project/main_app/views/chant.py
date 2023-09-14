@@ -1688,19 +1688,6 @@ class SourceEditChantsView(LoginRequiredMixin, UserPassesTestMixin, UpdateView):
             return self.request.get_full_path()
 
 
-class ChantProofreadView(SourceEditChantsView):
-    template_name = "chant_proofread.html"
-    model = Chant
-    form_class = ChantProofreadForm
-    pk_url_kwarg = "source_id"
-
-    def test_func(self):
-        user = self.request.user
-        source_id = self.kwargs.get(self.pk_url_kwarg)
-        source = Source.objects.get(id=source_id)
-        return user_can_proofread_chants_in_source(user, source)
-
-
 class ChantEditSyllabificationView(LoginRequiredMixin, UserPassesTestMixin, UpdateView):
     template_name = "chant_syllabification_edit.html"
     model = Chant

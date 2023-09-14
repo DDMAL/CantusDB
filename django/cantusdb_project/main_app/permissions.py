@@ -38,7 +38,7 @@ def user_can_edit_chants_in_source(user: User, source: Optional[Source]) -> bool
 def user_can_proofread_chants_in_source(user: User, source: Source) -> bool:
     """
     Checks if the user can access the proofreading page of a given Source.
-    Used in ChantProofreadView.
+    Used in SourceEditChantsView.
     """
     source_id = source.id
     if user.is_anonymous:
