@@ -1660,6 +1660,10 @@ class SourceEditChantsView(LoginRequiredMixin, UserPassesTestMixin, UpdateView):
             )
             context["syllabized_text_with_melody"] = text_and_mel
 
+        user = self.request.user
+        context["user_can_proofread_chant"] = user_can_proofread_chants_in_source(
+            user, source
+        )
         return context
 
     def form_valid(self, form):

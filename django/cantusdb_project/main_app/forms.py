@@ -288,6 +288,11 @@ class ChantEditForm(forms.ModelForm):
             "image_link",
             "indexing_notes",
             "addendum",
+            "chant_range",
+            "manuscript_full_text_std_proofread",
+            "manuscript_full_text_proofread",
+            "volpiano_proofread",
+            "proofread_by",
         ]
         widgets = {
             # manuscript_full_text_std_spelling: defined below (required)
@@ -310,6 +315,11 @@ class ChantEditForm(forms.ModelForm):
             "image_link": TextInputWidget(),
             "indexing_notes": TextAreaWidget(),
             "addendum": TextInputWidget(),
+            "chant_range": VolpianoAreaWidget(),
+            "manuscript_full_text_std_proofread": CheckboxWidget(),
+            "manuscript_full_text_proofread": CheckboxWidget(),
+            "volpiano_proofread": CheckboxWidget(),
+            "proofread_by": autocomplete.ModelSelect2(url="proofread-by-autocomplete"),
         }
 
     manuscript_full_text_std_spelling = forms.CharField(

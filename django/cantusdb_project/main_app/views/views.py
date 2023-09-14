@@ -1013,3 +1013,21 @@ class FeastAutocomplete(autocomplete.Select2QuerySetView):
                 Q(name__istartswith=self.q) | Q(feast_code__istartswith=self.q)
             )
         return qs
+
+
+class ProofreadByAutocomplete(autocomplete.Select2QuerySetView):
+    def get_queryset(self):
+        if not self.request.user.is_authenticated:
+            return get_user_model().objects.none()
+        qs = (
+            get_user_model()
+            .objects.filter(
+                Q(groups__name="project manager") | Q(groups__name="editor")
+            )
+            .order_by("full_name")
+        )
+        if self.q:
+            qs = qs.filter(
+                Q(full_name__istartswith=self.q) | Q(email__istartswith=self.q)
+            )
+        return qs
