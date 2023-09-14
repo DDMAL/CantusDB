@@ -76,6 +76,8 @@ class ChantAdmin(BaseModelAdmin):
         "is_last_chant_in_feast",
         "visible_status",
         "date",
+        "volpiano_notes",
+        "volpiano_intervals",
     )
     form = AdminChantForm
     raw_id_fields = (
