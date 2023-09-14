@@ -43,7 +43,8 @@ class CenturyAdmin(BaseModelAdmin):
 class ChantAdmin(BaseModelAdmin):
     @admin.display(description="Source Siglum")
     def get_source_siglum(self, obj):
-        return obj.source.siglum
+        if obj.source:
+            return obj.source.siglum
 
     list_display = (
         "incipit",
@@ -54,6 +55,7 @@ class ChantAdmin(BaseModelAdmin):
         "title",
         "incipit",
         "cantus_id",
+        "id",
     )
     list_filter = (
         "genre",
@@ -124,12 +126,14 @@ class SegmentAdmin(BaseModelAdmin):
 class SequenceAdmin(BaseModelAdmin):
     @admin.display(description="Source Siglum")
     def get_source_siglum(self, obj):
-        return obj.source.siglum
+        if obj.source:
+            return obj.source.siglum
 
     search_fields = (
         "title",
         "incipit",
         "cantus_id",
+        "id",
     )
     exclude = EXCLUDE + (
         "c_sequence",

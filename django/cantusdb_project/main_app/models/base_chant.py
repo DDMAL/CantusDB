@@ -44,9 +44,8 @@ class BaseChant(BaseModel):
     col2 = models.CharField(blank=True, null=True, max_length=255)
     col3 = models.CharField(blank=True, null=True, max_length=255)
     ah_volume = models.CharField(blank=True, null=True, max_length=255)
-    # Note that some chants do not have a source
     source = models.ForeignKey(
-        "Source", on_delete=models.CASCADE, null=True, blank=True
+        "Source", on_delete=models.CASCADE
     )  # PROTECT so that we can't delete a source with chants in it
     cantus_id = models.CharField(blank=True, null=True, max_length=255, db_index=True)
     image_link = models.URLField(blank=True, null=True)
