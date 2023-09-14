@@ -20,8 +20,6 @@ from .widgets import (
     VolpianoAreaWidget,
     SelectWidget,
     CheckboxWidget,
-    AdminTextAreaWidget,
-    AdminTextInputWidget,
 )
 from django.contrib.auth import get_user_model
 from django.db.models import Q
@@ -637,7 +635,7 @@ class AdminCenturyForm(forms.ModelForm):
         model = Century
         fields = "__all__"
 
-    name = forms.CharField(required=True, widget=AdminTextInputWidget)
+    name = forms.CharField(required=True, widget=TextInputWidget)
 
 
 class AdminChantForm(forms.ModelForm):
@@ -655,7 +653,7 @@ class AdminChantForm(forms.ModelForm):
 
     manuscript_full_text_std_spelling = forms.CharField(
         required=True,
-        widget=AdminTextAreaWidget,
+        widget=TextAreaWidget,
         help_text="Manuscript full text with standardized spelling. Enter the words "
         "according to the manuscript but normalize their spellings following "
         "Classical Latin forms. Use upper-case letters for proper nouns, "
@@ -665,13 +663,13 @@ class AdminChantForm(forms.ModelForm):
 
     folio = forms.CharField(
         required=True,
-        widget=AdminTextInputWidget,
+        widget=TextInputWidget,
         help_text="Binding order",
     )
 
     c_sequence = forms.CharField(
         required=True,
-        widget=AdminTextInputWidget,
+        widget=TextInputWidget,
         help_text="Each folio starts with '1'.",
         label="Sequence",
     )
@@ -702,7 +700,7 @@ class AdminFeastForm(forms.ModelForm):
         model = Feast
         fields = "__all__"
 
-    name = forms.CharField(required=True, widget=AdminTextInputWidget)
+    name = forms.CharField(required=True, widget=TextInputWidget)
 
 
 class AdminGenreForm(forms.ModelForm):
@@ -710,8 +708,8 @@ class AdminGenreForm(forms.ModelForm):
         model = Genre
         fields = "__all__"
 
-    name = forms.CharField(required=True, widget=AdminTextInputWidget)
-    description = forms.CharField(required=True, widget=AdminTextAreaWidget)
+    name = forms.CharField(required=True, widget=TextInputWidget)
+    description = forms.CharField(required=True, widget=TextAreaWidget)
 
 
 class AdminNotationForm(forms.ModelForm):
@@ -719,7 +717,7 @@ class AdminNotationForm(forms.ModelForm):
         model = Notation
         fields = "__all__"
 
-    name = forms.CharField(required=True, widget=AdminTextInputWidget)
+    name = forms.CharField(required=True, widget=TextInputWidget)
     name.widget.attrs.update({"style": "width: 400px;"})
 
 
@@ -728,8 +726,8 @@ class AdminOfficeForm(forms.ModelForm):
         model = Office
         fields = "__all__"
 
-    name = forms.CharField(required=True, widget=AdminTextInputWidget)
-    description = forms.CharField(required=True, widget=AdminTextAreaWidget)
+    name = forms.CharField(required=True, widget=TextInputWidget)
+    description = forms.CharField(required=True, widget=TextAreaWidget)
 
 
 class AdminProvenanceForm(forms.ModelForm):
@@ -737,7 +735,7 @@ class AdminProvenanceForm(forms.ModelForm):
         model = Provenance
         fields = "__all__"
 
-    name = forms.CharField(required=True, widget=AdminTextInputWidget)
+    name = forms.CharField(required=True, widget=TextInputWidget)
 
 
 class AdminRismSiglumForm(forms.ModelForm):
@@ -745,7 +743,7 @@ class AdminRismSiglumForm(forms.ModelForm):
         model = RismSiglum
         fields = "__all__"
 
-    name = forms.CharField(required=True, widget=AdminTextInputWidget)
+    name = forms.CharField(required=True, widget=TextInputWidget)
 
 
 class AdminSegmentForm(forms.ModelForm):
@@ -753,7 +751,7 @@ class AdminSegmentForm(forms.ModelForm):
         model = Segment
         fields = "__all__"
 
-    name = forms.CharField(required=True, widget=AdminTextInputWidget)
+    name = forms.CharField(required=True, widget=TextInputWidget)
     name.widget.attrs.update({"style": "width: 400px;"})
 
 
@@ -798,14 +796,14 @@ class AdminSourceForm(forms.ModelForm):
 
     title = forms.CharField(
         required=True,
-        widget=AdminTextInputWidget,
+        widget=TextInputWidget,
         help_text="Full Manuscript Identification (City, Archive, Shelf-mark)",
     )
     title.widget.attrs.update({"style": "width: 610px;"})
 
     siglum = forms.CharField(
         required=True,
-        widget=AdminTextInputWidget,
+        widget=TextInputWidget,
         help_text="RISM-style siglum + Shelf-mark (e.g. GB-Ob 202).",
     )
 
@@ -892,7 +890,7 @@ class AdminUserChangeForm(forms.ModelForm):
 
     email = forms.CharField(
         required=True,
-        widget=AdminTextInputWidget,
+        widget=TextInputWidget,
     )
     email.widget.attrs.update({"style": "width: 300px;"})
 
