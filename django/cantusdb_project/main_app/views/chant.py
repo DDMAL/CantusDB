@@ -20,7 +20,6 @@ from django.core.exceptions import PermissionDenied
 from main_app.forms import (
     ChantCreateForm,
     ChantEditForm,
-    ChantProofreadForm,
     ChantEditSyllabificationForm,
 )
 from main_app.models import Chant, Feast, Genre, Source, Sequence, Segment, Office
@@ -35,7 +34,7 @@ from requests.exceptions import SSLError, Timeout, ConnectionError
 from requests import Response
 from main_app.permissions import (
     user_can_edit_chants_in_source,
-    user_can_proofread_chants_in_source,
+    user_can_proofread_chant,
     user_can_view_chant,
 )
 
@@ -1660,6 +1659,8 @@ class SourceEditChantsView(LoginRequiredMixin, UserPassesTestMixin, UpdateView):
             )
             context["syllabized_text_with_melody"] = text_and_mel
 
+        user = self.request.user
+        context["user_can_proofread_chant"] = user_can_proofread_chant(user, chant)
         return context
 
     def form_valid(self, form):
@@ -1682,19 +1683,6 @@ class SourceEditChantsView(LoginRequiredMixin, UserPassesTestMixin, UpdateView):
         else:
             # ref not found, stay on the same page after save
             return self.request.get_full_path()
-
-
-class ChantProofreadView(SourceEditChantsView):
-    template_name = "chant_proofread.html"
-    model = Chant
-    form_class = ChantProofreadForm
-    pk_url_kwarg = "source_id"
-
-    def test_func(self):
-        user = self.request.user
-        source_id = self.kwargs.get(self.pk_url_kwarg)
-        source = Source.objects.get(id=source_id)
-        return user_can_proofread_chants_in_source(user, source)
 
 
 class ChantEditSyllabificationView(LoginRequiredMixin, UserPassesTestMixin, UpdateView):

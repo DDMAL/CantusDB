@@ -12,10 +12,7 @@ from django.contrib import messages
 from extra_views import SearchableListMixin
 from django.http import HttpResponseRedirect
 from django.core.exceptions import PermissionDenied
-from main_app.permissions import (
-    user_can_view_user_detail,
-    user_can_proofread_chants_in_source,
-)
+from main_app.permissions import user_can_view_user_detail
 
 
 class UserDetailView(DetailView):
@@ -100,13 +97,8 @@ class UserSourceListView(LoginRequiredMixin, ListView):
             .order_by("-date_created")
             .distinct()
         )
-        user = self.request.user
-        sources_with_proofread_permissions = [
-            (source, user_can_proofread_chants_in_source(user, source))
-            for source in my_sources
-        ]
 
-        user_sources_paginator = Paginator(sources_with_proofread_permissions, 10)
+        user_sources_paginator = Paginator(my_sources, 10)
         user_sources_page_num = self.request.GET.get("page")
         user_sources_page_obj = user_sources_paginator.get_page(user_sources_page_num)
 

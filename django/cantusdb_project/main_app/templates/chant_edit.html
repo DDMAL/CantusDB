@@ -118,10 +118,16 @@
                         </div>
                     </div>
                     <div class="form-row">
-                        <div class="form-group m-1 col-lg">
+                        <div class="form-group m-1 col-lg-8">
                             <small>{{ form.addendum.label_tag }}</small>
                             {{ form.addendum }}
                         </div>
+                        {% if user_can_proofread_chant %}
+                            <div class="form-group m-1 col-lg-2">
+                                <small>{{ form.chant_range.label_tag }}</small>
+                                {{ form.chant_range }}
+                            </div>
+                        {% endif %}
                     </div>
                                         
                     <div class="form-row">
@@ -141,6 +147,17 @@
                         </div>
                     </div>
 
+                    {% if user_can_proofread_chant %}
+                        <div class="form-row">
+                            <div class="form-group m-1 col-lg-12">
+                                <label for="{{ form.manuscript_full_text_std_spelling.id_for_label }}">
+                                    <small>Manuscript Reading Full Text (standardized spelling) proofread:</small>
+                                </label>
+                                {{ form.manuscript_full_text_std_proofread }}
+                            </div>
+                        </div>
+                    {% endif %}
+
                     <div class="form-row">
                         <div class="form-group m-1 col-lg-4">
                             <button type="button" class="btn btn-dark btn-sm" id="copyFullTextBelow">Copy full text below</button>                
@@ -156,6 +173,17 @@
                         </div>
                     </div>
 
+                    {% if user_can_proofread_chant %}
+                        <div class="form-row">
+                            <div class="form-group m-1 col-lg-12">
+                                <label for="{{ form.manuscript_full_text_std_spelling.id_for_label }}">
+                                    <small>Manuscript Reading Full Text (MS spelling) proofread:</small>
+                                </label>
+                                {{ form.manuscript_full_text_proofread }}
+                            </div>
+                        </div>
+                    {% endif %}
+        
                     <div class="form-row">
                         <div class="form-group m-1 col-lg-12">
                             <label for="{{ form.volpiano.id_for_label }}">
@@ -164,6 +192,17 @@
                             {{ form.volpiano }}
                         </div>
                     </div>
+
+                    {% if user_can_proofread_chant %}
+                        <div class="form-row">
+                            <div class="form-group m-1 col-lg-12">
+                                <label for="{{ form.volpiano.id_for_label }}">
+                                    <small>Volpiano proofread:</small>
+                                </label>
+                                {{ form.volpiano_proofread }}
+                            </div>
+                        </div>
+                    {% endif %}
 
                     {% if chant.volpiano %}
                         <div class="form-row">
@@ -201,6 +240,14 @@
                             {{ form.image_link }}
                         </div>
                     </div>
+                    {% if user_can_proofread_chant %}
+                        <div class="form-row">
+                            <div class="form-group m-1 col-lg-12">
+                                <small>{{ form.proofread_by.label_tag }}</small>
+                                <br>{{ form.proofread_by }}
+                            </div>
+                        </div>
+                    {% endif %}
 
                     <div class="form-row">
                         <div class="form-group m-1 col-lg-12">

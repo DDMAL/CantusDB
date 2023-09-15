@@ -35,12 +35,12 @@ def user_can_edit_chants_in_source(user: User, source: Optional[Source]) -> bool
     )
 
 
-def user_can_proofread_chants_in_source(user: User, source: Source) -> bool:
+def user_can_proofread_chant(user: User, chant: Chant) -> bool:
     """
     Checks if the user can access the proofreading page of a given Source.
-    Used in ChantProofreadView.
+    Used in SourceEditChantsView.
     """
-    source_id = source.id
+    source_id = chant.source.id
     if user.is_anonymous:
         return False
     user_is_assigned_to_source: bool = user.sources_user_can_edit.filter(
