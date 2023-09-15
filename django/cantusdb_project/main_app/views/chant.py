@@ -34,7 +34,7 @@ from requests.exceptions import SSLError, Timeout, ConnectionError
 from requests import Response
 from main_app.permissions import (
     user_can_edit_chants_in_source,
-    user_can_proofread_chants_in_source,
+    user_can_proofread_chant,
     user_can_view_chant,
 )
 
@@ -1660,9 +1660,7 @@ class SourceEditChantsView(LoginRequiredMixin, UserPassesTestMixin, UpdateView):
             context["syllabized_text_with_melody"] = text_and_mel
 
         user = self.request.user
-        context["user_can_proofread_chant"] = user_can_proofread_chants_in_source(
-            user, source
-        )
+        context["user_can_proofread_chant"] = user_can_proofread_chant(user, chant)
         return context
 
     def form_valid(self, form):

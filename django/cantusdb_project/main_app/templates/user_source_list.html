@@ -9,7 +9,7 @@
             <a href="{% url "source-create" %}"><b>+ Add new source</b></a>
             <table class="table table-sm small table-bordered">
                 <tbody>
-                    {% for source, user_can_proofread_source in page_obj %}
+                    {% for source in page_obj %}
                         <tr>
                             <td class="h-25" style="width: 40%; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; max-width: 0; text-align:center">
                                 <a href="{% url "source-detail" source.pk %}">
