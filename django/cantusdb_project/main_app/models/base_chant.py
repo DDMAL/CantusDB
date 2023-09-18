@@ -43,11 +43,15 @@ class BaseChant(BaseModel):
     col1 = models.CharField(blank=True, null=True, max_length=255)
     col2 = models.CharField(blank=True, null=True, max_length=255)
     col3 = models.CharField(blank=True, null=True, max_length=255)
-    ah_volume = models.CharField(blank=True, null=True, max_length=255)
+    ah_volume = models.CharField(
+        blank=True, null=True, max_length=255, verbose_name="AH volume"
+    )
     source = models.ForeignKey(
         "Source", on_delete=models.CASCADE
     )  # PROTECT so that we can't delete a source with chants in it
-    cantus_id = models.CharField(blank=True, null=True, max_length=255, db_index=True)
+    cantus_id = models.CharField(
+        blank=True, null=True, max_length=255, db_index=True, verbose_name="cantus ID"
+    )
     image_link = models.URLField(blank=True, null=True)
     json_info = models.JSONField(null=True, blank=True)
     marginalia = models.CharField(max_length=63, null=True, blank=True)
@@ -58,7 +62,13 @@ class BaseChant(BaseModel):
     feast = models.ForeignKey("Feast", on_delete=models.PROTECT, null=True, blank=True)
     mode = models.CharField(max_length=63, null=True, blank=True)
     differentia = models.CharField(blank=True, null=True, max_length=63)
-    differentia_new = models.CharField(blank=True, null=True, max_length=12)
+    differentia_new = models.CharField(
+        blank=True,
+        null=True,
+        max_length=12,
+        verbose_name="differentiae database",  # eventually, we should rename this entire
+        #                                     # field from `differentia_new` to `differentiae_db`
+    )
     finalis = models.CharField(blank=True, null=True, max_length=63)
     extra = models.CharField(blank=True, null=True, max_length=63)
     chant_range = models.CharField(
@@ -103,7 +113,7 @@ class BaseChant(BaseModel):
     # NB: the cao_concordances field should not be used in public-facing views, as it contains data that may be out-of-date.
     # For more information, see https://github.com/DDMAL/CantusDB/wiki/BaseChant-Model
     cao_concordances = models.CharField(
-        blank=True, null=True, max_length=63
+        blank=True, null=True, max_length=63, verbose_name="CAO concordances"
     )  # !! see lines immediately above
     proofread_by = models.ManyToManyField(get_user_model(), blank=True)
     melody_id = models.CharField(blank=True, null=True, max_length=63)
