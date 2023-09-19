@@ -14,6 +14,7 @@ from main_app.models import (
     Office,
     Provenance,
     RismSiglum,
+    Segment,
     Sequence,
     Source,
 )
@@ -525,7 +526,8 @@ def json_sources_export(request) -> JsonResponse:
     """
     Generate a json object of published sources with their IDs and CSV links
     """
-    sources = Source.objects.filter(published=True)
+    cantus_segment = Segment.objects.get(id=4063)
+    sources = cantus_segment.source_set.filter(published=True)
     ids = [source.id for source in sources]
 
     csv_links = {id: build_json_sources_export_dictionary(id, request) for id in ids}
