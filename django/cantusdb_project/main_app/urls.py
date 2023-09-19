@@ -18,7 +18,6 @@ from main_app.views.chant import (
     ChantEditSyllabificationView,
     ChantIndexView,
     ChantListView,
-    ChantProofreadView,
     ChantSearchView,
     ChantSearchMSView,
     CISearchView,
@@ -69,6 +68,7 @@ from main_app.views.views import (
     CenturyAutocomplete,
     RismSiglumAutocomplete,
     FeastAutocomplete,
+    ProofreadByAutocomplete,
 )
 
 urlpatterns = [
@@ -184,11 +184,6 @@ urlpatterns = [
         "edit-chants/<int:source_id>",
         SourceEditChantsView.as_view(),
         name="source-edit-chants",
-    ),
-    path(
-        "proofread-chant/<int:source_id>",
-        ChantProofreadView.as_view(),
-        name="chant-proofread",
     ),
     path(
         "edit-syllabification/<int:chant_id>",
@@ -471,6 +466,11 @@ urlpatterns = [
         "feast-autocomplete/",
         FeastAutocomplete.as_view(),
         name="feast-autocomplete",
+    ),
+    path(
+        "proofread-by-autocomplete/",
+        ProofreadByAutocomplete.as_view(),
+        name="proofread-by-autocomplete",
     ),
 ]
 

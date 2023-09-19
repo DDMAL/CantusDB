@@ -57,6 +57,12 @@ class ChantAdmin(BaseModelAdmin):
         "cantus_id",
         "id",
     )
+
+    readonly_fields = (
+        "date_created",
+        "date_updated",
+    )
+
     list_filter = (
         "genre",
         "office",
@@ -70,6 +76,8 @@ class ChantAdmin(BaseModelAdmin):
         "is_last_chant_in_feast",
         "visible_status",
         "date",
+        "volpiano_notes",
+        "volpiano_intervals",
     )
     form = AdminChantForm
     raw_id_fields = (
@@ -160,6 +168,12 @@ class SourceAdmin(BaseModelAdmin):
         "siglum",
         "title",
         "id",
+    )
+    readonly_fields = (
+        "number_of_chants",
+        "number_of_melodies",
+        "date_created",
+        "date_updated",
     )
     # from the Django docs:
     # Adding a ManyToManyField to this list will instead use a nifty unobtrusive JavaScript “filter” interface
