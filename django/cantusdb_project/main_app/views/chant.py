@@ -155,7 +155,7 @@ def touch_ci_json_con_api(cantus_id: str) -> None:
     """
     t = threading.Thread(
         target=_refresh_ci_json_con_api,
-        args={"cantus_id": f"{cantus_id}"},
+        args=[cantus_id],
     )
     t.start()
 
