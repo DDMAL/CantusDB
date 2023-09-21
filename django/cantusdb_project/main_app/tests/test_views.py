@@ -4718,6 +4718,28 @@ class JsonSourcesExportTest(TestCase):
         self.assertIn(published_id, response_keys)
         self.assertNotIn(unpublished_id, response_keys)
 
+    def test_only_sources_from_cantus_segment_appear_in_results(self):
+        NUM_CANTUS_SOURCES = 5
+        NUM_BOWER_SOURCES = 7
+        for _ in range(NUM_CANTUS_SOURCES):
+            sample_cantus_source = make_fake_source(
+                published=True, segment=self.cantus_segment
+            )
+        for _ in range(NUM_BOWER_SOURCES):
+            sample_bower_source = make_fake_source(
+                published=True, segment=self.bower_segment
+            )
+
+        response = self.client.get(reverse("json-sources-export"))
+        unpacked_response = json.loads(response.content)
+        response_keys = unpacked_response.keys()
+        self.assertEqual(len(unpacked_response), NUM_CANTUS_SOURCES)
+
+        cantus_id = str(sample_cantus_source.id)
+        bower_id = str(sample_bower_source.id)
+        self.assertIn(cantus_id, response_keys)
+        self.assertNotIn(bower_id, response_keys)
+
 
 class JsonNextChantsTest(TestCase):
     def test_existing_cantus_id(self):
