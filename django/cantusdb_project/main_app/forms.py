@@ -556,6 +556,9 @@ class AdminChantForm(forms.ModelForm):
         'the first word of each chant, and the first word after "Alleluia" for '
         "Mass Alleluias. Punctuation is omitted.",
     )
+    manuscript_full_text_std_spelling.widget.attrs.update(
+        {"style": "width: 610px; height: 170px;"}
+    )
 
     folio = forms.CharField(
         required=True,
