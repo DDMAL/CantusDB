@@ -1026,6 +1026,7 @@ class ProofreadByAutocomplete(autocomplete.Select2QuerySetView):
             .objects.filter(
                 Q(groups__name="project manager") | Q(groups__name="editor")
             )
+            .distinct()
             .order_by("full_name")
         )
         if self.q:

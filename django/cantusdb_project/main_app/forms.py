@@ -585,6 +585,7 @@ class AdminChantForm(forms.ModelForm):
     proofread_by = forms.ModelMultipleChoiceField(
         queryset=get_user_model()
         .objects.filter(Q(groups__name="project manager") | Q(groups__name="editor"))
+        .distinct()
         .order_by("last_name"),
         required=False,
         widget=FilteredSelectMultiple(verbose_name="proofread by", is_stacked=False),
@@ -679,6 +680,7 @@ class AdminSequenceForm(forms.ModelForm):
     proofread_by = forms.ModelMultipleChoiceField(
         queryset=get_user_model()
         .objects.filter(Q(groups__name="project manager") | Q(groups__name="editor"))
+        .distinct()
         .order_by("last_name"),
         required=False,
         widget=FilteredSelectMultiple(verbose_name="proofread by", is_stacked=False),
