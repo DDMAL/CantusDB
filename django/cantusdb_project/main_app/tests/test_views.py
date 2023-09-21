@@ -4651,8 +4651,16 @@ class JsonNodeExportTest(TestCase):
 
 
 class JsonSourcesExportTest(TestCase):
+    def setUp(self):
+        # the JsonSourcesExport View uses the CANTUS Segment's .source_set property,
+        # so we need to make sure to set up a CANTUS segment with the right ID for each test.
+        self.cantus_segment = make_fake_segment(
+            id="4063", name="Bower Sequence Database"
+        )
+        self.bower_segment = make_fake_segment(id="4064", name="CANTUS Database")
+
     def test_json_sources_response(self):
-        source = make_fake_source(published=True)
+        source = make_fake_source(published=True, segment=self.cantus_segment)
 
         response_1 = self.client.get(f"/json-sources/")
         self.assertEqual(response_1.status_code, 200)
@@ -4666,7 +4674,9 @@ class JsonSourcesExportTest(TestCase):
         NUMBER_OF_SOURCES = 10
         sample_source = None
         for _ in range(NUMBER_OF_SOURCES):
-            sample_source = make_fake_source(published=True)
+            sample_source = make_fake_source(
+                published=True, segment=self.cantus_segment
+            )
 
         # there should be one item for each source
         response = self.client.get(reverse("json-sources-export"))
@@ -4690,9 +4700,13 @@ class JsonSourcesExportTest(TestCase):
         NUM_PUBLISHED_SOURCES = 3
         NUM_UNPUBLISHED_SOURCES = 5
         for _ in range(NUM_PUBLISHED_SOURCES):
-            sample_published_source = make_fake_source(published=True)
+            sample_published_source = make_fake_source(
+                published=True, segment=self.cantus_segment
+            )
         for _ in range(NUM_UNPUBLISHED_SOURCES):
-            sample_unpublished_source = make_fake_source(published=False)
+            sample_unpublished_source = make_fake_source(
+                published=False, segment=self.cantus_segment
+            )
 
         response = self.client.get(reverse("json-sources-export"))
         unpacked_response = json.loads(response.content)
