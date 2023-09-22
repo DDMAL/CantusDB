@@ -556,6 +556,9 @@ class AdminChantForm(forms.ModelForm):
         'the first word of each chant, and the first word after "Alleluia" for '
         "Mass Alleluias. Punctuation is omitted.",
     )
+    # Django's default text area widget selection for form inputs is non-intuitive
+    # and manual updates to fields (e.g., changing required=True) affect widget properties unexpectedly;
+    # this workaround is our current best solution.
     manuscript_full_text_std_spelling.widget.attrs.update(
         {"style": "width: 610px; height: 170px;"}
     )
