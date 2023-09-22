@@ -37,27 +37,32 @@ class Command(BaseCommand):
         source = Source.objects.get(id=source_id)
 
         # update the link for the entire source
-        print("\nUpdating image link for source:", source)
+        self.stdout.write(f"\nUpdating image link for source: {source}")
         source.image_link = f"https://cantus.simssa.ca/manuscript/{source_id}"
         source.save()
-        print("Source image link updated successfully!\n")
+        self.stdout.write(
+            self.style.SUCCESS("Source image link updated successfully!\n")
+        )
 
         # update the links for all the chants
         chants = source.chant_set.all()
-        print(f"Updating image links for {chants.count()} chants...")
+        self.stdout.write(f"Updating image links for {chants.count()} chants...")
         counter = 0
         for chant in chants:
             try:
                 update_image_link_for_chant(chant)
             except Exception as exc:
-                print(
-                    f"Encountered error while adding image link to chant {counter}:",
-                    chant,
+                self.stdout.write(
+                    self.style.ERROR(
+                        f"Encountered error while adding image link to chant {counter}: {chant}",
+                    )
                 )
-                print(exc)
+                self.stdout.write(exc)
 
             counter += 1
             if counter % 100 == 0:
-                print(f"  just finished chant {counter}")
+                self.stdout.write(f"  just finished chant {counter}")
 
-        print("All chant image links updated successfully!\n")
+        self.stdout.write(
+            self.style.SUCCESS("All chant image links updated successfully!\n")
+        )
