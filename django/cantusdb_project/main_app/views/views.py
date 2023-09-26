@@ -14,6 +14,7 @@ from main_app.models import (
     Office,
     Provenance,
     RismSiglum,
+    Segment,
     Sequence,
     Source,
 )
@@ -525,7 +526,8 @@ def json_sources_export(request) -> JsonResponse:
     """
     Generate a json object of published sources with their IDs and CSV links
     """
-    sources = Source.objects.filter(published=True)
+    cantus_segment = Segment.objects.get(id=4063)
+    sources = cantus_segment.source_set.filter(published=True)
     ids = [source.id for source in sources]
 
     csv_links = {id: build_json_sources_export_dictionary(id, request) for id in ids}
@@ -1011,5 +1013,23 @@ class FeastAutocomplete(autocomplete.Select2QuerySetView):
         if self.q:
             qs = qs.filter(
                 Q(name__istartswith=self.q) | Q(feast_code__istartswith=self.q)
+            )
+        return qs
+
+
+class ProofreadByAutocomplete(autocomplete.Select2QuerySetView):
+    def get_queryset(self):
+        if not self.request.user.is_authenticated:
+            return get_user_model().objects.none()
+        qs = (
+            get_user_model()
+            .objects.filter(
+                Q(groups__name="project manager") | Q(groups__name="editor")
+            )
+            .order_by("full_name")
+        )
+        if self.q:
+            qs = qs.filter(
+                Q(full_name__istartswith=self.q) | Q(email__istartswith=self.q)
             )
         return qs

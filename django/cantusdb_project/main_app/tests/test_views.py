@@ -3252,58 +3252,6 @@ class SourceEditChantsViewTest(TestCase):
         )
         self.assertEqual(response.status_code, 200)
 
-
-class ChantProofreadViewTest(TestCase):
-    @classmethod
-    def setUpTestData(cls):
-        Group.objects.create(name="project manager")
-
-    def setUp(self):
-        self.user = get_user_model().objects.create(email="test@test.com")
-        self.user.set_password("pass")
-        self.user.save()
-        self.client = Client()
-        project_manager = Group.objects.get(name="project manager")
-        project_manager.user_set.add(self.user)
-        self.client.login(email="test@test.com", password="pass")
-
-    def test_view_url_and_templates(self):
-        source = make_fake_source()
-        source_id = source.id
-
-        for i in range(3):
-            chant = make_fake_chant(source=source, folio="001r", c_sequence=i)
-            sample_folio = chant.folio
-            sample_pk = chant.id
-        nonexistent_folio = "001v"
-
-        response_1 = self.client.get(f"/proofread-chant/{source_id}")
-        self.assertEqual(response_1.status_code, 200)
-        self.assertTemplateUsed(response_1, "base.html")
-        self.assertTemplateUsed(response_1, "chant_proofread.html")
-
-        response_2 = self.client.get(reverse("chant-proofread", args=[source_id]))
-        self.assertEqual(response_2.status_code, 200)
-
-        response_3 = self.client.get(
-            f"/proofread-chant/{source_id}?folio={sample_folio}"
-        )
-        self.assertEqual(response_3.status_code, 200)
-
-        response_4 = self.client.get(
-            f"/proofread-chant/{source_id}?folio={nonexistent_folio}"
-        )
-        self.assertEqual(response_4.status_code, 404)
-
-        response_5 = self.client.get(
-            f"/proofread-chant/{source_id}?pk={sample_pk}&folio={sample_folio}"
-        )
-        self.assertEqual(response_5.status_code, 200)
-
-        self.client.logout()
-        response_6 = self.client.get(reverse("chant-proofread", args=[source_id]))
-        self.assertEqual(response_6.status_code, 302)  # 302 Found
-
     def test_proofread_chant(self):
         chant = make_fake_chant(
             manuscript_full_text_std_spelling="lorem ipsum", folio="001r"
@@ -3314,7 +3262,7 @@ class ChantProofreadViewTest(TestCase):
         self.assertIs(chant.manuscript_full_text_std_proofread, False)
         source = chant.source
         response = self.client.post(
-            f"/proofread-chant/{source.id}?pk={chant.id}&folio=001r",
+            reverse("source-edit-chants", args=[source.id]),
             {
                 "manuscript_full_text_std_proofread": "True",
                 "folio": folio,
@@ -4703,8 +4651,16 @@ class JsonNodeExportTest(TestCase):
 
 
 class JsonSourcesExportTest(TestCase):
+    def setUp(self):
+        # the JsonSourcesExport View uses the CANTUS Segment's .source_set property,
+        # so we need to make sure to set up a CANTUS segment with the right ID for each test.
+        self.cantus_segment = make_fake_segment(
+            id="4063", name="Bower Sequence Database"
+        )
+        self.bower_segment = make_fake_segment(id="4064", name="CANTUS Database")
+
     def test_json_sources_response(self):
-        source = make_fake_source(published=True)
+        source = make_fake_source(published=True, segment=self.cantus_segment)
 
         response_1 = self.client.get(f"/json-sources/")
         self.assertEqual(response_1.status_code, 200)
@@ -4718,7 +4674,9 @@ class JsonSourcesExportTest(TestCase):
         NUMBER_OF_SOURCES = 10
         sample_source = None
         for _ in range(NUMBER_OF_SOURCES):
-            sample_source = make_fake_source(published=True)
+            sample_source = make_fake_source(
+                published=True, segment=self.cantus_segment
+            )
 
         # there should be one item for each source
         response = self.client.get(reverse("json-sources-export"))
@@ -4742,9 +4700,13 @@ class JsonSourcesExportTest(TestCase):
         NUM_PUBLISHED_SOURCES = 3
         NUM_UNPUBLISHED_SOURCES = 5
         for _ in range(NUM_PUBLISHED_SOURCES):
-            sample_published_source = make_fake_source(published=True)
+            sample_published_source = make_fake_source(
+                published=True, segment=self.cantus_segment
+            )
         for _ in range(NUM_UNPUBLISHED_SOURCES):
-            sample_unpublished_source = make_fake_source(published=False)
+            sample_unpublished_source = make_fake_source(
+                published=False, segment=self.cantus_segment
+            )
 
         response = self.client.get(reverse("json-sources-export"))
         unpacked_response = json.loads(response.content)
@@ -4755,6 +4717,28 @@ class JsonSourcesExportTest(TestCase):
         unpublished_id = str(sample_unpublished_source.id)
         self.assertIn(published_id, response_keys)
         self.assertNotIn(unpublished_id, response_keys)
+
+    def test_only_sources_from_cantus_segment_appear_in_results(self):
+        NUM_CANTUS_SOURCES = 5
+        NUM_BOWER_SOURCES = 7
+        for _ in range(NUM_CANTUS_SOURCES):
+            sample_cantus_source = make_fake_source(
+                published=True, segment=self.cantus_segment
+            )
+        for _ in range(NUM_BOWER_SOURCES):
+            sample_bower_source = make_fake_source(
+                published=True, segment=self.bower_segment
+            )
+
+        response = self.client.get(reverse("json-sources-export"))
+        unpacked_response = json.loads(response.content)
+        response_keys = unpacked_response.keys()
+        self.assertEqual(len(unpacked_response), NUM_CANTUS_SOURCES)
+
+        cantus_id = str(sample_cantus_source.id)
+        bower_id = str(sample_bower_source.id)
+        self.assertIn(cantus_id, response_keys)
+        self.assertNotIn(bower_id, response_keys)
 
 
 class JsonNextChantsTest(TestCase):
