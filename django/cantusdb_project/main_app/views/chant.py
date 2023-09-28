@@ -29,7 +29,7 @@ from django.http import Http404
 from next_chants import next_chants
 from collections import Counter
 from django.contrib.auth.mixins import UserPassesTestMixin
-from typing import Optional, Union
+from typing import Optional, Union, Tuple
 from requests.exceptions import SSLError, Timeout, ConnectionError
 from requests import Response
 from main_app.permissions import (
@@ -38,7 +38,7 @@ from main_app.permissions import (
     user_can_view_chant,
 )
 
-CHANT_SEARCH_TEMPLATE_VALUES = (
+CHANT_SEARCH_TEMPLATE_VALUES: Tuple[str] = (
     # for views that use chant_search.html, this allows them to
     # fetch only those values needed for rendering the template
     "id",
@@ -64,6 +64,64 @@ CHANT_SEARCH_TEMPLATE_VALUES = (
     "genre__id",
     "genre__description",
     "genre__name",
+)
+
+
+CANTUS_NETWORK_DATABASES: Tuple[dict] = (
+    {
+        "name": "Cantus Database",
+        "initialism": "CD",
+        "base_url": "/",
+        "results_fstring": "/id/{cantus_id}",
+    },
+    {
+        "name": "Fontes Cantus Bohemiae",
+        "initialism": "FCB",
+        "base_url": "http://cantusbohemiae.cz",
+        "results_fstring": "http://cantusbohemiae.cz/id/{cantus_id}",
+    },
+    {
+        "name": "Medieval Music Manuscripts Online",
+        "initialism": "MMMO",
+        "base_url": "http://musmed.eu",
+        "results_fstring": "http://musmed.eu/id/{cantus_id}",
+    },
+    {
+        "name": "Portuguese Early Music Database",
+        "initialism": "PEM",
+        "base_url": "https://pemdatabase.eu",
+        "results_fstring": "https://pemdatabase.eu/id/{cantus_id}",
+    },
+    {
+        "name": "Spanish Early Music Manuscript Database",
+        "initialism": "SEMM",
+        "base_url": "http://musicahispanica.eu",
+        "results_fstring": "http://musicahispanica.eu/id/{cantus_id}",
+    },
+    {
+        "name": "Cantus Planus in Polonia",
+        "initialism": "CPL",
+        "base_url": "http://cantus.ispan.pl",
+        "results_fstring": "http://cantus.ispan.pl/id/{cantus_id}",
+    },
+    {
+        "name": "Hungarian Chant Database",
+        "initialism": "HCD",
+        "base_url": "http://hun-chant.eu",
+        "results_fstring": "http://hun-chant.eu/id/{cantus_id}",
+    },
+    {
+        "name": "Slovak Early Music Database",
+        "initialism": "CSK",
+        "base_url": "http://cantus.sk",
+        "results_fstring": "http://cantus.sk/id/{cantus_id}",
+    },
+    {
+        "name": "Fragmenta Manuscriptorum Musicalium Hungariae",
+        "initialism": "FRH",
+        "base_url": "http://fragmenta.zti.hu/en/",
+        "results_fstring": "http://fragmenta.zti.hu/en/id/{cantus_id}",
+    },
 )
 
 
