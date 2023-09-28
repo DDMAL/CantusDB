@@ -115,8 +115,12 @@ class Source(BaseModel):
     indexing_notes = models.TextField(blank=True, null=True)
     indexing_date = models.TextField(blank=True, null=True)
     json_info = models.JSONField(blank=True, null=True)
-    fragmentarium_id = models.CharField(max_length=15, blank=True, null=True)
-    dact_id = models.CharField(max_length=15, blank=True, null=True)
+    fragmentarium_id = models.CharField(
+        max_length=15, blank=True, null=True, verbose_name="fragmentarium ID"
+    )
+    dact_id = models.CharField(
+        max_length=15, blank=True, null=True, verbose_name="DACT ID"
+    )
 
     # number_of_chants and number_of_melodies are used for rendering the source-list page (perhaps among other places)
     # they are automatically recalculated in main_app.signals.update_source_chant_count and
