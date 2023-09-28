@@ -334,6 +334,7 @@ class ChantDetailView(DetailView):
         chant = self.get_object()
         user = self.request.user
         source = chant.source
+        cantus_id = chant.cantus_id
 
         # if the chant's source isn't published, only logged-in users should be able to
         # view the chant's detail page
@@ -354,10 +355,8 @@ class ChantDetailView(DetailView):
 
         # If chant has a cantus ID, Create table of concordances
         context["concordances_loaded_successfully"] = True
-        if chant.cantus_id:
-            json_concordances_url: str = (
-                f"https://cantusindex.org/json-con/{chant.cantus_id}"
-            )
+        if cantus_id:
+            json_concordances_url: str = f"https://cantusindex.org/json-con/{cantus_id}"
             concordances: Union[list, None] = parse_json_from_api(json_concordances_url)
             try:
                 assert isinstance(concordances, list)
@@ -392,9 +391,7 @@ class ChantDetailView(DetailView):
                 initialism: str = database["initialism"]
                 base_url: str = database["base_url"]
                 results_url_template: str = database["results_fstring"]
-                results_url: str = results_url_template.format(
-                    cantus_id=chant.cantus_id
-                )
+                results_url: str = results_url_template.format(cantus_id=cantus_id)
                 results_count: int = len(
                     [True for c in concordance_chants if c["db"] == initialism]
                 )
@@ -415,14 +412,14 @@ class ChantDetailView(DetailView):
 
             try:
                 gregorien_response = requests.get(
-                    f"https://gregorien.info/chant/cid/{chant.cantus_id}/en",
+                    f"https://gregorien.info/chant/cid/{cantus_id}/en",
                     timeout=5,
                 )
             except (SSLError, Timeout) as exc:
                 print(  # eventually, we could log this rather than printing it
                     "Encountered an error in ChantDetailView.get_context_data",
                     "while making a request to,"
-                    f"https://gregorien.info/chant/cid/{chant.cantus_id}/en:",
+                    f"https://gregorien.info/chant/cid/{cantus_id}/en:",
                     exc,
                 )
                 gregorien_response = None
@@ -432,7 +429,7 @@ class ChantDetailView(DetailView):
                     "name": "Gregorien.info",
                     "initialism": None,
                     "base_url": "https://gregorien.info/",
-                    "results_url": f"https://gregorien.info/chant/cid/{chant.cantus_id}/en",
+                    "results_url": f"https://gregorien.info/chant/cid/{cantus_id}/en",
                     "results_count": None,
                     "alternate_results_count_text": "VIEW AT GREGORIEN.INFO",
                 }
@@ -445,7 +442,7 @@ class ChantDetailView(DetailView):
             # for this chant's Cantus ID. In the future, we probably want to set up a cron job
             # to ping the relevant url for each Cantus ID in the database, rather than doing
             # it at request time.
-            touch_ci_json_con_api(chant.cantus_id)
+            touch_ci_json_con_api(cantus_id)
 
         # some chants don't have a source, for those chants, stop here without further calculating
         # other context variables
