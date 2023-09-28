@@ -29,7 +29,7 @@ from django.http import Http404
 from next_chants import next_chants
 from collections import Counter
 from django.contrib.auth.mixins import UserPassesTestMixin
-from typing import Optional, Union, Tuple
+from typing import Optional, Union, Tuple, List
 from requests.exceptions import SSLError, Timeout, ConnectionError
 from requests import Response
 from main_app.permissions import (
@@ -386,89 +386,27 @@ class ChantDetailView(DetailView):
             #   Fontes Cantus Bohemiae (FCB) - N chants
             #   etc...
             #   Gregorien.info - VIEW AT GREGORIEN.INFO
-            concordances_databases = [
-                {
-                    "name": "Cantus Database",
-                    "initialism": "CD",
-                    "base_url": "/",
-                    "results_url": f"{reverse('chant-by-cantus-id', args=[chant.cantus_id])}",
-                    "results_count": len(
-                        [True for c in concordance_chants if c["db"] == "CD"]
-                    ),
-                },
-                {
-                    "name": "Fontes Cantus Bohemiae",
-                    "initialism": "FCB",
-                    "base_url": "http://cantusbohemiae.cz",
-                    "results_url": f"http://cantusbohemiae.cz/id/{chant.cantus_id}",
-                    "results_count": len(
-                        [True for c in concordance_chants if c["db"] == "FCB"]
-                    ),
-                },
-                {
-                    "name": "Medieval Music Manuscripts Online",
-                    "initialism": "MMMO",
-                    "base_url": "http://musmed.eu",
-                    "results_url": f"http://musmed.eu/id/{chant.cantus_id}",
-                    "results_count": len(
-                        [True for c in concordance_chants if c["db"] == "MMMO"]
-                    ),
-                },
-                {
-                    "name": "Portuguese Early Music Database",
-                    "initialism": "PEM",
-                    "base_url": "https://pemdatabase.eu",
-                    "results_url": f"https://pemdatabase.eu/id/{chant.cantus_id}",
-                    "results_count": len(
-                        [True for c in concordance_chants if c["db"] == "PEM"]
-                    ),
-                },
-                {
-                    "name": "Spanish Early Music Manuscript Database",
-                    "initialism": "SEMM",
-                    "base_url": "http://musicahispanica.eu",
-                    "results_url": f"http://musicahispanica.eu/id/{chant.cantus_id}",
-                    "results_count": len(
-                        [True for c in concordance_chants if c["db"] == "SEMM"]
-                    ),
-                },
-                {
-                    "name": "Cantus Planus in Polonia",
-                    "initialism": "CPL",
-                    "base_url": "http://cantus.ispan.pl",
-                    "results_url": f"http://cantus.ispan.pl/id/{chant.cantus_id}",
-                    "results_count": len(
-                        [True for c in concordance_chants if c["db"] == "CPL"]
-                    ),
-                },
-                {
-                    "name": "Hungarian Chant Database",
-                    "initialism": "HCD",
-                    "base_url": "http://hun-chant.eu",
-                    "results_url": f"http://hun-chant.eu/id/{chant.cantus_id}",
-                    "results_count": len(
-                        [True for c in concordance_chants if c["db"] == "HCD"]
-                    ),
-                },
-                {
-                    "name": "Slovak Early Music Database",
-                    "initialism": "CSK",
-                    "base_url": "http://cantus.sk",
-                    "results_url": f"http://cantus.sk/id/{chant.cantus_id}",
-                    "results_count": len(
-                        [True for c in concordance_chants if c["db"] == "CSK"]
-                    ),
-                },
-                {
-                    "name": "Fragmenta Manuscriptorum Musicalium Hungariae",
-                    "initialism": "FRH",
-                    "base_url": "http://fragmenta.zti.hu/en/",
-                    "results_url": f"http://fragmenta.zti.hu/en/id/{chant.cantus_id}",
-                    "results_count": len(
-                        [True for c in concordance_chants if c["db"] == "FRH"]
-                    ),
-                },
-            ]
+            concordances_databases: List[dict] = []
+            for database in CANTUS_NETWORK_DATABASES:
+                name: str = database["name"]
+                initialism: str = database["initialism"]
+                base_url: str = database["base_url"]
+                results_url_template: str = database["results_fstring"]
+                results_url: str = results_url_template.format(
+                    cantus_id=chant.cantus_id
+                )
+                results_count: int = len(
+                    [True for c in concordance_chants if c["db"] == initialism]
+                )
+                database_summary: dict = {
+                    "name": name,
+                    "initialism": initialism,
+                    "base_url": base_url,
+                    "results_url": results_url,
+                    "results_count": results_count,
+                }
+                concordances_databases.append(database_summary)
+
             context["concordances_databases"] = [
                 d
                 for d in concordances_databases
