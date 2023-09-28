@@ -78,6 +78,7 @@ class ChantAdmin(BaseModelAdmin):
         "date",
         "volpiano_notes",
         "volpiano_intervals",
+        "title",
     )
     form = AdminChantForm
     raw_id_fields = (
