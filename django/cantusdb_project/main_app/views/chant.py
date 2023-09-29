@@ -111,7 +111,7 @@ CANTUS_NETWORK_DATABASES: Tuple[dict] = (
         "results_fstring": "http://hun-chant.eu/id/{cantus_id}",
     },
     {
-        "name": "Slovak Early Music Database",
+        "name": "Cantus Planus in Slovakia",
         "initialism": "CSK",
         "base_url": "http://cantus.sk",
         "results_fstring": "http://cantus.sk/id/{cantus_id}",
