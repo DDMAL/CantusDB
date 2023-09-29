@@ -149,7 +149,7 @@ def make_concordances_database_summary(
             databases. Each item in the list is a dictionary corresponding
             to a single database in the Cantus Network.
     """
-    concordances_databases: List[dict] = []
+    database_summaries: List[dict] = []
     for database in CANTUS_NETWORK_DATABASES:
         name: str = database["name"]
         initialism: str = database["initialism"]
@@ -164,14 +164,15 @@ def make_concordances_database_summary(
             "results_url": results_url,
             "results_count": results_count,
         }
-        concordances_databases.append(database_summary)
+        database_summaries.append(database_summary)
 
-    database_summary = [
-        d
-        for d in concordances_databases
-        if "results_count" in d and d["results_count"] > 0
+    filtered_database_summaries: List[dict] = [
+        d for d in database_summaries if "results_count" in d and d["results_count"] > 0
     ]
-    database_summary.sort(key=lambda db: db["results_count"], reverse=True)
+    sorted_database_summaries: List[dict] = sorted(
+        filtered_database_summaries, key=lambda db: db["results_count"], reverse=True
+    )
+    gregorien_response: Optional[Response] = None
     try:
         gregorien_response = requests.get(
             f"https://gregorien.info/chant/cid/{cantus_id}/en",
@@ -184,7 +185,6 @@ def make_concordances_database_summary(
             f"https://gregorien.info/chant/cid/{cantus_id}/en:",
             exc,
         )
-        gregorien_response = None
 
     if gregorien_response and gregorien_response.status_code == 200:
         gregorien_database_dict: dict = {
@@ -195,8 +195,8 @@ def make_concordances_database_summary(
             "results_count": None,
             "alternate_results_count_text": "VIEW AT GREGORIEN.INFO",
         }
-        database_summary.append(gregorien_database_dict)
-    return database_summary
+        sorted_database_summaries.append(gregorien_database_dict)
+    return sorted_database_summaries
 
 
 def parse_json_from_api(url: str) -> Union[list, None]:
