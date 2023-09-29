@@ -171,7 +171,7 @@ def make_concordances_database_summary(
         for d in concordances_databases
         if "results_count" in d and d["results_count"] > 0
     ]
-
+    database_summary.sort(key=lambda db: db["results_count"], reverse=True)
     try:
         gregorien_response = requests.get(
             f"https://gregorien.info/chant/cid/{cantus_id}/en",
