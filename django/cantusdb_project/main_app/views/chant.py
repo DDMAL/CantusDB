@@ -172,6 +172,7 @@ def make_concordances_database_summary(
     sorted_database_summaries: List[dict] = sorted(
         filtered_database_summaries, key=lambda db: db["results_count"], reverse=True
     )
+
     gregorien_response: Optional[Response] = None
     try:
         gregorien_response = requests.get(
@@ -185,7 +186,6 @@ def make_concordances_database_summary(
             f"https://gregorien.info/chant/cid/{cantus_id}/en:",
             exc,
         )
-
     if gregorien_response and gregorien_response.status_code == 200:
         gregorien_database_dict: dict = {
             "name": "Gregorien.info",
@@ -196,6 +196,7 @@ def make_concordances_database_summary(
             "alternate_results_count_text": "VIEW AT GREGORIEN.INFO",
         }
         sorted_database_summaries.append(gregorien_database_dict)
+
     return sorted_database_summaries
 
 
