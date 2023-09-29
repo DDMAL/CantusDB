@@ -125,6 +125,80 @@ CANTUS_NETWORK_DATABASES: Tuple[dict] = (
 )
 
 
+def make_concordances_database_summary(
+    concordances: List[dict],
+    cantus_id: str,
+) -> List[dict]:
+    """Create list of dictionaries containing data to
+    be unpacked in chant_detail.html to make concordances
+    summary.
+    i.e. this summary:
+        Displaying N concordances from the following databases:
+        Cantus Database (CD) - N chants
+        Fontes Cantus Bohemiae (FCB) - N chants
+        etc...
+        Gregorien.info - VIEW AT GREGORIEN.INFO
+
+    Args:
+        concordances (List[dict]): list of concordant chants, provided
+            by the json-cid API on Cantus Index
+        cantus_id (str): _description_
+
+    Returns:
+        List[dict]: data on how many concordant chants are found in which
+            databases. Each item in the list is a dictionary corresponding
+            to a single database in the Cantus Network.
+    """
+    concordances_databases: List[dict] = []
+    for database in CANTUS_NETWORK_DATABASES:
+        name: str = database["name"]
+        initialism: str = database["initialism"]
+        base_url: str = database["base_url"]
+        results_url_template: str = database["results_fstring"]
+        results_url: str = results_url_template.format(cantus_id=cantus_id)
+        results_count: int = len([True for c in concordances if c["db"] == initialism])
+        database_summary: dict = {
+            "name": name,
+            "initialism": initialism,
+            "base_url": base_url,
+            "results_url": results_url,
+            "results_count": results_count,
+        }
+        concordances_databases.append(database_summary)
+
+    database_summary = [
+        d
+        for d in concordances_databases
+        if "results_count" in d and d["results_count"] > 0
+    ]
+
+    try:
+        gregorien_response = requests.get(
+            f"https://gregorien.info/chant/cid/{cantus_id}/en",
+            timeout=5,
+        )
+    except (SSLError, Timeout) as exc:
+        print(  # eventually, we could log this rather than printing it
+            "Encountered an error in ChantDetailView.get_context_data",
+            "while making a request to,"
+            f"https://gregorien.info/chant/cid/{cantus_id}/en:",
+            exc,
+        )
+        gregorien_response = None
+
+    if gregorien_response and gregorien_response.status_code == 200:
+        gregorien_database_dict: dict = {
+            "name": "Gregorien.info",
+            "initialism": None,
+            "base_url": "https://gregorien.info/",
+            "results_url": f"https://gregorien.info/chant/cid/{cantus_id}/en",
+            "results_count": None,
+            "alternate_results_count_text": "VIEW AT GREGORIEN.INFO",
+        }
+        database_summary.append(gregorien_database_dict)
+    return database_summary
+
+
 def parse_json_from_api(url: str) -> Union[list, None]:
     """Queries a remote api from cantusindex.org that returns a json object, processes it and returns
     a list containing its information.
@@ -376,64 +450,10 @@ class ChantDetailView(DetailView):
             concordance_chants = [c["chant"] for c in concordances]
             context["concordances"] = concordance_chants
 
-            ################################################
-            ### create context["concordances_databases"] ###
-            # (data to be unpacked in chant_detail.html to make concordances summary)
-            # i.e. this summary:
-            #   Displaying N concordances from the following databases:
-            #   Cantus Database (CD) - N chants
-            #   Fontes Cantus Bohemiae (FCB) - N chants
-            #   etc...
-            #   Gregorien.info - VIEW AT GREGORIEN.INFO
-            concordances_databases: List[dict] = []
-            for database in CANTUS_NETWORK_DATABASES:
-                name: str = database["name"]
-                initialism: str = database["initialism"]
-                base_url: str = database["base_url"]
-                results_url_template: str = database["results_fstring"]
-                results_url: str = results_url_template.format(cantus_id=cantus_id)
-                results_count: int = len(
-                    [True for c in concordance_chants if c["db"] == initialism]
-                )
-                database_summary: dict = {
-                    "name": name,
-                    "initialism": initialism,
-                    "base_url": base_url,
-                    "results_url": results_url,
-                    "results_count": results_count,
-                }
-                concordances_databases.append(database_summary)
-
-            context["concordances_databases"] = [
-                d
-                for d in concordances_databases
-                if "results_count" in d and d["results_count"] > 0
-            ]
-
-            try:
-                gregorien_response = requests.get(
-                    f"https://gregorien.info/chant/cid/{cantus_id}/en",
-                    timeout=5,
-                )
-            except (SSLError, Timeout) as exc:
-                print(  # eventually, we could log this rather than printing it
-                    "Encountered an error in ChantDetailView.get_context_data",
-                    "while making a request to,"
-                    f"https://gregorien.info/chant/cid/{cantus_id}/en:",
-                    exc,
-                )
-                gregorien_response = None
-
-            if gregorien_response and gregorien_response.status_code == 200:
-                gregorien_database_dict: dict = {
-                    "name": "Gregorien.info",
-                    "initialism": None,
-                    "base_url": "https://gregorien.info/",
-                    "results_url": f"https://gregorien.info/chant/cid/{cantus_id}/en",
-                    "results_count": None,
-                    "alternate_results_count_text": "VIEW AT GREGORIEN.INFO",
-                }
-                context["concordances_databases"].append(gregorien_database_dict)
+            context["concordances_databases"] = make_concordances_database_summary(
+                concordance_chants,
+                cantus_id,
+            )
 
             # tally from all databases
             context["concordances_count"] = len(concordance_chants)
