@@ -164,13 +164,11 @@ def make_concordances_database_summary(
             "results_url": results_url,
             "results_count": results_count,
         }
-        database_summaries.append(database_summary)
+        if results_count > 0:
+            database_summaries.append(database_summary)
 
-    filtered_database_summaries: List[dict] = [
-        d for d in database_summaries if "results_count" in d and d["results_count"] > 0
-    ]
     sorted_database_summaries: List[dict] = sorted(
-        filtered_database_summaries, key=lambda db: db["results_count"], reverse=True
+        database_summaries, key=lambda db: db["results_count"], reverse=True
     )
 
     gregorien_response: Optional[Response] = None
