@@ -116,7 +116,9 @@ class BaseChant(BaseModel):
         blank=True, null=True, max_length=63, verbose_name="CAO concordances"
     )  # !! see lines immediately above
     proofread_by = models.ManyToManyField(get_user_model(), blank=True)
-    melody_id = models.CharField(blank=True, null=True, max_length=63)
+    melody_id = models.CharField(
+        blank=True, null=True, max_length=63, verbose_name="melody ID"
+    )
     search_vector = SearchVectorField(null=True, editable=False)
     content_structure = models.CharField(
         blank=True,
