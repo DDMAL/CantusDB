@@ -378,6 +378,7 @@ class SourceEditForm(forms.ModelForm):
             "cursus",
             "complete_inventory",
             "summary",
+            "liturgical_occasions",
             "description",
             "selected_bibliography",
             "image_link",
@@ -398,6 +399,7 @@ class SourceEditForm(forms.ModelForm):
             "provenance_notes": TextInputWidget(),
             "date": TextInputWidget(),
             "summary": TextAreaWidget(),
+            "liturgical_occasions": TextAreaWidget(),
             "description": TextAreaWidget(),
             "selected_bibliography": TextAreaWidget(),
             "image_link": TextInputWidget(),
@@ -556,6 +558,12 @@ class AdminChantForm(forms.ModelForm):
         'the first word of each chant, and the first word after "Alleluia" for '
         "Mass Alleluias. Punctuation is omitted.",
     )
+    # Django's default text area widget selection for form inputs is non-intuitive
+    # and manual updates to fields (e.g., changing required=True) affect widget properties unexpectedly;
+    # this workaround is our current best solution.
+    manuscript_full_text_std_spelling.widget.attrs.update(
+        {"style": "width: 610px; height: 170px;"}
+    )
 
     folio = forms.CharField(
         required=True,
@@ -585,6 +593,7 @@ class AdminChantForm(forms.ModelForm):
     proofread_by = forms.ModelMultipleChoiceField(
         queryset=get_user_model()
         .objects.filter(Q(groups__name="project manager") | Q(groups__name="editor"))
+        .distinct()
         .order_by("last_name"),
         required=False,
         widget=FilteredSelectMultiple(verbose_name="proofread by", is_stacked=False),
@@ -679,6 +688,7 @@ class AdminSequenceForm(forms.ModelForm):
     proofread_by = forms.ModelMultipleChoiceField(
         queryset=get_user_model()
         .objects.filter(Q(groups__name="project manager") | Q(groups__name="editor"))
+        .distinct()
         .order_by("last_name"),
         required=False,
         widget=FilteredSelectMultiple(verbose_name="proofread by", is_stacked=False),

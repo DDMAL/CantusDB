@@ -1,5 +1,7 @@
 # CantusDB
-Documentation for Cantus Database, including documentation on its APIs, can be found in the [Wiki](https://github.com/DDMAL/CantusDB/wiki).
+Cantus Database is a database of the Latin chants found in manuscripts and early printed books, primarily from medieval Europe. The main web site, running code on the `production` branch, can be seen at https://cantusdatabase.org. The staging server, running code on the `staging` branch, can be found at http://206.12.88.113.
+
+Documentation for the project, including documentation on Cantus Database's APIs, can be found in the [Wiki](https://github.com/DDMAL/CantusDB/wiki).
 
 ## OldCantus vs. NewCantus
 
