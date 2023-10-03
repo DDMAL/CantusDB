@@ -5080,7 +5080,7 @@ class CsvExportTest(TestCase):
             "mode",
             "finalis",
             "differentia",
-            "differentia_new",
+            "differentiae_database",
             "fulltext_standardized",
             "fulltext_ms",
             "volpiano",
