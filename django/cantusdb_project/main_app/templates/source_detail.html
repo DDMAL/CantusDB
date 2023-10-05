@@ -36,17 +36,17 @@
 
                 {% if source.liturgical_occasions %}
                     <dt>Liturgical Occasions</dt>
-                    <dd>{{ source.liturgical_occasions }}</dd>
+                    <dd>{{ source.liturgical_occasions|linebreaks }}</dd>
                 {% endif %}
 
                 {% if source.description %}
                     <dt>Description</dt>
-                    <dd>{{ source.description|safe }}</dd>
+                    <dd>{{ source.description|safe|linebreaks }}</dd>
                 {% endif %}
 
                 {% if source.selected_bibliography %}
                     <dt>Selected Bibilography</dt>
-                    <dd>{{ source.selected_bibliography|safe }}</dd>
+                    <dd>{{ source.selected_bibliography|safe|linebreaks }}</dd>
                 {% endif %}
 
                 {% if source.indexing_notes %}
