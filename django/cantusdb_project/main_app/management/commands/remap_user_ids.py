@@ -1,11 +1,9 @@
 from main_app.models import Source, Chant
 from django.contrib.auth import get_user_model
 from django.core.management.base import BaseCommand
+from sys import stdout
 
 User = get_user_model()
-
-# TODO:
-#   - turn this into an actual command
 
 USER_ID_MAPPING = {
     # Fake user accounts with sequential numbering were created on NewCantus
@@ -56,44 +54,40 @@ def reassign_sources() -> None:
     start_index = 0
     num_sources_to_remap = 0
     while start_index <= sources_count:
-        print(f"processing chunk with {start_index=}")
+        stdout.write(f"processing chunk with {start_index=}\n")
         chunk = sources[start_index : start_index + CHUNK_SIZE]
         for source in chunk:
             old_creator = source.created_by
             if old_creator and old_creator.id in USER_ID_MAPPING:
                 updated_id = USER_ID_MAPPING[old_creator.id]
                 updated_creator = User.objects.get(id=updated_id)
-                num_sources_to_remap += 1
                 source.created_by = updated_creator
                 source.save()
         start_index += CHUNK_SIZE
-    print(f"{num_sources_to_remap=}")
 
 
 def reassign_chants() -> None:
     CHUNK_SIZE = 1_000
-    chants = Chant.objects.all().order_by("?")
+    chants = Chant.objects.all()
     chants_count = chants.count()
     start_index = 0
     num_chants_to_remap = 0
     while start_index <= chants_count:
-        print(f"processing chunk with {start_index=}")
+        stdout.write(f"processing chunk with {start_index=}\n")
         chunk = chants[start_index : start_index + CHUNK_SIZE]
         for chant in chunk:
             old_creator = chant.created_by
             if old_creator.id in USER_ID_MAPPING:
                 updated_id = USER_ID_MAPPING[old_creator.id]
                 updated_creator = User.objects.get(id=updated_id)
-                num_chants_to_remap += 1
                 chant.created_by = updated_creator
                 chant.save()
         start_index += CHUNK_SIZE
-    print(f"{num_chants_to_remap=}")
 
 
 class Command(BaseCommand):
     def handle(self, *args, **kwargs) -> None:
-        print("", "==== Reassigning Sources ====")
+        stdout.write("\n\n==== Reassigning Sources ====\n")
         reassign_sources()
-        print("", "==== Reassigning Chants ====")
+        stdout.write("\n\n==== Reassigning Chants ====\n")
         reassign_chants()
