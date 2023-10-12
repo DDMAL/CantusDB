@@ -88,6 +88,13 @@ class ChantAdmin(BaseModelAdmin):
     ordering = ("source__siglum",)
 
 
+class DifferentiaAdmin(BaseModelAdmin):
+    search_fields = (
+        "differentia_id",
+        "id",
+    )
+
+
 class FeastAdmin(BaseModelAdmin):
     search_fields = (
         "name",
@@ -211,6 +218,7 @@ class SourceAdmin(BaseModelAdmin):
 
 admin.site.register(Century, CenturyAdmin)
 admin.site.register(Chant, ChantAdmin)
+admin.site.register(Differentia, DifferentiaAdmin)
 admin.site.register(Feast, FeastAdmin)
 admin.site.register(Genre, GenreAdmin)
 admin.site.register(Notation, NotationAdmin)
