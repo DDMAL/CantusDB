@@ -72,7 +72,7 @@ class BaseChant(BaseModel):
         "Differentia",
         blank=True,
         null=True,
-        max_length=12,
+        on_delete=models.deletion.PROTECT,
         verbose_name="differentiae database",
     )
     finalis = models.CharField(blank=True, null=True, max_length=63)
