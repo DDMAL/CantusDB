@@ -61,21 +61,18 @@ def reassign_sources() -> None:
         for source in chunk:
             old_creator = source.created_by
             if old_creator and old_creator.id in USER_ID_MAPPING:
-                print(f"would remap {source=}")
                 updated_id = USER_ID_MAPPING[old_creator.id]
                 updated_creator = User.objects.get(id=updated_id)
-                print(f"  {old_creator=}, {old_creator.id=}")
-                print(f"  {updated_creator=}, {updated_creator.id=}")
                 num_sources_to_remap += 1
-                # source.created_by = updated_creator
-                # source.save()
+                source.created_by = updated_creator
+                source.save()
         start_index += CHUNK_SIZE
     print(f"{num_sources_to_remap=}")
 
 
 def reassign_chants() -> None:
     CHUNK_SIZE = 1_000
-    chants = Chant.objects.all()
+    chants = Chant.objects.all().order_by("?")
     chants_count = chants.count()
     start_index = 0
     num_chants_to_remap = 0
@@ -85,15 +82,11 @@ def reassign_chants() -> None:
         for chant in chunk:
             old_creator = chant.created_by
             if old_creator.id in USER_ID_MAPPING:
-                print(f"would remap {chant=}")
-                print(f"  {chant.source=}")
                 updated_id = USER_ID_MAPPING[old_creator.id]
                 updated_creator = User.objects.get(id=updated_id)
-                print(f"  {old_creator=}, {old_creator.id=}")
-                print(f"  {updated_creator=}, {updated_creator.id=}")
                 num_chants_to_remap += 1
-                # chant.created_by = updated_creator
-                # chant.save()
+                chant.created_by = updated_creator
+                chant.save()
         start_index += CHUNK_SIZE
     print(f"{num_chants_to_remap=}")
 
