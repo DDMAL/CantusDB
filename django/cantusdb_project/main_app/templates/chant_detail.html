@@ -129,14 +129,17 @@
                         </div>
                     {% endif %}
 
-                    {% if chant.differentiae_database %}
+                    {% if chant.diff_db %}
                         <div class="col">
                             <dt>Differentia&nbsp;Database</dt>
                             <dd>
-                                <a href="https://differentiaedatabase.ca/differentia/{{ chant.differentiae_database }}" target="_blank">
-                                    {{ chant.differentiae_database }}
+                                {% if chant.diff_db.melodic_transcription %}
+                                    <p style="font-family: volpiano; font-size:28px">{{ chant.diff_db.melodic_transcription }}</p>
+                                {% endif %}
+                                <a href="https://differentiaedatabase.ca/differentia/{{ chant.diff_db }}" target="_blank">
+                                    {{ chant.diff_db }}
                                 </a>
-                            </dd>
+                            </dd>    
                         </div>
                     {% endif %}
 
