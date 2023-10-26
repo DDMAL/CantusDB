@@ -102,11 +102,11 @@ def reassign_chants() -> None:
                 KeyError,  # old_creator.id not in USER_ID_MAPPING
                 AttributeError,  # old_creator is None
             ):
-                updated_id = None
+                pass
 
             updated_creator: Optional[User] = None
             try:
-                User.objects.get(id=updated_id)
+                updated_creator = User.objects.get(id=updated_id)
             except User.DoesNotExist:
                 pass
 
