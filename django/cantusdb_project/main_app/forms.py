@@ -12,6 +12,7 @@ from .models import (
     Provenance,
     Century,
     Sequence,
+    Differentia,
 )
 from .widgets import (
     TextInputWidget,
@@ -82,7 +83,7 @@ class ChantCreateForm(forms.ModelForm):
             "feast",
             "mode",
             "differentia",
-            "differentiae_database",
+            "diff_db",
             "finalis",
             "extra",
             "chant_range",
@@ -110,7 +111,6 @@ class ChantCreateForm(forms.ModelForm):
             "feast": autocomplete.ModelSelect2(url="feast-autocomplete"),
             "mode": TextInputWidget(),
             "differentia": TextInputWidget(),
-            "differentiae_database": TextInputWidget(),
             "finalis": TextInputWidget(),
             "extra": TextInputWidget(),
             "chant_range": VolpianoInputWidget(),
@@ -151,6 +151,14 @@ class ChantCreateForm(forms.ModelForm):
         required=False,
     )
     genre.widget.attrs.update({"class": "form-control custom-select custom-select-sm"})
+
+    diff_db = forms.ModelChoiceField(
+        queryset=Differentia.objects.all().order_by("id"),
+        required=False,
+    )
+    diff_db.widget.attrs.update(
+        {"class": "form-control custom-select custom-select-sm"}
+    )
 
     manuscript_full_text_std_spelling = forms.CharField(
         required=True,
@@ -283,7 +291,7 @@ class ChantEditForm(forms.ModelForm):
             "mode",
             "finalis",
             "differentia",
-            "differentiae_database",
+            "diff_db",
             "extra",
             "image_link",
             "indexing_notes",
@@ -310,7 +318,6 @@ class ChantEditForm(forms.ModelForm):
             "mode": TextInputWidget(),
             "finalis": TextInputWidget(),
             "differentia": TextInputWidget(),
-            "differentiae_database": TextInputWidget(),
             "extra": TextInputWidget(),
             "image_link": TextInputWidget(),
             "indexing_notes": TextAreaWidget(),
@@ -361,6 +368,14 @@ class ChantEditForm(forms.ModelForm):
         required=False,
     )
     genre.widget.attrs.update({"class": "form-control custom-select custom-select-sm"})
+
+    diff_db = forms.ModelChoiceField(
+        queryset=Differentia.objects.all().order_by("id"),
+        required=False,
+    )
+    diff_db.widget.attrs.update(
+        {"class": "form-control custom-select custom-select-sm"}
+    )
 
 
 class SourceEditForm(forms.ModelForm):
