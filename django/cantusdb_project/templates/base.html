@@ -5,15 +5,14 @@
 
 <head>
     {% if PROJECT_ENVIRONMENT == "PRODUCTION" %}
-        {# To ensure site is tracked in Google Analytics #}
         <!-- Google tag (gtag.js) -->
-        <script async src="https://www.googletagmanager.com/gtag/js?id=G-YSGM9EQBGL"></script>
+        <script async src="https://www.googletagmanager.com/gtag/js?id=G-JXEY1VRT2W"></script>
         <script>
             window.dataLayer = window.dataLayer || [];
             function gtag(){dataLayer.push(arguments);}
             gtag('js', new Date());
-            
-            gtag('config', 'G-YSGM9EQBGL');
+
+            gtag('config', 'G-JXEY1VRT2W');
         </script>
     {% endif %}
     {% if not PROJECT_ENVIRONMENT == "PRODUCTION" %}
