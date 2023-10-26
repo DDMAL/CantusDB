@@ -1,5 +1,6 @@
 from main_app.models import Chant, Differentia
 from django.core.management.base import BaseCommand
+from typing import List, Optional
 
 
 # Python script to sync the differentia database with CantusDB. Previously, we had a CharField that represented
@@ -12,14 +13,15 @@ DIFFERENTIA_DATA = "differentia_data.txt"
 
 class Command(BaseCommand):
     def handle(self, *args, **options):
-        differentia_database = get_differentia_data(DIFFERENTIA_DATA)
-        total = len(differentia_database)
+        differentia_database: List[List[str]] = get_differentia_data(DIFFERENTIA_DATA)
+        total: int = len(differentia_database)
         count = 0
         for item in differentia_database:
+            differentia_id: str
+            melodic_transcription: str
+            mode: str
             differentia_id, melodic_transcription, mode, _ = item
-            differentia = Differentia.objects.filter(
-                differentia_id=differentia_id
-            ).first()
+            differentia = Differentia.objects.get(differentia_id=differentia_id)
 
             if differentia:
                 differentia.melodic_transcription = melodic_transcription
@@ -50,9 +52,8 @@ class Command(BaseCommand):
             # Update Chant model to use foreign key
             for chant in chunk:
                 try:
-                    differentia_id = chant.differentiae_database
-                    # Check if differentiae_database is null
-                    if differentia_id:
+                    differentia_id: Optional[str] = chant.differentiae_database
+                    if not differentia_id is None:
                         differentia = Differentia.objects.filter(
                             differentia_id=differentia_id
                         ).first()
@@ -79,7 +80,7 @@ class Command(BaseCommand):
             start_index += CHUNK_SIZE
 
 
-def get_differentia_data(filename):
+def get_differentia_data(filename) -> List[List[str]]:
     differentia_list = []
     with open(filename, "r") as file:
         for line in file:
