@@ -60,15 +60,27 @@ def reassign_sources() -> None:
         chunk: QuerySet[Source] = sources[start_index : start_index + CHUNK_SIZE]
         for source in chunk:
             old_creator: Optional[User] = source.created_by
-            if old_creator and (old_creator.id in USER_ID_MAPPING):
+
+            updated_id: Optional[int] = None
+            try:
                 updated_id: int = USER_ID_MAPPING[old_creator.id]
-                updated_creator = Optional[User]
-                try:
-                    updated_creator = User.objects.get(id=updated_id)
-                except User.DoesNotExist:
-                    pass
-                source.created_by = updated_creator
-                source.save()
+            except (
+                KeyError,  # old_creator.id not in USER_ID_MAPPING
+                AttributeError,  # old_creator is None
+            ):
+                updated_id = None
+
+            updated_creator: Optional[User] = None
+            try:
+                updated_creator = User.objects.get(id=updated_id)
+            except (
+                User.DoesNotExist,
+                AttributeError,
+            ):
+                pass
+
+            source.created_by = updated_creator
+            source.save()
         start_index += CHUNK_SIZE
 
 
@@ -82,15 +94,24 @@ def reassign_chants() -> None:
         chunk: QuerySet[Chant] = chants[start_index : start_index + CHUNK_SIZE]
         for chant in chunk:
             old_creator: Optional[User] = chant.created_by
-            if old_creator and (old_creator.id in USER_ID_MAPPING):
+
+            updated_id: Optional[int] = None
+            try:
                 updated_id: int = USER_ID_MAPPING[old_creator.id]
-                updated_creator: Optional[User] = None
-                try:
-                    User.objects.get(id=updated_id)
-                except User.DoesNotExist:
-                    pass
-                chant.created_by = updated_creator
-                chant.save()
+            except (
+                KeyError,  # old_creator.id not in USER_ID_MAPPING
+                AttributeError,  # old_creator is None
+            ):
+                updated_id = None
+
+            updated_creator: Optional[User] = None
+            try:
+                User.objects.get(id=updated_id)
+            except User.DoesNotExist:
+                pass
+
+            chant.created_by = updated_creator
+            chant.save()
         start_index += CHUNK_SIZE
 
 
