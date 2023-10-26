@@ -2,6 +2,9 @@ from main_app.models import Source, Chant
 from django.contrib.auth import get_user_model
 from django.core.management.base import BaseCommand
 from sys import stdout
+from django.db.models.query import QuerySet
+from typing import Optional
+import pdb
 
 User = get_user_model()
 
@@ -49,17 +52,21 @@ USER_ID_MAPPING = {
 
 def reassign_sources() -> None:
     CHUNK_SIZE = 1_000
-    sources = Source.objects.all()
-    sources_count = sources.count()
-    start_index = 0
+    sources: QuerySet[Source] = Source.objects.all()
+    sources_count: int = sources.count()
+    start_index: int = 0
     while start_index <= sources_count:
         stdout.write(f"processing chunk with {start_index=}\n")
-        chunk = sources[start_index : start_index + CHUNK_SIZE]
+        chunk: QuerySet[Source] = sources[start_index : start_index + CHUNK_SIZE]
         for source in chunk:
-            old_creator = source.created_by
-            if old_creator and old_creator.id in USER_ID_MAPPING:
-                updated_id = USER_ID_MAPPING[old_creator.id]
-                updated_creator = User.objects.get(id=updated_id)
+            old_creator: Optional[User] = source.created_by
+            if old_creator and (old_creator.id in USER_ID_MAPPING):
+                updated_id: int = USER_ID_MAPPING[old_creator.id]
+                updated_creator = Optional[User]
+                try:
+                    updated_creator = User.objects.get(id=updated_id)
+                except User.DoesNotExist:
+                    pass
                 source.created_by = updated_creator
                 source.save()
         start_index += CHUNK_SIZE
@@ -67,17 +74,21 @@ def reassign_sources() -> None:
 
 def reassign_chants() -> None:
     CHUNK_SIZE = 1_000
-    chants = Chant.objects.all()
-    chants_count = chants.count()
-    start_index = 0
+    chants: QuerySet[Chant] = Chant.objects.all()
+    chants_count: int = chants.count()
+    start_index: int = 0
     while start_index <= chants_count:
         stdout.write(f"processing chunk with {start_index=}\n")
-        chunk = chants[start_index : start_index + CHUNK_SIZE]
+        chunk: QuerySet[Chant] = chants[start_index : start_index + CHUNK_SIZE]
         for chant in chunk:
-            old_creator = chant.created_by
-            if old_creator.id in USER_ID_MAPPING:
-                updated_id = USER_ID_MAPPING[old_creator.id]
-                updated_creator = User.objects.get(id=updated_id)
+            old_creator: Optional[User] = chant.created_by
+            if old_creator and (old_creator.id in USER_ID_MAPPING):
+                updated_id: int = USER_ID_MAPPING[old_creator.id]
+                updated_creator: Optional[User] = None
+                try:
+                    User.objects.get(id=updated_id)
+                except User.DoesNotExist:
+                    pass
                 chant.created_by = updated_creator
                 chant.save()
         start_index += CHUNK_SIZE
