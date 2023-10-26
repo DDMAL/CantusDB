@@ -58,14 +58,14 @@ class Command(BaseCommand):
                         ).first()
 
                         if differentia:
-                            chant.differentiae_database_new = differentia
+                            chant.diff_db = differentia
                         else:
                             # If the Differentia doesn't exist, create a new one
                             differentia = Differentia(
                                 differentia_id=differentia_id,
                             )
                             differentia.save()
-                            chant.differentiae_database_new = differentia
+                            chant.diff_db = differentia
 
                         chant.save()
                     if count % 100 == 0:
