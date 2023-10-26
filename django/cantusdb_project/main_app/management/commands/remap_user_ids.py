@@ -52,7 +52,6 @@ def reassign_sources() -> None:
     sources = Source.objects.all()
     sources_count = sources.count()
     start_index = 0
-    num_sources_to_remap = 0
     while start_index <= sources_count:
         stdout.write(f"processing chunk with {start_index=}\n")
         chunk = sources[start_index : start_index + CHUNK_SIZE]
@@ -71,7 +70,6 @@ def reassign_chants() -> None:
     chants = Chant.objects.all()
     chants_count = chants.count()
     start_index = 0
-    num_chants_to_remap = 0
     while start_index <= chants_count:
         stdout.write(f"processing chunk with {start_index=}\n")
         chunk = chants[start_index : start_index + CHUNK_SIZE]
