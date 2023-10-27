@@ -1,6 +1,7 @@
 from main_app.models import Chant, Differentia
 from django.core.management.base import BaseCommand
 from typing import List, Optional
+from django.db.models.query import QuerySet
 
 
 # Python script to sync the differentia database with CantusDB. Previously, we had a CharField that represented
@@ -15,13 +16,17 @@ class Command(BaseCommand):
     def handle(self, *args, **options):
         differentia_database: List[List[str]] = get_differentia_data(DIFFERENTIA_DATA)
         total: int = len(differentia_database)
-        count = 0
+        count: int = 0
         for item in differentia_database:
             differentia_id: str
             melodic_transcription: str
             mode: str
             differentia_id, melodic_transcription, mode, _ = item
-            differentia = Differentia.objects.get(differentia_id=differentia_id)
+            differentia: Optional[Differentia] = None
+            try:
+                differentia = Differentia.objects.get(differentia_id=differentia_id)
+            except Differentia.DoesNotExist:
+                pass
 
             if differentia:
                 differentia.melodic_transcription = melodic_transcription
@@ -41,13 +46,13 @@ class Command(BaseCommand):
             count += 1
 
         CHUNK_SIZE = 1_000
-        chants = Chant.objects.all()
-        chants_count = chants.count()
-        start_index = 0
-        count = 0
+        chants: QuerySet[Chant] = Chant.objects.all()
+        chants_count: int = chants.count()
+        start_index: int = 0
+        count: int = 0
         while start_index <= chants_count:
             print("processing chunk with start_index of", start_index)
-            chunk = chants[start_index : start_index + CHUNK_SIZE]
+            chunk: QuerySet[Chant] = chants[start_index : start_index + CHUNK_SIZE]
 
             # Update Chant model to use foreign key
             for chant in chunk:
@@ -62,7 +67,7 @@ class Command(BaseCommand):
                             chant.diff_db = differentia
                         else:
                             # If the Differentia doesn't exist, create a new one
-                            differentia = Differentia(
+                            differentia: Differentia = Differentia(
                                 differentia_id=differentia_id,
                             )
                             differentia.save()
@@ -81,10 +86,10 @@ class Command(BaseCommand):
 
 
 def get_differentia_data(filename) -> List[List[str]]:
-    differentia_list = []
+    differentia_list: List = []
     with open(filename, "r") as file:
         for line in file:
-            line = line.strip()
-            values = tuple(line.split(","))
+            line: str = line.strip()
+            values: tuple = tuple(line.split(","))
             differentia_list.append(values)
     return differentia_list
