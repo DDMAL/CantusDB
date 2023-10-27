@@ -15,13 +15,17 @@ class Command(BaseCommand):
     def handle(self, *args, **options):
         differentia_database: List[List[str]] = get_differentia_data(DIFFERENTIA_DATA)
         total: int = len(differentia_database)
-        count = 0
+        count: int = 0
         for item in differentia_database:
             differentia_id: str
             melodic_transcription: str
             mode: str
             differentia_id, melodic_transcription, mode, _ = item
-            differentia = Differentia.objects.get(differentia_id=differentia_id)
+            differentia: Optional[Differentia] = None
+            try:
+                differentia = Differentia.objects.get(differentia_id=differentia_id)
+            except Differentia.DoesNotExist:
+                pass
 
             if differentia:
                 differentia.melodic_transcription = melodic_transcription
