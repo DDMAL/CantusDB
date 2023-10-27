@@ -233,6 +233,7 @@ def csv_export(request, source_id):
         feast = entry.feast.name if entry.feast else ""
         office = entry.office.name if entry.office else ""
         genre = entry.genre.name if entry.genre else ""
+        diff_db = entry.diff_db.id if entry.diff_db else ""
 
         writer.writerow(
             [
@@ -250,7 +251,7 @@ def csv_export(request, source_id):
                 entry.mode,
                 entry.finalis,
                 entry.differentia,
-                entry.differentiae_database,
+                entry.diff_db,
                 entry.manuscript_full_text_std_spelling,
                 entry.manuscript_full_text,
                 entry.volpiano,

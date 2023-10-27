@@ -68,6 +68,13 @@ class BaseChant(BaseModel):
         max_length=12,
         verbose_name="differentiae database",
     )
+    diff_db = models.ForeignKey(
+        "Differentia",
+        blank=True,
+        null=True,
+        on_delete=models.deletion.PROTECT,
+        verbose_name="differentiae database",
+    )
     finalis = models.CharField(blank=True, null=True, max_length=63)
     extra = models.CharField(blank=True, null=True, max_length=63)
     chant_range = models.CharField(
