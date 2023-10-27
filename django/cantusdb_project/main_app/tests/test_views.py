@@ -32,14 +32,17 @@ from .make_fakes import (
     add_accents_to_string,
 )
 
-from main_app.models import Century
-from main_app.models import Chant
-from main_app.models import Feast
-from main_app.models import Genre
-from main_app.models import Office
-from main_app.models import Segment
-from main_app.models import Sequence
-from main_app.models import Source
+from main_app.models import (
+    Century,
+    Chant,
+    Differentia,
+    Feast,
+    Genre,
+    Office,
+    Segment,
+    Sequence,
+    Source,
+)
 
 # run with `python -Wa manage.py test main_app.tests.test_views`
 # the -Wa flag tells Python to display deprecation warnings
@@ -2819,7 +2822,7 @@ class ChantIndexViewTest(TestCase):
         expected_html_substring = f"<td>{mode}</td>"
         self.assertIn(expected_html_substring, html)
 
-    def test_differentia_column(self):
+    def test_diff_column(self):
         source = make_fake_source(published=True)
         differentia = "this is a differentia"  # not a representative value, but
         # most differentia are one or two characters, likely to be found elsewhere
@@ -2832,6 +2835,24 @@ class ChantIndexViewTest(TestCase):
         html = str(response.content)
         self.assertIn(differentia, html)
         expected_html_substring = f"<td>{differentia}</td>"
+        self.assertIn(expected_html_substring, html)
+
+    def test_dd_column(self):
+        source: Source = make_fake_source(published=True)
+        diff_id: str = make_random_string(3, "0123456789") + make_random_string(
+            1, "abcd"
+        )  # e.g., "012a"
+        diff_db: Differentia = Differentia.objects.create(differentia_id=diff_id)
+        chant: Chant = make_fake_chant(
+            source=source,
+        )
+        chant.diff_db = diff_db
+        chant.save()
+
+        response = self.client.get(reverse("chant-index"), {"source": source.id})
+        html: str = str(response.content)
+        self.assertIn(diff_id, html)
+        expected_html_substring: str = f'<a href="https://differentiaedatabase.ca/differentia/{diff_id}" target="_blank">'
         self.assertIn(expected_html_substring, html)
 
 
