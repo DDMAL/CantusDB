@@ -126,5 +126,7 @@ class Command(BaseCommand):
     def handle(self, *args, **kwargs) -> None:
         stdout.write("\n\n==== Reassigning Sources ====\n")
         reassign_sources()
+        stdout.write("\n== All sources successfully remapped! ==\n")
         stdout.write("\n\n==== Reassigning Chants ====\n")
         reassign_chants()
+        stdout.write("\n== All chants successfully remapped! ==\n")
