@@ -4,7 +4,6 @@ from django.core.management.base import BaseCommand
 from sys import stdout
 from django.db.models.query import QuerySet
 from typing import Optional
-import pdb
 
 User = get_user_model()
 
@@ -68,7 +67,11 @@ def reassign_sources() -> None:
                 KeyError,  # old_creator.id not in USER_ID_MAPPING
                 AttributeError,  # old_creator is None
             ):
-                updated_id = None
+                pass
+
+            if updated_id is None:
+                # user ID doesn't need to be remapped
+                continue
 
             updated_creator: Optional[User] = None
             try:
@@ -103,6 +106,10 @@ def reassign_chants() -> None:
                 AttributeError,  # old_creator is None
             ):
                 pass
+
+            if updated_id is None:
+                # user ID doesn't need to be remapped
+                continue
 
             updated_creator: Optional[User] = None
             try:
