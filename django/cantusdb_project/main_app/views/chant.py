@@ -247,53 +247,6 @@ def parse_json_from_ci_api(path: str) -> Union[list, None]:
         return None
 
 
-def _refresh_ci_json_con_api(cantus_id: str) -> None:
-    """
-    Send a request to CantusIndex's "refresh" json-con API, causing it to
-    update its cached concordances for the specified Cantus ID. This
-    function is meant to be run in a separate thread, so all warnings/errors
-    are suppressed.
-
-    Args:
-        cantus_id (string): a Cantus ID
-
-    Returns:
-        None
-    """
-    try:
-        requests.get(
-            url=f"https://cantusindex.org/json-con/{cantus_id}/refresh",
-            timeout=1,
-        )
-    except Exception as exc:  # since this is meant to be run in a separate thread
-        # and we don't want errors to propagate, we summarily catch and dismiss
-        # all exceptions
-        error_message = (
-            "Exception encountered within "
-            f"_refresh_ci_json_con_api (cantus_id: {cantus_id}):"
-        )
-        print(
-            # in the future, we should log this rather than printing it.
-            error_message.format(cid=cantus_id),
-            exc,
-        )
-
-
-def touch_ci_json_con_api(cantus_id: str) -> None:
-    """
-    In a new thread, send a request to CantusIndex's "refresh" json-con API,
-    causing it to update its cached concordances for the specified Cantus ID.
-
-    Args:
-        cantus_id (str): A Cantus ID.
-    """
-    t = threading.Thread(
-        target=_refresh_ci_json_con_api,
-        args=[cantus_id],
-    )
-    t.start()
-
-
 def make_suggested_chant_dict(
     cantus_id: str,
     count: int,
@@ -461,12 +414,6 @@ class ChantDetailView(DetailView):
 
             # tally from all databases
             context["concordances_count"] = len(concordance_chants)
-
-            # touch CI's "refresh" json-con api, causing it to update its cached concordances
-            # for this chant's Cantus ID. In the future, we probably want to set up a cron job
-            # to ping the relevant url for each Cantus ID in the database, rather than doing
-            # it at request time.
-            touch_ci_json_con_api(cantus_id)
 
         # some chants don't have a source, for those chants, stop here without further calculating
         # other context variables
