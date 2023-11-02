@@ -9,7 +9,7 @@ chardet==3.0.4
 charset-normalizer==2.0.12
 click==7.1.2
 coverage==5.3.1
-Django==4.2.3
+Django==4.2.7
 django-autocomplete-light==3.9.4
 django-extra-views==0.13.0
 django-quill-editor==0.1.40
