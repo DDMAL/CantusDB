@@ -198,18 +198,21 @@ def make_concordances_database_summary(
     return sorted_database_summaries
 
 
-def parse_json_from_api(url: str) -> Union[list, None]:
+def parse_json_from_ci_api(path: str) -> Union[list, None]:
     """Queries a remote api from cantusindex.org that returns a json object, processes it and returns
     a list containing its information.
 
     We expect an array of javascript objects with a byte order mark (BOM) at the beginning
 
     Args:
-        url (str): Url of the API
+        path (str): the path to the API. This should be just the path (not including the
+            domain), and should not include a leading slash.
 
     Returns:
         list, None: contents of json response in the form of a list
     """
+    assert path[0] != "/"
+    url = f"https://cantusindex.org/{path}"
     try:
         response: Optional[Response] = requests.get(
             url,
@@ -221,7 +224,7 @@ def parse_json_from_api(url: str) -> Union[list, None]:
         ConnectionError,
     ) as exc:
         print(  # eventually, we should log this rather than printing it to the console
-            "Encountered an error in parse_json_from_api",
+            "Encountered an error in parse_json_from_ci_api",
             f"while making a request to {url}:",
             exc,
         )
@@ -320,8 +323,8 @@ def make_suggested_chant_dict(
             - how many times chants with this Cantus ID follow chants with a
                 Cantus ID of 123456 (int)
     """
-    json_cid_url: str = f"https://cantusindex.org/json-cid/{cantus_id}"
-    cid_list: Union[list, None] = parse_json_from_api(json_cid_url)
+    json_cid_path: str = f"json-cid/{cantus_id}"
+    cid_list: Union[list, None] = parse_json_from_ci_api(json_cid_path)
     try:
         assert isinstance(cid_list, list)
         assert len(cid_list) == 1
@@ -429,8 +432,10 @@ class ChantDetailView(DetailView):
         # If chant has a cantus ID, Create table of concordances
         context["concordances_loaded_successfully"] = True
         if cantus_id:
-            json_concordances_url: str = f"https://cantusindex.org/json-con/{cantus_id}"
-            concordances: Union[list, None] = parse_json_from_api(json_concordances_url)
+            json_concordances_path: str = f"json-con/{cantus_id}"
+            concordances: Union[list, None] = parse_json_from_ci_api(
+                json_concordances_path
+            )
             try:
                 assert isinstance(concordances, list)
                 assert len(concordances) > 0
@@ -1650,8 +1655,8 @@ class SourceEditChantsView(LoginRequiredMixin, UserPassesTestMixin, UpdateView):
             current_chant = Chant.objects.filter(pk=pk).first()
             cantus_id = current_chant.cantus_id
 
-            json_cid_url: str = f"https://cantusindex.org/json-cid/{cantus_id}"
-            json_response: Union[list, None] = parse_json_from_api(json_cid_url)
+            json_cid_path: str = f"json-cid/{cantus_id}"
+            json_response: Union[list, None] = parse_json_from_ci_api(json_cid_path)
             try:
                 assert isinstance(json_response, list)
                 assert len(json_response) > 0
