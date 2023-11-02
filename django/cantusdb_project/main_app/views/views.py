@@ -1018,6 +1018,16 @@ class FeastAutocomplete(autocomplete.Select2QuerySetView):
         return qs
 
 
+class ProvenanceAutocomplete(autocomplete.Select2QuerySetView):
+    def get_queryset(self):
+        if not self.request.user.is_authenticated:
+            return Provenance.objects.none()
+        qs = Provenance.objects.all().order_by("name")
+        if self.q:
+            qs = qs.filter(name__istartswith=self.q)
+        return qs
+
+
 class ProofreadByAutocomplete(autocomplete.Select2QuerySetView):
     def get_queryset(self):
         if not self.request.user.is_authenticated:

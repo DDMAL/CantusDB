@@ -411,6 +411,7 @@ class SourceEditForm(forms.ModelForm):
             "title": TextInputWidget(),
             "rism_siglum": autocomplete.ModelSelect2(url="rismsiglum-autocomplete"),
             "siglum": TextInputWidget(),
+            "provenance": autocomplete.ModelSelect2(url="provenance-autocomplete"),
             "provenance_notes": TextInputWidget(),
             "date": TextInputWidget(),
             "summary": TextAreaWidget(),
@@ -441,13 +442,6 @@ class SourceEditForm(forms.ModelForm):
                 url="all-users-autocomplete"
             ),
         }
-
-    provenance = forms.ModelChoiceField(
-        queryset=Provenance.objects.all().order_by("name"), required=False
-    )
-    provenance.widget.attrs.update(
-        {"class": "form-control custom-select custom-select-sm"}
-    )  # adds styling
 
     CHOICES_FULL_SOURCE = (
         (None, "None"),

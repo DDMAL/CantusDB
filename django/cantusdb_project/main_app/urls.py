@@ -68,6 +68,7 @@ from main_app.views.views import (
     CenturyAutocomplete,
     RismSiglumAutocomplete,
     FeastAutocomplete,
+    ProvenanceAutocomplete,
     ProofreadByAutocomplete,
 )
 
@@ -471,6 +472,11 @@ urlpatterns = [
         "proofread-by-autocomplete/",
         ProofreadByAutocomplete.as_view(),
         name="proofread-by-autocomplete",
+    ),
+    path(
+        "provenance-autocomplete/",
+        ProvenanceAutocomplete.as_view(),
+        name="provenance-autocomplete",
     ),
 ]
 
