@@ -67,14 +67,20 @@
                     </div>
 
                     <div class="form-row">
-                        <div class="form-group m-1 col-lg-2">
+                        <div class="form-group m-1 col-lg-3">
                             <small>{{ form.office.label_tag }}</small>
-                            {{ form.office }}
+                            <br>{{ form.office }}
                         </div>
-                        <div class="form-group m-1 col-lg-2">
+                    </div>
+
+                    <div class="form-row">
+                        <div class="form-group m-1 col-lg-3">
                             <small>{{ form.genre.label_tag }}</small>
-                            {{ form.genre }}
+                            <br>{{ form.genre }}
                         </div>
+                    </div>
+
+                    <div class="form-row">
                         <div class="form-group m-1 col-lg-2">
                             <small>{{ form.position.label_tag }}</small>
                             {{ form.position }}
@@ -107,14 +113,16 @@
                             {{ form.differentia }}
                         </div>
                         <div class="form-group m-1 col-lg-2">
+                            <small>{{ form.extra.label_tag }}</small>
+                            {{ form.extra }}
+                        </div>
+                    </div>
+                    <div class="form-row">
+                        <div class="form-group m-1 col-lg-2">
                             <label for="{{ form.diff_db.id_for_label }}">
                                 <small>Differentia DB:</small>
                             </label>
-                            {{ form.diff_db }}
-                        </div>
-                        <div class="form-group m-1 col-lg-2">
-                            <small>{{ form.extra.label_tag }}</small>
-                            {{ form.extra }}
+                            <br>{{ form.diff_db }}
                         </div>
                     </div>
                     <div class="form-row">
