@@ -1,5 +1,4 @@
 window.addEventListener("load", melodySearch);
-window.addEventListener("resize", melodySearch);
 function melodySearch() {
     // `index` is the index of the currently active note slot, it starts from one
     var index = 1;
@@ -39,12 +38,12 @@ function melodySearch() {
     const resultsDiv = document.getElementById("resultsDiv");
 
     // get the drawArea position (absolute position, relative to the document)
-    const drawAreaRect = drawArea.getBoundingClientRect();
-    const docRect = document.body.getBoundingClientRect();
-    const drawAreaLeft = drawAreaRect.left - docRect.left;
-    const drawAreaRight = drawAreaRect.right - docRect.left;
-    const drawAreaTop = drawAreaRect.top - docRect.top;
-    const drawAreaBottom = drawAreaRect.bottom - docRect.top;
+    let drawAreaRect = drawArea.getBoundingClientRect();
+    let docRect = document.body.getBoundingClientRect();
+    let drawAreaLeft = drawAreaRect.left - docRect.left;
+    let drawAreaRight = drawAreaRect.right - docRect.left;
+    let drawAreaTop = drawAreaRect.top - docRect.top;
+    let drawAreaBottom = drawAreaRect.bottom - docRect.top;
 
     // if put this EventListener on drawArea only, the note will 'stick' to the bottom row if the mouse move too fast vertically
     drawArea.parentElement.addEventListener("mousemove", (event) => { trackMouse(event, index); });
@@ -61,6 +60,17 @@ function melodySearch() {
     genreField.addEventListener("input", search);
     feastField.addEventListener("input", search);
     modeField.addEventListener("input", search);
+
+    function changeDrawAreaPosition() {
+        drawAreaRect = drawArea.getBoundingClientRect();
+        docRect = document.body.getBoundingClientRect();
+        drawAreaLeft = drawAreaRect.left - docRect.left;
+        drawAreaRight = drawAreaRect.right - docRect.left;
+        drawAreaTop = drawAreaRect.top - docRect.top;
+        drawAreaBottom = drawAreaRect.bottom - docRect.top;
+    };
+
+    window.addEventListener("resize", changeDrawAreaPosition);
 
     // check the page url for the `source` param, which indicates searching in a specific source
     const urlParams = new URLSearchParams(window.location.search);
