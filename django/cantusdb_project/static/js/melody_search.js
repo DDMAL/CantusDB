@@ -72,41 +72,42 @@ function melodySearch() {
 
     function trackClick(event) {
         const y = event.pageY;
+        y_rel = y - drawAreaTop;
         // add the note to the search term, according to the y position of the click
         if (index <= 14) {
-            if (y < 264) {
+            if (y_rel < 22) {
                 notes += "q";
-            } else if (y < 272) {
+            } else if (y_rel < 30) {
                 notes += "p";
-            } else if (y < 279) {
+            } else if (y_rel < 37) {
                 notes += "o";
-            } else if (y < 287) {
+            } else if (y_rel < 45) {
                 notes += "n";
-            } else if (y < 294) {
+            } else if (y_rel < 52) {
                 notes += "m";
-            } else if (y < 302) {
+            } else if (y_rel < 60) {
                 notes += "l";
-            } else if (y < 309) {
+            } else if (y_rel < 67) {
                 notes += "k";
-            } else if (y < 317) {
+            } else if (y_rel < 75) {
                 notes += "j";
-            } else if (y < 324) {
+            } else if (y_rel < 82) {
                 notes += "h";
-            } else if (y < 332) {
+            } else if (y_rel < 90) {
                 notes += "g";
-            } else if (y < 339) {
+            } else if (y_rel < 97) {
                 notes += "f";
-            } else if (y < 347) {
+            } else if (y_rel < 105) {
                 notes += "e";
-            } else if (y < 354) {
+            } else if (y_rel < 112) {
                 notes += "d";
-            } else if (y < 362) {
+            } else if (y_rel < 120) {
                 notes += "c";
-            } else if (y < 369) {
+            } else if (y_rel < 127) {
                 notes += "b";
-            } else if (y < 377) {
+            } else if (y_rel < 135) {
                 notes += "a";
-            } else if (y < drawAreaBottom) {
+            } else if (y_rel < drawAreaBottom) {
                 notes += "9";
             }
 
@@ -131,6 +132,8 @@ function melodySearch() {
         // get the mouse position
         x = event.pageX;
         y = event.pageY;
+        // get the relative y mouse position
+        y_rel = y - drawAreaTop;
         // compare it with the y coordinate of every staff line (hardcoded), 17 positions in total
         // staff line coordinates: [264, 279, 294, 309, 324, 339, 354, 369]
         if (document.getElementById(noteIndex)) {
@@ -138,37 +141,37 @@ function melodySearch() {
             // change the current image to the corresp. note image based on the y position
             if (y < drawAreaTop) {
                 currentPic.src = "/static/melody search tool/-.jpg";
-            } else if (y < 264) {
+            } else if (y_rel < 22) {
                 currentPic.src = "/static/melody search tool/b2.jpg";
-            } else if (y < 272) {
+            } else if (y_rel < 30) { 
                 currentPic.src = "/static/melody search tool/a2.jpg";
-            } else if (y < 279) {
+            } else if (y_rel < 37) { 
                 currentPic.src = "/static/melody search tool/g1.jpg";
-            } else if (y < 287) {
+            } else if (y_rel < 45) { 
                 currentPic.src = "/static/melody search tool/f1.jpg";
-            } else if (y < 294) {
+            } else if (y_rel < 52) { 
                 currentPic.src = "/static/melody search tool/e1.jpg";
-            } else if (y < 302) {
+            } else if (y_rel < 60) { 
                 currentPic.src = "/static/melody search tool/d1.jpg";
-            } else if (y < 309) {
+            } else if (y_rel < 67) { 
                 currentPic.src = "/static/melody search tool/c1.jpg";
-            } else if (y < 317) {
+            } else if (y_rel < 75) { 
                 currentPic.src = "/static/melody search tool/b1.jpg";
-            } else if (y < 324) {
+            } else if (y_rel < 82) { 
                 currentPic.src = "/static/melody search tool/a1.jpg";
-            } else if (y < 332) {
+            } else if (y_rel < 90) { 
                 currentPic.src = "/static/melody search tool/g.jpg";
-            } else if (y < 339) {
+            } else if (y_rel < 97) {
                 currentPic.src = "/static/melody search tool/f.jpg";
-            } else if (y < 347) {
+            } else if (y_rel < 105) {
                 currentPic.src = "/static/melody search tool/e.jpg";
-            } else if (y < 354) {
+            } else if (y_rel < 112) {
                 currentPic.src = "/static/melody search tool/d.jpg";
-            } else if (y < 362) {
+            } else if (y_rel < 120) {
                 currentPic.src = "/static/melody search tool/c.jpg";
-            } else if (y < 369) {
+            } else if (y_rel < 127) {
                 currentPic.src = "/static/melody search tool/b.jpg";
-            } else if (y < 377) {
+            } else if (y_rel < 135) {
                 currentPic.src = "/static/melody search tool/a.jpg";
             } else if (y < drawAreaBottom) {
                 currentPic.src = "/static/melody search tool/9.jpg";
