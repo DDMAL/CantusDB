@@ -191,6 +191,7 @@ class SourceCreateForm(forms.ModelForm):
         widgets = {
             "title": TextInputWidget(),
             "siglum": TextInputWidget(),
+            "provenance": autocomplete.ModelSelect2(url="provenance-autocomplete"),
             "provenance_notes": TextInputWidget(),
             "date": TextInputWidget(),
             "cursus": SelectWidget(),
@@ -222,13 +223,6 @@ class SourceCreateForm(forms.ModelForm):
                 url="all-users-autocomplete"
             ),
         }
-
-    provenance = forms.ModelChoiceField(
-        queryset=Provenance.objects.all().order_by("name"), required=False
-    )
-    provenance.widget.attrs.update(
-        {"class": "form-control custom-select custom-select-sm"}
-    )
 
     TRUE_FALSE_CHOICES_SOURCE = (
         (True, "Full source"),
