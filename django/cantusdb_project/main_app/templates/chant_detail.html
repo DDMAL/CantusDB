@@ -220,103 +220,10 @@
             </dl>
             {% if chant.cantus_id %}
                 <h4 id="concordances">List of concordances</h4>
-                {% if concordances_loaded_successfully %}
-                    <small>
-                        Displaying <b>{{ concordances_count }}</b> concordance{{ concordances_count|pluralize }} from the following database{{ concordances_databases|pluralize }}
-                        (Cantus ID <b><a href="http://cantusindex.org/id/{{ chant.cantus_id }}" target="_blank" title="{{ chant.cantus_id }} on Cantus Index">{{ chant.cantus_id }}</a></b>):
-                        <table id="concordancesSummary" style="margin-bottom: 10px">
-                            <tbody>
-                                {% for database in concordances_databases %}
-                                    <tr>
-                                        <td>
-                                            <a href="{{ database.base_url }}" target="_blank">
-                                                {{ database.name }}
-                                            </a>
-                                            {% if database.initialism %}
-                                                ({{ database.initialism }})
-                                            {% endif %}
-                                        </td>
-                                        <td>
-                                            {% if database.alternate_results_count_text %}
-                                                <a href="{{ database.results_url }}" target="_blank" class="guillemet">
-                                                    {{ database.alternate_results_count_text }}
-                                                </a>
-                                            {% else %}
-                                                <a href="{{ database.results_url }}" target="_blank"><b>
-                                                    {{ database.results_count }}</b> chant{{ database.results_count|pluralize }}
-                                                </a>
-                                            {% endif %}
-                                        </td>
-                                    </tr>
-                                {% endfor %}
-                            </tbody>
-                        </table>
-                    </small>
-                    <table id="concordanceTable" class="table table-responsive table-bordered table-sm small" style="table-layout: fixed; width: 100%;">
-                        <thead>
-                            <tr>
-                                <th scope="col" class="text-wrap" style="width:15%" title="Siglum">Siglum</th>
-                                <th scope="col" class="text-wrap" style="width:6%" title="Folio">Folio</th>
-                                <th scope="col" class="text-wrap" style="width:23%" title="Incipit">Incipit</th>
-                                <th scope="col" class="text-wrap" style="width:4%" title="Office"></th>
-                                <th scope="col" class="text-wrap" style="width:4%" title="Genre"></th>
-                                <th scope="col" class="text-wrap" style="width:4%" title="Position"></th>
-                                <th scope="col" class="text-wrap" style="width:20%" title="Feast">Feast</th>
-                                <th scope="col" class="text-wrap" style="width:7%" title="Mode">Mode</th>
-                                <th scope="col" class="text-wrap" style="width:8%" title="Image Link">Image</th>
-                                <th scope="col" class="text-wrap" style="width:9%" title="Database">DB</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            {% for chant in concordances %}
-                                <tr>
-                                    <td>
-                                        <a href="{{ chant.srclink }}" target="_blank">
-                                        {{ chant.siglum }}
-                                        </a>
-                                    </td>
-                                    <td>
-                                        {{ chant.folio }}
-                                    </td>
-                                    <td>
-                                        <a href="{{ chant.chantlink }}" target="_blank">
-                                            {{ chant.incipit }}
-                                        </a>
-                                    </td>
-                                    <td>
-                                        {{ chant.office }}
-                                    </td>
-                                    <td>
-                                        {{ chant.genre }}
-                                    </td>
-                                    <td>
-                                        {{ chant.position }}
-                                    </td>
-                                    <td>
-                                        {{ chant.feast }}
-                                    </td>
-                                    <td>
-                                        {{ chant.mode }}
-                                    </td>
-                                    <td>
-                                        {% if chant.image %}
-                                            <a href="{{ chant.image }}" target="_blank">Image</a>
-                                        {% endif %}
-                                    </td>
-                                    <td>
-                                        {{ chant.db }}
-                                    </td>
-                                </tr>
-                            {% endfor %}
-                        </tbody>
-                    </table>
-                {% else %}
-                    <p>Cantus Database encountered an error while loading concordances
-                        (Cantus ID <b><a href="http://cantusindex.org/id/{{ chant.cantus_id }}" target="_blank" title="{{ chant.cantus_id }} on Cantus Index">{{ chant.cantus_id }}</a></b>).
-                    </p>
-                {% endif %}
                 <p>
-                    <a href="#concordances" onclick="window.location.href = '#concordances'; window.location.reload(true);">Refresh concordances</a><br>
+                    For concordances, please consult the
+                    <a href="https://cantusindex.org/" target="_blank">Cantus Index</a> entry for Cantus ID
+                    <b><a href="https://cantusindex.org/id/{{ chant.cantus_id }}" target="_blank">{{ chant.cantus_id }}</a></b>.
                 </p>
 
                 <h4>List of melodies</h4>
