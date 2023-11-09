@@ -3159,21 +3159,6 @@ class SourceEditChantsViewTest(TestCase):
         chant.refresh_from_db()
         self.assertEqual(chant.manuscript_full_text_std_spelling, "test")
 
-    def test_provide_suggested_fulltext(self):
-        source = make_fake_source()
-        chant = make_fake_chant(
-            source=source, manuscript_full_text_std_spelling="", cantus_id="007450"
-        )
-        response = self.client.get(
-            reverse("source-edit-chants", args=[source.id]), {"pk": chant.id}
-        )
-        # expected_suggestion is copied from Cantus Index. If this test is failing,
-        # it could be because the value stored in Cantus Index has changed.
-        # To verify, visit http://cantusindex.org/id/007450.
-        expected_suggestion = "Puer natus est nobis alleluia alleluia"
-        suggested_fulltext = response.context["suggested_fulltext"]
-        self.assertEqual(suggested_fulltext, expected_suggestion)
-
     def test_volpiano_signal(self):
         source = make_fake_source()
         chant_1 = make_fake_chant(
