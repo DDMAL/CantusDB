@@ -1269,24 +1269,6 @@ class SourceEditChantsView(LoginRequiredMixin, UserPassesTestMixin, UpdateView):
         pk_specified = bool(pk)
         context["pk_specified"] = pk_specified
 
-        # provide a suggested_fulltext for situations in which a chant has no
-        # manuscript_full_text_std_spelling
-        context["suggested_fulltext"] = ""
-        if pk_specified:
-            current_chant = Chant.objects.filter(pk=pk).first()
-            cantus_id = current_chant.cantus_id
-
-            json_cid_path: str = f"json-cid/{cantus_id}"
-            json_response: Union[list, None] = parse_json_from_ci_api(json_cid_path)
-            try:
-                assert isinstance(json_response, list)
-                assert len(json_response) > 0
-                assert isinstance(json_response[0], dict)
-            except AssertionError:
-                json_response = None
-            if json_response:
-                context["suggested_fulltext"] = json_response[0]["fulltext"]
-
         chant = self.get_object()
         if chant.volpiano:
             has_syl_text = bool(chant.manuscript_syllabized_full_text)
