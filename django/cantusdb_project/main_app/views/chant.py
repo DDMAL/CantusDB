@@ -68,8 +68,8 @@ CHANT_SEARCH_TEMPLATE_VALUES: Tuple[str] = (
 
 
 def parse_json_from_ci_api(path: str) -> Union[list, None]:
-    """Queries a remote api from cantusindex.org that returns a json object, processes it and returns
-    a list containing its information.
+    """Queries a remote api from cantusindex.org that returns a json object, processes it and
+    returns a list containing its information.
 
     We expect an array of javascript objects with a byte order mark (BOM) at the beginning
 
@@ -209,7 +209,8 @@ def get_feast_selector_options(source, folios):
             current_feast = chant.feast
     # as the two lists will always be of the same length, no need for zip,
     # just naively combine them
-    # if we use zip, the returned generator will be exhausted in rendering templates, making it hard to test the returned value
+    # if we use zip, the returned generator will be exhausted in rendering templates,
+    # making it hard to test the returned value
     folios_with_feasts = [
         (feast_selector_folios[i], feast_selector_feasts[i])
         for i in range(len(feast_selector_folios))
@@ -291,12 +292,12 @@ class ChantDetailView(DetailView):
                     else:
                         feasts_chants.append(["no_feast", []])
                 else:
-                    # if the chant has a feast and this feast id is different from the last appended lists' feast id,
-                    # append a new list: [feast_id, []]
+                    # if the chant has a feast and this feast id is different from the last appended
+                    # lists' feast id, append a new list: [feast_id, []]
                     if chant.feast and (chant.feast.id != feasts_chants[-1][0]):
                         feasts_chants.append([chant.feast.id, []])
-                    # if the chant doesn't have a feast and last appended list was for chants that had feast id,
-                    # append a new list: ["no_feast", []]
+                    # if the chant doesn't have a feast and last appended list was for chants that
+                    # had feast id, append a new list: ["no_feast", []]
                     elif not chant.feast and (feasts_chants[-1][0] != "no_feast"):
                         feasts_chants.append(["no_feast", []])
                 # add the chant
@@ -470,8 +471,9 @@ class ChantByCantusIDView(ListView):
         if not display_unpublished:
             chant_set = chant_set.filter(source__published=True)
             sequence_set = sequence_set.filter(source__published=True)
-        # the union operation turns sequences into chants, the resulting queryset contains only "chant" objects
-        # this forces us to do something special on the template to render correct absolute url for sequences
+        # the union operation turns sequences into chants, the resulting queryset contains only
+        # "chant" objects this forces us to do something special on the template to render correct
+        # absolute url for sequences
         queryset = chant_set.union(sequence_set)
         queryset = queryset.order_by("siglum")
         return queryset
@@ -611,10 +613,10 @@ class ChantSearchView(ListView):
             queryset = queryset.order_by("source__siglum", "id")
 
         else:
-            # The field names should be keys in the "GET" QueryDict if the search button has been clicked,
-            # even if the user put nothing into the search form and hit "apply" immediately.
-            # In that case, we return the all chants + seqs filtered by the search form.
-            # For every GET parameter other than incipit, add to the Q object
+            # The field names should be keys in the "GET" QueryDict if the search button has been
+            # clicked, even if the user put nothing into the search form and hit "apply"
+            # immediately. In that case, we return the all chants + seqs filtered by the search
+            # form. For every GET parameter other than incipit, add to the Q object
             if self.request.GET.get("office"):
                 office_id = self.request.GET.get("office")
                 q_obj_filter &= Q(office__id=office_id)
@@ -706,7 +708,8 @@ class ChantSearchView(ListView):
                 chant_set = chant_set.filter(keyword_filter)
                 sequence_set = sequence_set.filter(keyword_filter)
 
-            # once unioned, the queryset cannot be filtered/annotated anymore, so we put union to the last
+            # once unioned, the queryset cannot be filtered/annotated anymore, so we put
+            # union to the last
             queryset = chant_set.union(sequence_set, all=True)
             queryset = queryset.order_by(order, "id")
 
@@ -735,7 +738,8 @@ class MelodySearchView(TemplateView):
 
 class ChantSearchMSView(ListView):
     """
-    Searches chants/sequences in a certain manuscript, accessed with ``chant-search-ms/<int:source_pk>``
+    Searches chants/sequences in a certain manuscript, accessed with
+    ``chant-search-ms/<int:source_pk>``
 
     This view uses the same template as ``ChantSearchView``
 
@@ -937,7 +941,8 @@ class ChantCreateView(LoginRequiredMixin, UserPassesTestMixin, CreateView):
         """Get intial data from the latest chant in source.
 
         Some fields of the chant input form (`folio`, `feast`, `c_sequence`, and `image_link`)
-        are pre-populated upon loading. These fields are computed based on the latest chant in the source.
+        are pre-populated upon loading. These fields are computed based on the latest chant in
+        the source.
 
         Returns:
             dict: field names and corresponding data
@@ -1242,7 +1247,8 @@ class SourceEditChantsView(LoginRequiredMixin, UserPassesTestMixin, UpdateView):
         When a user visits the edit-chant page for a certain Source,
         there are 2 dropdowns on the right side of the page: one for folio, and the other for feast.
 
-        When either a folio or a feast is selected, a list of Chants in the selected folio/feast will be rendered.
+        When either a folio or a feast is selected, a list of Chants in the selected folio/feast will
+        be rendered.
 
         Returns:
             a QuerySet of Chants in the Source, filtered by the optional search parameters.
@@ -1320,12 +1326,12 @@ class SourceEditChantsView(LoginRequiredMixin, UserPassesTestMixin, UpdateView):
                     else:
                         feasts_chants.append(["no_feast", []])
                 else:
-                    # if the chant has a feast and this feast id is different from the last appended lists' feast id,
-                    # append a new list: [feast_id, []]
+                    # if the chant has a feast and this feast id is different from the last appended
+                    # lists' feast id, append a new list: [feast_id, []]
                     if chant.feast and (chant.feast.id != feasts_chants[-1][0]):
                         feasts_chants.append([chant.feast.id, []])
-                    # if the chant doesn't have a feast and last appended list was for chants that had feast id,
-                    # append a new list: ["no_feast", []]
+                    # if the chant doesn't have a feast and last appended list was for chants that
+                    # had feast id, append a new list: ["no_feast", []]
                     elif not chant.feast and (feasts_chants[-1][0] != "no_feast"):
                         feasts_chants.append(["no_feast", []])
                 # add the chant
