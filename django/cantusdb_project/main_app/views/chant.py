@@ -113,57 +113,6 @@ def parse_json_from_ci_api(path: str) -> Union[list, None]:
         return None
 
 
-def make_suggested_chant_dict(
-    cantus_id: str,
-    count: int,
-) -> dict:
-    """
-    Request information from Cantus Index about a given Cantus ID,
-    adding keys "count" and "genre_id" to this dictionary and returning it.
-
-    For the following explanation, assume the user has just added a chant
-    with a Cantus ID of "123456" to the database
-
-    Args:
-        cantus_id (str): a Cantus ID (i.e. we've looked through the database
-            for chants with a Cantus ID of "123456", and we've found all the
-            chants that follow those chants. `cantus_id` is the Cantus ID of
-            one of those following chants.)
-        count (int): The number of times a chant with a Cantus ID of `cantus_id`
-            follows a chant with a Cantus ID of "123456" among all sources in
-            the database
-
-    Returns:
-        dict: a dictionary with data about a specific Cantus ID, including:
-            - a canonical fulltext (str)
-            - an incipit (str)
-            - a genre (str)
-            - the ID of that genre in Cantus Database (int)
-            - how many times chants with this Cantus ID follow chants with a
-                Cantus ID of 123456 (int)
-    """
-    json_cid_path: str = f"json-cid/{cantus_id}"
-    cid_list: Union[list, None] = parse_json_from_ci_api(json_cid_path)
-    try:
-        assert isinstance(cid_list, list)
-        assert len(cid_list) == 1
-        assert isinstance(cid_list[0], dict)
-    except AssertionError:
-        return {}
-    cid_dict = cid_list[0]
-    cid_dict["count"] = count
-    # figure out the id of the genre of the chant, to easily populate the Genre selector
-    genre_name = cid_dict["genre"]
-    genre_id = Genre.objects.get(name=genre_name).id
-    cid_dict["genre_id"] = genre_id
-    # in the template, we create a js function based on the cantus ID. The function name
-    # cannot include a "." or a ":", so we have to use a cleaned version
-    cid_clean = cantus_id.replace(".", "d").replace(":", "c")
-    #                                  "d"ot             "c"olon
-    cid_dict["cid_clean"] = cid_clean
-    return cid_dict
-
-
 def get_feast_selector_options(source, folios):
     """Generate folio-feast pairs as options for the feast selector
 
@@ -973,50 +922,6 @@ class ChantCreateView(LoginRequiredMixin, UserPassesTestMixin, CreateView):
         self.source = get_object_or_404(Source, pk=kwargs["source_pk"])
         return super().dispatch(request, *args, **kwargs)
 
-    def get_suggested_chants(self):
-        """based on the previous chant entered, get data and metadata on
-        chants in other manuscripts that follow the most recently added chant
-
-        Returns:
-            a list of dictionaries: for every potential chant,
-            each dictionary includes data on that chant,
-            taken from Cantus Index, as well as a count of how often
-            that chant is found following the previous chant
-        """
-
-        # only displays the chants that occur most often
-        NUM_SUGGESTIONS = 5
-        try:
-            latest_chant = self.source.chant_set.latest("date_updated")
-        except Chant.DoesNotExist:
-            return None
-
-        cantus_id = latest_chant.cantus_id
-        if cantus_id is None:
-            return None
-        if cantus_id == "909000":
-            # 909000 is the Cantus ID for "Gloria patri", the most common Cantus ID in the
-            # database by about a factor of ~10 compared to the second most common Cantus ID.
-            # It takes too long to calculate suggested chants for this Cantus ID, and the
-            # results aren't particularly useful anyways.
-            return None
-
-        suggested_chants = next_chants(cantus_id, display_unpublished=True)
-
-        # sort by number of occurrences
-        sorted_suggested_chants = sorted(
-            suggested_chants, key=lambda id_count_pair: id_count_pair[1], reverse=True
-        )
-        # if there are more chants than NUM_SUGGESTIONS, remove chants that
-        # don't frequently appear after the most recently entered chant
-        trimmed_suggested_chants = sorted_suggested_chants[:NUM_SUGGESTIONS]
-
-        suggested_chants_dicts = [
-            make_suggested_chant_dict(cid, cnt) for cid, cnt in trimmed_suggested_chants
-        ]
-
-        return suggested_chants_dicts
-
     def get_suggested_feasts(self):
         """based on the feast of the most recently edited chant, provide a
         list of suggested feasts that might follow the feast of that chant.
@@ -1053,7 +958,6 @@ class ChantCreateView(LoginRequiredMixin, UserPassesTestMixin, CreateView):
             context["previous_chant"] = self.source.chant_set.latest("date_updated")
         except Chant.DoesNotExist:
             context["previous_chant"] = None
-        context["suggested_chants"] = self.get_suggested_chants()
         context["suggested_feasts"] = self.get_suggested_feasts()
         return context
 
