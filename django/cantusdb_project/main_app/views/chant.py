@@ -2,10 +2,8 @@ import lxml.html as lh
 import requests
 import urllib
 import json
-import threading
 from django.contrib import messages
-from django.contrib.postgres.search import SearchQuery, SearchRank
-from django.db.models import F, Q, QuerySet, Value
+from django.db.models import Q, QuerySet, Value
 from django.shortcuts import get_object_or_404
 from django.urls import reverse
 from django.views.generic import (
@@ -29,7 +27,7 @@ from django.http import Http404
 from next_chants import next_chants
 from collections import Counter
 from django.contrib.auth.mixins import UserPassesTestMixin
-from typing import Optional, Union, Tuple, List
+from typing import Optional, Union, Tuple
 from requests.exceptions import SSLError, Timeout, ConnectionError
 from requests import Response
 from main_app.permissions import (
