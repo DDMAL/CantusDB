@@ -20,7 +20,6 @@ from main_app.views.chant import (
     ChantListView,
     ChantSearchView,
     ChantSearchMSView,
-    CISearchView,
     MelodySearchView,
     SourceEditChantsView,
 )
