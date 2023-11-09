@@ -48,7 +48,7 @@ class BaseChant(BaseModel):
     )
     source = models.ForeignKey(
         "Source", on_delete=models.CASCADE
-    )  # PROTECT so that we can't delete a source with chants in it
+    )  # CASCADE to delete all chants within the source
     cantus_id = models.CharField(
         blank=True, null=True, max_length=255, db_index=True, verbose_name="cantus ID"
     )
