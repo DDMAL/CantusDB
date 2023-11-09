@@ -68,6 +68,10 @@ from main_app.views.views import (
     CenturyAutocomplete,
     RismSiglumAutocomplete,
     FeastAutocomplete,
+    OfficeAutocomplete,
+    GenreAutocomplete,
+    DifferentiaAutocomplete,
+    ProvenanceAutocomplete,
     ProofreadByAutocomplete,
 )
 
@@ -471,6 +475,26 @@ urlpatterns = [
         "proofread-by-autocomplete/",
         ProofreadByAutocomplete.as_view(),
         name="proofread-by-autocomplete",
+    ),
+    path(
+        "provenance-autocomplete/",
+        ProvenanceAutocomplete.as_view(),
+        name="provenance-autocomplete",
+    ),
+    path(
+        "office-autocomplete/",
+        OfficeAutocomplete.as_view(),
+        name="office-autocomplete",
+    ),
+    path(
+        "genre-autocomplete/",
+        GenreAutocomplete.as_view(),
+        name="genre-autocomplete",
+    ),
+    path(
+        "differentia-autocomplete/",
+        DifferentiaAutocomplete.as_view(),
+        name="differentia-autocomplete",
     ),
 ]
 

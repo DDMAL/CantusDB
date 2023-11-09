@@ -8,6 +8,7 @@ from articles.models import Article
 from main_app.models import (
     Century,
     Chant,
+    Differentia,
     Feast,
     Genre,
     Notation,
@@ -1015,6 +1016,56 @@ class FeastAutocomplete(autocomplete.Select2QuerySetView):
             qs = qs.filter(
                 Q(name__istartswith=self.q) | Q(feast_code__istartswith=self.q)
             )
+        return qs
+
+
+class OfficeAutocomplete(autocomplete.Select2QuerySetView):
+    def get_result_label(self, office):
+        return f"{office.name} - {office.description}"
+
+    def get_queryset(self):
+        if not self.request.user.is_authenticated:
+            return Office.objects.none()
+        qs = Office.objects.all().order_by("name")
+        if self.q:
+            qs = qs.filter(
+                Q(name__istartswith=self.q) | Q(description__istartswith=self.q)
+            )
+        return qs
+
+
+class GenreAutocomplete(autocomplete.Select2QuerySetView):
+    def get_result_label(self, genre):
+        return f"{genre.name} - {genre.description}"
+
+    def get_queryset(self):
+        if not self.request.user.is_authenticated:
+            return Genre.objects.none()
+        qs = Genre.objects.all().order_by("name")
+        if self.q:
+            qs = qs.filter(
+                Q(name__istartswith=self.q) | Q(description__istartswith=self.q)
+            )
+        return qs
+
+
+class DifferentiaAutocomplete(autocomplete.Select2QuerySetView):
+    def get_queryset(self):
+        if not self.request.user.is_authenticated:
+            return Differentia.objects.none()
+        qs = Differentia.objects.all().order_by("differentia_id")
+        if self.q:
+            qs = qs.filter(differentia_id__istartswith=self.q)
+        return qs
+
+
+class ProvenanceAutocomplete(autocomplete.Select2QuerySetView):
+    def get_queryset(self):
+        if not self.request.user.is_authenticated:
+            return Provenance.objects.none()
+        qs = Provenance.objects.all().order_by("name")
+        if self.q:
+            qs = qs.filter(name__istartswith=self.q)
         return qs
 
 
