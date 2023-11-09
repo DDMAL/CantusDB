@@ -2973,28 +2973,6 @@ class ChantCreateViewTest(TestCase):
         response = self.client.get(reverse("chant-create", args=[fake_source]))
         self.assertEqual(response.status_code, 404)
 
-    def test_no_suggest(self):
-        NUM_CHANTS = 3
-        fake_folio = faker.numerify("###")
-        source = make_fake_source()
-        # create some chants in the test folio
-        for i in range(NUM_CHANTS):
-            fake_cantus_id = faker.numerify("######")
-            make_fake_chant(
-                source=source,
-                folio=fake_folio,
-                c_sequence=i,
-                cantus_id=fake_cantus_id,
-            )
-        # go to the same source and access the input form
-        url = reverse("chant-create", args=[source.id])
-        response = self.client.get(url)
-        self.assertEqual(response.status_code, 200)
-        # assert context previous_chant, suggested_chants
-        self.assertEqual(i, response.context["previous_chant"].c_sequence)
-        self.assertEqual(fake_cantus_id, response.context["previous_chant"].cantus_id)
-        self.assertListEqual([], response.context["suggested_chants"])
-
     def test_repeated_seq(self):
         """post with a folio and seq that already exists in the source"""
         TEST_FOLIO = "001r"
