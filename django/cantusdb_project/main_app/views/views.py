@@ -1020,6 +1020,9 @@ class FeastAutocomplete(autocomplete.Select2QuerySetView):
 
 
 class OfficeAutocomplete(autocomplete.Select2QuerySetView):
+    def get_result_label(self, office):
+        return f"{office.name} - {office.description}"
+
     def get_queryset(self):
         if not self.request.user.is_authenticated:
             return Office.objects.none()
@@ -1032,8 +1035,8 @@ class OfficeAutocomplete(autocomplete.Select2QuerySetView):
 
 
 class GenreAutocomplete(autocomplete.Select2QuerySetView):
-    def get_result_label(self, item):
-        return item.name
+    def get_result_label(self, genre):
+        return f"{genre.name} - {genre.description}"
 
     def get_queryset(self):
         if not self.request.user.is_authenticated:
