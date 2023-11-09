@@ -1,4 +1,5 @@
 from main_app.models.base_model import BaseModel
+from main_app.models.cantus_identifier import CantusIdentifier
 from main_app.models.century import Century
 from main_app.models.chant import Chant
 from main_app.models.differentia import Differentia
