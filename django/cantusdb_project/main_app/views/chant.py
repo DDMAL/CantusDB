@@ -106,8 +106,7 @@ def parse_json_from_ci_api(path: str) -> Union[list, None]:
             json.decoder.JSONDecodeError
         ) as exc:  # in case of json.loads("not valid json")
             print(  # eventually, we should log this rather than printing it to the console
-                "Encountered an error in",
-                "ChantCreateView.get_suggested_chants.make_suggested_chant_dict",
+                "Encountered an error in parse_json_from_ci_api",
                 f"while parsing the response from {url}",
                 exc,
             )
