@@ -347,11 +347,6 @@ urlpatterns = [
         name="chant-search-ms",
     ),
     path(
-        "ci-search/<str:search_term>",
-        CISearchView.as_view(),
-        name="ci-search",
-    ),
-    path(
         "ajax/search-bar/<str:search_term>",
         views.ajax_search_bar,
         name="ajax-search-bar",
