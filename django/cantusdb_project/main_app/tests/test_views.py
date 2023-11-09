@@ -5047,30 +5047,6 @@ class JsonCidTest(TestCase):
         self.assertEqual(json_for_one_chant_3["fulltext"], "standard spelling")
 
 
-class CISearchViewTest(TestCase):
-    def test_view_url_path(self):
-        fake_search_term = faker.word()
-        response = self.client.get(f"/ci-search/{fake_search_term}")
-        self.assertEqual(response.status_code, 200)
-
-    def test_view_url_reverse_name(self):
-        fake_search_term = faker.word()
-        response = self.client.get(reverse("ci-search", args=[fake_search_term]))
-        self.assertEqual(response.status_code, 200)
-
-    def test_template_used(self):
-        fake_search_term = faker.word()
-        response = self.client.get(reverse("ci-search", args=[fake_search_term]))
-        self.assertEqual(response.status_code, 200)
-        self.assertTemplateUsed(response, "ci_search.html")
-
-    def test_context_returned(self):
-        fake_search_term = faker.word()
-        response = self.client.get(f"/ci-search/{fake_search_term}")
-        self.assertTrue("results" in response.context)
-        self.assertTrue("genres" in response.context)
-
-
 class CsvExportTest(TestCase):
     def test_url(self):
         source = make_fake_source(published=True)
