@@ -3,7 +3,7 @@ from django.db import models
 
 
 class CantusIdentifier(BaseModel):
-    cantus_id = models.CharField(blank=False, null=False, max_length=255)
+    cantus_id = models.CharField(blank=False, null=False, max_length=15)
 
     # Some Cantus IDs are associated with more than one genre.
     genre = models.ManyToManyField(
