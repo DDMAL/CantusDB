@@ -20,14 +20,22 @@ from main_app.forms import (
     ChantEditForm,
     ChantEditSyllabificationForm,
 )
-from main_app.models import Chant, Feast, Genre, Source, Sequence, Segment, Office
+from main_app.models import (
+    Chant,
+    Feast,
+    Genre,
+    Source,
+    Sequence,
+    Segment,
+    Office,
+)
 from align_text_mel import syllabize_text_and_melody, syllabize_text_to_string
 from django.contrib.auth.mixins import LoginRequiredMixin
 from django.http import Http404
 from next_chants import next_chants
 from collections import Counter
 from django.contrib.auth.mixins import UserPassesTestMixin
-from typing import Optional, Union, Tuple
+from typing import Optional
 from requests.exceptions import SSLError, Timeout, ConnectionError
 from requests import Response
 from main_app.permissions import (
@@ -36,7 +44,7 @@ from main_app.permissions import (
     user_can_view_chant,
 )
 
-CHANT_SEARCH_TEMPLATE_VALUES: Tuple[str] = (
+CHANT_SEARCH_TEMPLATE_VALUES: tuple[str, ...] = (
     # for views that use chant_search.html, this allows them to
     # fetch only those values needed for rendering the template
     "id",
@@ -79,7 +87,7 @@ def parse_json_from_ci_api(path: str) -> Optional[list]:
         list, None: contents of json response in the form of a list
     """
     assert path[0] != "/"
-    url = f"https://cantusindex.org/{path}"
+    url: str = f"https://cantusindex.org/{path}"
     try:
         response: Optional[Response] = requests.get(
             url,
@@ -113,7 +121,9 @@ def parse_json_from_ci_api(path: str) -> Optional[list]:
         return None
 
 
-def get_feast_selector_options(source, folios):
+def get_feast_selector_options(
+    source: Source, folios: list[str]
+) -> list[tuple[str, Feast]]:
     """Generate folio-feast pairs as options for the feast selector
 
     Going through all chants in the source, folio by folio,
@@ -127,26 +137,28 @@ def get_feast_selector_options(source, folios):
         list of tuples: A list of folios and Feast objects, to be unpacked in template.
     """
     # the two lists to be zipped
-    feast_selector_feasts = []
-    feast_selector_folios = []
+    feast_selector_feasts: list[Feast] = []
+    feast_selector_folios: list[str] = []
     # get all chants in the source, select those that have a feast
-    chants_in_source = (
+    chants_in_source: QuerySet[Chant] = (
         source.chant_set.exclude(feast=None)
         .order_by("folio", "c_sequence")
         .select_related("feast")
     )
     # initialize the feast selector options with the first chant in the source that has a feast
-    first_feast_chant = chants_in_source.first()
+    first_feast_chant: Optional[Feast] = chants_in_source.first()
     if not first_feast_chant:
         # if none of the chants in this source has a feast, return an empty list
         return []
     # if there is at least one chant that has a feast
-    current_feast = first_feast_chant.feast
+    current_feast: Feast = first_feast_chant.feast
     feast_selector_feasts.append(current_feast)
-    current_folio = first_feast_chant.folio
+    current_folio: str = first_feast_chant.folio
     feast_selector_folios.append(current_folio)
 
-    chants_by_folio = chants_in_source.filter(folio__in=folios).order_by("folio")
+    chants_by_folio: QuerySet[Chant] = chants_in_source.filter(
+        folio__in=folios
+    ).order_by("folio")
     for chant in chants_by_folio:
         if chant.feast != current_feast:
             # if the feast changes, add the new feast and the corresponding folio to the lists
@@ -158,7 +170,7 @@ def get_feast_selector_options(source, folios):
     # just naively combine them
     # if we use zip, the returned generator will be exhausted in rendering templates,
     # making it hard to test the returned value
-    folios_with_feasts = [
+    folios_with_feasts: list[tuple[str, Feast]] = [
         (feast_selector_folios[i], feast_selector_feasts[i])
         for i in range(len(feast_selector_folios))
     ]
