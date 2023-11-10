@@ -596,8 +596,6 @@ class ChantSearchView(ListView):
                 melodies = self.request.GET.get("melodies")
                 if melodies == "true":
                     q_obj_filter &= Q(volpiano__isnull=False)
-                if melodies == "false":
-                    q_obj_filter &= Q(volpiano__isnull=True)
             if self.request.GET.get("feast"):
                 feast = self.request.GET.get("feast")
                 # This will match any feast whose name contains the feast parameter
