@@ -65,7 +65,7 @@ CHANT_SEARCH_TEMPLATE_VALUES: Tuple[str] = (
 )
 
 
-def parse_json_from_ci_api(path: str) -> Union[list, None]:
+def parse_json_from_ci_api(path: str) -> Optional[list]:
     """Queries a remote api from cantusindex.org that returns a json object, processes it and
     returns a list containing its information.
 
