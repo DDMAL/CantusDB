@@ -144,14 +144,6 @@
                                 <small>Manuscript Reading Full Text (standardized spelling):<span class="text-danger" title="This field is required">*</span></small>
                             </label>
                             {{ form.manuscript_full_text_std_spelling }}
-                            <script>
-                                function autoFillSuggestedFulltext() {
-                                    if (document.getElementById('id_manuscript_full_text_std_spelling').value == "") {
-                                        document.getElementById('id_manuscript_full_text_std_spelling').value = "{{ suggested_fulltext }}";
-                                    }
-                                }
-                                autoFillSuggestedFulltext();
-                            </script>
                         </div>
                     </div>
 

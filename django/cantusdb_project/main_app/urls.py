@@ -20,7 +20,6 @@ from main_app.views.chant import (
     ChantListView,
     ChantSearchView,
     ChantSearchMSView,
-    CISearchView,
     MelodySearchView,
     SourceEditChantsView,
 )
@@ -349,11 +348,6 @@ urlpatterns = [
         "searchms/<int:source_pk>",
         ChantSearchMSView.as_view(),
         name="chant-search-ms",
-    ),
-    path(
-        "ci-search/<str:search_term>",
-        CISearchView.as_view(),
-        name="ci-search",
     ),
     path(
         "ajax/search-bar/<str:search_term>",
