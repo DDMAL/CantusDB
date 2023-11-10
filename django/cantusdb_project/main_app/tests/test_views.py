@@ -22,7 +22,6 @@ from .make_fakes import (
     make_fake_genre,
     make_fake_office,
     make_fake_provenance,
-    make_fake_notation,
     make_fake_rism_siglum,
     make_fake_segment,
     make_fake_sequence,
@@ -32,14 +31,17 @@ from .make_fakes import (
     add_accents_to_string,
 )
 
-from main_app.models import Century
-from main_app.models import Chant
-from main_app.models import Feast
-from main_app.models import Genre
-from main_app.models import Office
-from main_app.models import Segment
-from main_app.models import Sequence
-from main_app.models import Source
+from main_app.models import (
+    Century,
+    Chant,
+    Differentia,
+    Feast,
+    Genre,
+    Office,
+    Segment,
+    Sequence,
+    Source,
+)
 
 # run with `python -Wa manage.py test main_app.tests.test_views`
 # the -Wa flag tells Python to display deprecation warnings
@@ -2819,7 +2821,7 @@ class ChantIndexViewTest(TestCase):
         expected_html_substring = f"<td>{mode}</td>"
         self.assertIn(expected_html_substring, html)
 
-    def test_differentia_column(self):
+    def test_diff_column(self):
         source = make_fake_source(published=True)
         differentia = "this is a differentia"  # not a representative value, but
         # most differentia are one or two characters, likely to be found elsewhere
@@ -2832,6 +2834,24 @@ class ChantIndexViewTest(TestCase):
         html = str(response.content)
         self.assertIn(differentia, html)
         expected_html_substring = f"<td>{differentia}</td>"
+        self.assertIn(expected_html_substring, html)
+
+    def test_dd_column(self):
+        source: Source = make_fake_source(published=True)
+        diff_id: str = make_random_string(3, "0123456789") + make_random_string(
+            1, "abcd"
+        )  # e.g., "012a"
+        diff_db: Differentia = Differentia.objects.create(differentia_id=diff_id)
+        chant: Chant = make_fake_chant(
+            source=source,
+        )
+        chant.diff_db = diff_db
+        chant.save()
+
+        response = self.client.get(reverse("chant-index"), {"source": source.id})
+        html: str = str(response.content)
+        self.assertIn(diff_id, html)
+        expected_html_substring: str = f'<a href="https://differentiaedatabase.ca/differentia/{diff_id}" target="_blank">'
         self.assertIn(expected_html_substring, html)
 
 
@@ -2899,81 +2919,17 @@ class ChantCreateViewTest(TestCase):
             "This field is required.",
         )
 
-    def test_suggest_one_folio(self):
-        fake_source = make_fake_source()
-        # create fake genre to match fake_chant_2
-        fake_R_genre = make_fake_genre(name="R")
-        fake_chant_3 = make_fake_chant(
-            source=fake_source,
-            cantus_id="333333",
-            folio="001",
-            c_sequence=3,
-        )
-        fake_chant_2 = make_fake_chant(
-            source=fake_source,
-            cantus_id="007450",  # this has to be an actual cantus ID, since
-            # next_chants pulls data from CantusIndex and we'll get an empty
-            # response if we use "222222" etc.
-            folio="001",
-            c_sequence=2,
-            next_chant=fake_chant_3,
-        )
-        fake_chant_1 = make_fake_chant(
-            source=fake_source,
-            cantus_id="111111",
-            folio="001",
-            c_sequence=1,
-            next_chant=fake_chant_2,
-        )
-
-        # create one more chant with a cantus_id that is supposed to have suggestions
-        # if it has the same cantus_id as the fake_chant_1,
-        # it should give a suggestion of fake_chant_2
-        fake_chant_4 = make_fake_chant(
-            source=fake_source,
-            cantus_id="111111",
-        )
-
-        # go to the same source and access the input form
-        url = reverse("chant-create", args=[fake_source.id])
-        response = self.client.get(url)
-        self.assertEqual(response.status_code, 200)
-        # only one chant, i.e. fake_chant_2, should be returned
-        self.assertEqual(1, len(response.context["suggested_chants"]))
-        self.assertEqual("007450", response.context["suggested_chants"][0]["cid"])
-        self.assertEqual(
-            fake_R_genre.id, response.context["suggested_chants"][0]["genre_id"]
-        )
-
-    def test_fake_source(self):
-        """cannot go to input form with a fake source"""
-        fake_source = faker.numerify(
+    def test_nonexistent_source(self):
+        """
+        users should not be able to access Chant Create page for a source that doesn't exist
+        """
+        nonexistent_source_id: str = faker.numerify(
             "#####"
         )  # there's not supposed to be 5-digits source id
-        response = self.client.get(reverse("chant-create", args=[fake_source]))
+        response = self.client.get(
+            reverse("chant-create", args=[nonexistent_source_id])
+        )
         self.assertEqual(response.status_code, 404)
-
-    def test_no_suggest(self):
-        NUM_CHANTS = 3
-        fake_folio = faker.numerify("###")
-        source = make_fake_source()
-        # create some chants in the test folio
-        for i in range(NUM_CHANTS):
-            fake_cantus_id = faker.numerify("######")
-            make_fake_chant(
-                source=source,
-                folio=fake_folio,
-                c_sequence=i,
-                cantus_id=fake_cantus_id,
-            )
-        # go to the same source and access the input form
-        url = reverse("chant-create", args=[source.id])
-        response = self.client.get(url)
-        self.assertEqual(response.status_code, 200)
-        # assert context previous_chant, suggested_chants
-        self.assertEqual(i, response.context["previous_chant"].c_sequence)
-        self.assertEqual(fake_cantus_id, response.context["previous_chant"].cantus_id)
-        self.assertListEqual([], response.context["suggested_chants"])
 
     def test_repeated_seq(self):
         """post with a folio and seq that already exists in the source"""
@@ -3160,21 +3116,6 @@ class SourceEditChantsViewTest(TestCase):
         self.assertRedirects(response, reverse("source-edit-chants", args=[source.id]))
         chant.refresh_from_db()
         self.assertEqual(chant.manuscript_full_text_std_spelling, "test")
-
-    def test_provide_suggested_fulltext(self):
-        source = make_fake_source()
-        chant = make_fake_chant(
-            source=source, manuscript_full_text_std_spelling="", cantus_id="007450"
-        )
-        response = self.client.get(
-            reverse("source-edit-chants", args=[source.id]), {"pk": chant.id}
-        )
-        # expected_suggestion is copied from Cantus Index. If this test is failing,
-        # it could be because the value stored in Cantus Index has changed.
-        # To verify, visit http://cantusindex.org/id/007450.
-        expected_suggestion = "Puer natus est nobis alleluia alleluia"
-        suggested_fulltext = response.context["suggested_fulltext"]
-        self.assertEqual(suggested_fulltext, expected_suggestion)
 
     def test_volpiano_signal(self):
         source = make_fake_source()
@@ -5026,30 +4967,6 @@ class JsonCidTest(TestCase):
         self.assertEqual(json_for_one_chant_3["fulltext"], "standard spelling")
 
 
-class CISearchViewTest(TestCase):
-    def test_view_url_path(self):
-        fake_search_term = faker.word()
-        response = self.client.get(f"/ci-search/{fake_search_term}")
-        self.assertEqual(response.status_code, 200)
-
-    def test_view_url_reverse_name(self):
-        fake_search_term = faker.word()
-        response = self.client.get(reverse("ci-search", args=[fake_search_term]))
-        self.assertEqual(response.status_code, 200)
-
-    def test_template_used(self):
-        fake_search_term = faker.word()
-        response = self.client.get(reverse("ci-search", args=[fake_search_term]))
-        self.assertEqual(response.status_code, 200)
-        self.assertTemplateUsed(response, "ci_search.html")
-
-    def test_context_returned(self):
-        fake_search_term = faker.word()
-        response = self.client.get(f"/ci-search/{fake_search_term}")
-        self.assertTrue("results" in response.context)
-        self.assertTrue("genres" in response.context)
-
-
 class CsvExportTest(TestCase):
     def test_url(self):
         source = make_fake_source(published=True)
@@ -5080,7 +4997,7 @@ class CsvExportTest(TestCase):
             "mode",
             "finalis",
             "differentia",
-            "differentia_new",
+            "differentiae_database",
             "fulltext_standardized",
             "fulltext_ms",
             "volpiano",

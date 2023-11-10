@@ -20,7 +20,6 @@ from main_app.views.chant import (
     ChantListView,
     ChantSearchView,
     ChantSearchMSView,
-    CISearchView,
     MelodySearchView,
     SourceEditChantsView,
 )
@@ -68,6 +67,10 @@ from main_app.views.views import (
     CenturyAutocomplete,
     RismSiglumAutocomplete,
     FeastAutocomplete,
+    OfficeAutocomplete,
+    GenreAutocomplete,
+    DifferentiaAutocomplete,
+    ProvenanceAutocomplete,
     ProofreadByAutocomplete,
 )
 
@@ -347,11 +350,6 @@ urlpatterns = [
         name="chant-search-ms",
     ),
     path(
-        "ci-search/<str:search_term>",
-        CISearchView.as_view(),
-        name="ci-search",
-    ),
-    path(
         "ajax/search-bar/<str:search_term>",
         views.ajax_search_bar,
         name="ajax-search-bar",
@@ -471,6 +469,26 @@ urlpatterns = [
         "proofread-by-autocomplete/",
         ProofreadByAutocomplete.as_view(),
         name="proofread-by-autocomplete",
+    ),
+    path(
+        "provenance-autocomplete/",
+        ProvenanceAutocomplete.as_view(),
+        name="provenance-autocomplete",
+    ),
+    path(
+        "office-autocomplete/",
+        OfficeAutocomplete.as_view(),
+        name="office-autocomplete",
+    ),
+    path(
+        "genre-autocomplete/",
+        GenreAutocomplete.as_view(),
+        name="genre-autocomplete",
+    ),
+    path(
+        "differentia-autocomplete/",
+        DifferentiaAutocomplete.as_view(),
+        name="differentia-autocomplete",
     ),
 ]
 

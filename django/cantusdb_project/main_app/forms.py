@@ -12,6 +12,7 @@ from .models import (
     Provenance,
     Century,
     Sequence,
+    Differentia,
 )
 from .widgets import (
     TextInputWidget,
@@ -82,7 +83,7 @@ class ChantCreateForm(forms.ModelForm):
             "feast",
             "mode",
             "differentia",
-            "differentia_new",
+            "diff_db",
             "finalis",
             "extra",
             "chant_range",
@@ -103,14 +104,14 @@ class ChantCreateForm(forms.ModelForm):
             "marginalia": TextInputWidget(),
             # folio: defined below (required)
             # c_sequence: defined below (required)
-            # office: defined below (foreignkey)
-            # genre: defined below (foreignkey)
+            "office": autocomplete.ModelSelect2(url="office-autocomplete"),
+            "genre": autocomplete.ModelSelect2(url="genre-autocomplete"),
             "position": TextInputWidget(),
             "cantus_id": TextInputWidget(),
             "feast": autocomplete.ModelSelect2(url="feast-autocomplete"),
             "mode": TextInputWidget(),
             "differentia": TextInputWidget(),
-            "differentia_new": TextInputWidget(),
+            "diff_db": autocomplete.ModelSelect2(url="differentia-autocomplete"),
             "finalis": TextInputWidget(),
             "extra": TextInputWidget(),
             "chant_range": VolpianoInputWidget(),
@@ -135,22 +136,6 @@ class ChantCreateForm(forms.ModelForm):
         widget=TextInputWidget,
         help_text="Each folio starts with '1'.",
     )
-
-    # We use NameModelChoiceField here so the dropdown list of office/mass displays the name
-    # instead of [name] + description
-    office = NameModelChoiceField(
-        queryset=Office.objects.all().order_by("name"),
-        required=False,
-    )
-    office.widget.attrs.update({"class": "form-control custom-select custom-select-sm"})
-
-    # We use NameModelChoiceField here so the dropdown list of genres displays the name
-    # instead of [name] + description
-    genre = NameModelChoiceField(
-        queryset=Genre.objects.all().order_by("name"),
-        required=False,
-    )
-    genre.widget.attrs.update({"class": "form-control custom-select custom-select-sm"})
 
     manuscript_full_text_std_spelling = forms.CharField(
         required=True,
@@ -206,6 +191,7 @@ class SourceCreateForm(forms.ModelForm):
         widgets = {
             "title": TextInputWidget(),
             "siglum": TextInputWidget(),
+            "provenance": autocomplete.ModelSelect2(url="provenance-autocomplete"),
             "provenance_notes": TextInputWidget(),
             "date": TextInputWidget(),
             "cursus": SelectWidget(),
@@ -237,13 +223,6 @@ class SourceCreateForm(forms.ModelForm):
                 url="all-users-autocomplete"
             ),
         }
-
-    provenance = forms.ModelChoiceField(
-        queryset=Provenance.objects.all().order_by("name"), required=False
-    )
-    provenance.widget.attrs.update(
-        {"class": "form-control custom-select custom-select-sm"}
-    )
 
     TRUE_FALSE_CHOICES_SOURCE = (
         (True, "Full source"),
@@ -283,7 +262,7 @@ class ChantEditForm(forms.ModelForm):
             "mode",
             "finalis",
             "differentia",
-            "differentia_new",
+            "diff_db",
             "extra",
             "image_link",
             "indexing_notes",
@@ -302,15 +281,15 @@ class ChantEditForm(forms.ModelForm):
             # folio: defined below (required)
             # c_sequence: defined below (required)
             "feast": autocomplete.ModelSelect2(url="feast-autocomplete"),
-            # office: defined below (foreignkey)
-            # genre: defined below (foreignkey)
+            "office": autocomplete.ModelSelect2(url="office-autocomplete"),
+            "genre": autocomplete.ModelSelect2(url="genre-autocomplete"),
             "position": TextInputWidget(),
             "cantus_id": TextInputWidget(),
             "melody_id": TextInputWidget(),
             "mode": TextInputWidget(),
             "finalis": TextInputWidget(),
             "differentia": TextInputWidget(),
-            "differentia_new": TextInputWidget(),
+            "diff_db": autocomplete.ModelSelect2(url="differentia-autocomplete"),
             "extra": TextInputWidget(),
             "image_link": TextInputWidget(),
             "indexing_notes": TextAreaWidget(),
@@ -346,22 +325,6 @@ class ChantEditForm(forms.ModelForm):
         help_text="Each folio starts with '1'.",
     )
 
-    # We use NameModelChoiceField here so the dropdown list of office/mass displays the name
-    # instead of [name] + description
-    office = NameModelChoiceField(
-        queryset=Office.objects.all().order_by("name"),
-        required=False,
-    )
-    office.widget.attrs.update({"class": "form-control custom-select custom-select-sm"})
-
-    # We use NameModelChoiceField here so the dropdown list of genres displays the name
-    # instead of [name] + description
-    genre = NameModelChoiceField(
-        queryset=Genre.objects.all().order_by("name"),
-        required=False,
-    )
-    genre.widget.attrs.update({"class": "form-control custom-select custom-select-sm"})
-
 
 class SourceEditForm(forms.ModelForm):
     class Meta:
@@ -396,6 +359,7 @@ class SourceEditForm(forms.ModelForm):
             "title": TextInputWidget(),
             "rism_siglum": autocomplete.ModelSelect2(url="rismsiglum-autocomplete"),
             "siglum": TextInputWidget(),
+            "provenance": autocomplete.ModelSelect2(url="provenance-autocomplete"),
             "provenance_notes": TextInputWidget(),
             "date": TextInputWidget(),
             "summary": TextAreaWidget(),
@@ -426,13 +390,6 @@ class SourceEditForm(forms.ModelForm):
                 url="all-users-autocomplete"
             ),
         }
-
-    provenance = forms.ModelChoiceField(
-        queryset=Provenance.objects.all().order_by("name"), required=False
-    )
-    provenance.widget.attrs.update(
-        {"class": "form-control custom-select custom-select-sm"}
-    )  # adds styling
 
     CHOICES_FULL_SOURCE = (
         (None, "None"),
