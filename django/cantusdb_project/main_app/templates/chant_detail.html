@@ -167,69 +167,23 @@
                     {% endif %}
                 </div>
 
-                {% if user.is_authenticated %}
-                    {% if chant.manuscript_full_text_std_spelling %}
-                        {% if chant.manuscript_full_text_std_proofread %}
-                            <dt>Manuscript Reading Full Text (standardized spelling)</dt>
-                            <dd>{{ chant.manuscript_full_text_std_spelling }}</dd>
-                        {% else %}
-                            <dt>Manuscript Reading Full Text (standardized spelling)
-                                <span style="font-weight:normal"><i> (not proofread)</i></span>
-                            </dt>
-                            <dd>{{ chant.manuscript_full_text_std_spelling }}</dd>
-                        {% endif %}
-                    {% endif %}
-                {% else %}
-                    {% if chant.manuscript_full_text_std_spelling and chant.manuscript_full_text_std_proofread %}
-                        <dt>Manuscript Reading Full Text (standardized spelling)</dt>
-                        <dd>{{ chant.manuscript_full_text_std_spelling }}</dd>
-                    {% endif %}
+                {% if chant.manuscript_full_text_std_spelling %}
+                    <dt>Manuscript Reading Full Text (standardized spelling)</dt>
+                    <dd>{{ chant.manuscript_full_text_std_spelling }}</dd>
                 {% endif %}
 
-                {% if user.is_authenticated %}
-                    {% if chant.manuscript_full_text %}
-                        {% if chant.manuscript_full_text_proofread %}
-                            <dt>Manuscript Reading Full Text (MS spelling)</dt>
-                            <dd>{{ chant.manuscript_full_text }}</dd>
-                        {% else %}
-                            <dt>Manuscript Reading Full Text (MS spelling)
-                                <span style="font-weight:normal"><i> (not proofread)</i></span>
-                            </dt>
-                            <dd>{{ chant.manuscript_full_text }}</dd>
-                        {% endif %}
-                    {% endif %}
-                {% else %}
-                    {% if chant.manuscript_full_text and chant.manuscript_full_text_proofread %}
-                        <dt>Manuscript Reading Full Text (MS spelling)</dt>
-                        <dd>{{ chant.manuscript_full_text }}</dd>
-                    {% endif %}
+                {% if chant.manuscript_full_text %}
+                    <dt>Manuscript Reading Full Text (MS spelling)</dt>
+                    <dd>{{ chant.manuscript_full_text }}</dd>
                 {% endif %}
 
-                {% if user.is_authenticated %}
-                    {% if chant.volpiano %}
-                        {% if chant.volpiano_proofread %}
-                            <dt>Volpiano</dt>
-                            <dd>
-                                <p style="font-family: volpiano; font-size:36px">{{ chant.volpiano }}</p>
-                            </dd>
-                        {% else %}
-                            <dt>Volpiano
-                                <span style="font-weight:normal"><i> (not proofread)</i></span>
-                            </dt>
-                            <dd>
-                                <p style="font-family: volpiano; font-size:36px">{{ chant.volpiano }}</p>
-                            </dd>
-                        {% endif%}
-                    {% endif %}
-                {% else %}
-                    {% if chant.volpiano and chant.volpiano_proofread %}
-                        <dt>Volpiano</dt>
-                        <dd>
-                            <p style="font-family: volpiano; font-size:36px">{{ chant.volpiano }}</p>
-                        </dd>
-                    {% endif %}
+                {% if chant.volpiano %}
+                    <dt>Volpiano</dt>
+                    <dd>
+                        <p style="font-family: volpiano; font-size:36px">{{ chant.volpiano }}</p>
+                    </dd>
                 {% endif %}
-                    
+
                 {% if chant.indexing_notes %}
                     <dt>Indexing Notes</dt>
                     <dd>{{ chant.indexing_notes }}</dd>
