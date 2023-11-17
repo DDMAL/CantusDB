@@ -1013,9 +1013,7 @@ class FeastAutocomplete(autocomplete.Select2QuerySetView):
             return Feast.objects.none()
         qs = Feast.objects.all().order_by("name")
         if self.q:
-            qs = qs.filter(
-                Q(name__icontains=self.q) | Q(feast_code__istartswith=self.q)
-            )
+            qs = qs.filter(name__icontains=self.q)
         return qs
 
 
