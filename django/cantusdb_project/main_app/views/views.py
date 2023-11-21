@@ -1013,9 +1013,7 @@ class FeastAutocomplete(autocomplete.Select2QuerySetView):
             return Feast.objects.none()
         qs = Feast.objects.all().order_by("name")
         if self.q:
-            qs = qs.filter(
-                Q(name__istartswith=self.q) | Q(feast_code__istartswith=self.q)
-            )
+            qs = qs.filter(name__icontains=self.q)
         return qs
 
 
@@ -1029,7 +1027,7 @@ class OfficeAutocomplete(autocomplete.Select2QuerySetView):
         qs = Office.objects.all().order_by("name")
         if self.q:
             qs = qs.filter(
-                Q(name__istartswith=self.q) | Q(description__istartswith=self.q)
+                Q(name__istartswith=self.q) | Q(description__icontains=self.q)
             )
         return qs
 
@@ -1044,7 +1042,7 @@ class GenreAutocomplete(autocomplete.Select2QuerySetView):
         qs = Genre.objects.all().order_by("name")
         if self.q:
             qs = qs.filter(
-                Q(name__istartswith=self.q) | Q(description__istartswith=self.q)
+                Q(name__istartswith=self.q) | Q(description__icontains=self.q)
             )
         return qs
 
