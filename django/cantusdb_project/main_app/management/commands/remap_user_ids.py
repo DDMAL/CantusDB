@@ -124,6 +124,11 @@ def reassign_chants() -> None:
 
 class Command(BaseCommand):
     def handle(self, *args, **kwargs) -> None:
+        error_message = (
+            "As of late November 2023, this command is not working. "
+            "It has been temporarily disabled until the bugs have been worked out."
+        )
+        raise NotImplementedError(error_message)
         stdout.write("\n\n==== Reassigning Sources ====\n")
         reassign_sources()
         stdout.write("\n== All sources successfully remapped! ==\n")
