@@ -62,12 +62,18 @@ class BaseChant(BaseModel):
     feast = models.ForeignKey("Feast", on_delete=models.PROTECT, null=True, blank=True)
     mode = models.CharField(max_length=63, null=True, blank=True)
     differentia = models.CharField(blank=True, null=True, max_length=63)
-    differentia_new = models.CharField(
+    differentiae_database = models.CharField(
         blank=True,
         null=True,
         max_length=12,
-        verbose_name="differentiae database",  # eventually, we should rename this entire
-        #                                     # field from `differentia_new` to `differentiae_db`
+        verbose_name="differentiae database",
+    )
+    diff_db = models.ForeignKey(
+        "Differentia",
+        blank=True,
+        null=True,
+        on_delete=models.deletion.PROTECT,
+        verbose_name="differentiae database",
     )
     finalis = models.CharField(blank=True, null=True, max_length=63)
     extra = models.CharField(blank=True, null=True, max_length=63)

@@ -2,10 +2,8 @@ import lxml.html as lh
 import requests
 import urllib
 import json
-import threading
 from django.contrib import messages
-from django.contrib.postgres.search import SearchQuery, SearchRank
-from django.db.models import F, Q, QuerySet, Value
+from django.db.models import Q, QuerySet, Value
 from django.shortcuts import get_object_or_404
 from django.urls import reverse
 from django.views.generic import (
@@ -22,14 +20,22 @@ from main_app.forms import (
     ChantEditForm,
     ChantEditSyllabificationForm,
 )
-from main_app.models import Chant, Feast, Genre, Source, Sequence, Segment, Office
+from main_app.models import (
+    Chant,
+    Feast,
+    Genre,
+    Source,
+    Sequence,
+    Segment,
+    Office,
+)
 from align_text_mel import syllabize_text_and_melody, syllabize_text_to_string
 from django.contrib.auth.mixins import LoginRequiredMixin
 from django.http import Http404
 from next_chants import next_chants
 from collections import Counter
 from django.contrib.auth.mixins import UserPassesTestMixin
-from typing import Optional, Union, Tuple, List
+from typing import Optional
 from requests.exceptions import SSLError, Timeout, ConnectionError
 from requests import Response
 from main_app.permissions import (
@@ -38,7 +44,7 @@ from main_app.permissions import (
     user_can_view_chant,
 )
 
-CHANT_SEARCH_TEMPLATE_VALUES: Tuple[str] = (
+CHANT_SEARCH_TEMPLATE_VALUES: tuple[str, ...] = (
     # for views that use chant_search.html, this allows them to
     # fetch only those values needed for rendering the template
     "id",
@@ -67,149 +73,21 @@ CHANT_SEARCH_TEMPLATE_VALUES: Tuple[str] = (
 )
 
 
-CANTUS_NETWORK_DATABASES: Tuple[dict] = (
-    {
-        "name": "Cantus Database",
-        "initialism": "CD",
-        "base_url": "/",
-        "results_fstring": "/id/{cantus_id}",
-    },
-    {
-        "name": "Fontes Cantus Bohemiae",
-        "initialism": "FCB",
-        "base_url": "http://cantusbohemiae.cz",
-        "results_fstring": "http://cantusbohemiae.cz/id/{cantus_id}",
-    },
-    {
-        "name": "Medieval Music Manuscripts Online",
-        "initialism": "MMMO",
-        "base_url": "http://musmed.eu",
-        "results_fstring": "http://musmed.eu/id/{cantus_id}",
-    },
-    {
-        "name": "Portuguese Early Music Database",
-        "initialism": "PEM",
-        "base_url": "https://pemdatabase.eu",
-        "results_fstring": "https://pemdatabase.eu/id/{cantus_id}",
-    },
-    {
-        "name": "Spanish Early Music Manuscript Database",
-        "initialism": "SEMM",
-        "base_url": "http://musicahispanica.eu",
-        "results_fstring": "http://musicahispanica.eu/id/{cantus_id}",
-    },
-    {
-        "name": "Cantus Planus in Polonia",
-        "initialism": "CPL",
-        "base_url": "http://cantus.ispan.pl",
-        "results_fstring": "http://cantus.ispan.pl/id/{cantus_id}",
-    },
-    {
-        "name": "Hungarian Chant Database",
-        "initialism": "HCD",
-        "base_url": "http://hun-chant.eu",
-        "results_fstring": "http://hun-chant.eu/id/{cantus_id}",
-    },
-    {
-        "name": "Cantus Planus in Slovakia",
-        "initialism": "CSK",
-        "base_url": "http://cantus.sk",
-        "results_fstring": "http://cantus.sk/id/{cantus_id}",
-    },
-    {
-        "name": "Fragmenta Manuscriptorum Musicalium Hungariae",
-        "initialism": "FRH",
-        "base_url": "http://fragmenta.zti.hu/en/",
-        "results_fstring": "http://fragmenta.zti.hu/en/id/{cantus_id}",
-    },
-)
-
-
-def make_concordances_database_summary(
-    concordances: List[dict],
-    cantus_id: str,
-) -> List[dict]:
-    """Create list of dictionaries containing data to
-    be unpacked in chant_detail.html to make concordances
-    summary.
-    i.e. this summary:
-        Displaying N concordances from the following databases:
-        Cantus Database (CD) - N chants
-        Fontes Cantus Bohemiae (FCB) - N chants
-        etc...
-        Gregorien.info - VIEW AT GREGORIEN.INFO
-
-    Args:
-        concordances (List[dict]): list of concordant chants, provided
-            by the json-cid API on Cantus Index
-        cantus_id (str): _description_
-
-    Returns:
-        List[dict]: data on how many concordant chants are found in which
-            databases. Each item in the list is a dictionary corresponding
-            to a single database in the Cantus Network.
-    """
-    database_summaries: List[dict] = []
-    for database in CANTUS_NETWORK_DATABASES:
-        name: str = database["name"]
-        initialism: str = database["initialism"]
-        base_url: str = database["base_url"]
-        results_url_template: str = database["results_fstring"]
-        results_url: str = results_url_template.format(cantus_id=cantus_id)
-        results_count: int = len([True for c in concordances if c["db"] == initialism])
-        database_summary: dict = {
-            "name": name,
-            "initialism": initialism,
-            "base_url": base_url,
-            "results_url": results_url,
-            "results_count": results_count,
-        }
-        if results_count > 0:
-            database_summaries.append(database_summary)
-
-    sorted_database_summaries: List[dict] = sorted(
-        database_summaries, key=lambda db: db["results_count"], reverse=True
-    )
-
-    gregorien_response: Optional[Response] = None
-    try:
-        gregorien_response = requests.get(
-            f"https://gregorien.info/chant/cid/{cantus_id}/en",
-            timeout=5,
-        )
-    except (SSLError, Timeout) as exc:
-        print(  # eventually, we could log this rather than printing it
-            "Encountered an error in ChantDetailView.get_context_data",
-            "while making a request to,"
-            f"https://gregorien.info/chant/cid/{cantus_id}/en:",
-            exc,
-        )
-    if gregorien_response and gregorien_response.status_code == 200:
-        gregorien_database_dict: dict = {
-            "name": "Gregorien.info",
-            "initialism": None,
-            "base_url": "https://gregorien.info/",
-            "results_url": f"https://gregorien.info/chant/cid/{cantus_id}/en",
-            "results_count": None,
-            "alternate_results_count_text": "VIEW AT GREGORIEN.INFO",
-        }
-        sorted_database_summaries.append(gregorien_database_dict)
-
-    return sorted_database_summaries
-
-
-def parse_json_from_api(url: str) -> Union[list, None]:
-    """Queries a remote api from cantusindex.org that returns a json object, processes it and returns
-    a list containing its information.
+def parse_json_from_ci_api(path: str) -> Optional[list]:
+    """Queries a remote api from cantusindex.org that returns a json object, processes it and
+    returns a list containing its information.
 
     We expect an array of javascript objects with a byte order mark (BOM) at the beginning
 
     Args:
-        url (str): Url of the API
+        path (str): the path to the API. This should be just the path (not including the
+            domain), and should not include a leading slash.
 
     Returns:
         list, None: contents of json response in the form of a list
     """
+    assert path[0] != "/"
+    url: str = f"https://cantusindex.org/{path}"
     try:
         response: Optional[Response] = requests.get(
             url,
@@ -221,7 +99,7 @@ def parse_json_from_api(url: str) -> Union[list, None]:
         ConnectionError,
     ) as exc:
         print(  # eventually, we should log this rather than printing it to the console
-            "Encountered an error in parse_json_from_api",
+            "Encountered an error in parse_json_from_ci_api",
             f"while making a request to {url}:",
             exc,
         )
@@ -234,8 +112,7 @@ def parse_json_from_api(url: str) -> Union[list, None]:
             json.decoder.JSONDecodeError
         ) as exc:  # in case of json.loads("not valid json")
             print(  # eventually, we should log this rather than printing it to the console
-                "Encountered an error in",
-                "ChantCreateView.get_suggested_chants.make_suggested_chant_dict",
+                "Encountered an error in parse_json_from_ci_api",
                 f"while parsing the response from {url}",
                 exc,
             )
@@ -244,105 +121,9 @@ def parse_json_from_api(url: str) -> Union[list, None]:
         return None
 
 
-def _refresh_ci_json_con_api(cantus_id: str) -> None:
-    """
-    Send a request to CantusIndex's "refresh" json-con API, causing it to
-    update its cached concordances for the specified Cantus ID. This
-    function is meant to be run in a separate thread, so all warnings/errors
-    are suppressed.
-
-    Args:
-        cantus_id (string): a Cantus ID
-
-    Returns:
-        None
-    """
-    try:
-        requests.get(
-            url=f"https://cantusindex.org/json-con/{cantus_id}/refresh",
-            timeout=1,
-        )
-    except Exception as exc:  # since this is meant to be run in a separate thread
-        # and we don't want errors to propagate, we summarily catch and dismiss
-        # all exceptions
-        error_message = (
-            "Exception encountered within "
-            f"_refresh_ci_json_con_api (cantus_id: {cantus_id}):"
-        )
-        print(
-            # in the future, we should log this rather than printing it.
-            error_message.format(cid=cantus_id),
-            exc,
-        )
-
-
-def touch_ci_json_con_api(cantus_id: str) -> None:
-    """
-    In a new thread, send a request to CantusIndex's "refresh" json-con API,
-    causing it to update its cached concordances for the specified Cantus ID.
-
-    Args:
-        cantus_id (str): A Cantus ID.
-    """
-    t = threading.Thread(
-        target=_refresh_ci_json_con_api,
-        args=[cantus_id],
-    )
-    t.start()
-
-
-def make_suggested_chant_dict(
-    cantus_id: str,
-    count: int,
-) -> dict:
-    """
-    Request information from Cantus Index about a given Cantus ID,
-    adding keys "count" and "genre_id" to this dictionary and returning it.
-
-    For the following explanation, assume the user has just added a chant
-    with a Cantus ID of "123456" to the database
-
-    Args:
-        cantus_id (str): a Cantus ID (i.e. we've looked through the database
-            for chants with a Cantus ID of "123456", and we've found all the
-            chants that follow those chants. `cantus_id` is the Cantus ID of
-            one of those following chants.)
-        count (int): The number of times a chant with a Cantus ID of `cantus_id`
-            follows a chant with a Cantus ID of "123456" among all sources in
-            the database
-
-    Returns:
-        dict: a dictionary with data about a specific Cantus ID, including:
-            - a canonical fulltext (str)
-            - an incipit (str)
-            - a genre (str)
-            - the ID of that genre in Cantus Database (int)
-            - how many times chants with this Cantus ID follow chants with a
-                Cantus ID of 123456 (int)
-    """
-    json_cid_url: str = f"https://cantusindex.org/json-cid/{cantus_id}"
-    cid_list: Union[list, None] = parse_json_from_api(json_cid_url)
-    try:
-        assert isinstance(cid_list, list)
-        assert len(cid_list) == 1
-        assert isinstance(cid_list[0], dict)
-    except AssertionError:
-        return {}
-    cid_dict = cid_list[0]
-    cid_dict["count"] = count
-    # figure out the id of the genre of the chant, to easily populate the Genre selector
-    genre_name = cid_dict["genre"]
-    genre_id = Genre.objects.get(name=genre_name).id
-    cid_dict["genre_id"] = genre_id
-    # in the template, we create a js function based on the cantus ID. The function name
-    # cannot include a "." or a ":", so we have to use a cleaned version
-    cid_clean = cantus_id.replace(".", "d").replace(":", "c")
-    #                                  "d"ot             "c"olon
-    cid_dict["cid_clean"] = cid_clean
-    return cid_dict
-
-
-def get_feast_selector_options(source, folios):
+def get_feast_selector_options(
+    source: Source, folios: list[str]
+) -> list[tuple[str, Feast]]:
     """Generate folio-feast pairs as options for the feast selector
 
     Going through all chants in the source, folio by folio,
@@ -356,26 +137,28 @@ def get_feast_selector_options(source, folios):
         list of tuples: A list of folios and Feast objects, to be unpacked in template.
     """
     # the two lists to be zipped
-    feast_selector_feasts = []
-    feast_selector_folios = []
+    feast_selector_feasts: list[Feast] = []
+    feast_selector_folios: list[str] = []
     # get all chants in the source, select those that have a feast
-    chants_in_source = (
+    chants_in_source: QuerySet[Chant] = (
         source.chant_set.exclude(feast=None)
         .order_by("folio", "c_sequence")
         .select_related("feast")
     )
     # initialize the feast selector options with the first chant in the source that has a feast
-    first_feast_chant = chants_in_source.first()
+    first_feast_chant: Optional[Feast] = chants_in_source.first()
     if not first_feast_chant:
         # if none of the chants in this source has a feast, return an empty list
         return []
     # if there is at least one chant that has a feast
-    current_feast = first_feast_chant.feast
+    current_feast: Feast = first_feast_chant.feast
     feast_selector_feasts.append(current_feast)
-    current_folio = first_feast_chant.folio
+    current_folio: str = first_feast_chant.folio
     feast_selector_folios.append(current_folio)
 
-    chants_by_folio = chants_in_source.filter(folio__in=folios).order_by("folio")
+    chants_by_folio: QuerySet[Chant] = chants_in_source.filter(
+        folio__in=folios
+    ).order_by("folio")
     for chant in chants_by_folio:
         if chant.feast != current_feast:
             # if the feast changes, add the new feast and the corresponding folio to the lists
@@ -385,8 +168,9 @@ def get_feast_selector_options(source, folios):
             current_feast = chant.feast
     # as the two lists will always be of the same length, no need for zip,
     # just naively combine them
-    # if we use zip, the returned generator will be exhausted in rendering templates, making it hard to test the returned value
-    folios_with_feasts = [
+    # if we use zip, the returned generator will be exhausted in rendering templates,
+    # making it hard to test the returned value
+    folios_with_feasts: list[tuple[str, Feast]] = [
         (feast_selector_folios[i], feast_selector_feasts[i])
         for i in range(len(feast_selector_folios))
     ]
@@ -425,43 +209,6 @@ class ChantDetailView(DetailView):
                 melody=chant.volpiano,
             )
             context["syllabized_text_with_melody"] = text_and_mel
-
-        # If chant has a cantus ID, Create table of concordances
-        context["concordances_loaded_successfully"] = True
-        if cantus_id:
-            json_concordances_url: str = f"https://cantusindex.org/json-con/{cantus_id}"
-            concordances: Union[list, None] = parse_json_from_api(json_concordances_url)
-            try:
-                assert isinstance(concordances, list)
-                assert len(concordances) > 0
-                assert isinstance(concordances[0], dict)
-            except AssertionError:
-                concordances = []
-                context["concordances_loaded_successfully"] = False
-
-            ######################################
-            ### create context["concordances"] ###
-            # (data to be unpacked in chant_detail.html to make concordances table)
-
-            # response.text is an array of JSON objects. Each has a single
-            # key, ["chant"], pointing to a nested object. We only need the
-            # nested object.
-            concordance_chants = [c["chant"] for c in concordances]
-            context["concordances"] = concordance_chants
-
-            context["concordances_databases"] = make_concordances_database_summary(
-                concordance_chants,
-                cantus_id,
-            )
-
-            # tally from all databases
-            context["concordances_count"] = len(concordance_chants)
-
-            # touch CI's "refresh" json-con api, causing it to update its cached concordances
-            # for this chant's Cantus ID. In the future, we probably want to set up a cron job
-            # to ping the relevant url for each Cantus ID in the database, rather than doing
-            # it at request time.
-            touch_ci_json_con_api(cantus_id)
 
         # some chants don't have a source, for those chants, stop here without further calculating
         # other context variables
@@ -504,12 +251,12 @@ class ChantDetailView(DetailView):
                     else:
                         feasts_chants.append(["no_feast", []])
                 else:
-                    # if the chant has a feast and this feast id is different from the last appended lists' feast id,
-                    # append a new list: [feast_id, []]
+                    # if the chant has a feast and this feast id is different from the last appended
+                    # lists' feast id, append a new list: [feast_id, []]
                     if chant.feast and (chant.feast.id != feasts_chants[-1][0]):
                         feasts_chants.append([chant.feast.id, []])
-                    # if the chant doesn't have a feast and last appended list was for chants that had feast id,
-                    # append a new list: ["no_feast", []]
+                    # if the chant doesn't have a feast and last appended list was for chants that
+                    # had feast id, append a new list: ["no_feast", []]
                     elif not chant.feast and (feasts_chants[-1][0] != "no_feast"):
                         feasts_chants.append(["no_feast", []])
                 # add the chant
@@ -683,8 +430,9 @@ class ChantByCantusIDView(ListView):
         if not display_unpublished:
             chant_set = chant_set.filter(source__published=True)
             sequence_set = sequence_set.filter(source__published=True)
-        # the union operation turns sequences into chants, the resulting queryset contains only "chant" objects
-        # this forces us to do something special on the template to render correct absolute url for sequences
+        # the union operation turns sequences into chants, the resulting queryset contains only
+        # "chant" objects this forces us to do something special on the template to render correct
+        # absolute url for sequences
         queryset = chant_set.union(sequence_set)
         queryset = queryset.order_by("siglum")
         return queryset
@@ -824,10 +572,10 @@ class ChantSearchView(ListView):
             queryset = queryset.order_by("source__siglum", "id")
 
         else:
-            # The field names should be keys in the "GET" QueryDict if the search button has been clicked,
-            # even if the user put nothing into the search form and hit "apply" immediately.
-            # In that case, we return the all chants + seqs filtered by the search form.
-            # For every GET parameter other than incipit, add to the Q object
+            # The field names should be keys in the "GET" QueryDict if the search button has been
+            # clicked, even if the user put nothing into the search form and hit "apply"
+            # immediately. In that case, we return the all chants + seqs filtered by the search
+            # form. For every GET parameter other than incipit, add to the Q object
             if self.request.GET.get("office"):
                 office_id = self.request.GET.get("office")
                 q_obj_filter &= Q(office__id=office_id)
@@ -848,8 +596,6 @@ class ChantSearchView(ListView):
                 melodies = self.request.GET.get("melodies")
                 if melodies == "true":
                     q_obj_filter &= Q(volpiano__isnull=False)
-                if melodies == "false":
-                    q_obj_filter &= Q(volpiano__isnull=True)
             if self.request.GET.get("feast"):
                 feast = self.request.GET.get("feast")
                 # This will match any feast whose name contains the feast parameter
@@ -919,7 +665,8 @@ class ChantSearchView(ListView):
                 chant_set = chant_set.filter(keyword_filter)
                 sequence_set = sequence_set.filter(keyword_filter)
 
-            # once unioned, the queryset cannot be filtered/annotated anymore, so we put union to the last
+            # once unioned, the queryset cannot be filtered/annotated anymore, so we put
+            # union to the last
             queryset = chant_set.union(sequence_set, all=True)
             queryset = queryset.order_by(order, "id")
 
@@ -948,7 +695,8 @@ class MelodySearchView(TemplateView):
 
 class ChantSearchMSView(ListView):
     """
-    Searches chants/sequences in a certain manuscript, accessed with ``chant-search-ms/<int:source_pk>``
+    Searches chants/sequences in a certain manuscript, accessed with
+    ``chant-search-ms/<int:source_pk>``
 
     This view uses the same template as ``ChantSearchView``
 
@@ -1150,7 +898,8 @@ class ChantCreateView(LoginRequiredMixin, UserPassesTestMixin, CreateView):
         """Get intial data from the latest chant in source.
 
         Some fields of the chant input form (`folio`, `feast`, `c_sequence`, and `image_link`)
-        are pre-populated upon loading. These fields are computed based on the latest chant in the source.
+        are pre-populated upon loading. These fields are computed based on the latest chant in
+        the source.
 
         Returns:
             dict: field names and corresponding data
@@ -1182,50 +931,6 @@ class ChantCreateView(LoginRequiredMixin, UserPassesTestMixin, CreateView):
         """Make sure the source specified in url exists before we display the form"""
         self.source = get_object_or_404(Source, pk=kwargs["source_pk"])
         return super().dispatch(request, *args, **kwargs)
-
-    def get_suggested_chants(self):
-        """based on the previous chant entered, get data and metadata on
-        chants in other manuscripts that follow the most recently added chant
-
-        Returns:
-            a list of dictionaries: for every potential chant,
-            each dictionary includes data on that chant,
-            taken from Cantus Index, as well as a count of how often
-            that chant is found following the previous chant
-        """
-
-        # only displays the chants that occur most often
-        NUM_SUGGESTIONS = 5
-        try:
-            latest_chant = self.source.chant_set.latest("date_updated")
-        except Chant.DoesNotExist:
-            return None
-
-        cantus_id = latest_chant.cantus_id
-        if cantus_id is None:
-            return None
-        if cantus_id == "909000":
-            # 909000 is the Cantus ID for "Gloria patri", the most common Cantus ID in the
-            # database by about a factor of ~10 compared to the second most common Cantus ID.
-            # It takes too long to calculate suggested chants for this Cantus ID, and the
-            # results aren't particularly useful anyways.
-            return None
-
-        suggested_chants = next_chants(cantus_id, display_unpublished=True)
-
-        # sort by number of occurrences
-        sorted_suggested_chants = sorted(
-            suggested_chants, key=lambda id_count_pair: id_count_pair[1], reverse=True
-        )
-        # if there are more chants than NUM_SUGGESTIONS, remove chants that
-        # don't frequently appear after the most recently entered chant
-        trimmed_suggested_chants = sorted_suggested_chants[:NUM_SUGGESTIONS]
-
-        suggested_chants_dicts = [
-            make_suggested_chant_dict(cid, cnt) for cid, cnt in trimmed_suggested_chants
-        ]
-
-        return suggested_chants_dicts
 
     def get_suggested_feasts(self):
         """based on the feast of the most recently edited chant, provide a
@@ -1263,7 +968,6 @@ class ChantCreateView(LoginRequiredMixin, UserPassesTestMixin, CreateView):
             context["previous_chant"] = self.source.chant_set.latest("date_updated")
         except Chant.DoesNotExist:
             context["previous_chant"] = None
-        context["suggested_chants"] = self.get_suggested_chants()
         context["suggested_feasts"] = self.get_suggested_feasts()
         return context
 
@@ -1335,75 +1039,6 @@ class ChantDeleteView(LoginRequiredMixin, UserPassesTestMixin, DeleteView):
         return reverse("source-edit-chants", args=[self.object.source.id])
 
 
-class CISearchView(TemplateView):
-    """search in CI and write results in get_context_data
-    now this is implemented as [send a search request to CI -> scrape the returned html table]
-    But, it is possible to use CI json export.
-    To do a text search on CI, use 'https://cantusindex.org/json-text/<text to search>'
-    """
-
-    template_name = "ci_search.html"
-
-    def get_context_data(self, **kwargs):
-        MAX_PAGE_NUMBER_CI = 5
-        context = super().get_context_data(**kwargs)
-        context["genres"] = list(
-            Genre.objects.all().order_by("name").values("id", "name")
-        )
-        search_term = kwargs["search_term"]
-        search_term = search_term.replace(" ", "+")  # for multiple keywords
-        # Create empty list for the 3 types of info
-        cantus_id = []
-        genre = []
-        full_text = []
-
-        # scrape multiple pages
-        pages = range(0, MAX_PAGE_NUMBER_CI)
-        for page in pages:
-            p = {
-                "t": search_term,
-                "cid": "",
-                "genre": "All",
-                "ghisp": "All",
-                "page": page,
-            }
-            try:
-                page = requests.get(
-                    "https://cantusindex.org/search",
-                    params=p,
-                    timeout=5,
-                )
-            except (SSLError, Timeout) as exc:
-                # change to log in future
-                print(
-                    "encountered an error in CISearchView.get_context_data",
-                    "while making a request to https://cantusindex.org/search:",
-                    exc,
-                )
-                break
-            doc = lh.fromstring(page.content)
-            # Parse data that are stored between <tr>..</tr> of HTML
-            tr_elements = doc.xpath("//tr")
-            # if cantus index returns an empty table
-            if not tr_elements:
-                break
-
-            # remove the table header
-            tr_elements = tr_elements[1:]
-
-            for row in tr_elements:
-                cantus_id.append(row[0].text_content().strip())
-                genre.append(row[1].text_content().strip())
-                full_text.append(row[2].text_content().strip())
-
-        # for looping through three lists in template, we have to zip it here
-        if len(cantus_id) == 0:
-            context["results"] = [["No results", "No results", "No results"]]
-        else:
-            context["results"] = zip(cantus_id, genre, full_text)
-        return context
-
-
 class ChantIndexView(TemplateView):
     template_name = "full_index.html"
 
@@ -1455,7 +1090,8 @@ class SourceEditChantsView(LoginRequiredMixin, UserPassesTestMixin, UpdateView):
         When a user visits the edit-chant page for a certain Source,
         there are 2 dropdowns on the right side of the page: one for folio, and the other for feast.
 
-        When either a folio or a feast is selected, a list of Chants in the selected folio/feast will be rendered.
+        When either a folio or a feast is selected, a list of Chants in the selected folio/feast will
+        be rendered.
 
         Returns:
             a QuerySet of Chants in the Source, filtered by the optional search parameters.
@@ -1533,12 +1169,12 @@ class SourceEditChantsView(LoginRequiredMixin, UserPassesTestMixin, UpdateView):
                     else:
                         feasts_chants.append(["no_feast", []])
                 else:
-                    # if the chant has a feast and this feast id is different from the last appended lists' feast id,
-                    # append a new list: [feast_id, []]
+                    # if the chant has a feast and this feast id is different from the last appended
+                    # lists' feast id, append a new list: [feast_id, []]
                     if chant.feast and (chant.feast.id != feasts_chants[-1][0]):
                         feasts_chants.append([chant.feast.id, []])
-                    # if the chant doesn't have a feast and last appended list was for chants that had feast id,
-                    # append a new list: ["no_feast", []]
+                    # if the chant doesn't have a feast and last appended list was for chants that
+                    # had feast id, append a new list: ["no_feast", []]
                     elif not chant.feast and (feasts_chants[-1][0] != "no_feast"):
                         feasts_chants.append(["no_feast", []])
                 # add the chant
@@ -1642,24 +1278,6 @@ class SourceEditChantsView(LoginRequiredMixin, UserPassesTestMixin, UpdateView):
         pk = self.request.GET.get("pk")
         pk_specified = bool(pk)
         context["pk_specified"] = pk_specified
-
-        # provide a suggested_fulltext for situations in which a chant has no
-        # manuscript_full_text_std_spelling
-        context["suggested_fulltext"] = ""
-        if pk_specified:
-            current_chant = Chant.objects.filter(pk=pk).first()
-            cantus_id = current_chant.cantus_id
-
-            json_cid_url: str = f"https://cantusindex.org/json-cid/{cantus_id}"
-            json_response: Union[list, None] = parse_json_from_api(json_cid_url)
-            try:
-                assert isinstance(json_response, list)
-                assert len(json_response) > 0
-                assert isinstance(json_response[0], dict)
-            except AssertionError:
-                json_response = None
-            if json_response:
-                context["suggested_fulltext"] = json_response[0]["fulltext"]
 
         chant = self.get_object()
         if chant.volpiano:

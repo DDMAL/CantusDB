@@ -38,6 +38,7 @@
                 <th width="80" title="Cantus ID">Cantus ID</th>
                 <th width="30" title="Mode">Mode</th>
                 <th width="30" title="Differentia">Diff</th>
+                <th width="30" title="Differentiae Database">DD</th>
             </tr>
         </thead>
 
@@ -84,6 +85,13 @@
                     <td>{{ chant.cantus_id|default_if_none:"" }}</td>
                     <td>{{ chant.mode|default_if_none:"" }}</td>
                     <td>{{ chant.differentia|default_if_none:"" }}</td>
+                    <td>
+                        {% if chant.diff_db %}
+                            <a href="https://differentiaedatabase.ca/differentia/{{chant.diff_db.differentia_id}}" target="_blank">
+                                {{ chant.diff_db.differentia_id}}
+                            </a>
+                        {% endif %}
+                    </td>
                 </tr>
             {% endfor %}
         </tbody>

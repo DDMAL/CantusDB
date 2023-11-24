@@ -11,11 +11,18 @@ from django.core.management.base import BaseCommand
 # sync_chants.py has been updated to populate the `differentia_new` field. If you have run
 # sync_chants.py since September 15, 2022, you should not need to run this script.
 
+# update 2023 Oct 3: the differentia_new field has been renamed differentiae_database across
+# the codebase. This management command is out of date, and should not be run.
+
 # run with `python manage.py update_differentia_new`
 
 
 class Command(BaseCommand):
     def handle(self, *args, **kwargs):
+        raise DeprecationWarning(
+            "the differentia_new field has been renamed differentiae_database across the codebase. ",
+            "This management command is out of date, and should not be run.",
+        )
         CHUNK_SIZE = 1_000
         chants = Chant.objects.all()
         chants_count = chants.count()

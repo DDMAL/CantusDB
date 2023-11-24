@@ -67,14 +67,20 @@
                     </div>
 
                     <div class="form-row">
-                        <div class="form-group m-1 col-lg-2">
+                        <div class="form-group m-1 col-lg-3">
                             <small>{{ form.office.label_tag }}</small>
-                            {{ form.office }}
+                            <br>{{ form.office }}
                         </div>
-                        <div class="form-group m-1 col-lg-2">
+                    </div>
+
+                    <div class="form-row">
+                        <div class="form-group m-1 col-lg-3">
                             <small>{{ form.genre.label_tag }}</small>
-                            {{ form.genre }}
+                            <br>{{ form.genre }}
                         </div>
+                    </div>
+
+                    <div class="form-row">
                         <div class="form-group m-1 col-lg-2">
                             <small>{{ form.position.label_tag }}</small>
                             {{ form.position }}
@@ -107,14 +113,16 @@
                             {{ form.differentia }}
                         </div>
                         <div class="form-group m-1 col-lg-2">
-                            <label for="{{ form.differentia_new.id_for_label }}">
-                                <small>Differentia DB:</small>
-                            </label>
-                            {{ form.differentia_new }}
-                        </div>
-                        <div class="form-group m-1 col-lg-2">
                             <small>{{ form.extra.label_tag }}</small>
                             {{ form.extra }}
+                        </div>
+                    </div>
+                    <div class="form-row">
+                        <div class="form-group m-1 col-lg-2">
+                            <label for="{{ form.diff_db.id_for_label }}">
+                                <small>Differentia DB:</small>
+                            </label>
+                            <br>{{ form.diff_db }}
                         </div>
                     </div>
                     <div class="form-row">
@@ -136,14 +144,6 @@
                                 <small>Manuscript Reading Full Text (standardized spelling):<span class="text-danger" title="This field is required">*</span></small>
                             </label>
                             {{ form.manuscript_full_text_std_spelling }}
-                            <script>
-                                function autoFillSuggestedFulltext() {
-                                    if (document.getElementById('id_manuscript_full_text_std_spelling').value == "") {
-                                        document.getElementById('id_manuscript_full_text_std_spelling').value = "{{ suggested_fulltext }}";
-                                    }
-                                }
-                                autoFillSuggestedFulltext();
-                            </script>
                         </div>
                     </div>
 

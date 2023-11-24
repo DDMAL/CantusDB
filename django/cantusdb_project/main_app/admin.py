@@ -79,6 +79,7 @@ class ChantAdmin(BaseModelAdmin):
         "volpiano_notes",
         "volpiano_intervals",
         "title",
+        "differentiae_database",
     )
     form = AdminChantForm
     raw_id_fields = (
@@ -86,6 +87,13 @@ class ChantAdmin(BaseModelAdmin):
         "feast",
     )
     ordering = ("source__siglum",)
+
+
+class DifferentiaAdmin(BaseModelAdmin):
+    search_fields = (
+        "differentia_id",
+        "id",
+    )
 
 
 class FeastAdmin(BaseModelAdmin):
@@ -164,6 +172,8 @@ class SequenceAdmin(BaseModelAdmin):
 
 
 class SourceAdmin(BaseModelAdmin):
+    exclude = ("source_status",)
+
     # These search fields are also available on the user-source inline relationship in the user admin page
     search_fields = (
         "siglum",
@@ -211,6 +221,7 @@ class SourceAdmin(BaseModelAdmin):
 
 admin.site.register(Century, CenturyAdmin)
 admin.site.register(Chant, ChantAdmin)
+admin.site.register(Differentia, DifferentiaAdmin)
 admin.site.register(Feast, FeastAdmin)
 admin.site.register(Genre, GenreAdmin)
 admin.site.register(Notation, NotationAdmin)
