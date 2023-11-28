@@ -610,22 +610,22 @@ def build_json_cid_dictionary(chant, request) -> dict:
         "siglum": chant.source.siglum,
         "srclink": source_absolute_url,
         "chantlink": chant_absolute_url,
-        # "chantlinkOLD":  # OldCantus included a URL using http:// here,
-        #                  # whereas "chantlink" had a URL with https://
         "folio": chant.folio if chant.folio else "",
+        "sequence": chant.c_sequence if chant.c_sequence else 0,
         "incipit": chant.incipit if chant.incipit else "",
         "feast": chant.feast.name if chant.feast else "",
         "genre": chant.genre.name if chant.genre else "",
         "office": chant.office.name if chant.office else "",
         "position": chant.position if chant.position else "",
-        "mode": chant.mode if chant.mode else "",
+        "cantus_id": chant.cantus_id if chant.cantus_id else "",
         "image": chant.image_link if chant.image_link else "",
-        "melody": chant.volpiano if chant.volpiano else "",
+        "mode": chant.mode if chant.mode else "",
         "fulltext": (
             chant.manuscript_full_text_std_spelling
             if chant.manuscript_full_text_std_spelling
             else ""
         ),
+        "melody": chant.volpiano if chant.volpiano else "",
         "db": "CD",
     }
     return dictionary
