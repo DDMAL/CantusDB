@@ -4923,7 +4923,10 @@ class JsonCidTest(TestCase):
         chant = make_fake_chant(cantus_id="100000")
         expected_values = {
             "siglum": chant.source.siglum,
+            "srclink": f"http://testserver/source/{chant.source.id}",
+            "chantlink": f"http://testserver/chant/{chant.id}",
             "folio": chant.folio,
+            "sequence": chant.c_sequence,
             "incipit": chant.incipit,
             "feast": chant.feast.name,
             "genre": chant.genre.name,
@@ -4932,7 +4935,7 @@ class JsonCidTest(TestCase):
             "mode": chant.mode,
             "image": chant.image_link,
             "melody": chant.volpiano,
-            "fulltext": chant.manuscript_full_text_std_spelling,
+            "full_text": chant.manuscript_full_text_std_spelling,
             "db": "CD",
         }
         response_1 = self.client.get(
@@ -4961,7 +4964,14 @@ class JsonCidTest(TestCase):
         )
         json_for_one_chant_2 = response_2.json()["chants"][0]["chant"]
         for item in json_for_one_chant_2.items():
-            self.assertIsInstance(item[1], str)  # we shouldn't see any Nones or nulls
+            self.assertIsInstance(
+                item[1],
+                (
+                    int,  # ["sequence"] should be an int
+                    str,  # all other keys should be strings, and there should
+                    # be no Nones or nulls
+                ),
+            )
 
         chant.manuscript_full_text = "nahn-staendrd spillynge"
         chant.manuscript_full_text_std_spelling = "standard spelling"
@@ -4970,7 +4980,7 @@ class JsonCidTest(TestCase):
             reverse("json-cid-export", args=["100000"]),
         )
         json_for_one_chant_3 = response_3.json()["chants"][0]["chant"]
-        self.assertEqual(json_for_one_chant_3["fulltext"], "standard spelling")
+        self.assertEqual(json_for_one_chant_3["full_text"], "standard spelling")
 
 
 class CsvExportTest(TestCase):
