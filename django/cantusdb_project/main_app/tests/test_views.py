@@ -4899,23 +4899,25 @@ class JsonCidTest(TestCase):
 
         first_chant = first_item["chant"]
         chant_keys = first_chant.keys()
-        expected_keys = [
+        expected_keys = {
             "siglum",
             "srclink",
             "chantlink",
             "folio",
+            "sequence",
             "incipit",
             "feast",
             "genre",
             "office",
             "position",
-            "mode",
+            "cantus_id",
             "image",
+            "mode",
+            "full_text",
             "melody",
-            "fulltext",
             "db",
-        ]
-        self.assertEqual(list(chant_keys), expected_keys)
+        }
+        self.assertEqual(set(chant_keys), expected_keys)
 
     def test_values(self):
         chant = make_fake_chant(cantus_id="100000")
