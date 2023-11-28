@@ -620,7 +620,7 @@ def build_json_cid_dictionary(chant, request) -> dict:
         "cantus_id": chant.cantus_id if chant.cantus_id else "",
         "image": chant.image_link if chant.image_link else "",
         "mode": chant.mode if chant.mode else "",
-        "fulltext": (
+        "full_text": (
             chant.manuscript_full_text_std_spelling
             if chant.manuscript_full_text_std_spelling
             else ""
