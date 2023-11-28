@@ -4854,19 +4854,21 @@ class JsonCidTest(TestCase):
         {
             "chants": [
                 "chant": {
-                    "siglum": "some value"
-                    "srclink": "some value"
-                    "chantlink": "some value"
-                    "folio": "some value"
-                    "incipit": "some value"
-                    "feast": "some value"
-                    "genre": "some value"
-                    "office": "some value"
-                    "position": "some value"
-                    "mode": "some value"
-                    "image": "some value"
-                    "melody": "some value"
-                    "fulltext": "some value"
+                    "siglum": "some string"
+                    "srclink": "some string"
+                    "chantlink": "some string"
+                    "folio": "some string"
+                    "sequence": some_integer
+                    "incipit": "some string"
+                    "feast": "some string"
+                    "genre": "some string"
+                    "office": "some string"
+                    "position": "some string"
+                    "cantus_id": "some string"
+                    "image": "some string"
+                    "mode": "some string"
+                    "full_text": "some string"
+                    "melody": "some string"
                     "db": "CD"
                 },
                 "chant": {
@@ -4874,6 +4876,8 @@ class JsonCidTest(TestCase):
                 },
             ]
         }
+        A more complete specification can be found at
+        https://github.com/DDMAL/CantusDB/issues/1170.
         """
         for _ in range(7):
             make_fake_chant(cantus_id="3.14159")
