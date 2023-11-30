@@ -13,6 +13,7 @@ Django==4.2.3
 django-autocomplete-light==3.9.4
 django-extra-views==0.13.0
 django-quill-editor==0.1.40
+django-reversion==5.0.8
 django_debug_toolbar==3.8.1
 Faker==4.1.0
 gunicorn==20.0.4
