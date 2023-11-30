@@ -13,7 +13,7 @@ from django.core.management.base import BaseCommand
 # functionality is added in `signals.py` and we need to update the value
 # of some field for all chants in the database.
 
-# Run with `python manage.py populate_chant_fields`.
+# Run with `python manage.py touch_all_chants`.
 
 
 class Command(BaseCommand):
