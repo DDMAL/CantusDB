@@ -4854,19 +4854,21 @@ class JsonCidTest(TestCase):
         {
             "chants": [
                 "chant": {
-                    "siglum": "some value"
-                    "srclink": "some value"
-                    "chantlink": "some value"
-                    "folio": "some value"
-                    "incipit": "some value"
-                    "feast": "some value"
-                    "genre": "some value"
-                    "office": "some value"
-                    "position": "some value"
-                    "mode": "some value"
-                    "image": "some value"
-                    "melody": "some value"
-                    "fulltext": "some value"
+                    "siglum": "some string"
+                    "srclink": "some string"
+                    "chantlink": "some string"
+                    "folio": "some string"
+                    "sequence": some_integer
+                    "incipit": "some string"
+                    "feast": "some string"
+                    "genre": "some string"
+                    "office": "some string"
+                    "position": "some string"
+                    "cantus_id": "some string"
+                    "image": "some string"
+                    "mode": "some string"
+                    "full_text": "some string"
+                    "melody": "some string"
                     "db": "CD"
                 },
                 "chant": {
@@ -4874,6 +4876,8 @@ class JsonCidTest(TestCase):
                 },
             ]
         }
+        A more complete specification can be found at
+        https://github.com/DDMAL/CantusDB/issues/1170.
         """
         for _ in range(7):
             make_fake_chant(cantus_id="3.14159")
@@ -4895,29 +4899,34 @@ class JsonCidTest(TestCase):
 
         first_chant = first_item["chant"]
         chant_keys = first_chant.keys()
-        expected_keys = [
+        expected_keys = {
             "siglum",
             "srclink",
             "chantlink",
             "folio",
+            "sequence",
             "incipit",
             "feast",
             "genre",
             "office",
             "position",
-            "mode",
+            "cantus_id",
             "image",
+            "mode",
+            "full_text",
             "melody",
-            "fulltext",
             "db",
-        ]
-        self.assertEqual(list(chant_keys), expected_keys)
+        }
+        self.assertEqual(set(chant_keys), expected_keys)
 
     def test_values(self):
         chant = make_fake_chant(cantus_id="100000")
         expected_values = {
             "siglum": chant.source.siglum,
+            "srclink": f"http://testserver/source/{chant.source.id}",
+            "chantlink": f"http://testserver/chant/{chant.id}",
             "folio": chant.folio,
+            "sequence": chant.c_sequence,
             "incipit": chant.incipit,
             "feast": chant.feast.name,
             "genre": chant.genre.name,
@@ -4926,7 +4935,7 @@ class JsonCidTest(TestCase):
             "mode": chant.mode,
             "image": chant.image_link,
             "melody": chant.volpiano,
-            "fulltext": chant.manuscript_full_text_std_spelling,
+            "full_text": chant.manuscript_full_text_std_spelling,
             "db": "CD",
         }
         response_1 = self.client.get(
@@ -4954,8 +4963,18 @@ class JsonCidTest(TestCase):
             reverse("json-cid-export", args=["100000"]),
         )
         json_for_one_chant_2 = response_2.json()["chants"][0]["chant"]
-        for item in json_for_one_chant_2.items():
-            self.assertIsInstance(item[1], str)  # we shouldn't see any Nones or nulls
+
+        sequence_value = json_for_one_chant_2.pop("sequence")
+        self.assertIsInstance(sequence_value, int)
+
+        for key, value in json_for_one_chant_2.items():
+            with self.subTest(key=key):
+                self.assertIsInstance(
+                    value,
+                    str,  # we've already removed ["sequence"], which should
+                    # be an int. All other keys should be strings, and there should
+                    # be no Nones or nulls
+                )
 
         chant.manuscript_full_text = "nahn-staendrd spillynge"
         chant.manuscript_full_text_std_spelling = "standard spelling"
@@ -4964,7 +4983,7 @@ class JsonCidTest(TestCase):
             reverse("json-cid-export", args=["100000"]),
         )
         json_for_one_chant_3 = response_3.json()["chants"][0]["chant"]
-        self.assertEqual(json_for_one_chant_3["fulltext"], "standard spelling")
+        self.assertEqual(json_for_one_chant_3["full_text"], "standard spelling")
 
 
 class CsvExportTest(TestCase):
