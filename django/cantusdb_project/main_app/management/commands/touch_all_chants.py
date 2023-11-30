@@ -23,10 +23,14 @@ class Command(BaseCommand):
         chants_count = chants.count()
         start_index = 0
         while start_index <= chants_count:
-            print("processing chunk with start_index of", start_index)
+            self.stdout.write(f"processing chunk with {start_index=}")
             chunk = chants[start_index : start_index + CHUNK_SIZE]
 
             for chant in chunk:
                 chant.save()
             del chunk  # make sure we don't use too much RAM
             start_index += CHUNK_SIZE
+
+        self.stdout.write(
+            self.style.SUCCESS("Success! Command has run to completion.\n")
+        )
