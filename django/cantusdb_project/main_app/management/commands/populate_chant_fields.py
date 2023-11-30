@@ -8,6 +8,11 @@ from django.core.management.base import BaseCommand
 # Chant.search_vectors, Chant.volpiano_notes, Chant.volpiano_intervals,
 # Source.number_of_chants and Source.number_of_melodies.
 
+# As of late November 2023, it is serving no immediate purpose.
+# We're keeping it around, however, as a helpful tool in case additional
+# functionality is added in `signals.py` and we need to update the value
+# of some field for all chants in the database.
+
 # Run with `python manage.py populate_chant_fields`.
 
 
