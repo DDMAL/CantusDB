@@ -4963,15 +4963,18 @@ class JsonCidTest(TestCase):
             reverse("json-cid-export", args=["100000"]),
         )
         json_for_one_chant_2 = response_2.json()["chants"][0]["chant"]
-        for item in json_for_one_chant_2.items():
-            self.assertIsInstance(
-                item[1],
-                (
-                    int,  # ["sequence"] should be an int
-                    str,  # all other keys should be strings, and there should
+
+        sequence_value = json_for_one_chant_2.pop("sequence")
+        self.assertIsInstance(sequence_value, int)
+
+        for key, value in json_for_one_chant_2.items():
+            with self.subTest(key=key):
+                self.assertIsInstance(
+                    value,
+                    str,  # we've already removed ["sequence"], which should
+                    # be an int. All other keys should be strings, and there should
                     # be no Nones or nulls
-                ),
-            )
+                )
 
         chant.manuscript_full_text = "nahn-staendrd spillynge"
         chant.manuscript_full_text_std_spelling = "standard spelling"
