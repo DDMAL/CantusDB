@@ -994,6 +994,66 @@ class ChantSearchViewTest(TestCase):
         context_chant_id = response.context["chants"][0]["id"]
         self.assertEqual(chant.id, context_chant_id)
 
+    def test_search_bar_search(self):
+        chant_with_incipit_only = make_fake_chant(
+            manuscript_full_text="The first three*", cantus_id="987654"
+        )
+        chant_with_full_text = make_fake_chant(
+            manuscript_full_text="The entire text is present for this one",
+            cantus_id="098765",
+        )
+        chant_with_ascending_cantus_id = make_fake_chant(
+            manuscript_full_text="Full text contains, but does not start with 'the'",
+            cantus_id="123456",
+        )
+        chant_starting_with_a_number = make_fake_chant(
+            manuscript_full_text=(
+                "1 is a number. " "How unusual, to find an arabic numeral in a chant!"
+            ),
+            cantus_id="234567",
+        )
+
+        # if the search term contains no numerals, we should be doing an incipit
+        # search. Non-letter, non-numeral characters like "*" should not cause
+        # a switch to searching by Cantus ID
+        full_incipit_search_term = "the first three*"
+        response_1 = self.client.get(
+            reverse("chant-search"), {"search_bar": full_incipit_search_term}
+        )
+        context_chants_1 = response_1.context["chants"]
+        self.assertEqual(len(context_chants_1), 1)
+        context_chant_1_id = context_chants_1[0]["id"]
+        self.assertEqual(context_chant_1_id, chant_with_incipit_only.id)
+
+        short_incipit_search_term = "the"
+        response_2 = self.client.get(
+            reverse("chant-search"), {"search_bar": short_incipit_search_term}
+        )
+        context_chants_2 = response_2.context["chants"]
+        self.assertEqual(len(context_chants_2), 2)
+        context_chants_2_ids = context_chants_2[0]["id"], context_chants_2[1]["id"]
+        self.assertIn(chant_with_incipit_only.id, context_chants_2_ids)
+        self.assertIn(chant_with_full_text.id, context_chants_2_ids)
+        self.assertNotIn(chant_with_ascending_cantus_id.id, context_chants_2_ids)
+
+        # if the search term contains even a single numeral, we should be doing
+        # a Cantus ID search
+        numeric_search_term = "1"
+        response_3 = self.client.get(
+            reverse("chant-search"), {"search_bar": numeric_search_term}
+        )
+        context_chants_3 = response_3.context["chants"]
+        self.assertEqual(len(context_chants_3), 1)
+        context_chant_3_id = context_chants_3[0]["id"]
+        self.assertEqual(context_chant_3_id, chant_with_ascending_cantus_id.id)
+
+        letters_and_numbers_search_term = "1 is"
+        response_4 = self.client.get(
+            reverse("chant-search"), {"search_bar": letters_and_numbers_search_term}
+        )
+        context_chants_4 = response_4.context["chants"]
+        self.assertEqual(len(context_chants_4), 0)
+
     def test_order_by_siglum(self):
         source_1 = make_fake_source(published=True, siglum="sigl-1")
         chant_1 = make_fake_chant(incipit="thing 1", source=source_1)
