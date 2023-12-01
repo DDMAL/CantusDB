@@ -430,7 +430,7 @@ def ajax_search_bar(request, search_term):
         "feast__name",
         "cantus_id",
         "mode",
-        "siglum",
+        "source__siglum",
         "office__name",
         "folio",
         "c_sequence",
