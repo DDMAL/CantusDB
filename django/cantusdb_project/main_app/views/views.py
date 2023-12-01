@@ -1,5 +1,6 @@
 import csv
 from typing import Optional, Union
+from django.db.models.query import QuerySet
 from django.http.response import JsonResponse
 from django.http import HttpResponse, HttpResponseNotFound
 from django.shortcuts import render, redirect
@@ -409,8 +410,9 @@ def ajax_search_bar(request, search_term):
         JsonResponse: A response to the AJAX call, to be unpacked by frontend js code
     """
     # load only the first seven chants
-    CHANT_CNT = 7
+    CHANT_CNT: int = 7
 
+    chants: QuerySet[Chant]
     if any(map(str.isdigit, search_term)):
         # if the search term contains at least one digit, assume user is searching by Cantus ID
         chants = Chant.objects.filter(cantus_id__istartswith=search_term).order_by("id")
@@ -418,27 +420,29 @@ def ajax_search_bar(request, search_term):
         # if the search term does not contain any digits, assume user is searching by incipit
         chants = Chant.objects.filter(incipit__istartswith=search_term).order_by("id")
 
-    display_unpublished = request.user.is_authenticated
+    display_unpublished: bool = request.user.is_authenticated
     if not display_unpublished:
         chants = chants.filter(source__published=True)
 
     chants = chants[:CHANT_CNT]
 
-    returned_values = chants.values(
-        "incipit",
-        "genre__name",
-        "feast__name",
-        "cantus_id",
-        "mode",
-        "source__siglum",
-        "office__name",
-        "folio",
-        "c_sequence",
+    returned_values: list[dict] = list(
+        chants.values(
+            "id",  # not used in the js, but used to calculate chant_link below
+            "incipit",
+            "genre__name",
+            "feast__name",
+            "cantus_id",
+            "mode",
+            "source__siglum",
+            "office__name",
+            "folio",
+            "c_sequence",
+        )
     )
-    returned_values = list(returned_values)
-    for i in range(chants.count()):
-        chant_link = chants[i].get_absolute_url()
-        returned_values[i]["chant_link"] = chant_link
+    for values_for_chant in returned_values:
+        chant_link = reverse("chant-detail", args=[values_for_chant["id"]])
+        values_for_chant["chant_link"] = chant_link
     return JsonResponse({"chants": returned_values}, safe=True)
 
 
