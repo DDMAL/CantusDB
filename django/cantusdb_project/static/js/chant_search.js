@@ -1,5 +1,5 @@
-function containsOnlyLettersAndSpaces(str) {
-    return /^[A-Za-z\s]*$/.test(str);
+function containsNoNumerals(str) {
+    return /^\D*$/.test(str);
   }
 
 window.addEventListener("load", function () {
@@ -27,7 +27,7 @@ window.addEventListener("load", function () {
     }
     if (urlParams.has("search_bar")) {
         search_term = urlParams.get("search_bar");
-        if (containsOnlyLettersAndSpaces(search_term)) {
+        if (containsNoNumerals(search_term)) {
             // assume user is doing an incipit search
             opFilter.value = "starts_with"
             keywordField.value = search_term

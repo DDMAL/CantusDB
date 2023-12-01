@@ -411,7 +411,7 @@ def ajax_search_bar(request, search_term):
     # load only the first seven chants
     CHANT_CNT = 7
 
-    if not search_term.replace(" ", "").isalpha():
+    if any(map(str.isdigit, search_term)):
         # if the search term contains at least one digit, assume user is searching by Cantus ID
         chants = Chant.objects.filter(cantus_id__istartswith=search_term).order_by("id")
     else:
