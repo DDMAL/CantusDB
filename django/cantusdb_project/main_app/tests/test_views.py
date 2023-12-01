@@ -995,6 +995,10 @@ class ChantSearchViewTest(TestCase):
         self.assertEqual(chant.id, context_chant_id)
 
     def test_search_bar_search(self):
+        # note to developers: if you are changing the behavior of search_bar
+        # searches, be sure to check static/js/chant_search.js to see if it needs
+        # updating (among other things, this script populates the search fields on
+        # the Chant Search page if a user arrives via the Global Search Bar)
         chant_with_incipit_only = make_fake_chant(
             manuscript_full_text="The first three*", cantus_id="987654"
         )
@@ -5456,3 +5460,81 @@ class AutocompleteViewsTest(TestCase):
         self.assertEqual(response.status_code, 200)
         data = response.json()
         self.assertEqual(len(data["results"]), 0)
+
+
+class AjaxSearchBarTest(TestCase):
+    def test_response(self):
+        chant = make_fake_chant()
+        cantus_id = chant.cantus_id
+
+        response = self.client.get(reverse("ajax-search-bar", args=[cantus_id]))
+        self.assertEqual(response.status_code, 200)
+
+        content = json.loads(response.content)
+        self.assertIsInstance(content, dict)
+
+        content_chants = content["chants"]
+        self.assertIsInstance(content_chants, list)
+
+        content_chant = content_chants[0]
+        expected_keys_and_values = {
+            "incipit": chant.incipit,
+            "genre__name": chant.genre.name,
+            "feast__name": chant.feast.name,
+            "cantus_id": chant.cantus_id,
+            "mode": chant.mode,
+            "source__siglum": chant.source.siglum,
+            "folio": chant.folio,
+            "c_sequence": chant.c_sequence,
+            "chant_link": reverse("chant-detail", args=[chant.id]),
+        }
+        for key, expected_value in expected_keys_and_values.items():
+            with self.subTest(key=key):
+                observed_value = content_chant[key]
+                self.assertEqual(expected_value, observed_value)
+
+    def test_incipit_search(self):
+        unremarkable_chant = make_fake_chant(
+            incipit=(
+                "The incipit contains no "
+                "numbers no asterisks and no punctuation "
+                "and is thus completely normal"
+            )
+        )
+        chant_with_asterisk = make_fake_chant(incipit="few words*")
+
+        istartswith_search_term = "the incipit"
+        istartswith_response = self.client.get(
+            reverse("ajax-search-bar", args=[istartswith_search_term])
+        )
+        istartswith_content = json.loads(istartswith_response.content)
+        istartswith_chants = istartswith_content["chants"]
+        self.assertEqual(len(istartswith_chants), 1)
+        istartswith_chant = istartswith_chants[0]
+        self.assertEqual(istartswith_chant["id"], unremarkable_chant.id)
+
+        # we should only find chants that begin with the search term
+        icontains_search_term = "contains no"
+        icontains_response = self.client.get(
+            reverse("ajax-search-bar", args=[icontains_search_term])
+        )
+        icontains_content = json.loads(icontains_response.content)
+        icontains_chants = icontains_content["chants"]
+        self.assertEqual(len(icontains_chants), 0)
+
+        # the search bar should only switch to a Cantus ID search when
+        # there are numerals present. Special characters like asterisks
+        # may occur in chant texts, and should still be treated as
+        # incipit searches
+        asterisk_search_term = "few words*"
+        asterisk_response = self.client.get(
+            reverse("ajax-search-bar", args=[asterisk_search_term])
+        )
+        asterisk_content = json.loads(asterisk_response.content)
+        asterisk_chants = asterisk_content["chants"]
+        self.assertEqual(len(asterisk_chants), 1)
+        asterisk_chant = asterisk_chants[0]
+        self.assertEqual(asterisk_chant["id"], chant_with_asterisk.id)
+
+    def test_cantus_id_search(self):
+        raise NotImplementedError  # this test is not complete
