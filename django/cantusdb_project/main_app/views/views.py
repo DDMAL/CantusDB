@@ -1063,7 +1063,7 @@ class ProvenanceAutocomplete(autocomplete.Select2QuerySetView):
             return Provenance.objects.none()
         qs = Provenance.objects.all().order_by("name")
         if self.q:
-            qs = qs.filter(name__istartswith=self.q)
+            qs = qs.filter(name__icontains=self.q)
         return qs
 
 
