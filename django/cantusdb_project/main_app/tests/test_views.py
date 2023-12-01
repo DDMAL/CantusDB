@@ -5537,4 +5537,30 @@ class AjaxSearchBarTest(TestCase):
         self.assertEqual(asterisk_chant["id"], chant_with_asterisk.id)
 
     def test_cantus_id_search(self):
-        raise NotImplementedError  # this test is not complete
+        chant_with_normal_cantus_id = make_fake_chant(cantus_id="012345")
+        chant_with_numerals_in_incipit = make_fake_chant(
+            incipit="0 me! 0 my! This is unexpected!"
+        )
+
+        # for search terms that contain numerals, we should only return
+        # matches with the cantus_id field, and not the incipit field
+        matching_search_term = "0"
+        matching_response = self.client.get(
+            reverse("ajax-search-bar", args=[matching_search_term])
+        )
+        matching_content = json.loads(matching_response.content)
+        matching_chants = matching_content["chants"]
+        self.assertEqual(len(matching_chants), 1)
+        matching_chant = matching_chants[0]
+        matching_id = matching_chant["id"]
+        self.assertEqual(matching_id, chant_with_normal_cantus_id.id)
+        self.assertNotEqual(matching_id, chant_with_numerals_in_incipit.id)
+
+        # we should only return istartswith results, and not icontains results
+        non_matching_search_term = "1"
+        non_matching_response = self.client.get(
+            reverse("ajax-search-bar", args=[non_matching_search_term])
+        )
+        non_matching_content = json.loads(non_matching_response.content)
+        non_matching_chants = non_matching_content["chants"]
+        self.assertEqual(len(non_matching_chants), 0)
