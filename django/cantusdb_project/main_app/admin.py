@@ -1,4 +1,5 @@
 from django.contrib import admin
+from reversion.admin import VersionAdmin
 from main_app.models import *
 from main_app.forms import (
     AdminCenturyForm,
@@ -22,7 +23,7 @@ EXCLUDE = (
 )
 
 
-class BaseModelAdmin(admin.ModelAdmin):
+class BaseModelAdmin(VersionAdmin):
     exclude = EXCLUDE
 
     # if an object is created in the admin interface, assign the user to the created_by field

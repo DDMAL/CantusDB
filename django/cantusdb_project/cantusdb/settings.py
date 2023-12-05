@@ -61,6 +61,7 @@ INSTALLED_APPS = [
     "main_app",
     "articles",
     "django_quill",  # to provide rich-text field for articles
+    "reversion",  # django-reversion, for version history of objects in database
     "users",
 ]
 
@@ -73,6 +74,7 @@ MIDDLEWARE = [
     "django.contrib.messages.middleware.MessageMiddleware",
     "django.middleware.clickjacking.XFrameOptionsMiddleware",
     "django.contrib.flatpages.middleware.FlatpageFallbackMiddleware",
+    "reversion.middleware.RevisionMiddleware",
 ]
 
 ROOT_URLCONF = "cantusdb.urls"
