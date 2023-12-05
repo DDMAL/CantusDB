@@ -1,5 +1,6 @@
 import csv
 from typing import Optional, Union
+from django.db.models.query import QuerySet
 from django.http.response import JsonResponse
 from django.http import HttpResponse, HttpResponseNotFound
 from django.shortcuts import render, redirect
@@ -409,36 +410,39 @@ def ajax_search_bar(request, search_term):
         JsonResponse: A response to the AJAX call, to be unpacked by frontend js code
     """
     # load only the first seven chants
-    CHANT_CNT = 7
+    CHANT_CNT: int = 7
 
-    if not search_term.replace(" ", "").isalpha():
+    chants: QuerySet[Chant]
+    if any(map(str.isdigit, search_term)):
         # if the search term contains at least one digit, assume user is searching by Cantus ID
         chants = Chant.objects.filter(cantus_id__istartswith=search_term).order_by("id")
     else:
         # if the search term does not contain any digits, assume user is searching by incipit
         chants = Chant.objects.filter(incipit__istartswith=search_term).order_by("id")
 
-    display_unpublished = request.user.is_authenticated
+    display_unpublished: bool = request.user.is_authenticated
     if not display_unpublished:
         chants = chants.filter(source__published=True)
 
     chants = chants[:CHANT_CNT]
 
-    returned_values = chants.values(
-        "incipit",
-        "genre__name",
-        "feast__name",
-        "cantus_id",
-        "mode",
-        "siglum",
-        "office__name",
-        "folio",
-        "c_sequence",
+    returned_values: list[dict] = list(
+        chants.values(
+            "id",  # not used in the js, but used to calculate chant_link below
+            "incipit",
+            "genre__name",
+            "feast__name",
+            "cantus_id",
+            "mode",
+            "source__siglum",
+            "office__name",
+            "folio",
+            "c_sequence",
+        )
     )
-    returned_values = list(returned_values)
-    for i in range(chants.count()):
-        chant_link = chants[i].get_absolute_url()
-        returned_values[i]["chant_link"] = chant_link
+    for values_for_chant in returned_values:
+        chant_link = reverse("chant-detail", args=[values_for_chant["id"]])
+        values_for_chant["chant_link"] = chant_link
     return JsonResponse({"chants": returned_values}, safe=True)
 
 
@@ -610,22 +614,22 @@ def build_json_cid_dictionary(chant, request) -> dict:
         "siglum": chant.source.siglum,
         "srclink": source_absolute_url,
         "chantlink": chant_absolute_url,
-        # "chantlinkOLD":  # OldCantus included a URL using http:// here,
-        #                  # whereas "chantlink" had a URL with https://
         "folio": chant.folio if chant.folio else "",
+        "sequence": chant.c_sequence if chant.c_sequence else 0,
         "incipit": chant.incipit if chant.incipit else "",
         "feast": chant.feast.name if chant.feast else "",
         "genre": chant.genre.name if chant.genre else "",
         "office": chant.office.name if chant.office else "",
         "position": chant.position if chant.position else "",
-        "mode": chant.mode if chant.mode else "",
+        "cantus_id": chant.cantus_id if chant.cantus_id else "",
         "image": chant.image_link if chant.image_link else "",
-        "melody": chant.volpiano if chant.volpiano else "",
-        "fulltext": (
+        "mode": chant.mode if chant.mode else "",
+        "full_text": (
             chant.manuscript_full_text_std_spelling
             if chant.manuscript_full_text_std_spelling
             else ""
         ),
+        "melody": chant.volpiano if chant.volpiano else "",
         "db": "CD",
     }
     return dictionary
@@ -1063,7 +1067,7 @@ class ProvenanceAutocomplete(autocomplete.Select2QuerySetView):
             return Provenance.objects.none()
         qs = Provenance.objects.all().order_by("name")
         if self.q:
-            qs = qs.filter(name__istartswith=self.q)
+            qs = qs.filter(name__icontains=self.q)
         return qs
 
 

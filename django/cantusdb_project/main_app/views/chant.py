@@ -540,7 +540,22 @@ class ChantSearchView(ListView):
             else:
                 chant_set = Chant.objects.filter(source__published=True)
                 sequence_set = Sequence.objects.filter(source__published=True)
-            if self.request.GET.get("search_bar").replace(" ", "").isalpha():
+
+            search_bar_term_contains_digits = any(
+                map(str.isdigit, self.request.GET.get("search_bar"))
+            )
+            if search_bar_term_contains_digits:
+                # if search bar is doing Cantus ID search
+                cantus_id = self.request.GET.get("search_bar")
+                q_obj_filter &= Q(cantus_id__icontains=cantus_id)
+                chant_set = chant_set.filter(q_obj_filter).values(
+                    *CHANT_SEARCH_TEMPLATE_VALUES
+                )
+                sequence_set = sequence_set.filter(q_obj_filter).values(
+                    *CHANT_SEARCH_TEMPLATE_VALUES
+                )
+                queryset = chant_set.union(sequence_set, all=True)
+            else:
                 # if search bar is doing incipit search
                 search_term = self.request.GET.get("search_bar")
                 ms_spelling_filter = Q(manuscript_full_text__istartswith=search_term)
@@ -555,17 +570,6 @@ class ChantSearchView(ListView):
                     *CHANT_SEARCH_TEMPLATE_VALUES
                 )
                 sequence_set = sequence_set.filter(search_term_filter).values(
-                    *CHANT_SEARCH_TEMPLATE_VALUES
-                )
-                queryset = chant_set.union(sequence_set, all=True)
-            else:
-                # if search bar is doing Cantus ID search
-                cantus_id = self.request.GET.get("search_bar")
-                q_obj_filter &= Q(cantus_id__icontains=cantus_id)
-                chant_set = chant_set.filter(q_obj_filter).values(
-                    *CHANT_SEARCH_TEMPLATE_VALUES
-                )
-                sequence_set = sequence_set.filter(q_obj_filter).values(
                     *CHANT_SEARCH_TEMPLATE_VALUES
                 )
                 queryset = chant_set.union(sequence_set, all=True)
