@@ -701,6 +701,22 @@ class ChantListViewTest(TestCase):
         expected_result = [("001r", feast_1), ("001v", feast_2), ("002r", feast_1)]
         self.assertEqual(response.context["feasts_with_folios"], expected_result)
 
+    def test_missing_query_parameter(self):
+        # if the user tries to visit /chants/ without specifying a ?source= query parameter,
+        # we should return a 404 page
+        response = self.client.get(reverse("chant-list"))
+        self.assertEqual(response.status_code, 404)
+
+    def test_nonexistent_source(self):
+        cantus_segment = make_fake_segment(id=4063)
+        source = make_fake_source(segment=cantus_segment)
+        source_id = source.id
+        nonexistent_source_id = source_id + 1
+        response = self.client.get(
+            reverse("chant-list"), {"source": nonexistent_source_id}
+        )
+        self.assertEqual(response.status_code, 404)
+
 
 class ChantDetailViewTest(TestCase):
     @classmethod
