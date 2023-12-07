@@ -37,6 +37,7 @@ from collections import Counter
 from django.contrib.auth.mixins import UserPassesTestMixin
 from typing import Optional
 from requests.exceptions import SSLError, Timeout, ConnectionError
+from django.core.exceptions import ObjectDoesNotExist
 from requests import Response
 from main_app.permissions import (
     user_can_edit_chants_in_source,
@@ -322,7 +323,10 @@ class ChantListView(ListView):
         """
         # when arriving at this page, the url must have a source specified
         source_id = self.request.GET.get("source")
-        source = Source.objects.get(id=source_id)
+        try:
+            source = Source.objects.get(id=source_id)
+        except ObjectDoesNotExist:
+            raise Http404
 
         display_unpublished = self.request.user.is_authenticated
         if (source.published is False) and (not display_unpublished):
