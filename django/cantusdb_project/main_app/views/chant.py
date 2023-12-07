@@ -339,10 +339,10 @@ class ChantListView(ListView):
             raise PermissionDenied()
 
         # optional search params
-        feast_id = self.request.GET.get("feast")
-        genre_id = self.request.GET.get("genre")
-        folio = self.request.GET.get("folio")
-        search_text = self.request.GET.get("search_text")
+        feast_id: Optional[str] = self.request.GET.get("feast")
+        genre_id: Optional[str] = self.request.GET.get("genre")
+        folio: Optional[str] = self.request.GET.get("folio")
+        search_text: Optional[str] = self.request.GET.get("search_text")
 
         # get all chants in the specified source
         chants = source.chant_set.select_related("feast", "office", "genre")
