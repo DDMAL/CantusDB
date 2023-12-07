@@ -14,7 +14,7 @@ from django.views.generic import (
     TemplateView,
     UpdateView,
 )
-from django.core.exceptions import PermissionDenied
+from django.core.exceptions import PermissionDenied, BadRequest
 from main_app.forms import (
     ChantCreateForm,
     ChantEditForm,
@@ -321,11 +321,17 @@ class ChantListView(ListView):
         Returns:
             queryset: The Chant objects to be displayed.
         """
-        # when arriving at this page, the url must have a source specified
-        source_id = self.request.GET.get("source")
+
+        source_id: Optional[str] = self.request.GET.get("source")
+
+        if not source_id:
+            # no ?source= parameter
+            raise BadRequest
+
         try:
             source = Source.objects.get(id=source_id)
         except ObjectDoesNotExist:
+            # ?source= parameter does not correspond to an existing source
             raise Http404
 
         display_unpublished = self.request.user.is_authenticated
