@@ -173,7 +173,7 @@ class SequenceAdmin(BaseModelAdmin):
 
 
 class SourceAdmin(BaseModelAdmin):
-    exclude = ("source_status",)
+    exclude = EXCLUDE + ("source_status",)
 
     # These search fields are also available on the user-source inline relationship in the user admin page
     search_fields = (
