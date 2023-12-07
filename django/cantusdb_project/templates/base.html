@@ -320,7 +320,7 @@
                     </div>
                 </div>
                 <div class="row">
-                    <div class="col-md-6" id="logos">
+                    <div class="col-md-8" id="logos">
                         <div class="row">
                             <div class="col-md-6">
                                 <a href="https://uwaterloo.ca/" target="_blank">
@@ -373,17 +373,7 @@
                             </a>
                         </div>
                     </div>
-                    <div class="col-md-3" id="database-links">
-                        <h5>Database Links</h5>
-                        <ul class="list-group list-group-flush">
-                            <li class="list-group-item p-0">
-                                <a href="https://cantusindex.org/" target="_blank">
-                                    Cantus Index
-                                </a>
-                            </li>
-                        </ul>
-                    </div>
-                    <div class="col-md-3" id="login">
+                    <div class="col-md-4" id="login">
                         {% if not request.user.is_anonymous %}
                             {% if request.user|has_group:"contributor" or request.user|has_group:"editor" or request.user|has_group:"project manager" %}
                                 <h5>Admin Navigation</h5>
