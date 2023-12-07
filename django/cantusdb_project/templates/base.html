@@ -320,7 +320,7 @@
                     </div>
                 </div>
                 <div class="row">
-                    <div class="col-md-6" id="logos">
+                    <div class="col-md-8" id="logos">
                         <div class="row">
                             <div class="col-md-6">
                                 <a href="https://uwaterloo.ca/" target="_blank">
@@ -373,57 +373,7 @@
                             </a>
                         </div>
                     </div>
-                    <div class="col-md-3" id="database-links">
-                        <h5>Database Links</h5>
-                        <ul class="list-group list-group-flush">
-                            <li class="list-group-item p-0">
-                                <a href="https://cantusindex.org/" target="_blank">
-                                    Cantus Index (all chants catalogue)
-                                </a>
-                            </li>
-                            <li class="list-group-item p-0">
-                                <a href="https://pemdatabase.eu/" target="_blank">
-                                    Portuguese Early Music Database
-                                </a>
-                            </li>
-                            <li class="list-group-item p-0">
-                                <a href="http://cantus.sk" target="_blank">
-                                    Slovak Early Music Database
-                                </a>
-                            </li>
-                            <li class="list-group-item p-0">
-                                <a href="http://hun-chant.eu" target="_blank">
-                                    Hungarian Chant Database
-                                </a>
-                            </li>
-                            <li class="list-group-item p-0">
-                                <a href="http://cantusbohemiae.cz" target="_blank">
-                                    Fontes Cantus Bohemiae
-                                </a>
-                            </li>
-                            <li class="list-group-item p-0">
-                                <a href="http://cantus.ispan.pl" target="_blank">
-                                    Cantus Planus in Polonia
-                                </a>
-                            </li>
-                            <li class="list-group-item p-0">
-                                <a href="http://musicahispanica.eu" target="_blank">
-                                    Spanish Early Music Manuscript Database
-                                </a>
-                            </li>
-                            <li class="list-group-item p-0">
-                                <a href="http://musmed.eu" target="_blank">
-                                    Medieval Music Manuscripts Online
-                                </a>
-                            </li>
-                            <li class="list-group-item p-0">
-                                <a href="http://comparatio.irht.cnrs.fr" target="_blank">
-                                    Comparatio
-                                </a>
-                            </li>
-                        </ul>
-                    </div>
-                    <div class="col-md-3" id="login">
+                    <div class="col-md-4" id="login">
                         {% if not request.user.is_anonymous %}
                             {% if request.user|has_group:"contributor" or request.user|has_group:"editor" or request.user|has_group:"project manager" %}
                                 <h5>Admin Navigation</h5>
