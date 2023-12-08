@@ -41,7 +41,7 @@ function globalSearch() {
                 const feast = chant.feast__name ?? "";
                 const cantus_id = chant.cantus_id ?? "";
                 const mode = chant.mode ?? "";
-                const siglum = chant.siglum ?? "";
+                const siglum = chant.source__siglum ?? "";
                 const folio = chant.folio ?? "";
                 const sequence = chant.c_sequence ?? "";
                 // add an entry to the list-group
