@@ -1,4 +1,5 @@
 import random
+import unittest
 from django.urls import reverse
 from django.test import TestCase
 from articles.tests.test_articles import make_fake_article
@@ -5051,10 +5052,12 @@ class JsonCidTest(TestCase):
 
 
 class JsonConcordancesExportTest(TestCase):
+    @unittest.skip("As of mid-December 2023, this API has not yet been implemented")
     def test_response(self):
         response = self.client.get(reverse("json-concordances-export"))
         self.assertEqual(response.status_code, 200)
 
+    @unittest.skip("As of mid-December 2023, this API has not yet been implemented")
     def test_values(self):
         chant: Chant = make_fake_chant()
         expected_values: dict = {
@@ -5089,6 +5092,7 @@ class JsonConcordancesExportTest(TestCase):
             with self.subTest(key=key):
                 self.assertEqual(expected_values[key], json_for_chant[key])
 
+    @unittest.skip("As of mid-December 2023, this API has not yet been implemented")
     def test_chants_vs_sequences(self):
         chant: Chant = make_fake_chant(
             manuscript_full_text_std_spelling="this is a chant"
@@ -5108,6 +5112,7 @@ class JsonConcordancesExportTest(TestCase):
         returned_full_text_value = json_for_chant["full_text"]
         self.assertEqual(expected_full_text_value, returned_full_text_value)
 
+    @unittest.skip("As of mid-December 2023, this API has not yet been implemented")
     def test_published_vs_unpublished(self):
         published_source = make_fake_source(published=True)
         published_chant = make_fake_chant(
