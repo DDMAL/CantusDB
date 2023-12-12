@@ -705,7 +705,7 @@ class ChantListViewTest(TestCase):
         # if the user tries to visit /chants/ without specifying a ?source= query parameter,
         # we should return a 404 page
         response = self.client.get(reverse("chant-list"))
-        self.assertEqual(response.status_code, 400)
+        self.assertEqual(response.status_code, 404)
 
     def test_nonexistent_source(self):
         cantus_segment = make_fake_segment(id=4063)
