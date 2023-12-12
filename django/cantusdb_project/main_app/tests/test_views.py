@@ -5050,6 +5050,94 @@ class JsonCidTest(TestCase):
         self.assertEqual(json_for_one_chant_3["full_text"], "standard spelling")
 
 
+class JsonConcordancesExportTest(TestCase):
+    def test_response(self):
+        response = self.client.get(reverse("json-concordances-export"))
+        self.assertEqual(response.status_code, 200)
+
+    def test_values(self):
+        chant: Chant = make_fake_chant()
+        expected_values: dict = {
+            "siglum": chant.source.siglum,
+            "srclink": f"http://testserver/source/{chant.source.id}",
+            "chantlink": f"http://testserver/chant/{chant.id}",
+            "folio": chant.folio,
+            "sequence": chant.c_sequence,
+            "incipit": chant.incipit,
+            "feast": chant.feast.name,
+            "genre": chant.genre.name,
+            "office": chant.office.name,
+            "position": chant.position,
+            "mode": chant.mode,
+            "image": chant.image_link,
+            "melody": chant.volpiano,
+            "full_text": chant.manuscript_full_text_std_spelling,
+            "db": "CD",
+        }
+
+        response = self.client.get(reverse("json-concordances-export"))
+
+        response_json = response.json()
+        with self.subTest(subtest="test type of entire JSON response"):
+            self.assertIsInstance(response_json, list)
+
+        json_for_chant = response_json[0]
+        with self.subTest(subtest="test type of first item in JSON array"):
+            self.assertIsInstance(json_for_chant, dict)
+
+        for key in expected_values.keys():
+            with self.subTest(key=key):
+                self.assertEqual(expected_values[key], json_for_chant[key])
+
+    def test_chants_vs_sequences(self):
+        chant: Chant = make_fake_chant(
+            manuscript_full_text_std_spelling="this is a chant"
+        )
+        sequence: Sequence = make_fake_sequence()
+        sequence.manuscript_full_text_std_spelling = "this is a sequence"
+        sequence.save()
+
+        response = self.client.get(reverse("json-concordances-export"))
+        response_json: list = response.json()
+        self.assertEqual(
+            len(response_json),
+            1,  # should be just one object, for the chant.
+        )
+        json_for_chant = response_json[0]
+        expected_full_text_value = chant.manuscript_full_text_std_spelling
+        returned_full_text_value = json_for_chant["full_text"]
+        self.assertEqual(expected_full_text_value, returned_full_text_value)
+
+    def test_published_vs_unpublished(self):
+        published_source = make_fake_source(published=True)
+        published_chant = make_fake_chant(
+            source=published_source,
+            manuscript_full_text_std_spelling=(
+                "this chant, from a published source, "
+                "should appear in the concordances-export API"
+            ),
+        )
+        unpublished_source = make_fake_source(published=False)
+        unpublished_chant = make_fake_chant(
+            source=unpublished_source,
+            manuscript_full_text_std_spelling=(
+                "this chant, from an unpublished source, "
+                "should not appear in the concordances-export API"
+            ),
+        )
+
+        response = self.client.get(reverse("json-concordances-export"))
+        response_json: list = response.json()
+        self.assertEqual(
+            len(response_json),
+            1,  # should be just one object, for the published chant.
+        )
+        json_for_chant = response_json[0]
+        expected_full_text_value = published_chant.manuscript_full_text_std_spelling
+        returned_full_text_value = json_for_chant["full_text"]
+        self.assertEqual(expected_full_text_value, returned_full_text_value)
+
+
 class CsvExportTest(TestCase):
     def test_url(self):
         source = make_fake_source(published=True)
