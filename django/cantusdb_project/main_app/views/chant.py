@@ -1,9 +1,12 @@
-import lxml.html as lh
-import requests
+from requests import get, Response
+from requests.exceptions import SSLError, Timeout, ConnectionError
 import urllib
 import json
 from django.contrib import messages
+from django.contrib.auth.mixins import LoginRequiredMixin, UserPassesTestMixin
+from django.core.exceptions import ObjectDoesNotExist, PermissionDenied
 from django.db.models import Q, QuerySet, Value
+from django.http import Http404
 from django.shortcuts import get_object_or_404
 from django.urls import reverse
 from django.views.generic import (
@@ -14,7 +17,7 @@ from django.views.generic import (
     TemplateView,
     UpdateView,
 )
-from django.core.exceptions import PermissionDenied
+from typing import Optional
 from main_app.forms import (
     ChantCreateForm,
     ChantEditForm,
@@ -30,15 +33,7 @@ from main_app.models import (
     Office,
 )
 from align_text_mel import syllabize_text_and_melody, syllabize_text_to_string
-from django.contrib.auth.mixins import LoginRequiredMixin
-from django.http import Http404
-from next_chants import next_chants
 from collections import Counter
-from django.contrib.auth.mixins import UserPassesTestMixin
-from typing import Optional
-from requests.exceptions import SSLError, Timeout, ConnectionError
-from django.core.exceptions import ObjectDoesNotExist
-from requests import Response
 from main_app.permissions import (
     user_can_edit_chants_in_source,
     user_can_proofread_chant,
@@ -90,7 +85,7 @@ def parse_json_from_ci_api(path: str) -> Optional[list]:
     assert path[0] != "/"
     url: str = f"https://cantusindex.org/{path}"
     try:
-        response: Optional[Response] = requests.get(
+        response: Optional[Response] = get(
             url,
             timeout=5,
         )
