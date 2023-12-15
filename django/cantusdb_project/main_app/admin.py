@@ -16,14 +16,13 @@ from main_app.forms import (
 )
 
 # these fields should not be editable by all classes
-EXCLUDE = (
-    "json_info",
-)
+EXCLUDE = ("json_info",)
 
 READ_ONLY = (
     "created_by",
     "last_updated_by",
 )
+
 
 class BaseModelAdmin(VersionAdmin):
     exclude = EXCLUDE
