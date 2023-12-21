@@ -11,8 +11,8 @@ RETENTION_COUNT=8                                                   # This is th
 
 mkdir -p $BACKUP_DIR
 FILENAME=$(date "+%Y-%m-%dT%H:%M:%S").sql.gz
-/usr/local/bin/docker exec cantusdb_postgres_1 /usr/local/bin/postgres_backup.sh $FILENAME
-/usr/local/bin/docker copy cantusdb_postgres_1:/var/lib/postgresql/backups/$FILENAME $BACKUP_DIR
-/usr/local/bin/docker exec cantusdb_postgres_1 rm /var/lib/postgresql/backups/$FILENAME
+/usr/bin/docker exec cantusdb_postgres_1 /usr/local/bin/postgres_backup.sh $FILENAME
+/usr/bin/docker cp cantusdb_postgres_1:/var/lib/postgresql/backups/$FILENAME $BACKUP_DIR
+/usr/bin/docker exec cantusdb_postgres_1 rm /var/lib/postgresql/backups/$FILENAME
 FILES_TO_REMOVE=$(ls -td $BACKUP_DIR/* | tail -n +$(($RETENTION_COUNT + 1)))
 [[ ! -z "$FILES_TO_REMOVE" ]] && rm $FILES_TO_REMOVE
