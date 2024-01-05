@@ -1042,14 +1042,15 @@ class ChantDeleteView(LoginRequiredMixin, UserPassesTestMixin, DeleteView):
         return reverse("source-edit-chants", args=[self.object.source.id])
 
 
-class ChantIndexView(TemplateView):
-    template_name = "full_index.html"
+class ChantInventoryView(TemplateView):
+    template_name = "full_inventory.html"
+    pk_url_kwarg = "source_id"
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
 
-        source_id = self.request.GET.get("source")
-        source = Source.objects.get(id=source_id)
+        source_id = self.kwargs.get(self.pk_url_kwarg)
+        source = get_object_or_404(Source, id=source_id)
 
         display_unpublished = self.request.user.is_authenticated
         if (not display_unpublished) and (source.published == False):
