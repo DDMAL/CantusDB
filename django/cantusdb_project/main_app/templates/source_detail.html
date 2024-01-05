@@ -88,7 +88,7 @@
 
                 {% if source.full_source is not None %}
                     <dt>Full Source/Fragment</dt>
-                    <dd>{{ source.full_source|yesno:"Full Source,Fragment" }}</dd>
+                    <dd>{{ source.full_source|yesno:"Full Source,Fragment or Fragmented" }}</dd>
                 {% endif %}
 
                 {% if user.is_authenticated %}
