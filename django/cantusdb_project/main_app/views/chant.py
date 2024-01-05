@@ -299,7 +299,6 @@ class ChantListView(ListView):
     Displays a list of Chant objects, accessed with ``chants`` followed by a series of GET params
 
     ``GET`` parameters:
-        ``source``: Filters by Source of Chant
         ``feast``: Filters by Feast of Chant
         ``search_text``: Filters by text of Chant
         ``genre``: Filters by genre of Chant
@@ -310,6 +309,7 @@ class ChantListView(ListView):
     paginate_by = 100
     context_object_name = "chants"
     template_name = "chant_list.html"
+    pk_url_kwarg = "source_id"
 
     def get_queryset(self):
         """Gather the chants to be displayed.
@@ -320,9 +320,8 @@ class ChantListView(ListView):
         Returns:
             queryset: The Chant objects to be displayed.
         """
-        # when arriving at this page, the url must have a source specified
-        source_id = self.request.GET.get("source")
-        source = Source.objects.get(id=source_id)
+        source_id = self.kwargs.get(self.pk_url_kwarg)
+        source = get_object_or_404(Source, id=source_id)
 
         display_unpublished = self.request.user.is_authenticated
         if (source.published is False) and (not display_unpublished):
@@ -366,8 +365,8 @@ class ChantListView(ListView):
         )  # to be displayed in the "Source" dropdown in the form
         context["sources"] = sources
 
-        source_id = self.request.GET.get("source")
-        source = Source.objects.get(id=source_id)
+        source_id = self.kwargs.get(self.pk_url_kwarg)
+        source = get_object_or_404(Source, id=source_id)
         if source not in sources:
             # the chant list ("Browse Chants") page should only be visitable
             # for sources in the CANTUS Database segment, as sources in the Bower
