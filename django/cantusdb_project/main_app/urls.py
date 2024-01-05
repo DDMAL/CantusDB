@@ -16,7 +16,7 @@ from main_app.views.chant import (
     ChantDeleteView,
     ChantDetailView,
     ChantEditSyllabificationView,
-    ChantIndexView,
+    ChantInventoryView,
     ChantListView,
     ChantSearchView,
     ChantSearchMSView,
@@ -188,11 +188,6 @@ urlpatterns = [
         ChantEditSyllabificationView.as_view(),
         name="source-edit-syllabification",
     ),
-    path(
-        "index/",
-        ChantIndexView.as_view(),
-        name="chant-index",
-    ),  # /index/?source={source id}
     # feast
     path(
         "feasts/",
@@ -285,6 +280,11 @@ urlpatterns = [
         "source/<int:source_id>/chants/",
         ChantListView.as_view(),
         name="chant-list",
+    ),
+    path(
+        "source/<int:source_id>/inventory/",
+        ChantInventoryView.as_view(),
+        name="chant-inventory",
     ),
     path(
         "source-create/",
