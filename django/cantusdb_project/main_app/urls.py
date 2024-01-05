@@ -154,11 +154,6 @@ urlpatterns = [
     path("century/<int:pk>", CenturyDetailView.as_view(), name="century-detail"),
     # chant
     path(
-        "chants/",
-        ChantListView.as_view(),
-        name="chant-list",
-    ),  # /chants/?source={source id}
-    path(
         "chant/<int:pk>",
         ChantDetailView.as_view(),
         name="chant-detail",
@@ -285,6 +280,11 @@ urlpatterns = [
         "source/<int:pk>",
         SourceDetailView.as_view(),
         name="source-detail",
+    ),
+    path(
+        "source/<int:source_id>/chants/",
+        ChantListView.as_view(),
+        name="chant-list",
     ),
     path(
         "source-create/",
