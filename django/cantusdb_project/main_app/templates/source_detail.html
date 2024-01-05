@@ -191,7 +191,7 @@
                         <br>
                         {% if source.segment.id == 4063 %}
                             {# only display this link for sources in the CANTUS segment #}
-                            <a href="{% url "chant-list" %}?source={{ source.id }}" class="guillemet" target="_blank">View all chants</a>
+                            <a href="{% url "chant-list" source.id %}" class="guillemet" target="_blank">View all chants</a>
                         {% endif %}
                         <a href="{% url "chant-index" %}?source={{ source.id }}" class="guillemet" target="_blank">View full inventory</a>
                         <a href="{% url "csv-export" source.id%}" class="guillemet" target="_blank" download="{{ source.id }}.csv">CSV export</a>
