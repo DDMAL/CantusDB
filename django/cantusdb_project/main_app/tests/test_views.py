@@ -2693,30 +2693,30 @@ class ChantSearchMSViewTest(TestCase):
         self.assertIn(f'<a href="{image_link}" target="_blank">Image</a>', html)
 
 
-class ChantIndexViewTest(TestCase):
+class ChantInventoryViewTest(TestCase):
     def test_url_and_templates(self):
         source = make_fake_source()
-        response = self.client.get(reverse("chant-index"), {"source": source.id})
+        response = self.client.get(reverse("chant-inventory", args=[source.id]))
         self.assertEqual(response.status_code, 200)
-        self.assertTemplateUsed(response, "full_index.html")
+        self.assertTemplateUsed(response, "full_inventory.html")
 
     def test_published_vs_unpublished(self):
         source = make_fake_source()
 
         source.published = True
         source.save()
-        response = self.client.get(reverse("chant-index"), {"source": source.id})
+        response = self.client.get(reverse("chant-inventory", args=[source.id]))
         self.assertEqual(response.status_code, 200)
 
         source.published = False
         source.save()
-        response = self.client.get(reverse("chant-index"), {"source": source.id})
+        response = self.client.get(reverse("chant-inventory", args=[source.id]))
         self.assertEqual(response.status_code, 403)
 
     def test_chant_source_queryset(self):
         chant_source = make_fake_source()
         chant = make_fake_chant(source=chant_source)
-        response = self.client.get(reverse("chant-index"), {"source": chant_source.id})
+        response = self.client.get(reverse("chant-inventory", args=[chant_source.id]))
         self.assertEqual(chant_source, response.context["source"])
         self.assertIn(chant, response.context["chants"])
 
@@ -2727,7 +2727,7 @@ class ChantIndexViewTest(TestCase):
             published=True,
         )
         sequence = Sequence.objects.create(source=seq_source)
-        response = self.client.get(reverse("chant-index"), {"source": seq_source.id})
+        response = self.client.get(reverse("chant-inventory", args=[seq_source.id]))
         self.assertEqual(seq_source, response.context["source"])
         self.assertIn(sequence, response.context["chants"])
 
@@ -2736,7 +2736,7 @@ class ChantIndexViewTest(TestCase):
         source = make_fake_source(published=True, siglum=siglum)
         source_title = source.title
         make_fake_chant(source=source)
-        response = self.client.get(reverse("chant-index"), {"source": source.id})
+        response = self.client.get(reverse("chant-inventory", args=[source.id]))
         html = str(response.content)
         self.assertIn(siglum, html)
         self.assertIn(source_title, html)
@@ -2747,7 +2747,7 @@ class ChantIndexViewTest(TestCase):
         source = make_fake_source(published=True)
         chant = make_fake_chant(source=source)
         marginalia = chant.marginalia
-        response = self.client.get(reverse("chant-index"), {"source": source.id})
+        response = self.client.get(reverse("chant-inventory", args=[source.id]))
         html = str(response.content)
         self.assertIn(marginalia, html)
         expected_html_substring = f"<td>{marginalia}</td>"
@@ -2757,7 +2757,7 @@ class ChantIndexViewTest(TestCase):
         source = make_fake_source(published=True)
         chant = make_fake_chant(source=source)
         folio = chant.folio
-        response = self.client.get(reverse("chant-index"), {"source": source.id})
+        response = self.client.get(reverse("chant-inventory", args=[source.id]))
         html = str(response.content)
         self.assertIn(folio, html)
         expected_html_substring = f"<td>{folio}</td>"
@@ -2767,7 +2767,7 @@ class ChantIndexViewTest(TestCase):
         source = make_fake_source(published=True)
         chant = make_fake_chant(source=source)
         c_sequence = str(chant.c_sequence)
-        response = self.client.get(reverse("chant-index"), {"source": source.id})
+        response = self.client.get(reverse("chant-inventory", args=[source.id]))
         html = str(response.content)
         self.assertIn(c_sequence, html)
 
@@ -2776,7 +2776,7 @@ class ChantIndexViewTest(TestCase):
         source = make_fake_source(published=True, segment=bower_segment)
         sequence = make_fake_sequence(source=source)
         s_sequence = sequence.s_sequence
-        response = self.client.get(reverse("chant-index"), {"source": source.id})
+        response = self.client.get(reverse("chant-inventory", args=[source.id]))
         html = str(response.content)
         self.assertIn(s_sequence, html)
 
@@ -2789,7 +2789,7 @@ class ChantIndexViewTest(TestCase):
             source=source,
             feast=feast,
         )
-        response = self.client.get(reverse("chant-index"), {"source": source.id})
+        response = self.client.get(reverse("chant-inventory", args=[source.id]))
         html = str(response.content)
         self.assertIn(feast_name, html)
         self.assertIn(feast_description, html)
@@ -2805,7 +2805,7 @@ class ChantIndexViewTest(TestCase):
             manuscript_full_text_std_spelling=fulltext,
             office=office,
         )
-        response = self.client.get(reverse("chant-index"), {"source": source.id})
+        response = self.client.get(reverse("chant-inventory", args=[source.id]))
         html = str(response.content)
         self.assertIn(office_name, html)
         self.assertIn(office_description, html)
@@ -2819,7 +2819,7 @@ class ChantIndexViewTest(TestCase):
             source=source,
             genre=genre,
         )
-        response = self.client.get(reverse("chant-index"), {"source": source.id})
+        response = self.client.get(reverse("chant-inventory", args=[source.id]))
         html = str(response.content)
         self.assertIn(genre_name, html)
         self.assertIn(genre_description, html)
@@ -2830,7 +2830,7 @@ class ChantIndexViewTest(TestCase):
             source=source,
         )
         position = chant.position
-        response = self.client.get(reverse("chant-index"), {"source": source.id})
+        response = self.client.get(reverse("chant-inventory", args=[source.id]))
         html = str(response.content)
         self.assertIn(position, html)
 
@@ -2839,7 +2839,7 @@ class ChantIndexViewTest(TestCase):
         chant = make_fake_chant(source=source)
         incipit = chant.incipit
         url = reverse("chant-detail", args=[chant.id])
-        response = self.client.get(reverse("chant-index"), {"source": source.id})
+        response = self.client.get(reverse("chant-inventory", args=[source.id]))
         html = str(response.content)
         self.assertIn(incipit, html)
         self.assertIn(url, html)
@@ -2852,7 +2852,7 @@ class ChantIndexViewTest(TestCase):
         sequence = make_fake_sequence(source=source)
         incipit = sequence.incipit
         url = reverse("sequence-detail", args=[sequence.id])
-        response = self.client.get(reverse("chant-index"), {"source": source.id})
+        response = self.client.get(reverse("chant-inventory", args=[source.id]))
         html = str(response.content)
         self.assertIn(incipit, html)
         self.assertIn(url, html)
@@ -2863,7 +2863,7 @@ class ChantIndexViewTest(TestCase):
         source = make_fake_source(published=True)
         chant = make_fake_chant(source=source)
         cantus_id = chant.cantus_id
-        response = self.client.get(reverse("chant-index"), {"source": source.id})
+        response = self.client.get(reverse("chant-inventory", args=[source.id]))
         html = str(response.content)
         self.assertIn(cantus_id, html)
         expected_html_substring = f"<td>{cantus_id}</td>"
@@ -2878,7 +2878,7 @@ class ChantIndexViewTest(TestCase):
         # single numerals are found elsewhere in the template
         chant.mode = mode
         chant.save()
-        response = self.client.get(reverse("chant-index"), {"source": source.id})
+        response = self.client.get(reverse("chant-inventory", args=[source.id]))
         html = str(response.content)
         self.assertIn(mode, html)
         expected_html_substring = f"<td>{mode}</td>"
@@ -2893,7 +2893,7 @@ class ChantIndexViewTest(TestCase):
             source=source,
             differentia=differentia,
         )
-        response = self.client.get(reverse("chant-index"), {"source": source.id})
+        response = self.client.get(reverse("chant-inventory", args=[source.id]))
         html = str(response.content)
         self.assertIn(differentia, html)
         expected_html_substring = f"<td>{differentia}</td>"
@@ -2911,7 +2911,7 @@ class ChantIndexViewTest(TestCase):
         chant.diff_db = diff_db
         chant.save()
 
-        response = self.client.get(reverse("chant-index"), {"source": source.id})
+        response = self.client.get(reverse("chant-inventory", args=[source.id]))
         html: str = str(response.content)
         self.assertIn(diff_id, html)
         expected_html_substring: str = f'<a href="https://differentiaedatabase.ca/differentia/{diff_id}" target="_blank">'
@@ -5536,7 +5536,7 @@ class AjaxSearchBarTest(TestCase):
     def test_cantus_id_search(self):
         chant_with_normal_cantus_id = make_fake_chant(cantus_id="012345")
         chant_with_numerals_in_incipit = make_fake_chant(
-            incipit="0 me! 0 my! This is unexpected!"
+            cantus_id="223455", incipit="0 me! 0 my! This is unexpected!"
         )
 
         # for search terms that contain numerals, we should only return
