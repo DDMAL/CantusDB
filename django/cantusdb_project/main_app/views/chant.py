@@ -1067,7 +1067,7 @@ class ChantIndexView(TemplateView):
             queryset = (
                 source.chant_set.annotate(record_type=Value("chant"))
                 .order_by("folio", "c_sequence")
-                .select_related("feast", "office", "genre")
+                .select_related("feast", "office", "genre", "diff_db")
             )
 
         context["source"] = source
