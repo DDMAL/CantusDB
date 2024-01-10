@@ -424,8 +424,8 @@ class ChantByCantusIDView(ListView):
         return super().dispatch(request, *args, **kwargs)
 
     def get_queryset(self):
-        chant_set = Chant.objects.filter(cantus_id=self.cantus_id)
-        sequence_set = Sequence.objects.filter(cantus_id=self.cantus_id)
+        chant_set = Chant.objects.filter(cantus_id=self.cantus_id).select_related("source", "office", "genre", "feast")
+        sequence_set = Sequence.objects.filter(cantus_id=self.cantus_id).select_related("source", "office", "genre", "feast")
         display_unpublished = self.request.user.is_authenticated
         if not display_unpublished:
             chant_set = chant_set.filter(source__published=True)
