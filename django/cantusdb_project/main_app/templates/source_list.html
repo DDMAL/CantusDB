@@ -71,20 +71,24 @@
             <thead>
                 <tr>
                     <th scope="col" class="text-wrap" style="text-align:center">Siglum</th>
+                    <th scope="col" class="text-wrap" style="text-align:center">Source</th>
                     <th scope="col" class="text-wrap" style="text-align:center">Summary</th>
                     <th scope="col" class="text-wrap" style="text-align:center">Date/Origin</th>
                     <th scope="col" class="text-wrap" style="text-align:center">Image Link</th>
-                    <th scope="col" class="text-wrap" style="text-align:center">Chants/Melodies</th>
+                    <th scope="col" class="text-wrap" style="text-align:center">Chants<br>/&nbsp;Melodies</th>
                 </tr>
             </thead>
             <tbody>
                 {% for source in sources %}
                     <tr>
                         <td class="text-wrap" style="text-align:center">
-                            <a href="{% url 'source-detail' source.id %}" title="{{ source.title }}"><b>{{ source.siglum }}</b></a>
+                            <b>{{ source.siglum }}</b></a>
                         </td>
-                        <td class="text-wrap" style="text-align:center">
-                            {{ source.summary|default:""|truncatechars_html:140 }}
+                        <td class="text-wrap" style="text-align:center" title="{{ source.title }}">
+                            <a href="{% url 'source-detail' source.id %}"><b>{{ source.title|truncatechars_html:50 }}</b></a>
+                        </td>
+                        <td class="text-wrap" style="text-align:center" title="{{ source.summary|default:""|truncatechars_html:500 }}">
+                            {{ source.summary|default:""|truncatechars_html:120 }}
                         </td>
                         <td class="text-wrap" style="text-align:center">
                             {% if source.century.exists %}

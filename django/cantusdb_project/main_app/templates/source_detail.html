@@ -45,7 +45,7 @@
                 {% endif %}
 
                 {% if source.selected_bibliography %}
-                    <dt>Selected Bibilography</dt>
+                    <dt>Selected Bibliography</dt>
                     <dd>{{ source.selected_bibliography|safe|linebreaks }}</dd>
                 {% endif %}
 
@@ -64,7 +64,7 @@
                 {% endif %}
 
                 {% if source.full_text_entered_by.exists %}
-                    <dt>Full Text Entered by</dt>
+                    <dt>Full Texts Entered by</dt>
                     <dd>
                         {% for editor in source.full_text_entered_by.all %}
                             <a href="{% url 'user-detail' editor.id %}">{{ editor.full_name }}</a><br>

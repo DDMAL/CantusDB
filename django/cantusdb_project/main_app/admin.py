@@ -16,15 +16,17 @@ from main_app.forms import (
 )
 
 # these fields should not be editable by all classes
-EXCLUDE = (
+EXCLUDE = ("json_info",)
+
+READ_ONLY = (
     "created_by",
     "last_updated_by",
-    "json_info",
 )
 
 
 class BaseModelAdmin(VersionAdmin):
     exclude = EXCLUDE
+    readonly_fields = READ_ONLY
 
     # if an object is created in the admin interface, assign the user to the created_by field
     # else if an object is updated in the admin interface, assign the user to the last_updated_by field
@@ -59,7 +61,7 @@ class ChantAdmin(BaseModelAdmin):
         "id",
     )
 
-    readonly_fields = (
+    readonly_fields = READ_ONLY + (
         "date_created",
         "date_updated",
     )
@@ -173,7 +175,7 @@ class SequenceAdmin(BaseModelAdmin):
 
 
 class SourceAdmin(BaseModelAdmin):
-    exclude = ("source_status",)
+    exclude = EXCLUDE + ("source_status",)
 
     # These search fields are also available on the user-source inline relationship in the user admin page
     search_fields = (
@@ -181,7 +183,7 @@ class SourceAdmin(BaseModelAdmin):
         "title",
         "id",
     )
-    readonly_fields = (
+    readonly_fields = READ_ONLY + (
         "number_of_chants",
         "number_of_melodies",
         "date_created",
