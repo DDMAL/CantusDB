@@ -345,6 +345,11 @@ urlpatterns = [
         name="json-node-export",
     ),
     path(
+        "notation/<int:id>/json",
+        views.notation_json_export,
+        name="notation-json-export",
+    ),
+    path(
         "provenance/<int:id>/json",
         views.provenance_json_export,
         name="provenance-json-export",

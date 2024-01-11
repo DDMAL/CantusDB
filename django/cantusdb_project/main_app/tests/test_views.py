@@ -20,6 +20,7 @@ from .make_fakes import (
     make_fake_chant,
     make_fake_feast,
     make_fake_genre,
+    make_fake_notation,
     make_fake_office,
     make_fake_provenance,
     make_fake_rism_siglum,
@@ -37,6 +38,7 @@ from main_app.models import (
     Differentia,
     Feast,
     Genre,
+    Notation,
     Office,
     Provenance,
     Segment,
@@ -4656,6 +4658,37 @@ class JsonNodeExportTest(TestCase):
         self.assertEqual(unpublished_sequence_response.status_code, 404)
 
 
+class NotationJsonTest(TestCase):
+    def test_response(self):
+        notation: Notation = make_fake_notation()
+        id: int = notation.id
+
+        response = self.client.get(reverse("notation-json-export", args=[id]))
+        self.assertEqual(response.status_code, 200)
+        self.assertIsInstance(response, JsonResponse)
+
+    def test_keys(self):
+        notation: Notation = make_fake_notation()
+        id: int = notation.id
+
+        response = self.client.get(reverse("notation-json-export", args=[id]))
+        response_json: dict = response.json()
+        response_keys = response_json.keys()
+
+        expected_keys = [
+            # defined in BaseModel
+            "date_created",
+            "date_updated",
+            "created_by_id",
+            "last_updated_by_id",
+            # defined in Notation
+            "name",
+        ]
+        for key in expected_keys:
+            with self.subTest(key=key):
+                self.assertIn(key, response_keys)
+
+
 class ProvenanceJsonTest(TestCase):
     def test_response(self):
         provenance: Provenance = make_fake_provenance()
@@ -4674,7 +4707,7 @@ class ProvenanceJsonTest(TestCase):
         response_keys = response_json.keys()
 
         expected_keys = [
-            # inherited from BaseModel
+            # defined in BaseModel
             "date_created",
             "date_updated",
             "created_by_id",

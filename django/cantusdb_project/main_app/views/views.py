@@ -744,6 +744,19 @@ def json_node_export(request, id: int) -> JsonResponse:
     return HttpResponseNotFound()
 
 
+def notation_json_export(request, id: int) -> JsonResponse:
+    """
+    Return all fields of the notation with the specified ID
+    """
+
+    notation_qs: QuerySet[Notation] = Notation.objects.filter(id=id)
+    if len(notation_qs) == 0:
+        return HttpResponseNotFound()
+
+    values: dict = dict(*notation_qs.values())
+    return JsonResponse(values)
+
+
 def provenance_json_export(request, id: int) -> JsonResponse:
     """
     Return all fields of the provenance with the specified ID
