@@ -744,6 +744,19 @@ def json_node_export(request, id: int) -> JsonResponse:
     return HttpResponseNotFound()
 
 
+def provenance_json_export(request, id: int) -> JsonResponse:
+    """
+    Return all fields of the provenance with the specified ID
+    """
+
+    provenance_qs: QuerySet[Provenance] = Provenance.objects.filter(id=id)
+    if len(provenance_qs) == 0:
+        return HttpResponseNotFound()
+
+    values: dict = dict(*provenance_qs.values())
+    return JsonResponse(values)
+
+
 def articles_list_export(request) -> HttpResponse:
     """Returns a list of URLs of all articles on the site
 
