@@ -783,12 +783,25 @@ def provenance_json_export(request, id: int) -> JsonResponse:
     Return all fields of the provenance with the specified ID
     """
 
-    provenance_qs: QuerySet[Provenance] = Provenance.objects.filter(id=id)
-    if len(provenance_qs) == 0:
+    try:
+        provenance: Provenance = Provenance.objects.get(id=id)
+    except Provenance.DoesNotExist:
         return HttpResponseNotFound()
 
-    values: dict = dict(*provenance_qs.values())
-    return JsonResponse(values)
+    User = get_user_model()
+    created_by: Optional[User] = provenance.created_by
+    last_updated_by: Optional[User] = provenance.last_updated_by
+
+    data = {
+        "id": provenance.id,
+        "name": provenance.name,
+        "date_created": provenance.date_created,
+        "date_updated": provenance.date_updated,
+        "created_by": created_by.id if created_by else None,
+        "last_updated_by": last_updated_by.id if last_updated_by else None,
+    }
+
+    return JsonResponse(data)
 
 
 def articles_list_export(request) -> HttpResponse:
