@@ -36,6 +36,7 @@ from django.templatetags.static import static
 from django.contrib.flatpages.models import FlatPage
 from dal import autocomplete
 from django.db.models import Q
+from django.shortcuts import get_object_or_404
 
 
 @login_required
@@ -746,28 +747,50 @@ def json_node_export(request, id: int) -> JsonResponse:
 
 def notation_json_export(request, id: int) -> JsonResponse:
     """
-    Return all fields of the notation with the specified ID
+    Return JsonResponse containing several key:value pairs
+    for the notation with the specified ID
     """
 
-    notation_qs: QuerySet[Notation] = Notation.objects.filter(id=id)
-    if len(notation_qs) == 0:
-        return HttpResponseNotFound()
+    notation: Notation = get_object_or_404(Notation, id=id)
 
-    values: dict = dict(*notation_qs.values())
-    return JsonResponse(values)
+    User = get_user_model()
+    created_by: Optional[User] = notation.created_by
+    last_updated_by: Optional[User] = notation.last_updated_by
+
+    data = {
+        "id": notation.id,
+        "name": notation.name,
+        "date_created": notation.date_created,
+        "date_updated": notation.date_updated,
+        "created_by": created_by.id if created_by else None,
+        "last_updated_by": last_updated_by.id if last_updated_by else None,
+    }
+
+    return JsonResponse(data)
 
 
 def provenance_json_export(request, id: int) -> JsonResponse:
     """
-    Return all fields of the provenance with the specified ID
+    Return JsonResponse containing several key:value pairs
+    for the provenance with the specified ID
     """
 
-    provenance_qs: QuerySet[Provenance] = Provenance.objects.filter(id=id)
-    if len(provenance_qs) == 0:
-        return HttpResponseNotFound()
+    provenance: Provenance = get_object_or_404(Provenance, id=id)
 
-    values: dict = dict(*provenance_qs.values())
-    return JsonResponse(values)
+    User = get_user_model()
+    created_by: Optional[User] = provenance.created_by
+    last_updated_by: Optional[User] = provenance.last_updated_by
+
+    data = {
+        "id": provenance.id,
+        "name": provenance.name,
+        "date_created": provenance.date_created,
+        "date_updated": provenance.date_updated,
+        "created_by": created_by.id if created_by else None,
+        "last_updated_by": last_updated_by.id if last_updated_by else None,
+    }
+
+    return JsonResponse(data)
 
 
 def articles_list_export(request) -> HttpResponse:
