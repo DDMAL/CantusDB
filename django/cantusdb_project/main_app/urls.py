@@ -324,11 +324,6 @@ urlpatterns = [
         name="json-sources-export",
     ),
     path(
-        "json-node/<int:id>",
-        views.json_node_export,
-        name="json-node-export",
-    ),
-    path(
         "json-nextchants/<str:cantus_id>",
         views.json_nextchants,
         name="json-nextchants",
@@ -342,6 +337,22 @@ urlpatterns = [
         "json-cid/<str:cantus_id>",
         views.json_cid_export,
         name="json-cid-export",
+    ),
+    # JSON APIs for returning data on individual objects in the database
+    path(
+        "json-node/<int:id>",
+        views.json_node_export,
+        name="json-node-export",
+    ),
+    path(
+        "notation/<int:id>/json",
+        views.notation_json_export,
+        name="notation-json-export",
+    ),
+    path(
+        "provenance/<int:id>/json",
+        views.provenance_json_export,
+        name="provenance-json-export",
     ),
     # misc search
     path(
