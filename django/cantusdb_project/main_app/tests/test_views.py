@@ -4676,13 +4676,12 @@ class NotationJsonTest(TestCase):
         response_keys = response_json.keys()
 
         expected_keys = [
-            # defined in BaseModel
+            "id",
+            "name",
             "date_created",
             "date_updated",
-            "created_by_id",
-            "last_updated_by_id",
-            # defined in Notation
-            "name",
+            "created_by",
+            "last_updated_by",
         ]
         for key in expected_keys:
             with self.subTest(key=key):
