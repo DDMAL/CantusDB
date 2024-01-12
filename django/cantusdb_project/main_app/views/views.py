@@ -775,10 +775,7 @@ def provenance_json_export(request, id: int) -> JsonResponse:
     for the provenance with the specified ID
     """
 
-    try:
-        provenance: Provenance = Provenance.objects.get(id=id)
-    except Provenance.DoesNotExist:
-        return HttpResponseNotFound()
+    provenance: Provenance = get_object_or_404(Provenance, id=id)
 
     User = get_user_model()
     created_by: Optional[User] = provenance.created_by
