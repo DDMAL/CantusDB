@@ -747,20 +747,11 @@ def json_node_export(request, id: int) -> JsonResponse:
 
 def notation_json_export(request, id: int) -> JsonResponse:
     """
-    Return all fields of the notation with the specified ID
+    Return JsonResponse containing several key:value pairs
+    for the notation with the specified ID
     """
 
-    # notation_qs: QuerySet[Notation] = Notation.objects.filter(id=id)
-    # if len(notation_qs) == 0:
-    #     return HttpResponseNotFound()
-
-    # values: dict = dict(*notation_qs.values())
-    # return JsonResponse(values)
-
-    try:
-        notation: Notation = Notation.objects.get(id=id)
-    except Notation.DoesNotExist:
-        return HttpResponseNotFound()
+    notation: Notation = get_object_or_404(Notation, id=id)
 
     User = get_user_model()
     created_by: Optional[User] = notation.created_by
@@ -780,7 +771,8 @@ def notation_json_export(request, id: int) -> JsonResponse:
 
 def provenance_json_export(request, id: int) -> JsonResponse:
     """
-    Return all fields of the provenance with the specified ID
+    Return JsonResponse containing several key:value pairs
+    for the provenance with the specified ID
     """
 
     try:
