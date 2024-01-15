@@ -72,7 +72,11 @@ from main_app.views.views import (
     DifferentiaAutocomplete,
     ProvenanceAutocomplete,
     ProofreadByAutocomplete,
+    handle400,
+    handle404,
 )
+from django.conf.urls import handler400, handler404
+
 
 urlpatterns = [
     path("__debug__/", include(debug_toolbar.urls)),
@@ -188,6 +192,11 @@ urlpatterns = [
         ChantEditSyllabificationView.as_view(),
         name="source-edit-syllabification",
     ),
+    path(
+        "chants/",
+        views.redirect_chant_list,
+        name="redirect-chant-list",
+    ),  # /chants/?source={source id}
     # feast
     path(
         "feasts/",
@@ -493,3 +502,4 @@ urlpatterns = [
 ]
 
 handler404 = "main_app.views.views.handle404"
+handler400 = "main_app.views.views.handle400"
