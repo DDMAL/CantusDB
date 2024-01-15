@@ -3,6 +3,7 @@ from typing import Optional, Union
 from django.db.models.query import QuerySet
 from django.http.response import JsonResponse
 from django.http import HttpResponse, HttpResponseNotFound
+from django.utils.http import urlencode
 from django.shortcuts import render, redirect
 from django.urls.base import reverse
 from articles.models import Article
@@ -27,7 +28,7 @@ from django.contrib import messages
 from django.http import Http404
 from django.contrib.auth import update_session_auth_hash
 from django.contrib.auth.forms import PasswordChangeForm
-from django.core.exceptions import PermissionDenied
+from django.core.exceptions import PermissionDenied, BadRequest
 from django.urls import reverse
 from django.contrib.auth import get_user_model
 from typing import List
@@ -805,8 +806,14 @@ def redirect_node_url(request, pk: int) -> HttpResponse:
     raise Http404("No record found matching the /node/ query.")
 
 
+def handle400(request, exception):
+    print(f"Status Code: {exception.status_code}")
+    return render(request, "400.html", status=400)
+
+
 def handle404(request, exception):
-    return render(request, "404.html")
+    print(f"Status Code: {exception.status_code}")
+    return render(request, "404.html", status=404)
 
 
 @login_required
@@ -957,6 +964,36 @@ def redirect_documents(request) -> HttpResponse:
     except KeyError:
         raise Http404
     return redirect(new_path)
+
+
+def redirect_chant_list(request) -> HttpResponse:
+    source_id: str = request.GET.get("source")
+    if source_id is None:
+        # source parameter must be provided
+        raise BadRequest("Source parameter must be provided")
+
+    base_url: str = reverse("chant-list", args=[source_id])
+
+    # optional search params
+    feast_id: str = request.GET.get("feast")
+    genre_id: str = request.GET.get("genre")
+    folio: str = request.GET.get("folio")
+    search_text: str = request.GET.get("search_text")
+
+    params: dict = {
+        key: value
+        for key, value in {
+            "feast": feast_id,
+            "genre": genre_id,
+            "folio": folio,
+            "search_text": search_text,
+        }.items()
+        if value is not None
+    }
+
+    query_string: str = urlencode(params)
+    url: str = "{}{}".format(base_url, f"?{query_string}" if query_string else "")
+    return redirect(url)
 
 
 class CurrentEditorsAutocomplete(autocomplete.Select2QuerySetView):
