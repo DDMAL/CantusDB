@@ -25,6 +25,7 @@ services:
       - ./config/nginx/conf.d:/etc/nginx/conf.d
       - static_volume:/resources/static
       - media_volume:/resources/media
+      - ./certificates:/etc/nginx/ssl/live
     restart: always
     depends_on:
       - django
