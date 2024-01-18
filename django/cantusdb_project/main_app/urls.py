@@ -72,8 +72,6 @@ from main_app.views.views import (
     DifferentiaAutocomplete,
     ProvenanceAutocomplete,
     ProofreadByAutocomplete,
-    handle400,
-    handle404,
 )
 from django.conf.urls import handler400, handler404
 
