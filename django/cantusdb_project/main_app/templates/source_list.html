@@ -85,7 +85,7 @@
                             <a href="{% url 'source-detail' source.id %}"><b>{{ source.title|truncatechars_html:50 }}</b></a>
                         </td>
                         <td class="text-wrap" style="text-align:center">
-                            <b>{{ source.siglum }}</b></a>
+                            <b>{{ source.siglum }}</b>
                         </td>
                         <td class="text-wrap" style="text-align:center" title="{{ source.summary|default:""|truncatechars_html:500 }}">
                             {{ source.summary|default:""|truncatechars_html:120 }}
