@@ -773,17 +773,13 @@ def provenance_json_export(request, id: int) -> JsonResponse:
 
     provenance: Provenance = get_object_or_404(Provenance, id=id)
 
-    User = get_user_model()
-    created_by: Optional[User] = provenance.created_by
-    last_updated_by: Optional[User] = provenance.last_updated_by
-
     data = {
         "id": provenance.id,
         "name": provenance.name,
         "date_created": provenance.date_created,
         "date_updated": provenance.date_updated,
-        "created_by": created_by.id if created_by else None,
-        "last_updated_by": last_updated_by.id if last_updated_by else None,
+        "created_by": provenance.created_by_id,
+        "last_updated_by": provenance.last_updated_by_id,
     }
 
     return JsonResponse(data)
