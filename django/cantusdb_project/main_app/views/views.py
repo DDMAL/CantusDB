@@ -807,12 +807,10 @@ def redirect_node_url(request, pk: int) -> HttpResponse:
 
 
 def handle400(request, exception):
-    print(f"Status Code: {exception.status_code}")
     return render(request, "400.html", status=400)
 
 
 def handle404(request, exception):
-    print(f"Status Code: {exception.status_code}")
     return render(request, "404.html", status=404)
 
 
@@ -975,24 +973,22 @@ def redirect_chant_list(request) -> HttpResponse:
     base_url: str = reverse("chant-list", args=[source_id])
 
     # optional search params
-    feast_id: str = request.GET.get("feast")
-    genre_id: str = request.GET.get("genre")
-    folio: str = request.GET.get("folio")
-    search_text: str = request.GET.get("search_text")
+    feast_id: Optional[str] = request.GET.get("feast")
+    genre_id: Optional[str] = request.GET.get("genre")
+    folio: Optional[str] = request.GET.get("folio")
+    search_text: Optional[str] = request.GET.get("search_text")
 
-    params: dict = {
-        key: value
-        for key, value in {
-            "feast": feast_id,
-            "genre": genre_id,
-            "folio": folio,
-            "search_text": search_text,
-        }.items()
-        if value is not None
+    d: dict = {
+        "feast": feast_id,
+        "genre": genre_id,
+        "folio": folio,
+        "search_text": search_text,
     }
+    params: dict = {k: v for k, v in d.items() if v is not None}
 
     query_string: str = urlencode(params)
-    url: str = "{}{}".format(base_url, f"?{query_string}" if query_string else "")
+    url: str = f"{base_url}?{query_string}" if query_string else base_url
+
     return redirect(url)
 
 
