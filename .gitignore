@@ -120,3 +120,7 @@ django/cantusdb_project/Drupal_scripts
 
 # in case you're working on importing data from a database dump
 *.sql
+
+# cached files for APIs
+api_cache/
+
