@@ -123,10 +123,10 @@ def get_concordance_info_for_cantus_id(cantus_id: str) -> list[dict]:
         "manuscript_full_text_std_spelling",
         "volpiano",
     )
-    return [build_cid_dictionary(chant) for chant in chants_values]
+    return [build_chant_dictionary(chant) for chant in chants_values]
 
 
-def build_cid_dictionary(chant: dict) -> dict:
+def build_chant_dictionary(chant: dict) -> dict:
     DOMAIN: str = "https://cantusdatabase.org"
     source_id: str = chant["source_id"]
     chant_id: str = chant["id"]
