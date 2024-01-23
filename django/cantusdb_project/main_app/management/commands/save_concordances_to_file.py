@@ -57,7 +57,7 @@ def get_concordance_info_for_all_cantus_ids() -> dict:
     cantus_id_count = len(cantus_ids)
     stdout.write(
         f"  save_concordances_to_file: Computing concordances "
-        f"information for {cantus_id_count} Cantus IDs\n"
+        f"information for {cantus_id_count} Cantus IDs.\n"
     )
     dictionary: dict = {
         cantus_id: get_concordance_info_for_cantus_id(cantus_id)
