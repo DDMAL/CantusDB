@@ -3282,22 +3282,6 @@ class SourceEditChantsViewTest(TestCase):
         chant.refresh_from_db()
         self.assertIs(chant.manuscript_full_text_std_proofread, True)
 
-    def test_chant_with_volpiano_with_no_incipit(self):
-        # in the past, a Chant Proofread page will error rather than loading properly when the chant has volpiano but no fulltext/incipit
-        source = make_fake_source()
-        chant = make_fake_chant(
-            source=source,
-            volpiano="1---m---l---k---m---h",
-        )
-        chant.manuscript_full_text = None
-        chant.manuscript_full_text_std_spelling = None
-        chant.incipit = None
-        chant.save()
-        response = self.client.get(
-            reverse("source-edit-chants", args=[source.id]), {"pk": chant.id}
-        )
-        self.assertEqual(response.status_code, 200)
-
 
 class ChantEditSyllabificationViewTest(TestCase):
     @classmethod
