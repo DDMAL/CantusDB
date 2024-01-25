@@ -11,7 +11,7 @@ from main_app.models import Chant
 class Command(BaseCommand):
     def handle(self, *args, **kwargs) -> None:
         CACHE_DIR: str = "api_cache"
-        FILEPATH: str = "api_cache/concordances.json"
+        FILEPATH: str = f"{CACHE_DIR}/concordances.json"
         start_time: str = datetime.now().isoformat()
         stdout.write(f"Running update_cached_concordances at {start_time}.\n")
         concordances: dict = get_concordances()
