@@ -5584,9 +5584,13 @@ class AjaxSearchBarTest(TestCase):
         self.assertEqual(asterisk_chant["id"], chant_with_asterisk.id)
 
     def test_cantus_id_search(self):
-        chant_with_normal_cantus_id = make_fake_chant(cantus_id="012345")
+        chant_with_normal_cantus_id = make_fake_chant(
+            cantus_id="012345",
+            incipit="This incipit contains no numerals",
+        )
         chant_with_numerals_in_incipit = make_fake_chant(
-            incipit="0 me! 0 my! This is unexpected!"
+            cantus_id="123456",
+            incipit="0 me! 0 my! This is unexpected!",
         )
 
         # for search terms that contain numerals, we should only return
@@ -5604,7 +5608,7 @@ class AjaxSearchBarTest(TestCase):
         self.assertNotEqual(matching_id, chant_with_numerals_in_incipit.id)
 
         # we should only return istartswith results, and not icontains results
-        non_matching_search_term = "1"
+        non_matching_search_term = "2"
         non_matching_response = self.client.get(
             reverse("ajax-search-bar", args=[non_matching_search_term])
         )
