@@ -16,11 +16,11 @@ else:
     print("❌ Broken Links Found. Proceeding to Parsing Step.", file=sys.stderr)
 
 # Loading link checker output result
-with open(FILE_LOCATION, encoding='utf-8') as link_checker_output_file:
+with open(FILE_LOCATION, encoding="utf-8") as link_checker_output_file:
     print(f"Parsing the json data in {FILE_LOCATION}", file=sys.stderr)
     link_checker_results = json.load(link_checker_output_file)
 
-list_of_failures = link_checker_results['fail_map']
+list_of_failures = link_checker_results["fail_map"]
 
 if not list_of_failures:
     print("✅ No Broken Links")
@@ -35,7 +35,7 @@ skippable_errors = []
 
 # Process each failure in the flattened list
 for failure in all_failures:
-    error_code = failure['status'].get('code')
+    error_code = failure["status"].get("code")
 
     # Check if it's a timeout or a client-side issue
     if not error_code:
