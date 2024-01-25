@@ -806,14 +806,6 @@ def redirect_node_url(request, pk: int) -> HttpResponse:
     raise Http404("No record found matching the /node/ query.")
 
 
-def handle400(request, exception):
-    return render(request, "400.html", status=400)
-
-
-def handle404(request, exception):
-    return render(request, "404.html", status=404)
-
-
 @login_required
 def change_password(request):
     if request.method == "POST":
@@ -989,6 +981,15 @@ def redirect_chant_list(request) -> HttpResponse:
     query_string: str = urlencode(params)
     url: str = f"{base_url}?{query_string}" if query_string else base_url
 
+    return redirect(url)
+
+
+def redirect_index_list(request) -> HttpResponse:
+    source_id: str = request.GET.get("source")
+    if source_id is None:
+        # source parameter must be provided
+        raise BadRequest("Source parameter must be provided")
+    url: str = reverse("chant-inventory", args=[source_id])
     return redirect(url)
 
 
