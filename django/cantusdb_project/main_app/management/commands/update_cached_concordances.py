@@ -1,4 +1,4 @@
-import json
+import ujson
 import os
 from sys import stdout
 from datetime import datetime
@@ -31,7 +31,7 @@ class Command(BaseCommand):
             stdout.write(f"directory at {CACHE_DIR} already exists.\n")
         stdout.write(f"Writing concordances to {FILEPATH} at {write_time}.\n")
         with open(FILEPATH, "w") as json_file:
-            json.dump(data_and_metadata, json_file)
+            ujson.dump(data_and_metadata, json_file)
         end_time = datetime.now().isoformat()
         stdout.write(
             f"Concordances successfully written to {FILEPATH} at {end_time}.\n\n"
