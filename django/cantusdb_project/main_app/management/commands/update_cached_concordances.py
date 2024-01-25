@@ -32,7 +32,10 @@ class Command(BaseCommand):
         stdout.write(f"Writing concordances to {FILEPATH} " f"at {write_time}.\n")
         with open(FILEPATH, "w") as json_file:
             json.dump(data_and_metadata, json_file)
-        stdout.write(f"Concordances successfully written to {FILEPATH}.\n\n")
+        end_time = datetime.now().isoformat()
+        stdout.write(
+            f"Concordances successfully written to {FILEPATH} at {end_time}.\n\n"
+        )
 
 
 def get_concordances() -> dict:
@@ -69,7 +72,7 @@ def get_concordances() -> dict:
         source_id: int = chant["source_id"]
         source_absolute_url: str = f"{DOMAIN}/source/{source_id}/"
         chant_id: int = chant["id"]
-        chant_absolute_url: str = f"{DOMAIN}/source/{chant_id}/"
+        chant_absolute_url: str = f"{DOMAIN}/chant/{chant_id}/"
 
         concordances[chant["cantus_id"]].append(
             {
