@@ -23,13 +23,13 @@ class Command(BaseCommand):
             "data": concordances,
             "metadata": metadata,
         }
-        stdout.write("Attempting to make directory " f"at {CACHE_DIR} to hold cache: ")
+        stdout.write(f"Attempting to make directory at {CACHE_DIR} to hold cache: ")
         try:
             os.mkdir(CACHE_DIR)
             stdout.write(f"successfully created directory at {CACHE_DIR}.\n")
         except FileExistsError:
             stdout.write(f"directory at {CACHE_DIR} already exists.\n")
-        stdout.write(f"Writing concordances to {FILEPATH} " f"at {write_time}.\n")
+        stdout.write(f"Writing concordances to {FILEPATH} at {write_time}.\n")
         with open(FILEPATH, "w") as json_file:
             json.dump(data_and_metadata, json_file)
         end_time = datetime.now().isoformat()
