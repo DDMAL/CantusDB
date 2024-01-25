@@ -294,6 +294,11 @@ urlpatterns = [
         name="chant-inventory",
     ),
     path(
+        "index/",
+        views.redirect_index_list,
+        name="redirect-chant-index",
+    ),
+    path(
         "source-create/",
         SourceCreateView.as_view(),
         name="source-create",
@@ -498,6 +503,3 @@ urlpatterns = [
         name="differentia-autocomplete",
     ),
 ]
-
-handler404 = "main_app.views.views.handle404"
-handler400 = "main_app.views.views.handle400"
