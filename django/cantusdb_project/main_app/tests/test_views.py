@@ -700,6 +700,23 @@ class ChantListViewTest(TestCase):
         expected_result = [("001r", feast_1), ("001v", feast_2), ("002r", feast_1)]
         self.assertEqual(response.context["feasts_with_folios"], expected_result)
 
+    def test_redirect_with_source_parameter(self):
+        cantus_segment = make_fake_segment(id=4063)
+        source = make_fake_source(segment=cantus_segment)
+        source_id = source.id
+
+        url = reverse("redirect-chant-list")
+        response = self.client.get(f"{url}?source={source_id}")
+        self.assertRedirects(response, reverse("chant-list", args=[source_id]))
+
+    def test_redirect_without_source_parameter(self):
+        url = reverse("redirect-chant-list")
+
+        # Omitting the source parameter to simulate a bad request
+        response = self.client.get(url)
+        self.assertEqual(response.status_code, 400)
+        self.assertTemplateUsed(response, "400.html")
+
 
 class ChantDetailViewTest(TestCase):
     @classmethod
@@ -2916,6 +2933,22 @@ class ChantInventoryViewTest(TestCase):
         self.assertIn(diff_id, html)
         expected_html_substring: str = f'<a href="https://differentiaedatabase.ca/differentia/{diff_id}" target="_blank">'
         self.assertIn(expected_html_substring, html)
+
+    def test_redirect_with_source_parameter(self):
+        cantus_segment = make_fake_segment(id=4063)
+        source = make_fake_source(segment=cantus_segment)
+        source_id = source.id
+
+        url = reverse("redirect-chant-index")
+        response = self.client.get(f"{url}?source={source_id}")
+        self.assertRedirects(response, reverse("chant-inventory", args=[source_id]))
+
+    def test_redirect_without_source_parameter(self):
+        url = reverse("redirect-chant-index")
+        # Omitting the source parameter to simulate a bad request
+        response = self.client.get(url)
+        self.assertEqual(response.status_code, 400)
+        self.assertTemplateUsed(response, "400.html")
 
 
 class ChantCreateViewTest(TestCase):
