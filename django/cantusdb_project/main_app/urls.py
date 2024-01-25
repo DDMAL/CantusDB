@@ -73,8 +73,6 @@ from main_app.views.views import (
     ProvenanceAutocomplete,
     ProofreadByAutocomplete,
 )
-from django.conf.urls import handler400, handler404
-
 
 urlpatterns = [
     path("__debug__/", include(debug_toolbar.urls)),
