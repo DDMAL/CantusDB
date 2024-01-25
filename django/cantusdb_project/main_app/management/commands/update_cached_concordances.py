@@ -13,7 +13,7 @@ class Command(BaseCommand):
         CACHE_DIR: str = "api_cache"
         FILEPATH: str = "api_cache/concordances.json"
         start_time: str = datetime.now().isoformat()
-        stdout.write("Running update_cached_concordances " f"at {start_time}.\n")
+        stdout.write(f"Running update_cached_concordances at {start_time}.\n")
         concordances: dict = get_concordances()
         write_time: str = datetime.now().isoformat()
         metadata: dict = {
