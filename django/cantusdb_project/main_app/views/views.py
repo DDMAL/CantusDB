@@ -981,7 +981,7 @@ def redirect_chant_list(request) -> HttpResponse:
     query_string: str = urlencode(params)
     url: str = f"{base_url}?{query_string}" if query_string else base_url
 
-    return redirect(url)
+    return redirect(url, permanent=True)
 
 
 def redirect_index_list(request) -> HttpResponse:
@@ -990,7 +990,7 @@ def redirect_index_list(request) -> HttpResponse:
         # source parameter must be provided
         raise BadRequest("Source parameter must be provided")
     url: str = reverse("chant-inventory", args=[source_id])
-    return redirect(url)
+    return redirect(url, permanent=True)
 
 
 class CurrentEditorsAutocomplete(autocomplete.Select2QuerySetView):
