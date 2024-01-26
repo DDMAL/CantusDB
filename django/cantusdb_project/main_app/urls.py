@@ -1,4 +1,4 @@
-from django.urls import include, path, reverse
+from django.urls import include, path
 from django.contrib.auth.views import (
     PasswordResetView,
     PasswordResetDoneView,
@@ -16,7 +16,6 @@ from main_app.views.chant import (
     ChantDeleteView,
     ChantDetailView,
     ChantEditSyllabificationView,
-    ChantInventoryView,
     ChantListView,
     ChantSearchView,
     ChantSearchMSView,
@@ -52,6 +51,7 @@ from main_app.views.source import (
     SourceEditView,
     SourceListView,
     SourceDeleteView,
+    SourceInventoryView,
 )
 from main_app.views.user import (
     LoginView,
@@ -288,13 +288,13 @@ urlpatterns = [
     ),
     path(
         "source/<int:source_id>/inventory/",
-        ChantInventoryView.as_view(),
-        name="chant-inventory",
+        SourceInventoryView.as_view(),
+        name="source-inventory",
     ),
     path(
         "index/",
-        views.redirect_index_list,
-        name="redirect-chant-index",
+        views.redirect_source_inventory,
+        name="redirect-source-inventory",
     ),
     path(
         "source-create/",
