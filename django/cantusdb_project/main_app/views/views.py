@@ -984,12 +984,12 @@ def redirect_chant_list(request) -> HttpResponse:
     return redirect(url, permanent=True)
 
 
-def redirect_index_list(request) -> HttpResponse:
+def redirect_source_inventory(request) -> HttpResponse:
     source_id: str = request.GET.get("source")
     if source_id is None:
         # source parameter must be provided
         raise BadRequest("Source parameter must be provided")
-    url: str = reverse("chant-inventory", args=[source_id])
+    url: str = reverse("source-inventory", args=[source_id])
     return redirect(url, permanent=True)
 
 
