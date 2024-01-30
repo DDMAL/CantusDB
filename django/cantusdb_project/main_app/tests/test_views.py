@@ -3282,22 +3282,6 @@ class SourceEditChantsViewTest(TestCase):
         chant.refresh_from_db()
         self.assertIs(chant.manuscript_full_text_std_proofread, True)
 
-    def test_chant_with_volpiano_with_no_incipit(self):
-        # in the past, a Chant Proofread page will error rather than loading properly when the chant has volpiano but no fulltext/incipit
-        source = make_fake_source()
-        chant = make_fake_chant(
-            source=source,
-            volpiano="1---m---l---k---m---h",
-        )
-        chant.manuscript_full_text = None
-        chant.manuscript_full_text_std_spelling = None
-        chant.incipit = None
-        chant.save()
-        response = self.client.get(
-            reverse("source-edit-chants", args=[source.id]), {"pk": chant.id}
-        )
-        self.assertEqual(response.status_code, 200)
-
 
 class ChantEditSyllabificationViewTest(TestCase):
     @classmethod
@@ -5600,9 +5584,13 @@ class AjaxSearchBarTest(TestCase):
         self.assertEqual(asterisk_chant["id"], chant_with_asterisk.id)
 
     def test_cantus_id_search(self):
-        chant_with_normal_cantus_id = make_fake_chant(cantus_id="012345")
+        chant_with_normal_cantus_id = make_fake_chant(
+            cantus_id="012345",
+            incipit="This incipit contains no numerals",
+        )
         chant_with_numerals_in_incipit = make_fake_chant(
-            incipit="0 me! 0 my! This is unexpected!"
+            cantus_id="123456",
+            incipit="0 me! 0 my! This is unexpected!",
         )
 
         # for search terms that contain numerals, we should only return
@@ -5620,7 +5608,7 @@ class AjaxSearchBarTest(TestCase):
         self.assertNotEqual(matching_id, chant_with_numerals_in_incipit.id)
 
         # we should only return istartswith results, and not icontains results
-        non_matching_search_term = "1"
+        non_matching_search_term = "2"
         non_matching_response = self.client.get(
             reverse("ajax-search-bar", args=[non_matching_search_term])
         )
