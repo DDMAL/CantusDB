@@ -1,6 +1,7 @@
 import ujson
 import os
 from sys import stdout
+from typing import Optional
 from datetime import datetime
 from collections import defaultdict
 from django.db.models.query import QuerySet
@@ -9,9 +10,20 @@ from main_app.models import Chant
 
 
 class Command(BaseCommand):
+    def add_arguments(self, parser):
+        parser.add_argument(
+            "-d",
+            "--directory",
+            help="Optional filepath specifying a directory to output concordances",
+            type=str,
+        )
+
     def handle(self, *args, **kwargs) -> None:
-        CACHE_DIR: str = "/resources/api_cache"
-        FILEPATH: str = f"{CACHE_DIR}/concordances.json"
+        cache_dir: Optional[str] = kwargs["directory"]
+        if not cache_dir:
+            cache_dir = "/resources/api_cache"
+
+        filepath: str = f"{cache_dir}/concordances.json"
         start_time: str = datetime.now().isoformat()
         stdout.write(f"Running update_cached_concordances at {start_time}.\n")
         concordances: dict = get_concordances()
@@ -23,18 +35,18 @@ class Command(BaseCommand):
             "data": concordances,
             "metadata": metadata,
         }
-        stdout.write(f"Attempting to make directory at {CACHE_DIR} to hold cache: ")
+        stdout.write(f"Attempting to make directory at {cache_dir} to hold cache: ")
         try:
-            os.mkdir(CACHE_DIR)
-            stdout.write(f"successfully created directory at {CACHE_DIR}.\n")
+            os.mkdir(cache_dir)
+            stdout.write(f"successfully created directory at {cache_dir}.\n")
         except FileExistsError:
-            stdout.write(f"directory at {CACHE_DIR} already exists.\n")
-        stdout.write(f"Writing concordances to {FILEPATH} at {write_time}.\n")
-        with open(FILEPATH, "w") as json_file:
+            stdout.write(f"directory at {cache_dir} already exists.\n")
+        stdout.write(f"Writing concordances to {filepath} at {write_time}.\n")
+        with open(filepath, "w") as json_file:
             ujson.dump(data_and_metadata, json_file)
         end_time = datetime.now().isoformat()
         stdout.write(
-            f"Concordances successfully written to {FILEPATH} at {end_time}.\n\n"
+            f"Concordances successfully written to {filepath} at {end_time}.\n\n"
         )
 
 
