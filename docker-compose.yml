@@ -25,18 +25,10 @@ services:
       - ./config/nginx/conf.d:/etc/nginx/conf.d
       - static_volume:/resources/static
       - media_volume:/resources/media
-      - certbot_data:/var/www/certbot/:ro
-      - certificates:/etc/nginx/ssl/:ro
+      - ./certificates:/etc/nginx/ssl/live
     restart: always
     depends_on:
       - django
-
-  certbot:
-    image: certbot/certbot:latest
-    volumes:
-      - certbot_data:/var/www/certbot/:rw
-      - certificates:/etc/letsencrypt/:rw
-    restart: always
 
   postgres:
     build:
@@ -50,5 +42,3 @@ volumes:
   postgres_data:
   static_volume:
   media_volume:
-  certbot_data:
-  certificates:

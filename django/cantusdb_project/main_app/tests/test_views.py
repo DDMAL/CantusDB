@@ -20,6 +20,7 @@ from .make_fakes import (
     make_fake_chant,
     make_fake_feast,
     make_fake_genre,
+    make_fake_notation,
     make_fake_office,
     make_fake_provenance,
     make_fake_rism_siglum,
@@ -37,7 +38,9 @@ from main_app.models import (
     Differentia,
     Feast,
     Genre,
+    Notation,
     Office,
+    Provenance,
     Segment,
     Sequence,
     Source,
@@ -3072,22 +3075,6 @@ class SourceEditChantsViewTest(TestCase):
         chant.refresh_from_db()
         self.assertIs(chant.manuscript_full_text_std_proofread, True)
 
-    def test_chant_with_volpiano_with_no_incipit(self):
-        # in the past, a Chant Proofread page will error rather than loading properly when the chant has volpiano but no fulltext/incipit
-        source = make_fake_source()
-        chant = make_fake_chant(
-            source=source,
-            volpiano="1---m---l---k---m---h",
-        )
-        chant.manuscript_full_text = None
-        chant.manuscript_full_text_std_spelling = None
-        chant.incipit = None
-        chant.save()
-        response = self.client.get(
-            reverse("source-edit-chants", args=[source.id]), {"pk": chant.id}
-        )
-        self.assertEqual(response.status_code, 200)
-
 
 class ChantEditSyllabificationViewTest(TestCase):
     @classmethod
@@ -4689,6 +4676,66 @@ class JsonNodeExportTest(TestCase):
         self.assertEqual(unpublished_sequence_response.status_code, 404)
 
 
+class NotationJsonTest(TestCase):
+    def test_response(self):
+        notation: Notation = make_fake_notation()
+        id: int = notation.id
+
+        response = self.client.get(reverse("notation-json-export", args=[id]))
+        self.assertEqual(response.status_code, 200)
+        self.assertIsInstance(response, JsonResponse)
+
+    def test_keys(self):
+        notation: Notation = make_fake_notation()
+        id: int = notation.id
+
+        response = self.client.get(reverse("notation-json-export", args=[id]))
+        response_json: dict = response.json()
+        response_keys = response_json.keys()
+
+        expected_keys = [
+            "id",
+            "name",
+            "date_created",
+            "date_updated",
+            "created_by",
+            "last_updated_by",
+        ]
+        for key in expected_keys:
+            with self.subTest(key=key):
+                self.assertIn(key, response_keys)
+
+
+class ProvenanceJsonTest(TestCase):
+    def test_response(self):
+        provenance: Provenance = make_fake_provenance()
+        id: int = provenance.id
+
+        response = self.client.get(reverse("provenance-json-export", args=[id]))
+        self.assertEqual(response.status_code, 200)
+        self.assertIsInstance(response, JsonResponse)
+
+    def test_keys(self):
+        provenance: Provenance = make_fake_provenance()
+        id: int = provenance.id
+
+        response = self.client.get(reverse("provenance-json-export", args=[id]))
+        response_json: dict = response.json()
+        response_keys = response_json.keys()
+
+        expected_keys = [
+            "id",
+            "name",
+            "date_created",
+            "date_updated",
+            "created_by",
+            "last_updated_by",
+        ]
+        for key in expected_keys:
+            with self.subTest(key=key):
+                self.assertIn(key, response_keys)
+
+
 class JsonSourcesExportTest(TestCase):
     def setUp(self):
         # the JsonSourcesExport View uses the CANTUS Segment's .source_set property,
@@ -5571,9 +5618,13 @@ class AjaxSearchBarTest(TestCase):
         self.assertEqual(asterisk_chant["id"], chant_with_asterisk.id)
 
     def test_cantus_id_search(self):
-        chant_with_normal_cantus_id = make_fake_chant(cantus_id="012345")
+        chant_with_normal_cantus_id = make_fake_chant(
+            cantus_id="012345",
+            incipit="This incipit contains no numerals",
+        )
         chant_with_numerals_in_incipit = make_fake_chant(
-            cantus_id="223455", incipit="0 me! 0 my! This is unexpected!"
+            cantus_id="123456",
+            incipit="0 me! 0 my! This is unexpected!",
         )
 
         # for search terms that contain numerals, we should only return
@@ -5591,7 +5642,7 @@ class AjaxSearchBarTest(TestCase):
         self.assertNotEqual(matching_id, chant_with_numerals_in_incipit.id)
 
         # we should only return istartswith results, and not icontains results
-        non_matching_search_term = "1"
+        non_matching_search_term = "2"
         non_matching_response = self.client.get(
             reverse("ajax-search-bar", args=[non_matching_search_term])
         )

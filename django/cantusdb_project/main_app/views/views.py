@@ -37,6 +37,7 @@ from django.templatetags.static import static
 from django.contrib.flatpages.models import FlatPage
 from dal import autocomplete
 from django.db.models import Q
+from django.shortcuts import get_object_or_404
 
 
 @login_required
@@ -743,6 +744,46 @@ def json_node_export(request, id: int) -> JsonResponse:
             return JsonResponse(vals)
 
     return HttpResponseNotFound()
+
+
+def notation_json_export(request, id: int) -> JsonResponse:
+    """
+    Return JsonResponse containing several key:value pairs
+    for the notation with the specified ID
+    """
+
+    notation: Notation = get_object_or_404(Notation, id=id)
+
+    data = {
+        "id": notation.id,
+        "name": notation.name,
+        "date_created": notation.date_created,
+        "date_updated": notation.date_updated,
+        "created_by": notation.created_by_id,
+        "last_updated_by": notation.last_updated_by_id,
+    }
+
+    return JsonResponse(data)
+
+
+def provenance_json_export(request, id: int) -> JsonResponse:
+    """
+    Return JsonResponse containing several key:value pairs
+    for the provenance with the specified ID
+    """
+
+    provenance: Provenance = get_object_or_404(Provenance, id=id)
+
+    data = {
+        "id": provenance.id,
+        "name": provenance.name,
+        "date_created": provenance.date_created,
+        "date_updated": provenance.date_updated,
+        "created_by": provenance.created_by_id,
+        "last_updated_by": provenance.last_updated_by_id,
+    }
+
+    return JsonResponse(data)
 
 
 def articles_list_export(request) -> HttpResponse:

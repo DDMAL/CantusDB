@@ -110,6 +110,7 @@ django/cantusdb_project/main_app/fixtures
 #
 config/envs/dev_env
 .devcontainer/
+certificates/
 
 # Drupal scripts from old Cantus
 django/cantusdb_project/Drupal_scripts
@@ -119,3 +120,7 @@ django/cantusdb_project/Drupal_scripts
 
 # in case you're working on importing data from a database dump
 *.sql
+
+# cached files for APIs
+api_cache/
+
