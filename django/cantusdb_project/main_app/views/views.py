@@ -998,7 +998,7 @@ def redirect_documents(request) -> HttpResponse:
 
 
 def redirect_chant_list(request) -> HttpResponse:
-    source_id: str = request.GET.get("source")
+    source_id: Optional[str] = request.GET.get("source")
     if source_id is None:
         # source parameter must be provided
         raise BadRequest("Source parameter must be provided")
