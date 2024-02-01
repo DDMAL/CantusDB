@@ -9,6 +9,10 @@ from django.core.management.base import BaseCommand
 from main_app.models import Chant
 
 
+# Usage: `python manage.py update_cached_concordances`
+# or `python manage.py update_cached_concordances -d "/path/to/directory/in/which/to/save/concordances"`
+
+
 class Command(BaseCommand):
     def add_arguments(self, parser):
         parser.add_argument(
@@ -21,6 +25,8 @@ class Command(BaseCommand):
     def handle(self, *args, **kwargs) -> None:
         cache_dir: Optional[str] = kwargs["directory"]
         if not cache_dir:
+            # this default directory should match the value in docker-compose.yml,
+            # at services:django:volumes:api_cache_volume
             cache_dir = "/resources/api_cache"
 
         filepath: str = f"{cache_dir}/concordances.json"
@@ -51,6 +57,13 @@ class Command(BaseCommand):
 
 
 def get_concordances() -> dict:
+    """Fetch all published chants in the database, group them by Cantus ID, and return
+    a dictionary containing information on each of these chants.
+
+    Returns:
+        dict: A dictionary where each key is a Cantus ID and each value is a list all
+          published chants in the database with that Cantus ID.
+    """
     DOMAIN: str = "https://cantusdatabase.org"
 
     stdout.write("Querying database for published chants\n")
