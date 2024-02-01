@@ -20,15 +20,13 @@ class Command(BaseCommand):
             "--directory",
             help="Optional filepath specifying a directory to output concordances",
             type=str,
+            # this default directory should match the value in docker-compose.yml,
+            # at services:django:volumes:api_cache_volume
+            default="/resources/api_cache",
         )
 
     def handle(self, *args, **kwargs) -> None:
-        cache_dir: Optional[str] = kwargs["directory"]
-        if not cache_dir:
-            # this default directory should match the value in docker-compose.yml,
-            # at services:django:volumes:api_cache_volume
-            cache_dir = "/resources/api_cache"
-
+        cache_dir: str = kwargs["directory"]
         filepath: str = f"{cache_dir}/concordances.json"
         start_time: str = datetime.now().isoformat()
         stdout.write(f"Running update_cached_concordances at {start_time}.\n")
