@@ -39,7 +39,7 @@ services:
     volumes:
       - postgres_data:/var/lib/postgresql/data/
     restart: always
-    command: -c 'config_file=/etc/postgresql/postgresql.conf'
+    command: postgres -c 'config_file=/etc/postgresql/postgresql.conf'
 
 volumes:
   postgres_data:
