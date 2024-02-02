@@ -1,4 +1,4 @@
 FROM postgres:14-alpine
-COPY postgresql.conf /var/lib/postgresql/data/postgresql.conf
+COPY postgresql.conf /etc/postgresql/postgresql.conf
 COPY postgres_backup.sh /usr/local/bin/postgres_backup.sh
 RUN chmod +x /usr/local/bin/postgres_backup.sh
