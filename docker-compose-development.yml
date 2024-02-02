@@ -31,7 +31,7 @@ services:
       - static_volume:/resources/static
       - media_volume:/resources/media
       - api_cache_volume:/resources/api_cache
-      - ./certificates:/etc/nginx/ssl/live
+      # - ./certificates:/etc/nginx/ssl/live
     restart: always
     depends_on:
       - django
