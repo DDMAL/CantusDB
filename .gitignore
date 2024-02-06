@@ -109,6 +109,7 @@ config/envs/dev_env
 .devcontainer/
 certificates/
 docker-compose.yml
+config/nginx/conf.d/cantusdb.conf
 
 # Drupal scripts from old Cantus
 django/cantusdb_project/Drupal_scripts
