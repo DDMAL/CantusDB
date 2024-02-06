@@ -1,0 +1,45 @@
+version: '3'
+
+services:
+  django:
+    build:
+      context: ./django
+    volumes:
+      - ./:/code/
+      - static_volume:/resources/static
+      - media_volume:/resources/media
+      - api_cache_volume:/resources/api_cache
+    env_file: ./config/envs/dev_env
+    restart: always
+    depends_on:
+      - postgres
+
+  nginx:
+    build:
+      context: ./nginx
+    ports:
+      - 80:80
+      - 443:443
+    volumes:
+      - ./config/nginx/conf.d:/etc/nginx/conf.d
+      - static_volume:/resources/static
+      - media_volume:/resources/media
+      - api_cache_volume:/resources/api_cache
+      - ./certificates:/etc/nginx/ssl/live
+    restart: always
+    depends_on:
+      - django
+
+  postgres:
+    build:
+      context: ./postgres
+    env_file: ./config/envs/dev_env
+    volumes:
+      - postgres_data:/var/lib/postgresql/data/
+    restart: always
+
+volumes:
+  postgres_data:
+  static_volume:
+  media_volume:
+  api_cache_volume:
