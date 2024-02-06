@@ -104,13 +104,11 @@ django/media/
 .env
 venv
 
-# Fixtures
-django/cantusdb_project/main_app/fixtures
-
-#
+# Configuration files
 config/envs/dev_env
 .devcontainer/
 certificates/
+docker-compose.yml
 
 # Drupal scripts from old Cantus
 django/cantusdb_project/Drupal_scripts
@@ -123,4 +121,3 @@ django/cantusdb_project/Drupal_scripts
 
 # cached files for APIs
 api_cache/
-
