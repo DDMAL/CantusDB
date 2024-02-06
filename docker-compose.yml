@@ -1,3 +1,7 @@
+# This file is configured for deployment of the CantusDB project in local development.
+# When building the project locally, replace the contents of docker-compose.yml with the
+# contents of this file.
+
 version: '3'
 
 services:
@@ -10,8 +14,6 @@ services:
       - media_volume:/resources/media
       - api_cache_volume:/resources/api_cache
     env_file: ./config/envs/dev_env
-    ports:
-      - 3000:3000
     restart: always
     depends_on:
       - postgres
@@ -21,13 +23,14 @@ services:
       context: ./nginx
     ports:
       - 80:80
-      - 443:443
+      - ${PORT}:${PORT}
     volumes:
       - ./config/nginx/conf.d:/etc/nginx/conf.d
       - static_volume:/resources/static
       - media_volume:/resources/media
       - api_cache_volume:/resources/api_cache
-      - ./certificates:/etc/nginx/ssl/live
+      # - ./certificates:/etc/nginx/ssl/live
+    env_file: ./config/envs/dev_env
     restart: always
     depends_on:
       - django
