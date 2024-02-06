@@ -23,13 +23,13 @@ services:
       context: ./nginx
     ports:
       - 80:80
-      - ${PORT}:${PORT}
+      - 443:443
     volumes:
       - ./config/nginx/conf.d:/etc/nginx/conf.d
       - static_volume:/resources/static
       - media_volume:/resources/media
       - api_cache_volume:/resources/api_cache
-      # - ./certificates:/etc/nginx/ssl/live
+      - ./certificates:/etc/nginx/ssl/live
     env_file: ./config/envs/dev_env
     restart: always
     depends_on:
