@@ -1,4 +1,3 @@
-import lxml.html as lh
 import requests
 import urllib
 import json
