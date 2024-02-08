@@ -39,4 +39,5 @@ typed-ast==1.4.1
 typing-extensions==3.10.0.0
 ujson==5.9.0
 urllib3==1.26.18
+volpiano-display-utilities @ git+https://github.com/DDMAL/volpiano-display-utilities.git@v1.1.0
 wrapt==1.12.1
