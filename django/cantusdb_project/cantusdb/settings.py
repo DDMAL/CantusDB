@@ -200,7 +200,21 @@ INTERNAL_IPS = [
     "127.0.0.1",
 ]
 
-CSRF_TRUSTED_ORIGINS = ["https://cantusdatabase.org", "https://www.cantusdatabase.org"]
+CSRF_TRUSTED_ORIGINS = [
+    "https://cantusdatabase.org",
+    "https://www.cantusdatabase.org",
+    "https://staging.cantusdatabase.org",
+    # "https://mass.cantusdatabase.org",
+    # "https://staging-alias.cantusdatabase.org",
+    # traffic to the two subdomains above should be redirected by nginx, and
+    # should never reach django
+]
+
+ALLOWED_HOSTS = [
+    ".cantusdatabase.org",  # leading '.': include all subdomains
+    ".localhost",
+    "127.0.0.1",
+]
 
 if DEBUG:
     INSTALLED_APPS.append("debug_toolbar")
