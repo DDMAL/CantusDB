@@ -267,10 +267,10 @@
                                 </select>
 
                                 {% if previous_folio %}
-                                    <a href="{% url "chant-list" %}?source={{ source.id }}&folio={{ previous_folio }}">{{ previous_folio }} <</a>
+                                    <a href="{% url "chant-list" source.id %}?folio={{ previous_folio }}">{{ previous_folio }} <</a>
                                 {% endif %}
                                 {% if next_folio %}
-                                    &nbsp;<a href="{% url "chant-list" %}?source={{ source.id }}&folio={{ next_folio }}">> {{ next_folio }}</a>
+                                    &nbsp;<a href="{% url "chant-list" source.id %}?folio={{ next_folio }}">> {{ next_folio }}</a>
                                 {% endif %}
 
                                 {% if chant.image_link %}

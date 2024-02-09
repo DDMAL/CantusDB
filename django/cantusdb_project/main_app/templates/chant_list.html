@@ -149,10 +149,10 @@
                         </select>
 
                         {% if previous_folio %}
-                            <a href="{% url "chant-list" %}?source={{ source.id }}&folio={{ previous_folio }}">{{ previous_folio }} <</a>
+                            <a href="{% url "chant-list" source.id %}?folio={{ previous_folio }}">{{ previous_folio }} <</a>
                         {% endif %}
                         {% if next_folio %}
-                            &nbsp;<a href="{% url "chant-list" %}?source={{ source.id }}&folio={{ next_folio }}">> {{ next_folio }}</a>
+                            &nbsp;<a href="{% url "chant-list" source.id %}?folio={{ next_folio }}">> {{ next_folio }}</a>
                         {% endif %}                                
                         <br>
 
@@ -163,8 +163,8 @@
                             {% endfor %}
                         </select>
                         <br>
-                        <a href="{% url "chant-list" %}?source={{ source.id }}" class="guillemet" target="_blank">View all chants</a>
-                        <a href="{% url "chant-index" %}?source={{ source.id }}" class="guillemet" target="_blank">View full inventory</a>
+                        <a href="{% url "chant-list" source.id %}" class="guillemet" target="_blank">View all chants</a>
+                        <a href="{% url "source-inventory" source.id %}" class="guillemet" target="_blank">View full inventory</a>
                         <a href="{% url "csv-export" source.id%}" class="guillemet" target="_blank">CSV export</a>
                         <a href="{% url "chant-search-ms" source.id %}" class="guillemet" target="_blank">Search chants in this manuscript</a>
                         {% if source.image_link %}
