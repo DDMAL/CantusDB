@@ -1,6 +1,7 @@
 import ujson
 import os
 from sys import stdout
+from typing import Optional
 from datetime import datetime
 from collections import defaultdict
 from django.db.models.query import QuerySet
@@ -8,10 +9,25 @@ from django.core.management.base import BaseCommand
 from main_app.models import Chant
 
 
+# Usage: `python manage.py update_cached_concordances`
+# or `python manage.py update_cached_concordances -d "/path/to/directory/in/which/to/save/concordances"`
+
+
 class Command(BaseCommand):
+    def add_arguments(self, parser):
+        parser.add_argument(
+            "-d",
+            "--directory",
+            help="Optional filepath specifying a directory to output concordances",
+            type=str,
+            # this default directory should match the value in docker-compose.yml,
+            # at services:django:volumes:api_cache_volume
+            default="/resources/api_cache",
+        )
+
     def handle(self, *args, **kwargs) -> None:
-        CACHE_DIR: str = "api_cache"
-        FILEPATH: str = f"{CACHE_DIR}/concordances.json"
+        cache_dir: str = kwargs["directory"]
+        filepath: str = f"{cache_dir}/concordances.json"
         start_time: str = datetime.now().isoformat()
         stdout.write(f"Running update_cached_concordances at {start_time}.\n")
         concordances: dict = get_concordances()
@@ -23,22 +39,29 @@ class Command(BaseCommand):
             "data": concordances,
             "metadata": metadata,
         }
-        stdout.write(f"Attempting to make directory at {CACHE_DIR} to hold cache: ")
+        stdout.write(f"Attempting to make directory at {cache_dir} to hold cache: ")
         try:
-            os.mkdir(CACHE_DIR)
-            stdout.write(f"successfully created directory at {CACHE_DIR}.\n")
+            os.mkdir(cache_dir)
+            stdout.write(f"successfully created directory at {cache_dir}.\n")
         except FileExistsError:
-            stdout.write(f"directory at {CACHE_DIR} already exists.\n")
-        stdout.write(f"Writing concordances to {FILEPATH} at {write_time}.\n")
-        with open(FILEPATH, "w") as json_file:
+            stdout.write(f"directory at {cache_dir} already exists.\n")
+        stdout.write(f"Writing concordances to {filepath} at {write_time}.\n")
+        with open(filepath, "w") as json_file:
             ujson.dump(data_and_metadata, json_file)
         end_time = datetime.now().isoformat()
         stdout.write(
-            f"Concordances successfully written to {FILEPATH} at {end_time}.\n\n"
+            f"Concordances successfully written to {filepath} at {end_time}.\n\n"
         )
 
 
 def get_concordances() -> dict:
+    """Fetch all published chants in the database, group them by Cantus ID, and return
+    a dictionary containing information on each of these chants.
+
+    Returns:
+        dict: A dictionary where each key is a Cantus ID and each value is a list all
+          published chants in the database with that Cantus ID.
+    """
     DOMAIN: str = "https://cantusdatabase.org"
 
     stdout.write("Querying database for published chants\n")

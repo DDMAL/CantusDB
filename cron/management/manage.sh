@@ -7,4 +7,4 @@
 DOCKER_COMPOSE_FILE=/home/ubuntu/code/CantusDB/docker-compose.yml   # This is the path to the docker-compose file.
 COMMAND=$1                                                          # This is the command to execute.
 
-/usr/local/bin/docker-compose -f $DOCKER_COMPOSE_FILE exec django python manage.py $COMMAND
+/usr/local/bin/docker-compose -f $DOCKER_COMPOSE_FILE exec -T django python manage.py $COMMAND

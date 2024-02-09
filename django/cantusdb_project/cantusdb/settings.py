@@ -35,11 +35,21 @@ MEDIA_ROOT = os.getenv("CANTUSDB_MEDIA_ROOT")
 # SECURITY WARNING: keep the secret key used in production secret!
 SECRET_KEY = os.getenv("CANTUSDB_SECRET_KEY")
 
-# SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = bool(strtobool(os.getenv("CANTUSDB_DEBUG", "False")))
-# need to set this to false so that we can display the custom 404 page
+PROJECT_ENVIRONMENT = os.getenv("PROJECT_ENVIRONMENT")
 
-ALLOWED_HOSTS = [os.getenv("CANTUSDB_HOSTS")]
+# SECURITY WARNING: don't run with debug turned on in production!
+DEBUG = False  # this is switched to True below when PROJECT_ENVIRONMENT=="DEVELOPMENT"
+
+if PROJECT_ENVIRONMENT == "DEVELOPMENT":
+    ALLOWED_HOSTS = os.getenv("CANTUSDB_HOSTS_DEVELOPMENT").split(" ")
+    CSRF_TRUSTED_ORIGINS = os.getenv("CANTUSDB_ORIGINS_DEVELOPMENT").split(" ")
+    DEBUG = True
+if PROJECT_ENVIRONMENT == "STAGING":
+    ALLOWED_HOSTS = os.getenv("CANTUSDB_HOSTS_STAGING").split(" ")
+    CSRF_TRUSTED_ORIGINS = os.getenv("CANTUSDB_ORIGINS_STAGING").split(" ")
+if PROJECT_ENVIRONMENT == "PRODUCTION":
+    ALLOWED_HOSTS = os.getenv("CANTUSDB_HOSTS_PRODUCTION").split(" ")
+    CSRF_TRUSTED_ORIGINS = os.getenv("CANTUSDB_ORIGINS_PRODUCTION").split(" ")
 
 
 # Application definition
@@ -199,8 +209,6 @@ DEBUG_TOOLBAR_CONFIG = {
 INTERNAL_IPS = [
     "127.0.0.1",
 ]
-
-CSRF_TRUSTED_ORIGINS = ["https://cantusdatabase.org", "https://www.cantusdatabase.org"]
 
 if DEBUG:
     INSTALLED_APPS.append("debug_toolbar")

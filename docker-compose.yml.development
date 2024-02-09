@@ -1,0 +1,52 @@
+# This file is configured for deployment of the CantusDB project in local development.
+# When building the project locally, replace the contents of docker-compose.yml with the
+# contents of this file.
+
+version: '3'
+
+services:
+  django:
+    build:
+      context: ./django
+    volumes:
+      - ./:/code/
+      - static_volume:/resources/static
+      - media_volume:/resources/media
+      - api_cache_volume:/resources/api_cache
+    env_file: ./config/envs/dev_env
+    ports:
+      - 3000:3000 # this mapping allows the VSCode Dev Containers extension to work
+    restart: always
+    depends_on:
+      - postgres
+
+  nginx:
+    build:
+      context: ./nginx
+    ports:
+      - 80:80
+      - 443:443
+    volumes:
+      - ./config/nginx/conf.d:/etc/nginx/conf.d
+      - static_volume:/resources/static
+      - media_volume:/resources/media
+      - api_cache_volume:/resources/api_cache
+      - ./certificates:/etc/nginx/ssl/live
+    restart: always
+    depends_on:
+      - django
+
+  postgres:
+    build:
+      context: ./postgres
+    env_file: ./config/envs/dev_env
+    volumes:
+      - postgres_data:/var/lib/postgresql/data/
+    restart: always
+    command: postgres -c 'config_file=/etc/postgresql/postgresql.conf'
+
+volumes:
+  postgres_data:
+  static_volume:
+  media_volume:
+  api_cache_volume:

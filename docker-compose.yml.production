@@ -8,9 +8,8 @@ services:
       - ./:/code/
       - static_volume:/resources/static
       - media_volume:/resources/media
+      - api_cache_volume:/resources/api_cache
     env_file: ./config/envs/dev_env
-    ports:
-      - 3000:3000
     restart: always
     depends_on:
       - postgres
@@ -25,6 +24,7 @@ services:
       - ./config/nginx/conf.d:/etc/nginx/conf.d
       - static_volume:/resources/static
       - media_volume:/resources/media
+      - api_cache_volume:/resources/api_cache
       - ./certificates:/etc/nginx/ssl/live
     restart: always
     depends_on:
@@ -37,8 +37,10 @@ services:
     volumes:
       - postgres_data:/var/lib/postgresql/data/
     restart: always
+    command: postgres -c 'config_file=/etc/postgresql/postgresql.conf'
 
 volumes:
   postgres_data:
   static_volume:
   media_volume:
+  api_cache_volume:
