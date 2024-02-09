@@ -4,8 +4,9 @@ from django.views.generic import (
     CreateView,
     UpdateView,
     DeleteView,
+    TemplateView,
 )
-from django.db.models import Q, Prefetch
+from django.db.models import Q, Prefetch, Value
 from main_app.models import Source, Provenance, Century
 from main_app.forms import SourceCreateForm, SourceEditForm
 from django.contrib import messages
@@ -300,3 +301,37 @@ class SourceEditView(LoginRequiredMixin, UserPassesTestMixin, UpdateView):
             new_editor.sources_user_can_edit.add(source)
 
         return HttpResponseRedirect(self.get_success_url())
+
+
+class SourceInventoryView(TemplateView):
+    template_name = "full_inventory.html"
+    pk_url_kwarg = "source_id"
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+
+        source_id = self.kwargs.get(self.pk_url_kwarg)
+        source = get_object_or_404(Source, id=source_id)
+
+        display_unpublished = self.request.user.is_authenticated
+        if (not display_unpublished) and (source.published == False):
+            raise PermissionDenied
+
+        # 4064 is the id for the sequence database
+        if source.segment.id == 4064:
+            queryset = (
+                source.sequence_set.annotate(record_type=Value("sequence"))
+                .order_by("s_sequence")
+                .select_related("genre")
+            )
+        else:
+            queryset = (
+                source.chant_set.annotate(record_type=Value("chant"))
+                .order_by("folio", "c_sequence")
+                .select_related("feast", "office", "genre")
+            )
+
+        context["source"] = source
+        context["chants"] = queryset
+
+        return context
