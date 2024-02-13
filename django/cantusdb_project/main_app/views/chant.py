@@ -28,7 +28,6 @@ from main_app.models import (
     Segment,
     Office,
 )
-from align_text_mel import syllabize_text_and_melody, syllabize_text_to_string
 from django.contrib.auth.mixins import LoginRequiredMixin
 from django.http import Http404
 from collections import Counter
