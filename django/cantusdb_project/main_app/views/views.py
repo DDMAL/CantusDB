@@ -143,7 +143,7 @@ def ajax_melody_list(request, cantus_id) -> JsonResponse:
         chants = chants.filter(source__published=True)
 
     concordance_values: QuerySet[dict] = chants.values(
-        "siglum",
+        "source__siglum",
         "folio",
         "office__name",
         "genre__name",
@@ -158,8 +158,11 @@ def ajax_melody_list(request, cantus_id) -> JsonResponse:
 
     concordances: list[dict] = list(concordance_values)
     for i, concordance in enumerate(concordances):
-        # some chants do not have a source
-        # for those chants, do not return source link
+        # we need to use each chant's _source_'s siglum, and not the
+        # legacy sigla that were attached to chants in OldCantus
+        concordance["siglum"] = concordance.pop("source__siglum")
+        # for chants that do not have a source, do not attempt
+        # to return a source link
         if chants[i].source:
             concordance["source_link"] = chants[i].source.get_absolute_url()
         concordance["ci_link"] = chants[i].get_ci_url()
