@@ -41,6 +41,11 @@ from main_app.permissions import (
     user_can_proofread_chant,
     user_can_view_chant,
 )
+from volpiano_display_utilities.cantus_text_syllabification import (
+    syllabify_text,
+    flatten_syllabified_text,
+)
+from volpiano_display_utilities.text_volpiano_alignment import align_text_and_volpiano
 
 CHANT_SEARCH_TEMPLATE_VALUES: tuple[str, ...] = (
     # for views that use chant_search.html, this allows them to
@@ -1328,6 +1333,10 @@ class ChantEditSyllabificationView(LoginRequiredMixin, UserPassesTestMixin, Upda
     form_class = ChantEditSyllabificationForm
     pk_url_kwarg = "chant_id"
 
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.flattened_syls_text = ""
+
     def test_func(self):
         chant = self.get_object()
         source = chant.source
@@ -1340,11 +1349,13 @@ class ChantEditSyllabificationView(LoginRequiredMixin, UserPassesTestMixin, Upda
         chant = self.get_object()
 
         if chant.volpiano:
-            has_syl_text = bool(chant.manuscript_syllabized_full_text)
-            text_and_mel = syllabize_text_and_melody(
-                chant.get_best_text_for_syllabizing(),
-                pre_syllabized=has_syl_text,
-                melody=chant.volpiano,
+            # Second value returned is a flag indicating
+            # whether the alignment process encountered errors.
+            # In future, this could be used to display a message to the user.
+            text_and_mel, _ = align_text_and_volpiano(
+                chant_text=self.flattened_syls_text,
+                volpiano=chant.volpiano,
+                text_presyllabified=True,
             )
             context["syllabized_text_with_melody"] = text_and_mel
 
@@ -1354,10 +1365,13 @@ class ChantEditSyllabificationView(LoginRequiredMixin, UserPassesTestMixin, Upda
         initial = super().get_initial()
         chant = self.get_object()
         has_syl_text = bool(chant.manuscript_syllabized_full_text)
-        syls_text = syllabize_text_to_string(
-            chant.get_best_text_for_syllabizing(), pre_syllabized=has_syl_text
+        syls_text = syllabify_text(
+            text=chant.get_best_text_for_syllabizing(),
+            clean_text=True,
+            text_presyllabified=has_syl_text,
         )
-        initial["manuscript_syllabized_full_text"] = syls_text
+        self.flattened_syls_text = flatten_syllabified_text(syls_text)
+        initial["manuscript_syllabized_full_text"] = self.flattened_syls_text
         return initial
 
     def form_valid(self, form):
