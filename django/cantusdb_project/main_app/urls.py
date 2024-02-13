@@ -1,4 +1,4 @@
-from django.urls import include, path, reverse
+from django.urls import include, path
 from django.contrib.auth.views import (
     PasswordResetView,
     PasswordResetDoneView,
@@ -16,7 +16,6 @@ from main_app.views.chant import (
     ChantDeleteView,
     ChantDetailView,
     ChantEditSyllabificationView,
-    ChantIndexView,
     ChantListView,
     ChantSearchView,
     ChantSearchMSView,
@@ -52,6 +51,7 @@ from main_app.views.source import (
     SourceEditView,
     SourceListView,
     SourceDeleteView,
+    SourceInventoryView,
 )
 from main_app.views.user import (
     LoginView,
@@ -154,11 +154,6 @@ urlpatterns = [
     path("century/<int:pk>", CenturyDetailView.as_view(), name="century-detail"),
     # chant
     path(
-        "chants/",
-        ChantListView.as_view(),
-        name="chant-list",
-    ),  # /chants/?source={source id}
-    path(
         "chant/<int:pk>",
         ChantDetailView.as_view(),
         name="chant-detail",
@@ -194,10 +189,10 @@ urlpatterns = [
         name="source-edit-syllabification",
     ),
     path(
-        "index/",
-        ChantIndexView.as_view(),
-        name="chant-index",
-    ),  # /index/?source={source id}
+        "chants/",
+        views.redirect_chant_list,
+        name="redirect-chant-list",
+    ),  # /chants/?source={source id}
     # feast
     path(
         "feasts/",
@@ -287,6 +282,21 @@ urlpatterns = [
         name="source-detail",
     ),
     path(
+        "source/<int:source_id>/chants/",
+        ChantListView.as_view(),
+        name="chant-list",
+    ),
+    path(
+        "source/<int:source_id>/inventory/",
+        SourceInventoryView.as_view(),
+        name="source-inventory",
+    ),
+    path(
+        "index/",
+        views.redirect_source_inventory,
+        name="redirect-source-inventory",
+    ),
+    path(
         "source-create/",
         SourceCreateView.as_view(),
         name="source-create",
@@ -324,11 +334,6 @@ urlpatterns = [
         name="json-sources-export",
     ),
     path(
-        "json-node/<int:id>",
-        views.json_node_export,
-        name="json-node-export",
-    ),
-    path(
         "json-nextchants/<str:cantus_id>",
         views.json_nextchants,
         name="json-nextchants",
@@ -342,6 +347,22 @@ urlpatterns = [
         "json-cid/<str:cantus_id>",
         views.json_cid_export,
         name="json-cid-export",
+    ),
+    # JSON APIs for returning data on individual objects in the database
+    path(
+        "json-node/<int:id>",
+        views.json_node_export,
+        name="json-node-export",
+    ),
+    path(
+        "notation/<int:id>/json",
+        views.notation_json_export,
+        name="notation-json-export",
+    ),
+    path(
+        "provenance/<int:id>/json",
+        views.provenance_json_export,
+        name="provenance-json-export",
     ),
     # misc search
     path(
@@ -491,5 +512,3 @@ urlpatterns = [
         name="differentia-autocomplete",
     ),
 ]
-
-handler404 = "main_app.views.views.handle404"

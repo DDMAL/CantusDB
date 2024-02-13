@@ -299,7 +299,6 @@ class ChantListView(ListView):
     Displays a list of Chant objects, accessed with ``chants`` followed by a series of GET params
 
     ``GET`` parameters:
-        ``source``: Filters by Source of Chant
         ``feast``: Filters by Feast of Chant
         ``search_text``: Filters by text of Chant
         ``genre``: Filters by genre of Chant
@@ -310,6 +309,7 @@ class ChantListView(ListView):
     paginate_by = 100
     context_object_name = "chants"
     template_name = "chant_list.html"
+    pk_url_kwarg = "source_id"
 
     def get_queryset(self):
         """Gather the chants to be displayed.
@@ -320,9 +320,8 @@ class ChantListView(ListView):
         Returns:
             queryset: The Chant objects to be displayed.
         """
-        # when arriving at this page, the url must have a source specified
-        source_id = self.request.GET.get("source")
-        source = Source.objects.get(id=source_id)
+        source_id = self.kwargs.get(self.pk_url_kwarg)
+        source = get_object_or_404(Source, id=source_id)
 
         display_unpublished = self.request.user.is_authenticated
         if (source.published is False) and (not display_unpublished):
@@ -366,8 +365,8 @@ class ChantListView(ListView):
         )  # to be displayed in the "Source" dropdown in the form
         context["sources"] = sources
 
-        source_id = self.request.GET.get("source")
-        source = Source.objects.get(id=source_id)
+        source_id = self.kwargs.get(self.pk_url_kwarg)
+        source = get_object_or_404(Source, id=source_id)
         if source not in sources:
             # the chant list ("Browse Chants") page should only be visitable
             # for sources in the CANTUS Database segment, as sources in the Bower
@@ -424,8 +423,12 @@ class ChantByCantusIDView(ListView):
         return super().dispatch(request, *args, **kwargs)
 
     def get_queryset(self):
-        chant_set = Chant.objects.filter(cantus_id=self.cantus_id)
-        sequence_set = Sequence.objects.filter(cantus_id=self.cantus_id)
+        chant_set = Chant.objects.filter(cantus_id=self.cantus_id).select_related(
+            "source", "office", "genre", "feast"
+        )
+        sequence_set = Sequence.objects.filter(cantus_id=self.cantus_id).select_related(
+            "source", "office", "genre", "feast"
+        )
         display_unpublished = self.request.user.is_authenticated
         if not display_unpublished:
             chant_set = chant_set.filter(source__published=True)
@@ -1043,14 +1046,15 @@ class ChantDeleteView(LoginRequiredMixin, UserPassesTestMixin, DeleteView):
         return reverse("source-edit-chants", args=[self.object.source.id])
 
 
-class ChantIndexView(TemplateView):
-    template_name = "full_index.html"
+class ChantInventoryView(TemplateView):
+    template_name = "full_inventory.html"
+    pk_url_kwarg = "source_id"
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
 
-        source_id = self.request.GET.get("source")
-        source = Source.objects.get(id=source_id)
+        source_id = self.kwargs.get(self.pk_url_kwarg)
+        source = get_object_or_404(Source, id=source_id)
 
         display_unpublished = self.request.user.is_authenticated
         if (not display_unpublished) and (source.published == False):
@@ -1067,7 +1071,7 @@ class ChantIndexView(TemplateView):
             queryset = (
                 source.chant_set.annotate(record_type=Value("chant"))
                 .order_by("folio", "c_sequence")
-                .select_related("feast", "office", "genre")
+                .select_related("feast", "office", "genre", "diff_db")
             )
 
         context["source"] = source

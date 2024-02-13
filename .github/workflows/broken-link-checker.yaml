@@ -1,0 +1,44 @@
+name: Link checker for articles and flatpages on CantusDB
+
+on:
+  schedule:
+    - cron: "8 8 * * 0" # Cron job will run at 08h08 UTC time every Sunday
+
+jobs:
+  get-all-links:
+    runs-on: ubuntu-latest
+    outputs:
+      matrix: ${{ steps.set-matrix.outputs.matrix }}
+    steps:
+    - id: set-matrix
+      run: |
+        BASE_URL="https://cantusdatabase.org"
+        flatpages=$(curl "$BASE_URL/flatpages-list/" | awk '{ gsub (" ", "\",\"", $0); print}')
+        articles=$(curl "$BASE_URL/articles-list/" | awk '{ gsub (" ", "\",\"", $0); print}')
+        list="{\"links\": [\"${flatpages}\",\"${articles}\"]}"
+        echo $list
+        echo "matrix=$list" >> $GITHUB_OUTPUT
+  link-Checker:
+    runs-on: ubuntu-latest
+    needs: get-all-links
+    strategy:
+      fail-fast: false
+      max-parallel: 4
+      matrix:  ${{fromJson(needs.get-all-links.outputs.matrix)}}
+    steps:
+      - uses: actions/checkout@v3
+      - name: Link Checker
+        id: lychee
+        uses: lycheeverse/lychee-action@v1.8.0
+        with:
+          args: --exclude http:\/\/cantus\.sk.* ${{ matrix.links }}
+          format: json
+          output: /tmp/link-checker-output.txt
+      - name: Curating Link Checker Output
+        run: |
+          echo "***Python Version***"
+          python --version
+          echo "***Invoking Parsing Script***"
+          python "$GITHUB_WORKSPACE/scripts/parse_link_checker_output.py" >> $GITHUB_STEP_SUMMARY
+          echo "***Printing Summary***"
+          cat $GITHUB_STEP_SUMMARY

@@ -3,6 +3,7 @@ from typing import Optional, Union
 from django.db.models.query import QuerySet
 from django.http.response import JsonResponse
 from django.http import HttpResponse, HttpResponseNotFound
+from django.utils.http import urlencode
 from django.shortcuts import render, redirect
 from django.urls.base import reverse
 from articles.models import Article
@@ -27,7 +28,7 @@ from django.contrib import messages
 from django.http import Http404
 from django.contrib.auth import update_session_auth_hash
 from django.contrib.auth.forms import PasswordChangeForm
-from django.core.exceptions import PermissionDenied
+from django.core.exceptions import PermissionDenied, BadRequest
 from django.urls import reverse
 from django.contrib.auth import get_user_model
 from typing import List
@@ -36,6 +37,7 @@ from django.templatetags.static import static
 from django.contrib.flatpages.models import FlatPage
 from dal import autocomplete
 from django.db.models import Q
+from django.shortcuts import get_object_or_404
 
 
 @login_required
@@ -744,6 +746,46 @@ def json_node_export(request, id: int) -> JsonResponse:
     return HttpResponseNotFound()
 
 
+def notation_json_export(request, id: int) -> JsonResponse:
+    """
+    Return JsonResponse containing several key:value pairs
+    for the notation with the specified ID
+    """
+
+    notation: Notation = get_object_or_404(Notation, id=id)
+
+    data = {
+        "id": notation.id,
+        "name": notation.name,
+        "date_created": notation.date_created,
+        "date_updated": notation.date_updated,
+        "created_by": notation.created_by_id,
+        "last_updated_by": notation.last_updated_by_id,
+    }
+
+    return JsonResponse(data)
+
+
+def provenance_json_export(request, id: int) -> JsonResponse:
+    """
+    Return JsonResponse containing several key:value pairs
+    for the provenance with the specified ID
+    """
+
+    provenance: Provenance = get_object_or_404(Provenance, id=id)
+
+    data = {
+        "id": provenance.id,
+        "name": provenance.name,
+        "date_created": provenance.date_created,
+        "date_updated": provenance.date_updated,
+        "created_by": provenance.created_by_id,
+        "last_updated_by": provenance.last_updated_by_id,
+    }
+
+    return JsonResponse(data)
+
+
 def articles_list_export(request) -> HttpResponse:
     """Returns a list of URLs of all articles on the site
 
@@ -803,10 +845,6 @@ def redirect_node_url(request, pk: int) -> HttpResponse:
 
     # if it reaches the end of the types with finding an existing object, a 404 will be returned
     raise Http404("No record found matching the /node/ query.")
-
-
-def handle404(request, exception):
-    return render(request, "404.html")
 
 
 @login_required
@@ -957,6 +995,43 @@ def redirect_documents(request) -> HttpResponse:
     except KeyError:
         raise Http404
     return redirect(new_path)
+
+
+def redirect_chant_list(request) -> HttpResponse:
+    source_id: Optional[str] = request.GET.get("source")
+    if source_id is None:
+        # source parameter must be provided
+        raise BadRequest("Source parameter must be provided")
+
+    base_url: str = reverse("chant-list", args=[source_id])
+
+    # optional search params
+    feast_id: Optional[str] = request.GET.get("feast")
+    genre_id: Optional[str] = request.GET.get("genre")
+    folio: Optional[str] = request.GET.get("folio")
+    search_text: Optional[str] = request.GET.get("search_text")
+
+    d: dict = {
+        "feast": feast_id,
+        "genre": genre_id,
+        "folio": folio,
+        "search_text": search_text,
+    }
+    params: dict = {k: v for k, v in d.items() if v is not None}
+
+    query_string: str = urlencode(params)
+    url: str = f"{base_url}?{query_string}" if query_string else base_url
+
+    return redirect(url, permanent=True)
+
+
+def redirect_source_inventory(request) -> HttpResponse:
+    source_id: str = request.GET.get("source")
+    if source_id is None:
+        # source parameter must be provided
+        raise BadRequest("Source parameter must be provided")
+    url: str = reverse("source-inventory", args=[source_id])
+    return redirect(url, permanent=True)
 
 
 class CurrentEditorsAutocomplete(autocomplete.Select2QuerySetView):

@@ -1,0 +1,80 @@
+# This file is configured for deployment of the CantusDB project in local development.
+# When building the project locally, replace the contents of cantusdb.conf with the
+# contents of this file.
+
+# server {
+#     listen 80;
+# 
+#     server_tokens off;
+# 
+#     location ^~ /.well-known/acme-challenge/ {
+#         root /var/www/lego;
+#     }
+# 
+#     location / {
+#         return 301 https://$host$request_uri;
+#     }
+# }
+ 
+# server {
+#     # Redirect all https traffic for mass.cantusdatabase.org to cantusdatabase.org
+#     listen 443 ssl;
+# 
+#     server_name mass.cantusdatabase.org;
+# 
+#     ssl_certificate /etc/nginx/ssl/live/certificates/cantusdatabase.org.crt;
+#     ssl_certificate_key /etc/nginx/ssl/live/certificates/cantusdatabase.org.key;
+# 
+#     location / {
+#         return 301 https://cantusdatabase.org$request_uri;
+#     }
+# }
+ 
+server {
+    # listen 443 default_server http2 ssl;
+    listen 80;
+	
+    # ssl_certificate /etc/nginx/ssl/live/certificates/cantusdatabase.org.crt;
+    # ssl_certificate_key /etc/nginx/ssl/live/certificates/cantusdatabase.org.key;
+
+    location / {
+        proxy_pass http://django:8000;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header Host $host;
+        proxy_redirect off;
+    }
+
+    location /static {
+        alias /resources/static/;
+    }
+    location /media {
+        alias /resources/media/;
+    }
+
+    location /concordances {
+        alias /resources/api_cache/concordances.json;
+        expires modified +24h;
+    }
+ 
+    location = /style.css {
+        root /;
+    }
+    location = /background.jpg {
+        root /;
+    }
+    location = /CantusLogoSmall.gif {
+        root /;
+    }
+    location = /favicon.ico {
+        root /;
+    }
+
+    error_page 502 /502.html;
+    location = /502.html {
+        root /;
+    }
+    error_page 504 /504.html;
+    location = /504.html {
+        root /;
+    }
+}

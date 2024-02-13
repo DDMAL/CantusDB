@@ -1,0 +1,39 @@
+{% load static %}
+<html lang="en">
+
+<head>
+    <!-- Required meta tags -->
+    <meta name="google-site-verification" content="EwxpNpZ_ZOQnetVVLELGn5-aD_beT3EQqUuI6glkArI" />
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, 
+    initial-scale=1, shrink-to-fit=no">
+    <meta name="robots" content="noindex">
+
+    <!-- Bootstrap CSS -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@4.6.2/dist/css/bootstrap.min.css" integrity="sha384-xOolHFLEh07PJGoPkLv1IbcEPTNtaed2xpHsD9ESMhqIYd0nLMwNLD69Npy4HI+N" crossorigin="anonymous">
+    <style>
+        body {
+            margin-bottom: 30px;
+            /* Margin bottom by footer height */
+            background-image: url('{% static "background.jpg" %}');
+        }
+    </style>
+</head>
+
+<body>
+    <main role="main" class="content container pt-4">
+    {% block content %}
+    <div class="container">
+        <div class="row">
+            <div class="mr-3 p-3 col-md-8 bg-white rounded">
+                <h3>400</h3>
+                <h5>Bad Request</h5>
+                <br>
+            </div>
+        </div>
+    </div>
+    {% endblock %}
+    </main>
+</body>
+
+</html>

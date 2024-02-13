@@ -4,7 +4,7 @@ server {
     server_tokens off;
 
     location ^~ /.well-known/acme-challenge/ {
-        root /var/www/certbot;
+        root /var/www/lego;
     }
 
     location / {
@@ -13,11 +13,25 @@ server {
 }
 
 server {
+    # Redirect all https traffic for mass.cantusdatabase.org to cantusdatabase.org
+    listen 443 ssl;
+
+    server_name mass.cantusdatabase.org;
+
+    ssl_certificate /etc/nginx/ssl/live/certificates/cantusdatabase.org.crt;
+    ssl_certificate_key /etc/nginx/ssl/live/certificates/cantusdatabase.org.key;
+
+    location / {
+        return 301 https://cantusdatabase.org$request_uri;
+    }
+}
+
+server {
 
     listen 443 default_server http2 ssl;
 	
-    ssl_certificate /etc/nginx/ssl/live/cantusdatabase.org/fullchain.pem;
-    ssl_certificate_key /etc/nginx/ssl/live/cantusdatabase.org/privkey.pem;
+    ssl_certificate /etc/nginx/ssl/live/certificates/cantusdatabase.org.crt;
+    ssl_certificate_key /etc/nginx/ssl/live/certificates/cantusdatabase.org.key;
 
     location / {
         proxy_pass http://django:8000;
@@ -32,7 +46,12 @@ server {
     location /media {
         alias /resources/media/;
     }
-    
+
+    location /concordances {
+        alias /resources/api_cache/concordances.json;
+        expires modified +24h;
+    }
+ 
     location = /style.css {
         root /;
     }
