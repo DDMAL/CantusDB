@@ -194,7 +194,6 @@ class ChantDetailView(DetailView):
         chant = self.get_object()
         user = self.request.user
         source = chant.source
-        cantus_id = chant.cantus_id
 
         # if the chant's source isn't published, only logged-in users should be able to
         # view the chant's detail page
@@ -206,10 +205,10 @@ class ChantDetailView(DetailView):
         # syllabification section
         if chant.volpiano:
             has_syl_text = bool(chant.manuscript_syllabized_full_text)
-            text_and_mel = syllabize_text_and_melody(
+            text_and_mel, _ = align_text_and_volpiano(
                 chant.get_best_text_for_syllabizing(),
-                pre_syllabized=has_syl_text,
-                melody=chant.volpiano,
+                chant.volpiano,
+                text_presyllabified=has_syl_text,
             )
             context["syllabized_text_with_melody"] = text_and_mel
 
