@@ -1292,10 +1292,12 @@ class SourceEditChantsView(LoginRequiredMixin, UserPassesTestMixin, UpdateView):
         chant = self.get_object()
         if chant.volpiano:
             has_syl_text = bool(chant.manuscript_syllabized_full_text)
-            text_and_mel = syllabize_text_and_melody(
+            # Note: the second value returned is a flag indicating whether the alignment process
+            # encountered errors. In future, this could be used to display a message to the user.
+            text_and_mel, _ = align_text_and_volpiano(
                 chant.get_best_text_for_syllabizing(),
-                pre_syllabized=has_syl_text,
-                melody=chant.volpiano,
+                chant.volpiano,
+                text_presyllabified=has_syl_text,
             )
             context["syllabized_text_with_melody"] = text_and_mel
 
