@@ -123,7 +123,7 @@ def ajax_concordance_list(request, cantus_id):
     )
 
 
-def ajax_melody_list(request, cantus_id):
+def ajax_melody_list(request, cantus_id) -> JsonResponse:
     """
     Function-based view responding to the AJAX call for melody list on the chant detail page,
     accessed with ``chants/<int:pk>``, click on "Display melodies connected with this chant"
@@ -134,16 +134,15 @@ def ajax_melody_list(request, cantus_id):
     Returns:
         JsonResponse: A response to the AJAX call, to be unpacked by the frontend js code
     """
-    chants = (
+    chants: QuerySet[Chant] = (
         Chant.objects.filter(cantus_id=cantus_id).exclude(volpiano=None).order_by("id")
     )
 
-    display_unpublished = request.user.is_authenticated
+    display_unpublished: bool = request.user.is_authenticated
     if not display_unpublished:
         chants = chants.filter(source__published=True)
 
-    # queryset(list of dictionaries)
-    concordance_values = chants.values(
+    concordance_values: QuerySet[dict] = chants.values(
         "siglum",
         "folio",
         "office__name",
@@ -157,7 +156,7 @@ def ajax_melody_list(request, cantus_id):
         "manuscript_full_text_std_spelling",
     )
 
-    concordances = list(concordance_values)
+    concordances: list[dict] = list(concordance_values)
     for i, concordance in enumerate(concordances):
         # some chants do not have a source
         # for those chants, do not return source link
@@ -167,7 +166,7 @@ def ajax_melody_list(request, cantus_id):
         concordance["chant_link"] = chants[i].get_absolute_url()
         concordance["db"] = "CD"
 
-    concordance_count = len(concordances)
+    concordance_count: int = len(concordances)
     return JsonResponse(
         {"concordances": concordances, "concordance_count": concordance_count},
         safe=True,
