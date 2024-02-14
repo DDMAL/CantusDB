@@ -36,7 +36,7 @@ class SequenceDetailView(DetailView):
             .select_related("source")
             .order_by("siglum")
         )
-        context["user_can_edit_sequence"] = user_can_edit_sequences(user)
+        context["user_can_edit_sequence"] = user_can_edit_sequences(user, sequence)
         return context
 
 
@@ -86,4 +86,5 @@ class SequenceEditView(LoginRequiredMixin, UserPassesTestMixin, UpdateView):
 
     def test_func(self):
         user = self.request.user
-        return user_can_edit_sequences(user)
+        sequence = self.get_object()
+        return user_can_edit_sequences(user, sequence)
