@@ -7,6 +7,8 @@ from django.db.models import Value
 from django.db.models.signals import post_save, post_delete
 from django.dispatch import receiver
 
+from typing import Optional
+
 import re
 
 from main_app.models import Chant
@@ -21,6 +23,7 @@ def on_chant_save(instance, **kwargs):
     update_source_melody_count(instance)
 
     update_chant_search_vector(instance)
+    update_chant_incipit_field(instance)
     update_volpiano_fields(instance)
 
 
@@ -33,6 +36,7 @@ def on_chant_delete(instance, **kwargs):
 @receiver(post_save, sender=Sequence)
 def on_sequence_save(instance, **kwargs):
     update_source_chant_count(instance)
+    update_sequence_incipit_field(instance)
 
 
 @receiver(post_delete, sender=Sequence)
@@ -201,3 +205,51 @@ def update_prefix_field(instance):
         instance.__class__.objects.filter(pk=pk).update(prefix=prefix)
     else:  # feast_code is None, ""
         instance.__class__.objects.filter(pk=pk).update(prefix="")
+
+
+def update_chant_incipit_field(chant: Chant):
+    """Update the incipit field of the specified Chant to be the first
+    several words of the chant's standardized-spelling fulltext
+
+    Args:
+        chant (Chant): The chant from the database whose `incipit` field
+        is to be updated
+    """
+    fulltext: Optional[str] = chant.manuscript_full_text_std_spelling
+    if not fulltext:
+        return
+    new_incipit: str = generate_incipit(fulltext)
+    Chant.objects.filter(id=chant.id).update(incipit=new_incipit)
+
+
+def update_sequence_incipit_field(sequence: Sequence):
+    """Update the incipit field of the specified Sequence to be the first
+    several words of the sequence's standardized-spelling fulltext
+
+    Args:
+        sequence (Sequence): The sequence from the database whose `incipit`
+        field is to be updated
+    """
+    fulltext: Optional[str] = sequence.manuscript_full_text_std_spelling
+    if not fulltext:
+        return
+    new_incipit: str = generate_incipit(fulltext)
+    Sequence.objects.filter(id=sequence.id).update(incipit=new_incipit)
+
+
+def generate_incipit(fulltext: str) -> str:
+    """Given the fulltext of a chant or sequence, generate an incipit
+    consisting of the first 5 words of the fulltext.
+
+    Args:
+        fulltext (str): the full text of a chant or sequence
+
+    Returns:
+        str: an incipit - the first five words of the fulltext
+    """
+    INCIPIT_LENGTH: int = 5  # number of words to include in the new incipit
+
+    fulltext_words: list[str] = fulltext.split(" ")
+    incipit_words: list[str] = fulltext_words[:INCIPIT_LENGTH]
+    incipit: str = " ".join(incipit_words)
+    return incipit
