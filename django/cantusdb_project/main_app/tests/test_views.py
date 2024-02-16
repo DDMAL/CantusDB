@@ -4393,6 +4393,9 @@ class SourceInventoryViewTest(TestCase):
     def test_incipit_column_for_chant_source(self):
         source = make_fake_source(published=True)
         chant = make_fake_chant(source=source)
+        chant.refresh_from_db()  # incipit is automatically calculated from fulltext
+        # on chant save; refreshing from DB allows us to compare the value to what we see in
+        # the results.
         incipit = chant.incipit
         url = reverse("chant-detail", args=[chant.id])
         response = self.client.get(reverse("source-inventory", args=[source.id]))
