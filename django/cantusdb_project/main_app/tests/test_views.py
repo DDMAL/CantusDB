@@ -1288,13 +1288,17 @@ class ChantSearchViewTest(TestCase):
 
     def test_order_by_mode(self):
         chant_1 = make_fake_chant(
-            incipit="For first he looks upon his forepaws to see if they are clean",
+            manuscript_full_text_std_spelling="For first he looks upon his forepaws to see if they are clean",
             mode="1",
         )
         chant_2 = make_fake_chant(
-            incipit="For secondly he kicks up behind to clear away there",
+            manuscript_full_text_std_spelling="For secondly he kicks up behind to clear away there",
             mode="2",
         )
+        chant_1.refresh_from_db()
+        chant_2.refresh_from_db()  # incipit is automatically calculated from fulltext
+        # on chant save; refreshing from DB allows us to compare the value to what we see in
+        # the results.
 
         search_term = "for"
 
