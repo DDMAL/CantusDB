@@ -216,10 +216,11 @@ def update_chant_incipit_field(chant: Chant):
         is to be updated
     """
     fulltext: Optional[str] = chant.manuscript_full_text_std_spelling
-    if not fulltext:
-        return
-    new_incipit: str = generate_incipit(fulltext)
-    Chant.objects.filter(id=chant.id).update(incipit=new_incipit)
+    if fulltext:  # many chants in the database have only an incipit -
+        # we should only update the incipit if the chant has a fulltext,
+        # just in case a chant manages to get saved without a fulltext somehow
+        new_incipit: str = generate_incipit(fulltext)
+        Chant.objects.filter(id=chant.id).update(incipit=new_incipit)
 
 
 def update_sequence_incipit_field(sequence: Sequence):
@@ -230,11 +231,18 @@ def update_sequence_incipit_field(sequence: Sequence):
         sequence (Sequence): The sequence from the database whose `incipit`
         field is to be updated
     """
-    fulltext: Optional[str] = sequence.manuscript_full_text_std_spelling
-    if not fulltext:
-        return
-    new_incipit: str = generate_incipit(fulltext)
-    Sequence.objects.filter(id=sequence.id).update(incipit=new_incipit)
+    fulltext: Optional[str] = ""
+    std_fulltext: Optional[str] = sequence.manuscript_full_text_std_spelling
+    ms_fulltext: Optional[str] = sequence.manuscript_full_text
+    if ms_fulltext:  # most (all?) sequences in the database have no
+        # standard-spelling fulltext, so we should expect to have to use the
+        # MS-spelling fulltext most of the time.
+        fulltext = ms_fulltext
+    if std_fulltext:  # but we should use standard-spelling fulltext if available
+        fulltext = std_fulltext
+    if fulltext:
+        new_incipit: str = generate_incipit(fulltext)
+        Sequence.objects.filter(id=sequence.id).update(incipit=new_incipit)
 
 
 def generate_incipit(fulltext: str) -> str:
