@@ -83,13 +83,13 @@ class UpdateCachedConcordancesCommandTest(TestCase):
         published_chant: Chant = make_fake_chant(
             source=published_source,
             cantus_id="123456",
-            incipit="chant in a published source",
+            manuscript_full_text_std_spelling="chant in a published source",
         )
         unpublished_source: Source = make_fake_source(published=False)
         unpublished_chant: Chant = make_fake_chant(
             source=unpublished_source,
             cantus_id="123456",
-            incipit="chant in an unpublished source",
+            manuscript_full_text_std_spelling="chant in an unpublished source",
         )
 
         concordances: dict = update_cached_concordances.get_concordances()
@@ -97,6 +97,9 @@ class UpdateCachedConcordancesCommandTest(TestCase):
         self.assertEqual(len(concordances), 1)
 
         single_concordance: dict = concordances_for_single_id[0]
+        published_chant.refresh_from_db()  # incipit is automatically calculated from fulltext
+        # on chant save; refreshing from DB allows us to compare the value to what we see in
+        # the results.
         expected_incipit: str = published_chant.incipit
         observed_incipit: str = single_concordance["incipit"]
         self.assertEqual(expected_incipit, observed_incipit)
