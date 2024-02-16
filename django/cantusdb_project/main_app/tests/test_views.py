@@ -1436,14 +1436,18 @@ class ChantSearchViewTest(TestCase):
 
     def test_order_by_image_link(self):
         chant_1 = make_fake_chant(
-            incipit="this is a chant with a link",
+            manuscript_full_text_std_spelling="this is a chant with a link",
             image_link="https://www.youtube.com/watch?v=dQw4w9WgXcQ",
         )
         chant_2 = make_fake_chant(
-            incipit="this is a chant without",
+            manuscript_full_text_std_spelling="this is a chant without",
         )
         chant_2.image_link = None
         chant_2.save()
+        chant_1.refresh_from_db()
+        chant_2.refresh_from_db()  # incipit is automatically calculated from fulltext
+        # on chant save; refreshing from DB allows us to compare the value to what we see in
+        # the results.
 
         search_term = "a chant with"
 
