@@ -3736,7 +3736,7 @@ class SequenceEditViewTest(TestCase):
         self.assertTemplateUsed(response, "404.html")
 
     def test_update_sequence(self):
-        sequence = make_fake_sequence(incipit="test_update_sequence")
+        sequence = make_fake_sequence()
         sequence_id = str(sequence.id)
         response = self.client.post(
             reverse("sequence-edit", args=[sequence_id]),
