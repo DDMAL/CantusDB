@@ -5586,15 +5586,17 @@ class AjaxSearchBarTest(TestCase):
 
     def test_incipit_search(self):
         unremarkable_chant = make_fake_chant(
-            incipit=(
-                "The incipit contains no "
+            manuscript_full_text_std_spelling=(
+                "The fulltext contains no "
                 "numbers no asterisks and no punctuation "
                 "and is thus completely normal"
             )
         )
-        chant_with_asterisk = make_fake_chant(incipit="few words*")
+        chant_with_asterisk = make_fake_chant(
+            manuscript_full_text_std_spelling="few words*"
+        )
 
-        istartswith_search_term = "the incipit"
+        istartswith_search_term = "the fulltext"
         istartswith_response = self.client.get(
             reverse("ajax-search-bar", args=[istartswith_search_term])
         )
