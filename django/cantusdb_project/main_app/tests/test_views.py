@@ -1314,7 +1314,7 @@ class ChantSearchViewTest(TestCase):
 
     def test_order_by_ms_fulltext(self):
         chant_1 = make_fake_chant(
-            incipit="this is a chant with a MS spelling fulltext",
+            incipit="this is a chant with",
             manuscript_full_text="this is a chant with a MS spelling fylltexte",
         )
         chant_2 = make_fake_chant(
@@ -5553,6 +5553,9 @@ class AutocompleteViewsTest(TestCase):
 class AjaxSearchBarTest(TestCase):
     def test_response(self):
         chant = make_fake_chant()
+        chant.refresh_from_db()  # incipit is automatically calculated from fulltext
+        # on chant save; refreshing from DB allows us to compare the value to what we see in
+        # the results.
         cantus_id = chant.cantus_id
 
         response = self.client.get(reverse("ajax-search-bar", args=[cantus_id]))
