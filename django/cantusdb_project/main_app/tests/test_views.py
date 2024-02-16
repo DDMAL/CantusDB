@@ -4409,6 +4409,9 @@ class SourceInventoryViewTest(TestCase):
         bower_segment = Segment.objects.create(id=4064, name="Bower Sequence Database")
         source = make_fake_source(published=True, segment=bower_segment)
         sequence = make_fake_sequence(source=source)
+        sequence.refresh_from_db()  # incipit is automatically calculated from fulltext
+        # on sequence save; refreshing from DB allows us to compare the value to what we see in
+        # the results.
         incipit = sequence.incipit
         url = reverse("sequence-detail", args=[sequence.id])
         response = self.client.get(reverse("source-inventory", args=[source.id]))
