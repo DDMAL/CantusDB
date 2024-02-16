@@ -5465,7 +5465,7 @@ class ContentOverviewTest(TestCase):
 
     def test_source_selected_model(self):
         source = make_fake_source(title="Test Source")
-        chant = make_fake_chant(incipit="Test Chant")
+        chant = make_fake_chant()
         response = self.client.get(reverse("content-overview"), {"model": "sources"})
         self.assertContains(response, f"<b>Sources</b>", html=True)
         self.assertContains(
