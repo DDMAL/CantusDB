@@ -106,6 +106,9 @@ class UpdateCachedConcordancesCommandTest(TestCase):
 
     def test_concordances_values(self):
         chant: Chant = make_fake_chant()
+        chant.refresh_from_db()  # incipit is automatically calculated from fulltext
+        # on chant save; refreshing from DB allows us to compare the value to what we see in
+        # the results.
         cantus_id: str = chant.cantus_id
 
         concordances: dict = update_cached_concordances.get_concordances()
