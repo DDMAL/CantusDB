@@ -1223,8 +1223,16 @@ class ChantSearchViewTest(TestCase):
         genre_1 = make_fake_genre()
         genre_2 = make_fake_genre()
         assert genre_1.id < genre_2.id
-        chant_1 = make_fake_chant(genre=genre_1, incipit="hocus")
-        chant_2 = make_fake_chant(genre=genre_2, incipit="pocus")
+        chant_1 = make_fake_chant(
+            genre=genre_1, manuscript_full_text_std_spelling="hocus"
+        )
+        chant_2 = make_fake_chant(
+            genre=genre_2, manuscript_full_text_std_spelling="focus"
+        )
+        chant_1.refresh_from_db()
+        chant_2.refresh_from_db()  # incipit is automatically calculated from fulltext
+        # on chant save; refreshing from DB allows us to compare the value to what we see in
+        # the results.
 
         search_term = "ocu"
 
