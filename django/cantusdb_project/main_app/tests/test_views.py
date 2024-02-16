@@ -5069,6 +5069,10 @@ class JsonCidTest(TestCase):
 
     def test_values(self):
         chant = make_fake_chant(cantus_id="100000")
+        chant.refresh_from_db()  # incipit is automatically calculated from fulltext
+        # on chant save; refreshing from DB allows us to compare the value to what we see in
+        # the results.
+
         expected_values = {
             "siglum": chant.source.siglum,
             "srclink": f"http://testserver/source/{chant.source.id}",
