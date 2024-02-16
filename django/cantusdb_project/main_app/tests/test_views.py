@@ -1081,9 +1081,17 @@ class ChantSearchViewTest(TestCase):
 
     def test_order_by_siglum(self):
         source_1 = make_fake_source(published=True, siglum="sigl-1")
-        chant_1 = make_fake_chant(incipit="thing 1", source=source_1)
+        chant_1 = make_fake_chant(
+            manuscript_full_text_std_spelling="thing 1", source=source_1
+        )
         source_2 = make_fake_source(published=True, siglum="sigl-2")
-        chant_2 = make_fake_chant(incipit="thing 2", source=source_2)
+        chant_2 = make_fake_chant(
+            manuscript_full_text_std_spelling="thing 2", source=source_2
+        )
+        chant_1.refresh_from_db()
+        chant_2.refresh_from_db()  # incipit is automatically calculated from fulltext
+        # on chant save; refreshing from DB allows us to compare the value to what we see in
+        # the results.
 
         search_term = "thing"
 
