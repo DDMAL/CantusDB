@@ -237,14 +237,8 @@ class ChantModelTest(TestCase):
         full_text: str = "Incipit should be five words sheep headphones bongoes"
         expected_incipit: str = "Incipit should be five words"
         chant.manuscript_full_text_std_spelling = full_text
-        print(
-            f"before refresh\n  {chant.manuscript_full_text_std_spelling=}\n  {chant.incipit=}"
-        )
         chant.save()
         chant.refresh_from_db()
-        print(
-            f"refreshed:\n  {chant.manuscript_full_text_std_spelling=}\n  {chant.incipit=}"
-        )
         observed_incipit: str = chant.incipit
         self.assertEqual(observed_incipit, expected_incipit)
 
