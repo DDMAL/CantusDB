@@ -5632,11 +5632,11 @@ class AjaxSearchBarTest(TestCase):
     def test_cantus_id_search(self):
         chant_with_normal_cantus_id = make_fake_chant(
             cantus_id="012345",
-            incipit="This incipit contains no numerals",
+            manuscript_full_text_std_spelling="This fulltext contains no numerals",
         )
         chant_with_numerals_in_incipit = make_fake_chant(
             cantus_id="123456",
-            incipit="0 me! 0 my! This is unexpected!",
+            manuscript_full_text_std_spelling="0 me! 0 my! This is unexpected!",
         )
 
         # for search terms that contain numerals, we should only return
