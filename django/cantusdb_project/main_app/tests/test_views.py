@@ -3026,9 +3026,7 @@ class SourceEditChantsViewTest(TestCase):
     def test_chant_with_volpiano_with_no_fulltext(self):
         # in the past, a Chant Edit page will error rather than loading properly when the chant has volpiano but no fulltext
         source = make_fake_source()
-        chant = make_fake_chant(
-            source=source, volpiano="1---f--e---f--d---e--c---d--d", incipit="dies irae"
-        )
+        chant = make_fake_chant(source=source, volpiano="1---f--e---f--d---e--c---d--d")
         chant.manuscript_full_text = None
         chant.manuscript_full_text_std_spelling = None
         chant.save()
