@@ -2200,8 +2200,16 @@ class ChantSearchMSViewTest(TestCase):
 
     def test_order_by_cantus_id(self):
         source = make_fake_source()
-        chant_1 = make_fake_chant(incipit="isaac", cantus_id="121393", source=source)
-        chant_2 = make_fake_chant(incipit="baal", cantus_id="196418", source=source)
+        chant_1 = make_fake_chant(
+            manuscript_full_text_std_spelling="isaac", cantus_id="121393", source=source
+        )
+        chant_2 = make_fake_chant(
+            manuscript_full_text_std_spelling="baal", cantus_id="196418", source=source
+        )
+        chant_1.refresh_from_db()
+        chant_2.refresh_from_db()  # incipit is automatically calculated from fulltext
+        # on chant save; refreshing from DB allows us to compare the value to what we see in
+        # the results.
 
         search_term = "aa"
 
