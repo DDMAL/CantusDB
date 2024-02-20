@@ -64,6 +64,7 @@ class ChantAdmin(BaseModelAdmin):
     readonly_fields = READ_ONLY + (
         "date_created",
         "date_updated",
+        "incipit",
     )
 
     list_filter = (
@@ -170,6 +171,7 @@ class SequenceAdmin(BaseModelAdmin):
         "source",
         "feast",
     )
+    readonly_fields = READ_ONLY + ("incipit",)
     ordering = ("source__siglum",)
     form = AdminSequenceForm
 
