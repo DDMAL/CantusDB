@@ -2057,8 +2057,16 @@ class ChantSearchMSViewTest(TestCase):
 
     def test_order_by_incipit(self):
         source = make_fake_source(published=True)
-        chant_1 = make_fake_chant(source=source, incipit="higgledy")
-        chant_2 = make_fake_chant(source=source, incipit="piggledy")
+        chant_1 = make_fake_chant(
+            source=source, manuscript_full_text_std_spelling="higgledy"
+        )
+        chant_2 = make_fake_chant(
+            source=source, manuscript_full_text_std_spelling="piggledy"
+        )
+        chant_1.refresh_from_db()
+        chant_2.refresh_from_db()  # incipit is automatically calculated from fulltext
+        # on chant save; refreshing from DB allows us to compare the value to what we see in
+        # the results.
 
         search_term = "iggl"
 
