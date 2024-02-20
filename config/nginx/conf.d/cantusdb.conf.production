@@ -1,5 +1,5 @@
 server {
-    # Redirect all http traffic to corresponding https page
+    # Redirect all http traffic to corresponding canonical https page
     listen 80;
 
     server_name cantusdatabase.org www.cantusdatabase.org mass.cantusdatabase.org;
@@ -11,7 +11,7 @@ server {
     }
 
     location / {
-        return 301 https://$host$request_uri;
+        return 301 https://cantusdatabase.org$request_uri;
     }
 }
 
