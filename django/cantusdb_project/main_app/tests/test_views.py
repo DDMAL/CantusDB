@@ -2098,8 +2098,16 @@ class ChantSearchMSViewTest(TestCase):
         office_1 = make_fake_office()
         office_2 = make_fake_office()
         assert office_1.id < office_2.id
-        chant_1 = make_fake_chant(office=office_1, incipit="hocus", source=source)
-        chant_2 = make_fake_chant(office=office_2, incipit="pocus", source=source)
+        chant_1 = make_fake_chant(
+            office=office_1, manuscript_full_text_std_spelling="hocus", source=source
+        )
+        chant_2 = make_fake_chant(
+            office=office_2, manuscript_full_text_std_spelling="pocus", source=source
+        )
+        chant_1.refresh_from_db()
+        chant_2.refresh_from_db()  # incipit is automatically calculated from fulltext
+        # on chant save; refreshing from DB allows us to compare the value to what we see in
+        # the results.
 
         search_term = "ocu"
 
