@@ -1500,12 +1500,11 @@ class ChantSearchViewTest(TestCase):
     def test_column_header_links(self):
         # these are the 9 column headers users can order by:
         siglum = "glum-01"
-        incipit = "so it begins"
+        fulltext = "so it begins"
         office = make_fake_office()
         genre = make_fake_genre()
         cantus_id = make_random_string(6, "0123456789")
         mode = make_random_string(1, "0123456789*?")
-        ms_ft = faker.sentence()
         mel = make_fake_volpiano()
         image = faker.image_url()
 
@@ -1515,12 +1514,11 @@ class ChantSearchViewTest(TestCase):
         feast = make_fake_feast()
         position = make_random_string(1)
         chant = make_fake_chant(
-            incipit=incipit,
+            manuscript_full_text_std_spelling=fulltext,
             office=office,
             genre=genre,
             cantus_id=cantus_id,
             mode=mode,
-            manuscript_full_text_std_spelling=ms_ft,
             volpiano=mel,
             image_link=image,
             source=source,
