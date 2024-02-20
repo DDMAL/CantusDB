@@ -2306,15 +2306,19 @@ class ChantSearchMSViewTest(TestCase):
         source = make_fake_source()
         chant_1 = make_fake_chant(
             source=source,
-            incipit="this is a chant with volpiano",
+            manuscript_full_text_std_spelling="this is a chant with volpiano",
             volpiano="1---d---d---a--a---a---e--f--e---d---4",
         )
         chant_2 = make_fake_chant(
             source=source,
-            incipit="this is a chant about parsley",
+            manuscript_full_text_std_spelling="this is a chant about parsley",
         )
         chant_2.volpiano = None
         chant_2.save()
+        chant_1.refresh_from_db()
+        chant_2.refresh_from_db()  # incipit is automatically calculated from fulltext
+        # on chant save; refreshing from DB allows us to compare the value to what we see in
+        # the results.
 
         search_term = "s is a ch"
 
