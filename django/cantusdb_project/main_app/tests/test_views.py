@@ -2478,7 +2478,6 @@ class ChantSearchMSViewTest(TestCase):
         feast = make_fake_feast()
         position = make_random_string(1)
         chant = make_fake_chant(
-            incipit=incipit,
             office=office,
             genre=genre,
             cantus_id=cantus_id,
@@ -2490,6 +2489,9 @@ class ChantSearchMSViewTest(TestCase):
             feast=feast,
             position=position,
         )
+        # incipit is automatically calculated from fulltext
+        # on chant save, so we need to set the incipit this way.
+        Chant.objects.filter(id=chant.id).update(incipit=incipit)
         search_term = "so it be"
 
         response_1 = self.client.get(
