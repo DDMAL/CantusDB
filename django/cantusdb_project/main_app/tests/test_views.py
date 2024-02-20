@@ -2380,15 +2380,17 @@ class ChantSearchMSViewTest(TestCase):
         source = make_fake_source()
         chant_1 = make_fake_chant(
             source=source,
-            incipit="this is a chant with a link",
+            manuscript_full_text_std_spelling="this is a chant with a link",
             image_link="https://www.youtube.com/watch?v=dQw4w9WgXcQ",
         )
         chant_2 = make_fake_chant(
             source=source,
-            incipit="this is a chant without",
+            manuscript_full_text_std_spelling="this is a chant without",
         )
         chant_2.image_link = None
         chant_2.save()
+        chant_1.refresh_from_db()
+        chant_2.refresh_from_db()
 
         search_term = "a chant with"
 
