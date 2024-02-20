@@ -825,7 +825,6 @@ class ChantDetailViewTest(TestCase):
         chant = make_fake_chant(
             source=source,
             volpiano="1---c--g--e---e---d---c---c---f---e---e--d---d---c",
-            incipit="somebody",
         )
         chant.manuscript_full_text = None
         chant.manuscript_full_text_std_spelling = None
