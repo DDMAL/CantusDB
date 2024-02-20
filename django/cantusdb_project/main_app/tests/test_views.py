@@ -2020,30 +2020,50 @@ class ChantSearchMSViewTest(TestCase):
         includes_search_term = "brevity is the soul of wit"
         doesnt_include_search_term = "longevity is the soul of wit"
         source = make_fake_source()
+
+        # For all the chants below: incipit is automatically calculated
+        # based on fulltext every time a chant is saved. In order to set
+        # the incipit, we need to create the chant (.save() is called
+        # at the end of make_fake_chant()), and then update the incipit
+        # to ensure the proper value is stored in the database for when
+        # we make the request for the page.
+
         chant_incipit = make_fake_chant(
             source=source,
-            incipit=includes_search_term,  # <==
             manuscript_full_text=doesnt_include_search_term,
             manuscript_full_text_std_spelling=doesnt_include_search_term,
         )
+        Chant.objects.filter(id=chant_incipit.id).update(
+            incipit=includes_search_term  # <==
+        )
+
         chant_ms_spelling = make_fake_chant(
             source=source,
-            incipit=doesnt_include_search_term,
             manuscript_full_text=includes_search_term,  # <==
             manuscript_full_text_std_spelling=doesnt_include_search_term,
         )
+        Chant.objects.filter(id=chant_ms_spelling.id).update(
+            incipit=doesnt_include_search_term
+        )
+
         chant_std_spelling = make_fake_chant(
             source=source,
-            incipit=doesnt_include_search_term,
             manuscript_full_text=doesnt_include_search_term,
             manuscript_full_text_std_spelling=includes_search_term,  # <==
         )
+        Chant.objects.filter(id=chant_std_spelling.id).update(
+            incipit=doesnt_include_search_term
+        )
+
         chant_without_search_term = make_fake_chant(
             source=source,
-            incipit=doesnt_include_search_term,
             manuscript_full_text=doesnt_include_search_term,
             manuscript_full_text_std_spelling=doesnt_include_search_term,
         )
+        Chant.objects.filter(id=chant_without_search_term.id).update(
+            incipit=doesnt_include_search_term
+        )
+
         response_starts_with = self.client.get(
             reverse("chant-search-ms", args=[source.id]),
             {"keyword": search_term, "op": "starts_with"},
