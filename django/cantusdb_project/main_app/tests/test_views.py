@@ -2222,15 +2222,19 @@ class ChantSearchMSViewTest(TestCase):
     def test_order_by_mode(self):
         source = make_fake_source()
         chant_1 = make_fake_chant(
-            incipit="For thirdly he works it upon stretch with the forepaws extended",
+            manuscript_full_text_std_spelling="For thirdly he works it upon stretch with the forepaws extended",
             mode="1",
             source=source,
         )
         chant_2 = make_fake_chant(
-            incipit="For fourthly he sharpens his paws by wood",
+            manuscript_full_text_std_spelling="For fourthly he sharpens his paws by wood",
             mode="2",
             source=source,
         )
+        chant_1.refresh_from_db()
+        chant_2.refresh_from_db()  # incipit is automatically calculated from fulltext
+        # on chant save; refreshing from DB allows us to compare the value to what we see in
+        # the results.
 
         search_term = "for"
 
