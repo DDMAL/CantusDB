@@ -21,6 +21,8 @@ EXCLUDE = ("json_info",)
 READ_ONLY = (
     "created_by",
     "last_updated_by",
+    "date_created",
+    "date_updated",
 )
 
 
@@ -61,11 +63,7 @@ class ChantAdmin(BaseModelAdmin):
         "id",
     )
 
-    readonly_fields = READ_ONLY + (
-        "date_created",
-        "date_updated",
-        "incipit",
-    )
+    readonly_fields = READ_ONLY + ("incipit",)
 
     list_filter = (
         "genre",
