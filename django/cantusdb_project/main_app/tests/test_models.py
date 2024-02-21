@@ -361,13 +361,11 @@ class SequenceModelTest(TestCase):
         self.assertEqual(chant_fields, seq_fields)
 
     def test_incipit_signal(self):
-        """Test whether a sequence's incipit is updated to reflect its fulltext upon save"""
+        """Test whether a sequence's incipit is updated to reflect its title upon save"""
         sequence: Sequence = make_fake_sequence()
-        full_text: str = (
-            "Incipit debet esse quinque verba bombus equus armadillo macropus"
-        )
-        expected_incipit: str = "Incipit debet esse quinque verba"
-        sequence.manuscript_full_text_std_spelling = full_text
+        title: str = "Incipit titulus esse debet"
+        expected_incipit: str = title
+        sequence.title = title
         sequence.save()
         sequence.refresh_from_db()
         observed_incipit: str = sequence.incipit
