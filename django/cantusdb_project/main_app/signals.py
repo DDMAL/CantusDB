@@ -233,23 +233,12 @@ def update_sequence_incipit_field(sequence: Sequence) -> None:
         sequence (Sequence): The sequence from the database whose `incipit`
         field is to be updated
     """
-    fulltext: Optional[str] = ""
-    std_fulltext: Optional[str] = sequence.manuscript_full_text_std_spelling
-    ms_fulltext: Optional[str] = sequence.manuscript_full_text
     title: Optional[str] = sequence.title
     if title:  # most (all?) sequences in the database have no
         # fulltext, so we should expect to have to use the value
         # in the title field most of the time (most sequences have at least a title)
-        fulltext = title
-    if ms_fulltext:  # if there's an MS-spelling fulltext, use it
-        fulltext = ms_fulltext
-    if (
-        std_fulltext
-    ):  # but we should default to the standard-spelling fulltext if available
-        fulltext = std_fulltext
-    if fulltext:
-        new_incipit: str = generate_incipit(fulltext)
-        Sequence.objects.filter(id=sequence.id).update(incipit=new_incipit)
+        incipit: str = title
+        Sequence.objects.filter(id=sequence.id).update(incipit=incipit)
 
 
 def generate_incipit(fulltext: str) -> str:
