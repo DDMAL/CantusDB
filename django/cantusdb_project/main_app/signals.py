@@ -234,8 +234,9 @@ def update_sequence_incipit_field(sequence: Sequence) -> None:
         field is to be updated
     """
     title: Optional[str] = sequence.title
-    if title:  # As of late Feb 2024, most (all?) sequences in the database have no
-        # fulltext, but every sequence has a title
+    if title:  # As of late Feb 2024, no sequences in the database have
+        # fulltext, but every sequence has a title, and the value stored in
+        # the title field is an incipit.
         incipit: str = title
         Sequence.objects.filter(id=sequence.id).update(incipit=incipit)
 
