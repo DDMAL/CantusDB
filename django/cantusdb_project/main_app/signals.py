@@ -18,7 +18,7 @@ from main_app.models import Source
 
 
 @receiver(post_save, sender=Chant)
-def on_chant_save(instance, **kwargs):
+def on_chant_save(instance, **kwargs) -> None:
     update_source_chant_count(instance)
     update_source_melody_count(instance)
 
@@ -28,28 +28,28 @@ def on_chant_save(instance, **kwargs):
 
 
 @receiver(post_delete, sender=Chant)
-def on_chant_delete(instance, **kwargs):
+def on_chant_delete(instance, **kwargs) -> None:
     update_source_chant_count(instance)
     update_source_melody_count(instance)
 
 
 @receiver(post_save, sender=Sequence)
-def on_sequence_save(instance, **kwargs):
+def on_sequence_save(instance, **kwargs) -> None:
     update_source_chant_count(instance)
     update_sequence_incipit_field(instance)
 
 
 @receiver(post_delete, sender=Sequence)
-def on_sequence_delete(instance, **kwargs):
+def on_sequence_delete(instance, **kwargs) -> None:
     update_source_chant_count(instance)
 
 
 @receiver(post_save, sender=Feast)
-def on_feast_save(instance, **kwargs):
+def on_feast_save(instance, **kwargs) -> None:
     update_prefix_field(instance)
 
 
-def update_chant_search_vector(instance):
+def update_chant_search_vector(instance) -> None:
     """When saving an instance of Chant, update its search vector field.
 
     Called in on_chant_save()
@@ -67,7 +67,7 @@ def update_chant_search_vector(instance):
     )
 
 
-def update_source_chant_count(instance):
+def update_source_chant_count(instance) -> None:
     """When saving or deleting a Chant or Sequence, update its Source's number_of_chants field
 
     Called in on_chant_save(), on_chant_delete(), on_sequence_save() and on_sequence_delete()
@@ -83,7 +83,7 @@ def update_source_chant_count(instance):
         source.save()
 
 
-def update_source_melody_count(instance):
+def update_source_melody_count(instance) -> None:
     """When saving or deleting a Chant, update its Source's number_of_melodies field
 
     Called in on_chant_save() and on_chant_delete()
@@ -103,13 +103,13 @@ def update_source_melody_count(instance):
         source.save()
 
 
-def update_volpiano_fields(instance):
+def update_volpiano_fields(instance) -> None:
     """When saving a Chant, make sure the chant's volpiano_notes and volpiano_intervals are up-to-date
 
     Called in on_chant_save()
     """
 
-    def generate_volpiano_notes(volpiano):
+    def generate_volpiano_notes(volpiano) -> None:
         """
         Populate the ``volpiano_notes`` field of the ``Chant`` model
 
@@ -151,7 +151,7 @@ def update_volpiano_fields(instance):
         volpiano_notes = re.sub(r"(.)\1+", r"\1", volpiano_notes)
         return volpiano_notes
 
-    def generate_volpiano_intervals(volpiano_notes):
+    def generate_volpiano_intervals(volpiano_notes) -> None:
         """
         Populate the ``volpiano_intervals`` field of the ``Chant`` model
 
@@ -197,7 +197,7 @@ def update_volpiano_fields(instance):
     )
 
 
-def update_prefix_field(instance):
+def update_prefix_field(instance) -> None:
     pk = instance.pk
 
     if instance.feast_code:
@@ -207,7 +207,7 @@ def update_prefix_field(instance):
         instance.__class__.objects.filter(pk=pk).update(prefix="")
 
 
-def update_chant_incipit_field(chant: Chant):
+def update_chant_incipit_field(chant: Chant) -> None:
     """Update the incipit field of the specified Chant to be the first
     several words of the chant's standardized-spelling fulltext
 
@@ -223,7 +223,7 @@ def update_chant_incipit_field(chant: Chant):
         Chant.objects.filter(id=chant.id).update(incipit=new_incipit)
 
 
-def update_sequence_incipit_field(sequence: Sequence):
+def update_sequence_incipit_field(sequence: Sequence) -> None:
     """Update the incipit field of the specified Sequence to be the first
     several words of the sequence's standardized-spelling fulltext
 
