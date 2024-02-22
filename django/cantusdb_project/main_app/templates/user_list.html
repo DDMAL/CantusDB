@@ -30,7 +30,11 @@
             {% for user in users %}
                 <tr>
                     <td class="text-center text-wrap">
-                        <a href="{% url 'user-detail' user.id %}">{{ user.full_name|default:"" }}</a>
+                        {% if user.full_name %}
+                            <a href="{% url 'user-detail' user.id %}">{{ user.full_name|default:"" }}</a>
+                        {% else %}
+                            <a href="{% url 'user-detail' user.id %}">User {{ user.id }}</a>
+                        {% endif %}
                     </td>
                     <td>{{ user.institution|default:"" }}</td>
                     <td>{{ user.city|default:"" }}</td>
