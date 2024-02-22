@@ -313,9 +313,6 @@ def make_fake_sequence(source=None, title=None, cantus_id=None) -> Sequence:
         cantus_id = make_random_string(6, "0123456789")
     sequence = Sequence.objects.create(
         title=title,
-        # most sequences in the database have no standard-spelling fulltext,
-        # but they do have MS-spelling fulltext.
-        manuscript_full_text=faker.sentence(),
         siglum=make_random_string(6),
         # folio in the form of two digits and one letter
         folio=faker.bothify("##?"),
