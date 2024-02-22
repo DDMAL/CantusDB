@@ -466,6 +466,7 @@
                                         Contributor: <a href={% url 'user-detail' source.created_by.id %}><b>{{ source.created_by.full_name }}</b></a>
                                     {% else %}
                                         Contributor: <a href={% url 'user-detail' source.created_by.id %}><b>User {{source.created_by.id}}</b></a>
+                                    {% endif %}
                                 {% endif %}
                             </small>
                         </div>
