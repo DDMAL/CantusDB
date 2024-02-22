@@ -1,5 +1,8 @@
 server {
+    # Redirect all http traffic to corresponding canonical https page
     listen 80;
+
+    server_name cantusdatabase.org www.cantusdatabase.org mass.cantusdatabase.org;
 
     server_tokens off;
 
@@ -8,15 +11,16 @@ server {
     }
 
     location / {
-        return 301 https://$host$request_uri;
+        return 301 https://cantusdatabase.org$request_uri;
     }
 }
 
 server {
-    # Redirect all https traffic for mass.cantusdatabase.org to cantusdatabase.org
+    # Redirect all https traffic for www.cantusdatabase.org and mass.cantusdatabase.org
+    # to cantusdatabase.org
     listen 443 ssl;
 
-    server_name mass.cantusdatabase.org;
+    server_name www.cantusdatabase.org mass.cantusdatabase.org;
 
     ssl_certificate /etc/nginx/ssl/live/certificates/cantusdatabase.org.crt;
     ssl_certificate_key /etc/nginx/ssl/live/certificates/cantusdatabase.org.key;
@@ -27,8 +31,9 @@ server {
 }
 
 server {
-
     listen 443 default_server http2 ssl;
+
+    server_name cantusdatabase.org;
 	
     ssl_certificate /etc/nginx/ssl/live/certificates/cantusdatabase.org.crt;
     ssl_certificate_key /etc/nginx/ssl/live/certificates/cantusdatabase.org.key;
