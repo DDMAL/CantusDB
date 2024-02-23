@@ -5,7 +5,7 @@
 
 <div class="container">
     <div class="row">
-        <div class="mr-3 p-3 col-lg-8 bg-white rounded main-content">
+        <div class="p-3 col-lg-8 bg-white rounded main-content">
             <h3>Browse Chants</h3>
             <small>Displaying <b>{{ page_obj.start_index }}-{{ page_obj.end_index }}</b> of <b>{{ page_obj.paginator.count }}</b> chants</small>
             
@@ -128,11 +128,11 @@
         </div>
     
         <div class="col p-0 sidebar">
-            <div class="search-bar">
+            <div class="search-bar mb-3">
                 {% include "global_search_bar.html" %}
             </div>
 
-            <div class="card mb-3 w-100">
+            <div class="card w-100">
 
                 <div class="card-header">
                     <h4><a href="{% url 'source-detail' source.id %}" title="{{ source.title }}">{{ source.siglum }}</a></h4>

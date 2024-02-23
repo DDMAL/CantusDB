@@ -6,7 +6,7 @@
 
 <div class="container">
     <div class="row">
-        <div class="mr-3 p-3 col-lg-8 bg-white rounded">
+        <div class="p-3 col-lg-8 bg-white rounded main-content">
             <!--Display "submit success" message -->
             {% if messages %}
                 <div class="alert alert-success alert-dismissible">
@@ -163,7 +163,7 @@
         </div>
 
         <div class="col p-0 sidebar">
-            <div class="search-bar">
+            <div class="search-bar mb-3">
                 {% include "global_search_bar.html" %}
             </div>
 
@@ -271,7 +271,7 @@
                 </div>
             </div>
             {% if user_can_edit_chants %}
-                <div class="card mb-3 w-100">
+                <div class="card w-100">
                     <div class="card-header">
                         Source edit options
                         <br>
