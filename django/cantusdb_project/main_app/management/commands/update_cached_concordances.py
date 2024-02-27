@@ -122,36 +122,3 @@ def make_chant_dict(chant: dict) -> dict:
     }
 
     return processed_chant
-
-    # stdout.write("Processing chants\n")
-    # concordances: defaultdict = defaultdict(list)
-    # for chant in values:
-    #     source_id: int = chant["source_id"]
-    #     source_absolute_url: str = f"{DOMAIN}/source/{source_id}/"
-    #     chant_id: int = chant["id"]
-    #     chant_absolute_url: str = f"{DOMAIN}/chant/{chant_id}/"
-
-    #     concordances[chant["cantus_id"]].append(
-    #         {
-    #             "siglum": chant["source__siglum"],
-    #             "srclink": source_absolute_url,
-    #             "chantlink": chant_absolute_url,
-    #             "folio": chant["folio"],
-    #             "sequence": chant["c_sequence"],
-    #             "incipit": chant["incipit"],
-    #             "feast": chant["feast__name"],
-    #             "genre": chant["genre__name"],
-    #             "office": chant["office__name"],
-    #             "position": chant["position"],
-    #             "cantus_id": chant["cantus_id"],
-    #             "image": chant["image_link"],
-    #             "mode": chant["mode"],
-    #             "full_text": chant["manuscript_full_text_std_spelling"],
-    #             "melody": chant["volpiano"],
-    #             "db": "CD",
-    #         }
-    #     )
-
-    # stdout.write(f"All chants processed - found {len(concordances)} Cantus IDs\n")
-
-    # return dict(concordances)
