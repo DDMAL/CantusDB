@@ -1,9 +1,7 @@
 import ujson
 import os
 from sys import stdout
-from typing import Optional
 from datetime import datetime
-from collections import defaultdict
 from django.db.models.query import QuerySet
 from django.core.management.base import BaseCommand
 from main_app.models import Chant
