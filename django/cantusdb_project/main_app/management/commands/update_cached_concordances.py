@@ -1,16 +1,16 @@
 import ujson
 import os
 from sys import stdout
-from typing import Optional
 from datetime import datetime
-from collections import defaultdict
 from django.db.models.query import QuerySet
 from django.core.management.base import BaseCommand
 from main_app.models import Chant
 
-
 # Usage: `python manage.py update_cached_concordances`
 # or `python manage.py update_cached_concordances -d "/path/to/directory/in/which/to/save/concordances"`
+
+# Used for creating URIs for chant and source detail pages
+CANTUSDB_DOMAIN: str = "https://cantusdatabase.org"
 
 
 class Command(BaseCommand):
@@ -32,13 +32,6 @@ class Command(BaseCommand):
         stdout.write(f"Running update_cached_concordances at {start_time}.\n")
         concordances: dict = get_concordances()
         write_time: str = datetime.now().isoformat()
-        metadata: dict = {
-            "last_updated": write_time,
-        }
-        data_and_metadata: dict = {
-            "data": concordances,
-            "metadata": metadata,
-        }
         stdout.write(f"Attempting to make directory at {cache_dir} to hold cache: ")
         try:
             os.mkdir(cache_dir)
@@ -47,22 +40,21 @@ class Command(BaseCommand):
             stdout.write(f"directory at {cache_dir} already exists.\n")
         stdout.write(f"Writing concordances to {filepath} at {write_time}.\n")
         with open(filepath, "w") as json_file:
-            ujson.dump(data_and_metadata, json_file)
+            ujson.dump(concordances, json_file)
         end_time = datetime.now().isoformat()
         stdout.write(
             f"Concordances successfully written to {filepath} at {end_time}.\n\n"
         )
 
 
-def get_concordances() -> dict:
-    """Fetch all published chants in the database, group them by Cantus ID, and return
-    a dictionary containing information on each of these chants.
+def get_concordances() -> list[dict]:
+    """Fetch all published chants in the database, and return a list
+    of dictionaries containing information on these chants.
 
     Returns:
-        dict: A dictionary where each key is a Cantus ID and each value is a list all
-          published chants in the database with that Cantus ID.
+        list[dict]: A list of dictionaries, each representing a single chant
+            from the database
     """
-    DOMAIN: str = "https://cantusdatabase.org"
 
     stdout.write("Querying database for published chants\n")
     published_chants: QuerySet[Chant] = Chant.objects.filter(source__published=True)
@@ -89,35 +81,45 @@ def get_concordances() -> dict:
         "volpiano",
     )
 
-    stdout.write("Processing chants\n")
-    concordances: defaultdict = defaultdict(list)
-    for chant in values:
-        source_id: int = chant["source_id"]
-        source_absolute_url: str = f"{DOMAIN}/source/{source_id}/"
-        chant_id: int = chant["id"]
-        chant_absolute_url: str = f"{DOMAIN}/chant/{chant_id}/"
+    concordances: list[dict] = [make_chant_dict(chant) for chant in values]
+    return concordances
 
-        concordances[chant["cantus_id"]].append(
-            {
-                "siglum": chant["source__siglum"],
-                "srclink": source_absolute_url,
-                "chantlink": chant_absolute_url,
-                "folio": chant["folio"],
-                "sequence": chant["c_sequence"],
-                "incipit": chant["incipit"],
-                "feast": chant["feast__name"],
-                "genre": chant["genre__name"],
-                "office": chant["office__name"],
-                "position": chant["position"],
-                "cantus_id": chant["cantus_id"],
-                "image": chant["image_link"],
-                "mode": chant["mode"],
-                "full_text": chant["manuscript_full_text_std_spelling"],
-                "melody": chant["volpiano"],
-                "db": "CD",
-            }
-        )
 
-    stdout.write(f"All chants processed - found {len(concordances)} Cantus IDs\n")
+def make_chant_dict(chant: dict) -> dict:
+    """Given a dictionary representing a chant from the database,
+    return a chant with the keys specified at
+    https://github.com/DDMAL/CantusDB/wiki/APIs#concordances
 
-    return dict(concordances)
+    Args:
+        chant (dict): A dictionary representing a chant from the database,
+            from a QuerySet.values() call, with several non-standardized
+            keys from database traversals (e.g., `source__siglum`)
+
+    Returns:
+        dict: A dictionary representing a chant, with several values standardized
+            (e.g., `siglum`) and several values calculated (e.g., `srclink`)
+    """
+    source_id: int = chant["source_id"]
+    source_uri: str = f"{CANTUSDB_DOMAIN}/source/{source_id}/"
+    chant_id: int = chant["id"]
+    chant_uri: str = f"{CANTUSDB_DOMAIN}/chant/{chant_id}/"
+    processed_chant: dict = {
+        "siglum": chant["source__siglum"],
+        "srclink": source_uri,
+        "chantlink": chant_uri,
+        "folio": chant["folio"],
+        "sequence": chant["c_sequence"],
+        "incipit": chant["incipit"],
+        "feast": chant["feast__name"],
+        "genre": chant["genre__name"],
+        "office": chant["office__name"],
+        "position": chant["position"],
+        "cantus_id": chant["cantus_id"],
+        "image": chant["image_link"],
+        "mode": chant["mode"],
+        "full_text": chant["manuscript_full_text_std_spelling"],
+        "melody": chant["volpiano"],
+        "db": "CD",
+    }
+
+    return processed_chant
