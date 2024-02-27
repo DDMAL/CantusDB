@@ -14,7 +14,7 @@
 
 # Note: This script is set up to run on the production server. If you want to run it on your local machine, you will need to change the paths.
 
-BACKUP_DIR=/home/ubuntu/backups/postgres/                           # This is the directory where the backups will be stored.
+BACKUP_DIR=$1                                                       # This is the directory where the backups will be stored.
 BACKUP_FILENAME=$(date "+%Y-%m-%dT%H:%M:%S").sql.gz                 # This is the name of the backup file.
 
 
