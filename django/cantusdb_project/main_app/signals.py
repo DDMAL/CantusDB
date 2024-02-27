@@ -121,7 +121,7 @@ def update_volpiano_fields(instance) -> None:
     )
 
 
-def generate_volpiano_notes(volpiano) -> None:
+def generate_volpiano_notes(volpiano) -> str:
     """
     Populate the ``volpiano_notes`` field of the ``Chant`` model
 
@@ -136,7 +136,7 @@ def generate_volpiano_notes(volpiano) -> None:
     # unwanted_chars are non-note chars, including the clefs, barlines, and accidentals etc.
     # the `searchMelody.js` on old cantus makes no reference to the b-flat accidentals ("y", "i", "z")
     # so put them in unwanted chars for now
-    unwanted_chars = [
+    unwanted_chars: list[str] = [
         "-",
         "1",
         "2",
@@ -153,9 +153,9 @@ def generate_volpiano_notes(volpiano) -> None:
         "z",
     ]
     # convert all charactors to lower-case, upper-case letters stand for liquescent of the same pitch
-    volpiano_lower = volpiano.lower()
+    volpiano_lower: str = volpiano.lower()
     # `)` stands for the lowest `g` note liquescent in volpiano, its 'lower case' is `9`
-    volpiano_notes = volpiano_lower.replace(")", "9")
+    volpiano_notes: str = volpiano_lower.replace(")", "9")
     # remove none-note charactors
     for unwanted_char in unwanted_chars:
         volpiano_notes = volpiano_notes.replace(unwanted_char, "")
