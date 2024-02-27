@@ -45,13 +45,13 @@ class Command(BaseCommand):
         )
 
 
-def get_concordances() -> dict:
-    """Fetch all published chants in the database, group them by Cantus ID, and return
-    a dictionary containing information on each of these chants.
+def get_concordances() -> list[dict]:
+    """Fetch all published chants in the database, and return a list
+    of dictionaries containing information on these chants.
 
     Returns:
-        dict: A dictionary where each key is a Cantus ID and each value is a list all
-          published chants in the database with that Cantus ID.
+        list[dict]: A list of dictionaries, each representing a single chant
+            from the database
     """
 
     stdout.write("Querying database for published chants\n")
