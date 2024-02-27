@@ -67,11 +67,9 @@ class UpdateCachedConcordancesCommandTest(TestCase):
         self.assertEqual(len(concordances), 1)
 
         single_concordance: dict = concordances[0]
-        # since the fulltext, specified above, contains <= 5 words,
-        # incipit should be the same as the fulltext
-        expected_incipit: str = published_chant.manuscript_full_text_std_spelling
-        observed_incipit: str = single_concordance["incipit"]
-        self.assertEqual(expected_incipit, observed_incipit)
+        expected_fulltext: str = published_chant.manuscript_full_text_std_spelling
+        observed_fulltext: str = single_concordance["full_text"]
+        self.assertEqual(expected_fulltext, observed_fulltext)
 
     def test_concordances_values(self):
         chant: Chant = make_fake_chant()
