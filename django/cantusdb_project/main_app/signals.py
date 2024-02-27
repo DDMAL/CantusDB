@@ -164,7 +164,7 @@ def generate_volpiano_notes(volpiano) -> str:
     return volpiano_notes
 
 
-def generate_volpiano_intervals(volpiano_notes) -> None:
+def generate_volpiano_intervals(volpiano_notes) -> str:
     """
     Populate the ``volpiano_intervals`` field of the ``Chant`` model
 
@@ -178,24 +178,23 @@ def generate_volpiano_intervals(volpiano_notes) -> None:
         str: A str of digits, recording the intervals between adjacent notes
     """
     # replace '9' (the note G) with the char corresponding to (ASCII(a) - 1), because 'a' denotes the note A
-    volpiano_notes = volpiano_notes.replace("9", chr(ord("a") - 1))
+    volpiano_notes: str = volpiano_notes.replace("9", chr(ord("a") - 1))
     # we model the interval between notes using the difference between the ASCII codes of corresponding letters
     # the letter for the note B is "j" (106), note A is "h" (104), the letter "i" (105) is skipped
     # move all notes above A down by one letter
-    volpiano_notes = list(volpiano_notes)
-    for j, note in enumerate(volpiano_notes):
+    notes_list: list = list(volpiano_notes)
+    for j, note in enumerate(notes_list):
         if ord(note) >= 106:
-            volpiano_notes[j] = chr(ord(note) - 1)
+            notes_list[j] = chr(ord(note) - 1)
 
     # `intervals` records the difference between two adjacent notes.
     # Note that intervals are encoded by counting the number of scale
     # steps between adjacent notes: an ascending second is thus encoded
     # as "1"; a descending third is encoded "-2", and so on.
-    intervals = []
+    intervals: list[int] = []
     for j in range(1, len(volpiano_notes)):
         intervals.append(ord(volpiano_notes[j]) - ord(volpiano_notes[j - 1]))
-    # convert `intervals` to str
-    volpiano_intervals = "".join([str(interval) for interval in intervals])
+    volpiano_intervals: str = "".join([str(interval) for interval in intervals])
     return volpiano_intervals
 
 
