@@ -6,9 +6,11 @@ from django.db.models.query import QuerySet
 from django.core.management.base import BaseCommand
 from main_app.models import Chant
 
-
 # Usage: `python manage.py update_cached_concordances`
 # or `python manage.py update_cached_concordances -d "/path/to/directory/in/which/to/save/concordances"`
+
+# Used for creating URIs for chant and source detail pages
+CANTUSDB_DOMAIN: str = "https://cantusdatabase.org"
 
 
 class Command(BaseCommand):
@@ -97,11 +99,10 @@ def make_chant_dict(chant: dict) -> dict:
         dict: A dictionary representing a chant, with several values standardized
             (e.g., `siglum`) and several values calculated (e.g., `srclink`)
     """
-    DOMAIN: str = "https://cantusdatabase.org"
     source_id: int = chant["source_id"]
-    source_uri: str = f"{DOMAIN}/source/{source_id}/"
+    source_uri: str = f"{CANTUSDB_DOMAIN}/source/{source_id}/"
     chant_id: int = chant["id"]
-    chant_uri: str = f"{DOMAIN}/chant/{chant_id}/"
+    chant_uri: str = f"{CANTUSDB_DOMAIN}/chant/{chant_id}/"
     processed_chant: dict = {
         "siglum": chant["source__siglum"],
         "srclink": source_uri,
