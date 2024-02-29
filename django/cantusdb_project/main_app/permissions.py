@@ -82,12 +82,31 @@ def user_can_view_sequence(user: User, sequence: Sequence) -> bool:
     return (source is not None) and ((source.published) or (user_is_authenticated))
 
 
-def user_can_edit_sequences(user: User) -> bool:
+def user_can_edit_sequences(user: User, sequence: Sequence) -> bool:
     """
     Checks if the user has permission to edit a Sequence object.
     Used in SequenceDetail and SequenceEdit views.
     """
-    return user.groups.filter(name="project manager").exists()
+    source = sequence.source
+    if user.is_anonymous or (source is None):
+        return False
+
+    source_id = source.id
+    user_is_assigned_to_source: bool = user.sources_user_can_edit.filter(
+        id=source_id
+    ).exists()
+
+    user_is_project_manager: bool = user.groups.filter(name="project manager").exists()
+    user_is_editor: bool = user.groups.filter(name="editor").exists()
+    user_is_contributor: bool = user.groups.filter(name="contributor").exists()
+
+    return (
+        (user_is_project_manager)
+        or (user_is_editor and user_is_assigned_to_source)
+        or (user_is_editor and source.created_by == user)
+        or (user_is_contributor and user_is_assigned_to_source)
+        or (user_is_contributor and source.created_by == user)
+    )
 
 
 def user_can_create_sources(user: User) -> bool:

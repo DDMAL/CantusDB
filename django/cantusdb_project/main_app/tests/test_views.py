@@ -11,6 +11,8 @@ from django.test import Client
 from django.db.models import Q
 from django.db.models.functions import Lower
 import csv
+from collections.abc import KeysView, ItemsView
+from typing import Optional
 
 from faker import Faker
 
@@ -5688,3 +5690,117 @@ class AjaxSearchBarTest(TestCase):
         non_matching_content = json.loads(non_matching_response.content)
         non_matching_chants = non_matching_content["chants"]
         self.assertEqual(len(non_matching_chants), 0)
+
+
+class AjaxMelodyViewTest(TestCase):
+    def test_response(self):
+        cantus_id: str = "123456"
+        number_of_chants: int = 7
+        for _ in range(number_of_chants):
+            make_fake_chant(cantus_id=cantus_id)
+
+        with self.subTest(subtest="ensure 200 response"):
+            response: JsonResponse = self.client.get(
+                reverse("ajax-melody", args=[cantus_id])
+            )
+            self.assertEqual(response.status_code, 200)
+
+        with self.subTest(
+            subtest="ensure response unpacks to a dictionary with two items"
+        ):
+            content: Optional[dict] = json.loads(response.content)
+            self.assertIsInstance(content, dict)
+            items: ItemsView = content.items()
+            self.assertEqual(len(items), 2)
+
+        expected_keys: tuple = (
+            "concordances",
+            "concordance_count",
+        )
+        observed_keys: KeysView = content.keys()
+        for key in expected_keys:
+            with self.subTest(key=key):
+                self.assertIn(key, observed_keys)
+
+        with self.subTest(subtest="ensure response['concordances'] is a list"):
+            concordances: Optional[list] = content["concordances"]
+            self.assertIsInstance(concordances, list)
+
+        with self.subTest(
+            subtest="verify type and value of response['concordance_count']"
+        ):
+            concordance_count: Optional[int] = content["concordance_count"]
+            self.assertIsInstance(concordance_count, int)
+            self.assertEqual(concordance_count, number_of_chants)
+
+    def test_published_vs_unpublished(self):
+        cantus_id: str = "234567"
+
+        published_source: Source = make_fake_source(published=True)
+        num_matching_published_chants: int = 3
+        for _ in range(num_matching_published_chants):
+            make_fake_chant(
+                cantus_id=cantus_id,
+                source=published_source,
+            )
+
+        unpublished_source: Source = make_fake_source(published=False)
+        num_matching_unpublished_chants: int = 5
+        for _ in range(num_matching_unpublished_chants):
+            make_fake_chant(
+                cantus_id=cantus_id,
+                source=unpublished_source,
+            )
+
+        num_nonmatching_published_chants: int = 2
+        for _ in range(num_nonmatching_published_chants):
+            make_fake_chant(
+                cantus_id="123456",
+                source=published_source,
+            )
+
+        response: JsonResponse = self.client.get(
+            reverse("ajax-melody", args=[cantus_id])
+        )
+        content: dict = json.loads(response.content)
+        concordances: list = content["concordances"]
+        concordance_count: int = content["concordance_count"]
+
+        self.assertEqual(concordance_count, num_matching_published_chants)
+        self.assertEqual(len(concordances), num_matching_published_chants)
+
+    def test_concordance_items(self):
+        cantus_id: str = "345678"
+        chant: Chant = make_fake_chant(cantus_id=cantus_id)
+
+        response: JsonResponse = self.client.get(
+            reverse("ajax-melody", args=[cantus_id])
+        )
+        content: dict = json.loads(response.content)
+        concordances: list = content["concordances"]
+        concordance: dict = concordances[0]
+
+        expected_items: ItemsView = {
+            "siglum": chant.source.siglum,
+            "folio": chant.folio,
+            "office__name": chant.office.name,
+            "genre__name": chant.genre.name,
+            "position": chant.position,
+            "feast__name": chant.feast.name,
+            "cantus_id": chant.cantus_id,
+            "volpiano": chant.volpiano,
+            "mode": chant.mode,
+            "manuscript_full_text_std_spelling": chant.manuscript_full_text_std_spelling,
+            "source_link": chant.source.get_absolute_url(),
+            "ci_link": chant.get_ci_url(),
+            "chant_link": chant.get_absolute_url(),
+            "db": "CD",
+        }.items()
+        observed_keys: KeysView = concordance.keys()
+        self.assertEqual(len(expected_items), len(observed_keys))
+
+        for key, value in expected_items:
+            with self.subTest(key=key):
+                self.assertIn(key, observed_keys)
+            with self.subTest(value=key):
+                self.assertEqual(value, concordance[key])

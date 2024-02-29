@@ -18,18 +18,13 @@ from main_app.signals import generate_incipit
 class UpdateCachedConcordancesCommandTest(TestCase):
     def test_concordances_structure(self):
         chant: Chant = make_fake_chant(cantus_id="123456")
-        concordances: dict = update_cached_concordances.get_concordances()
+        concordances: list = update_cached_concordances.get_concordances()
 
-        with self.subTest(test="Ensure get_concordances returns dict"):
-            self.assertIsInstance(concordances, dict)
+        with self.subTest(test="Ensure get_concordances returns list"):
+            self.assertIsInstance(concordances, list)
 
-        concordances_for_single_cantus_id: list = concordances["123456"]
-        with self.subTest(test="Ensure values are lists"):
-            self.assertIsInstance(concordances_for_single_cantus_id, list)
-
-        single_concordance = concordances_for_single_cantus_id[0]
+        single_concordance = concordances[0]
         with self.subTest(test="Ensure each concordance is a dict"):
-            single_concordance: dict = concordances_for_single_cantus_id[0]
             self.assertIsInstance(single_concordance, dict)
 
         expected_keys = (
@@ -57,63 +52,30 @@ class UpdateCachedConcordancesCommandTest(TestCase):
         with self.subTest(test="Ensure no unexpected keys present"):
             self.assertEqual(len(concordance_keys), len(expected_keys))
 
-    def test_number_of_concordances_returned(self):
-        cantus_ids: tuple[tuple[str, int]] = (
-            ("000002", 2),
-            ("000003", 3),
-            ("000005", 5),
-            ("000007", 7),
-            ("000011", 11),
-        )
-        for cantus_id, n in cantus_ids:
-            for _ in range(n):
-                make_fake_chant(cantus_id=cantus_id)
-
-        concordances: dict = update_cached_concordances.get_concordances()
-        with self.subTest(test="Test all Cantus IDs present"):
-            self.assertEqual(len(concordances), len(cantus_ids))
-
-        for cantus_id, n in cantus_ids:
-            concordances_for_id: list = concordances[cantus_id]
-            with self.subTest(n=n):
-                self.assertEqual(len(concordances_for_id), n)
-
     def test_published_vs_unpublished(self):
         published_source: Source = make_fake_source(published=True)
         published_chant: Chant = make_fake_chant(
             source=published_source,
-            cantus_id="123456",
             manuscript_full_text_std_spelling="chant in a published source",
         )
         unpublished_source: Source = make_fake_source(published=False)
         unpublished_chant: Chant = make_fake_chant(
             source=unpublished_source,
-            cantus_id="123456",
             manuscript_full_text_std_spelling="chant in an unpublished source",
         )
 
-        concordances: dict = update_cached_concordances.get_concordances()
-        concordances_for_single_id: list = concordances["123456"]
+        concordances: list = update_cached_concordances.get_concordances()
         self.assertEqual(len(concordances), 1)
-
-        single_concordance: dict = concordances_for_single_id[0]
-        published_chant.refresh_from_db()  # incipit is automatically calculated from fulltext
-        # on chant save; refreshing from DB allows us to compare the value to what we see in
-        # the results.
-        expected_incipit: str = published_chant.incipit
-        observed_incipit: str = single_concordance["incipit"]
-        self.assertEqual(expected_incipit, observed_incipit)
+        single_concordance: dict = concordances[0]
+        expected_fulltext: str = published_chant.manuscript_full_text_std_spelling
+        observed_fulltext: str = single_concordance["full_text"]
+        self.assertEqual(expected_fulltext, observed_fulltext)
 
     def test_concordances_values(self):
         chant: Chant = make_fake_chant()
-        chant.refresh_from_db()  # incipit is automatically calculated from fulltext
-        # on chant save; refreshing from DB allows us to compare the value to what we see in
-        # the results.
-        cantus_id: str = chant.cantus_id
 
-        concordances: dict = update_cached_concordances.get_concordances()
-        concordances_for_single_id: list = concordances[cantus_id]
-        single_concordance: dict = concordances_for_single_id[0]
+        concordances: list = update_cached_concordances.get_concordances()
+        single_concordance: dict = concordances[0]
 
         expected_items: tuple = (
             ("siglum", chant.source.siglum),

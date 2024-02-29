@@ -1047,40 +1047,6 @@ class ChantDeleteView(LoginRequiredMixin, UserPassesTestMixin, DeleteView):
         return reverse("source-edit-chants", args=[self.object.source.id])
 
 
-class ChantInventoryView(TemplateView):
-    template_name = "full_inventory.html"
-    pk_url_kwarg = "source_id"
-
-    def get_context_data(self, **kwargs):
-        context = super().get_context_data(**kwargs)
-
-        source_id = self.kwargs.get(self.pk_url_kwarg)
-        source = get_object_or_404(Source, id=source_id)
-
-        display_unpublished = self.request.user.is_authenticated
-        if (not display_unpublished) and (source.published == False):
-            raise PermissionDenied
-
-        # 4064 is the id for the sequence database
-        if source.segment.id == 4064:
-            queryset = (
-                source.sequence_set.annotate(record_type=Value("sequence"))
-                .order_by("s_sequence")
-                .select_related("genre")
-            )
-        else:
-            queryset = (
-                source.chant_set.annotate(record_type=Value("chant"))
-                .order_by("folio", "c_sequence")
-                .select_related("feast", "office", "genre", "diff_db")
-            )
-
-        context["source"] = source
-        context["chants"] = queryset
-
-        return context
-
-
 class SourceEditChantsView(LoginRequiredMixin, UserPassesTestMixin, UpdateView):
     template_name = "chant_edit.html"
     model = Chant
