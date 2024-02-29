@@ -17,6 +17,8 @@ from django.contrib.auth import get_user_model
 
 from typing import Optional, List
 
+User = get_user_model()
+
 # Max positive integer accepted by Django's positive integer field
 MAX_SEQUENCE_NUMBER = 2147483647
 
@@ -249,9 +251,9 @@ def make_fake_genre(name=None) -> Genre:
     return genre
 
 
-def make_fake_user(is_indexer=True) -> get_user_model():
+def make_fake_user(is_indexer=True) -> User:
     """Generates a fake User object."""
-    user = get_user_model().objects.create(
+    user = User.objects.create(
         full_name=f"{faker.first_name()} {faker.last_name()}",
         institution=faker.company(),
         city=faker.city(),
