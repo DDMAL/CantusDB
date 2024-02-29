@@ -2396,12 +2396,12 @@ class ChantSearchMSViewTest(TestCase):
     def test_column_header_links(self):
         # these are the 9 column headers users can order by:
         siglum = "glum-01"
-        incipit = "so it begins"
+        full_text = "this is a full text that begins with the search term"
+        search_term = "this is a fu"
         office = make_fake_office()
         genre = make_fake_genre()
         cantus_id = make_random_string(6, "0123456789")
         mode = make_random_string(1, "0123456789*?")
-        ms_ft = faker.sentence()
         mel = make_fake_volpiano()
         image = faker.image_url()
 
@@ -2415,18 +2415,13 @@ class ChantSearchMSViewTest(TestCase):
             genre=genre,
             cantus_id=cantus_id,
             mode=mode,
-            manuscript_full_text_std_spelling=ms_ft,
+            manuscript_full_text_std_spelling=full_text,
             volpiano=mel,
             image_link=image,
             source=source,
             feast=feast,
             position=position,
         )
-        # incipit is automatically calculated from fulltext
-        # on chant save, so we need to set the incipit this way.
-        Chant.objects.filter(id=chant.id).update(incipit=incipit)
-        search_term = "so it be"
-
         response_1 = self.client.get(
             reverse("chant-search-ms", args=[source.id]),
             {
