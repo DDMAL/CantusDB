@@ -223,6 +223,9 @@ def make_fake_chant(
         json_info=None,
         next_chant=next_chant,
     )
+    chant.refresh_from_db()  # several fields (e.g., incipit) are calculated automatically
+    # upon chant save. By refreshing from db before returning, we ensure all the chant's fields
+    # are up-to-date. For more information, refer to main_app/signals.py
     return chant
 
 
@@ -329,6 +332,9 @@ def make_fake_sequence(source=None, title=None, cantus_id=None) -> Sequence:
         cantus_id=cantus_id,
         image_link=faker.image_url(),
     )
+    sequence.refresh_from_db()  # several fields (e.g., incipit) are calculated automatically
+    # upon sequence save. By refreshing from db before returning, we ensure all the sequence's fields
+    # are up-to-date. For more information, refer to main_app/signals.py
     return sequence
 
 
