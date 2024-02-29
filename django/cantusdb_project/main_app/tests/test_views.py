@@ -1087,10 +1087,6 @@ class ChantSearchViewTest(TestCase):
         chant_2 = make_fake_chant(
             manuscript_full_text_std_spelling="thing 2", source=source_2
         )
-        chant_1.refresh_from_db()
-        chant_2.refresh_from_db()  # incipit is automatically calculated from fulltext
-        # on chant save; refreshing from DB allows us to compare the value to what we see in
-        # the results.
 
         search_term = "thing"
 
@@ -1132,10 +1128,6 @@ class ChantSearchViewTest(TestCase):
         chant_2 = make_fake_chant(
             source=source, manuscript_full_text_std_spelling="piggledy"
         )
-        chant_1.refresh_from_db()
-        chant_2.refresh_from_db()  # incipit is automatically calculated from fulltext
-        # on chant save; refreshing from DB allows us to compare the value to what we see in
-        # the results.
 
         search_term = "iggl"
 
@@ -1180,10 +1172,6 @@ class ChantSearchViewTest(TestCase):
         chant_2 = make_fake_chant(
             office=office_2, manuscript_full_text_std_spelling="pocus"
         )
-        chant_1.refresh_from_db()
-        chant_2.refresh_from_db()  # incipit is automatically calculated from fulltext
-        # on chant save; refreshing from DB allows us to compare the value to what we see in
-        # the results.
 
         search_term = "ocu"
 
@@ -1228,10 +1216,6 @@ class ChantSearchViewTest(TestCase):
         chant_2 = make_fake_chant(
             genre=genre_2, manuscript_full_text_std_spelling="focus"
         )
-        chant_1.refresh_from_db()
-        chant_2.refresh_from_db()  # incipit is automatically calculated from fulltext
-        # on chant save; refreshing from DB allows us to compare the value to what we see in
-        # the results.
 
         search_term = "ocu"
 
@@ -1272,10 +1256,6 @@ class ChantSearchViewTest(TestCase):
         chant_2 = make_fake_chant(
             manuscript_full_text_std_spelling="baal", cantus_id="196418"
         )
-        chant_1.refresh_from_db()
-        chant_2.refresh_from_db()  # incipit is automatically calculated from fulltext
-        # on chant save; refreshing from DB allows us to compare the value to what we see in
-        # the results.
 
         search_term = "aa"
 
@@ -1318,10 +1298,6 @@ class ChantSearchViewTest(TestCase):
             manuscript_full_text_std_spelling="For secondly he kicks up behind to clear away there",
             mode="2",
         )
-        chant_1.refresh_from_db()
-        chant_2.refresh_from_db()  # incipit is automatically calculated from fulltext
-        # on chant save; refreshing from DB allows us to compare the value to what we see in
-        # the results.
 
         search_term = "for"
 
@@ -1361,16 +1337,12 @@ class ChantSearchViewTest(TestCase):
             manuscript_full_text_std_spelling="this is a chant with a MS spelling fulltext",
         )
         chant_2 = make_fake_chant(
-            manuscript_full_text_std_spelling="this is a chant without a MS spelling fulltext",
+            manuscript_full_text_std_spelling="this will become a chant without a MS spelling fulltext",
         )
         chant_2.manuscript_full_text = None
         chant_2.save()
-        chant_1.refresh_from_db()
-        chant_2.refresh_from_db()  # incipit is automatically calculated from fulltext
-        # on chant save; refreshing from DB allows us to compare the value to what we see in
-        # the results.
 
-        search_term = "s is a ch"
+        search_term = "a chant wit"
 
         response_ascending = self.client.get(
             reverse("chant-search"),
@@ -1412,10 +1384,6 @@ class ChantSearchViewTest(TestCase):
         )
         chant_2.volpiano = None
         chant_2.save()
-        chant_1.refresh_from_db()
-        chant_2.refresh_from_db()  # incipit is automatically calculated from fulltext
-        # on chant save; refreshing from DB allows us to compare the value to what we see in
-        # the results.
 
         search_term = "s is a ch"
 
@@ -1459,10 +1427,6 @@ class ChantSearchViewTest(TestCase):
         )
         chant_2.image_link = None
         chant_2.save()
-        chant_1.refresh_from_db()
-        chant_2.refresh_from_db()  # incipit is automatically calculated from fulltext
-        # on chant save; refreshing from DB allows us to compare the value to what we see in
-        # the results.
 
         search_term = "a chant with"
 
@@ -2082,10 +2046,6 @@ class ChantSearchMSViewTest(TestCase):
         chant_2 = make_fake_chant(
             source=source, manuscript_full_text_std_spelling="piggledy"
         )
-        chant_1.refresh_from_db()
-        chant_2.refresh_from_db()  # incipit is automatically calculated from fulltext
-        # on chant save; refreshing from DB allows us to compare the value to what we see in
-        # the results.
 
         search_term = "iggl"
 
@@ -2131,10 +2091,6 @@ class ChantSearchMSViewTest(TestCase):
         chant_2 = make_fake_chant(
             office=office_2, manuscript_full_text_std_spelling="pocus", source=source
         )
-        chant_1.refresh_from_db()
-        chant_2.refresh_from_db()  # incipit is automatically calculated from fulltext
-        # on chant save; refreshing from DB allows us to compare the value to what we see in
-        # the results.
 
         search_term = "ocu"
 
@@ -2180,10 +2136,6 @@ class ChantSearchMSViewTest(TestCase):
         chant_2 = make_fake_chant(
             genre=genre_2, manuscript_full_text_std_spelling="pocus", source=source
         )
-        chant_1.refresh_from_db()
-        chant_2.refresh_from_db()  # incipit is automatically calculated from fulltext
-        # on chant save; refreshing from DB allows us to compare the value to what we see in
-        # the results.
 
         search_term = "ocu"
 
@@ -2225,10 +2177,6 @@ class ChantSearchMSViewTest(TestCase):
         chant_2 = make_fake_chant(
             manuscript_full_text_std_spelling="baal", cantus_id="196418", source=source
         )
-        chant_1.refresh_from_db()
-        chant_2.refresh_from_db()  # incipit is automatically calculated from fulltext
-        # on chant save; refreshing from DB allows us to compare the value to what we see in
-        # the results.
 
         search_term = "aa"
 
@@ -2274,10 +2222,6 @@ class ChantSearchMSViewTest(TestCase):
             mode="2",
             source=source,
         )
-        chant_1.refresh_from_db()
-        chant_2.refresh_from_db()  # incipit is automatically calculated from fulltext
-        # on chant save; refreshing from DB allows us to compare the value to what we see in
-        # the results.
 
         search_term = "for"
 
@@ -2324,10 +2268,6 @@ class ChantSearchMSViewTest(TestCase):
         )
         chant_2.manuscript_full_text = None
         chant_2.save()
-        chant_1.refresh_from_db()
-        chant_2.refresh_from_db()  # incipit is automatically calculated from fulltext
-        # on chant save; refreshing from DB allows us to compare the value to what we see in
-        # the results.
 
         search_term = "s is a ch"
 
@@ -2374,10 +2314,6 @@ class ChantSearchMSViewTest(TestCase):
         )
         chant_2.volpiano = None
         chant_2.save()
-        chant_1.refresh_from_db()
-        chant_2.refresh_from_db()  # incipit is automatically calculated from fulltext
-        # on chant save; refreshing from DB allows us to compare the value to what we see in
-        # the results.
 
         search_term = "s is a ch"
 
@@ -2424,8 +2360,6 @@ class ChantSearchMSViewTest(TestCase):
         )
         chant_2.image_link = None
         chant_2.save()
-        chant_1.refresh_from_db()
-        chant_2.refresh_from_db()
 
         search_term = "a chant with"
 
@@ -3131,6 +3065,8 @@ class SourceEditChantsViewTest(TestCase):
             folio="001r",
             c_sequence=2,
         )
+        expected_volpiano: str = "abacadaeafagahaja"
+        expected_intervals: str = "1-12-23-34-45-56-67-78-8"
         self.client.post(
             reverse("source-edit-chants", args=[source.id]),
             {
@@ -3141,8 +3077,8 @@ class SourceEditChantsViewTest(TestCase):
             },
         )
         chant_2 = Chant.objects.get(manuscript_full_text_std_spelling="resonare foobaz")
-        self.assertEqual(chant_2.volpiano, "abacadaeafagahaja")
-        self.assertEqual(chant_2.volpiano_intervals, "1-12-23-34-45-56-67-78-8")
+        self.assertEqual(chant_2.volpiano, expected_volpiano)
+        self.assertEqual(chant_2.volpiano_intervals, expected_intervals)
 
     def test_chant_with_volpiano_with_no_fulltext(self):
         # in the past, a Chant Edit page will error rather than loading properly when the chant has volpiano but no fulltext
@@ -3231,7 +3167,7 @@ class ChantEditSyllabificationViewTest(TestCase):
 
     def test_edit_syllabification(self):
         chant = make_fake_chant(manuscript_syllabized_full_text="lorem ipsum")
-        self.assertIs(chant.manuscript_syllabized_full_text, "lorem ipsum")
+        self.assertEqual(chant.manuscript_syllabized_full_text, "lorem ipsum")
         response = self.client.post(
             f"/edit-syllabification/{chant.id}",
             {"manuscript_syllabized_full_text": "lo-rem ip-sum"},
@@ -4512,9 +4448,6 @@ class SourceInventoryViewTest(TestCase):
     def test_incipit_column_for_chant_source(self):
         source = make_fake_source(published=True)
         chant = make_fake_chant(source=source)
-        chant.refresh_from_db()  # incipit is automatically calculated from fulltext
-        # on chant save; refreshing from DB allows us to compare the value to what we see in
-        # the results.
         incipit = chant.incipit
         url = reverse("chant-detail", args=[chant.id])
         response = self.client.get(reverse("source-inventory", args=[source.id]))
@@ -4528,9 +4461,6 @@ class SourceInventoryViewTest(TestCase):
         bower_segment = Segment.objects.create(id=4064, name="Bower Sequence Database")
         source = make_fake_source(published=True, segment=bower_segment)
         sequence = make_fake_sequence(source=source)
-        sequence.refresh_from_db()  # incipit is automatically calculated from fulltext
-        # on sequence save; refreshing from DB allows us to compare the value to what we see in
-        # the results.
         incipit = sequence.incipit
         url = reverse("sequence-detail", args=[sequence.id])
         response = self.client.get(reverse("source-inventory", args=[source.id]))
@@ -5191,9 +5121,6 @@ class JsonCidTest(TestCase):
 
     def test_values(self):
         chant = make_fake_chant(cantus_id="100000")
-        chant.refresh_from_db()  # incipit is automatically calculated from fulltext
-        # on chant save; refreshing from DB allows us to compare the value to what we see in
-        # the results.
 
         expected_values = {
             "siglum": chant.source.siglum,
@@ -5675,9 +5602,6 @@ class AutocompleteViewsTest(TestCase):
 class AjaxSearchBarTest(TestCase):
     def test_response(self):
         chant = make_fake_chant()
-        chant.refresh_from_db()  # incipit is automatically calculated from fulltext
-        # on chant save; refreshing from DB allows us to compare the value to what we see in
-        # the results.
         cantus_id = chant.cantus_id
 
         response = self.client.get(reverse("ajax-search-bar", args=[cantus_id]))
