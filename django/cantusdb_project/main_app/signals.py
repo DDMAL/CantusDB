@@ -192,8 +192,8 @@ def generate_volpiano_intervals(volpiano_notes) -> str:
     # steps between adjacent notes: an ascending second is thus encoded
     # as "1"; a descending third is encoded "-2", and so on.
     intervals: list[int] = []
-    for j in range(1, len(volpiano_notes)):
-        intervals.append(ord(volpiano_notes[j]) - ord(volpiano_notes[j - 1]))
+    for j in range(1, len(notes_list)):
+        intervals.append(ord(notes_list[j]) - ord(notes_list[j - 1]))
     volpiano_intervals: str = "".join([str(interval) for interval in intervals])
     return volpiano_intervals
 
