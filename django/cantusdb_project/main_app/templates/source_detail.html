@@ -284,13 +284,15 @@
                         {% endif %}
                         {{ source.indexing_notes|default_if_none:"" }}
                         <br>
-                        {% if source.created_by %}
-                            {% if source.created_by.full_name %}
-                                Contributor: <a href={% url 'user-detail' source.created_by.id %}><b>{{ source.created_by.full_name }}</b></a>
-                            {% else %}
-                                Contributor: <a href={% url 'user-detail' source.created_by.id %}><b>User {{ source.created_by.id }}</b></a>
+                        {% with creator=source.created_by %}
+                            {% if creator %}
+                                {% if creator.full_name %}
+                                    Contributor: <a href={% url 'user-detail' creator.id %}><b>{{ creator.full_name }}</b></a>
+                                {% else %}
+                                    Contributor: <a href={% url 'user-detail' creator.id %}><b>User {{ creator.id }}</b></a>
+                                {% endif %}
                             {% endif %}
-                        {% endif %}
+                        {% endwith %}
                     </small>
                 </div>
             </div>
