@@ -1033,7 +1033,7 @@ class ChantDeleteView(LoginRequiredMixin, UserPassesTestMixin, DeleteView):
     """
 
     model = Chant
-    template_name = "chant_confirm_delete.html"
+    template_name = "chant_delete.html"
 
     def test_func(self):
         user = self.request.user

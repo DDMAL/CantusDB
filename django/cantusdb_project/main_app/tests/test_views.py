@@ -2896,7 +2896,7 @@ class ChantDeleteViewTest(TestCase):
 
         response = self.client.get(reverse("chant-delete", args=[chant.id]))
         self.assertEqual(response.status_code, 200)
-        self.assertTemplateUsed(response, "chant_confirm_delete.html")
+        self.assertTemplateUsed(response, "chant_delete.html")
 
         response = self.client.get(reverse("chant-delete", args=[chant.id + 100]))
         self.assertEqual(response.status_code, 404)
@@ -4075,7 +4075,7 @@ class SourceCreateViewTest(TestCase):
     def test_url_and_templates(self):
         response = self.client.get(reverse("source-create"))
         self.assertEqual(response.status_code, 200)
-        self.assertTemplateUsed(response, "source_create_form.html")
+        self.assertTemplateUsed(response, "source_create.html")
 
     def test_create_source(self):
         response = self.client.post(
