@@ -40,17 +40,10 @@ PROJECT_ENVIRONMENT = os.getenv("PROJECT_ENVIRONMENT")
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = False  # this is switched to True below when PROJECT_ENVIRONMENT=="DEVELOPMENT"
 
+ALLOWED_HOSTS = os.getenv("CANTUSDB_HOSTS").split(" ")
+CSRF_TRUSTED_ORIGINS = os.getenv("CANTUSDB_ORIGINS").split(" ")
 if PROJECT_ENVIRONMENT == "DEVELOPMENT":
-    ALLOWED_HOSTS = os.getenv("CANTUSDB_HOSTS_DEVELOPMENT").split(" ")
-    CSRF_TRUSTED_ORIGINS = os.getenv("CANTUSDB_ORIGINS_DEVELOPMENT").split(" ")
     DEBUG = True
-if PROJECT_ENVIRONMENT == "STAGING":
-    ALLOWED_HOSTS = os.getenv("CANTUSDB_HOSTS_STAGING").split(" ")
-    CSRF_TRUSTED_ORIGINS = os.getenv("CANTUSDB_ORIGINS_STAGING").split(" ")
-if PROJECT_ENVIRONMENT == "PRODUCTION":
-    ALLOWED_HOSTS = os.getenv("CANTUSDB_HOSTS_PRODUCTION").split(" ")
-    CSRF_TRUSTED_ORIGINS = os.getenv("CANTUSDB_ORIGINS_PRODUCTION").split(" ")
-
 
 # Application definition
 
