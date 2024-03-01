@@ -21,11 +21,8 @@ server {
     # The Staging server's subdomain "staging-alias" is analogous to Production's "mass" subdomain.)
     listen 443 ssl;
 
-    # server_name mass.cantusdatabase.org;
     server_name staging-alias.cantusdatabase.org;
 
-    # ssl_certificate /etc/nginx/ssl/live/certificates/cantusdatabase.org.crt;
-    # ssl_certificate_key /etc/nginx/ssl/live/certificates/cantusdatabase.org.key;
     ssl_certificate /etc/nginx/ssl/live/certificates/staging.cantusdatabase.org.crt;
     ssl_certificate_key /etc/nginx/ssl/live/certificates/staging.cantusdatabase.org.key;
 
@@ -39,8 +36,6 @@ server {
 
     server_name staging.cantusdatabase.org;
 	
-    # ssl_certificate /etc/nginx/ssl/live/certificates/cantusdatabase.org.crt;
-    # ssl_certificate_key /etc/nginx/ssl/live/certificates/cantusdatabase.org.key;
     ssl_certificate /etc/nginx/ssl/live/certificates/staging.cantusdatabase.org.crt;
     ssl_certificate_key /etc/nginx/ssl/live/certificates/staging.cantusdatabase.org.key;
 
