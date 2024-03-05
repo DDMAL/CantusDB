@@ -31,10 +31,10 @@ server {
 }
 
 server {
-    listen 443 default_server http2 ssl;
+    listen 443 http2 ssl;
 
     server_name cantusdatabase.org;
-	
+
     ssl_certificate /etc/nginx/ssl/live/certificates/cantusdatabase.org.crt;
     ssl_certificate_key /etc/nginx/ssl/live/certificates/cantusdatabase.org.key;
 
@@ -56,7 +56,7 @@ server {
         alias /resources/api_cache/concordances.json;
         expires modified +24h;
     }
- 
+
     location = /style.css {
         root /;
     }
@@ -79,3 +79,18 @@ server {
         root /;
     }
 }
+
+# Default server to block requests to IP address and non-valid hostnames
+server {
+    access_log off; 
+    server_name _;
+
+    listen 80 default_server;
+    listen 443 default_server;
+    ssl_reject_handshake on;
+
+    # Close connection immediately for requests that don't match a defined
+    # server name
+    return 444;
+}
+

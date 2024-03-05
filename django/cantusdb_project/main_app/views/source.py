@@ -196,7 +196,7 @@ class SourceListView(ListView):
 
 class SourceCreateView(LoginRequiredMixin, UserPassesTestMixin, CreateView):
     model = Source
-    template_name = "source_create_form.html"
+    template_name = "source_create.html"
     form_class = SourceCreateForm
 
     def test_func(self):
@@ -232,7 +232,7 @@ class SourceDeleteView(LoginRequiredMixin, UserPassesTestMixin, DeleteView):
     """
 
     model = Source
-    template_name = "source_confirm_delete.html"
+    template_name = "source_delete.html"
 
     def test_func(self):
         user = self.request.user

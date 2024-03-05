@@ -5,7 +5,7 @@
 
 <div class="container">
     <div class="row">
-        <div class="mr-3 p-3 col-lg-8 bg-white rounded">
+        <div class="p-3 col-lg-8 bg-white rounded main-content">
 
             <!--Display "submit success" message -->
             {% if messages %}
@@ -233,7 +233,7 @@
         </div>
 
         <div class="col p-0 sidebar">
-            <div class="search-bar">
+            <div class="search-bar mb-3">
                 {% include "global_search_bar.html" %}
             </div>
 
@@ -388,7 +388,7 @@
                 </div>
 
                 {% if source %}
-                    <div class="card mb-3 w-100">
+                    <div class="card w-100">
                         <div class="card-header">
                             <small><a href="/sources?segment={{ source.segment.id }}">{{ source.segment.name }}</a></small>
                             <br>

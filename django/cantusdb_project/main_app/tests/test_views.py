@@ -827,7 +827,6 @@ class ChantDetailViewTest(TestCase):
         chant = make_fake_chant(
             source=source,
             volpiano="1---c--g--e---e---d---c---c---f---e---e--d---d---c",
-            incipit="somebody",
         )
         chant.manuscript_full_text = None
         chant.manuscript_full_text_std_spelling = None
@@ -1083,9 +1082,13 @@ class ChantSearchViewTest(TestCase):
 
     def test_order_by_siglum(self):
         source_1 = make_fake_source(published=True, siglum="sigl-1")
-        chant_1 = make_fake_chant(incipit="thing 1", source=source_1)
+        chant_1 = make_fake_chant(
+            manuscript_full_text_std_spelling="thing 1", source=source_1
+        )
         source_2 = make_fake_source(published=True, siglum="sigl-2")
-        chant_2 = make_fake_chant(incipit="thing 2", source=source_2)
+        chant_2 = make_fake_chant(
+            manuscript_full_text_std_spelling="thing 2", source=source_2
+        )
 
         search_term = "thing"
 
@@ -1121,8 +1124,12 @@ class ChantSearchViewTest(TestCase):
 
     def test_order_by_incipit(self):
         source = make_fake_source(published=True)
-        chant_1 = make_fake_chant(source=source, incipit="higgledy")
-        chant_2 = make_fake_chant(source=source, incipit="piggledy")
+        chant_1 = make_fake_chant(
+            source=source, manuscript_full_text_std_spelling="higgledy"
+        )
+        chant_2 = make_fake_chant(
+            source=source, manuscript_full_text_std_spelling="piggledy"
+        )
 
         search_term = "iggl"
 
@@ -1161,8 +1168,12 @@ class ChantSearchViewTest(TestCase):
         office_1 = make_fake_office()
         office_2 = make_fake_office()
         assert office_1.id < office_2.id
-        chant_1 = make_fake_chant(office=office_1, incipit="hocus")
-        chant_2 = make_fake_chant(office=office_2, incipit="pocus")
+        chant_1 = make_fake_chant(
+            office=office_1, manuscript_full_text_std_spelling="hocus"
+        )
+        chant_2 = make_fake_chant(
+            office=office_2, manuscript_full_text_std_spelling="pocus"
+        )
 
         search_term = "ocu"
 
@@ -1201,8 +1212,12 @@ class ChantSearchViewTest(TestCase):
         genre_1 = make_fake_genre()
         genre_2 = make_fake_genre()
         assert genre_1.id < genre_2.id
-        chant_1 = make_fake_chant(genre=genre_1, incipit="hocus")
-        chant_2 = make_fake_chant(genre=genre_2, incipit="pocus")
+        chant_1 = make_fake_chant(
+            genre=genre_1, manuscript_full_text_std_spelling="hocus"
+        )
+        chant_2 = make_fake_chant(
+            genre=genre_2, manuscript_full_text_std_spelling="focus"
+        )
 
         search_term = "ocu"
 
@@ -1237,8 +1252,12 @@ class ChantSearchViewTest(TestCase):
         self.assertEqual(last_result_incipit, chant_1.incipit)
 
     def test_order_by_cantus_id(self):
-        chant_1 = make_fake_chant(incipit="isaac", cantus_id="121393")
-        chant_2 = make_fake_chant(incipit="baal", cantus_id="196418")
+        chant_1 = make_fake_chant(
+            manuscript_full_text_std_spelling="isaac", cantus_id="121393"
+        )
+        chant_2 = make_fake_chant(
+            manuscript_full_text_std_spelling="baal", cantus_id="196418"
+        )
 
         search_term = "aa"
 
@@ -1274,11 +1293,11 @@ class ChantSearchViewTest(TestCase):
 
     def test_order_by_mode(self):
         chant_1 = make_fake_chant(
-            incipit="For first he looks upon his forepaws to see if they are clean",
+            manuscript_full_text_std_spelling="For first he looks upon his forepaws to see if they are clean",
             mode="1",
         )
         chant_2 = make_fake_chant(
-            incipit="For secondly he kicks up behind to clear away there",
+            manuscript_full_text_std_spelling="For secondly he kicks up behind to clear away there",
             mode="2",
         )
 
@@ -1316,16 +1335,16 @@ class ChantSearchViewTest(TestCase):
 
     def test_order_by_ms_fulltext(self):
         chant_1 = make_fake_chant(
-            incipit="this is a chant with a MS spelling fulltext",
             manuscript_full_text="this is a chant with a MS spelling fylltexte",
+            manuscript_full_text_std_spelling="this is a chant with a MS spelling fulltext",
         )
         chant_2 = make_fake_chant(
-            incipit="this is a chant without",
+            manuscript_full_text_std_spelling="this will become a chant without a MS spelling fulltext",
         )
         chant_2.manuscript_full_text = None
         chant_2.save()
 
-        search_term = "s is a ch"
+        search_term = "a chant wit"
 
         response_ascending = self.client.get(
             reverse("chant-search"),
@@ -1359,11 +1378,11 @@ class ChantSearchViewTest(TestCase):
 
     def test_order_by_volpiano(self):
         chant_1 = make_fake_chant(
-            incipit="this is a chant with volpiano",
+            manuscript_full_text_std_spelling="this is a chant with volpiano",
             volpiano="1---d---d---a--a---a---e--f--e---d---4",
         )
         chant_2 = make_fake_chant(
-            incipit="this is a chant about parsley",
+            manuscript_full_text_std_spelling="this is a chant about parsley",
         )
         chant_2.volpiano = None
         chant_2.save()
@@ -1402,11 +1421,11 @@ class ChantSearchViewTest(TestCase):
 
     def test_order_by_image_link(self):
         chant_1 = make_fake_chant(
-            incipit="this is a chant with a link",
+            manuscript_full_text_std_spelling="this is a chant with a link",
             image_link="https://www.youtube.com/watch?v=dQw4w9WgXcQ",
         )
         chant_2 = make_fake_chant(
-            incipit="this is a chant without",
+            manuscript_full_text_std_spelling="this is a chant without",
         )
         chant_2.image_link = None
         chant_2.save()
@@ -1446,12 +1465,11 @@ class ChantSearchViewTest(TestCase):
     def test_column_header_links(self):
         # these are the 9 column headers users can order by:
         siglum = "glum-01"
-        incipit = "so it begins"
+        fulltext = "so it begins"
         office = make_fake_office()
         genre = make_fake_genre()
         cantus_id = make_random_string(6, "0123456789")
         mode = make_random_string(1, "0123456789*?")
-        ms_ft = faker.sentence()
         mel = make_fake_volpiano()
         image = faker.image_url()
 
@@ -1461,12 +1479,11 @@ class ChantSearchViewTest(TestCase):
         feast = make_fake_feast()
         position = make_random_string(1)
         chant = make_fake_chant(
-            incipit=incipit,
+            manuscript_full_text_std_spelling=fulltext,
             office=office,
             genre=genre,
             cantus_id=cantus_id,
             mode=mode,
-            manuscript_full_text_std_spelling=ms_ft,
             volpiano=mel,
             image_link=image,
             source=source,
@@ -1968,30 +1985,36 @@ class ChantSearchMSViewTest(TestCase):
         includes_search_term = "brevity is the soul of wit"
         doesnt_include_search_term = "longevity is the soul of wit"
         source = make_fake_source()
-        chant_incipit = make_fake_chant(
-            source=source,
-            incipit=includes_search_term,  # <==
-            manuscript_full_text=doesnt_include_search_term,
-            manuscript_full_text_std_spelling=doesnt_include_search_term,
-        )
+
         chant_ms_spelling = make_fake_chant(
             source=source,
-            incipit=doesnt_include_search_term,
-            manuscript_full_text=includes_search_term,  # <==
+            manuscript_full_text=includes_search_term,  # <== includes_search_term
             manuscript_full_text_std_spelling=doesnt_include_search_term,
         )
+
         chant_std_spelling = make_fake_chant(
             source=source,
-            incipit=doesnt_include_search_term,
             manuscript_full_text=doesnt_include_search_term,
             manuscript_full_text_std_spelling=includes_search_term,  # <==
         )
+
+        # some chants inherited from OldCantus have an incipit but no full-text -
+        # we need to ensure these chants appear in the results
+        chant_incipit = make_fake_chant(
+            source=source,
+        )
+        Chant.objects.filter(id=chant_incipit.id).update(
+            incipit=includes_search_term,  # <==
+            manuscript_full_text=None,
+            manuscript_full_text_std_spelling=None,
+        )
+
         chant_without_search_term = make_fake_chant(
             source=source,
-            incipit=doesnt_include_search_term,
             manuscript_full_text=doesnt_include_search_term,
             manuscript_full_text_std_spelling=doesnt_include_search_term,
         )
+
         response_starts_with = self.client.get(
             reverse("chant-search-ms", args=[source.id]),
             {"keyword": search_term, "op": "starts_with"},
@@ -2005,8 +2028,12 @@ class ChantSearchMSViewTest(TestCase):
 
     def test_order_by_incipit(self):
         source = make_fake_source(published=True)
-        chant_1 = make_fake_chant(source=source, incipit="higgledy")
-        chant_2 = make_fake_chant(source=source, incipit="piggledy")
+        chant_1 = make_fake_chant(
+            source=source, manuscript_full_text_std_spelling="higgledy"
+        )
+        chant_2 = make_fake_chant(
+            source=source, manuscript_full_text_std_spelling="piggledy"
+        )
 
         search_term = "iggl"
 
@@ -2046,8 +2073,12 @@ class ChantSearchMSViewTest(TestCase):
         office_1 = make_fake_office()
         office_2 = make_fake_office()
         assert office_1.id < office_2.id
-        chant_1 = make_fake_chant(office=office_1, incipit="hocus", source=source)
-        chant_2 = make_fake_chant(office=office_2, incipit="pocus", source=source)
+        chant_1 = make_fake_chant(
+            office=office_1, manuscript_full_text_std_spelling="hocus", source=source
+        )
+        chant_2 = make_fake_chant(
+            office=office_2, manuscript_full_text_std_spelling="pocus", source=source
+        )
 
         search_term = "ocu"
 
@@ -2087,8 +2118,12 @@ class ChantSearchMSViewTest(TestCase):
         genre_1 = make_fake_genre()
         genre_2 = make_fake_genre()
         assert genre_1.id < genre_2.id
-        chant_1 = make_fake_chant(genre=genre_1, incipit="hocus", source=source)
-        chant_2 = make_fake_chant(genre=genre_2, incipit="pocus", source=source)
+        chant_1 = make_fake_chant(
+            genre=genre_1, manuscript_full_text_std_spelling="hocus", source=source
+        )
+        chant_2 = make_fake_chant(
+            genre=genre_2, manuscript_full_text_std_spelling="pocus", source=source
+        )
 
         search_term = "ocu"
 
@@ -2124,8 +2159,12 @@ class ChantSearchMSViewTest(TestCase):
 
     def test_order_by_cantus_id(self):
         source = make_fake_source()
-        chant_1 = make_fake_chant(incipit="isaac", cantus_id="121393", source=source)
-        chant_2 = make_fake_chant(incipit="baal", cantus_id="196418", source=source)
+        chant_1 = make_fake_chant(
+            manuscript_full_text_std_spelling="isaac", cantus_id="121393", source=source
+        )
+        chant_2 = make_fake_chant(
+            manuscript_full_text_std_spelling="baal", cantus_id="196418", source=source
+        )
 
         search_term = "aa"
 
@@ -2162,12 +2201,12 @@ class ChantSearchMSViewTest(TestCase):
     def test_order_by_mode(self):
         source = make_fake_source()
         chant_1 = make_fake_chant(
-            incipit="For thirdly he works it upon stretch with the forepaws extended",
+            manuscript_full_text_std_spelling="For thirdly he works it upon stretch with the forepaws extended",
             mode="1",
             source=source,
         )
         chant_2 = make_fake_chant(
-            incipit="For fourthly he sharpens his paws by wood",
+            manuscript_full_text_std_spelling="For fourthly he sharpens his paws by wood",
             mode="2",
             source=source,
         )
@@ -2207,12 +2246,12 @@ class ChantSearchMSViewTest(TestCase):
     def test_order_by_ms_fulltext(self):
         source = make_fake_source()
         chant_1 = make_fake_chant(
-            incipit="this is a chant with a MS spelling fulltext",
+            manuscript_full_text_std_spelling="this is a chant with a MS spelling fulltext",
             manuscript_full_text="this is a chant with a MS spelling fylltexte",
             source=source,
         )
         chant_2 = make_fake_chant(
-            incipit="this is a chant without",
+            manuscript_full_text_std_spelling="this is a chant without",
             source=source,
         )
         chant_2.manuscript_full_text = None
@@ -2254,12 +2293,12 @@ class ChantSearchMSViewTest(TestCase):
         source = make_fake_source()
         chant_1 = make_fake_chant(
             source=source,
-            incipit="this is a chant with volpiano",
+            manuscript_full_text_std_spelling="this is a chant with volpiano",
             volpiano="1---d---d---a--a---a---e--f--e---d---4",
         )
         chant_2 = make_fake_chant(
             source=source,
-            incipit="this is a chant about parsley",
+            manuscript_full_text_std_spelling="this is a chant about parsley",
         )
         chant_2.volpiano = None
         chant_2.save()
@@ -2300,12 +2339,12 @@ class ChantSearchMSViewTest(TestCase):
         source = make_fake_source()
         chant_1 = make_fake_chant(
             source=source,
-            incipit="this is a chant with a link",
+            manuscript_full_text_std_spelling="this is a chant with a link",
             image_link="https://www.youtube.com/watch?v=dQw4w9WgXcQ",
         )
         chant_2 = make_fake_chant(
             source=source,
-            incipit="this is a chant without",
+            manuscript_full_text_std_spelling="this is a chant without",
         )
         chant_2.image_link = None
         chant_2.save()
@@ -2345,12 +2384,12 @@ class ChantSearchMSViewTest(TestCase):
     def test_column_header_links(self):
         # these are the 9 column headers users can order by:
         siglum = "glum-01"
-        incipit = "so it begins"
+        full_text = "this is a full text that begins with the search term"
+        search_term = "this is a fu"
         office = make_fake_office()
         genre = make_fake_genre()
         cantus_id = make_random_string(6, "0123456789")
         mode = make_random_string(1, "0123456789*?")
-        ms_ft = faker.sentence()
         mel = make_fake_volpiano()
         image = faker.image_url()
 
@@ -2360,20 +2399,17 @@ class ChantSearchMSViewTest(TestCase):
         feast = make_fake_feast()
         position = make_random_string(1)
         chant = make_fake_chant(
-            incipit=incipit,
             office=office,
             genre=genre,
             cantus_id=cantus_id,
             mode=mode,
-            manuscript_full_text_std_spelling=ms_ft,
+            manuscript_full_text_std_spelling=full_text,
             volpiano=mel,
             image_link=image,
             source=source,
             feast=feast,
             position=position,
         )
-        search_term = "so it be"
-
         response_1 = self.client.get(
             reverse("chant-search-ms", args=[source.id]),
             {
@@ -2896,7 +2932,7 @@ class ChantDeleteViewTest(TestCase):
 
         response = self.client.get(reverse("chant-delete", args=[chant.id]))
         self.assertEqual(response.status_code, 200)
-        self.assertTemplateUsed(response, "chant_confirm_delete.html")
+        self.assertTemplateUsed(response, "chant_delete.html")
 
         response = self.client.get(reverse("chant-delete", args=[chant.id + 100]))
         self.assertEqual(response.status_code, 404)
@@ -3012,6 +3048,8 @@ class SourceEditChantsViewTest(TestCase):
             folio="001r",
             c_sequence=2,
         )
+        expected_volpiano: str = "abacadaeafagahaja"
+        expected_intervals: str = "1-12-23-34-45-56-67-78-8"
         self.client.post(
             reverse("source-edit-chants", args=[source.id]),
             {
@@ -3022,15 +3060,13 @@ class SourceEditChantsViewTest(TestCase):
             },
         )
         chant_2 = Chant.objects.get(manuscript_full_text_std_spelling="resonare foobaz")
-        self.assertEqual(chant_2.volpiano, "abacadaeafagahaja")
-        self.assertEqual(chant_2.volpiano_intervals, "1-12-23-34-45-56-67-78-8")
+        self.assertEqual(chant_2.volpiano, expected_volpiano)
+        self.assertEqual(chant_2.volpiano_intervals, expected_intervals)
 
     def test_chant_with_volpiano_with_no_fulltext(self):
         # in the past, a Chant Edit page will error rather than loading properly when the chant has volpiano but no fulltext
         source = make_fake_source()
-        chant = make_fake_chant(
-            source=source, volpiano="1---f--e---f--d---e--c---d--d", incipit="dies irae"
-        )
+        chant = make_fake_chant(source=source, volpiano="1---f--e---f--d---e--c---d--d")
         chant.manuscript_full_text = None
         chant.manuscript_full_text_std_spelling = None
         chant.save()
@@ -3114,7 +3150,7 @@ class ChantEditSyllabificationViewTest(TestCase):
 
     def test_edit_syllabification(self):
         chant = make_fake_chant(manuscript_syllabized_full_text="lorem ipsum")
-        self.assertIs(chant.manuscript_syllabized_full_text, "lorem ipsum")
+        self.assertEqual(chant.manuscript_syllabized_full_text, "lorem ipsum")
         response = self.client.post(
             f"/edit-syllabification/{chant.id}",
             {"manuscript_syllabized_full_text": "lo-rem ip-sum"},
@@ -3740,7 +3776,7 @@ class SequenceEditViewTest(TestCase):
         self.assertTemplateUsed(response, "404.html")
 
     def test_update_sequence(self):
-        sequence = make_fake_sequence(incipit="test_update_sequence")
+        sequence = make_fake_sequence()
         sequence_id = str(sequence.id)
         response = self.client.post(
             reverse("sequence-edit", args=[sequence_id]),
@@ -4075,7 +4111,7 @@ class SourceCreateViewTest(TestCase):
     def test_url_and_templates(self):
         response = self.client.get(reverse("source-create"))
         self.assertEqual(response.status_code, 200)
-        self.assertTemplateUsed(response, "source_create_form.html")
+        self.assertTemplateUsed(response, "source_create.html")
 
     def test_create_source(self):
         response = self.client.post(
@@ -5068,6 +5104,7 @@ class JsonCidTest(TestCase):
 
     def test_values(self):
         chant = make_fake_chant(cantus_id="100000")
+
         expected_values = {
             "siglum": chant.source.siglum,
             "srclink": f"http://testserver/source/{chant.source.id}",
@@ -5459,7 +5496,7 @@ class ContentOverviewTest(TestCase):
 
     def test_source_selected_model(self):
         source = make_fake_source(title="Test Source")
-        chant = make_fake_chant(incipit="Test Chant")
+        chant = make_fake_chant()
         response = self.client.get(reverse("content-overview"), {"model": "sources"})
         self.assertContains(response, f"<b>Sources</b>", html=True)
         self.assertContains(
@@ -5578,15 +5615,17 @@ class AjaxSearchBarTest(TestCase):
 
     def test_incipit_search(self):
         unremarkable_chant = make_fake_chant(
-            incipit=(
-                "The incipit contains no "
+            manuscript_full_text_std_spelling=(
+                "The fulltext contains no "
                 "numbers no asterisks and no punctuation "
                 "and is thus completely normal"
             )
         )
-        chant_with_asterisk = make_fake_chant(incipit="few words*")
+        chant_with_asterisk = make_fake_chant(
+            manuscript_full_text_std_spelling="few words*"
+        )
 
-        istartswith_search_term = "the incipit"
+        istartswith_search_term = "the fulltext"
         istartswith_response = self.client.get(
             reverse("ajax-search-bar", args=[istartswith_search_term])
         )
@@ -5622,11 +5661,11 @@ class AjaxSearchBarTest(TestCase):
     def test_cantus_id_search(self):
         chant_with_normal_cantus_id = make_fake_chant(
             cantus_id="012345",
-            incipit="This incipit contains no numerals",
+            manuscript_full_text_std_spelling="This fulltext contains no numerals",
         )
         chant_with_numerals_in_incipit = make_fake_chant(
             cantus_id="123456",
-            incipit="0 me! 0 my! This is unexpected!",
+            manuscript_full_text_std_spelling="0 me! 0 my! This is unexpected!",
         )
 
         # for search terms that contain numerals, we should only return

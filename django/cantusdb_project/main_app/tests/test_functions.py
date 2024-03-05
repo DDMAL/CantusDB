@@ -9,6 +9,7 @@ from main_app.tests.make_fakes import (
     make_fake_source,
 )
 from main_app.management.commands import update_cached_concordances
+from main_app.signals import generate_incipit
 
 # run with `python -Wa manage.py test main_app.tests.test_functions`
 # the -Wa flag tells Python to display deprecation warnings
@@ -100,3 +101,20 @@ class UpdateCachedConcordancesCommandTest(TestCase):
             observed_value: Union[str, int, None] = single_concordance[key]
             with self.subTest(key=key):
                 self.assertEqual(observed_value, value)
+
+
+class IncipitSignalTest(TestCase):
+    # testing an edge case in generate_incipit, within main_app/signals.py.
+    # Some other tests involving this function can be found
+    # in ChantModelTest and SequenceModelTest.
+    def test_generate_incipit(self):
+        complete_fulltext: str = "one two three four five six seven"
+        expected_incipit_1: str = "one two three four five"
+        observed_incipit_1: str = generate_incipit(complete_fulltext)
+        with self.subTest(test="full-length fulltext"):
+            self.assertEqual(observed_incipit_1, expected_incipit_1)
+        short_fulltext: str = "one*"
+        expected_incipit_2 = "one*"
+        observed_incipit_2 = generate_incipit(short_fulltext)
+        with self.subTest(test="fulltext that's already a short incipit"):
+            self.assertEqual(observed_incipit_2, expected_incipit_2)
