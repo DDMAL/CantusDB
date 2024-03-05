@@ -66,6 +66,7 @@ class UpdateCachedConcordancesCommandTest(TestCase):
 
         concordances: list = update_cached_concordances.get_concordances()
         self.assertEqual(len(concordances), 1)
+
         single_concordance: dict = concordances[0]
         expected_fulltext: str = published_chant.manuscript_full_text_std_spelling
         observed_fulltext: str = single_concordance["full_text"]

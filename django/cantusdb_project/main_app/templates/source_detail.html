@@ -58,7 +58,11 @@
                     <dt>Other Editors</dt>
                     <dd>
                         {% for editor in source.other_editors.all %}
-                            <a href="{% url 'user-detail' editor.id %}">{{ editor.full_name }}</a><br>
+                            {% if editor.full_name %}
+                                <a href="{% url 'user-detail' editor.id %}">{{ editor.full_name }}</a><br>
+                            {% else %}
+                                <a href="{% url 'user-detail' editor.id %}">User {{ editor.id }}</a><br>
+                            {% endif %}
                         {% endfor %}
                     </dd>
                 {% endif %}
@@ -67,7 +71,11 @@
                     <dt>Full Texts Entered by</dt>
                     <dd>
                         {% for editor in source.full_text_entered_by.all %}
-                            <a href="{% url 'user-detail' editor.id %}">{{ editor.full_name }}</a><br>
+                            {% if editor.full_name %}
+                                <a href="{% url 'user-detail' editor.id %}">{{ editor.full_name }}</a><br>
+                            {% else %}
+                                <a href="{% url 'user-detail' editor.id %}">User {{ editor.id }}</a><br>
+                            {% endif %}
                         {% endfor %}
                     </dd>
                 {% endif %}
@@ -76,7 +84,11 @@
                     <dt>Melodies Entered by</dt>
                     <dd>
                         {% for editor in source.melodies_entered_by.all %}
-                            <a href="{% url 'user-detail' editor.id %}">{{ editor.full_name }}</a><br>
+                            {% if editor.full_name %}
+                                <a href="{% url 'user-detail' editor.id %}">{{ editor.full_name }}</a><br>
+                            {% else %}
+                                <a href="{% url 'user-detail' editor.id %}">User {{ editor.id }}</a><br>
+                            {% endif %}
                         {% endfor %}
                     </dd>
                 {% endif %}
@@ -245,7 +257,11 @@
                             <ul>
                                 {% for editor in source.inventoried_by.all %}
                                     <li>
-                                        <a href={% url 'user-detail' editor.id %}><b>{{ editor.full_name }}</b></a><br>
+                                        {% if editor.full_name %}
+                                            <a href="{% url 'user-detail' editor.id %}">{{ editor.full_name }}</a><br>
+                                        {% else %}
+                                            <a href="{% url 'user-detail' editor.id %}">User {{ editor.id }}</a><br>
+                                        {% endif %}
                                         {{ editor.institution|default_if_none:"" }}
                                     </li>
                                 {% endfor %}
@@ -257,16 +273,26 @@
                             <ul>
                                 {% for editor in source.proofreaders.all %}
                                     <li>
-                                        <a href={% url 'user-detail' editor.id %}><b>{{ editor.full_name }}</b></a><br>
+                                        {% if editor.full_name %}
+                                            <a href="{% url 'user-detail' editor.id %}">{{ editor.full_name }}</a><br>
+                                        {% else %}
+                                            <a href="{% url 'user-detail' editor.id %}">User {{ editor.id }}</a><br>
+                                        {% endif %}
                                     </li>
                                 {% endfor %}
                             </ul>
                         {% endif %}
                         {{ source.indexing_notes|default_if_none:"" }}
                         <br>
-                        {% if source.created_by %}
-                            Contributor: <a href={% url 'user-detail' source.created_by.id %}><b>{{ source.created_by.full_name }}</b></a>
-                        {% endif %}
+                        {% with creator=source.created_by %}
+                            {% if creator %}
+                                {% if creator.full_name %}
+                                    Contributor: <a href={% url 'user-detail' creator.id %}><b>{{ creator.full_name }}</b></a>
+                                {% else %}
+                                    Contributor: <a href={% url 'user-detail' creator.id %}><b>User {{ creator.id }}</b></a>
+                                {% endif %}
+                            {% endif %}
+                        {% endwith %}
                     </small>
                 </div>
             </div>

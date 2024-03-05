@@ -430,7 +430,11 @@
                                     <ul>
                                         {% for editor in source.inventoried_by.all %}
                                             <li>
-                                                <a href="{% url 'user-detail' editor.id %}"><b>{{ editor.full_name }}</b></a>
+                                                {% if editor.full_name %}
+                                                    <a href="{% url 'user-detail' editor.id %}"><b>{{ editor.full_name }}</b></a>
+                                                {% else %}
+                                                    <a href="{% url 'user-detail' editor.id %}"><b>User {{ editor.id }}</b></a>
+                                                {% endif %}
                                                 <br>
                                                 {{ editor.institution|default_if_none:"" }}
                                             </li>
@@ -444,18 +448,28 @@
                                     <ul>
                                         {% for editor in source.proofreaders.all %}
                                             <li>
-                                                <a href="{% url 'user-detail' editor.id %}"><b>{{ editor.full_name }}</b></a>
-                                                <br>
+                                                {% if editor.full_name %}
+                                                    <a href="{% url 'user-detail' editor.id %}"><b>{{ editor.full_name }}</b></a>
+                                                {% else %}
+                                                    <a href="{% url 'user-detail' editor.id %}"><b>User {{ editor.id }}</b></a>
+                                                {% endif %}
                                             </li>
+                                            <br>
                                         {% endfor %}
                                     </ul>
                                 {% endif %}
 
                                 {{ source.indexing_notes|default_if_none:"" }}
                                 <br>
-                                {% if source.created_by %}
-                                    Contributor: <a href={% url 'user-detail' source.created_by.id %}><b>{{ source.created_by.full_name }}</b></a>
-                                {% endif %}
+                                {% with creator=source.created_by %}
+                                    {% if creator %}
+                                        {% if creator.full_name %}
+                                            Contributor: <a href={% url 'user-detail' creator.id %}><b>{{ creator.full_name }}</b></a>
+                                        {% else %}
+                                            Contributor: <a href={% url 'user-detail' creator.id %}><b>User {{creator.id}}</b></a>
+                                        {% endif %}
+                                    {% endif %}
+                                {% endwith %}
                             </small>
                         </div>
                     </div>
