@@ -231,6 +231,17 @@ class ChantModelTest(TestCase):
         self.assertEqual(chant1.get_next_chant(), lacuna)
         self.assertEqual(lacuna.get_next_chant(), chant3)
 
+    def test_incipit_signal(self):
+        """Test whether a chant's incipit is updated to reflect its fulltext upon save"""
+        chant: Chant = make_fake_chant()
+        full_text: str = "Incipit should be five words sheep headphones bongoes"
+        expected_incipit: str = "Incipit should be five words"
+        chant.manuscript_full_text_std_spelling = full_text
+        chant.save()
+        chant.refresh_from_db()
+        observed_incipit: str = chant.incipit
+        self.assertEqual(observed_incipit, expected_incipit)
+
 
 class FeastModelTest(TestCase):
     @classmethod
@@ -348,6 +359,17 @@ class SequenceModelTest(TestCase):
         chant_fields = Chant.get_fields_and_properties()
         seq_fields = Sequence.get_fields_and_properties()
         self.assertEqual(chant_fields, seq_fields)
+
+    def test_incipit_signal(self):
+        """Test whether a sequence's incipit is updated to reflect its title upon save"""
+        sequence: Sequence = make_fake_sequence()
+        title: str = "Incipit titulus esse debet"
+        expected_incipit: str = title
+        sequence.title = title
+        sequence.save()
+        sequence.refresh_from_db()
+        observed_incipit: str = sequence.incipit
+        self.assertEqual(observed_incipit, expected_incipit)
 
 
 class SourceModelTest(TestCase):
