@@ -32,7 +32,7 @@ server {
 }
 
 server {
-    listen 443 default_server http2 ssl;
+    listen 443 http2 ssl;
 
     server_name staging.cantusdatabase.org;
 
@@ -79,4 +79,18 @@ server {
     location = /504.html {
         root /;
     }
+}
+
+# Default server to block requests to IP address and non-valid hostnames
+server {
+    access_log off; 
+    server_name _;
+
+    listen 80 default_server;
+    listen 443 default_server;
+    ssl_reject_handshake on;
+
+    # Close connection immediately for requests that don't match a defined
+    # server name
+    return 444;
 }
