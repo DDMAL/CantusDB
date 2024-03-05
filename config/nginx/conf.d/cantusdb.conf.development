@@ -3,7 +3,7 @@
 # contents of this file.
  
 server {
-    listen 80 default_server;
+    listen 80;
 
     location / {
         proxy_pass http://django:8000;
