@@ -41,14 +41,15 @@ window.addEventListener("load", function () {
         window.location.assign(url);
     }
 
-    // if the source is reset, reset every selector
+    // if the source is reset, redirect to source/<int:source_id>/chants/
     function setSource() {
-        url.searchParams.set('folio', '');
-        url.searchParams.set('feast', '');
-        url.searchParams.set('search_text', '');
-        url.searchParams.set('genre', '');
         const source = sourceFilter.options[sourceFilter.selectedIndex].value;
-        url.searchParams.set('source', source);
+        url.pathname = "/source/" + source + "/chants/";
+        url.searchParams.delete('source');
+        url.searchParams.delete('feast');
+        url.searchParams.delete('search_text');
+        url.searchParams.delete('genre');
+        url.searchParams.delete('folio');
         window.location.assign(url);
     }
 
