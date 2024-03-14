@@ -15,8 +15,8 @@
                         <label for="sourceFilter"><small><b>Source</b></small></label>
                         <select id="sourceFilter" name="source" class="form-control custom-select custom-select-sm">
                             {% comment %} <option value="">- Any -</option> {% endcomment %}
-                            {% for source in sources %}
-                                <option value="{{ source.id }}">{{ source.siglum }}</option>
+                            {% for source_obj in sources %}
+                                <option value="{{ source_obj.id }}"{% if source_obj.id == source.id %} selected {% endif %}>{{ source_obj.siglum }}</option>
                             {% endfor %}
                         </select>
                     </div>
