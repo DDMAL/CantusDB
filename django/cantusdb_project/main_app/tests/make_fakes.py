@@ -17,11 +17,10 @@ from django.contrib.auth import get_user_model
 
 from typing import Optional, List
 
+User = get_user_model()
+
 # Max positive integer accepted by Django's positive integer field
 MAX_SEQUENCE_NUMBER = 2147483647
-
-# The incipit will be up to 100 characters of the full text
-INCIPIT_LENGTH = 100
 
 # Create a Faker instance with locale set to Latin
 faker = Faker("la")
@@ -146,7 +145,6 @@ def make_fake_chant(
     feast=None,
     mode=None,
     manuscript_full_text_std_spelling=None,
-    incipit=None,
     manuscript_full_text_std_proofread=None,
     manuscript_full_text=None,
     volpiano=None,
@@ -180,8 +178,6 @@ def make_fake_chant(
         mode = make_random_string(1, "0123456789*?")
     if manuscript_full_text_std_spelling is None:
         manuscript_full_text_std_spelling = faker.sentence()
-    if incipit is None:
-        incipit = manuscript_full_text_std_spelling[0:INCIPIT_LENGTH]
     if manuscript_full_text_std_proofread is None:
         manuscript_full_text_std_proofread = False
     if manuscript_full_text is None:
@@ -214,7 +210,6 @@ def make_fake_chant(
         ),  # chant_range is of the form "1-x-y-4", x, y are volpiano notes
         addendum=make_random_string(3, "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789"),
         manuscript_full_text_std_spelling=manuscript_full_text_std_spelling,
-        incipit=incipit,
         manuscript_full_text_std_proofread=manuscript_full_text_std_proofread,
         manuscript_full_text=manuscript_full_text,
         manuscript_full_text_proofread=faker.boolean(),
@@ -228,6 +223,9 @@ def make_fake_chant(
         json_info=None,
         next_chant=next_chant,
     )
+    chant.refresh_from_db()  # several fields (e.g., incipit) are calculated automatically
+    # upon chant save. By refreshing from db before returning, we ensure all the chant's fields
+    # are up-to-date. For more information, refer to main_app/signals.py
     return chant
 
 
@@ -256,9 +254,9 @@ def make_fake_genre(name=None) -> Genre:
     return genre
 
 
-def make_fake_user(is_indexer=True) -> get_user_model():
+def make_fake_user(is_indexer=True) -> User:
     """Generates a fake User object."""
-    user = get_user_model().objects.create(
+    user = User.objects.create(
         full_name=f"{faker.first_name()} {faker.last_name()}",
         institution=faker.company(),
         city=faker.city(),
@@ -310,22 +308,17 @@ def make_fake_segment(name: str = None, id: int = None) -> Segment:
     return segment
 
 
-def make_fake_sequence(
-    source=None, title=None, incipit=None, cantus_id=None
-) -> Sequence:
+def make_fake_sequence(source=None, title=None, cantus_id=None) -> Sequence:
     """Generates a fake Sequence object."""
     if source is None:
         source = make_fake_source(segment_name="Bower Sequence Database")
     if title is None:
         title = faker.sentence()
-    if incipit is None:
-        incipit = title[:INCIPIT_LENGTH]
     if cantus_id is None:
         cantus_id = make_random_string(6, "0123456789")
     sequence = Sequence.objects.create(
         title=title,
         siglum=make_random_string(6),
-        incipit=incipit,
         # folio in the form of two digits and one letter
         folio=faker.bothify("##?"),
         s_sequence=make_random_string(2, "0123456789"),
@@ -339,6 +332,9 @@ def make_fake_sequence(
         cantus_id=cantus_id,
         image_link=faker.image_url(),
     )
+    sequence.refresh_from_db()  # several fields (e.g., incipit) are calculated automatically
+    # upon sequence save. By refreshing from db before returning, we ensure all the sequence's fields
+    # are up-to-date. For more information, refer to main_app/signals.py
     return sequence
 
 

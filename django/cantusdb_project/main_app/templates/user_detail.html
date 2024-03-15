@@ -6,7 +6,13 @@
     <object align="right" class="search-bar">
         {% include "global_search_bar.html" %}
     </object>
-    <h3>{{ user.full_name|default_if_none:"User" }}</h3>
+    <h3>
+        {% if user.full_name %}
+            {{ user.full_name }}
+        {% else %}
+            User {{ user.id }}
+        {% endif %}
+    </h3>
     <dl class="list-inline">
         {% if user.institution %}
             <dt>Institution</dt>

@@ -5,7 +5,7 @@
 
 <div class="container">
     <div class="row">
-        <div class="mr-3 p-3 col-lg-8 bg-white rounded">
+        <div class="p-3 col-lg-8 bg-white rounded main-content">
 
             <!--Display "submit success" message -->
             {% if messages %}
@@ -233,7 +233,7 @@
         </div>
 
         <div class="col p-0 sidebar">
-            <div class="search-bar">
+            <div class="search-bar mb-3">
                 {% include "global_search_bar.html" %}
             </div>
 
@@ -388,7 +388,7 @@
                 </div>
 
                 {% if source %}
-                    <div class="card mb-3 w-100">
+                    <div class="card w-100">
                         <div class="card-header">
                             <small><a href="/sources?segment={{ source.segment.id }}">{{ source.segment.name }}</a></small>
                             <br>
@@ -430,7 +430,11 @@
                                     <ul>
                                         {% for editor in source.inventoried_by.all %}
                                             <li>
-                                                <a href="{% url 'user-detail' editor.id %}"><b>{{ editor.full_name }}</b></a>
+                                                {% if editor.full_name %}
+                                                    <a href="{% url 'user-detail' editor.id %}"><b>{{ editor.full_name }}</b></a>
+                                                {% else %}
+                                                    <a href="{% url 'user-detail' editor.id %}"><b>User {{ editor.id }}</b></a>
+                                                {% endif %}
                                                 <br>
                                                 {{ editor.institution|default_if_none:"" }}
                                             </li>
@@ -444,18 +448,28 @@
                                     <ul>
                                         {% for editor in source.proofreaders.all %}
                                             <li>
-                                                <a href="{% url 'user-detail' editor.id %}"><b>{{ editor.full_name }}</b></a>
-                                                <br>
+                                                {% if editor.full_name %}
+                                                    <a href="{% url 'user-detail' editor.id %}"><b>{{ editor.full_name }}</b></a>
+                                                {% else %}
+                                                    <a href="{% url 'user-detail' editor.id %}"><b>User {{ editor.id }}</b></a>
+                                                {% endif %}
                                             </li>
+                                            <br>
                                         {% endfor %}
                                     </ul>
                                 {% endif %}
 
                                 {{ source.indexing_notes|default_if_none:"" }}
                                 <br>
-                                {% if source.created_by %}
-                                    Contributor: <a href={% url 'user-detail' source.created_by.id %}><b>{{ source.created_by.full_name }}</b></a>
-                                {% endif %}
+                                {% with creator=source.created_by %}
+                                    {% if creator %}
+                                        {% if creator.full_name %}
+                                            Contributor: <a href={% url 'user-detail' creator.id %}><b>{{ creator.full_name }}</b></a>
+                                        {% else %}
+                                            Contributor: <a href={% url 'user-detail' creator.id %}><b>User {{creator.id}}</b></a>
+                                        {% endif %}
+                                    {% endif %}
+                                {% endwith %}
                             </small>
                         </div>
                     </div>
