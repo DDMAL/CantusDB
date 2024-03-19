@@ -7,12 +7,21 @@ from django.views.generic import (
     TemplateView,
 )
 from django.db.models import Q, Prefetch, Value
-from main_app.models import Source, Provenance, Century
+from main_app.models import (
+    Century,
+    Chant,
+    Feast,
+    Genre,
+    Provenance,
+    Segment,
+    Source,
+)
 from main_app.forms import SourceCreateForm, SourceEditForm
 from django.contrib import messages
+from django.db.models import QuerySet
 from django.urls import reverse
 from django.contrib.auth.mixins import LoginRequiredMixin
-from django.http import HttpResponseRedirect
+from django.http import HttpResponseRedirect, Http404
 from django.contrib.auth.mixins import UserPassesTestMixin
 from django.core.exceptions import PermissionDenied
 from django.shortcuts import get_object_or_404
@@ -26,6 +35,129 @@ from main_app.permissions import (
     user_can_view_source,
     user_can_manage_source_editors,
 )
+
+
+class SourceBrowseChantsView(ListView):
+    """The view for the `Browse Chants` page.
+
+    Displays a list of Chant objects, accessed with ``chants`` followed by a series of GET params
+
+    ``GET`` parameters:
+        ``feast``: Filters by Feast of Chant
+        ``search_text``: Filters by text of Chant
+        ``genre``: Filters by genre of Chant
+        ``folio``: Filters by folio of Chant
+    """
+
+    model = Chant
+    paginate_by = 100
+    context_object_name = "chants"
+    template_name = "chant_list.html"
+    pk_url_kwarg = "source_id"
+
+    def get_queryset(self):
+        """Gather the chants to be displayed.
+
+        When in the `browse chants` page, there must be a source specified.
+        The chants in the specified source are filtered by a set of optional search parameters.
+
+        Returns:
+            queryset: The Chant objects to be displayed.
+        """
+        source_id = self.kwargs.get(self.pk_url_kwarg)
+        source = get_object_or_404(Source, id=source_id)
+
+        display_unpublished = self.request.user.is_authenticated
+        if (source.published is False) and (not display_unpublished):
+            raise PermissionDenied()
+
+        # optional search params
+        feast_id = self.request.GET.get("feast")
+        genre_id = self.request.GET.get("genre")
+        folio = self.request.GET.get("folio")
+        search_text = self.request.GET.get("search_text")
+
+        # get all chants in the specified source
+        chants = source.chant_set.select_related("feast", "office", "genre")
+        # filter the chants with optional search params
+        if feast_id:
+            chants = chants.filter(feast__id=feast_id)
+        if genre_id:
+            chants = chants.filter(genre__id=genre_id)
+        if folio:
+            chants = chants.filter(folio=folio)
+        if search_text:
+            search_text = search_text.replace("+", " ").strip(" ")
+            chants = chants.filter(
+                Q(manuscript_full_text_std_spelling__icontains=search_text)
+                | Q(incipit__icontains=search_text)
+                | Q(manuscript_full_text__icontains=search_text)
+            )
+        return chants.order_by("folio", "c_sequence")
+
+    def get_context_data(self, **kwargs):
+        context: dict = super().get_context_data(**kwargs)
+        # these are needed in the selectors on the left side of the page
+        context["feasts"] = Feast.objects.all().order_by("name")
+        context["genres"] = Genre.objects.all().order_by("name")
+
+        display_unpublished: bool = self.request.user.is_authenticated
+
+        # sources in the Bower Segment contain only Sequences and no Chants,
+        # so they should not appear among the list of sources
+        cantus_segment: QuerySet[Segment] = Segment.objects.get(id=4063)
+
+        sources: QuerySet[Source] = cantus_segment.source_set.order_by(
+            "siglum"
+        )  # to be displayed in the "Source" dropdown in the form
+        if not display_unpublished:
+            sources = sources.filter(published=True)
+        context["sources"] = sources
+
+        source_id: int = self.kwargs.get(self.pk_url_kwarg)
+        source: Source = get_object_or_404(Source, id=source_id)
+        if source not in sources:
+            # the chant list ("Browse Chants") page should only be visitable
+            # for sources in the CANTUS Database segment, as sources in the Bower
+            # segment contain no chants
+            raise Http404()
+
+        context["source"] = source
+
+        user = self.request.user
+        context["user_can_edit_chant"] = user_can_edit_chants_in_source(user, source)
+
+        chants_in_source: QuerySet[Chant] = source.chant_set
+        if chants_in_source.count() == 0:
+            # these are needed in the selectors and hyperlinks on the right side of the page
+            # if there's no chant in the source, there should be no options in those selectors
+            context["folios"] = None
+            context["feasts_with_folios"] = None
+            context["previous_folio"] = None
+            context["next_folio"] = None
+            return context
+
+        # generate options for the folio selector on the right side of the page
+        folios: tuple[str] = (
+            chants_in_source.values_list("folio", flat=True)
+            .distinct()
+            .order_by("folio")
+        )
+        context["folios"] = folios
+
+        if self.request.GET.get("folio"):
+            # if browsing chants on a specific folio
+            folio: str = self.request.GET.get("folio")
+            index: int = list(folios).index(folio)
+            # get the previous and next folio, if available
+            context["previous_folio"] = folios[index - 1] if index != 0 else None
+            context["next_folio"] = (
+                folios[index + 1] if index < len(folios) - 1 else None
+            )
+
+        # the options for the feast selector on the right, same as the source detail page
+        context["feasts_with_folios"] = get_feast_selector_options(source, folios)
+        return context
 
 
 class SourceDetailView(DetailView):

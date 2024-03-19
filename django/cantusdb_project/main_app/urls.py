@@ -16,7 +16,6 @@ from main_app.views.chant import (
     ChantDeleteView,
     ChantDetailView,
     ChantEditSyllabificationView,
-    ChantListView,
     ChantSearchView,
     ChantSearchMSView,
     MelodySearchView,
@@ -46,6 +45,7 @@ from main_app.views.sequence import (
     SequenceListView,
 )
 from main_app.views.source import (
+    SourceBrowseChantsView,
     SourceCreateView,
     SourceDetailView,
     SourceEditView,
@@ -283,7 +283,7 @@ urlpatterns = [
     ),
     path(
         "source/<int:source_id>/chants/",
-        ChantListView.as_view(),
+        SourceBrowseChantsView.as_view(),
         name="chant-list",
     ),
     path(

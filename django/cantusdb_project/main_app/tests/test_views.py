@@ -539,7 +539,7 @@ class CenturyDetailViewTest(TestCase):
             self.assertNotIn(source, returned_sources)
 
 
-class ChantListViewTest(TestCase):
+class SourceBrowseChantsViewTest(TestCase):
     def test_url_and_templates(self):
         cantus_segment = make_fake_segment(id=4063)
         source = make_fake_source(segment=cantus_segment)
