@@ -43,8 +43,8 @@ window.addEventListener("load", function () {
 
     // if the source is reset, redirect to source/<int:source_id>/chants/
     function setSource() {
-        const source = sourceFilter.options[sourceFilter.selectedIndex].value;
-        url.pathname = "/source/" + source + "/chants/";
+        const sourceId = sourceFilter.options[sourceFilter.selectedIndex].value;
+        url.pathname = "/source/" + sourceId + "/chants/";
         url.searchParams.delete('source');
         url.searchParams.delete('feast');
         url.searchParams.delete('search_text');
