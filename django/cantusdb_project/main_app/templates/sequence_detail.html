@@ -173,50 +173,52 @@
 
         <h4>Concordances</h4>
         <small>Concordances for Cantus ID <a href="{{ sequence.get_ci_url }}" target=_blank>{{ sequence.cantus_id }}</a>: Displaying 1 - {{ concordances.count }} of {{ concordances.count }}</small>
-        <table class="table table-sm small table-bordered">
-            <thead>
-                <tr>
-                    <th scope="col" class="text-wrap" style="text-align:center">Siglum</th>
-                    <th scope="col" class="text-wrap" style="text-align:center">Incipit</th>
-                    <th scope="col" class="text-wrap" style="text-align:center">Rubrics</th>
-                    <th scope="col" class="text-wrap" style="text-align:center">AH</th>
-                    <th scope="col" class="text-wrap" style="text-align:center">Notes:1</th>
-                    <th scope="col" class="text-wrap" style="text-align:center">Notes:2</th>
-                    <th scope="col" class="text-wrap" style="text-align:center">Notes:3</th>
-                </tr>
-            </thead>
-            <tbody>
-                {% for sequence in concordances %}
+        <div class="table-responsive">
+            <table class="table table-sm small table-bordered">
+                <thead>
                     <tr>
-                        <td class="text-wrap" style="text-align:center">
-                            {% if sequence.source %}
-                                <a href="{% url 'source-detail' sequence.source.id %}" title="{{ sequence.source.title }}"><b>{{ sequence.siglum }}</b></a>
-                                <br>
-                                <b>{{ sequence.folio }}</b>  {{ sequence.s_sequence }}
-                            {% endif %}
-                        </td>
-                        <td class="text-wrap" style="text-align:center">
-                            <a href="{% url 'sequence-detail' sequence.id %}">{{ sequence.incipit|default:"" }}</a>
-                        </td>
-                        <td class="text-wrap" style="text-align:center">
-                            {{ sequence.rubrics|default:"" }}
-                        </td>
-                        <td class="text-wrap" style="text-align:center">
-                            {{ sequence.analecta_hymnica|default:"" }}
-                        </td>
-                        <td class="text-wrap" style="text-align:center">
-                            {{ sequence.col1|default:"" }}
-                        </td>
-                        <td class="text-wrap" style="text-align:center">
-                            {{ sequence.col2|default:"" }}
-                        </td>
-                        <td class="text-wrap" style="text-align:center">
-                            {{ sequence.col3|default:"" }}
-                        </td>
+                        <th scope="col" class="text-wrap" style="text-align:center">Siglum</th>
+                        <th scope="col" class="text-wrap" style="text-align:center">Incipit</th>
+                        <th scope="col" class="text-wrap" style="text-align:center">Rubrics</th>
+                        <th scope="col" class="text-wrap" style="text-align:center">AH</th>
+                        <th scope="col" class="text-wrap" style="text-align:center">Notes:1</th>
+                        <th scope="col" class="text-wrap" style="text-align:center">Notes:2</th>
+                        <th scope="col" class="text-wrap" style="text-align:center">Notes:3</th>
                     </tr>
-                {% endfor %}
-            </tbody>
-        </table>
+                </thead>
+                <tbody>
+                    {% for sequence in concordances %}
+                        <tr>
+                            <td class="text-wrap" style="text-align:center">
+                                {% if sequence.source %}
+                                    <a href="{% url 'source-detail' sequence.source.id %}" title="{{ sequence.source.title }}"><b>{{ sequence.siglum }}</b></a>
+                                    <br>
+                                    <b>{{ sequence.folio }}</b>  {{ sequence.s_sequence }}
+                                {% endif %}
+                            </td>
+                            <td class="text-wrap" style="text-align:center">
+                                <a href="{% url 'sequence-detail' sequence.id %}">{{ sequence.incipit|default:"" }}</a>
+                            </td>
+                            <td class="text-wrap" style="text-align:center">
+                                {{ sequence.rubrics|default:"" }}
+                            </td>
+                            <td class="text-wrap" style="text-align:center">
+                                {{ sequence.analecta_hymnica|default:"" }}
+                            </td>
+                            <td class="text-wrap" style="text-align:center">
+                                {{ sequence.col1|default:"" }}
+                            </td>
+                            <td class="text-wrap" style="text-align:center">
+                                {{ sequence.col2|default:"" }}
+                            </td>
+                            <td class="text-wrap" style="text-align:center">
+                                {{ sequence.col3|default:"" }}
+                            </td>
+                        </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
     {% endif %}
 </div>
 
