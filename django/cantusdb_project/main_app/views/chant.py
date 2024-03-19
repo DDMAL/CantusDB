@@ -358,6 +358,8 @@ class ChantListView(ListView):
         context["feasts"] = Feast.objects.all().order_by("name")
         context["genres"] = Genre.objects.all().order_by("name")
 
+        display_unpublished: bool = self.request.user.is_authenticated
+
         # sources in the Bower Segment contain only Sequences and no Chants,
         # so they should not appear among the list of sources
         cantus_segment: QuerySet[Segment] = Segment.objects.get(id=4063)
@@ -365,6 +367,8 @@ class ChantListView(ListView):
         sources: QuerySet[Source] = cantus_segment.source_set.order_by(
             "siglum"
         )  # to be displayed in the "Source" dropdown in the form
+        if not display_unpublished:
+            sources = sources.filter(published=True)
         context["sources"] = sources
 
         source_id: int = self.kwargs.get(self.pk_url_kwarg)
