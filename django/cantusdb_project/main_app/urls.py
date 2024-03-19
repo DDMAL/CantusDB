@@ -284,7 +284,7 @@ urlpatterns = [
     path(
         "source/<int:source_id>/chants/",
         SourceBrowseChantsView.as_view(),
-        name="chant-list",
+        name="browse-chants",
     ),
     path(
         "source/<int:source_id>/inventory/",

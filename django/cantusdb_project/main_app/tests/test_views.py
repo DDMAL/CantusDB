@@ -543,7 +543,7 @@ class SourceBrowseChantsViewTest(TestCase):
     def test_url_and_templates(self):
         cantus_segment = make_fake_segment(id=4063)
         source = make_fake_source(segment=cantus_segment)
-        response = self.client.get(reverse("chant-list", args=[source.id]))
+        response = self.client.get(reverse("browse-chants", args=[source.id]))
         self.assertEqual(response.status_code, 200)
         self.assertTemplateUsed(response, "base.html")
         self.assertTemplateUsed(response, "chant_list.html")
@@ -552,19 +552,21 @@ class SourceBrowseChantsViewTest(TestCase):
         cantus_segment = make_fake_segment(id=4063)
 
         published_source = make_fake_source(segment=cantus_segment, published=True)
-        response_1 = self.client.get(reverse("chant-list", args=[published_source.id]))
+        response_1 = self.client.get(
+            reverse("browse-chants", args=[published_source.id])
+        )
         self.assertEqual(response_1.status_code, 200)
 
         unpublished_source = make_fake_source(segment=cantus_segment, published=False)
         response_2 = self.client.get(
-            reverse("chant-list", args=[unpublished_source.id])
+            reverse("browse-chants", args=[unpublished_source.id])
         )
         self.assertEqual(response_2.status_code, 403)
 
     def test_visibility_by_segment(self):
         cantus_segment = make_fake_segment(id=4063)
         cantus_source = make_fake_source(segment=cantus_segment, published=True)
-        response_1 = self.client.get(reverse("chant-list", args=[cantus_source.id]))
+        response_1 = self.client.get(reverse("browse-chants", args=[cantus_source.id]))
         self.assertEqual(response_1.status_code, 200)
 
         # The chant list ("Browse Chants") page should only be visitable
@@ -572,7 +574,7 @@ class SourceBrowseChantsViewTest(TestCase):
         # segment contain no chants
         bower_segment = make_fake_segment(id=4064)
         bower_source = make_fake_source(segment=bower_segment, published=True)
-        response_1 = self.client.get(reverse("chant-list", args=[bower_source.id]))
+        response_1 = self.client.get(reverse("browse-chants", args=[bower_source.id]))
         self.assertEqual(response_1.status_code, 404)
 
     def test_filter_by_source(self):
@@ -581,7 +583,7 @@ class SourceBrowseChantsViewTest(TestCase):
         another_source = make_fake_source(segment=cantus_segment)
         chant_in_source = Chant.objects.create(source=source)
         chant_in_another_source = Chant.objects.create(source=another_source)
-        response = self.client.get(reverse("chant-list", args=[source.id]))
+        response = self.client.get(reverse("browse-chants", args=[source.id]))
         chants = response.context["chants"]
         self.assertIn(chant_in_source, chants)
         self.assertNotIn(chant_in_another_source, chants)
@@ -596,7 +598,7 @@ class SourceBrowseChantsViewTest(TestCase):
             source=source, feast=another_feast
         )
         response = self.client.get(
-            reverse("chant-list", args=[source.id]), {"feast": feast.id}
+            reverse("browse-chants", args=[source.id]), {"feast": feast.id}
         )
         chants = response.context["chants"]
         self.assertIn(chant_in_feast, chants)
@@ -612,7 +614,7 @@ class SourceBrowseChantsViewTest(TestCase):
             source=source, genre=another_genre
         )
         response = self.client.get(
-            reverse("chant-list", args=[source.id]), {"genre": genre.id}
+            reverse("browse-chants", args=[source.id]), {"genre": genre.id}
         )
         chants = response.context["chants"]
         self.assertIn(chant_in_genre, chants)
@@ -624,7 +626,7 @@ class SourceBrowseChantsViewTest(TestCase):
         chant_on_folio = Chant.objects.create(source=source, folio="001r")
         chant_on_another_folio = Chant.objects.create(source=source, folio="002r")
         response = self.client.get(
-            reverse("chant-list", args=[source.id]), {"folio": "001r"}
+            reverse("browse-chants", args=[source.id]), {"folio": "001r"}
         )
         chants = response.context["chants"]
         self.assertIn(chant_on_folio, chants)
@@ -638,7 +640,7 @@ class SourceBrowseChantsViewTest(TestCase):
         )
         search_term = get_random_search_term(chant.manuscript_full_text)
         response = self.client.get(
-            reverse("chant-list", args=[source.id]), {"search_text": search_term}
+            reverse("browse-chants", args=[source.id]), {"search_text": search_term}
         )
         self.assertIn(chant, response.context["chants"])
 
@@ -651,7 +653,7 @@ class SourceBrowseChantsViewTest(TestCase):
         )
         search_term = get_random_search_term(chant.incipit)
         response = self.client.get(
-            reverse("chant-list", args=[source.id]), {"search_text": search_term}
+            reverse("browse-chants", args=[source.id]), {"search_text": search_term}
         )
         self.assertIn(chant, response.context["chants"])
 
@@ -664,14 +666,14 @@ class SourceBrowseChantsViewTest(TestCase):
         )
         search_term = get_random_search_term(chant.manuscript_full_text_std_spelling)
         response = self.client.get(
-            reverse("chant-list", args=[source.id]), {"search_text": search_term}
+            reverse("browse-chants", args=[source.id]), {"search_text": search_term}
         )
         self.assertIn(chant, response.context["chants"])
 
     def test_context_source(self):
         cantus_segment = make_fake_segment(id=4063)
         source = make_fake_source(segment=cantus_segment)
-        response = self.client.get(reverse("chant-list", args=[source.id]))
+        response = self.client.get(reverse("browse-chants", args=[source.id]))
         self.assertEqual(source, response.context["source"])
 
     def test_context_folios(self):
@@ -683,7 +685,7 @@ class SourceBrowseChantsViewTest(TestCase):
         Chant.objects.create(source=source, folio="001v")
         Chant.objects.create(source=source, folio="002r")
         Chant.objects.create(source=source, folio="002v")
-        response = self.client.get(reverse("chant-list", args=[source.id]))
+        response = self.client.get(reverse("browse-chants", args=[source.id]))
         # the element in "folios" should be unique and ordered in this way
         folios = response.context["folios"]
         self.assertEqual(list(folios), ["001r", "001v", "002r", "002v"])
@@ -699,7 +701,7 @@ class SourceBrowseChantsViewTest(TestCase):
         Chant.objects.create(source=source, folio="001v")
         Chant.objects.create(source=source, folio="001v", feast=feast_2)
         Chant.objects.create(source=source, folio="002r", feast=feast_1)
-        response = self.client.get(reverse("chant-list", args=[source.id]))
+        response = self.client.get(reverse("browse-chants", args=[source.id]))
         # context "feasts_with_folios" is a list of tuples
         # it records the folios where the feast changes
         expected_result = [("001r", feast_1), ("001v", feast_2), ("002r", feast_1)]
@@ -713,7 +715,7 @@ class SourceBrowseChantsViewTest(TestCase):
         url = reverse("redirect-chant-list")
         response = self.client.get(f"{url}?source={source_id}")
         self.assertRedirects(
-            response, reverse("chant-list", args=[source_id]), status_code=301
+            response, reverse("browse-chants", args=[source_id]), status_code=301
         )
 
     def test_redirect_without_source_parameter(self):
@@ -4269,7 +4271,7 @@ class SourceDetailViewTest(TestCase):
     def test_chant_list_link(self):
         cantus_segment = make_fake_segment(id=4063)
         cantus_source = make_fake_source(segment=cantus_segment)
-        chant_list_link = reverse("chant-list", args=[cantus_source.id])
+        chant_list_link = reverse("browse-chants", args=[cantus_source.id])
 
         cantus_source_response = self.client.get(
             reverse("source-detail", args=[cantus_source.id])
@@ -4279,7 +4281,7 @@ class SourceDetailViewTest(TestCase):
 
         bower_segment = make_fake_segment(id=4064)
         bower_source = make_fake_source(segment=bower_segment)
-        bower_chant_list_link = reverse("chant-list", args=[bower_source.id])
+        bower_chant_list_link = reverse("browse-chants", args=[bower_source.id])
         bower_source_response = self.client.get(
             reverse("source-detail", args=[bower_source.id])
         )

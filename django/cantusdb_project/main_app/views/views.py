@@ -1005,7 +1005,7 @@ def redirect_chant_list(request) -> HttpResponse:
         # source parameter must be provided
         raise BadRequest("Source parameter must be provided")
 
-    base_url: str = reverse("chant-list", args=[source_id])
+    base_url: str = reverse("browse-chants", args=[source_id])
 
     # optional search params
     feast_id: Optional[str] = request.GET.get("feast")
