@@ -353,21 +353,22 @@ class ChantListView(ListView):
         return chants.order_by("folio", "c_sequence")
 
     def get_context_data(self, **kwargs):
-        context = super().get_context_data(**kwargs)
+        context: dict = super().get_context_data(**kwargs)
         # these are needed in the selectors on the left side of the page
         context["feasts"] = Feast.objects.all().order_by("name")
         context["genres"] = Genre.objects.all().order_by("name")
 
         # sources in the Bower Segment contain only Sequences and no Chants,
         # so they should not appear among the list of sources
-        cantus_segment = Segment.objects.get(id=4063)
-        sources = cantus_segment.source_set.order_by(
+        cantus_segment: QuerySet[Segment] = Segment.objects.get(id=4063)
+
+        sources: QuerySet[Source] = cantus_segment.source_set.order_by(
             "siglum"
         )  # to be displayed in the "Source" dropdown in the form
         context["sources"] = sources
 
-        source_id = self.kwargs.get(self.pk_url_kwarg)
-        source = get_object_or_404(Source, id=source_id)
+        source_id: int = self.kwargs.get(self.pk_url_kwarg)
+        source: Source = get_object_or_404(Source, id=source_id)
         if source not in sources:
             # the chant list ("Browse Chants") page should only be visitable
             # for sources in the CANTUS Database segment, as sources in the Bower
@@ -379,7 +380,7 @@ class ChantListView(ListView):
         user = self.request.user
         context["user_can_edit_chant"] = user_can_edit_chants_in_source(user, source)
 
-        chants_in_source = source.chant_set
+        chants_in_source: QuerySet[Chant] = source.chant_set
         if chants_in_source.count() == 0:
             # these are needed in the selectors and hyperlinks on the right side of the page
             # if there's no chant in the source, there should be no options in those selectors
@@ -390,7 +391,7 @@ class ChantListView(ListView):
             return context
 
         # generate options for the folio selector on the right side of the page
-        folios = (
+        folios: tuple[str] = (
             chants_in_source.values_list("folio", flat=True)
             .distinct()
             .order_by("folio")
@@ -399,8 +400,8 @@ class ChantListView(ListView):
 
         if self.request.GET.get("folio"):
             # if browsing chants on a specific folio
-            folio = self.request.GET.get("folio")
-            index = list(folios).index(folio)
+            folio: str = self.request.GET.get("folio")
+            index: int = list(folios).index(folio)
             # get the previous and next folio, if available
             context["previous_folio"] = folios[index - 1] if index != 0 else None
             context["next_folio"] = (
