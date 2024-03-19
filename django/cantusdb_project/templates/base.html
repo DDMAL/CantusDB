@@ -166,7 +166,7 @@
         <!-- Navbar -->
         <div class="container p-0">
             <nav class="navbar navbar-expand-lg navbar-light bg-white border-top col-12">
-                <a class="navbar-brand" href="/">
+                <a class="navbar-brand" href="/?ref=navbar_logo">
                     <img src="{% static "CantusLogoSmall.gif" %}" title="Cantus Database Home" alt="Cantus Database Logo" loading="lazy">
                 </a>
 
@@ -186,7 +186,7 @@
                                 ABOUT
                             </a>
                             <div class="dropdown-menu" aria-labelledby="navbarDropdownMenuLink">
-                                <a class="dropdown-item" href="/">Home</a>
+                                <a class="dropdown-item" href="/?ref=navbar_about">Home</a>
                                 <a class="dropdown-item" href="{% url 'article-list' %}">News</a>
                                 <a class="dropdown-item" href="{% url 'indexer-list' %}">Contributors</a>
                                 <a class="dropdown-item" href="/about/id-numbers/">ID Numbers: A History and
