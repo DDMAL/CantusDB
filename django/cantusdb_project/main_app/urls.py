@@ -190,8 +190,8 @@ urlpatterns = [
     ),
     path(
         "chants/",
-        views.redirect_chant_list,
-        name="redirect-chant-list",
+        views.redirect_chants,
+        name="redirect-chants",
     ),  # /chants/?source={source id}
     # feast
     path(
