@@ -41,7 +41,7 @@ PROJECT_ENVIRONMENT = os.getenv("PROJECT_ENVIRONMENT")
 DEBUG = False  # this is switched to True below when PROJECT_ENVIRONMENT=="DEVELOPMENT"
 
 ALLOWED_HOSTS = [os.getenv("CANTUSDB_HOST")]
-CSRF_TRUSTED_ORIGINS = f'https://{os.getenv("CANTUSDB_HOST")}'
+CSRF_TRUSTED_ORIGINS = [f'https://{os.getenv("CANTUSDB_HOST")}']
 if PROJECT_ENVIRONMENT == "DEVELOPMENT":
     DEBUG = True
 
