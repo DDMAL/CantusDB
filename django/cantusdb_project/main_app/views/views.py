@@ -1000,6 +1000,10 @@ def redirect_documents(request) -> HttpResponse:
 
 
 def redirect_chant_list(request) -> HttpResponse:
+    # in OldCantus, the Browse Chants page was accessed via
+    # `/chant-list?source=<source ID>`
+    # This view redirects to `/source/<source ID>/chants` to
+    # maintain backwards compatibility
     source_id: Optional[str] = request.GET.get("source")
     if source_id is None:
         # source parameter must be provided
