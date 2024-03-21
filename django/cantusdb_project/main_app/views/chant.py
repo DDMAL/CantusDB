@@ -2,7 +2,7 @@ import requests
 import urllib
 import json
 from django.contrib import messages
-from django.db.models import Q, QuerySet, Value
+from django.db.models import Q, QuerySet
 from django.shortcuts import get_object_or_404
 from django.urls import reverse
 from django.views.generic import (
@@ -25,7 +25,6 @@ from main_app.models import (
     Genre,
     Source,
     Sequence,
-    Segment,
     Office,
 )
 from django.contrib.auth.mixins import LoginRequiredMixin
