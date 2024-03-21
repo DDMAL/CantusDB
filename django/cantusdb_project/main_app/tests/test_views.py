@@ -546,7 +546,7 @@ class SourceBrowseChantsViewTest(TestCase):
         response = self.client.get(reverse("browse-chants", args=[source.id]))
         self.assertEqual(response.status_code, 200)
         self.assertTemplateUsed(response, "base.html")
-        self.assertTemplateUsed(response, "chant_list.html")
+        self.assertTemplateUsed(response, "browse_chants.html")
 
     def test_published_vs_unpublished(self):
         cantus_segment = make_fake_segment(id=4063)

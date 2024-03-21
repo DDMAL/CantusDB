@@ -52,7 +52,7 @@ class SourceBrowseChantsView(ListView):
     model = Chant
     paginate_by = 100
     context_object_name = "chants"
-    template_name = "chant_list.html"
+    template_name = "browse_chants.html"
     pk_url_kwarg = "source_id"
 
     def get_queryset(self):
