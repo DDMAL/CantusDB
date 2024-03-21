@@ -13,6 +13,7 @@ https://docs.djangoproject.com/en/3.0/ref/settings/
 import os
 from distutils.util import strtobool
 from django.contrib.messages import constants as messages
+from typing import Optional
 
 # https://ordinarycoders.com/blog/article/django-messages-framework
 MESSAGE_TAGS = {
@@ -35,21 +36,38 @@ MEDIA_ROOT = os.getenv("CANTUSDB_MEDIA_ROOT")
 # SECURITY WARNING: keep the secret key used in production secret!
 SECRET_KEY = os.getenv("CANTUSDB_SECRET_KEY")
 
-PROJECT_ENVIRONMENT = os.getenv("PROJECT_ENVIRONMENT")
+PROJECT_ENVIRONMENT: Optional[str] = os.getenv("PROJECT_ENVIRONMENT")
+
+if PROJECT_ENVIRONMENT not in ("DEVELOPMENT", "STAGING", "PRODUCTION"):
+    raise ValueError(
+        "The PROJECT_ENVIRONMENT environment variable must be either "
+        "DEVELOPMENT, STAGING, or PRODUCTION. "
+        f"Its current value is {PROJECT_ENVIRONMENT}."
+    )
+
+cantusdb_hosts: Optional[str] = os.getenv(f"CANTUSDB_HOSTS_{PROJECT_ENVIRONMENT}")
+cantusdb_origins: Optional[str] = os.getenv(f"CANTUSDB_ORIGINS_{PROJECT_ENVIRONMENT}")
+
+try:
+    ALLOWED_HOSTS: list = cantusdb_hosts.split(" ")
+except AttributeError:  # cantusdb_hosts is None
+    raise ValueError(
+        f"The PROJECT_ENVIRONMENT environment variable is set to {PROJECT_ENVIRONMENT}, "
+        f"yet the CANTUSDB_HOSTS_{PROJECT_ENVIRONMENT} environment variable is not set."
+    )
+
+try:
+    CSRF_TRUSTED_ORIGINS: list = cantusdb_origins.split(" ")
+except AttributeError:  # cantusdb_origins is None
+    raise ValueError(
+        f"The PROJECT_ENVIRONMENT environment variable is set to {PROJECT_ENVIRONMENT}, "
+        f"yet the CANTUSDB_ORIGINS_{PROJECT_ENVIRONMENT} environment variable is not set."
+    )
 
 # SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = False  # this is switched to True below when PROJECT_ENVIRONMENT=="DEVELOPMENT"
-
+DEBUG = False
 if PROJECT_ENVIRONMENT == "DEVELOPMENT":
-    ALLOWED_HOSTS = os.getenv("CANTUSDB_HOSTS_DEVELOPMENT").split(" ")
-    CSRF_TRUSTED_ORIGINS = os.getenv("CANTUSDB_ORIGINS_DEVELOPMENT").split(" ")
     DEBUG = True
-if PROJECT_ENVIRONMENT == "STAGING":
-    ALLOWED_HOSTS = os.getenv("CANTUSDB_HOSTS_STAGING").split(" ")
-    CSRF_TRUSTED_ORIGINS = os.getenv("CANTUSDB_ORIGINS_STAGING").split(" ")
-if PROJECT_ENVIRONMENT == "PRODUCTION":
-    ALLOWED_HOSTS = os.getenv("CANTUSDB_HOSTS_PRODUCTION").split(" ")
-    CSRF_TRUSTED_ORIGINS = os.getenv("CANTUSDB_ORIGINS_PRODUCTION").split(" ")
 
 
 # Application definition
