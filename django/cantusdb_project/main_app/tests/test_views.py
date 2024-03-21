@@ -712,14 +712,14 @@ class SourceBrowseChantsViewTest(TestCase):
         source = make_fake_source(segment=cantus_segment)
         source_id = source.id
 
-        url = reverse("redirect-chant-list")
+        url = reverse("redirect-chants")
         response = self.client.get(f"{url}?source={source_id}")
         self.assertRedirects(
             response, reverse("browse-chants", args=[source_id]), status_code=301
         )
 
     def test_redirect_without_source_parameter(self):
-        url = reverse("redirect-chant-list")
+        url = reverse("redirect-chants")
 
         # Omitting the source parameter to simulate a bad request
         response = self.client.get(url)
