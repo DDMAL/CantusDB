@@ -15,8 +15,8 @@
                         <label for="sourceFilter"><small><b>Source</b></small></label>
                         <select id="sourceFilter" name="source" class="form-control custom-select custom-select-sm">
                             {% comment %} <option value="">- Any -</option> {% endcomment %}
-                            {% for source in sources %}
-                                <option value="{{ source.id }}">{{ source.siglum }}</option>
+                            {% for source_obj in sources %}
+                                <option value="{{ source_obj.id }}"{% if source_obj.id == source.id %} selected {% endif %}>{{ source_obj.siglum }}</option>
                             {% endfor %}
                         </select>
                     </div>
@@ -149,10 +149,10 @@
                         </select>
 
                         {% if previous_folio %}
-                            <a href="{% url "chant-list" source.id %}?folio={{ previous_folio }}">{{ previous_folio }} <</a>
+                            <a href="{% url "browse-chants" source.id %}?folio={{ previous_folio }}">{{ previous_folio }} <</a>
                         {% endif %}
                         {% if next_folio %}
-                            &nbsp;<a href="{% url "chant-list" source.id %}?folio={{ next_folio }}">> {{ next_folio }}</a>
+                            &nbsp;<a href="{% url "browse-chants" source.id %}?folio={{ next_folio }}">> {{ next_folio }}</a>
                         {% endif %}                                
                         <br>
 
@@ -163,7 +163,7 @@
                             {% endfor %}
                         </select>
                         <br>
-                        <a href="{% url "chant-list" source.id %}" class="guillemet" target="_blank">View all chants</a>
+                        <a href="{% url "browse-chants" source.id %}" class="guillemet" target="_blank">View all chants</a>
                         <a href="{% url "source-inventory" source.id %}" class="guillemet" target="_blank">View full inventory</a>
                         <a href="{% url "csv-export" source.id%}" class="guillemet" target="_blank">CSV export</a>
                         <a href="{% url "chant-search-ms" source.id %}" class="guillemet" target="_blank">Search chants in this manuscript</a>

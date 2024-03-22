@@ -185,25 +185,29 @@
                 </div>
                 <div class="card-body">
                     <small>
-                        <!--a small selector of all folios of this source-->
-                        <select id="folioSelect" class="w-30" onchange="jumpToFolio({{ source.id }})">
-                            <option value="">Select a folio:</option>
-                            {% for folio in folios %}
-                                <option value="{{ folio }}">{{ folio }}</option>
-                            {% endfor %}
-                        </select>                              
-
-                        <select id="feastSelect" onchange="jumpToFeast({{ source.id }})" style="width: 200px;"> <!-- style attribute prevents select element from extending beyond left edge of div element -->
-                            <option value="">Select a feast:</option>
-                            {% for folio, feast in feasts_with_folios %}
-                                <option value="{{ feast.id }}">{{ folio }} - {{ feast.name }}</option>
-                            {% endfor %}
-                        </select>
-
-                        <br>
                         {% if source.segment.id == 4063 %}
-                            {# only display this link for sources in the CANTUS segment #}
-                            <a href="{% url "chant-list" source.id %}" class="guillemet" target="_blank">View all chants</a>
+                            {# all of the following are different ways to link to the Chant List page #}
+                            {# Since sources in the Bower segment contain no chants, the Chant List page #}
+                            {# is currently set up to raise a 404 if you try to access it for a source in #}
+                            {# the Bower segment. So, we need to display this section only for sources in #}
+                            {# the CANTUS segment #}
+                            <!--a small selector of all folios of this source-->
+                            <select id="folioSelect" class="w-30" onchange="jumpToFolio({{ source.id }})">
+                                <option value="">Select a folio:</option>
+                                {% for folio in folios %}
+                                    <option value="{{ folio }}">{{ folio }}</option>
+                                {% endfor %}
+                            </select>                              
+
+                            <select id="feastSelect" onchange="jumpToFeast({{ source.id }})" style="width: 200px;"> <!-- style attribute prevents select element from extending beyond left edge of div element -->
+                                <option value="">Select a feast:</option>
+                                {% for folio, feast in feasts_with_folios %}
+                                    <option value="{{ feast.id }}">{{ folio }} - {{ feast.name }}</option>
+                                {% endfor %}
+                            </select>
+
+                            <br>
+                            <a href="{% url "browse-chants" source.id %}" class="guillemet" target="_blank">View all chants</a>
                         {% endif %}
                         <a href="{% url "source-inventory" source.id %}" class="guillemet" target="_blank">View full inventory</a>
                         <a href="{% url "csv-export" source.id%}" class="guillemet" target="_blank" download="{{ source.id }}.csv">CSV export</a>

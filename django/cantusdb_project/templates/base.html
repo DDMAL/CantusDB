@@ -165,10 +165,9 @@
     <header>
         <!-- Navbar -->
         <div class="container p-0">
-            <nav class="navbar navbar-expand-xl navbar-light bg-white border-top col-12">
-                <a class="navbar-brand" href="/">
-                    <img src="{% static "CantusLogoSmall.gif" %}"
-                        alt="Cantus Database: A Database for Latin Ecclesiastical Chant" loading="lazy">
+            <nav class="navbar navbar-expand-lg navbar-light bg-white border-top col-12">
+                <a class="navbar-brand" href="/?ref=navbar_logo">
+                    <img src="{% static "CantusLogoSmall.gif" %}" alt="Cantus Database home" title="Cantus Database Home" loading="lazy">
                 </a>
 
                 <!-- Hamburger button to show nav when screen is smaller-->
@@ -180,20 +179,14 @@
                 <div class="collapse navbar-collapse" id="navbar-links">
                     <ul class="navbar-nav mx-auto">
 
-                        <!-- HOME -->
-                        <li class="nav-item">
-                            <a class="nav-link font-weight-bold" href="/">HOME<br style:"line-height: 50pt;"/>
-                                <span class="small">Home Page</span>
-                            </a>
-                        </li>
-
                         <!-- ABOUT -->
                         <li class="nav-item dropdown text-info">
                             <a class="nav-link dropdown-toggle font-weight-bold" href="#" id="navbarDropdownMenuLink"
                                 role="button" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
-                                ABOUT<br><span class="small">Information</span>
+                                ABOUT
                             </a>
                             <div class="dropdown-menu" aria-labelledby="navbarDropdownMenuLink">
+                                <a class="dropdown-item" href="/?ref=navbar_about">Home</a>
                                 <a class="dropdown-item" href="{% url 'article-list' %}">News</a>
                                 <a class="dropdown-item" href="{% url 'indexer-list' %}">Contributors</a>
                                 <a class="dropdown-item" href="/about/id-numbers/">ID Numbers: A History and
@@ -213,7 +206,7 @@
                         <li class="nav-item dropdown">
                             <a class="nav-link dropdown-toggle font-weight-bold" href="#" id="navbarDropdownMenuLink"
                                 role="button" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
-                                SOURCES<br><span class="small">List of inventories</span>
+                                SOURCES
                             </a>
                             <div class="dropdown-menu" aria-labelledby="navbarDropdownMenuLink">
                                 <a class="dropdown-item" href="{% url 'source-list' %}?segment=4063">Cantus Sources</a>
@@ -226,7 +219,7 @@
                         <li class="nav-item dropdown">
                             <a class="nav-link dropdown-toggle font-weight-bold" href="#" id="navbarDropdownMenuLink"
                                 role="button" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
-                                CHANTS<br><span class="small">Search</span>
+                                CHANTS
                             </a>
                             <div class="dropdown-menu" aria-labelledby="navbarDropdownMenuLink">
                                 <a class="dropdown-item" href="{% url 'chant-search' %}">Chant Search</a>
@@ -241,7 +234,7 @@
                             <a class="nav-link dropdown-toggle font-weight-bold" href="/feasts"
                                 id="navbarDropdownMenuLink" role="button" data-toggle="dropdown" aria-haspopup="true"
                                 aria-expanded="false">
-                                FEASTS<br><span class="small">List of feasts</span>
+                                FEASTS
                             </a>
                             <div class="dropdown-menu" aria-labelledby="navbarDropdownMenuLink">
                                 <a class="dropdown-item" href="{% url 'feast-list' %}">List of all feasts</a>
@@ -255,7 +248,7 @@
                             <a class="nav-link dropdown-toggle font-weight-bold" href="/genres"
                                 id="navbarDropdownMenuLink" role="button" data-toggle="dropdown" aria-haspopup="true"
                                 aria-expanded="false">
-                                TERMS<br><span class="small">Genres & fields</span>
+                                TERMS
                             </a>
                             <div class="dropdown-menu" aria-labelledby="navbarDropdownMenuLink">
                                 <a class="dropdown-item" href="{% url 'genre-list' %}">Genre abbreviations</a>
@@ -268,7 +261,7 @@
                         <li class="nav-item dropdown">
                             <a class="nav-link dropdown-toggle font-weight-bold" href="#" id="navbarDropdownMenuLink"
                                 role="button" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
-                                RESOURCES<br><span class="small">Docs, Instructions,<br> Tools</span>
+                                RESOURCES
                             </a>
                             <div class="dropdown-menu" aria-labelledby="navbarDropdownMenuLink">
                                 <a class="dropdown-item" href="/tutorial/">Tutorial for Cantus Contributors</a>

@@ -87,8 +87,8 @@
                     <tbody>
                         {% for source, count in sources_zip %}
                             <tr>
-                                <td><a href="{% url 'chant-list' source.id %}" title="{{ source.title }}">{{ source.siglum }}</a></td>
-                                <td><a href="{% url 'chant-list' source.id %}?feast={{ feast.id }}">{{ count }}</a></td>
+                                <td><a href="{% url 'browse-chants' source.id %}" title="{{ source.title }}">{{ source.siglum }}</a></td>
+                                <td><a href="{% url 'browse-chants' source.id %}?feast={{ feast.id }}">{{ count }}</a></td>
                             </tr>
                         {% endfor %}
                     </tbody>
