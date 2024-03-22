@@ -1,0 +1,48 @@
+# This file is configured for deployment of the CantusDB project in local development.
+# When building the project locally, replace the contents of cantusdb.conf with the
+# contents of this file.
+ 
+server {
+    listen 80;
+
+    location / {
+        proxy_pass http://django:8000;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header Host $host;
+        proxy_redirect off;
+    }
+
+    location /static {
+        alias /resources/static/;
+    }
+    location /media {
+        alias /resources/media/;
+    }
+
+    location /concordances {
+        alias /resources/api_cache/concordances.json;
+        expires modified +24h;
+    }
+ 
+    location = /style.css {
+        root /;
+    }
+    location = /background.jpg {
+        root /;
+    }
+    location = /CantusLogoSmall.gif {
+        root /;
+    }
+    location = /favicon.ico {
+        root /;
+    }
+
+    error_page 502 /502.html;
+    location = /502.html {
+        root /;
+    }
+    error_page 504 /504.html;
+    location = /504.html {
+        root /;
+    }
+}
