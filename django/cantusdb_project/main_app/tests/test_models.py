@@ -90,7 +90,7 @@ class ChantModelTest(TestCase):
         self.assertEqual(weight_search_term_dict, expected_dict)
 
     def test_get_concordances(self):
-        chant = Chant.objects.get(id=1)
+        chant = Chant.objects.first()
         chant_with_same_cantus_id = Chant.objects.create(
             cantus_id=chant.cantus_id, source=chant.source
         )
