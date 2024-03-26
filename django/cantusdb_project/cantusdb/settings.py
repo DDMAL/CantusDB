@@ -16,7 +16,7 @@ from django.contrib.messages import constants as messages
 from typing import Optional
 
 # https://ordinarycoders.com/blog/article/django-messages-framework
-MESSAGE_TAGS = {
+MESSAGE_TAGS: dict = {
     messages.DEBUG: "alert-secondary",
     messages.INFO: "alert-info",
     messages.SUCCESS: "alert-success",
@@ -25,16 +25,16 @@ MESSAGE_TAGS = {
 }
 
 # Build paths inside the project like this: os.path.join(BASE_DIR, ...)
-BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+BASE_DIR: Optional[str] = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 
-STATIC_ROOT = os.getenv("CANTUSDB_STATIC_ROOT")
-MEDIA_ROOT = os.getenv("CANTUSDB_MEDIA_ROOT")
+STATIC_ROOT: Optional[str] = os.getenv("CANTUSDB_STATIC_ROOT")
+MEDIA_ROOT: Optional[str] = os.getenv("CANTUSDB_MEDIA_ROOT")
 
 # Quick-start development settings - unsuitable for production
 # See https://docs.djangoproject.com/en/3.0/howto/deployment/checklist/
 
 # SECURITY WARNING: keep the secret key used in production secret!
-SECRET_KEY = os.getenv("CANTUSDB_SECRET_KEY")
+SECRET_KEY: Optional[str] = os.getenv("CANTUSDB_SECRET_KEY")
 
 PROJECT_ENVIRONMENT: Optional[str] = os.getenv("PROJECT_ENVIRONMENT")
 
@@ -61,7 +61,7 @@ else:
 
 # Application definition
 
-INSTALLED_APPS = [
+INSTALLED_APPS: list[str] = [
     "dal",
     "dal_select2",
     "django.contrib.admin",
@@ -82,7 +82,7 @@ INSTALLED_APPS = [
     "users",
 ]
 
-MIDDLEWARE = [
+MIDDLEWARE: list[str] = [
     "django.middleware.security.SecurityMiddleware",
     "django.contrib.sessions.middleware.SessionMiddleware",
     "django.middleware.common.CommonMiddleware",
@@ -94,9 +94,9 @@ MIDDLEWARE = [
     "reversion.middleware.RevisionMiddleware",
 ]
 
-ROOT_URLCONF = "cantusdb.urls"
+ROOT_URLCONF: str = "cantusdb.urls"
 
-TEMPLATES = [
+TEMPLATES: list[dict] = [
     {
         "BACKEND": "django.template.backends.django.DjangoTemplates",
         "DIRS": [os.path.join(BASE_DIR, "templates")],
@@ -113,15 +113,15 @@ TEMPLATES = [
     },
 ]
 
-TEMPLATE_LOADERS = "django.template.loaders.app_directories.load_template_source"
+TEMPLATE_LOADERS: str = "django.template.loaders.app_directories.load_template_source"
 
-WSGI_APPLICATION = "cantusdb.wsgi.application"
+WSGI_APPLICATION: str = "cantusdb.wsgi.application"
 
 
 # Database
 # https://docs.djangoproject.com/en/3.0/ref/settings/#databases
 
-DATABASES = {
+DATABASES: dict = {
     "default": {
         "ENGINE": "django.db.backends.postgresql",
         "NAME": os.getenv("POSTGRES_DB"),
@@ -136,7 +136,7 @@ DATABASES = {
 # Password validation
 # https://docs.djangoproject.com/en/3.0/ref/settings/#auth-password-validators
 
-AUTH_PASSWORD_VALIDATORS = [
+AUTH_PASSWORD_VALIDATORS: list[dict] = [
     {
         "NAME": "django.contrib.auth.password_validation.UserAttributeSimilarityValidator",
     },
@@ -155,46 +155,46 @@ AUTH_PASSWORD_VALIDATORS = [
 # Internationalization
 # https://docs.djangoproject.com/en/3.0/topics/i18n/
 
-LANGUAGE_CODE = "en-us"
+LANGUAGE_CODE: str = "en-us"
 
-TIME_ZONE = "UTC"
+TIME_ZONE: str = "UTC"
 
-USE_I18N = True
+USE_I18N: bool = True
 
-USE_L10N = True
+USE_L10N: bool = True
 
-USE_TZ = True
+USE_TZ: bool = True
 
 
 # Static files (CSS, JavaScript, Images)
 # https://docs.djangoproject.com/en/3.0/howto/static-files/
 
-STATIC_URL = "/static/"
+STATIC_URL: str = "/static/"
 
-STATICFILES_DIRS = [os.path.join(BASE_DIR, "static")]
+STATICFILES_DIRS: list[str] = [os.path.join(BASE_DIR, "static")]
 
-AUTH_USER_MODEL = "users.User"
-LOGIN_REDIRECT_URL = "/"
-LOGIN_URL = "/login/"
-LOGOUT_REDIRECT_URL = "/login/"
+AUTH_USER_MODEL: str = "users.User"
+LOGIN_REDIRECT_URL: str = "/"
+LOGIN_URL: str = "/login/"
+LOGOUT_REDIRECT_URL: str = "/login/"
 
-SITE_ID = 4
+SITE_ID: int = 4
 
 # New in django 3.2: specify the default type of auto-created primary keys
 # https://docs.djangoproject.com/en/3.2/releases/3.2/#customizing-type-of-auto-created-primary-keys
-DEFAULT_AUTO_FIELD = "django.db.models.AutoField"
+DEFAULT_AUTO_FIELD: str = "django.db.models.AutoField"
 
-EMAIL_BACKEND = "django.core.mail.backends.smtp.EmailBackend"
-EMAIL_HOST = "email-smtp.us-west-2.amazonaws.com"
-EMAIL_PORT = 587
-EMAIL_HOST_USER = os.getenv("AWS_EMAIL_HOST_USER")
-EMAIL_HOST_PASSWORD = os.getenv("AWS_EMAIL_HOST_PASSWORD")
-EMAIL_USE_TLS = True
+EMAIL_BACKEND: str = "django.core.mail.backends.smtp.EmailBackend"
+EMAIL_HOST: str = "email-smtp.us-west-2.amazonaws.com"
+EMAIL_PORT: int = 587
+EMAIL_HOST_USER: Optional[str] = os.getenv("AWS_EMAIL_HOST_USER")
+EMAIL_HOST_PASSWORD: Optional[str] = os.getenv("AWS_EMAIL_HOST_PASSWORD")
+EMAIL_USE_TLS: bool = True
 
-DEFAULT_FROM_EMAIL = "noreply@cantusdatabase.simssa.ca"
+DEFAULT_FROM_EMAIL: str = "noreply@cantusdatabase.simssa.ca"
 
 # automatically disable all panels which user can then manually enable
-DEBUG_TOOLBAR_CONFIG = {
+DEBUG_TOOLBAR_CONFIG: dict = {
     "DISABLE_PANELS": {
         "debug_toolbar.panels.history.HistoryPanel",
         "debug_toolbar.panels.versions.VersionsPanel",
@@ -213,7 +213,7 @@ DEBUG_TOOLBAR_CONFIG = {
     },
 }
 
-INTERNAL_IPS = [
+INTERNAL_IPS: list[str] = [
     "127.0.0.1",
 ]
 
