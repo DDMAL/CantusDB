@@ -38,36 +38,25 @@ SECRET_KEY = os.getenv("CANTUSDB_SECRET_KEY")
 
 PROJECT_ENVIRONMENT: Optional[str] = os.getenv("PROJECT_ENVIRONMENT")
 
-if PROJECT_ENVIRONMENT not in ("DEVELOPMENT", "STAGING", "PRODUCTION"):
+# DEBUG gets set to True below when PROJECT_ENVIRONMENT == "DEVELOPMENT"
+# SECURITY WARNING: don't run with debug turned on in production!
+DEBUG: bool = False
+if PROJECT_ENVIRONMENT == "DEVELOPMENT":
+    ALLOWED_HOSTS = os.getenv("CANTUSDB_HOSTS_DEVELOPMENT").split(" ")
+    CSRF_TRUSTED_ORIGINS = os.getenv("CANTUSDB_ORIGINS_DEVELOPMENT").split(" ")
+    DEBUG = True
+elif PROJECT_ENVIRONMENT == "STAGING":
+    ALLOWED_HOSTS = os.getenv("CANTUSDB_HOSTS_STAGING").split(" ")
+    CSRF_TRUSTED_ORIGINS = os.getenv("CANTUSDB_ORIGINS_STAGING").split(" ")
+elif PROJECT_ENVIRONMENT == "PRODUCTION":
+    ALLOWED_HOSTS = os.getenv("CANTUSDB_HOSTS_PRODUCTION").split(" ")
+    CSRF_TRUSTED_ORIGINS = os.getenv("CANTUSDB_ORIGINS_PRODUCTION").split(" ")
+else:
     raise ValueError(
         "The PROJECT_ENVIRONMENT environment variable must be either "
         "DEVELOPMENT, STAGING, or PRODUCTION. "
         f"Its current value is {PROJECT_ENVIRONMENT}."
     )
-
-cantusdb_hosts: Optional[str] = os.getenv(f"CANTUSDB_HOSTS_{PROJECT_ENVIRONMENT}")
-cantusdb_origins: Optional[str] = os.getenv(f"CANTUSDB_ORIGINS_{PROJECT_ENVIRONMENT}")
-
-try:
-    ALLOWED_HOSTS: list = cantusdb_hosts.split(" ")
-except AttributeError:  # cantusdb_hosts is None
-    raise ValueError(
-        f"The PROJECT_ENVIRONMENT environment variable is set to {PROJECT_ENVIRONMENT}, "
-        f"yet the CANTUSDB_HOSTS_{PROJECT_ENVIRONMENT} environment variable is not set."
-    )
-
-try:
-    CSRF_TRUSTED_ORIGINS: list = cantusdb_origins.split(" ")
-except AttributeError:  # cantusdb_origins is None
-    raise ValueError(
-        f"The PROJECT_ENVIRONMENT environment variable is set to {PROJECT_ENVIRONMENT}, "
-        f"yet the CANTUSDB_ORIGINS_{PROJECT_ENVIRONMENT} environment variable is not set."
-    )
-
-# SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = False
-if PROJECT_ENVIRONMENT == "DEVELOPMENT":
-    DEBUG = True
 
 
 # Application definition
