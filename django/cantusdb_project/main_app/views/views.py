@@ -69,59 +69,6 @@ def items_count(request):
     return render(request, "items_count.html", context)
 
 
-def ajax_melody_list(request, cantus_id) -> JsonResponse:
-    """
-    Function-based view responding to the AJAX call for melody list on the chant detail page,
-    accessed with ``chants/<int:pk>``, click on "Display melodies connected with this chant"
-
-    Args:
-        cantus_id (str): The Cantus ID of the requested concordances group
-
-    Returns:
-        JsonResponse: A response to the AJAX call, to be unpacked by the frontend js code
-    """
-    chants: QuerySet[Chant] = (
-        Chant.objects.filter(cantus_id=cantus_id).exclude(volpiano=None).order_by("id")
-    )
-
-    display_unpublished: bool = request.user.is_authenticated
-    if not display_unpublished:
-        chants = chants.filter(source__published=True)
-
-    concordance_values: QuerySet[dict] = chants.values(
-        "source__siglum",
-        "folio",
-        "office__name",
-        "genre__name",
-        "position",
-        "feast__name",
-        "cantus_id",
-        "volpiano",
-        "mode",
-        # OldCantus seems to use whichever is present: ms spelling, std spelling, incipit (in that order)
-        "manuscript_full_text_std_spelling",
-    )
-
-    concordances: list[dict] = list(concordance_values)
-    for i, concordance in enumerate(concordances):
-        # we need to use each chant's _source_'s siglum, and not the
-        # legacy sigla that were attached to chants in OldCantus
-        concordance["siglum"] = concordance.pop("source__siglum")
-        # for chants that do not have a source, do not attempt
-        # to return a source link
-        if chants[i].source:
-            concordance["source_link"] = chants[i].source.get_absolute_url()
-        concordance["ci_link"] = chants[i].get_ci_url()
-        concordance["chant_link"] = chants[i].get_absolute_url()
-        concordance["db"] = "CD"
-
-    concordance_count: int = len(concordances)
-    return JsonResponse(
-        {"concordances": concordances, "concordance_count": concordance_count},
-        safe=True,
-    )
-
-
 def csv_export(request, source_id):
     """
     Function-based view for the CSV export page, accessed with ``csv/<str:source_id>``

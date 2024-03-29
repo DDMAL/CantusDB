@@ -318,11 +318,6 @@ urlpatterns = [
         name="melody-search",
     ),
     path(
-        "ajax/melody/<str:cantus_id>",
-        views.ajax_melody_list,
-        name="ajax-melody",
-    ),
-    path(
         "ajax/melody-search/",
         views.ajax_melody_search,
         name="ajax-melody-search",
