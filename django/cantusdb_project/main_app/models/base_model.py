@@ -1,4 +1,5 @@
 """Defines a BaseModel to be extended by all other models"""
+
 from typing import List
 from django.db import models
 from django.urls import reverse
