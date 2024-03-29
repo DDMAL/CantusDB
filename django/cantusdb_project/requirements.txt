@@ -3,7 +3,7 @@ asgiref==3.6.0
 astroid==2.4.2
 attrs==19.3.0
 backports.zoneinfo==0.2.1
-black==21.10b0
+black==24.3.0
 certifi==2023.7.22
 chardet==3.0.4
 charset-normalizer==2.0.12
