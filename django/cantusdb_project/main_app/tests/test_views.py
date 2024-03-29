@@ -2886,7 +2886,7 @@ class ChantCreateViewTest(TestCase):
                 "c_sequence": "1",
                 # liquescents, to be converted to lowercase
                 #                    vv v v v v v v
-                "volpiano": "9abcdefg)A-B1C2D3E4F5G67?. yiz"
+                "volpiano": "9abcdefg)A-B1C2D3E4F5G67?. yiz",
                 #                      ^ ^ ^ ^ ^ ^ ^^^^^^^^
                 # clefs, accidentals, etc., to be deleted
             },
@@ -3033,7 +3033,7 @@ class SourceEditChantsViewTest(TestCase):
                 "c_sequence": "1",
                 # liquescents, to be converted to lowercase
                 #                    vv v v v v v v
-                "volpiano": "9abcdefg)A-B1C2D3E4F5G67?. yiz"
+                "volpiano": "9abcdefg)A-B1C2D3E4F5G67?. yiz",
                 #                      ^ ^ ^ ^ ^ ^ ^^^^^^^^
                 # clefs, accidentals, etc., to be deleted
             },
@@ -4510,7 +4510,9 @@ class SourceInventoryViewTest(TestCase):
         response = self.client.get(reverse("source-inventory", args=[source.id]))
         html: str = str(response.content)
         self.assertIn(diff_id, html)
-        expected_html_substring: str = f'<a href="https://differentiaedatabase.ca/differentia/{diff_id}" target="_blank">'
+        expected_html_substring: str = (
+            f'<a href="https://differentiaedatabase.ca/differentia/{diff_id}" target="_blank">'
+        )
         self.assertIn(expected_html_substring, html)
 
     def test_redirect_with_source_parameter(self):
@@ -5692,4 +5694,3 @@ class AjaxSearchBarTest(TestCase):
         non_matching_content = json.loads(non_matching_response.content)
         non_matching_chants = non_matching_content["chants"]
         self.assertEqual(len(non_matching_chants), 0)
-        
