@@ -391,11 +391,6 @@ urlpatterns = [
         views.csv_export_redirect_from_old_path,
         name="csv-export-old-path",
     ),
-    path(
-        "ajax/concordance/<str:cantus_id>",
-        views.ajax_concordance_list,
-        name="ajax-concordance",
-    ),
     # content overview (for project managers)
     path(
         "content-overview/",
