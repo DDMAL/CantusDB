@@ -5182,9 +5182,16 @@ class CsvExportTest(TestCase):
 
     def test_content(self):
         NUM_CHANTS = 5
-        source = make_fake_source(published=True)
+        source_siglum = "SourceSiglum"
+        chant_siglum = "ChantSiglum"  # OldCantus chants/sequences had a "siglum"
+        # field, which would sometimes get out of date when the chant's source's siglum
+        # was updated. We keep the chant siglum field around to ensure no data is
+        # inadvertently lost, but we need to ensure it is never displayed publicly.
+        source = make_fake_source(published=True, siglum=source_siglum)
         for _ in range(NUM_CHANTS):
-            make_fake_chant(source=source)
+            chant = make_fake_chant(source=source)
+            chant.siglum = chant_siglum
+            chant.save()
         response = self.client.get(reverse("csv-export", args=[source.id]))
         content = response.content.decode("utf-8")
         split_content = list(csv.reader(content.splitlines(), delimiter=","))
@@ -5224,6 +5231,12 @@ class CsvExportTest(TestCase):
         ):
             for row in rows:
                 self.assertEqual(len(header), len(row))
+        with self.subTest(
+            "ensure we only ever display chants' sources' sigla, and never the "
+            "value stored in chants' siglum fields"
+        ):
+            for row in rows:
+                self.assertEqual(row[0], source_siglum)
 
     def test_published_vs_unpublished(self):
         published_source = make_fake_source(published=True)
