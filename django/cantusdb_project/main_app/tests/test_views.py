@@ -2909,6 +2909,32 @@ class ChantCreateViewTest(TestCase):
         self.assertEqual(chant_2.volpiano, "abacadaeafagahaja")
         self.assertEqual(chant_2.volpiano_intervals, "1-12-23-34-45-56-67-78-8")
 
+    def test_initial_values(self):
+        source: Source = make_fake_source()
+        feast: Feast = make_fake_feast()
+        office: Office = make_fake_office()
+        # create a chant with a known feast and office
+        self.client.post(
+            reverse("chant-create", args=[source.id]),
+            {
+                "manuscript_full_text_std_spelling": "this is a bog standard manuscript spelling textful",
+                "folio": "001r",
+                "c_sequence": "1",
+                "feast": feast.id,
+                "office": office.id,
+            },
+        )
+        # when we request the page, the same feast and office should be preselected
+        request = self.client.get(
+            reverse("chant-create", args=[source.id]),
+        )
+        observed_initial_feast: int = request.context["form"].initial["feast"]
+        observed_intitial_office: int = request.context["form"].initial["office"]
+        with self.subTest(subtest="test initial value of feast feild"):
+            self.assertEqual(observed_initial_feast, feast.id)
+        with self.subTest(subtest="test initial value of office field"):
+            self.assertEqual(observed_intitial_office, office.id)
+
 
 class ChantDeleteViewTest(TestCase):
     @classmethod
