@@ -235,8 +235,8 @@ def csv_export(request, source_id):
             "node_id",
         ]
     )
+    siglum = source.siglum
     for entry in entries:
-        siglum = entry.source.siglum if entry.source else ""
         feast = entry.feast.name if entry.feast else ""
         office = entry.office.name if entry.office else ""
         genre = entry.genre.name if entry.genre else ""
