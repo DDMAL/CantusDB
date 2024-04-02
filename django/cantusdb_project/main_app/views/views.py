@@ -236,6 +236,7 @@ def csv_export(request, source_id):
         ]
     )
     for entry in entries:
+        siglum = entry.source.siglum if entry.source else ""
         feast = entry.feast.name if entry.feast else ""
         office = entry.office.name if entry.office else ""
         genre = entry.genre.name if entry.genre else ""
@@ -243,7 +244,7 @@ def csv_export(request, source_id):
 
         writer.writerow(
             [
-                entry.siglum,
+                siglum,
                 entry.marginalia,
                 entry.folio,
                 # if entry has a c_sequence, it's a Chant. If it doesn't, it's a Sequence, so write its s_sequence
