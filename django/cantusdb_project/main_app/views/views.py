@@ -69,61 +69,6 @@ def items_count(request):
     return render(request, "items_count.html", context)
 
 
-def ajax_concordance_list(request, cantus_id):
-    """
-    Function-based view responding to the AJAX call for concordance list on the chant detail page,
-    accessed with ``chants/<int:pk>``, click on "Display concordances of this chant"
-
-    Args:
-        cantus_id (str): The Cantus ID of the requested concordances group
-
-    Returns:
-        JsonResponse: A response to the AJAX call, to be unpacked by the frontend js code
-    """
-    chants = Chant.objects.filter(cantus_id=cantus_id)
-    seqs = Sequence.objects.filter(cantus_id=cantus_id)
-
-    display_unpublished = request.user.is_authenticated
-    if not display_unpublished:
-        chants = chants.filter(source__published=True)
-        seqs = seqs.filter(source__published=True)
-
-    if seqs:
-        chants = chants.union(seqs).order_by("siglum", "folio")
-    else:
-        chants = chants.order_by("siglum", "folio")
-    # queryset(list of dictionaries)
-    concordance_values = chants.values(
-        "siglum",
-        "folio",
-        "incipit",
-        "office__name",
-        "genre__name",
-        "position",
-        "feast__name",
-        "mode",
-        "image_link",
-    )
-
-    concordances = list(concordance_values)
-    for i, concordance in enumerate(concordances):
-        # some chants do not have a source
-        # for those chants, do not return source link
-        if chants[i].source:
-            concordance["source_link"] = chants[i].source.get_absolute_url()
-        if chants[i].search_vector:
-            concordance["chant_link"] = chants[i].get_absolute_url()
-        else:
-            concordance["chant_link"] = reverse("sequence-detail", args=[chants[i].id])
-        concordance["db"] = "CD"
-
-    concordance_count = len(concordances)
-    return JsonResponse(
-        {"concordances": concordances, "concordance_count": concordance_count},
-        safe=True,
-    )
-
-
 def ajax_melody_list(request, cantus_id) -> JsonResponse:
     """
     Function-based view responding to the AJAX call for melody list on the chant detail page,
