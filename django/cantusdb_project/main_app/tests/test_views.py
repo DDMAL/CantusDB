@@ -5215,11 +5215,15 @@ class CsvExportTest(TestCase):
             "node_id",
         ]
         for t in expected_column_titles:
-            self.assertIn(t, header)
-
-        self.assertEqual(len(rows), NUM_CHANTS)
-        for row in rows:
-            self.assertEqual(len(header), len(row))
+            with self.subTest(expected_column=t):
+                self.assertIn(t, header)
+        with self.subTest(subtest="ensure a row exists for each chant"):
+            self.assertEqual(len(rows), NUM_CHANTS)
+        with self.subTest(
+            subtest="ensure all rows have the same number of columns as the header"
+        ):
+            for row in rows:
+                self.assertEqual(len(header), len(row))
 
     def test_published_vs_unpublished(self):
         published_source = make_fake_source(published=True)
@@ -5245,12 +5249,18 @@ class CsvExportTest(TestCase):
         split_content = list(csv.reader(content.splitlines(), delimiter=","))
         header, rows = split_content[0], split_content[1:]
 
-        self.assertEqual(len(rows), NUM_SEQUENCES)
-        for row in rows:
-            self.assertEqual(len(header), len(row))
-            self.assertNotEqual(
-                row[3], ""
-            )  # ensure that the .s_sequence field is being written to the "sequence" column
+        with self.subTest(subtest="ensure a row exists for each sequence"):
+            self.assertEqual(len(rows), NUM_SEQUENCES)
+        with self.subTest(
+            subtest="ensure all rows have the same number of columns as the header"
+        ):
+            for row in rows:
+                self.assertEqual(len(header), len(row))
+        with self.subTest(
+            subtest="ensure .s_sequence field is being written to the 'sequence' column"
+        ):
+            for row in rows:
+                self.assertNotEqual(row[3], "")
 
 
 class ChangePasswordViewTest(TestCase):
