@@ -2886,7 +2886,7 @@ class ChantCreateViewTest(TestCase):
                 "c_sequence": "1",
                 # liquescents, to be converted to lowercase
                 #                    vv v v v v v v
-                "volpiano": "9abcdefg)A-B1C2D3E4F5G67?. yiz"
+                "volpiano": "9abcdefg)A-B1C2D3E4F5G67?. yiz",
                 #                      ^ ^ ^ ^ ^ ^ ^^^^^^^^
                 # clefs, accidentals, etc., to be deleted
             },
@@ -2908,6 +2908,52 @@ class ChantCreateViewTest(TestCase):
         chant_2 = Chant.objects.get(manuscript_full_text_std_spelling="resonare foobaz")
         self.assertEqual(chant_2.volpiano, "abacadaeafagahaja")
         self.assertEqual(chant_2.volpiano_intervals, "1-12-23-34-45-56-67-78-8")
+
+    def test_initial_values(self):
+        # create a chant with a known folio, feast, office, c_sequence and image_link
+        source: Source = make_fake_source()
+        folio: str = "001r"
+        sequence: int = 1
+        feast: Feast = make_fake_feast()
+        office: Office = make_fake_office()
+        image_link: str = "https://www.youtube.com/watch?v=9bZkp7q19f0"
+        self.client.post(
+            reverse("chant-create", args=[source.id]),
+            {
+                "manuscript_full_text_std_spelling": "this is a bog standard manuscript textful spelling",
+                "folio": folio,
+                "c_sequence": str(sequence),
+                "feast": feast.id,
+                "office": office.id,
+                "image_link": image_link,
+            },
+        )
+
+        # when we request the Chant Create page, the same folio, feast, office and image_link should
+        # be preselected, and c_sequence should be incremented by 1.
+        response = self.client.get(
+            reverse("chant-create", args=[source.id]),
+        )
+
+        observed_initial_folio: int = response.context["form"].initial["folio"]
+        with self.subTest(subtest="test initial value of folio field"):
+            self.assertEqual(observed_initial_folio, folio)
+
+        observed_initial_feast: int = response.context["form"].initial["feast"]
+        with self.subTest(subtest="test initial value of feast feild"):
+            self.assertEqual(observed_initial_feast, feast.id)
+
+        observed_initial_office: int = response.context["form"].initial["office"]
+        with self.subTest(subtest="test initial value of office field"):
+            self.assertEqual(observed_initial_office, office.id)
+
+        observed_initial_sequence: int = response.context["form"].initial["c_sequence"]
+        with self.subTest(subtest="test initial value of c_sequence field"):
+            self.assertEqual(observed_initial_sequence, sequence + 1)
+
+        observed_initial_image: int = response.context["form"].initial["image_link"]
+        with self.subTest(subtest="test initial value of image_link field"):
+            self.assertEqual(observed_initial_image, image_link)
 
 
 class ChantDeleteViewTest(TestCase):
@@ -3033,7 +3079,7 @@ class SourceEditChantsViewTest(TestCase):
                 "c_sequence": "1",
                 # liquescents, to be converted to lowercase
                 #                    vv v v v v v v
-                "volpiano": "9abcdefg)A-B1C2D3E4F5G67?. yiz"
+                "volpiano": "9abcdefg)A-B1C2D3E4F5G67?. yiz",
                 #                      ^ ^ ^ ^ ^ ^ ^^^^^^^^
                 # clefs, accidentals, etc., to be deleted
             },
@@ -4510,7 +4556,9 @@ class SourceInventoryViewTest(TestCase):
         response = self.client.get(reverse("source-inventory", args=[source.id]))
         html: str = str(response.content)
         self.assertIn(diff_id, html)
-        expected_html_substring: str = f'<a href="https://differentiaedatabase.ca/differentia/{diff_id}" target="_blank">'
+        expected_html_substring: str = (
+            f'<a href="https://differentiaedatabase.ca/differentia/{diff_id}" target="_blank">'
+        )
         self.assertIn(expected_html_substring, html)
 
     def test_redirect_with_source_parameter(self):
@@ -5180,9 +5228,16 @@ class CsvExportTest(TestCase):
 
     def test_content(self):
         NUM_CHANTS = 5
-        source = make_fake_source(published=True)
+        source_siglum = "SourceSiglum"
+        chant_siglum = "ChantSiglum"  # OldCantus chants/sequences had a "siglum"
+        # field, which would sometimes get out of date when the chant's source's siglum
+        # was updated. We keep the chant siglum field around to ensure no data is
+        # inadvertently lost, but we need to ensure it is never displayed publicly.
+        source = make_fake_source(published=True, siglum=source_siglum)
         for _ in range(NUM_CHANTS):
-            make_fake_chant(source=source)
+            chant = make_fake_chant(source=source)
+            chant.siglum = chant_siglum
+            chant.save()
         response = self.client.get(reverse("csv-export", args=[source.id]))
         content = response.content.decode("utf-8")
         split_content = list(csv.reader(content.splitlines(), delimiter=","))
@@ -5213,11 +5268,21 @@ class CsvExportTest(TestCase):
             "node_id",
         ]
         for t in expected_column_titles:
-            self.assertIn(t, header)
-
-        self.assertEqual(len(rows), NUM_CHANTS)
-        for row in rows:
-            self.assertEqual(len(header), len(row))
+            with self.subTest(expected_column=t):
+                self.assertIn(t, header)
+        with self.subTest(subtest="ensure a row exists for each chant"):
+            self.assertEqual(len(rows), NUM_CHANTS)
+        with self.subTest(
+            subtest="ensure all rows have the same number of columns as the header"
+        ):
+            for row in rows:
+                self.assertEqual(len(header), len(row))
+        with self.subTest(
+            "ensure we only ever display chants' sources' sigla, and never the "
+            "value stored in chants' siglum fields"
+        ):
+            for row in rows:
+                self.assertEqual(row[0], source_siglum)
 
     def test_published_vs_unpublished(self):
         published_source = make_fake_source(published=True)
@@ -5243,12 +5308,18 @@ class CsvExportTest(TestCase):
         split_content = list(csv.reader(content.splitlines(), delimiter=","))
         header, rows = split_content[0], split_content[1:]
 
-        self.assertEqual(len(rows), NUM_SEQUENCES)
-        for row in rows:
-            self.assertEqual(len(header), len(row))
-            self.assertNotEqual(
-                row[3], ""
-            )  # ensure that the .s_sequence field is being written to the "sequence" column
+        with self.subTest(subtest="ensure a row exists for each sequence"):
+            self.assertEqual(len(rows), NUM_SEQUENCES)
+        with self.subTest(
+            subtest="ensure all rows have the same number of columns as the header"
+        ):
+            for row in rows:
+                self.assertEqual(len(header), len(row))
+        with self.subTest(
+            subtest="ensure .s_sequence field is being written to the 'sequence' column"
+        ):
+            for row in rows:
+                self.assertNotEqual(row[3], "")
 
 
 class ChangePasswordViewTest(TestCase):
