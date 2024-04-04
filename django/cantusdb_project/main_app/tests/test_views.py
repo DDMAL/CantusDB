@@ -2909,6 +2909,52 @@ class ChantCreateViewTest(TestCase):
         self.assertEqual(chant_2.volpiano, "abacadaeafagahaja")
         self.assertEqual(chant_2.volpiano_intervals, "1-12-23-34-45-56-67-78-8")
 
+    def test_initial_values(self):
+        # create a chant with a known folio, feast, office, c_sequence and image_link
+        source: Source = make_fake_source()
+        folio: str = "001r"
+        sequence: int = 1
+        feast: Feast = make_fake_feast()
+        office: Office = make_fake_office()
+        image_link: str = "https://www.youtube.com/watch?v=9bZkp7q19f0"
+        self.client.post(
+            reverse("chant-create", args=[source.id]),
+            {
+                "manuscript_full_text_std_spelling": "this is a bog standard manuscript textful spelling",
+                "folio": folio,
+                "c_sequence": str(sequence),
+                "feast": feast.id,
+                "office": office.id,
+                "image_link": image_link,
+            },
+        )
+
+        # when we request the Chant Create page, the same folio, feast, office and image_link should
+        # be preselected, and c_sequence should be incremented by 1.
+        response = self.client.get(
+            reverse("chant-create", args=[source.id]),
+        )
+
+        observed_initial_folio: int = response.context["form"].initial["folio"]
+        with self.subTest(subtest="test initial value of folio field"):
+            self.assertEqual(observed_initial_folio, folio)
+
+        observed_initial_feast: int = response.context["form"].initial["feast"]
+        with self.subTest(subtest="test initial value of feast feild"):
+            self.assertEqual(observed_initial_feast, feast.id)
+
+        observed_initial_office: int = response.context["form"].initial["office"]
+        with self.subTest(subtest="test initial value of office field"):
+            self.assertEqual(observed_initial_office, office.id)
+
+        observed_initial_sequence: int = response.context["form"].initial["c_sequence"]
+        with self.subTest(subtest="test initial value of c_sequence field"):
+            self.assertEqual(observed_initial_sequence, sequence + 1)
+
+        observed_initial_image: int = response.context["form"].initial["image_link"]
+        with self.subTest(subtest="test initial value of image_link field"):
+            self.assertEqual(observed_initial_image, image_link)
+
 
 class ChantDeleteViewTest(TestCase):
     @classmethod
