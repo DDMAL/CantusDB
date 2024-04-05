@@ -805,6 +805,7 @@ class ChantCreateView(LoginRequiredMixin, UserPassesTestMixin, CreateView):
             }
         latest_folio = latest_chant.folio if latest_chant.folio else "001r"
         latest_feast = latest_chant.feast.id if latest_chant.feast else ""
+        latest_office = latest_chant.office.id if latest_chant.office else ""
         latest_seq = (
             latest_chant.c_sequence if latest_chant.c_sequence is not None else 0
         )
@@ -812,6 +813,7 @@ class ChantCreateView(LoginRequiredMixin, UserPassesTestMixin, CreateView):
         return {
             "folio": latest_folio,
             "feast": latest_feast,
+            "office": latest_office,
             "c_sequence": latest_seq + 1,
             "image_link": latest_image,
         }
