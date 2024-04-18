@@ -1,3 +1,5 @@
+import requests
+import mock_cantusindex_data
 from django.test import TestCase
 from typing import Union
 from main_app.models import (
@@ -13,22 +15,6 @@ from main_app.signals import generate_incipit
 
 # run with `python -Wa manage.py test main_app.tests.test_functions`
 # the -Wa flag tells Python to display deprecation warnings
-
-
-mock_json_nextchants_001010_text: str = """
-{"cid":"008349","count":"17"},{"cid":"006928","count":"10"},{"cid":"004876","count":"8"}
-"""  # requests.get(https://cantusindex.uwaterloo.ca/json-nextchants/001010).text  # this doesn't include the BOM which we expect to see beginning response.text
-mock_json_nextchants_001010_content = bytes(
-    mock_json_nextchants_001010_text,
-    encoding="utf-8-sig",
-)  # requests.get(https://cantusindex.uwaterloo.ca/json-nextchants/001010).content  # we expect this to be encoded in signed utf-8
-mock_json_nextchants_001010_json = [
-    {"cid": "008349", "count": "17"},
-    {"cid": "006928", "count": "10"},
-    {"cid": "004876", "count": "8"},
-]  # request = requests.get(https://cantusindex.uwaterloo.ca/json-nextchants/001010)
-# request.encoding = "utf-8-sig"
-# request.json
 
 
 class MockResponse:
@@ -65,15 +51,32 @@ def mock_requests_get(url: str, timeout: int) -> MockResponse:
     Returns:
         MockResponse: A mock response object
     """
+    if timeout < 0.001:
+        raise requests.exceptions.ConnectTimeout
+
     if url in (
         "https://cantusindex.uwaterloo.ca/json-nextchants/001010",
         "https://cantusindex.org/json-nextchants/001010",
     ):
         return MockResponse(
             status_code=200,
-            content=mock_json_nextchants_001010_content,
-            json=mock_json_nextchants_001010_json,
+            content=mock_cantusindex_data.mock_json_nextchants_001010_content,
+            json=mock_cantusindex_data.mock_json_nextchants_001010_json,
         )
+    elif url in (
+        "https://cantusindex.uwaterloo.ca/json-cid/008349",
+        "https://cantusindex.org/json-cid/008349",
+    ):
+        return MockResponse(
+            status_code=200,
+            content=mock_cantusindex_data.mock_json_cid_008349_content,
+            json=mock_cantusindex_data.mock_json_cid_008349_json,
+        )
+    elif url in (
+        "https://cantusindex.uwaterloo.ca/json-cid/006928",
+        "https://cantusindex.org/json-cid/006928",
+    ):
+        pass
     else:
         raise ValueError(
             f"mock_requests_get is only set up to mock calls to specific URLs; {url} is not one of those URLs"
@@ -187,7 +190,7 @@ class IncipitSignalTest(TestCase):
 
 class CantusIndexFunctionsTest(TestCase):
     def test_get_suggested_chant(self):
-        pass
+        expected_chant = {}
 
     def test_get_suggested_chants(self):
         pass
