@@ -54,6 +54,7 @@ def mock_requests_get(url: str, timeout: int) -> MockResponse:
     if timeout < 0.001:
         raise requests.exceptions.ConnectTimeout
 
+    # mock call to /json-nextchants/001010
     if url in (
         "https://cantusindex.uwaterloo.ca/json-nextchants/001010",
         "https://cantusindex.org/json-nextchants/001010",
@@ -63,6 +64,8 @@ def mock_requests_get(url: str, timeout: int) -> MockResponse:
             content=mock_cantusindex_data.mock_json_nextchants_001010_content,
             json=mock_cantusindex_data.mock_json_nextchants_001010_json,
         )
+
+    # mock call to /json-cid/008349
     elif url in (
         "https://cantusindex.uwaterloo.ca/json-cid/008349",
         "https://cantusindex.org/json-cid/008349",
@@ -72,11 +75,18 @@ def mock_requests_get(url: str, timeout: int) -> MockResponse:
             content=mock_cantusindex_data.mock_json_cid_008349_content,
             json=mock_cantusindex_data.mock_json_cid_008349_json,
         )
+
+    # mock call to /json-cid/006928
     elif url in (
         "https://cantusindex.uwaterloo.ca/json-cid/006928",
         "https://cantusindex.org/json-cid/006928",
     ):
-        pass
+        return MockResponse(
+            status_code=200,
+            content=mock_cantusindex_data.mock_json_cid_006928_content,
+            json=mock_cantusindex_data.mock_json_cid_008349_json,
+        )
+
     else:
         raise ValueError(
             f"mock_requests_get is only set up to mock calls to specific URLs; {url} is not one of those URLs"
