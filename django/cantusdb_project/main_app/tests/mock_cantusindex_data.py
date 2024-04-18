@@ -4,10 +4,12 @@
 
 mock_json_nextchants_001010_text: str = """
 [
-    {"cid":"008349","count":"17"},
     {"cid":"006928","count":"10"},
+    {"cid":"008349","count":"17"},
 ]
 """  # requests.get("https://cantusindex.uwaterloo.ca/json-nextchants/001010").text  # this doesn't include the BOM which we expect to see beginning response.text
+# CI seems to present these, sorted by "count", in descending order.
+# Here, they have been switched so we can ensure that our own sorting by number of occurrences is working properly
 mock_json_nextchants_001010_content: bytes = bytes(
     mock_json_nextchants_001010_text,
     encoding="utf-8-sig",

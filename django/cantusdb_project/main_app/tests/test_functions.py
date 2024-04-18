@@ -229,6 +229,10 @@ class CantusIndexFunctionsTest(TestCase):
             with self.subTest(key=key):
                 self.assertEqual(observed_val, expected_val)
 
+        with self.subTest("Ensure all values are of the correct type"):
+            self.assertIsInstance(observed_chant["cantus_id"], str)
+            self.assertIsInstance(observed_chant["occurrences"], int)
+
         with patch("requests.get", mock_requests_get):
             observed_chant_with_r_genre = get_suggested_chant(
                 cantus_id="006928", occurrences=occs
@@ -249,11 +253,46 @@ class CantusIndexFunctionsTest(TestCase):
             self.assertIsNone(observed_chant_short_timeout)
 
     def test_get_suggested_chants(self):
-        pass
+        h_genre = make_fake_genre(name="H")
+        r_genre = make_fake_genre(name="R")
+        expected_suggested_chants = [
+            {
+                "cantus_id": "008349",
+                "occurrences": 17,
+                "fulltext": "Nocte surgentes vigilemus omnes semper in psalmis meditemur atque viribus totis domino canamus dulciter hymnos | Ut pio regi pariter canentes cum suis sanctis mereamur aulam ingredi caeli simul et beatam ducere vitam | Praestet hoc nobis deitas beata patris ac nati pariterque sancti spiritus cujus resonat per omnem gloria mundum | Amen",
+                "incipit": "Nocte surgentes vigilemus omnes semper",
+                "genre_id": h_genre.id,
+            },
+            {
+                "cantus_id": "006928",
+                "occurrences": 10,
+                "fulltext": "In principio fecit deus caelum et terram et creavit in ea hominem ad imaginem et similitudinem suam",
+                "incipit": "In principio fecit deus caelum",
+                "genre_id": r_genre.id,
+            },
+        ]
+        with patch("requests.get", mock_requests_get):
+            observed_suggested_chants = get_suggested_chants(cantus_id="001010")
+
+        first_suggested_chant = observed_suggested_chants[0]
+        second_suggested_chant = observed_suggested_chants[1]
+        with self.subTest(
+            test="Ensure suggested chants are ordered by number of occurrences"
+        ):
+            self.assertLess(
+                second_suggested_chant["occurrences"],
+                first_suggested_chant["occurrences"],
+            )
+
+        with self.subTest(test="Ensure returned object is a list of dicts"):
+            self.assertIsInstance(observed_suggested_chants, list)
+            self.assertIsInstance(first_suggested_chant, dict)
 
     def test_get_json_from_ci_api(self):
         with patch("requests.get", mock_requests_get):
-            json_nextchants_response = get_json_from_ci_api(path="/json-cid/001010")
+            json_nextchants_response = get_json_from_ci_api(
+                path="/json-nextchants/001010"
+            )
         with self.subTest(
             test="Ensure properly handles /nextchants/<cantus_id> endpoint"
         ):

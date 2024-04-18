@@ -19,12 +19,17 @@ NUMBER_OF_SUGGESTED_CHANTS: int = 5  # this number can't be too large,
 
 def get_suggested_chants(
     cantus_id: str, number_of_suggestions: int = NUMBER_OF_SUGGESTED_CHANTS
-) -> list[dict]:
+) -> Optional[list[dict]]:
     endpoint_path: str = f"/json-nextchants/{cantus_id}"
-    all_suggestions: list = get_json_from_ci_api(endpoint_path)
+    all_suggestions: Optional[list] = get_json_from_ci_api(endpoint_path)
+    if not all_suggestions:
+        return None  # get_json_from_ci_api timed out
+
     sort_by_occurrences: function = lambda suggestion: int(suggestion["count"])
-    sorted_suggestions = sorted(all_suggestions, key=sort_by_occurrences, reverse=True)
-    trimmed_suggestions = sorted_suggestions[:number_of_suggestions]
+    sorted_suggestions: list = sorted(
+        all_suggestions, key=sort_by_occurrences, reverse=True
+    )
+    trimmed_suggestions: list = sorted_suggestions[:number_of_suggestions]
 
     suggested_chants: list[dict] = []
     for suggestion in trimmed_suggestions:
