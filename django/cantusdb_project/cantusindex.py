@@ -76,11 +76,11 @@ def get_suggested_chant(
         return None
 
     fulltext: str = json["info"]["field_full_text"]
-    incipit = " ".join(fulltext.split(" ")[:5])
+    incipit: str = " ".join(fulltext.split(" ")[:5])
     genre_name: str = json["info"]["field_genre"]
     genre_id: Optional[int] = None
     try:
-        genre_id: Optional[Genre] = Genre.objects.get(name=genre_name).id
+        genre_id = Genre.objects.get(name=genre_name).id
     except Genre.DoesNotExist:
         pass
 
