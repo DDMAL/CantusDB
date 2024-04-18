@@ -119,7 +119,7 @@ def get_json_from_ci_api(
     try:
         response: requests.Response = requests.get(uri, timeout=timeout)
     except requests.exceptions.Timeout:
-        return {}
+        return None
 
     response.encoding = "utf-8-sig"
     return response.json()
