@@ -118,3 +118,11 @@ class IncipitSignalTest(TestCase):
         observed_incipit_2 = generate_incipit(short_fulltext)
         with self.subTest(test="fulltext that's already a short incipit"):
             self.assertEqual(observed_incipit_2, expected_incipit_2)
+
+
+class CantusIndexFunctionsTest(TestCase):
+    def test_get_suggested_chant(self):
+        pass
+
+    def test_get_suggested_chants(self):
+        pass
