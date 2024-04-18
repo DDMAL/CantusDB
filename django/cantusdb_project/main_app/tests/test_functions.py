@@ -1,17 +1,20 @@
 import requests
-import mock_cantusindex_data
+from main_app.tests import mock_cantusindex_data
 from django.test import TestCase
 from typing import Union
+from unittest.mock import patch
 from main_app.models import (
     Chant,
     Source,
 )
 from main_app.tests.make_fakes import (
     make_fake_chant,
+    make_fake_genre,
     make_fake_source,
 )
 from main_app.management.commands import update_cached_concordances
 from main_app.signals import generate_incipit
+from cantusindex import get_suggested_chant
 
 # run with `python -Wa manage.py test main_app.tests.test_functions`
 # the -Wa flag tells Python to display deprecation warnings
@@ -29,9 +32,12 @@ class MockResponse:
         # 'utf-8'
     ):
         self.status_code = status_code
-        self.json = json
+        self._json = json
         self.content = content
         self.encoding = encoding
+
+    def json(self):
+        return self._json
 
 
 def mock_requests_get(url: str, timeout: int) -> MockResponse:
@@ -200,7 +206,19 @@ class IncipitSignalTest(TestCase):
 
 class CantusIndexFunctionsTest(TestCase):
     def test_get_suggested_chant(self):
-        expected_chant = {}
+        h_genre = make_fake_genre(name="H")
+        expected_chant = {
+            "cantus_id": "008349",
+            "occurrences": 3,
+            "fulltext": "Nocte surgentes vigilemus omnes semper in psalmis meditemur atque viribus totis domino canamus dulciter hymnos | Ut pio regi pariter canentes cum suis sanctis mereamur aulam ingredi caeli simul et beatam ducere vitam | Praestet hoc nobis deitas beata patris ac nati pariterque sancti spiritus cujus resonat per omnem gloria mundum | Amen",
+            "incipit": "Nocte surgentes vigilemus omnes semper",
+            "genre_id": h_genre.id,
+        }
+        with patch("requests.get", mock_requests_get):
+            observed_chant = get_suggested_chant(cantus_id="008349", occurrences=3)
+        self.assertEqual(observed_chant, expected_chant)
+
+        # TODO: subtest for not found genre
 
     def test_get_suggested_chants(self):
         pass
