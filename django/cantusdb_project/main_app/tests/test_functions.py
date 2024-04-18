@@ -40,7 +40,7 @@ class MockResponse:
         return self._json
 
 
-def mock_requests_get(url: str, timeout: int) -> MockResponse:
+def mock_requests_get(url: str, timeout: float) -> MockResponse:
     """Return a mock response. Used to patch calls to requests.get in tests below
 
     Args:
@@ -90,7 +90,7 @@ def mock_requests_get(url: str, timeout: int) -> MockResponse:
         return MockResponse(
             status_code=200,
             content=mock_cantusindex_data.mock_json_cid_006928_content,
-            json=mock_cantusindex_data.mock_json_cid_008349_json,
+            json=mock_cantusindex_data.mock_json_cid_006928_json,
         )
 
     else:
@@ -207,18 +207,46 @@ class IncipitSignalTest(TestCase):
 class CantusIndexFunctionsTest(TestCase):
     def test_get_suggested_chant(self):
         h_genre = make_fake_genre(name="H")
+        occs = 3
         expected_chant = {
             "cantus_id": "008349",
-            "occurrences": 3,
+            "occurrences": occs,
             "fulltext": "Nocte surgentes vigilemus omnes semper in psalmis meditemur atque viribus totis domino canamus dulciter hymnos | Ut pio regi pariter canentes cum suis sanctis mereamur aulam ingredi caeli simul et beatam ducere vitam | Praestet hoc nobis deitas beata patris ac nati pariterque sancti spiritus cujus resonat per omnem gloria mundum | Amen",
             "incipit": "Nocte surgentes vigilemus omnes semper",
             "genre_id": h_genre.id,
         }
         with patch("requests.get", mock_requests_get):
-            observed_chant = get_suggested_chant(cantus_id="008349", occurrences=3)
-        self.assertEqual(observed_chant, expected_chant)
+            observed_chant = get_suggested_chant(cantus_id="008349", occurrences=occs)
 
-        # TODO: subtest for not found genre
+        expected_keys = expected_chant.keys()
+        observed_keys = observed_chant.keys()
+        with self.subTest(test="Ensure suggested chant includes the right keys"):
+            self.assertEqual(observed_keys, expected_keys)
+
+        for key in expected_keys:
+            expected_val = expected_chant[key]
+            observed_val = observed_chant[key]
+            with self.subTest(key=key):
+                self.assertEqual(observed_val, expected_val)
+
+        with patch("requests.get", mock_requests_get):
+            observed_chant_wo_matching_genre = get_suggested_chant(
+                cantus_id="006928", occurrences=occs
+            )
+
+        with self.subTest(
+            test="Ensure that genre_id=None when no matching Genre found"
+        ):
+            observed_genre_id = observed_chant_wo_matching_genre["genre_id"]
+            self.assertIsNone(observed_genre_id)
+
+        with patch("requests.get", mock_requests_get):
+            observed_chant_short_timeout = get_suggested_chant(
+                cantus_id="008349", occurrences=occs, timeout=0.0001
+            )
+
+        with self.subTest(test="Ensure None is returned in case of timeout"):
+            self.assertIsNone(observed_chant_short_timeout)
 
     def test_get_suggested_chants(self):
         pass

@@ -8,9 +8,9 @@ from codecs import decode
 from typing import Optional, Union
 from main_app.models import Genre
 
-CANTUS_INDEX_DOMAIN = "https://cantusindex.uwaterloo.ca"
-DEFAULT_TIMEOUT = 2  # seconds
-NUMBER_OF_SUGGESTED_CHANTS = 5  # this number can't be too large,
+CANTUS_INDEX_DOMAIN: str = "https://cantusindex.uwaterloo.ca"
+DEFAULT_TIMEOUT: float = 2  # seconds
+NUMBER_OF_SUGGESTED_CHANTS: int = 5  # this number can't be too large,
 # since for each suggested chant, we make a request to Cantus Index.
 # We haven't yet parallelized this process, so setting this number
 # too high will cause the Chant Create page to take a very long time
@@ -29,17 +29,21 @@ def get_suggested_chants(
 
     suggested_chants: list[dict] = []
     for suggestion in trimmed_suggestions:
-        cantus_id = suggestion["cid"]
-        occurrences = suggestion["count"]
+        cantus_id: str = suggestion["cid"]
+        occurrences: int = int(suggestion["count"])
         suggested_chants.append(get_suggested_chant(cantus_id, occurrences))
 
     # filter out Cantus IDs where get_suggested_chant timed out
-    filtered_suggestions = [sugg for sugg in suggested_chants if sugg is not None]
+    filtered_suggestions: list[dict] = [
+        sugg for sugg in suggested_chants if sugg is not None
+    ]
 
     return filtered_suggestions
 
 
-def get_suggested_chant(cantus_id: str, occurrences: int) -> Optional[dict]:
+def get_suggested_chant(
+    cantus_id: str, occurrences: int, timeout: float = DEFAULT_TIMEOUT
+) -> Optional[dict]:
     """Given a Cantus ID and a number of occurrences, query one of Cantus Index's
     APIs for information on that Cantus ID and return a dictionary
     containing a full text, an incipit, the ID of that Cantus ID's genre, and
@@ -66,7 +70,7 @@ def get_suggested_chant(cantus_id: str, occurrences: int) -> Optional[dict]:
             ...but if get_json_from_ci_api timed out, returns None instead
     """
     endpoint_path: str = f"/json-cid/{cantus_id}"
-    json: dict = get_json_from_ci_api(endpoint_path)
+    json: dict = get_json_from_ci_api(endpoint_path, timeout=timeout)
 
     if not json:  # mostly, in case of a timeout within get_json_from_ci_api
         return None
@@ -74,8 +78,11 @@ def get_suggested_chant(cantus_id: str, occurrences: int) -> Optional[dict]:
     fulltext: str = json["info"]["field_full_text"]
     incipit = " ".join(fulltext.split(" ")[:5])
     genre_name: str = json["info"]["field_genre"]
-    genre: Genre = Genre.objects.get(name=genre_name)
-    genre_id: int = genre.id
+    genre_id: Optional[int] = None
+    try:
+        genre_id: Optional[Genre] = Genre.objects.get(name=genre_name).id
+    except Genre.DoesNotExist:
+        pass
 
     return {
         "cantus_id": cantus_id,
