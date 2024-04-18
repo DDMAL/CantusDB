@@ -4,7 +4,6 @@ Cantus Index's (CI's) various APIs.
 """
 
 import requests
-from codecs import decode
 from typing import Optional, Union
 from main_app.models import Genre
 
