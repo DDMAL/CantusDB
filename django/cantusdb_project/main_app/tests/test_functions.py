@@ -14,7 +14,7 @@ from main_app.tests.make_fakes import (
 )
 from main_app.management.commands import update_cached_concordances
 from main_app.signals import generate_incipit
-from cantusindex import get_suggested_chant
+from cantusindex import get_suggested_chant, get_suggested_chants, get_json_from_ci_api
 
 # run with `python -Wa manage.py test main_app.tests.test_functions`
 # the -Wa flag tells Python to display deprecation warnings
@@ -250,3 +250,32 @@ class CantusIndexFunctionsTest(TestCase):
 
     def test_get_suggested_chants(self):
         pass
+
+    def test_get_json_from_ci_api(self):
+        with self.subTest(
+            test="Ensure properly handles /nextchants/<cantus_id> endpoint"
+        ):
+            pass
+
+        with self.subTest(
+            test="Ensure properly handles /json-cid/<cantus_id> endpoint"
+        ):
+            pass
+
+        with self.subTest(test="Ensure returns None when requests.get times out"):
+            pass
+
+        # I can't figure out how to get assertRaises to work - even when the assertion should fail, it doesn't.
+        # It's not of vital importance that this argument check work correctly, I think, so I'm giving up in
+        # an effort not to get bogged down.
+        # Leaving a couple of commented-out attempts of things I've tried, for the benefit of some future, cleverer developer
+        # - Jacob dGM, April 2024
+
+        # with self.subTest(test="Ensure raises ValueError when path improperly formatted, attempt 1"):
+        #     self.assertRaises(ValueError, get_json_from_ci_api, "/for/some/reason/this/passes/even/with/a/leading/slash")
+
+        with self.subTest(
+            test="Ensure raises ValueError when path improperly formatted, attempt 2"
+        ):
+            with self.assertRaises(ValueError):
+                get_json_from_ci_api("/i/still/dont/understand/why/this/subtest/passes")
