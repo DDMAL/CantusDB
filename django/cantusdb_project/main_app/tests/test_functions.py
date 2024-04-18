@@ -230,14 +230,14 @@ class CantusIndexFunctionsTest(TestCase):
                 self.assertEqual(observed_val, expected_val)
 
         with patch("requests.get", mock_requests_get):
-            observed_chant_wo_matching_genre = get_suggested_chant(
+            observed_chant_with_r_genre = get_suggested_chant(
                 cantus_id="006928", occurrences=occs
             )
 
         with self.subTest(
             test="Ensure that genre_id=None when no matching Genre found"
         ):
-            observed_genre_id = observed_chant_wo_matching_genre["genre_id"]
+            observed_genre_id = observed_chant_with_r_genre["genre_id"]
             self.assertIsNone(observed_genre_id)
 
         with patch("requests.get", mock_requests_get):
