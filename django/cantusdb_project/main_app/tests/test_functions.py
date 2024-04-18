@@ -15,6 +15,71 @@ from main_app.signals import generate_incipit
 # the -Wa flag tells Python to display deprecation warnings
 
 
+mock_json_nextchants_001010_text: str = """
+{"cid":"008349","count":"17"},{"cid":"006928","count":"10"},{"cid":"004876","count":"8"}
+"""  # requests.get(https://cantusindex.uwaterloo.ca/json-nextchants/001010).text  # this doesn't include the BOM which we expect to see beginning response.text
+mock_json_nextchants_001010_content = bytes(
+    mock_json_nextchants_001010_text,
+    encoding="utf-8-sig",
+)  # requests.get(https://cantusindex.uwaterloo.ca/json-nextchants/001010).content  # we expect this to be encoded in signed utf-8
+mock_json_nextchants_001010_json = [
+    {"cid": "008349", "count": "17"},
+    {"cid": "006928", "count": "10"},
+    {"cid": "004876", "count": "8"},
+]  # request = requests.get(https://cantusindex.uwaterloo.ca/json-nextchants/001010)
+# request.encoding = "utf-8-sig"
+# request.json
+
+
+class MockResponse:
+    def __init__(
+        self,
+        status_code: int,
+        json: Union[dict, list, None],
+        content: bytes,
+        encoding: str = "utf-8",
+        # >>> response = requests.get("https://cantusindex.uwaterloo.ca/json-nextchants/001010")
+        # >>> response.encoding
+        # 'utf-8'
+    ):
+        self.status_code = status_code
+        self.json = json
+        self.content = content
+        self.encoding = encoding
+
+
+def mock_requests_get(url: str, timeout: int) -> MockResponse:
+    """Return a mock response. Used to patch calls to requests.get in tests below
+
+    Args:
+        url (str): a URL - a necessary argument for requests.get
+        timeout (int): we pass timeout as an argument to requests.get in get_json_from_ci_api,
+            so mock_requests_get is configured to accept this argument.
+
+    Raises:
+        ValueError: This function is configured to mock requests to specific URLs only, including
+            - /json-nextchants/001010
+        If a call to requests.get with a different URL is made while mock_requests_get is patching it,
+        a ValueError is raised.
+
+    Returns:
+        MockResponse: A mock response object
+    """
+    if url in (
+        "https://cantusindex.uwaterloo.ca/json-nextchants/001010",
+        "https://cantusindex.org/json-nextchants/001010",
+    ):
+        return MockResponse(
+            status_code=200,
+            content=mock_json_nextchants_001010_content,
+            json=mock_json_nextchants_001010_json,
+        )
+    else:
+        raise ValueError(
+            f"mock_requests_get is only set up to mock calls to specific URLs; {url} is not one of those URLs"
+        )
+
+
 class UpdateCachedConcordancesCommandTest(TestCase):
     def test_concordances_structure(self):
         chant: Chant = make_fake_chant(cantus_id="123456")
