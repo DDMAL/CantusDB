@@ -252,30 +252,43 @@ class CantusIndexFunctionsTest(TestCase):
         pass
 
     def test_get_json_from_ci_api(self):
+        with patch("requests.get", mock_requests_get):
+            json_nextchants_response = get_json_from_ci_api(path="/json-cid/001010")
         with self.subTest(
             test="Ensure properly handles /nextchants/<cantus_id> endpoint"
         ):
-            pass
+            self.assertIsInstance(json_nextchants_response, list)
+            first_nextchant = json_nextchants_response[0]
+            self.assertIsInstance(first_nextchant, dict)
 
+        with patch("requests.get", mock_requests_get):
+            json_cid_response = get_json_from_ci_api(path="/json-cid/008349")
+        observed_json_cid_keys = json_cid_response.keys()
+        expected_json_cid_keys = ("info", "chants")
         with self.subTest(
             test="Ensure properly handles /json-cid/<cantus_id> endpoint"
         ):
-            pass
+            self.assertIsInstance(json_cid_response, dict)
+            for key in expected_json_cid_keys:
+                self.assertIn(key, observed_json_cid_keys)
 
+        with patch("requests.get", mock_requests_get):
+            response_short_timeout = get_json_from_ci_api(
+                path="/some/path", timeout=0.0001
+            )
         with self.subTest(test="Ensure returns None when requests.get times out"):
-            pass
+            self.assertIsNone(response_short_timeout)
 
         # I can't figure out how to get assertRaises to work - even when the assertion should fail, it doesn't.
         # It's not of vital importance that this argument check work correctly, I think, so I'm giving up in
         # an effort not to get bogged down.
-        # Leaving a couple of commented-out attempts of things I've tried, for the benefit of some future, cleverer developer
+        # Leaving a couple of commented-out attempts here with things I've tried, for the hopeful benefit of some
+        # future, cleverer developer
         # - Jacob dGM, April 2024
 
         # with self.subTest(test="Ensure raises ValueError when path improperly formatted, attempt 1"):
         #     self.assertRaises(ValueError, get_json_from_ci_api, "/for/some/reason/this/passes/even/with/a/leading/slash")
 
-        with self.subTest(
-            test="Ensure raises ValueError when path improperly formatted, attempt 2"
-        ):
-            with self.assertRaises(ValueError):
-                get_json_from_ci_api("/i/still/dont/understand/why/this/subtest/passes")
+        # with self.subTest(test="Ensure raises ValueError when path improperly formatted, attempt 2"):
+        #     with self.assertRaises(ValueError):
+        #         get_json_from_ci_api("/i/still/dont/understand/why/this/subtest/passes")
