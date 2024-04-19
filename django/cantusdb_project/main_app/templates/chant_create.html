@@ -255,11 +255,55 @@
             <div class="search-bar mb-3">
                 {% include "global_search_bar.html" %}
             </div>
-            <div class="card w-100">
+
+            <div class="card w-100 mb-3">
                 <div class="card-header">
-                    <h5><a id="source" href="{% url 'source-detail' source.id %}">{{ source.title }}</a></h5>
+                    <h5><a id="source" href="{% url 'source-detail' source.id %}">{{ source.siglum }}</a></h5>
                 </div>
             </div>
+
+            {% if previous_chant %}
+                <div class="card w-100">
+                    <div class="card-body">
+                        <small>
+                            <b>Suggestions based on previous chant:</b><br>
+                            <div>
+                                {{ previous_chant.folio }} {{ previous_chant.c_sequence}} <a href="{% url 'chant-detail' previous_chant.id %}" target="_blank">{{ previous_chant.incipit }}</a><br>
+                                {% if previous_chant.cantus_id %}
+                                    (Cantus ID: <b><a href="https://cantusindex.org/id/{{ previous_chant.cantus_id }}" target="_blank">{{ previous_chant.cantus_id }}</a></b>)
+                                {% endif %}
+                            </div>
+                        {% if suggested_chants %}
+                            {% for suggestion in suggested_chants %}
+                                <input type="button" style="width: 80px" value="{{ suggestion.cantus_id }}" onclick="autoFill{{ suggestion.clean_cantus_id }}()" title="{{ suggestion.cantus_id }}"></input>
+                                <strong>{{ suggestion.genre_name }}</strong> - <span title="{{ suggestion.fulltext }}">{{ suggestion.incipit }}</span> (<strong>{{ suggestion.occurrences }}x</strong>)<br>
+                                <script>
+                                    function autoFill{{ suggestion.clean_cantus_id }}() {
+                                        document.getElementById('id_cantus_id').value = "{{ suggestion.cantus_id }}";
+                                        {% comment %} document.getElementById('id_genre').value = {{ suggestion.genre_id }}; {% endcomment %}
+                                        document.getElementById('id_manuscript_full_text_std_spelling').value = "{{ suggestion.fulltext }}";
+                                        var genre_id = {{ suggestion.genre_id }};
+                                        var genre_name = "{{ suggestion.genre_name }}";
+
+                                        // Set the value, creating a new option if necessary
+                                        if ($('#id_genre').find("option[value='" + genre_id + "']").length) {
+                                            $('#id_genre').val(genre_id).trigger('change');
+                                        } else { 
+                                            // Create a DOM Option and pre-select by default
+                                            var newOption = new Option(genre_name, genre_id, true, true);
+                                            // Append it to the select
+                                            $('#id_genre').append(newOption).trigger('change');
+                                        };
+                                    }
+                                </script>
+                            {% endfor %}
+                        {% else %}
+                            Sorry! No suggestions found.<br>
+                        {% endif %}
+                        </small>
+                    </div>
+                </div>
+            {% endif %}
         </div>
     </div>
 </div>

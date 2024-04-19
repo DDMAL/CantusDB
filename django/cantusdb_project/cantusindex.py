@@ -25,6 +25,11 @@ def get_suggested_chants(
     if not all_suggestions:
         return None  # get_json_from_ci_api timed out
 
+    # when Cantus ID doesn't exist within CI, CI's api returns a 200 response with `['Cantus ID is not valid']`
+    first_suggestion = all_suggestions[0]
+    if not isinstance(first_suggestion, dict):
+        return None
+
     sort_by_occurrences: function = lambda suggestion: int(suggestion["count"])
     sorted_suggestions: list = sorted(
         all_suggestions, key=sort_by_occurrences, reverse=True
@@ -88,12 +93,16 @@ def get_suggested_chant(
     except Genre.DoesNotExist:
         pass
 
+    clean_cantus_id = cantus_id.replace(".", "d").replace(":", "c")
+    #                                        "d"ot             "c"olon
     return {
         "cantus_id": cantus_id,
         "occurrences": occurrences,
         "fulltext": fulltext,
         "incipit": incipit,
+        "genre_name": genre_name,
         "genre_id": genre_id,
+        "clean_cantus_id": clean_cantus_id,
     }
 
 
@@ -124,6 +133,9 @@ def get_json_from_ci_api(
         response: requests.Response = requests.get(uri, timeout=timeout)
     except requests.exceptions.Timeout:
         return None
+
+    if not response.status_code == 200:
+        return None  # /json-cid/Non-existentCantusId returns a 500 page
 
     response.encoding = "utf-8-sig"
     return response.json()
