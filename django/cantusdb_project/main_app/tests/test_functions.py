@@ -278,7 +278,6 @@ class CantusIndexFunctionsTest(TestCase):
             observed_chant_with_r_genre = get_suggested_chant(
                 cantus_id="006928", occurrences=occs
             )
-
         with self.subTest(
             test="Ensure that genre_id=None when no matching Genre found"
         ):
@@ -289,9 +288,18 @@ class CantusIndexFunctionsTest(TestCase):
             observed_chant_short_timeout = get_suggested_chant(
                 cantus_id="008349", occurrences=occs, timeout=0.0001
             )
-
         with self.subTest(test="Ensure None is returned in case of timeout"):
             self.assertIsNone(observed_chant_short_timeout)
+
+        with patch("requests.get", mock_requests_get):
+            observed_chant_nonexistent_cantus_id = get_suggested_chant(
+                cantus_id="NotACantusID",
+                occurrences=occs,
+            )
+        with self.subTest(
+            test="Ensure None is returned in case of nonexistent Cantus ID"
+        ):
+            self.assertIsNone(observed_chant_nonexistent_cantus_id)
 
     def test_get_suggested_chants(self):
         h_genre = make_fake_genre(name="H")
