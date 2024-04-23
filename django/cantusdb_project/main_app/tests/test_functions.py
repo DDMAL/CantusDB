@@ -363,6 +363,15 @@ class CantusIndexFunctionsTest(TestCase):
         with self.subTest(test="Ensure returns None when requests.get times out"):
             self.assertIsNone(response_short_timeout)
 
+        with patch("requests.get", mock_requests_get):
+            response_nonexistent_cantus_id = get_json_from_ci_api(
+                path="/json-cid/notACantusID"
+            )
+        with self.subTest(
+            test="Ensure returns None when response status code is not 200"
+        ):
+            self.assertIsNone(response_nonexistent_cantus_id)
+
         # I can't figure out how to get assertRaises to work - even when the assertion should fail, it doesn't.
         # It's not of vital importance that this argument check work correctly, I think, so I'm giving up in
         # an effort not to get bogged down.
