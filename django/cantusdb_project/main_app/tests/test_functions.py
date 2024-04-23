@@ -63,7 +63,7 @@ def mock_requests_get(url: str, timeout: float) -> MockResponse:
     if not (
         "https://cantusindex.uwaterloo.ca" in url or "https://cantusindex.org" in url
     ):
-        raise ValueError(
+        raise NotImplementedError(
             f"mock_requests_get is only set up to mock calls to Cantus Index. "
             f"The protocol and domain of url {url} do not correspond to those of Cantus Index."
         )
@@ -105,7 +105,7 @@ def mock_requests_get(url: str, timeout: float) -> MockResponse:
                 status_code=500,
             )
     else:
-        raise ValueError(
+        raise NotImplementedError(
             f"mock_requests_get is only set up to imitate only the /json-nextchants/ "
             f"and /json-cid/ endpoints on Cantus Index. The path of the url {url} does "
             f"not match either of these endpoints."
