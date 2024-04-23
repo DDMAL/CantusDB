@@ -351,6 +351,13 @@ class CantusIndexFunctionsTest(TestCase):
         with self.subTest(test="Ensure None returned in case of nonexistent Cantus ID"):
             self.assertIsNone(suggested_chants_nonexistent_cantus_id)
 
+        with patch("requests.get", mock_requests_get):
+            suggested_chants_rare_cantus_id = get_suggested_chants(cantus_id="a07763")
+        with self.subTest(
+            test="Ensure None is returned in case of Cantus ID without suggestions"
+        ):
+            self.assertIsNone(suggested_chants_rare_cantus_id)
+
     def test_get_json_from_ci_api(self):
         with patch("requests.get", mock_requests_get):
             json_nextchants_response = get_json_from_ci_api(
