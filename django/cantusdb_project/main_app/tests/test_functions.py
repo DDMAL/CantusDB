@@ -320,10 +320,17 @@ class CantusIndexFunctionsTest(TestCase):
             for i in range(4):
                 suggested_chant = suggested_chants[i]
                 following_suggested_chant = suggested_chants[i + 1]
-                self.assertLessEqual(
+                self.assertGreaterEqual(
                     suggested_chant["occurrences"],
                     following_suggested_chant["occurrences"],
                 )
+
+        with patch("requests.get", mock_requests_get):
+            suggested_chants_nonexistent_cantus_id = get_suggested_chants(
+                "NotACantusID"
+            )
+        with self.subTest(test="Ensure None returned in case of nonexistent Cantus ID"):
+            self.assertIsNone(suggested_chants_nonexistent_cantus_id)
 
     def test_get_json_from_ci_api(self):
         with patch("requests.get", mock_requests_get):
