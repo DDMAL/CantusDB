@@ -100,6 +100,30 @@ def mock_requests_get(url: str, timeout: float) -> MockResponse:
                 content=mock_cantusindex_data.mock_json_cid_006928_content,
                 json=mock_cantusindex_data.mock_json_cid_006928_json,
             )
+        elif url.endswith("/008411c"):
+            return MockResponse(
+                status_code=200,
+                content=mock_cantusindex_data.mock_json_cid_008411c_content,
+                json=mock_cantusindex_data.mock_json_cid_008411c_json,
+            )
+        elif url.endswith("/008390"):
+            return MockResponse(
+                status_code=200,
+                content=mock_cantusindex_data.mock_json_cid_008390_content,
+                json=mock_cantusindex_data.mock_json_cid_008390_json,
+            )
+        elif url.endswith("/007713"):
+            return MockResponse(
+                status_code=200,
+                content=mock_cantusindex_data.mock_json_cid_007713_content,
+                json=mock_cantusindex_data.mock_json_cid_007713_json,
+            )
+        elif url.endswith("/909030"):
+            return MockResponse(
+                status_code=200,
+                content=mock_cantusindex_data.mock_json_cid_909030_content,
+                json=mock_cantusindex_data.mock_json_cid_909030_json,
+            )
         else:  # imitating CI's behavior when a made-up Cantus ID is entered.
             return MockResponse(
                 status_code=500,
