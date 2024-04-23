@@ -13,6 +13,8 @@ from django.db.models.functions import Lower
 import csv
 from collections.abc import KeysView, ItemsView
 from typing import Optional
+from unittest.mock import patch
+from test_functions import mock_requests_get
 
 from faker import Faker
 
@@ -2772,24 +2774,28 @@ class ChantCreateViewTest(TestCase):
     def test_url_and_templates(self):
         source = make_fake_source()
 
-        response = self.client.get(reverse("chant-create", args=[source.id]))
-        self.assertEqual(response.status_code, 200)
-        self.assertTemplateUsed(response, "chant_create.html")
+        with patch("requests.get", mock_requests_get):
+            response_1 = self.client.get(reverse("chant-create", args=[source.id]))
+            self.assertEqual(response_1.status_code, 200)
+            self.assertTemplateUsed(response_1, "chant_create.html")
 
-        response = self.client.get(reverse("chant-create", args=[source.id + 100]))
-        self.assertEqual(response.status_code, 404)
-        self.assertTemplateUsed(response, "404.html")
+            response_2 = self.client.get(
+                reverse("chant-create", args=[source.id + 100])
+            )
+            self.assertEqual(response_2.status_code, 404)
+            self.assertTemplateUsed(response_2, "404.html")
 
     def test_create_chant(self):
         source = make_fake_source()
-        response = self.client.post(
-            reverse("chant-create", args=[source.id]),
-            {
-                "manuscript_full_text_std_spelling": "initial",
-                "folio": "001r",
-                "c_sequence": "1",
-            },
-        )
+        with patch("requests.get", mock_requests_get):
+            response = self.client.post(
+                reverse("chant-create", args=[source.id]),
+                {
+                    "manuscript_full_text_std_spelling": "initial",
+                    "folio": "001r",
+                    "c_sequence": "1",
+                },
+            )
         self.assertEqual(response.status_code, 302)
         self.assertRedirects(response, reverse("chant-create", args=[source.id]))
         chant = Chant.objects.first()
@@ -2797,21 +2803,26 @@ class ChantCreateViewTest(TestCase):
 
     def test_view_url_path(self):
         source = make_fake_source()
-        response = self.client.get(f"/chant-create/{source.id}")
+        with patch("requests.get", mock_requests_get):
+            response = self.client.get(f"/chant-create/{source.id}")
         self.assertEqual(response.status_code, 200)
 
     def test_context(self):
         """some context variable passed to templates"""
         source = make_fake_source()
         url = reverse("chant-create", args=[source.id])
-        response = self.client.get(url)
+        with patch("requests.get", mock_requests_get):
+            response = self.client.get(url)
         self.assertEqual(response.context["source"].title, source.title)
 
     def test_post_error(self):
         """post with correct source and empty full-text"""
         source = make_fake_source()
         url = reverse("chant-create", args=[source.id])
-        response = self.client.post(url, data={"manuscript_full_text_std_spelling": ""})
+        with patch("requests.get", mock_requests_get):
+            response = self.client.post(
+                url, data={"manuscript_full_text_std_spelling": ""}
+            )
         self.assertFormError(
             response,
             "form",
@@ -2826,9 +2837,10 @@ class ChantCreateViewTest(TestCase):
         nonexistent_source_id: str = faker.numerify(
             "#####"
         )  # there's not supposed to be 5-digits source id
-        response = self.client.get(
-            reverse("chant-create", args=[nonexistent_source_id])
-        )
+        with patch("requests.get", mock_requests_get):
+            response = self.client.get(
+                reverse("chant-create", args=[nonexistent_source_id])
+            )
         self.assertEqual(response.status_code, 404)
 
     def test_repeated_seq(self):
@@ -2846,15 +2858,16 @@ class ChantCreateViewTest(TestCase):
         # post a chant with the same folio and seq
         url = reverse("chant-create", args=[source.id])
         fake_text = faker.text(10)
-        response = self.client.post(
-            url,
-            data={
-                "manuscript_full_text_std_spelling": fake_text,
-                "folio": TEST_FOLIO,
-                "c_sequence": random.randint(1, 4),
-            },
-            follow=True,
-        )
+        with patch("requests.get", mock_requests_get):
+            response = self.client.post(
+                url,
+                data={
+                    "manuscript_full_text_std_spelling": fake_text,
+                    "folio": TEST_FOLIO,
+                    "c_sequence": random.randint(1, 4),
+                },
+                follow=True,
+            )
         self.assertFormError(
             response,
             "form",
@@ -2865,35 +2878,38 @@ class ChantCreateViewTest(TestCase):
     def test_view_url_reverse_name(self):
         fake_sources = [make_fake_source() for _ in range(10)]
         for source in fake_sources:
-            response = self.client.get(reverse("chant-create", args=[source.id]))
+            with patch("requests.get", mock_requests_get):
+                response = self.client.get(reverse("chant-create", args=[source.id]))
             self.assertEqual(response.status_code, 200)
 
     def test_template_used(self):
         fake_sources = [make_fake_source() for _ in range(10)]
         for source in fake_sources:
-            response = self.client.get(reverse("chant-create", args=[source.id]))
+            with patch("requests.get", mock_requests_get):
+                response = self.client.get(reverse("chant-create", args=[source.id]))
             self.assertEqual(response.status_code, 200)
             self.assertTemplateUsed(response, "base.html")
             self.assertTemplateUsed(response, "chant_create.html")
 
     def test_volpiano_signal(self):
         source = make_fake_source()
-        self.client.post(
-            reverse("chant-create", args=[source.id]),
-            {
-                "manuscript_full_text_std_spelling": "ut queant lactose",
-                "folio": "001r",
-                "c_sequence": "1",
-                # liquescents, to be converted to lowercase
-                #                    vv v v v v v v
-                "volpiano": "9abcdefg)A-B1C2D3E4F5G67?. yiz",
-                #                      ^ ^ ^ ^ ^ ^ ^^^^^^^^
-                # clefs, accidentals, etc., to be deleted
-            },
-        )
-        chant_1 = Chant.objects.get(
-            manuscript_full_text_std_spelling="ut queant lactose"
-        )
+        with patch("requests.get", mock_requests_get):
+            self.client.post(
+                reverse("chant-create", args=[source.id]),
+                {
+                    "manuscript_full_text_std_spelling": "ut queant lactose",
+                    "folio": "001r",
+                    "c_sequence": "1",
+                    # liquescents, to be converted to lowercase
+                    #                    vv v v v v v v
+                    "volpiano": "9abcdefg)A-B1C2D3E4F5G67?. yiz",
+                    #                      ^ ^ ^ ^ ^ ^ ^^^^^^^^
+                    # clefs, accidentals, etc., to be deleted
+                },
+            )
+            chant_1 = Chant.objects.get(
+                manuscript_full_text_std_spelling="ut queant lactose"
+            )
         self.assertEqual(chant_1.volpiano, "9abcdefg)A-B1C2D3E4F5G67?. yiz")
         self.assertEqual(chant_1.volpiano_notes, "9abcdefg9abcdefg")
         self.client.post(
@@ -2917,23 +2933,23 @@ class ChantCreateViewTest(TestCase):
         feast: Feast = make_fake_feast()
         office: Office = make_fake_office()
         image_link: str = "https://www.youtube.com/watch?v=9bZkp7q19f0"
-        self.client.post(
-            reverse("chant-create", args=[source.id]),
-            {
-                "manuscript_full_text_std_spelling": "this is a bog standard manuscript textful spelling",
-                "folio": folio,
-                "c_sequence": str(sequence),
-                "feast": feast.id,
-                "office": office.id,
-                "image_link": image_link,
-            },
-        )
-
-        # when we request the Chant Create page, the same folio, feast, office and image_link should
-        # be preselected, and c_sequence should be incremented by 1.
-        response = self.client.get(
-            reverse("chant-create", args=[source.id]),
-        )
+        with patch("requests.get", mock_requests_get):
+            self.client.post(
+                reverse("chant-create", args=[source.id]),
+                {
+                    "manuscript_full_text_std_spelling": "this is a bog standard manuscript textful spelling",
+                    "folio": folio,
+                    "c_sequence": str(sequence),
+                    "feast": feast.id,
+                    "office": office.id,
+                    "image_link": image_link,
+                },
+            )
+            # when we request the Chant Create page, the same folio, feast, office and image_link should
+            # be preselected, and c_sequence should be incremented by 1.
+            response = self.client.get(
+                reverse("chant-create", args=[source.id]),
+            )
 
         observed_initial_folio: int = response.context["form"].initial["folio"]
         with self.subTest(subtest="test initial value of folio field"):
