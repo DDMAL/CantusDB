@@ -282,9 +282,13 @@
                                         document.getElementById('id_cantus_id').value = "{{ suggestion.cantus_id }}";
                                         {% comment %} document.getElementById('id_genre').value = {{ suggestion.genre_id }}; {% endcomment %}
                                         document.getElementById('id_manuscript_full_text_std_spelling').value = "{{ suggestion.fulltext }}";
-                                        var genre_id = {{ suggestion.genre_id }};
+                                        var genre_id = {{ suggestion.genre_id | default_if_none:"null" }};
                                         var genre_name = "{{ suggestion.genre_name }}";
 
+                                        // in case suggestion.genre_id is None, don't try to change the #id_genre selector
+                                        if (genre_id == null) {
+                                            return
+                                        }
                                         // Set the value, creating a new option if necessary
                                         if ($('#id_genre').find("option[value='" + genre_id + "']").length) {
                                             $('#id_genre').val(genre_id).trigger('change');
