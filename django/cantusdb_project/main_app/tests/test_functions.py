@@ -302,44 +302,28 @@ class CantusIndexFunctionsTest(TestCase):
             self.assertIsNone(observed_chant_nonexistent_cantus_id)
 
     def test_get_suggested_chants(self):
-        h_genre = make_fake_genre(name="H")
-        r_genre = make_fake_genre(name="R")
-        expected_suggested_chants = [
-            {
-                "cantus_id": "008349",
-                "occurrences": 17,
-                "fulltext": "Nocte surgentes vigilemus omnes semper in psalmis meditemur atque viribus totis domino canamus dulciter hymnos | Ut pio regi pariter canentes cum suis sanctis mereamur aulam ingredi caeli simul et beatam ducere vitam | Praestet hoc nobis deitas beata patris ac nati pariterque sancti spiritus cujus resonat per omnem gloria mundum | Amen",
-                "incipit": "Nocte surgentes vigilemus omnes semper",
-                "genre_name": "H",
-                "genre_id": h_genre.id,
-                "clean_cantus_id": "008349",
-            },
-            {
-                "cantus_id": "006928",
-                "occurrences": 10,
-                "fulltext": "In principio fecit deus caelum et terram et creavit in ea hominem ad imaginem et similitudinem suam",
-                "incipit": "In principio fecit deus caelum",
-                "genre_name": "R",
-                "genre_id": r_genre.id,
-                "clean_cantus_id": "006928",
-            },
-        ]
         with patch("requests.get", mock_requests_get):
-            observed_suggested_chants = get_suggested_chants(cantus_id="001010")
+            suggested_chants = get_suggested_chants(cantus_id="001010")
 
-        first_suggested_chant = observed_suggested_chants[0]
-        second_suggested_chant = observed_suggested_chants[1]
+        initial_suggested_chant = suggested_chants[0]
+
+        with self.subTest(test="Ensure returned object is a list of dicts"):
+            self.assertIsInstance(suggested_chants, list)
+            self.assertIsInstance(initial_suggested_chant, dict)
+
+        with self.subTest(test="Ensure no more than 5 suggestions returned"):
+            self.assertLessEqual(len(suggested_chants), 5)
+
         with self.subTest(
             test="Ensure suggested chants are ordered by number of occurrences"
         ):
-            self.assertLess(
-                second_suggested_chant["occurrences"],
-                first_suggested_chant["occurrences"],
-            )
-
-        with self.subTest(test="Ensure returned object is a list of dicts"):
-            self.assertIsInstance(observed_suggested_chants, list)
-            self.assertIsInstance(first_suggested_chant, dict)
+            for i in range(4):
+                suggested_chant = suggested_chants[i]
+                following_suggested_chant = suggested_chants[i + 1]
+                self.assertLessEqual(
+                    suggested_chant["occurrences"],
+                    following_suggested_chant["occurrences"],
+                )
 
     def test_get_json_from_ci_api(self):
         with patch("requests.get", mock_requests_get):
