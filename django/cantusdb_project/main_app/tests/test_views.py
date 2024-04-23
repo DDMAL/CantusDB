@@ -14,7 +14,7 @@ import csv
 from collections.abc import KeysView, ItemsView
 from typing import Optional
 from unittest.mock import patch
-from test_functions import mock_requests_get
+from .test_functions import mock_requests_get
 
 from faker import Faker
 
@@ -2970,6 +2970,50 @@ class ChantCreateViewTest(TestCase):
         observed_initial_image: int = response.context["form"].initial["image_link"]
         with self.subTest(subtest="test initial value of image_link field"):
             self.assertEqual(observed_initial_image, image_link)
+
+    def test_suggested_chant_buttons(self):
+        source: Source = make_fake_source()
+        with patch("requests.get", mock_requests_get):
+            response_empty_source = self.client.get(
+                reverse("chant-create", args=[source.id]),
+            )
+        with self.subTest(
+            test="Ensure no suggestions displayed when there is no previous chant"
+        ):
+            self.assertNotContains(
+                response_empty_source, "Suggestions based on previous chant:"
+            )
+
+        previous_chant: Chant = make_fake_chant(cantus_id="001010", source=source)
+        with patch("requests.get", mock_requests_get):
+            response_after_previous_chant = self.client.get(
+                reverse("chant-create", args=[source.id]),
+            )
+        suggested_chants = response_after_previous_chant.context["suggested_chants"]
+        with self.subTest(
+            test="Ensure suggested chant suggestions present when previous chant exists"
+        ):
+            self.assertContains(
+                response_after_previous_chant, "Suggestions based on previous chant:"
+            )
+            self.assertIsNotNone(suggested_chants)
+            self.assertEqual(len(suggested_chants), 5)
+
+        rare_chant: Chant = make_fake_chant(cantus_id="a07763", source=source)
+        with patch("requests.get", mock_requests_get):
+            response_after_rare_chant = self.client.get(
+                reverse("chant-create", args=[source.id]),
+            )
+        with self.subTest(
+            test="When previous chant has no suggested chants, ensure no suggestions are displayed"
+        ):
+            self.assertContains(
+                response_after_rare_chant, "Suggestions based on previous chant:"
+            )
+            self.assertContains(
+                response_after_rare_chant, "Sorry! No suggestions found."
+            )
+            self.assertIsNone(response_after_rare_chant.context["suggested_chants"])
 
 
 class ChantDeleteViewTest(TestCase):
