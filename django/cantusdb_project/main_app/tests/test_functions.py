@@ -144,7 +144,7 @@ def mock_requests_get(url: str, timeout: float) -> MockResponse:
             )
         else:  # imitating CI's behavior when a made-up Cantus ID is entered.
             return MockResponse(
-                status_code=5.00,
+                status_code=500,
                 content=None,
                 text=None,
                 json=None,
@@ -321,6 +321,7 @@ class CantusIndexFunctionsTest(TestCase):
             self.assertIsNone(observed_chant_nonexistent_cantus_id)
 
     def test_get_suggested_chants(self):
+        expected_number_of_suggestions: int = 3
         with patch("requests.get", mock_requests_get):
             suggested_chants = get_suggested_chants(cantus_id="001010")
 
@@ -330,13 +331,15 @@ class CantusIndexFunctionsTest(TestCase):
             self.assertIsInstance(suggested_chants, list)
             self.assertIsInstance(initial_suggested_chant, dict)
 
-        with self.subTest(test="Ensure no more than 5 suggestions returned"):
-            self.assertLessEqual(len(suggested_chants), 5)
+        with self.subTest(
+            test=f"Ensure no more than {expected_number_of_suggestions} suggestions returned"
+        ):
+            self.assertLessEqual(len(suggested_chants), expected_number_of_suggestions)
 
         with self.subTest(
             test="Ensure suggested chants are ordered by number of occurrences"
         ):
-            for i in range(4):
+            for i in range(expected_number_of_suggestions - 1):
                 suggested_chant = suggested_chants[i]
                 following_suggested_chant = suggested_chants[i + 1]
                 self.assertGreaterEqual(
