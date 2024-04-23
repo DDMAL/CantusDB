@@ -60,42 +60,55 @@ def mock_requests_get(url: str, timeout: float) -> MockResponse:
     if timeout < 0.001:
         raise requests.exceptions.ConnectTimeout
 
-    # mock call to /json-nextchants/001010
-    if url in (
-        "https://cantusindex.uwaterloo.ca/json-nextchants/001010",
-        "https://cantusindex.org/json-nextchants/001010",
+    if not (
+        "https://cantusindex.uwaterloo.ca" in url or "https://cantusindex.org" in url
     ):
-        return MockResponse(
-            status_code=200,
-            content=mock_cantusindex_data.mock_json_nextchants_001010_content,
-            json=mock_cantusindex_data.mock_json_nextchants_001010_json,
+        raise ValueError(
+            f"mock_requests_get is only set up to mock calls to Cantus Index. "
+            f"The protocol and domain of url {url} do not correspond to those of Cantus Index."
         )
 
-    # mock call to /json-cid/008349
-    elif url in (
-        "https://cantusindex.uwaterloo.ca/json-cid/008349",
-        "https://cantusindex.org/json-cid/008349",
+    if (
+        "https://cantusindex.uwaterloo.ca/json-nextchants/" in url
+        or "https://cantusindex.org/json-nextchants/" in url
     ):
-        return MockResponse(
-            status_code=200,
-            content=mock_cantusindex_data.mock_json_cid_008349_content,
-            json=mock_cantusindex_data.mock_json_cid_008349_json,
-        )
-
-    # mock call to /json-cid/006928
-    elif url in (
-        "https://cantusindex.uwaterloo.ca/json-cid/006928",
-        "https://cantusindex.org/json-cid/006928",
+        if url.endswith("/001010"):
+            return MockResponse(
+                status_code=200,
+                content=mock_cantusindex_data.mock_json_nextchants_001010_content,
+                json=mock_cantusindex_data.mock_json_nextchants_001010_json,
+            )
+        else:  # imitating CI's behavior when a made-up Cantus ID is entered.
+            return MockResponse(
+                status_code=200,
+                content=bytes('["Cantus ID is not valid"]', encoding="utf-8-sig"),
+                json=["Cantus ID is not valid"],
+            )
+    elif (
+        "https://cantusindex.uwaterloo.ca/json-cid/" in url
+        or "https://cantusindex.org/json-cid/" in url
     ):
-        return MockResponse(
-            status_code=200,
-            content=mock_cantusindex_data.mock_json_cid_006928_content,
-            json=mock_cantusindex_data.mock_json_cid_006928_json,
-        )
-
+        if url.endswith("/008349"):
+            return MockResponse(
+                status_code=200,
+                content=mock_cantusindex_data.mock_json_cid_008349_content,
+                json=mock_cantusindex_data.mock_json_cid_008349_json,
+            )
+        elif url.endswith("/006928"):
+            return MockResponse(
+                status_code=200,
+                content=mock_cantusindex_data.mock_json_cid_006928_content,
+                json=mock_cantusindex_data.mock_json_cid_006928_json,
+            )
+        else:  # imitating CI's behavior when a made-up Cantus ID is entered.
+            return MockResponse(
+                status_code=500,
+            )
     else:
         raise ValueError(
-            f"mock_requests_get is only set up to mock calls to specific URLs; {url} is not one of those URLs"
+            f"mock_requests_get is only set up to imitate only the /json-nextchants/ "
+            f"and /json-cid/ endpoints on Cantus Index. The path of the url {url} does "
+            f"not match either of these endpoints."
         )
 
 
