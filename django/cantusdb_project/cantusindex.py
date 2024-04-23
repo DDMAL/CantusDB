@@ -9,7 +9,7 @@ from main_app.models import Genre
 
 CANTUS_INDEX_DOMAIN: str = "https://cantusindex.uwaterloo.ca"
 DEFAULT_TIMEOUT: float = 2  # seconds
-NUMBER_OF_SUGGESTED_CHANTS: int = 5  # this number can't be too large,
+NUMBER_OF_SUGGESTED_CHANTS: int = 3  # this number can't be too large,
 # since for each suggested chant, we make a request to Cantus Index.
 # We haven't yet parallelized this process, so setting this number
 # too high will cause the Chant Create page to take a very long time
