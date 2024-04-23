@@ -24,6 +24,7 @@ class MockResponse:
     def __init__(
         self,
         status_code: int,
+        text: str,
         json: Union[dict, list, None],
         content: bytes,
         encoding: str = "utf-8",
@@ -35,6 +36,7 @@ class MockResponse:
         self._json = json
         self.content = content
         self.encoding = encoding
+        self.text = text
 
     def json(self):
         return self._json
@@ -76,12 +78,22 @@ def mock_requests_get(url: str, timeout: float) -> MockResponse:
             return MockResponse(
                 status_code=200,
                 content=mock_cantusindex_data.mock_json_nextchants_001010_content,
+                text=mock_cantusindex_data.mock_json_nextchants_001010_text,
                 json=mock_cantusindex_data.mock_json_nextchants_001010_json,
+            )
+        elif url.endswith("/a07763"):
+            # this Cantus ID has no suggested chants
+            return MockResponse(
+                status_code=200,
+                content=mock_cantusindex_data.mock_json_nextchants_a07763_content,
+                text=mock_cantusindex_data.mock_json_nextchants_a07763_text,
+                json=None,
             )
         else:  # imitating CI's behavior when a made-up Cantus ID is entered.
             return MockResponse(
                 status_code=200,
                 content=bytes('["Cantus ID is not valid"]', encoding="utf-8-sig"),
+                text='["Cantus ID is not valid"]',
                 json=["Cantus ID is not valid"],
             )
     elif (
@@ -92,42 +104,49 @@ def mock_requests_get(url: str, timeout: float) -> MockResponse:
             return MockResponse(
                 status_code=200,
                 content=mock_cantusindex_data.mock_json_cid_008349_content,
+                text=mock_cantusindex_data.mock_json_cid_008349_text,
                 json=mock_cantusindex_data.mock_json_cid_008349_json,
             )
         elif url.endswith("/006928"):
             return MockResponse(
                 status_code=200,
                 content=mock_cantusindex_data.mock_json_cid_006928_content,
+                text=mock_cantusindex_data.mock_json_cid_006928_text,
                 json=mock_cantusindex_data.mock_json_cid_006928_json,
             )
         elif url.endswith("/008411c"):
             return MockResponse(
                 status_code=200,
                 content=mock_cantusindex_data.mock_json_cid_008411c_content,
+                text=mock_cantusindex_data.mock_json_cid_008411c_text,
                 json=mock_cantusindex_data.mock_json_cid_008411c_json,
             )
         elif url.endswith("/008390"):
             return MockResponse(
                 status_code=200,
                 content=mock_cantusindex_data.mock_json_cid_008390_content,
+                text=mock_cantusindex_data.mock_json_cid_008390_text,
                 json=mock_cantusindex_data.mock_json_cid_008390_json,
             )
         elif url.endswith("/007713"):
             return MockResponse(
                 status_code=200,
                 content=mock_cantusindex_data.mock_json_cid_007713_content,
+                text=mock_cantusindex_data.mock_json_cid_007713_text,
                 json=mock_cantusindex_data.mock_json_cid_007713_json,
             )
         elif url.endswith("/909030"):
             return MockResponse(
                 status_code=200,
                 content=mock_cantusindex_data.mock_json_cid_909030_content,
+                text=mock_cantusindex_data.mock_json_cid_909030_text,
                 json=mock_cantusindex_data.mock_json_cid_909030_json,
             )
         else:  # imitating CI's behavior when a made-up Cantus ID is entered.
             return MockResponse(
                 status_code=5.00,
                 content=None,
+                text=None,
                 json=None,
             )
     else:

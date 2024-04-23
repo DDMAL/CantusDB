@@ -33,6 +33,16 @@ mock_json_nextchants_001010_json: list[dict] = [
 # request.json
 
 
+#######################################################################################
+### mocking requests.get("https://cantusindex.uwaterloo.ca/json-nextchants/a07763") ###
+#######################################################################################
+
+mock_json_nextchants_a07763_text: str = "\r\n"
+mock_json_nextchants_a07763_content: bytes = bytes(
+    mock_json_nextchants_a07763_text,
+    encoding="utf-8-sig",
+)
+
 ################################################################################
 ### mocking requests.get("https://cantusindex.uwaterloo.ca/json-cid/008349") ###
 ################################################################################

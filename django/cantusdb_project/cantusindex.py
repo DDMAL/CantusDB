@@ -22,8 +22,11 @@ def get_suggested_chants(
 ) -> Optional[list[dict]]:
     endpoint_path: str = f"/json-nextchants/{cantus_id}"
     all_suggestions: Optional[list] = get_json_from_ci_api(endpoint_path)
+
     if not all_suggestions:
-        return None  # get_json_from_ci_api timed out
+        # get_json_from_ci_api timed out
+        # or CI returned a response with no suggestions.
+        return None
 
     # when Cantus ID doesn't exist within CI, CI's api returns a 200 response with `['Cantus ID is not valid']`
     first_suggestion = all_suggestions[0]
@@ -138,4 +141,10 @@ def get_json_from_ci_api(
         return None  # /json-cid/Non-existentCantusId returns a 500 page
 
     response.encoding = "utf-8-sig"
+
+    if not response.text.strip():
+        # /json-nextchants returns a response with text='\r\n' in situations where
+        # there are no suggested chants
+        return None
+
     return response.json()
