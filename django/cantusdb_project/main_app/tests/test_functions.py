@@ -126,7 +126,9 @@ def mock_requests_get(url: str, timeout: float) -> MockResponse:
             )
         else:  # imitating CI's behavior when a made-up Cantus ID is entered.
             return MockResponse(
-                status_code=500,
+                status_code=5.00,
+                content=None,
+                json=None,
             )
     else:
         raise NotImplementedError(
@@ -250,7 +252,9 @@ class CantusIndexFunctionsTest(TestCase):
             "occurrences": occs,
             "fulltext": "Nocte surgentes vigilemus omnes semper in psalmis meditemur atque viribus totis domino canamus dulciter hymnos | Ut pio regi pariter canentes cum suis sanctis mereamur aulam ingredi caeli simul et beatam ducere vitam | Praestet hoc nobis deitas beata patris ac nati pariterque sancti spiritus cujus resonat per omnem gloria mundum | Amen",
             "incipit": "Nocte surgentes vigilemus omnes semper",
+            "genre_name": "H",
             "genre_id": h_genre.id,
+            "clean_cantus_id": "008349",
         }
         with patch("requests.get", mock_requests_get):
             observed_chant = get_suggested_chant(cantus_id="008349", occurrences=occs)
@@ -298,14 +302,18 @@ class CantusIndexFunctionsTest(TestCase):
                 "occurrences": 17,
                 "fulltext": "Nocte surgentes vigilemus omnes semper in psalmis meditemur atque viribus totis domino canamus dulciter hymnos | Ut pio regi pariter canentes cum suis sanctis mereamur aulam ingredi caeli simul et beatam ducere vitam | Praestet hoc nobis deitas beata patris ac nati pariterque sancti spiritus cujus resonat per omnem gloria mundum | Amen",
                 "incipit": "Nocte surgentes vigilemus omnes semper",
+                "genre_name": "H",
                 "genre_id": h_genre.id,
+                "clean_cantus_id": "008349",
             },
             {
                 "cantus_id": "006928",
                 "occurrences": 10,
                 "fulltext": "In principio fecit deus caelum et terram et creavit in ea hominem ad imaginem et similitudinem suam",
                 "incipit": "In principio fecit deus caelum",
+                "genre_name": "R",
                 "genre_id": r_genre.id,
+                "clean_cantus_id": "006928",
             },
         ]
         with patch("requests.get", mock_requests_get):
