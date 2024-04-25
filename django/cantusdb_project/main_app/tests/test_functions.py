@@ -397,16 +397,9 @@ class CantusIndexFunctionsTest(TestCase):
         ):
             self.assertIsNone(response_nonexistent_cantus_id)
 
-        # I can't figure out how to get assertRaises to work - even when the assertion should fail, it doesn't.
-        # It's not of vital importance that this argument check work correctly, I think, so I'm giving up in
-        # an effort not to get bogged down.
-        # Leaving a couple of commented-out attempts here with things I've tried, for the hopeful benefit of some
-        # future, cleverer developer
-        # - Jacob dGM, April 2024
-
-        # with self.subTest(test="Ensure raises ValueError when path improperly formatted, attempt 1"):
-        #     self.assertRaises(ValueError, get_json_from_ci_api, "/for/some/reason/this/passes/even/with/a/leading/slash")
-
-        # with self.subTest(test="Ensure raises ValueError when path improperly formatted, attempt 2"):
-        #     with self.assertRaises(ValueError):
-        #         get_json_from_ci_api("/i/still/dont/understand/why/this/subtest/passes")
+        with self.subTest(
+            test="Ensure raises ValueError when path lacks leading slash"
+        ):
+            self.assertRaises(
+                ValueError, get_json_from_ci_api, "path/lacking/a/leading/slash"
+            )
