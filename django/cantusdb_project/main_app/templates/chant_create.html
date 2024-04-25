@@ -286,7 +286,7 @@
                                         var genre_name = "{{ suggestion.genre_name }}";
 
                                         // in case suggestion.genre_id is None, don't try to change the #id_genre selector
-                                        if (genre_id == null) {
+                                        if (genre_id === null) {
                                             return
                                         }
                                         // Set the value, creating a new option if necessary
