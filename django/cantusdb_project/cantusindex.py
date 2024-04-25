@@ -84,9 +84,10 @@ def get_suggested_chant(
             ...but if get_json_from_ci_api timed out, returns None instead
     """
     endpoint_path: str = f"/json-cid/{cantus_id}"
-    json: dict = get_json_from_ci_api(endpoint_path, timeout=timeout)
+    json: Union[dict, list, None] = get_json_from_ci_api(endpoint_path, timeout=timeout)
 
-    if not json:  # mostly, in case of a timeout within get_json_from_ci_api
+    if not isinstance(json, dict):
+        # mostly, in case of a timeout within get_json_from_ci_api
         return None
 
     fulltext: str = json["info"]["field_full_text"]
