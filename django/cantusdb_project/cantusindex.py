@@ -41,7 +41,7 @@ def get_suggested_chants(
     )
     trimmed_suggestions: list = sorted_suggestions[:number_of_suggestions]
 
-    suggested_chants: list[dict] = []
+    suggested_chants: list[Optional[dict]] = []
     for suggestion in trimmed_suggestions:
         cantus_id: str = suggestion["cid"]
         occurrences: int = int(suggestion["count"])
