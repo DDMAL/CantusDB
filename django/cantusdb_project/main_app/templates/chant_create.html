@@ -106,6 +106,8 @@
                                             var feast_id = {{ feast.id }};
                                             var feast_name = "{{ feast.name }}";
 
+                                            // Since we're using a django-autocomplete-light widget for the Genre selector,
+                                            // we need to follow a special process in selecting a value from the widget:
                                             // Set the value, creating a new option if necessary
                                             if ($('#id_feast').find("option[value='" + feast_id + "']").length) {
                                                 $('#id_feast').val(feast_id).trigger('change');
