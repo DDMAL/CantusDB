@@ -4,7 +4,7 @@ Cantus Index's (CI's) various APIs.
 """
 
 import requests
-from typing import Optional, Union
+from typing import Optional, Union, Callable
 from main_app.models import Genre
 
 CANTUS_INDEX_DOMAIN: str = "https://cantusindex.uwaterloo.ca"
@@ -33,7 +33,9 @@ def get_suggested_chants(
     if not isinstance(first_suggestion, dict):
         return None
 
-    sort_by_occurrences: Callable[[dict], int] = lambda suggestion: int(suggestion["count"])
+    sort_by_occurrences: Callable[[dict], int] = lambda suggestion: int(
+        suggestion["count"]
+    )
     sorted_suggestions: list = sorted(
         all_suggestions, key=sort_by_occurrences, reverse=True
     )
