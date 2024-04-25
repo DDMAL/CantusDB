@@ -33,7 +33,7 @@ def get_suggested_chants(
     if not isinstance(first_suggestion, dict):
         return None
 
-    sort_by_occurrences: function = lambda suggestion: int(suggestion["count"])
+    sort_by_occurrences: Callable[[dict], int] = lambda suggestion: int(suggestion["count"])
     sorted_suggestions: list = sorted(
         all_suggestions, key=sort_by_occurrences, reverse=True
     )
