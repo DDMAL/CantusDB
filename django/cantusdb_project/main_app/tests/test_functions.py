@@ -14,7 +14,12 @@ from main_app.tests.make_fakes import (
 )
 from main_app.management.commands import update_cached_concordances
 from main_app.signals import generate_incipit
-from cantusindex import get_suggested_chant, get_suggested_chants, get_json_from_ci_api
+from cantusindex import (
+    get_suggested_chant,
+    get_suggested_chants,
+    get_json_from_ci_api,
+    CANTUS_INDEX_DOMAIN,
+)
 
 # run with `python -Wa manage.py test main_app.tests.test_functions`
 # the -Wa flag tells Python to display deprecation warnings
@@ -62,18 +67,13 @@ def mock_requests_get(url: str, timeout: float) -> MockResponse:
     if timeout < 0.001:
         raise requests.exceptions.ConnectTimeout
 
-    if not (
-        "https://cantusindex.uwaterloo.ca" in url or "https://cantusindex.org" in url
-    ):
+    if not (CANTUS_INDEX_DOMAIN in url):
         raise NotImplementedError(
             f"mock_requests_get is only set up to mock calls to Cantus Index. "
             f"The protocol and domain of url {url} do not correspond to those of Cantus Index."
         )
 
-    if (
-        "https://cantusindex.uwaterloo.ca/json-nextchants/" in url
-        or "https://cantusindex.org/json-nextchants/" in url
-    ):
+    if f"{CANTUS_INDEX_DOMAIN}/json-nextchants/" in url:
         if url.endswith("/001010"):
             return MockResponse(
                 status_code=200,
@@ -96,10 +96,7 @@ def mock_requests_get(url: str, timeout: float) -> MockResponse:
                 text='["Cantus ID is not valid"]',
                 json=["Cantus ID is not valid"],
             )
-    elif (
-        "https://cantusindex.uwaterloo.ca/json-cid/" in url
-        or "https://cantusindex.org/json-cid/" in url
-    ):
+    elif f"{CANTUS_INDEX_DOMAIN}/json-cid/" in url:
         if url.endswith("/008349"):
             return MockResponse(
                 status_code=200,
