@@ -21,9 +21,9 @@ def get_suggested_chants(
     cantus_id: str, number_of_suggestions: int = NUMBER_OF_SUGGESTED_CHANTS
 ) -> Optional[list[dict]]:
     endpoint_path: str = f"/json-nextchants/{cantus_id}"
-    all_suggestions: Optional[list] = get_json_from_ci_api(endpoint_path)
+    all_suggestions: Union[list, dict, None] = get_json_from_ci_api(endpoint_path)
 
-    if not all_suggestions:
+    if not isinstance(all_suggestions, list):
         # get_json_from_ci_api timed out
         # or CI returned a response with no suggestions.
         return None
