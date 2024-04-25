@@ -288,6 +288,8 @@
                                         if (genre_id === null) {
                                             return
                                         }
+                                        // Since we're using a django-autocomplete-light widget for the Genre selector,
+                                        // we need to follow a special process in selecting a value from the widget:
                                         // Set the value, creating a new option if necessary
                                         if ($('#id_genre').find("option[value='" + genre_id + "']").length) {
                                             $('#id_genre').val(genre_id).trigger('change');
