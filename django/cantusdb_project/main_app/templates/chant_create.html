@@ -280,7 +280,6 @@
                                 <script>
                                     function autoFill{{ suggestion.clean_cantus_id }}() {
                                         document.getElementById('id_cantus_id').value = "{{ suggestion.cantus_id }}";
-                                        {% comment %} document.getElementById('id_genre').value = {{ suggestion.genre_id }}; {% endcomment %}
                                         document.getElementById('id_manuscript_full_text_std_spelling').value = "{{ suggestion.fulltext }}";
                                         var genre_id = {{ suggestion.genre_id | default_if_none:"null" }};
                                         var genre_name = "{{ suggestion.genre_name }}";
