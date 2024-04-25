@@ -54,7 +54,7 @@ def mock_requests_get(url: str, timeout: float) -> MockResponse:
         ValueError: This function is configured to mock requests to specific URLs only, including
             - /json-nextchants/001010
         If a call to requests.get with a different URL is made while mock_requests_get is patching it,
-        a ValueError is raised.
+        a NotImplementedError is raised.
 
     Returns:
         MockResponse: A mock response object
