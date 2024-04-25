@@ -265,10 +265,10 @@
                                     value="{{ suggestion.cantus_id }}"
                                     title="{{ suggestion.cantus_id }}"
                                     onclick='autoFillSuggestedChant(
-                                        "{{suggestion.genre_name}}",
-                                        {{suggestion.genre_id | default_if_none:"null"}},
-                                        "{{suggestion.cantus_id}}",
-                                        "{{suggestion.fulltext}}"
+                                        "{{ suggestion.genre_name }}",
+                                        {{ suggestion.genre_id | default_if_none:"null" }},
+                                        "{{ suggestion.cantus_id }}",
+                                        "{{ suggestion.fulltext }}"
                                     )'
                                 >
                                 <strong>{{ suggestion.genre_name }}</strong> - <span title="{{ suggestion.fulltext }}">{{ suggestion.incipit }}</span> (<strong>{{ suggestion.occurrences }}x</strong>)<br>
