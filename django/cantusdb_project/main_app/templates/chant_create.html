@@ -100,25 +100,7 @@
                         {% if previous_chant %}
                             Feasts that follow:
                                {% for feast, count in suggested_feasts.items %}
-                                    <a href="javascript:" onclick="autoFillFeast{{ feast.id }}();">{{ feast.name }}</a> ({{ count }}x) |
-                                    <script>
-                                        function autoFillFeast{{ feast.id }}() {
-                                            var feast_id = {{ feast.id }};
-                                            var feast_name = "{{ feast.name }}";
-
-                                            // Since we're using a django-autocomplete-light widget for the Genre selector,
-                                            // we need to follow a special process in selecting a value from the widget:
-                                            // Set the value, creating a new option if necessary
-                                            if ($('#id_feast').find("option[value='" + feast_id + "']").length) {
-                                                $('#id_feast').val(feast_id).trigger('change');
-                                            } else { 
-                                                // Create a DOM Option and pre-select by default
-                                                var newOption = new Option(feast_name, feast_id, true, true);
-                                                // Append it to the select
-                                                $('#id_feast').append(newOption).trigger('change');
-                                            };
-                                        }
-                                    </script>
+                                    <a href="javascript:" onclick='autoFillFeast("{{ feast.name }}", {{ feast.id }});'>{{ feast.name }}</a> ({{ count }}x) |
                                {% endfor %}                                                                                                      
                             
                             <!-- eventually, perhaps: implement a "Reverse Changes" button -->

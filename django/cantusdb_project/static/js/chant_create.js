@@ -30,3 +30,17 @@ function autoFillSuggestedChant(genreName, genreID, cantusID, fullText) {
         $('#id_genre').append(newOption).trigger('change');
     };
 }
+
+function autoFillFeast(feastName, feastID) {
+    // Since we're using a django-autocomplete-light widget for the Genre selector,
+    // we need to follow a special process in selecting a value from the widget:
+    // Set the value, creating a new option if necessary
+    if ($('#id_feast').find("option[value='" + feastID + "']").length) {
+        $('#id_feast').val(feastID).trigger('change');
+    } else { 
+        // Create a DOM Option and pre-select by default
+        var newOption = new Option(feastName, feastID, true, true);
+        // Append it to the select
+        $('#id_feast').append(newOption).trigger('change');
+    };
+}
