@@ -277,32 +277,19 @@
                             </div>
                         {% if suggested_chants %}
                             {% for suggestion in suggested_chants %}
-                                <input type="button" style="width: 80px" value="{{ suggestion.cantus_id }}" onclick="autoFill{{ suggestion.clean_cantus_id }}()" title="{{ suggestion.cantus_id }}"></input>
+                                <input
+                                    type="button"
+                                    style="width: 80px"
+                                    value="{{ suggestion.cantus_id }}"
+                                    title="{{ suggestion.cantus_id }}"
+                                    onclick='autoFillSuggestedChant(
+                                        "{{suggestion.genre_name}}",
+                                        {{suggestion.genre_id | default_if_none:"null"}},
+                                        "{{suggestion.cantus_id}}",
+                                        "{{suggestion.fulltext}}"
+                                    )'
+                                >
                                 <strong>{{ suggestion.genre_name }}</strong> - <span title="{{ suggestion.fulltext }}">{{ suggestion.incipit }}</span> (<strong>{{ suggestion.occurrences }}x</strong>)<br>
-                                <script>
-                                    function autoFill{{ suggestion.clean_cantus_id }}() {
-                                        document.getElementById('id_cantus_id').value = "{{ suggestion.cantus_id }}";
-                                        document.getElementById('id_manuscript_full_text_std_spelling').value = "{{ suggestion.fulltext }}";
-                                        var genre_id = {{ suggestion.genre_id | default_if_none:"null" }};
-                                        var genre_name = "{{ suggestion.genre_name }}";
-
-                                        // in case suggestion.genre_id is None, don't try to change the #id_genre selector
-                                        if (genre_id === null) {
-                                            return
-                                        }
-                                        // Since we're using a django-autocomplete-light widget for the Genre selector,
-                                        // we need to follow a special process in selecting a value from the widget:
-                                        // Set the value, creating a new option if necessary
-                                        if ($('#id_genre').find("option[value='" + genre_id + "']").length) {
-                                            $('#id_genre').val(genre_id).trigger('change');
-                                        } else { 
-                                            // Create a DOM Option and pre-select by default
-                                            var newOption = new Option(genre_name, genre_id, true, true);
-                                            // Append it to the select
-                                            $('#id_genre').append(newOption).trigger('change');
-                                        };
-                                    }
-                                </script>
                             {% endfor %}
                         {% else %}
                             Sorry! No suggestions found.<br>
