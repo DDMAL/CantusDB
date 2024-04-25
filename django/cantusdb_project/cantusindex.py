@@ -110,7 +110,7 @@ def get_suggested_chant(
 
 
 def get_json_from_ci_api(
-    path: str, timeout: int = DEFAULT_TIMEOUT
+    path: str, timeout: float = DEFAULT_TIMEOUT
 ) -> Union[dict, list, None]:
     """Given a path, send a request to Cantus Index at that path,
     decode the response to remove its Byte Order Marker, parse it,
