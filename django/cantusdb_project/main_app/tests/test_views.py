@@ -2776,26 +2776,26 @@ class ChantCreateViewTest(TestCase):
 
         with patch("requests.get", mock_requests_get):
             response_1 = self.client.get(reverse("chant-create", args=[source.id]))
-            self.assertEqual(response_1.status_code, 200)
-            self.assertTemplateUsed(response_1, "chant_create.html")
-
             response_2 = self.client.get(
                 reverse("chant-create", args=[source.id + 100])
             )
-            self.assertEqual(response_2.status_code, 404)
-            self.assertTemplateUsed(response_2, "404.html")
+
+        self.assertEqual(response_1.status_code, 200)
+        self.assertTemplateUsed(response_1, "chant_create.html")
+
+        self.assertEqual(response_2.status_code, 404)
+        self.assertTemplateUsed(response_2, "404.html")
 
     def test_create_chant(self):
         source = make_fake_source()
-        with patch("requests.get", mock_requests_get):
-            response = self.client.post(
-                reverse("chant-create", args=[source.id]),
-                {
-                    "manuscript_full_text_std_spelling": "initial",
-                    "folio": "001r",
-                    "c_sequence": "1",
-                },
-            )
+        response = self.client.post(
+            reverse("chant-create", args=[source.id]),
+            {
+                "manuscript_full_text_std_spelling": "initial",
+                "folio": "001r",
+                "c_sequence": "1",
+            },
+        )
         self.assertEqual(response.status_code, 302)
         self.assertRedirects(response, reverse("chant-create", args=[source.id]))
         chant = Chant.objects.first()
@@ -2819,10 +2819,7 @@ class ChantCreateViewTest(TestCase):
         """post with correct source and empty full-text"""
         source = make_fake_source()
         url = reverse("chant-create", args=[source.id])
-        with patch("requests.get", mock_requests_get):
-            response = self.client.post(
-                url, data={"manuscript_full_text_std_spelling": ""}
-            )
+        response = self.client.post(url, data={"manuscript_full_text_std_spelling": ""})
         self.assertFormError(
             response,
             "form",
@@ -2858,16 +2855,15 @@ class ChantCreateViewTest(TestCase):
         # post a chant with the same folio and seq
         url = reverse("chant-create", args=[source.id])
         fake_text = faker.text(10)
-        with patch("requests.get", mock_requests_get):
-            response = self.client.post(
-                url,
-                data={
-                    "manuscript_full_text_std_spelling": fake_text,
-                    "folio": TEST_FOLIO,
-                    "c_sequence": random.randint(1, 4),
-                },
-                follow=True,
-            )
+        response = self.client.post(
+            url,
+            data={
+                "manuscript_full_text_std_spelling": fake_text,
+                "folio": TEST_FOLIO,
+                "c_sequence": random.randint(1, 4),
+            },
+            follow=True,
+        )
         self.assertFormError(
             response,
             "form",
@@ -2893,20 +2889,20 @@ class ChantCreateViewTest(TestCase):
 
     def test_volpiano_signal(self):
         source = make_fake_source()
+        self.client.post(
+            reverse("chant-create", args=[source.id]),
+            {
+                "manuscript_full_text_std_spelling": "ut queant lactose",
+                "folio": "001r",
+                "c_sequence": "1",
+                # liquescents, to be converted to lowercase
+                #                    vv v v v v v v
+                "volpiano": "9abcdefg)A-B1C2D3E4F5G67?. yiz",
+                #                      ^ ^ ^ ^ ^ ^ ^^^^^^^^
+                # clefs, accidentals, etc., to be deleted
+            },
+        )
         with patch("requests.get", mock_requests_get):
-            self.client.post(
-                reverse("chant-create", args=[source.id]),
-                {
-                    "manuscript_full_text_std_spelling": "ut queant lactose",
-                    "folio": "001r",
-                    "c_sequence": "1",
-                    # liquescents, to be converted to lowercase
-                    #                    vv v v v v v v
-                    "volpiano": "9abcdefg)A-B1C2D3E4F5G67?. yiz",
-                    #                      ^ ^ ^ ^ ^ ^ ^^^^^^^^
-                    # clefs, accidentals, etc., to be deleted
-                },
-            )
             chant_1 = Chant.objects.get(
                 manuscript_full_text_std_spelling="ut queant lactose"
             )
@@ -2921,7 +2917,10 @@ class ChantCreateViewTest(TestCase):
                 "volpiano": "abacadaeafagahaja",
             },
         )
-        chant_2 = Chant.objects.get(manuscript_full_text_std_spelling="resonare foobaz")
+        with patch("requests.get", mock_requests_get):
+            chant_2 = Chant.objects.get(
+                manuscript_full_text_std_spelling="resonare foobaz"
+            )
         self.assertEqual(chant_2.volpiano, "abacadaeafagahaja")
         self.assertEqual(chant_2.volpiano_intervals, "1-12-23-34-45-56-67-78-8")
 
@@ -2933,18 +2932,18 @@ class ChantCreateViewTest(TestCase):
         feast: Feast = make_fake_feast()
         office: Office = make_fake_office()
         image_link: str = "https://www.youtube.com/watch?v=9bZkp7q19f0"
+        self.client.post(
+            reverse("chant-create", args=[source.id]),
+            {
+                "manuscript_full_text_std_spelling": "this is a bog standard manuscript textful spelling",
+                "folio": folio,
+                "c_sequence": str(sequence),
+                "feast": feast.id,
+                "office": office.id,
+                "image_link": image_link,
+            },
+        )
         with patch("requests.get", mock_requests_get):
-            self.client.post(
-                reverse("chant-create", args=[source.id]),
-                {
-                    "manuscript_full_text_std_spelling": "this is a bog standard manuscript textful spelling",
-                    "folio": folio,
-                    "c_sequence": str(sequence),
-                    "feast": feast.id,
-                    "office": office.id,
-                    "image_link": image_link,
-                },
-            )
             # when we request the Chant Create page, the same folio, feast, office and image_link should
             # be preselected, and c_sequence should be incremented by 1.
             response = self.client.get(
