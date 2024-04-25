@@ -1,7 +1,7 @@
 import requests
 from main_app.tests import mock_cantusindex_data
 from django.test import TestCase
-from typing import Union
+from typing import Union, Optional
 from unittest.mock import patch
 from main_app.models import (
     Chant,
@@ -29,9 +29,9 @@ class MockResponse:
     def __init__(
         self,
         status_code: int,
-        text: str,
+        text: Optional[str],
         json: Union[dict, list, None],
-        content: bytes,
+        content: Optional[bytes],
         encoding: str = "utf-8",
         # >>> response = requests.get("https://cantusindex.uwaterloo.ca/json-nextchants/001010")
         # >>> response.encoding
