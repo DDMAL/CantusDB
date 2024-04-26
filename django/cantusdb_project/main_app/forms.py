@@ -281,6 +281,7 @@ class ChantEditForm(forms.ModelForm):
             "manuscript_full_text_proofread",
             "volpiano_proofread",
             "proofread_by",
+            "segment",
         ]
         widgets = {
             # manuscript_full_text_std_spelling: defined below (required)
@@ -332,6 +333,13 @@ class ChantEditForm(forms.ModelForm):
         required=True,
         widget=TextInputWidget,
         help_text="Each folio starts with '1'.",
+    )
+
+    segment = forms.ModelChoiceField(
+        queryset=Segment.objects.all().order_by("id"),
+        required=True,
+        help_text="Select the Database segment that the chant belongs to. "
+        "In most cases, this will be the CANTUS segment.",
     )
 
 
