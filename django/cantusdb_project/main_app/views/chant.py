@@ -1118,7 +1118,10 @@ class SourceEditChantsView(LoginRequiredMixin, UserPassesTestMixin, UpdateView):
         context["user_can_proofread_chant"] = user_can_proofread_chant(user, chant)
         return context
 
-    def get_initial(self):
+    def get_initial(self) -> dict:
+        # in case the chant has no manuscript_full_text_std_spelling, we check Cantus Index
+        # for the expected text for chants with the same Cantus ID, and provide this as an
+        # initial value for the Manuscript Reading Full Text (standardized spelling) field
         initial: dict = super().get_initial()
         chant: Chant = self.get_object()
         cantus_id: str = chant.cantus_id
