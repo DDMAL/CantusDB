@@ -1123,8 +1123,15 @@ class SourceEditChantsView(LoginRequiredMixin, UserPassesTestMixin, UpdateView):
         # for the expected text for chants with the same Cantus ID, and provide this as an
         # initial value for the Manuscript Reading Full Text (standardized spelling) field
         initial: dict = super().get_initial()
-        chant: Chant = self.get_object()
-        cantus_id: str = chant.cantus_id
+        chant: Optional[Chant] = self.get_object()
+
+        if not chant:
+            return initial
+
+        cantus_id: Optional[str] = chant.cantus_id
+
+        if not cantus_id:
+            return initial
 
         suggested_fulltext: Optional[str] = None
         if chant.manuscript_full_text_std_spelling == "":
