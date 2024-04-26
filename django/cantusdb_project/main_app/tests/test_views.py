@@ -3076,20 +3076,21 @@ class SourceEditChantsViewTest(TestCase):
         # must specify folio, or SourceEditChantsView.get_queryset will fail when it tries to default to displaying the first folio
         Chant.objects.create(source=source1, folio="001r")
 
-        response = self.client.get(reverse("source-edit-chants", args=[source1.id]))
+        with patch("requests.get", mock_requests_get):
+            response = self.client.get(reverse("source-edit-chants", args=[source1.id]))
         self.assertEqual(response.status_code, 200)
         self.assertTemplateUsed(response, "chant_edit.html")
-
-        response = self.client.get(
-            reverse("source-edit-chants", args=[source1.id + 100])
-        )
+        with patch("requests.get", mock_requests_get):
+            response = self.client.get(
+                reverse("source-edit-chants", args=[source1.id + 100])
+            )
         self.assertEqual(response.status_code, 404)
         self.assertTemplateUsed(response, "404.html")
 
         # trying to access chant-edit with a source that has no chant should return 200
         source2 = make_fake_source()
-
-        response = self.client.get(reverse("source-edit-chants", args=[source2.id]))
+        with patch("requests.get", mock_requests_get):
+            response = self.client.get(reverse("source-edit-chants", args=[source2.id]))
         self.assertEqual(response.status_code, 200)
         self.assertTemplateUsed(response, "chant_edit.html")
 
@@ -3098,10 +3099,10 @@ class SourceEditChantsViewTest(TestCase):
         chant = make_fake_chant(
             source=source, manuscript_full_text_std_spelling="initial"
         )
-
-        response = self.client.get(
-            reverse("source-edit-chants", args=[source.id]), {"pk": chant.id}
-        )
+        with patch("requests.get", mock_requests_get):
+            response = self.client.get(
+                reverse("source-edit-chants", args=[source.id]), {"pk": chant.id}
+            )
         self.assertEqual(response.status_code, 200)
         self.assertTemplateUsed(response, "chant_edit.html")
 
@@ -3166,7 +3167,10 @@ class SourceEditChantsViewTest(TestCase):
                 "volpiano": "abacadaeafagahaja",
             },
         )
-        chant_2 = Chant.objects.get(manuscript_full_text_std_spelling="resonare foobaz")
+        with patch("requests.get", mock_requests_get):
+            chant_2 = Chant.objects.get(
+                manuscript_full_text_std_spelling="resonare foobaz"
+            )
         self.assertEqual(chant_2.volpiano, expected_volpiano)
         self.assertEqual(chant_2.volpiano_intervals, expected_intervals)
 
