@@ -75,54 +75,6 @@ CHANT_SEARCH_TEMPLATE_VALUES: tuple[str, ...] = (
 )
 
 
-def parse_json_from_ci_api(path: str) -> Optional[list]:
-    """Queries a remote api from cantusindex.org that returns a json object, processes it and
-    returns a list containing its information.
-
-    We expect an array of javascript objects with a byte order mark (BOM) at the beginning
-
-    Args:
-        path (str): the path to the API. This should be just the path (not including the
-            domain), and should not include a leading slash.
-
-    Returns:
-        list, None: contents of json response in the form of a list
-    """
-    assert path[0] != "/"
-    url: str = f"https://cantusindex.org/{path}"
-    try:
-        response: Optional[Response] = requests.get(
-            url,
-            timeout=5,
-        )
-    except (
-        SSLError,
-        Timeout,
-        ConnectionError,
-    ) as exc:
-        print(  # eventually, we should log this rather than printing it to the console
-            "Encountered an error in parse_json_from_ci_api",
-            f"while making a request to {url}:",
-            exc,
-        )
-        return None
-    if response:
-        # we can't use response.json() because of the BOM at the beginning of json export
-        try:
-            return json.loads(response.text[2:])
-        except (
-            json.decoder.JSONDecodeError
-        ) as exc:  # in case of json.loads("not valid json")
-            print(  # eventually, we should log this rather than printing it to the console
-                "Encountered an error in parse_json_from_ci_api",
-                f"while parsing the response from {url}",
-                exc,
-            )
-            return None
-    else:
-        return None
-
-
 def get_feast_selector_options(
     source: Source, folios: list[str]
 ) -> list[tuple[str, Feast]]:
