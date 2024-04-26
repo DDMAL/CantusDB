@@ -44,6 +44,7 @@ from volpiano_display_utilities.cantus_text_syllabification import (
     flatten_syllabified_text,
 )
 from volpiano_display_utilities.text_volpiano_alignment import align_text_and_volpiano
+from cantusindex import get_suggested_chants
 
 CHANT_SEARCH_TEMPLATE_VALUES: tuple[str, ...] = (
     # for views that use chant_search.html, this allows them to
@@ -855,11 +856,23 @@ class ChantCreateView(LoginRequiredMixin, UserPassesTestMixin, CreateView):
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
         context["source"] = self.source
+        previous_chant: Optional[Chant] = None
         try:
-            context["previous_chant"] = self.source.chant_set.latest("date_updated")
+            previous_chant = self.source.chant_set.latest("date_updated")
         except Chant.DoesNotExist:
-            context["previous_chant"] = None
+            pass
+        context["previous_chant"] = previous_chant
         context["suggested_feasts"] = self.get_suggested_feasts()
+
+        previous_cantus_id: Optional[str] = None
+        if previous_chant:
+            previous_cantus_id = previous_chant.cantus_id
+
+        suggested_chants: Optional[list[dict]] = None
+        if previous_cantus_id:
+            suggested_chants = get_suggested_chants(previous_cantus_id)
+        context["suggested_chants"] = suggested_chants
+
         return context
 
     def form_valid(self, form):

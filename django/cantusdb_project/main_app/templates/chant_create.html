@@ -100,23 +100,7 @@
                         {% if previous_chant %}
                             Feasts that follow:
                                {% for feast, count in suggested_feasts.items %}
-                                    <a href="javascript:" onclick="autoFillFeast{{ feast.id }}();">{{ feast.name }}</a> ({{ count }}x) |
-                                    <script>
-                                        function autoFillFeast{{ feast.id }}() {
-                                            var feast_id = {{ feast.id }};
-                                            var feast_name = "{{ feast.name }}";
-
-                                            // Set the value, creating a new option if necessary
-                                            if ($('#id_feast').find("option[value='" + feast_id + "']").length) {
-                                                $('#id_feast').val(feast_id).trigger('change');
-                                            } else { 
-                                                // Create a DOM Option and pre-select by default
-                                                var newOption = new Option(feast_name, feast_id, true, true);
-                                                // Append it to the select
-                                                $('#id_feast').append(newOption).trigger('change');
-                                            };
-                                        }
-                                    </script>
+                                    <a href="javascript:" onclick='autoFillFeast("{{ feast.name }}", {{ feast.id }});'>{{ feast.name }}</a> ({{ count }}x) |
                                {% endfor %}                                                                                                      
                             
                             <!-- eventually, perhaps: implement a "Reverse Changes" button -->
@@ -255,11 +239,47 @@
             <div class="search-bar mb-3">
                 {% include "global_search_bar.html" %}
             </div>
-            <div class="card w-100">
+
+            <div class="card w-100 mb-3">
                 <div class="card-header">
-                    <h5><a id="source" href="{% url 'source-detail' source.id %}">{{ source.title }}</a></h5>
+                    <h5><a id="source" href="{% url 'source-detail' source.id %}">{{ source.siglum }}</a></h5>
                 </div>
             </div>
+
+            {% if previous_chant %}
+                <div class="card w-100">
+                    <div class="card-body">
+                        <small>
+                            <b>Suggestions based on previous chant:</b><br>
+                            <div>
+                                {{ previous_chant.folio }} {{ previous_chant.c_sequence}} <a href="{% url 'chant-detail' previous_chant.id %}" target="_blank">{{ previous_chant.incipit }}</a><br>
+                                {% if previous_chant.cantus_id %}
+                                    (Cantus ID: <b><a href="https://cantusindex.org/id/{{ previous_chant.cantus_id }}" target="_blank">{{ previous_chant.cantus_id }}</a></b>)
+                                {% endif %}
+                            </div>
+                        {% if suggested_chants %}
+                            {% for suggestion in suggested_chants %}
+                                <input
+                                    type="button"
+                                    style="width: 80px"
+                                    value="{{ suggestion.cantus_id }}"
+                                    title="{{ suggestion.cantus_id }}"
+                                    onclick='autoFillSuggestedChant(
+                                        "{{ suggestion.genre_name }}",
+                                        {{ suggestion.genre_id | default_if_none:"null" }},
+                                        "{{ suggestion.cantus_id }}",
+                                        "{{ suggestion.fulltext }}"
+                                    )'
+                                >
+                                <strong>{{ suggestion.genre_name }}</strong> - <span title="{{ suggestion.fulltext }}">{{ suggestion.incipit }}</span> (<strong>{{ suggestion.occurrences }}x</strong>)<br>
+                            {% endfor %}
+                        {% else %}
+                            Sorry! No suggestions found.<br>
+                        {% endif %}
+                        </small>
+                    </div>
+                </div>
+            {% endif %}
         </div>
     </div>
 </div>
