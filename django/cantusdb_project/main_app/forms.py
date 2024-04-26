@@ -148,6 +148,14 @@ class ChantCreateForm(forms.ModelForm):
         "Mass Alleluias. Punctuation is omitted.",
     )
 
+    segment = forms.ModelChoiceField(
+        queryset=Segment.objects.all().order_by("id"),
+        required=True,
+        initial=Segment.objects.get(id=4063),  # Default to the "Cantus" segment
+        help_text="Select the Database segment that the chant belongs to. "
+        "In most cases, this will be the CANTUS segment.",
+    )
+
     # automatically computed fields
     # source and incipit are mandatory fields in model,
     # but have to be optional in the form, otherwise the field validation won't pass
