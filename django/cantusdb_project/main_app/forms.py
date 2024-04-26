@@ -95,6 +95,7 @@ class ChantCreateForm(forms.ModelForm):
             "content_structure",
             "indexing_notes",
             "addendum",
+            "segment",
         ]
         # the widgets dictionary is ignored for a model field with a non-empty
         # choices attribute. In this case, you must override the form field to
