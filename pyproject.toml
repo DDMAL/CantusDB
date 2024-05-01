@@ -20,11 +20,6 @@ optional = true
 
 [tool.poetry.group.debug.dependencies]
 django_debug_toolbar = "3.8.1"
-
-[tool.poetry.group.test]
-optional = true
-
-[tool.poetry.group.test.dependencies]
 Faker = "4.1.0"
 coverage = "5.3.1"
 
