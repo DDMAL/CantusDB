@@ -44,6 +44,7 @@ from volpiano_display_utilities.cantus_text_syllabification import (
     flatten_syllabified_text,
 )
 from volpiano_display_utilities.text_volpiano_alignment import align_text_and_volpiano
+from cantusindex import get_suggested_chants
 
 CHANT_SEARCH_TEMPLATE_VALUES: tuple[str, ...] = (
     # for views that use chant_search.html, this allows them to
@@ -72,54 +73,6 @@ CHANT_SEARCH_TEMPLATE_VALUES: tuple[str, ...] = (
     "genre__description",
     "genre__name",
 )
-
-
-def parse_json_from_ci_api(path: str) -> Optional[list]:
-    """Queries a remote api from cantusindex.org that returns a json object, processes it and
-    returns a list containing its information.
-
-    We expect an array of javascript objects with a byte order mark (BOM) at the beginning
-
-    Args:
-        path (str): the path to the API. This should be just the path (not including the
-            domain), and should not include a leading slash.
-
-    Returns:
-        list, None: contents of json response in the form of a list
-    """
-    assert path[0] != "/"
-    url: str = f"https://cantusindex.org/{path}"
-    try:
-        response: Optional[Response] = requests.get(
-            url,
-            timeout=5,
-        )
-    except (
-        SSLError,
-        Timeout,
-        ConnectionError,
-    ) as exc:
-        print(  # eventually, we should log this rather than printing it to the console
-            "Encountered an error in parse_json_from_ci_api",
-            f"while making a request to {url}:",
-            exc,
-        )
-        return None
-    if response:
-        # we can't use response.json() because of the BOM at the beginning of json export
-        try:
-            return json.loads(response.text[2:])
-        except (
-            json.decoder.JSONDecodeError
-        ) as exc:  # in case of json.loads("not valid json")
-            print(  # eventually, we should log this rather than printing it to the console
-                "Encountered an error in parse_json_from_ci_api",
-                f"while parsing the response from {url}",
-                exc,
-            )
-            return None
-    else:
-        return None
 
 
 def get_feast_selector_options(
@@ -855,11 +808,23 @@ class ChantCreateView(LoginRequiredMixin, UserPassesTestMixin, CreateView):
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
         context["source"] = self.source
+        previous_chant: Optional[Chant] = None
         try:
-            context["previous_chant"] = self.source.chant_set.latest("date_updated")
+            previous_chant = self.source.chant_set.latest("date_updated")
         except Chant.DoesNotExist:
-            context["previous_chant"] = None
+            pass
+        context["previous_chant"] = previous_chant
         context["suggested_feasts"] = self.get_suggested_feasts()
+
+        previous_cantus_id: Optional[str] = None
+        if previous_chant:
+            previous_cantus_id = previous_chant.cantus_id
+
+        suggested_chants: Optional[list[dict]] = None
+        if previous_cantus_id:
+            suggested_chants = get_suggested_chants(previous_cantus_id)
+        context["suggested_chants"] = suggested_chants
+
         return context
 
     def form_valid(self, form):

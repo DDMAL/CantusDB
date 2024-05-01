@@ -13,6 +13,8 @@ from django.db.models.functions import Lower
 import csv
 from collections.abc import KeysView, ItemsView
 from typing import Optional
+from unittest.mock import patch
+from .test_functions import mock_requests_get
 
 from faker import Faker
 
@@ -2772,13 +2774,17 @@ class ChantCreateViewTest(TestCase):
     def test_url_and_templates(self):
         source = make_fake_source()
 
-        response = self.client.get(reverse("chant-create", args=[source.id]))
-        self.assertEqual(response.status_code, 200)
-        self.assertTemplateUsed(response, "chant_create.html")
+        with patch("requests.get", mock_requests_get):
+            response_1 = self.client.get(reverse("chant-create", args=[source.id]))
+            response_2 = self.client.get(
+                reverse("chant-create", args=[source.id + 100])
+            )
 
-        response = self.client.get(reverse("chant-create", args=[source.id + 100]))
-        self.assertEqual(response.status_code, 404)
-        self.assertTemplateUsed(response, "404.html")
+        self.assertEqual(response_1.status_code, 200)
+        self.assertTemplateUsed(response_1, "chant_create.html")
+
+        self.assertEqual(response_2.status_code, 404)
+        self.assertTemplateUsed(response_2, "404.html")
 
     def test_create_chant(self):
         source = make_fake_source()
@@ -2797,14 +2803,16 @@ class ChantCreateViewTest(TestCase):
 
     def test_view_url_path(self):
         source = make_fake_source()
-        response = self.client.get(f"/chant-create/{source.id}")
+        with patch("requests.get", mock_requests_get):
+            response = self.client.get(f"/chant-create/{source.id}")
         self.assertEqual(response.status_code, 200)
 
     def test_context(self):
         """some context variable passed to templates"""
         source = make_fake_source()
         url = reverse("chant-create", args=[source.id])
-        response = self.client.get(url)
+        with patch("requests.get", mock_requests_get):
+            response = self.client.get(url)
         self.assertEqual(response.context["source"].title, source.title)
 
     def test_post_error(self):
@@ -2826,9 +2834,10 @@ class ChantCreateViewTest(TestCase):
         nonexistent_source_id: str = faker.numerify(
             "#####"
         )  # there's not supposed to be 5-digits source id
-        response = self.client.get(
-            reverse("chant-create", args=[nonexistent_source_id])
-        )
+        with patch("requests.get", mock_requests_get):
+            response = self.client.get(
+                reverse("chant-create", args=[nonexistent_source_id])
+            )
         self.assertEqual(response.status_code, 404)
 
     def test_repeated_seq(self):
@@ -2865,13 +2874,15 @@ class ChantCreateViewTest(TestCase):
     def test_view_url_reverse_name(self):
         fake_sources = [make_fake_source() for _ in range(10)]
         for source in fake_sources:
-            response = self.client.get(reverse("chant-create", args=[source.id]))
+            with patch("requests.get", mock_requests_get):
+                response = self.client.get(reverse("chant-create", args=[source.id]))
             self.assertEqual(response.status_code, 200)
 
     def test_template_used(self):
         fake_sources = [make_fake_source() for _ in range(10)]
         for source in fake_sources:
-            response = self.client.get(reverse("chant-create", args=[source.id]))
+            with patch("requests.get", mock_requests_get):
+                response = self.client.get(reverse("chant-create", args=[source.id]))
             self.assertEqual(response.status_code, 200)
             self.assertTemplateUsed(response, "base.html")
             self.assertTemplateUsed(response, "chant_create.html")
@@ -2891,9 +2902,10 @@ class ChantCreateViewTest(TestCase):
                 # clefs, accidentals, etc., to be deleted
             },
         )
-        chant_1 = Chant.objects.get(
-            manuscript_full_text_std_spelling="ut queant lactose"
-        )
+        with patch("requests.get", mock_requests_get):
+            chant_1 = Chant.objects.get(
+                manuscript_full_text_std_spelling="ut queant lactose"
+            )
         self.assertEqual(chant_1.volpiano, "9abcdefg)A-B1C2D3E4F5G67?. yiz")
         self.assertEqual(chant_1.volpiano_notes, "9abcdefg9abcdefg")
         self.client.post(
@@ -2905,7 +2917,10 @@ class ChantCreateViewTest(TestCase):
                 "volpiano": "abacadaeafagahaja",
             },
         )
-        chant_2 = Chant.objects.get(manuscript_full_text_std_spelling="resonare foobaz")
+        with patch("requests.get", mock_requests_get):
+            chant_2 = Chant.objects.get(
+                manuscript_full_text_std_spelling="resonare foobaz"
+            )
         self.assertEqual(chant_2.volpiano, "abacadaeafagahaja")
         self.assertEqual(chant_2.volpiano_intervals, "1-12-23-34-45-56-67-78-8")
 
@@ -2928,12 +2943,12 @@ class ChantCreateViewTest(TestCase):
                 "image_link": image_link,
             },
         )
-
-        # when we request the Chant Create page, the same folio, feast, office and image_link should
-        # be preselected, and c_sequence should be incremented by 1.
-        response = self.client.get(
-            reverse("chant-create", args=[source.id]),
-        )
+        with patch("requests.get", mock_requests_get):
+            # when we request the Chant Create page, the same folio, feast, office and image_link should
+            # be preselected, and c_sequence should be incremented by 1.
+            response = self.client.get(
+                reverse("chant-create", args=[source.id]),
+            )
 
         observed_initial_folio: int = response.context["form"].initial["folio"]
         with self.subTest(subtest="test initial value of folio field"):
@@ -2954,6 +2969,50 @@ class ChantCreateViewTest(TestCase):
         observed_initial_image: int = response.context["form"].initial["image_link"]
         with self.subTest(subtest="test initial value of image_link field"):
             self.assertEqual(observed_initial_image, image_link)
+
+    def test_suggested_chant_buttons(self):
+        source: Source = make_fake_source()
+        with patch("requests.get", mock_requests_get):
+            response_empty_source = self.client.get(
+                reverse("chant-create", args=[source.id]),
+            )
+        with self.subTest(
+            test="Ensure no suggestions displayed when there is no previous chant"
+        ):
+            self.assertNotContains(
+                response_empty_source, "Suggestions based on previous chant:"
+            )
+
+        previous_chant: Chant = make_fake_chant(cantus_id="001010", source=source)
+        with patch("requests.get", mock_requests_get):
+            response_after_previous_chant = self.client.get(
+                reverse("chant-create", args=[source.id]),
+            )
+        suggested_chants = response_after_previous_chant.context["suggested_chants"]
+        with self.subTest(
+            test="Ensure suggested chant suggestions present when previous chant exists"
+        ):
+            self.assertContains(
+                response_after_previous_chant, "Suggestions based on previous chant:"
+            )
+            self.assertIsNotNone(suggested_chants)
+            self.assertEqual(len(suggested_chants), 3)
+
+        rare_chant: Chant = make_fake_chant(cantus_id="a07763", source=source)
+        with patch("requests.get", mock_requests_get):
+            response_after_rare_chant = self.client.get(
+                reverse("chant-create", args=[source.id]),
+            )
+        with self.subTest(
+            test="When previous chant has no suggested chants, ensure no suggestions are displayed"
+        ):
+            self.assertContains(
+                response_after_rare_chant, "Suggestions based on previous chant:"
+            )
+            self.assertContains(
+                response_after_rare_chant, "Sorry! No suggestions found."
+            )
+            self.assertIsNone(response_after_rare_chant.context["suggested_chants"])
 
 
 class ChantDeleteViewTest(TestCase):
