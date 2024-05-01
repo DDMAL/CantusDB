@@ -3,9 +3,10 @@ version: '3'
 services:
   django:
     build:
-      context: ./django
+      context: .
+      dockerfile: ./django/Dockerfile
     volumes:
-      - ./:/code/
+      - ./django/cantusdb_project:/code/cantusdb_project
       - static_volume:/resources/static
       - media_volume:/resources/media
       - api_cache_volume:/resources/api_cache
