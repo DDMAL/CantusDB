@@ -1116,31 +1116,18 @@ class SourceEditChantsView(LoginRequiredMixin, UserPassesTestMixin, UpdateView):
 
         user = self.request.user
         context["user_can_proofread_chant"] = user_can_proofread_chant(user, chant)
-        return context
-
-    def get_initial(self) -> dict:
         # in case the chant has no manuscript_full_text_std_spelling, we check Cantus Index
-        # for the expected text for chants with the same Cantus ID, and provide this as an
-        # initial value for the Manuscript Reading Full Text (standardized spelling) field
-        initial: dict = super().get_initial()
-        chant: Optional[Chant] = self.get_object()
-
+        # for the expected text for chants with the same Cantus ID, and pass it to the context
+        # to suggest it to the user
         if not chant:
-            return initial
-
-        cantus_id: Optional[str] = chant.cantus_id
-
+            return context
+        cantus_id = chant.cantus_id
         if not cantus_id:
-            return initial
-
-        suggested_fulltext: Optional[str] = None
-        if chant.manuscript_full_text_std_spelling == "":
-            suggested_fulltext = get_suggested_fulltext(cantus_id)
-
-        if suggested_fulltext:
-            initial["manuscript_full_text_std_spelling"] = suggested_fulltext
-
-        return initial
+            return context
+        if not chant.manuscript_full_text_std_spelling:
+            suggested_fulltext = get_suggested_fulltext(chant.cantus_id)
+            context["suggested_fulltext"] = suggested_fulltext
+        return context
 
     def form_valid(self, form):
         if form.is_valid():

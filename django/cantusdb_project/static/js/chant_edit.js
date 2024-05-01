@@ -47,3 +47,10 @@ window.addEventListener("load", function () {
         window.location.assign(url);
     }
 })
+
+function autoFillSuggestedFullText(fullText) {
+    var fullTextField = document.getElementById('id_manuscript_full_text_std_spelling');
+    if (fullTextField.value == "") {
+        fullTextField.value = fullText;
+    }
+}
