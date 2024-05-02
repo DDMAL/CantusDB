@@ -143,6 +143,17 @@
                             </div>
                         {% endif %}
                     </div>
+
+                    {% if suggested_fulltext %}
+                    <div class="form-row">
+                        <div class="form-group m-1 col-lg-12">
+                            <input type="button"
+                            value="Fill suggested text"
+                            title="Fill suggested text"
+                            onclick='autoFillSuggestedFullText("{{ suggested_fulltext }}")'>
+                        </div>
+                    </div>
+                    {% endif %}
                                         
                     <div class="form-row">
                         <div class="form-group m-1 col-lg-12">

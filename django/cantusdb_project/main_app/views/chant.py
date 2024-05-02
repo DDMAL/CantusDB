@@ -44,7 +44,7 @@ from volpiano_display_utilities.cantus_text_syllabification import (
     flatten_syllabified_text,
 )
 from volpiano_display_utilities.text_volpiano_alignment import align_text_and_volpiano
-from cantusindex import get_suggested_chants
+from cantusindex import get_suggested_chants, get_suggested_fulltext
 
 CHANT_SEARCH_TEMPLATE_VALUES: tuple[str, ...] = (
     # for views that use chant_search.html, this allows them to
@@ -1116,6 +1116,17 @@ class SourceEditChantsView(LoginRequiredMixin, UserPassesTestMixin, UpdateView):
 
         user = self.request.user
         context["user_can_proofread_chant"] = user_can_proofread_chant(user, chant)
+        # in case the chant has no manuscript_full_text_std_spelling, we check Cantus Index
+        # for the expected text for chants with the same Cantus ID, and pass it to the context
+        # to suggest it to the user
+        if not chant:
+            return context
+        cantus_id = chant.cantus_id
+        if not cantus_id:
+            return context
+        if not chant.manuscript_full_text_std_spelling:
+            suggested_fulltext = get_suggested_fulltext(chant.cantus_id)
+            context["suggested_fulltext"] = suggested_fulltext
         return context
 
     def form_valid(self, form):
