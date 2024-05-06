@@ -9,6 +9,8 @@ services:
     build:
       context: .
       dockerfile: ./django/Dockerfile
+      args:
+        PROJECT_ENVIRONMENT: DEVELOPMENT
     volumes:
       - ./django/cantusdb_project:/code/cantusdb_project
       - static_volume:/resources/static
