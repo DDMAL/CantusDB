@@ -1,7 +1,7 @@
 from django.test import TestCase
 from django.core.management import call_command
 
-from main_app.models import Source, Chant, Segment
+from main_app.models import Chant
 
 from main_app.tests.make_fakes import make_fake_source, make_fake_segment
 
@@ -12,9 +12,9 @@ class AssignChantsToSegmentsTest(TestCase):
         segment_2 = make_fake_segment()
         source_1 = make_fake_source(segment=segment_1)
         source_2 = make_fake_source(segment=segment_2)
-        for i in range(5):
+        for _ in range(5):
             Chant.objects.create(source=source_1)
-        for i in range(3):
+        for _ in range(3):
             Chant.objects.create(source=source_2)
         all_chants = Chant.objects.all()
         for chant in all_chants:
