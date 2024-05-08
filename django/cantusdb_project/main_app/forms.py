@@ -95,6 +95,7 @@ class ChantCreateForm(forms.ModelForm):
             "content_structure",
             "indexing_notes",
             "addendum",
+            "segment",
         ]
         # the widgets dictionary is ignored for a model field with a non-empty
         # choices attribute. In this case, you must override the form field to
@@ -145,6 +146,14 @@ class ChantCreateForm(forms.ModelForm):
         "Classical Latin forms. Use upper-case letters for proper nouns, "
         'the first word of each chant, and the first word after "Alleluia" for '
         "Mass Alleluias. Punctuation is omitted.",
+    )
+
+    segment = forms.ModelChoiceField(
+        queryset=Segment.objects.all().order_by("id"),
+        required=True,
+        initial=Segment.objects.get(id=4063),  # Default to the "Cantus" segment
+        help_text="Select the Database segment that the chant belongs to. "
+        "In most cases, this will be the CANTUS segment.",
     )
 
     # automatically computed fields
@@ -272,6 +281,7 @@ class ChantEditForm(forms.ModelForm):
             "manuscript_full_text_proofread",
             "volpiano_proofread",
             "proofread_by",
+            "segment",
         ]
         widgets = {
             # manuscript_full_text_std_spelling: defined below (required)
@@ -323,6 +333,13 @@ class ChantEditForm(forms.ModelForm):
         required=True,
         widget=TextInputWidget,
         help_text="Each folio starts with '1'.",
+    )
+
+    segment = forms.ModelChoiceField(
+        queryset=Segment.objects.all().order_by("id"),
+        required=True,
+        help_text="Select the Database segment that the chant belongs to. "
+        "In most cases, this will be the CANTUS segment.",
     )
 
 
