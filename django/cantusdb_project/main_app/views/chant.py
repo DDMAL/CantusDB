@@ -1,6 +1,14 @@
-import requests
 import urllib
-import json
+from collections import Counter
+from typing import Optional
+
+
+from volpiano_display_utilities.cantus_text_syllabification import (
+    syllabify_text,
+    flatten_syllabified_text,
+)
+from volpiano_display_utilities.text_volpiano_alignment import align_text_and_volpiano
+
 from django.contrib import messages
 from django.db.models import Q, QuerySet
 from django.shortcuts import get_object_or_404
@@ -14,6 +22,11 @@ from django.views.generic import (
     UpdateView,
 )
 from django.core.exceptions import PermissionDenied
+from django.contrib.auth.mixins import LoginRequiredMixin
+from django.http import Http404
+
+from django.contrib.auth.mixins import UserPassesTestMixin
+
 from main_app.forms import (
     ChantCreateForm,
     ChantEditForm,
@@ -27,23 +40,12 @@ from main_app.models import (
     Sequence,
     Office,
 )
-from django.contrib.auth.mixins import LoginRequiredMixin
-from django.http import Http404
-from collections import Counter
-from django.contrib.auth.mixins import UserPassesTestMixin
-from typing import Optional
-from requests.exceptions import SSLError, Timeout, ConnectionError
-from requests import Response
 from main_app.permissions import (
     user_can_edit_chants_in_source,
     user_can_proofread_chant,
     user_can_view_chant,
 )
-from volpiano_display_utilities.cantus_text_syllabification import (
-    syllabify_text,
-    flatten_syllabified_text,
-)
-from volpiano_display_utilities.text_volpiano_alignment import align_text_and_volpiano
+
 from cantusindex import get_suggested_chants, get_suggested_fulltext
 
 CHANT_SEARCH_TEMPLATE_VALUES: tuple[str, ...] = (
