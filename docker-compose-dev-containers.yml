@@ -7,9 +7,12 @@ version: '3'
 services:
   django:
     build:
-      context: ./django
+      context: ./
+      dockerfile: ./django/Dockerfile
+      args:
+        - PROJECT_ENVIRONMENT=DEVELOPMENT
     volumes:
-      - ./:/code/
+      - ./:/code/cantusdb_project
       - static_volume:/resources/static
       - media_volume:/resources/media
       - api_cache_volume:/resources/api_cache
@@ -19,6 +22,16 @@ services:
     restart: always
     depends_on:
       - postgres
+    working_dir: /code/cantusdb_project/django/cantusdb_project
+    command:
+      [
+        "gunicorn",
+        "--bind",
+        ":8000",
+        "cantusdb.wsgi:application",
+        "--workers",
+        "5"
+      ]
 
   nginx:
     build:

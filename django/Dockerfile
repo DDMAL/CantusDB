@@ -20,6 +20,3 @@ WORKDIR /code/cantusdb_project
 # Add our python environment binaries and package files to the path
 ENV PATH="$PATH:/code/.venv/bin/" \
     PYTHONPATH="$PYTHONPATH:/code/.venv/lib/python3.9/site-packages/"
-
-# define the default command to run when starting the container
-CMD ["gunicorn", "--bind", ":8000", "cantusdb.wsgi:application", "--workers", "5"]
