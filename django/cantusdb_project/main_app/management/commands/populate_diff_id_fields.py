@@ -6,7 +6,7 @@ from typing import Optional
 
 class Command(BaseCommand):
     def handle(self, *args, **kwargs):
-        CHUNK_SIZE = 1_000
+        CHUNK_SIZE = 500
         chants = Chant.objects.filter(
             Q(differentiae_database__isnull=False) & Q(diff_db__isnull=True)
         )
