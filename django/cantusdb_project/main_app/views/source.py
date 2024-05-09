@@ -156,7 +156,7 @@ class SourceBrowseChantsView(ListView):
             )
 
         # the options for the feast selector on the right, same as the source detail page
-        context["feasts_with_folios"] = get_feast_selector_options(source, folios)
+        context["feasts_with_folios"] = get_feast_selector_options(source)
         return context
 
 
@@ -191,7 +191,7 @@ class SourceDetailView(DetailView):
             )
             context["folios"] = folios
             # the options for the feast selector on the right, only chant sources have this
-            context["feasts_with_folios"] = get_feast_selector_options(source, folios)
+            context["feasts_with_folios"] = get_feast_selector_options(source)
 
         context["user_can_edit_chants"] = user_can_edit_chants_in_source(user, source)
         context["user_can_edit_source"] = user_can_edit_source(user, source)
@@ -404,7 +404,7 @@ class SourceEditView(LoginRequiredMixin, UserPassesTestMixin, UpdateView):
             )
             context["folios"] = folios
             # the options for the feast selector on the right, only chant sources have this
-            context["feasts_with_folios"] = get_feast_selector_options(source, folios)
+            context["feasts_with_folios"] = get_feast_selector_options(source)
         return context
 
     def test_func(self):

@@ -1,7 +1,6 @@
 import urllib
 from collections import Counter
-from typing import Optional
-
+from typing import Optional, Iterator, cast
 
 from volpiano_display_utilities.cantus_text_syllabification import (
     syllabify_text,
@@ -77,9 +76,7 @@ CHANT_SEARCH_TEMPLATE_VALUES: tuple[str, ...] = (
 )
 
 
-def get_feast_selector_options(
-    source: Source, folios: list[str]
-) -> list[tuple[str, Feast]]:
+def get_feast_selector_options(source: Source) -> list[tuple[str, int, str]]:
     """Generate folio-feast pairs as options for the feast selector
 
     Going through all chants in the source, folio by folio,
@@ -87,50 +84,22 @@ def get_feast_selector_options(
 
     Args:
         source (Source object): The source that the user is browsing in.
-        folios (list of strs): A list of folios in the source.
 
     Returns:
         list of tuples: A list of folios and Feast objects, to be unpacked in template.
     """
-    # the two lists to be zipped
-    feast_selector_feasts: list[Feast] = []
-    feast_selector_folios: list[str] = []
-    # get all chants in the source, select those that have a feast
-    chants_in_source: QuerySet[Chant] = (
+    folios_feasts_iter: Iterator[tuple[Optional[str], int, str]] = (
         source.chant_set.exclude(feast=None)
         .order_by("folio", "c_sequence")
-        .select_related("feast")
+        .values_list("folio", "feast_id", "feast__name")
+        .iterator()
     )
-    # initialize the feast selector options with the first chant in the source that has a feast
-    first_feast_chant: Optional[Feast] = chants_in_source.first()
-    if not first_feast_chant:
-        # if none of the chants in this source has a feast, return an empty list
-        return []
-    # if there is at least one chant that has a feast
-    current_feast: Feast = first_feast_chant.feast
-    feast_selector_feasts.append(current_feast)
-    current_folio: str = first_feast_chant.folio
-    feast_selector_folios.append(current_folio)
-
-    chants_by_folio: QuerySet[Chant] = chants_in_source.filter(
-        folio__in=folios
-    ).order_by("folio")
-    for chant in chants_by_folio:
-        if chant.feast != current_feast:
-            # if the feast changes, add the new feast and the corresponding folio to the lists
-            feast_selector_feasts.append(chant.feast)
-            feast_selector_folios.append(chant.folio)
-            # update the current_feast to track future changes
-            current_feast = chant.feast
-    # as the two lists will always be of the same length, no need for zip,
-    # just naively combine them
-    # if we use zip, the returned generator will be exhausted in rendering templates,
-    # making it hard to test the returned value
-    folios_with_feasts: list[tuple[str, Feast]] = [
-        (feast_selector_folios[i], feast_selector_feasts[i])
-        for i in range(len(feast_selector_folios))
-    ]
-    return folios_with_feasts
+    # Cast because we know, by restrictions on chant create form, that
+    # folio won't be None
+    folios_feasts_list = cast(list[tuple[str, int, str]], list(folios_feasts_iter))
+    # De-dupe query set while maintaining order
+    deduped_folios_feasts_lists = list(dict.fromkeys(folios_feasts_list))
+    return deduped_folios_feasts_lists
 
 
 class ChantDetailView(DetailView):
@@ -1066,7 +1035,7 @@ class SourceEditChantsView(LoginRequiredMixin, UserPassesTestMixin, UpdateView):
         )
         context["folios"] = folios
         # the options for the feast selector on the right, same as the source detail page
-        context["feasts_with_folios"] = get_feast_selector_options(source, folios)
+        context["feasts_with_folios"] = get_feast_selector_options(source)
 
         if self.request.GET.get("feast"):
             # if there is a "feast" query parameter, it means the user has chosen a specific feast
