@@ -20,20 +20,16 @@ class Command(BaseCommand):
             for chant in chunk:
                 try:
                     differentia_id: Optional[str] = chant.differentiae_database
-                    if not differentia_id is None:
-
-                        differentia = Differentia.objects.get(
-                            differentia_id=differentia_id
+                    differentia = Differentia.objects.get(differentia_id=differentia_id)
+                    if differentia:
+                        chant.diff_db = differentia
+                    else:
+                        # If the Differentia doesn't exist, create a new one
+                        differentia = Differentia(
+                            differentia_id=differentia_id,
                         )
-                        if differentia:
-                            chant.diff_db = differentia
-                        else:
-                            # If the Differentia doesn't exist, create a new one
-                            differentia = Differentia(
-                                differentia_id=differentia_id,
-                            )
-                            differentia.save()
-                            chant.diff_db = differentia
+                        differentia.save()
+                        chant.diff_db = differentia
                     chant.save()
                 except Differentia.DoesNotExist:
                     print(f"Differentia not found for chant: {chant}")
