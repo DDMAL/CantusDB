@@ -10,26 +10,23 @@ django-extra-views = "0.13.0"
 django-quill-editor = "0.1.40"
 django-reversion = "5.0.8"
 gunicorn = "22.0.0"
-psycopg = "3.1.8"
 requests = "2.31.0"
 ujson = "5.9.0"
 volpiano-display-utilities = { git = "https://github.com/DDMAL/volpiano-display-utilities.git", tag = "v1.1.2" }
-
-[tool.poetry.group.debug]
-optional = true
-
-[tool.poetry.group.debug.dependencies]
-django_debug_toolbar = "3.8.1"
-Faker = "4.1.0"
-coverage = "5.3.1"
+psycopg = {extras = ["binary"], version = "^3.1.18"}
 
 [tool.poetry.group.dev]
 optional = true
 
 [tool.poetry.group.dev.dependencies]
+django_debug_toolbar = "3.8.1"
+Faker = "4.1.0"
+coverage = "5.3.1"
 black = "^24.4.1"
 mypy = "^1.10.0"
 pylint = "^2.6.0"
+pylint-django = "^2.5.5"
+django-stubs = {git = "https://github.com/typeddjango/django-stubs.git", rev = "4a5b0656be5ccfb961e4e32f4a99756eaf57bb1d"}
 
 
 [build-system]
