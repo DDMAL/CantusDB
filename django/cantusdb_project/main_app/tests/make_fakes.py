@@ -152,6 +152,7 @@ def make_fake_chant(
     manuscript_syllabized_full_text=None,
     next_chant=None,
     differentia=None,
+    segment=None,
 ) -> Chant:
     """Generates a fake Chant object."""
     if source is None:
@@ -189,6 +190,8 @@ def make_fake_chant(
         manuscript_syllabized_full_text = faker.sentence(20)
     if differentia is None:
         differentia = make_random_string(2)
+    if segment is None:
+        segment = make_fake_segment()
 
     chant = Chant.objects.create(
         source=source,
@@ -223,6 +226,7 @@ def make_fake_chant(
         indexing_notes=faker.sentence(),
         json_info=None,
         next_chant=next_chant,
+        segment=segment,
     )
     chant.refresh_from_db()  # several fields (e.g., incipit) are calculated automatically
     # upon chant save. By refreshing from db before returning, we ensure all the chant's fields

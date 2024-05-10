@@ -1,3 +1,8 @@
+# This file is configured for deployment of the CantusDB project in local development.
+# When building the project locally, replace the contents of docker-compose.yml with the
+# contents of this file.
+
+
 version: '3'
 
 services:
@@ -6,7 +11,7 @@ services:
       context: .
       dockerfile: ./django/Dockerfile
       args:
-        - PROJECT_ENVIRONMENT=DEVELOPMENT
+        PROJECT_ENVIRONMENT: DEVELOPMENT
     volumes:
       - ./django/cantusdb_project:/code/cantusdb_project
       - static_volume:/resources/static
@@ -17,6 +22,7 @@ services:
     depends_on:
       - postgres
     command: [ "python", "manage.py", "runserver", "0:8000" ]
+
 
   nginx:
     build:
