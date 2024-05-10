@@ -158,8 +158,8 @@
 
                         <select name="feast" id="feastSelect" style="width: 200px;"> <!-- style attribute prevents select element from extending beyond left edge of div element -->
                             <option value="">Select a feast:</option>
-                            {% for folio, feast in feasts_with_folios %}
-                                <option value="{{ feast.id }}">{{ folio }} - {{ feast.name }}</option>
+                            {% for folio, feast_id, feast_name in feasts_with_folios %}
+                                <option value="{{ feast_id }}">{{ folio }} - {{ feast_name }}</option>
                             {% endfor %}
                         </select>
                         <br>

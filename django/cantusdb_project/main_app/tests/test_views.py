@@ -706,7 +706,11 @@ class SourceBrowseChantsViewTest(TestCase):
         response = self.client.get(reverse("browse-chants", args=[source.id]))
         # context "feasts_with_folios" is a list of tuples
         # it records the folios where the feast changes
-        expected_result = [("001r", feast_1), ("001v", feast_2), ("002r", feast_1)]
+        expected_result = [
+            ("001r", feast_1.id, feast_1.name),
+            ("001v", feast_2.id, feast_2.name),
+            ("002r", feast_1.id, feast_1.name),
+        ]
         self.assertEqual(response.context["feasts_with_folios"], expected_result)
 
     def test_redirect_with_source_parameter(self):
@@ -4367,7 +4371,11 @@ class SourceDetailViewTest(TestCase):
         response = self.client.get(reverse("source-detail", args=[source.id]))
         # context "feasts_with_folios" is a list of tuples
         # it records the folios where the feast changes
-        expected_result = [("001r", feast_1), ("001v", feast_2), ("002r", feast_1)]
+        expected_result = [
+            ("001r", feast_1.id, feast_1.name),
+            ("001v", feast_2.id, feast_2.name),
+            ("002r", feast_1.id, feast_1.name),
+        ]
         self.assertEqual(response.context["feasts_with_folios"], expected_result)
 
     def test_context_sequences(self):
