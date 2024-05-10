@@ -8,7 +8,7 @@ poetry config virtualenvs.options.no-pip true # Don't install pip in the virtual
 poetry config virtualenvs.options.no-setuptools true # Don't install setuptools in the virtualenv
 
 if [ $1 = "DEVELOPMENT" ]; then
-    poetry install --no-cache --with debug
+    poetry install --no-cache --with dev
 else
     poetry install --no-cache
 fi 
