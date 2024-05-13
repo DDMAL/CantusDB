@@ -371,6 +371,11 @@ urlpatterns = [
         name="chant-search-ms",
     ),
     path(
+        "search/",
+        views.redirect_search,
+        name="redirect-search",
+    ),
+    path(
         "ajax/search-bar/<str:search_term>",
         views.ajax_search_bar,
         name="ajax-search-bar",
