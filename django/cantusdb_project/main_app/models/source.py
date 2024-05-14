@@ -121,6 +121,9 @@ class Source(BaseModel):
     dact_id = models.CharField(
         max_length=15, blank=True, null=True, verbose_name="DACT ID"
     )
+    exists_on_cantus_ultimus = models.BooleanField(
+        blank=False, null=False, default=False
+    )
 
     # number_of_chants and number_of_melodies are used for rendering the source-list page (perhaps among other places)
     # they are automatically recalculated in main_app.signals.update_source_chant_count and
