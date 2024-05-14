@@ -215,6 +215,14 @@
                         <a href="{{ chant.image_link }}" target="_blank" style="word-break: break-all">{{ chant.image_link }}</a>
                     </dd>
                 {% endif %}
+                {% if chant.source.exists_on_cantus_ultimus %}
+                    <dt>Image link (Cantus Ultimus)</dt>
+                    <dd>
+                        <a href="https://cantus.simssa.ca/manuscript/{{ chant.source.id }}/?folio={{ chant.folio }}&chant={{ chant.c_sequence }}" target="_blank" style="word-break: break-all">
+                            https://cantus.simssa.ca/manuscript/{{ chant.source.id }}/?folio={{ chant.folio }}&chant={{ chant.c_sequence }}
+                        </a>
+                    </dd>
+                {% endif %}
             </dl>
             {% if chant.cantus_id %}
                 <h4 id="concordances">List of concordances</h4>
