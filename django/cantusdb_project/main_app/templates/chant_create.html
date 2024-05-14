@@ -84,6 +84,11 @@
                         <label for="{{ form.cantus_id.id_for_label }}"><small>Cantus ID:</small></label>
                         {{ form.cantus_id }}
                     </div>
+
+                    <div class="form-group m-1 col-lg-2">
+                        <small>{{ form.segment.label_tag }}<span class="text-danger" title="This field is required">*</span></small>
+                        {{ form.segment }}
+                    </div>
                 </div>
 
                 <div class="form-row">

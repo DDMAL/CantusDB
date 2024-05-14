@@ -19,6 +19,7 @@ from cantusindex import (
     get_suggested_chants,
     get_json_from_ci_api,
     CANTUS_INDEX_DOMAIN,
+    get_suggested_fulltext,
 )
 
 # run with `python -Wa manage.py test main_app.tests.test_functions`
@@ -403,3 +404,17 @@ class CantusIndexFunctionsTest(TestCase):
             self.assertRaises(
                 ValueError, get_json_from_ci_api, "path/lacking/a/leading/slash"
             )
+
+    def test_get_suggested_fulltext(self) -> None:
+        with self.subTest("Test CantusID with full text"):
+            with patch("requests.get", mock_requests_get):
+                fulltext = get_suggested_fulltext("008349")
+            self.assertEqual(
+                fulltext,
+                "Nocte surgentes vigilemus omnes semper in psalmis meditemur atque viribus totis domino canamus dulciter hymnos | Ut pio regi pariter canentes cum suis sanctis mereamur aulam ingredi caeli simul et beatam ducere vitam | Praestet hoc nobis deitas beata patris ac nati pariterque sancti spiritus cujus resonat per omnem gloria mundum | Amen",
+            )
+
+        with self.subTest("Test invalid CantusID"):
+            with patch("requests.get", mock_requests_get):
+                fulltext = get_suggested_fulltext("999999")
+            self.assertIsNone(fulltext)
