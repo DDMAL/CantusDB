@@ -1,4 +1,5 @@
 from django.urls import include, path
+from django.conf import settings
 from django.contrib.auth.views import (
     PasswordResetView,
     PasswordResetDoneView,
@@ -6,7 +7,6 @@ from django.contrib.auth.views import (
     PasswordResetCompleteView,
 )
 from main_app.views import views
-import debug_toolbar
 from main_app.views.century import (
     CenturyDetailView,
 )
@@ -75,7 +75,6 @@ from main_app.views.views import (
 )
 
 urlpatterns = [
-    path("__debug__/", include(debug_toolbar.urls)),
     path(
         "contact/",
         views.contact,
@@ -512,3 +511,8 @@ urlpatterns = [
         name="differentia-autocomplete",
     ),
 ]
+
+if settings.DEBUG:
+    import debug_toolbar
+
+    urlpatterns.append(path("__debug__/", include(debug_toolbar.urls)))
