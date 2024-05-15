@@ -48,23 +48,19 @@ class Command(BaseCommand):
         except (TimeoutError, ConnectionError) as e:
             self.stdout.write(self.style.ERROR(f"{e} for source: {source.id}"))
         # We expect a 404 response if the source doesn't exist on Cantus Ultimus
-        if response.status_code == 200:
-
-            # update the link for the entire source
-            self.stdout.write(
-                f"\nUpdating exists_on_cantus_ultimus for source: {source}"
-            )
-            source.exists_on_cantus_ultimus = True
-            source.save()
-            self.stdout.write(
-                self.style.SUCCESS(
-                    "Source exists_on_cantus_ultimus updated successfully!\n"
-                )
-            )
-
-        else:
+        if response.status_code == 404:
             self.stdout.write(
                 self.style.NOTICE(
                     f"source {source.id} doesn't exist on Cantus Ultimus\n"
                 )
             )
+            return
+        # update the link for the entire source
+        self.stdout.write(f"\nUpdating exists_on_cantus_ultimus for source: {source}")
+        source.exists_on_cantus_ultimus = True
+        source.save()
+        self.stdout.write(
+            self.style.SUCCESS(
+                "Source exists_on_cantus_ultimus updated successfully!\n"
+            )
+        )
