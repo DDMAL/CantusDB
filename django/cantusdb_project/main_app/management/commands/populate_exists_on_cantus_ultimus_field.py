@@ -26,68 +26,45 @@ class Command(BaseCommand):
 
     def handle(self, *args, **kwargs):
         source_id: int = kwargs["source_id"]
-        if source_id:  # update links for a specified source
+        if source_id:  # update exists_on_cantus_ultimus for a specified source
             try:
                 source: Source = Source.objects.get(id=source_id)
+                self.update_exists_on_cantus_ultimus(source)
             except Source.DoesNotExist:
                 self.stdout.write(
                     self.style.ERROR(f"Source {source_id} does not exist")
                 )
                 return
-            try:
-                response: Response = requests.get(
-                    f"https://cantus.simssa.ca/manuscript/{source_id}", timeout=10
-                )
-            except (TimeoutError, ConnectionError) as e:
-                self.stdout.write(self.style.ERROR(f"{e} for source: {source_id}"))
-
-            # We expect a 404 response if the source doesn't exist on Cantus Ultimus
-            if response.status_code == 200:
-                # update the link for the entire source
-                self.stdout.write(
-                    f"\nUpdating exists_on_cantus_ultimus for source: {source}"
-                )
-                source.exists_on_cantus_ultimus = True
-                source.save()
-                self.stdout.write(
-                    self.style.SUCCESS(
-                        "Source exists_on_cantus_ultimus updated successfully!\n"
-                    )
-                )
-            else:
-                self.stdout.write(
-                    self.style.NOTICE(
-                        f"source {source_id} doesn't exist on Cantus Ultimus\n"
-                    )
-                )
-
-        else:  # No source parameter provided, update all sources
+        else:  # No source argument provided, update all sources
             sources = Source.objects.filter(segment=4063)
             for source in sources:
-                try:
-                    response: Response = requests.get(
-                        f"https://cantus.simssa.ca/manuscript/{source.id}", timeout=10
-                    )
-                except (TimeoutError, ConnectionError) as e:
-                    self.stdout.write(self.style.ERROR(f"{e} for source: {source.id}"))
-                # We expect a 404 response if the source doesn't exist on Cantus Ultimus
-                if response.status_code == 200:
+                self.update_exists_on_cantus_ultimus(source)
 
-                    # update the link for the entire source
-                    self.stdout.write(
-                        f"\nUpdating exists_on_cantus_ultimus for source: {source}"
-                    )
-                    source.exists_on_cantus_ultimus = True
-                    source.save()
-                    self.stdout.write(
-                        self.style.SUCCESS(
-                            "Source exists_on_cantus_ultimus updated successfully!\n"
-                        )
-                    )
+    def update_exists_on_cantus_ultimus(self, source: Source) -> None:
+        try:
+            response: Response = requests.get(
+                f"https://cantus.simssa.ca/manuscript/{source.id}", timeout=10
+            )
+        except (TimeoutError, ConnectionError) as e:
+            self.stdout.write(self.style.ERROR(f"{e} for source: {source.id}"))
+        # We expect a 404 response if the source doesn't exist on Cantus Ultimus
+        if response.status_code == 200:
 
-                else:
-                    self.stdout.write(
-                        self.style.NOTICE(
-                            f"source {source.id} doesn't exist on Cantus Ultimus\n"
-                        )
-                    )
+            # update the link for the entire source
+            self.stdout.write(
+                f"\nUpdating exists_on_cantus_ultimus for source: {source}"
+            )
+            source.exists_on_cantus_ultimus = True
+            source.save()
+            self.stdout.write(
+                self.style.SUCCESS(
+                    "Source exists_on_cantus_ultimus updated successfully!\n"
+                )
+            )
+
+        else:
+            self.stdout.write(
+                self.style.NOTICE(
+                    f"source {source.id} doesn't exist on Cantus Ultimus\n"
+                )
+            )
