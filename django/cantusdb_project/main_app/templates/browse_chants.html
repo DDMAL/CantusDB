@@ -52,7 +52,7 @@
                 </div>
 
             </form>
-            {% with exists_on_cantus_ultimus=source.exists_on_cantus_ultimus%}
+            {% with exists_on_cantus_ultimus=source.exists_on_cantus_ultimus %}
                 {% if chants %}
                     <table class="table table-responsive table-sm table-bordered small">
                         <thead>
@@ -76,7 +76,7 @@
                         <tbody>
                             {% for chant in chants %}
                             <tr>
-                                <td class="text-wrap" style="text-align:center" title="{{ chant.source.title }}">{{ chant.source.siglum|default:"" }}</td>
+                                <td class="text-wrap" style="text-align:center" title="{{ source.title }}">{{ source.siglum|default:"" }}</td>
                                 <td class="text-wrap" style="text-align:center"><b>{{ chant.folio|default:"" }}</b></td>
                                 <td class="text-wrap" style="text-align:center">{{ chant.c_sequence|default_if_none:"" }}</td> {# default_if_none: sometimes, c_sequence is 0, and should still be displayed #}
                                 <td class="text-wrap">
@@ -108,8 +108,8 @@
                                 </td>
                                 <td class="text-wrap" style="text-align:center">{{ chant.mode|default:"" }}</td>
                                 <td class="text-wrap" style="text-align:center">
-                                    {% if chant.source.exists_on_cantus_ultimus %}
-                                            <a href="https://cantus.simssa.ca/manuscript/{{ chant.source.id }}/?folio={{ chant.folio }}&chant={{ chant.c_sequence }}" target="_blank">
+                                    {% if exists_on_cantus_ultimus %}
+                                            <a href="https://cantus.simssa.ca/manuscript/{{ source.id }}/?folio={{ chant.folio }}&chant={{ chant.c_sequence }}" target="_blank">
                                                 Image
                                             </a>
                                     {% elif chant.image_link %}
@@ -118,7 +118,7 @@
                                 </td>
                                 {% if user_can_edit_chant %}
                                     <td class="text-wrap" style="text-align:center">
-                                        <a href="{% url 'source-edit-chants' chant.source.id %}?pk={{ chant.id }}&folio={{ chant.folio }}&ref=chant-list">Edit</a>
+                                        <a href="{% url 'source-edit-chants' source.id %}?pk={{ chant.id }}&folio={{ chant.folio }}&ref=chant-list">Edit</a>
                                     </td>
                                 {% endif %}
                             </tr>
