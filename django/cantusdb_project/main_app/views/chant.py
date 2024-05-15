@@ -156,7 +156,6 @@ class ChantDetailView(DetailView):
         chants_current_folio = chants_in_source.filter(
             folio=chant.folio
         ).prefetch_related("feast")
-        print(self.queryset)
         context["exists_on_cantus_ultimus"] = source.exists_on_cantus_ultimus
 
         def get_chants_with_feasts(chants_in_folio):
