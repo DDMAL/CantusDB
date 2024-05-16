@@ -34,7 +34,6 @@ class Command(BaseCommand):
                 self.stdout.write(
                     self.style.ERROR(f"Source {source_id} does not exist")
                 )
-                return
         else:  # No source argument provided, update all sources
             sources = Source.objects.filter(segment=4063)
             for source in sources:
