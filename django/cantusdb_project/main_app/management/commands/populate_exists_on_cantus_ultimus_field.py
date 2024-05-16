@@ -47,10 +47,10 @@ class Command(BaseCommand):
         except (TimeoutError, ConnectionError) as e:
             self.stdout.write(self.style.ERROR(f"{e} for source: {source.id}"))
         # We expect a 404 response if the source doesn't exist on Cantus Ultimus
-        if response.status_code == 404:
+        if response.status_code != 200:
             self.stdout.write(
                 self.style.NOTICE(
-                    f"source {source.id} doesn't exist on Cantus Ultimus\n"
+                    f"Source {source.id} may not exist on Cantus Ultimus (Status Code: {response.status_code})\n"
                 )
             )
             return
