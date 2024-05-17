@@ -68,7 +68,7 @@
 
                     <div class="form-row">
                         <div class="form-group m-1 col-lg-3">
-                            <small>{{ form.office.label_tag }}</small>
+                            <label for="{{ form.office.id_for_label }}"><small>Service:</small></label>
                             <br>{{ form.office }}
                         </div>
                     </div>
@@ -97,6 +97,11 @@
                             </label>
                             {{ form.melody_id }}
                         </div>
+                        <!-- Temporarily commented; see #1452 -->
+                        <!-- <div class="form-group m-1 col-lg-2">
+                            <small>{{ form.segment.label_tag }}<span class="text-danger" title="This field is required">*</span></small>
+                            {{ form.segment }}
+                        </div> -->
                     </div>
 
                     <div class="form-row">
@@ -143,6 +148,17 @@
                             </div>
                         {% endif %}
                     </div>
+
+                    {% if suggested_fulltext %}
+                    <div class="form-row">
+                        <div class="form-group m-1 col-lg-12">
+                            <input type="button"
+                            value="Fill suggested text"
+                            title="Fill suggested text"
+                            onclick='autoFillSuggestedFullText("{{ suggested_fulltext }}")'>
+                        </div>
+                    </div>
+                    {% endif %}
                                         
                     <div class="form-row">
                         <div class="form-group m-1 col-lg-12">
@@ -340,8 +356,8 @@
 
                             <select id="feastSelect" style="width: 200px;"> <!-- style attribute prevents select element from extending beyond left edge of div element -->
                                 <option value="">Select a feast:</option>
-                                {% for folio, feast in feasts_with_folios %}
-                                    <option value="{{ feast.id }}">{{ folio }} - {{ feast.name }}</option>
+                                {% for folio, feast_id, feast_name in feasts_with_folios %}
+                                    <option value="{{ feast_id }}">{{ folio }} - {{ feast_name }}</option>
                                 {% endfor %}
                             </select>
                             <br>

@@ -2,7 +2,7 @@ import csv
 from typing import Optional, Union
 from django.db.models.query import QuerySet
 from django.http.response import JsonResponse
-from django.http import HttpResponse, HttpResponseNotFound
+from django.http import HttpResponse, HttpResponseNotFound, HttpRequest
 from django.utils.http import urlencode
 from django.shortcuts import render, redirect
 from django.urls.base import reverse
@@ -901,6 +901,19 @@ def redirect_genre(request) -> HttpResponse:
         HttpResponse
     """
     return redirect("genre-list")
+
+
+def redirect_search(request: HttpRequest) -> HttpResponse:
+    """
+    Redirects from search/ (à la OldCantus) to chant-search/ (à la NewCantus)
+
+    Args:
+        request
+
+    Returns:
+        HttpResponse
+    """
+    return redirect("chant-search", permanent=True)
 
 
 def redirect_documents(request) -> HttpResponse:

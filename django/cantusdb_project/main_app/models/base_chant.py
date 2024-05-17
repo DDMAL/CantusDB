@@ -144,6 +144,13 @@ class BaseChant(BaseModel):
     # this field, populated by the populate_is_last_chant_in_feast script, exists in order to optimize .get_suggested_feasts() on the chant-create page
     is_last_chant_in_feast = models.BooleanField(blank=True, null=True)
 
+    segment = models.ForeignKey(
+        "Segment",
+        on_delete=models.PROTECT,
+        null=True,
+        blank=True,
+        help_text="The segment of the manuscript that contains this chant",
+    )
     # fragmentarium_id = models.CharField(blank=True, null=True, max_length=64)
     # # Digital Analysis of Chant Transmission
     # dact = models.CharField(blank=True, null=True, max_length=64)

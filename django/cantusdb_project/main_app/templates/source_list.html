@@ -113,9 +113,9 @@
                 {% endfor %}
             </tbody>
         </table>
+        {% include "pagination.html" %}
     {% else %}
         No sources found.
     {% endif %}
-    {% include "pagination.html" %}
 </div>
 {% endblock %}

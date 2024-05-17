@@ -71,7 +71,7 @@
                 
                     {% if chant.office %}
                         <div class="form-group col-lg-2 col-sm-6 col-6">
-                            <dt>Office/Mass</dt>
+                            <dt>Service</dt>
                             <dd>
                                 <a href="{% url 'office-detail' chant.office.id %}" title="{{ chant.office.description }}">{{ chant.office.name }}</a>
                             </dd>
@@ -215,6 +215,14 @@
                         <a href="{{ chant.image_link }}" target="_blank" style="word-break: break-all">{{ chant.image_link }}</a>
                     </dd>
                 {% endif %}
+                {% if exists_on_cantus_ultimus %}
+                    <dt>Image link (Cantus Ultimus)</dt>
+                    <dd>
+                        <a href="https://cantus.simssa.ca/manuscript/{{ chant.source.id }}/?folio={{ chant.folio }}&chant={{ chant.c_sequence }}" target="_blank" style="word-break: break-all">
+                            https://cantus.simssa.ca/manuscript/{{ chant.source.id }}/?folio={{ chant.folio }}&chant={{ chant.c_sequence }}
+                        </a>
+                    </dd>
+                {% endif %}
             </dl>
             {% if chant.cantus_id %}
                 <h4 id="concordances">List of concordances</h4>
@@ -271,7 +279,11 @@
                                     &nbsp;<a href="{% url "browse-chants" source.id %}?folio={{ next_folio }}">> {{ next_folio }}</a>
                                 {% endif %}
 
-                                {% if chant.image_link %}
+                                {% if exists_on_cantus_ultimus %}
+                                    <a href="https://cantus.simssa.ca/manuscript/{{ chant.source.id }}/?folio={{ chant.folio }}&chant={{ chant.c_sequence }}" class="guillemet" target="_blank">
+                                        Display facsimile <b>({{ chant.folio }})
+                                    </a>
+                                {% elif chant.image_link %}
                                     <a href={{ chant.image_link }} class="guillemet" target="_blank">Display facsimile <b>({{ chant.folio }})</b></a>
                                 {% endif %}
 
