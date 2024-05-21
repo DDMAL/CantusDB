@@ -197,6 +197,9 @@ DEBUG_TOOLBAR_CONFIG = {
         "debug_toolbar.panels.redirects.RedirectsPanel",
         "debug_toolbar.panels.profiling.ProfilingPanel",
     },
+    "SHOW_TOOLBAR_CALLBACK": lambda request: (
+        False if request.headers.get("x-requested-with") == "XMLHttpRequest" else True
+    ),
 }
 
 INTERNAL_IPS = [
@@ -204,12 +207,6 @@ INTERNAL_IPS = [
 ]
 
 if DEBUG:
-    import socket
-
-    # Add the internal IP of the Docker container hosting the Django application.
-    # This line dynamically resolves the hostname to its internal IP address
-    INTERNAL_IPS.append(socket.gethostbyname("cantusdb-nginx-1.cantusdb_default"))
-
     INSTALLED_APPS.append("debug_toolbar")
     # debug toolbar must be inserted as early in the middleware as possible
     MIDDLEWARE.insert(0, "debug_toolbar.middleware.DebugToolbarMiddleware")
