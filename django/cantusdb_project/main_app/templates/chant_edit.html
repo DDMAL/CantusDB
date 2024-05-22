@@ -1,7 +1,7 @@
 {% extends "base.html" %}
 {% block content %}
 {% load static %}
-<title>{{ source.title }} | Cantus Manuscript Database</title>
+<title>{{ source.title }} | Cantus Database</title>
 <script src="/static/js/chant_edit.js"></script>
 <script type="text/javascript" src="{% static 'admin/js/vendor/jquery/jquery.js' %}"></script>
 {{ form.media }}
@@ -163,7 +163,7 @@
                     <div class="form-row">
                         <div class="form-group m-1 col-lg-12">
                             <label for="{{ form.manuscript_full_text_std_spelling.id_for_label }}">
-                                <small>Manuscript Reading Full Text (standardized spelling):<span class="text-danger" title="This field is required">*</span></small>
+                                <small>Full text as in Source (standardized spelling):<span class="text-danger" title="This field is required">*</span></small>
                             </label>
                             {{ form.manuscript_full_text_std_spelling }}
                         </div>
@@ -173,7 +173,7 @@
                         <div class="form-row">
                             <div class="form-group m-1 col-lg-12">
                                 <label for="{{ form.manuscript_full_text_std_spelling.id_for_label }}">
-                                    <small>Manuscript Reading Full Text (standardized spelling) proofread:</small>
+                                    <small>Full text as in Source (standardized spelling) proofread:</small>
                                 </label>
                                 {{ form.manuscript_full_text_std_proofread }}
                             </div>
@@ -189,7 +189,7 @@
                     <div class="form-row">
                         <div class="form-group m-1 col-lg-12">
                             <label for="{{ form.manuscript_full_text.id_for_label }}">
-                                <small>Manuscript Reading Full Text (MS spelling):</small>
+                                <small>Full text as in Source (source spelling):</small>
                             </label>
                             {{ form.manuscript_full_text }}
                         </div>
@@ -199,7 +199,7 @@
                         <div class="form-row">
                             <div class="form-group m-1 col-lg-12">
                                 <label for="{{ form.manuscript_full_text_std_spelling.id_for_label }}">
-                                    <small>Manuscript Reading Full Text (MS spelling) proofread:</small>
+                                    <small>Full text as in Source (source spelling) proofread:</small>
                                 </label>
                                 {{ form.manuscript_full_text_proofread }}
                             </div>
