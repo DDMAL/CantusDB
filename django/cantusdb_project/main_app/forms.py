@@ -681,7 +681,7 @@ class AdminSourceForm(forms.ModelForm):
     title = forms.CharField(
         required=True,
         widget=TextInputWidget,
-        help_text="Full Manuscript Identification (City, Archive, Shelf-mark)",
+        help_text="Full Source Identification (City, Archive, Shelf-mark)",
     )
     title.widget.attrs.update({"style": "width: 610px;"})
 
