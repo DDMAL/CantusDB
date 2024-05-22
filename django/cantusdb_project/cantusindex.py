@@ -128,6 +128,15 @@ def get_suggested_fulltext(cantus_id: str) -> str:
     return suggested_fulltext
 
 
+def get_merged_chants():
+    endpoint_path: str = "/json-merged-chants"
+    json: Union[dict, list, None] = get_json_from_ci_api(endpoint_path)
+
+    if not isinstance(json, dict):
+        # mostly, in case of a timeout within get_json_from_ci_api
+        return None
+
+
 def get_json_from_ci_api(
     path: str, timeout: float = DEFAULT_TIMEOUT
 ) -> Union[dict, list, None]:
