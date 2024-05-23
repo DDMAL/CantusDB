@@ -31,26 +31,6 @@ from dal import autocomplete
 # ModelForm allows to build a form directly from a model
 # see https://docs.djangoproject.com/en/3.0/topics/forms/modelforms/
 
-"""
-# 3 ways of doing it
-#1 worst, helptext in the model will be missing
-class CommetnForm(forms.Form):
-    marginalia = forms.CharField(
-        label="Marginalia", widget=forms.TextInput(), help_text="help"
-    )
-    url = forms.URLField()
-    comment = forms.CharField()
-
-    url.widget.attrs.update({'class': 'special'})
-    comment.widget.attrs.update(size='40')
-#2
-class CommentForm(forms.ModelForm):
-    def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs)
-        self.fields['name'].widget.attrs.update({'class': 'special'})
-        self.fields['comment'].widget.attrs.update(size='40')
-"""
-
 
 class NameModelChoiceField(forms.ModelChoiceField):
     """
@@ -76,7 +56,6 @@ class SelectWidgetNameModelChoiceField(NameModelChoiceField):
     widget = SelectWidget()
 
 
-# 3 best
 class ChantCreateForm(forms.ModelForm):
     class Meta:
         model = Chant
