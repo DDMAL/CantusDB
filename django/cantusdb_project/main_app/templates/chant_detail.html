@@ -1,6 +1,6 @@
 {% extends "base.html" %}
 {% block content %}
-<title>{{ chant.incipit }} | Cantus Manuscript Database</title>
+<title>{{ chant.incipit }} | Cantus Database</title>
 <script src="/static/js/chant_detail.js"></script>
 
 <div class="container">
@@ -168,12 +168,12 @@
                 </div>
 
                 {% if chant.manuscript_full_text_std_spelling %}
-                    <dt>Manuscript Reading Full Text (standardized spelling)</dt>
+                    <dt>Full text as in Source (standardized spelling)</dt>
                     <dd>{{ chant.manuscript_full_text_std_spelling }}</dd>
                 {% endif %}
 
                 {% if chant.manuscript_full_text %}
-                    <dt>Manuscript Reading Full Text (MS spelling)</dt>
+                    <dt>Full text as in Source (source spelling)</dt>
                     <dd>{{ chant.manuscript_full_text }}</dd>
                 {% endif %}
 
