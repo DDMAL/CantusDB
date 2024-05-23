@@ -134,7 +134,7 @@ def get_user_source_pagination(context):
         Source.objects.filter(
             Q(current_editors=context["user"]) | Q(created_by=context["user"])
         )
-        .order_by("-date_created")
+        .order_by("-date_updated")
         .distinct()
     )
     paginator = Paginator(user_created_sources, 6)
