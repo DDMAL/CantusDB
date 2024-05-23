@@ -7,6 +7,20 @@ window.addEventListener("load", function () {
         const standardText = document.getElementById('id_manuscript_full_text_std_spelling').value;
         document.getElementById('id_manuscript_full_text').value = standardText;
     }
+    // Add an event listener to the segment select field.
+    // If the user selects "Benedicamus Domino", show the additional fields
+    // in the "benedicamus-domino-segment-fields" div. By default, these
+    // are hidden.
+    const segmentSelectElem = document.getElementById("id_segment");
+    segmentSelectElem.addEventListener("change", function () {
+        const benedicamusDominoSegmentFields = document.getElementById("benedicamus-domino-segment-fields");
+        const selectedElemText = segmentSelectElem.options[segmentSelectElem.selectedIndex].text;
+        if (selectedElemText === "Benedicamus Domino") {
+            benedicamusDominoSegmentFields.hidden = false;
+        } else {
+            benedicamusDominoSegmentFields.hidden = true;
+        }
+    });
 })
 
 function autoFillSuggestedChant(genreName, genreID, cantusID, fullText) {
