@@ -46,6 +46,22 @@ window.addEventListener("load", function () {
         url.searchParams.set('folio', folio);
         window.location.assign(url);
     }
+
+    // Add an event listener to the segment select field.
+    // If the user selects "Benedicamus Domino", show the additional fields
+    // in the "benedicamus-domino-segment-fields" div. By default, these
+    // are hidden.
+    const segmentSelectElem = document.getElementById("id_segment");
+    segmentSelectElem.addEventListener("change", function () {
+        const benedicamusDominoSegmentFields = document.getElementById("benedicamus-domino-segment-fields");
+        const selectedElemText = segmentSelectElem.options[segmentSelectElem.selectedIndex].text;
+        if (selectedElemText === "Benedicamus Domino") {
+            benedicamusDominoSegmentFields.hidden = false;
+        } else {
+            benedicamusDominoSegmentFields.hidden = true;
+        }
+    });
+    segmentSelectElem.dispatchEvent(new Event('change'));
 })
 
 function autoFillSuggestedFullText(fullText) {
