@@ -1,7 +1,7 @@
 {% extends "base.html" %}
 {% load static %}
 {% block content %}
-<title>Create Chant | Cantus Manuscript Database</title>
+<title>Create Chant | Cantus Database</title>
 <script src="/static/js/chant_create.js"></script>
 <script type="text/javascript" src="{% static 'admin/js/vendor/jquery/jquery.js' %}"></script>
 {{ form.media }}
@@ -172,8 +172,7 @@
             
                 <div class="form-row align-items-end">
                     <div class="form-group m-1 col-lg">
-                        <label for="{{ form.manuscript_full_text_std_spelling.id_for_label }}"><small>Manuscript Reading
-                                Full Text (standardized spelling):<span class="text-danger" title="This field is required">*</span></small></label>
+                        <label for="{{ form.manuscript_full_text_std_spelling.id_for_label }}"><small>Full text as in Source (standardized spelling):<span class="text-danger" title="This field is required">*</span></small></label>
                         {{ form.manuscript_full_text_std_spelling }}
                         <p>
                             <small class="text-muted">{{ form.manuscript_full_text_std_spelling.help_text }}
@@ -191,8 +190,8 @@
 
                 <div class="form-row align-items-end">
                     <div class="form-group m-1 col-lg">
-                        <label for="{{ form.manuscript_full_text.id_for_label }}"><small>Manuscript Reading Full Text
-                                (MS spelling): </small></label>
+                        <label for="{{ form.manuscript_full_text.id_for_label }}"><small>Full text as in Source
+                                (source spelling): </small></label>
                         {{ form.manuscript_full_text }}
                         <p class="text-muted" style="line-height: normal">
                             <small>{{ form.manuscript_full_text.help_text }}
