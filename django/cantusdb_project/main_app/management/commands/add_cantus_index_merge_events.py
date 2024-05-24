@@ -48,7 +48,6 @@ class Command(BaseCommand):
             self.apply_transaction(tx)
 
     def filter_merge_events_by_date(self, merge_events: list, date_filter: str) -> list:
-
         filtered_merge_events = []
         for tx in merge_events:
             try:
@@ -62,13 +61,11 @@ class Command(BaseCommand):
                         f"Ignoring merge event with invalid date format: {tx['date']}"
                     )
                 )
-
         return filtered_merge_events
 
     def apply_transaction(self, transaction: dict) -> None:
         old_cantus_id: str = transaction["old"]
         new_cantus_id: str = transaction["new"]
-
         if not old_cantus_id or not new_cantus_id:
             self.stdout.write(
                 self.style.WARNING(
@@ -78,7 +75,6 @@ class Command(BaseCommand):
             return
 
         affected_chants = Chant.objects.filter(cantus_id=old_cantus_id)
-
         if affected_chants:
             try:
                 affected_chants.update(cantus_id=new_cantus_id)
