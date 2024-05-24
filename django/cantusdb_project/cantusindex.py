@@ -134,7 +134,7 @@ def get_merged_cantus_ids() -> Optional[list]:
 
     This function sends a request to the Cantus Index API endpoint for merged chants
     and retrieves the response. The response is expected to be a list of dictionaries,
-    each containing information about a merged chant, including the old Cantus ID,
+    each containing information about a merged Cantus ID, including the old Cantus ID,
     the new Cantus ID, and the date of the merge.
 
     Returns:
