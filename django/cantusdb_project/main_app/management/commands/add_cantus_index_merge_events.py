@@ -1,5 +1,5 @@
 import requests
-from typing import Optional, Union
+from typing import Optional
 from datetime import datetime
 from django.core.management.base import BaseCommand
 from main_app.models import Chant
