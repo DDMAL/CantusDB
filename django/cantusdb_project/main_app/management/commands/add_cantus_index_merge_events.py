@@ -46,7 +46,9 @@ class Command(BaseCommand):
         for tx in merge_events:
             self.apply_transaction(tx)
 
-    def filter_merge_events_by_date(self, merge_events: list, date_filter: str) -> list:
+    def filter_merge_events_by_date(
+        self, merge_events: list, date_filter: datetime
+    ) -> list:
         filtered_merge_events = []
         for tx in merge_events:
             try:
