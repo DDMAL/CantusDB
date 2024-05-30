@@ -471,7 +471,7 @@
                                     </ul>
                                 {% endif %}
 
-                                {{ source.indexing_notes|default_if_none:"" }}
+                                {{ source.indexing_notes|default_if_none:""|safe }}
                                 <br>
                                 {% with creator=source.created_by %}
                                     {% if creator %}
