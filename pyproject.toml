@@ -10,7 +10,7 @@ django-extra-views = "0.13.0"
 django-quill-editor = "0.1.40"
 django-reversion = "5.0.8"
 gunicorn = "22.0.0"
-requests = "2.31.0"
+requests = "2.32.2"
 ujson = "5.9.0"
 volpiano-display-utilities = { git = "https://github.com/DDMAL/volpiano-display-utilities.git", tag = "v1.1.3" }
 psycopg = {extras = ["binary"], version = "^3.1.18"}
