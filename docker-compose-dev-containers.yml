@@ -11,6 +11,7 @@ services:
       dockerfile: ./django/Dockerfile
       args:
         PROJECT_ENVIRONMENT: DEVELOPMENT
+    container_name: cantusdb-django-1
     volumes:
       - ./:/code/cantusdb_project
       - static_volume:/resources/static
@@ -31,6 +32,7 @@ services:
     ports:
       - 80:80
       - 443:443
+    container_name: cantusdb-nginx-1
     volumes:
       - ./config/nginx/conf.d:/etc/nginx/conf.d
       - static_volume:/resources/static
@@ -45,6 +47,7 @@ services:
     build:
       context: ./postgres
     env_file: ./config/envs/dev_env
+    container_name: cantusdb-postgres-1
     volumes:
       - postgres_data:/var/lib/postgresql/data/
     ports:
