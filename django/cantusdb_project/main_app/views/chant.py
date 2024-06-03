@@ -334,14 +334,14 @@ class ChantSearchView(ListView):
         return context
 
     def get_queryset(self) -> QuerySet:
-        # if user has just arrived on the Chant Search page, there will be no
-        # GET parameters.
+        # if user has just arrived on the Chant Search page, there will be no GET parameters.
         if not self.request.GET:
             return Chant.objects.none()
 
         # Create a Q object to filter the QuerySet of Chants
         q_obj_filter = Q()
         display_unpublished = self.request.user.is_authenticated
+
         # if the search is accessed by the global search bar
         if self.request.GET.get("search_bar"):
             if display_unpublished:
@@ -383,13 +383,10 @@ class ChantSearchView(ListView):
                     *CHANT_SEARCH_TEMPLATE_VALUES
                 )
                 queryset = chant_set.union(sequence_set, all=True)
-            queryset = queryset.order_by("source__siglum", "id")
-
         else:
             # The field names should be keys in the "GET" QueryDict if the search button has been
-            # clicked, even if the user put nothing into the search form and hit "apply"
-            # immediately. In that case, we return the all chants + seqs filtered by the search
-            # form. For every GET parameter other than incipit, add to the Q object
+            # clicked, even if the user put nothing into the search form and hit "apply" immediately.
+            # In that case, we return all chants + seqs filtered by the search form.
             if self.request.GET.get("office"):
                 office_id = self.request.GET.get("office")
                 q_obj_filter &= Q(office__id=office_id)
@@ -412,38 +409,9 @@ class ChantSearchView(ListView):
                     q_obj_filter &= Q(volpiano__isnull=False)
             if self.request.GET.get("feast"):
                 feast = self.request.GET.get("feast")
-                # This will match any feast whose name contains the feast parameter
-                # as a substring
+                # This will match any feast whose name contains the feast parameter as a substring
                 feasts = Feast.objects.filter(name__icontains=feast)
                 q_obj_filter &= Q(feast__in=feasts)
-            order_get_param: Optional[str] = self.request.GET.get("order")
-            sort_get_param: Optional[str] = self.request.GET.get("sort")
-
-            order_param_options = (
-                "incipit",
-                "office",
-                "genre",
-                "cantus_id",
-                "mode",
-                "has_fulltext",
-                "has_melody",
-                "has_image",
-            )
-            if order_get_param in order_param_options:
-                if order_get_param == "has_fulltext":
-                    order = "manuscript_full_text"
-                elif order_get_param == "has_melody":
-                    order = "volpiano"
-                elif order_get_param == "has_image":
-                    order = "image_link"
-                else:
-                    order = order_get_param
-            else:
-                order = "source__siglum"
-
-            # sort values: "asc" and "desc". Default is "asc"
-            if sort_get_param and sort_get_param == "desc":
-                order = f"-{order}"
 
             if not display_unpublished:
                 chant_set: QuerySet = Chant.objects.filter(source__published=True)
@@ -451,12 +419,14 @@ class ChantSearchView(ListView):
             else:
                 chant_set: QuerySet = Chant.objects.all()
                 sequence_set: QuerySet = Sequence.objects.all()
+
             # Filter the QuerySet with Q object
             chant_set = chant_set.filter(q_obj_filter)
             sequence_set = sequence_set.filter(q_obj_filter)
             # Fetch only the values necessary for rendering the template
             chant_set = chant_set.values(*CHANT_SEARCH_TEMPLATE_VALUES)
             sequence_set = sequence_set.values(*CHANT_SEARCH_TEMPLATE_VALUES)
+
             # Finally, do keyword searching over the querySet
             if self.request.GET.get("keyword"):
                 keyword = self.request.GET.get("keyword")
@@ -479,10 +449,40 @@ class ChantSearchView(ListView):
                 chant_set = chant_set.filter(keyword_filter)
                 sequence_set = sequence_set.filter(keyword_filter)
 
-            # once unioned, the queryset cannot be filtered/annotated anymore, so we put
-            # union to the last
+            # once unioned, the queryset cannot be filtered/annotated anymore, so we put union to the last
             queryset = chant_set.union(sequence_set, all=True)
-            queryset = queryset.order_by(order, "id")
+
+        # Apply sorting
+        order_get_param: Optional[str] = self.request.GET.get("order")
+        sort_get_param: Optional[str] = self.request.GET.get("sort")
+
+        order_param_options = (
+            "incipit",
+            "office",
+            "genre",
+            "cantus_id",
+            "mode",
+            "has_fulltext",
+            "has_melody",
+            "has_image",
+        )
+        if order_get_param in order_param_options:
+            if order_get_param == "has_fulltext":
+                order = "manuscript_full_text"
+            elif order_get_param == "has_melody":
+                order = "volpiano"
+            elif order_get_param == "has_image":
+                order = "image_link"
+            else:
+                order = order_get_param
+        else:
+            order = "source__siglum"
+
+        # sort values: "asc" and "desc". Default is "asc"
+        if sort_get_param and sort_get_param == "desc":
+            order = f"-{order}"
+
+        queryset = queryset.order_by(order, "id")
 
         return queryset
 
