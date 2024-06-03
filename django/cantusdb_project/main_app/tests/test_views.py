@@ -1130,6 +1130,44 @@ class ChantSearchViewTest(TestCase):
         last_result_incipit = descending_results[1]["incipit"]
         self.assertEqual(last_result_incipit, chant_1.incipit)
 
+    def test_order_by_siglum_global_search(self):
+        source_1 = make_fake_source(published=True, siglum="sigl-1")
+        chant_1 = make_fake_chant(
+            manuscript_full_text_std_spelling="thing 1", source=source_1
+        )
+        source_2 = make_fake_source(published=True, siglum="sigl-2")
+        chant_2 = make_fake_chant(
+            manuscript_full_text_std_spelling="thing 2", source=source_2
+        )
+        search_term = "thing"
+        response_ascending = self.client.get(
+            reverse("chant-search"),
+            {
+                "search_bar": search_term,
+                "order": "siglum",
+                "sort": "asc",
+            },
+        )
+        ascending_results = response_ascending.context["chants"]
+        first_result_incipit = ascending_results[0]["incipit"]
+        self.assertEqual(first_result_incipit, chant_1.incipit)
+        last_result_incipit = ascending_results[1]["incipit"]
+        self.assertEqual(last_result_incipit, chant_2.incipit)
+
+        response_descending = self.client.get(
+            reverse("chant-search"),
+            {
+                "search_bar": search_term,
+                "order": "siglum",
+                "sort": "desc",
+            },
+        )
+        descending_results = response_descending.context["chants"]
+        first_result_incipit = descending_results[0]["incipit"]
+        self.assertEqual(first_result_incipit, chant_2.incipit)
+        last_result_incipit = descending_results[1]["incipit"]
+        self.assertEqual(last_result_incipit, chant_1.incipit)
+
     def test_order_by_incipit(self):
         source = make_fake_source(published=True)
         chant_1 = make_fake_chant(
@@ -1161,6 +1199,44 @@ class ChantSearchViewTest(TestCase):
             {
                 "keyword": search_term,
                 "op": "contains",
+                "order": "incipit",
+                "sort": "desc",
+            },
+        )
+        descending_results = response_descending.context["chants"]
+        first_result_incipit = descending_results[0]["incipit"]
+        self.assertEqual(first_result_incipit, chant_2.incipit)
+        last_result_incipit = descending_results[1]["incipit"]
+        self.assertEqual(last_result_incipit, chant_1.incipit)
+
+    def test_order_by_incipit_global_search(self):
+        source = make_fake_source(published=True)
+        chant_1 = make_fake_chant(
+            source=source, manuscript_full_text_std_spelling="jiggle"
+        )
+        chant_2 = make_fake_chant(
+            source=source, manuscript_full_text_std_spelling="jigsaw"
+        )
+
+        search_term = "jig"
+        response_ascending = self.client.get(
+            reverse("chant-search"),
+            {
+                "search_bar": search_term,
+                "order": "incipit",
+                "sort": "asc",
+            },
+        )
+        ascending_results = response_ascending.context["chants"]
+        first_result_incipit = ascending_results[0]["incipit"]
+        self.assertEqual(first_result_incipit, chant_1.incipit)
+        last_result_incipit = ascending_results[1]["incipit"]
+        self.assertEqual(last_result_incipit, chant_2.incipit)
+
+        response_descending = self.client.get(
+            reverse("chant-search"),
+            {
+                "search_bar": search_term,
                 "order": "incipit",
                 "sort": "desc",
             },
@@ -1215,6 +1291,48 @@ class ChantSearchViewTest(TestCase):
         last_result_incipit = descending_results[1]["incipit"]
         self.assertEqual(last_result_incipit, chant_1.incipit)
 
+    def test_order_by_office_global_search(self):
+
+        # currently, office sort works by ID rather than by name
+        office_1 = make_fake_office()
+        office_2 = make_fake_office()
+        assert office_1.id < office_2.id
+        chant_1 = make_fake_chant(
+            office=office_1, manuscript_full_text_std_spelling="fluffy"
+        )
+        chant_2 = make_fake_chant(
+            office=office_2, manuscript_full_text_std_spelling="fluster"
+        )
+
+        search_term = "flu"
+        response_ascending = self.client.get(
+            reverse("chant-search"),
+            {
+                "search_bar": search_term,
+                "order": "office",
+                "sort": "asc",
+            },
+        )
+        ascending_results = response_ascending.context["chants"]
+        first_result_incipit = ascending_results[0]["incipit"]
+        self.assertEqual(first_result_incipit, chant_1.incipit)
+        last_result_incipit = ascending_results[1]["incipit"]
+        self.assertEqual(last_result_incipit, chant_2.incipit)
+
+        response_descending = self.client.get(
+            reverse("chant-search"),
+            {
+                "search_bar": search_term,
+                "order": "office",
+                "sort": "desc",
+            },
+        )
+        descending_results = response_descending.context["chants"]
+        first_result_incipit = descending_results[0]["incipit"]
+        self.assertEqual(first_result_incipit, chant_2.incipit)
+        last_result_incipit = descending_results[1]["incipit"]
+        self.assertEqual(last_result_incipit, chant_1.incipit)
+
     def test_order_by_genre(self):
         # currently, genre sort works by ID rather than by name
         genre_1 = make_fake_genre()
@@ -1249,6 +1367,46 @@ class ChantSearchViewTest(TestCase):
             {
                 "keyword": search_term,
                 "op": "contains",
+                "order": "genre",
+                "sort": "desc",
+            },
+        )
+        descending_results = response_descending.context["chants"]
+        first_result_incipit = descending_results[0]["incipit"]
+        self.assertEqual(first_result_incipit, chant_2.incipit)
+        last_result_incipit = descending_results[1]["incipit"]
+        self.assertEqual(last_result_incipit, chant_1.incipit)
+
+    def test_order_by_genre_global_search(self):
+        # currently, genre sort works by ID rather than by name
+        genre_1 = make_fake_genre()
+        genre_2 = make_fake_genre()
+        assert genre_1.id < genre_2.id
+        chant_1 = make_fake_chant(
+            genre=genre_1, manuscript_full_text_std_spelling="chuckle"
+        )
+        chant_2 = make_fake_chant(
+            genre=genre_2, manuscript_full_text_std_spelling="chunky"
+        )
+
+        search_term = "chu"
+        response_ascending = self.client.get(
+            reverse("chant-search"),
+            {
+                "search_bar": search_term,
+                "order": "genre",
+                "sort": "asc",
+            },
+        )
+        ascending_results = response_ascending.context["chants"]
+        first_result_incipit = ascending_results[0]["incipit"]
+        self.assertEqual(first_result_incipit, chant_1.incipit)
+        last_result_incipit = ascending_results[1]["incipit"]
+
+        response_descending = self.client.get(
+            reverse("chant-search"),
+            {
+                "search_bar": search_term,
                 "order": "genre",
                 "sort": "desc",
             },
@@ -1299,6 +1457,43 @@ class ChantSearchViewTest(TestCase):
         last_result_incipit = descending_results[1]["incipit"]
         self.assertEqual(last_result_incipit, chant_1.incipit)
 
+    def test_order_by_cantus_id_global_search(self):
+        chant_1 = make_fake_chant(
+            manuscript_full_text_std_spelling="twinkle", cantus_id="121393"
+        )
+        chant_2 = make_fake_chant(
+            manuscript_full_text_std_spelling="twirl", cantus_id="196413"
+        )
+
+        search_term = "13"
+        response_ascending = self.client.get(
+            reverse("chant-search"),
+            {
+                "search_bar": search_term,
+                "order": "cantus_id",
+                "sort": "asc",
+            },
+        )
+        ascending_results = response_ascending.context["chants"]
+        first_result_incipit = ascending_results[0]["incipit"]
+        self.assertEqual(first_result_incipit, chant_1.incipit)
+        last_result_incipit = ascending_results[1]["incipit"]
+        self.assertEqual(last_result_incipit, chant_2.incipit)
+
+        response_descending = self.client.get(
+            reverse("chant-search"),
+            {
+                "search_bar": search_term,
+                "order": "cantus_id",
+                "sort": "desc",
+            },
+        )
+        descending_results = response_descending.context["chants"]
+        first_result_incipit = descending_results[0]["incipit"]
+        self.assertEqual(first_result_incipit, chant_2.incipit)
+        last_result_incipit = descending_results[1]["incipit"]
+        self.assertEqual(last_result_incipit, chant_1.incipit)
+
     def test_order_by_mode(self):
         chant_1 = make_fake_chant(
             manuscript_full_text_std_spelling="For first he looks upon his forepaws to see if they are clean",
@@ -1331,6 +1526,46 @@ class ChantSearchViewTest(TestCase):
             {
                 "keyword": search_term,
                 "op": "contains",
+                "order": "mode",
+                "sort": "desc",
+            },
+        )
+        descending_results = response_descending.context["chants"]
+        first_result_incipit = descending_results[0]["incipit"]
+        self.assertEqual(first_result_incipit, chant_2.incipit)
+        last_result_incipit = descending_results[1]["incipit"]
+        self.assertEqual(last_result_incipit, chant_1.incipit)
+
+    def test_order_by_mode_global_search(self):
+        chant_1 = make_fake_chant(
+            manuscript_full_text_std_spelling="doodle",
+            mode="1",
+        )
+        chant_2 = make_fake_chant(
+            manuscript_full_text_std_spelling="doodad",
+            mode="2",
+        )
+
+        search_term = "doo"
+
+        response_ascending = self.client.get(
+            reverse("chant-search"),
+            {
+                "search_bar": search_term,
+                "order": "mode",
+                "sort": "asc",
+            },
+        )
+        ascending_results = response_ascending.context["chants"]
+        first_result_incipit = ascending_results[0]["incipit"]
+        self.assertEqual(first_result_incipit, chant_1.incipit)
+        last_result_incipit = ascending_results[1]["incipit"]
+        self.assertEqual(last_result_incipit, chant_2.incipit)
+
+        response_descending = self.client.get(
+            reverse("chant-search"),
+            {
+                "search_bar": search_term,
                 "order": "mode",
                 "sort": "desc",
             },
@@ -1384,6 +1619,47 @@ class ChantSearchViewTest(TestCase):
         last_result_incipit = descending_results[1]["incipit"]
         self.assertEqual(last_result_incipit, chant_1.incipit)
 
+    def test_order_by_ms_fulltext_global_search(self):
+        chant_1 = make_fake_chant(
+            manuscript_full_text="this is a chant with a MS spelling fylltexte",
+            manuscript_full_text_std_spelling="this is a chant with a MS spelling fulltext",
+        )
+        chant_2 = make_fake_chant(
+            manuscript_full_text_std_spelling="this will become a chant without a MS spelling fulltext",
+        )
+        chant_2.manuscript_full_text = None
+        chant_2.save()
+
+        search_term = "this"
+
+        response_ascending = self.client.get(
+            reverse("chant-search"),
+            {
+                "search_bar": search_term,
+                "order": "has_fulltext",
+                "sort": "asc",
+            },
+        )
+        ascending_results = response_ascending.context["chants"]
+        first_result_incipit = ascending_results[0]["incipit"]
+        self.assertEqual(first_result_incipit, chant_1.incipit)
+        last_result_incipit = ascending_results[1]["incipit"]
+        self.assertEqual(last_result_incipit, chant_2.incipit)
+
+        response_descending = self.client.get(
+            reverse("chant-search"),
+            {
+                "search_bar": search_term,
+                "order": "has_fulltext",
+                "sort": "desc",
+            },
+        )
+        descending_results = response_descending.context["chants"]
+        first_result_incipit = descending_results[0]["incipit"]
+        self.assertEqual(first_result_incipit, chant_2.incipit)
+        last_result_incipit = descending_results[1]["incipit"]
+        self.assertEqual(last_result_incipit, chant_1.incipit)
+
     def test_order_by_volpiano(self):
         chant_1 = make_fake_chant(
             manuscript_full_text_std_spelling="this is a chant with volpiano",
@@ -1427,6 +1703,47 @@ class ChantSearchViewTest(TestCase):
         last_result_incipit = descending_results[1]["incipit"]
         self.assertEqual(last_result_incipit, chant_1.incipit)
 
+    def test_order_by_volpiano_global_search(self):
+        chant_1 = make_fake_chant(
+            manuscript_full_text_std_spelling="this is a chant with volpiano",
+            volpiano="1---d---d---a--a---a---e--f--e---d---4",
+        )
+        chant_2 = make_fake_chant(
+            manuscript_full_text_std_spelling="this is a chant about mushrooms",
+        )
+        chant_2.volpiano = None
+        chant_2.save()
+
+        search_term = "this is a chant"
+
+        response_ascending = self.client.get(
+            reverse("chant-search"),
+            {
+                "search_bar": search_term,
+                "order": "has_melody",
+                "sort": "asc",
+            },
+        )
+        ascending_results = response_ascending.context["chants"]
+        first_result_incipit = ascending_results[0]["incipit"]
+        self.assertEqual(first_result_incipit, chant_1.incipit)
+        last_result_incipit = ascending_results[1]["incipit"]
+        self.assertEqual(last_result_incipit, chant_2.incipit)
+
+        response_descending = self.client.get(
+            reverse("chant-search"),
+            {
+                "search_bar": search_term,
+                "order": "has_melody",
+                "sort": "desc",
+            },
+        )
+        descending_results = response_descending.context["chants"]
+        first_result_incipit = descending_results[0]["incipit"]
+        self.assertEqual(first_result_incipit, chant_2.incipit)
+        last_result_incipit = descending_results[1]["incipit"]
+        self.assertEqual(last_result_incipit, chant_1.incipit)
+
     def test_order_by_image_link(self):
         chant_1 = make_fake_chant(
             manuscript_full_text_std_spelling="this is a chant with a link",
@@ -1460,6 +1777,47 @@ class ChantSearchViewTest(TestCase):
             {
                 "keyword": search_term,
                 "op": "contains",
+                "order": "has_image",
+                "sort": "desc",
+            },
+        )
+        descending_results = response_descending.context["chants"]
+        first_result_incipit = descending_results[0]["incipit"]
+        self.assertEqual(first_result_incipit, chant_2.incipit)
+        last_result_incipit = descending_results[1]["incipit"]
+        self.assertEqual(last_result_incipit, chant_1.incipit)
+
+    def test_order_by_image_link_global_search(self):
+        chant_1 = make_fake_chant(
+            manuscript_full_text_std_spelling="this is a chant with a link",
+            image_link="https://www.youtube.com/watch?v=hyCIpKAIFyo",
+        )
+        chant_2 = make_fake_chant(
+            manuscript_full_text_std_spelling="this is a chant without",
+        )
+        chant_2.image_link = None
+        chant_2.save()
+
+        search_term = "this is"
+
+        response_ascending = self.client.get(
+            reverse("chant-search"),
+            {
+                "search_bar": search_term,
+                "order": "has_image",
+                "sort": "asc",
+            },
+        )
+        ascending_results = response_ascending.context["chants"]
+        first_result_incipit = ascending_results[0]["incipit"]
+        self.assertEqual(first_result_incipit, chant_1.incipit)
+        last_result_incipit = ascending_results[1]["incipit"]
+        self.assertEqual(last_result_incipit, chant_2.incipit)
+
+        response_descending = self.client.get(
+            reverse("chant-search"),
+            {
+                "search_bar": search_term,
                 "order": "has_image",
                 "sort": "desc",
             },
