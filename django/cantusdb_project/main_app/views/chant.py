@@ -41,6 +41,7 @@ from main_app.models import (
     Sequence,
     Office,
 )
+from users.models import User
 from main_app.permissions import (
     user_can_edit_chants_in_source,
     user_can_proofread_chant,
@@ -1119,7 +1120,7 @@ class SourceEditChantsView(LoginRequiredMixin, UserPassesTestMixin, UpdateView):
                 chant.manuscript_full_text_proofread = (
                     original_chant.manuscript_full_text_proofread
                 )
-                proofreaders: list[Optional[get_user_model]] = list(
+                proofreaders: list[Optional[User]] = list(
                     original_chant.proofread_by.all()
                 )
 
