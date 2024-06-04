@@ -20,9 +20,9 @@ BACKUP_FILENAME=$(date "+%Y-%m-%dT%H:%M:%S").sql.gz                 # This is th
 
 # Create the backup and copy it to the daily backup directory
 mkdir -p $BACKUP_DIR/daily $BACKUP_DIR/weekly $BACKUP_DIR/monthly $BACKUP_DIR/yearly
-/usr/bin/docker exec cantusdb_postgres_1 /usr/local/bin/postgres_backup.sh $BACKUP_FILENAME
-/usr/bin/docker cp cantusdb_postgres_1:/var/lib/postgresql/backups/$BACKUP_FILENAME $BACKUP_DIR/daily
-/usr/bin/docker exec cantusdb_postgres_1 rm /var/lib/postgresql/backups/$BACKUP_FILENAME
+/usr/bin/docker exec cantusdb-postgres-1 /usr/local/bin/postgres_backup.sh $BACKUP_FILENAME
+/usr/bin/docker cp cantusdb-postgres-1:/var/lib/postgresql/backups/$BACKUP_FILENAME $BACKUP_DIR/daily
+/usr/bin/docker exec cantusdb-postgres-1 rm /var/lib/postgresql/backups/$BACKUP_FILENAME
 
 # Manage retention of daily backups
 FILES_TO_REMOVE=$(ls -td $BACKUP_DIR/daily/* | tail -n +8)
