@@ -1111,7 +1111,7 @@ class SourceEditChantsView(LoginRequiredMixin, UserPassesTestMixin, UpdateView):
 
             if not user_can_proofread_chant(user, chant):
                 # Preserve the original values for proofreader-specific fields
-                original_chant: Chant = Chant.objects.get(pk=chant.pk)
+                original_chant: Chant = self.get_object()
                 chant.chant_range = original_chant.chant_range
                 chant.volpiano_proofread = original_chant.volpiano_proofread
                 chant.manuscript_full_text_std_proofread = (
