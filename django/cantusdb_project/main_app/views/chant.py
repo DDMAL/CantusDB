@@ -25,7 +25,6 @@ from django.contrib.auth.mixins import LoginRequiredMixin
 from django.http import Http404, HttpResponse
 
 from django.contrib.auth.mixins import UserPassesTestMixin
-from django.contrib.auth import get_user_model
 
 
 from main_app.forms import (
