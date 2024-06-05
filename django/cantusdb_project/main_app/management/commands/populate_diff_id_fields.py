@@ -2,9 +2,11 @@ from main_app.models import Chant, Differentia
 from django.core.management.base import BaseCommand
 from django.db.models import Q
 from typing import Optional
+from django.db import transaction
 
 
 class Command(BaseCommand):
+    @transaction.atomic
     def handle(self, *args, **kwargs):
         CHUNK_SIZE = 500
         chants = Chant.objects.filter(
