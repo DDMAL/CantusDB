@@ -1105,7 +1105,7 @@ class SourceEditChantsView(LoginRequiredMixin, UserPassesTestMixin, UpdateView):
 
     def form_valid(self, form):
         if form.is_valid():
-            user = self.request.user
+            user: User = self.request.user
             chant: Chant = form.instance
 
             if not user_can_proofread_chant(user, chant):
