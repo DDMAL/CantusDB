@@ -22,9 +22,10 @@ from django.views.generic import (
 )
 from django.core.exceptions import PermissionDenied
 from django.contrib.auth.mixins import LoginRequiredMixin
-from django.http import Http404
+from django.http import Http404, HttpResponse
 
 from django.contrib.auth.mixins import UserPassesTestMixin
+
 
 from main_app.forms import (
     ChantCreateForm,
@@ -39,6 +40,7 @@ from main_app.models import (
     Sequence,
     Office,
 )
+from users.models import User
 from main_app.permissions import (
     user_can_edit_chants_in_source,
     user_can_proofread_chant,
@@ -1103,12 +1105,41 @@ class SourceEditChantsView(LoginRequiredMixin, UserPassesTestMixin, UpdateView):
 
     def form_valid(self, form):
         if form.is_valid():
-            form.instance.last_updated_by = self.request.user
-            messages.success(
-                self.request,
-                "Chant updated successfully!",
-            )
-            return super().form_valid(form)
+            user: User = self.request.user
+            chant: Chant = form.instance
+
+            if not user_can_proofread_chant(user, chant):
+                # Preserve the original values for proofreader-specific fields
+                original_chant: Chant = self.get_object()
+                chant.chant_range = original_chant.chant_range
+                chant.volpiano_proofread = original_chant.volpiano_proofread
+                chant.manuscript_full_text_std_proofread = (
+                    original_chant.manuscript_full_text_std_proofread
+                )
+                chant.manuscript_full_text_proofread = (
+                    original_chant.manuscript_full_text_proofread
+                )
+                proofreaders: list[Optional[User]] = list(
+                    original_chant.proofread_by.all()
+                )
+
+                # Handle proofreader checkboxes
+                if "volpiano" in form.changed_data:
+                    chant.volpiano_proofread = False
+                if "manuscript_full_text_std_spelling" in form.changed_data:
+                    chant.manuscript_full_text_std_proofread = False
+                if "manuscript_full_text" in form.changed_data:
+                    chant.manuscript_full_text_proofread = False
+
+            chant.last_updated_by = user
+            return_response: HttpResponse = super().form_valid(form)
+
+            # The many-to-many `proofread_by` field is reset when the
+            # parent class's `form_valid` method calls `save()` on the model instance.
+            if not user_can_proofread_chant(user, chant):
+                chant.proofread_by.set(proofreaders)
+            messages.success(self.request, "Chant updated successfully!")
+            return return_response
         else:
             return super().form_invalid(form)
 
