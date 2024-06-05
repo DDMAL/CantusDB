@@ -1137,8 +1137,7 @@ class SourceEditChantsView(LoginRequiredMixin, UserPassesTestMixin, UpdateView):
             # The many-to-many `proofread_by` field is reset when the
             # parent class's `form_valid` method calls `save()` on the model instance.
             if not user_can_proofread_chant(user, chant):
-                for user in proofreaders:
-                    chant.proofread_by.add(user)
+                chant.proofread_by.set(proofreaders)
             messages.success(self.request, "Chant updated successfully!")
             return return_response
         else:
