@@ -13,7 +13,7 @@ IDENTIFIER_TYPES = (
     (ExternalIdentifiers.WIKIDATA, "Wikidata"),
     (ExternalIdentifiers.GND, "GND (Gemeinsame Normdatei)"),
     (ExternalIdentifiers.BNF, "Bibliothèque national de France"),
-    (ExternalIdentifiers.LC, "Library of Congress")
+    (ExternalIdentifiers.LC, "Library of Congress"),
 )
 
 TYPE_PREFIX = {
@@ -22,5 +22,5 @@ TYPE_PREFIX = {
     ExternalIdentifiers.WIKIDATA: ("wkp", "https://www.wikidata.org/wiki/"),
     ExternalIdentifiers.GND: ("dnb", "https://d-nb.info/gnd/"),
     ExternalIdentifiers.BNF: ("bnf", "https://catalogue.bnf.fr/ark:/12148/cb"),
-    ExternalIdentifiers.LC: ("lc", "https://id.loc.gov/authorities/")
+    ExternalIdentifiers.LC: ("lc", "https://id.loc.gov/authorities/"),
 }

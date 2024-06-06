@@ -10,3 +10,5 @@ from main_app.admin.rism_siglum import RismSiglumAdmin
 from main_app.admin.segment import SegmentAdmin
 from main_app.admin.sequence import SequenceAdmin
 from main_app.admin.source import SourceAdmin
+from main_app.admin.institution import InstitutionAdmin
+from main_app.admin.institution_identifier import InstitutionIdentifierAdmin
