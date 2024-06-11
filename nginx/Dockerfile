@@ -7,3 +7,4 @@ RUN curl -LJO https://github.com/go-acme/lego/releases/download/v4.14.2/lego_v4.
     rm lego_v4.14.2_linux_amd64.tar.gz
 RUN mkdir -p /var/www/lego
 COPY error_pages .
+COPY password/.htpasswd /etc/nginx/.htpasswd
