@@ -24,19 +24,6 @@ server {
         expires modified +24h;
     }
  
-    location = /style.css {
-        root /;
-    }
-    location = /background.jpg {
-        root /;
-    }
-    location = /CantusLogoSmall.gif {
-        root /;
-    }
-    location = /favicon.ico {
-        root /;
-    }
-
     error_page 502 /502.html;
     location = /502.html {
         root /;
