@@ -20,6 +20,9 @@ class Institution(BaseModel):
     alternate_names = models.TextField(
         blank=True, null=True, help_text="Enter alternate names on separate lines."
     )
+    former_sigla = models.TextField(
+        blank=True, null=True, help_text="Enter former sigla on separate lines."
+    )
 
     def __str__(self) -> str:
         names: list = [self.name]
