@@ -23,7 +23,12 @@ server {
         alias /resources/api_cache/concordances.json;
         expires modified +24h;
     }
- 
+
+    error_page 500 /500.html;
+    location = /500.html{
+        root /;
+    }
+
     error_page 502 /502.html;
     location = /502.html {
         root /;
