@@ -97,7 +97,8 @@
                             </label>
                             {{ form.melody_id }}
                         </div>
-                        <div id="segment-select-field" class="form-group m-1 col-lg-4">
+                        <!-- # See issue #1521: Temporarily commenting out segment-related functions on Chant -->
+                        <!-- <div id="segment-select-field" class="form-group m-1 col-lg-4">
                             <small>{{ form.segment.label_tag }}<span class="text-danger" title="This field is required">*</span></small>
                             {{ form.segment }}
                         </div>
@@ -105,7 +106,7 @@
                         <div class="form-group m-1 col-lg-3">
                             <small>{{ form.liturgical_function.label_tag }}</small>
                             {{ form.liturgical_function }}
-                        </div> 
+                        </div>  -->
                     </div>
 
                     <div class="form-row">
@@ -125,10 +126,11 @@
                             <small>{{ form.extra.label_tag }}</small>
                             {{ form.extra }}
                         </div>
-                        <div class="form-group m-1 col-lg-2">
+                        <!-- # See issue #1521: Temporarily commenting out segment-related functions on Chant -->
+                        <!-- <div class="form-group m-1 col-lg-2">
                             <small>{{ form.polyphony.label_tag }}</small>
                             {{ form.polyphony }}
-                        </div>
+                        </div> -->
                     </div>
                     <div class="form-row">
                         <div class="form-group m-1 col-lg-12">
@@ -157,8 +159,9 @@
                         {% endif %}
                     </div>
 
+                    <!-- # See issue #1521: Temporarily commenting out segment-related functions on Chant -->
                     <!-- The next three rows of fields are hidden unless the Benedicamus Domino segment is selected. -->
-                    <div id="benedicamus-domino-segment-fields" hidden>
+                    <!-- <div id="benedicamus-domino-segment-fields" hidden>
                         <div class="form-row">
 
                             <div class="form-group m-1 col-lg-4">
@@ -187,7 +190,7 @@
                                 {{ form.rubrics }}
                             </div>
                         </div>
-                    </div>
+                    </div> -->
 
                     {% if suggested_fulltext %}
                     <div class="form-row">
