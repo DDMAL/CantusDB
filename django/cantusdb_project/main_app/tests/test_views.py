@@ -3644,11 +3644,11 @@ class ChantEditSyllabificationViewTest(TestCase):
         self.assertEqual(chant.manuscript_syllabized_full_text, "lorem ipsum")
         response = self.client.post(
             f"/edit-syllabification/{chant.id}",
-            {"manuscript_syllabized_full_text": "lo-rem ip-sum"},
+            {"manuscript_syllabized_full_text": "lore-m i-psum"},
         )
         self.assertEqual(response.status_code, 302)  # 302 Found
         chant.refresh_from_db()
-        self.assertEqual(chant.manuscript_syllabized_full_text, "lo-rem ip-sum")
+        self.assertEqual(chant.manuscript_syllabized_full_text, "lore-m i-psum")
 
 
 class FeastListViewTest(TestCase):
