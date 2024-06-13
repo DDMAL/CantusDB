@@ -44,6 +44,12 @@ class Source(BaseModel):
         null=True,
         blank=True,
     )
+    holding_institution = models.ForeignKey(
+        "Institution",
+        on_delete=models.PROTECT,
+        null=True,
+        blank=True,
+    )
     provenance = models.ForeignKey(
         "Provenance",
         on_delete=models.PROTECT,
