@@ -25,7 +25,5 @@ class Institution(BaseModel):
     )
 
     def __str__(self) -> str:
-        names: list = [self.name]
-        if self.siglum:
-            names.append(f"({self.siglum})")
-        return " ".join(names)
+        sigl: str = f"({self.siglum})" if self.siglum else ""
+        return f"{self.name} {sigl}"

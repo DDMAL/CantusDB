@@ -17,10 +17,9 @@ class InstitutionAdmin(BaseModelAdmin):
     list_filter = ("city",)
     inlines = (InstitutionIdentifierInline,)
 
-    def get_city_region(self, obj):
-        name = [obj.city]
-        if obj.region:
-            name.append(f"({obj.region})")
-        return " ".join(name)
+    def get_city_region(self, obj) -> str:
+        city: str = obj.city if obj.city else "[No city]"
+        region: str = f"({obj.region})" if obj.region else ""
+        return f"{city} {region}"
 
     get_city_region.short_description = "City"
