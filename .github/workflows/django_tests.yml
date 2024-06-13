@@ -1,0 +1,29 @@
+name: django-tests
+on:
+    pull_request:
+        types: [opened, synchronize]
+jobs:
+    run-tests:
+        runs-on: ubuntu-latest
+        steps:
+            - uses: actions/checkout@v3
+            - run: mkdir -p config/envs
+            - uses: SpicyPizza/create-envfile@v2.0
+              with:
+                envkey_POSTGRES_DB: test_cantusdb
+                envkey_POSTGRES_USER: test_user
+                envkey_POSTGRES_HOST: postgres
+                envkey_POSTGRES_PORT: 5432
+                envkey_PROJECT_ENVIRONMENT: PRODUCTION
+                envkey_CANTUSDB_STATIC_ROOT: /path/to/static
+                envkey_CANTUSDB_MEDIA_ROOT: /path/to/media
+                envkey_CANTUSDB_HOST: somehost
+                envkey_CANTUSDB_SECRET_KEY: "hereisakey1234"
+                envkey_POSTGRES_PASSWORD: woahagreatpasswordabc
+                envkey_AWS_EMAIL_HOST_USER: test_user
+                envkey_AWS_EMAIL_HOST_PASSWORD: test_password
+                directory: config/envs
+                file_name: dev_env
+            - run: docker compose -f docker-compose-development.yml build
+            - run: docker compose -f docker-compose-development.yml up -d
+            - run: docker compose -f docker-compose-development.yml exec -T django python manage.py test main_app.tests
