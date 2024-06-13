@@ -7,7 +7,7 @@ import requests
 from typing import Optional, Union, Callable
 from main_app.models import Genre
 import json
-from requests.exceptions import SSLError, Timeout
+from requests.exceptions import SSLError, Timeout, HTTPError
 
 CANTUS_INDEX_DOMAIN: str = "https://cantusindex.uwaterloo.ca"
 DEFAULT_TIMEOUT: float = 2  # seconds
@@ -184,7 +184,7 @@ def get_ci_text_search(search_term: str) -> Optional[list[Optional[dict]]]:
             uri,
             timeout=DEFAULT_TIMEOUT,
         )
-    except (SSLError, Timeout, requests.HTTPError) as exc:
+    except (SSLError, Timeout, HTTPError):
         return None
     if not response.status_code == 200:
         return None
