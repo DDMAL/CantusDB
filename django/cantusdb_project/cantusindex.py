@@ -7,6 +7,7 @@ import requests
 from typing import Optional, Union, Callable
 from main_app.models import Genre
 import json
+from requests.exceptions import SSLError, Timeout
 
 CANTUS_INDEX_DOMAIN: str = "https://cantusindex.uwaterloo.ca"
 DEFAULT_TIMEOUT: float = 2  # seconds
@@ -165,6 +166,37 @@ def get_merged_cantus_ids() -> Optional[list]:
     if not isinstance(merge_events, list):
         return None
     return merge_events
+
+
+def get_ci_text_search(search_term: str) -> Optional[list[Optional[dict]]]:
+    """Fetch data from Cantus Index for a given search term.
+    To do a text search on CI, use 'https://cantusindex.org/json-text/<text to search>
+    """
+
+    # We have to use the old CI domain since the API is still not available on
+    # cantusindex.uwaterloo.ca. Once it's available, we can use get_json_from_ci_api
+    # json: Union[dict, list, None] = get_json_from_ci_api(uri)
+    uri: str = f"https://cantusindex.org/json-text/{search_term}"
+    try:
+        response: requests.Response = requests.get(
+            uri,
+            timeout=DEFAULT_TIMEOUT,
+        )
+    except (SSLError, Timeout, requests.HTTPError) as exc:
+        return None
+    if not response.status_code == 200:
+        return None
+    response.encoding = "utf-8-sig"
+    raw_text: str = response.text
+    text_without_bom: str = raw_text.encode().decode("utf-8-sig")
+    if not text_without_bom:
+        return None
+    text_search_results: list = json.loads(text_without_bom)
+    # if cantus index returns an empty table
+    if not text_search_results or not isinstance(text_search_results, list):
+        return None
+
+    return text_search_results
 
 
 def get_json_from_ci_api(
