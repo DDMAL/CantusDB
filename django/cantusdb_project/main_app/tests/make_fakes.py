@@ -10,7 +10,6 @@ from main_app.models import Genre
 from main_app.models import Notation
 from main_app.models import Office
 from main_app.models import Provenance
-from main_app.models import RismSiglum
 from main_app.models import Segment
 from main_app.models import Sequence
 from main_app.models import Source
@@ -293,15 +292,6 @@ def make_fake_provenance() -> Provenance:
     return provenance
 
 
-def make_fake_rism_siglum() -> RismSiglum:
-    """Generates a fake RismSiglum object."""
-    rism_siglum = RismSiglum.objects.create(
-        name=faker.sentence(nb_words=3),
-        description=faker.sentence(),
-    )
-    return rism_siglum
-
-
 def make_fake_segment(name: str = None, id: int = None) -> Segment:
     """Generates a fake Segment object."""
     if name is None:
@@ -349,7 +339,6 @@ def make_fake_source(
     segment_name: Optional[str] = None,
     segment: Optional[Segment] = None,
     siglum: Optional[str] = None,
-    rism_siglum: Optional[RismSiglum] = None,
     description: Optional[str] = None,
     summary: Optional[str] = None,
     provenance: Optional[Provenance] = None,
@@ -371,8 +360,6 @@ def make_fake_source(
         segment = make_fake_segment(name=segment_name)
     if siglum is None:
         siglum = make_random_string(6)
-    if rism_siglum is None:
-        rism_siglum = make_fake_rism_siglum()
     if description is None:
         description = faker.sentence()
     if summary is None:
@@ -394,7 +381,6 @@ def make_fake_source(
         title=title,
         segment=segment,
         siglum=siglum,
-        rism_siglum=rism_siglum,
         description=description,
         summary=summary,
         provenance=provenance,

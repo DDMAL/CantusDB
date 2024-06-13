@@ -7,7 +7,6 @@ from .models import (
     Notation,
     Feast,
     Source,
-    RismSiglum,
     Segment,
     Provenance,
     Century,
@@ -176,7 +175,6 @@ class SourceCreateForm(forms.ModelForm):
         model = Source
         fields = [
             "title",
-            "rism_siglum",
             "siglum",
             "provenance",
             "provenance_notes",
@@ -213,7 +211,6 @@ class SourceCreateForm(forms.ModelForm):
             "fragmentarium_id": TextInputWidget(),
             "dact_id": TextInputWidget(),
             "indexing_notes": TextAreaWidget(),
-            "rism_siglum": autocomplete.ModelSelect2(url="rismsiglum-autocomplete"),
             "current_editors": autocomplete.ModelSelect2Multiple(
                 url="current-editors-autocomplete"
             ),
@@ -365,7 +362,6 @@ class SourceEditForm(forms.ModelForm):
         model = Source
         fields = [
             "title",
-            "rism_siglum",
             "siglum",
             "provenance",
             "provenance_notes",
@@ -391,7 +387,6 @@ class SourceEditForm(forms.ModelForm):
         ]
         widgets = {
             "title": TextInputWidget(),
-            "rism_siglum": autocomplete.ModelSelect2(url="rismsiglum-autocomplete"),
             "siglum": TextInputWidget(),
             "provenance": autocomplete.ModelSelect2(url="provenance-autocomplete"),
             "provenance_notes": TextInputWidget(),
@@ -634,14 +629,6 @@ class AdminProvenanceForm(forms.ModelForm):
     name = forms.CharField(required=True, widget=TextInputWidget)
 
 
-class AdminRismSiglumForm(forms.ModelForm):
-    class Meta:
-        model = RismSiglum
-        fields = "__all__"
-
-    name = forms.CharField(required=True, widget=TextInputWidget)
-
-
 class AdminSegmentForm(forms.ModelForm):
     class Meta:
         model = Segment
@@ -702,11 +689,6 @@ class AdminSourceForm(forms.ModelForm):
         required=True,
         widget=TextInputWidget,
         help_text="RISM-style siglum + Shelf-mark (e.g. GB-Ob 202).",
-    )
-
-    rism_siglum = forms.ModelChoiceField(
-        queryset=RismSiglum.objects.all().order_by("name"),
-        required=False,
     )
 
     provenance = forms.ModelChoiceField(
