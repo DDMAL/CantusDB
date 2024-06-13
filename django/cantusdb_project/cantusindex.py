@@ -91,9 +91,12 @@ def get_suggested_chant(
         # mostly, in case of a timeout within get_json_from_ci_api
         return None
 
-    fulltext: str = json["info"]["field_full_text"]
-    incipit: str = " ".join(fulltext.split(" ")[:5])
-    genre_name: str = json["info"]["field_genre"]
+    try:
+        fulltext: str = json["info"]["field_full_text"]
+        incipit: str = " ".join(fulltext.split(" ")[:5])
+        genre_name: str = json["info"]["field_genre"]
+    except TypeError:
+        return None
     genre_id: Optional[int] = None
     try:
         genre_id = Genre.objects.get(name=genre_name).id

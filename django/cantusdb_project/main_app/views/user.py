@@ -94,7 +94,7 @@ class UserSourceListView(LoginRequiredMixin, ListView):
                 # | Q(proofreaders=self.request.user)
                 # | Q(other_editors=self.request.user)
             )
-            .order_by("-date_created")
+            .order_by("-date_updated")
             .distinct()
         )
 
@@ -104,7 +104,7 @@ class UserSourceListView(LoginRequiredMixin, ListView):
 
         user_created_sources = (
             Source.objects.filter(created_by=self.request.user)
-            .order_by("-date_updated")
+            .order_by("-date_created")
             .distinct()
         )
         user_created_paginator = Paginator(user_created_sources, 6)
