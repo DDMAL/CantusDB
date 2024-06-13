@@ -133,7 +133,7 @@ def get_suggested_fulltext(cantus_id: str) -> Optional[str]:
     return suggested_fulltext
 
 
-def get_merged_cantus_ids() -> Optional[list]:
+def get_merged_cantus_ids() -> Optional[list[Optional[dict]]]:
     """Retrieve merged Cantus IDs from the Cantus Index API (/json-merged-chants)
 
     This function sends a request to the Cantus Index API endpoint for merged chants
@@ -161,6 +161,8 @@ def get_merged_cantus_ids() -> Optional[list]:
     response.encoding = "utf-8-sig"
     raw_text: str = response.text
     text_without_bom: str = raw_text.encode().decode("utf-8-sig")
+    if not text_without_bom:
+        return None
     merge_events: list = json.loads(text_without_bom)
 
     if not isinstance(merge_events, list):
