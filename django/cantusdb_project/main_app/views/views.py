@@ -16,7 +16,6 @@ from main_app.models import (
     Notation,
     Office,
     Provenance,
-    RismSiglum,
     Segment,
     Sequence,
     Source,
@@ -836,7 +835,6 @@ def content_overview(request):
         Genre,
         Notation,
         Century,
-        RismSiglum,
     ]
 
     model_names = [model._meta.verbose_name_plural for model in models]
@@ -1036,16 +1034,6 @@ class CenturyAutocomplete(autocomplete.Select2QuerySetView):
         if not self.request.user.is_authenticated:
             return Century.objects.none()
         qs = Century.objects.all().order_by("name")
-        if self.q:
-            qs = qs.filter(name__istartswith=self.q)
-        return qs
-
-
-class RismSiglumAutocomplete(autocomplete.Select2QuerySetView):
-    def get_queryset(self):
-        if not self.request.user.is_authenticated:
-            return RismSiglum.objects.none()
-        qs = RismSiglum.objects.all().order_by("name")
         if self.q:
             qs = qs.filter(name__istartswith=self.q)
         return qs

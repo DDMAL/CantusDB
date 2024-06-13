@@ -27,7 +27,6 @@ from .make_fakes import (
     make_fake_notation,
     make_fake_office,
     make_fake_provenance,
-    make_fake_rism_siglum,
     make_fake_segment,
     make_fake_sequence,
     make_fake_source,
@@ -1292,7 +1291,6 @@ class ChantSearchViewTest(TestCase):
         self.assertEqual(last_result_incipit, chant_1.incipit)
 
     def test_order_by_office_global_search(self):
-
         # currently, office sort works by ID rather than by name
         office_1 = make_fake_office()
         office_2 = make_fake_office()
@@ -4452,7 +4450,7 @@ class SourceListViewTest(TestCase):
         self.assertIn(unknown, sources)
 
     def test_search_by_title(self):
-        """The "general search" field searches in `title`, `siglum`, `rism_siglum`, `description`, and `summary`"""
+        """The "general search" field searches in `title`, `siglum`, `description`, and `summary`"""
         source = make_fake_source(
             title=faker.sentence(),
             published=True,
@@ -4484,44 +4482,6 @@ class SourceListViewTest(TestCase):
         accented_siglum = add_accents_to_string(unaccented_siglum)
         source.siglum = accented_siglum
         source.save()
-        response = self.client.get(reverse("source-list"), {"general": search_term})
-        self.assertIn(source, response.context["sources"])
-
-    def test_search_by_rism_siglum_name(self):
-        rism_siglum = make_fake_rism_siglum()
-        source = make_fake_source(
-            rism_siglum=rism_siglum,
-            published=True,
-            title="title",
-        )
-        search_term = get_random_search_term(source.rism_siglum.name)
-        response = self.client.get(reverse("source-list"), {"general": search_term})
-        self.assertIn(source, response.context["sources"])
-
-        # Test that postgres searches unaccented version of RISM siglum name
-        unaccented_name = rism_siglum.name
-        accented_name = add_accents_to_string(unaccented_name)
-        rism_siglum.name = accented_name
-        rism_siglum.save()
-        response = self.client.get(reverse("source-list"), {"general": search_term})
-        self.assertIn(source, response.context["sources"])
-
-    def test_search_by_rism_siglum_description(self):
-        rism_siglum = make_fake_rism_siglum()
-        source = make_fake_source(
-            rism_siglum=rism_siglum,
-            published=True,
-            title="title",
-        )
-        search_term = get_random_search_term(source.rism_siglum.description)
-        response = self.client.get(reverse("source-list"), {"general": search_term})
-        self.assertIn(source, response.context["sources"])
-
-        # Test that postgres searches unaccented version of RISM siglum description
-        unaccented_description = rism_siglum.description
-        accented_description = add_accents_to_string(unaccented_description)
-        rism_siglum.description = accented_description
-        rism_siglum.save()
         response = self.client.get(reverse("source-list"), {"general": search_term})
         self.assertIn(source, response.context["sources"])
 
@@ -5003,9 +4963,7 @@ class SourceInventoryViewTest(TestCase):
         response = self.client.get(reverse("source-inventory", args=[source.id]))
         html: str = str(response.content)
         self.assertIn(diff_id, html)
-        expected_html_substring: str = (
-            f'<a href="https://differentiaedatabase.ca/differentia/{diff_id}" target="_blank">'
-        )
+        expected_html_substring: str = f'<a href="https://differentiaedatabase.ca/differentia/{diff_id}" target="_blank">'
         self.assertIn(expected_html_substring, html)
 
     def test_redirect_with_source_parameter(self):
