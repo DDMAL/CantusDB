@@ -47,7 +47,7 @@
                                 </td>
                             {% elif object.name %}
                                 <td class="text-wrap" style="text-align:center">
-                                    {% if object|classname == "Notation" or object|classname == "Segment" or object|classname == "RismSiglum" %}
+                                    {% if object|classname == "Notation" or object|classname == "Segment" %}
                                         <b>{{ object.name|truncatechars:30 }}
                                     {% else %}
                                         <a href="{{ object.get_absolute_url }}"><b>{{ object.name|truncatechars:30 }}</b></a>
