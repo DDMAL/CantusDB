@@ -1,4 +1,7 @@
 <!DOCTYPE html>
+{% load static %}
+<script type="text/javascript" src="{% static 'admin/js/vendor/jquery/jquery.js' %}"></script>
+
 <html>
 
 <head>
@@ -46,19 +49,17 @@
             // get the option value corresponding to the genre name
             var genres = {{ genres|safe }}; // genres contains "id" and "name" of all Genre objects in the database
             var genreObj = genres.find(item => item.name === genre);
-            var genreId = genreId = genreObj ? genreObj.id : null;
+            var genreID = genreObj ? genreObj.id : null;
 
             opener.document.getElementById('id_cantus_id').value = cantus_id;
-            if (genreId) {
-                var genreSelect = opener.document.$('#id_genre');
-                
-                if (genreSelect.find("option[value='" + genreId + "']").length) {
-                    genreSelect.val(genreId).trigger('change');
+            if (genreID) {              
+                if (opener.$('#id_genre').find("option[value='" + genreID + "']").length) {
+                    opener.$('#id_genre').val(genreID).trigger('change');
                 } else { 
                     // Create a new DOM Option and pre-select it by default
-                    var newOption = new Option(genre, genreId, true, true);
+                    var newOption = new Option(genre, genreID, true, true);
                     // Append it to the select and trigger change
-                    genreSelect.append(newOption).trigger('change');
+                    opener.$('#id_genre').append(newOption).trigger('change');
                 }
             }
             opener.document.getElementById('id_manuscript_full_text_std_spelling').value = full_text;
