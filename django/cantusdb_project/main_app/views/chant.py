@@ -900,7 +900,6 @@ class CISearchView(TemplateView):
                 genre.append(result["genre"])
                 full_text.append(result["fulltext"])
 
-        # for looping through three lists in template, we have to zip it here
         if len(cantus_id) == 0:
             context["results"] = [["No results", "No results", "No results"]]
         else:
