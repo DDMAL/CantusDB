@@ -874,14 +874,13 @@ class ChantDeleteView(LoginRequiredMixin, UserPassesTestMixin, DeleteView):
 
 
 class CISearchView(TemplateView):
-    """search in CI and write results in get_context_data
+    """Search in CI and write results in get_context_data
     Shown on the chant create page as the "Input Tool"
     """
 
     template_name = "ci_search.html"
 
     def get_context_data(self, **kwargs):
-        MAX_RESULTS = 500
         context = super().get_context_data(**kwargs)
         context["genres"] = list(
             Genre.objects.all().order_by("name").values("id", "name")

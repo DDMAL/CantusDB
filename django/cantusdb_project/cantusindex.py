@@ -172,10 +172,10 @@ def get_merged_cantus_ids() -> Optional[list[Optional[dict]]]:
 
 def get_ci_text_search(search_term: str) -> Optional[list[Optional[dict]]]:
     """Fetch data from Cantus Index for a given search term.
-    To do a text search on CI, use 'https://cantusindex.org/json-text/<text to search>
+    To do a text search on CI, we use 'https://cantusindex.org/json-text/<text to search>
     """
 
-    # We have to use the old CI domain since the API is still not available on
+    # We have to use the old CI domain since this API is still not available on
     # cantusindex.uwaterloo.ca. Once it's available, we can use get_json_from_ci_api
     # json: Union[dict, list, None] = get_json_from_ci_api(uri)
     uri: str = f"https://cantusindex.org/json-text/{search_term}"
