@@ -38,7 +38,7 @@
 
     <script>
         function autoFill() {
-            var rowId = event.target.parentNode.parentNode.id; //this gives id of tr whose button was clicked 
+            var rowId = event.target.parentNode.parentNode.id; //this gives id of whose button was clicked 
             var cantus_id = document.getElementById(rowId).cells[1].innerText;
             var genre = document.getElementById(rowId).cells[2].innerText;
             var full_text = document.getElementById(rowId).cells[3].innerText;
@@ -49,7 +49,18 @@
             var genreId = genreId = genreObj ? genreObj.id : null;
 
             opener.document.getElementById('id_cantus_id').value = cantus_id;
-            opener.document.getElementById('id_genre').value = genreId;
+            if (genreId) {
+                var genreSelect = opener.document.$('#id_genre');
+                
+                if (genreSelect.find("option[value='" + genreId + "']").length) {
+                    genreSelect.val(genreId).trigger('change');
+                } else { 
+                    // Create a new DOM Option and pre-select it by default
+                    var newOption = new Option(genre, genreId, true, true);
+                    // Append it to the select and trigger change
+                    genreSelect.append(newOption).trigger('change');
+                }
+            }
             opener.document.getElementById('id_manuscript_full_text_std_spelling').value = full_text;
             close()
         }
