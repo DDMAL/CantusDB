@@ -18,7 +18,7 @@ from main_app.models import (
     Provenance,
     Segment,
     Sequence,
-    Source,
+    Source, Institution,
 )
 from django.contrib.auth.decorators import login_required, user_passes_test
 from main_app.models.base_model import BaseModel
@@ -1086,6 +1086,17 @@ class DifferentiaAutocomplete(autocomplete.Select2QuerySetView):
         qs = Differentia.objects.all().order_by("differentia_id")
         if self.q:
             qs = qs.filter(differentia_id__istartswith=self.q)
+        return qs
+
+
+class HoldingAutocomplete(autocomplete.Select2QuerySetView):
+    def get_queryset(self):
+        if not self.request.user.is_authenticated:
+            return Institution.objects.none()
+
+        qs = Institution.objects.all().order_by("name")
+        if self.q:
+            qs = qs.filter(Q(name__istartswith=self.q) | Q(siglum__istartswith=self.q))
         return qs
 
 

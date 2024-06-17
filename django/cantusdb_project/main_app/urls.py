@@ -70,7 +70,7 @@ from main_app.views.views import (
     GenreAutocomplete,
     DifferentiaAutocomplete,
     ProvenanceAutocomplete,
-    ProofreadByAutocomplete,
+    ProofreadByAutocomplete, HoldingAutocomplete,
 )
 
 urlpatterns = [
@@ -483,6 +483,11 @@ urlpatterns = [
         "proofread-by-autocomplete/",
         ProofreadByAutocomplete.as_view(),
         name="proofread-by-autocomplete",
+    ),
+    path(
+        "holding-autocomplete",
+        HoldingAutocomplete.as_view(),
+        name="holding-autocomplete",
     ),
     path(
         "provenance-autocomplete/",
