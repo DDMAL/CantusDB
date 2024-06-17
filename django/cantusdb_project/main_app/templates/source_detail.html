@@ -1,7 +1,11 @@
 {% extends "base.html" %}
-{% block content %}
 {% load helper_tags %}
-<title>{{ source.title }} | Cantus Database</title>
+
+{% block title %}
+    <title>{{ source.title }} | Cantus Database</title>
+{% endblock %}
+
+{% block content %}
 <script src="/static/js/source_detail.js"></script>
 
 <div class="container">

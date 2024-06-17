@@ -1,8 +1,14 @@
 {% extends "base.html" %}
-{% block content %}
-<title>Search Chants | Cantus Database</title>
-<script src="/static/js/chant_search.js"></script>
 
+{% block title %}
+    <title>Search Chants | Cantus Database</title>
+{% endblock %}
+
+{% block scripts %}
+    <script src="/static/js/chant_search.js"></script>
+{% endblock %}
+
+{% block content %}
 <div class="mr-3 p-3 col-md-12 mx-auto bg-white rounded">
     <object align="right" class="search-bar">
         {% include "global_search_bar.html" %}

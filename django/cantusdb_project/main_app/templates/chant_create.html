@@ -1,9 +1,16 @@
 {% extends "base.html" %}
 {% load static %}
+
+{% block title %}
+    <title>Create Chant | Cantus Database</title>
+{% endblock %}
+
+{% block scripts %}
+    <script src="/static/js/chant_create.js"></script>
+    <script type="text/javascript" src="{% static 'admin/js/vendor/jquery/jquery.js' %}"></script>
+{% endblock %}
+
 {% block content %}
-<title>Create Chant | Cantus Database</title>
-<script src="/static/js/chant_create.js"></script>
-<script type="text/javascript" src="{% static 'admin/js/vendor/jquery/jquery.js' %}"></script>
 {{ form.media }}
 <div class="container">
     <div class="row">
