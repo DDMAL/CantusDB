@@ -43,6 +43,11 @@ class Source(BaseModel):
         null=True,
         blank=True,
     )
+    shelfmark = models.CharField(
+        max_length=255,
+        blank=True,
+        null=True,
+    )
     provenance = models.ForeignKey(
         "Provenance",
         on_delete=models.PROTECT,
@@ -140,3 +145,26 @@ class Source(BaseModel):
             cantus_db_segment = Segment.objects.get(name="CANTUS Database")
             self.segment = cantus_db_segment
         super().save(*args, **kwargs)
+
+    def heading(self) -> str:
+        title = []
+        if holdinst := self.holding_institution:
+            city = f"{holdinst.city}," if holdinst.city else ""
+            title.append(city)
+            title.append(f"{holdinst.name},")
+
+        tt = self.shelfmark if self.shelfmark else self.title
+
+        title.append(tt)
+
+        return " ".join(title)
+
+    def short_heading(self) -> str:
+        title = []
+        if holdinst := self.holding_institution:
+            sigl = f"{holdinst.siglum}" if holdinst.siglum else ""
+            title.append(sigl)
+        tt = self.shelfmark if self.shelfmark else self.title
+        title.append(tt)
+
+        return " ".join(title)
