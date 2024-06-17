@@ -34,43 +34,46 @@ class UserDetailView(DetailView):
             raise PermissionDenied()
 
         context = super().get_context_data(**kwargs)
-        display_unpublished = viewing_user.is_authenticated
-        sort_by_siglum = lambda source: source.siglum
-        if display_unpublished:
-            context["inventoried_sources"] = sorted(
-                user.inventoried_sources.all(), key=sort_by_siglum
-            )
-            context["full_text_sources"] = sorted(
-                user.entered_full_text_for_sources.all(), key=sort_by_siglum
-            )
-            context["melody_sources"] = sorted(
-                user.entered_melody_for_sources.all(), key=sort_by_siglum
-            )
-            context["proofread_sources"] = sorted(
-                user.proofread_sources.all(), key=sort_by_siglum
-            )
-            context["edited_sources"] = sorted(
-                user.edited_sources.all(), key=sort_by_siglum
-            )
+
+        # `display_unpublished` is now a dictionary that, if the
+        # user is not authenticated, wil. filter the sources to only
+        # those that are published. If the user is authenticated, the
+        # empty dict will not apply the filter, thus showing both
+        # published and unpublished.
+        if not viewing_user.is_authenticated:
+            display_unpublished = {"published": True}
         else:
-            context["inventoried_sources"] = sorted(
-                user.inventoried_sources.all().filter(published=True),
-                key=sort_by_siglum,
-            )
-            context["full_text_sources"] = sorted(
-                user.entered_full_text_for_sources.all().filter(published=True),
-                key=sort_by_siglum,
-            )
-            context["melody_sources"] = sorted(
-                user.entered_melody_for_sources.all().filter(published=True),
-                key=sort_by_siglum,
-            )
-            context["proofread_sources"] = sorted(
-                user.proofread_sources.all().filter(published=True), key=sort_by_siglum
-            )
-            context["edited_sources"] = sorted(
-                user.edited_sources.all().filter(published=True), key=sort_by_siglum
-            )
+            display_unpublished = {}
+
+        context["inventoried_sources"] = (user.inventoried_sources
+                                          .filter(**display_unpublished)
+                                          .select_related("holding_institution")
+                                          .all()
+                                          .order_by("holding_institution__siglum"))
+
+        context["full_text_sources"] = (user.entered_full_text_for_sources
+                                        .filter(**display_unpublished)
+                                        .select_related("holding_institution")
+                                        .all()
+                                        .order_by("holding_institution__siglum"))
+
+        context["melody_sources"] = (user.entered_melody_for_sources
+                                     .filter(**display_unpublished)
+                                     .select_related("holding_institution")
+                                     .all()
+                                     .order_by("holding_institution__siglum"))
+
+        context["proofread_sources"] = (user.proofread_sources
+                                        .filter(**display_unpublished)
+                                        .select_related("holding_institution")
+                                        .all()
+                                        .order_by("holding_institution__siglum"))
+
+        context["edited_sources"] = (user.edited_sources
+                                     .filter(**display_unpublished)
+                                     .select_related("holding_institution")
+                                     .all()
+                                     .order_by("holding_institution__siglum"))
 
         return context
 
