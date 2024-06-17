@@ -1,6 +1,7 @@
 from django.urls import include, path
 from django.conf import settings
 from django.contrib.auth.views import (
+    LoginView,
     PasswordResetView,
     PasswordResetDoneView,
     PasswordResetConfirmView,
@@ -54,7 +55,6 @@ from main_app.views.source import (
     SourceInventoryView,
 )
 from main_app.views.user import (
-    LoginView,
     CustomLogoutView,
     IndexerListView,
     UserDetailView,

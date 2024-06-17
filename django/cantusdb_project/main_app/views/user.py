@@ -1,17 +1,16 @@
-from django.urls import reverse
+from django.contrib import messages
+from django.contrib.auth import get_user_model
+from django.contrib.auth.mixins import LoginRequiredMixin
+from django.contrib.auth.views import LogoutView
+from django.core.exceptions import PermissionDenied
+from django.core.paginator import Paginator
+from django.db.models import Q
 from django.db.models.aggregates import Count
 from django.views.generic import DetailView
-from django.contrib.auth import get_user_model, login as auth_login
-from main_app.models import Source
 from django.views.generic import ListView
-from django.contrib.auth.mixins import LoginRequiredMixin
-from django.db.models import Q
-from django.core.paginator import Paginator
-from django.contrib.auth.views import LogoutView, LoginView
-from django.contrib import messages
 from extra_views import SearchableListMixin
-from django.http import HttpResponseRedirect
-from django.core.exceptions import PermissionDenied
+
+from main_app.models import Source
 from main_app.permissions import user_can_view_user_detail
 
 
