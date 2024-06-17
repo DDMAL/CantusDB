@@ -1,43 +1,39 @@
-{% extends "base.html" %}
-{% load helper_tags %} {# for recent_articles #}
-{% block content %}
-<div class="container">
-    <title>What's New | Cantus Database</title>
+{% extends "base_page_with_side_cards.html" %}
+{% load helper_tags %} {# for recent_articles #}\
+{% block title %}
+<title>What's New | Cantus Database</title>
+{% endblock %}
+{% block uppersidebar %}
+<div class="search-bar mb-3">
+    {% include "global_search_bar.html" %}
+</div>
+{% endblock %}
+{% block maincontent %}
+    <h3>What's New</h3>
+    {% for article in articles %}
     <div class="row">
-        <div class="p-3 col-lg-8 bg-white rounded main-content">
-            <h3>What's New</h3>
-            {% for article in articles %}
-            <div class="row">
-                <div class="col">
-                    <small>{{ article.date_created|date:"D, m/d/Y - H:i" }}</small>
-                    <h4>
-                        <a href="{% url 'article-detail' article.id %}">{{ article.title }}</a>
-                    </h4>
-                    <div class="container">
-                        <small>
-                        {{ article.body.html|safe|truncatechars_html:3000 }}
-                        </small>
-                    </div>
-                </div>
-            </div>
-            {% endfor %}
-            {% include "pagination.html" %}
-            <br>
-        </div>
-        <div class="col p-0 sidebar">
-            <div class="search-bar mb-3">
-                {% include "global_search_bar.html" %}
-            </div>
-
-            <div class="card mt-3 w-100">
-                <div class="card-header">
-                    What's New
-                </div>
-                <div class="card-body">
-                    {% recent_articles %}
-                </div>
+        <div class="col">
+            <small>{{ article.date_created|date:"D, m/d/Y - H:i" }}</small>
+            <h4>
+                <a href="{% url 'article-detail' article.id %}">{{ article.title }}</a>
+            </h4>
+            <div class="container">
+                <small>
+                {{ article.body.html|safe|truncatechars_html:3000 }}
+                </small>
             </div>
         </div>
     </div>
-</div>
+    {% endfor %}
+    {% include "pagination.html" %}
+{% endblock %}
+{% block lowersidebar %}
+    <div class="card">
+        <div class="card-header">
+            What's New
+        </div>
+        <div class="card-body">
+            {% recent_articles %}
+        </div>
+    </div>
 {% endblock %}

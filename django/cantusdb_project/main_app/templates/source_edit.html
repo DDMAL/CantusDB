@@ -1,302 +1,305 @@
-{% extends "base.html" %}
+{% extends "base_page_with_side_cards.html" %}
 {% load static %}
-{% block content %}
+
+{% block title %}
 <title>{{ source.title }} | Cantus Database</title>
+{% endblock %}
+
+{% block script %}
 <script src="/static/js/source_detail.js"></script>
 <script type="text/javascript" src="{% static 'admin/js/vendor/jquery/jquery.js' %}"></script>
 {{ form.media }}
+{% endblock %}
 
-<div class="container">
-    <div class="row">
-        <div class="p-3 col-lg-8 bg-white rounded main-content">
-            <!--Display form error message -->
-            {% if form.errors %}
-                <div class="alert alert-danger alert-dismissible">
-                    <a href="#" class="close" data-dismiss="alert" aria-label="close">&times;</a>
-                    {% for error in form.non_field_errors %}
-                        <a href="#" class="close" data-dismiss="alert" aria-label="close">&times;</a>
-                        {{ error }}
-                    {% endfor %}
-                    {% for field in form %}
-                        {% if field.errors %}
-                            <a href="#" class="close" data-dismiss="alert" aria-label="close">&times;</a>
-                            {{ field.label }}: {{ field.errors|striptags }}
-                        {% endif %}
-                    {% endfor %}
-                </div>
-            {% endif %}
 
-            <h3><em>Edit Source</em> {{ source.title }}</h3>
-
-            <p>
-                <a href="{% url 'source-detail' source.id %}">View</a> | Edit
-            </p>
-
-            <form method="post" style="line-height: normal">{% csrf_token %}
-                <div class="form-row mb-3">
-
-                    <div class="form-group m-1 col-lg-9">
-                        <label for="{{ form.title.id_for_label }}">
-                            Full Source Identification (City, Archive, Shelf-mark):<span class="text-danger" title="This field is required">*</span>
-                        </label>
-                        {{ form.title }}
-                    </div>
-                </div>
-
-                <div class="form-row mb-3">
-                    <div class="form-group m-1 col-lg-9">
-                        <label for="{{ form.siglum.id_for_label }}">
-                            Siglum:<span class="text-danger" title="This field is required">*</span>
-                        </label>
-                        {{ form.siglum }}
-                        <small>RISM-style siglum + Shelf-mark (e.g. GB-Ob 202).</small>
-                    </div>
-                </div>
-
-                <div class="form-row mb-3">
-                    <div class="form-group m-1 col-lg-7">
-                        <label for="{{ form.provenance.id_for_label }}">
-                            Provenance (origin / history):
-                        </label>
-                        {{ form.provenance }}
-                        <small><br>If the origin is unknown, select a location where the source was used later in its lifetime and provide details in the "Provenance notes" field.</small>
-                    </div>
-                </div>
-
-                <div class="form-row mb-3">
-                    <div class="form-group m-1 col-lg-7">
-                        {{ form.provenance_notes.label_tag }}
-                        {{ form.provenance_notes }}
-                        <small>More exact indication of the provenance (if necessary)</small>
-                    </div>
-                    <div class="form-group m-1 col-lg-4 ">
-                        <label for="{{ form.full_source.id_for_label }}">
-                            Full source / fragment:
-                        </label>
-                        {{ form.full_source }}
-                    </div>
-                </div>
-
-                <div class="form-row mb-3">
-                    <div class="form-group m-1 col-lg-3">
-                        {{ form.century.label_tag }}
-                        {{ form.century }}
-                    </div>
-                </div>
-
-                <div class="form-row mb-3">
-                    <div class="form-group m-1 col-lg-7">
-                        {{ form.date.label_tag }}
-                        {{ form.date }}
-                        <small>Date of the source (e.g. "1200s", "1300-1350", etc.)</small>
-                    </div>
-                </div>
-
-                <div class="form-row mb-3">
-                    <div class="form-group m-1 col-lg-3">
-                        {{ form.cursus.label_tag }}
-                        {{ form.cursus }}
-                    </div>
-                </div>
-
-                <div class="form-row mb-3">
-                    <div class="form-group m-1 col-lg-3">
-                        {{ form.current_editors.label_tag }}
-                        {{ form.current_editors }}
-                    </div>
-                </div> 
-                <div class="form-row mb-3">
-                    <div class="form-group m-1 col-lg-3">
-                        {{ form.melodies_entered_by.label_tag }}
-                        {{ form.melodies_entered_by }}
-                    </div>
-                </div>
-                <div class="form-row mb-3">
-                    <div class="form-group m-1 col-lg-3">
-                        {{ form.inventoried_by.label_tag }}
-                        {{ form.inventoried_by }}
-                    </div>
-                </div>
-                <div class="form-row mb-3">
-                    <div class="form-group m-1 col-lg-3">
-                        {{ form.full_text_entered_by.label_tag }}
-                        {{ form.full_text_entered_by }}
-                    </div>
-                </div>
-                <div class="form-row mb-3">
-                    <div class="form-group m-1 col-lg-3">
-                        {{ form.proofreaders.label_tag }}
-                        {{ form.proofreaders }}
-                    </div>
-                </div>
-                <div class="form-row mb-3">
-                    <div class="form-group m-1 col-lg-3">
-                        {{ form.other_editors.label_tag }}
-                        {{ form.other_editors }}
-                    </div>
-                </div>
-
-                <div class="form-row mb-3">
-                    <div class="form-group m-1 col-lg-5">
-                        <label for="{{ form.complete_inventory.id_for_label }}">
-                            Complete / partial inventory:
-                        </label>
-                        {{ form.complete_inventory }}
-                    </div>
-                </div>
-
-                <div class="form-row mb-3">
-                    <div class="form-group m-1 col-lg-12">
-                        {{ form.summary.label_tag }}
-                        {{ form.summary }}
-                    </div>
-                </div>
-
-                <div class="form-row mb-3">
-                    <div class="form-group m-1 col-lg-12">
-                        {{ form.liturgical_occasions.label_tag }}
-                        {{ form.liturgical_occasions }}
-                    </div>
-                </div>
-
-                <div class="form-row mb-3">
-                    <div class="form-group m-1 col-lg-12">
-                        {{ form.description.label_tag }}
-                        {{ form.description }}
-                    </div>
-                </div>
-
-                <div class="form-row mb-3">
-                    <div class="form-group m-1 col-lg-12">
-                        {{ form.selected_bibliography.label_tag }}
-                        {{ form.selected_bibliography }}
-                    </div>
-                </div>
-
-                <div class="form-row mb-3">
-                    <div class="form-group m-1 col-lg-12">
-                        {{ form.image_link.label_tag }}
-                        {{ form.image_link }}
-                        <small>HTTP link to the image gallery of the source.</small>
-                    </div>
-                </div>
-
-                <div class="form-row mb-3">
-                    <div class="form-group m-1 col-lg-3">
-                        <label for="{{ form.fragmentarium_id.id_for_label }}">
-                            Fragmentarium ID:
-                        </label>
-                        {{ form.fragmentarium_id }}
-                    </div>
-                    <div class="form-group m-1 col-lg-3">
-                        <label for="{{ form.dact_id.id_for_label }}">
-                            DACT ID:
-                        </label>
-                        {{ form.dact_id }}
-                    </div>
-                </div>
-
-                <div class="form-row mb-3">
-                    <div class="form-group m-1 col-lg-12">
-                        <label for="{{ form.indexing_notes.id_for_label }}">
-                            Notes on the Inventory:
-                        </label>
-                        {{ form.indexing_notes }}
-                    </div>
-                </div>
-
-                <div class="form-row">
-                    <div class="form-group m-1 col-lg-1">
-                        <button type="submit" class="btn btn-dark btn-sm" id="btn-submit">Save</button>
-                    </div>
-                    <div class="form-group m-1 col-lg-2">
-                        <a href="{% url "source-delete" source.id %}" class="btn btn-danger btn-sm" id="btn-delete">Delete</a>
-                    </div>
-                </div>
-            </form>
-        </div>
-
-        <div class="col p-0 sidebar">
-            <div class="search-bar mb-3">
-                {% include "global_search_bar.html" %}
-            </div>
-
-            <div class="card mb-3 w-100">
-                <div class="card-header">
-                    <h4>{{ source.siglum }}</h4>
-                </div>
-                <div class="card-body">
-                    <small>
-                        <!--a small selector of all folios of this source-->
-                        <select id="folioSelect" class="w-30" onchange="jumpToFolio({{ source.id }})">
-                            <option value="">Select a folio:</option>
-                            {% for folio in folios %}
-                                <option value="{{ folio }}">{{ folio }}</option>
-                            {% endfor %}
-                        </select>                              
-
-                        <select id="feastSelect" onchange="jumpToFeast({{ source.id }})" style="width: 200px;"> <!-- style attribute prevents select element from extending beyond left edge of div element -->
-                            <option value="">Select a feast:</option>
-                            {% for folio, feast_id, feast_name in feasts_with_folios %}
-                                <option value="{{ feast_id }}">{{ folio }} - {{ feast_name }}</option>
-                            {% endfor %}
-                        </select>          
-
-                        <br>
-                        {% if source.segment.id == 4063 %}
-                            {# only display this link for sources in the CANTUS segment #}
-                            <a href="{% url "browse-chants" source.id %}" class="guillemet" target="_blank">View all chants</a>
-                        {% endif %}
-                        <a href="{% url "source-inventory" source.id %}" class="guillemet" target="_blank">View full inventory</a>
-                        {% if source.exists_on_cantus_ultimus %}
-                            <a href="https://cantus.simssa.ca/manuscript/{{ source.id }}" class="guillemet" target="_blank">View inventory with images</a>
-                        {% endif %}
-                        {% if source.image_link %}
-                            <a href="{{ source.image_link }}" class="guillemet" target="_blank">View images on external site</a>
-                        {% endif %}                         
-                        <a href="{% url "csv-export" source.id%}" class="guillemet" target="_blank" download="{{ source.id }}.csv">CSV export</a>
-                        <a href="{% url "chant-search-ms" source.id %}" class="guillemet" target="_blank">Search chants in this source</a>
-                        <a href="{% url "melody-search" %}?source={{ source.id }}"  class="guillemet" target="_blank">Search melodies in this source</a>
-                        <a href="//cantusindex.org/analyse?src={{ source.id }}&db=CD" class="guillemet" target="_blank">Analyse this source (Cantus Analysis Tool)</a>
-
-                    </small>
-                    {% if chants.exists %}
-                        <table class="table table-sm small table-bordered">
-                            <tbody>
-                                {% for chant in chants %}
-                                    <tr>
-                                        <td class="text-wrap" style="text-align:center">
-                                            <small>{{ chant.c_sequence }}</small>
-                                        </td>
-                                        <td class="text-wrap" style="text-align:center">
-                                            <small>
-                                                {{ chant.office.name|default:"" }}
-                                                <br>
-                                                {{ chant.genre.name|default:"" }}
-                                                <br>
-                                                {{ chant.position|default:"" }}
-                                            </small>
-                                        </td>
-                                        <td class="text-wrap" style="text-align:center">
-                                            <small>{{ chant.incipit|default:"" }}</small>
-                                        </td>
-                                        <td class="text-wrap" style="text-align:center">
-                                            <small><a href="{{ chant.get_ci_url }}" target="_blank">{{ chant.cantus_id|default:"" }}</a></small>
-                                        </td>
-                                        <td class="text-wrap" style="text-align:center">
-                                            <small>{{ chant.mode|default:"" }}</small>
-                                        </td>
-                                        <td class="text-wrap" style="text-align:center">
-                                            <button type="button" class="btn btn-dark btn-sm" id="editButton" name="{{ chant.pk }}">EDIT</button>
-                                        </td>
-                                    </tr>
-                                {% endfor %}
-                            </tbody>
-                        </table>
-                    {% endif %}        
-                </div>    
-            </div>    
-        </div>
-    </div>
+{% block uppersidebar %}
+<div class="search-bar mb-3">
+    {% include "global_search_bar.html" %}
 </div>
+{% endblock %}
+
+{% block maincontent %}
+    <!--Display form error message -->
+    {% if form.errors %}
+        <div class="alert alert-danger alert-dismissible">
+            <a href="#" class="close" data-dismiss="alert" aria-label="close">&times;</a>
+            {% for error in form.non_field_errors %}
+                <a href="#" class="close" data-dismiss="alert" aria-label="close">&times;</a>
+                {{ error }}
+            {% endfor %}
+            {% for field in form %}
+                {% if field.errors %}
+                    <a href="#" class="close" data-dismiss="alert" aria-label="close">&times;</a>
+                    {{ field.label }}: {{ field.errors|striptags }}
+                {% endif %}
+            {% endfor %}
+        </div>
+    {% endif %}
+
+    <h3><em>Edit Source</em> {{ source.title }}</h3>
+
+    <p>
+        <a href="{% url 'source-detail' source.id %}">View</a> | Edit
+    </p>
+
+    <form method="post" style="line-height: normal">{% csrf_token %}
+        <div class="form-row mb-3">
+
+            <div class="form-group m-1 col-lg-9">
+                <label for="{{ form.title.id_for_label }}">
+                    Full Source Identification (City, Archive, Shelf-mark):<span class="text-danger" title="This field is required">*</span>
+                </label>
+                {{ form.title }}
+            </div>
+        </div>
+
+        <div class="form-row mb-3">
+            <div class="form-group m-1 col-lg-9">
+                <label for="{{ form.siglum.id_for_label }}">
+                    Siglum:<span class="text-danger" title="This field is required">*</span>
+                </label>
+                {{ form.siglum }}
+                <small>RISM-style siglum + Shelf-mark (e.g. GB-Ob 202).</small>
+            </div>
+        </div>
+
+        <div class="form-row mb-3">
+            <div class="form-group m-1 col-lg-7">
+                <label for="{{ form.provenance.id_for_label }}">
+                    Provenance (origin / history):
+                </label>
+                {{ form.provenance }}
+                <small><br>If the origin is unknown, select a location where the source was used later in its lifetime and provide details in the "Provenance notes" field.</small>
+            </div>
+        </div>
+
+        <div class="form-row mb-3">
+            <div class="form-group m-1 col-lg-7">
+                {{ form.provenance_notes.label_tag }}
+                {{ form.provenance_notes }}
+                <small>More exact indication of the provenance (if necessary)</small>
+            </div>
+            <div class="form-group m-1 col-lg-4 ">
+                <label for="{{ form.full_source.id_for_label }}">
+                    Full source / fragment:
+                </label>
+                {{ form.full_source }}
+            </div>
+        </div>
+
+        <div class="form-row mb-3">
+            <div class="form-group m-1 col-lg-3">
+                {{ form.century.label_tag }}
+                {{ form.century }}
+            </div>
+        </div>
+
+        <div class="form-row mb-3">
+            <div class="form-group m-1 col-lg-7">
+                {{ form.date.label_tag }}
+                {{ form.date }}
+                <small>Date of the source (e.g. "1200s", "1300-1350", etc.)</small>
+            </div>
+        </div>
+
+        <div class="form-row mb-3">
+            <div class="form-group m-1 col-lg-3">
+                {{ form.cursus.label_tag }}
+                {{ form.cursus }}
+            </div>
+        </div>
+
+        <div class="form-row mb-3">
+            <div class="form-group m-1 col-lg-3">
+                {{ form.current_editors.label_tag }}
+                {{ form.current_editors }}
+            </div>
+        </div> 
+        <div class="form-row mb-3">
+            <div class="form-group m-1 col-lg-3">
+                {{ form.melodies_entered_by.label_tag }}
+                {{ form.melodies_entered_by }}
+            </div>
+        </div>
+        <div class="form-row mb-3">
+            <div class="form-group m-1 col-lg-3">
+                {{ form.inventoried_by.label_tag }}
+                {{ form.inventoried_by }}
+            </div>
+        </div>
+        <div class="form-row mb-3">
+            <div class="form-group m-1 col-lg-3">
+                {{ form.full_text_entered_by.label_tag }}
+                {{ form.full_text_entered_by }}
+            </div>
+        </div>
+        <div class="form-row mb-3">
+            <div class="form-group m-1 col-lg-3">
+                {{ form.proofreaders.label_tag }}
+                {{ form.proofreaders }}
+            </div>
+        </div>
+        <div class="form-row mb-3">
+            <div class="form-group m-1 col-lg-3">
+                {{ form.other_editors.label_tag }}
+                {{ form.other_editors }}
+            </div>
+        </div>
+
+        <div class="form-row mb-3">
+            <div class="form-group m-1 col-lg-5">
+                <label for="{{ form.complete_inventory.id_for_label }}">
+                    Complete / partial inventory:
+                </label>
+                {{ form.complete_inventory }}
+            </div>
+        </div>
+
+        <div class="form-row mb-3">
+            <div class="form-group m-1 col-lg-12">
+                {{ form.summary.label_tag }}
+                {{ form.summary }}
+            </div>
+        </div>
+
+        <div class="form-row mb-3">
+            <div class="form-group m-1 col-lg-12">
+                {{ form.liturgical_occasions.label_tag }}
+                {{ form.liturgical_occasions }}
+            </div>
+        </div>
+
+        <div class="form-row mb-3">
+            <div class="form-group m-1 col-lg-12">
+                {{ form.description.label_tag }}
+                {{ form.description }}
+            </div>
+        </div>
+
+        <div class="form-row mb-3">
+            <div class="form-group m-1 col-lg-12">
+                {{ form.selected_bibliography.label_tag }}
+                {{ form.selected_bibliography }}
+            </div>
+        </div>
+
+        <div class="form-row mb-3">
+            <div class="form-group m-1 col-lg-12">
+                {{ form.image_link.label_tag }}
+                {{ form.image_link }}
+                <small>HTTP link to the image gallery of the source.</small>
+            </div>
+        </div>
+
+        <div class="form-row mb-3">
+            <div class="form-group m-1 col-lg-3">
+                <label for="{{ form.fragmentarium_id.id_for_label }}">
+                    Fragmentarium ID:
+                </label>
+                {{ form.fragmentarium_id }}
+            </div>
+            <div class="form-group m-1 col-lg-3">
+                <label for="{{ form.dact_id.id_for_label }}">
+                    DACT ID:
+                </label>
+                {{ form.dact_id }}
+            </div>
+        </div>
+
+        <div class="form-row mb-3">
+            <div class="form-group m-1 col-lg-12">
+                <label for="{{ form.indexing_notes.id_for_label }}">
+                    Notes on the Inventory:
+                </label>
+                {{ form.indexing_notes }}
+            </div>
+        </div>
+
+        <div class="form-row">
+            <div class="form-group m-1 col-lg-1">
+                <button type="submit" class="btn btn-dark btn-sm" id="btn-submit">Save</button>
+            </div>
+            <div class="form-group m-1 col-lg-2">
+                <a href="{% url "source-delete" source.id %}" class="btn btn-danger btn-sm" id="btn-delete">Delete</a>
+            </div>
+        </div>
+    </form>
+{% endblock %}
+
+{% block lowersidebar %}
+    <div class="card mb-3 w-100">
+        <div class="card-header">
+            <h4>{{ source.siglum }}</h4>
+        </div>
+        <div class="card-body">
+            <small>
+                <!--a small selector of all folios of this source-->
+                <select id="folioSelect" class="w-30" onchange="jumpToFolio({{ source.id }})">
+                    <option value="">Select a folio:</option>
+                    {% for folio in folios %}
+                        <option value="{{ folio }}">{{ folio }}</option>
+                    {% endfor %}
+                </select>                              
+
+                <select id="feastSelect" onchange="jumpToFeast({{ source.id }})" style="width: 200px;"> <!-- style attribute prevents select element from extending beyond left edge of div element -->
+                    <option value="">Select a feast:</option>
+                    {% for folio, feast_id, feast_name in feasts_with_folios %}
+                        <option value="{{ feast_id }}">{{ folio }} - {{ feast_name }}</option>
+                    {% endfor %}
+                </select>          
+
+                <br>
+                {% if source.segment.id == 4063 %}
+                    {# only display this link for sources in the CANTUS segment #}
+                    <a href="{% url "browse-chants" source.id %}" class="guillemet" target="_blank">View all chants</a>
+                {% endif %}
+                <a href="{% url "source-inventory" source.id %}" class="guillemet" target="_blank">View full inventory</a>
+                {% if source.exists_on_cantus_ultimus %}
+                    <a href="https://cantus.simssa.ca/manuscript/{{ source.id }}" class="guillemet" target="_blank">View inventory with images</a>
+                {% endif %}
+                {% if source.image_link %}
+                    <a href="{{ source.image_link }}" class="guillemet" target="_blank">View images on external site</a>
+                {% endif %}                         
+                <a href="{% url "csv-export" source.id%}" class="guillemet" target="_blank" download="{{ source.id }}.csv">CSV export</a>
+                <a href="{% url "chant-search-ms" source.id %}" class="guillemet" target="_blank">Search chants in this source</a>
+                <a href="{% url "melody-search" %}?source={{ source.id }}"  class="guillemet" target="_blank">Search melodies in this source</a>
+                <a href="//cantusindex.org/analyse?src={{ source.id }}&db=CD" class="guillemet" target="_blank">Analyse this source (Cantus Analysis Tool)</a>
+
+            </small>
+            {% if chants.exists %}
+                <table class="table table-sm small table-bordered">
+                    <tbody>
+                        {% for chant in chants %}
+                            <tr>
+                                <td class="text-wrap" style="text-align:center">
+                                    <small>{{ chant.c_sequence }}</small>
+                                </td>
+                                <td class="text-wrap" style="text-align:center">
+                                    <small>
+                                        {{ chant.office.name|default:"" }}
+                                        <br>
+                                        {{ chant.genre.name|default:"" }}
+                                        <br>
+                                        {{ chant.position|default:"" }}
+                                    </small>
+                                </td>
+                                <td class="text-wrap" style="text-align:center">
+                                    <small>{{ chant.incipit|default:"" }}</small>
+                                </td>
+                                <td class="text-wrap" style="text-align:center">
+                                    <small><a href="{{ chant.get_ci_url }}" target="_blank">{{ chant.cantus_id|default:"" }}</a></small>
+                                </td>
+                                <td class="text-wrap" style="text-align:center">
+                                    <small>{{ chant.mode|default:"" }}</small>
+                                </td>
+                                <td class="text-wrap" style="text-align:center">
+                                    <button type="button" class="btn btn-dark btn-sm" id="editButton" name="{{ chant.pk }}">EDIT</button>
+                                </td>
+                            </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            {% endif %}        
+        </div>    
+    </div>    
 {% endblock %}

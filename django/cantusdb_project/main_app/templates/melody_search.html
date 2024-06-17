@@ -1,124 +1,125 @@
-{% extends "base.html" %}
-{% block content %}
+{% extends "base_page_with_side_cards.html" %}
+
+{% block title %}
 <title>Search by melody | Cantus Database</title>
+{% endblock %}
+
+{% block script %}
 <script src="/static/js/melody_search.js"></script>
-<div class="container">
-    <div class="row">
-        <div class="p-3 col-lg-8 bg-white rounded main-content">
-            <h3>Search by melody</h3>
-            <p>
-                This melody search provides results based on the Cantus Database chants.
-                <br>
-                For searching in chant melody catalogues 
-                go here: <a href="https://cantusindex.org/melody" target="_blank">Cantus Index Melody Search</a>.
-            </p>
+{% endblock %}
 
-            <div id="drawArea" class="text-truncate" style="font-size:0">
-                <img src="/static/melody search tool/1.jpg" alt="vopiano_clef">
-                <img id="1" src="/static/melody search tool/-.jpg" alt="dash">
-                <img id="2" src="/static/melody search tool/-.jpg" alt="dash">
-                <img id="3" src="/static/melody search tool/-.jpg" alt="dash">
-                <img id="4" src="/static/melody search tool/-.jpg" alt="dash">
-                <img id="5" src="/static/melody search tool/-.jpg" alt="dash">
-                <img id="6" src="/static/melody search tool/-.jpg" alt="dash">
-                <img id="7" src="/static/melody search tool/-.jpg" alt="dash">
-                <img id="8" src="/static/melody search tool/-.jpg" alt="dash">
-                <img id="9" src="/static/melody search tool/-.jpg" alt="dash">
-                <img id="10" src="/static/melody search tool/-.jpg" alt="dash">
-                <img id="11" src="/static/melody search tool/-.jpg" alt="dash">
-                <img id="12" src="/static/melody search tool/-.jpg" alt="dash">
-                <img id="13" src="/static/melody search tool/-.jpg" alt="dash">
-                <img id="14" src="/static/melody search tool/-.jpg" alt="dash">
-            </div>
-            <br>
-            <button id="deleteOne" type="button" class="btn btn-sm btn-outline-dark">Delete 1 note</button>
-            <button id="deleteAll" type="button" class="btn btn-sm btn-outline-dark">Delete all notes</button>
-            <span id="searchingPrompt" style="display: none; color: #922"><b>Updating search results...</b></span>
+{% block maincontent %}
+    <h3>Search by melody</h3>
+    <p>
+        This melody search provides results based on the Cantus Database chants.
+        <br>
+        For searching in chant melody catalogues 
+        go here: <a href="https://cantusindex.org/melody" target="_blank">Cantus Index Melody Search</a>.
+    </p>
 
-            <form method="get">
-                <div class="form-row">
-                    <div class="form-group m-1 col-sm">
-                        <label for="siglum"><small>Source siglum</small></label>
-                        {% if source %}
-                            <input type="text" class="form-control form-control-sm" name="siglum" value="{{ source.siglum }}" id="siglum">
-                        {% else %}
-                            <input type="text" class="form-control form-control-sm" name="siglum" value="{{ request.GET.siglum }}" id="siglum">
-                        {% endif %}
-                    </div>
-                    <div class="form-group m-1 col-sm">
-                        <label for="textSearch"><small>Text search</small></label>
-                        <input type="text" class="form-control form-control-sm" name="text" value="{{ request.GET.text }}" id="textSearch">
-                    </div>
-                    <div class="form-group m-1 col-sm">
-                        <label for="genre"><small>Genre</small></label>
-                        <input type="text" class="form-control form-control-sm" name="genre" value="{{ request.GET.genre }}" id="genre">
-                    </div>
-                    <div class="form-group m-1 col-sm">
-                        <label for="feast"><small>Feast</small></label>
-                        <input type="text" class="form-control form-control-sm" name="feast" value="{{ request.GET.feast }}" id="feast">
-                    </div>
-                    <div class="form-group m-1 col-sm">
-                        <label for="mode"><small>Mode</small></label>
-                        <input type="mode" class="form-control form-control-sm" name="mode" value="{{ request.GET.mode }}" id="mode">
-                    </div>
-                </div>
-
-                <div class="form-row">
-                    <div class="form-group m-1">
-                        <input type="radio" id="searchBegin" name="searchPosition" checked>
-                        <label for="search-begin">Search the beginning of the melody</label>
-                        <br>
-                        <input type="radio" id="searchAnywhere" name="searchPosition">
-                        <label for="search-anywhere">Search anywhere in the melody</label>
-                    </div>
-                    <div class="form-group m-1">
-                        <input type="radio" id="searchExact" name="transposition" checked>
-                        <label for="search-exact">Exact matches</label>
-                        <br>
-                        <input type="radio" id="searchTranspose" name="transposition">
-                        <label for="search-transposition">Exact matches + transpositions</label>
-                    </div>
-                </div>
-            </form>
-
-            {% if source %}
-                <b>Searching in source: <a href="{% url 'source-detail' source.id %}" target="_blank">{{ source.title }}</a></b>
-            {% endif %}
-
-            <div id="resultsDiv"></div>
-        </div>
-
-        <div class="col p-0 sidebar">
-            <div class="search-bar mb-3">
-                {% include "global_search_bar.html" %}
-            </div>
-
-            <div class="card mb-3 w-100">
-
-                <div class="card-header">
-                    <b>Melody Search Tool</b>
-                </div>
-
-                <div class="card-body">
-                    <small>
-                        <ul>
-                            <li><b>Enter the melody shape by mouse clicks on the staff.</b></li>
-                            <li><b>Ignore the repeating notes - the system will not allow you to enter the same pitch twice.</b></li>
-                        </ul>
-                        <p>
-                            CANTUS Melody Search tool was developed by Jan Koláček and first used in the 
-                            <a href="http://globalchant.org/search.php" target="_blank">Global Chant Database</a>
-                        </p>
-                        <p>
-                            Volpiano font - Version 4.02 (© fawe, September 2011) Courtesy of David Hiley and his research team at the 
-                            Universität Regensburg. For more details, including information on the newest versions of this font, 
-                            please refer to <a href="http://www.fawe.de/volpiano/" target="_blank">http://www.fawe.de/volpiano/</a>.
-                        </p>
-                    </small>
-                </div>    
-
-            </div>
-        </div>
+    <div id="drawArea" class="text-truncate" style="font-size:0">
+        <img src="/static/melody search tool/1.jpg" alt="vopiano_clef">
+        <img id="1" src="/static/melody search tool/-.jpg" alt="dash">
+        <img id="2" src="/static/melody search tool/-.jpg" alt="dash">
+        <img id="3" src="/static/melody search tool/-.jpg" alt="dash">
+        <img id="4" src="/static/melody search tool/-.jpg" alt="dash">
+        <img id="5" src="/static/melody search tool/-.jpg" alt="dash">
+        <img id="6" src="/static/melody search tool/-.jpg" alt="dash">
+        <img id="7" src="/static/melody search tool/-.jpg" alt="dash">
+        <img id="8" src="/static/melody search tool/-.jpg" alt="dash">
+        <img id="9" src="/static/melody search tool/-.jpg" alt="dash">
+        <img id="10" src="/static/melody search tool/-.jpg" alt="dash">
+        <img id="11" src="/static/melody search tool/-.jpg" alt="dash">
+        <img id="12" src="/static/melody search tool/-.jpg" alt="dash">
+        <img id="13" src="/static/melody search tool/-.jpg" alt="dash">
+        <img id="14" src="/static/melody search tool/-.jpg" alt="dash">
     </div>
-</div>
+    <br>
+    <button id="deleteOne" type="button" class="btn btn-sm btn-outline-dark">Delete 1 note</button>
+    <button id="deleteAll" type="button" class="btn btn-sm btn-outline-dark">Delete all notes</button>
+    <span id="searchingPrompt" style="display: none; color: #922"><b>Updating search results...</b></span>
+
+    <form method="get">
+        <div class="form-row">
+            <div class="form-group m-1 col-sm">
+                <label for="siglum"><small>Source siglum</small></label>
+                {% if source %}
+                    <input type="text" class="form-control form-control-sm" name="siglum" value="{{ source.siglum }}" id="siglum">
+                {% else %}
+                    <input type="text" class="form-control form-control-sm" name="siglum" value="{{ request.GET.siglum }}" id="siglum">
+                {% endif %}
+            </div>
+            <div class="form-group m-1 col-sm">
+                <label for="textSearch"><small>Text search</small></label>
+                <input type="text" class="form-control form-control-sm" name="text" value="{{ request.GET.text }}" id="textSearch">
+            </div>
+            <div class="form-group m-1 col-sm">
+                <label for="genre"><small>Genre</small></label>
+                <input type="text" class="form-control form-control-sm" name="genre" value="{{ request.GET.genre }}" id="genre">
+            </div>
+            <div class="form-group m-1 col-sm">
+                <label for="feast"><small>Feast</small></label>
+                <input type="text" class="form-control form-control-sm" name="feast" value="{{ request.GET.feast }}" id="feast">
+            </div>
+            <div class="form-group m-1 col-sm">
+                <label for="mode"><small>Mode</small></label>
+                <input type="mode" class="form-control form-control-sm" name="mode" value="{{ request.GET.mode }}" id="mode">
+            </div>
+        </div>
+
+        <div class="form-row">
+            <div class="form-group m-1">
+                <input type="radio" id="searchBegin" name="searchPosition" checked>
+                <label for="search-begin">Search the beginning of the melody</label>
+                <br>
+                <input type="radio" id="searchAnywhere" name="searchPosition">
+                <label for="search-anywhere">Search anywhere in the melody</label>
+            </div>
+            <div class="form-group m-1">
+                <input type="radio" id="searchExact" name="transposition" checked>
+                <label for="search-exact">Exact matches</label>
+                <br>
+                <input type="radio" id="searchTranspose" name="transposition">
+                <label for="search-transposition">Exact matches + transpositions</label>
+            </div>
+        </div>
+    </form>
+
+    {% if source %}
+        <b>Searching in source: <a href="{% url 'source-detail' source.id %}" target="_blank">{{ source.title }}</a></b>
+    {% endif %}
+
+    <div id="resultsDiv"></div>
+{% endblock %}
+
+{% block lowersidebar %}
+    <div class="search-bar mb-3">
+        {% include "global_search_bar.html" %}
+    </div>
+
+    <div class="card mb-3 w-100">
+
+        <div class="card-header">
+            <b>Melody Search Tool</b>
+        </div>
+
+        <div class="card-body">
+            <small>
+                <ul>
+                    <li><b>Enter the melody shape by mouse clicks on the staff.</b></li>
+                    <li><b>Ignore the repeating notes - the system will not allow you to enter the same pitch twice.</b></li>
+                </ul>
+                <p>
+                    CANTUS Melody Search tool was developed by Jan Koláček and first used in the 
+                    <a href="http://globalchant.org/search.php" target="_blank">Global Chant Database</a>
+                </p>
+                <p>
+                    Volpiano font - Version 4.02 (© fawe, September 2011) Courtesy of David Hiley and his research team at the 
+                    Universität Regensburg. For more details, including information on the newest versions of this font, 
+                    please refer to <a href="http://www.fawe.de/volpiano/" target="_blank">http://www.fawe.de/volpiano/</a>.
+                </p>
+            </small>
+        </div>    
+
+    </div>
 {% endblock %}
