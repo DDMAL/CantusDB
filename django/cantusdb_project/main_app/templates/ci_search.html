@@ -52,13 +52,15 @@
             var genreID = genreObj ? genreObj.id : null;
 
             opener.document.getElementById('id_cantus_id').value = cantus_id;
+            // Since we're using a django-autocomplete-light widget for the Genre selector,
+            // we need to follow a special process in selecting a value from the widget:
+            // Set the value, creating a new option if necessary            
             if (genreID) {              
                 if (opener.$('#id_genre').find("option[value='" + genreID + "']").length) {
                     opener.$('#id_genre').val(genreID).trigger('change');
                 } else { 
                     // Create a new DOM Option and pre-select it by default
                     var newOption = new Option(genre, genreID, true, true);
-                    // Append it to the select and trigger change
                     opener.$('#id_genre').append(newOption).trigger('change');
                 }
             }
