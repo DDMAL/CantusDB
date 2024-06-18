@@ -1,0 +1,27 @@
+{% extends "base.html" %}
+{% block content %}
+{% block title %}
+{% endblock %}
+{% block script %}
+{% endblock %}
+
+<div class="container">
+    <div class="row d-lg-block">
+        <div class="col-lg-4 p-0 pl-lg-3 sidebar float-right">
+            {% block uppersidebar %}
+            {# Cards in this section will jump above the main content on small screens #}
+            {% endblock %}
+        </div>
+        <div class="p-3 col-lg-8 bg-white rounded main-content float-left mb-3">
+            {% block maincontent %}
+            {% endblock %}
+        </div>
+
+        <div class="col-lg-4 p-0 pl-lg-3 sidebar float-right">
+            {% block lowersidebar %}
+            {# Cards in this section will jump below the main content on small screens #}
+            {% endblock %}
+        </div>
+    </div>
+</div>
+{% endblock %}
