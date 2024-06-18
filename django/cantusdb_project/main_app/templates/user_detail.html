@@ -44,7 +44,7 @@
             <ul>
                 {% for source in inventoried_sources %}
                     <li>
-                        <a href="{% url 'source-detail' source.id %}" title="{{ source.title }}">{{ source.siglum }}</a> ({{ source.title }})
+                        <a href="{% url 'source-detail' source.id %}" title="{{ source.heading }}">{{ source.short_heading }}</a> ({{ source.heading }})
                     </li>
                 {% endfor %}
             </ul>
@@ -54,7 +54,7 @@
             <ul>
                 {% for source in full_text_sources %}
                     <li>
-                        <a href="{% url 'source-detail' source.id %}" title="{{ source.title }}">{{ source.siglum }}</a> ({{ source.title }})
+                        <a href="{% url 'source-detail' source.id %}" title="{{ source.heading }}">{{ source.short_heading }}</a> ({{ source.heading }})
                     </li>
                 {% endfor %}
             </ul>
@@ -74,7 +74,7 @@
             <ul>
                 {% for source in proofread_sources %}
                     <li>
-                        <a href="{% url 'source-detail' source.id %}" title="{{ source.title }}">{{ source.siglum }}</a> ({{ source.title }})
+                        <a href="{% url 'source-detail' source.id %}" title="{{ source.heading }}">{{ source.short_heading }}</a> ({{ source.heading }})
                     </li>
                 {% endfor %}
             </ul>
@@ -84,7 +84,7 @@
             <ul>
                 {% for source in edited_sources %}
                     <li>
-                        <a href="{% url 'source-detail' source.id %}" title="{{ source.title }}">{{ source.siglum }}</a> ({{ source.title }})
+                        <a href="{% url 'source-detail' source.id %}" title="{{ source.heading }}">{{ source.short_heading }}</a> ({{ source.heading }})
                     </li>
                 {% endfor %}
             </ul>

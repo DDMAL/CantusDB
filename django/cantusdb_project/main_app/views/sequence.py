@@ -32,10 +32,11 @@ class SequenceDetailView(DetailView):
 
         context = super().get_context_data(**kwargs)
         context["concordances"] = (
-            Sequence.objects.filter(cantus_id=sequence.cantus_id)
+            Sequence.objects.select_related("source__holding_institution").filter(cantus_id=sequence.cantus_id)
             .select_related("source")
             .order_by("siglum")
         )
+
         context["user_can_edit_sequence"] = user_can_edit_sequences(user, sequence)
         return context
 
@@ -50,7 +51,7 @@ class SequenceListView(ListView):
     template_name = "sequence_list.html"
 
     def get_queryset(self):
-        queryset = Sequence.objects.select_related("source")
+        queryset = Sequence.objects.select_related("source__holding_institution")
         display_unpublished = self.request.user.is_authenticated
         if display_unpublished:
             q_obj_filter = Q()

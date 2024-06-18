@@ -22,7 +22,7 @@
                         <select id="sourceFilter" name="source" class="form-control custom-select custom-select-sm">
                             {% comment %} <option value="">- Any -</option> {% endcomment %}
                             {% for source_obj in sources %}
-                                <option value="{{ source_obj.id }}"{% if source_obj.id == source.id %} selected {% endif %}>{{ source_obj.siglum }}</option>
+                                <option value="{{ source_obj.id }}"{% if source_obj.id == source.id %} selected {% endif %}>{{ source_obj.short_heading }}</option>
                             {% endfor %}
                         </select>
                     </div>
@@ -82,7 +82,7 @@
                         <tbody>
                             {% for chant in chants %}
                             <tr>
-                                <td class="text-wrap" style="text-align:center" title="{{ source.title }}">{{ source.siglum|default:"" }}</td>
+                                <td class="text-wrap" style="text-align:center" title="{{ source.heading }}">{{ source.short_heading }}</td>
                                 <td class="text-wrap" style="text-align:center"><b>{{ chant.folio|default:"" }}</b></td>
                                 <td class="text-wrap" style="text-align:center">{{ chant.c_sequence|default_if_none:"" }}</td> {# default_if_none: sometimes, c_sequence is 0, and should still be displayed #}
                                 <td class="text-wrap">

@@ -233,10 +233,10 @@ class ChantByCantusIDView(ListView):
 
     def get_queryset(self):
         chant_set = Chant.objects.filter(cantus_id=self.cantus_id).select_related(
-            "source", "office", "genre", "feast"
+            "source__holding_institution", "office", "genre", "feast"
         )
         sequence_set = Sequence.objects.filter(cantus_id=self.cantus_id).select_related(
-            "source", "office", "genre", "feast"
+            "source__holding_institution", "office", "genre", "feast"
         )
         display_unpublished = self.request.user.is_authenticated
         if not display_unpublished:

@@ -17,7 +17,7 @@
                         <tr>
                             <td class="h-25" style="width: 40%; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; max-width: 0; text-align:center">
                                 <a href="{% url "source-detail" source.pk %}">
-                                    <b>{{ source.siglum }}</b>
+                                    <b>{{ source.short_heading }}</b>
                                 </a>
                             </td>
                             {% if source.chant_set.exists %}
@@ -52,12 +52,12 @@
                         {% for my_source in user_created_sources_page_obj %}
                             <li>
                                 <a href="{% url "source-detail" my_source.pk %}">
-                                    <b> {{ my_source.siglum }}</b>
+                                    <b> {{ my_source.short_heading }}</b>
                                 </a>
                                 <br>
                                 <small>
                                     <a href="{% url "source-detail" my_source.pk %}">
-                                        <b> {{ my_source.title }}</b>
+                                        <b> {{ my_source.heading }}</b>
                                     </a>
                                     <br>
                                     <a href="{% url "chant-create" my_source.pk %}" style="display: inline-block; margin-top:5px;">

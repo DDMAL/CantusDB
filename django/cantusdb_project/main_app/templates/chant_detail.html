@@ -257,7 +257,7 @@
                         <b>Source navigation</b>
                         <br>
                         {% if source %}
-                            <a href="{% url 'source-detail' source.id %}" title="{{ source.title }}"> <b>{{ source.siglum }}</b> </a>
+                            <a href="{% url 'source-detail' source.id %}" title="{{ source.heading }}"> <b>{{ source.short_heading }}</b> </a>
                         {% else %}
                             This chant is not associated with any source. 
                         {% endif %}                            

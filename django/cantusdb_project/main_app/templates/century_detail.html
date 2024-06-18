@@ -11,10 +11,10 @@
     </object>
     <h3>{{ century.name }}</h3>
     <ul>
-        {% for source in sources|dictsort:"title" %}
+        {% for source in sources %}
             <li>
-                <a href="{% url 'source-detail' source.id %}" title="{{ source.siglum }}">
-                    {{ source.title }}
+                <a href="{% url 'source-detail' source.id %}" title="{{ source.short_heading }}">
+                    {{ source.heading }}
                 </a>
             </li>
         {% endfor %}

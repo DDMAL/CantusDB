@@ -30,33 +30,54 @@
                 </div>
             {% endif %}
 
-            <h3><em>Edit Source</em> {{ source.title }}</h3>
+            <h3><em>Edit Source</em> {{ source.heading }}</h3>
 
             <p>
                 <a href="{% url 'source-detail' source.id %}">View</a> | Edit
             </p>
 
             <form method="post" style="line-height: normal">{% csrf_token %}
-                <div class="form-row mb-3">
-
-                    <div class="form-group m-1 col-lg-9">
-                        <label for="{{ form.title.id_for_label }}">
-                            Full Source Identification (City, Archive, Shelf-mark):<span class="text-danger" title="This field is required">*</span>
+{#                <div class="form-row mb-3">#}
+{##}
+{#                    <div class="form-group m-1 col-lg-9">#}
+{#                        <label for="{{ form.title.id_for_label }}">#}
+{#                            Full Source Identification (City, Archive, Shelf-mark):<span class="text-danger" title="This field is required">*</span>#}
+{#                        </label>#}
+{#                        {{ form.title }}#}
+{#                    </div>#}
+{#                </div>#}
+{##}
+{#                <div class="form-row mb-3">#}
+{#                    <div class="form-group m-1 col-lg-9">#}
+{#                        <label for="{{ form.siglum.id_for_label }}">#}
+{#                            Siglum:<span class="text-danger" title="This field is required">*</span>#}
+{#                        </label>#}
+{#                        {{ form.siglum }}#}
+{#                        <small>RISM-style siglum + Shelf-mark (e.g. GB-Ob 202).</small>#}
+{#                    </div>#}
+{#                </div>#}
+                <div class="form-row">
+                    <div class="form-group m-1 col-lg-3">
+                        <label for="{{ form.holding_institution.id_for_label }}">
+                            <small>Holding Institution:</small>
                         </label>
-                        {{ form.title }}
+                        <br>{{ form.holding_institution }}
+                        <p class=text-muted>
+                            <small>{{ form.holding_institution.help_text }}</small>
+                        </p>
                     </div>
                 </div>
-
-                <div class="form-row mb-3">
-                    <div class="form-group m-1 col-lg-9">
-                        <label for="{{ form.siglum.id_for_label }}">
-                            Siglum:<span class="text-danger" title="This field is required">*</span>
+                <div class="form-row">
+                    <div class="form-group m-1 col-lg-3">
+                        <label for="{{ form.shelfmark.id_for_label }}">
+                            <small>Shelfmark:</small>
                         </label>
-                        {{ form.siglum }}
-                        <small>RISM-style siglum + Shelf-mark (e.g. GB-Ob 202).</small>
+                        <br>{{ form.shelfmark }}
+                        <p class=text-muted>
+                            <small>{{ form.shelfmark.help_text }}</small>
+                        </p>
                     </div>
                 </div>
-
                 <div class="form-row mb-3">
                     <div class="form-group m-1 col-lg-7">
                         <label for="{{ form.provenance.id_for_label }}">

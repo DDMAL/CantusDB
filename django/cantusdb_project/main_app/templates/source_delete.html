@@ -10,7 +10,7 @@
         <p>
             <span class="text-danger">
                 Are you sure you want to delete this source:
-                <b><a href={% url "source-detail" object.id %} target="_blank">{{ object.title }} ({{ object.siglum }})</a></b>?
+                <b><a href={% url "source-detail" object.id %} target="_blank">{{ object.heading }}</a></b>?
             </span></p>
         {% if object.chant_set.exists or object.sequence_set.exists %}
             <p>

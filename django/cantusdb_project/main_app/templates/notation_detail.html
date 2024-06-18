@@ -7,10 +7,10 @@
     </object>
     <h3>{{ notation.name }}</h3>
     <ul>
-        {% for source in notation.sources.all|dictsort:"title" %}
+        {% for source in sources %}
             <li>
-                <a href="{% url 'source-detail' source.id %}" title="{{ source.siglum }}">
-                    {{ source.title }}
+                <a href="{% url 'source-detail' source.id %}" title="{{ source.heading }}">
+                    {{ source.heading }}
                 </a>
             </li>
         {% endfor %}

@@ -19,7 +19,9 @@
                     {% endfor %}
                 </div>
             {% endif %}
-            <h3>{{ source.title }}</h3>
+            <h3>
+                {{ source.heading }}
+            </h3>
 
             {% if user_can_edit_source %}
                 <p>
@@ -28,9 +30,9 @@
             {% endif %}
 
             <dl>
-                {% if source.siglum %}
+                {% if source.holding_institution %}
                     <dt>Siglum</dt>
-                    <dd>{{ source.siglum }}</dd>
+                    <dd>{{ source.short_heading }}</dd>
                 {% endif %}
 
                 {% if source.summary %}

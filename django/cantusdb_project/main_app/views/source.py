@@ -107,9 +107,9 @@ class SourceBrowseChantsView(ListView):
         # so they should not appear among the list of sources
         cantus_segment: QuerySet[Segment] = Segment.objects.get(id=4063)
 
-        sources: QuerySet[Source] = cantus_segment.source_set.order_by(
-            "siglum"
-        )  # to be displayed in the "Source" dropdown in the form
+        sources: QuerySet[Source] = (cantus_segment.source_set
+                                     .select_related("holding_institution", "segment")
+                                     .order_by("siglum"))  # to be displayed in the "Source" dropdown in the form
         if not display_unpublished:
             sources = sources.filter(published=True)
         context["sources"] = sources
@@ -165,6 +165,11 @@ class SourceDetailView(DetailView):
     context_object_name = "source"
     template_name = "source_detail.html"
 
+    def get_queryset(self):
+        return self.model.objects.select_related("holding_institution",
+                                                 "segment",
+                                                 "provenance").all()
+
     def get_context_data(self, **kwargs):
         source = self.get_object()
         user = self.request.user
@@ -176,16 +181,16 @@ class SourceDetailView(DetailView):
 
         if source.segment and source.segment.id == 4064:
             # if this is a sequence source
-            context["sequences"] = source.sequence_set.order_by("s_sequence")
+            context["sequences"] = source.sequence_set.select_related("source").order_by("s_sequence")
             context["folios"] = (
-                source.sequence_set.values_list("folio", flat=True)
+                source.sequence_set.select_related("source").values_list("folio", flat=True)
                 .distinct()
                 .order_by("folio")
             )
         else:
             # if this is a chant source
             folios = (
-                source.chant_set.values_list("folio", flat=True)
+                source.chant_set.select_related("source").values_list("folio", flat=True)
                 .distinct()
                 .order_by("folio")
             )
@@ -216,11 +221,13 @@ class SourceListView(ListView):
 
     def get_queryset(self):
         # use select_related() for foreign keys to reduce DB queries
-        queryset = Source.objects.select_related("segment", "provenance").order_by(
+        queryset = Source.objects.select_related("segment",
+                                                 "provenance",
+                                                 "holding_institution").order_by(
             "siglum"
         )
 
-        display_unpublished = self.request.user.is_authenticated
+        display_unpublished: bool = self.request.user.is_authenticated
         if display_unpublished:
             q_obj_filter = Q()
         else:

@@ -36,7 +36,7 @@
             </dt>
             <dd>
                 <a href="{% url 'source-detail' sequence.source.id %}">
-                    {{ sequence.source.title }}
+                    {{ sequence.source.heading }}
                 </a>
             </dd>
         {% endif %}
@@ -195,7 +195,7 @@
                         <tr>
                             <td class="text-wrap" style="text-align:center">
                                 {% if sequence.source %}
-                                    <a href="{% url 'source-detail' sequence.source.id %}" title="{{ sequence.source.title }}"><b>{{ sequence.siglum }}</b></a>
+                                    <a href="{% url 'source-detail' sequence.source_id %}" title="{{ sequence.source.heading }}"><b>{{ sequence.short_heading }}</b></a>
                                     <br>
                                     <b>{{ sequence.folio }}</b>  {{ sequence.s_sequence }}
                                 {% endif %}

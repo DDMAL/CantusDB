@@ -14,8 +14,14 @@ class ProvenanceDetailView(DetailView):
         user = self.request.user
         display_unpublished = user.is_authenticated
         sources = Source.objects.filter(provenance=provenance)
+        sources = sources.select_related("holding_institution",
+                                         "provenance",
+                                         "segment")
+
         if not display_unpublished:
             sources = sources.filter(published=True)
-        sources = sources.only("title", "id", "siglum")
+
+        sources = sources.order_by("holding_institution__name")
+
         context["sources"] = sources
         return context
