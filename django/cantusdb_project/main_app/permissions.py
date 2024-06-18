@@ -162,4 +162,8 @@ def user_can_manage_source_editors(user: User) -> bool:
     Checks if the user has permission to change the editors assigned to a Source.
     Used in SourceDetailView.
     """
-    return user.is_superuser or user.is_staff or user.groups.filter(name="project manager").exists()
+    return (
+        user.is_superuser
+        or user.is_staff
+        or user.groups.filter(name="project manager").exists()
+    )

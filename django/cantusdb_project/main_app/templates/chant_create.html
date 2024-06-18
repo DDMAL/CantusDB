@@ -295,38 +295,63 @@
         </div>
     </div>
 
-    {% if previous_chant %}
-        <div class="card w-100">
-            <div class="card-body">
-                <small>
-                    <b>Suggestions based on previous chant:</b><br>
-                    <div>
-                        {{ previous_chant.folio }} {{ previous_chant.c_sequence}} <a href="{% url 'chant-detail' previous_chant.id %}" target="_blank">{{ previous_chant.incipit }}</a><br>
-                        {% if previous_chant.cantus_id %}
-                            (Cantus ID: <b><a href="https://cantusindex.org/id/{{ previous_chant.cantus_id }}" target="_blank">{{ previous_chant.cantus_id }}</a></b>)
+            {% if previous_chant %}
+                <div class="card w-100 mb-3">
+                    <div class="card-body">
+                        <small>
+                            <b>Suggestions based on previous chant:</b><br>
+                            <div>
+                                {{ previous_chant.folio }} {{ previous_chant.c_sequence}} <a href="{% url 'chant-detail' previous_chant.id %}" target="_blank">{{ previous_chant.incipit }}</a><br>
+                                {% if previous_chant.cantus_id %}
+                                    (Cantus ID: <b><a href="https://cantusindex.org/id/{{ previous_chant.cantus_id }}" target="_blank">{{ previous_chant.cantus_id }}</a></b>)
+                                {% endif %}
+                            </div>
+                        {% if suggested_chants %}
+                            {% for suggestion in suggested_chants %}
+                                <input
+                                    type="button"
+                                    style="width: 80px"
+                                    value="{{ suggestion.cantus_id }}"
+                                    title="{{ suggestion.cantus_id }}"
+                                    onclick='autoFillSuggestedChant(
+                                        "{{ suggestion.genre_name }}",
+                                        {{ suggestion.genre_id | default_if_none:"null" }},
+                                        "{{ suggestion.cantus_id }}",
+                                        "{{ suggestion.fulltext }}"
+                                    )'
+                                >
+                                <strong>{{ suggestion.genre_name }}</strong> - <span title="{{ suggestion.fulltext }}">{{ suggestion.incipit }}</span> (<strong>{{ suggestion.occurrences }}x</strong>)<br>
+                            {% endfor %}
+                        {% else %}
+                            Sorry! No suggestions found. Please use the search form below.<br>
                         {% endif %}
+                        </small>
                     </div>
-                {% if suggested_chants %}
-                    {% for suggestion in suggested_chants %}
-                        <input
-                            type="button"
-                            style="width: 80px"
-                            value="{{ suggestion.cantus_id }}"
-                            title="{{ suggestion.cantus_id }}"
-                            onclick='autoFillSuggestedChant(
-                                "{{ suggestion.genre_name }}",
-                                {{ suggestion.genre_id | default_if_none:"null" }},
-                                "{{ suggestion.cantus_id }}",
-                                "{{ suggestion.fulltext }}"
-                            )'
-                        >
-                        <strong>{{ suggestion.genre_name }}</strong> - <span title="{{ suggestion.fulltext }}">{{ suggestion.incipit }}</span> (<strong>{{ suggestion.occurrences }}x</strong>)<br>
-                    {% endfor %}
-                {% else %}
-                    Sorry! No suggestions found.<br>
-                {% endif %}
-                </small>
+                </div>
+            {% endif %}
+            <div class="card w-100">
+                <div class="card-header">
+                    <h5>Input Tool</h5>
+                </div>
+
+                <div class=" card-body" style="font-size: 15px">
+                    Enter any text from chant:
+                    <input type="text" id="incipitsearch" />
+                    <button class="btn btn-danger btn-sm" onclick="openCiSearchWin()">Search ID</button>
+                    <script>
+                        function openCiSearchWin() {
+                            search_term = document.getElementById("incipitsearch").value;
+                            if (search_term.length < 3) {
+                                search_term = window.prompt("Enter at least 3 characters of incipit", "");
+                            }
+                            address = "/ci-search/" + search_term;
+                            var ci = window.open(address, "ci", "height=400px, width=1200px, top=0, left=50px, status=no, toolbar=no, location=no, scrollbars=yes, resizable=yes");
+                        }
+                    </script>
+                </div>
+
             </div>
         </div>
-    {% endif %}
+    </div>
+</div>
 {% endblock %}
