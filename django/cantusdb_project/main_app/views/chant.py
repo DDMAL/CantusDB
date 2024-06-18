@@ -888,7 +888,9 @@ class CISearchView(TemplateView):
         search_term: str = kwargs["search_term"]
         search_term: str = search_term.replace(" ", "+")  # for multiple keywords
 
-        text_search_results: Optional[list[dict]] = get_ci_text_search(search_term)
+        text_search_results: Optional[list[Optional[dict]]] = get_ci_text_search(
+            search_term
+        )
 
         cantus_id = []
         genre = []
@@ -896,9 +898,10 @@ class CISearchView(TemplateView):
 
         if text_search_results:
             for result in text_search_results:
-                cantus_id.append(result["cid"])
-                genre.append(result["genre"])
-                full_text.append(result["fulltext"])
+                if result:
+                    cantus_id.append(result.get("cid", None))
+                    genre.append(result.get("genre", None))
+                    full_text.append(result.get("fulltext", None))
 
         if len(cantus_id) == 0:
             context["results"] = [["No results", "No results", "No results"]]
