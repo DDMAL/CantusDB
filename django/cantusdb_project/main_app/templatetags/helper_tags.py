@@ -1,13 +1,14 @@
 import calendar
 from typing import Union, Optional
+
 from django import template
-from main_app.models import Source
-from articles.models import Article
-from django.utils.safestring import mark_safe
-from django.urls import reverse
 from django.core.paginator import Paginator
 from django.db.models import Q
+from django.template.defaultfilters import stringfilter
+from django.utils.safestring import mark_safe
 
+from articles.models import Article
+from main_app.models import Source
 
 register = template.Library()
 
@@ -126,6 +127,15 @@ def has_group(user, group_name):
         templates/base.html
     """
     return user.groups.filter(name=group_name).exists()
+
+
+@register.filter(name='split')
+@stringfilter
+def split(value: str, key: str) -> list[str]:
+    """
+        Returns the value turned into a list.
+    """
+    return value.split(key)
 
 
 @register.simple_tag(takes_context=True)
