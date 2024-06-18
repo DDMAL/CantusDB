@@ -3148,14 +3148,12 @@ class ChantCreateViewTest(TestCase):
 
     def test_create_chant(self):
         source = make_fake_source()
-        segment = make_fake_segment()
         response = self.client.post(
             reverse("chant-create", args=[source.id]),
             {
                 "manuscript_full_text_std_spelling": "initial",
                 "folio": "001r",
                 "c_sequence": "1",
-                "segment": segment.id,
             },
         )
         self.assertEqual(response.status_code, 302)
@@ -3207,14 +3205,12 @@ class ChantCreateViewTest(TestCase):
         TEST_FOLIO = "001r"
         # create some chants in the test source
         source = make_fake_source()
-        segment = make_fake_segment()
         for i in range(1, 5):
             Chant.objects.create(
                 source=source,
                 manuscript_full_text=faker.text(10),
                 folio=TEST_FOLIO,
                 c_sequence=i,
-                segment=segment,
             )
         # post a chant with the same folio and seq
         url = reverse("chant-create", args=[source.id])
@@ -3225,7 +3221,6 @@ class ChantCreateViewTest(TestCase):
                 "manuscript_full_text_std_spelling": fake_text,
                 "folio": TEST_FOLIO,
                 "c_sequence": random.randint(1, 4),
-                "segment": segment.id,
             },
             follow=True,
         )
@@ -3254,7 +3249,6 @@ class ChantCreateViewTest(TestCase):
 
     def test_volpiano_signal(self):
         source = make_fake_source()
-        segment = make_fake_segment()
         self.client.post(
             reverse("chant-create", args=[source.id]),
             {
@@ -3266,7 +3260,6 @@ class ChantCreateViewTest(TestCase):
                 "volpiano": "9abcdefg)A-B1C2D3E4F5G67?. yiz",
                 #                      ^ ^ ^ ^ ^ ^ ^^^^^^^^
                 # clefs, accidentals, etc., to be deleted
-                "segment": segment.id,
             },
         )
         with patch("requests.get", mock_requests_get):
@@ -3282,7 +3275,6 @@ class ChantCreateViewTest(TestCase):
                 "folio": "001r",
                 "c_sequence": "2",
                 "volpiano": "abacadaeafagahaja",
-                "segment": segment.id,
             },
         )
         with patch("requests.get", mock_requests_get):
@@ -3300,7 +3292,6 @@ class ChantCreateViewTest(TestCase):
         feast: Feast = make_fake_feast()
         office: Office = make_fake_office()
         image_link: str = "https://www.youtube.com/watch?v=9bZkp7q19f0"
-        segment = make_fake_segment()
         self.client.post(
             reverse("chant-create", args=[source.id]),
             {
@@ -3310,7 +3301,6 @@ class ChantCreateViewTest(TestCase):
                 "feast": feast.id,
                 "office": office.id,
                 "image_link": image_link,
-                "segment": segment.id,
             },
         )
         with patch("requests.get", mock_requests_get):
@@ -3478,7 +3468,6 @@ class SourceEditChantsViewTest(TestCase):
 
         folio = chant.folio
         c_sequence = chant.c_sequence
-        segment_id = chant.segment_id
         response = self.client.post(
             reverse("source-edit-chants", args=[source.id]),
             {
@@ -3486,7 +3475,6 @@ class SourceEditChantsViewTest(TestCase):
                 "pk": chant.id,
                 "folio": folio,
                 "c_sequence": c_sequence,
-                "segment": segment_id,
             },
         )
         self.assertEqual(response.status_code, 302)
@@ -3496,14 +3484,12 @@ class SourceEditChantsViewTest(TestCase):
         self.assertEqual(chant.manuscript_full_text_std_spelling, "test")
 
     def test_volpiano_signal(self):
-        segment = make_fake_segment()
         source = make_fake_source()
         chant_1 = make_fake_chant(
             manuscript_full_text_std_spelling="ut queant lactose",
             source=source,
             folio="001r",
             c_sequence=1,
-            segment=segment,
         )
         self.client.post(
             reverse("source-edit-chants", args=[source.id]),
@@ -3516,7 +3502,6 @@ class SourceEditChantsViewTest(TestCase):
                 "volpiano": "9abcdefg)A-B1C2D3E4F5G67?. yiz",
                 #                      ^ ^ ^ ^ ^ ^ ^^^^^^^^
                 # clefs, accidentals, etc., to be deleted
-                "segment": segment.id,
             },
         )
         chant_1 = Chant.objects.get(
@@ -3530,7 +3515,6 @@ class SourceEditChantsViewTest(TestCase):
             source=source,
             folio="001r",
             c_sequence=2,
-            segment=segment,
         )
         expected_volpiano: str = "abacadaeafagahaja"
         expected_intervals: str = "1-12-23-34-45-56-67-78-8"
@@ -3541,7 +3525,6 @@ class SourceEditChantsViewTest(TestCase):
                 "folio": "001r",
                 "c_sequence": "2",
                 "volpiano": "abacadaeafagahaja",
-                "segment": segment.id,
             },
         )
         with patch("requests.get", mock_requests_get):
@@ -3595,7 +3578,6 @@ class SourceEditChantsViewTest(TestCase):
                 "folio": folio,
                 "c_sequence": c_sequence,
                 "manuscript_full_text_std_spelling": ms_std,
-                "segment": chant.segment_id,
             },
         )
         self.assertEqual(response.status_code, 302)  # 302 Found
