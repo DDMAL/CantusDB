@@ -37,9 +37,8 @@ class Source(BaseModel):
         blank=False,
         help_text="RISM-style siglum + Shelf-mark (e.g. GB-Ob 202).",
     )
-    # the RISM siglum uniquely identifies a library or holding institution
-    rism_siglum = models.ForeignKey(
-        "RismSiglum",
+    holding_institution = models.ForeignKey(
+        "Institution",
         on_delete=models.PROTECT,
         null=True,
         blank=True,

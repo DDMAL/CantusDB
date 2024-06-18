@@ -1234,7 +1234,7 @@ class ChantEditSyllabificationView(LoginRequiredMixin, UserPassesTestMixin, Upda
         initial = super().get_initial()
         chant = self.get_object()
         has_syl_text = bool(chant.manuscript_syllabized_full_text)
-        syls_text = syllabify_text(
+        syls_text, _ = syllabify_text(
             text=chant.get_best_text_for_syllabizing(),
             clean_text=True,
             text_presyllabified=has_syl_text,

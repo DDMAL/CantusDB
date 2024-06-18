@@ -10,6 +10,7 @@ server {
         proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
         proxy_set_header Host $host;
         proxy_redirect off;
+        proxy_intercept_errors on;
     }
 
     location /static {
@@ -23,26 +24,11 @@ server {
         alias /resources/api_cache/concordances.json;
         expires modified +24h;
     }
- 
-    location = /style.css {
-        root /;
-    }
-    location = /background.jpg {
-        root /;
-    }
-    location = /CantusLogoSmall.gif {
-        root /;
-    }
-    location = /favicon.ico {
-        root /;
-    }
 
-    error_page 502 /502.html;
-    location = /502.html {
-        root /;
-    }
-    error_page 504 /504.html;
-    location = /504.html {
+    error_page 500 /error_pages/500.html;
+    error_page 502 /error_pages/502.html;
+    error_page 504 /error_pages/504.html;
+    location /error_pages {
         root /;
     }
 }
