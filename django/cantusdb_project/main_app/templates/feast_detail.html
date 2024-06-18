@@ -45,28 +45,32 @@
 
     <br>
     <div class="row">
-        {% if frequent_chants_zip %}
+        {% if frequent_chants %}
             <div class="col">
                 <h4>Most frequent chants</h4>
-                <small>Displaying 1 - {{ frequent_chants_zip|length }} of <b>{{ frequent_chants_zip|length }}</b></small>
+                <small>Displaying 1 - {{ frequent_chants_count }} of <b>{{ frequent_chants_count }}</b></small>
                 <table class="table table-bordered table-sm small">
                     <thead>
                         <tr>
                             <th scope="col" class="text-wrap" style="text-align:center">CantusID</th>
                             <th scope="col" class="text-wrap" style="text-align:center">Incipit</th>
-                            <th scope="col" class="text-wrap" style="text-align:center">Genre</th>
+                            <th scope="col" class="text-wrap" style="text-align:center">Genres</th>
                             <th scope="col" class="text-wrap" style="text-align:center">Chants</th>
                         </tr>
                     </thead>
                     <tbody>
-                        {% for cantus_id, incipit, genre, count in frequent_chants_zip %}
+                        {% for cantus_id, incipit, count, genres in frequent_chants %}
                         <tr>
                             {% comment %} use `urlencode` filter because 1 chant and 2 sequences have forward slash in their cantus_id (data error) {% endcomment %}
                             <td><a href="{% url 'chant-by-cantus-id' cantus_id|urlencode:"" %}">{{ cantus_id|default:"" }}</a></td>
                             <td>{{ incipit }}</td>
                             <td>
-                                {% if genre %}
-                                    <a href="{% url 'genre-detail' genre.id %}" title="{{ genre.description }}">{{ genre.name }}</a>
+                                {% if genres %}
+                                    {% for genre in genres %}
+                                        {% with genreinfo=genre|split:"::" %}
+                                            <a href="{% url 'genre-detail' genreinfo.0 %}" title="{{ genreinfo.2 }}">{{ genreinfo.1 }}</a>
+                                        {% endwith %}
+                                    {% endfor %}
                                 {% endif %}
                             </td>
                             <td>{{ count }}</td>
@@ -77,10 +81,10 @@
             </div>
         {% endif %}
 
-        {% if sources_zip %}
+        {% if sources %}
             <div class="col">
                 <h4>Sources containing the feast</h4>
-                <small>Displaying 1 - {{ sources_zip|length }} of <b>{{ sources_zip|length }}</b></small>
+                <small>Displaying 1 - {{ sources_count }} of <b>{{ sources_count }}</b></small>
                 <table class="table table-bordered table-sm small">
                     <thead>
                         <tr>
@@ -89,10 +93,10 @@
                         </tr>
                     </thead>
                     <tbody>
-                        {% for source, count in sources_zip %}
+                        {% for source_id, shelfmark, siglum, institution_name, chant_count in sources %}
                             <tr>
-                                <td><a href="{% url 'browse-chants' source.id %}" title="{{ source.title }}">{{ source.siglum }}</a></td>
-                                <td><a href="{% url 'browse-chants' source.id %}?feast={{ feast.id }}">{{ count }}</a></td>
+                                <td><a href="{% url 'browse-chants' source_id %}" title="{{ institution_name }} {{ shelfmark }}">{{ siglum }} {{ shelfmark }}</a></td>
+                                <td><a href="{% url 'browse-chants' source_id %}?feast={{ feast.id }}">{{ chant_count }}</a></td>
                             </tr>
                         {% endfor %}
                     </tbody>
