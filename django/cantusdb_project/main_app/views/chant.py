@@ -549,7 +549,7 @@ class ChantSearchMSView(ListView):
         except:
             raise Http404("This source does not exist")
         display_unpublished = self.request.user.is_authenticated
-        if (source.published == False) and (not display_unpublished):
+        if (source.published is False) and (not display_unpublished):
             raise PermissionDenied
 
         current_url = self.request.path
