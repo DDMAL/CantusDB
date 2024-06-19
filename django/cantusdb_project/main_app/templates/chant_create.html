@@ -1,21 +1,24 @@
 {% extends "base_page_with_side_cards.html" %}
 {% load static %}
+
 {% block title %}
-<title>Create Chant | Cantus Database</title>
+    <title>Create Chant | Cantus Database</title>
 {% endblock %}
-{% block script %}
-<script src="/static/js/chant_create.js"></script>
-<script type="text/javascript" src="{% static 'admin/js/vendor/jquery/jquery.js' %}"></script>
-{{ form.media }}
+
+{% block scripts %}
+    <script src="/static/js/chant_create.js"></script>
+    <script type="text/javascript" src="{% static 'admin/js/vendor/jquery/jquery.js' %}"></script>
+    {{ form.media }}
 {% endblock %}
+
 {% block uppersidebar %}
 <div class="search-bar mb-3">
     {% include "global_search_bar.html" %}
 </div>
 {% endblock %}
+
 {% block maincontent %}
     <h3>Create Chant</h3>
-
     <!--Display "submit success" message -->
     {% if messages %}
     <div class="alert alert-success alert-dismissible">

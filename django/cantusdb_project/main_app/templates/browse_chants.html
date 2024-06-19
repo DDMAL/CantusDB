@@ -1,10 +1,10 @@
 {% extends "base_page_with_side_cards.html" %}
 {% block title %}
-<title>Browse Chants | Cantus Database</title>
+    <title>Browse Chants | Cantus Database</title>
 {% endblock %}
 
-{% block script %}
-<script src="/static/js/chant_list.js"></script>
+{% block scripts %}
+    <script src="/static/js/chant_list.js"></script>
 {% endblock %}
 
 {% block uppersidebar %}
@@ -65,7 +65,6 @@
             <table class="table table-responsive table-sm table-bordered small">
                 <thead>
                     <tr>
-                        <th scope="col" class="text-wrap" title="Siglum">Siglum</th>
                         <th scope="col" class="text-wrap" title="Folio">Folio</th>
                         <th scope="col" class="text-wrap" title="Sequence"></th>
                         <th scope="col" class="text-wrap" title="Incipit / Full text">Incipit / Full text</th>
@@ -84,7 +83,6 @@
                 <tbody>
                     {% for chant in chants %}
                     <tr>
-                        <td class="text-wrap" style="text-align:center" title="{{ source.title }}">{{ source.siglum|default:"" }}</td>
                         <td class="text-wrap" style="text-align:center"><b>{{ chant.folio|default:"" }}</b></td>
                         <td class="text-wrap" style="text-align:center">{{ chant.c_sequence|default_if_none:"" }}</td> {# default_if_none: sometimes, c_sequence is 0, and should still be displayed #}
                         <td class="text-wrap">

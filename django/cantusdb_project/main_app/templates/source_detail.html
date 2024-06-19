@@ -1,17 +1,18 @@
 {% extends "base_page_with_side_cards.html" %}
-{% block title %}
 {% load helper_tags %}
-<title>{{ source.title }} | Cantus Database</title>
+
+{% block title %}
+    <title>{{ source.heading }} | Cantus Database</title>
 {% endblock %}
 
-{% block script %}
-<script src="/static/js/source_detail.js"></script>
+{% block scripts %}
+    <script src="/static/js/source_detail.js"></script>
 {% endblock %}
 
 {% block uppersidebar %}
-<div class="search-bar mb-3">
-    {% include "global_search_bar.html" %}
-</div>
+    <div class="search-bar mb-3">
+        {% include "global_search_bar.html" %}
+    </div>
 {% endblock %}
 
 {% block maincontent %}
@@ -24,7 +25,7 @@
         {% endfor %}
     </div>
 {% endif %}
-<h3>{{ source.title }}</h3>
+<h3>{{ source.heading }}</h3>
 
 {% if user_can_edit_source %}
     <p>
@@ -33,9 +34,9 @@
 {% endif %}
 
 <dl>
-    {% if source.siglum %}
+    {% if source.holding_institution %}
         <dt>Siglum</dt>
-        <dd>{{ source.siglum }}</dd>
+        <dd>{{ source.short_heading }}</dd>
     {% endif %}
 
     {% if source.summary %}
@@ -131,62 +132,60 @@
 {% if sequences %}
     <h4>Sequences in this source</h4>
     <small>Displaying 1 - {{ sequences.count }} of {{ sequences.count }}</small>
-    <small>
-        <table class="table table-sm small table-bordered table-responsive">
-            <thead>
+    <table class="table table-sm small table-bordered table-responsive">
+        <thead>
+            <tr>
+                <th scope="col" class="text-wrap" style="text-align:center" title="Siglum">Siglum</th>
+                <th scope="col" class="text-wrap" style="text-align:center" title="Text Incipit">Text&nbsp;Incipit</th>
+                <th scope="col" class="text-wrap" style="text-align:center" title="Rubrics">Rubrics</th>
+                <th scope="col" class="text-wrap" style="text-align:center" title="Analecta Hymnica">AH</th>
+                <th scope="col" class="text-wrap" style="text-align:center" title="Cantus ID">Cantus&nbsp;ID</th>
+                <th scope="col" class="text-wrap" style="text-align:center" title="Notes 1">Notes&nbsp;1</th>
+                <th scope="col" class="text-wrap" style="text-align:center" title="Notes 2">Notes&nbsp;2</th>
+                <th scope="col" class="text-wrap" style="text-align:center" title="Notes 3">Notes&nbsp;3</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for sequence in sequences %}
                 <tr>
-                    <th scope="col" class="text-wrap" style="text-align:center" title="Siglum">Siglum</th>
-                    <th scope="col" class="text-wrap" style="text-align:center" title="Text Incipit">Text&nbsp;Incipit</th>
-                    <th scope="col" class="text-wrap" style="text-align:center" title="Rubrics">Rubrics</th>
-                    <th scope="col" class="text-wrap" style="text-align:center" title="Analecta Hymnica">AH</th>
-                    <th scope="col" class="text-wrap" style="text-align:center" title="Cantus ID">Cantus&nbsp;ID</th>
-                    <th scope="col" class="text-wrap" style="text-align:center" title="Notes 1">Notes&nbsp;1</th>
-                    <th scope="col" class="text-wrap" style="text-align:center" title="Notes 2">Notes&nbsp;2</th>
-                    <th scope="col" class="text-wrap" style="text-align:center" title="Notes 3">Notes&nbsp;3</th>
+                    <td class="text-wrap" style="text-align:center">
+                        <a href="{% url 'source-detail' source.id %}" title="{{ source.heading }}">{{ source.short_heading }}</a>
+                        <br>
+                        <b>{{ sequence.folio }}</b>  {{ sequence.s_sequence }}
+                    </td>
+                    <td class="text-wrap" style="text-align:center">
+                        <a href="{% url 'sequence-detail' sequence.id %}" >{{ sequence.incipit|default:"" }}</a>
+                    </td>
+                    <td class="text-wrap" style="text-align:center">
+                        {{ sequence.rubrics|default:"" }}
+                    </td>
+                    <td class="text-wrap" style="text-align:center">
+                        {{ sequence.analecta_hymnica|default:"" }}
+                    </td>
+                    <td class="text-wrap" style="text-align:center">
+                        {% comment %} use `urlencode` filter because 1 chant and 2 sequences have forward slash in their cantus_id (data error) {% endcomment %}
+                        <a href={% url 'chant-by-cantus-id' sequence.cantus_id|urlencode:"" %}>{{ sequence.cantus_id|default:"" }}</a>
+                    </td>
+                    <td class="text-wrap" style="text-align:center">
+                        {{ sequence.col1|default:"" }}
+                    </td>
+                    <td class="text-wrap" style="text-align:center">
+                        {{ sequence.col2|default:"" }}
+                    </td>
+                    <td class="text-wrap" style="text-align:center">
+                        {{ sequence.col3|default:"" }}
+                    </td>
                 </tr>
-            </thead>
-            <tbody>
-                {% for sequence in sequences %}
-                    <tr>
-                        <td class="text-wrap" style="text-align:center">
-                            <a href="{% url 'source-detail' source.id %}" title="{{ source.title }}">{{ source.siglum }}</a>
-                            <br>
-                            <b>{{ sequence.folio }}</b>  {{ sequence.s_sequence }}
-                        </td>
-                        <td class="text-wrap" style="text-align:center">
-                            <a href="{% url 'sequence-detail' sequence.id %}" >{{ sequence.incipit|default:"" }}</a>
-                        </td>
-                        <td class="text-wrap" style="text-align:center">
-                            {{ sequence.rubrics|default:"" }}
-                        </td>
-                        <td class="text-wrap" style="text-align:center">
-                            {{ sequence.analecta_hymnica|default:"" }}
-                        </td>
-                        <td class="text-wrap" style="text-align:center">
-                            {% comment %} use `urlencode` filter because 1 chant and 2 sequences have forward slash in their cantus_id (data error) {% endcomment %}
-                            <a href={% url 'chant-by-cantus-id' sequence.cantus_id|urlencode:"" %}>{{ sequence.cantus_id|default:"" }}</a>
-                        </td>
-                        <td class="text-wrap" style="text-align:center">
-                            {{ sequence.col1|default:"" }}
-                        </td>
-                        <td class="text-wrap" style="text-align:center">
-                            {{ sequence.col2|default:"" }}
-                        </td>
-                        <td class="text-wrap" style="text-align:center">
-                            {{ sequence.col3|default:"" }}
-                        </td>
-                    </tr>
-                {% endfor %}
-            </tbody>
-        </table>
-    </small>
+            {% endfor %}
+        </tbody>
+    </table>
 {% endif %}
 {% endblock %}
 
 {% block lowersidebar %}
     <div class="card mb-3 w-100">
         <div class="card-header">
-            <h4>{{ source.siglum }}</h4>
+            <h4>{{ source.short_heading }}</h4>
         </div>
         <div class="card-body">
             <small>
@@ -235,7 +234,7 @@
                 <a href="{% url "source-list" %}?segment={{ source.segment.id }}">{{ source.segment.name }}</a>
             </small>
             <br>
-            <b>{{ source.siglum }}</b>
+            <b>{{ source.short_heading }}</b>
         </div>
         <div class=" card-body">
             <small>
@@ -313,7 +312,7 @@
             <div class="card-header">
                 Source edit options
                 <br>
-                <b>{{ source.siglum }}</b>
+                <b>{{ source.short_heading }}</b>
             </div>
             <div class=" card-body">
                 <small>

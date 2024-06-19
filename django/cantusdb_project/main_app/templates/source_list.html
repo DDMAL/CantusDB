@@ -4,10 +4,12 @@
     <title>Browse Sources | Cantus Database</title>
 {% endblock %}
 
-{% block content %}
-<script src="/static/js/source_list.js"></script>
+{% block scripts %}
+    <script src="/static/js/source_list.js"></script>
+{% endblock %}
 
-<div class="mr-3 p-3 col-md-12 mx-auto bg-white rounded">
+{% block content %}
+    <div class="mr-3 p-3 col-md-12 mx-auto bg-white rounded">
     <!-- global search bar-->
     <object align="right" class="search-bar">
         {% include "global_search_bar.html" %}
