@@ -4963,7 +4963,9 @@ class SourceInventoryViewTest(TestCase):
         response = self.client.get(reverse("source-inventory", args=[source.id]))
         html: str = str(response.content)
         self.assertIn(diff_id, html)
-        expected_html_substring: str = f'<a href="https://differentiaedatabase.ca/differentia/{diff_id}" target="_blank">'
+        expected_html_substring: str = (
+            f'<a href="https://differentiaedatabase.ca/differentia/{diff_id}" target="_blank">'
+        )
         self.assertIn(expected_html_substring, html)
 
     def test_redirect_with_source_parameter(self):

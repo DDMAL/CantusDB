@@ -1,40 +1,39 @@
-{% extends "base.html" %}
+{% extends "base_page_with_side_cards.html" %}
 {% load helper_tags %} {# for recent_articles #}
-{% block content %}
-<div class="container">
-    <title>{{ article.title }} | Cantus Database</title>
+{% block title %}
+<title>{{ article.title }} | Cantus Database</title>
+{% endblock %}
+
+{% block uppersidebar %}
+    <div class="search-bar mb-3">
+        {% include "global_search_bar.html" %}
+    </div>
+{% endblock %}
+
+{% block maincontent %}
+    <h3>
+        {{ article.title }}
+    </h3>
     <div class="row">
-        <div class="p-3 col-lg-8 bg-white rounded main-content">
-            <h3>
-                {{ article.title }}
-            </h3>
-            <div class="row">
-                <div class="col">
-                    <div class="container">
-                        <div class="container text-wrap">
-                            <small>Submitted by <a href="{% url 'user-detail' article.author.id %}">{{ article.author }}</a> on {{ article.date_created|date:"D, m/d/Y - H:i" }}</small>
-                            <div style="padding-top: 1em;">
-                                {{ article.body.html|safe }}
-                            </div>
-                        </div>
+        <div class="col">
+            <div class="container">
+                <div class="container text-wrap">
+                    <small>Submitted by <a href="{% url 'user-detail' article.author.id %}">{{ article.author }}</a> on {{ article.date_created|date:"D, m/d/Y - H:i" }}</small>
+                    <div style="padding-top: 1em;">
+                        {{ article.body.html|safe }}
                     </div>
                 </div>
             </div>
         </div>
-        <div class="col p-0 sidebar">
-            <div class="search-bar mb-3">
-                {% include "global_search_bar.html" %}
-            </div>
-            <div class="card mt-3 w-100">
-                <div class="card-header">
-                    What's New
-                </div>
-                <div class="card-body">
-                    {% recent_articles %}
-                </div>
-            </div>
+    </div>
+{% endblock %}
+{% block lowersidebar %}
+    <div class="card">
+        <div class="card-header">
+            What's New
+        </div>
+        <div class="card-body">
+            {% recent_articles %}
         </div>
     </div>
-
-</div>
 {% endblock %}

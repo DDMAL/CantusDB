@@ -6,5 +6,5 @@ from main_app.models import InstitutionIdentifier
 
 @admin.register(InstitutionIdentifier)
 class InstitutionIdentifierAdmin(BaseModelAdmin):
-    list_display = ('identifier', 'identifier_type')
+    list_display = ("identifier", "identifier_type")
     raw_id_fields = ("institution",)

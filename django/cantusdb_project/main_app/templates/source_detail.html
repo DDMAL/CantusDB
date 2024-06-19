@@ -1,350 +1,346 @@
-{% extends "base.html" %}
-{% load helper_tags %}
-
+{% extends "base_page_with_side_cards.html" %}
 {% block title %}
-    <title>{{ source.title }} | Cantus Database</title>
+{% load helper_tags %}
+<title>{{ source.title }} | Cantus Database</title>
 {% endblock %}
 
-{% block content %}
+{% block script %}
 <script src="/static/js/source_detail.js"></script>
+{% endblock %}
 
-<div class="container">
-    <div class="row">
-        <div class="p-3 col-lg-8 bg-white rounded main-content">
-            <!--Display "submit success" message -->
-            {% if messages %}
-                <div class="alert alert-success alert-dismissible">
-                    {% for message in messages %}
-                        {{ message }}
-                    {% endfor %}
-                </div>
-            {% endif %}
-            <h3>
-                {{ source.heading }}
-            </h3>
+{% block uppersidebar %}
+<div class="search-bar mb-3">
+    {% include "global_search_bar.html" %}
+</div>
+{% endblock %}
 
-            {% if user_can_edit_source %}
-                <p>
-                    View | <a href="{% url 'source-edit' source.id %}">Edit</a>
-                </p>
-            {% endif %}
+{% block maincontent %}
 
-            <dl>
-                {% if source.holding_institution %}
-                    <dt>Siglum</dt>
-                    <dd>{{ source.short_heading }}</dd>
+<!--Display "submit success" message -->
+{% if messages %}
+    <div class="alert alert-success alert-dismissible">
+        {% for message in messages %}
+            {{ message }}
+        {% endfor %}
+    </div>
+{% endif %}
+<h3>{{ source.title }}</h3>
+
+{% if user_can_edit_source %}
+    <p>
+        View | <a href="{% url 'source-edit' source.id %}">Edit</a>
+    </p>
+{% endif %}
+
+<dl>
+    {% if source.siglum %}
+        <dt>Siglum</dt>
+        <dd>{{ source.siglum }}</dd>
+    {% endif %}
+
+    {% if source.summary %}
+        <dt>Summary</dt>
+        <dd>{{ source.summary }}</dd>
+    {% endif %}
+
+    {% if source.liturgical_occasions %}
+        <dt>Liturgical Occasions</dt>
+        <dd>{{ source.liturgical_occasions|linebreaks }}</dd>
+    {% endif %}
+
+    {% if source.description %}
+        <dt>Description</dt>
+        <dd>{{ source.description|safe|linebreaks }}</dd>
+    {% endif %}
+
+    {% if source.selected_bibliography %}
+        <dt>Selected Bibliography</dt>
+        <dd>{{ source.selected_bibliography|safe|linebreaks }}</dd>
+    {% endif %}
+
+    {% if source.indexing_notes %}
+        <dt>Notes on the Inventory</dt>
+        <dd>{{ source.indexing_notes|safe }}</dd>
+    {% endif %}
+
+    {% if source.other_editors.exists %}
+        <dt>Other Editors</dt>
+        <dd>
+            {% for editor in source.other_editors.all %}
+                {% if editor.full_name %}
+                    <a href="{% url 'user-detail' editor.id %}">{{ editor.full_name }}</a><br>
+                {% else %}
+                    <a href="{% url 'user-detail' editor.id %}">User {{ editor.id }}</a><br>
                 {% endif %}
+            {% endfor %}
+        </dd>
+    {% endif %}
 
-                {% if source.summary %}
-                    <dt>Summary</dt>
-                    <dd>{{ source.summary }}</dd>
+    {% if source.full_text_entered_by.exists %}
+        <dt>Full Texts Entered by</dt>
+        <dd>
+            {% for editor in source.full_text_entered_by.all %}
+                {% if editor.full_name %}
+                    <a href="{% url 'user-detail' editor.id %}">{{ editor.full_name }}</a><br>
+                {% else %}
+                    <a href="{% url 'user-detail' editor.id %}">User {{ editor.id }}</a><br>
                 {% endif %}
+            {% endfor %}
+        </dd>
+    {% endif %}
 
-                {% if source.liturgical_occasions %}
-                    <dt>Liturgical Occasions</dt>
-                    <dd>{{ source.liturgical_occasions|linebreaks }}</dd>
+    {% if source.melodies_entered_by.exists %}
+        <dt>Melodies Entered by</dt>
+        <dd>
+            {% for editor in source.melodies_entered_by.all %}
+                {% if editor.full_name %}
+                    <a href="{% url 'user-detail' editor.id %}">{{ editor.full_name }}</a><br>
+                {% else %}
+                    <a href="{% url 'user-detail' editor.id %}">User {{ editor.id }}</a><br>
                 {% endif %}
+            {% endfor %}
+        </dd>
+    {% endif %}
 
-                {% if source.description %}
-                    <dt>Description</dt>
-                    <dd>{{ source.description|safe|linebreaks }}</dd>
-                {% endif %}
+    {% if source.complete_inventory is not None %}
+        <dt>Complete/Partial Inventory</dt>
+        <dd>{{ source.complete_inventory|yesno:"Complete Inventory,Partial Inventory" }}</dd>
+    {% endif %}
 
-                {% if source.selected_bibliography %}
-                    <dt>Selected Bibliography</dt>
-                    <dd>{{ source.selected_bibliography|safe|linebreaks }}</dd>
-                {% endif %}
+    {% if source.full_source is not None %}
+        <dt>Full Source/Fragment</dt>
+        <dd>{{ source.full_source|yesno:"Full Source,Fragment or Fragmented" }}</dd>
+    {% endif %}
 
-                {% if source.indexing_notes %}
-                    <dt>Notes on the Inventory</dt>
-                    <dd>{{ source.indexing_notes|safe }}</dd>
-                {% endif %}
+    {% if user.is_authenticated %}
+        <dt>Source Status</dt>
+        <dd>{{ source.published|yesno:"Published,Unpublished" }}</dd>
+    {% endif %}
+    
+    {% if source.fragmentarium_id is not None %}
+        <dt>Fragment ID</dt>
+        <dd>{{ source.fragmentarium_id }}</dd>
+    {% endif %}
 
-                {% if source.other_editors.exists %}
-                    <dt>Other Editors</dt>
-                    <dd>
-                        {% for editor in source.other_editors.all %}
-                            {% if editor.full_name %}
-                                <a href="{% url 'user-detail' editor.id %}">{{ editor.full_name }}</a><br>
-                            {% else %}
-                                <a href="{% url 'user-detail' editor.id %}">User {{ editor.id }}</a><br>
-                            {% endif %}
-                        {% endfor %}
-                    </dd>
-                {% endif %}
+    {% if source.dact_id is not None %}
+        <dt>DACT ID</dt>
+        <dd>{{ source.dact_id }}</dd>
+    {% endif %}
+</dl>
 
-                {% if source.full_text_entered_by.exists %}
-                    <dt>Full Texts Entered by</dt>
-                    <dd>
-                        {% for editor in source.full_text_entered_by.all %}
-                            {% if editor.full_name %}
-                                <a href="{% url 'user-detail' editor.id %}">{{ editor.full_name }}</a><br>
-                            {% else %}
-                                <a href="{% url 'user-detail' editor.id %}">User {{ editor.id }}</a><br>
-                            {% endif %}
-                        {% endfor %}
-                    </dd>
-                {% endif %}
+{% if sequences %}
+    <h4>Sequences in this source</h4>
+    <small>Displaying 1 - {{ sequences.count }} of {{ sequences.count }}</small>
+    <small>
+        <table class="table table-sm small table-bordered table-responsive">
+            <thead>
+                <tr>
+                    <th scope="col" class="text-wrap" style="text-align:center" title="Siglum">Siglum</th>
+                    <th scope="col" class="text-wrap" style="text-align:center" title="Text Incipit">Text&nbsp;Incipit</th>
+                    <th scope="col" class="text-wrap" style="text-align:center" title="Rubrics">Rubrics</th>
+                    <th scope="col" class="text-wrap" style="text-align:center" title="Analecta Hymnica">AH</th>
+                    <th scope="col" class="text-wrap" style="text-align:center" title="Cantus ID">Cantus&nbsp;ID</th>
+                    <th scope="col" class="text-wrap" style="text-align:center" title="Notes 1">Notes&nbsp;1</th>
+                    <th scope="col" class="text-wrap" style="text-align:center" title="Notes 2">Notes&nbsp;2</th>
+                    <th scope="col" class="text-wrap" style="text-align:center" title="Notes 3">Notes&nbsp;3</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for sequence in sequences %}
+                    <tr>
+                        <td class="text-wrap" style="text-align:center">
+                            <a href="{% url 'source-detail' source.id %}" title="{{ source.title }}">{{ source.siglum }}</a>
+                            <br>
+                            <b>{{ sequence.folio }}</b>  {{ sequence.s_sequence }}
+                        </td>
+                        <td class="text-wrap" style="text-align:center">
+                            <a href="{% url 'sequence-detail' sequence.id %}" >{{ sequence.incipit|default:"" }}</a>
+                        </td>
+                        <td class="text-wrap" style="text-align:center">
+                            {{ sequence.rubrics|default:"" }}
+                        </td>
+                        <td class="text-wrap" style="text-align:center">
+                            {{ sequence.analecta_hymnica|default:"" }}
+                        </td>
+                        <td class="text-wrap" style="text-align:center">
+                            {% comment %} use `urlencode` filter because 1 chant and 2 sequences have forward slash in their cantus_id (data error) {% endcomment %}
+                            <a href={% url 'chant-by-cantus-id' sequence.cantus_id|urlencode:"" %}>{{ sequence.cantus_id|default:"" }}</a>
+                        </td>
+                        <td class="text-wrap" style="text-align:center">
+                            {{ sequence.col1|default:"" }}
+                        </td>
+                        <td class="text-wrap" style="text-align:center">
+                            {{ sequence.col2|default:"" }}
+                        </td>
+                        <td class="text-wrap" style="text-align:center">
+                            {{ sequence.col3|default:"" }}
+                        </td>
+                    </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </small>
+{% endif %}
+{% endblock %}
 
-                {% if source.melodies_entered_by.exists %}
-                    <dt>Melodies Entered by</dt>
-                    <dd>
-                        {% for editor in source.melodies_entered_by.all %}
-                            {% if editor.full_name %}
-                                <a href="{% url 'user-detail' editor.id %}">{{ editor.full_name }}</a><br>
-                            {% else %}
-                                <a href="{% url 'user-detail' editor.id %}">User {{ editor.id }}</a><br>
-                            {% endif %}
-                        {% endfor %}
-                    </dd>
-                {% endif %}
-
-                {% if source.complete_inventory is not None %}
-                    <dt>Complete/Partial Inventory</dt>
-                    <dd>{{ source.complete_inventory|yesno:"Complete Inventory,Partial Inventory" }}</dd>
-                {% endif %}
-
-                {% if source.full_source is not None %}
-                    <dt>Full Source/Fragment</dt>
-                    <dd>{{ source.full_source|yesno:"Full Source,Fragment or Fragmented" }}</dd>
-                {% endif %}
-
-                {% if user.is_authenticated %}
-                    <dt>Source Status</dt>
-                    <dd>{{ source.published|yesno:"Published,Unpublished" }}</dd>
-                {% endif %}
-                
-                {% if source.fragmentarium_id is not None %}
-                    <dt>Fragment ID</dt>
-                    <dd>{{ source.fragmentarium_id }}</dd>
-                {% endif %}
-
-                {% if source.dact_id is not None %}
-                    <dt>DACT ID</dt>
-                    <dd>{{ source.dact_id }}</dd>
-                {% endif %}
-            </dl>
-
-            {% if sequences %}
-                <h4>Sequences in this source</h4>
-                <small>Displaying 1 - {{ sequences.count }} of {{ sequences.count }}</small>
-                <small>
-                    <table class="table table-sm small table-bordered table-responsive">
-                        <thead>
-                            <tr>
-                                <th scope="col" class="text-wrap" style="text-align:center" title="Siglum">Siglum</th>
-                                <th scope="col" class="text-wrap" style="text-align:center" title="Text Incipit">Text&nbsp;Incipit</th>
-                                <th scope="col" class="text-wrap" style="text-align:center" title="Rubrics">Rubrics</th>
-                                <th scope="col" class="text-wrap" style="text-align:center" title="Analecta Hymnica">AH</th>
-                                <th scope="col" class="text-wrap" style="text-align:center" title="Cantus ID">Cantus&nbsp;ID</th>
-                                <th scope="col" class="text-wrap" style="text-align:center" title="Notes 1">Notes&nbsp;1</th>
-                                <th scope="col" class="text-wrap" style="text-align:center" title="Notes 2">Notes&nbsp;2</th>
-                                <th scope="col" class="text-wrap" style="text-align:center" title="Notes 3">Notes&nbsp;3</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            {% for sequence in sequences %}
-                                <tr>
-                                    <td class="text-wrap" style="text-align:center">
-                                        <a href="{% url 'source-detail' source.id %}" title="{{ source.title }}">{{ source.siglum }}</a>
-                                        <br>
-                                        <b>{{ sequence.folio }}</b>  {{ sequence.s_sequence }}
-                                    </td>
-                                    <td class="text-wrap" style="text-align:center">
-                                        <a href="{% url 'sequence-detail' sequence.id %}" >{{ sequence.incipit|default:"" }}</a>
-                                    </td>
-                                    <td class="text-wrap" style="text-align:center">
-                                        {{ sequence.rubrics|default:"" }}
-                                    </td>
-                                    <td class="text-wrap" style="text-align:center">
-                                        {{ sequence.analecta_hymnica|default:"" }}
-                                    </td>
-                                    <td class="text-wrap" style="text-align:center">
-                                        {% comment %} use `urlencode` filter because 1 chant and 2 sequences have forward slash in their cantus_id (data error) {% endcomment %}
-                                        <a href={% url 'chant-by-cantus-id' sequence.cantus_id|urlencode:"" %}>{{ sequence.cantus_id|default:"" }}</a>
-                                    </td>
-                                    <td class="text-wrap" style="text-align:center">
-                                        {{ sequence.col1|default:"" }}
-                                    </td>
-                                    <td class="text-wrap" style="text-align:center">
-                                        {{ sequence.col2|default:"" }}
-                                    </td>
-                                    <td class="text-wrap" style="text-align:center">
-                                        {{ sequence.col3|default:"" }}
-                                    </td>
-                                </tr>
-                            {% endfor %}
-                        </tbody>
-                    </table>
-                </small>
-            {% endif %}
+{% block lowersidebar %}
+    <div class="card mb-3 w-100">
+        <div class="card-header">
+            <h4>{{ source.siglum }}</h4>
         </div>
+        <div class="card-body">
+            <small>
+                {% if source.segment.id == 4063 %}
+                    {# all of the following are different ways to link to the Chant List page #}
+                    {# Since sources in the Bower segment contain no chants, the Chant List page #}
+                    {# is currently set up to raise a 404 if you try to access it for a source in #}
+                    {# the Bower segment. So, we need to display this section only for sources in #}
+                    {# the CANTUS segment #}
+                    <!--a small selector of all folios of this source-->
+                    <select id="folioSelect" class="w-30" onchange="jumpToFolio({{ source.id }})">
+                        <option value="">Select a folio:</option>
+                        {% for folio in folios %}
+                            <option value="{{ folio }}">{{ folio }}</option>
+                        {% endfor %}
+                    </select>                              
 
-        <div class="col p-0 sidebar">
-            <div class="search-bar mb-3">
-                {% include "global_search_bar.html" %}
-            </div>
+                    <select id="feastSelect" onchange="jumpToFeast({{ source.id }})" style="width: 200px;"> <!-- style attribute prevents select element from extending beyond left edge of div element -->
+                        <option value="">Select a feast:</option>
+                        {% for folio, feast_id, feast_name in feasts_with_folios %}
+                            <option value="{{ feast_id }}">{{ folio }} - {{ feast_name }}</option>
+                        {% endfor %}
+                    </select>
 
-            <div class="card mb-3 w-100">
-                <div class="card-header">
-                    <h4>{{ source.siglum }}</h4>
-                </div>
-                <div class="card-body">
-                    <small>
-                        {% if source.segment.id == 4063 %}
-                            {# all of the following are different ways to link to the Chant List page #}
-                            {# Since sources in the Bower segment contain no chants, the Chant List page #}
-                            {# is currently set up to raise a 404 if you try to access it for a source in #}
-                            {# the Bower segment. So, we need to display this section only for sources in #}
-                            {# the CANTUS segment #}
-                            <!--a small selector of all folios of this source-->
-                            <select id="folioSelect" class="w-30" onchange="jumpToFolio({{ source.id }})">
-                                <option value="">Select a folio:</option>
-                                {% for folio in folios %}
-                                    <option value="{{ folio }}">{{ folio }}</option>
-                                {% endfor %}
-                            </select>                              
-
-                            <select id="feastSelect" onchange="jumpToFeast({{ source.id }})" style="width: 200px;"> <!-- style attribute prevents select element from extending beyond left edge of div element -->
-                                <option value="">Select a feast:</option>
-                                {% for folio, feast_id, feast_name in feasts_with_folios %}
-                                    <option value="{{ feast_id }}">{{ folio }} - {{ feast_name }}</option>
-                                {% endfor %}
-                            </select>
-
-                            <br>
-                            <a href="{% url "browse-chants" source.id %}" class="guillemet" target="_blank">View all chants</a>
-                        {% endif %}
-                        <a href="{% url "source-inventory" source.id %}" class="guillemet" target="_blank">View full inventory</a>
-                        {% if source.exists_on_cantus_ultimus %}
-                            <a href="https://cantus.simssa.ca/manuscript/{{ source.id }}" class="guillemet" target="_blank">View inventory with images</a>
-                        {% endif %}
-                        {% if source.image_link %}
-                            <a href="{{ source.image_link }}" class="guillemet" target="_blank">View images on external site</a>
-                        {% endif %}                          
-                        <a href="{% url "csv-export" source.id%}" class="guillemet" target="_blank" download="{{ source.id }}.csv">CSV export</a>
-                        <a href="{% url "chant-search-ms" source.id %}" class="guillemet" target="_blank">Search chants in this source</a>
-                        <a href="{% url "melody-search" %}?source={{ source.id }}"  class="guillemet" target="_blank">Search melodies in this source</a>
-                        <a href="//cantusindex.org/analyse?src={{ source.id }}&db=CD" class="guillemet" target="_blank">Analyse this source (Cantus Analysis Tool)</a>
-                    </small>
-                </div>    
-            </div>
-
-            <div class="card mb-3 w-100">
-                <div class="card-header">
-                    <small>
-                        <a href="{% url "source-list" %}?segment={{ source.segment.id }}">{{ source.segment.name }}</a>
-                    </small>
                     <br>
-                    <b>{{ source.siglum }}</b>
-                </div>
-                <div class=" card-body">
-                    <small>
-                        {% if source.provenance.name %}
-                            Provenance: <b><a href="{% url 'provenance-detail' source.provenance.id %}">{{source.provenance.name}}</a></b>
-                            <br>
-                        {% endif %}
-                        {% if source.date %}
-                            Date: 
-                            {% for century in source.century.all %}
-                                <b><a href="{% url 'century-detail' century.id %}">
-                                    {{ century.name }}
-                                </a></b>
-                            {% endfor %}
-                            |
-                            <b>{{ source.date|default_if_none:"" }}</b>
-                            <br>
-                        {% endif %}
-                        {% if source.cursus %}
-                            Cursus: <b>{{ source.cursus|default_if_none:"" }}</b>
-                            <br>
-                        {% endif %}
-                        {% if source.notation.exists %}
-                            Notation: <b><a href="{% url 'notation-detail' source.notation.all.first.id %}">
-                                {{ source.notation.all.first.name }}
-                            </a></b>
-                            <br>
-                        {% endif %}
-                        {% if source.inventoried_by.exists %}
-                            Inventoried by:
-                            <ul>
-                                {% for editor in source.inventoried_by.all %}
-                                    <li>
-                                        {% if editor.full_name %}
-                                            <a href="{% url 'user-detail' editor.id %}">{{ editor.full_name }}</a><br>
-                                        {% else %}
-                                            <a href="{% url 'user-detail' editor.id %}">User {{ editor.id }}</a><br>
-                                        {% endif %}
-                                        {{ editor.institution|default_if_none:"" }}
-                                    </li>
-                                {% endfor %}
-                            </ul>
-                        {% endif %}
-                        {% if source.proofreaders.exists %}
-                            Proofreader{{ source.proofreaders.all|pluralize }}:
-                            <br>
-                            <ul>
-                                {% for editor in source.proofreaders.all %}
-                                    <li>
-                                        {% if editor.full_name %}
-                                            <a href="{% url 'user-detail' editor.id %}">{{ editor.full_name }}</a><br>
-                                        {% else %}
-                                            <a href="{% url 'user-detail' editor.id %}">User {{ editor.id }}</a><br>
-                                        {% endif %}
-                                    </li>
-                                {% endfor %}
-                            </ul>
-                        {% endif %}
-                        {{ source.indexing_notes|default_if_none:""|safe }}
-                        <br>
-                        {% with creator=source.created_by %}
-                            {% if creator %}
-                                {% if creator.full_name %}
-                                    Contributor: <a href={% url 'user-detail' creator.id %}><b>{{ creator.full_name }}</b></a>
+                    <a href="{% url "browse-chants" source.id %}" class="guillemet" target="_blank">View all chants</a>
+                {% endif %}
+                <a href="{% url "source-inventory" source.id %}" class="guillemet" target="_blank">View full inventory</a>
+                {% if source.exists_on_cantus_ultimus %}
+                    <a href="https://cantus.simssa.ca/manuscript/{{ source.id }}" class="guillemet" target="_blank">View inventory with images</a>
+                {% endif %}
+                {% if source.image_link %}
+                    <a href="{{ source.image_link }}" class="guillemet" target="_blank">View images on external site</a>
+                {% endif %}                          
+                <a href="{% url "csv-export" source.id%}" class="guillemet" target="_blank" download="{{ source.id }}.csv">CSV export</a>
+                <a href="{% url "chant-search-ms" source.id %}" class="guillemet" target="_blank">Search chants in this source</a>
+                <a href="{% url "melody-search" %}?source={{ source.id }}"  class="guillemet" target="_blank">Search melodies in this source</a>
+                <a href="//cantusindex.org/analyse?src={{ source.id }}&db=CD" class="guillemet" target="_blank">Analyse this source (Cantus Analysis Tool)</a>
+            </small>
+        </div>    
+    </div>
+
+    <div class="card mb-3 w-100">
+        <div class="card-header">
+            <small>
+                <a href="{% url "source-list" %}?segment={{ source.segment.id }}">{{ source.segment.name }}</a>
+            </small>
+            <br>
+            <b>{{ source.siglum }}</b>
+        </div>
+        <div class=" card-body">
+            <small>
+                {% if source.provenance.name %}
+                    Provenance: <b><a href="{% url 'provenance-detail' source.provenance.id %}">{{source.provenance.name}}</a></b>
+                    <br>
+                {% endif %}
+                {% if source.date %}
+                    Date: 
+                    {% for century in source.century.all %}
+                        <b><a href="{% url 'century-detail' century.id %}">
+                            {{ century.name }}
+                        </a></b>
+                    {% endfor %}
+                    |
+                    <b>{{ source.date|default_if_none:"" }}</b>
+                    <br>
+                {% endif %}
+                {% if source.cursus %}
+                    Cursus: <b>{{ source.cursus|default_if_none:"" }}</b>
+                    <br>
+                {% endif %}
+                {% if source.notation.exists %}
+                    Notation: <b><a href="{% url 'notation-detail' source.notation.all.first.id %}">
+                        {{ source.notation.all.first.name }}
+                    </a></b>
+                    <br>
+                {% endif %}
+                {% if source.inventoried_by.exists %}
+                    Inventoried by:
+                    <ul>
+                        {% for editor in source.inventoried_by.all %}
+                            <li>
+                                {% if editor.full_name %}
+                                    <a href="{% url 'user-detail' editor.id %}">{{ editor.full_name }}</a><br>
                                 {% else %}
-                                    Contributor: <a href={% url 'user-detail' creator.id %}><b>User {{ creator.id }}</b></a>
+                                    <a href="{% url 'user-detail' editor.id %}">User {{ editor.id }}</a><br>
                                 {% endif %}
-                            {% endif %}
-                        {% endwith %}
-                    </small>
-                </div>
-            </div>
-            {% if user_can_edit_chants %}
-                <div class="card w-100">
-                    <div class="card-header">
-                        Source edit options
-                        <br>
-                        <b>{{ source.siglum }}</b>
-                    </div>
-                    <div class=" card-body">
-                        <small>
-                            <ul>
-                                <li>
-                                    <a href="{% url "chant-create" source.id%}">Add new chant</a>
-                                </li>
-                                {% if source.chant_set.exists %}
-                                    <li>
-                                        <a href="{% url "source-edit-chants" source.pk %}">
-                                            Full text &amp; volpiano editor
-                                        </a>
-                                    </li>
+                                {{ editor.institution|default_if_none:"" }}
+                            </li>
+                        {% endfor %}
+                    </ul>
+                {% endif %}
+                {% if source.proofreaders.exists %}
+                    Proofreader{{ source.proofreaders.all|pluralize }}:
+                    <br>
+                    <ul>
+                        {% for editor in source.proofreaders.all %}
+                            <li>
+                                {% if editor.full_name %}
+                                    <a href="{% url 'user-detail' editor.id %}">{{ editor.full_name }}</a><br>
+                                {% else %}
+                                    <a href="{% url 'user-detail' editor.id %}">User {{ editor.id }}</a><br>
                                 {% endif %}
-                                {% if user_can_edit_source %}
-                                    <li>
-                                        <a href="{% url "source-edit" source.id%}">Edit source description</a>
-                                    </li>
-                                {% endif %}
-                                {% if user_can_manage_source_editors %}
-                                    <li>
-                                        <a href={% url 'admin:main_app_source_change' source.id %}>Manage source editors</a>
-                                    </li>
-                                {% endif %}
-                            </ul>
-                        </small>
-                    </div>
-                </div>
-            {% endif %}
+                            </li>
+                        {% endfor %}
+                    </ul>
+                {% endif %}
+                {{ source.indexing_notes|default_if_none:""|safe }}
+                <br>
+                {% with creator=source.created_by %}
+                    {% if creator %}
+                        {% if creator.full_name %}
+                            Contributor: <a href={% url 'user-detail' creator.id %}><b>{{ creator.full_name }}</b></a>
+                        {% else %}
+                            Contributor: <a href={% url 'user-detail' creator.id %}><b>User {{ creator.id }}</b></a>
+                        {% endif %}
+                    {% endif %}
+                {% endwith %}
+            </small>
         </div>
     </div>
-</div>
+    {% if user_can_edit_chants %}
+        <div class="card w-100">
+            <div class="card-header">
+                Source edit options
+                <br>
+                <b>{{ source.siglum }}</b>
+            </div>
+            <div class=" card-body">
+                <small>
+                    <ul>
+                        <li>
+                            <a href="{% url "chant-create" source.id%}">Add new chant</a>
+                        </li>
+                        {% if source.chant_set.exists %}
+                            <li>
+                                <a href="{% url "source-edit-chants" source.pk %}">
+                                    Full text &amp; volpiano editor
+                                </a>
+                            </li>
+                        {% endif %}
+                        {% if user_can_edit_source %}
+                            <li>
+                                <a href="{% url "source-edit" source.id%}">Edit source description</a>
+                            </li>
+                        {% endif %}
+                        {% if user_can_manage_source_editors %}
+                            <li>
+                                <a href={% url 'admin:main_app_source_change' source.id %}>Manage source editors</a>
+                            </li>
+                        {% endif %}
+                    </ul>
+                </small>
+            </div>
+        </div>
+    {% endif %}
 {% endblock %}
