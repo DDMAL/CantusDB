@@ -560,7 +560,7 @@ def build_json_cid_dictionary(chant, request) -> dict:
     chant_relative_url = reverse("chant-detail", args=[chant.id])
     chant_absolute_url = request.build_absolute_uri(chant_relative_url)
     dictionary = {
-        "siglum": chant.source.siglum,
+        "siglum": chant.source.short_heading,
         "srclink": source_absolute_url,
         "chantlink": chant_absolute_url,
         "folio": chant.folio if chant.folio else "",
