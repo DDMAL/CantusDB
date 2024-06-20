@@ -3385,6 +3385,56 @@ class ChantCreateViewTest(TestCase):
             self.assertIsNone(response_after_rare_chant.context["suggested_chants"])
 
 
+class CISearchViewTest(TestCase):
+
+    def test_valid_search_term(self):
+        with patch("requests.get", mock_requests_get):
+            response = self.client.get(reverse("ci-search", args=["qui est"]))
+
+        self.assertEqual(response.status_code, 200)
+        context = response.context
+        self.assertIn("results", context)
+
+        results_zip = context["results"]
+
+        self.assertEqual(len(results_zip), 50)
+        first_result = results_zip[0]
+        self.assertEqual(first_result[0], "001774")
+        self.assertEqual(
+            first_result[2],
+            "Caro et sanguis non revelavit tibi sed pater meus qui est in caelis",
+        )
+
+        second_result = results_zip[1]
+        self.assertEqual(second_result[0], "002191")
+        self.assertEqual(
+            second_result[2],
+            "Dicebat Jesus turbis Judaeorum et principibus sacerdotum qui est ex deo verba dei audit responderunt Judaei et dixerunt ei nonne bene dicimus nos quia Samaritanus es tu et daemonium habes respondit Jesus ego daemonium non habeo sed honorifico patrem meum et vos inhonorastis me",
+        )
+
+    def test_invalid_search_term(self):
+        with patch("requests.get", mock_requests_get):
+            response = self.client.get(reverse("ci-search", args=["123xyz"]))
+
+        self.assertEqual(response.status_code, 200)
+        context = response.context
+        self.assertIn("results", context)
+        self.assertEqual(
+            context["results"], [["No results", "No results", "No results"]]
+        )
+
+    def test_server_error(self):
+        with patch("requests.get", mock_requests_get):
+            response = self.client.get(reverse("ci-search", args=["server_error"]))
+
+        self.assertEqual(response.status_code, 200)
+        context = response.context
+        self.assertIn("results", context)
+        self.assertEqual(
+            list(context["results"]), [["No results", "No results", "No results"]]
+        )
+
+
 class ChantDeleteViewTest(TestCase):
     @classmethod
     def setUpTestData(cls):
