@@ -14,7 +14,7 @@
         {% for source in sources %}
             <li>
                 <a href="{% url 'source-detail' source.id %}" title="{{ source.heading }}">
-                    {{ source.heading }}
+                    ({{ source.holding_institution.siglum }}) {{ source.heading }}
                 </a>
             </li>
         {% endfor %}
