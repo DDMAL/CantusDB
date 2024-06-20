@@ -68,7 +68,7 @@ class SequenceListView(ListView):
             cantus_id = self.request.GET.get("cantus_id")
             q_obj_filter &= Q(cantus_id__icontains=cantus_id)
 
-        return queryset.filter(q_obj_filter).order_by("siglum", "s_sequence")
+        return queryset.filter(q_obj_filter).order_by("source__holding_institution__siglum", "s_sequence")
 
 
 class SequenceEditView(LoginRequiredMixin, UserPassesTestMixin, UpdateView):
