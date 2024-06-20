@@ -1,13 +1,43 @@
 from collections import defaultdict
-from typing import Optional
 
 import requests
+from django.core.exceptions import ValidationError
 from django.core.management import BaseCommand
 
 from main_app.identifiers import ExternalIdentifiers
 from main_app.models import Source, Institution, InstitutionIdentifier
 
 sigla_to_skip = {
+    "N-N.miss.imp.1519",
+    "McGill, Fragment 21",
+    "D-WÜ/imp1583",
+    "Unknown",
+    "Test-Test IV",
+    "Test-Test VI",
+    "Test-test VII",
+    "D-P/imp1511",
+    "MA Impr. 1537",
+    "GOTTSCHALK",
+    "BEAUVAIS",
+    "D-A/imp:1498",
+}
+
+private_collections = {
+    "US-SLpc",
+    "US-CinOHpc",
+    "US-AshORpc",
+    "US-CTpc",
+    "IRL-Dpc",
+    "US-NYpc",
+    "GB-Oxpc",
+    "US-Phpc",
+    "D-ROTTpc",
+    "D-Berpc",
+    "US-Nevpc",
+    "US-IssWApc",
+    "US-RiCTpc",
+    "US-RiCTpc,",
+    "US-OakCApc",
     "US-CApc",
     "ZA-Newpc",
     "CDN-MtlQCpc",
@@ -24,46 +54,8 @@ sigla_to_skip = {
     "GB-Brpc",
     "CDN-NVanBCpc",
     "CDN-SYpc",
-    "N-N.miss.imp.1519",
-    "BR-PApc D-0egev (fragment)",
-    "McGill, Fragment 21",
-    "D-WÜ/imp1583",
-    "Unknown",
-    "P-Pm 1151",
-    "E-Zahp 'Book 1'",
-    "NL-UStPFragm01",
     "NL-EINpc",
-    "Test-Test IV",
-    "Test-Test VI",
-    "Test-test VII",
-    "D-P/imp1511",
-    "P-Cug",
-    "P-La",
-    "SK-BRm EC Lad. 4, ba",
-    "MS 0285 - 5",
-    "MA Impr. 1537",
-    "GOTTSCHALK",
-    "BEAUVAIS",
-    "D-Mü Clm 19162",
-    "D-A/imp:1498",
-    "US-Phpc",
-    "D-ROTTpc",
-    "D-Berpc",
-    "US-Nevpc",
-    "US-IssWApc",
-    "US-RiCTpc",
-    "US-RiCTpc,",
-    "US-OakCApc",
-    "US-CTpc",
-    "IRL-Dpc",
-    "US-NYpc",
-    "GB-Oxpc",
-    "US-AshORpc",
-    "US-CinOHpc",
-    "I-Pc B16*",
-    "I-Vlevi CF D 21",
-    "CZ-Bu R 387",
-    "US-SLpc"
+    "BR-PApc"
 }
 
 siglum_to_country = {
@@ -131,7 +123,7 @@ class Command(BaseCommand):
 
             try:
                 city, institution_name, shelfmark = source_name.split(",", 2)
-                source_shelfmarks[source.id] = shelfmark
+                source_shelfmarks[source.id] = shelfmark.strip()
             except ValueError:
                 print(
                     self.style.WARNING(
@@ -158,11 +150,8 @@ class Command(BaseCommand):
             insts_ids[siglum].add(source.id)
 
             if options["lookup"]:
-                if siglum in bad_sigla:
-                    # if we already know it's bad, no need to look it up again.
-                    continue
-                if siglum in insts_rism:
-                    # If we've already looked it up...
+                if siglum in bad_sigla or siglum in private_collections or siglum in insts_rism:
+                    # no need to look it up.
                     continue
 
                 req = requests.get(
@@ -214,20 +203,31 @@ class Command(BaseCommand):
             inst_country = siglum_to_country[sig.split("-")[0]]
 
             print(f"{sig},{main_city},{inst_country},{main_name},{alt_names_fmt}")
-            if not main_name:
-                breakpoint()
 
             if options["dry_run"]:
                 continue
 
-            inst = Institution.objects.create(
-                siglum=sig,
-                city=main_city,
-                country=inst_country,
-                name=main_name,
-                alternate_names="\n".join(list(names)[1:]),
-            )
-            inst.save()
+            iobj = {
+                "city": main_city,
+                "country": inst_country,
+                "name": main_name,
+                "alternate_names": "\n".join(list(names)[1:]),
+            }
+
+            if sig in private_collections:
+                iobj["is_private_collector"] = True
+            elif sig is not None:
+                iobj["siglum"] = sig
+            else:
+                print(f"Could not create {inst_id}")
+                continue
+
+            try:
+                inst = Institution.objects.create(**iobj)
+            except ValidationError:
+                print(f"Could not create {sig} {main_name}")
+                continue
+
             print("Created", inst)
 
             if rismid := insts_rism.get(sig):
@@ -243,5 +243,5 @@ class Command(BaseCommand):
                 s = Source.objects.get(id=source_id)
                 print(s)
                 s.holding_institution = inst
-                s.shelfmark = shelfmark
+                s.shelfmark = shelfmark.strip()
                 s.save()
