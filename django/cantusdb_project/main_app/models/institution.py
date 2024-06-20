@@ -1,4 +1,5 @@
 from django.db import models
+from django.db.models import CheckConstraint, Q
 
 from main_app.models import BaseModel
 
@@ -9,8 +10,28 @@ private_collector_help = """Mark this institution as private collector."""
 
 
 class Institution(BaseModel):
+    class Meta:
+        constraints = [
+            CheckConstraint(
+                check=~(Q(is_private_collector=True) & Q(siglum__isnull=False)),
+                name="siglum_and_private_not_valid",
+                violation_error_message="Siglum and Private Collector cannot both be specified."
+            ),
+            CheckConstraint(
+                check=(Q(is_private_collector=True) | Q(siglum__isnull=False)),
+                name="at_least_one_of_siglum_or_private_collector",
+                violation_error_message="At least one of Siglum or Private Collector must be specified."
+            )
+
+        ]
     name = models.CharField(max_length=255, default="s.n.")
-    siglum = models.CharField(max_length=32, default="XX-Nn")
+    siglum = models.CharField(
+        verbose_name="RISM Siglum",
+        max_length=32,
+        blank=True,
+        null=True,
+        help_text="Reserved for assigned RISM sigla",
+    )
     is_private_collector = models.BooleanField(
         default=False,
         help_text=private_collector_help,
@@ -33,5 +54,5 @@ class Institution(BaseModel):
     )
 
     def __str__(self) -> str:
-        sigl: str = f"({self.siglum})" if self.siglum else ""
-        return f"{self.name} {sigl}"
+        sigl: str = f" ({self.siglum})" if self.siglum else ""
+        return f"{self.name}{sigl}"
