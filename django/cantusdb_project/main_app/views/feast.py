@@ -53,15 +53,19 @@ ORDER BY ccount desc;"""
 # This SQL query will return five columns: the source ID, shelfmark, the holding
 # institution siglum and name, and count of the number of chants in that source
 # that match a given feast.
-feast_source_query: str = """SELECT DISTINCT ss.id AS source_id, ss.shelfmark, hs.siglum, hs.name AS institution_name, 
-    COUNT(cs.id) AS chant_count
-    FROM main_app_source ss
-    LEFT JOIN main_app_institution AS hs ON ss.holding_institution_id = hs.id
-    LEFT JOIN main_app_chant AS cs ON cs.source_id = ss.id
-    LEFT JOIN main_app_feast AS fs ON cs.feast_id = fs.id
-    WHERE fs.id = %s AND cs.cantus_id IS NOT NULL {published_filt}
-    GROUP BY ss.id, hs.siglum, hs.name
-    ORDER BY chant_count DESC, hs.siglum;
+feast_source_query: str = """SELECT DISTINCT ss.id AS source_id, ss.shelfmark, 
+                COALESCE(hs.siglum, 'Private') as siglum, 
+                hs.name AS institution_name, 
+                (SELECT COUNT(cs2.id) 
+                 FROM main_app_chant AS cs2 
+                 WHERE cs2.source_id = ss.id AND cs2.feast_id = %s) AS chant_count
+FROM main_app_source ss
+         LEFT JOIN main_app_institution AS hs ON ss.holding_institution_id = hs.id
+         LEFT JOIN main_app_chant AS cs ON cs.source_id = ss.id
+         LEFT JOIN main_app_feast AS fs ON cs.feast_id = fs.id
+WHERE fs.id = %s AND cs.cantus_id IS NOT NULL {published_filt}
+GROUP BY ss.id, hs.name, hs.siglum
+ORDER BY chant_count DESC, siglum;
 """
 
 
@@ -73,8 +77,9 @@ def namedtuple_fetch(results, description) -> Generator[NamedTuple, None, None]:
     result set and returning a new list, this yields the Result object for every iteration
     as it's used in the template.
 
-    :param cursor: A database cursor.
-    :return:
+    :param results: A list of results from the database.
+    :param description: A description of the columns used for naming the fields in the tuple.
+    :return: A generator that wraps a result row in a Result named tuple.
     """
     nt_result = namedtuple("Result", [col[0] for col in description])
     for res in results:
@@ -88,6 +93,7 @@ class FeastDetailView(DetailView):
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
+        feast_id = self.object.pk
 
         display_unpublished = self.request.user.is_authenticated
 
@@ -101,7 +107,7 @@ class FeastDetailView(DetailView):
             source_sql_query = feast_source_query.format(published_filt="")
 
         with connection.cursor() as cursor:
-            cursor.execute(chant_sql_query, [self.object.pk])
+            cursor.execute(chant_sql_query, [feast_id])
             num_chant_results = cursor.rowcount
             chants_from_db = namedtuple_fetch(cursor.fetchall(), cursor.description)
 
@@ -109,7 +115,7 @@ class FeastDetailView(DetailView):
         context["frequent_chants_count"] = num_chant_results
 
         with connection.cursor() as cursor:
-            cursor.execute(source_sql_query, [self.object.pk])
+            cursor.execute(source_sql_query, [feast_id, feast_id])
             num_sources_results = cursor.rowcount
             sources_from_db = namedtuple_fetch(cursor.fetchall(), cursor.description)
 
