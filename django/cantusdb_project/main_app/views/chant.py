@@ -906,7 +906,7 @@ class CISearchView(TemplateView):
         if len(cantus_id) == 0:
             context["results"] = [["No results", "No results", "No results"]]
         else:
-            context["results"] = zip(cantus_id, genre, full_text)
+            context["results"] = list(zip(cantus_id, genre, full_text))
         return context
 
 
