@@ -178,9 +178,9 @@ class Command(BaseCommand):
                 )
 
                 iobj = {
-                    "city": city,
+                    "city": city.strip() if city else None,
                     "country": country,
-                    "name": institution_name,
+                    "name": institution_name.strip(),
                 }
 
                 if siglum in private_collections:
@@ -217,7 +217,7 @@ class Command(BaseCommand):
                 continue
 
             source.holding_institution = institution
-            source.shelfmark = shelfmark
+            source.shelfmark = shelfmark.strip()
             source.save()
 
 
