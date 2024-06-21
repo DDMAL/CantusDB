@@ -1,15 +1,13 @@
 import urllib.parse
 from collections import Counter, defaultdict
-from typing import Optional, Iterator, cast
-
-from volpiano_display_utilities.cantus_text_syllabification import (
-    syllabify_text,
-    flatten_syllabified_text,
-)
-from volpiano_display_utilities.text_volpiano_alignment import align_text_and_volpiano
+from typing import Optional, Iterator
 
 from django.contrib import messages
+from django.contrib.auth.mixins import LoginRequiredMixin
+from django.contrib.auth.mixins import UserPassesTestMixin
+from django.core.exceptions import PermissionDenied
 from django.db.models import Q, QuerySet
+from django.http import Http404, HttpResponse
 from django.shortcuts import get_object_or_404
 from django.urls import reverse
 from django.views.generic import (
@@ -20,13 +18,17 @@ from django.views.generic import (
     TemplateView,
     UpdateView,
 )
-from django.core.exceptions import PermissionDenied
-from django.contrib.auth.mixins import LoginRequiredMixin
-from django.http import Http404, HttpResponse
+from volpiano_display_utilities.cantus_text_syllabification import (
+    syllabify_text,
+    flatten_syllabified_text,
+)
+from volpiano_display_utilities.text_volpiano_alignment import align_text_and_volpiano
 
-from django.contrib.auth.mixins import UserPassesTestMixin
-
-
+from cantusindex import (
+    get_suggested_chants,
+    get_suggested_fulltext,
+    get_ci_text_search,
+)
 from main_app.forms import (
     ChantCreateForm,
     ChantEditForm,
@@ -40,18 +42,12 @@ from main_app.models import (
     Sequence,
     Office,
 )
-from users.models import User
 from main_app.permissions import (
     user_can_edit_chants_in_source,
     user_can_proofread_chant,
     user_can_view_chant,
 )
-
-from cantusindex import (
-    get_suggested_chants,
-    get_suggested_fulltext,
-    get_ci_text_search,
-)
+from users.models import User
 
 CHANT_SEARCH_TEMPLATE_VALUES: tuple[str, ...] = (
     # for views that use chant_search.html, this allows them to
@@ -70,6 +66,7 @@ CHANT_SEARCH_TEMPLATE_VALUES: tuple[str, ...] = (
     "source__id",
     "source__shelfmark",
     "source__holding_institution__siglum",
+    "source__holding_institution__name",
     "feast__id",
     "feast__description",
     "feast__name",
@@ -80,6 +77,12 @@ CHANT_SEARCH_TEMPLATE_VALUES: tuple[str, ...] = (
     "genre__description",
     "genre__name",
 )
+
+ONLY_FIELDS = ("id", "genre", "feast", "office", "source", "source__holding_institution__siglum",
+               "source__shelfmark", "source__holding_institution__city", "source__holding_institution__name",
+               "title", "incipit", "folio", "search_vector", "manuscript_full_text_std_spelling",
+               "position", "image_link", "manuscript_full_text", "cantus_id", "mode", "volpiano",
+               "feast__name", "feast__description")
 
 
 def get_feast_selector_options(source: Source) -> list[tuple[str, int, str]]:
@@ -306,40 +309,31 @@ class ChantSearchView(ListView):
         search_op: Optional[str] = self.request.GET.get("op")
         if search_op:
             search_parameters.append(f"op={search_op}")
-
         search_keyword: Optional[str] = self.request.GET.get("keyword")
         if search_keyword:
             search_parameters.append(f"keyword={search_keyword}")
             context["keyword"] = search_keyword
-
         search_office: Optional[str] = self.request.GET.get("office")
         if search_office:
             search_parameters.append(f"office={search_office}")
-
         search_genre: Optional[str] = self.request.GET.get("genre")
         if search_genre:
             search_parameters.append(f"genre={search_genre}")
-
         search_cantus_id: Optional[str] = self.request.GET.get("cantus_id")
         if search_cantus_id:
             search_parameters.append(f"cantus_id={search_cantus_id}")
-
         search_mode: Optional[str] = self.request.GET.get("mode")
         if search_mode:
             search_parameters.append(f"mode={search_mode}")
-
         search_feast: Optional[str] = self.request.GET.get("feast")
         if search_feast:
             search_parameters.append(f"feast={search_feast}")
-
         search_position: Optional[str] = self.request.GET.get("position")
         if search_position:
             search_parameters.append(f"position={search_position}")
-
         search_melodies: Optional[str] = self.request.GET.get("melodies")
         if search_melodies:
             search_parameters.append(f"melodies={search_melodies}")
-
         search_bar: Optional[str] = self.request.GET.get("search_bar")
         if search_bar:
             search_parameters.append(f"search_bar={search_bar}")
@@ -353,148 +347,127 @@ class ChantSearchView(ListView):
 
         return context
 
-    def _handle_search_bar(self, display_unpublished: bool) -> QuerySet:
-        q_obj_filter = Q()
-
-        if display_unpublished:
-            chant_set = Chant.objects.all()
-            sequence_set = Sequence.objects.all()
-        else:
-            chant_set = Chant.objects.filter(source__published=True)
-            sequence_set = Sequence.objects.filter(source__published=True)
-
-        search_bar_term: str = self.request.GET.get("search_bar", "")
-
-        search_bar_term_contains_digits: bool = any(
-            map(str.isdigit, search_bar_term)
-        )
-
-        chant_set = chant_set.select_related("source__holding_institution", "genre")
-        sequence_set = sequence_set.select_related("source__holding_institution", "genre")
-
-        if search_bar_term_contains_digits:
-            # if search bar is doing Cantus ID search
-            cantus_id = search_bar_term
-            q_obj_filter &= Q(cantus_id__icontains=cantus_id)
-            chant_set = chant_set.filter(q_obj_filter).values(
-                *CHANT_SEARCH_TEMPLATE_VALUES
-            )
-            sequence_set = sequence_set.filter(q_obj_filter).values(
-                *CHANT_SEARCH_TEMPLATE_VALUES
-            )
-            return chant_set.union(sequence_set, all=True)
-        else:
-            # if search bar is doing incipit search
-            ms_spelling_filter = Q(
-                manuscript_full_text__istartswith=search_bar_term
-            )
-            std_spelling_filter = Q(
-                manuscript_full_text_std_spelling__istartswith=search_bar_term
-            )
-            incipit_filter = Q(incipit__istartswith=search_bar_term)
-            search_term_filter = (
-                    ms_spelling_filter | std_spelling_filter | incipit_filter
-            )
-            chant_set = chant_set.filter(search_term_filter).values(
-                *CHANT_SEARCH_TEMPLATE_VALUES
-            )
-            sequence_set = sequence_set.filter(search_term_filter).values(
-                *CHANT_SEARCH_TEMPLATE_VALUES
-            )
-            return chant_set.union(sequence_set, all=True)
-
-    def _handle_chant_search(self, display_unpublished: bool) -> QuerySet:
-        # The field names should be keys in the "GET" QueryDict if the search button has been
-        # clicked, even if the user put nothing into the search form and hit "apply" immediately.
-        # In that case, we return all chants + seqs filtered by the search form.
-        q_obj_filter = Q()
-
-        if self.request.GET.get("office"):
-            office_id = self.request.GET.get("office")
-            q_obj_filter &= Q(office__id=office_id)
-
-        if self.request.GET.get("genre"):
-            genre_id = int(self.request.GET.get("genre"))
-            q_obj_filter &= Q(genre__id=genre_id)
-
-        if self.request.GET.get("cantus_id"):
-            cantus_id = self.request.GET.get("cantus_id")
-            q_obj_filter &= Q(cantus_id__icontains=cantus_id)
-
-        if self.request.GET.get("mode"):
-            mode = self.request.GET.get("mode")
-            q_obj_filter &= Q(mode=mode)
-
-        if self.request.GET.get("position"):
-            position = self.request.GET.get("position")
-            q_obj_filter &= Q(position=position)
-
-        if self.request.GET.get("melodies") in ["true", "false"]:
-            melodies = self.request.GET.get("melodies")
-            if melodies == "true":
-                q_obj_filter &= Q(volpiano__isnull=False)
-
-        if self.request.GET.get("feast"):
-            feast = self.request.GET.get("feast")
-            # This will match any feast whose name contains the feast parameter as a substring
-            feasts = Feast.objects.filter(name__icontains=feast)
-            q_obj_filter &= Q(feast__in=feasts)
-
-        if not display_unpublished:
-            chant_set: QuerySet = Chant.objects.filter(source__published=True)
-            sequence_set: QuerySet = Sequence.objects.filter(source__published=True)
-        else:
-            chant_set: QuerySet = Chant.objects.all()
-            sequence_set: QuerySet = Sequence.objects.all()
-
-        chant_set = chant_set.select_related("source__holding_institution", "genre")
-        sequence_set = sequence_set.select_related("source__holding_institution", "genre")
-
-        # Filter the QuerySet with Q object
-        chant_set = chant_set.filter(q_obj_filter)
-        sequence_set = sequence_set.filter(q_obj_filter)
-        # Fetch only the values necessary for rendering the template
-        chant_set = chant_set.values(*CHANT_SEARCH_TEMPLATE_VALUES)
-        sequence_set = sequence_set.values(*CHANT_SEARCH_TEMPLATE_VALUES)
-
-        keyword: Optional[str] = self.request.GET.get("keyword")
-
-        # Finally, do keyword searching over the querySet
-        if keyword:
-            operation: Optional[str] = self.request.GET.get("op")
-            if operation and operation == "contains":
-                ms_spelling_filter = Q(manuscript_full_text__icontains=keyword)
-                std_spelling_filter = Q(
-                    manuscript_full_text_std_spelling__icontains=keyword
-                )
-                incipit_filter = Q(incipit__icontains=keyword)
-            else:
-                ms_spelling_filter = Q(manuscript_full_text__istartswith=keyword)
-                std_spelling_filter = Q(
-                    manuscript_full_text_std_spelling__istartswith=keyword
-                )
-                incipit_filter = Q(incipit__istartswith=keyword)
-            keyword_filter = (
-                    ms_spelling_filter | std_spelling_filter | incipit_filter
-            )
-            chant_set = chant_set.filter(keyword_filter)
-            sequence_set = sequence_set.filter(keyword_filter)
-
-        # once unioned, the queryset cannot be filtered/annotated anymore, so we put union to the last
-        return chant_set.union(sequence_set, all=True)
-
     def get_queryset(self) -> QuerySet:
         # if user has just arrived on the Chant Search page, there will be no GET parameters.
         if not self.request.GET:
             return Chant.objects.none()
 
+        # Create a Q object to filter the QuerySet of Chants
+        q_obj_filter = Q()
         display_unpublished = self.request.user.is_authenticated
 
         # if the search is accessed by the global search bar
         if self.request.GET.get("search_bar"):
-            queryset = self._handle_search_bar(display_unpublished)
+            if display_unpublished:
+                chant_set = Chant.objects.all()
+                sequence_set = Sequence.objects.all()
+            else:
+                chant_set = Chant.objects.filter(source__published=True)
+                sequence_set = Sequence.objects.filter(source__published=True)
+
+            chant_set = chant_set.select_related("source__holding_institution", "feast", "office", "genre")
+            sequence_set = sequence_set.select_related("source__holding_institution", "feast", "office", "genre")
+
+            search_bar_term_contains_digits = any(
+                map(str.isdigit, self.request.GET.get("search_bar"))
+            )
+            if search_bar_term_contains_digits:
+                # if search bar is doing Cantus ID search
+                cantus_id = self.request.GET.get("search_bar")
+                q_obj_filter &= Q(cantus_id__icontains=cantus_id)
+                chant_set = chant_set.filter(q_obj_filter).only(
+                    *ONLY_FIELDS
+                )
+                sequence_set = sequence_set.filter(q_obj_filter).only(
+                    *ONLY_FIELDS
+                )
+                queryset = chant_set.union(sequence_set, all=True)
+            else:
+                # if search bar is doing incipit search
+                search_term = self.request.GET.get("search_bar")
+                ms_spelling_filter = Q(manuscript_full_text__istartswith=search_term)
+                std_spelling_filter = Q(
+                    manuscript_full_text_std_spelling__istartswith=search_term
+                )
+                incipit_filter = Q(incipit__istartswith=search_term)
+                search_term_filter = (
+                        ms_spelling_filter | std_spelling_filter | incipit_filter
+                )
+                chant_set = chant_set.filter(search_term_filter).only(
+                    *ONLY_FIELDS
+                )
+                sequence_set = sequence_set.filter(search_term_filter).only(
+                    *ONLY_FIELDS
+                )
+                queryset = chant_set.union(sequence_set, all=True)
         else:
-            queryset = self._handle_chant_search(display_unpublished)
+            # The field names should be keys in the "GET" QueryDict if the search button has been
+            # clicked, even if the user put nothing into the search form and hit "apply" immediately.
+            # In that case, we return all chants + seqs filtered by the search form.
+            if office_id := self.request.GET.get("office"):
+                q_obj_filter &= Q(office__id=office_id)
+
+            if genre_id := self.request.GET.get("genre"):
+                q_obj_filter &= Q(genre__id=int(genre_id))
+
+            if cantus_id := self.request.GET.get("cantus_id"):
+                q_obj_filter &= Q(cantus_id__icontains=cantus_id)
+
+            if mode := self.request.GET.get("mode"):
+                q_obj_filter &= Q(mode=mode)
+
+            if position := self.request.GET.get("position"):
+                q_obj_filter &= Q(position=position)
+
+            if melodies := self.request.GET.get("melodies"):
+                if melodies == "true":
+                    q_obj_filter &= Q(volpiano__isnull=False)
+
+            if feast := self.request.GET.get("feast"):
+                # This will match any feast whose name contains the feast parameter as a substring
+                q_obj_filter &= Q(feast__name__icontains=feast)
+
+            if not display_unpublished:
+                chant_set: QuerySet = Chant.objects.filter(source__published=True)
+                sequence_set: QuerySet = Sequence.objects.filter(source__published=True)
+            else:
+                chant_set: QuerySet = Chant.objects.all()
+                sequence_set: QuerySet = Sequence.objects.all()
+
+            # Filter the QuerySet with Q object
+            chant_set = (chant_set.filter(q_obj_filter)
+                         .select_related("source__holding_institution", "feast", "office", "genre"))
+            sequence_set = (sequence_set.filter(q_obj_filter)
+                            .select_related("source__holding_institution", "feast", "office", "genre"))
+
+            # Finally, do keyword searching over the querySet
+            if self.request.GET.get("keyword"):
+                keyword = self.request.GET.get("keyword")
+                operation: Optional[str] = self.request.GET.get("op")
+                if operation and operation == "contains":
+                    ms_spelling_filter = Q(manuscript_full_text__icontains=keyword)
+                    std_spelling_filter = Q(
+                        manuscript_full_text_std_spelling__icontains=keyword
+                    )
+                    incipit_filter = Q(incipit__icontains=keyword)
+                else:
+                    ms_spelling_filter = Q(manuscript_full_text__istartswith=keyword)
+                    std_spelling_filter = Q(
+                        manuscript_full_text_std_spelling__istartswith=keyword
+                    )
+                    incipit_filter = Q(incipit__istartswith=keyword)
+                keyword_filter = (
+                        ms_spelling_filter | std_spelling_filter | incipit_filter
+                )
+                chant_set = chant_set.filter(keyword_filter)
+                sequence_set = sequence_set.filter(keyword_filter)
+
+            # Fetch only the values necessary for rendering the template
+            chant_set = chant_set.only(*ONLY_FIELDS)
+            sequence_set = sequence_set.only(*ONLY_FIELDS)
+
+            # once unioned, the queryset cannot be filtered/annotated anymore, so we put union to the last
+            queryset = chant_set.union(sequence_set, all=True)
 
         # Apply sorting
         order_get_param: Optional[str] = self.request.GET.get("order")
@@ -526,9 +499,7 @@ class ChantSearchView(ListView):
         if sort_get_param and sort_get_param == "desc":
             order = f"-{order}"
 
-        queryset = queryset.order_by(order, "id")
-
-        return queryset
+        return queryset.order_by(order, "id")
 
 
 class MelodySearchView(TemplateView):
@@ -635,11 +606,12 @@ class ChantSearchMSView(ListView):
         return context
 
     def get_queryset(self) -> QuerySet:
-        # Create a Q object to filter the QuerySet of Chants
-        q_obj_filter = Q()
         # If the "apply" button hasn't been clicked, return empty queryset
         if not self.request.GET:
             return Chant.objects.none()
+
+        # Create a Q object to filter the QuerySet of Chants
+        q_obj_filter = Q()
         # For every GET parameter other than incipit, add to the Q object
         if office_id := self.request.GET.get("office"):
             q_obj_filter &= Q(office__id=office_id)
@@ -661,12 +633,11 @@ class ChantSearchMSView(ListView):
         if feast := self.request.GET.get("feast"):
             # This will match any feast whose name contains the feast parameter
             # as a substring
-            feasts = Feast.objects.filter(name__icontains=feast)
-            q_obj_filter &= Q(feast__in=feasts)
+            q_obj_filter &= Q(feast__name__icontains=feast)
 
         order_value = self.request.GET.get("order", "siglum")
 
-        if order_value in {"siglum", "incipit", "genre", "cantus_id", "mode"}:
+        if order_value in {"siglum", "incipit", "genre", "cantus_id", "mode", "feast", "office"}:
             order = order_value
         elif order_value == "has_fulltext":
             order = "manuscript_full_text"
@@ -691,7 +662,7 @@ class ChantSearchMSView(ListView):
                     .select_related("source__holding_institution", "feast", "office", "genre")
                     .filter(q_obj_filter))
         # Fetch only the values necessary for rendering the template
-        queryset = queryset.values(*CHANT_SEARCH_TEMPLATE_VALUES)
+        queryset = queryset.only(*ONLY_FIELDS)
         # Finally, do keyword searching over the QuerySet
         if keyword := self.request.GET.get("keyword"):
             operation = self.request.GET.get("op")
