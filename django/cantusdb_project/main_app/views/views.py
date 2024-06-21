@@ -80,7 +80,10 @@ def ajax_melody_list(request, cantus_id) -> JsonResponse:
         JsonResponse: A response to the AJAX call, to be unpacked by the frontend js code
     """
     chants: QuerySet[Chant] = (
-        Chant.objects.filter(cantus_id=cantus_id).exclude(volpiano=None).order_by("id")
+        Chant.objects.filter(cantus_id=cantus_id)
+        .select_related("source__holding_institution", "feast", "genre", "office")
+        .exclude(volpiano=None)
+        .order_by("id")
     )
 
     display_unpublished: bool = request.user.is_authenticated
@@ -88,7 +91,8 @@ def ajax_melody_list(request, cantus_id) -> JsonResponse:
         chants = chants.filter(source__published=True)
 
     concordance_values: QuerySet[dict] = chants.values(
-        "source__siglum",
+        "source__holding_institution__siglum",
+        "source__shelfmark",
         "folio",
         "office__name",
         "genre__name",
@@ -105,7 +109,10 @@ def ajax_melody_list(request, cantus_id) -> JsonResponse:
     for i, concordance in enumerate(concordances):
         # we need to use each chant's _source_'s siglum, and not the
         # legacy sigla that were attached to chants in OldCantus
-        concordance["siglum"] = concordance.pop("source__siglum")
+        holding_inst_sig = concordance.pop("source__holding_institution__siglum")
+        source_shelfmark = concordance.pop("source__shelfmark")
+
+        concordance["siglum"] = f"{holding_inst_sig} {source_shelfmark}"
         # for chants that do not have a source, do not attempt
         # to return a source link
         if chants[i].source:
@@ -138,7 +145,7 @@ def csv_export(request, source_id):
 
     display_unpublished = request.user.is_authenticated
 
-    if (not source.published) and (not display_unpublished):
+    if not source.published and not display_unpublished:
         raise PermissionDenied
 
     # "4064" is the segment id of the sequence DB, sources in that segment have sequences instead of chants
@@ -155,7 +162,8 @@ def csv_export(request, source_id):
     writer = csv.writer(response)
     writer.writerow(
         [
-            "siglum",
+            "shelfmark",
+            "holding_institution",
             "marginalia",
             "folio",
             "sequence",
@@ -179,7 +187,9 @@ def csv_export(request, source_id):
             "node_id",
         ]
     )
-    siglum = source.siglum
+    shelfmark = source.shelfmark
+    holding_institution = source.holding_institution
+
     for entry in entries:
         feast = entry.feast.name if entry.feast else ""
         office = entry.office.name if entry.office else ""
@@ -188,7 +198,8 @@ def csv_export(request, source_id):
 
         writer.writerow(
             [
-                siglum,
+                shelfmark,
+                holding_institution,
                 entry.marginalia,
                 entry.folio,
                 # if entry has a c_sequence, it's a Chant. If it doesn't, it's a Sequence, so write its s_sequence
@@ -272,7 +283,9 @@ def ajax_melody_search(request):
     if not display_unpublished:
         chants = Chant.objects.filter(source__published=True)
     else:
-        chants = Chant.objects
+        chants = Chant.objects.all()
+
+    chants = chants.select_related("source__holding_institution")
 
     # if "search exact matches + transpositions"
     if transpose == "true":
@@ -328,7 +341,8 @@ def ajax_melody_search(request):
 
     result_values = chants.order_by("id").values(
         "id",
-        "siglum",
+        "source__holding_institution__siglum",
+        "source__shelfmark",
         "folio",
         "incipit",
         "genre__name",
@@ -369,6 +383,8 @@ def ajax_search_bar(request, search_term):
         # if the search term does not contain any digits, assume user is searching by incipit
         chants = Chant.objects.filter(incipit__istartswith=search_term).order_by("id")
 
+    chants = chants.select_related("source__holding_institution", "genre", "feast", "office")
+
     display_unpublished: bool = request.user.is_authenticated
     if not display_unpublished:
         chants = chants.filter(source__published=True)
@@ -383,7 +399,8 @@ def ajax_search_bar(request, search_term):
             "feast__name",
             "cantus_id",
             "mode",
-            "source__siglum",
+            "source__holding_institution__siglum",
+            "source__shelfmark",
             "office__name",
             "folio",
             "c_sequence",
@@ -404,7 +421,8 @@ def json_melody_export(request, cantus_id: str) -> JsonResponse:
         "melody_id",
         "id",
         "cantus_id",
-        "siglum",
+        "source__holding_institution",
+        "source__shelfmark",
         "source__id",  # don't fetch the entire Source object, just the id of
         # the source. __id is removed in standardize_for_api below
         "folio",
@@ -449,7 +467,8 @@ def standardize_dict_for_json_melody_export(
         "melody_id": "mid",  #                  <-
         "id": "nid",  #                         <-
         "cantus_id": "cid",  #                  <-
-        "siglum": "siglum",
+        "source__shelfmark": "shelfmark",
+        "source__holding_institution": "holding_institution",
         "source__id": "srcnid",  #              <-
         "folio": "folio",
         "incipit": "incipit",
@@ -622,27 +641,6 @@ def get_user_id_from_old_indexer_id(pk: int) -> Optional[int]:
         return None
 
 
-def check_for_unpublished(item: Union[Chant, Sequence, Source]) -> None:
-    """Raises an Http404 exception if item is unpublished
-
-    Args:
-        item (Chant, Sequence, or Source): An item to check whether it is published or not
-
-    Raises:
-        Http404 if the item is a source and it's unpublished,
-            or if it's a chant/sequence and its source is unpublished
-
-    Returns:
-        None
-    """
-    if isinstance(item, Source):
-        if not item.published:
-            raise Http404()
-    if isinstance(item, Chant) or isinstance(item, Sequence):
-        if not item.source.published:
-            raise Http404()
-
-
 NODE_TYPES_AND_VIEWS = [
     (Chant, "chant-detail"),
     (Source, "source-detail"),
@@ -657,7 +655,7 @@ NODE_TYPES_AND_VIEWS = [
 NODE_ID_CUTOFF = 1_000_000
 
 
-def json_node_export(request, id: int) -> JsonResponse:
+def json_node_export(request, id: int) -> HttpResponse:
     """
     returns all fields of the chant/sequence/source/indexer with the specified `id`
     """
@@ -677,18 +675,20 @@ def json_node_export(request, id: int) -> JsonResponse:
         vals = dict(*user.values())
         return JsonResponse(vals)
 
+    # This seems to return the first object for which the node id matches.
     for rec_type, _ in NODE_TYPES_AND_VIEWS:
-        if record_exists(rec_type, id):
-            requested_item = rec_type.objects.filter(id=id)
-            # in order to easily unpack the object's properties in `vals` below, `requested_item`
-            # needs to be a queryset rather than an individual object. But in order to
-            # `check_for_unpublished`, we need a single object rather than a queryset, hence
-            # `.first()`
-            check_for_unpublished(
-                requested_item.first()
-            )  # raises a 404 if item is unpublished
-            vals = dict(*requested_item.values())
-            return JsonResponse(vals)
+        this_rec_qs = rec_type.objects.filter(id=id)
+
+        if rec_type == Source:
+            this_rec_qs = this_rec_qs.filter(published=True)
+        elif rec_type in (Chant, Sequence):
+            this_rec_qs = this_rec_qs.filter(source__published=True)
+
+        if not this_rec_qs.exists():
+            continue
+
+        vals = dict(*this_rec_qs.values())
+        return JsonResponse(vals)
 
     return HttpResponseNotFound()
 
@@ -824,7 +824,6 @@ def project_manager_check(user):
 # if they're logged in but they're not a project manager, raise 403
 @user_passes_test(project_manager_check)
 def content_overview(request):
-    objects = []
     models = [
         Source,
         Chant,
