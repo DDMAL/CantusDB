@@ -174,7 +174,6 @@
     </dl>
 
     {% if sequence.cantus_id %}
-
         <h4>Concordances</h4>
         <small>Concordances for Cantus ID <a href="{{ sequence.get_ci_url }}" target=_blank>{{ sequence.cantus_id }}</a>: Displaying 1 - {{ concordances.count }} of {{ concordances.count }}</small>
         <div class="table-responsive">
@@ -195,7 +194,7 @@
                         <tr>
                             <td class="text-wrap" style="text-align:center">
                                 {% if sequence.source %}
-                                    <a href="{% url 'source-detail' sequence.source_id %}" title="{{ sequence.source.heading }}"><b>{{ sequence.short_heading }}</b></a>
+                                    <a href="{% url 'source-detail' sequence.source_id %}" title="{{ sequence.source.heading }}"><b>{{ sequence.source.short_heading }}</b></a>
                                     <br>
                                     <b>{{ sequence.folio }}</b>  {{ sequence.s_sequence }}
                                 {% endif %}

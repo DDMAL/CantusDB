@@ -224,7 +224,7 @@
                         <tr>
                             <td class="text-wrap" style="text-align:left">
                                 {% if chant.source__id %}
-                                    <a href="{% url 'source-detail' chant.source__id %}" title="{{ chant.source__title }}">{{ chant.source__siglum }}</a>
+                                    <a href="{% url 'source-detail' chant.source__id %}" title="{{ chant.source__holding_institution__name }}">{{ chant.source__holding_institution__siglum|default_if_none:"Private" }} {{ chant.source__shelfmark|default_if_none:"[No Shelfmark]" }}</a>
                                 {% endif %}
                             </td>
                             <td class="text-wrap" style="text-align:center">

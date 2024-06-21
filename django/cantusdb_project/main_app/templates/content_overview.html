@@ -40,9 +40,9 @@
                 <tbody>
                     {% for object in page_obj %}
                         <tr>
-                            {% if object.title %}
+                            {% if object.short_heading %}
                                 <td class="text-wrap" style="text-align:center">
-                                    <a href="{{ object.get_absolute_url }}"><b>{{ object.title|truncatechars:30 }}</b></a>
+                                    <a href="{{ object.get_absolute_url }}"><b>{{ object.short_heading|truncatechars:30 }}</b></a>
                                 </td>
                             {% elif object.incipit %}
                                 <td class="text-wrap" style="text-align:center">
