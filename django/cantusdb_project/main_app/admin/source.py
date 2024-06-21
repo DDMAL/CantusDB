@@ -1,19 +1,34 @@
 from django.contrib import admin
 
 from main_app.admin.base_admin import BaseModelAdmin, EXCLUDE, READ_ONLY
+from main_app.admin.filters import InputFilter
 from main_app.forms import AdminSourceForm
 from main_app.models import Source
+
+
+class SourceKeyFilter(InputFilter):
+    parameter_name = "holding_institution__siglum"
+    title = "Institution Siglum"
+
+    def queryset(self, request, queryset):
+        if self.value():
+            return queryset.filter(holding_institution__siglum__icontains=self.value())
 
 
 @admin.register(Source)
 class SourceAdmin(BaseModelAdmin):
     exclude = EXCLUDE + ("source_status",)
+    raw_id_fields = ("holding_institution",)
 
     # These search fields are also available on the user-source inline relationship in the user admin page
     search_fields = (
         "siglum",
         "title",
+        "shelfmark",
+        "holding_institution__siglum",
+        "holding_institution__name",
         "id",
+        "provenance_notes"
     )
     readonly_fields = READ_ONLY + (
         "number_of_chants",
@@ -36,19 +51,27 @@ class SourceAdmin(BaseModelAdmin):
     )
 
     list_display = (
-        "title",
-        "siglum",
+        "shelfmark",
+        # "title",
+        "holding_institution",
+        # "siglum",
         "id",
     )
 
     list_filter = (
+        SourceKeyFilter,
         "full_source",
         "segment",
         "source_status",
         "published",
         "century",
+        "holding_institution__is_private_collector",
     )
 
     ordering = ("siglum",)
 
     form = AdminSourceForm
+
+    def get_queryset(self, request):
+        queryset = super().get_queryset(request)
+        return queryset.select_related("holding_institution")
