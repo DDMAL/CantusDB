@@ -520,7 +520,7 @@ class ChantSearchView(ListView):
             else:
                 order = order_get_param
         else:
-            order = "source__siglum"
+            order = "source__holding_institution__siglum"
 
         # sort values: "asc" and "desc". Default is "asc"
         if sort_get_param and sort_get_param == "desc":
