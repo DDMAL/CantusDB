@@ -55,4 +55,5 @@ class Institution(BaseModel):
 
     def __str__(self) -> str:
         sigl: str = f" ({self.siglum})" if self.siglum else ""
-        return f"{self.name}{sigl}"
+        city: str = f"{self.city}, " if self.city else ""
+        return f"{city}{self.name}{sigl}"
