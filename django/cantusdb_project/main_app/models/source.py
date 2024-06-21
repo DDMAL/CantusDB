@@ -148,6 +148,7 @@ class Source(BaseModel):
             self.segment = cantus_db_segment
         super().save(*args, **kwargs)
 
+    @property
     def heading(self) -> str:
         title = []
         if holdinst := self.holding_institution:
@@ -161,10 +162,11 @@ class Source(BaseModel):
 
         return " ".join(title)
 
+    @property
     def short_heading(self) -> str:
         title = []
         if holdinst := self.holding_institution:
-            if holdinst.siglum:
+            if holdinst.siglum and holdinst.siglum != "XX-NN":
                 title.append(f"{holdinst.siglum}")
             elif holdinst.is_private_collector:
                 title.append("Private")
