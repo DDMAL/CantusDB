@@ -1,25 +1,36 @@
-import random
-from unittest import skip
-
-from django.urls import reverse
-from django.test import TestCase, TransactionTestCase
-from articles.tests.test_articles import make_fake_article
-from main_app.views.feast import FeastListView
-from django.http.response import JsonResponse
-import json
-from django.contrib.auth import get_user_model
-from django.contrib.auth.models import Group
-from django.test import Client
-from django.db.models import Q
-from django.db.models.functions import Lower
 import csv
+import json
+import random
 from collections.abc import KeysView, ItemsView
 from typing import Optional
+from unittest import skip
 from unittest.mock import patch
-from .test_functions import mock_requests_get
 
+from django.contrib.auth import get_user_model
+from django.contrib.auth.models import Group
+from django.db.models import Q
+from django.db.models.functions import Lower
+from django.http.response import JsonResponse
+from django.test import Client
+from django.test import TestCase
+from django.urls import reverse
 from faker import Faker
 
+from articles.tests.test_articles import make_fake_article
+from main_app.models import (
+    Century,
+    Chant,
+    Differentia,
+    Feast,
+    Genre,
+    Notation,
+    Office,
+    Provenance,
+    Segment,
+    Sequence,
+    Source,
+)
+from main_app.views.feast import FeastListView
 from users.models import User
 from .make_fakes import (
     make_fake_century,
@@ -34,22 +45,10 @@ from .make_fakes import (
     make_fake_source,
     make_fake_volpiano,
     make_random_string,
-    add_accents_to_string, make_fake_institution,
+    add_accents_to_string,
+    make_fake_institution,
 )
-
-from main_app.models import (
-    Century,
-    Chant,
-    Differentia,
-    Feast,
-    Genre,
-    Notation,
-    Office,
-    Provenance,
-    Segment,
-    Sequence,
-    Source,
-)
+from .test_functions import mock_requests_get
 
 # run with `python -Wa manage.py test main_app.tests.test_views`
 # the -Wa flag tells Python to display deprecation warnings
@@ -922,7 +921,7 @@ class ChantSearchViewTest(TestCase):
         response = self.client.get(
             reverse("chant-search"), {"keyword": "lorem", "op": "contains"}
         )
-        context_chant_id = response.context["chants"][0]["id"]
+        context_chant_id = response.context["chants"][0].id
         self.assertEqual(chant.id, context_chant_id)
 
         source.published = False
@@ -938,7 +937,7 @@ class ChantSearchViewTest(TestCase):
         chant = Chant.objects.create(source=source, office=office)
         search_term = office.id
         response = self.client.get(reverse("chant-search"), {"office": search_term})
-        context_chant_id = response.context["chants"][0]["id"]
+        context_chant_id = response.context["chants"][0].id
         self.assertEqual(chant.id, context_chant_id)
 
     def test_filter_by_genre(self):
@@ -946,7 +945,7 @@ class ChantSearchViewTest(TestCase):
         genre = make_fake_genre()
         chant = Chant.objects.create(source=source, genre=genre)
         response = self.client.get(reverse("chant-search"), {"genre": genre.id})
-        context_chant_id = response.context["chants"][0]["id"]
+        context_chant_id = response.context["chants"][0].id
         self.assertEqual(chant.id, context_chant_id)
 
     def test_search_by_cantus_id(self):
@@ -954,7 +953,7 @@ class ChantSearchViewTest(TestCase):
         chant = Chant.objects.create(source=source, cantus_id=faker.numerify("######"))
         search_term = get_random_search_term(chant.cantus_id)
         response = self.client.get(reverse("chant-search"), {"cantus_id": search_term})
-        context_chant_id = response.context["chants"][0]["id"]
+        context_chant_id = response.context["chants"][0].id
         self.assertEqual(chant.id, context_chant_id)
 
     def test_search_by_mode(self):
@@ -962,7 +961,7 @@ class ChantSearchViewTest(TestCase):
         chant = Chant.objects.create(source=source, mode=faker.numerify("#"))
         search_term = get_random_search_term(chant.mode)
         response = self.client.get(reverse("chant-search"), {"mode": search_term})
-        context_chant_id = response.context["chants"][0]["id"]
+        context_chant_id = response.context["chants"][0].id
         self.assertEqual(chant.id, context_chant_id)
 
     def test_search_by_feast(self):
@@ -971,7 +970,7 @@ class ChantSearchViewTest(TestCase):
         chant = Chant.objects.create(source=source, feast=feast)
         search_term = get_random_search_term(feast.name)
         response = self.client.get(reverse("chant-search"), {"feast": search_term})
-        context_chant_id = response.context["chants"][0]["id"]
+        context_chant_id = response.context["chants"][0].id
         self.assertEqual(chant.id, context_chant_id)
 
     def test_search_by_position(self):
@@ -980,7 +979,7 @@ class ChantSearchViewTest(TestCase):
         chant = Chant.objects.create(source=source, position=position)
         search_term = "1"
         response = self.client.get(reverse("chant-search"), {"position": search_term})
-        context_chant_id = response.context["chants"][0]["id"]
+        context_chant_id = response.context["chants"][0].id
         self.assertEqual(chant.id, context_chant_id)
 
     def test_filter_by_melody(self):
@@ -993,7 +992,7 @@ class ChantSearchViewTest(TestCase):
         response = self.client.get(reverse("chant-search"), {"melodies": "true"})
         # only chants with melodies should be in the result
         self.assertEqual(len(response.context["chants"]), 1)
-        context_chant_id = response.context["chants"][0]["id"]
+        context_chant_id = response.context["chants"][0].id
         self.assertEqual(context_chant_id, chant_with_melody.id)
 
     def test_keyword_search_starts_with(self):
@@ -1009,7 +1008,7 @@ class ChantSearchViewTest(TestCase):
         response = self.client.get(
             reverse("chant-search"), {"keyword": search_term, "op": "starts_with"}
         )
-        context_chant_id = response.context["chants"][0]["id"]
+        context_chant_id = response.context["chants"][0].id
         self.assertEqual(chant.id, context_chant_id)
 
     def test_keyword_search_contains(self):
@@ -1022,7 +1021,7 @@ class ChantSearchViewTest(TestCase):
         response = self.client.get(
             reverse("chant-search"), {"keyword": search_term, "op": "contains"}
         )
-        context_chant_id = response.context["chants"][0]["id"]
+        context_chant_id = response.context["chants"][0].id
         self.assertEqual(chant.id, context_chant_id)
 
     def test_search_bar_search(self):
@@ -1057,7 +1056,7 @@ class ChantSearchViewTest(TestCase):
         )
         context_chants_1 = response_1.context["chants"]
         self.assertEqual(len(context_chants_1), 1)
-        context_chant_1_id = context_chants_1[0]["id"]
+        context_chant_1_id = context_chants_1[0].id
         self.assertEqual(context_chant_1_id, chant_with_incipit_only.id)
 
         short_incipit_search_term = "the"
@@ -1066,7 +1065,7 @@ class ChantSearchViewTest(TestCase):
         )
         context_chants_2 = response_2.context["chants"]
         self.assertEqual(len(context_chants_2), 2)
-        context_chants_2_ids = context_chants_2[0]["id"], context_chants_2[1]["id"]
+        context_chants_2_ids = context_chants_2[0].id, context_chants_2[1].id
         self.assertIn(chant_with_incipit_only.id, context_chants_2_ids)
         self.assertIn(chant_with_full_text.id, context_chants_2_ids)
         self.assertNotIn(chant_with_ascending_cantus_id.id, context_chants_2_ids)
@@ -1079,7 +1078,7 @@ class ChantSearchViewTest(TestCase):
         )
         context_chants_3 = response_3.context["chants"]
         self.assertEqual(len(context_chants_3), 1)
-        context_chant_3_id = context_chants_3[0]["id"]
+        context_chant_3_id = context_chants_3[0].id
         self.assertEqual(context_chant_3_id, chant_with_ascending_cantus_id.id)
 
         letters_and_numbers_search_term = "1 is"
@@ -1089,12 +1088,23 @@ class ChantSearchViewTest(TestCase):
         context_chants_4 = response_4.context["chants"]
         self.assertEqual(len(context_chants_4), 0)
 
-    def test_order_by_shelfmark(self):
-        source_1 = make_fake_source(published=True, shelfmark="sigl-1")
+    def test_order_by_siglum(self):
+        hinst_1 = make_fake_institution(siglum="AA-Bb")
+        source_1 = make_fake_source(
+            published=True,
+            shelfmark="sigl-1",
+            holding_institution=hinst_1
+        )
         chant_1 = make_fake_chant(
             manuscript_full_text_std_spelling="thing 1", source=source_1
         )
-        source_2 = make_fake_source(published=True, shelfmark="sigl-2")
+
+        hinst_2 = make_fake_institution(siglum="BB-Cc")
+        source_2 = make_fake_source(
+            published=True,
+            shelfmark="sigl-2",
+            holding_institution=hinst_2
+        )
         chant_2 = make_fake_chant(
             manuscript_full_text_std_spelling="thing 2", source=source_2
         )
@@ -1106,14 +1116,14 @@ class ChantSearchViewTest(TestCase):
             {
                 "keyword": search_term,
                 "op": "contains",
-                "order": "shelfmark",
+                "order": "siglum",
                 "sort": "asc",
             },
         )
         ascending_results = response_ascending.context["chants"]
-        first_result_incipit = ascending_results[0]["incipit"]
+        first_result_incipit = ascending_results[0].incipit
         self.assertEqual(first_result_incipit, chant_1.incipit)
-        last_result_incipit = ascending_results[1]["incipit"]
+        last_result_incipit = ascending_results[1].incipit
         self.assertEqual(last_result_incipit, chant_2.incipit)
 
         response_descending = self.client.get(
@@ -1121,22 +1131,33 @@ class ChantSearchViewTest(TestCase):
             {
                 "keyword": search_term,
                 "op": "contains",
-                "order": "shelfmark",
+                "order": "siglum",
                 "sort": "desc",
             },
         )
         descending_results = response_descending.context["chants"]
-        first_result_incipit = descending_results[0]["incipit"]
+        first_result_incipit = descending_results[0].incipit
         self.assertEqual(first_result_incipit, chant_2.incipit)
-        last_result_incipit = descending_results[1]["incipit"]
+        last_result_incipit = descending_results[1].incipit
         self.assertEqual(last_result_incipit, chant_1.incipit)
 
     def test_order_by_siglum_global_search(self):
-        source_1 = make_fake_source(published=True, shelfmark="sigl-1")
+        hinst_1 = make_fake_institution(siglum="AA-Bb")
+        source_1 = make_fake_source(
+            published=True,
+            shelfmark="sigl-1",
+            holding_institution=hinst_1
+        )
         chant_1 = make_fake_chant(
             manuscript_full_text_std_spelling="thing 1", source=source_1
         )
-        source_2 = make_fake_source(published=True, shelfmark="sigl-2")
+
+        hinst_2 = make_fake_institution(siglum="BB-Cc")
+        source_2 = make_fake_source(
+            published=True,
+            shelfmark="sigl-2",
+            holding_institution=hinst_2
+        )
         chant_2 = make_fake_chant(
             manuscript_full_text_std_spelling="thing 2", source=source_2
         )
@@ -1145,28 +1166,28 @@ class ChantSearchViewTest(TestCase):
             reverse("chant-search"),
             {
                 "search_bar": search_term,
-                "order": "shelfmark",
+                "order": "siglum",
                 "sort": "asc",
             },
         )
         ascending_results = response_ascending.context["chants"]
-        first_result_incipit = ascending_results[0]["incipit"]
+        first_result_incipit = ascending_results[0].incipit
         self.assertEqual(first_result_incipit, chant_1.incipit)
-        last_result_incipit = ascending_results[1]["incipit"]
+        last_result_incipit = ascending_results[1].incipit
         self.assertEqual(last_result_incipit, chant_2.incipit)
 
         response_descending = self.client.get(
             reverse("chant-search"),
             {
                 "search_bar": search_term,
-                "order": "shelfmark",
+                "order": "siglum",
                 "sort": "desc",
             },
         )
         descending_results = response_descending.context["chants"]
-        first_result_incipit = descending_results[0]["incipit"]
+        first_result_incipit = descending_results[0].incipit
         self.assertEqual(first_result_incipit, chant_2.incipit)
-        last_result_incipit = descending_results[1]["incipit"]
+        last_result_incipit = descending_results[1].incipit
         self.assertEqual(last_result_incipit, chant_1.incipit)
 
     def test_order_by_incipit(self):
@@ -1190,9 +1211,9 @@ class ChantSearchViewTest(TestCase):
             },
         )
         ascending_results = response_ascending.context["chants"]
-        first_result_incipit = ascending_results[0]["incipit"]
+        first_result_incipit = ascending_results[0].incipit
         self.assertEqual(first_result_incipit, chant_1.incipit)
-        last_result_incipit = ascending_results[1]["incipit"]
+        last_result_incipit = ascending_results[1].incipit
         self.assertEqual(last_result_incipit, chant_2.incipit)
 
         response_descending = self.client.get(
@@ -1205,9 +1226,9 @@ class ChantSearchViewTest(TestCase):
             },
         )
         descending_results = response_descending.context["chants"]
-        first_result_incipit = descending_results[0]["incipit"]
+        first_result_incipit = descending_results[0].incipit
         self.assertEqual(first_result_incipit, chant_2.incipit)
-        last_result_incipit = descending_results[1]["incipit"]
+        last_result_incipit = descending_results[1].incipit
         self.assertEqual(last_result_incipit, chant_1.incipit)
 
     def test_order_by_incipit_global_search(self):
@@ -1229,9 +1250,9 @@ class ChantSearchViewTest(TestCase):
             },
         )
         ascending_results = response_ascending.context["chants"]
-        first_result_incipit = ascending_results[0]["incipit"]
+        first_result_incipit = ascending_results[0].incipit
         self.assertEqual(first_result_incipit, chant_1.incipit)
-        last_result_incipit = ascending_results[1]["incipit"]
+        last_result_incipit = ascending_results[1].incipit
         self.assertEqual(last_result_incipit, chant_2.incipit)
 
         response_descending = self.client.get(
@@ -1243,9 +1264,9 @@ class ChantSearchViewTest(TestCase):
             },
         )
         descending_results = response_descending.context["chants"]
-        first_result_incipit = descending_results[0]["incipit"]
+        first_result_incipit = descending_results[0].incipit
         self.assertEqual(first_result_incipit, chant_2.incipit)
-        last_result_incipit = descending_results[1]["incipit"]
+        last_result_incipit = descending_results[1].incipit
         self.assertEqual(last_result_incipit, chant_1.incipit)
 
     def test_order_by_office(self):
@@ -1272,9 +1293,9 @@ class ChantSearchViewTest(TestCase):
             },
         )
         ascending_results = response_ascending.context["chants"]
-        first_result_incipit = ascending_results[0]["incipit"]
+        first_result_incipit = ascending_results[0].incipit
         self.assertEqual(first_result_incipit, chant_1.incipit)
-        last_result_incipit = ascending_results[1]["incipit"]
+        last_result_incipit = ascending_results[1].incipit
         self.assertEqual(last_result_incipit, chant_2.incipit)
 
         response_descending = self.client.get(
@@ -1287,9 +1308,9 @@ class ChantSearchViewTest(TestCase):
             },
         )
         descending_results = response_descending.context["chants"]
-        first_result_incipit = descending_results[0]["incipit"]
+        first_result_incipit = descending_results[0].incipit
         self.assertEqual(first_result_incipit, chant_2.incipit)
-        last_result_incipit = descending_results[1]["incipit"]
+        last_result_incipit = descending_results[1].incipit
         self.assertEqual(last_result_incipit, chant_1.incipit)
 
     def test_order_by_office_global_search(self):
@@ -1314,9 +1335,9 @@ class ChantSearchViewTest(TestCase):
             },
         )
         ascending_results = response_ascending.context["chants"]
-        first_result_incipit = ascending_results[0]["incipit"]
+        first_result_incipit = ascending_results[0].incipit
         self.assertEqual(first_result_incipit, chant_1.incipit)
-        last_result_incipit = ascending_results[1]["incipit"]
+        last_result_incipit = ascending_results[1].incipit
         self.assertEqual(last_result_incipit, chant_2.incipit)
 
         response_descending = self.client.get(
@@ -1328,9 +1349,9 @@ class ChantSearchViewTest(TestCase):
             },
         )
         descending_results = response_descending.context["chants"]
-        first_result_incipit = descending_results[0]["incipit"]
+        first_result_incipit = descending_results[0].incipit
         self.assertEqual(first_result_incipit, chant_2.incipit)
-        last_result_incipit = descending_results[1]["incipit"]
+        last_result_incipit = descending_results[1].incipit
         self.assertEqual(last_result_incipit, chant_1.incipit)
 
     def test_order_by_genre(self):
@@ -1357,9 +1378,9 @@ class ChantSearchViewTest(TestCase):
             },
         )
         ascending_results = response_ascending.context["chants"]
-        first_result_incipit = ascending_results[0]["incipit"]
+        first_result_incipit = ascending_results[0].incipit
         self.assertEqual(first_result_incipit, chant_1.incipit)
-        last_result_incipit = ascending_results[1]["incipit"]
+        last_result_incipit = ascending_results[1].incipit
         self.assertEqual(last_result_incipit, chant_2.incipit)
 
         response_descending = self.client.get(
@@ -1372,9 +1393,9 @@ class ChantSearchViewTest(TestCase):
             },
         )
         descending_results = response_descending.context["chants"]
-        first_result_incipit = descending_results[0]["incipit"]
+        first_result_incipit = descending_results[0].incipit
         self.assertEqual(first_result_incipit, chant_2.incipit)
-        last_result_incipit = descending_results[1]["incipit"]
+        last_result_incipit = descending_results[1].incipit
         self.assertEqual(last_result_incipit, chant_1.incipit)
 
     def test_order_by_genre_global_search(self):
@@ -1399,9 +1420,9 @@ class ChantSearchViewTest(TestCase):
             },
         )
         ascending_results = response_ascending.context["chants"]
-        first_result_incipit = ascending_results[0]["incipit"]
+        first_result_incipit = ascending_results[0].incipit
         self.assertEqual(first_result_incipit, chant_1.incipit)
-        last_result_incipit = ascending_results[1]["incipit"]
+        last_result_incipit = ascending_results[1].incipit
 
         response_descending = self.client.get(
             reverse("chant-search"),
@@ -1412,9 +1433,9 @@ class ChantSearchViewTest(TestCase):
             },
         )
         descending_results = response_descending.context["chants"]
-        first_result_incipit = descending_results[0]["incipit"]
+        first_result_incipit = descending_results[0].incipit
         self.assertEqual(first_result_incipit, chant_2.incipit)
-        last_result_incipit = descending_results[1]["incipit"]
+        last_result_incipit = descending_results[1].incipit
         self.assertEqual(last_result_incipit, chant_1.incipit)
 
     def test_order_by_cantus_id(self):
@@ -1437,9 +1458,9 @@ class ChantSearchViewTest(TestCase):
             },
         )
         ascending_results = response_ascending.context["chants"]
-        first_result_incipit = ascending_results[0]["incipit"]
+        first_result_incipit = ascending_results[0].incipit
         self.assertEqual(first_result_incipit, chant_1.incipit)
-        last_result_incipit = ascending_results[1]["incipit"]
+        last_result_incipit = ascending_results[1].incipit
         self.assertEqual(last_result_incipit, chant_2.incipit)
 
         response_descending = self.client.get(
@@ -1452,9 +1473,9 @@ class ChantSearchViewTest(TestCase):
             },
         )
         descending_results = response_descending.context["chants"]
-        first_result_incipit = descending_results[0]["incipit"]
+        first_result_incipit = descending_results[0].incipit
         self.assertEqual(first_result_incipit, chant_2.incipit)
-        last_result_incipit = descending_results[1]["incipit"]
+        last_result_incipit = descending_results[1].incipit
         self.assertEqual(last_result_incipit, chant_1.incipit)
 
     def test_order_by_cantus_id_global_search(self):
@@ -1475,9 +1496,9 @@ class ChantSearchViewTest(TestCase):
             },
         )
         ascending_results = response_ascending.context["chants"]
-        first_result_incipit = ascending_results[0]["incipit"]
+        first_result_incipit = ascending_results[0].incipit
         self.assertEqual(first_result_incipit, chant_1.incipit)
-        last_result_incipit = ascending_results[1]["incipit"]
+        last_result_incipit = ascending_results[1].incipit
         self.assertEqual(last_result_incipit, chant_2.incipit)
 
         response_descending = self.client.get(
@@ -1489,9 +1510,9 @@ class ChantSearchViewTest(TestCase):
             },
         )
         descending_results = response_descending.context["chants"]
-        first_result_incipit = descending_results[0]["incipit"]
+        first_result_incipit = descending_results[0].incipit
         self.assertEqual(first_result_incipit, chant_2.incipit)
-        last_result_incipit = descending_results[1]["incipit"]
+        last_result_incipit = descending_results[1].incipit
         self.assertEqual(last_result_incipit, chant_1.incipit)
 
     def test_order_by_mode(self):
@@ -1516,9 +1537,9 @@ class ChantSearchViewTest(TestCase):
             },
         )
         ascending_results = response_ascending.context["chants"]
-        first_result_incipit = ascending_results[0]["incipit"]
+        first_result_incipit = ascending_results[0].incipit
         self.assertEqual(first_result_incipit, chant_1.incipit)
-        last_result_incipit = ascending_results[1]["incipit"]
+        last_result_incipit = ascending_results[1].incipit
         self.assertEqual(last_result_incipit, chant_2.incipit)
 
         response_descending = self.client.get(
@@ -1531,9 +1552,9 @@ class ChantSearchViewTest(TestCase):
             },
         )
         descending_results = response_descending.context["chants"]
-        first_result_incipit = descending_results[0]["incipit"]
+        first_result_incipit = descending_results[0].incipit
         self.assertEqual(first_result_incipit, chant_2.incipit)
-        last_result_incipit = descending_results[1]["incipit"]
+        last_result_incipit = descending_results[1].incipit
         self.assertEqual(last_result_incipit, chant_1.incipit)
 
     def test_order_by_mode_global_search(self):
@@ -1557,9 +1578,9 @@ class ChantSearchViewTest(TestCase):
             },
         )
         ascending_results = response_ascending.context["chants"]
-        first_result_incipit = ascending_results[0]["incipit"]
+        first_result_incipit = ascending_results[0].incipit
         self.assertEqual(first_result_incipit, chant_1.incipit)
-        last_result_incipit = ascending_results[1]["incipit"]
+        last_result_incipit = ascending_results[1].incipit
         self.assertEqual(last_result_incipit, chant_2.incipit)
 
         response_descending = self.client.get(
@@ -1571,9 +1592,9 @@ class ChantSearchViewTest(TestCase):
             },
         )
         descending_results = response_descending.context["chants"]
-        first_result_incipit = descending_results[0]["incipit"]
+        first_result_incipit = descending_results[0].incipit
         self.assertEqual(first_result_incipit, chant_2.incipit)
-        last_result_incipit = descending_results[1]["incipit"]
+        last_result_incipit = descending_results[1].incipit
         self.assertEqual(last_result_incipit, chant_1.incipit)
 
     def test_order_by_ms_fulltext(self):
@@ -1599,9 +1620,9 @@ class ChantSearchViewTest(TestCase):
             },
         )
         ascending_results = response_ascending.context["chants"]
-        first_result_incipit = ascending_results[0]["incipit"]
+        first_result_incipit = ascending_results[0].incipit
         self.assertEqual(first_result_incipit, chant_1.incipit)
-        last_result_incipit = ascending_results[1]["incipit"]
+        last_result_incipit = ascending_results[1].incipit
         self.assertEqual(last_result_incipit, chant_2.incipit)
 
         response_descending = self.client.get(
@@ -1614,9 +1635,9 @@ class ChantSearchViewTest(TestCase):
             },
         )
         descending_results = response_descending.context["chants"]
-        first_result_incipit = descending_results[0]["incipit"]
+        first_result_incipit = descending_results[0].incipit
         self.assertEqual(first_result_incipit, chant_2.incipit)
-        last_result_incipit = descending_results[1]["incipit"]
+        last_result_incipit = descending_results[1].incipit
         self.assertEqual(last_result_incipit, chant_1.incipit)
 
     def test_order_by_ms_fulltext_global_search(self):
@@ -1641,9 +1662,9 @@ class ChantSearchViewTest(TestCase):
             },
         )
         ascending_results = response_ascending.context["chants"]
-        first_result_incipit = ascending_results[0]["incipit"]
+        first_result_incipit = ascending_results[0].incipit
         self.assertEqual(first_result_incipit, chant_1.incipit)
-        last_result_incipit = ascending_results[1]["incipit"]
+        last_result_incipit = ascending_results[1].incipit
         self.assertEqual(last_result_incipit, chant_2.incipit)
 
         response_descending = self.client.get(
@@ -1655,9 +1676,9 @@ class ChantSearchViewTest(TestCase):
             },
         )
         descending_results = response_descending.context["chants"]
-        first_result_incipit = descending_results[0]["incipit"]
+        first_result_incipit = descending_results[0].incipit
         self.assertEqual(first_result_incipit, chant_2.incipit)
-        last_result_incipit = descending_results[1]["incipit"]
+        last_result_incipit = descending_results[1].incipit
         self.assertEqual(last_result_incipit, chant_1.incipit)
 
     def test_order_by_volpiano(self):
@@ -1683,9 +1704,9 @@ class ChantSearchViewTest(TestCase):
             },
         )
         ascending_results = response_ascending.context["chants"]
-        first_result_incipit = ascending_results[0]["incipit"]
+        first_result_incipit = ascending_results[0].incipit
         self.assertEqual(first_result_incipit, chant_1.incipit)
-        last_result_incipit = ascending_results[1]["incipit"]
+        last_result_incipit = ascending_results[1].incipit
         self.assertEqual(last_result_incipit, chant_2.incipit)
 
         response_descending = self.client.get(
@@ -1698,9 +1719,9 @@ class ChantSearchViewTest(TestCase):
             },
         )
         descending_results = response_descending.context["chants"]
-        first_result_incipit = descending_results[0]["incipit"]
+        first_result_incipit = descending_results[0].incipit
         self.assertEqual(first_result_incipit, chant_2.incipit)
-        last_result_incipit = descending_results[1]["incipit"]
+        last_result_incipit = descending_results[1].incipit
         self.assertEqual(last_result_incipit, chant_1.incipit)
 
     def test_order_by_volpiano_global_search(self):
@@ -1725,9 +1746,9 @@ class ChantSearchViewTest(TestCase):
             },
         )
         ascending_results = response_ascending.context["chants"]
-        first_result_incipit = ascending_results[0]["incipit"]
+        first_result_incipit = ascending_results[0].incipit
         self.assertEqual(first_result_incipit, chant_1.incipit)
-        last_result_incipit = ascending_results[1]["incipit"]
+        last_result_incipit = ascending_results[1].incipit
         self.assertEqual(last_result_incipit, chant_2.incipit)
 
         response_descending = self.client.get(
@@ -1739,9 +1760,9 @@ class ChantSearchViewTest(TestCase):
             },
         )
         descending_results = response_descending.context["chants"]
-        first_result_incipit = descending_results[0]["incipit"]
+        first_result_incipit = descending_results[0].incipit
         self.assertEqual(first_result_incipit, chant_2.incipit)
-        last_result_incipit = descending_results[1]["incipit"]
+        last_result_incipit = descending_results[1].incipit
         self.assertEqual(last_result_incipit, chant_1.incipit)
 
     def test_order_by_image_link(self):
@@ -1767,9 +1788,9 @@ class ChantSearchViewTest(TestCase):
             },
         )
         ascending_results = response_ascending.context["chants"]
-        first_result_incipit = ascending_results[0]["incipit"]
+        first_result_incipit = ascending_results[0].incipit
         self.assertEqual(first_result_incipit, chant_1.incipit)
-        last_result_incipit = ascending_results[1]["incipit"]
+        last_result_incipit = ascending_results[1].incipit
         self.assertEqual(last_result_incipit, chant_2.incipit)
 
         response_descending = self.client.get(
@@ -1782,9 +1803,9 @@ class ChantSearchViewTest(TestCase):
             },
         )
         descending_results = response_descending.context["chants"]
-        first_result_incipit = descending_results[0]["incipit"]
+        first_result_incipit = descending_results[0].incipit
         self.assertEqual(first_result_incipit, chant_2.incipit)
-        last_result_incipit = descending_results[1]["incipit"]
+        last_result_incipit = descending_results[1].incipit
         self.assertEqual(last_result_incipit, chant_1.incipit)
 
     def test_order_by_image_link_global_search(self):
@@ -1809,9 +1830,9 @@ class ChantSearchViewTest(TestCase):
             },
         )
         ascending_results = response_ascending.context["chants"]
-        first_result_incipit = ascending_results[0]["incipit"]
+        first_result_incipit = ascending_results[0].incipit
         self.assertEqual(first_result_incipit, chant_1.incipit)
-        last_result_incipit = ascending_results[1]["incipit"]
+        last_result_incipit = ascending_results[1].incipit
         self.assertEqual(last_result_incipit, chant_2.incipit)
 
         response_descending = self.client.get(
@@ -1823,9 +1844,9 @@ class ChantSearchViewTest(TestCase):
             },
         )
         descending_results = response_descending.context["chants"]
-        first_result_incipit = descending_results[0]["incipit"]
+        first_result_incipit = descending_results[0].incipit
         self.assertEqual(first_result_incipit, chant_2.incipit)
-        last_result_incipit = descending_results[1]["incipit"]
+        last_result_incipit = descending_results[1].incipit
         self.assertEqual(last_result_incipit, chant_1.incipit)
 
     def test_column_header_links(self):
@@ -1902,7 +1923,7 @@ class ChantSearchViewTest(TestCase):
 
         # for each orderable column, check that 'asc' flips to 'desc', and vice versa
         orderings = (
-            "shelfmark",
+            "siglum",
             "incipit",
             "office",
             "genre",
@@ -1958,22 +1979,30 @@ class ChantSearchViewTest(TestCase):
 
     def test_source_link_column(self):
         shelfmark = "Sigl-01"
-        source = make_fake_source(published=True, shelfmark=shelfmark)
-        source_title = source.title
+        holding_institution = make_fake_institution(
+            name="fake institution",
+            siglum="AA-Bb"
+        )
+        source = make_fake_source(
+            published=True,
+            shelfmark=shelfmark,
+            holding_institution=holding_institution
+        )
         url = source.get_absolute_url()
         fulltext = "manuscript full text"
         search_term = "full"
-        chant = make_fake_chant(
+        _ = make_fake_chant(
             source=source, manuscript_full_text_std_spelling=fulltext
         )
         response = self.client.get(
-            reverse("chant-search"), {"keyword": search_term, "op": "contains"}
+            reverse("chant-search"),
+            {"keyword": search_term, "op": "contains"}
         )
         html = str(response.content)
-        self.assertIn(shelfmark, html)
-        self.assertIn(source_title, html)
-        self.assertIn(url, html)
-        self.assertIn(f'<a href="{url}" title="{source_title}">{shelfmark}</a>', html)
+        # self.assertContains(response, source_heading, html=True)
+        # self.assertContains(response, source_short_heading, html=True)
+        # self.assertContains(response, url, html=True)
+        self.assertIn(f'<a href="{url}" title="{source.heading}">{source.short_heading}</a>', html)
 
     def test_folio_column(self):
         source = make_fake_source(published=True)
@@ -2227,7 +2256,7 @@ class ChantSearchMSViewTest(TestCase):
         response = self.client.get(
             reverse("chant-search-ms", args=[source.id]), {"office": search_term}
         )
-        context_chant_id = response.context["chants"][0]["id"]
+        context_chant_id = response.context["chants"][0].id
         self.assertEqual(chant.id, context_chant_id)
 
     def test_filter_by_genre(self):
@@ -2237,7 +2266,7 @@ class ChantSearchMSViewTest(TestCase):
         response = self.client.get(
             reverse("chant-search-ms", args=[source.id]), {"genre": genre.id}
         )
-        context_chant_id = response.context["chants"][0]["id"]
+        context_chant_id = response.context["chants"][0].id
         self.assertEqual(chant.id, context_chant_id)
 
     def test_search_by_cantus_id(self):
@@ -2247,7 +2276,7 @@ class ChantSearchMSViewTest(TestCase):
         response = self.client.get(
             reverse("chant-search-ms", args=[source.id]), {"cantus_id": search_term}
         )
-        context_chant_id = response.context["chants"][0]["id"]
+        context_chant_id = response.context["chants"][0].id
         self.assertEqual(chant.id, context_chant_id)
 
     def test_search_by_mode(self):
@@ -2257,7 +2286,7 @@ class ChantSearchMSViewTest(TestCase):
         response = self.client.get(
             reverse("chant-search-ms", args=[source.id]), {"mode": search_term}
         )
-        context_chant_id = response.context["chants"][0]["id"]
+        context_chant_id = response.context["chants"][0].id
         self.assertEqual(chant.id, context_chant_id)
 
     def test_search_by_feast(self):
@@ -2268,7 +2297,7 @@ class ChantSearchMSViewTest(TestCase):
         response = self.client.get(
             reverse("chant-search-ms", args=[source.id]), {"feast": search_term}
         )
-        context_chant_id = response.context["chants"][0]["id"]
+        context_chant_id = response.context["chants"][0].id
         self.assertEqual(chant.id, context_chant_id)
 
     def test_search_by_position(self):
@@ -2279,7 +2308,7 @@ class ChantSearchMSViewTest(TestCase):
         response = self.client.get(
             reverse("chant-search-ms", args=[source.id]), {"position": search_term}
         )
-        context_chant_id = response.context["chants"][0]["id"]
+        context_chant_id = response.context["chants"][0].id
         self.assertEqual(chant.id, context_chant_id)
 
     def test_filter_by_melody(self):
@@ -2294,7 +2323,7 @@ class ChantSearchMSViewTest(TestCase):
         )
         # only chants with melodies should be in the result
         self.assertEqual(len(response.context["chants"]), 1)
-        context_chant_id = response.context["chants"][0]["id"]
+        context_chant_id = response.context["chants"][0].id
         self.assertEqual(context_chant_id, chant_with_melody.id)
 
     def test_keyword_search_starts_with(self):
@@ -2319,7 +2348,7 @@ class ChantSearchMSViewTest(TestCase):
             {"keyword": search_term, "op": "starts_with"},
         )
         self.assertEqual(len(response.context["chants"]), 1)
-        context_chant_id = response.context["chants"][0]["id"]
+        context_chant_id = response.context["chants"][0].id
         self.assertEqual(chant_1.id, context_chant_id)
 
     def test_keyword_search_contains(self):
@@ -2341,9 +2370,9 @@ class ChantSearchMSViewTest(TestCase):
             reverse("chant-search-ms", args=[source.id]),
             {"keyword": search_term, "op": "contains"},
         )
-        first_context_chant_id = response.context["chants"][0]["id"]
+        first_context_chant_id = response.context["chants"][0].id
         self.assertEqual(chant_1.id, first_context_chant_id)
-        second_context_chant_id = response.context["chants"][1]["id"]
+        second_context_chant_id = response.context["chants"][1].id
         self.assertEqual(chant_3.id, second_context_chant_id)
 
     def test_keyword_search_searching_all_fields(self):
@@ -2413,9 +2442,9 @@ class ChantSearchMSViewTest(TestCase):
             },
         )
         ascending_results = response_ascending.context["chants"]
-        first_result_incipit = ascending_results[0]["incipit"]
+        first_result_incipit = ascending_results[0].incipit
         self.assertEqual(first_result_incipit, chant_1.incipit)
-        last_result_incipit = ascending_results[1]["incipit"]
+        last_result_incipit = ascending_results[1].incipit
         self.assertEqual(last_result_incipit, chant_2.incipit)
 
         response_descending = self.client.get(
@@ -2428,9 +2457,9 @@ class ChantSearchMSViewTest(TestCase):
             },
         )
         descending_results = response_descending.context["chants"]
-        first_result_incipit = descending_results[0]["incipit"]
+        first_result_incipit = descending_results[0].incipit
         self.assertEqual(first_result_incipit, chant_2.incipit)
-        last_result_incipit = descending_results[1]["incipit"]
+        last_result_incipit = descending_results[1].incipit
         self.assertEqual(last_result_incipit, chant_1.incipit)
 
     def test_order_by_office(self):
@@ -2440,10 +2469,14 @@ class ChantSearchMSViewTest(TestCase):
         office_2 = make_fake_office()
         assert office_1.id < office_2.id
         chant_1 = make_fake_chant(
-            office=office_1, manuscript_full_text_std_spelling="hocus", source=source
+            office=office_1,
+            manuscript_full_text_std_spelling="hocus",
+            source=source
         )
         chant_2 = make_fake_chant(
-            office=office_2, manuscript_full_text_std_spelling="pocus", source=source
+            office=office_2,
+            manuscript_full_text_std_spelling="pocus",
+            source=source
         )
 
         search_term = "ocu"
@@ -2458,9 +2491,9 @@ class ChantSearchMSViewTest(TestCase):
             },
         )
         ascending_results = response_ascending.context["chants"]
-        first_result_incipit = ascending_results[0]["incipit"]
+        first_result_incipit = ascending_results[0].incipit
         self.assertEqual(first_result_incipit, chant_1.incipit)
-        last_result_incipit = ascending_results[1]["incipit"]
+        last_result_incipit = ascending_results[1].incipit
         self.assertEqual(last_result_incipit, chant_2.incipit)
 
         response_descending = self.client.get(
@@ -2473,9 +2506,9 @@ class ChantSearchMSViewTest(TestCase):
             },
         )
         descending_results = response_descending.context["chants"]
-        first_result_incipit = descending_results[0]["incipit"]
+        first_result_incipit = descending_results[0].incipit
         self.assertEqual(first_result_incipit, chant_2.incipit)
-        last_result_incipit = descending_results[1]["incipit"]
+        last_result_incipit = descending_results[1].incipit
         self.assertEqual(last_result_incipit, chant_1.incipit)
 
     def test_order_by_genre(self):
@@ -2485,10 +2518,14 @@ class ChantSearchMSViewTest(TestCase):
         genre_2 = make_fake_genre()
         assert genre_1.id < genre_2.id
         chant_1 = make_fake_chant(
-            genre=genre_1, manuscript_full_text_std_spelling="hocus", source=source
+            genre=genre_1,
+            manuscript_full_text_std_spelling="hocus",
+            source=source
         )
         chant_2 = make_fake_chant(
-            genre=genre_2, manuscript_full_text_std_spelling="pocus", source=source
+            genre=genre_2,
+            manuscript_full_text_std_spelling="pocus",
+            source=source
         )
 
         search_term = "ocu"
@@ -2503,9 +2540,9 @@ class ChantSearchMSViewTest(TestCase):
             },
         )
         ascending_results = response_ascending.context["chants"]
-        first_result_incipit = ascending_results[0]["incipit"]
+        first_result_incipit = ascending_results[0].incipit
         self.assertEqual(first_result_incipit, chant_1.incipit)
-        last_result_incipit = ascending_results[1]["incipit"]
+        last_result_incipit = ascending_results[1].incipit
         self.assertEqual(last_result_incipit, chant_2.incipit)
 
         response_descending = self.client.get(
@@ -2518,9 +2555,9 @@ class ChantSearchMSViewTest(TestCase):
             },
         )
         descending_results = response_descending.context["chants"]
-        first_result_incipit = descending_results[0]["incipit"]
+        first_result_incipit = descending_results[0].incipit
         self.assertEqual(first_result_incipit, chant_2.incipit)
-        last_result_incipit = descending_results[1]["incipit"]
+        last_result_incipit = descending_results[1].incipit
         self.assertEqual(last_result_incipit, chant_1.incipit)
 
     def test_order_by_cantus_id(self):
@@ -2544,9 +2581,9 @@ class ChantSearchMSViewTest(TestCase):
             },
         )
         ascending_results = response_ascending.context["chants"]
-        first_result_incipit = ascending_results[0]["incipit"]
+        first_result_incipit = ascending_results[0].incipit
         self.assertEqual(first_result_incipit, chant_1.incipit)
-        last_result_incipit = ascending_results[1]["incipit"]
+        last_result_incipit = ascending_results[1].incipit
         self.assertEqual(last_result_incipit, chant_2.incipit)
 
         response_descending = self.client.get(
@@ -2559,9 +2596,9 @@ class ChantSearchMSViewTest(TestCase):
             },
         )
         descending_results = response_descending.context["chants"]
-        first_result_incipit = descending_results[0]["incipit"]
+        first_result_incipit = descending_results[0].incipit
         self.assertEqual(first_result_incipit, chant_2.incipit)
-        last_result_incipit = descending_results[1]["incipit"]
+        last_result_incipit = descending_results[1].incipit
         self.assertEqual(last_result_incipit, chant_1.incipit)
 
     def test_order_by_mode(self):
@@ -2589,9 +2626,9 @@ class ChantSearchMSViewTest(TestCase):
             },
         )
         ascending_results = response_ascending.context["chants"]
-        first_result_incipit = ascending_results[0]["incipit"]
+        first_result_incipit = ascending_results[0].incipit
         self.assertEqual(first_result_incipit, chant_1.incipit)
-        last_result_incipit = ascending_results[1]["incipit"]
+        last_result_incipit = ascending_results[1].incipit
         self.assertEqual(last_result_incipit, chant_2.incipit)
 
         response_descending = self.client.get(
@@ -2604,9 +2641,9 @@ class ChantSearchMSViewTest(TestCase):
             },
         )
         descending_results = response_descending.context["chants"]
-        first_result_incipit = descending_results[0]["incipit"]
+        first_result_incipit = descending_results[0].incipit
         self.assertEqual(first_result_incipit, chant_2.incipit)
-        last_result_incipit = descending_results[1]["incipit"]
+        last_result_incipit = descending_results[1].incipit
         self.assertEqual(last_result_incipit, chant_1.incipit)
 
     def test_order_by_ms_fulltext(self):
@@ -2635,9 +2672,9 @@ class ChantSearchMSViewTest(TestCase):
             },
         )
         ascending_results = response_ascending.context["chants"]
-        first_result_incipit = ascending_results[0]["incipit"]
+        first_result_incipit = ascending_results[0].incipit
         self.assertEqual(first_result_incipit, chant_1.incipit)
-        last_result_incipit = ascending_results[1]["incipit"]
+        last_result_incipit = ascending_results[1].incipit
         self.assertEqual(last_result_incipit, chant_2.incipit)
 
         response_descending = self.client.get(
@@ -2650,9 +2687,9 @@ class ChantSearchMSViewTest(TestCase):
             },
         )
         descending_results = response_descending.context["chants"]
-        first_result_incipit = descending_results[0]["incipit"]
+        first_result_incipit = descending_results[0].incipit
         self.assertEqual(first_result_incipit, chant_2.incipit)
-        last_result_incipit = descending_results[1]["incipit"]
+        last_result_incipit = descending_results[1].incipit
         self.assertEqual(last_result_incipit, chant_1.incipit)
 
     def test_order_by_volpiano(self):
@@ -2681,9 +2718,9 @@ class ChantSearchMSViewTest(TestCase):
             },
         )
         ascending_results = response_ascending.context["chants"]
-        first_result_incipit = ascending_results[0]["incipit"]
+        first_result_incipit = ascending_results[0].incipit
         self.assertEqual(first_result_incipit, chant_1.incipit)
-        last_result_incipit = ascending_results[1]["incipit"]
+        last_result_incipit = ascending_results[1].incipit
         self.assertEqual(last_result_incipit, chant_2.incipit)
 
         response_descending = self.client.get(
@@ -2696,9 +2733,9 @@ class ChantSearchMSViewTest(TestCase):
             },
         )
         descending_results = response_descending.context["chants"]
-        first_result_incipit = descending_results[0]["incipit"]
+        first_result_incipit = descending_results[0].incipit
         self.assertEqual(first_result_incipit, chant_2.incipit)
-        last_result_incipit = descending_results[1]["incipit"]
+        last_result_incipit = descending_results[1].incipit
         self.assertEqual(last_result_incipit, chant_1.incipit)
 
     def test_order_by_image_link(self):
@@ -2727,9 +2764,9 @@ class ChantSearchMSViewTest(TestCase):
             },
         )
         ascending_results = response_ascending.context["chants"]
-        first_result_incipit = ascending_results[0]["incipit"]
+        first_result_incipit = ascending_results[0].incipit
         self.assertEqual(first_result_incipit, chant_1.incipit)
-        last_result_incipit = ascending_results[1]["incipit"]
+        last_result_incipit = ascending_results[1].incipit
         self.assertEqual(last_result_incipit, chant_2.incipit)
 
         response_descending = self.client.get(
@@ -2742,9 +2779,9 @@ class ChantSearchMSViewTest(TestCase):
             },
         )
         descending_results = response_descending.context["chants"]
-        first_result_incipit = descending_results[0]["incipit"]
+        first_result_incipit = descending_results[0].incipit
         self.assertEqual(first_result_incipit, chant_2.incipit)
-        last_result_incipit = descending_results[1]["incipit"]
+        last_result_incipit = descending_results[1].incipit
         self.assertEqual(last_result_incipit, chant_1.incipit)
 
     def test_column_header_links(self):
@@ -2784,7 +2821,7 @@ class ChantSearchMSViewTest(TestCase):
         )
         html_1 = str(response_1.content)
         # if no ordering specified, all 9 links should include "&sort=asc"
-        self.assertEqual(html_1.count("&sort=asc"), 9)
+        self.assertEqual(html_1.count("&sort=asc"), 8)
 
         # test that all query parameters are present in all 9 links
         query_keys_and_values = {
@@ -2805,12 +2842,11 @@ class ChantSearchMSViewTest(TestCase):
         html_2 = str(response_2.content)
         for k, v in query_keys_and_values.items():
             expected_query_param = f"{k}={v}"
-            self.assertEqual(html_2.count(expected_query_param), 9)
-            self.assertEqual(html_2.count("sort=asc"), 9)
+            self.assertEqual(html_2.count(expected_query_param), 8)
+            self.assertEqual(html_2.count("sort=asc"), 8)
 
         # for each orderable column, check that 'asc' flips to 'desc', and vice versa
         orderings = (
-            "shelfmark",
             "incipit",
             "office",
             "genre",
@@ -2836,10 +2872,10 @@ class ChantSearchMSViewTest(TestCase):
             # sorted descending.
             expected_substring = f"&order={ordering}&sort=desc"
             self.assertIn(expected_substring, html_asc)
-            # when no `sort=` is specified, all 9 columns should contain a `sort=asc` in
+            # when no `sort=` is specified, all 7 columns should contain a `sort=asc` in
             # their column header link. Since an ascending sorting _is_ specified for one
             # of the columns, that column should have switched from `sort=asc` to `sort=desc`
-            self.assertEqual(html_asc.count("sort=asc"), 8)
+            self.assertEqual(html_asc.count("sort=asc"), 7)
             response_desc = self.client.get(
                 reverse("chant-search-ms", args=[source.id]),
                 {
@@ -2867,7 +2903,7 @@ class ChantSearchMSViewTest(TestCase):
     def test_source_link_column(self):
         shelfmark = "Sigl-01"
         source = make_fake_source(published=True, shelfmark=shelfmark)
-        source_title = source.title
+        source_shelfmark = source.shelfmark
         url = source.get_absolute_url()
         fulltext = "manuscript full text"
         search_term = "full"
@@ -2880,9 +2916,9 @@ class ChantSearchMSViewTest(TestCase):
         )
         html = str(response.content)
         self.assertIn(shelfmark, html)
-        self.assertIn(source_title, html)
+        self.assertIn(source_shelfmark, html)
         self.assertIn(url, html)
-        self.assertIn(f'<a href="{url}" title="{source_title}">{shelfmark}</a>', html)
+        self.assertIn(f'<a href="{url}" target="_blank">{source.short_heading}</a>', html)
 
     def test_folio_column(self):
         source = make_fake_source(published=True)
@@ -4161,7 +4197,7 @@ class SequenceListViewTest(TestCase):
         # the sequences in the list should be ordered by the "siglum" and "sequence" fields
         response = self.client.get(reverse("sequence-list"))
         sequences = response.context["sequences"]
-        self.assertEqual(sequences.query.order_by, ("shelfmark", "s_sequence"))
+        self.assertEqual(sequences.query.order_by, ("source__holding_institution__siglum", "s_sequence"))
 
     def test_search_incipit(self):
         # create a published sequence source and some sequence in it
@@ -4458,25 +4494,39 @@ class SourceListViewTest(TestCase):
             shelfmark=faker.sentence(),
             published=True,
         )
-        search_term = get_random_search_term(source.title)
-        response = self.client.get(reverse("source-list"), {"general": search_term})
+        search_term = get_random_search_term(source.shelfmark)
+        response = self.client.get(
+            reverse("source-list"),
+            {"general": search_term}
+        )
         self.assertIn(source, response.context["sources"])
 
         # Test that postgres searches unaccented version of title
-        unaccented_title = source.title
+        unaccented_title = source.shelfmark
         accented_title = add_accents_to_string(unaccented_title)
         source.title = accented_title
         source.save()
-        response = self.client.get(reverse("source-list"), {"general": search_term})
+        response = self.client.get(
+            reverse("source-list"),
+            {"general": search_term}
+        )
         self.assertIn(source, response.context["sources"])
 
     def test_search_by_shelfmark(self):
+        hinst = make_fake_institution(
+            name="Fake Institution",
+            siglum="FA-Ke"
+        )
         source = make_fake_source(
             published=True,
             shelfmark="title",
+            holding_institution=hinst
         )
         search_term = get_random_search_term(source.shelfmark)
-        response = self.client.get(reverse("source-list"), {"general": search_term})
+        response = self.client.get(
+            reverse("source-list"),
+            {"general": search_term}
+        )
         self.assertIn(source, response.context["sources"])
 
         # Test that postgres searches unaccented version of shelfmark
@@ -4531,13 +4581,15 @@ class SourceListViewTest(TestCase):
             shelfmark="title",
         )
         search_term = get_random_search_term(source.indexing_notes)
-        response = self.client.get(reverse("source-list"), {"indexing": search_term})
+        response = self.client.get(
+            reverse("source-list"),
+            {"indexing": search_term})
         self.assertIn(source, response.context["sources"])
 
         # Test that postgres searches unaccented version of indexing_notes
         unaccented_indexing_notes = source.indexing_notes
         accented_indexing_notes = add_accents_to_string(unaccented_indexing_notes)
-        source.title = accented_indexing_notes
+        source.shelfmark = accented_indexing_notes
         source.save()
         response = self.client.get(reverse("source-list"), {"general": search_term})
         self.assertIn(source, response.context["sources"])
@@ -4783,13 +4835,12 @@ class SourceInventoryViewTest(TestCase):
     def test_shelfmark_column(self):
         shelfmark = "Sigl-01"
         source = make_fake_source(published=True, shelfmark=shelfmark)
-        source_title = source.title
+        source_shelfmark = source.shelfmark
         make_fake_chant(source=source)
         response = self.client.get(reverse("source-inventory", args=[source.id]))
         html = str(response.content)
         self.assertIn(shelfmark, html)
-        self.assertIn(source_title, html)
-        expected_html_substring = f'<td title="{source_title}">{shelfmark}</td>'
+        expected_html_substring = f'<td title="{source.heading}">{source.short_heading}</td>'
         self.assertIn(expected_html_substring, html)
 
     def test_marginalia_column(self):
@@ -5011,6 +5062,7 @@ class JsonMelodyExportTest(TestCase):
             "mid",
             "nid",
             "cid",
+            "holding_institution",
             "shelfmark",
             "srcnid",
             "folio",
@@ -5555,7 +5607,7 @@ class JsonCidTest(TestCase):
         first_chant = first_item["chant"]
         chant_keys = first_chant.keys()
         expected_keys = {
-            "shelfmark",
+            "siglum",
             "srclink",
             "chantlink",
             "folio",
@@ -5578,7 +5630,7 @@ class JsonCidTest(TestCase):
         chant = make_fake_chant(cantus_id="100000")
 
         expected_values = {
-            "shelfmark": chant.source.short_heading,
+            "siglum": chant.source.short_heading,
             "srclink": f"http://testserver/source/{chant.source.id}",
             "chantlink": f"http://testserver/chant/{chant.id}",
             "folio": chant.folio,
@@ -5667,6 +5719,7 @@ class CsvExportTest(TestCase):
 
         expected_column_titles = [
             "shelfmark",
+            "holding_institution",
             "marginalia",
             "folio",
             "sequence",
@@ -5984,14 +6037,15 @@ class ContentOverviewTest(TestCase):
         self.assertEqual(response.status_code, 200)
 
         self.assertIsNotNone(response.context["models"])
-        models = response.context["models"]
+        _ = response.context["models"]
         self.assertIsNotNone(response.context["page_obj"])
-        page_obj = response.context["page_obj"]
+        _ = response.context["page_obj"]
         self.assertEqual(response.context["selected_model_name"], "sources")
 
     def test_source_selected_model(self):
-        source = make_fake_source(shelfmark="Test Source")
-        chant = make_fake_chant()
+        hinst = make_fake_institution(name="Institution", siglum="A")
+        _ = make_fake_source(shelfmark="Test Source", holding_institution=hinst)
+        _ = make_fake_chant()
         response = self.client.get(reverse("content-overview"), {"model": "sources"})
         self.assertContains(response, f"<b>Sources</b>", html=True)
         self.assertContains(
@@ -5999,7 +6053,7 @@ class ContentOverviewTest(TestCase):
             f'<a href="?model=chants">Chants</a>',
             html=True,
         )
-        self.assertContains(response, "Test Source", html=True)
+        self.assertContains(response, "A Test Source")
         self.assertNotContains(response, "Test Chant", html=True)
 
     def test_chant_selected_model(self):
@@ -6276,7 +6330,7 @@ class AjaxMelodyViewTest(TestCase):
         concordance: dict = concordances[0]
 
         expected_items: ItemsView = {
-            "shelfmark": chant.source.shelfmark,
+            "siglum": chant.source.short_heading,
             "folio": chant.folio,
             "office__name": chant.office.name,
             "genre__name": chant.genre.name,
