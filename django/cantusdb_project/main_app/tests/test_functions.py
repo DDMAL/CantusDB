@@ -3,6 +3,7 @@ from main_app.tests import mock_cantusindex_data
 from django.test import TestCase
 from typing import Union, Optional
 from unittest.mock import patch
+from requests.exceptions import SSLError, Timeout, HTTPError
 from main_app.models import (
     Chant,
     Source,
@@ -19,7 +20,10 @@ from cantusindex import (
     get_suggested_chants,
     get_json_from_ci_api,
     CANTUS_INDEX_DOMAIN,
+    OLD_CANTUS_INDEX_DOMAIN,
     get_suggested_fulltext,
+    get_merged_cantus_ids,
+    get_ci_text_search,
 )
 
 # run with `python -Wa manage.py test main_app.tests.test_functions`
@@ -68,7 +72,7 @@ def mock_requests_get(url: str, timeout: float) -> MockResponse:
     if timeout < 0.001:
         raise requests.exceptions.ConnectTimeout
 
-    if not (CANTUS_INDEX_DOMAIN in url):
+    if not (CANTUS_INDEX_DOMAIN or OLD_CANTUS_INDEX_DOMAIN in url):
         raise NotImplementedError(
             f"mock_requests_get is only set up to mock calls to Cantus Index. "
             f"The protocol and domain of url {url} do not correspond to those of Cantus Index."
@@ -147,11 +151,41 @@ def mock_requests_get(url: str, timeout: float) -> MockResponse:
                 text=None,
                 json=None,
             )
+    elif f"{OLD_CANTUS_INDEX_DOMAIN}/json-text/" in url:
+        if url.endswith("qui+est"):
+            return MockResponse(
+                status_code=200,
+                content=mock_cantusindex_data.mock_get_ci_text_search_quiest_content,
+                text=mock_cantusindex_data.mock_get_ci_text_search_quiest_text,
+                json=None,
+            )
+        elif url.endswith("123xyz"):
+            return MockResponse(
+                status_code=200,
+                content=mock_cantusindex_data.mock_get_ci_text_search_123xyz_content,
+                text=mock_cantusindex_data.mock_get_ci_text_search_123xyz_text,
+                json=None,
+            )
+        else:
+            return MockResponse(
+                status_code=500,
+                content=None,
+                text=None,
+                json=None,
+            )
+    elif f"{OLD_CANTUS_INDEX_DOMAIN}/json-merged-chants" in url:
+        return MockResponse(
+            status_code=200,
+            content=mock_cantusindex_data.mock_get_merged_cantus_ids_content,
+            text=mock_cantusindex_data.mock_get_merged_cantus_ids_text,
+            json=None,
+        )
+
     else:
         raise NotImplementedError(
-            f"mock_requests_get is only set up to imitate only the /json-nextchants/ "
-            f"and /json-cid/ endpoints on Cantus Index. The path of the url {url} does "
-            f"not match either of these endpoints."
+            f"mock_requests_get is only set up to imitate only the /json-nextchants/, "
+            f"/json-cid/, and /json-text/ endpoints on Cantus Index. The path of the url "
+            f"{url} does not match either of these endpoints."
         )
 
 
@@ -418,3 +452,93 @@ class CantusIndexFunctionsTest(TestCase):
             with patch("requests.get", mock_requests_get):
                 fulltext = get_suggested_fulltext("999999")
             self.assertIsNone(fulltext)
+
+    def test_get_merged_cantus_ids(self) -> None:
+        with self.subTest("Test valid response"):
+            with patch("requests.get", mock_requests_get):
+                results = get_merged_cantus_ids()
+            self.assertIsInstance(results, list)
+            self.assertEqual(len(results), 20)
+            self.assertEqual(results[0]["old"], "g00831")
+            self.assertEqual(results[0]["new"], "920023")
+            self.assertEqual(results[0]["date"], "0000-00-00")
+
+        with self.subTest("Test server error"):
+            mock_response = MockResponse(
+                status_code=500,
+                text=None,
+                json=None,
+                content=None,
+            )
+            with patch("requests.get", return_value=mock_response):
+                results = get_merged_cantus_ids()
+            self.assertIsNone(results)
+
+        with self.subTest("Test timeout"):
+            with patch("requests.get", side_effect=Timeout):
+                results = get_merged_cantus_ids()
+            self.assertRaises(Timeout)
+            self.assertIsNone(results)
+
+        with self.subTest("Test SSLError"):
+            with patch("requests.get", side_effect=SSLError):
+                results = get_merged_cantus_ids()
+            self.assertRaises(SSLError)
+            self.assertIsNone(results)
+
+        with self.subTest("Test HTTPError"):
+            with patch("requests.get", side_effect=HTTPError):
+                results = get_merged_cantus_ids()
+            self.assertRaises(HTTPError)
+            self.assertIsNone(results)
+
+    def test_get_ci_text_search(self) -> None:
+        with self.subTest("Test valid search term"):
+            with patch("requests.get", mock_requests_get):
+                results = get_ci_text_search("qui+est")
+            self.assertIsInstance(results, list)
+            self.assertEqual(len(results), 50)
+            self.assertEqual(results[0]["cid"], "001774")
+            self.assertEqual(
+                results[0]["fulltext"],
+                "Caro et sanguis non revelavit tibi sed pater meus qui est in caelis",
+            )
+            self.assertEqual(results[1]["cid"], "002191")
+            self.assertEqual(
+                results[1]["fulltext"],
+                "Dicebat Jesus turbis Judaeorum et principibus sacerdotum qui est ex deo verba dei audit responderunt Judaei et dixerunt ei nonne bene dicimus nos quia Samaritanus es tu et daemonium habes respondit Jesus ego daemonium non habeo sed honorifico patrem meum et vos inhonorastis me",
+            )
+
+        with self.subTest("Test invalid search term"):
+            with patch("requests.get", mock_requests_get):
+                results = get_ci_text_search("123xyz")
+            self.assertIsNone(results)
+
+        with self.subTest("Test server error"):
+            mock_response = MockResponse(
+                status_code=500,
+                text=None,
+                json=None,
+                content=None,
+            )
+            with patch("requests.get", return_value=mock_response):
+                results = get_ci_text_search("server_error")
+            self.assertIsNone(results)
+
+        with self.subTest("Test SSLError"):
+            with patch("requests.get", side_effect=SSLError):
+                results = get_ci_text_search("SSLError")
+            self.assertRaises(SSLError)
+            self.assertIsNone(results)
+
+        with self.subTest("Test Timeout"):
+            with patch("requests.get", side_effect=Timeout):
+                results = get_ci_text_search("Timeout")
+            self.assertRaises(Timeout)
+            self.assertIsNone(results)
+
+        with self.subTest("Test HTTPError"):
+            with patch("requests.get", side_effect=HTTPError):
+                results = get_ci_text_search("HTTPError")
+            self.assertRaises(HTTPError)
+            self.assertIsNone(results)
