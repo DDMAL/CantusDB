@@ -1,3 +1,12 @@
+from django.contrib import messages
+from django.contrib.auth.mixins import LoginRequiredMixin
+from django.contrib.auth.mixins import UserPassesTestMixin
+from django.core.exceptions import PermissionDenied
+from django.db.models import Q, Prefetch, Value
+from django.db.models import QuerySet
+from django.http import HttpResponseRedirect, Http404
+from django.shortcuts import get_object_or_404
+from django.urls import reverse
 from django.views.generic import (
     DetailView,
     ListView,
@@ -6,7 +15,8 @@ from django.views.generic import (
     DeleteView,
     TemplateView,
 )
-from django.db.models import Q, Prefetch, Value
+
+from main_app.forms import SourceCreateForm, SourceEditForm
 from main_app.models import (
     Century,
     Chant,
@@ -16,24 +26,15 @@ from main_app.models import (
     Segment,
     Source,
 )
-from main_app.forms import SourceCreateForm, SourceEditForm
-from django.contrib import messages
-from django.db.models import QuerySet
-from django.urls import reverse
-from django.contrib.auth.mixins import LoginRequiredMixin
-from django.http import HttpResponseRedirect, Http404
-from django.contrib.auth.mixins import UserPassesTestMixin
-from django.core.exceptions import PermissionDenied
-from django.shortcuts import get_object_or_404
-from main_app.views.chant import (
-    get_feast_selector_options,
-    user_can_edit_chants_in_source,
-)
 from main_app.permissions import (
     user_can_create_sources,
     user_can_edit_source,
     user_can_view_source,
     user_can_manage_source_editors,
+)
+from main_app.views.chant import (
+    get_feast_selector_options,
+    user_can_edit_chants_in_source,
 )
 
 
@@ -205,6 +206,7 @@ class SourceDetailView(DetailView):
 
 
 class SourceListView(ListView):
+    model = Source
     paginate_by = 100
     context_object_name = "sources"
     template_name = "source_list.html"
@@ -221,11 +223,11 @@ class SourceListView(ListView):
 
     def get_queryset(self):
         # use select_related() for foreign keys to reduce DB queries
-        queryset = Source.objects.select_related("segment",
-                                                 "provenance",
-                                                 "holding_institution").order_by(
-            "siglum"
-        )
+        queryset = (Source.objects
+                    .select_related("segment",
+                                    "provenance",
+                                    "holding_institution")
+                    .order_by("siglum"))
 
         display_unpublished: bool = self.request.user.is_authenticated
         if display_unpublished:
@@ -255,8 +257,10 @@ class SourceListView(ListView):
             # Strip spaces at the beginning and end. Then make list of terms split on spaces
             general_search_terms = self.request.GET.get("general").strip(" ").split(" ")
             # We need a Q Object for each field we're gonna look into
-            title_q = Q()
+            shelfmark_q = Q()
             siglum_q = Q()
+            holding_institution_q = Q()
+            holding_institution_city_q = Q()
             description_q = Q()
             # it seems that old cantus don't look into title and provenance for the general search terms
             # cantus.uwaterloo.ca/source/123901 this source cannot be found by searching its provenance 'Kremsmünster' in the general search field
@@ -268,8 +272,10 @@ class SourceListView(ListView):
             # field, allowing for a more flexible search, and a field needs
             # to match only one of the terms
             for term in general_search_terms:
-                title_q |= Q(title__unaccent__icontains=term)
-                siglum_q |= Q(siglum__unaccent__icontains=term)
+                holding_institution_q |= Q(holding_institution__name__icontains=term)
+                holding_institution_city_q |= Q(holding_institution__city__icontains=term)
+                shelfmark_q |= Q(shelfmark__unaccent__icontains=term)
+                siglum_q |= Q(holding_institution__siglum__unaccent__icontains=term)
                 description_q |= Q(description__unaccent__icontains=term)
                 summary_q |= Q(summary__unaccent__icontains=term)
                 # provenance_q |= Q(provenance__name__icontains=term)
@@ -279,7 +285,12 @@ class SourceListView(ListView):
             # general_search_q = (
             #     title_q | siglum_q | description_q | provenance_q
             # )
-            general_search_q = title_q | siglum_q | description_q | summary_q
+            general_search_q = (shelfmark_q
+                                | siglum_q
+                                | description_q
+                                | summary_q
+                                | holding_institution_q
+                                | holding_institution_city_q)
             q_obj_filter &= general_search_q
 
         # For the indexing notes search we follow the same procedure as above but with
