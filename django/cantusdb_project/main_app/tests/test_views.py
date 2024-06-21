@@ -3808,7 +3808,6 @@ class FeastListViewTest(TestCase):
         self.assertEqual(response.status_code, 404)
 
 
-@skip("Doesn't currently work with transactions and raw SQL queries")
 class FeastDetailViewTest(TestCase):
     def setUp(self):
         # unless a segment is specified when a source is created, the source is automatically assigned
@@ -3830,8 +3829,9 @@ class FeastDetailViewTest(TestCase):
         self.assertEqual(response.status_code, 200)
         self.assertEqual(feast, response.context["feast"])
 
+    @skip("Doesn't currently work with transactions and raw SQL queries")
     def test_most_frequent_chants(self):
-        source = make_fake_source(published=True, title="published_source")
+        source = make_fake_source(published=True, shelfmark="published_source")
         feast = make_fake_feast()
         # 3 chants with cantus id: 300000
         for i in range(3):
@@ -3854,6 +3854,7 @@ class FeastDetailViewTest(TestCase):
         self.assertEqual(frequent_chants_zip[1][-1], 2)
         self.assertEqual(frequent_chants_zip[2][-1], 1)
 
+    @skip("Doesn't currently work with transactions and raw SQL queries")
     def test_chants_in_feast_published_vs_unpublished(self):
         feast = make_fake_feast()
         source = make_fake_source()
@@ -3873,10 +3874,13 @@ class FeastDetailViewTest(TestCase):
         cantus_ids = [x[0] for x in frequent_chants_zip]
         self.assertNotIn(chant.cantus_id, cantus_ids)
 
+    @skip("Doesn't currently work with transactions and raw SQL queries")
     def test_sources_containing_this_feast(self):
-        big_source = make_fake_source(published=True, title="big_source", siglum="big")
+        holding_inst_b = make_fake_institution(siglum="big")
+        holding_inst_s = make_fake_institution(siglum="small")
+        big_source = make_fake_source(published=True, shelfmark="big_source", holding_institution=holding_inst_b)
         small_source = make_fake_source(
-            published=True, title="small_source", siglum="small"
+            published=True, shelfmark="small_source", holding_institution=holding_inst_s
         )
         feast = make_fake_feast()
         # 3 chants in the big source
@@ -3886,19 +3890,21 @@ class FeastDetailViewTest(TestCase):
         Chant.objects.create(feast=feast, source=small_source)
 
         response = self.client.get(reverse("feast-detail", args=[feast.id]))
-        sources_zip = response.context["sources_zip"]
+        sources = list(response.context["sources"])
+        print(sources)
         # the items in zip should be ordered by chant count
         # the first field is siglum
-        self.assertEqual(sources_zip[0][0].siglum, "big")
-        self.assertEqual(sources_zip[1][0].siglum, "small")
+        self.assertEqual(sources[0].siglum, "big")
+        self.assertEqual(sources[1].siglum, "small")
         # the second field is chant_count
-        self.assertEqual(sources_zip[0][1], 3)
-        self.assertEqual(sources_zip[1][1], 1)
+        self.assertEqual(sources[0].chant_count, 3)
+        self.assertEqual(sources[1].chant_count, 1)
 
+    @skip("Doesn't currently work with transactions and raw SQL queries")
     def test_sources_containing_feast_published_vs_unpublished(self):
         published_source = make_fake_source(
             published=True,
-            title="published source",
+            shelfmark="published source",
         )
         unpublished_source = make_fake_source(published=False)
         feast = make_fake_feast()
@@ -3907,12 +3913,12 @@ class FeastDetailViewTest(TestCase):
         make_fake_chant(source=unpublished_source, feast=feast)
 
         response = self.client.get(reverse("feast-detail", args=[feast.id]))
-        sources_zip = response.context["sources_zip"]
+        sources = list(response.context["sources"])
         self.assertEqual(
-            len(sources_zip), 1
+            len(sources), 1
         )  # only item should be a duple corresponding to published_source
-        self.assertEqual(sources_zip[0][0].title, "published source")
-        self.assertEqual(sources_zip[0][1], 2)
+        self.assertEqual(sources[0].shelfmark, "published source")
+        self.assertEqual(sources[0].count, 2)
 
 
 class GenreListViewTest(TestCase):
