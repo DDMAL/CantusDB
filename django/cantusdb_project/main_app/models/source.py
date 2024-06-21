@@ -164,12 +164,11 @@ class Source(BaseModel):
     def short_heading(self) -> str:
         title = []
         if holdinst := self.holding_institution:
-            sigl = f"{holdinst.siglum}" if holdinst.siglum else ""
-            priv = "Private" if holdinst.is_private_collector else ""
-            title.append(sigl)
-            title.append(priv)
+            if holdinst.siglum:
+                title.append(f"{holdinst.siglum}")
+            elif holdinst.is_private_collector:
+                title.append("Private")
 
         tt = self.shelfmark if self.shelfmark else self.title
         title.append(tt)
-
         return " ".join(title)
