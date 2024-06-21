@@ -26,7 +26,7 @@ window.addEventListener("load", function () {
         melodiesFilter.value = urlParams.get("melodies");
     }
     if (urlParams.has("search_bar")) {
-        search_term = urlParams.get("search_bar");
+        let search_term = urlParams.get("search_bar");
         if (containsNoNumerals(search_term)) {
             // assume user is doing an incipit search
             opFilter.value = "starts_with"

@@ -55,18 +55,14 @@ window.addEventListener("load", function () {
     segmentSelectElem.addEventListener("change", function () {
         const benedicamusDominoSegmentFields = document.getElementById("benedicamus-domino-segment-fields");
         const selectedElemText = segmentSelectElem.options[segmentSelectElem.selectedIndex].text;
-        if (selectedElemText === "Benedicamus Domino") {
-            benedicamusDominoSegmentFields.hidden = false;
-        } else {
-            benedicamusDominoSegmentFields.hidden = true;
-        }
+        benedicamusDominoSegmentFields.hidden = selectedElemText !== "Benedicamus Domino";
     });
     segmentSelectElem.dispatchEvent(new Event('change'));
 })
 
 function autoFillSuggestedFullText(fullText) {
     var fullTextField = document.getElementById('id_manuscript_full_text_std_spelling');
-    if (fullTextField.value == "") {
+    if (fullTextField.value === "") {
         fullTextField.value = fullText;
     }
 }
