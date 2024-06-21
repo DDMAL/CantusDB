@@ -3,11 +3,13 @@ A collection of functions for fetching data from
 Cantus Index's (CI's) various APIs.
 """
 
-import requests
-from typing import Optional, Union, Callable
-from main_app.models import Genre
 import json
+from typing import Optional, Union, Callable
+
+import requests
 from requests.exceptions import SSLError, Timeout, HTTPError
+
+from main_app.models import Genre
 
 CANTUS_INDEX_DOMAIN: str = "https://cantusindex.uwaterloo.ca"
 DEFAULT_TIMEOUT: float = 2  # seconds
