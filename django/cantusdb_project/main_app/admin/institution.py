@@ -9,8 +9,9 @@ from main_app.models import Institution, InstitutionIdentifier, Source
 class InstitutionSourceInline(admin.TabularInline):
     model = Source
     extra = 0
-    fields = ("link_id_field", "shelfmark",)
-    readonly_fields = ("link_id_field",)
+    fields = ("link_id_field", "shelfmark", "published")
+    readonly_fields = ("link_id_field", "published", "shelfmark")
+    can_delete = False
 
     def link_id_field(self, obj):
         change_url = reverse('admin:main_app_source_change', args=(obj.pk,))
@@ -25,12 +26,12 @@ class InstitutionIdentifierInline(admin.TabularInline):
 
 @admin.register(Institution)
 class InstitutionAdmin(BaseModelAdmin):
-    list_display = ("name", "siglum", "get_city_region", "country")
+    list_display = ("name", "siglum", "get_city_region", "country", "is_private_collector")
     search_fields = ("name", "siglum", "city", "region", "alternate_names")
     list_filter = ("is_private_collector", "city")
     inlines = (InstitutionIdentifierInline, InstitutionSourceInline)
     fieldsets = [
-        (None, {"fields": ("name", "city", "region", "country", "alternate_names"
+        (None, {"fields": ("name", "city", "region", "country", "alternate_names",
                            "former_sigla", "private_notes")}),
         ("Private Collector", {"fields": ["is_private_collector"]}),
         ("Holding Institution", {"fields": ["siglum"]})
