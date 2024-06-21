@@ -94,6 +94,14 @@ siglum_to_country = {
     "XX": "Unknown",
 }
 
+prints = {
+    "MA Impr. 1537",
+    "N-N.miss.imp.1519",
+    "D-A/imp:1498",
+    "D-P/imp1511",
+    "D-WÜ/imp1583"
+}
+
 
 class Command(BaseCommand):
     help = "Creates institution records based on the entries in the Sources model"
@@ -106,6 +114,7 @@ class Command(BaseCommand):
 
     def handle(self, *args, **options):
         if options["empty"]:
+            print(self.style.WARNING("Deleting records..."))
             Source.objects.all().update(holding_institution=None)
             Institution.objects.all().delete()
             InstitutionIdentifier.objects.all().delete()
@@ -130,9 +139,10 @@ class Command(BaseCommand):
                         f"{source.id:^11}| Could not extract institution name for {source_name}"
                     )
                 )
-                bad_sigla.add(source_siglum)
-                source_shelfmarks[source.id] = source_name
-                continue
+                city = "[Unknown]"
+                institution_name = source_name
+                source_shelfmarks[source.id] = source_siglum.strip()
+                shelfmark = source_siglum.strip()
 
             try:
                 siglum, _ = source_siglum.split(" ", 1)
@@ -143,17 +153,13 @@ class Command(BaseCommand):
                     )
                 )
                 bad_sigla.add(source_siglum)
-                continue
+                siglum = source_siglum
 
             insts_name[siglum].add(institution_name.strip())
             insts_city[siglum].add(city.strip())
             insts_ids[siglum].add(source.id)
 
-            if options["lookup"]:
-                if siglum in bad_sigla or siglum in private_collections or siglum in insts_rism:
-                    # no need to look it up.
-                    continue
-
+            if options["lookup"] and (siglum not in bad_sigla or siglum not in private_collections or siglum not in insts_rism):
                 req = requests.get(
                     f"https://rism.online/sigla/{siglum}",
                     allow_redirects=True,
@@ -166,15 +172,11 @@ class Command(BaseCommand):
                         )
                     )
                     bad_sigla.add(siglum)
-                    continue
-
-                resp = req.json()
-                inst_ident = resp.get("id", "")
-                rism_id = "/".join(inst_ident.split("/")[-2:])
-                insts_rism[siglum] = rism_id
-
-            if options["errors"]:
-                continue
+                else:
+                    resp = req.json()
+                    inst_ident = resp.get("id", "")
+                    rism_id = "/".join(inst_ident.split("/")[-2:])
+                    insts_rism[siglum] = rism_id
 
             print(
                 self.style.SUCCESS(
@@ -190,58 +192,88 @@ class Command(BaseCommand):
 
         print("Here are the institutions that I will create:")
         print("siglum,city,country,name,alt_names")
+
+        print_inst = Institution.objects.create(
+            name="Print (Multiple Copies)",
+            siglum="XX-NN",
+            city=None
+        )
+
         for sig, names in insts_name.items():
-            if sig in sigla_to_skip:
-                continue
-
+            print("Sig: ", sig)
             inst_id = insts_ids[sig]
-            inst_city = insts_city[sig]
-            main_city = list(inst_city)[0] if len(inst_city) > 0 else ""
-            main_name = list(names)[0] if len(names) > 0 else ""
-            alt_names = "; ".join(list(names)[1:])
-            alt_names_fmt = f'"{alt_names}"' if alt_names else ""
-            inst_country = siglum_to_country[sig.split("-")[0]]
 
-            print(f"{sig},{main_city},{inst_country},{main_name},{alt_names_fmt}")
+            if sig not in prints:
+                if sig == "MA Impr. 1537":
+                    print("WHAHAHAHATTT?T??T?TTT?T")
 
-            if options["dry_run"]:
-                continue
+                inst_city = insts_city[sig]
+                main_city = list(inst_city)[0] if len(inst_city) > 0 else ""
+                main_name = list(names)[0] if len(names) > 0 else ""
+                alt_names = "; ".join(list(names)[1:])
+                alt_names_fmt = f'"{alt_names}"' if alt_names else ""
 
-            iobj = {
-                "city": main_city,
-                "country": inst_country,
-                "name": main_name,
-                "alternate_names": "\n".join(list(names)[1:]),
-            }
+                try:
+                    inst_country = siglum_to_country[sig.split("-")[0]]
+                    inst_sig = sig
+                except KeyError:
+                    print(self.style.WARNING(f"Unknown country for siglum {sig}."))
+                    inst_country = None
+                    # Setting siglum to None will make it XX-NN
+                    inst_sig = None
 
-            if sig in private_collections:
-                iobj["is_private_collector"] = True
-            elif sig is not None:
-                iobj["siglum"] = sig
+                print(f"{inst_sig},{main_city},{inst_country},{main_name},{alt_names_fmt}")
+
+                if options["dry_run"]:
+                    continue
+
+                iobj = {
+                    "city": main_city if main_city != "[Unknown]" else None,
+                    "country": inst_country,
+                    "name": main_name,
+                    "alternate_names": "\n".join(list(names)[1:]),
+                }
+
+                if inst_sig in private_collections:
+                    iobj["is_private_collector"] = True
+                elif inst_sig is not None:
+                    iobj["siglum"] = inst_sig
+                else:
+                    print(self.style.WARNING(f"Could not create {inst_id}. Setting siglum to XX-NN"))
+                    iobj["siglum"] = "XX-NN"
+
+                try:
+                    holding_institution = Institution.objects.create(**iobj)
+                except ValidationError:
+                    print(
+                        self.style.WARNING(f"Could not create {sig} {main_name}. Setting institution to None")
+                    )
+                    holding_institution = None
+
+                if holding_institution:
+                    print("Created", holding_institution)
             else:
-                print(f"Could not create {inst_id}")
-                continue
-
-            try:
-                inst = Institution.objects.create(**iobj)
-            except ValidationError:
-                print(f"Could not create {sig} {main_name}")
-                continue
-
-            print("Created", inst)
+                holding_institution = print_inst
 
             if rismid := insts_rism.get(sig):
                 instid = InstitutionIdentifier.objects.create(
                     identifier=rismid,
                     identifier_type=ExternalIdentifiers.RISM,
-                    institution=inst,
+                    institution=holding_institution,
                 )
                 instid.save()
 
             for source_id in list(inst_id):
-                shelfmark = source_shelfmarks[source_id]
+                shelfmark = source_shelfmarks.get(source_id)
+
                 s = Source.objects.get(id=source_id)
+                if not shelfmark:
+                    shelfmark = s.siglum
+
                 print(s)
-                s.holding_institution = inst
+                s.holding_institution = holding_institution
                 s.shelfmark = shelfmark.strip()
                 s.save()
+                print(self.style.SUCCESS(
+                    f"Saved update to Source {s.id}"
+                ))
