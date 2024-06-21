@@ -1,11 +1,27 @@
 import csv
-from typing import Optional, Union
+from typing import List
+from typing import Optional
+
+from dal import autocomplete
+from django.contrib import messages
+from django.contrib.auth import get_user_model
+from django.contrib.auth import update_session_auth_hash
+from django.contrib.auth.decorators import login_required, user_passes_test
+from django.contrib.auth.forms import PasswordChangeForm
+from django.contrib.flatpages.models import FlatPage
+from django.core.exceptions import PermissionDenied, BadRequest
+from django.core.paginator import Paginator
+from django.db.models import Q
 from django.db.models.query import QuerySet
-from django.http.response import JsonResponse
+from django.http import Http404
 from django.http import HttpResponse, HttpResponseNotFound, HttpRequest
-from django.utils.http import urlencode
+from django.http.response import JsonResponse
+from django.shortcuts import get_object_or_404
 from django.shortcuts import render, redirect
-from django.urls.base import reverse
+from django.templatetags.static import static
+from django.urls import reverse
+from django.utils.http import urlencode
+
 from articles.models import Article
 from main_app.models import (
     Century,
@@ -20,23 +36,8 @@ from main_app.models import (
     Sequence,
     Source, Institution,
 )
-from django.contrib.auth.decorators import login_required, user_passes_test
 from main_app.models.base_model import BaseModel
 from next_chants import next_chants
-from django.contrib import messages
-from django.http import Http404
-from django.contrib.auth import update_session_auth_hash
-from django.contrib.auth.forms import PasswordChangeForm
-from django.core.exceptions import PermissionDenied, BadRequest
-from django.urls import reverse
-from django.contrib.auth import get_user_model
-from typing import List
-from django.core.paginator import Paginator
-from django.templatetags.static import static
-from django.contrib.flatpages.models import FlatPage
-from dal import autocomplete
-from django.db.models import Q
-from django.shortcuts import get_object_or_404
 
 
 @login_required
