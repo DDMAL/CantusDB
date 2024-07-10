@@ -151,6 +151,7 @@ class ChantCreateForm(forms.ModelForm):
     project = SelectWidgetNameModelChoiceField(
         queryset=Project.objects.all().order_by("id"),
         initial=None,
+        required=False,
         help_text="Select the project (if any) that the chant belongs to.",
     )
 
@@ -346,6 +347,7 @@ class ChantEditForm(forms.ModelForm):
     project = SelectWidgetNameModelChoiceField(
         queryset=Project.objects.all().order_by("id"),
         help_text="Select the project (if any) that the chant belongs to.",
+        required = False,
     )
 
 
