@@ -47,7 +47,11 @@ from main_app.permissions import (
     user_can_view_chant,
 )
 
-from cantusindex import get_suggested_chants, get_suggested_fulltext
+from cantusindex import (
+    get_suggested_chants,
+    get_suggested_fulltext,
+    get_ci_text_search,
+)
 
 CHANT_SEARCH_TEMPLATE_VALUES: tuple[str, ...] = (
     # for views that use chant_search.html, this allows them to
@@ -867,6 +871,43 @@ class ChantDeleteView(LoginRequiredMixin, UserPassesTestMixin, DeleteView):
 
     def get_success_url(self):
         return reverse("source-edit-chants", args=[self.object.source.id])
+
+
+class CISearchView(TemplateView):
+    """Search in CI and write results in get_context_data
+    Shown on the chant create page as the "Input Tool"
+    """
+
+    template_name = "ci_search.html"
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context["genres"] = list(
+            Genre.objects.all().order_by("name").values("id", "name")
+        )
+        search_term: str = kwargs["search_term"]
+        search_term: str = search_term.replace(" ", "+")  # for multiple keywords
+
+        text_search_results: Optional[list[Optional[dict]]] = get_ci_text_search(
+            search_term
+        )
+
+        cantus_id = []
+        genre = []
+        full_text = []
+
+        if text_search_results:
+            for result in text_search_results:
+                if result:
+                    cantus_id.append(result.get("cid", None))
+                    genre.append(result.get("genre", None))
+                    full_text.append(result.get("fulltext", None))
+
+        if len(cantus_id) == 0:
+            context["results"] = [["No results", "No results", "No results"]]
+        else:
+            context["results"] = list(zip(cantus_id, genre, full_text))
+        return context
 
 
 class SourceEditChantsView(LoginRequiredMixin, UserPassesTestMixin, UpdateView):

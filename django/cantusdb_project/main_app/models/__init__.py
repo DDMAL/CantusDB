@@ -9,7 +9,7 @@ from main_app.models.office import Office
 from main_app.models.provenance import Provenance
 from main_app.models.segment import Segment
 from main_app.models.sequence import Sequence
-from main_app.models.rism_siglum import RismSiglum
 from main_app.models.source import Source
 from main_app.models.institution import Institution
 from main_app.models.institution_identifier import InstitutionIdentifier
+from main_app.models.project import Project
