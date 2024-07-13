@@ -7,15 +7,19 @@ window.addEventListener("load", function () {
         const standardText = document.getElementById('id_manuscript_full_text_std_spelling').value;
         document.getElementById('id_manuscript_full_text').value = standardText;
     }
-    // Add an event listener to the segment select field.
+    // Add an event listener to the segment project field.
     // If the user selects "Benedicamus Domino", show the additional fields
-    // in the "benedicamus-domino-segment-fields" div. By default, these
+    // in the "benedicamus-domino-project-fields" div. By default, these
     // are hidden.
-    const segmentSelectElem = document.getElementById("id_segment");
-    segmentSelectElem.addEventListener("change", function () {
-        const benedicamusDominoSegmentFields = document.getElementById("benedicamus-domino-segment-fields");
-        const selectedElemText = segmentSelectElem.options[segmentSelectElem.selectedIndex].text;
-        benedicamusDominoSegmentFields.hidden = selectedElemText !== "Benedicamus Domino";
+    const projectSelectElem = document.getElementById("id_project");
+    projectSelectElem.addEventListener("change", function () {
+        const benedicamusDominoProjectFields = document.getElementById("benedicamus-domino-project-fields");
+        const selectedElemText = projectSelectElem.options[projectSelectElem.selectedIndex].text;
+        if (selectedElemText === "Benedicamus Domino") {
+            benedicamusDominoProjectFields.hidden = false;
+        } else {
+            benedicamusDominoProjectFields.hidden = true;
+        }
     });
 })
 

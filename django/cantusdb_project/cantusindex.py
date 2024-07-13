@@ -12,6 +12,7 @@ from requests.exceptions import SSLError, Timeout, HTTPError
 from main_app.models import Genre
 
 CANTUS_INDEX_DOMAIN: str = "https://cantusindex.uwaterloo.ca"
+OLD_CANTUS_INDEX_DOMAIN: str = "https://cantusindex.org"
 DEFAULT_TIMEOUT: float = 2  # seconds
 NUMBER_OF_SUGGESTED_CHANTS: int = 3  # this number can't be too large,
 # since for each suggested chant, we make a request to Cantus Index.
@@ -153,10 +154,10 @@ def get_merged_cantus_ids() -> Optional[list[Optional[dict]]]:
     # We have to use the old CI domain since the API is still not available on
     # cantusindex.uwaterloo.ca. Once it's available, we can use get_json_from_ci_api
     # json: Union[dict, list, None] = get_json_from_ci_api(endpoint_path)
-    uri: str = f"https://cantusindex.org{endpoint_path}"
+    uri: str = f"{OLD_CANTUS_INDEX_DOMAIN}{endpoint_path}"
     try:
         response: requests.Response = requests.get(uri, timeout=DEFAULT_TIMEOUT)
-    except requests.exceptions.Timeout:
+    except (SSLError, Timeout, HTTPError):
         return None
     if not response.status_code == 200:
         return None
@@ -180,7 +181,8 @@ def get_ci_text_search(search_term: str) -> Optional[list[Optional[dict]]]:
     # We have to use the old CI domain since this API is still not available on
     # cantusindex.uwaterloo.ca. Once it's available, we can use get_json_from_ci_api
     # json: Union[dict, list, None] = get_json_from_ci_api(uri)
-    uri: str = f"https://cantusindex.org/json-text/{search_term}"
+    endpoint_path: str = f"/json-text/{search_term}"
+    uri: str = f"{OLD_CANTUS_INDEX_DOMAIN}{endpoint_path}"
     try:
         response: requests.Response = requests.get(
             uri,

@@ -10,6 +10,7 @@ from main_app.models.genre import Genre
 from main_app.models.institution import Institution
 from main_app.models.notation import Notation
 from main_app.models.office import Office
+from main_app.models.project import Project
 from main_app.models.provenance import Provenance
 from main_app.models.segment import Segment
 from main_app.models.sequence import Sequence
@@ -152,7 +153,7 @@ def make_fake_chant(
     manuscript_syllabized_full_text=None,
     next_chant=None,
     differentia=None,
-    segment=None,
+    project=None,
 ) -> Chant:
     """Generates a fake Chant object."""
     if source is None:
@@ -190,8 +191,8 @@ def make_fake_chant(
         manuscript_syllabized_full_text = faker.sentence(20)
     if differentia is None:
         differentia = make_random_string(2)
-    if segment is None:
-        segment = make_fake_segment()
+    if project is None:
+        project = make_fake_project()
 
     chant = Chant.objects.create(
         source=source,
@@ -226,7 +227,7 @@ def make_fake_chant(
         indexing_notes=faker.sentence(),
         json_info=None,
         next_chant=next_chant,
-        segment=segment,
+        project=project,
     )
     chant.refresh_from_db()  # several fields (e.g., incipit) are calculated automatically
     # upon chant save. By refreshing from db before returning, we ensure all the chant's fields
@@ -302,6 +303,16 @@ def make_fake_segment(name: str = None, id: int = None) -> Segment:
         return segment
     segment = Segment.objects.create(name=name, id=id)
     return segment
+
+
+def make_fake_project(name: str = None, id: int = None) -> Project:
+    if name is None:
+        name = faker.sentence(nb_words=2)
+    if id is None:
+        project = Project.objects.create(name=name)
+        return project
+    project = Project.objects.create(name=name, id=id)
+    return project
 
 
 def make_fake_sequence(source=None, title=None, cantus_id=None) -> Sequence:
