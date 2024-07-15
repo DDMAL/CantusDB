@@ -71,7 +71,8 @@ from main_app.views.views import (
     GenreAutocomplete,
     DifferentiaAutocomplete,
     ProvenanceAutocomplete,
-    ProofreadByAutocomplete, HoldingAutocomplete,
+    ProofreadByAutocomplete, 
+    HoldingAutocomplete,
 )
 
 urlpatterns = [
