@@ -7,12 +7,11 @@ from .models import (
     Notation,
     Feast,
     Source,
-    RismSiglum,
     Segment,
+    Project,
     Provenance,
     Century,
     Sequence,
-    Differentia,
 )
 from .widgets import (
     TextInputWidget,
@@ -32,26 +31,6 @@ from dal import autocomplete
 # ModelForm allows to build a form directly from a model
 # see https://docs.djangoproject.com/en/3.0/topics/forms/modelforms/
 
-"""
-# 3 ways of doing it
-#1 worst, helptext in the model will be missing
-class CommetnForm(forms.Form):
-    marginalia = forms.CharField(
-        label="Marginalia", widget=forms.TextInput(), help_text="help"
-    )
-    url = forms.URLField()
-    comment = forms.CharField()
-
-    url.widget.attrs.update({'class': 'special'})
-    comment.widget.attrs.update(size='40')
-#2
-class CommentForm(forms.ModelForm):
-    def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs)
-        self.fields['name'].widget.attrs.update({'class': 'special'})
-        self.fields['comment'].widget.attrs.update(size='40')
-"""
-
 
 class NameModelChoiceField(forms.ModelChoiceField):
     """
@@ -67,7 +46,16 @@ class NameModelChoiceField(forms.ModelChoiceField):
         return obj.name
 
 
-# 3 best
+class SelectWidgetNameModelChoiceField(NameModelChoiceField):
+    """
+    This class inherits from NameModelChoiceField, but uses the
+    the custom SelectWidget defined in widgets.py as its widget
+    (for styling).
+    """
+
+    widget = SelectWidget()
+
+
 class ChantCreateForm(forms.ModelForm):
     class Meta:
         model = Chant
@@ -95,8 +83,13 @@ class ChantCreateForm(forms.ModelForm):
             "content_structure",
             "indexing_notes",
             "addendum",
-            # Temporarily commented; see #1452
-            # "segment",
+            "project",
+            "liturgical_function",
+            "polyphony",
+            "cm_melody_id",
+            "incipit_of_refrain",
+            "later_addition",
+            "rubrics",
         ]
         # the widgets dictionary is ignored for a model field with a non-empty
         # choices attribute. In this case, you must override the form field to
@@ -125,6 +118,12 @@ class ChantCreateForm(forms.ModelForm):
             "content_structure": TextInputWidget(),
             "indexing_notes": TextAreaWidget(),
             "addendum": TextInputWidget(),
+            "polyphony": SelectWidget(),
+            "liturgical_function": SelectWidget(),
+            "cm_melody_id": TextInputWidget(),
+            "incipit_of_refrain": TextInputWidget(),
+            "later_addition": TextInputWidget(),
+            "rubrics": TextInputWidget(),
         }
 
     folio = forms.CharField(
@@ -149,14 +148,12 @@ class ChantCreateForm(forms.ModelForm):
         "Mass Alleluias. Punctuation is omitted.",
     )
 
-    # Temporarily commented; see #1452
-    # segment = forms.ModelChoiceField(
-    #     queryset=Segment.objects.all().order_by("id"),
-    #     required=True,
-    #     initial=Segment.objects.get(id=4063),  # Default to the "Cantus" segment
-    #     help_text="Select the Database segment that the chant belongs to. "
-    #     "In most cases, this will be the CANTUS segment.",
-    # )
+    project = SelectWidgetNameModelChoiceField(
+        queryset=Project.objects.all().order_by("id"),
+        initial=None,
+        required=False,
+        help_text="Select the project (if any) that the chant belongs to.",
+    )
 
     # automatically computed fields
     # source and incipit are mandatory fields in model,
@@ -176,7 +173,6 @@ class SourceCreateForm(forms.ModelForm):
         model = Source
         fields = [
             "title",
-            "rism_siglum",
             "siglum",
             "provenance",
             "provenance_notes",
@@ -213,7 +209,6 @@ class SourceCreateForm(forms.ModelForm):
             "fragmentarium_id": TextInputWidget(),
             "dact_id": TextInputWidget(),
             "indexing_notes": TextAreaWidget(),
-            "rism_siglum": autocomplete.ModelSelect2(url="rismsiglum-autocomplete"),
             "current_editors": autocomplete.ModelSelect2Multiple(
                 url="current-editors-autocomplete"
             ),
@@ -283,8 +278,13 @@ class ChantEditForm(forms.ModelForm):
             "manuscript_full_text_proofread",
             "volpiano_proofread",
             "proofread_by",
-            # Temporarily commented; see #1452
-            # "segment",
+            "project",
+            "liturgical_function",
+            "polyphony",
+            "cm_melody_id",
+            "incipit_of_refrain",
+            "later_addition",
+            "rubrics",
         ]
         widgets = {
             # manuscript_full_text_std_spelling: defined below (required)
@@ -314,6 +314,12 @@ class ChantEditForm(forms.ModelForm):
             "proofread_by": autocomplete.ModelSelect2Multiple(
                 url="proofread-by-autocomplete"
             ),
+            "polyphony": SelectWidget(),
+            "liturgical_function": SelectWidget(),
+            "cm_melody_id": TextInputWidget(),
+            "incipit_of_refrain": TextInputWidget(),
+            "later_addition": TextInputWidget(),
+            "rubrics": TextInputWidget(),
         }
 
     manuscript_full_text_std_spelling = forms.CharField(
@@ -338,13 +344,11 @@ class ChantEditForm(forms.ModelForm):
         help_text="Each folio starts with '1'.",
     )
 
-    # Temporarily commented; see #1452
-    # segment = forms.ModelChoiceField(
-    #     queryset=Segment.objects.all().order_by("id"),
-    #     required=True,
-    #     help_text="Select the Database segment that the chant belongs to. "
-    #     "In most cases, this will be the CANTUS segment.",
-    # )
+    project = SelectWidgetNameModelChoiceField(
+        queryset=Project.objects.all().order_by("id"),
+        help_text="Select the project (if any) that the chant belongs to.",
+        required = False,
+    )
 
 
 class SourceEditForm(forms.ModelForm):
@@ -352,7 +356,6 @@ class SourceEditForm(forms.ModelForm):
         model = Source
         fields = [
             "title",
-            "rism_siglum",
             "siglum",
             "provenance",
             "provenance_notes",
@@ -378,7 +381,6 @@ class SourceEditForm(forms.ModelForm):
         ]
         widgets = {
             "title": TextInputWidget(),
-            "rism_siglum": autocomplete.ModelSelect2(url="rismsiglum-autocomplete"),
             "siglum": TextInputWidget(),
             "provenance": autocomplete.ModelSelect2(url="provenance-autocomplete"),
             "provenance_notes": TextInputWidget(),
@@ -621,14 +623,6 @@ class AdminProvenanceForm(forms.ModelForm):
     name = forms.CharField(required=True, widget=TextInputWidget)
 
 
-class AdminRismSiglumForm(forms.ModelForm):
-    class Meta:
-        model = RismSiglum
-        fields = "__all__"
-
-    name = forms.CharField(required=True, widget=TextInputWidget)
-
-
 class AdminSegmentForm(forms.ModelForm):
     class Meta:
         model = Segment
@@ -681,7 +675,7 @@ class AdminSourceForm(forms.ModelForm):
     title = forms.CharField(
         required=True,
         widget=TextInputWidget,
-        help_text="Full Manuscript Identification (City, Archive, Shelf-mark)",
+        help_text="Full Source Identification (City, Archive, Shelf-mark)",
     )
     title.widget.attrs.update({"style": "width: 610px;"})
 
@@ -689,11 +683,6 @@ class AdminSourceForm(forms.ModelForm):
         required=True,
         widget=TextInputWidget,
         help_text="RISM-style siglum + Shelf-mark (e.g. GB-Ob 202).",
-    )
-
-    rism_siglum = forms.ModelChoiceField(
-        queryset=RismSiglum.objects.all().order_by("name"),
-        required=False,
     )
 
     provenance = forms.ModelChoiceField(

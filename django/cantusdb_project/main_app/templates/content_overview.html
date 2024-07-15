@@ -1,7 +1,7 @@
 {% extends "base.html" %}
 {% load helper_tags %} {# for classname, admin_url_name #}
 {% block content %}
-<title>Content Overview | Cantus Manuscript Database</title>
+<title>Content Overview | Cantus Database</title>
 
 <div class="p-3 col-12 mx-auto bg-white rounded">
     <h3>Content Overview</h3>
@@ -47,7 +47,7 @@
                                 </td>
                             {% elif object.name %}
                                 <td class="text-wrap" style="text-align:center">
-                                    {% if object|classname == "Notation" or object|classname == "Segment" or object|classname == "RismSiglum" %}
+                                    {% if object|classname == "Notation" or object|classname == "Segment" %}
                                         <b>{{ object.name|truncatechars:30 }}
                                     {% else %}
                                         <a href="{{ object.get_absolute_url }}"><b>{{ object.name|truncatechars:30 }}</b></a>

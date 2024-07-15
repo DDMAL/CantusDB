@@ -6,8 +6,11 @@ Cantus Index's (CI's) various APIs.
 import requests
 from typing import Optional, Union, Callable
 from main_app.models import Genre
+import json
+from requests.exceptions import SSLError, Timeout, HTTPError
 
 CANTUS_INDEX_DOMAIN: str = "https://cantusindex.uwaterloo.ca"
+OLD_CANTUS_INDEX_DOMAIN: str = "https://cantusindex.org"
 DEFAULT_TIMEOUT: float = 2  # seconds
 NUMBER_OF_SUGGESTED_CHANTS: int = 3  # this number can't be too large,
 # since for each suggested chant, we make a request to Cantus Index.
@@ -90,9 +93,12 @@ def get_suggested_chant(
         # mostly, in case of a timeout within get_json_from_ci_api
         return None
 
-    fulltext: str = json["info"]["field_full_text"]
-    incipit: str = " ".join(fulltext.split(" ")[:5])
-    genre_name: str = json["info"]["field_genre"]
+    try:
+        fulltext: str = json["info"]["field_full_text"]
+        incipit: str = " ".join(fulltext.split(" ")[:5])
+        genre_name: str = json["info"]["field_genre"]
+    except TypeError:
+        return None
     genre_id: Optional[int] = None
     try:
         genre_id = Genre.objects.get(name=genre_name).id
@@ -112,7 +118,7 @@ def get_suggested_chant(
     }
 
 
-def get_suggested_fulltext(cantus_id: str) -> str:
+def get_suggested_fulltext(cantus_id: str) -> Optional[str]:
     endpoint_path: str = f"/json-cid/{cantus_id}"
     json: Union[dict, list, None] = get_json_from_ci_api(endpoint_path)
 
@@ -126,6 +132,75 @@ def get_suggested_fulltext(cantus_id: str) -> str:
         return None
 
     return suggested_fulltext
+
+
+def get_merged_cantus_ids() -> Optional[list[Optional[dict]]]:
+    """Retrieve merged Cantus IDs from the Cantus Index API (/json-merged-chants)
+
+    This function sends a request to the Cantus Index API endpoint for merged chants
+    and retrieves the response. The response is expected to be a list of dictionaries,
+    each containing information about a merged Cantus ID, including the old Cantus ID,
+    the new Cantus ID, and the date of the merge.
+
+    Returns:
+        Optional[list]: A list of dictionaries representing merged chant information,
+    or None if there was an error retrieving the data or the response format is invalid.
+
+    """
+    endpoint_path: str = "/json-merged-chants"
+
+    # We have to use the old CI domain since the API is still not available on
+    # cantusindex.uwaterloo.ca. Once it's available, we can use get_json_from_ci_api
+    # json: Union[dict, list, None] = get_json_from_ci_api(endpoint_path)
+    uri: str = f"{OLD_CANTUS_INDEX_DOMAIN}{endpoint_path}"
+    try:
+        response: requests.Response = requests.get(uri, timeout=DEFAULT_TIMEOUT)
+    except (SSLError, Timeout, HTTPError):
+        return None
+    if not response.status_code == 200:
+        return None
+    response.encoding = "utf-8-sig"
+    raw_text: str = response.text
+    text_without_bom: str = raw_text.encode().decode("utf-8-sig")
+    if not text_without_bom:
+        return None
+    merge_events: list = json.loads(text_without_bom)
+
+    if not isinstance(merge_events, list):
+        return None
+    return merge_events
+
+
+def get_ci_text_search(search_term: str) -> Optional[list[Optional[dict]]]:
+    """Fetch data from Cantus Index for a given search term.
+    To do a text search on CI, we use 'https://cantusindex.org/json-text/<text to search>
+    """
+
+    # We have to use the old CI domain since this API is still not available on
+    # cantusindex.uwaterloo.ca. Once it's available, we can use get_json_from_ci_api
+    # json: Union[dict, list, None] = get_json_from_ci_api(uri)
+    endpoint_path: str = f"/json-text/{search_term}"
+    uri: str = f"{OLD_CANTUS_INDEX_DOMAIN}{endpoint_path}"
+    try:
+        response: requests.Response = requests.get(
+            uri,
+            timeout=DEFAULT_TIMEOUT,
+        )
+    except (SSLError, Timeout, HTTPError):
+        return None
+    if not response.status_code == 200:
+        return None
+    response.encoding = "utf-8-sig"
+    raw_text: str = response.text
+    text_without_bom: str = raw_text.encode().decode("utf-8-sig")
+    if not text_without_bom:
+        return None
+    text_search_results: list = json.loads(text_without_bom)
+    # if cantus index returns an empty table
+    if not text_search_results or not isinstance(text_search_results, list):
+        return None
+
+    return text_search_results
 
 
 def get_json_from_ci_api(

@@ -1,6 +1,6 @@
 {% extends "base.html" %}
 {% block content %}
-<title>Search Chants | Cantus Manuscript Database</title>
+<title>Search Chants | Cantus Database</title>
 <script src="/static/js/chant_search.js"></script>
 
 <div class="mr-3 p-3 col-md-12 mx-auto bg-white rounded">
@@ -179,15 +179,15 @@
                                     <a href="{{ url_with_search_params }}&order=mode&sort=asc">Mode</a>
                                 {% endif %}
                             </th>
-                            <th scope="col" class="text-wrap" style="text-align:center" title="Manuscript Full Text">
+                            <th scope="col" class="text-wrap" style="text-align:center" title="Full Text">
                                 {% if order == "has_fulltext" %}
                                     {% if sort == "desc" %}
-                                        <a href="{{ url_with_search_params }}&order=has_fulltext&sort=asc">MsFt</a> ▼
+                                        <a href="{{ url_with_search_params }}&order=has_fulltext&sort=asc">FT</a> ▼
                                     {% else %}
-                                        <a href="{{ url_with_search_params }}&order=has_fulltext&sort=desc">MsFt</a> ▲
+                                        <a href="{{ url_with_search_params }}&order=has_fulltext&sort=desc">FT</a> ▲
                                     {% endif %}
                                 {% else %}
-                                    <a href="{{ url_with_search_params }}&order=has_fulltext&sort=asc">MsFt</a>
+                                    <a href="{{ url_with_search_params }}&order=has_fulltext&sort=asc">FT</a>
                                 {% endif %}
                             </th>
                             <th scope="col" class="text-wrap" style="text-align:center" title="Volpiano Melody">

@@ -18,6 +18,7 @@ from main_app.views.chant import (
     ChantEditSyllabificationView,
     ChantSearchView,
     ChantSearchMSView,
+    CISearchView,
     MelodySearchView,
     SourceEditChantsView,
 )
@@ -65,7 +66,6 @@ from main_app.views.views import (
     CurrentEditorsAutocomplete,
     AllUsersAutocomplete,
     CenturyAutocomplete,
-    RismSiglumAutocomplete,
     FeastAutocomplete,
     OfficeAutocomplete,
     GenreAutocomplete,
@@ -370,6 +370,11 @@ urlpatterns = [
         name="chant-search-ms",
     ),
     path(
+        "ci-search/<str:search_term>",
+        CISearchView.as_view(),
+        name="ci-search",
+    ),
+    path(
         "search/",
         views.redirect_search,
         name="redirect-search",
@@ -474,11 +479,6 @@ urlpatterns = [
         "century-autocomplete/",
         CenturyAutocomplete.as_view(),
         name="century-autocomplete",
-    ),
-    path(
-        "rismsiglum-autocomplete/",
-        RismSiglumAutocomplete.as_view(),
-        name="rismsiglum-autocomplete",
     ),
     path(
         "feast-autocomplete/",

@@ -31,7 +31,7 @@ function globalSearch() {
         xhttp.onload = function () {
             const data = JSON.parse(this.response);
             // the results are to be displayed in a list-group
-            chantsDiv.innerHTML = `<div class="list-group" id="listBox" style="position:absolute; z-index:1"></div>`;
+            chantsDiv.innerHTML = `<div class="list-group" id="listBox"></div>`;
             const listBox = document.getElementById("listBox");
             // for every chant returned in the JSONResponse
             data.chants.map(chant => {

@@ -216,9 +216,9 @@ class SourceListView(ListView):
 
     def get_queryset(self):
         # use select_related() for foreign keys to reduce DB queries
-        queryset = Source.objects.select_related(
-            "rism_siglum", "segment", "provenance"
-        ).order_by("siglum")
+        queryset = Source.objects.select_related("segment", "provenance").order_by(
+            "siglum"
+        )
 
         display_unpublished = self.request.user.is_authenticated
         if display_unpublished:
@@ -250,7 +250,6 @@ class SourceListView(ListView):
             # We need a Q Object for each field we're gonna look into
             title_q = Q()
             siglum_q = Q()
-            rism_siglum_q = Q()
             description_q = Q()
             # it seems that old cantus don't look into title and provenance for the general search terms
             # cantus.uwaterloo.ca/source/123901 this source cannot be found by searching its provenance 'Kremsmünster' in the general search field
@@ -264,9 +263,6 @@ class SourceListView(ListView):
             for term in general_search_terms:
                 title_q |= Q(title__unaccent__icontains=term)
                 siglum_q |= Q(siglum__unaccent__icontains=term)
-                rism_siglum_q |= Q(rism_siglum__name__unaccent__icontains=term) | Q(
-                    rism_siglum__description__unaccent__icontains=term
-                )
                 description_q |= Q(description__unaccent__icontains=term)
                 summary_q |= Q(summary__unaccent__icontains=term)
                 # provenance_q |= Q(provenance__name__icontains=term)
@@ -274,11 +270,9 @@ class SourceListView(ListView):
             # The end result is that at least one term has to match in at least one
             # field
             # general_search_q = (
-            #     title_q | siglum_q | rism_siglum_q | description_q | provenance_q
+            #     title_q | siglum_q | description_q | provenance_q
             # )
-            general_search_q = (
-                title_q | siglum_q | rism_siglum_q | description_q | summary_q
-            )
+            general_search_q = title_q | siglum_q | description_q | summary_q
             q_obj_filter &= general_search_q
 
         # For the indexing notes search we follow the same procedure as above but with
@@ -321,8 +315,12 @@ class SourceListView(ListView):
             )
             q_obj_filter &= indexing_search_q
 
-        return queryset.filter(q_obj_filter).prefetch_related(
-            Prefetch("century", queryset=Century.objects.all().order_by("id"))
+        return (
+            queryset.filter(q_obj_filter)
+            .distinct()
+            .prefetch_related(
+                Prefetch("century", queryset=Century.objects.all().order_by("id"))
+            )
         )
 
 

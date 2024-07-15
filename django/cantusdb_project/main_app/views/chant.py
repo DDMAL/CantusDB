@@ -22,9 +22,10 @@ from django.views.generic import (
 )
 from django.core.exceptions import PermissionDenied
 from django.contrib.auth.mixins import LoginRequiredMixin
-from django.http import Http404
+from django.http import Http404, HttpResponse
 
 from django.contrib.auth.mixins import UserPassesTestMixin
+
 
 from main_app.forms import (
     ChantCreateForm,
@@ -39,13 +40,18 @@ from main_app.models import (
     Sequence,
     Office,
 )
+from users.models import User
 from main_app.permissions import (
     user_can_edit_chants_in_source,
     user_can_proofread_chant,
     user_can_view_chant,
 )
 
-from cantusindex import get_suggested_chants, get_suggested_fulltext
+from cantusindex import (
+    get_suggested_chants,
+    get_suggested_fulltext,
+    get_ci_text_search,
+)
 
 CHANT_SEARCH_TEMPLATE_VALUES: tuple[str, ...] = (
     # for views that use chant_search.html, this allows them to
@@ -334,14 +340,14 @@ class ChantSearchView(ListView):
         return context
 
     def get_queryset(self) -> QuerySet:
-        # if user has just arrived on the Chant Search page, there will be no
-        # GET parameters.
+        # if user has just arrived on the Chant Search page, there will be no GET parameters.
         if not self.request.GET:
             return Chant.objects.none()
 
         # Create a Q object to filter the QuerySet of Chants
         q_obj_filter = Q()
         display_unpublished = self.request.user.is_authenticated
+
         # if the search is accessed by the global search bar
         if self.request.GET.get("search_bar"):
             if display_unpublished:
@@ -383,13 +389,10 @@ class ChantSearchView(ListView):
                     *CHANT_SEARCH_TEMPLATE_VALUES
                 )
                 queryset = chant_set.union(sequence_set, all=True)
-            queryset = queryset.order_by("source__siglum", "id")
-
         else:
             # The field names should be keys in the "GET" QueryDict if the search button has been
-            # clicked, even if the user put nothing into the search form and hit "apply"
-            # immediately. In that case, we return the all chants + seqs filtered by the search
-            # form. For every GET parameter other than incipit, add to the Q object
+            # clicked, even if the user put nothing into the search form and hit "apply" immediately.
+            # In that case, we return all chants + seqs filtered by the search form.
             if self.request.GET.get("office"):
                 office_id = self.request.GET.get("office")
                 q_obj_filter &= Q(office__id=office_id)
@@ -412,38 +415,9 @@ class ChantSearchView(ListView):
                     q_obj_filter &= Q(volpiano__isnull=False)
             if self.request.GET.get("feast"):
                 feast = self.request.GET.get("feast")
-                # This will match any feast whose name contains the feast parameter
-                # as a substring
+                # This will match any feast whose name contains the feast parameter as a substring
                 feasts = Feast.objects.filter(name__icontains=feast)
                 q_obj_filter &= Q(feast__in=feasts)
-            order_get_param: Optional[str] = self.request.GET.get("order")
-            sort_get_param: Optional[str] = self.request.GET.get("sort")
-
-            order_param_options = (
-                "incipit",
-                "office",
-                "genre",
-                "cantus_id",
-                "mode",
-                "has_fulltext",
-                "has_melody",
-                "has_image",
-            )
-            if order_get_param in order_param_options:
-                if order_get_param == "has_fulltext":
-                    order = "manuscript_full_text"
-                elif order_get_param == "has_melody":
-                    order = "volpiano"
-                elif order_get_param == "has_image":
-                    order = "image_link"
-                else:
-                    order = order_get_param
-            else:
-                order = "source__siglum"
-
-            # sort values: "asc" and "desc". Default is "asc"
-            if sort_get_param and sort_get_param == "desc":
-                order = f"-{order}"
 
             if not display_unpublished:
                 chant_set: QuerySet = Chant.objects.filter(source__published=True)
@@ -451,12 +425,14 @@ class ChantSearchView(ListView):
             else:
                 chant_set: QuerySet = Chant.objects.all()
                 sequence_set: QuerySet = Sequence.objects.all()
+
             # Filter the QuerySet with Q object
             chant_set = chant_set.filter(q_obj_filter)
             sequence_set = sequence_set.filter(q_obj_filter)
             # Fetch only the values necessary for rendering the template
             chant_set = chant_set.values(*CHANT_SEARCH_TEMPLATE_VALUES)
             sequence_set = sequence_set.values(*CHANT_SEARCH_TEMPLATE_VALUES)
+
             # Finally, do keyword searching over the querySet
             if self.request.GET.get("keyword"):
                 keyword = self.request.GET.get("keyword")
@@ -479,10 +455,40 @@ class ChantSearchView(ListView):
                 chant_set = chant_set.filter(keyword_filter)
                 sequence_set = sequence_set.filter(keyword_filter)
 
-            # once unioned, the queryset cannot be filtered/annotated anymore, so we put
-            # union to the last
+            # once unioned, the queryset cannot be filtered/annotated anymore, so we put union to the last
             queryset = chant_set.union(sequence_set, all=True)
-            queryset = queryset.order_by(order, "id")
+
+        # Apply sorting
+        order_get_param: Optional[str] = self.request.GET.get("order")
+        sort_get_param: Optional[str] = self.request.GET.get("sort")
+
+        order_param_options = (
+            "incipit",
+            "office",
+            "genre",
+            "cantus_id",
+            "mode",
+            "has_fulltext",
+            "has_melody",
+            "has_image",
+        )
+        if order_get_param in order_param_options:
+            if order_get_param == "has_fulltext":
+                order = "manuscript_full_text"
+            elif order_get_param == "has_melody":
+                order = "volpiano"
+            elif order_get_param == "has_image":
+                order = "image_link"
+            else:
+                order = order_get_param
+        else:
+            order = "source__siglum"
+
+        # sort values: "asc" and "desc". Default is "asc"
+        if sort_get_param and sort_get_param == "desc":
+            order = f"-{order}"
+
+        queryset = queryset.order_by(order, "id")
 
         return queryset
 
@@ -867,6 +873,43 @@ class ChantDeleteView(LoginRequiredMixin, UserPassesTestMixin, DeleteView):
         return reverse("source-edit-chants", args=[self.object.source.id])
 
 
+class CISearchView(TemplateView):
+    """Search in CI and write results in get_context_data
+    Shown on the chant create page as the "Input Tool"
+    """
+
+    template_name = "ci_search.html"
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context["genres"] = list(
+            Genre.objects.all().order_by("name").values("id", "name")
+        )
+        search_term: str = kwargs["search_term"]
+        search_term: str = search_term.replace(" ", "+")  # for multiple keywords
+
+        text_search_results: Optional[list[Optional[dict]]] = get_ci_text_search(
+            search_term
+        )
+
+        cantus_id = []
+        genre = []
+        full_text = []
+
+        if text_search_results:
+            for result in text_search_results:
+                if result:
+                    cantus_id.append(result.get("cid", None))
+                    genre.append(result.get("genre", None))
+                    full_text.append(result.get("fulltext", None))
+
+        if len(cantus_id) == 0:
+            context["results"] = [["No results", "No results", "No results"]]
+        else:
+            context["results"] = list(zip(cantus_id, genre, full_text))
+        return context
+
+
 class SourceEditChantsView(LoginRequiredMixin, UserPassesTestMixin, UpdateView):
     template_name = "chant_edit.html"
     model = Chant
@@ -1103,12 +1146,41 @@ class SourceEditChantsView(LoginRequiredMixin, UserPassesTestMixin, UpdateView):
 
     def form_valid(self, form):
         if form.is_valid():
-            form.instance.last_updated_by = self.request.user
-            messages.success(
-                self.request,
-                "Chant updated successfully!",
-            )
-            return super().form_valid(form)
+            user: User = self.request.user
+            chant: Chant = form.instance
+
+            if not user_can_proofread_chant(user, chant):
+                # Preserve the original values for proofreader-specific fields
+                original_chant: Chant = self.get_object()
+                chant.chant_range = original_chant.chant_range
+                chant.volpiano_proofread = original_chant.volpiano_proofread
+                chant.manuscript_full_text_std_proofread = (
+                    original_chant.manuscript_full_text_std_proofread
+                )
+                chant.manuscript_full_text_proofread = (
+                    original_chant.manuscript_full_text_proofread
+                )
+                proofreaders: list[Optional[User]] = list(
+                    original_chant.proofread_by.all()
+                )
+
+                # Handle proofreader checkboxes
+                if "volpiano" in form.changed_data:
+                    chant.volpiano_proofread = False
+                if "manuscript_full_text_std_spelling" in form.changed_data:
+                    chant.manuscript_full_text_std_proofread = False
+                if "manuscript_full_text" in form.changed_data:
+                    chant.manuscript_full_text_proofread = False
+
+            chant.last_updated_by = user
+            return_response: HttpResponse = super().form_valid(form)
+
+            # The many-to-many `proofread_by` field is reset when the
+            # parent class's `form_valid` method calls `save()` on the model instance.
+            if not user_can_proofread_chant(user, chant):
+                chant.proofread_by.set(proofreaders)
+            messages.success(self.request, "Chant updated successfully!")
+            return return_response
         else:
             return super().form_invalid(form)
 
@@ -1162,7 +1234,7 @@ class ChantEditSyllabificationView(LoginRequiredMixin, UserPassesTestMixin, Upda
         initial = super().get_initial()
         chant = self.get_object()
         has_syl_text = bool(chant.manuscript_syllabized_full_text)
-        syls_text = syllabify_text(
+        syls_text, _ = syllabify_text(
             text=chant.get_best_text_for_syllabizing(),
             clean_text=True,
             text_presyllabified=has_syl_text,

@@ -94,7 +94,7 @@ class UserSourceListView(LoginRequiredMixin, ListView):
                 # | Q(proofreaders=self.request.user)
                 # | Q(other_editors=self.request.user)
             )
-            .order_by("-date_created")
+            .order_by("-date_updated")
             .distinct()
         )
 

@@ -1,7 +1,8 @@
-from main_app.models import BaseModel
 from django.db import models
 from django.contrib.auth import get_user_model
 from django.contrib.postgres.search import SearchVectorField
+
+from main_app.models import BaseModel
 
 
 class BaseChant(BaseModel):
@@ -59,6 +60,25 @@ class BaseChant(BaseModel):
         "Office", on_delete=models.PROTECT, null=True, blank=True
     )
     position = models.CharField(max_length=63, null=True, blank=True)
+
+    BENEDICAMUS_DOMINO = "BD"
+    PROCESSIONAL = "P"
+    HISTORIAE = "H"
+    DRAMATIC_ELEMENT = "D"
+    LITURGICAL_FUNCTION_CHOICES = [
+        (BENEDICAMUS_DOMINO, "Benedicamus Domino"),
+        (PROCESSIONAL, "Processional"),
+        (HISTORIAE, "Historiae"),
+        (DRAMATIC_ELEMENT, "Dramatic Element"),
+    ]
+    liturgical_function = models.CharField(
+        blank=True,
+        null=True,
+        choices=LITURGICAL_FUNCTION_CHOICES,
+        max_length=10,
+        verbose_name="Function",
+    )
+
     feast = models.ForeignKey("Feast", on_delete=models.PROTECT, null=True, blank=True)
     mode = models.CharField(max_length=63, null=True, blank=True)
     differentia = models.CharField(blank=True, null=True, max_length=63)
@@ -116,6 +136,18 @@ class BaseChant(BaseModel):
     volpiano_notes = models.TextField(null=True, blank=True)
     volpiano_intervals = models.TextField(null=True, blank=True)
 
+    P2V = "2v"
+    P3V = "3v"
+    P4V = "4v"
+    POLYPHONY_CHOICES = [
+        (P2V, "2-voice polyphony"),
+        (P3V, "3-voice polyphony"),
+        (P4V, "4-voice polyphony"),
+    ]
+    polyphony = models.CharField(
+        blank=True, null=True, choices=POLYPHONY_CHOICES, max_length=10
+    )
+
     # NB: the cao_concordances field should not be used in public-facing views, as it contains data that may be out-of-date.
     # For more information, see https://github.com/DDMAL/CantusDB/wiki/BaseChant-Model
     cao_concordances = models.CharField(
@@ -144,17 +176,30 @@ class BaseChant(BaseModel):
     # this field, populated by the populate_is_last_chant_in_feast script, exists in order to optimize .get_suggested_feasts() on the chant-create page
     is_last_chant_in_feast = models.BooleanField(blank=True, null=True)
 
-    segment = models.ForeignKey(
-        "Segment",
+    project = models.ForeignKey(
+        "Project",
         on_delete=models.PROTECT,
         null=True,
         blank=True,
-        help_text="The segment of the manuscript that contains this chant",
+        help_text=(
+            "The project this chant belongs to. If left blank,"
+            "this chant is considered part of the Cantus (default) project."
+        ),
     )
     # fragmentarium_id = models.CharField(blank=True, null=True, max_length=64)
     # # Digital Analysis of Chant Transmission
     # dact = models.CharField(blank=True, null=True, max_length=64)
     # also a second differentia field
+
+    # The following fields are currently used for chants in the Benedicamus Domino
+    # segment
+    cm_melody_id = models.CharField(
+        blank=True, null=True, max_length=64, verbose_name="Corpus Monodicum Melody ID"
+    )
+    incipit_of_refrain = models.CharField(
+        blank=True, null=True, max_length=255, verbose_name="Incipit of the Refrain"
+    )
+    later_addition = models.CharField(blank=True, null=True, max_length=255)
 
     def get_ci_url(self) -> str:
         """Construct the url to the entry in Cantus Index correponding to the chant.
@@ -171,4 +216,4 @@ class BaseChant(BaseModel):
         elif self.manuscript_full_text:
             split_text = self.manuscript_full_text.split()
             incipit = " ".join(split_text[:4])
-        return '"{incip}" ({id})'.format(incip=incipit, id=self.id)
+        return f'"{incipit}" ({self.id})'

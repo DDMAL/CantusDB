@@ -1,258 +1,300 @@
-{% extends "base.html" %}
+{% extends "base_page_with_side_cards.html" %}
 {% load static %}
-{% block content %}
-<title>Create Chant | Cantus Manuscript Database</title>
+{% block title %}
+<title>Create Chant | Cantus Database</title>
+{% endblock %}
+{% block script %}
 <script src="/static/js/chant_create.js"></script>
 <script type="text/javascript" src="{% static 'admin/js/vendor/jquery/jquery.js' %}"></script>
 {{ form.media }}
-<div class="container">
-    <div class="row">
-        <div class="p-3 col-lg-8 bg-white rounded main-content">
-            <h3>Create Chant</h3>
+{% endblock %}
+{% block uppersidebar %}
+<div class="search-bar mb-3">
+    {% include "global_search_bar.html" %}
+</div>
+{% endblock %}
+{% block maincontent %}
+    <h3>Create Chant</h3>
 
-            <!--Display "submit success" message -->
-            {% if messages %}
-            <div class="alert alert-success alert-dismissible">
-                {% for message in messages %}
+    <!--Display "submit success" message -->
+    {% if messages %}
+    <div class="alert alert-success alert-dismissible">
+        {% for message in messages %}
+        <a href="#" class="close" data-dismiss="alert" aria-label="close">&times;</a>
+        <a href="{% url 'chant-detail' previous_chant.id %}" style="color:#155724" target="_blank">{{ message }}</a>
+        {% endfor %}
+    </div>
+    {% endif %}
+
+    <!--Display form error message -->
+    {% if form.errors %}
+    <div class="alert alert-danger alert-dismissible">
+        <a href="#" class="close" data-dismiss="alert" aria-label="close">&times;</a>
+        {% for error in form.non_field_errors %}
+            <a href="#" class="close" data-dismiss="alert" aria-label="close">&times;</a>
+            {{ error }}
+        {% endfor %}
+        {% for field in form %}
+            {% if field.errors %}
                 <a href="#" class="close" data-dismiss="alert" aria-label="close">&times;</a>
-                <a href="{% url 'chant-detail' previous_chant.id %}" style="color:#155724" target="_blank">{{ message }}</a>
-                {% endfor %}
-            </div>
+                {{ field.label }}: {{ field.errors|striptags }}
             {% endif %}
+        {% endfor %}
+    </div>
+    {% endif %}
 
-            <!--Display form error message -->
-            {% if form.errors %}
-            <div class="alert alert-danger alert-dismissible">
-                <a href="#" class="close" data-dismiss="alert" aria-label="close">&times;</a>
-                {% for error in form.non_field_errors %}
-                    <a href="#" class="close" data-dismiss="alert" aria-label="close">&times;</a>
-                    {{ error }}
-                {% endfor %}
-                {% for field in form %}
-                    {% if field.errors %}
-                        <a href="#" class="close" data-dismiss="alert" aria-label="close">&times;</a>
-                        {{ field.label }}: {{ field.errors|striptags }}
-                    {% endif %}
-                {% endfor %}
+    <form method="post" style="line-height: normal">{% csrf_token %}
+        <div class="form-row">
+
+            <div class="form-group m-1 col-lg-2">
+                <small>{{ form.marginalia.label_tag }}</small>
+                {{ form.marginalia }}
             </div>
-            {% endif %}
 
-            <form method="post" style="line-height: normal">{% csrf_token %}
-                <div class="form-row">
+            <div class="form-group m-1 col-lg-2">
+                <small>{{ form.folio.label_tag }}<span class="text-danger" title="This field is required">*</span></small>
+                {{ form.folio }}
+                <p class=text-muted><small>{{ form.folio.help_text}}</small></p>
+            </div>
 
-                    <div class="form-group m-1 col-lg-2">
-                        <small>{{ form.marginalia.label_tag }}</small>
-                        {{ form.marginalia }}
-                    </div>
+            <div class="form-group m-1 col-lg-2">
+                <label for="{{ form.c_sequence.id_for_label }}"><small>Sequence:</small><span class="text-danger" title="This field is required">*</span></label>
+                {{ form.c_sequence }}
+                <p class=text-muted><small>{{ form.c_sequence.help_text}}</small></p>
+            </div>
 
-                    <div class="form-group m-1 col-lg-2">
-                        <small>{{ form.folio.label_tag }}<span class="text-danger" title="This field is required">*</span></small>
-                        {{ form.folio }}
-                        <p class=text-muted><small>{{ form.folio.help_text}}</small></p>
-                    </div>
-
-                    <div class="form-group m-1 col-lg-2">
-                        <label for="{{ form.c_sequence.id_for_label }}"><small>Sequence:</small><span class="text-danger" title="This field is required">*</span></label>
-                        {{ form.c_sequence }}
-                        <p class=text-muted><small>{{ form.c_sequence.help_text}}</small></p>
-                    </div>
-
-                </div>
-
-                <div class="form-row">
-                    <div class="form-group m-1 col-lg-2">
-                        <label for="{{ form.office.id_for_label }}"><small>Service:</small></label>
-                        <br>{{ form.office }}
-                        <a href="/description/#Office"><small>?</small></a>
-                    </div>
-                </div>
-
-                <div class="form-row">
-                    <div class="form-group m-1 col-lg-2">
-                        <small>{{ form.genre.label_tag }}</small>
-                        <br>{{ form.genre }}
-                    </div>
-                </div>
-
-                <div class="form-row">
-                    <div class="form-group m-1 col-lg-2">
-                        <small>{{ form.position.label_tag }}</small>
-                        {{ form.position }}
-                    </div>
-
-                    <div class="form-group m-1 col-lg-2">
-                        <label for="{{ form.cantus_id.id_for_label }}"><small>Cantus ID:</small></label>
-                        {{ form.cantus_id }}
-                    </div>
-                    <!-- Temporarily commented; see #1452 -->
-                    <!-- <div class="form-group m-1 col-lg-2">
-                        <small>{{ form.segment.label_tag }}<span class="text-danger" title="This field is required">*</span></small>
-                        {{ form.segment }}
-                    </div> -->
-                </div>
-
-                <div class="form-row">
-
-                    <div class="form-group m-1 col-lg-3">
-                        <small>{{ form.feast.label_tag }}</small>
-                        <br>{{ form.feast }}
-                    </div>
-                    
-                </div>
-
-                <p>
-                    <small>
-                        {% if previous_chant %}
-                            Feasts that follow:
-                               {% for feast, count in suggested_feasts.items %}
-                                    <a href="javascript:" onclick='autoFillFeast("{{ feast.name }}", {{ feast.id }});'>{{ feast.name }}</a> ({{ count }}x) |
-                               {% endfor %}                                                                                                      
-                            
-                            <!-- eventually, perhaps: implement a "Reverse Changes" button -->
-                        {% endif %}
-
-                    </small>
-                </p>
-
-                <div class="form-row">
-
-                    <div class="form-group m-1 col-lg-2">
-                        <small>{{ form.mode.label_tag }}</small>
-                        {{ form.mode }}
-                    </div>
-
-                    <div class="form-group m-1 col-lg-2">
-                        <small>{{ form.finalis.label_tag }}</small>
-                        {{ form.finalis }}
-                    </div>
-
-                    <div class="form-group m-1 col-lg-2">
-                        <small>{{ form.differentia.label_tag }}</small>
-                        {{ form.differentia }}
-                    </div>
-
-                    <div class="form-group m-1 col-lg-2">
-                        <small>{{ form.extra.label_tag }}</small>
-                        {{ form.extra }}
-                    </div>
-                </div>
-
-                <div class="form-row">
-                    <div class="form-group m-1 col-lg-12">
-                        <label for="{{ form.diff_db.id_for_label }}"><small>Differentiae Database:</small></label>
-                        <br>{{ form.diff_db }}
-                        <div>
-                            <small class="text-muted">
-                                For a list of Differentia IDs, refer to
-                                the <a href="https://differentiaedatabase.ca/index" target="_blank">Differentiae Database</a>.
-                            </small>
-                        </div>
-                    </div>
-                </div>
-
-                <div class="form-row">
-
-                    <div class="form-group m-1 col-lg-2">
-                        <label for="{{ form.chant_range.id_for_label }}"><small>Range:</small></label>
-                        {{ form.chant_range }}
-                        <p class="text-muted"><small>{{ form.chant_range.help_text }}</small></p>
-                    </div>
-
-                    <div class="form-group m-1 col-lg-2">
-                        <label for="{{ form.melody_id.id_for_label }}"><small>Melody ID:</small></label>
-                        {{ form.melody_id }}
-                    </div>
-
-                    <div class="form-group m-1 col-lg">
-                        <small>{{ form.addendum.label_tag }}</small>
-                        {{ form.addendum }}
-                    </div>
-                    
-                </div>
-            
-                <div class="form-row align-items-end">
-                    <div class="form-group m-1 col-lg">
-                        <label for="{{ form.manuscript_full_text_std_spelling.id_for_label }}"><small>Manuscript Reading
-                                Full Text (standardized spelling):<span class="text-danger" title="This field is required">*</span></small></label>
-                        {{ form.manuscript_full_text_std_spelling }}
-                        <p>
-                            <small class="text-muted">{{ form.manuscript_full_text_std_spelling.help_text }}
-                                For more information, consult <a href="/description/#Fulltext" target="_blank">Fields and Content Descriptions</a>.
-                            </small>
-                        </p>
-                    </div>
-                </div>
-
-                <div class="form-row">
-                    <div class="form-group m-1 col-lg-4">
-                        <button type="button" class="btn btn-dark btn-sm" id="copyFullTextBelow">Copy full text below</button>                
-                    </div>
-                </div>
-
-                <div class="form-row align-items-end">
-                    <div class="form-group m-1 col-lg">
-                        <label for="{{ form.manuscript_full_text.id_for_label }}"><small>Manuscript Reading Full Text
-                                (MS spelling): </small></label>
-                        {{ form.manuscript_full_text }}
-                        <p class="text-muted" style="line-height: normal">
-                            <small>{{ form.manuscript_full_text.help_text }}
-                                For more information, <a href="{% url 'contact' %}" target="_blank">contact Cantus Database staff</a>.
-                            </small>
-                        </p>
-                    </div>
-                </div>
-
-                <div class="form-row align-items-end">
-                    <div class="form-group m-1 col-lg">
-                        <small>{{ form.volpiano.label_tag }}</small>
-                        {{ form.volpiano }}
-                    </div>
-                </div>
-
-                <div class="form-row align-items-end">
-                    <div class="form-group m-1 col-lg-8">
-                        <small>{{ form.image_link.label_tag }}</small>
-                        {{ form.image_link }}
-                    </div>
-                </div>
-
-                <div class="form-row align-items-end">
-                    <div class="form-group m-1 col-lg-8">
-                        <small>{{ form.content_structure.label_tag }}</small> <!-- the Content Structure field is no longer there in OldCantus... -->
-                        {{ form.content_structure }}
-                        <p class="text-muted" style="line-height: normal">
-                            <small>{{ form.content_structure.help_text }}</small>
-                        </p>
-                    </div>
-                </div>
-
-                <div class="form-row align-items-end">
-                    <div class="form-group m-1 col-lg">
-                        <small>{{ form.indexing_notes.label_tag }}</small>
-                        {{ form.indexing_notes }}
-                    </div>
-                </div>
-
-                <div class="form-group m-1 col-lg-2">
-                    <button type="submit" class="btn btn-dark btn-sm" id="btn-submit"> Save
-                    </button>
-                </div>
-            </form>
         </div>
 
-        <div class="col p-0 sidebar">
-            <div class="search-bar mb-3">
-                {% include "global_search_bar.html" %}
+        <div class="form-row">
+            <div class="form-group m-1 col-lg-2">
+                <label for="{{ form.office.id_for_label }}"><small>Service:</small></label>
+                <br>{{ form.office }}
+                <a href="/description/#Office"><small>?</small></a>
+            </div>
+        </div>
+
+        <div class="form-row">
+            <div class="form-group m-1 col-lg-2">
+                <small>{{ form.genre.label_tag }}</small>
+                <br>{{ form.genre }}
+            </div>
+        </div>
+
+        <div class="form-row">
+            <div class="form-group m-1 col-lg-2">
+                <small>{{ form.position.label_tag }}</small>
+                {{ form.position }}
             </div>
 
-            <div class="card w-100 mb-3">
-                <div class="card-header">
-                    <h5><a id="source" href="{% url 'source-detail' source.id %}">{{ source.siglum }}</a></h5>
+            <div class="form-group m-1 col-lg-2">
+                <label for="{{ form.cantus_id.id_for_label }}"><small>Cantus ID:</small></label>
+                {{ form.cantus_id }}
+            </div>
+
+            <div id="project-select-field" class="form-group m-1 col-lg-4">
+                <small>{{ form.project.label_tag }}</small>
+                {{ form.project }}
+            </div>
+
+            <div class="form-group m-1 col-lg-3">
+                <small>{{ form.liturgical_function.label_tag }}</small>
+                {{ form.liturgical_function }}
+            </div> 
+        </div>
+
+        <div class="form-row">
+
+            <div class="form-group m-1 col-lg-3">
+                <small>{{ form.feast.label_tag }}</small>
+                <br>{{ form.feast }}
+            </div>
+            
+        </div>
+
+        <p>
+            <small>
+                {% if previous_chant %}
+                    Feasts that follow:
+                        {% for feast, count in suggested_feasts.items %}
+                            <a href="javascript:" onclick='autoFillFeast("{{ feast.name }}", {{ feast.id }});'>{{ feast.name }}</a> ({{ count }}x) |
+                        {% endfor %}                                                                                                      
+                    
+                    <!-- eventually, perhaps: implement a "Reverse Changes" button -->
+                {% endif %}
+
+            </small>
+        </p>
+
+        <div class="form-row">
+
+            <div class="form-group m-1 col-lg-2">
+                <small>{{ form.mode.label_tag }}</small>
+                {{ form.mode }}
+            </div>
+
+            <div class="form-group m-1 col-lg-2">
+                <small>{{ form.finalis.label_tag }}</small>
+                {{ form.finalis }}
+            </div>
+
+            <div class="form-group m-1 col-lg-2">
+                <small>{{ form.differentia.label_tag }}</small>
+                {{ form.differentia }}
+            </div>
+
+            <div class="form-group m-1 col-lg-2">
+                <small>{{ form.extra.label_tag }}</small>
+                {{ form.extra }}
+            </div>
+
+            <div class="form-group m-1 col-lg-2">
+                <small>{{ form.polyphony.label_tag }}</small>
+                {{ form.polyphony }}
+            </div>
+        </div>
+
+        <div class="form-row">
+            <div class="form-group m-1 col-lg-12">
+                <label for="{{ form.diff_db.id_for_label }}"><small>Differentiae Database:</small></label>
+                <br>{{ form.diff_db }}
+                <div>
+                    <small class="text-muted">
+                        For a list of Differentia IDs, refer to
+                        the <a href="https://differentiaedatabase.ca/index" target="_blank">Differentiae Database</a>.
+                    </small>
+                </div>
+            </div>
+        </div>
+
+        <div class="form-row">
+
+            <div class="form-group m-1 col-lg-2">
+                <label for="{{ form.chant_range.id_for_label }}"><small>Range:</small></label>
+                {{ form.chant_range }}
+                <p class="text-muted"><small>{{ form.chant_range.help_text }}</small></p>
+            </div>
+
+            <div class="form-group m-1 col-lg-2">
+                <label for="{{ form.melody_id.id_for_label }}"><small>Melody ID:</small></label>
+                {{ form.melody_id }}
+            </div>
+
+            <div class="form-group m-1 col-lg">
+                <small>{{ form.addendum.label_tag }}</small>
+                {{ form.addendum }}
+            </div>
+            
+        </div>
+
+        <!-- The next three rows of fields are hidden unless the Benedicamus Domino project is selected. -->
+        <div id="benedicamus-domino-project-fields" hidden>
+            <div class="form-row">
+
+                <div class="form-group m-1 col-lg-4">
+                    <small>{{ form.cm_melody_id.label_tag }}</small>
+                    {{ form.cm_melody_id }}
+                </div>
+
+                <div class="form-group m-1 col-lg">
+                    <small>{{ form.incipit_of_refrain.label_tag }}</small>
+                    {{ form.incipit_of_refrain }}
+                </div>
+
+
+            </div>
+
+            <div class="form-row">
+                <div class="form-group m-1 col-lg">
+                    <small>{{ form.later_addition.label_tag }}</small>
+                    {{ form.later_addition }}
                 </div>
             </div>
 
+            <div class="form-row">
+                <div class="form-group m-1 col-lg">
+                    <small>{{ form.rubrics.label_tag }}</small>
+                    {{ form.rubrics }}
+                </div>
+            </div>
+        </div>
+    
+        <div class="form-row align-items-end">
+            <div class="form-group m-1 col-lg">
+                <label for="{{ form.manuscript_full_text_std_spelling.id_for_label }}"><small>Full text as in Source (standardized spelling):<span class="text-danger" title="This field is required">*</span></small></label>
+                {{ form.manuscript_full_text_std_spelling }}
+                <p>
+                    <small class="text-muted">{{ form.manuscript_full_text_std_spelling.help_text }}
+                        For more information, consult <a href="/description/#Fulltext" target="_blank">Fields and Content Descriptions</a>.
+                    </small>
+                </p>
+            </div>
+        </div>
+
+        <div class="form-row">
+            <div class="form-group m-1 col-lg-4">
+                <button type="button" class="btn btn-dark btn-sm" id="copyFullTextBelow">Copy full text below</button>                
+            </div>
+        </div>
+
+        <div class="form-row align-items-end">
+            <div class="form-group m-1 col-lg">
+                <label for="{{ form.manuscript_full_text.id_for_label }}"><small>Full text as in Source
+                        (source spelling): </small></label>
+                {{ form.manuscript_full_text }}
+                <p class="text-muted" style="line-height: normal">
+                    <small>{{ form.manuscript_full_text.help_text }}
+                        For more information, <a href="{% url 'contact' %}" target="_blank">contact Cantus Database staff</a>.
+                    </small>
+                </p>
+            </div>
+        </div>
+
+        <div class="form-row align-items-end">
+            <div class="form-group m-1 col-lg">
+                <small>{{ form.volpiano.label_tag }}</small>
+                {{ form.volpiano }}
+            </div>
+        </div>
+
+        <div class="form-row align-items-end">
+            <div class="form-group m-1 col-lg-8">
+                <small>{{ form.image_link.label_tag }}</small>
+                {{ form.image_link }}
+            </div>
+        </div>
+
+        <div class="form-row align-items-end">
+            <div class="form-group m-1 col-lg-8">
+                <small>{{ form.content_structure.label_tag }}</small> <!-- the Content Structure field is no longer there in OldCantus... -->
+                {{ form.content_structure }}
+                <p class="text-muted" style="line-height: normal">
+                    <small>{{ form.content_structure.help_text }}</small>
+                </p>
+            </div>
+        </div>
+
+        <div class="form-row align-items-end">
+            <div class="form-group m-1 col-lg">
+                <small>{{ form.indexing_notes.label_tag }}</small>
+                {{ form.indexing_notes }}
+            </div>
+        </div>
+
+        <div class="form-group m-1 col-lg-2">
+            <button type="submit" class="btn btn-dark btn-sm" id="btn-submit"> Save
+            </button>
+        </div>
+    </form>
+{% endblock %}
+{% block lowersidebar %}
+    <div class="card w-100 mb-3">
+        <div class="card-header">
+            <h5><a id="source" href="{% url 'source-detail' source.id %}">{{ source.siglum }}</a></h5>
+        </div>
+    </div>
+
             {% if previous_chant %}
-                <div class="card w-100">
+                <div class="card w-100 mb-3">
                     <div class="card-body">
                         <small>
                             <b>Suggestions based on previous chant:</b><br>
@@ -279,12 +321,34 @@
                                 <strong>{{ suggestion.genre_name }}</strong> - <span title="{{ suggestion.fulltext }}">{{ suggestion.incipit }}</span> (<strong>{{ suggestion.occurrences }}x</strong>)<br>
                             {% endfor %}
                         {% else %}
-                            Sorry! No suggestions found.<br>
+                            Sorry! No suggestions found. Please use the search form below.<br>
                         {% endif %}
                         </small>
                     </div>
                 </div>
             {% endif %}
+            <div class="card w-100">
+                <div class="card-header">
+                    <h5>Input Tool</h5>
+                </div>
+
+                <div class=" card-body" style="font-size: 15px">
+                    Enter any text from chant:
+                    <input type="text" id="incipitsearch" />
+                    <button class="btn btn-danger btn-sm" onclick="openCiSearchWin()">Search ID</button>
+                    <script>
+                        function openCiSearchWin() {
+                            search_term = document.getElementById("incipitsearch").value;
+                            if (search_term.length < 3) {
+                                search_term = window.prompt("Enter at least 3 characters of incipit", "");
+                            }
+                            address = "/ci-search/" + search_term;
+                            var ci = window.open(address, "ci", "height=400px, width=1200px, top=0, left=50px, status=no, toolbar=no, location=no, scrollbars=yes, resizable=yes");
+                        }
+                    </script>
+                </div>
+
+            </div>
         </div>
     </div>
 </div>

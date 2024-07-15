@@ -46,6 +46,22 @@ window.addEventListener("load", function () {
         url.searchParams.set('folio', folio);
         window.location.assign(url);
     }
+
+    // Add an event listener to the project select field.
+    // If the user selects "Benedicamus Domino", show the additional fields
+    // in the "benedicamus-domino-project-fields" div. By default, these
+    // are hidden.
+    const projectSelectElem = document.getElementById("id_project");
+    projectSelectElem.addEventListener("change", function () {
+        const benedicamusDominoProjectFields = document.getElementById("benedicamus-domino-project-fields");
+        const selectedElemText = projectSelectElem.options[projectSelectElem.selectedIndex].text;
+        if (selectedElemText === "Benedicamus Domino") {
+            benedicamusDominoProjectFields.hidden = false;
+        } else {
+            benedicamusDominoProjectFields.hidden = true;
+        }
+    });
+    projectSelectElem.dispatchEvent(new Event('change')); // ensures that the event listener is called on page load
 })
 
 function autoFillSuggestedFullText(fullText) {

@@ -197,6 +197,9 @@ DEBUG_TOOLBAR_CONFIG = {
         "debug_toolbar.panels.redirects.RedirectsPanel",
         "debug_toolbar.panels.profiling.ProfilingPanel",
     },
+    "SHOW_TOOLBAR_CALLBACK": lambda request: (
+        False if request.headers.get("x-requested-with") == "XMLHttpRequest" else True
+    ),
 }
 
 INTERNAL_IPS = [

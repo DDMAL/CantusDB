@@ -27,7 +27,7 @@ class Source(BaseModel):
 
     title = models.CharField(
         max_length=255,
-        help_text="Full Manuscript Identification (City, Archive, Shelf-mark)",
+        help_text="Full Source Identification (City, Archive, Shelf-mark)",
     )
     # the siglum field as implemented on the old Cantus is composed of both the RISM siglum and the shelfmark
     # it is a human-readable ID for a source
@@ -37,9 +37,8 @@ class Source(BaseModel):
         blank=False,
         help_text="RISM-style siglum + Shelf-mark (e.g. GB-Ob 202).",
     )
-    # the RISM siglum uniquely identifies a library or holding institution
-    rism_siglum = models.ForeignKey(
-        "RismSiglum",
+    holding_institution = models.ForeignKey(
+        "Institution",
         on_delete=models.PROTECT,
         null=True,
         blank=True,
@@ -64,7 +63,7 @@ class Source(BaseModel):
         blank=True,
         null=True,
         max_length=63,
-        help_text='Date of the manuscript (e.g. "1200s", "1300-1350", etc.)',
+        help_text='Date of the source (e.g. "1200s", "1300-1350", etc.)',
     )
     century = models.ManyToManyField("Century", related_name="sources", blank=True)
     notation = models.ManyToManyField("Notation", related_name="sources", blank=True)

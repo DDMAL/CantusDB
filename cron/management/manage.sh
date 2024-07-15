@@ -7,4 +7,4 @@
 DOCKER_COMPOSE_FILE=$1                                              # This is the path to the docker-compose file.
 COMMAND=$2                                                          # This is the command to execute.
 
-/usr/local/bin/docker-compose -f $DOCKER_COMPOSE_FILE exec -T django python manage.py $COMMAND
+/usr/bin/docker compose -f $DOCKER_COMPOSE_FILE exec -T django python manage.py $COMMAND
