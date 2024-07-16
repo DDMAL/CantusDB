@@ -26,7 +26,6 @@ from articles.models import Article
 from main_app.models import (
     Century,
     Chant,
-    Differentia,
     Feast,
     Genre,
     Notation,
@@ -35,10 +34,21 @@ from main_app.models import (
     Segment,
     Sequence,
     Source,
-    Institution,
 )
 from main_app.models.base_model import BaseModel
 from next_chants import next_chants
+from django.contrib import messages
+from django.http import Http404
+from django.contrib.auth import update_session_auth_hash
+from django.contrib.auth.forms import PasswordChangeForm
+from django.core.exceptions import PermissionDenied, BadRequest
+from django.urls import reverse
+from django.contrib.auth import get_user_model
+from typing import List
+from django.core.paginator import Paginator
+from django.templatetags.static import static
+from django.contrib.flatpages.models import FlatPage
+from django.shortcuts import get_object_or_404
 
 
 @login_required
@@ -998,135 +1008,3 @@ def redirect_source_inventory(request) -> HttpResponse:
         raise BadRequest("Source parameter must be provided")
     url: str = reverse("source-inventory", args=[source_id])
     return redirect(url, permanent=True)
-
-
-class CurrentEditorsAutocomplete(autocomplete.Select2QuerySetView):
-    def get_queryset(self):
-        if not self.request.user.is_authenticated:
-            return get_user_model().objects.none()
-        qs = (
-            get_user_model()
-            .objects.filter(
-                Q(groups__name="project manager")
-                | Q(groups__name="editor")
-                | Q(groups__name="contributor")
-            )
-            .order_by("full_name")
-        )
-        if self.q:
-            qs = qs.filter(
-                Q(full_name__istartswith=self.q) | Q(email__istartswith=self.q)
-            )
-        return qs
-
-
-class AllUsersAutocomplete(autocomplete.Select2QuerySetView):
-    def get_queryset(self):
-        if not self.request.user.is_authenticated:
-            return get_user_model().objects.none()
-        qs = get_user_model().objects.all().order_by("full_name")
-        if self.q:
-            qs = qs.filter(
-                Q(full_name__istartswith=self.q) | Q(email__istartswith=self.q)
-            )
-        return qs
-
-
-class CenturyAutocomplete(autocomplete.Select2QuerySetView):
-    def get_queryset(self):
-        if not self.request.user.is_authenticated:
-            return Century.objects.none()
-        qs = Century.objects.all().order_by("name")
-        if self.q:
-            qs = qs.filter(name__istartswith=self.q)
-        return qs
-
-
-class FeastAutocomplete(autocomplete.Select2QuerySetView):
-    def get_queryset(self):
-        if not self.request.user.is_authenticated:
-            return Feast.objects.none()
-        qs = Feast.objects.all().order_by("name")
-        if self.q:
-            qs = qs.filter(name__icontains=self.q)
-        return qs
-
-
-class OfficeAutocomplete(autocomplete.Select2QuerySetView):
-    def get_result_label(self, office):
-        return f"{office.name} - {office.description}"
-
-    def get_queryset(self):
-        if not self.request.user.is_authenticated:
-            return Office.objects.none()
-        qs = Office.objects.all().order_by("name")
-        if self.q:
-            qs = qs.filter(
-                Q(name__istartswith=self.q) | Q(description__icontains=self.q)
-            )
-        return qs
-
-
-class GenreAutocomplete(autocomplete.Select2QuerySetView):
-    def get_result_label(self, genre):
-        return f"{genre.name} - {genre.description}"
-
-    def get_queryset(self):
-        if not self.request.user.is_authenticated:
-            return Genre.objects.none()
-        qs = Genre.objects.all().order_by("name")
-        if self.q:
-            qs = qs.filter(
-                Q(name__istartswith=self.q) | Q(description__icontains=self.q)
-            )
-        return qs
-
-
-class DifferentiaAutocomplete(autocomplete.Select2QuerySetView):
-    def get_queryset(self):
-        if not self.request.user.is_authenticated:
-            return Differentia.objects.none()
-        qs = Differentia.objects.all().order_by("differentia_id")
-        if self.q:
-            qs = qs.filter(differentia_id__istartswith=self.q)
-        return qs
-
-
-class HoldingAutocomplete(autocomplete.Select2QuerySetView):
-    def get_queryset(self):
-        if not self.request.user.is_authenticated:
-            return Institution.objects.none()
-
-        qs = Institution.objects.all().order_by("name")
-        if self.q:
-            qs = qs.filter(Q(name__istartswith=self.q) | Q(siglum__istartswith=self.q))
-        return qs
-
-
-class ProvenanceAutocomplete(autocomplete.Select2QuerySetView):
-    def get_queryset(self):
-        if not self.request.user.is_authenticated:
-            return Provenance.objects.none()
-        qs = Provenance.objects.all().order_by("name")
-        if self.q:
-            qs = qs.filter(name__icontains=self.q)
-        return qs
-
-
-class ProofreadByAutocomplete(autocomplete.Select2QuerySetView):
-    def get_queryset(self):
-        if not self.request.user.is_authenticated:
-            return get_user_model().objects.none()
-        qs = (
-            get_user_model()
-            .objects.filter(
-                Q(groups__name="project manager") | Q(groups__name="editor")
-            )
-            .distinct()
-            .order_by("full_name")
-        )
-        if self.q:
-            qs = qs.filter(
-                Q(full_name__istartswith=self.q) | Q(email__istartswith=self.q)
-            )
-        return qs

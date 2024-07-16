@@ -62,7 +62,7 @@ from main_app.views.user import (
     UserListView,
     UserSourceListView,
 )
-from main_app.views.views import (
+from main_app.views.autocomplete import (
     CurrentEditorsAutocomplete,
     AllUsersAutocomplete,
     CenturyAutocomplete,
