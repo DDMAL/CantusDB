@@ -138,8 +138,7 @@ class Source(BaseModel):
     number_of_melodies = models.IntegerField(blank=True, null=True)
 
     def __str__(self):
-        string = "[{s}] {t} ({i})".format(s=self.siglum, t=self.title, i=self.id)
-        return string
+        return self.heading
 
     def save(self, *args, **kwargs):
         # when creating a source, assign it to "CANTUS Database" segment by default
