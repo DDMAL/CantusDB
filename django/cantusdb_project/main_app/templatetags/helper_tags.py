@@ -3,12 +3,12 @@ from typing import Union, Optional
 
 from django import template
 from django.core.paginator import Paginator
-from django.db.models import Q, Prefetch
+from django.db.models import Q
 from django.template.defaultfilters import stringfilter
 from django.utils.safestring import mark_safe
 
 from articles.models import Article
-from main_app.models import Source, Chant
+from main_app.models import Source
 
 register = template.Library()
 
