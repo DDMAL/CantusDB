@@ -26,6 +26,8 @@ class Command(BaseCommand):
             new_feast.notes = new_feast.notes or old_feast.notes
             new_feast.month = new_feast.month or old_feast.month
             new_feast.day = new_feast.day or old_feast.day
+
+            # Call save method to update 'prefix' field
             new_feast.save()
 
             # Reassign chants and sequences
