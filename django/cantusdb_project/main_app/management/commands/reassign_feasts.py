@@ -1,5 +1,5 @@
 from django.core.management.base import BaseCommand
-from main_app.models import Feast, Chant
+from main_app.models import Feast, Chant, Sequence
 
 
 class Command(BaseCommand):
@@ -27,16 +27,26 @@ class Command(BaseCommand):
             new_feast.month = new_feast.month or old_feast.month
             new_feast.day = new_feast.day or old_feast.day
 
-            # Call save method to update 'prefix' field
+            # Calling save method will update 'prefix' field
             new_feast.save()
 
-            # Reassign chants and sequences
+            # Reassign chants
             chants_updated = Chant.objects.filter(feast=old_feast).update(
                 feast=new_feast
             )
             self.stdout.write(
                 self.style.SUCCESS(
                     f"Reassigned {chants_updated} chants from feast {old_feast_id} to {new_feast_id}"
+                )
+            )
+
+            # Reassign sequences
+            sequences_updated = Sequence.objects.filter(feast=old_feast).update(
+                feast=new_feast
+            )
+            self.stdout.write(
+                self.style.SUCCESS(
+                    f"Reassigned {sequences_updated} sequences from feast {old_feast_id} to {new_feast_id}"
                 )
             )
 
