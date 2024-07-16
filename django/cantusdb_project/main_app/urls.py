@@ -74,6 +74,7 @@ from main_app.views.autocomplete import (
     ProofreadByAutocomplete,
     HoldingAutocomplete,
 )
+from main_app.views.auth import change_password
 
 urlpatterns = [
     path(
@@ -109,7 +110,7 @@ urlpatterns = [
     ),
     path(
         "change-password/",
-        views.change_password,
+        change_password,
         name="change-password",
     ),
     # password reset views

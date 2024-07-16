@@ -37,10 +37,9 @@ from main_app.models import (
 )
 from main_app.models.base_model import BaseModel
 from next_chants import next_chants
-from django.contrib import messages
+
 from django.http import Http404
-from django.contrib.auth import update_session_auth_hash
-from django.contrib.auth.forms import PasswordChangeForm
+
 from django.core.exceptions import PermissionDenied, BadRequest
 from django.urls import reverse
 from django.contrib.auth import get_user_model
@@ -806,19 +805,6 @@ def redirect_node_url(request, pk: int) -> HttpResponse:
 
     # if it reaches the end of the types with finding an existing object, a 404 will be returned
     raise Http404("No record found matching the /node/ query.")
-
-
-@login_required
-def change_password(request):
-    if request.method == "POST":
-        form = PasswordChangeForm(request.user, request.POST)
-        if form.is_valid():
-            user = form.save()
-            update_session_auth_hash(request, user)
-            messages.success(request, "Your password was successfully updated!")
-    else:
-        form = PasswordChangeForm(request.user)
-    return render(request, "registration/change_password.html", {"form": form})
 
 
 def project_manager_check(user):
