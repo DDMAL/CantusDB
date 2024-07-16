@@ -1,18 +1,22 @@
 {% extends "base_page_with_side_cards.html" %}
 {% load static %}
+
 {% block title %}
-<title>{{ source.title }} | Cantus Database</title>
+    <title>{{ source.title }} | Cantus Database</title>
 {% endblock %}
-{% block script %}
-<script src="/static/js/chant_edit.js"></script>
-<script type="text/javascript" src="{% static 'admin/js/vendor/jquery/jquery.js' %}"></script>
-{{ form.media }}
+
+{% block scripts %}
+    <script src="/static/js/chant_edit.js"></script>
+    <script type="text/javascript" src="{% static 'admin/js/vendor/jquery/jquery.js' %}"></script>
+    {{ form.media }}
 {% endblock %}
+
 {% block uppersidebar %}
-<div class="search-bar mb-3">
-    {% include "global_search_bar.html" %}
-</div>
+    <div class="search-bar mb-3">
+        {% include "global_search_bar.html" %}
+    </div>
 {% endblock %}
+
 {% block maincontent %}
     <!--Display messages -->
     {% for message in messages %}

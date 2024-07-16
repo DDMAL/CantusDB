@@ -27,14 +27,16 @@ class Source(BaseModel):
 
     title = models.CharField(
         max_length=255,
+        blank=True,
+        null=True,
         help_text="Full Source Identification (City, Archive, Shelf-mark)",
     )
     # the siglum field as implemented on the old Cantus is composed of both the RISM siglum and the shelfmark
     # it is a human-readable ID for a source
     siglum = models.CharField(
         max_length=63,
-        null=False,
-        blank=False,
+        null=True,
+        blank=True,
         help_text="RISM-style siglum + Shelf-mark (e.g. GB-Ob 202).",
     )
     holding_institution = models.ForeignKey(
@@ -42,6 +44,11 @@ class Source(BaseModel):
         on_delete=models.PROTECT,
         null=True,
         blank=True,
+    )
+    shelfmark = models.CharField(
+        max_length=255,
+        blank=True,
+        null=True,
     )
     provenance = models.ForeignKey(
         "Provenance",
@@ -131,8 +138,7 @@ class Source(BaseModel):
     number_of_melodies = models.IntegerField(blank=True, null=True)
 
     def __str__(self):
-        string = "[{s}] {t} ({i})".format(s=self.siglum, t=self.title, i=self.id)
-        return string
+        return self.heading
 
     def save(self, *args, **kwargs):
         # when creating a source, assign it to "CANTUS Database" segment by default
@@ -140,3 +146,30 @@ class Source(BaseModel):
             cantus_db_segment = Segment.objects.get(name="CANTUS Database")
             self.segment = cantus_db_segment
         super().save(*args, **kwargs)
+
+    @property
+    def heading(self) -> str:
+        title = []
+        if holdinst := self.holding_institution:
+            city = f"{holdinst.city}," if holdinst.city else ""
+            title.append(city)
+            title.append(f"{holdinst.name},")
+
+        tt = self.shelfmark if self.shelfmark else self.title
+
+        title.append(tt)
+
+        return " ".join(title)
+
+    @property
+    def short_heading(self) -> str:
+        title = []
+        if holdinst := self.holding_institution:
+            if holdinst.siglum and holdinst.siglum != "XX-NN":
+                title.append(f"{holdinst.siglum}")
+            elif holdinst.is_private_collector:
+                title.append("Private")
+
+        tt = self.shelfmark if self.shelfmark else self.title
+        title.append(tt)
+        return " ".join(title)

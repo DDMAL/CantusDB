@@ -1,6 +1,7 @@
 from django.urls import include, path
 from django.conf import settings
 from django.contrib.auth.views import (
+    LoginView,
     PasswordResetView,
     PasswordResetDoneView,
     PasswordResetConfirmView,
@@ -55,7 +56,6 @@ from main_app.views.source import (
     SourceInventoryView,
 )
 from main_app.views.user import (
-    LoginView,
     CustomLogoutView,
     IndexerListView,
     UserDetailView,
@@ -71,7 +71,8 @@ from main_app.views.views import (
     GenreAutocomplete,
     DifferentiaAutocomplete,
     ProvenanceAutocomplete,
-    ProofreadByAutocomplete,
+    ProofreadByAutocomplete, 
+    HoldingAutocomplete,
 )
 
 urlpatterns = [
@@ -489,6 +490,11 @@ urlpatterns = [
         "proofread-by-autocomplete/",
         ProofreadByAutocomplete.as_view(),
         name="proofread-by-autocomplete",
+    ),
+    path(
+        "holding-autocomplete",
+        HoldingAutocomplete.as_view(),
+        name="holding-autocomplete",
     ),
     path(
         "provenance-autocomplete/",

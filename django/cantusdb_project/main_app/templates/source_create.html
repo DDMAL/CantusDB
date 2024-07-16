@@ -1,9 +1,16 @@
 {% extends "base.html" %}
 {% load static %}
+
+{% block title %}
+    <title>Create Source | Cantus Database</title>
+{% endblock %}
+
+{% block scripts %}
+    <script type="text/javascript" src="{% static 'admin/js/vendor/jquery/jquery.js' %}"></script>
+    {{ form.media }}
+{% endblock %}
+
 {% block content %}
-<script type="text/javascript" src="{% static 'admin/js/vendor/jquery/jquery.js' %}"></script>
-{{ form.media }}
-<title>Create Source | Cantus Database</title>
 <div class="container">
     <div class="row">
         <div class="p-3 col-lg-12 bg-white rounded">
@@ -37,23 +44,27 @@
 
             <form method="post" style="line-height: normal">{% csrf_token %}
                 <div class="form-row">
-
-                    <div class="form-group m-1 col-lg-6">
-                        <label for="{{ form.title.id_for_label }}">
-                            <small>Full Source Identification (City, Archive, Shelf-mark):<span class="text-danger" title="This field is required">*</span></small>
+                    <div class="form-group m-1 col-lg-3">
+                        <label for="{{ form.holding_institution.id_for_label }}">
+                            <small>Holding Institution:</small>
                         </label>
-                        {{ form.title }}
+                        <br>{{ form.holding_institution }}
+                        <p class=text-muted>
+                            <small>{{ form.holding_institution.help_text }}</small>
+                        </p>
                     </div>
                 </div>
-
                 <div class="form-row">
-                    <div class="form-group m-1 col-lg-4">
-                        <small>{{ form.siglum.label_tag }}<span class="text-danger" title="This field is required">*</span></small>
-                        {{ form.siglum }}
-                        <p class=text-muted><small>{{ form.siglum.help_text }}</small></p>
-                    </div>    
+                    <div class="form-group m-1 col-lg-3">
+                        <label for="{{ form.shelfmark.id_for_label }}">
+                            <small>Shelfmark:</small>
+                        </label>
+                        <br>{{ form.shelfmark }}
+                        <p class=text-muted>
+                            <small>{{ form.shelfmark.help_text }}</small>
+                        </p>
+                    </div>
                 </div>
-
                 <div class="form-row">
                     <div class="form-group m-1 col-lg-3">
                         <label for="{{ form.provenance.id_for_label }}">

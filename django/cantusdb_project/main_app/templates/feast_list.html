@@ -1,9 +1,15 @@
 {% extends "base.html" %}
 {% load helper_tags %} {# for month_to_string #}
-{% block content %}
-<title>List of Feasts | Cantus Database</title>
-<script src="/static/js/feast_list.js"></script>
 
+{% block title %}
+    <title>List of Feasts | Cantus Database</title>
+{% endblock %}
+
+{% block scripts %}
+    <script src="/static/js/feast_list.js"></script>
+{% endblock %}
+
+{% block content %}
 <div class="mr-3 p-3 col-md-12 mx-auto bg-white rounded">
     <object align="right" class="search-bar">
         {% include "global_search_bar.html" %}

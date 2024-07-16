@@ -1,8 +1,8 @@
-<!DOCTYPE html>
 {% load static %}
 {% load helper_tags %} {# for has_group #}
-<html lang="en">
 
+<!DOCTYPE html>
+<html lang="en">
 <head>
     {% if PROJECT_ENVIRONMENT == "PRODUCTION" %}
         <!-- Google tag (gtag.js) -->
@@ -19,6 +19,9 @@
         {# to ensure Google/etc. only indexes the main production site, and not staging #}
         <meta name="robots" content="noindex">
     {% endif %}
+    {% block title %}
+        <title>Cantus Database</title>
+    {% endblock %}
     <!-- Required meta tags -->
     <meta name="google-site-verification" content="EwxpNpZ_ZOQnetVVLELGn5-aD_beT3EQqUuI6glkArI" />
     <meta charset="utf-8">
@@ -152,6 +155,9 @@
         }
     </style>
     <link href="{% static 'fonts/volpiano.css' %}" rel="stylesheet" media="screen">
+
+    {% block scripts %}
+    {% endblock %}
 </head>
 
 <body>

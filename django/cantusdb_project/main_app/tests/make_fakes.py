@@ -3,17 +3,18 @@
 import random
 from faker import Faker
 
-from main_app.models import Century
-from main_app.models import Chant
-from main_app.models import Feast
-from main_app.models import Genre
-from main_app.models import Notation
-from main_app.models import Office
-from main_app.models import Project
-from main_app.models import Provenance
-from main_app.models import Segment
-from main_app.models import Sequence
-from main_app.models import Source
+from main_app.models.century import Century
+from main_app.models.chant import Chant
+from main_app.models.feast import Feast
+from main_app.models.genre import Genre
+from main_app.models.institution import Institution
+from main_app.models.notation import Notation
+from main_app.models.office import Office
+from main_app.models.project import Project
+from main_app.models.provenance import Provenance
+from main_app.models.segment import Segment
+from main_app.models.sequence import Sequence
+from main_app.models.source import Source
 from django.contrib.auth import get_user_model
 
 from typing import Optional, List
@@ -344,17 +345,42 @@ def make_fake_sequence(source=None, title=None, cantus_id=None) -> Sequence:
     return sequence
 
 
+def make_fake_institution(
+    name: Optional[str] = None,
+    siglum: Optional[str] = None,
+    city: Optional[str] = None,
+    region: Optional[str] = None,
+    country: Optional[str] = None,
+) -> Institution:
+    name = name if name else faker.sentence()
+    siglum = siglum if siglum else faker.sentence(nb_words=1)
+    city = city if city else faker.city()
+    region = region if region else faker.country()
+    country = country if country else faker.country()
+
+    inst = Institution.objects.create(
+        name=name,
+        siglum=siglum,
+        city=city,
+        region=region,
+        country=country
+    )
+    inst.save()
+
+    return inst
+
+
 def make_fake_source(
     published: bool = True,
-    title: Optional[str] = None,
+    shelfmark: Optional[str] = None,
     segment_name: Optional[str] = None,
     segment: Optional[Segment] = None,
-    siglum: Optional[str] = None,
+    holding_institution: Optional[Institution] = None,
     description: Optional[str] = None,
     summary: Optional[str] = None,
     provenance: Optional[Provenance] = None,
     century: Optional[Century] = None,
-    full_source: bool = True,
+    full_source: Optional[bool] = True,
     indexing_notes: Optional[str] = None,
 ) -> Source:
     """Generates a fake Source object."""
@@ -363,14 +389,14 @@ def make_fake_source(
 
     # if published...
     #     published already defaults to True
-    if title is None:
-        title = faker.sentence()
+    if shelfmark is None:
+        shelfmark = faker.sentence()
     if segment_name is None:
         segment_name = faker.sentence(nb_words=2)
     if segment is None:
         segment = make_fake_segment(name=segment_name)
-    if siglum is None:
-        siglum = make_random_string(6)
+    if holding_institution is None:
+        holding_institution = make_fake_institution()
     if description is None:
         description = faker.sentence()
     if summary is None:
@@ -389,9 +415,9 @@ def make_fake_source(
 
     source = Source.objects.create(
         published=published,
-        title=title,
+        shelfmark=shelfmark,
         segment=segment,
-        siglum=siglum,
+        holding_institution=holding_institution,
         description=description,
         summary=summary,
         provenance=provenance,
