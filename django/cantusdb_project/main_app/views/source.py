@@ -108,9 +108,10 @@ class SourceBrowseChantsView(ListView):
         # so they should not appear among the list of sources
         cantus_segment: QuerySet[Segment] = Segment.objects.get(id=4063)
 
+        # to be displayed in the "Source" dropdown in the form
         sources: QuerySet[Source] = (cantus_segment.source_set
                                      .select_related("holding_institution", "segment")
-                                     .order_by("siglum"))  # to be displayed in the "Source" dropdown in the form
+                                     .order_by("holding_institution__siglum"))
         if not display_unpublished:
             sources = sources.filter(published=True)
         context["sources"] = sources
