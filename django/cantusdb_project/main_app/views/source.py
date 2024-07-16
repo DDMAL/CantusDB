@@ -181,18 +181,19 @@ class SourceDetailView(DetailView):
 
         context = super().get_context_data(**kwargs)
 
-        if source.segment and source.segment.id == 4064:
+        if source.segment and source.segment_id == 4064:
             # if this is a sequence source
-            context["sequences"] = source.sequence_set.select_related("source").order_by("s_sequence")
+            sequences = source.sequence_set.select_related("genre", "office")
+            context["sequences"] = sequences.order_by("s_sequence")
             context["folios"] = (
-                source.sequence_set.select_related("source").values_list("folio", flat=True)
+                sequences.values_list("folio", flat=True)
                 .distinct()
                 .order_by("folio")
             )
         else:
             # if this is a chant source
             folios = (
-                source.chant_set.select_related("source").values_list("folio", flat=True)
+                source.chant_set.values_list("folio", flat=True)
                 .distinct()
                 .order_by("folio")
             )
