@@ -99,6 +99,7 @@ def get_feast_selector_options(source: Source) -> list[tuple[str, int, str]]:
     """
     folios_feasts_iter: Iterator[tuple[Optional[str], int, str]] = (
         source.chant_set.exclude(feast=None)
+        .select_related("feast", "genre", "office")
         .values_list("folio", "feast_id", "feast__name")
         .order_by("folio", "c_sequence")
         .iterator()
@@ -258,7 +259,7 @@ class ChantByCantusIDView(ListView):
         # "chant" objects this forces us to do something special on the template to render correct
         # absolute url for sequences
         queryset = chant_set.union(sequence_set)
-        queryset = queryset.order_by("siglum")
+        queryset = queryset.order_by("source__holding_institution__siglum")
         return queryset
 
     def get_context_data(self, **kwargs):

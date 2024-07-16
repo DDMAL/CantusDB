@@ -35,7 +35,7 @@
 {% endblock %}
 
 {% block lowersidebar %}
-    {% if request.user|has_group:"contributor" or request.user|has_group:"editor" or request.user|has_group:"project manager" %}
+    {% if request.user|in_groups:"contributor,editor,project manager" %}
         <div class="card w-100">
             <div class="card-header">
                 My Sources
@@ -47,19 +47,19 @@
                     {% for my_source in user_sources_page_obj %}
                         <li>
                             <a href="{% url "source-detail" my_source.pk %}">
-                                <b> {{ my_source.siglum }}</b>
+                                <b> {{ my_source.short_heading }}</b>
                             </a>
                             <br>
                             <small>
                                 <a href="{% url "source-detail" my_source.pk %}">
-                                    <b> {{ my_source.title }}</b>
+                                    <b> {{ my_source.heading }}</b>
                                 </a>
                                 <br>
                                 <a href="{% url "chant-create" my_source.pk %}" style="display: inline-block; margin-top:5px;">
                                     &plus; Add new chant
                                 </a>
                                 <br>
-                                {% if my_source.chant_set.all %}
+                                {% if my_source.chant_set.exists %}
                                     <a href="{% url "source-edit-chants" my_source.pk %}">
                                         &bull; Full text &amp; volpiano editor
                                     </a>
@@ -100,19 +100,19 @@
                     {% for my_source in user_created_sources_page_obj %}
                         <li>
                             <a href="{% url "source-detail" my_source.pk %}">
-                                <b> {{ my_source.siglum }}</b>
+                                <b> {{ my_source.short_heading }}</b>
                             </a>
                             <br>
                             <small>
                                 <a href="{% url "source-detail" my_source.pk %}">
-                                    <b> {{ my_source.title }}</b>
+                                    <b> {{ my_source.heading }}</b>
                                 </a>
                                 <br>
                                 <a href="{% url "chant-create" my_source.pk %}" style="display: inline-block; margin-top:5px;">
                                     &plus; Add new chant
                                 </a>
                                 <br>
-                                {% if my_source.chant_set.all %}
+                                {% if my_source.chant_set.exists %}
                                     <a href="{% url "source-edit-chants" my_source.pk %}">
                                         &bull; Full text &amp; volpiano editor
                                     </a>
