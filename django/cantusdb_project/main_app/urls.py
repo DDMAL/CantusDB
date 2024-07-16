@@ -8,6 +8,7 @@ from django.contrib.auth.views import (
     PasswordResetCompleteView,
 )
 from main_app.views import views
+from main_app.views import redirect
 from main_app.views.century import (
     CenturyDetailView,
 )
@@ -191,7 +192,7 @@ urlpatterns = [
     ),
     path(
         "chants/",
-        views.redirect_chants,
+        redirect.redirect_chants,
         name="redirect-chants",
     ),  # /chants/?source={source id}
     # feast
@@ -218,7 +219,7 @@ urlpatterns = [
     ),
     path(
         "genre/",
-        views.redirect_genre,
+        redirect.redirect_genre,
         name="redirect-genre",
     ),
     # indexer
@@ -246,7 +247,7 @@ urlpatterns = [
     ),
     path(
         "office/",
-        views.redirect_office,
+        redirect.redirect_office,
         name="redirect-office",
     ),
     # provenance
@@ -294,7 +295,7 @@ urlpatterns = [
     ),
     path(
         "index/",
-        views.redirect_source_inventory,
+        redirect.redirect_source_inventory,
         name="redirect-source-inventory",
     ),
     path(
@@ -378,7 +379,7 @@ urlpatterns = [
     ),
     path(
         "search/",
-        views.redirect_search,
+        redirect.redirect_search,
         name="redirect-search",
     ),
     path(
@@ -399,7 +400,7 @@ urlpatterns = [
     ),
     path(
         "sites/default/files/csv/<str:source_id>.csv",
-        views.csv_export_redirect_from_old_path,
+        redirect.csv_export_redirect_from_old_path,
         name="csv-export-old-path",
     ),
     # content overview (for project managers)
@@ -411,13 +412,13 @@ urlpatterns = [
     # /node/ url redirects
     path(
         "node/<int:pk>",
-        views.redirect_node_url,
+        redirect.redirect_node_url,
         name="redirect-node-url",
     ),
     # /indexer/ url redirects
     path(
         "indexer/<int:pk>",
-        views.redirect_indexer,
+        redirect.redirect_indexer,
         name="redirect-indexer",
     ),
     # links to APIs that list URLs of all pages that live in the database
@@ -434,37 +435,37 @@ urlpatterns = [
     # redirects for static files present on OldCantus
     path(
         "sites/default/files/documents/1. Quick Guide to Liturgy.pdf",
-        views.redirect_documents,
+        redirect.redirect_documents,
         name="redirect-quick-guide-to-liturgy",
     ),
     path(
         "sites/default/files/documents/2. Volpiano Protocols.pdf",
-        views.redirect_documents,
+        redirect.redirect_documents,
         name="redirect-volpiano-protocols",
     ),
     path(
         "sites/default/files/documents/3. Volpiano Neumes for Review.docx",
-        views.redirect_documents,
+        redirect.redirect_documents,
         name="redirect-volpiano-neumes-for-review",
     ),
     path(
         "sites/default/files/documents/4. Volpiano Neume Protocols.pdf",
-        views.redirect_documents,
+        redirect.redirect_documents,
         name="redirect-volpiano-neume-protocols",
     ),
     path(
         "sites/default/files/documents/5. Volpiano Editing Guidelines.pdf",
-        views.redirect_documents,
+        redirect.redirect_documents,
         name="redirect-volpiano-editing-guidelines",
     ),
     path(
         "sites/default/files/documents/7. Guide to Graduals.pdf",
-        views.redirect_documents,
+        redirect.redirect_documents,
         name="redirect-guide-to-graduals",
     ),
     path(
         "sites/default/files/HOW TO - manuscript descriptions-Nov6-20.pdf",
-        views.redirect_documents,
+        redirect.redirect_documents,
         name="redirect-how-to-manuscript-descriptions",
     ),
     path(
