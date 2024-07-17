@@ -129,11 +129,11 @@ def has_group(user, group_name):
     return user.groups.filter(name=group_name).exists()
 
 
-@register.filter(name='split')
+@register.filter(name="split")
 @stringfilter
 def split(value: str, key: str) -> list[str]:
     """
-        Returns the value turned into a list.
+    Returns the value turned into a list.
     """
     return value.split(key)
 

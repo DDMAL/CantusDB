@@ -34,7 +34,8 @@ from main_app.models import (
     Provenance,
     Segment,
     Sequence,
-    Source, Institution,
+    Source,
+    Institution,
 )
 from main_app.models.base_model import BaseModel
 from next_chants import next_chants
@@ -384,7 +385,9 @@ def ajax_search_bar(request, search_term):
         # if the search term does not contain any digits, assume user is searching by incipit
         chants = Chant.objects.filter(incipit__istartswith=search_term).order_by("id")
 
-    chants = chants.select_related("source__holding_institution", "genre", "feast", "office")
+    chants = chants.select_related(
+        "source__holding_institution", "genre", "feast", "office"
+    )
 
     display_unpublished: bool = request.user.is_authenticated
     if not display_unpublished:

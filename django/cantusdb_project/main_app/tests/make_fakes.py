@@ -359,11 +359,7 @@ def make_fake_institution(
     country = country if country else faker.country()
 
     inst = Institution.objects.create(
-        name=name,
-        siglum=siglum,
-        city=city,
-        region=region,
-        country=country
+        name=name, siglum=siglum, city=city, region=region, country=country
     )
     inst.save()
 
