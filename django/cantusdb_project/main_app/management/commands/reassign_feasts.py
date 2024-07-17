@@ -2,16 +2,18 @@ from django.core.management.base import BaseCommand
 from main_app.models import Feast, Chant, Sequence
 
 
+FEAST_MAPPING = {
+    2456: 4474,
+    2094: 4475,
+}
+
+
 class Command(BaseCommand):
     help = "Reassign feasts and update chants accordingly"
 
     def handle(self, *args, **options):
-        feast_mapping = {
-            2456: 4474,
-            2094: 4475,
-        }
 
-        for old_feast_id, new_feast_id in feast_mapping.items():
+        for old_feast_id, new_feast_id in FEAST_MAPPING.items():
             try:
                 old_feast = Feast.objects.get(id=old_feast_id)
                 new_feast = Feast.objects.get(id=new_feast_id)
