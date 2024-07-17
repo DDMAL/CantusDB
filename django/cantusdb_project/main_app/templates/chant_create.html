@@ -1,21 +1,24 @@
 {% extends "base_page_with_side_cards.html" %}
 {% load static %}
+
 {% block title %}
-<title>Create Chant | Cantus Database</title>
+    <title>Create Chant | Cantus Database</title>
 {% endblock %}
-{% block script %}
-<script src="/static/js/chant_create.js"></script>
-<script type="text/javascript" src="{% static 'admin/js/vendor/jquery/jquery.js' %}"></script>
-{{ form.media }}
+
+{% block scripts %}
+    <script src="/static/js/chant_create.js"></script>
+    <script type="text/javascript" src="{% static 'admin/js/vendor/jquery/jquery.js' %}"></script>
+    {{ form.media }}
 {% endblock %}
+
 {% block uppersidebar %}
 <div class="search-bar mb-3">
     {% include "global_search_bar.html" %}
 </div>
 {% endblock %}
+
 {% block maincontent %}
     <h3>Create Chant</h3>
-
     <!--Display "submit success" message -->
     {% if messages %}
     <div class="alert alert-success alert-dismissible">
@@ -312,10 +315,10 @@
                                     value="{{ suggestion.cantus_id }}"
                                     title="{{ suggestion.cantus_id }}"
                                     onclick='autoFillSuggestedChant(
-                                        "{{ suggestion.genre_name }}",
+                                        "{{ suggestion.genre_name | escapejs }}",
                                         {{ suggestion.genre_id | default_if_none:"null" }},
-                                        "{{ suggestion.cantus_id }}",
-                                        "{{ suggestion.fulltext }}"
+                                        "{{ suggestion.cantus_id | escapejs }}",
+                                        "{{ suggestion.fulltext | escapejs }}"
                                     )'
                                 >
                                 <strong>{{ suggestion.genre_name }}</strong> - <span title="{{ suggestion.fulltext }}">{{ suggestion.incipit }}</span> (<strong>{{ suggestion.occurrences }}x</strong>)<br>

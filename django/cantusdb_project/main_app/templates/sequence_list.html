@@ -1,6 +1,10 @@
 {% extends "base.html" %}
+
+{% block title %}
+    <title>Clavis Sequentiarum (Calvin Bower) | Cantus Database</title>
+{% endblock %}
+
 {% block content %}
-<title>Clavis Sequentiarum (Calvin Bower) | Cantus Database</title>
 <div class="mr-3 p-3 col-md-12 mx-auto bg-white rounded">
     <object align="right" class="search-bar">
         {% include "global_search_bar.html" %}
@@ -47,8 +51,8 @@
                         <tr style="text-align:center">
                             <td class="text-wrap">
                                 {% if sequence.source %}
-                                    <a href="{% url 'source-detail' sequence.source.id %}" title="{{ sequence.source.title }}">
-                                        <b>{{ sequence.source.siglum }}</b><br>
+                                    <a href="{% url 'source-detail' sequence.source.id %}" title="{{ sequence.source.heading }}">
+                                        <b>{{ sequence.source.short_heading }}</b><br>
                                     </a>
                                 {% endif %}
                                 <b>{{ sequence.folio|default:"" }}</b> {{ sequence.s_sequence|default:"" }}

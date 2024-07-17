@@ -172,8 +172,10 @@ class SourceCreateForm(forms.ModelForm):
     class Meta:
         model = Source
         fields = [
-            "title",
-            "siglum",
+            # "title",
+            # "siglum",
+            "holding_institution",
+            "shelfmark",
             "provenance",
             "provenance_notes",
             "full_source",
@@ -196,8 +198,10 @@ class SourceCreateForm(forms.ModelForm):
             "indexing_notes",
         ]
         widgets = {
-            "title": TextInputWidget(),
-            "siglum": TextInputWidget(),
+            # "title": TextInputWidget(),
+            # "siglum": TextInputWidget(),
+            "holding_institution": autocomplete.ModelSelect2(url="holding-autocomplete"),
+            "shelfmark": TextInputWidget(),
             "provenance": autocomplete.ModelSelect2(url="provenance-autocomplete"),
             "provenance_notes": TextInputWidget(),
             "date": TextInputWidget(),
@@ -355,8 +359,10 @@ class SourceEditForm(forms.ModelForm):
     class Meta:
         model = Source
         fields = [
-            "title",
-            "siglum",
+            # "title",
+            # "siglum",
+            "holding_institution",
+            "shelfmark",
             "provenance",
             "provenance_notes",
             "full_source",
@@ -380,8 +386,8 @@ class SourceEditForm(forms.ModelForm):
             "other_editors",
         ]
         widgets = {
-            "title": TextInputWidget(),
-            "siglum": TextInputWidget(),
+            "holding_institution": autocomplete.ModelSelect2(url="holding-autocomplete"),
+            "shelfmark": TextInputWidget(),
             "provenance": autocomplete.ModelSelect2(url="provenance-autocomplete"),
             "provenance_notes": TextInputWidget(),
             "date": TextInputWidget(),

@@ -42,7 +42,7 @@ function autoFillSuggestedChant(genreName, genreID, cantusID, fullText) {
         var newOption = new Option(genreName, genreID, true, true);
         // Append it to the select
         $('#id_genre').append(newOption).trigger('change');
-    };
+    }
 }
 
 function autoFillFeast(feastName, feastID) {
@@ -56,5 +56,5 @@ function autoFillFeast(feastName, feastID) {
         var newOption = new Option(feastName, feastID, true, true);
         // Append it to the select
         $('#id_feast').append(newOption).trigger('change');
-    };
+    }
 }
