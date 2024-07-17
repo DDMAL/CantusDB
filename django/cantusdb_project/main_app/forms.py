@@ -453,7 +453,7 @@ class SequenceEditForm(forms.ModelForm):
         model = Sequence
         fields = [
             "title",
-            "siglum",
+            # "siglum",
             "incipit",
             "folio",
             "s_sequence",
@@ -472,7 +472,7 @@ class SequenceEditForm(forms.ModelForm):
         ]
         widgets = {
             "title": TextInputWidget(),
-            "siglum": TextInputWidget(),
+            # "siglum": TextInputWidget(),
             "incipit": TextInputWidget(),
             "folio": TextInputWidget(),
             "s_sequence": TextInputWidget(),
