@@ -167,8 +167,15 @@ class Command(BaseCommand):
                 )
 
                 institution = created_institutions[siglum]
-                if institution_name != institution.name:
-                    institution.alternate_names = f"{institution.alternate_names}\n{institution_name}"
+
+                # if the source we're publishing has a different institution name than the
+                # one that already exists, save the source name as an alternate name.
+                if institution_name and institution_name != institution.name:
+                    existing_alt_names: list = institution.alternate_names.split("\n") if institution.alternate_names else []
+                    existing_alt_names.append(institution_name.strip())
+                    deduped_names = set(existing_alt_names)
+                    institution.alternate_names = "\n".join(list(deduped_names))
+
                     institution.save()
             elif siglum not in created_institutions:
                 print(
