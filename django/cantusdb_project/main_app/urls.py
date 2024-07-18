@@ -71,7 +71,7 @@ from main_app.views.views import (
     GenreAutocomplete,
     DifferentiaAutocomplete,
     ProvenanceAutocomplete,
-    ProofreadByAutocomplete, 
+    ProofreadByAutocomplete,
     HoldingAutocomplete,
 )
 

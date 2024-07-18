@@ -1091,9 +1091,7 @@ class ChantSearchViewTest(TestCase):
     def test_order_by_siglum(self):
         hinst_1 = make_fake_institution(siglum="AA-Bb")
         source_1 = make_fake_source(
-            published=True,
-            shelfmark="sigl-1",
-            holding_institution=hinst_1
+            published=True, shelfmark="sigl-1", holding_institution=hinst_1
         )
         chant_1 = make_fake_chant(
             manuscript_full_text_std_spelling="thing 1", source=source_1
@@ -1101,9 +1099,7 @@ class ChantSearchViewTest(TestCase):
 
         hinst_2 = make_fake_institution(siglum="BB-Cc")
         source_2 = make_fake_source(
-            published=True,
-            shelfmark="sigl-2",
-            holding_institution=hinst_2
+            published=True, shelfmark="sigl-2", holding_institution=hinst_2
         )
         chant_2 = make_fake_chant(
             manuscript_full_text_std_spelling="thing 2", source=source_2
@@ -1144,9 +1140,7 @@ class ChantSearchViewTest(TestCase):
     def test_order_by_siglum_global_search(self):
         hinst_1 = make_fake_institution(siglum="AA-Bb")
         source_1 = make_fake_source(
-            published=True,
-            shelfmark="sigl-1",
-            holding_institution=hinst_1
+            published=True, shelfmark="sigl-1", holding_institution=hinst_1
         )
         chant_1 = make_fake_chant(
             manuscript_full_text_std_spelling="thing 1", source=source_1
@@ -1154,9 +1148,7 @@ class ChantSearchViewTest(TestCase):
 
         hinst_2 = make_fake_institution(siglum="BB-Cc")
         source_2 = make_fake_source(
-            published=True,
-            shelfmark="sigl-2",
-            holding_institution=hinst_2
+            published=True, shelfmark="sigl-2", holding_institution=hinst_2
         )
         chant_2 = make_fake_chant(
             manuscript_full_text_std_spelling="thing 2", source=source_2
@@ -1980,29 +1972,25 @@ class ChantSearchViewTest(TestCase):
     def test_source_link_column(self):
         shelfmark = "Sigl-01"
         holding_institution = make_fake_institution(
-            name="fake institution",
-            siglum="AA-Bb"
+            name="fake institution", siglum="AA-Bb"
         )
         source = make_fake_source(
-            published=True,
-            shelfmark=shelfmark,
-            holding_institution=holding_institution
+            published=True, shelfmark=shelfmark, holding_institution=holding_institution
         )
         url = source.get_absolute_url()
         fulltext = "manuscript full text"
         search_term = "full"
-        _ = make_fake_chant(
-            source=source, manuscript_full_text_std_spelling=fulltext
-        )
+        _ = make_fake_chant(source=source, manuscript_full_text_std_spelling=fulltext)
         response = self.client.get(
-            reverse("chant-search"),
-            {"keyword": search_term, "op": "contains"}
+            reverse("chant-search"), {"keyword": search_term, "op": "contains"}
         )
         html = str(response.content)
         # self.assertContains(response, source_heading, html=True)
         # self.assertContains(response, source_short_heading, html=True)
         # self.assertContains(response, url, html=True)
-        self.assertIn(f'<a href="{url}" title="{source.heading}">{source.short_heading}</a>', html)
+        self.assertIn(
+            f'<a href="{url}" title="{source.heading}">{source.short_heading}</a>', html
+        )
 
     def test_folio_column(self):
         source = make_fake_source(published=True)
@@ -2469,14 +2457,10 @@ class ChantSearchMSViewTest(TestCase):
         office_2 = make_fake_office()
         assert office_1.id < office_2.id
         chant_1 = make_fake_chant(
-            office=office_1,
-            manuscript_full_text_std_spelling="hocus",
-            source=source
+            office=office_1, manuscript_full_text_std_spelling="hocus", source=source
         )
         chant_2 = make_fake_chant(
-            office=office_2,
-            manuscript_full_text_std_spelling="pocus",
-            source=source
+            office=office_2, manuscript_full_text_std_spelling="pocus", source=source
         )
 
         search_term = "ocu"
@@ -2518,14 +2502,10 @@ class ChantSearchMSViewTest(TestCase):
         genre_2 = make_fake_genre()
         assert genre_1.id < genre_2.id
         chant_1 = make_fake_chant(
-            genre=genre_1,
-            manuscript_full_text_std_spelling="hocus",
-            source=source
+            genre=genre_1, manuscript_full_text_std_spelling="hocus", source=source
         )
         chant_2 = make_fake_chant(
-            genre=genre_2,
-            manuscript_full_text_std_spelling="pocus",
-            source=source
+            genre=genre_2, manuscript_full_text_std_spelling="pocus", source=source
         )
 
         search_term = "ocu"
@@ -2918,7 +2898,9 @@ class ChantSearchMSViewTest(TestCase):
         self.assertIn(shelfmark, html)
         self.assertIn(source_shelfmark, html)
         self.assertIn(url, html)
-        self.assertIn(f'<a href="{url}" target="_blank">{source.short_heading}</a>', html)
+        self.assertIn(
+            f'<a href="{url}" target="_blank">{source.short_heading}</a>', html
+        )
 
     def test_folio_column(self):
         source = make_fake_source(published=True)
@@ -3910,7 +3892,9 @@ class FeastDetailViewTest(TestCase):
     def test_sources_containing_this_feast(self):
         holding_inst_b = make_fake_institution(siglum="big")
         holding_inst_s = make_fake_institution(siglum="small")
-        big_source = make_fake_source(published=True, shelfmark="big_source", holding_institution=holding_inst_b)
+        big_source = make_fake_source(
+            published=True, shelfmark="big_source", holding_institution=holding_inst_b
+        )
         small_source = make_fake_source(
             published=True, shelfmark="small_source", holding_institution=holding_inst_s
         )
@@ -4235,7 +4219,10 @@ class SequenceListViewTest(TestCase):
         # the sequences in the list should be ordered by the "siglum" and "sequence" fields
         response = self.client.get(reverse("sequence-list"))
         sequences = response.context["sequences"]
-        self.assertEqual(sequences.query.order_by, ("source__holding_institution__siglum", "s_sequence"))
+        self.assertEqual(
+            sequences.query.order_by,
+            ("source__holding_institution__siglum", "s_sequence"),
+        )
 
     def test_search_incipit(self):
         # create a published sequence source and some sequence in it
@@ -4378,7 +4365,9 @@ class SourceListViewTest(TestCase):
 
     def test_only_published_sources_visible(self):
         """For a source to be displayed in the list, its `published` field must be `True`"""
-        published_source = make_fake_source(published=True, shelfmark="published source")
+        published_source = make_fake_source(
+            published=True, shelfmark="published source"
+        )
         private_source = make_fake_source(published=False, shelfmark="private source")
         response = self.client.get(reverse("source-list"))
         sources = response.context["sources"]
@@ -4533,10 +4522,7 @@ class SourceListViewTest(TestCase):
             published=True,
         )
         search_term = get_random_search_term(source.shelfmark)
-        response = self.client.get(
-            reverse("source-list"),
-            {"general": search_term}
-        )
+        response = self.client.get(reverse("source-list"), {"general": search_term})
         self.assertIn(source, response.context["sources"])
 
         # Test that postgres searches unaccented version of title
@@ -4544,27 +4530,16 @@ class SourceListViewTest(TestCase):
         accented_title = add_accents_to_string(unaccented_title)
         source.title = accented_title
         source.save()
-        response = self.client.get(
-            reverse("source-list"),
-            {"general": search_term}
-        )
+        response = self.client.get(reverse("source-list"), {"general": search_term})
         self.assertIn(source, response.context["sources"])
 
     def test_search_by_shelfmark(self):
-        hinst = make_fake_institution(
-            name="Fake Institution",
-            siglum="FA-Ke"
-        )
+        hinst = make_fake_institution(name="Fake Institution", siglum="FA-Ke")
         source = make_fake_source(
-            published=True,
-            shelfmark="title",
-            holding_institution=hinst
+            published=True, shelfmark="title", holding_institution=hinst
         )
         search_term = get_random_search_term(source.shelfmark)
-        response = self.client.get(
-            reverse("source-list"),
-            {"general": search_term}
-        )
+        response = self.client.get(reverse("source-list"), {"general": search_term})
         self.assertIn(source, response.context["sources"])
 
         # Test that postgres searches unaccented version of shelfmark
@@ -4619,9 +4594,7 @@ class SourceListViewTest(TestCase):
             shelfmark="title",
         )
         search_term = get_random_search_term(source.indexing_notes)
-        response = self.client.get(
-            reverse("source-list"),
-            {"indexing": search_term})
+        response = self.client.get(reverse("source-list"), {"indexing": search_term})
         self.assertIn(source, response.context["sources"])
 
         # Test that postgres searches unaccented version of indexing_notes
@@ -4878,7 +4851,9 @@ class SourceInventoryViewTest(TestCase):
         response = self.client.get(reverse("source-inventory", args=[source.id]))
         html = str(response.content)
         self.assertIn(shelfmark, html)
-        expected_html_substring = f'<td title="{source.heading}">{source.short_heading}</td>'
+        expected_html_substring = (
+            f'<td title="{source.heading}">{source.short_heading}</td>'
+        )
         self.assertIn(expected_html_substring, html)
 
     def test_marginalia_column(self):
@@ -5325,9 +5300,7 @@ class JsonSourcesExportTest(TestCase):
     def setUp(self):
         # the JsonSourcesExport View uses the CANTUS Segment's .source_set property,
         # so we need to make sure to set up a CANTUS segment with the right ID for each test.
-        self.cantus_segment = make_fake_segment(
-            id=4063, name="Bower Sequence Database"
-        )
+        self.cantus_segment = make_fake_segment(id=4063, name="Bower Sequence Database")
         self.bower_segment = make_fake_segment(id=4064, name="CANTUS Database")
 
     def test_json_sources_response(self):
@@ -5344,9 +5317,7 @@ class JsonSourcesExportTest(TestCase):
     def test_json_sources_format(self):
         NUMBER_OF_SOURCES = 10
         for _ in range(NUMBER_OF_SOURCES):
-            _ = make_fake_source(
-                published=True, segment=self.cantus_segment
-            )
+            _ = make_fake_source(published=True, segment=self.cantus_segment)
 
         sample_source = Source.objects.all().order_by("?").first()
 
@@ -5372,20 +5343,16 @@ class JsonSourcesExportTest(TestCase):
         NUM_PUBLISHED_SOURCES = 3
         NUM_UNPUBLISHED_SOURCES = 5
         for _ in range(NUM_PUBLISHED_SOURCES):
-            _ = make_fake_source(
-                published=True, segment=self.cantus_segment
-            )
+            _ = make_fake_source(published=True, segment=self.cantus_segment)
         for _ in range(NUM_UNPUBLISHED_SOURCES):
-            _ = make_fake_source(
-                published=False, segment=self.cantus_segment
-            )
+            _ = make_fake_source(published=False, segment=self.cantus_segment)
 
-        sample_published_source = (Source.objects.filter(published=True)
-                                   .order_by("?")
-                                   .first())
-        sample_unpublished_source = (Source.objects.filter(published=False)
-                                     .order_by("?")
-                                     .first())
+        sample_published_source = (
+            Source.objects.filter(published=True).order_by("?").first()
+        )
+        sample_unpublished_source = (
+            Source.objects.filter(published=False).order_by("?").first()
+        )
 
         response = self.client.get(reverse("json-sources-export"))
         unpacked_response = json.loads(response.content)
@@ -5401,20 +5368,16 @@ class JsonSourcesExportTest(TestCase):
         NUM_CANTUS_SOURCES = 5
         NUM_BOWER_SOURCES = 7
         for _ in range(NUM_CANTUS_SOURCES):
-            _ = make_fake_source(
-                published=True, segment=self.cantus_segment
-            )
+            _ = make_fake_source(published=True, segment=self.cantus_segment)
         for _ in range(NUM_BOWER_SOURCES):
-            _ = make_fake_source(
-                published=True, segment=self.bower_segment
-            )
+            _ = make_fake_source(published=True, segment=self.bower_segment)
 
-        sample_cantus_source = (Source.objects.filter(segment=self.cantus_segment)
-                                .order_by("?")
-                                .first())
-        sample_bower_source = (Source.objects.filter(segment=self.bower_segment)
-                               .order_by("?")
-                               .first())
+        sample_cantus_source = (
+            Source.objects.filter(segment=self.cantus_segment).order_by("?").first()
+        )
+        sample_bower_source = (
+            Source.objects.filter(segment=self.bower_segment).order_by("?").first()
+        )
 
         response = self.client.get(reverse("json-sources-export"))
         unpacked_response = json.loads(response.content)

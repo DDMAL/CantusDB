@@ -5,7 +5,7 @@ class InputFilter(SimpleListFilter):
     template = "admin/input_filter.html"
 
     def lookups(self, request, model_admin):
-        return (),
+        return ((),)
 
     def choices(self, changelist):
         all_choice = next(super().choices(changelist))

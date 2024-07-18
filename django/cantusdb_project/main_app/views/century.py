@@ -13,7 +13,9 @@ class CenturyDetailView(DetailView):
         century = self.get_object()
         user = self.request.user
         display_unpublished = user.is_authenticated
-        sources = Source.objects.filter(century=century).select_related("holding_institution")
+        sources = Source.objects.filter(century=century).select_related(
+            "holding_institution"
+        )
         sources = sources.order_by("holding_institution__name")
 
         if not display_unpublished:

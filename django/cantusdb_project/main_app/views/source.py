@@ -111,7 +111,7 @@ class SourceBrowseChantsView(ListView):
 
         context["source"] = source
 
-    # these are needed in the selectors on the left side of the page
+        # these are needed in the selectors on the left side of the page
         context["feasts"] = Feast.objects.all().order_by("name")
         context["genres"] = Genre.objects.all().order_by("name")
 
@@ -122,9 +122,9 @@ class SourceBrowseChantsView(ListView):
         cantus_segment: QuerySet[Segment] = Segment.objects.get(id=CANTUS_SEGMENT_ID)
 
         # to be displayed in the "Source" dropdown in the form
-        sources: QuerySet[Source] = (cantus_segment.source_set
-                                     .select_related("holding_institution", "segment")
-                                     .order_by("holding_institution__siglum"))
+        sources: QuerySet[Source] = cantus_segment.source_set.select_related(
+            "holding_institution", "segment"
+        ).order_by("holding_institution__siglum")
         if not display_unpublished:
             sources = sources.filter(published=True)
         context["sources"] = sources
@@ -171,9 +171,9 @@ class SourceDetailView(DetailView):
     template_name = "source_detail.html"
 
     def get_queryset(self):
-        return self.model.objects.select_related("holding_institution",
-                                                 "segment",
-                                                 "provenance").all()
+        return self.model.objects.select_related(
+            "holding_institution", "segment", "provenance"
+        ).all()
 
     def get_context_data(self, **kwargs):
         source = self.get_object()
@@ -189,9 +189,7 @@ class SourceDetailView(DetailView):
             sequences = source.sequence_set.select_related("genre", "office")
             context["sequences"] = sequences.order_by("s_sequence")
             context["folios"] = (
-                sequences.values_list("folio", flat=True)
-                .distinct()
-                .order_by("folio")
+                sequences.values_list("folio", flat=True).distinct().order_by("folio")
             )
         else:
             # if this is a chant source
@@ -228,11 +226,9 @@ class SourceListView(ListView):
 
     def get_queryset(self):
         # use select_related() for foreign keys to reduce DB queries
-        queryset = (Source.objects
-                    .select_related("segment",
-                                    "provenance",
-                                    "holding_institution")
-                    .order_by("siglum"))
+        queryset = Source.objects.select_related(
+            "segment", "provenance", "holding_institution"
+        ).order_by("siglum")
 
         display_unpublished: bool = self.request.user.is_authenticated
         if display_unpublished:
@@ -278,7 +274,9 @@ class SourceListView(ListView):
             # to match only one of the terms
             for term in general_search_terms:
                 holding_institution_q |= Q(holding_institution__name__icontains=term)
-                holding_institution_city_q |= Q(holding_institution__city__icontains=term)
+                holding_institution_city_q |= Q(
+                    holding_institution__city__icontains=term
+                )
                 shelfmark_q |= Q(shelfmark__unaccent__icontains=term)
                 siglum_q |= Q(holding_institution__siglum__unaccent__icontains=term)
                 description_q |= Q(description__unaccent__icontains=term)
@@ -290,12 +288,14 @@ class SourceListView(ListView):
             # general_search_q = (
             #     title_q | siglum_q | description_q | provenance_q
             # )
-            general_search_q = (shelfmark_q
-                                | siglum_q
-                                | description_q
-                                | summary_q
-                                | holding_institution_q
-                                | holding_institution_city_q)
+            general_search_q = (
+                shelfmark_q
+                | siglum_q
+                | description_q
+                | summary_q
+                | holding_institution_q
+                | holding_institution_city_q
+            )
             q_obj_filter &= general_search_q
 
         # For the indexing notes search we follow the same procedure as above but with

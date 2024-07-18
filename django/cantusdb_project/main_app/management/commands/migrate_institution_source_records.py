@@ -55,7 +55,7 @@ private_collections = {
     "CDN-NVanBCpc",
     "CDN-SYpc",
     "NL-EINpc",
-    "BR-PApc"
+    "BR-PApc",
 }
 
 siglum_to_country = {
@@ -99,7 +99,7 @@ prints = {
     "N-N.miss.imp.1519",
     "D-A/imp:1498",
     "D-P/imp1511",
-    "D-WÜ/imp1583"
+    "D-WÜ/imp1583",
 }
 
 
@@ -159,7 +159,11 @@ class Command(BaseCommand):
             insts_city[siglum].add(city.strip())
             insts_ids[siglum].add(source.id)
 
-            if options["lookup"] and (siglum not in bad_sigla or siglum not in private_collections or siglum not in insts_rism):
+            if options["lookup"] and (
+                siglum not in bad_sigla
+                or siglum not in private_collections
+                or siglum not in insts_rism
+            ):
                 req = requests.get(
                     f"https://rism.online/sigla/{siglum}",
                     allow_redirects=True,
@@ -194,9 +198,7 @@ class Command(BaseCommand):
         print("siglum,city,country,name,alt_names")
 
         print_inst = Institution.objects.create(
-            name="Print (Multiple Copies)",
-            siglum="XX-NN",
-            city=None
+            name="Print (Multiple Copies)", siglum="XX-NN", city=None
         )
 
         for sig, names in insts_name.items():
@@ -222,7 +224,9 @@ class Command(BaseCommand):
                     # Setting siglum to None will make it XX-NN
                     inst_sig = None
 
-                print(f"{inst_sig},{main_city},{inst_country},{main_name},{alt_names_fmt}")
+                print(
+                    f"{inst_sig},{main_city},{inst_country},{main_name},{alt_names_fmt}"
+                )
 
                 if options["dry_run"]:
                     continue
@@ -239,14 +243,20 @@ class Command(BaseCommand):
                 elif inst_sig is not None:
                     iobj["siglum"] = inst_sig
                 else:
-                    print(self.style.WARNING(f"Could not create {inst_id}. Setting siglum to XX-NN"))
+                    print(
+                        self.style.WARNING(
+                            f"Could not create {inst_id}. Setting siglum to XX-NN"
+                        )
+                    )
                     iobj["siglum"] = "XX-NN"
 
                 try:
                     holding_institution = Institution.objects.create(**iobj)
                 except ValidationError:
                     print(
-                        self.style.WARNING(f"Could not create {sig} {main_name}. Setting institution to None")
+                        self.style.WARNING(
+                            f"Could not create {sig} {main_name}. Setting institution to None"
+                        )
                     )
                     holding_institution = None
 
@@ -274,6 +284,4 @@ class Command(BaseCommand):
                 s.holding_institution = holding_institution
                 s.shelfmark = shelfmark.strip()
                 s.save()
-                print(self.style.SUCCESS(
-                    f"Saved update to Source {s.id}"
-                ))
+                print(self.style.SUCCESS(f"Saved update to Source {s.id}"))

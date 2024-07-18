@@ -32,7 +32,8 @@ class SequenceDetailView(DetailView):
 
         context = super().get_context_data(**kwargs)
         context["concordances"] = (
-            Sequence.objects.select_related("source__holding_institution").filter(cantus_id=sequence.cantus_id)
+            Sequence.objects.select_related("source__holding_institution")
+            .filter(cantus_id=sequence.cantus_id)
             .select_related("source")
             .order_by("siglum")
         )
@@ -68,7 +69,9 @@ class SequenceListView(ListView):
             cantus_id = self.request.GET.get("cantus_id")
             q_obj_filter &= Q(cantus_id__icontains=cantus_id)
 
-        return queryset.filter(q_obj_filter).order_by("source__holding_institution__siglum", "s_sequence")
+        return queryset.filter(q_obj_filter).order_by(
+            "source__holding_institution__siglum", "s_sequence"
+        )
 
 
 class SequenceEditView(LoginRequiredMixin, UserPassesTestMixin, UpdateView):
