@@ -71,6 +71,7 @@ siglum_to_country = {
     "SK": "Slovakia",
     "SA": "South Africa",
     "ZA": "South Africa",
+    "S": "Sweden",
     "T": "Taiwan",
     "TR": "Turkey",
     "US": "United States",
