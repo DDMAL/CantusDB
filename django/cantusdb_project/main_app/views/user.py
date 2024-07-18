@@ -45,35 +45,40 @@ class UserDetailView(DetailView):
         else:
             display_unpublished = {}
 
-        context["inventoried_sources"] = (user.inventoried_sources
-                                          .filter(**display_unpublished)
-                                          .select_related("holding_institution")
-                                          .all()
-                                          .order_by("holding_institution__siglum"))
+        context["inventoried_sources"] = (
+            user.inventoried_sources.filter(**display_unpublished)
+            .select_related("holding_institution")
+            .all()
+            .order_by("holding_institution__siglum")
+        )
 
-        context["full_text_sources"] = (user.entered_full_text_for_sources
-                                        .filter(**display_unpublished)
-                                        .select_related("holding_institution")
-                                        .all()
-                                        .order_by("holding_institution__siglum"))
+        context["full_text_sources"] = (
+            user.entered_full_text_for_sources.filter(**display_unpublished)
+            .select_related("holding_institution")
+            .all()
+            .order_by("holding_institution__siglum")
+        )
 
-        context["melody_sources"] = (user.entered_melody_for_sources
-                                     .filter(**display_unpublished)
-                                     .select_related("holding_institution")
-                                     .all()
-                                     .order_by("holding_institution__siglum"))
+        context["melody_sources"] = (
+            user.entered_melody_for_sources.filter(**display_unpublished)
+            .select_related("holding_institution")
+            .all()
+            .order_by("holding_institution__siglum")
+        )
 
-        context["proofread_sources"] = (user.proofread_sources
-                                        .filter(**display_unpublished)
-                                        .select_related("holding_institution")
-                                        .all()
-                                        .order_by("holding_institution__siglum"))
+        context["proofread_sources"] = (
+            user.proofread_sources.filter(**display_unpublished)
+            .select_related("holding_institution")
+            .all()
+            .order_by("holding_institution__siglum")
+        )
 
-        context["edited_sources"] = (user.edited_sources
-                                     .filter(**display_unpublished)
-                                     .select_related("holding_institution")
-                                     .all()
-                                     .order_by("holding_institution__siglum"))
+        context["edited_sources"] = (
+            user.edited_sources.filter(**display_unpublished)
+            .select_related("holding_institution")
+            .all()
+            .order_by("holding_institution__siglum")
+        )
 
         return context
 

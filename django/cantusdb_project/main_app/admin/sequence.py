@@ -8,7 +8,11 @@ from main_app.models import Sequence
 @admin.register(Sequence)
 class SequenceAdmin(BaseModelAdmin):
     def get_queryset(self, request):
-        return super().get_queryset(request).select_related("source__holding_institution", "genre", "office")
+        return (
+            super()
+            .get_queryset(request)
+            .select_related("source__holding_institution", "genre", "office")
+        )
 
     @admin.display(description="Source Siglum")
     def get_source_siglum(self, obj):
@@ -27,11 +31,7 @@ class SequenceAdmin(BaseModelAdmin):
         "is_last_chant_in_feast",
         "visible_status",
     )
-    list_display = (
-        "incipit",
-        "get_source_siglum",
-        "genre"
-    )
+    list_display = ("incipit", "get_source_siglum", "genre")
     list_filter = (
         "genre",
         "office",

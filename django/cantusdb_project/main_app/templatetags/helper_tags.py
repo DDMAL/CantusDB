@@ -138,11 +138,11 @@ def in_groups(user, groups: str) -> bool:
     return user.groups.filter(name__in=grouplist).exists()
 
 
-@register.filter(name='split')
+@register.filter(name="split")
 @stringfilter
 def split(value: str, key: str) -> list[str]:
     """
-        Returns the value turned into a list.
+    Returns the value turned into a list.
     """
     return value.split(key)
 
@@ -156,13 +156,15 @@ def get_user_source_pagination(context):
         .select_related("holding_institution")
         .order_by("-date_updated")
         .distinct()
-        .only("id",
-              "holding_institution__id",
-              "holding_institution__city",
-              "holding_institution__siglum",
-              "holding_institution__name",
-              "holding_institution__is_private_collector",
-              "shelfmark")
+        .only(
+            "id",
+            "holding_institution__id",
+            "holding_institution__city",
+            "holding_institution__siglum",
+            "holding_institution__name",
+            "holding_institution__is_private_collector",
+            "shelfmark",
+        )
     )
     paginator = Paginator(user_created_sources, 6)
     page_number = context["request"].GET.get("page")
@@ -177,13 +179,15 @@ def get_user_created_source_pagination(context):
         .select_related("holding_institution")
         .order_by("-date_created")
         .distinct()
-        .only("id",
-              "holding_institution__id",
-              "holding_institution__city",
-              "holding_institution__siglum",
-              "holding_institution__name",
-              "holding_institution__is_private_collector",
-              "shelfmark")
+        .only(
+            "id",
+            "holding_institution__id",
+            "holding_institution__city",
+            "holding_institution__siglum",
+            "holding_institution__name",
+            "holding_institution__is_private_collector",
+            "shelfmark",
+        )
     )
     paginator = Paginator(user_created_sources, 6)
     page_number = context["request"].GET.get("page2")

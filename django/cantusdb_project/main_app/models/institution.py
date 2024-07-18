@@ -15,15 +15,15 @@ class Institution(BaseModel):
             CheckConstraint(
                 check=~(Q(is_private_collector=True) & Q(siglum__isnull=False)),
                 name="siglum_and_private_not_valid",
-                violation_error_message="Siglum and Private Collector cannot both be specified."
+                violation_error_message="Siglum and Private Collector cannot both be specified.",
             ),
             CheckConstraint(
                 check=(Q(is_private_collector=True) | Q(siglum__isnull=False)),
                 name="at_least_one_of_siglum_or_private_collector",
-                violation_error_message="At least one of Siglum or Private Collector must be specified."
-            )
-
+                violation_error_message="At least one of Siglum or Private Collector must be specified.",
+            ),
         ]
+
     name = models.CharField(max_length=255, default="s.n.")
     siglum = models.CharField(
         verbose_name="RISM Siglum",
@@ -50,7 +50,9 @@ class Institution(BaseModel):
         blank=True, null=True, help_text="Enter former sigla on separate lines."
     )
     private_notes = models.TextField(
-        blank=True, null=True, help_text="Notes about this institution that are not publicly visible."
+        blank=True,
+        null=True,
+        help_text="Notes about this institution that are not publicly visible.",
     )
 
     def __str__(self) -> str:

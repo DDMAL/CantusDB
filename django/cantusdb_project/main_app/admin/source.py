@@ -26,7 +26,7 @@ class SourceAdmin(BaseModelAdmin):
         "holding_institution__siglum",
         "holding_institution__name",
         "id",
-        "provenance_notes"
+        "provenance_notes",
     )
     readonly_fields = READ_ONLY + (
         "number_of_chants",

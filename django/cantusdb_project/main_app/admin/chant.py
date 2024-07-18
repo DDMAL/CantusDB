@@ -9,7 +9,11 @@ from main_app.models import Chant
 class ChantAdmin(BaseModelAdmin):
 
     def get_queryset(self, request):
-        return super().get_queryset(request).select_related("source__holding_institution", "genre", "office")
+        return (
+            super()
+            .get_queryset(request)
+            .select_related("source__holding_institution", "genre", "office")
+        )
 
     @admin.display(description="Source Siglum")
     def get_source_siglum(self, obj):
