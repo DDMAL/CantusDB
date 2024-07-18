@@ -11,7 +11,7 @@ from main_app.forms import AdminUserChangeForm
 class SourceInline(admin.TabularInline):
     model = Source.current_editors.through
     raw_id_fields = ["source"]
-    ordering = ("source__siglum",)
+    ordering = ("holding_institution__siglum",)
     verbose_name_plural = "Sources assigned to User"
 
 

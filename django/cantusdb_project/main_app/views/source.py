@@ -37,6 +37,9 @@ from main_app.views.chant import (
     user_can_edit_chants_in_source,
 )
 
+CANTUS_SEGMENT_ID = 4063
+BOWER_SEGMENT_ID = 4064
+
 
 class SourceBrowseChantsView(ListView):
     """The view for the `Browse Chants` page.
@@ -98,7 +101,17 @@ class SourceBrowseChantsView(ListView):
 
     def get_context_data(self, **kwargs):
         context: dict = super().get_context_data(**kwargs)
-        # these are needed in the selectors on the left side of the page
+        source_id: int = self.kwargs.get(self.pk_url_kwarg)
+        source: Source = get_object_or_404(Source, id=source_id)
+        if source.segment_id != CANTUS_SEGMENT_ID:
+            # the chant list ("Browse Chants") page should only be visitable
+            # for sources in the CANTUS Database segment, as sources in the Bower
+            # segment contain no chants
+            raise Http404()
+
+        context["source"] = source
+
+    # these are needed in the selectors on the left side of the page
         context["feasts"] = Feast.objects.all().order_by("name")
         context["genres"] = Genre.objects.all().order_by("name")
 
@@ -106,7 +119,7 @@ class SourceBrowseChantsView(ListView):
 
         # sources in the Bower Segment contain only Sequences and no Chants,
         # so they should not appear among the list of sources
-        cantus_segment: QuerySet[Segment] = Segment.objects.get(id=4063)
+        cantus_segment: QuerySet[Segment] = Segment.objects.get(id=CANTUS_SEGMENT_ID)
 
         # to be displayed in the "Source" dropdown in the form
         sources: QuerySet[Source] = cantus_segment.source_set.select_related(
@@ -115,16 +128,6 @@ class SourceBrowseChantsView(ListView):
         if not display_unpublished:
             sources = sources.filter(published=True)
         context["sources"] = sources
-
-        source_id: int = self.kwargs.get(self.pk_url_kwarg)
-        source: Source = get_object_or_404(Source, id=source_id)
-        if source not in sources:
-            # the chant list ("Browse Chants") page should only be visitable
-            # for sources in the CANTUS Database segment, as sources in the Bower
-            # segment contain no chants
-            raise Http404()
-
-        context["source"] = source
 
         user = self.request.user
         context["user_can_edit_chant"] = user_can_edit_chants_in_source(user, source)
@@ -181,7 +184,7 @@ class SourceDetailView(DetailView):
 
         context = super().get_context_data(**kwargs)
 
-        if source.segment and source.segment_id == 4064:
+        if source.segment and source.segment_id == BOWER_SEGMENT_ID:
             # if this is a sequence source
             sequences = source.sequence_set.select_related("genre", "office")
             context["sequences"] = sequences.order_by("s_sequence")
@@ -405,7 +408,7 @@ class SourceEditView(LoginRequiredMixin, UserPassesTestMixin, UpdateView):
         source = self.get_object()
         context = super().get_context_data(**kwargs)
 
-        if source.segment and source.segment.id == 4064:
+        if source.segment and source.segment.id == BOWER_SEGMENT_ID:
             # if this is a sequence source
             context["sequences"] = source.sequence_set.order_by("s_sequence")
             context["folios"] = (
@@ -468,7 +471,7 @@ class SourceInventoryView(TemplateView):
             raise PermissionDenied
 
         # 4064 is the id for the sequence database
-        if source.segment.id == 4064:
+        if source.segment.id == BOWER_SEGMENT_ID:
             queryset = (
                 source.sequence_set.annotate(record_type=Value("sequence"))
                 .order_by("s_sequence")

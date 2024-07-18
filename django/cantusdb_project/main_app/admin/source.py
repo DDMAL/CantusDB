@@ -22,8 +22,6 @@ class SourceAdmin(BaseModelAdmin):
 
     # These search fields are also available on the user-source inline relationship in the user admin page
     search_fields = (
-        "siglum",
-        "title",
         "shelfmark",
         "holding_institution__siglum",
         "holding_institution__name",
@@ -52,9 +50,7 @@ class SourceAdmin(BaseModelAdmin):
 
     list_display = (
         "shelfmark",
-        # "title",
         "holding_institution",
-        # "siglum",
         "id",
     )
 
@@ -68,7 +64,7 @@ class SourceAdmin(BaseModelAdmin):
         "holding_institution__is_private_collector",
     )
 
-    ordering = ("siglum",)
+    ordering = ("holding_institution__siglum", "shelfmark")
 
     form = AdminSourceForm
 
