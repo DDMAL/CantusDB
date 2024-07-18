@@ -111,7 +111,7 @@ class SourceBrowseChantsView(ListView):
 
         context["source"] = source
 
-    # these are needed in the selectors on the left side of the page
+        # these are needed in the selectors on the left side of the page
         context["feasts"] = Feast.objects.all().order_by("name")
         context["genres"] = Genre.objects.all().order_by("name")
 
