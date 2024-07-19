@@ -28,7 +28,7 @@ class SourceAdmin(BaseModelAdmin):
         "id",
         "provenance_notes",
     )
-    readonly_fields = READ_ONLY + (
+    readonly_fields = ("title", "siglum") + READ_ONLY + (
         "number_of_chants",
         "number_of_melodies",
         "date_created",
