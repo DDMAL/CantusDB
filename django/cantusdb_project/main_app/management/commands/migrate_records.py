@@ -188,21 +188,25 @@ class Command(BaseCommand):
 
                 institution = Institution.objects.create(**iobj)
 
+                rism_id = None
                 if source.id not in bad_siglum and siglum not in private_collections:
                     rism_id = get_rism_id(siglum)
-                    if rism_id:
-                        print(
-                            self.style.SUCCESS(
-                                f"Adding {rism_id} to the identifiers for {siglum}"
-                            )
-                        )
+                elif siglum == "XX-NN":
+                    rism_id = "institutions/51003803"
 
-                        instid = InstitutionIdentifier.objects.create(
-                            identifier=rism_id,
-                            identifier_type=ExternalIdentifiers.RISM,
-                            institution=institution,
+                if rism_id:
+                    print(
+                        self.style.SUCCESS(
+                            f"Adding {rism_id} to the identifiers for {siglum}"
                         )
-                        instid.save()
+                    )
+
+                    instid = InstitutionIdentifier.objects.create(
+                        identifier=rism_id,
+                        identifier_type=ExternalIdentifiers.RISM,
+                        institution=institution,
+                    )
+                    instid.save()
 
                 created_institutions[siglum] = institution
 
