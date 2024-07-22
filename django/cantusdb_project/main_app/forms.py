@@ -200,7 +200,9 @@ class SourceCreateForm(forms.ModelForm):
         widgets = {
             # "title": TextInputWidget(),
             # "siglum": TextInputWidget(),
-            "holding_institution": autocomplete.ModelSelect2(url="holding-autocomplete"),
+            "holding_institution": autocomplete.ModelSelect2(
+                url="holding-autocomplete"
+            ),
             "shelfmark": TextInputWidget(),
             "provenance": autocomplete.ModelSelect2(url="provenance-autocomplete"),
             "provenance_notes": TextInputWidget(),
@@ -351,7 +353,7 @@ class ChantEditForm(forms.ModelForm):
     project = SelectWidgetNameModelChoiceField(
         queryset=Project.objects.all().order_by("id"),
         help_text="Select the project (if any) that the chant belongs to.",
-        required = False,
+        required=False,
     )
 
 
@@ -386,7 +388,9 @@ class SourceEditForm(forms.ModelForm):
             "other_editors",
         ]
         widgets = {
-            "holding_institution": autocomplete.ModelSelect2(url="holding-autocomplete"),
+            "holding_institution": autocomplete.ModelSelect2(
+                url="holding-autocomplete"
+            ),
             "shelfmark": TextInputWidget(),
             "provenance": autocomplete.ModelSelect2(url="provenance-autocomplete"),
             "provenance_notes": TextInputWidget(),
@@ -453,7 +457,7 @@ class SequenceEditForm(forms.ModelForm):
         model = Sequence
         fields = [
             "title",
-            "siglum",
+            # "siglum",
             "incipit",
             "folio",
             "s_sequence",
@@ -472,7 +476,7 @@ class SequenceEditForm(forms.ModelForm):
         ]
         widgets = {
             "title": TextInputWidget(),
-            "siglum": TextInputWidget(),
+            # "siglum": TextInputWidget(),
             "incipit": TextInputWidget(),
             "folio": TextInputWidget(),
             "s_sequence": TextInputWidget(),

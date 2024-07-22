@@ -100,8 +100,12 @@ class FeastDetailView(DetailView):
         # if the user is not authenticated, restrict the chant count to
         # only those from published sources.
         if not display_unpublished:
-            chant_sql_query = feast_chant_query.format(published_filt="AND ss.published IS TRUE")
-            source_sql_query = feast_source_query.format(published_filt="AND ss.published IS TRUE")
+            chant_sql_query = feast_chant_query.format(
+                published_filt="AND ss.published IS TRUE"
+            )
+            source_sql_query = feast_source_query.format(
+                published_filt="AND ss.published IS TRUE"
+            )
         else:
             chant_sql_query = feast_chant_query.format(published_filt="")
             source_sql_query = feast_source_query.format(published_filt="")

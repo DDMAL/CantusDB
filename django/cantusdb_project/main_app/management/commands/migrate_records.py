@@ -39,7 +39,7 @@ private_collections = {
     "CDN-NVanBCpc",
     "CDN-SYpc",
     "NL-EINpc",
-    "BR-PApc"
+    "BR-PApc",
 }
 
 siglum_to_country = {
@@ -71,6 +71,7 @@ siglum_to_country = {
     "SK": "Slovakia",
     "SA": "South Africa",
     "ZA": "South Africa",
+    "S": "Sweden",
     "T": "Taiwan",
     "TR": "Turkey",
     "US": "United States",
@@ -83,7 +84,7 @@ prints = {
     "N-N.miss.imp.1519",
     "D-A/imp:1498",
     "D-P/imp1511",
-    "D-WÜ/imp1583"
+    "D-WÜ/imp1583",
 }
 
 
@@ -93,17 +94,13 @@ class Command(BaseCommand):
 
     def handle(self, *args, **options):
         if options["empty"]:
-            print(
-                self.style.WARNING("Deleting records...")
-            )
+            print(self.style.WARNING("Deleting records..."))
             Source.objects.all().update(holding_institution=None)
             Institution.objects.all().delete()
             InstitutionIdentifier.objects.all().delete()
 
         print_inst = Institution.objects.create(
-            name="Print (Multiple Copies)",
-            siglum="XX-NN",
-            city=None
+            name="Print (Multiple Copies)", siglum="XX-NN", city=None
         )
 
         # Store a siglum: id
@@ -112,9 +109,7 @@ class Command(BaseCommand):
         bad_siglum = set()
 
         for source in Source.objects.all().order_by("siglum"):
-            print(
-                self.style.SUCCESS(f"Processing {source.id}")
-            )
+            print(self.style.SUCCESS(f"Processing {source.id}"))
             source_name = source.title
             source_siglum = source.siglum
 
@@ -167,15 +162,18 @@ class Command(BaseCommand):
                 )
 
                 institution = created_institutions[siglum]
-                if institution_name != institution.name:
-                    institution.alternate_names = f"{institution.alternate_names}\n{institution_name}"
+
+                # if the source we're publishing has a different institution name than the
+                # one that already exists, save the source name as an alternate name.
+                if institution_name and institution_name != institution.name:
+                    existing_alt_names: list = institution.alternate_names.split("\n") if institution.alternate_names else []
+                    existing_alt_names.append(institution_name.strip())
+                    deduped_names = set(existing_alt_names)
+                    institution.alternate_names = "\n".join(list(deduped_names))
+
                     institution.save()
             elif siglum not in created_institutions:
-                print(
-                    self.style.SUCCESS(
-                        f"Creating institution record for {siglum}"
-                    )
-                )
+                print(self.style.SUCCESS(f"Creating institution record for {siglum}"))
 
                 iobj = {
                     "city": city.strip() if city else None,
@@ -188,32 +186,36 @@ class Command(BaseCommand):
                 else:
                     iobj["siglum"] = siglum
 
-                institution = Institution.objects.create(
-                    **iobj
-                )
+                institution = Institution.objects.create(**iobj)
 
+                rism_id = None
                 if source.id not in bad_siglum and siglum not in private_collections:
                     rism_id = get_rism_id(siglum)
-                    if rism_id:
-                        print(
-                            self.style.SUCCESS(
-                                f"Adding {rism_id} to the identifiers for {siglum}"
-                            )
-                        )
+                elif siglum == "XX-NN":
+                    rism_id = "institutions/51003803"
 
-                        instid = InstitutionIdentifier.objects.create(
-                            identifier=rism_id,
-                            identifier_type=ExternalIdentifiers.RISM,
-                            institution=institution,
+                if rism_id:
+                    print(
+                        self.style.SUCCESS(
+                            f"Adding {rism_id} to the identifiers for {siglum}"
                         )
-                        instid.save()
+                    )
+
+                    instid = InstitutionIdentifier.objects.create(
+                        identifier=rism_id,
+                        identifier_type=ExternalIdentifiers.RISM,
+                        institution=institution,
+                    )
+                    instid.save()
 
                 created_institutions[siglum] = institution
 
             else:
-                print(self.style.ERROR(
-                    f"Could not determine the holding institution for {source}"
-                ))
+                print(
+                    self.style.ERROR(
+                        f"Could not determine the holding institution for {source}"
+                    )
+                )
                 continue
 
             source.holding_institution = institution

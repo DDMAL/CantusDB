@@ -70,7 +70,7 @@ class Source(BaseModel):
         blank=True,
         null=True,
         max_length=63,
-        help_text='Date of the source (e.g. "1200s", "1300-1350", etc.)',
+        help_text='Date of the source, if known (e.g. "1541")',
     )
     century = models.ManyToManyField("Century", related_name="sources", blank=True)
     notation = models.ManyToManyField("Notation", related_name="sources", blank=True)

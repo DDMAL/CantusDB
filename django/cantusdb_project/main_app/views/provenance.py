@@ -14,9 +14,7 @@ class ProvenanceDetailView(DetailView):
         user = self.request.user
         display_unpublished = user.is_authenticated
         sources = Source.objects.filter(provenance=provenance)
-        sources = sources.select_related("holding_institution",
-                                         "provenance",
-                                         "segment")
+        sources = sources.select_related("holding_institution", "provenance", "segment")
 
         if not display_unpublished:
             sources = sources.filter(published=True)

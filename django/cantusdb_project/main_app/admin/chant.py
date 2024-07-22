@@ -8,10 +8,17 @@ from main_app.models import Chant
 @admin.register(Chant)
 class ChantAdmin(BaseModelAdmin):
 
+    def get_queryset(self, request):
+        return (
+            super()
+            .get_queryset(request)
+            .select_related("source__holding_institution", "genre", "office")
+        )
+
     @admin.display(description="Source Siglum")
     def get_source_siglum(self, obj):
         if obj.source:
-            return obj.source.siglum
+            return obj.source.short_heading
 
     list_display = (
         "incipit",
@@ -50,4 +57,4 @@ class ChantAdmin(BaseModelAdmin):
         "source",
         "feast",
     )
-    ordering = ("source__siglum",)
+    ordering = ("source__holding_institution__siglum", "source__shelfmark")
