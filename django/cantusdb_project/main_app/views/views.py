@@ -27,7 +27,6 @@ from django.utils.http import urlencode
 from django.db.models import Model
 from django.http.response import JsonResponse
 from django.http import HttpResponse, HttpResponseNotFound
-from django.shortcuts import render
 from django.urls.base import reverse
 >>>>>>> 64a7a27c (refactor(views): move redirect views to views.redirect)
 from articles.models import Article
@@ -216,19 +215,6 @@ def csv_export(request, source_id):
         )
 
     return response
-
-
-def contact(request):
-    """
-    Function-based view that renders the contact page ``contact``
-
-    Args:
-        request (request): The request
-
-    Returns:
-        HttpResponse: Render the contact page
-    """
-    return render(request, "contact.html")
 
 
 def ajax_melody_search(request):
