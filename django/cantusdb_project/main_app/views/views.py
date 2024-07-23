@@ -32,62 +32,30 @@ from django.urls.base import reverse
 >>>>>>> 64a7a27c (refactor(views): move redirect views to views.redirect)
 from articles.models import Article
 from main_app.models import (
-    Century,
     Chant,
-    Feast,
-    Genre,
     Notation,
-    Office,
     Provenance,
     Segment,
     Sequence,
     Source,
 )
 <<<<<<< HEAD
+<<<<<<< HEAD
 from main_app.models.base_model import BaseModel
 =======
 from django.contrib.auth.decorators import login_required, user_passes_test
 >>>>>>> 64a7a27c (refactor(views): move redirect views to views.redirect)
+=======
+
+>>>>>>> e585f77b (refactor(views): create site_stats views)
 from next_chants import next_chants
-
 from django.http import Http404
-
 from django.core.exceptions import PermissionDenied
 from django.urls import reverse
 from django.contrib.auth import get_user_model
 from typing import List
-from django.core.paginator import Paginator
 from django.contrib.flatpages.models import FlatPage
 from django.shortcuts import get_object_or_404
-
-
-@login_required
-def items_count(request):
-    """
-    Function-based view for the ``items count`` page, accessed with ``content-statistics``
-
-    Update 2022-01-05:
-    This page has been changed on the original Cantus. It is now in the private domain
-
-    Args:
-        request (request): The request
-
-    Returns:
-        HttpResponse: Render the page
-    """
-    # in items count, the number on old cantus shows the total count of a type of object (chant, seq)
-    # no matter published or not
-    # but for the count of sources, it only shows the count of published sources
-    chant_count = Chant.objects.count()
-    sequence_count = Sequence.objects.count()
-    source_count = Source.objects.filter(published=True).count()
-
-    context = {
-        "chant_count": chant_count,
-        "sequence_count": sequence_count,
-        "source_count": source_count,
-    }
-    return render(request, "items_count.html", context)
 
 
 def ajax_melody_list(request, cantus_id) -> JsonResponse:
@@ -786,6 +754,7 @@ def flatpages_list_export(request) -> HttpResponse:
         for flatpage in flatpages
     ]
     return HttpResponse(" ".join(flatpage_urls), content_type="text/plain")
+<<<<<<< HEAD
 
 
 def project_manager_check(user):
@@ -838,3 +807,5 @@ def content_overview(request):
     }
 
     return render(request, "content_overview.html", context)
+=======
+>>>>>>> e585f77b (refactor(views): create site_stats views)

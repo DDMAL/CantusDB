@@ -9,6 +9,7 @@ from django.contrib.auth.views import (
 )
 from main_app.views import views
 from main_app.views import redirect
+from main_app.views.site_stats import items_count, content_overview
 from main_app.views.century import (
     CenturyDetailView,
 )
@@ -390,7 +391,7 @@ urlpatterns = [
     # misc
     path(
         "content-statistics",
-        views.items_count,
+        items_count,
         name="items-count",
     ),
     path(
@@ -406,7 +407,7 @@ urlpatterns = [
     # content overview (for project managers)
     path(
         "content-overview/",
-        views.content_overview,
+        content_overview,
         name="content-overview",
     ),
     # /node/ url redirects
