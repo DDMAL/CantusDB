@@ -7,9 +7,34 @@ from django.contrib.auth.views import (
     PasswordResetConfirmView,
     PasswordResetCompleteView,
 )
-from main_app.views import views
-from main_app.views import redirect
+from main_app.views.api import (
+    ajax_melody_list,
+    ajax_melody_search,
+    ajax_search_bar,
+    json_cid_export,
+    json_nextchants,
+    json_sources_export,
+    notation_json_export,
+    json_node_export,
+    json_melody_export,
+    provenance_json_export,
+    csv_export,
+    articles_list_export,
+    flatpages_list_export,
+)
+from main_app.views.redirect import (
+    redirect_chants,
+    redirect_genre,
+    redirect_office,
+    redirect_source_inventory,
+    csv_export_redirect_from_old_path,
+    redirect_search,
+    redirect_node_url,
+    redirect_indexer,
+    redirect_documents,
+)
 from main_app.views.site_stats import items_count, content_overview
+from main_app.views.contact import contact
 from main_app.views.century import (
     CenturyDetailView,
 )
@@ -81,7 +106,7 @@ from main_app.views.auth import change_password
 urlpatterns = [
     path(
         "contact/",
-        views.contact,
+        contact,
         name="contact",
     ),
     # login/logout/user
@@ -193,7 +218,7 @@ urlpatterns = [
     ),
     path(
         "chants/",
-        redirect.redirect_chants,
+        redirect_chants,
         name="redirect-chants",
     ),  # /chants/?source={source id}
     # feast
@@ -220,7 +245,7 @@ urlpatterns = [
     ),
     path(
         "genre/",
-        redirect.redirect_genre,
+        redirect_genre,
         name="redirect-genre",
     ),
     # indexer
@@ -248,7 +273,7 @@ urlpatterns = [
     ),
     path(
         "office/",
-        redirect.redirect_office,
+        redirect_office,
         name="redirect-office",
     ),
     # provenance
@@ -296,7 +321,7 @@ urlpatterns = [
     ),
     path(
         "index/",
-        redirect.redirect_source_inventory,
+        redirect_source_inventory,
         name="redirect-source-inventory",
     ),
     path(
@@ -322,49 +347,49 @@ urlpatterns = [
     ),
     path(
         "ajax/melody/<str:cantus_id>",
-        views.ajax_melody_list,
+        ajax_melody_list,
         name="ajax-melody",
     ),
     path(
         "ajax/melody-search/",
-        views.ajax_melody_search,
+        ajax_melody_search,
         name="ajax-melody-search",
     ),
     # json api
     path(
         "json-sources/",
-        views.json_sources_export,
+        json_sources_export,
         name="json-sources-export",
     ),
     path(
         "json-nextchants/<str:cantus_id>",
-        views.json_nextchants,
+        json_nextchants,
         name="json-nextchants",
     ),
     path(
         "json-melody/<str:cantus_id>",
-        views.json_melody_export,
+        json_melody_export,
         name="json-melody-export",
     ),
     path(
         "json-cid/<str:cantus_id>",
-        views.json_cid_export,
+        json_cid_export,
         name="json-cid-export",
     ),
     # JSON APIs for returning data on individual objects in the database
     path(
         "json-node/<int:id>",
-        views.json_node_export,
+        json_node_export,
         name="json-node-export",
     ),
     path(
         "notation/<int:id>/json",
-        views.notation_json_export,
+        notation_json_export,
         name="notation-json-export",
     ),
     path(
         "provenance/<int:id>/json",
-        views.provenance_json_export,
+        provenance_json_export,
         name="provenance-json-export",
     ),
     # misc search
@@ -380,12 +405,12 @@ urlpatterns = [
     ),
     path(
         "search/",
-        redirect.redirect_search,
+        redirect_search,
         name="redirect-search",
     ),
     path(
         "ajax/search-bar/<str:search_term>",
-        views.ajax_search_bar,
+        ajax_search_bar,
         name="ajax-search-bar",
     ),
     # misc
@@ -396,12 +421,12 @@ urlpatterns = [
     ),
     path(
         "source/<str:source_id>/csv/",
-        views.csv_export,
+        csv_export,
         name="csv-export",
     ),
     path(
         "sites/default/files/csv/<str:source_id>.csv",
-        redirect.csv_export_redirect_from_old_path,
+        csv_export_redirect_from_old_path,
         name="csv-export-old-path",
     ),
     # content overview (for project managers)
@@ -413,60 +438,60 @@ urlpatterns = [
     # /node/ url redirects
     path(
         "node/<int:pk>",
-        redirect.redirect_node_url,
+        redirect_node_url,
         name="redirect-node-url",
     ),
     # /indexer/ url redirects
     path(
         "indexer/<int:pk>",
-        redirect.redirect_indexer,
+        redirect_indexer,
         name="redirect-indexer",
     ),
     # links to APIs that list URLs of all pages that live in the database
     path(
         "articles-list/",
-        views.articles_list_export,
+        articles_list_export,
         name="articles-list-export",
     ),
     path(
         "flatpages-list/",
-        views.flatpages_list_export,
+        flatpages_list_export,
         name="flatpages-list-export",
     ),
     # redirects for static files present on OldCantus
     path(
         "sites/default/files/documents/1. Quick Guide to Liturgy.pdf",
-        redirect.redirect_documents,
+        redirect_documents,
         name="redirect-quick-guide-to-liturgy",
     ),
     path(
         "sites/default/files/documents/2. Volpiano Protocols.pdf",
-        redirect.redirect_documents,
+        redirect_documents,
         name="redirect-volpiano-protocols",
     ),
     path(
         "sites/default/files/documents/3. Volpiano Neumes for Review.docx",
-        redirect.redirect_documents,
+        redirect_documents,
         name="redirect-volpiano-neumes-for-review",
     ),
     path(
         "sites/default/files/documents/4. Volpiano Neume Protocols.pdf",
-        redirect.redirect_documents,
+        redirect_documents,
         name="redirect-volpiano-neume-protocols",
     ),
     path(
         "sites/default/files/documents/5. Volpiano Editing Guidelines.pdf",
-        redirect.redirect_documents,
+        redirect_documents,
         name="redirect-volpiano-editing-guidelines",
     ),
     path(
         "sites/default/files/documents/7. Guide to Graduals.pdf",
-        redirect.redirect_documents,
+        redirect_documents,
         name="redirect-guide-to-graduals",
     ),
     path(
         "sites/default/files/HOW TO - manuscript descriptions-Nov6-20.pdf",
-        redirect.redirect_documents,
+        redirect_documents,
         name="redirect-how-to-manuscript-descriptions",
     ),
     path(
