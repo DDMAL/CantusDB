@@ -175,6 +175,23 @@
             {% endif %}
         </div>
 
+        <div class="row">
+            {% if chant.liturgical_function %}
+            <div class="col">
+                <dt>Liturgical Function</dt>
+                <dd>{{ chant.get_liturgical_function_display }}</dd>
+            </div>
+            {% endif %}
+
+            {% if chant.polyphony %}
+                <div class="col">
+                    <dt>Polyphony</dt>
+                    <dd>{{ chant.get_polyphony_display }}</dd>
+                </div>
+            {% endif %}
+
+        </div>
+
         {% if chant.manuscript_full_text_std_spelling %}
             <dt>Full text as in Source (standardized spelling)</dt>
             <dd>{{ chant.manuscript_full_text_std_spelling }}</dd>
