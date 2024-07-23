@@ -7,7 +7,7 @@ from django.templatetags.static import static
 from django.core.exceptions import BadRequest
 from django.utils.http import urlencode
 
-from main_app.views.views import (
+from main_app.views.api import (
     NODE_TYPES_AND_VIEWS,
     record_exists,
     NODE_ID_CUTOFF,

@@ -1,34 +1,14 @@
 import csv
 from typing import List
 from typing import Optional
-
-from dal import autocomplete
-from django.contrib import messages
 from django.contrib.auth import get_user_model
-from django.contrib.auth import update_session_auth_hash
-from django.contrib.auth.decorators import login_required, user_passes_test
-from django.contrib.auth.forms import PasswordChangeForm
 from django.contrib.flatpages.models import FlatPage
-from django.core.exceptions import PermissionDenied, BadRequest
-from django.core.paginator import Paginator
-from django.db.models import Q
+from django.core.exceptions import PermissionDenied
 from django.db.models.query import QuerySet
-<<<<<<< HEAD
-from django.http import Http404
-from django.http import HttpResponse, HttpResponseNotFound, HttpRequest
-from django.http.response import JsonResponse
-from django.shortcuts import get_object_or_404
-from django.shortcuts import render, redirect
-from django.templatetags.static import static
-from django.urls import reverse
-from django.utils.http import urlencode
-
-=======
 from django.db.models import Model
 from django.http.response import JsonResponse
 from django.http import HttpResponse, HttpResponseNotFound
 from django.urls.base import reverse
->>>>>>> 64a7a27c (refactor(views): move redirect views to views.redirect)
 from articles.models import Article
 from main_app.models import (
     Chant,
@@ -38,15 +18,6 @@ from main_app.models import (
     Sequence,
     Source,
 )
-<<<<<<< HEAD
-<<<<<<< HEAD
-from main_app.models.base_model import BaseModel
-=======
-from django.contrib.auth.decorators import login_required, user_passes_test
->>>>>>> 64a7a27c (refactor(views): move redirect views to views.redirect)
-=======
-
->>>>>>> e585f77b (refactor(views): create site_stats views)
 from next_chants import next_chants
 from django.http import Http404
 from django.core.exceptions import PermissionDenied
@@ -740,58 +711,3 @@ def flatpages_list_export(request) -> HttpResponse:
         for flatpage in flatpages
     ]
     return HttpResponse(" ".join(flatpage_urls), content_type="text/plain")
-<<<<<<< HEAD
-
-
-def project_manager_check(user):
-    """
-    A callback function that will be called by the user_passes_test decorator of content_overview.
-
-    Takes in a logged-in user as an argument.
-    Returns True if they are in a "project manager" group, raises PermissionDenied otherwise.
-    """
-    if user.groups.filter(name="project manager").exists():
-        return True
-    raise PermissionDenied
-
-
-# first give the user a chance to login
-@login_required
-# if they're logged in but they're not a project manager, raise 403
-@user_passes_test(project_manager_check)
-def content_overview(request):
-    models = [
-        Source,
-        Chant,
-        Feast,
-        Sequence,
-        Office,
-        Provenance,
-        Genre,
-        Notation,
-        Century,
-    ]
-
-    model_names = [model._meta.verbose_name_plural for model in models]
-    selected_model_name = request.GET.get("model", None)
-    selected_model = None
-    if selected_model_name in model_names:
-        selected_model = models[model_names.index(selected_model_name)]
-
-    objects = []
-    if selected_model:
-        objects = selected_model.objects.all().order_by("-date_updated")
-
-    paginator = Paginator(objects, 100)
-    page_number = request.GET.get("page")
-    page_obj = paginator.get_page(page_number)
-
-    context = {
-        "models": model_names,
-        "selected_model_name": selected_model_name,
-        "page_obj": page_obj,
-    }
-
-    return render(request, "content_overview.html", context)
-=======
->>>>>>> e585f77b (refactor(views): create site_stats views)
