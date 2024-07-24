@@ -191,7 +191,7 @@ class ChantDetailView(DetailView):
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
-        chant = self.get_object()
+        chant = context["chant"]
         user = self.request.user
         source = chant.source
 
