@@ -212,6 +212,9 @@ class ChantDetailView(DetailView):
             )
             context["syllabized_text_with_melody"] = text_and_mel
 
+        if project := chant.project:
+            context["project"] = project.name
+
         # some chants don't have a source, for those chants, stop here without further calculating
         # other context variables
         if not chant.source:

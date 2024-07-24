@@ -192,6 +192,38 @@
 
         </div>
 
+        {% if project == "Benedicamus Domino" %}
+            <div class = "row">
+                {% if chant.later_addition %}
+                    <div class = "col">
+                        <dt>Later Addition</dt>
+                        <dd>{{ chant.later_addition }}</dd>
+                    </div>
+                {% endif %}
+                {% if chant.rubrics %}
+                    <div class = "col">
+                        <dt>Rubrics</dt>
+                        <dd>{{ chant.rubrics }}</dd>
+                    </div>
+                {% endif %}
+            </div>
+
+            <div class = "row">
+                {% if chant.cm_melody_id %}
+                    <div class = "col">
+                        <dt>Corpus Monodicum Melody ID</dt>
+                        <dd>{{ chant.cm_melody_id }}</dd>
+                    </div>
+                {% endif %}
+                {% if chant.incipit_of_refrain %}
+                    <div class = "col">
+                        <dt>Incipit of Refrain</dt>
+                        <dd>{{ chant.incipit_of_refrain }}</dd>
+                    </div>
+                {% endif %}
+            </div>
+        {% endif %}
+
         {% if chant.manuscript_full_text_std_spelling %}
             <dt>Full text as in Source (standardized spelling)</dt>
             <dd>{{ chant.manuscript_full_text_std_spelling }}</dd>
