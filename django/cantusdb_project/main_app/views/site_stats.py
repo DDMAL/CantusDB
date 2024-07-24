@@ -13,11 +13,11 @@ from main_app.models import (
     Notation,
     Century,
 )
+from main_app.permissions import user_is_project_manager
 
 from django.contrib.auth.decorators import login_required, user_passes_test
 from django.core.paginator import Paginator
 from django.shortcuts import render
-from django.core.exceptions import PermissionDenied
 
 
 @login_required
@@ -49,22 +49,10 @@ def items_count(request):
     return render(request, "items_count.html", context)
 
 
-def project_manager_check(user):
-    """
-    A callback function that will be called by the user_passes_test decorator of content_overview.
-
-    Takes in a logged-in user as an argument.
-    Returns True if they are in a "project manager" group, raises PermissionDenied otherwise.
-    """
-    if user.groups.filter(name="project manager").exists():
-        return True
-    raise PermissionDenied
-
-
 # first give the user a chance to login
 @login_required
 # if they're logged in but they're not a project manager, raise 403
-@user_passes_test(project_manager_check)
+@user_passes_test(user_is_project_manager)
 def content_overview(request):
     objects = []
     models = [
