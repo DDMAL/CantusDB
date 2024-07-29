@@ -105,6 +105,9 @@ class Source(BaseModel):
     segment = models.ForeignKey(
         "Segment", on_delete=models.PROTECT, blank=True, null=True
     )
+    segment_m2m = models.ManyToManyField(
+        "Segment", blank=True, related_name="sources", verbose_name="Segments"
+    )
     source_status = models.CharField(
         blank=True, null=True, choices=source_status_choices, max_length=255
     )

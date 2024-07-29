@@ -26,6 +26,7 @@ from django.db.models import Q
 from django.contrib.admin.widgets import (
     FilteredSelectMultiple,
 )
+from django.forms.widgets import CheckboxSelectMultiple
 from dal import autocomplete
 
 # ModelForm allows to build a form directly from a model
@@ -176,6 +177,7 @@ class SourceCreateForm(forms.ModelForm):
             # "siglum",
             "holding_institution",
             "shelfmark",
+            "segment_m2m",
             "provenance",
             "provenance_notes",
             "full_source",
@@ -204,6 +206,7 @@ class SourceCreateForm(forms.ModelForm):
                 url="holding-autocomplete"
             ),
             "shelfmark": TextInputWidget(),
+            "segment_m2m": CheckboxSelectMultiple(),
             "provenance": autocomplete.ModelSelect2(url="provenance-autocomplete"),
             "provenance_notes": TextInputWidget(),
             "date": TextInputWidget(),
@@ -365,6 +368,7 @@ class SourceEditForm(forms.ModelForm):
             # "siglum",
             "holding_institution",
             "shelfmark",
+            "segment_m2m",
             "provenance",
             "provenance_notes",
             "full_source",
@@ -392,6 +396,7 @@ class SourceEditForm(forms.ModelForm):
                 url="holding-autocomplete"
             ),
             "shelfmark": TextInputWidget(),
+            "segment_m2m": CheckboxSelectMultiple(),
             "provenance": autocomplete.ModelSelect2(url="provenance-autocomplete"),
             "provenance_notes": TextInputWidget(),
             "date": TextInputWidget(),
