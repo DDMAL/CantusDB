@@ -2363,6 +2363,55 @@ class ChantSearchMSViewTest(TestCase):
         second_context_chant_id = response.context["chants"][1].id
         self.assertEqual(chant_3.id, second_context_chant_id)
 
+    def test_indexing_notes_search_starts_with(self):
+        source = make_fake_source()
+        search_term = "quick"
+
+        # We have three chants to make sure the result is only chant 1 where quick is the first word
+        chant_1 = make_fake_chant(
+            source=source,
+            indexing_notes="quick brown fox jumps over the lazy dog",
+        )
+        chant_2 = make_fake_chant(
+            source=source,
+            indexing_notes="brown fox jumps over the lazy dog",
+        )
+        chant_3 = make_fake_chant(
+            source=source,
+            indexing_notes="lazy brown fox jumps quick over the dog",
+        )
+        response = self.client.get(
+            reverse("chant-search-ms", args=[source.id]),
+            {"indexing_notes": search_term, "indexing_notes_op": "starts_with"},
+        )
+        self.assertEqual(len(response.context["chants"]), 1)
+        context_chant_id = response.context["chants"][0].id
+        self.assertEqual(chant_1.id, context_chant_id)
+
+    def test_indexing_notes_search_contains(self):
+        source = make_fake_source()
+        search_term = "quick"
+        chant_1 = make_fake_chant(
+            source=source,
+            indexing_notes="Quick brown fox jumps over the lazy dog",
+        )
+        chant_2 = make_fake_chant(
+            source=source,
+            indexing_notes="brown fox jumps over the lazy dog",
+        )
+        chant_3 = make_fake_chant(
+            source=source,
+            indexing_notes="lazy brown fox jumps quickly over the dog",
+        )
+        response = self.client.get(
+            reverse("chant-search-ms", args=[source.id]),
+            {"indexing_notes": search_term, "indexing_notes_op": "contains"},
+        )
+        first_context_chant_id = response.context["chants"][0].id
+        self.assertEqual(chant_1.id, first_context_chant_id)
+        second_context_chant_id = response.context["chants"][1].id
+        self.assertEqual(chant_3.id, second_context_chant_id)
+
     def test_keyword_search_searching_all_fields(self):
         search_term = "brevity"
         includes_search_term = "brevity is the soul of wit"
