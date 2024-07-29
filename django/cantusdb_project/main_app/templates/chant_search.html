@@ -95,9 +95,27 @@
                 </select>
             </div>
         </div>
+        {% if source %}
+            <div class="form-row align-items-end">
+                <div class="form-group m-1 col-12">
+                    <label for="indexingNotesSearch"><small>Indexing notes search</small></label>
+                </div>
+            </div>
+            <div class="form-row align-items-end">
+                <div class="form-group m-1 col-lg-3 col-sm-3 col-3">
+                    <select class="form-control custom-select custom-select-sm" id="indexingNotesOp" name="indexing_notes_op">
+                        <option selected value="contains">Contains</option>
+                        <option value="starts_with">Starts with</option>
+                    </select>
+                </div>
+                <div class="form-group m-1 col-lg col-sm col-">
+                    <input type="text" class="form-control form-control-sm"  id="indexingNotesSearch" name="indexing_notes" value="{{ request.GET.indexing_notes }}" />
+                </div>
+            </div>
+        {% endif %}
 
         <div class="form-row align-items-end">
-            <div class="form-group m-1 col-lg">
+            <div class="form-group m-2 col-lg">
                 <button type="submit" class="btn btn-dark btn-sm" id="btn-submit"> Apply </button>
             </div>
         </div>
