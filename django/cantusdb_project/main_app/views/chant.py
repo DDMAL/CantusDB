@@ -629,6 +629,12 @@ class ChantSearchMSView(ListView):
         search_melodies = self.request.GET.get("melodies")
         if search_melodies:
             search_parameters.append(f"melodies={search_melodies}")
+        search_indexing_notes_op = self.request.GET.get("indexing_notes_op")
+        if search_indexing_notes_op:
+            search_parameters.append(f"indexing_notes_op={search_indexing_notes_op}")
+        search_indexing_notes = self.request.GET.get("indexing_notes")
+        if search_indexing_notes:
+            search_parameters.append(f"indexing_notes={search_indexing_notes}")
 
         if search_parameters:
             joined_search_parameters = "&".join(search_parameters)
@@ -724,6 +730,14 @@ class ChantSearchMSView(ListView):
 
             keyword_filter = ms_spelling_filter | std_spelling_filter | incipit_filter
             queryset = queryset.filter(keyword_filter)
+        if notes := self.request.GET.get("indexing_notes"):
+            operation = self.request.GET.get("indexing_notes_op")
+            # the operation parameter can be "contains" or "starts_with"
+            if operation == "contains":
+                indexing_notes_filter = Q(indexing_notes__icontains=notes)
+            else:
+                indexing_notes_filter = Q(indexing_notes__istartswith=notes)
+            queryset = queryset.filter(indexing_notes_filter)
         # ordering with the folio string gives wrong order
         # old cantus is also not strictly ordered by folio (there are outliers)
         # so we order by id for now, which is the order that the chants are entered into the DB
