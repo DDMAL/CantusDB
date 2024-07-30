@@ -57,6 +57,19 @@ class SelectWidgetNameModelChoiceField(NameModelChoiceField):
     widget = SelectWidget()
 
 
+class CheckboxNameModelMultipleChoiceField(forms.ModelMultipleChoiceField):
+    """
+    A custom ModelMultipleChoiceField that overrides the label_from_instance method
+    to display the object's name attribute instead of str(object) and uses
+    the CheckboxMulitpleSelect widget.
+    """
+
+    def label_from_instance(self, obj):
+        return obj.name
+
+    widget = CheckboxSelectMultiple()
+
+
 class ChantCreateForm(forms.ModelForm):
     class Meta:
         model = Chant
@@ -206,7 +219,6 @@ class SourceCreateForm(forms.ModelForm):
                 url="holding-autocomplete"
             ),
             "shelfmark": TextInputWidget(),
-            "segment_m2m": CheckboxSelectMultiple(),
             "provenance": autocomplete.ModelSelect2(url="provenance-autocomplete"),
             "provenance_notes": TextInputWidget(),
             "date": TextInputWidget(),
@@ -237,6 +249,9 @@ class SourceCreateForm(forms.ModelForm):
             "other_editors": autocomplete.ModelSelect2Multiple(
                 url="all-users-autocomplete"
             ),
+        }
+        field_classes = {
+            "segment_m2m": CheckboxNameModelMultipleChoiceField,
         }
 
     TRUE_FALSE_CHOICES_SOURCE = (
@@ -427,6 +442,9 @@ class SourceEditForm(forms.ModelForm):
             "other_editors": autocomplete.ModelSelect2Multiple(
                 url="all-users-autocomplete"
             ),
+        }
+        field_classes = {
+            "segment_m2m": CheckboxNameModelMultipleChoiceField,
         }
 
     CHOICES_FULL_SOURCE = (
