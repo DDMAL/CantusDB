@@ -405,7 +405,7 @@ class SourceEditView(LoginRequiredMixin, UserPassesTestMixin, UpdateView):
     pk_url_kwarg = "source_id"
 
     def get_context_data(self, **kwargs):
-        source = self.get_object()
+        source = self.object
         context = super().get_context_data(**kwargs)
 
         if source.segment and source.segment.id == BOWER_SEGMENT_ID:
