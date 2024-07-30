@@ -154,6 +154,7 @@ def make_fake_chant(
     next_chant=None,
     differentia=None,
     project=None,
+    indexing_notes=None,
 ) -> Chant:
     """Generates a fake Chant object."""
     if source is None:
@@ -193,6 +194,8 @@ def make_fake_chant(
         differentia = make_random_string(2)
     if project is None:
         project = make_fake_project()
+    if indexing_notes is None:
+        indexing_notes = faker.sentence()
 
     chant = Chant.objects.create(
         source=source,
@@ -224,7 +227,7 @@ def make_fake_chant(
         cao_concordances=make_random_string(12, "ABCDEFGHIJKLMNOPQRSTUVWXYZ  "),
         melody_id="m" + make_random_string(8, "0123456789."),
         manuscript_syllabized_full_text=manuscript_syllabized_full_text,
-        indexing_notes=faker.sentence(),
+        indexing_notes=indexing_notes,
         json_info=None,
         next_chant=next_chant,
         project=project,
