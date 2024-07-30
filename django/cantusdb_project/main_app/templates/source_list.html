@@ -76,8 +76,8 @@
         <table class="table table-sm small table-bordered table-responsive">
             <thead>
                 <tr>
-                    <th scope="col" class="text-wrap" style="text-align:center">Shelfmark</th>
-                    <th scope="col" class="text-wrap" style="text-align:center">Holding Institution</th>
+                    <th scope="col" class="text-wrap" style="text-align:center">Country</th>
+                    <th scope="col" class="text-wrap" style="text-align:center">Source</th>
                     <th scope="col" class="text-wrap" style="text-align:center">Summary</th>
                     <th scope="col" class="text-wrap" style="text-align:center">Date/Origin</th>
                     <th scope="col" class="text-wrap" style="text-align:center">Image Link</th>
@@ -88,12 +88,12 @@
                 {% for source in sources %}
                     <tr>
                         <td class="text-wrap" style="text-align:center">
-                            <a href="{% url 'source-detail' source.id %}">
-                                <b>{{ source.shelfmark }}</b>
-                            </a>
+                            <b>{{ source.holding_institution.country }}</b>
                         </td>
-                        <td class="text-wrap" style="text-align:center" title="{{ source.heading }}">
-                            <b>{{ source.holding_institution|truncatechars_html:50 }}</b>
+                        <td class="text-wrap" style="text-align:center" title="{{ source.title }}">
+                            <a href="{% url 'source-detail' source.id %}">
+                                <b>{{ source.title|truncatechars_html:100 }}</b>
+                            </a>
                         </td>
                         <td class="text-wrap" style="text-align:center" title="{{ source.summary|default:""|truncatechars_html:500 }}">
                             {{ source.summary|default:""|truncatechars_html:120 }}

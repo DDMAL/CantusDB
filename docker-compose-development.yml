@@ -2,8 +2,6 @@
 # When building the project locally, replace the contents of docker-compose.yml with the
 # contents of this file.
 
-version: '3'
-
 services:
   django:
     build:
