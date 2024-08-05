@@ -27,6 +27,8 @@ mypy = "^1.10.0"
 pylint = "^2.6.0"
 pylint-django = "^2.5.5"
 django-stubs = {git = "https://github.com/typeddjango/django-stubs.git", rev = "4a5b0656be5ccfb961e4e32f4a99756eaf57bb1d"}
+django-extensions = "^3.2.3"
+werkzeug = "^3.0.3"
 
 
 [build-system]
