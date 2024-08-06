@@ -15,25 +15,22 @@ class Command(BaseCommand):
             Q(differentiae_database__isnull=False) & Q(diff_db__isnull=True)
         ).count()
         count = 0
-        chant: Chant
+
         for chant in chants:
             try:
                 differentia_id: Optional[str] = chant.differentiae_database
                 differentia = Differentia.objects.get(differentia_id=differentia_id)
-                if differentia:
-                    chant.diff_db = differentia
-                else:
-                    # If the Differentia doesn't exist, create a new one
-                    differentia = Differentia(
-                        differentia_id=differentia_id,
-                    )
-                    differentia.save()
-                    chant.diff_db = differentia
-                chant.save()
             except Differentia.DoesNotExist:
+                # If the Differentia doesn't exist, create a new one
+                differentia = Differentia(differentia_id=differentia_id)
+                differentia.save()
                 self.stdout.write(
-                    self.style.WARNING(f"Differentia not found for chant: {chant}")
+                    self.style.WARNING(f"Differentia created for chant: {chant}")
                 )
+
+            chant.diff_db = differentia
+            chant.save()
+
             count += 1
             if count % 100 == 0:
                 self.stdout.write(
