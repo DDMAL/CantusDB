@@ -79,7 +79,7 @@ def get_suggested_chants(
     suggested_chants: list[SuggestedChant] = []
     for suggestion in trimmed_suggestions:
         sugg_cantus_id = suggestion["cid"]
-        occurences = suggestion["count"]
+        occurences = int(suggestion["count"])
         suggestion_info = suggestion.get("info")
         if suggestion_info:
             fulltext = suggestion_info.get("field_full_text")
