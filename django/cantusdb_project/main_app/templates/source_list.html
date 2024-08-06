@@ -1,9 +1,15 @@
 {% extends "base.html" %}
-{% block content %}
-<title>Browse Sources | Cantus Database</title>
-<script src="/static/js/source_list.js"></script>
 
-<div class="mr-3 p-3 col-md-12 mx-auto bg-white rounded">
+{% block title %}
+    <title>Browse Sources | Cantus Database</title>
+{% endblock %}
+
+{% block scripts %}
+    <script src="/static/js/source_list.js"></script>
+{% endblock %}
+
+{% block content %}
+    <div class="mr-3 p-3 col-md-12 mx-auto bg-white rounded">
     <!-- global search bar-->
     <object align="right" class="search-bar">
         {% include "global_search_bar.html" %}
@@ -70,8 +76,8 @@
         <table class="table table-sm small table-bordered table-responsive">
             <thead>
                 <tr>
+                    <th scope="col" class="text-wrap" style="text-align:center">Country</th>
                     <th scope="col" class="text-wrap" style="text-align:center">Source</th>
-                    <th scope="col" class="text-wrap" style="text-align:center">Siglum</th>
                     <th scope="col" class="text-wrap" style="text-align:center">Summary</th>
                     <th scope="col" class="text-wrap" style="text-align:center">Date/Origin</th>
                     <th scope="col" class="text-wrap" style="text-align:center">Image Link</th>
@@ -80,12 +86,14 @@
             </thead>
             <tbody>
                 {% for source in sources %}
-                    <tr>                        
-                        <td class="text-wrap" style="text-align:center" title="{{ source.title }}">
-                            <a href="{% url 'source-detail' source.id %}"><b>{{ source.title|truncatechars_html:50 }}</b></a>
-                        </td>
+                    <tr>
                         <td class="text-wrap" style="text-align:center">
-                            <b>{{ source.siglum }}</b>
+                            <b>{{ source.holding_institution.country }}</b>
+                        </td>
+                        <td class="text-wrap" style="text-align:center" title="{{ source.title }}">
+                            <a href="{% url 'source-detail' source.id %}">
+                                <b>{{ source.title|truncatechars_html:100 }}</b>
+                            </a>
                         </td>
                         <td class="text-wrap" style="text-align:center" title="{{ source.summary|default:""|truncatechars_html:500 }}">
                             {{ source.summary|default:""|truncatechars_html:120 }}

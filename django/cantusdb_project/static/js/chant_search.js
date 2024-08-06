@@ -11,6 +11,7 @@ window.addEventListener("load", function () {
     const melodiesFilter = document.getElementById("melodiesFilter");
     const keywordField = document.getElementById("keywordSearch");
     const cantusIDField = document.getElementById("cantus_id");
+    const indexingNotesOp = document.getElementById("indexingNotesOp");
 
     const urlParams = new URLSearchParams(window.location.search);
     if (urlParams.has("op")) {
@@ -25,8 +26,11 @@ window.addEventListener("load", function () {
     if (urlParams.has("melodies")) {
         melodiesFilter.value = urlParams.get("melodies");
     }
+    if (urlParams.has("indexing_notes_op")) {
+        indexingNotesOp.value = urlParams.get("indexing_notes_op")
+    }
     if (urlParams.has("search_bar")) {
-        search_term = urlParams.get("search_bar");
+        let search_term = urlParams.get("search_bar");
         if (containsNoNumerals(search_term)) {
             // assume user is doing an incipit search
             opFilter.value = "starts_with"

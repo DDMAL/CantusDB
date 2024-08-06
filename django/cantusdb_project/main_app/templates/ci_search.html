@@ -1,0 +1,72 @@
+<!DOCTYPE html>
+{% load static %}
+<html lang="en">
+
+<head>
+    <!-- Bootstrap CSS -->
+    <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.0/css/bootstrap.min.css"
+        integrity="sha384-9aIt2nRpC12Uk9gS9baDl411NQApFmC26EwAOH8WgZl5MYYxFfc+NcPb1dKGj7Sk" crossorigin="anonymous">
+    <script type="text/javascript" src="{% static 'admin/js/vendor/jquery/jquery.js' %}"></script>
+    <title>Cantus Index Search</title>
+</head>
+
+<body>
+    <p>Select the chant by clicking "OK" at the left. Please note that the search results are limited to the first 50 chants.
+        If your chant is not included here, please add it into
+        <a href="https://cantusindex.org/">Cantus Index</a> or contact the <a
+            href="mailto:kolacek2010@gmail.com">administrator</a>
+    </p>
+    <table class="table table-responsive table-sm small table-bordered table-striped table-hover" style="display: table;">
+        {# if we don't include 'style="display: table;"', the table is very narrow when viewed in certain browsers (e.g. Firefox) #}
+        <thead class="thead-dark">
+            <tr>
+                <th width="50">Select</th>
+                <th width="80">Cantus ID</th>
+                <th width="80">Genre</th>
+                <th width="100">Fulltext</th>
+            </tr>
+        </thead>
+
+        <tbody>
+            {% for cantus_id, genre, full_text in results %}
+            <tr id="{{ cantus_id }}">
+                <td><input type="button" value="OK" onclick="autoFill()" /></td>
+                <td>{{ cantus_id }}</td>
+                <td>{{ genre }}</td>
+                <td>{{ full_text }}</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+
+    <script>
+        function autoFill() {
+            var rowId = event.target.parentNode.parentNode.id; //this gives id of whose button was clicked 
+            var cantus_id = document.getElementById(rowId).cells[1].innerText;
+            var genre = document.getElementById(rowId).cells[2].innerText;
+            var full_text = document.getElementById(rowId).cells[3].innerText;
+
+            // get the option value corresponding to the genre name
+            var genres = {{ genres|safe }}; // genres contains "id" and "name" of all Genre objects in the database
+            var genreObj = genres.find(item => item.name === genre);
+            var genreID = genreObj ? genreObj.id : null;
+
+            opener.document.getElementById('id_cantus_id').value = cantus_id;
+            // Since we're using a django-autocomplete-light widget for the Genre selector,
+            // we need to follow a special process in selecting a value from the widget:
+            // Set the value, creating a new option if necessary            
+            if (genreID) {              
+                if (opener.$('#id_genre').find("option[value='" + genreID + "']").length) {
+                    opener.$('#id_genre').val(genreID).trigger('change');
+                } else { 
+                    // Create a new DOM Option and pre-select it by default
+                    var newOption = new Option(genre, genreID, true, true);
+                    opener.$('#id_genre').append(newOption).trigger('change');
+                }
+            }
+            opener.document.getElementById('id_manuscript_full_text_std_spelling').value = full_text;
+            close()
+        }
+    </script>
+</body>
+</html>

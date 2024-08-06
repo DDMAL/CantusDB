@@ -3,17 +3,18 @@
 import random
 from faker import Faker
 
-from main_app.models import Century
-from main_app.models import Chant
-from main_app.models import Feast
-from main_app.models import Genre
-from main_app.models import Notation
-from main_app.models import Office
-from main_app.models import Provenance
-from main_app.models import RismSiglum
-from main_app.models import Segment
-from main_app.models import Sequence
-from main_app.models import Source
+from main_app.models.century import Century
+from main_app.models.chant import Chant
+from main_app.models.feast import Feast
+from main_app.models.genre import Genre
+from main_app.models.institution import Institution
+from main_app.models.notation import Notation
+from main_app.models.office import Office
+from main_app.models.project import Project
+from main_app.models.provenance import Provenance
+from main_app.models.segment import Segment
+from main_app.models.sequence import Sequence
+from main_app.models.source import Source
 from django.contrib.auth import get_user_model
 
 from typing import Optional, List
@@ -152,7 +153,8 @@ def make_fake_chant(
     manuscript_syllabized_full_text=None,
     next_chant=None,
     differentia=None,
-    segment=None,
+    project=None,
+    indexing_notes=None,
 ) -> Chant:
     """Generates a fake Chant object."""
     if source is None:
@@ -190,8 +192,10 @@ def make_fake_chant(
         manuscript_syllabized_full_text = faker.sentence(20)
     if differentia is None:
         differentia = make_random_string(2)
-    if segment is None:
-        segment = make_fake_segment()
+    if project is None:
+        project = make_fake_project()
+    if indexing_notes is None:
+        indexing_notes = faker.sentence()
 
     chant = Chant.objects.create(
         source=source,
@@ -223,10 +227,10 @@ def make_fake_chant(
         cao_concordances=make_random_string(12, "ABCDEFGHIJKLMNOPQRSTUVWXYZ  "),
         melody_id="m" + make_random_string(8, "0123456789."),
         manuscript_syllabized_full_text=manuscript_syllabized_full_text,
-        indexing_notes=faker.sentence(),
+        indexing_notes=indexing_notes,
         json_info=None,
         next_chant=next_chant,
-        segment=segment,
+        project=project,
     )
     chant.refresh_from_db()  # several fields (e.g., incipit) are calculated automatically
     # upon chant save. By refreshing from db before returning, we ensure all the chant's fields
@@ -293,15 +297,6 @@ def make_fake_provenance() -> Provenance:
     return provenance
 
 
-def make_fake_rism_siglum() -> RismSiglum:
-    """Generates a fake RismSiglum object."""
-    rism_siglum = RismSiglum.objects.create(
-        name=faker.sentence(nb_words=3),
-        description=faker.sentence(),
-    )
-    return rism_siglum
-
-
 def make_fake_segment(name: str = None, id: int = None) -> Segment:
     """Generates a fake Segment object."""
     if name is None:
@@ -311,6 +306,16 @@ def make_fake_segment(name: str = None, id: int = None) -> Segment:
         return segment
     segment = Segment.objects.create(name=name, id=id)
     return segment
+
+
+def make_fake_project(name: str = None, id: int = None) -> Project:
+    if name is None:
+        name = faker.sentence(nb_words=2)
+    if id is None:
+        project = Project.objects.create(name=name)
+        return project
+    project = Project.objects.create(name=name, id=id)
+    return project
 
 
 def make_fake_sequence(source=None, title=None, cantus_id=None) -> Sequence:
@@ -343,18 +348,38 @@ def make_fake_sequence(source=None, title=None, cantus_id=None) -> Sequence:
     return sequence
 
 
+def make_fake_institution(
+    name: Optional[str] = None,
+    siglum: Optional[str] = None,
+    city: Optional[str] = None,
+    region: Optional[str] = None,
+    country: Optional[str] = None,
+) -> Institution:
+    name = name if name else faker.sentence()
+    siglum = siglum if siglum else faker.sentence(nb_words=1)
+    city = city if city else faker.city()
+    region = region if region else faker.country()
+    country = country if country else faker.country()
+
+    inst = Institution.objects.create(
+        name=name, siglum=siglum, city=city, region=region, country=country
+    )
+    inst.save()
+
+    return inst
+
+
 def make_fake_source(
     published: bool = True,
-    title: Optional[str] = None,
+    shelfmark: Optional[str] = None,
     segment_name: Optional[str] = None,
     segment: Optional[Segment] = None,
-    siglum: Optional[str] = None,
-    rism_siglum: Optional[RismSiglum] = None,
+    holding_institution: Optional[Institution] = None,
     description: Optional[str] = None,
     summary: Optional[str] = None,
     provenance: Optional[Provenance] = None,
     century: Optional[Century] = None,
-    full_source: bool = True,
+    full_source: Optional[bool] = True,
     indexing_notes: Optional[str] = None,
 ) -> Source:
     """Generates a fake Source object."""
@@ -363,16 +388,14 @@ def make_fake_source(
 
     # if published...
     #     published already defaults to True
-    if title is None:
-        title = faker.sentence()
+    if shelfmark is None:
+        shelfmark = faker.sentence()
     if segment_name is None:
         segment_name = faker.sentence(nb_words=2)
     if segment is None:
         segment = make_fake_segment(name=segment_name)
-    if siglum is None:
-        siglum = make_random_string(6)
-    if rism_siglum is None:
-        rism_siglum = make_fake_rism_siglum()
+    if holding_institution is None:
+        holding_institution = make_fake_institution()
     if description is None:
         description = faker.sentence()
     if summary is None:
@@ -391,10 +414,9 @@ def make_fake_source(
 
     source = Source.objects.create(
         published=published,
-        title=title,
+        shelfmark=shelfmark,
         segment=segment,
-        siglum=siglum,
-        rism_siglum=rism_siglum,
+        holding_institution=holding_institution,
         description=description,
         summary=summary,
         provenance=provenance,

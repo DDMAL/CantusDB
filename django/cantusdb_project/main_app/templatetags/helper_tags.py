@@ -1,13 +1,14 @@
 import calendar
 from typing import Union, Optional
+
 from django import template
-from main_app.models import Source
-from articles.models import Article
-from django.utils.safestring import mark_safe
-from django.urls import reverse
 from django.core.paginator import Paginator
 from django.db.models import Q
+from django.template.defaultfilters import stringfilter
+from django.utils.safestring import mark_safe
 
+from articles.models import Article
+from main_app.models import Source
 
 register = template.Library()
 
@@ -128,14 +129,42 @@ def has_group(user, group_name):
     return user.groups.filter(name=group_name).exists()
 
 
+@register.filter(name="in_groups")
+def in_groups(user, groups: str) -> bool:
+    """
+    Takes a comma-separated string of group names and returns True if the user is in those groups.
+    """
+    grouplist = groups.split(",")
+    return user.groups.filter(name__in=grouplist).exists()
+
+
+@register.filter(name="split")
+@stringfilter
+def split(value: str, key: str) -> list[str]:
+    """
+    Returns the value turned into a list.
+    """
+    return value.split(key)
+
+
 @register.simple_tag(takes_context=True)
 def get_user_source_pagination(context):
     user_created_sources = (
         Source.objects.filter(
             Q(current_editors=context["user"]) | Q(created_by=context["user"])
         )
+        .select_related("holding_institution")
         .order_by("-date_updated")
         .distinct()
+        .only(
+            "id",
+            "holding_institution__id",
+            "holding_institution__city",
+            "holding_institution__siglum",
+            "holding_institution__name",
+            "holding_institution__is_private_collector",
+            "shelfmark",
+        )
     )
     paginator = Paginator(user_created_sources, 6)
     page_number = context["request"].GET.get("page")
@@ -147,8 +176,18 @@ def get_user_source_pagination(context):
 def get_user_created_source_pagination(context):
     user_created_sources = (
         Source.objects.filter(created_by=context["user"])
+        .select_related("holding_institution")
         .order_by("-date_created")
         .distinct()
+        .only(
+            "id",
+            "holding_institution__id",
+            "holding_institution__city",
+            "holding_institution__siglum",
+            "holding_institution__name",
+            "holding_institution__is_private_collector",
+            "shelfmark",
+        )
     )
     paginator = Paginator(user_created_sources, 6)
     page_number = context["request"].GET.get("page2")

@@ -1,72 +1,31 @@
 import csv
-from typing import Optional, Union
+from typing import List
+from typing import Optional
+from django.contrib.auth import get_user_model
+from django.contrib.flatpages.models import FlatPage
+from django.core.exceptions import PermissionDenied
 from django.db.models.query import QuerySet
+from django.db.models import Model
 from django.http.response import JsonResponse
-from django.http import HttpResponse, HttpResponseNotFound, HttpRequest
-from django.utils.http import urlencode
-from django.shortcuts import render, redirect
+from django.http import HttpResponse, HttpResponseNotFound
 from django.urls.base import reverse
 from articles.models import Article
 from main_app.models import (
-    Century,
     Chant,
-    Differentia,
-    Feast,
-    Genre,
     Notation,
-    Office,
     Provenance,
-    RismSiglum,
     Segment,
     Sequence,
     Source,
 )
-from django.contrib.auth.decorators import login_required, user_passes_test
-from main_app.models.base_model import BaseModel
 from next_chants import next_chants
-from django.contrib import messages
 from django.http import Http404
-from django.contrib.auth import update_session_auth_hash
-from django.contrib.auth.forms import PasswordChangeForm
-from django.core.exceptions import PermissionDenied, BadRequest
+from django.core.exceptions import PermissionDenied
 from django.urls import reverse
 from django.contrib.auth import get_user_model
 from typing import List
-from django.core.paginator import Paginator
-from django.templatetags.static import static
 from django.contrib.flatpages.models import FlatPage
-from dal import autocomplete
-from django.db.models import Q
 from django.shortcuts import get_object_or_404
-
-
-@login_required
-def items_count(request):
-    """
-    Function-based view for the ``items count`` page, accessed with ``content-statistics``
-
-    Update 2022-01-05:
-    This page has been changed on the original Cantus. It is now in the private domain
-
-    Args:
-        request (request): The request
-
-    Returns:
-        HttpResponse: Render the page
-    """
-    # in items count, the number on old cantus shows the total count of a type of object (chant, seq)
-    # no matter published or not
-    # but for the count of sources, it only shows the count of published sources
-    chant_count = Chant.objects.count()
-    sequence_count = Sequence.objects.count()
-    source_count = Source.objects.filter(published=True).count()
-
-    context = {
-        "chant_count": chant_count,
-        "sequence_count": sequence_count,
-        "source_count": source_count,
-    }
-    return render(request, "items_count.html", context)
 
 
 def ajax_melody_list(request, cantus_id) -> JsonResponse:
@@ -81,7 +40,10 @@ def ajax_melody_list(request, cantus_id) -> JsonResponse:
         JsonResponse: A response to the AJAX call, to be unpacked by the frontend js code
     """
     chants: QuerySet[Chant] = (
-        Chant.objects.filter(cantus_id=cantus_id).exclude(volpiano=None).order_by("id")
+        Chant.objects.filter(cantus_id=cantus_id)
+        .select_related("source__holding_institution", "feast", "genre", "office")
+        .exclude(volpiano=None)
+        .order_by("id")
     )
 
     display_unpublished: bool = request.user.is_authenticated
@@ -89,7 +51,8 @@ def ajax_melody_list(request, cantus_id) -> JsonResponse:
         chants = chants.filter(source__published=True)
 
     concordance_values: QuerySet[dict] = chants.values(
-        "source__siglum",
+        "source__holding_institution__siglum",
+        "source__shelfmark",
         "folio",
         "office__name",
         "genre__name",
@@ -106,7 +69,10 @@ def ajax_melody_list(request, cantus_id) -> JsonResponse:
     for i, concordance in enumerate(concordances):
         # we need to use each chant's _source_'s siglum, and not the
         # legacy sigla that were attached to chants in OldCantus
-        concordance["siglum"] = concordance.pop("source__siglum")
+        holding_inst_sig = concordance.pop("source__holding_institution__siglum")
+        source_shelfmark = concordance.pop("source__shelfmark")
+
+        concordance["siglum"] = f"{holding_inst_sig} {source_shelfmark}"
         # for chants that do not have a source, do not attempt
         # to return a source link
         if chants[i].source:
@@ -139,7 +105,7 @@ def csv_export(request, source_id):
 
     display_unpublished = request.user.is_authenticated
 
-    if (not source.published) and (not display_unpublished):
+    if not source.published and not display_unpublished:
         raise PermissionDenied
 
     # "4064" is the segment id of the sequence DB, sources in that segment have sequences instead of chants
@@ -156,7 +122,8 @@ def csv_export(request, source_id):
     writer = csv.writer(response)
     writer.writerow(
         [
-            "siglum",
+            "shelfmark",
+            "holding_institution",
             "marginalia",
             "folio",
             "sequence",
@@ -180,7 +147,9 @@ def csv_export(request, source_id):
             "node_id",
         ]
     )
-    siglum = source.siglum
+    shelfmark = source.shelfmark
+    holding_institution = source.holding_institution
+
     for entry in entries:
         feast = entry.feast.name if entry.feast else ""
         office = entry.office.name if entry.office else ""
@@ -189,7 +158,8 @@ def csv_export(request, source_id):
 
         writer.writerow(
             [
-                siglum,
+                shelfmark,
+                holding_institution,
                 entry.marginalia,
                 entry.folio,
                 # if entry has a c_sequence, it's a Chant. If it doesn't, it's a Sequence, so write its s_sequence
@@ -216,23 +186,6 @@ def csv_export(request, source_id):
         )
 
     return response
-
-
-def csv_export_redirect_from_old_path(request, source_id):
-    return redirect(reverse("csv-export", args=[source_id]))
-
-
-def contact(request):
-    """
-    Function-based view that renders the contact page ``contact``
-
-    Args:
-        request (request): The request
-
-    Returns:
-        HttpResponse: Render the contact page
-    """
-    return render(request, "contact.html")
 
 
 def ajax_melody_search(request):
@@ -273,7 +226,9 @@ def ajax_melody_search(request):
     if not display_unpublished:
         chants = Chant.objects.filter(source__published=True)
     else:
-        chants = Chant.objects
+        chants = Chant.objects.all()
+
+    chants = chants.select_related("source__holding_institution")
 
     # if "search exact matches + transpositions"
     if transpose == "true":
@@ -329,7 +284,8 @@ def ajax_melody_search(request):
 
     result_values = chants.order_by("id").values(
         "id",
-        "siglum",
+        "source__holding_institution__siglum",
+        "source__shelfmark",
         "folio",
         "incipit",
         "genre__name",
@@ -370,6 +326,10 @@ def ajax_search_bar(request, search_term):
         # if the search term does not contain any digits, assume user is searching by incipit
         chants = Chant.objects.filter(incipit__istartswith=search_term).order_by("id")
 
+    chants = chants.select_related(
+        "source__holding_institution", "genre", "feast", "office"
+    )
+
     display_unpublished: bool = request.user.is_authenticated
     if not display_unpublished:
         chants = chants.filter(source__published=True)
@@ -384,7 +344,8 @@ def ajax_search_bar(request, search_term):
             "feast__name",
             "cantus_id",
             "mode",
-            "source__siglum",
+            "source__holding_institution__siglum",
+            "source__shelfmark",
             "office__name",
             "folio",
             "c_sequence",
@@ -405,7 +366,8 @@ def json_melody_export(request, cantus_id: str) -> JsonResponse:
         "melody_id",
         "id",
         "cantus_id",
-        "siglum",
+        "source__holding_institution",
+        "source__shelfmark",
         "source__id",  # don't fetch the entire Source object, just the id of
         # the source. __id is removed in standardize_for_api below
         "folio",
@@ -450,7 +412,8 @@ def standardize_dict_for_json_melody_export(
         "melody_id": "mid",  #                  <-
         "id": "nid",  #                         <-
         "cantus_id": "cid",  #                  <-
-        "siglum": "siglum",
+        "source__shelfmark": "shelfmark",
+        "source__holding_institution": "holding_institution",
         "source__id": "srcnid",  #              <-
         "folio": "folio",
         "incipit": "incipit",
@@ -561,7 +524,7 @@ def build_json_cid_dictionary(chant, request) -> dict:
     chant_relative_url = reverse("chant-detail", args=[chant.id])
     chant_absolute_url = request.build_absolute_uri(chant_relative_url)
     dictionary = {
-        "siglum": chant.source.siglum,
+        "siglum": chant.source.short_heading,
         "srclink": source_absolute_url,
         "chantlink": chant_absolute_url,
         "folio": chant.folio if chant.folio else "",
@@ -585,7 +548,7 @@ def build_json_cid_dictionary(chant, request) -> dict:
     return dictionary
 
 
-def record_exists(rec_type: BaseModel, pk: int) -> bool:
+def record_exists(rec_type: type[Model], pk: int) -> bool:
     """Determines whether record of specific type (chant, source, sequence, article) exists for a given pk
 
     Args:
@@ -623,27 +586,6 @@ def get_user_id_from_old_indexer_id(pk: int) -> Optional[int]:
         return None
 
 
-def check_for_unpublished(item: Union[Chant, Sequence, Source]) -> None:
-    """Raises an Http404 exception if item is unpublished
-
-    Args:
-        item (Chant, Sequence, or Source): An item to check whether it is published or not
-
-    Raises:
-        Http404 if the item is a source and it's unpublished,
-            or if it's a chant/sequence and its source is unpublished
-
-    Returns:
-        None
-    """
-    if isinstance(item, Source):
-        if not item.published:
-            raise Http404()
-    if isinstance(item, Chant) or isinstance(item, Sequence):
-        if not item.source.published:
-            raise Http404()
-
-
 NODE_TYPES_AND_VIEWS = [
     (Chant, "chant-detail"),
     (Source, "source-detail"),
@@ -658,7 +600,7 @@ NODE_TYPES_AND_VIEWS = [
 NODE_ID_CUTOFF = 1_000_000
 
 
-def json_node_export(request, id: int) -> JsonResponse:
+def json_node_export(request, id: int) -> HttpResponse:
     """
     returns all fields of the chant/sequence/source/indexer with the specified `id`
     """
@@ -678,18 +620,20 @@ def json_node_export(request, id: int) -> JsonResponse:
         vals = dict(*user.values())
         return JsonResponse(vals)
 
+    # This seems to return the first object for which the node id matches.
     for rec_type, _ in NODE_TYPES_AND_VIEWS:
-        if record_exists(rec_type, id):
-            requested_item = rec_type.objects.filter(id=id)
-            # in order to easily unpack the object's properties in `vals` below, `requested_item`
-            # needs to be a queryset rather than an individual object. But in order to
-            # `check_for_unpublished`, we need a single object rather than a queryset, hence
-            # `.first()`
-            check_for_unpublished(
-                requested_item.first()
-            )  # raises a 404 if item is unpublished
-            vals = dict(*requested_item.values())
-            return JsonResponse(vals)
+        this_rec_qs = rec_type.objects.filter(id=id)
+
+        if rec_type == Source:
+            this_rec_qs = this_rec_qs.filter(published=True)
+        elif rec_type in (Chant, Sequence):
+            this_rec_qs = this_rec_qs.filter(source__published=True)
+
+        if not this_rec_qs.exists():
+            continue
+
+        vals = dict(*this_rec_qs.values())
+        return JsonResponse(vals)
 
     return HttpResponseNotFound()
 
@@ -767,364 +711,3 @@ def flatpages_list_export(request) -> HttpResponse:
         for flatpage in flatpages
     ]
     return HttpResponse(" ".join(flatpage_urls), content_type="text/plain")
-
-
-def redirect_node_url(request, pk: int) -> HttpResponse:
-    """
-    A function that will redirect /node/ URLs from OldCantus to their corresponding page in NewCantus.
-    This makes NewCantus links backwards compatible for users who may have bookmarked these types of URLs in OldCantus.
-    In addition, this function (paired with get_user_id() below) account for the different numbering systems in both versions of CantusDB, notably for /indexer/ paths which are now at /user/.
-
-    Takes in a request and the primary key (ID following /node/ in the URL) as arguments.
-    Returns the matching page in NewCantus if it exists and a 404 otherwise.
-    """
-
-    if pk >= NODE_ID_CUTOFF:
-        raise Http404("Invalid ID for /node/ path.")
-
-    user_id = get_user_id_from_old_indexer_id(pk)
-    if get_user_id_from_old_indexer_id(pk) is not None:
-        return redirect("user-detail", user_id)
-
-    for rec_type, view in NODE_TYPES_AND_VIEWS:
-        if record_exists(rec_type, pk):
-            # if an object is found, a redirect() call to the appropriate view is returned
-            return redirect(view, pk)
-
-    # if it reaches the end of the types with finding an existing object, a 404 will be returned
-    raise Http404("No record found matching the /node/ query.")
-
-
-@login_required
-def change_password(request):
-    if request.method == "POST":
-        form = PasswordChangeForm(request.user, request.POST)
-        if form.is_valid():
-            user = form.save()
-            update_session_auth_hash(request, user)
-            messages.success(request, "Your password was successfully updated!")
-    else:
-        form = PasswordChangeForm(request.user)
-    return render(request, "registration/change_password.html", {"form": form})
-
-
-def project_manager_check(user):
-    """
-    A callback function that will be called by the user_passes_test decorator of content_overview.
-
-    Takes in a logged-in user as an argument.
-    Returns True if they are in a "project manager" group, raises PermissionDenied otherwise.
-    """
-    if user.groups.filter(name="project manager").exists():
-        return True
-    raise PermissionDenied
-
-
-# first give the user a chance to login
-@login_required
-# if they're logged in but they're not a project manager, raise 403
-@user_passes_test(project_manager_check)
-def content_overview(request):
-    objects = []
-    models = [
-        Source,
-        Chant,
-        Feast,
-        Sequence,
-        Office,
-        Provenance,
-        Genre,
-        Notation,
-        Century,
-        RismSiglum,
-    ]
-
-    model_names = [model._meta.verbose_name_plural for model in models]
-    selected_model_name = request.GET.get("model", None)
-    selected_model = None
-    if selected_model_name in model_names:
-        selected_model = models[model_names.index(selected_model_name)]
-
-    objects = []
-    if selected_model:
-        objects = selected_model.objects.all().order_by("-date_updated")
-
-    paginator = Paginator(objects, 100)
-    page_number = request.GET.get("page")
-    page_obj = paginator.get_page(page_number)
-
-    context = {
-        "models": model_names,
-        "selected_model_name": selected_model_name,
-        "page_obj": page_obj,
-    }
-
-    return render(request, "content_overview.html", context)
-
-
-def redirect_indexer(request, pk: int) -> HttpResponse:
-    """
-    A function that will redirect /indexer/ URLs from OldCantus to their corresponding /user/ page in NewCantus.
-    This makes NewCantus links backwards compatible for users who may have bookmarked these types of URLs in OldCantus.
-
-    Takes in a request and the Indexer ID as arguments.
-    Returns the matching User page in NewCantus if it exists and a 404 otherwise.
-    """
-    user_id = get_user_id_from_old_indexer_id(pk)
-    if get_user_id_from_old_indexer_id(pk) is not None:
-        return redirect("user-detail", user_id)
-
-    raise Http404("No indexer found matching the query.")
-
-
-def redirect_office(request) -> HttpResponse:
-    """
-    Redirects from office/ (à la OldCantus) to offices/ (à la NewCantus)
-
-    Args:
-        request
-
-    Returns:
-        HttpResponse
-    """
-    return redirect("office-list")
-
-
-def redirect_genre(request) -> HttpResponse:
-    """
-    Redirects from genre/ (à la OldCantus) to genres/ (à la NewCantus)
-
-    Args:
-        request
-
-    Returns:
-        HttpResponse
-    """
-    return redirect("genre-list")
-
-
-def redirect_search(request: HttpRequest) -> HttpResponse:
-    """
-    Redirects from search/ (à la OldCantus) to chant-search/ (à la NewCantus)
-
-    Args:
-        request
-
-    Returns:
-        HttpResponse
-    """
-    return redirect("chant-search", permanent=True)
-
-
-def redirect_documents(request) -> HttpResponse:
-    """Handle requests to old paths for various
-    documents on OldCantus, returning an HTTP Response
-    redirecting the user to the updated path
-
-    Args:
-        request: the request to the old path
-
-    Returns:
-        HttpResponse: response redirecting to the new path
-    """
-    mapping = {
-        "/sites/default/files/documents/1. Quick Guide to Liturgy.pdf": static(
-            "documents/1. Quick Guide to Liturgy.pdf"
-        ),
-        "/sites/default/files/documents/2. Volpiano Protocols.pdf": static(
-            "documents/2. Volpiano Protocols.pdf"
-        ),
-        "/sites/default/files/documents/3. Volpiano Neumes for Review.docx": static(
-            "documents/3. Volpiano Neumes for Review.docx"
-        ),
-        "/sites/default/files/documents/4. Volpiano Neume Protocols.pdf": static(
-            "documents/4. Volpiano Neume Protocols.pdf"
-        ),
-        "/sites/default/files/documents/5. Volpiano Editing Guidelines.pdf": static(
-            "documents/5. Volpiano Editing Guidelines.pdf"
-        ),
-        "/sites/default/files/documents/7. Guide to Graduals.pdf": static(
-            "documents/7. Guide to Graduals.pdf"
-        ),
-        "/sites/default/files/HOW TO - manuscript descriptions-Nov6-20.pdf": static(
-            "documents/HOW TO - manuscript descriptions-Nov6-20.pdf"
-        ),
-    }
-    old_path = request.path
-    try:
-        new_path = mapping[old_path]
-    except KeyError:
-        raise Http404
-    return redirect(new_path)
-
-
-def redirect_chants(request) -> HttpResponse:
-    # in OldCantus, the Browse Chants page was accessed via
-    # `/chants/?source=<source ID>`
-    # This view redirects to `/source/<source ID>/chants` to
-    # maintain backwards compatibility
-    source_id: Optional[str] = request.GET.get("source")
-    if source_id is None:
-        # source parameter must be provided
-        raise BadRequest("Source parameter must be provided")
-
-    base_url: str = reverse("browse-chants", args=[source_id])
-
-    # optional search params
-    feast_id: Optional[str] = request.GET.get("feast")
-    genre_id: Optional[str] = request.GET.get("genre")
-    folio: Optional[str] = request.GET.get("folio")
-    search_text: Optional[str] = request.GET.get("search_text")
-
-    d: dict = {
-        "feast": feast_id,
-        "genre": genre_id,
-        "folio": folio,
-        "search_text": search_text,
-    }
-    params: dict = {k: v for k, v in d.items() if v is not None}
-
-    query_string: str = urlencode(params)
-    url: str = f"{base_url}?{query_string}" if query_string else base_url
-
-    return redirect(url, permanent=True)
-
-
-def redirect_source_inventory(request) -> HttpResponse:
-    source_id: str = request.GET.get("source")
-    if source_id is None:
-        # source parameter must be provided
-        raise BadRequest("Source parameter must be provided")
-    url: str = reverse("source-inventory", args=[source_id])
-    return redirect(url, permanent=True)
-
-
-class CurrentEditorsAutocomplete(autocomplete.Select2QuerySetView):
-    def get_queryset(self):
-        if not self.request.user.is_authenticated:
-            return get_user_model().objects.none()
-        qs = (
-            get_user_model()
-            .objects.filter(
-                Q(groups__name="project manager")
-                | Q(groups__name="editor")
-                | Q(groups__name="contributor")
-            )
-            .order_by("full_name")
-        )
-        if self.q:
-            qs = qs.filter(
-                Q(full_name__istartswith=self.q) | Q(email__istartswith=self.q)
-            )
-        return qs
-
-
-class AllUsersAutocomplete(autocomplete.Select2QuerySetView):
-    def get_queryset(self):
-        if not self.request.user.is_authenticated:
-            return get_user_model().objects.none()
-        qs = get_user_model().objects.all().order_by("full_name")
-        if self.q:
-            qs = qs.filter(
-                Q(full_name__istartswith=self.q) | Q(email__istartswith=self.q)
-            )
-        return qs
-
-
-class CenturyAutocomplete(autocomplete.Select2QuerySetView):
-    def get_queryset(self):
-        if not self.request.user.is_authenticated:
-            return Century.objects.none()
-        qs = Century.objects.all().order_by("name")
-        if self.q:
-            qs = qs.filter(name__istartswith=self.q)
-        return qs
-
-
-class RismSiglumAutocomplete(autocomplete.Select2QuerySetView):
-    def get_queryset(self):
-        if not self.request.user.is_authenticated:
-            return RismSiglum.objects.none()
-        qs = RismSiglum.objects.all().order_by("name")
-        if self.q:
-            qs = qs.filter(name__istartswith=self.q)
-        return qs
-
-
-class FeastAutocomplete(autocomplete.Select2QuerySetView):
-    def get_queryset(self):
-        if not self.request.user.is_authenticated:
-            return Feast.objects.none()
-        qs = Feast.objects.all().order_by("name")
-        if self.q:
-            qs = qs.filter(name__icontains=self.q)
-        return qs
-
-
-class OfficeAutocomplete(autocomplete.Select2QuerySetView):
-    def get_result_label(self, office):
-        return f"{office.name} - {office.description}"
-
-    def get_queryset(self):
-        if not self.request.user.is_authenticated:
-            return Office.objects.none()
-        qs = Office.objects.all().order_by("name")
-        if self.q:
-            qs = qs.filter(
-                Q(name__istartswith=self.q) | Q(description__icontains=self.q)
-            )
-        return qs
-
-
-class GenreAutocomplete(autocomplete.Select2QuerySetView):
-    def get_result_label(self, genre):
-        return f"{genre.name} - {genre.description}"
-
-    def get_queryset(self):
-        if not self.request.user.is_authenticated:
-            return Genre.objects.none()
-        qs = Genre.objects.all().order_by("name")
-        if self.q:
-            qs = qs.filter(
-                Q(name__istartswith=self.q) | Q(description__icontains=self.q)
-            )
-        return qs
-
-
-class DifferentiaAutocomplete(autocomplete.Select2QuerySetView):
-    def get_queryset(self):
-        if not self.request.user.is_authenticated:
-            return Differentia.objects.none()
-        qs = Differentia.objects.all().order_by("differentia_id")
-        if self.q:
-            qs = qs.filter(differentia_id__istartswith=self.q)
-        return qs
-
-
-class ProvenanceAutocomplete(autocomplete.Select2QuerySetView):
-    def get_queryset(self):
-        if not self.request.user.is_authenticated:
-            return Provenance.objects.none()
-        qs = Provenance.objects.all().order_by("name")
-        if self.q:
-            qs = qs.filter(name__icontains=self.q)
-        return qs
-
-
-class ProofreadByAutocomplete(autocomplete.Select2QuerySetView):
-    def get_queryset(self):
-        if not self.request.user.is_authenticated:
-            return get_user_model().objects.none()
-        qs = (
-            get_user_model()
-            .objects.filter(
-                Q(groups__name="project manager") | Q(groups__name="editor")
-            )
-            .distinct()
-            .order_by("full_name")
-        )
-        if self.q:
-            qs = qs.filter(
-                Q(full_name__istartswith=self.q) | Q(email__istartswith=self.q)
-            )
-        return qs

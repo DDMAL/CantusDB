@@ -1,5 +1,4 @@
 from django.forms.widgets import TextInput, Select, Textarea, CheckboxInput
-from django.utils.safestring import mark_safe
 
 
 class TextInputWidget(TextInput):

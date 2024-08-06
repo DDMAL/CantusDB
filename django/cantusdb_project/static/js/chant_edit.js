@@ -47,26 +47,26 @@ window.addEventListener("load", function () {
         window.location.assign(url);
     }
 
-    // Add an event listener to the segment select field.
+    // Add an event listener to the project select field.
     // If the user selects "Benedicamus Domino", show the additional fields
-    // in the "benedicamus-domino-segment-fields" div. By default, these
+    // in the "benedicamus-domino-project-fields" div. By default, these
     // are hidden.
-    const segmentSelectElem = document.getElementById("id_segment");
-    segmentSelectElem.addEventListener("change", function () {
-        const benedicamusDominoSegmentFields = document.getElementById("benedicamus-domino-segment-fields");
-        const selectedElemText = segmentSelectElem.options[segmentSelectElem.selectedIndex].text;
+    const projectSelectElem = document.getElementById("id_project");
+    projectSelectElem.addEventListener("change", function () {
+        const benedicamusDominoProjectFields = document.getElementById("benedicamus-domino-project-fields");
+        const selectedElemText = projectSelectElem.options[projectSelectElem.selectedIndex].text;
         if (selectedElemText === "Benedicamus Domino") {
-            benedicamusDominoSegmentFields.hidden = false;
+            benedicamusDominoProjectFields.hidden = false;
         } else {
-            benedicamusDominoSegmentFields.hidden = true;
+            benedicamusDominoProjectFields.hidden = true;
         }
     });
-    segmentSelectElem.dispatchEvent(new Event('change'));
+    projectSelectElem.dispatchEvent(new Event('change')); // ensures that the event listener is called on page load
 })
 
 function autoFillSuggestedFullText(fullText) {
     var fullTextField = document.getElementById('id_manuscript_full_text_std_spelling');
-    if (fullTextField.value == "") {
+    if (fullTextField.value === "") {
         fullTextField.value = fullText;
     }
 }

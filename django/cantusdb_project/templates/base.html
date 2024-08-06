@@ -1,8 +1,8 @@
-<!DOCTYPE html>
 {% load static %}
 {% load helper_tags %} {# for has_group #}
-<html lang="en">
 
+<!DOCTYPE html>
+<html lang="en">
 <head>
     {% if PROJECT_ENVIRONMENT == "PRODUCTION" %}
         <!-- Google tag (gtag.js) -->
@@ -19,6 +19,9 @@
         {# to ensure Google/etc. only indexes the main production site, and not staging #}
         <meta name="robots" content="noindex">
     {% endif %}
+    {% block title %}
+        <title>Cantus Database</title>
+    {% endblock %}
     <!-- Required meta tags -->
     <meta name="google-site-verification" content="EwxpNpZ_ZOQnetVVLELGn5-aD_beT3EQqUuI6glkArI" />
     <meta charset="utf-8">
@@ -144,13 +147,6 @@
             }
         }
 
-        @media (min-width: 992px) { /* 992px = bootstrap large breakpoint */
-            .main-content {
-                margin-right: 16px;
-                
-            }
-        }
-
         @media (max-width: 992px) { /* 992px = bootstrap large breakpoint */
             .main-content {
                 margin-bottom: 16px;
@@ -159,6 +155,9 @@
         }
     </style>
     <link href="{% static 'fonts/volpiano.css' %}" rel="stylesheet" media="screen">
+
+    {% block scripts %}
+    {% endblock %}
 </head>
 
 <body>
@@ -210,7 +209,7 @@
                             </a>
                             <div class="dropdown-menu" aria-labelledby="navbarDropdownMenuLink">
                                 <a class="dropdown-item" href="{% url 'source-list' %}?segment=4063">Cantus Sources</a>
-                                <a class="dropdown-item" href="{% url 'source-list' %}?segment=4064">Clavis Sequentiarium (Sequence Database by Calvin
+                                <a class="dropdown-item" href="{% url 'source-list' %}?segment=4064">Clavis Sequentiarum (Sequence Database by Calvin
                                     Bower)</a>
                             </div>
                         </li>
@@ -224,7 +223,7 @@
                             <div class="dropdown-menu" aria-labelledby="navbarDropdownMenuLink">
                                 <a class="dropdown-item" href="{% url 'chant-search' %}">Chant Search</a>
                                 <a class="dropdown-item" href="{% url 'melody-search' %}">Search by melody</a>
-                                <a class="dropdown-item" href="{% url 'sequence-list' %}">Clavis Sequentiarium (Sequence Database by Calvin
+                                <a class="dropdown-item" href="{% url 'sequence-list' %}">Clavis Sequentiarum (Sequence Database by Calvin
                                     Bower)</a>
                             </div>
                         </li>
@@ -265,7 +264,8 @@
                             </a>
                             <div class="dropdown-menu" aria-labelledby="navbarDropdownMenuLink">
                                 <a class="dropdown-item" href="/tutorial/">Tutorial for Cantus Contributors</a>
-                                <a class="dropdown-item" href="/documents/">Reference and Instructional Documents</a>
+                                <a class="dropdown-item" href="/documents/">Key Instructional Documents</a>
+                                <a class="dropdown-item" href="https://sites.google.com/view/cantus-procedures-manual/home" target="_blank">Cantus Database Procedures Manual</a>
                                 <a class="dropdown-item" href="/citations/">Citation Style</a>
                                 <a class="dropdown-item" href="/references/">References</a>
                             </div>
@@ -418,7 +418,7 @@
                     </div>
                     <div class="col-md-4" id="login">
                         {% if not request.user.is_anonymous %}
-                            {% if request.user|has_group:"contributor" or request.user|has_group:"editor" or request.user|has_group:"project manager" %}
+                            {% if request.user|in_groups:"contributor,editor,project manager" %}
                                 <h5>Admin Navigation</h5>
                                 <ul class="list-group list-group-flush">
                                     <li class="list-group-item p-0">

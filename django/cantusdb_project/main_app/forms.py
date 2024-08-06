@@ -7,8 +7,8 @@ from .models import (
     Notation,
     Feast,
     Source,
-    RismSiglum,
     Segment,
+    Project,
     Provenance,
     Century,
     Sequence,
@@ -26,6 +26,7 @@ from django.db.models import Q
 from django.contrib.admin.widgets import (
     FilteredSelectMultiple,
 )
+from django.forms.widgets import CheckboxSelectMultiple
 from dal import autocomplete
 
 # ModelForm allows to build a form directly from a model
@@ -56,6 +57,19 @@ class SelectWidgetNameModelChoiceField(NameModelChoiceField):
     widget = SelectWidget()
 
 
+class CheckboxNameModelMultipleChoiceField(forms.ModelMultipleChoiceField):
+    """
+    A custom ModelMultipleChoiceField that overrides the label_from_instance method
+    to display the object's name attribute instead of str(object) and uses
+    the CheckboxMulitpleSelect widget.
+    """
+
+    def label_from_instance(self, obj):
+        return obj.name
+
+    widget = CheckboxSelectMultiple()
+
+
 class ChantCreateForm(forms.ModelForm):
     class Meta:
         model = Chant
@@ -83,7 +97,7 @@ class ChantCreateForm(forms.ModelForm):
             "content_structure",
             "indexing_notes",
             "addendum",
-            "segment",
+            "project",
             "liturgical_function",
             "polyphony",
             "cm_melody_id",
@@ -148,12 +162,11 @@ class ChantCreateForm(forms.ModelForm):
         "Mass Alleluias. Punctuation is omitted.",
     )
 
-    segment = SelectWidgetNameModelChoiceField(
-        queryset=Segment.objects.all().order_by("id"),
-        required=True,
-        initial=Segment.objects.get(id=4063),  # Default to the "Cantus" segment
-        help_text="Select the Database segment that the chant belongs to. "
-        "In most cases, this will be the CANTUS segment.",
+    project = SelectWidgetNameModelChoiceField(
+        queryset=Project.objects.all().order_by("id"),
+        initial=None,
+        required=False,
+        help_text="Select the project (if any) that the chant belongs to.",
     )
 
     # automatically computed fields
@@ -173,9 +186,11 @@ class SourceCreateForm(forms.ModelForm):
     class Meta:
         model = Source
         fields = [
-            "title",
-            "rism_siglum",
-            "siglum",
+            # "title",
+            # "siglum",
+            "holding_institution",
+            "shelfmark",
+            "segment_m2m",
             "provenance",
             "provenance_notes",
             "full_source",
@@ -198,8 +213,12 @@ class SourceCreateForm(forms.ModelForm):
             "indexing_notes",
         ]
         widgets = {
-            "title": TextInputWidget(),
-            "siglum": TextInputWidget(),
+            # "title": TextInputWidget(),
+            # "siglum": TextInputWidget(),
+            "holding_institution": autocomplete.ModelSelect2(
+                url="holding-autocomplete"
+            ),
+            "shelfmark": TextInputWidget(),
             "provenance": autocomplete.ModelSelect2(url="provenance-autocomplete"),
             "provenance_notes": TextInputWidget(),
             "date": TextInputWidget(),
@@ -211,7 +230,6 @@ class SourceCreateForm(forms.ModelForm):
             "fragmentarium_id": TextInputWidget(),
             "dact_id": TextInputWidget(),
             "indexing_notes": TextAreaWidget(),
-            "rism_siglum": autocomplete.ModelSelect2(url="rismsiglum-autocomplete"),
             "current_editors": autocomplete.ModelSelect2Multiple(
                 url="current-editors-autocomplete"
             ),
@@ -231,6 +249,9 @@ class SourceCreateForm(forms.ModelForm):
             "other_editors": autocomplete.ModelSelect2Multiple(
                 url="all-users-autocomplete"
             ),
+        }
+        field_classes = {
+            "segment_m2m": CheckboxNameModelMultipleChoiceField,
         }
 
     TRUE_FALSE_CHOICES_SOURCE = (
@@ -281,7 +302,7 @@ class ChantEditForm(forms.ModelForm):
             "manuscript_full_text_proofread",
             "volpiano_proofread",
             "proofread_by",
-            "segment",
+            "project",
             "liturgical_function",
             "polyphony",
             "cm_melody_id",
@@ -347,11 +368,10 @@ class ChantEditForm(forms.ModelForm):
         help_text="Each folio starts with '1'.",
     )
 
-    segment = SelectWidgetNameModelChoiceField(
-        queryset=Segment.objects.all().order_by("id"),
-        required=True,
-        help_text="Select the Database segment that the chant belongs to. "
-        "In most cases, this will be the CANTUS segment.",
+    project = SelectWidgetNameModelChoiceField(
+        queryset=Project.objects.all().order_by("id"),
+        help_text="Select the project (if any) that the chant belongs to.",
+        required=False,
     )
 
 
@@ -359,9 +379,11 @@ class SourceEditForm(forms.ModelForm):
     class Meta:
         model = Source
         fields = [
-            "title",
-            "rism_siglum",
-            "siglum",
+            # "title",
+            # "siglum",
+            "holding_institution",
+            "shelfmark",
+            "segment_m2m",
             "provenance",
             "provenance_notes",
             "full_source",
@@ -385,9 +407,11 @@ class SourceEditForm(forms.ModelForm):
             "other_editors",
         ]
         widgets = {
-            "title": TextInputWidget(),
-            "rism_siglum": autocomplete.ModelSelect2(url="rismsiglum-autocomplete"),
-            "siglum": TextInputWidget(),
+            "holding_institution": autocomplete.ModelSelect2(
+                url="holding-autocomplete"
+            ),
+            "shelfmark": TextInputWidget(),
+            "segment_m2m": CheckboxSelectMultiple(),
             "provenance": autocomplete.ModelSelect2(url="provenance-autocomplete"),
             "provenance_notes": TextInputWidget(),
             "date": TextInputWidget(),
@@ -418,6 +442,9 @@ class SourceEditForm(forms.ModelForm):
             "other_editors": autocomplete.ModelSelect2Multiple(
                 url="all-users-autocomplete"
             ),
+        }
+        field_classes = {
+            "segment_m2m": CheckboxNameModelMultipleChoiceField,
         }
 
     CHOICES_FULL_SOURCE = (
@@ -453,7 +480,7 @@ class SequenceEditForm(forms.ModelForm):
         model = Sequence
         fields = [
             "title",
-            "siglum",
+            # "siglum",
             "incipit",
             "folio",
             "s_sequence",
@@ -472,7 +499,7 @@ class SequenceEditForm(forms.ModelForm):
         ]
         widgets = {
             "title": TextInputWidget(),
-            "siglum": TextInputWidget(),
+            # "siglum": TextInputWidget(),
             "incipit": TextInputWidget(),
             "folio": TextInputWidget(),
             "s_sequence": TextInputWidget(),
@@ -629,14 +656,6 @@ class AdminProvenanceForm(forms.ModelForm):
     name = forms.CharField(required=True, widget=TextInputWidget)
 
 
-class AdminRismSiglumForm(forms.ModelForm):
-    class Meta:
-        model = RismSiglum
-        fields = "__all__"
-
-    name = forms.CharField(required=True, widget=TextInputWidget)
-
-
 class AdminSegmentForm(forms.ModelForm):
     class Meta:
         model = Segment
@@ -697,11 +716,6 @@ class AdminSourceForm(forms.ModelForm):
         required=True,
         widget=TextInputWidget,
         help_text="RISM-style siglum + Shelf-mark (e.g. GB-Ob 202).",
-    )
-
-    rism_siglum = forms.ModelChoiceField(
-        queryset=RismSiglum.objects.all().order_by("name"),
-        required=False,
     )
 
     provenance = forms.ModelChoiceField(

@@ -18,7 +18,7 @@ function globalSearch() {
         lastXhttp.abort()
         const searchTerm = searchBar.value;
         // if the search bar is empty, clear the target area and don't proceed to search
-        if (searchTerm == "") {
+        if (searchTerm === "") {
             chantsDiv.innerHTML = "";
             return;
         }
@@ -31,7 +31,7 @@ function globalSearch() {
         xhttp.onload = function () {
             const data = JSON.parse(this.response);
             // the results are to be displayed in a list-group
-            chantsDiv.innerHTML = `<div class="list-group" id="listBox" style="position:absolute; z-index:1"></div>`;
+            chantsDiv.innerHTML = `<div class="list-group" id="listBox"></div>`;
             const listBox = document.getElementById("listBox");
             // for every chant returned in the JSONResponse
             data.chants.map(chant => {
@@ -41,18 +41,21 @@ function globalSearch() {
                 const feast = chant.feast__name ?? "";
                 const cantus_id = chant.cantus_id ?? "";
                 const mode = chant.mode ?? "";
-                const siglum = chant.source__siglum ?? "";
+                const siglum = chant.source__holding_institution__siglum ?? "";
+                const shelfmark = chant.source__shelfmark ?? "";
                 const folio = chant.folio ?? "";
                 const sequence = chant.c_sequence ?? "";
+
+                console.log(siglum, shelfmark);
                 // add an entry to the list-group
                 listBox.innerHTML += `<a href=${chant.chant_link} class="list-group-item list-group-item-action flex-column align-items-start" target="_blank">
-                                        <div class="w-100 justify-content-between">
+                                        <div class="w-80 justify-content-between">
                                             <h5>${incipit}</h5>
                                             <small>
-                                                <p align="right">
+                                                <p class="text-right">
                                                     ${genre} | ${feast} | ${cantus_id} | Mode: ${mode}
                                                     <br>
-                                                    ${siglum} | ${folio} | ${sequence}
+                                                    ${siglum} ${shelfmark} | ${folio} | ${sequence}
                                                 </p>
                                             </small>
                                         </div>
