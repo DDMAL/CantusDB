@@ -67,7 +67,7 @@ def redirect_indexer(request, pk: int) -> HttpResponse:
 
 def redirect_office(request) -> HttpResponse:
     """
-    Redirects from office/ (à la OldCantus) to offices/ (à la NewCantus)
+    Redirects from office/ (à la OldCantus) to services/ (à la NewCantus)
 
     Args:
         request
@@ -75,7 +75,34 @@ def redirect_office(request) -> HttpResponse:
     Returns:
         HttpResponse
     """
-    return redirect("office-list")
+    return redirect("service-list")
+
+
+def redirect_offices(request) -> HttpResponse:
+    """
+    Redirects old URL for offices/ to services/
+
+    Args:
+        request
+
+    Returns:
+        HttpResponse
+    """
+    return redirect("service-list")
+
+
+def redirect_office_id(request, pk: int) -> HttpResponse:
+    """
+    Redirects from the old URL pattern 'office/<int:pk> to the new URL patern 'service/<int:pk>'
+
+    Args:
+        request
+        pk: The ID of the service
+
+    Returns:
+        HttpResponse
+    """
+    return redirect(reverse("service-detail", args=[pk]))
 
 
 def redirect_genre(request) -> HttpResponse:

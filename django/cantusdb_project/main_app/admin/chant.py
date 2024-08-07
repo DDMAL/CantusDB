@@ -12,7 +12,7 @@ class ChantAdmin(BaseModelAdmin):
         return (
             super()
             .get_queryset(request)
-            .select_related("source__holding_institution", "genre", "office")
+            .select_related("source__holding_institution", "genre", "service")
         )
 
     @admin.display(description="Source Siglum")
@@ -36,7 +36,7 @@ class ChantAdmin(BaseModelAdmin):
 
     list_filter = (
         "genre",
-        "office",
+        "service",
     )
     exclude = EXCLUDE + (
         "col1",

@@ -26,6 +26,8 @@ from main_app.views.redirect import (
     redirect_chants,
     redirect_genre,
     redirect_office,
+    redirect_offices,
+    redirect_office_id,
     redirect_source_inventory,
     csv_export_redirect_from_old_path,
     redirect_search,
@@ -61,9 +63,9 @@ from main_app.views.genre import (
 from main_app.views.notation import (
     NotationDetailView,
 )
-from main_app.views.office import (
-    OfficeListView,
-    OfficeDetailView,
+from main_app.views.service import (
+    ServiceListView,
+    ServiceDetailView,
 )
 from main_app.views.provenance import (
     ProvenanceDetailView,
@@ -94,7 +96,7 @@ from main_app.views.autocomplete import (
     AllUsersAutocomplete,
     CenturyAutocomplete,
     FeastAutocomplete,
-    OfficeAutocomplete,
+    ServiceAutocomplete,
     GenreAutocomplete,
     DifferentiaAutocomplete,
     ProvenanceAutocomplete,
@@ -260,21 +262,31 @@ urlpatterns = [
         NotationDetailView.as_view(),
         name="notation-detail",
     ),
-    # office
+    # service
     path(
-        "offices/",
-        OfficeListView.as_view(),
-        name="office-list",
+        "services/",
+        ServiceListView.as_view(),
+        name="service-list",
     ),
     path(
-        "office/<int:pk>",
-        OfficeDetailView.as_view(),
-        name="office-detail",
+        "service/<int:pk>",
+        ServiceDetailView.as_view(),
+        name="service-detail",
     ),
     path(
         "office/",
         redirect_office,
         name="redirect-office",
+    ),
+    path(
+        "offices/",
+        redirect_offices,
+        name="redirect-office",
+    ),
+    path(
+        "office/<int:pk>",
+        redirect_office_id,
+        name="redirect-office-id",
     ),
     # provenance
     path(
@@ -530,9 +542,9 @@ urlpatterns = [
         name="provenance-autocomplete",
     ),
     path(
-        "office-autocomplete/",
-        OfficeAutocomplete.as_view(),
-        name="office-autocomplete",
+        "service-autocomplete/",
+        ServiceAutocomplete.as_view(),
+        name="service-autocomplete",
     ),
     path(
         "genre-autocomplete/",

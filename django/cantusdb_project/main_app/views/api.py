@@ -41,7 +41,7 @@ def ajax_melody_list(request, cantus_id) -> JsonResponse:
     """
     chants: QuerySet[Chant] = (
         Chant.objects.filter(cantus_id=cantus_id)
-        .select_related("source__holding_institution", "feast", "genre", "office")
+        .select_related("source__holding_institution", "feast", "genre", "service")
         .exclude(volpiano=None)
         .order_by("id")
     )
@@ -54,7 +54,7 @@ def ajax_melody_list(request, cantus_id) -> JsonResponse:
         "source__holding_institution__siglum",
         "source__shelfmark",
         "folio",
-        "office__name",
+        "service__name",
         "genre__name",
         "position",
         "feast__name",
@@ -113,7 +113,7 @@ def csv_export(request, source_id):
         entries = source.sequence_set.order_by("id")
     else:
         entries = source.chant_set.order_by("id").select_related(
-            "feast", "office", "genre"
+            "feast", "service", "genre"
         )
 
     response = HttpResponse(content_type="text/csv")
@@ -129,7 +129,7 @@ def csv_export(request, source_id):
             "sequence",
             "incipit",
             "feast",
-            "office",
+            "service",
             "genre",
             "position",
             "cantus_id",
@@ -152,7 +152,7 @@ def csv_export(request, source_id):
 
     for entry in entries:
         feast = entry.feast.name if entry.feast else ""
-        office = entry.office.name if entry.office else ""
+        service = entry.service.name if entry.service else ""
         genre = entry.genre.name if entry.genre else ""
         diff_db = entry.diff_db.id if entry.diff_db else ""
 
@@ -166,7 +166,7 @@ def csv_export(request, source_id):
                 entry.c_sequence if entry.c_sequence is not None else entry.s_sequence,
                 entry.incipit,
                 feast,
-                office,
+                service,
                 genre,
                 entry.position,
                 entry.cantus_id,
@@ -327,7 +327,7 @@ def ajax_search_bar(request, search_term):
         chants = Chant.objects.filter(incipit__istartswith=search_term).order_by("id")
 
     chants = chants.select_related(
-        "source__holding_institution", "genre", "feast", "office"
+        "source__holding_institution", "genre", "feast", "service"
     )
 
     display_unpublished: bool = request.user.is_authenticated
@@ -346,7 +346,7 @@ def ajax_search_bar(request, search_term):
             "mode",
             "source__holding_institution__siglum",
             "source__shelfmark",
-            "office__name",
+            "service__name",
             "folio",
             "c_sequence",
         )
@@ -376,7 +376,7 @@ def json_melody_export(request, cantus_id: str) -> JsonResponse:
         "volpiano",
         "mode",
         "feast__id",
-        "office__id",
+        "service__id",
         "genre__id",
         "position",
     ]
@@ -421,7 +421,7 @@ def standardize_dict_for_json_melody_export(
         "volpiano": "volpiano",
         "mode": "mode",
         "feast__id": "feast",  #                <-
-        "office__id": "office",  #              <-
+        "service__id": "service",  #              <-
         "genre__id": "genre",  #                <-
         "position": "position",
     }
@@ -532,7 +532,7 @@ def build_json_cid_dictionary(chant, request) -> dict:
         "incipit": chant.incipit if chant.incipit else "",
         "feast": chant.feast.name if chant.feast else "",
         "genre": chant.genre.name if chant.genre else "",
-        "office": chant.office.name if chant.office else "",
+        "service": chant.service.name if chant.service else "",
         "position": chant.position if chant.position else "",
         "cantus_id": chant.cantus_id if chant.cantus_id else "",
         "image": chant.image_link if chant.image_link else "",

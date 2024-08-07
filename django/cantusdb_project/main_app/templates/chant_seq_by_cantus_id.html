@@ -52,9 +52,9 @@
                             <td class="text-wrap"><a href="{% url 'sequence-detail' chant.id %}">{{ chant.incipit }}</a></td>
                         {% endif %}
                         <td class="text-wrap">
-                            {% if chant.office %}
-                                <a href="{% url 'office-detail' chant.office.id %}" title="{{ chant.office.description }}">
-                                    {{ chant.office.name }}
+                            {% if chant.service %}
+                                <a href="{% url 'service-detail' chant.service.id %}" title="{{ chant.service.description }}">
+                                    {{ chant.service.name }}
                                 </a>
                             {% endif %}
                         </td>

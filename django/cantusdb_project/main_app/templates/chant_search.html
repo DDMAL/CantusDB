@@ -54,11 +54,11 @@
         </div>
         <div class="form-row align-items-end">
             <div class="form-group m-1 col-lg-3 col-sm-6">
-                <label for="officeFilter"><small>Service</small></label>
-                <select id="officeFilter" name="office" class="form-control custom-select custom-select-sm">
+                <label for="serviceFilter"><small>Service</small></label>
+                <select id="serviceFilter" name="service" class="form-control custom-select custom-select-sm">
                     <option value="">- Any -</option>
-                    {% for office in offices %}
-                        <option value="{{ office.id }}">{{ office.name }}</option>
+                    {% for service in services %}
+                        <option value="{{ service.id }}">{{ service.name }}</option>
                     {% endfor %}
                 </select>
             </div>
@@ -157,14 +157,14 @@
                             Feast
                         </th>
                         <th scope="col" class="text-wrap" style="text-align:center" title="Service">
-                            {% if order == "office" %}
+                            {% if order == "service" %}
                                 {% if sort == "desc" %}
-                                    <a href="{{ url_with_search_params }}&order=office&sort=asc">Service</a> ▼
+                                    <a href="{{ url_with_search_params }}&order=service&sort=asc">Service</a> ▼
                                 {% else %}
-                                    <a href="{{ url_with_search_params }}&order=office&sort=desc">Service</a> ▲
+                                    <a href="{{ url_with_search_params }}&order=service&sort=desc">Service</a> ▲
                                 {% endif %}
                             {% else %}
-                                <a href="{{ url_with_search_params }}&order=office&sort=asc">Service</a>
+                                <a href="{{ url_with_search_params }}&order=service&sort=asc">Service</a>
                             {% endif %}
                         </th>
                         <th scope="col" class="text-wrap" style="text-align:center" title="Genre">
@@ -273,8 +273,8 @@
                                 {% endif %}
                             </td>
                             <td class="text-wrap" style="text-align:center">
-                                {% if chant.office %}
-                                    <a href="{% url 'office-detail' chant.office.id %}" title="{{ chant.office.description }}">{{ chant.office.name }}</a>
+                                {% if chant.service %}
+                                    <a href="{% url 'service-detail' chant.service.id %}" title="{{ chant.service.description }}">{{ chant.service.name }}</a>
                                 {% endif %}
                             </td>
                             <td class="text-wrap" style="text-align:center">
