@@ -3425,7 +3425,7 @@ class ChantCreateViewTest(TestCase):
                 response_after_previous_chant, "Suggestions based on previous chant:"
             )
             self.assertIsNotNone(suggested_chants)
-            self.assertEqual(len(suggested_chants), 3)
+            self.assertEqual(len(suggested_chants), 5)
 
         rare_chant: Chant = make_fake_chant(cantus_id="a07763", source=source)
         with patch("requests.get", mock_requests_get):

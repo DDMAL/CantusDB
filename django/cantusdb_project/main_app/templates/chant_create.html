@@ -321,7 +321,7 @@
                                         "{{ suggestion.fulltext | escapejs }}"
                                     )'
                                 >
-                                <strong>{{ suggestion.genre_name }}</strong> - <span title="{{ suggestion.fulltext }}">{{ suggestion.incipit }}</span> (<strong>{{ suggestion.occurrences }}x</strong>)<br>
+                                <strong>{{ suggestion.genre_name }}</strong> - <span title="{{ suggestion.fulltext }}">{{ suggestion.fulltext | truncatechars_html:25 }}</span> (<strong>{{ suggestion.occurrences }}x</strong>)<br>
                             {% endfor %}
                         {% else %}
                             Sorry! No suggestions found. Please use the search form below.<br>

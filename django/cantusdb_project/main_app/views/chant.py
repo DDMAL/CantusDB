@@ -1,6 +1,6 @@
 import urllib.parse
 from collections import Counter, defaultdict
-from typing import Optional, Iterator
+from typing import Optional, Iterator, Any
 
 from django.contrib import messages
 from django.contrib.auth.mixins import LoginRequiredMixin
@@ -836,7 +836,7 @@ class ChantCreateView(LoginRequiredMixin, UserPassesTestMixin, CreateView):
         )
         return sorted_feast_counts
 
-    def get_context_data(self, **kwargs):
+    def get_context_data(self, **kwargs: Any) -> dict[Any, Any]:
         context = super().get_context_data(**kwargs)
         context["source"] = self.source
         previous_chant: Optional[Chant] = None
@@ -851,11 +851,10 @@ class ChantCreateView(LoginRequiredMixin, UserPassesTestMixin, CreateView):
         if previous_chant:
             previous_cantus_id = previous_chant.cantus_id
 
-        suggested_chants: Optional[list[dict]] = None
+        suggested_chants = None
         if previous_cantus_id:
             suggested_chants = get_suggested_chants(previous_cantus_id)
         context["suggested_chants"] = suggested_chants
-
         return context
 
     def form_valid(self, form):
