@@ -1,0 +1,44 @@
+{% extends "base.html" %}
+
+{% block title %}
+
+{% endblock %}
+
+{% block content %}
+    <div class="mr-3 p-3 col-md-12 mx-auto bg-white rounded">
+        <object align="right" class="search-bar">
+            {% include "global_search_bar.html" %}
+        </object>
+        <h3>Institutions</h3>
+        <small>Displaying {{ page_obj.start_index }}-{{ page_obj.end_index }} of {{ page_obj.paginator.count }}</small>
+        <table class="table table-bordered table-sm small">
+            <thead>
+                <tr>
+                    <th scope="col" class="text-wrap" title="Country">Country</th>
+                    <th scope="col" class="text-wrap" title="City">City</th>
+                    <th scope="col" class="text-wrap" title="Name">Name</th>
+                    <th scope="col" class="text-wrap" title="Sources">Sources</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for institution in institutions %}
+                    <tr>
+                        <td class="text-wrap">
+                            {{ institution.country }}
+                        </td>
+                        <td>
+                            {{ institution.city }}
+                        </td>
+                        <td class="text-wrap">
+                            <a href="{% url "institution-detail" institution.id %}">
+                                <b>{{ institution.name }} {% if institution.siglum %}({{ institution.siglum }}){% endif %}</b>
+                            </a>
+                        </td>
+                        <td>{{ institution.num_sources }}</td>
+                    </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+        {% include "pagination.html" %}
+    </div>
+{% endblock %}

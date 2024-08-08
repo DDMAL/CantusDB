@@ -22,6 +22,7 @@ from main_app.views.api import (
     articles_list_export,
     flatpages_list_export,
 )
+from main_app.views.institution import InstitutionListView, InstitutionDetailView
 from main_app.views.redirect import (
     redirect_chants,
     redirect_genre,
@@ -253,6 +254,17 @@ urlpatterns = [
         "indexers/",
         IndexerListView.as_view(),
         name="indexer-list",
+    ),
+    # institution
+    path(
+        "institutions/",
+        InstitutionListView.as_view(),
+        name="institution-list",
+    ),
+    path(
+        "institution/<int:pk>",
+        InstitutionDetailView.as_view(),
+        name="institution-detail",
     ),
     # notation
     path(
