@@ -16,7 +16,7 @@ from main_app.views.api import (
 
 
 def csv_export_redirect_from_old_path(request, source_id):
-    return redirect(reverse("csv-export", args=[source_id]))
+    return redirect(reverse("csv-export", args=[source_id]), permanent=True)
 
 
 def redirect_node_url(request, pk: int) -> HttpResponse:
@@ -37,12 +37,12 @@ def redirect_node_url(request, pk: int) -> HttpResponse:
 
     user_id = get_user_id_from_old_indexer_id(pk)
     if get_user_id_from_old_indexer_id(pk) is not None:
-        return redirect("user-detail", user_id)
+        return redirect("user-detail", user_id, permanent=True)
 
     for rec_type, view in NODE_TYPES_AND_VIEWS:
         if record_exists(rec_type, pk):
             # if an object is found, a redirect() call to the appropriate view is returned
-            return redirect(view, pk)
+            return redirect(view, pk, permanent=True)
 
     # if it reaches the end of the types with finding an existing object, a 404 will be returned
     raise Http404("No record found matching the /node/ query.")
@@ -60,14 +60,14 @@ def redirect_indexer(request, pk: int) -> HttpResponse:
     """
     user_id = get_user_id_from_old_indexer_id(pk)
     if get_user_id_from_old_indexer_id(pk) is not None:
-        return redirect("user-detail", user_id)
+        return redirect("user-detail", user_id, permanent=True)
 
     raise Http404("No indexer found matching the query.")
 
 
 def redirect_office(request) -> HttpResponse:
     """
-    Redirects from office/ (à la OldCantus) to offices/ (à la NewCantus)
+    Redirects from office/ (à la OldCantus) to services/ (à la NewCantus)
 
     Args:
         request
@@ -75,7 +75,34 @@ def redirect_office(request) -> HttpResponse:
     Returns:
         HttpResponse
     """
-    return redirect("office-list")
+    return redirect("service-list", permanent=True)
+
+
+def redirect_offices(request) -> HttpResponse:
+    """
+    Redirects old URL for offices/ to services/
+
+    Args:
+        request
+
+    Returns:
+        HttpResponse
+    """
+    return redirect("service-list", permanent=True)
+
+
+def redirect_office_id(request, pk: int) -> HttpResponse:
+    """
+    Redirects from the old URL pattern 'office/<int:pk> to the new URL patern 'service/<int:pk>'
+
+    Args:
+        request
+        pk: The ID of the service
+
+    Returns:
+        HttpResponse
+    """
+    return redirect(reverse("service-detail", args=[pk]), permanent=True)
 
 
 def redirect_genre(request) -> HttpResponse:
@@ -88,7 +115,7 @@ def redirect_genre(request) -> HttpResponse:
     Returns:
         HttpResponse
     """
-    return redirect("genre-list")
+    return redirect("genre-list", permanent=True)
 
 
 def redirect_search(request: HttpRequest) -> HttpResponse:
@@ -143,7 +170,7 @@ def redirect_documents(request) -> HttpResponse:
         new_path = mapping[old_path]
     except KeyError as exc:
         raise Http404 from exc
-    return redirect(new_path)
+    return redirect(new_path, permanent=True)
 
 
 def redirect_chants(request) -> HttpResponse:

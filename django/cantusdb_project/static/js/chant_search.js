@@ -6,7 +6,7 @@ window.addEventListener("load", function () {
     // Make sure the select components keep their values across multiple GET requests
     // so the user can "drill down" on what they want
     const opFilter = document.getElementById("opFilter");
-    const officeFilter = document.getElementById("officeFilter");
+    const serviceFilter = document.getElementById("serviceFilter");
     const genreFilter = document.getElementById("genreFilter");
     const melodiesFilter = document.getElementById("melodiesFilter");
     const keywordField = document.getElementById("keywordSearch");
@@ -17,8 +17,8 @@ window.addEventListener("load", function () {
     if (urlParams.has("op")) {
         opFilter.value = urlParams.get("op");
     }
-    if (urlParams.has("office")) {
-        officeFilter.value = urlParams.get("office");
+    if (urlParams.has("service")) {
+        serviceFilter.value = urlParams.get("service");
     }
     if (urlParams.has("genre")) {
         genreFilter.value = urlParams.get("genre");

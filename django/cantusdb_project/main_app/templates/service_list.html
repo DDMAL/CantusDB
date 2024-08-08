@@ -19,12 +19,12 @@
             </tr>
         </thead>
         <tbody>
-            {% for office in offices %}
+            {% for service in services %}
                 <tr>
                     <td class="text-wrap">
-                        <a href="{% url 'office-detail' office.id %}"><b>{{ office.name }}</b></a>
+                        <a href="{% url 'service-detail' service.id %}"><b>{{ service.name }}</b></a>
                     </td>
-                    <td class="text-wrap">{{ office.description }}</td>
+                    <td class="text-wrap">{{ service.description }}</td>
                 </tr>
             {% endfor %}
         </tbody>
