@@ -5898,7 +5898,7 @@ class NodeURLRedirectTest(TestCase):
         )
         expected_url = reverse("chant-detail", args=[example_chant_id])
 
-        self.assertEqual(response_1.status_code, 302)
+        self.assertEqual(response_1.status_code, 301)
         self.assertEqual(response_1.url, expected_url)
 
     def test_source_redirect(self):
@@ -5914,7 +5914,7 @@ class NodeURLRedirectTest(TestCase):
         )
         expected_url = reverse("source-detail", args=[example_source_id])
 
-        self.assertEqual(response_1.status_code, 302)
+        self.assertEqual(response_1.status_code, 301)
         self.assertEqual(response_1.url, expected_url)
 
     def test_sequence_redirect(self):
@@ -5929,7 +5929,7 @@ class NodeURLRedirectTest(TestCase):
         )
         expected_url = reverse("sequence-detail", args=[example_sequence_id])
 
-        self.assertEqual(response_1.status_code, 302)
+        self.assertEqual(response_1.status_code, 301)
         self.assertEqual(response_1.url, expected_url)
 
     def test_article_redirect(self):
@@ -5945,7 +5945,7 @@ class NodeURLRedirectTest(TestCase):
         )
         expected_url = reverse("article-detail", args=[example_article_id])
 
-        self.assertEqual(response_1.status_code, 302)
+        self.assertEqual(response_1.status_code, 301)
         self.assertEqual(response_1.url, expected_url)
 
     def test_indexer_redirect(self):
@@ -5962,7 +5962,7 @@ class NodeURLRedirectTest(TestCase):
         )
         expected_url = reverse("user-detail", args=[example_matching_user_id])
 
-        self.assertEqual(response_1.status_code, 302)
+        self.assertEqual(response_1.status_code, 301)
         self.assertEqual(response_1.url, expected_url)
 
     def test_bad_redirect(self):
@@ -6005,7 +6005,7 @@ class IndexerRedirectTest(TestCase):
         )
         expected_url = reverse("user-detail", args=[example_matching_user_id])
 
-        self.assertEqual(response_1.status_code, 302)
+        self.assertEqual(response_1.status_code, 301)
         self.assertEqual(response_1.url, expected_url)
 
     def test_indexer_redirect_bad(self):
@@ -6033,7 +6033,7 @@ class DocumentRedirectTest(TestCase):
         for path in old_document_paths:
             # each path should redirect to the new path
             response = self.client.get(path)
-            self.assertEqual(response.status_code, 302)
+            self.assertEqual(response.status_code, 301)
             # In Aug 2023, Jacob struggled to get the following lines to work -
             # I was getting 404s when I expected 200s. This final step would be nice
             # to test properly - if a future developer who is cleverer than me can
