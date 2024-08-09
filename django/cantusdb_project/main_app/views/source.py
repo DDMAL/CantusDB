@@ -1,3 +1,5 @@
+from typing import Any
+
 from django.contrib import messages
 from django.contrib.auth.mixins import LoginRequiredMixin
 from django.contrib.auth.mixins import UserPassesTestMixin
@@ -214,7 +216,7 @@ class SourceListView(ListView):
     context_object_name = "sources"
     template_name = "source_list.html"
 
-    def get_context_data(self, **kwargs):
+    def get_context_data(self, **kwargs: Any) -> dict[str, Any]:
         context = super().get_context_data(**kwargs)
         context["provenances"] = (
             Provenance.objects.all().order_by("name").values("id", "name")
@@ -224,11 +226,11 @@ class SourceListView(ListView):
         )
         return context
 
-    def get_queryset(self):
+    def get_queryset(self) -> QuerySet[Source]:
         # use select_related() for foreign keys to reduce DB queries
         queryset = Source.objects.select_related(
             "segment", "provenance", "holding_institution"
-        ).order_by("siglum")
+        )
 
         display_unpublished: bool = self.request.user.is_authenticated
         if display_unpublished:
@@ -338,8 +340,23 @@ class SourceListView(ListView):
             )
             q_obj_filter &= indexing_search_q
 
+        order_param = self.request.GET.get("order")
+        order_fields = ["siglum"]
+        if order_param == "country":
+            order_fields.insert(0, "holding_institution__country")
+        if order_param == "heading":
+            order_fields.insert(0, "holding_institution__city")
+            order_fields.insert(1, "holding_institution__name")
+        if self.request.GET.get("sort") == "desc":
+            sort_prefix = "-"
+        else:
+            sort_prefix = ""
+
+        order_by_args = [f"{sort_prefix}{field}" for field in order_fields]
+
         return (
             queryset.filter(q_obj_filter)
+            .order_by(*order_by_args)
             .distinct()
             .prefetch_related(
                 Prefetch("century", queryset=Century.objects.all().order_by("id"))
