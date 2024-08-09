@@ -7,7 +7,7 @@ from main_app.models import (
     Differentia,
     Feast,
     Genre,
-    Office,
+    Service,
     Institution,
     Provenance,
 )
@@ -66,14 +66,14 @@ class FeastAutocomplete(autocomplete.Select2QuerySetView):
         return qs
 
 
-class OfficeAutocomplete(autocomplete.Select2QuerySetView):
+class ServiceAutocomplete(autocomplete.Select2QuerySetView):
     def get_result_label(self, result):
         return f"{result.name} - {result.description}"
 
     def get_queryset(self):
         if not self.request.user.is_authenticated:
-            return Office.objects.none()
-        qs = Office.objects.all().order_by("name")
+            return Service.objects.none()
+        qs = Service.objects.all().order_by("name")
         if self.q:
             qs = qs.filter(
                 Q(name__istartswith=self.q) | Q(description__icontains=self.q)

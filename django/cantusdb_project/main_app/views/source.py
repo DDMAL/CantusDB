@@ -82,7 +82,7 @@ class SourceBrowseChantsView(ListView):
         search_text = self.request.GET.get("search_text")
 
         # get all chants in the specified source
-        chants = source.chant_set.select_related("feast", "office", "genre")
+        chants = source.chant_set.select_related("feast", "service", "genre")
         # filter the chants with optional search params
         if feast_id:
             chants = chants.filter(feast__id=feast_id)
@@ -186,7 +186,7 @@ class SourceDetailView(DetailView):
 
         if source.segment and source.segment_id == BOWER_SEGMENT_ID:
             # if this is a sequence source
-            sequences = source.sequence_set.select_related("genre", "office")
+            sequences = source.sequence_set.select_related("genre", "service")
             context["sequences"] = sequences.order_by("s_sequence")
             context["folios"] = (
                 sequences.values_list("folio", flat=True).distinct().order_by("folio")
@@ -481,7 +481,7 @@ class SourceInventoryView(TemplateView):
             queryset = (
                 source.chant_set.annotate(record_type=Value("chant"))
                 .order_by("folio", "c_sequence")
-                .select_related("feast", "office", "genre", "diff_db")
+                .select_related("feast", "service", "genre", "diff_db")
             )
 
         context["source"] = source

@@ -1,8 +1,18 @@
 from django.contrib import admin
 
 from main_app.admin.base_admin import EXCLUDE, READ_ONLY, BaseModelAdmin
+from main_app.admin.filters import InputFilter
 from main_app.forms import AdminChantForm
 from main_app.models import Chant
+
+
+class SourceKeyFilter(InputFilter):
+    parameter_name = "source_id"
+    title = "Source ID"
+
+    def queryset(self, request, queryset):
+        if self.value():
+            return queryset.filter(source_id=self.value())
 
 
 @admin.register(Chant)
@@ -12,7 +22,7 @@ class ChantAdmin(BaseModelAdmin):
         return (
             super()
             .get_queryset(request)
-            .select_related("source__holding_institution", "genre", "office")
+            .select_related("source__holding_institution", "genre", "service")
         )
 
     @admin.display(description="Source Siglum")
@@ -30,13 +40,15 @@ class ChantAdmin(BaseModelAdmin):
         "incipit",
         "cantus_id",
         "id",
+        "source__holding_institution__siglum"
     )
 
     readonly_fields = READ_ONLY + ("incipit",)
 
     list_filter = (
+        SourceKeyFilter,
         "genre",
-        "office",
+        "service",
     )
     exclude = EXCLUDE + (
         "col1",
