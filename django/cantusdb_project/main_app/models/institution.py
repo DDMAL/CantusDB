@@ -11,6 +11,7 @@ private_collector_help = """Mark this institution as private collector."""
 
 class Institution(BaseModel):
     class Meta:
+        ordering = ["country", "city", "name"]
         constraints = [
             CheckConstraint(
                 check=~(Q(is_private_collector=True) & Q(siglum__isnull=False)),
