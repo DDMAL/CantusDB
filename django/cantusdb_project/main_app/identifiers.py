@@ -5,6 +5,7 @@ class ExternalIdentifiers:
     GND = 4
     BNF = 5
     LC = 6
+    DIAMM = 7
 
 
 IDENTIFIER_TYPES = (
@@ -14,6 +15,7 @@ IDENTIFIER_TYPES = (
     (ExternalIdentifiers.GND, "GND (Gemeinsame Normdatei)"),
     (ExternalIdentifiers.BNF, "Bibliothèque national de France"),
     (ExternalIdentifiers.LC, "Library of Congress"),
+    (ExternalIdentifiers.DIAMM, "Digital Image Archive of Medieval Music"),
 )
 
 TYPE_PREFIX = {
@@ -23,4 +25,5 @@ TYPE_PREFIX = {
     ExternalIdentifiers.GND: ("dnb", "https://d-nb.info/gnd/"),
     ExternalIdentifiers.BNF: ("bnf", "https://catalogue.bnf.fr/ark:/12148/cb"),
     ExternalIdentifiers.LC: ("lc", "https://id.loc.gov/authorities/"),
+    ExternalIdentifiers.DIAMM: ("diamm", "https://www.diamm.ac.uk/"),
 }

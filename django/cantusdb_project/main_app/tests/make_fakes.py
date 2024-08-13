@@ -9,7 +9,7 @@ from main_app.models.feast import Feast
 from main_app.models.genre import Genre
 from main_app.models.institution import Institution
 from main_app.models.notation import Notation
-from main_app.models.office import Office
+from main_app.models.service import Service
 from main_app.models.project import Project
 from main_app.models.provenance import Provenance
 from main_app.models.segment import Segment
@@ -138,7 +138,7 @@ def make_fake_chant(
     source=None,
     marginalia=None,
     folio=None,
-    office=None,
+    service=None,
     genre=None,
     position=None,
     c_sequence=None,
@@ -154,6 +154,7 @@ def make_fake_chant(
     next_chant=None,
     differentia=None,
     project=None,
+    indexing_notes=None,
 ) -> Chant:
     """Generates a fake Chant object."""
     if source is None:
@@ -163,8 +164,8 @@ def make_fake_chant(
     if folio is None:
         # two digits and one letter
         folio = faker.bothify("##?")
-    if office is None:
-        office = make_fake_office()
+    if service is None:
+        service = make_fake_service()
     if genre is None:
         genre = make_fake_genre()
     if position is None:
@@ -193,13 +194,15 @@ def make_fake_chant(
         differentia = make_random_string(2)
     if project is None:
         project = make_fake_project()
+    if indexing_notes is None:
+        indexing_notes = faker.sentence()
 
     chant = Chant.objects.create(
         source=source,
         marginalia=marginalia,
         folio=folio,
         c_sequence=c_sequence,
-        office=office,
+        service=service,
         genre=genre,
         position=position,
         cantus_id=cantus_id,
@@ -224,7 +227,7 @@ def make_fake_chant(
         cao_concordances=make_random_string(12, "ABCDEFGHIJKLMNOPQRSTUVWXYZ  "),
         melody_id="m" + make_random_string(8, "0123456789."),
         manuscript_syllabized_full_text=manuscript_syllabized_full_text,
-        indexing_notes=faker.sentence(),
+        indexing_notes=indexing_notes,
         json_info=None,
         next_chant=next_chant,
         project=project,
@@ -279,13 +282,13 @@ def make_fake_notation() -> Notation:
     return notation
 
 
-def make_fake_office() -> Office:
-    """Generates a fake Office object."""
-    office = Office.objects.create(
+def make_fake_service() -> Service:
+    """Generates a fake Service object."""
+    service = Service.objects.create(
         name=faker.lexify(text="??"),
         description=faker.sentence(),
     )
-    return office
+    return service
 
 
 def make_fake_provenance() -> Provenance:

@@ -24,7 +24,7 @@ from main_app.models import (
     Feast,
     Genre,
     Notation,
-    Office,
+    Service,
     Provenance,
     Segment,
     Sequence,
@@ -38,7 +38,7 @@ from .make_fakes import (
     make_fake_feast,
     make_fake_genre,
     make_fake_notation,
-    make_fake_office,
+    make_fake_service,
     make_fake_provenance,
     make_fake_segment,
     make_fake_sequence,
@@ -931,12 +931,12 @@ class ChantSearchViewTest(TestCase):
         )
         self.assertEqual(len(response.context["chants"]), 0)
 
-    def test_search_by_office(self):
+    def test_search_by_service(self):
         source = make_fake_source(published=True)
-        office = make_fake_office()
-        chant = Chant.objects.create(source=source, office=office)
-        search_term = office.id
-        response = self.client.get(reverse("chant-search"), {"office": search_term})
+        service = make_fake_service()
+        chant = Chant.objects.create(source=source, service=service)
+        search_term = service.id
+        response = self.client.get(reverse("chant-search"), {"service": search_term})
         context_chant_id = response.context["chants"][0].id
         self.assertEqual(chant.id, context_chant_id)
 
@@ -1261,16 +1261,16 @@ class ChantSearchViewTest(TestCase):
         last_result_incipit = descending_results[1].incipit
         self.assertEqual(last_result_incipit, chant_1.incipit)
 
-    def test_order_by_office(self):
-        # currently, office sort works by ID rather than by name
-        office_1 = make_fake_office()
-        office_2 = make_fake_office()
-        assert office_1.id < office_2.id
+    def test_order_by_service(self):
+        # currently, service sort works by ID rather than by name
+        service_1 = make_fake_service()
+        service_2 = make_fake_service()
+        assert service_1.id < service_2.id
         chant_1 = make_fake_chant(
-            office=office_1, manuscript_full_text_std_spelling="hocus"
+            service=service_1, manuscript_full_text_std_spelling="hocus"
         )
         chant_2 = make_fake_chant(
-            office=office_2, manuscript_full_text_std_spelling="pocus"
+            service=service_2, manuscript_full_text_std_spelling="pocus"
         )
 
         search_term = "ocu"
@@ -1280,7 +1280,7 @@ class ChantSearchViewTest(TestCase):
             {
                 "keyword": search_term,
                 "op": "contains",
-                "order": "office",
+                "order": "service",
                 "sort": "asc",
             },
         )
@@ -1295,7 +1295,7 @@ class ChantSearchViewTest(TestCase):
             {
                 "keyword": search_term,
                 "op": "contains",
-                "order": "office",
+                "order": "service",
                 "sort": "desc",
             },
         )
@@ -1305,16 +1305,16 @@ class ChantSearchViewTest(TestCase):
         last_result_incipit = descending_results[1].incipit
         self.assertEqual(last_result_incipit, chant_1.incipit)
 
-    def test_order_by_office_global_search(self):
-        # currently, office sort works by ID rather than by name
-        office_1 = make_fake_office()
-        office_2 = make_fake_office()
-        assert office_1.id < office_2.id
+    def test_order_by_service_global_search(self):
+        # currently, service sort works by ID rather than by name
+        service_1 = make_fake_service()
+        service_2 = make_fake_service()
+        assert service_1.id < service_2.id
         chant_1 = make_fake_chant(
-            office=office_1, manuscript_full_text_std_spelling="fluffy"
+            service=service_1, manuscript_full_text_std_spelling="fluffy"
         )
         chant_2 = make_fake_chant(
-            office=office_2, manuscript_full_text_std_spelling="fluster"
+            service=service_2, manuscript_full_text_std_spelling="fluster"
         )
 
         search_term = "flu"
@@ -1322,7 +1322,7 @@ class ChantSearchViewTest(TestCase):
             reverse("chant-search"),
             {
                 "search_bar": search_term,
-                "order": "office",
+                "order": "service",
                 "sort": "asc",
             },
         )
@@ -1336,7 +1336,7 @@ class ChantSearchViewTest(TestCase):
             reverse("chant-search"),
             {
                 "search_bar": search_term,
-                "order": "office",
+                "order": "service",
                 "sort": "desc",
             },
         )
@@ -1845,7 +1845,7 @@ class ChantSearchViewTest(TestCase):
         # these are the 9 column headers users can order by:
         shelfmark = "glum-01"
         fulltext = "so it begins"
-        office = make_fake_office()
+        service = make_fake_service()
         genre = make_fake_genre()
         cantus_id = make_random_string(6, "0123456789")
         mode = make_random_string(1, "0123456789*?")
@@ -1859,7 +1859,7 @@ class ChantSearchViewTest(TestCase):
         position = make_random_string(1)
         chant = make_fake_chant(
             manuscript_full_text_std_spelling=fulltext,
-            office=office,
+            service=service,
             genre=genre,
             cantus_id=cantus_id,
             mode=mode,
@@ -1885,7 +1885,7 @@ class ChantSearchViewTest(TestCase):
         query_keys_and_values = {
             "op": "contains",
             "keyword": search_term,
-            "office": office.id,
+            "service": service.id,
             "genre": genre.id,
             "cantus_id": cantus_id,
             "mode": mode,
@@ -1917,7 +1917,7 @@ class ChantSearchViewTest(TestCase):
         orderings = (
             "siglum",
             "incipit",
-            "office",
+            "service",
             "genre",
             "cantus_id",
             "mode",
@@ -2030,28 +2030,28 @@ class ChantSearchViewTest(TestCase):
             f'<a href="{url}" title="{feast_description}">{feast_name}</a>', html
         )
 
-    def test_office_column(self):
+    def test_service_column(self):
         source = make_fake_source(published=True)
-        office = make_fake_office()
-        office_name = office.name
-        office_description = office.description
-        url = office.get_absolute_url()
+        service = make_fake_service()
+        service_name = service.name
+        service_description = service.description
+        url = service.get_absolute_url()
         fulltext = "manuscript full text"
         search_term = "full"
         chant = make_fake_chant(
             source=source,
             manuscript_full_text_std_spelling=fulltext,
-            office=office,
+            service=service,
         )
         response = self.client.get(
             reverse("chant-search"), {"keyword": search_term, "op": "contains"}
         )
         html = str(response.content)
-        self.assertIn(office_name, html)
-        self.assertIn(office_description, html)
+        self.assertIn(service_name, html)
+        self.assertIn(service_description, html)
         self.assertIn(url, html)
         self.assertIn(
-            f'<a href="{url}" title="{office_description}">{office_name}</a>', html
+            f'<a href="{url}" title="{service_description}">{service_name}</a>', html
         )
 
     def test_genre_column(self):
@@ -2236,13 +2236,13 @@ class ChantSearchMSViewTest(TestCase):
         response = self.client.get(reverse("chant-search-ms", args=[source.id]))
         self.assertEqual(response.status_code, 403)
 
-    def test_search_by_office(self):
+    def test_search_by_service(self):
         source = make_fake_source()
-        office = make_fake_office()
-        chant = Chant.objects.create(source=source, office=office)
-        search_term = office.id
+        service = make_fake_service()
+        chant = Chant.objects.create(source=source, service=service)
+        search_term = service.id
         response = self.client.get(
-            reverse("chant-search-ms", args=[source.id]), {"office": search_term}
+            reverse("chant-search-ms", args=[source.id]), {"service": search_term}
         )
         context_chant_id = response.context["chants"][0].id
         self.assertEqual(chant.id, context_chant_id)
@@ -2363,6 +2363,55 @@ class ChantSearchMSViewTest(TestCase):
         second_context_chant_id = response.context["chants"][1].id
         self.assertEqual(chant_3.id, second_context_chant_id)
 
+    def test_indexing_notes_search_starts_with(self):
+        source = make_fake_source()
+        search_term = "quick"
+
+        # We have three chants to make sure the result is only chant 1 where quick is the first word
+        chant_1 = make_fake_chant(
+            source=source,
+            indexing_notes="quick brown fox jumps over the lazy dog",
+        )
+        chant_2 = make_fake_chant(
+            source=source,
+            indexing_notes="brown fox jumps over the lazy dog",
+        )
+        chant_3 = make_fake_chant(
+            source=source,
+            indexing_notes="lazy brown fox jumps quick over the dog",
+        )
+        response = self.client.get(
+            reverse("chant-search-ms", args=[source.id]),
+            {"indexing_notes": search_term, "indexing_notes_op": "starts_with"},
+        )
+        self.assertEqual(len(response.context["chants"]), 1)
+        context_chant_id = response.context["chants"][0].id
+        self.assertEqual(chant_1.id, context_chant_id)
+
+    def test_indexing_notes_search_contains(self):
+        source = make_fake_source()
+        search_term = "quick"
+        chant_1 = make_fake_chant(
+            source=source,
+            indexing_notes="Quick brown fox jumps over the lazy dog",
+        )
+        chant_2 = make_fake_chant(
+            source=source,
+            indexing_notes="brown fox jumps over the lazy dog",
+        )
+        chant_3 = make_fake_chant(
+            source=source,
+            indexing_notes="lazy brown fox jumps quickly over the dog",
+        )
+        response = self.client.get(
+            reverse("chant-search-ms", args=[source.id]),
+            {"indexing_notes": search_term, "indexing_notes_op": "contains"},
+        )
+        first_context_chant_id = response.context["chants"][0].id
+        self.assertEqual(chant_1.id, first_context_chant_id)
+        second_context_chant_id = response.context["chants"][1].id
+        self.assertEqual(chant_3.id, second_context_chant_id)
+
     def test_keyword_search_searching_all_fields(self):
         search_term = "brevity"
         includes_search_term = "brevity is the soul of wit"
@@ -2450,17 +2499,17 @@ class ChantSearchMSViewTest(TestCase):
         last_result_incipit = descending_results[1].incipit
         self.assertEqual(last_result_incipit, chant_1.incipit)
 
-    def test_order_by_office(self):
+    def test_order_by_service(self):
         source = make_fake_source()
-        # currently, office sort works by ID rather than by name
-        office_1 = make_fake_office()
-        office_2 = make_fake_office()
-        assert office_1.id < office_2.id
+        # currently, service sort works by ID rather than by name
+        service_1 = make_fake_service()
+        service_2 = make_fake_service()
+        assert service_1.id < service_2.id
         chant_1 = make_fake_chant(
-            office=office_1, manuscript_full_text_std_spelling="hocus", source=source
+            service=service_1, manuscript_full_text_std_spelling="hocus", source=source
         )
         chant_2 = make_fake_chant(
-            office=office_2, manuscript_full_text_std_spelling="pocus", source=source
+            service=service_2, manuscript_full_text_std_spelling="pocus", source=source
         )
 
         search_term = "ocu"
@@ -2470,7 +2519,7 @@ class ChantSearchMSViewTest(TestCase):
             {
                 "keyword": search_term,
                 "op": "contains",
-                "order": "office",
+                "order": "service",
                 "sort": "asc",
             },
         )
@@ -2485,7 +2534,7 @@ class ChantSearchMSViewTest(TestCase):
             {
                 "keyword": search_term,
                 "op": "contains",
-                "order": "office",
+                "order": "service",
                 "sort": "desc",
             },
         )
@@ -2769,7 +2818,7 @@ class ChantSearchMSViewTest(TestCase):
         shelfmark = "glum-01"
         full_text = "this is a full text that begins with the search term"
         search_term = "this is a fu"
-        office = make_fake_office()
+        service = make_fake_service()
         genre = make_fake_genre()
         cantus_id = make_random_string(6, "0123456789")
         mode = make_random_string(1, "0123456789*?")
@@ -2782,7 +2831,7 @@ class ChantSearchMSViewTest(TestCase):
         feast = make_fake_feast()
         position = make_random_string(1)
         chant = make_fake_chant(
-            office=office,
+            service=service,
             genre=genre,
             cantus_id=cantus_id,
             mode=mode,
@@ -2807,7 +2856,7 @@ class ChantSearchMSViewTest(TestCase):
         query_keys_and_values = {
             "op": "contains",
             "keyword": search_term,
-            "office": office.id,
+            "service": service.id,
             "genre": genre.id,
             "cantus_id": cantus_id,
             "mode": mode,
@@ -2828,7 +2877,7 @@ class ChantSearchMSViewTest(TestCase):
         # for each orderable column, check that 'asc' flips to 'desc', and vice versa
         orderings = (
             "incipit",
-            "office",
+            "service",
             "genre",
             "cantus_id",
             "mode",
@@ -2942,29 +2991,29 @@ class ChantSearchMSViewTest(TestCase):
             f'<a href="{url}" title="{feast_description}">{feast_name}</a>', html
         )
 
-    def test_office_column(self):
+    def test_service_column(self):
         source = make_fake_source(published=True)
-        office = make_fake_office()
-        office_name = office.name
-        office_description = office.description
-        url = office.get_absolute_url()
+        service = make_fake_service()
+        service_name = service.name
+        service_description = service.description
+        url = service.get_absolute_url()
         fulltext = "manuscript full text"
         search_term = "full"
         chant = make_fake_chant(
             source=source,
             manuscript_full_text_std_spelling=fulltext,
-            office=office,
+            service=service,
         )
         response = self.client.get(
             reverse("chant-search-ms", args=[source.id]),
             {"keyword": search_term, "op": "contains"},
         )
         html = str(response.content)
-        self.assertIn(office_name, html)
-        self.assertIn(office_description, html)
+        self.assertIn(service_name, html)
+        self.assertIn(service_description, html)
         self.assertIn(url, html)
         self.assertIn(
-            f'<a href="{url}" title="{office_description}">{office_name}</a>', html
+            f'<a href="{url}" title="{service_description}">{service_name}</a>', html
         )
 
     def test_genre_column(self):
@@ -3305,12 +3354,12 @@ class ChantCreateViewTest(TestCase):
         self.assertEqual(chant_2.volpiano_intervals, "1-12-23-34-45-56-67-78-8")
 
     def test_initial_values(self):
-        # create a chant with a known folio, feast, office, c_sequence and image_link
+        # create a chant with a known folio, feast, service, c_sequence and image_link
         source: Source = make_fake_source()
         folio: str = "001r"
         sequence: int = 1
         feast: Feast = make_fake_feast()
-        office: Office = make_fake_office()
+        service: Service = make_fake_service()
         image_link: str = "https://www.youtube.com/watch?v=9bZkp7q19f0"
         self.client.post(
             reverse("chant-create", args=[source.id]),
@@ -3319,12 +3368,12 @@ class ChantCreateViewTest(TestCase):
                 "folio": folio,
                 "c_sequence": str(sequence),
                 "feast": feast.id,
-                "office": office.id,
+                "service": service.id,
                 "image_link": image_link,
             },
         )
         with patch("requests.get", mock_requests_get):
-            # when we request the Chant Create page, the same folio, feast, office and image_link should
+            # when we request the Chant Create page, the same folio, feast, service and image_link should
             # be preselected, and c_sequence should be incremented by 1.
             response = self.client.get(
                 reverse("chant-create", args=[source.id]),
@@ -3338,9 +3387,9 @@ class ChantCreateViewTest(TestCase):
         with self.subTest(subtest="test initial value of feast feild"):
             self.assertEqual(observed_initial_feast, feast.id)
 
-        observed_initial_office: int = response.context["form"].initial["office"]
-        with self.subTest(subtest="test initial value of office field"):
-            self.assertEqual(observed_initial_office, office.id)
+        observed_initial_service: int = response.context["form"].initial["service"]
+        with self.subTest(subtest="test initial value of service field"):
+            self.assertEqual(observed_initial_service, service.id)
 
         observed_initial_sequence: int = response.context["form"].initial["c_sequence"]
         with self.subTest(subtest="test initial value of c_sequence field"):
@@ -3376,7 +3425,7 @@ class ChantCreateViewTest(TestCase):
                 response_after_previous_chant, "Suggestions based on previous chant:"
             )
             self.assertIsNotNone(suggested_chants)
-            self.assertEqual(len(suggested_chants), 3)
+            self.assertEqual(len(suggested_chants), 5)
 
         rare_chant: Chant = make_fake_chant(cantus_id="a07763", source=source)
         with patch("requests.get", mock_requests_get):
@@ -4096,66 +4145,66 @@ class GenreDetailViewTest(TestCase):
         self.assertEqual(genre, response.context["genre"])
 
 
-class OfficeListViewTest(TestCase):
-    OFFICE_COUNT = 10
+class ServiceListViewTest(TestCase):
+    SERVICE_COUNT = 10
 
     def setUp(self):
-        for _ in range(self.OFFICE_COUNT):
-            make_fake_office()
+        for _ in range(self.SERVICE_COUNT):
+            make_fake_service()
 
     def test_view_url_path(self):
-        response = self.client.get("/offices/")
+        response = self.client.get("/services/")
         self.assertEqual(response.status_code, 200)
 
     def test_view_url_reverse_name(self):
-        response = self.client.get(reverse("office-list"))
+        response = self.client.get(reverse("service-list"))
         self.assertEqual(response.status_code, 200)
 
     def test_url_and_templates(self):
-        response = self.client.get(reverse("office-list"))
+        response = self.client.get(reverse("service-list"))
         self.assertEqual(response.status_code, 200)
         self.assertTemplateUsed(response, "base.html")
-        self.assertTemplateUsed(response, "office_list.html")
+        self.assertTemplateUsed(response, "service_list.html")
 
     def test_context(self):
-        response = self.client.get(reverse("office-list"))
-        offices = response.context["offices"]
-        # the list view should contain all offices
-        self.assertEqual(offices.count(), self.OFFICE_COUNT)
+        response = self.client.get(reverse("service-list"))
+        services = response.context["services"]
+        # the list view should contain all services
+        self.assertEqual(services.count(), self.SERVICE_COUNT)
 
 
-class OfficeDetailViewTest(TestCase):
+class ServiceDetailViewTest(TestCase):
     def setUp(self):
         for _ in range(10):
-            make_fake_office()
+            make_fake_service()
 
     def test_view_url_path(self):
-        for office in Office.objects.all():
-            response = self.client.get(f"/office/{office.id}")
+        for service in Service.objects.all():
+            response = self.client.get(f"/service/{service.id}")
             self.assertEqual(response.status_code, 200)
 
     def test_view_url_reverse_name(self):
-        for office in Office.objects.all():
-            response = self.client.get(reverse("office-detail", args=[office.id]))
+        for service in Service.objects.all():
+            response = self.client.get(reverse("service-detail", args=[service.id]))
             self.assertEqual(response.status_code, 200)
 
     def test_view_context_data(self):
-        for office in Office.objects.all():
-            response = self.client.get(reverse("office-detail", args=[office.id]))
-            self.assertTrue("office" in response.context)
-            self.assertEqual(office, response.context["office"])
+        for service in Service.objects.all():
+            response = self.client.get(reverse("service-detail", args=[service.id]))
+            self.assertTrue("service" in response.context)
+            self.assertEqual(service, response.context["service"])
 
     def test_url_and_templates(self):
-        office = make_fake_office()
-        response = self.client.get(reverse("office-detail", args=[office.id]))
+        service = make_fake_service()
+        response = self.client.get(reverse("service-detail", args=[service.id]))
         self.assertEqual(response.status_code, 200)
         self.assertTemplateUsed(response, "base.html")
-        self.assertTemplateUsed(response, "office_detail.html")
+        self.assertTemplateUsed(response, "service_detail.html")
 
     def test_context(self):
-        office = make_fake_office()
-        response = self.client.get(reverse("office-detail", args=[office.id]))
-        self.assertEqual(office, response.context["office"])
+        service = make_fake_service()
+        response = self.client.get(reverse("service-detail", args=[service.id]))
+        self.assertEqual(service, response.context["service"])
 
 
 class ProvenanceDetailViewTest(TestCase):
@@ -4907,21 +4956,21 @@ class SourceInventoryViewTest(TestCase):
         self.assertIn(feast_name, html)
         self.assertIn(feast_description, html)
 
-    def test_office_column(self):
+    def test_service_column(self):
         source = make_fake_source(published=True)
-        office = make_fake_office()
-        office_name = office.name
-        office_description = office.description
+        service = make_fake_service()
+        service_name = service.name
+        service_description = service.description
         fulltext = "manuscript full text"
         make_fake_chant(
             source=source,
             manuscript_full_text_std_spelling=fulltext,
-            office=office,
+            service=service,
         )
         response = self.client.get(reverse("source-inventory", args=[source.id]))
         html = str(response.content)
-        self.assertIn(office_name, html)
-        self.assertIn(office_description, html)
+        self.assertIn(service_name, html)
+        self.assertIn(service_description, html)
 
     def test_genre_column(self):
         source = make_fake_source(published=True)
@@ -5084,7 +5133,7 @@ class JsonMelodyExportTest(TestCase):
             "volpiano",
             "mode",
             "feast",
-            "office",
+            "service",
             "genre",
             "position",
             "chantlink",
@@ -5570,7 +5619,7 @@ class JsonCidTest(TestCase):
                     "incipit": "some string"
                     "feast": "some string"
                     "genre": "some string"
-                    "office": "some string"
+                    "service": "some string"
                     "position": "some string"
                     "cantus_id": "some string"
                     "image": "some string"
@@ -5616,7 +5665,7 @@ class JsonCidTest(TestCase):
             "incipit",
             "feast",
             "genre",
-            "office",
+            "service",
             "position",
             "cantus_id",
             "image",
@@ -5639,7 +5688,7 @@ class JsonCidTest(TestCase):
             "incipit": chant.incipit,
             "feast": chant.feast.name,
             "genre": chant.genre.name,
-            "office": chant.office.name,
+            "service": chant.service.name,
             "position": chant.position,
             "mode": chant.mode,
             "image": chant.image_link,
@@ -5660,7 +5709,7 @@ class JsonCidTest(TestCase):
         chant.incipit = None
         chant.feast = None
         chant.genre = None
-        chant.office = None
+        chant.service = None
         chant.position = None
         chant.mode = None
         chant.image_link = None
@@ -5726,7 +5775,7 @@ class CsvExportTest(TestCase):
             "sequence",
             "incipit",
             "feast",
-            "office",
+            "service",
             "genre",
             "position",
             "cantus_id",
@@ -5849,7 +5898,7 @@ class NodeURLRedirectTest(TestCase):
         )
         expected_url = reverse("chant-detail", args=[example_chant_id])
 
-        self.assertEqual(response_1.status_code, 302)
+        self.assertEqual(response_1.status_code, 301)
         self.assertEqual(response_1.url, expected_url)
 
     def test_source_redirect(self):
@@ -5865,7 +5914,7 @@ class NodeURLRedirectTest(TestCase):
         )
         expected_url = reverse("source-detail", args=[example_source_id])
 
-        self.assertEqual(response_1.status_code, 302)
+        self.assertEqual(response_1.status_code, 301)
         self.assertEqual(response_1.url, expected_url)
 
     def test_sequence_redirect(self):
@@ -5880,7 +5929,7 @@ class NodeURLRedirectTest(TestCase):
         )
         expected_url = reverse("sequence-detail", args=[example_sequence_id])
 
-        self.assertEqual(response_1.status_code, 302)
+        self.assertEqual(response_1.status_code, 301)
         self.assertEqual(response_1.url, expected_url)
 
     def test_article_redirect(self):
@@ -5896,7 +5945,7 @@ class NodeURLRedirectTest(TestCase):
         )
         expected_url = reverse("article-detail", args=[example_article_id])
 
-        self.assertEqual(response_1.status_code, 302)
+        self.assertEqual(response_1.status_code, 301)
         self.assertEqual(response_1.url, expected_url)
 
     def test_indexer_redirect(self):
@@ -5913,7 +5962,7 @@ class NodeURLRedirectTest(TestCase):
         )
         expected_url = reverse("user-detail", args=[example_matching_user_id])
 
-        self.assertEqual(response_1.status_code, 302)
+        self.assertEqual(response_1.status_code, 301)
         self.assertEqual(response_1.url, expected_url)
 
     def test_bad_redirect(self):
@@ -5956,7 +6005,7 @@ class IndexerRedirectTest(TestCase):
         )
         expected_url = reverse("user-detail", args=[example_matching_user_id])
 
-        self.assertEqual(response_1.status_code, 302)
+        self.assertEqual(response_1.status_code, 301)
         self.assertEqual(response_1.url, expected_url)
 
     def test_indexer_redirect_bad(self):
@@ -5984,7 +6033,7 @@ class DocumentRedirectTest(TestCase):
         for path in old_document_paths:
             # each path should redirect to the new path
             response = self.client.get(path)
-            self.assertEqual(response.status_code, 302)
+            self.assertEqual(response.status_code, 301)
             # In Aug 2023, Jacob struggled to get the following lines to work -
             # I was getting 404s when I expected 200s. This final step would be nice
             # to test properly - if a future developer who is cleverer than me can
@@ -6333,7 +6382,7 @@ class AjaxMelodyViewTest(TestCase):
         expected_items: ItemsView = {
             "siglum": chant.source.short_heading,
             "folio": chant.folio,
-            "office__name": chant.office.name,
+            "service__name": chant.service.name,
             "genre__name": chant.genre.name,
             "position": chant.position,
             "feast__name": chant.feast.name,

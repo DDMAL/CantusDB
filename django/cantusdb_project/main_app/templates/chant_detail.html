@@ -77,11 +77,11 @@
                 </div>
             {% endif %}
         
-            {% if chant.office %}
+            {% if chant.service %}
                 <div class="form-group col-lg-2 col-sm-6 col-6">
                     <dt>Service</dt>
                     <dd>
-                        <a href="{% url 'office-detail' chant.office.id %}" title="{{ chant.office.description }}">{{ chant.office.name }}</a>
+                        <a href="{% url 'service-detail' chant.service.id %}" title="{{ chant.service.description }}">{{ chant.service.name }}</a>
                     </dd>
                 </div>
             {% endif %}
@@ -139,7 +139,7 @@
 
             {% if chant.diff_db %}
                 <div class="col">
-                    <dt>Differentia&nbsp;Database</dt>
+                    <dt>Differentiae&nbsp;Database</dt>
                     <dd>
                         {% if chant.diff_db.melodic_transcription %}
                             <p style="font-family: volpiano; font-size:28px; margin-bottom: 0px;">{{ chant.diff_db.melodic_transcription }}</p>
@@ -174,6 +174,55 @@
                 </div>
             {% endif %}
         </div>
+
+        <div class="row">
+            {% if chant.liturgical_function %}
+            <div class="col">
+                <dt>Liturgical Function</dt>
+                <dd>{{ chant.get_liturgical_function_display }}</dd>
+            </div>
+            {% endif %}
+
+            {% if chant.polyphony %}
+                <div class="col">
+                    <dt>Polyphony</dt>
+                    <dd>{{ chant.get_polyphony_display }}</dd>
+                </div>
+            {% endif %}
+
+        </div>
+
+        {% if project == "Benedicamus Domino" %}
+            <div class = "row">
+                {% if chant.later_addition %}
+                    <div class = "col">
+                        <dt>Later Addition</dt>
+                        <dd>{{ chant.later_addition }}</dd>
+                    </div>
+                {% endif %}
+                {% if chant.rubrics %}
+                    <div class = "col">
+                        <dt>Rubrics</dt>
+                        <dd>{{ chant.rubrics }}</dd>
+                    </div>
+                {% endif %}
+            </div>
+
+            <div class = "row">
+                {% if chant.cm_melody_id %}
+                    <div class = "col">
+                        <dt>Corpus Monodicum Melody ID</dt>
+                        <dd>{{ chant.cm_melody_id }}</dd>
+                    </div>
+                {% endif %}
+                {% if chant.incipit_of_refrain %}
+                    <div class = "col">
+                        <dt>Incipit of Refrain</dt>
+                        <dd>{{ chant.incipit_of_refrain }}</dd>
+                    </div>
+                {% endif %}
+            </div>
+        {% endif %}
 
         {% if chant.manuscript_full_text_std_spelling %}
             <dt>Full text as in Source (standardized spelling)</dt>
@@ -302,8 +351,8 @@
                                                     {{ chant.c_sequence }}
                                                 </td>
                                                 <td>
-                                                    <span title="{{ chant.office.description }}">
-                                                        {{ chant.office.name|default_if_none:"" }}
+                                                    <span title="{{ chant.service.description }}">
+                                                        {{ chant.service.name|default_if_none:"" }}
                                                     </span>
                                                     <b title="{{ chant.genre.description }}">{{ chant.genre.name|default_if_none:"" }}</b>
                                                     {{ chant.position|default_if_none:"" }}
@@ -336,8 +385,8 @@
                                                 {{ chant.c_sequence }}
                                             </td>
                                             <td>
-                                                <span title="{{ chant.office.description }}">
-                                                    {{ chant.office.name|default_if_none:"" }}
+                                                <span title="{{ chant.service.description }}">
+                                                    {{ chant.service.name|default_if_none:"" }}
                                                 </span>
                                                 <b title="{{ chant.genre.description }}">{{ chant.genre.name|default_if_none:"" }}</b>
                                                 {{ chant.position|default_if_none:"" }}
@@ -375,8 +424,8 @@
                                                     {{ chant.c_sequence }}
                                                 </td>
                                                 <td>
-                                                    <span title="{{ chant.office.description }}">
-                                                        {{ chant.office.name|default_if_none:"" }}
+                                                    <span title="{{ chant.service.description }}">
+                                                        {{ chant.service.name|default_if_none:"" }}
                                                     </span>
                                                     <b title="{{ chant.genre.description }}">{{ chant.genre.name|default_if_none:"" }}</b>
                                                     {{ chant.position|default_if_none:"" }}

@@ -77,8 +77,8 @@
 
             <div class="form-row">
                 <div class="form-group m-1 col-lg-3">
-                    <label for="{{ form.office.id_for_label }}"><small>Service:</small></label>
-                    <br>{{ form.office }}
+                    <label for="{{ form.service.id_for_label }}"><small>Service:</small></label>
+                    <br>{{ form.service }}
                 </div>
             </div>
 
@@ -421,8 +421,8 @@
                                     {{ chant.c_sequence }}
                                 </td>
                                 <td class="h-25" style="width: 20%">
-                                    <span title="{{ chant.office.description }}">
-                                        {{ chant.office.name|default_if_none:"" }}
+                                    <span title="{{ chant.service.description }}">
+                                        {{ chant.service.name|default_if_none:"" }}
                                     </span>
                                     <b title="{{ chant.genre.description }}">
                                         {{ chant.genre.name|default_if_none:"" }}
@@ -462,8 +462,8 @@
                                     {{ chant.c_sequence }}
                                 </td>
                                 <td class="h-25" style="width: 20%">
-                                    <span title="{{ chant.office.description }}">
-                                        {{ chant.office.name|default_if_none:"" }}
+                                    <span title="{{ chant.service.description }}">
+                                        {{ chant.service.name|default_if_none:"" }}
                                     </span>
                                     <b title="{{ chant.genre.description }}">
                                         {{ chant.genre.name|default_if_none:"" }}

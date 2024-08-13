@@ -6,15 +6,15 @@ import ujson
 
 mock_json_nextchants_001010_text: str = """
 [
-    {"cid":"008349", "count": "12"},
-    {"cid":"006928", "count": "17"},
-    {"cid":"008411c","count":"4"},
-    {"cid":"008390","count":"3"},
-    {"cid":"007713","count":"2"},
-    {"cid":"909030","count":"1"}
+    {"cid":"008349", "count": "12","info":{"field_genre":"H", "field_full_text": "Nocte surgentes vigilemus omnes semper in psalmis meditemur atque viribus totis domino canamus dulciter hymnos | Ut pio regi pariter canentes cum suis sanctis mereamur aulam ingredi caeli simul et beatam ducere vitam | Praestet hoc nobis deitas beata patris ac nati pariterque sancti spiritus cujus resonat per omnem gloria mundum | Amen"}},
+    {"cid":"006928", "count": "17","info":{"field_genre": "R", "field_full_text": "In principio fecit deus caelum et terram et creavit in ea hominem ad imaginem et similitudinem suam"}},
+    {"cid":"008411c","count":"4","info":{"field_genre": "HV", "field_full_text": "Hujus obtentu deus alme nostris parce jam culpis vitiis revulsis quo tibi puri resonet per aevum pectoris hymnus"}},
+    {"cid":"008390","count":"3","info":{"field_genre": "H", "field_full_text": "Sanctorum meritis inclyta gaudia pangamus socii gestaque fortia gliscit animus promere cantibus victorum genus optimum"}},
+    {"cid":"007713","count":"2","info":{"field_genre": "R", "field_full_text": "Sub altare dei audivi voces occisorum dicentium quare non defendis sanguinem nostrum et acceperunt divinum responsum adhuc sustinete modicum tempus donec impleatur numerus fratrum vestrorum"}},
+    {"cid":"909030","count":"1","info":{"field_genre": "IP", "field_full_text": "Venite exsultemus domino jubilemus deo salutari nostro praeoccupemus faciem ejus in confessione et in psalmis jubilemus ei | Quoniam deus magnus dominus et rex magnus super omnes deos quoniam non repellet dominus plebem suam quia in manu ejus sunt omnes fines terrae et altitudines montium ipse conspicit | Quoniam ipsius est mare et ipse fecit illud et aridam fundaverunt manus ejus venite adoremus et procidamus ante deum ploremus coram domino qui fecit nos quia ipse est dominus deus noster nos autem populus ejus et oves pascuae ejus | Hodie si vocem ejus audieritis nolite obdurare corda vestra sicut in exacerbatione secundum diem tentationis in deserto ubi tentaverunt me patres vestri probaverunt et viderunt opera mea | Quadraginta annis proximus fui generationi huic et dixi semper hi errant corde ipsi vero non cognoverunt vias meas quibus juravi in ira mea si introibunt in requiem meam | Gloria patri et filio et spiritui sancto sicut erat in principio et nunc et semper et in saecula saeculorum amen"}}
 ]
 """
-# should be equivalent to:
+# should be contained in:
 # >>> requests.get("https://cantusindex.uwaterloo.ca/json-nextchants/001010").text
 # this doesn't include the BOM which we expect to see beginning response.text
 # CI seems to present these, sorted by "count", in descending order.

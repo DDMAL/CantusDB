@@ -1,11 +1,12 @@
 import calendar
-from typing import Union, Optional
+from typing import Union, Optional, Any
 
 from django import template
 from django.core.paginator import Paginator
 from django.db.models import Q
 from django.template.defaultfilters import stringfilter
 from django.utils.safestring import mark_safe
+from django.http import HttpRequest
 
 from articles.models import Article
 from main_app.models import Source
@@ -193,3 +194,52 @@ def get_user_created_source_pagination(context):
     page_number = context["request"].GET.get("page2")
     user_created_sources_page_obj = paginator.get_page(page_number)
     return user_created_sources_page_obj
+
+
+@register.inclusion_tag("tag_templates/sortable_header.html")
+def sortable_header(
+    request: HttpRequest,
+    order_attribute: str,
+    column_name: Optional[str] = None,
+) -> dict[str, Union[str, bool, Optional[str]]]:
+    """
+    A template tag for use in `ListView` templates or other templates that display
+    a table of model instances. This tag generates a table header (<th>) element
+    that, when clicked, sorts the table by the specified attribute.
+
+    params:
+        context: the current template-rendering context (passed by Django)
+        order_attribute: the attribute of the model that clicking the table header
+            should sort by
+        column_name: the user-facing name of the column (e.g. the text
+            of the <th> element). If None, use the camel-case version of
+            `sort_attribute`.
+
+    returns:
+        a dictionary containing the following
+            - order_attribute: the unchanged `order_attribute` parameter
+            - column_name: the user-facing name of the column (e.g. the value of `column_name`
+                or the camel-case version of `order_attribute`)
+            - attr_is_currently_ordering: a boolean indicating whether the table is currently
+                ordered by `order_attribute`
+            - current_sort_param: the current sort order (either "asc" or "desc")
+            - url_wo_sort_params: the current URL without sorting and pagination parameters
+    """
+    current_order_param = request.GET.get("order")
+    current_sort_param = request.GET.get("sort")
+    # Remove order, sort, and page parameters from the query string
+    query_dict = request.GET.copy()
+    for param in ["order", "sort", "page"]:
+        if param in query_dict:
+            query_dict.pop(param)
+    # Create the current URL without sorting and pagination parameters
+    url_wo_sort_params = f"{request.path}?{query_dict.urlencode()}"
+    if column_name is None:
+        column_name = order_attribute.replace("_", " ").title()
+    return {
+        "order_attribute": order_attribute,
+        "column_name": column_name,
+        "attr_is_currently_ordering": order_attribute == current_order_param,
+        "current_sort_param": current_sort_param,
+        "url_wo_sort_params": url_wo_sort_params,
+    }

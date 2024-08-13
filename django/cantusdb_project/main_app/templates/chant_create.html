@@ -70,9 +70,9 @@
 
         <div class="form-row">
             <div class="form-group m-1 col-lg-2">
-                <label for="{{ form.office.id_for_label }}"><small>Service:</small></label>
-                <br>{{ form.office }}
-                <a href="/description/#Office"><small>?</small></a>
+                <label for="{{ form.service.id_for_label }}"><small>Service:</small></label>
+                <br>{{ form.service }}
+                <a href="/description/#Service"><small>?</small></a>
             </div>
         </div>
 
@@ -321,7 +321,7 @@
                                         "{{ suggestion.fulltext | escapejs }}"
                                     )'
                                 >
-                                <strong>{{ suggestion.genre_name }}</strong> - <span title="{{ suggestion.fulltext }}">{{ suggestion.incipit }}</span> (<strong>{{ suggestion.occurrences }}x</strong>)<br>
+                                <strong>{{ suggestion.genre_name }}</strong> - <span title="{{ suggestion.fulltext }}">{{ suggestion.fulltext | truncatechars_html:25 }}</span> (<strong>{{ suggestion.occurrences }}x</strong>)<br>
                             {% endfor %}
                         {% else %}
                             Sorry! No suggestions found. Please use the search form below.<br>

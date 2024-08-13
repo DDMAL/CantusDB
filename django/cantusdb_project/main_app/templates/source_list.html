@@ -1,4 +1,6 @@
 {% extends "base.html" %}
+{% load helper_tags %}
+
 
 {% block title %}
     <title>Browse Sources | Cantus Database</title>
@@ -76,8 +78,8 @@
         <table class="table table-sm small table-bordered table-responsive">
             <thead>
                 <tr>
-                    <th scope="col" class="text-wrap" style="text-align:center">Shelfmark</th>
-                    <th scope="col" class="text-wrap" style="text-align:center">Holding Institution</th>
+                    {% sortable_header request "country" %}
+                    {% sortable_header request "heading" "Source" %}
                     <th scope="col" class="text-wrap" style="text-align:center">Summary</th>
                     <th scope="col" class="text-wrap" style="text-align:center">Date/Origin</th>
                     <th scope="col" class="text-wrap" style="text-align:center">Image Link</th>
@@ -88,12 +90,12 @@
                 {% for source in sources %}
                     <tr>
                         <td class="text-wrap" style="text-align:center">
-                            <a href="{% url 'source-detail' source.id %}">
-                                <b>{{ source.shelfmark }}</b>
-                            </a>
+                            <b>{{ source.holding_institution.country }}</b>
                         </td>
                         <td class="text-wrap" style="text-align:center" title="{{ source.heading }}">
-                            <b>{{ source.holding_institution|truncatechars_html:50 }}</b>
+                            <a href="{% url 'source-detail' source.id %}">
+                                <b>{{ source.heading|truncatechars_html:100 }}</b>
+                            </a>
                         </td>
                         <td class="text-wrap" style="text-align:center" title="{{ source.summary|default:""|truncatechars_html:500 }}">
                             {{ source.summary|default:""|truncatechars_html:120 }}

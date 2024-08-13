@@ -56,8 +56,8 @@ class BaseChant(BaseModel):
     image_link = models.URLField(blank=True, null=True)
     json_info = models.JSONField(null=True, blank=True)
     marginalia = models.CharField(max_length=63, null=True, blank=True)
-    office = models.ForeignKey(
-        "Office", on_delete=models.PROTECT, null=True, blank=True
+    service = models.ForeignKey(
+        "Service", on_delete=models.PROTECT, null=True, blank=True
     )
     position = models.CharField(max_length=63, null=True, blank=True)
 

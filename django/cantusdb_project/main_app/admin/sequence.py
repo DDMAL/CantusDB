@@ -11,7 +11,7 @@ class SequenceAdmin(BaseModelAdmin):
         return (
             super()
             .get_queryset(request)
-            .select_related("source__holding_institution", "genre", "office")
+            .select_related("source__holding_institution", "genre", "service")
         )
 
     @admin.display(description="Source Siglum")
@@ -34,7 +34,7 @@ class SequenceAdmin(BaseModelAdmin):
     list_display = ("incipit", "get_source_siglum", "genre")
     list_filter = (
         "genre",
-        "office",
+        "service",
     )
     raw_id_fields = (
         "source",

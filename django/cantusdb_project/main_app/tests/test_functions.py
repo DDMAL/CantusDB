@@ -1,22 +1,22 @@
-import requests
-from main_app.tests import mock_cantusindex_data
-from django.test import TestCase
 from typing import Union, Optional
 from unittest.mock import patch
+
+
+from django.test import TestCase
+import requests
 from requests.exceptions import SSLError, Timeout, HTTPError
 from main_app.models import (
     Chant,
     Source,
 )
+from main_app.tests import mock_cantusindex_data
 from main_app.tests.make_fakes import (
     make_fake_chant,
-    make_fake_genre,
     make_fake_source,
 )
 from main_app.management.commands import update_cached_concordances
 from main_app.signals import generate_incipit
 from cantusindex import (
-    get_suggested_chant,
     get_suggested_chants,
     get_json_from_ci_api,
     CANTUS_INDEX_DOMAIN,
@@ -63,8 +63,8 @@ def mock_requests_get(url: str, timeout: float) -> MockResponse:
     Raises:
         ValueError: This function is configured to mock requests to specific URLs only, including
             - /json-nextchants/001010
-        If a call to requests.get with a different URL is made while mock_requests_get is patching it,
-        a NotImplementedError is raised.
+        If a call to requests.get with a different URL is made while mock_requests_get
+        is patching it, a NotImplementedError is raised.
 
     Returns:
         MockResponse: A mock response object
@@ -86,7 +86,7 @@ def mock_requests_get(url: str, timeout: float) -> MockResponse:
                 text=mock_cantusindex_data.mock_json_nextchants_001010_text,
                 json=mock_cantusindex_data.mock_json_nextchants_001010_json,
             )
-        elif url.endswith("/a07763"):
+        if url.endswith("/a07763"):
             # this Cantus ID has no suggested chants
             return MockResponse(
                 status_code=200,
@@ -94,14 +94,14 @@ def mock_requests_get(url: str, timeout: float) -> MockResponse:
                 text=mock_cantusindex_data.mock_json_nextchants_a07763_text,
                 json=None,
             )
-        else:  # imitating CI's behavior when a made-up Cantus ID is entered.
-            return MockResponse(
-                status_code=200,
-                content=bytes('["Cantus ID is not valid"]', encoding="utf-8-sig"),
-                text='["Cantus ID is not valid"]',
-                json=["Cantus ID is not valid"],
-            )
-    elif f"{CANTUS_INDEX_DOMAIN}/json-cid/" in url:
+        # imitating CI's behavior when a made-up Cantus ID is entered.
+        return MockResponse(
+            status_code=200,
+            content=bytes('["Cantus ID is not valid"]', encoding="utf-8-sig"),
+            text='["Cantus ID is not valid"]',
+            json=["Cantus ID is not valid"],
+        )
+    if f"{CANTUS_INDEX_DOMAIN}/json-cid/" in url:
         if url.endswith("/008349"):
             return MockResponse(
                 status_code=200,
@@ -109,49 +109,49 @@ def mock_requests_get(url: str, timeout: float) -> MockResponse:
                 text=mock_cantusindex_data.mock_json_cid_008349_text,
                 json=mock_cantusindex_data.mock_json_cid_008349_json,
             )
-        elif url.endswith("/006928"):
+        if url.endswith("/006928"):
             return MockResponse(
                 status_code=200,
                 content=mock_cantusindex_data.mock_json_cid_006928_content,
                 text=mock_cantusindex_data.mock_json_cid_006928_text,
                 json=mock_cantusindex_data.mock_json_cid_006928_json,
             )
-        elif url.endswith("/008411c"):
+        if url.endswith("/008411c"):
             return MockResponse(
                 status_code=200,
                 content=mock_cantusindex_data.mock_json_cid_008411c_content,
                 text=mock_cantusindex_data.mock_json_cid_008411c_text,
                 json=mock_cantusindex_data.mock_json_cid_008411c_json,
             )
-        elif url.endswith("/008390"):
+        if url.endswith("/008390"):
             return MockResponse(
                 status_code=200,
                 content=mock_cantusindex_data.mock_json_cid_008390_content,
                 text=mock_cantusindex_data.mock_json_cid_008390_text,
                 json=mock_cantusindex_data.mock_json_cid_008390_json,
             )
-        elif url.endswith("/007713"):
+        if url.endswith("/007713"):
             return MockResponse(
                 status_code=200,
                 content=mock_cantusindex_data.mock_json_cid_007713_content,
                 text=mock_cantusindex_data.mock_json_cid_007713_text,
                 json=mock_cantusindex_data.mock_json_cid_007713_json,
             )
-        elif url.endswith("/909030"):
+        if url.endswith("/909030"):
             return MockResponse(
                 status_code=200,
                 content=mock_cantusindex_data.mock_json_cid_909030_content,
                 text=mock_cantusindex_data.mock_json_cid_909030_text,
                 json=mock_cantusindex_data.mock_json_cid_909030_json,
             )
-        else:  # imitating CI's behavior when a made-up Cantus ID is entered.
-            return MockResponse(
-                status_code=500,
-                content=None,
-                text=None,
-                json=None,
-            )
-    elif f"{OLD_CANTUS_INDEX_DOMAIN}/json-text/" in url:
+        # imitating CI's behavior when a made-up Cantus ID is entered.
+        return MockResponse(
+            status_code=500,
+            content=None,
+            text=None,
+            json=None,
+        )
+    if f"{OLD_CANTUS_INDEX_DOMAIN}/json-text/" in url:
         if url.endswith("qui+est"):
             return MockResponse(
                 status_code=200,
@@ -159,21 +159,20 @@ def mock_requests_get(url: str, timeout: float) -> MockResponse:
                 text=mock_cantusindex_data.mock_get_ci_text_search_quiest_text,
                 json=None,
             )
-        elif url.endswith("123xyz"):
+        if url.endswith("123xyz"):
             return MockResponse(
                 status_code=200,
                 content=mock_cantusindex_data.mock_get_ci_text_search_123xyz_content,
                 text=mock_cantusindex_data.mock_get_ci_text_search_123xyz_text,
                 json=None,
             )
-        else:
-            return MockResponse(
-                status_code=500,
-                content=None,
-                text=None,
-                json=None,
-            )
-    elif f"{OLD_CANTUS_INDEX_DOMAIN}/json-merged-chants" in url:
+        return MockResponse(
+            status_code=500,
+            content=None,
+            text=None,
+            json=None,
+        )
+    if f"{OLD_CANTUS_INDEX_DOMAIN}/json-merged-chants" in url:
         return MockResponse(
             status_code=200,
             content=mock_cantusindex_data.mock_get_merged_cantus_ids_content,
@@ -181,12 +180,11 @@ def mock_requests_get(url: str, timeout: float) -> MockResponse:
             json=None,
         )
 
-    else:
-        raise NotImplementedError(
-            f"mock_requests_get is only set up to imitate only the /json-nextchants/, "
-            f"/json-cid/, and /json-text/ endpoints on Cantus Index. The path of the url "
-            f"{url} does not match either of these endpoints."
-        )
+    raise NotImplementedError(
+        f"mock_requests_get is only set up to imitate only the /json-nextchants/, "
+        f"/json-cid/, and /json-text/ endpoints on Cantus Index. The path of the url "
+        f"{url} does not match either of these endpoints."
+    )
 
 
 class UpdateCachedConcordancesCommandTest(TestCase):
@@ -210,7 +208,7 @@ class UpdateCachedConcordancesCommandTest(TestCase):
             "incipit",
             "feast",
             "genre",
-            "office",
+            "service",
             "position",
             "cantus_id",
             "image",
@@ -261,7 +259,7 @@ class UpdateCachedConcordancesCommandTest(TestCase):
             ("incipit", chant.incipit),
             ("feast", chant.feast.name),
             ("genre", chant.genre.name),
-            ("office", chant.office.name),
+            ("service", chant.service.name),
             ("position", chant.position),
             ("cantus_id", chant.cantus_id),
             ("image", chant.image_link),
@@ -295,65 +293,8 @@ class IncipitSignalTest(TestCase):
 
 
 class CantusIndexFunctionsTest(TestCase):
-    def test_get_suggested_chant(self):
-        h_genre = make_fake_genre(name="H")
-        occs = 3
-        expected_chant = {
-            "cantus_id": "008349",
-            "occurrences": occs,
-            "fulltext": "Nocte surgentes vigilemus omnes semper in psalmis meditemur atque viribus totis domino canamus dulciter hymnos | Ut pio regi pariter canentes cum suis sanctis mereamur aulam ingredi caeli simul et beatam ducere vitam | Praestet hoc nobis deitas beata patris ac nati pariterque sancti spiritus cujus resonat per omnem gloria mundum | Amen",
-            "incipit": "Nocte surgentes vigilemus omnes semper",
-            "genre_name": "H",
-            "genre_id": h_genre.id,
-            "clean_cantus_id": "008349",
-        }
-        with patch("requests.get", mock_requests_get):
-            observed_chant = get_suggested_chant(cantus_id="008349", occurrences=occs)
-
-        expected_keys = expected_chant.keys()
-        observed_keys = observed_chant.keys()
-        with self.subTest(test="Ensure suggested chant includes the right keys"):
-            self.assertEqual(observed_keys, expected_keys)
-
-        for key in expected_keys:
-            expected_val = expected_chant[key]
-            observed_val = observed_chant[key]
-            with self.subTest(key=key):
-                self.assertEqual(observed_val, expected_val)
-
-        with self.subTest("Ensure all values are of the correct type"):
-            self.assertIsInstance(observed_chant["cantus_id"], str)
-            self.assertIsInstance(observed_chant["occurrences"], int)
-
-        with patch("requests.get", mock_requests_get):
-            observed_chant_with_r_genre = get_suggested_chant(
-                cantus_id="006928", occurrences=occs
-            )
-        with self.subTest(
-            test="Ensure that genre_id=None when no matching Genre found"
-        ):
-            observed_genre_id = observed_chant_with_r_genre["genre_id"]
-            self.assertIsNone(observed_genre_id)
-
-        with patch("requests.get", mock_requests_get):
-            observed_chant_short_timeout = get_suggested_chant(
-                cantus_id="008349", occurrences=occs, timeout=0.0001
-            )
-        with self.subTest(test="Ensure None is returned in case of timeout"):
-            self.assertIsNone(observed_chant_short_timeout)
-
-        with patch("requests.get", mock_requests_get):
-            observed_chant_nonexistent_cantus_id = get_suggested_chant(
-                cantus_id="NotACantusID",
-                occurrences=occs,
-            )
-        with self.subTest(
-            test="Ensure None is returned in case of nonexistent Cantus ID"
-        ):
-            self.assertIsNone(observed_chant_nonexistent_cantus_id)
-
-    def test_get_suggested_chants(self):
-        expected_number_of_suggestions: int = 3
+    def test_get_suggested_chants(self) -> None:
+        expected_number_of_suggestions: int = 5
         with patch("requests.get", mock_requests_get):
             suggested_chants = get_suggested_chants(cantus_id="001010")
 
@@ -393,7 +334,7 @@ class CantusIndexFunctionsTest(TestCase):
         ):
             self.assertIsNone(suggested_chants_rare_cantus_id)
 
-    def test_get_json_from_ci_api(self):
+    def test_get_json_from_ci_api(self) -> None:
         with patch("requests.get", mock_requests_get):
             json_nextchants_response = get_json_from_ci_api(
                 path="/json-nextchants/001010"

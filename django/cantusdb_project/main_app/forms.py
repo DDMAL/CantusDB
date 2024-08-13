@@ -2,7 +2,7 @@ from django import forms
 from django.contrib.auth.forms import ReadOnlyPasswordHashField
 from .models import (
     Chant,
-    Office,
+    Service,
     Genre,
     Notation,
     Feast,
@@ -26,6 +26,7 @@ from django.db.models import Q
 from django.contrib.admin.widgets import (
     FilteredSelectMultiple,
 )
+from django.forms.widgets import CheckboxSelectMultiple
 from dal import autocomplete
 
 # ModelForm allows to build a form directly from a model
@@ -36,9 +37,9 @@ class NameModelChoiceField(forms.ModelChoiceField):
     """
     A custom ModelChoiceField that overrides the label_from_instance method
     to display the object's name attribute instead of str(object).
-    This field is specifically designed for handling genre and office objects.
+    This field is specifically designed for handling genre and service objects.
     Rather than displaying the name along with its description, sometimes we
-    only want the shorthand notation for the genre and office objects.
+    only want the shorthand notation for the genre and service objects.
     (Eg. [AV] Antiphon verse --> AV)
     """
 
@@ -56,6 +57,19 @@ class SelectWidgetNameModelChoiceField(NameModelChoiceField):
     widget = SelectWidget()
 
 
+class CheckboxNameModelMultipleChoiceField(forms.ModelMultipleChoiceField):
+    """
+    A custom ModelMultipleChoiceField that overrides the label_from_instance method
+    to display the object's name attribute instead of str(object) and uses
+    the CheckboxMulitpleSelect widget.
+    """
+
+    def label_from_instance(self, obj):
+        return obj.name
+
+    widget = CheckboxSelectMultiple()
+
+
 class ChantCreateForm(forms.ModelForm):
     class Meta:
         model = Chant
@@ -64,7 +78,7 @@ class ChantCreateForm(forms.ModelForm):
             "marginalia",
             "folio",
             "c_sequence",
-            "office",
+            "service",
             "genre",
             "position",
             "cantus_id",
@@ -99,7 +113,7 @@ class ChantCreateForm(forms.ModelForm):
             "marginalia": TextInputWidget(),
             # folio: defined below (required)
             # c_sequence: defined below (required)
-            "office": autocomplete.ModelSelect2(url="office-autocomplete"),
+            "service": autocomplete.ModelSelect2(url="service-autocomplete"),
             "genre": autocomplete.ModelSelect2(url="genre-autocomplete"),
             "position": TextInputWidget(),
             "cantus_id": TextInputWidget(),
@@ -176,6 +190,7 @@ class SourceCreateForm(forms.ModelForm):
             # "siglum",
             "holding_institution",
             "shelfmark",
+            "segment_m2m",
             "provenance",
             "provenance_notes",
             "full_source",
@@ -235,6 +250,9 @@ class SourceCreateForm(forms.ModelForm):
                 url="all-users-autocomplete"
             ),
         }
+        field_classes = {
+            "segment_m2m": CheckboxNameModelMultipleChoiceField,
+        }
 
     TRUE_FALSE_CHOICES_SOURCE = (
         (True, "Full source"),
@@ -266,7 +284,7 @@ class ChantEditForm(forms.ModelForm):
             "folio",
             "c_sequence",
             "feast",
-            "office",
+            "service",
             "genre",
             "position",
             "cantus_id",
@@ -300,7 +318,7 @@ class ChantEditForm(forms.ModelForm):
             # folio: defined below (required)
             # c_sequence: defined below (required)
             "feast": autocomplete.ModelSelect2(url="feast-autocomplete"),
-            "office": autocomplete.ModelSelect2(url="office-autocomplete"),
+            "service": autocomplete.ModelSelect2(url="service-autocomplete"),
             "genre": autocomplete.ModelSelect2(url="genre-autocomplete"),
             "position": TextInputWidget(),
             "cantus_id": TextInputWidget(),
@@ -365,6 +383,7 @@ class SourceEditForm(forms.ModelForm):
             # "siglum",
             "holding_institution",
             "shelfmark",
+            "segment_m2m",
             "provenance",
             "provenance_notes",
             "full_source",
@@ -392,6 +411,7 @@ class SourceEditForm(forms.ModelForm):
                 url="holding-autocomplete"
             ),
             "shelfmark": TextInputWidget(),
+            "segment_m2m": CheckboxSelectMultiple(),
             "provenance": autocomplete.ModelSelect2(url="provenance-autocomplete"),
             "provenance_notes": TextInputWidget(),
             "date": TextInputWidget(),
@@ -422,6 +442,9 @@ class SourceEditForm(forms.ModelForm):
             "other_editors": autocomplete.ModelSelect2Multiple(
                 url="all-users-autocomplete"
             ),
+        }
+        field_classes = {
+            "segment_m2m": CheckboxNameModelMultipleChoiceField,
         }
 
     CHOICES_FULL_SOURCE = (
@@ -568,10 +591,10 @@ class AdminChantForm(forms.ModelForm):
         label="Sequence",
     )
 
-    # We use NameModelChoiceField here so the dropdown list of office/mass displays the name
+    # We use NameModelChoiceField here so the dropdown list of service/mass displays the name
     # instead of [name] + description
-    office = NameModelChoiceField(
-        queryset=Office.objects.all().order_by("name"),
+    service = NameModelChoiceField(
+        queryset=Service.objects.all().order_by("name"),
         required=False,
     )
     # We use NameModelChoiceField here so the dropdown list of genres displays the name
@@ -616,9 +639,9 @@ class AdminNotationForm(forms.ModelForm):
     name.widget.attrs.update({"style": "width: 400px;"})
 
 
-class AdminOfficeForm(forms.ModelForm):
+class AdminServiceForm(forms.ModelForm):
     class Meta:
-        model = Office
+        model = Service
         fields = "__all__"
 
     name = forms.CharField(required=True, widget=TextInputWidget)
@@ -655,10 +678,10 @@ class AdminSequenceForm(forms.ModelForm):
             "chant_range": VolpianoAreaWidget(),
         }
 
-    # We use NameModelChoiceField here so the dropdown list of office/mass displays the name
+    # We use NameModelChoiceField here so the dropdown list of service/mass displays the name
     # instead of [name] + description
-    office = NameModelChoiceField(
-        queryset=Office.objects.all().order_by("name"),
+    service = NameModelChoiceField(
+        queryset=Service.objects.all().order_by("name"),
         required=False,
     )
     # We use NameModelChoiceField here so the dropdown list of genres displays the name

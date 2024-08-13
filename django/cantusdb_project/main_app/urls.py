@@ -7,7 +7,37 @@ from django.contrib.auth.views import (
     PasswordResetConfirmView,
     PasswordResetCompleteView,
 )
-from main_app.views import views
+from main_app.views.api import (
+    ajax_melody_list,
+    ajax_melody_search,
+    ajax_search_bar,
+    json_cid_export,
+    json_nextchants,
+    json_sources_export,
+    notation_json_export,
+    json_node_export,
+    json_melody_export,
+    provenance_json_export,
+    csv_export,
+    articles_list_export,
+    flatpages_list_export,
+)
+from main_app.views.institution import InstitutionListView, InstitutionDetailView
+from main_app.views.redirect import (
+    redirect_chants,
+    redirect_genre,
+    redirect_office,
+    redirect_offices,
+    redirect_office_id,
+    redirect_source_inventory,
+    csv_export_redirect_from_old_path,
+    redirect_search,
+    redirect_node_url,
+    redirect_indexer,
+    redirect_documents,
+)
+from main_app.views.site_stats import items_count, content_overview
+from main_app.views.contact import contact
 from main_app.views.century import (
     CenturyDetailView,
 )
@@ -34,9 +64,9 @@ from main_app.views.genre import (
 from main_app.views.notation import (
     NotationDetailView,
 )
-from main_app.views.office import (
-    OfficeListView,
-    OfficeDetailView,
+from main_app.views.service import (
+    ServiceListView,
+    ServiceDetailView,
 )
 from main_app.views.provenance import (
     ProvenanceDetailView,
@@ -62,23 +92,24 @@ from main_app.views.user import (
     UserListView,
     UserSourceListView,
 )
-from main_app.views.views import (
+from main_app.views.autocomplete import (
     CurrentEditorsAutocomplete,
     AllUsersAutocomplete,
     CenturyAutocomplete,
     FeastAutocomplete,
-    OfficeAutocomplete,
+    ServiceAutocomplete,
     GenreAutocomplete,
     DifferentiaAutocomplete,
     ProvenanceAutocomplete,
     ProofreadByAutocomplete,
     HoldingAutocomplete,
 )
+from main_app.views.auth import change_password
 
 urlpatterns = [
     path(
         "contact/",
-        views.contact,
+        contact,
         name="contact",
     ),
     # login/logout/user
@@ -109,7 +140,7 @@ urlpatterns = [
     ),
     path(
         "change-password/",
-        views.change_password,
+        change_password,
         name="change-password",
     ),
     # password reset views
@@ -190,7 +221,7 @@ urlpatterns = [
     ),
     path(
         "chants/",
-        views.redirect_chants,
+        redirect_chants,
         name="redirect-chants",
     ),  # /chants/?source={source id}
     # feast
@@ -217,7 +248,7 @@ urlpatterns = [
     ),
     path(
         "genre/",
-        views.redirect_genre,
+        redirect_genre,
         name="redirect-genre",
     ),
     # indexer
@@ -226,27 +257,48 @@ urlpatterns = [
         IndexerListView.as_view(),
         name="indexer-list",
     ),
+    # institution
+    path(
+        "institutions/",
+        InstitutionListView.as_view(),
+        name="institution-list",
+    ),
+    path(
+        "institution/<int:pk>",
+        InstitutionDetailView.as_view(),
+        name="institution-detail",
+    ),
     # notation
     path(
         "notation/<int:pk>",
         NotationDetailView.as_view(),
         name="notation-detail",
     ),
-    # office
+    # service
     path(
-        "offices/",
-        OfficeListView.as_view(),
-        name="office-list",
+        "services/",
+        ServiceListView.as_view(),
+        name="service-list",
     ),
     path(
-        "office/<int:pk>",
-        OfficeDetailView.as_view(),
-        name="office-detail",
+        "service/<int:pk>",
+        ServiceDetailView.as_view(),
+        name="service-detail",
     ),
     path(
         "office/",
-        views.redirect_office,
+        redirect_office,
         name="redirect-office",
+    ),
+    path(
+        "offices/",
+        redirect_offices,
+        name="redirect-office",
+    ),
+    path(
+        "office/<int:pk>",
+        redirect_office_id,
+        name="redirect-office-id",
     ),
     # provenance
     path(
@@ -293,7 +345,7 @@ urlpatterns = [
     ),
     path(
         "index/",
-        views.redirect_source_inventory,
+        redirect_source_inventory,
         name="redirect-source-inventory",
     ),
     path(
@@ -319,49 +371,49 @@ urlpatterns = [
     ),
     path(
         "ajax/melody/<str:cantus_id>",
-        views.ajax_melody_list,
+        ajax_melody_list,
         name="ajax-melody",
     ),
     path(
         "ajax/melody-search/",
-        views.ajax_melody_search,
+        ajax_melody_search,
         name="ajax-melody-search",
     ),
     # json api
     path(
         "json-sources/",
-        views.json_sources_export,
+        json_sources_export,
         name="json-sources-export",
     ),
     path(
         "json-nextchants/<str:cantus_id>",
-        views.json_nextchants,
+        json_nextchants,
         name="json-nextchants",
     ),
     path(
         "json-melody/<str:cantus_id>",
-        views.json_melody_export,
+        json_melody_export,
         name="json-melody-export",
     ),
     path(
         "json-cid/<str:cantus_id>",
-        views.json_cid_export,
+        json_cid_export,
         name="json-cid-export",
     ),
     # JSON APIs for returning data on individual objects in the database
     path(
         "json-node/<int:id>",
-        views.json_node_export,
+        json_node_export,
         name="json-node-export",
     ),
     path(
         "notation/<int:id>/json",
-        views.notation_json_export,
+        notation_json_export,
         name="notation-json-export",
     ),
     path(
         "provenance/<int:id>/json",
-        views.provenance_json_export,
+        provenance_json_export,
         name="provenance-json-export",
     ),
     # misc search
@@ -377,93 +429,93 @@ urlpatterns = [
     ),
     path(
         "search/",
-        views.redirect_search,
+        redirect_search,
         name="redirect-search",
     ),
     path(
         "ajax/search-bar/<str:search_term>",
-        views.ajax_search_bar,
+        ajax_search_bar,
         name="ajax-search-bar",
     ),
     # misc
     path(
         "content-statistics",
-        views.items_count,
+        items_count,
         name="items-count",
     ),
     path(
         "source/<str:source_id>/csv/",
-        views.csv_export,
+        csv_export,
         name="csv-export",
     ),
     path(
         "sites/default/files/csv/<str:source_id>.csv",
-        views.csv_export_redirect_from_old_path,
+        csv_export_redirect_from_old_path,
         name="csv-export-old-path",
     ),
     # content overview (for project managers)
     path(
         "content-overview/",
-        views.content_overview,
+        content_overview,
         name="content-overview",
     ),
     # /node/ url redirects
     path(
         "node/<int:pk>",
-        views.redirect_node_url,
+        redirect_node_url,
         name="redirect-node-url",
     ),
     # /indexer/ url redirects
     path(
         "indexer/<int:pk>",
-        views.redirect_indexer,
+        redirect_indexer,
         name="redirect-indexer",
     ),
     # links to APIs that list URLs of all pages that live in the database
     path(
         "articles-list/",
-        views.articles_list_export,
+        articles_list_export,
         name="articles-list-export",
     ),
     path(
         "flatpages-list/",
-        views.flatpages_list_export,
+        flatpages_list_export,
         name="flatpages-list-export",
     ),
     # redirects for static files present on OldCantus
     path(
         "sites/default/files/documents/1. Quick Guide to Liturgy.pdf",
-        views.redirect_documents,
+        redirect_documents,
         name="redirect-quick-guide-to-liturgy",
     ),
     path(
         "sites/default/files/documents/2. Volpiano Protocols.pdf",
-        views.redirect_documents,
+        redirect_documents,
         name="redirect-volpiano-protocols",
     ),
     path(
         "sites/default/files/documents/3. Volpiano Neumes for Review.docx",
-        views.redirect_documents,
+        redirect_documents,
         name="redirect-volpiano-neumes-for-review",
     ),
     path(
         "sites/default/files/documents/4. Volpiano Neume Protocols.pdf",
-        views.redirect_documents,
+        redirect_documents,
         name="redirect-volpiano-neume-protocols",
     ),
     path(
         "sites/default/files/documents/5. Volpiano Editing Guidelines.pdf",
-        views.redirect_documents,
+        redirect_documents,
         name="redirect-volpiano-editing-guidelines",
     ),
     path(
         "sites/default/files/documents/7. Guide to Graduals.pdf",
-        views.redirect_documents,
+        redirect_documents,
         name="redirect-guide-to-graduals",
     ),
     path(
         "sites/default/files/HOW TO - manuscript descriptions-Nov6-20.pdf",
-        views.redirect_documents,
+        redirect_documents,
         name="redirect-how-to-manuscript-descriptions",
     ),
     path(
@@ -502,9 +554,9 @@ urlpatterns = [
         name="provenance-autocomplete",
     ),
     path(
-        "office-autocomplete/",
-        OfficeAutocomplete.as_view(),
-        name="office-autocomplete",
+        "service-autocomplete/",
+        ServiceAutocomplete.as_view(),
+        name="service-autocomplete",
     ),
     path(
         "genre-autocomplete/",

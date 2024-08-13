@@ -28,11 +28,15 @@ class SourceAdmin(BaseModelAdmin):
         "id",
         "provenance_notes",
     )
-    readonly_fields = ("title", "siglum") + READ_ONLY + (
-        "number_of_chants",
-        "number_of_melodies",
-        "date_created",
-        "date_updated",
+    readonly_fields = (
+        ("title", "siglum")
+        + READ_ONLY
+        + (
+            "number_of_chants",
+            "number_of_melodies",
+            "date_created",
+            "date_updated",
+        )
     )
     # from the Django docs:
     # Adding a ManyToManyField to this list will instead use a nifty unobtrusive JavaScript “filter” interface
