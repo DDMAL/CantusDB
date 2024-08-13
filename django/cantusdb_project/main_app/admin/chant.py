@@ -40,7 +40,7 @@ class ChantAdmin(BaseModelAdmin):
         "incipit",
         "cantus_id",
         "id",
-        "source__holding_institution__siglum"
+        "source__holding_institution__siglum",
     )
 
     readonly_fields = READ_ONLY + ("incipit",)
