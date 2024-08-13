@@ -1,3 +1,5 @@
+from typing import Any
+
 from django.contrib import messages
 from django.contrib.auth.mixins import LoginRequiredMixin
 from django.contrib.auth.mixins import UserPassesTestMixin
@@ -208,13 +210,13 @@ class SourceDetailView(DetailView):
         return context
 
 
-class SourceListView(ListView):
+class SourceListView(ListView):  # type: ignore
     model = Source
     paginate_by = 100
     context_object_name = "sources"
     template_name = "source_list.html"
 
-    def get_context_data(self, **kwargs):
+    def get_context_data(self, **kwargs: Any) -> dict[str, Any]:
         context = super().get_context_data(**kwargs)
         context["provenances"] = (
             Provenance.objects.all().order_by("name").values("id", "name")
@@ -224,47 +226,45 @@ class SourceListView(ListView):
         )
         return context
 
-    def get_queryset(self):
+    def get_queryset(self) -> QuerySet[Source]:
         # use select_related() for foreign keys to reduce DB queries
         queryset = Source.objects.select_related(
             "segment", "provenance", "holding_institution"
-        ).order_by("siglum")
+        )
 
-        display_unpublished: bool = self.request.user.is_authenticated
-        if display_unpublished:
+        if self.request.user.is_authenticated:
             q_obj_filter = Q()
         else:
             q_obj_filter = Q(published=True)
 
-        if self.request.GET.get("century"):
-            century_name = Century.objects.get(id=self.request.GET.get("century")).name
+        if century_id := self.request.GET.get("century"):
+            century_name = Century.objects.get(id=century_id).name
             q_obj_filter &= Q(century__name__icontains=century_name)
 
-        if self.request.GET.get("provenance"):
-            provenance_id = int(self.request.GET.get("provenance"))
-            q_obj_filter &= Q(provenance__id=provenance_id)
-        if self.request.GET.get("segment"):
-            segment_id = int(self.request.GET.get("segment"))
-            q_obj_filter &= Q(segment__id=segment_id)
-        if self.request.GET.get("fullSource") in ["true", "false"]:
-            full_source_str = self.request.GET.get("fullSource")
+        if provenance_id := self.request.GET.get("provenance"):
+            q_obj_filter &= Q(provenance__id=int(provenance_id))
+        if segment_id := self.request.GET.get("segment"):
+            q_obj_filter &= Q(segment__id=int(segment_id))
+        if (full_source_str := self.request.GET.get("fullSource")) in ["true", "false"]:
             if full_source_str == "true":
                 full_source_q = Q(full_source=True) | Q(full_source=None)
                 q_obj_filter &= full_source_q
             else:
                 q_obj_filter &= Q(full_source=False)
 
-        if self.request.GET.get("general"):
+        if general_str := self.request.GET.get("general"):
             # Strip spaces at the beginning and end. Then make list of terms split on spaces
-            general_search_terms = self.request.GET.get("general").strip(" ").split(" ")
+            general_search_terms = general_str.strip(" ").split(" ")
             # We need a Q Object for each field we're gonna look into
             shelfmark_q = Q()
             siglum_q = Q()
             holding_institution_q = Q()
             holding_institution_city_q = Q()
             description_q = Q()
-            # it seems that old cantus don't look into title and provenance for the general search terms
-            # cantus.uwaterloo.ca/source/123901 this source cannot be found by searching its provenance 'Kremsmünster' in the general search field
+            # it seems that old cantus don't look into title and provenance
+            # for the general search terms
+            # cantus.uwaterloo.ca/source/123901 this source cannot be found by searching
+            # its provenance 'Kremsmünster' in the general search field
             # provenance_q = Q()
             summary_q = Q()
 
@@ -300,9 +300,9 @@ class SourceListView(ListView):
 
         # For the indexing notes search we follow the same procedure as above but with
         # different fields
-        if self.request.GET.get("indexing"):
+        if indexing_str := self.request.GET.get("indexing"):
             # Make list of terms split on spaces
-            indexing_search_terms = self.request.GET.get("indexing").split(" ")
+            indexing_search_terms = indexing_str.strip(" ").split(" ")
             # We need a Q Object for each field we're gonna look into
             inventoried_by_q = Q()
             full_text_entered_by_q = Q()
@@ -338,8 +338,23 @@ class SourceListView(ListView):
             )
             q_obj_filter &= indexing_search_q
 
+        order_param = self.request.GET.get("order")
+        order_fields = ["siglum"]
+        if order_param == "country":
+            order_fields.insert(0, "holding_institution__country")
+        if order_param == "heading":
+            order_fields.insert(0, "holding_institution__city")
+            order_fields.insert(1, "holding_institution__name")
+        if self.request.GET.get("sort") == "desc":
+            sort_prefix = "-"
+        else:
+            sort_prefix = ""
+
+        order_by_args = [f"{sort_prefix}{field}" for field in order_fields]
+
         return (
             queryset.filter(q_obj_filter)
+            .order_by(*order_by_args)
             .distinct()
             .prefetch_related(
                 Prefetch("century", queryset=Century.objects.all().order_by("id"))
