@@ -22,7 +22,7 @@ services:
     depends_on:
       - postgres
     working_dir: /code/cantusdb_project/django/cantusdb_project
-    command: [ "python", "manage.py", "runserver", "0:8000" ]
+    command: [ "python", "manage.py", "runserver_plus", "0:8000" ]
 
   nginx:
     build:
