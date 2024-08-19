@@ -218,7 +218,6 @@ class SourceCreateForm(forms.ModelForm):
             "holding_institution": autocomplete.ModelSelect2(
                 url="holding-autocomplete"
             ),
-            "shelfmark": TextInputWidget(),
             "provenance": autocomplete.ModelSelect2(url="provenance-autocomplete"),
             "provenance_notes": TextInputWidget(),
             "date": TextInputWidget(),
@@ -253,6 +252,11 @@ class SourceCreateForm(forms.ModelForm):
         field_classes = {
             "segment_m2m": CheckboxNameModelMultipleChoiceField,
         }
+
+    shelfmark = forms.CharField(
+        required=True,
+        widget=TextInputWidget,
+    )
 
     TRUE_FALSE_CHOICES_SOURCE = (
         (True, "Full source"),
@@ -410,7 +414,6 @@ class SourceEditForm(forms.ModelForm):
             "holding_institution": autocomplete.ModelSelect2(
                 url="holding-autocomplete"
             ),
-            "shelfmark": TextInputWidget(),
             "segment_m2m": CheckboxSelectMultiple(),
             "provenance": autocomplete.ModelSelect2(url="provenance-autocomplete"),
             "provenance_notes": TextInputWidget(),
@@ -446,6 +449,11 @@ class SourceEditForm(forms.ModelForm):
         field_classes = {
             "segment_m2m": CheckboxNameModelMultipleChoiceField,
         }
+
+    shelfmark = forms.CharField(
+        required=True,
+        widget=TextInputWidget,
+    )
 
     CHOICES_FULL_SOURCE = (
         (None, "None"),
