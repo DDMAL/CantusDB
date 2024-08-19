@@ -27,6 +27,7 @@ from main_app.models import (
     Provenance,
     Segment,
     Source,
+    Institution,
 )
 from main_app.permissions import (
     user_can_create_sources,
@@ -218,6 +219,11 @@ class SourceListView(ListView):  # type: ignore
 
     def get_context_data(self, **kwargs: Any) -> dict[str, Any]:
         context = super().get_context_data(**kwargs)
+        context["countries"] = (
+            Institution.objects.values_list("country", flat=True)
+            .distinct()
+            .order_by("country")
+        )
         context["provenances"] = (
             Provenance.objects.all().order_by("name").values("id", "name")
         )
@@ -236,6 +242,9 @@ class SourceListView(ListView):  # type: ignore
             q_obj_filter = Q()
         else:
             q_obj_filter = Q(published=True)
+
+        if country_name := self.request.GET.get("country"):
+            q_obj_filter &= Q(holding_institution__country__icontains=country_name)
 
         if century_id := self.request.GET.get("century"):
             century_name = Century.objects.get(id=century_id).name
