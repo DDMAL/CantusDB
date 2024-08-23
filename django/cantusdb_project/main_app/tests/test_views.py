@@ -4679,10 +4679,12 @@ class SourceCreateViewTest(TestCase):
         self.assertTemplateUsed(response, "source_create.html")
 
     def test_create_source(self):
+        hinst = make_fake_institution(siglum="FA-Ke")
         response = self.client.post(
             reverse("source-create"),
             {
                 "shelfmark": "test-shelfmark",  # shelfmark is a required field
+                "holding_institution": hinst.id, # holding institution is a required field
             },
         )
 
@@ -4729,11 +4731,13 @@ class SourceEditViewTest(TestCase):
 
     def test_edit_source(self):
         source = make_fake_source()
+        hinst = make_fake_institution(siglum="FA-Ke")
 
         response = self.client.post(
             reverse("source-edit", args=[source.id]),
             {
                 "shelfmark": "test-shelfmark",  # shelfmark is a required field,
+                "holding_institution": hinst.id, # holding institution is a required field
             },
         )
 
