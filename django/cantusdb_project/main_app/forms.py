@@ -4,6 +4,7 @@ from .models import (
     Chant,
     Service,
     Genre,
+    Institution,
     Notation,
     Feast,
     Source,
@@ -215,9 +216,6 @@ class SourceCreateForm(forms.ModelForm):
         widgets = {
             # "title": TextInputWidget(),
             # "siglum": TextInputWidget(),
-            "holding_institution": autocomplete.ModelSelect2(
-                url="holding-autocomplete"
-            ),
             "provenance": autocomplete.ModelSelect2(url="provenance-autocomplete"),
             "provenance_notes": TextInputWidget(),
             "date": TextInputWidget(),
@@ -252,6 +250,12 @@ class SourceCreateForm(forms.ModelForm):
         field_classes = {
             "segment_m2m": CheckboxNameModelMultipleChoiceField,
         }
+
+    holding_institution = forms.ModelChoiceField(
+        queryset=Institution.objects.all(),
+        required=True,
+        widget=autocomplete.ModelSelect2(url="holding-autocomplete"),
+    )
 
     shelfmark = forms.CharField(
         required=True,
@@ -411,9 +415,6 @@ class SourceEditForm(forms.ModelForm):
             "other_editors",
         ]
         widgets = {
-            "holding_institution": autocomplete.ModelSelect2(
-                url="holding-autocomplete"
-            ),
             "segment_m2m": CheckboxSelectMultiple(),
             "provenance": autocomplete.ModelSelect2(url="provenance-autocomplete"),
             "provenance_notes": TextInputWidget(),
@@ -453,6 +454,12 @@ class SourceEditForm(forms.ModelForm):
     shelfmark = forms.CharField(
         required=True,
         widget=TextInputWidget,
+    )
+
+    holding_institution = forms.ModelChoiceField(
+        queryset=Institution.objects.all(),
+        required=True,
+        widget=autocomplete.ModelSelect2(url="holding-autocomplete"),
     )
 
     CHOICES_FULL_SOURCE = (
@@ -729,6 +736,11 @@ class AdminSourceForm(forms.ModelForm):
     shelfmark = forms.CharField(
         required=True,
         widget=TextInputWidget,
+    )
+
+    holding_institution = forms.ModelChoiceField(
+        queryset=Institution.objects.all().order_by("name"),
+        required=True,
     )
 
     provenance = forms.ModelChoiceField(
