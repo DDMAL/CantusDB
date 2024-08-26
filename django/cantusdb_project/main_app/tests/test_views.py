@@ -2,7 +2,7 @@ import csv
 import json
 import random
 from collections.abc import KeysView, ItemsView
-from typing import Optional
+from typing import Optional, Any
 from unittest import skip
 from unittest.mock import patch
 
@@ -3987,224 +3987,260 @@ class FeastDetailViewTest(TestCase):
 
 
 class GenreListViewTest(TestCase):
-    def test_view_url_path(self):
+    fake_genres: dict[str, Genre] = {}
+
+    @classmethod
+    def setUpTestData(cls) -> None:
+        mass_office_genre = make_fake_genre(
+            name="genre1",
+            description="test",
+            mass_office="Mass, Office",
+        )
+        mass_genre = make_fake_genre(
+            name="genre2", description="test", mass_office="Mass"
+        )
+        office_genre = make_fake_genre(
+            name="genre3", description="test", mass_office="Office"
+        )
+        old_hispanic_genre = make_fake_genre(
+            name="genre4",
+            description="test",
+            mass_office="Old Hispanic",
+        )
+        cls.fake_genres = {
+            "mass_office_genre": mass_office_genre,
+            "mass_genre": mass_genre,
+            "office_genre": office_genre,
+            "old_hispanic_genre": old_hispanic_genre,
+        }
+
+    def test_view_url_path(self) -> None:
         response = self.client.get("/genres/")
         self.assertEqual(response.status_code, 200)
 
-    def test_view_url_reverse_name(self):
+    def test_view_url_reverse_name(self) -> None:
         response = self.client.get(reverse("genre-list"))
         self.assertEqual(response.status_code, 200)
 
-    def test_url_and_templates(self):
+    def test_url_and_templates(self) -> None:
         """Test the url and templates used"""
         response = self.client.get(reverse("genre-list"))
         self.assertEqual(response.status_code, 200)
         self.assertTemplateUsed(response, "base.html")
         self.assertTemplateUsed(response, "genre_list.html")
 
-    def test_filter_by_mass(self):
-        mass_office_genre = Genre.objects.create(
-            name="genre1",
-            description="test",
-            mass_office="Mass, Office",
-        )
-        mass_genre = Genre.objects.create(
-            name="genre2", description="test", mass_office="Mass"
-        )
-        office_genre = Genre.objects.create(
-            name="genre3", description="test", mass_office="Office"
-        )
-        old_hispanic_genre = Genre.objects.create(
-            name="genre4",
-            description="test",
-            mass_office="Old Hispanic",
-        )
+    def test_filter_by_mass(self) -> None:
         # filter by Mass
         response = self.client.get(reverse("genre-list"), {"mass_office": "Mass"})
         genres = response.context["genres"]
         # Mass, Office and Mass should be in the list, while the others should not
-        self.assertIn(mass_genre, genres)
-        self.assertIn(mass_office_genre, genres)
-        self.assertNotIn(office_genre, genres)
-        self.assertNotIn(old_hispanic_genre, genres)
+        self.assertIn(self.fake_genres["mass_genre"], genres)
+        self.assertIn(self.fake_genres["mass_office_genre"], genres)
+        self.assertNotIn(self.fake_genres["office_genre"], genres)
+        self.assertNotIn(self.fake_genres["old_hispanic_genre"], genres)
 
-    def test_filter_by_office(self):
-        mass_office_genre = Genre.objects.create(
-            name="genre1",
-            description="test",
-            mass_office="Mass, Office",
-        )
-        mass_genre = Genre.objects.create(
-            name="genre2", description="test", mass_office="Mass"
-        )
-        office_genre = Genre.objects.create(
-            name="genre3", description="test", mass_office="Office"
-        )
-        old_hispanic_genre = Genre.objects.create(
-            name="genre4",
-            description="test",
-            mass_office="Old Hispanic",
-        )
+    def test_filter_by_office(self) -> None:
         # filter by Office
         response = self.client.get(reverse("genre-list"), {"mass_office": "Office"})
         genres = response.context["genres"]
         # Office, Office and Mass should be in the list, while the others should not
-        self.assertNotIn(mass_genre, genres)
-        self.assertIn(mass_office_genre, genres)
-        self.assertIn(office_genre, genres)
-        self.assertNotIn(old_hispanic_genre, genres)
+        self.assertNotIn(self.fake_genres["mass_genre"], genres)
+        self.assertIn(self.fake_genres["mass_office_genre"], genres)
+        self.assertIn(self.fake_genres["office_genre"], genres)
+        self.assertNotIn(self.fake_genres["old_hispanic_genre"], genres)
 
-    def test_no_filtering(self):
-        mass_office_genre = Genre.objects.create(
-            name="genre1",
-            description="test",
-            mass_office="Mass, Office",
-        )
-        mass_genre = Genre.objects.create(
-            name="genre2", description="test", mass_office="Mass"
-        )
-        office_genre = Genre.objects.create(
-            name="genre3", description="test", mass_office="Office"
-        )
-        old_hispanic_genre = Genre.objects.create(
-            name="genre4",
-            description="test",
-            mass_office="Old Hispanic",
-        )
+    def test_no_filtering(self) -> None:
         # default is no filtering
         response = self.client.get(reverse("genre-list"))
         genres = response.context["genres"]
         # all genres should be in the list
-        self.assertIn(mass_genre, genres)
-        self.assertIn(mass_office_genre, genres)
-        self.assertIn(office_genre, genres)
-        self.assertIn(old_hispanic_genre, genres)
+        self.assertIn(self.fake_genres["mass_genre"], genres)
+        self.assertIn(self.fake_genres["mass_office_genre"], genres)
+        self.assertIn(self.fake_genres["office_genre"], genres)
+        self.assertIn(self.fake_genres["old_hispanic_genre"], genres)
 
-    def test_invalid_filtering(self):
-        mass_office_genre = Genre.objects.create(
-            name="genre1",
-            description="test",
-            mass_office="Mass, Office",
-        )
-        mass_genre = Genre.objects.create(
-            name="genre2", description="test", mass_office="Mass"
-        )
-        office_genre = Genre.objects.create(
-            name="genre3", description="test", mass_office="Office"
-        )
-        old_hispanic_genre = Genre.objects.create(
-            name="genre4",
-            description="test",
-            mass_office="Old Hispanic",
-        )
+    def test_invalid_filtering(self) -> None:
         # invalid filtering parameter should default to no filtering
         response = self.client.get(
             reverse("genre-list"), {"mass_office": "invalid param"}
         )
         genres = response.context["genres"]
         # all genres should be in the list
-        self.assertIn(mass_genre, genres)
-        self.assertIn(mass_office_genre, genres)
-        self.assertIn(office_genre, genres)
-        self.assertIn(old_hispanic_genre, genres)
+        self.assertIn(self.fake_genres["mass_genre"], genres)
+        self.assertIn(self.fake_genres["mass_office_genre"], genres)
+        self.assertIn(self.fake_genres["office_genre"], genres)
+        self.assertIn(self.fake_genres["old_hispanic_genre"], genres)
+
+    def test_json_reponse(self) -> None:
+        response = self.client.get(
+            reverse("genre-list"), headers={"Accept": "application/json"}
+        )
+        expected_genres = [
+            {
+                "id": self.fake_genres[key].id,
+                "name": self.fake_genres[key].name,
+                "description": self.fake_genres[key].description,
+                "mass_office": self.fake_genres[key].mass_office,
+            }
+            for key in self.fake_genres
+        ]
+        self.assertEqual(response.headers["Content-Type"], "application/json")
+        response_genres = response.json()["genres"]
+        response_genres_id_ordered = sorted(response_genres, key=lambda x: x["id"])
+        self.assertEqual(response_genres_id_ordered, expected_genres)
 
 
 class GenreDetailViewTest(TestCase):
-    def setUp(self):
-        for _ in range(10):
-            make_fake_genre()
+    GENRE_COUNT = 10
+    fake_genres: list[Genre] = []
 
-    def test_view_url_path(self):
+    @classmethod
+    def setUpTestData(cls) -> None:
+        cls.fake_genres = [make_fake_genre() for _ in range(cls.GENRE_COUNT)]
+
+    def test_view_url_path(self) -> None:
         for genre in Genre.objects.all():
             response = self.client.get(f"/genre/{genre.id}")
             self.assertEqual(response.status_code, 200)
 
-    def test_view_url_reverse_name(self):
+    def test_view_url_reverse_name(self) -> None:
         for genre in Genre.objects.all():
             response = self.client.get(reverse("genre-detail", args=[genre.id]))
             self.assertEqual(response.status_code, 200)
 
-    def test_view_context_data(self):
+    def test_view_context_data(self) -> None:
         for genre in Genre.objects.all():
             response = self.client.get(reverse("genre-detail", args=[genre.id]))
             self.assertTrue("genre" in response.context)
             self.assertEqual(genre, response.context["genre"])
 
-    def test_url_and_templates(self):
+    def test_url_and_templates(self) -> None:
         """Test the url and templates used"""
-        genre = make_fake_genre()
+        genre = random.choice(self.fake_genres)
         response = self.client.get(reverse("genre-detail", args=[genre.id]))
         self.assertEqual(response.status_code, 200)
         self.assertTemplateUsed(response, "base.html")
         self.assertTemplateUsed(response, "genre_detail.html")
 
-    def test_context(self):
-        genre = make_fake_genre()
+    def test_context(self) -> None:
+        genre = random.choice(self.fake_genres)
         response = self.client.get(reverse("genre-detail", args=[genre.id]))
         self.assertEqual(response.status_code, 200)
         self.assertEqual(genre, response.context["genre"])
 
+    def test_json_response(self) -> None:
+        genre = random.choice(self.fake_genres)
+        response = self.client.get(
+            reverse("genre-detail", args=[genre.id]),
+            headers={"Accept": "application/json"},
+        )
+        expected_genre = {
+            "id": genre.id,
+            "name": genre.name,
+            "description": genre.description,
+            "mass_office": genre.mass_office,
+        }
+        self.assertEqual(response.headers["Content-Type"], "application/json")
+        response_genre = response.json()["genre"]
+        self.assertEqual(response_genre, expected_genre)
+
 
 class ServiceListViewTest(TestCase):
     SERVICE_COUNT = 10
+    fake_services: list[Service] = []
 
-    def setUp(self):
-        for _ in range(self.SERVICE_COUNT):
-            make_fake_service()
+    @classmethod
+    def setUpTestData(cls) -> None:
+        cls.fake_services = [make_fake_service() for _ in range(cls.SERVICE_COUNT)]
 
-    def test_view_url_path(self):
+    def test_view_url_path(self) -> None:
         response = self.client.get("/services/")
         self.assertEqual(response.status_code, 200)
 
-    def test_view_url_reverse_name(self):
+    def test_view_url_reverse_name(self) -> None:
         response = self.client.get(reverse("service-list"))
         self.assertEqual(response.status_code, 200)
 
-    def test_url_and_templates(self):
+    def test_url_and_templates(self) -> None:
         response = self.client.get(reverse("service-list"))
         self.assertEqual(response.status_code, 200)
         self.assertTemplateUsed(response, "base.html")
         self.assertTemplateUsed(response, "service_list.html")
 
-    def test_context(self):
+    def test_context(self) -> None:
         response = self.client.get(reverse("service-list"))
         services = response.context["services"]
         # the list view should contain all services
         self.assertEqual(services.count(), self.SERVICE_COUNT)
 
+    def test_json_response(self) -> None:
+        response = self.client.get(
+            reverse("service-list"), headers={"Accept": "application/json"}
+        )
+        self.assertEqual(response.headers["Content-Type"], "application/json")
+        response_services = response.json()["services"]
+        expected_services = [
+            {
+                "id": service.id,
+                "name": service.name,
+                "description": service.description,
+            }
+            for service in self.fake_services
+        ]
+        response_services_id_ordered = sorted(response_services, key=lambda x: x["id"])
+        self.assertEqual(response_services_id_ordered, expected_services)
+
 
 class ServiceDetailViewTest(TestCase):
-    def setUp(self):
-        for _ in range(10):
-            make_fake_service()
+    SERVICE_COUNT = 10
+    fake_services: list[Service] = []
 
-    def test_view_url_path(self):
+    @classmethod
+    def setUpTestData(self) -> None:
+        self.fake_services = [make_fake_service() for _ in range(self.SERVICE_COUNT)]
+
+    def test_view_url_path(self) -> None:
         for service in Service.objects.all():
             response = self.client.get(f"/service/{service.id}")
             self.assertEqual(response.status_code, 200)
 
-    def test_view_url_reverse_name(self):
+    def test_view_url_reverse_name(self) -> None:
         for service in Service.objects.all():
             response = self.client.get(reverse("service-detail", args=[service.id]))
             self.assertEqual(response.status_code, 200)
 
-    def test_view_context_data(self):
+    def test_view_context_data(self) -> None:
         for service in Service.objects.all():
             response = self.client.get(reverse("service-detail", args=[service.id]))
             self.assertTrue("service" in response.context)
             self.assertEqual(service, response.context["service"])
 
-    def test_url_and_templates(self):
-        service = make_fake_service()
+    def test_url_and_templates(self) -> None:
+        service = random.choice(self.fake_services)
         response = self.client.get(reverse("service-detail", args=[service.id]))
         self.assertEqual(response.status_code, 200)
         self.assertTemplateUsed(response, "base.html")
         self.assertTemplateUsed(response, "service_detail.html")
 
-    def test_context(self):
-        service = make_fake_service()
+    def test_context(self) -> None:
+        service = random.choice(self.fake_services)
         response = self.client.get(reverse("service-detail", args=[service.id]))
         self.assertEqual(service, response.context["service"])
+
+    def test_json_response(self) -> None:
+        service = random.choice(self.fake_services)
+        response = self.client.get(
+            reverse("service-detail", args=[service.id]),
+            headers={"Accept": "application/json"},
+        )
+        expected_service = {
+            "id": service.id,
+            "name": service.name,
+            "description": service.description,
+        }
+        self.assertEqual(response.headers["Content-Type"], "application/json")
+        response_service = response.json()["service"]
+        self.assertEqual(response_service, expected_service)
 
 
 class ProvenanceDetailViewTest(TestCase):

@@ -1,19 +1,21 @@
 from django.views.generic import DetailView, ListView
-from extra_views import SearchableListMixin
 from main_app.models import Genre
+from main_app.mixins import JSONResponseMixin
 
 
-class GenreDetailView(DetailView):
+class GenreDetailView(JSONResponseMixin, DetailView):
     model = Genre
     context_object_name = "genre"
     template_name = "genre_detail.html"
+    json_fields = ["id", "name", "description", "mass_office"]
 
 
-class GenreListView(SearchableListMixin, ListView):
+class GenreListView(JSONResponseMixin, ListView):
     model = Genre
     paginate_by = 100
     context_object_name = "genres"
     template_name = "genre_list.html"
+    json_fields = ["id", "name", "description", "mass_office"]
 
     def get_queryset(self):
         queryset = super().get_queryset()

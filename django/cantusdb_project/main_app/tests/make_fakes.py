@@ -251,14 +251,22 @@ def make_fake_feast() -> Feast:
     return feast
 
 
-def make_fake_genre(name=None) -> Genre:
+def make_fake_genre(
+    name: Optional[str] = None,
+    description: Optional[str] = None,
+    mass_office: Optional[str] = None,
+) -> Genre:
     """Generates a fake Genre object."""
     if name is None:
         name = faker.lexify("???")
+    if description is None:
+        description = faker.sentence()
+    if mass_office is None:
+        mass_office = random.choice(["Mass", "Office", "Mass, Office", "Old Hispanic"])
     genre = Genre.objects.create(
         name=name,
-        description=faker.sentence(),
-        mass_office=random.choice(["Mass", "Office", "Mass, Office", "Old Hispanic"]),
+        description=description,
+        mass_office=mass_office,
     )
     return genre
 
