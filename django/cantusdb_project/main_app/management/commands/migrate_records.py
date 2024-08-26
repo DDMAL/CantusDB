@@ -24,6 +24,15 @@ private_collections = {
     "US-OakCApc",
     "US-CApc",
     "ZA-Newpc",
+    "CDN-pc",
+    "CDN-pc(AB)",
+    "CDN-pc(BC)",
+    "US-pc(Texas),",
+    "US-pc(MA)",
+    "US-pc(OH)",
+    "US-pc(CA)",
+    "US-pc(VA)",
+    "US-pc(Washington)",
     "CDN-MtlQCpc",
     "CDN-MasQCpc",
     "CDN-HalNSpc",
@@ -187,8 +196,13 @@ class Command(BaseCommand):
 
                 if siglum in private_collections:
                     iobj["is_private_collector"] = True
+                    iobj["is_private_collection"] = True
+                    iobj["migrated_identifier"] = siglum.strip()
                 else:
                     iobj["siglum"] = siglum
+
+                    if "private" in institution_name.lower():
+                        iobj["is_private_collection"] = True
 
                 institution = Institution.objects.create(**iobj)
 
