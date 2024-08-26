@@ -4424,7 +4424,7 @@ class SourceListViewTest(TestCase):
         self.assertNotIn(private_source, sources)
 
     def test_filter_by_segment(self):
-        """The source list can be filtered by `segment`, `provenance`, `century`, and `full_source`"""
+        """The source list can be filtered by `segment`, `country`, `provenance`, `century`, and `full_source`"""
         cantus_segment = make_fake_segment(name="cantus")
         clavis_segment = make_fake_segment(name="clavis")
         chant_source = make_fake_source(
@@ -4449,6 +4449,46 @@ class SourceListViewTest(TestCase):
         sources = response.context["sources"]
         self.assertIn(seq_source, sources)
         self.assertNotIn(chant_source, sources)
+
+    def test_filter_by_country(self):
+        hold_inst_austria = make_fake_institution(country="Austria")
+        hold_inst_germany = make_fake_institution(country="Germany")
+        austria_source = make_fake_source(
+            holding_institution=hold_inst_austria,
+            published=True,
+            shelfmark="source from Austria",
+        )
+        germany_source = make_fake_source(
+            holding_institution=hold_inst_germany,
+            published=True,
+            shelfmark="source from Germany",
+        )
+        no_country_source = make_fake_source(
+            holding_institution=None,
+            published=True,
+            shelfmark="source with no country",
+        )
+
+        # Display sources from Austria only
+        response = self.client.get(reverse("source-list"), {"country": "Austria"})
+        sources = response.context["sources"]
+        self.assertIn(austria_source, sources)
+        self.assertNotIn(germany_source, sources)
+        self.assertNotIn(no_country_source, sources)
+
+        # Display sources from Germany only
+        response = self.client.get(reverse("source-list"), {"country": "Germany"})
+        sources = response.context["sources"]
+        self.assertIn(germany_source, sources)
+        self.assertNotIn(austria_source, sources)
+        self.assertNotIn(no_country_source, sources)
+
+        # Display sources with no country filter (all published sources)
+        response = self.client.get(reverse("source-list"))
+        sources = response.context["sources"]
+        self.assertIn(austria_source, sources)
+        self.assertIn(germany_source, sources)
+        self.assertIn(no_country_source, sources)
 
     def test_filter_by_provenance(self):
         aachen = make_fake_provenance()
