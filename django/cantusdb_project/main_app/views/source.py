@@ -348,10 +348,10 @@ class SourceListView(ListView):  # type: ignore
             q_obj_filter &= indexing_search_q
 
         order_param = self.request.GET.get("order")
-        order_fields = ["siglum"]
+        order_fields = ["holding_institution__siglum", "shelfmark"]
         if order_param == "country":
             order_fields.insert(0, "holding_institution__country")
-        if order_param == "heading":
+        elif order_param == "city_institution":
             order_fields.insert(0, "holding_institution__city")
             order_fields.insert(1, "holding_institution__name")
         if self.request.GET.get("sort") == "desc":

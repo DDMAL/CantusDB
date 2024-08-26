@@ -88,7 +88,8 @@
             <thead>
                 <tr>
                     {% sortable_header request "country" %}
-                    {% sortable_header request "heading" "Source" %}
+                    {% sortable_header request "city_institution" "City + Institution" %}
+                    {% sortable_header request "source" "Source" %}
                     <th scope="col" class="text-wrap" style="text-align:center">Summary</th>
                     <th scope="col" class="text-wrap" style="text-align:center">Date/Origin</th>
                     <th scope="col" class="text-wrap" style="text-align:center">Image Link</th>
@@ -101,9 +102,14 @@
                         <td class="text-wrap" style="text-align:center">
                             <b>{{ source.holding_institution.country }}</b>
                         </td>
-                        <td class="text-wrap" style="text-align:center" title="{{ source.heading }}">
+                        <td class="text-wrap" style="text-align:center">
                             <a href="{% url 'source-detail' source.id %}">
-                                <b>{{ source.heading|truncatechars_html:100 }}</b>
+                                <b>{{ source.holding_institution.city }}, {{ source.holding_institution.name }}</b>
+                            </a>
+                        </td>
+                        <td class="text-wrap" style="text-align:center">
+                            <a href="{% url 'source-detail' source.id %}">
+                                <b>{{ source.short_heading|truncatechars_html:100 }}</b>
                             </a>
                         </td>
                         <td class="text-wrap" style="text-align:center" title="{{ source.summary|default:""|truncatechars_html:500 }}">
