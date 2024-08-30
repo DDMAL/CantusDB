@@ -186,7 +186,7 @@ class ChantDetailView(DetailView):
     def get_queryset(self) -> QuerySet:
         qs = super().get_queryset()
         return qs.select_related(
-            "source__holding_institution", "service", "genre", "feast"
+            "source__holding_institution", "service", "genre", "feast", "project"
         )
 
     def get_context_data(self, **kwargs):
