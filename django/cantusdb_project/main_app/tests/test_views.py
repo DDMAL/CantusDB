@@ -4730,6 +4730,79 @@ class SourceListViewTest(TestCase):
         response = self.client.get(reverse("source-list"), {"general": search_term})
         self.assertIn(source, response.context["sources"])
 
+    def test_ordering(self) -> None:
+        """
+        Order is currently available by country, city + institution name (parameter:
+        "city_institution"), and siglum + shelfmark. Siglum + shelfmark is the default.
+        """
+        # Create a bunch of sources
+        sources = []
+        for _ in range(10):
+            sources.append(make_fake_source())
+        # Default ordering is by siglum and shelfmark, ascending
+        with self.subTest("Default ordering"):
+            response = self.client.get(reverse("source-list"))
+            response_sources = response.context["sources"]
+            expected_source_order = sorted(
+                sources,
+                key=lambda source: (
+                    source.holding_institution.siglum,
+                    source.shelfmark,
+                ),
+            )
+            self.assertEqual(
+                list(expected_source_order),
+                list(response_sources),
+            )
+            response_reverse = self.client.get(reverse("source-list"), {"sort": "desc"})
+            response_sources_reverse = response_reverse.context["sources"]
+            self.assertEqual(
+                list(reversed(expected_source_order)),
+                list(response_sources_reverse),
+            )
+        with self.subTest("Order by country, ascending"):
+            response = self.client.get(reverse("source-list"), {"order": "country"})
+            response_sources = response.context["sources"]
+            expected_source_order = sorted(
+                sources, key=lambda source: source.holding_institution.country
+            )
+            self.assertEqual(
+                list(expected_source_order),
+                list(response_sources),
+            )
+            response_reverse = self.client.get(
+                reverse("source-list"), {"order": "country", "sort": "desc"}
+            )
+            response_sources_reverse = response_reverse.context["sources"]
+            self.assertEqual(
+                list(reversed(expected_source_order)),
+                list(response_sources_reverse),
+            )
+        with self.subTest("Order by city and institution name, ascending"):
+            response = self.client.get(
+                reverse("source-list"), {"order": "city_institution"}
+            )
+            response_sources = response.context["sources"]
+            expected_source_order = sorted(
+                sources,
+                key=lambda source: (
+                    source.holding_institution.city,
+                    source.holding_institution.name,
+                ),
+            )
+            self.assertEqual(
+                list(expected_source_order),
+                list(response_sources),
+            )
+            response_reverse = self.client.get(
+                reverse("source-list"), {"order": "city_institution", "sort": "desc"}
+            )
+            response_sources_reverse = response_reverse.context["sources"]
+            self.assertEqual(
+                list(reversed(expected_source_order)),
+                list(response_sources_reverse),
+            )
+
 
 class SourceCreateViewTest(TestCase):
     @classmethod
