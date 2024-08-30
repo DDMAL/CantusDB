@@ -42,13 +42,13 @@ class Source(BaseModel):
     holding_institution = models.ForeignKey(
         "Institution",
         on_delete=models.PROTECT,
-        null=True,
-        blank=True,
+        null=False,
+        blank=False,
     )
     shelfmark = models.CharField(
         max_length=255,
-        blank=True,
-        null=True,
+        blank=False,
+        null=False,
     )
     provenance = models.ForeignKey(
         "Provenance",
