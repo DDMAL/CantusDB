@@ -66,7 +66,7 @@ class Institution(BaseModel):
         max_length=64,
         blank=True,
         null=True,
-        help_text="Former Cantus identifier. Should not be used for new records."
+        help_text="Former Cantus identifier. Should not be used for new records.",
     )
 
     def __str__(self) -> str:

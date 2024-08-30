@@ -4724,7 +4724,7 @@ class SourceCreateViewTest(TestCase):
             reverse("source-create"),
             {
                 "shelfmark": "test-shelfmark",  # shelfmark is a required field
-                "holding_institution": hinst.id, # holding institution is a required field
+                "holding_institution": hinst.id,  # holding institution is a required field
             },
         )
 
@@ -4777,7 +4777,7 @@ class SourceEditViewTest(TestCase):
             reverse("source-edit", args=[source.id]),
             {
                 "shelfmark": "test-shelfmark",  # shelfmark is a required field,
-                "holding_institution": hinst.id, # holding institution is a required field
+                "holding_institution": hinst.id,  # holding institution is a required field
             },
         )
 
