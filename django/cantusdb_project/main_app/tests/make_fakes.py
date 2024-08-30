@@ -451,21 +451,3 @@ def make_fake_source(
     source.other_editors.set([make_fake_user()])
 
     return source
-
-
-def get_random_search_term(target):
-    """Helper function for generating a random slice of a string.
-
-    Args:
-        target (str): The content of the field to search.
-
-    Returns:
-        str: A random slice of `target`
-    """
-    if len(target) <= 2:
-        search_term = target
-    else:
-        slice_start = random.randint(0, len(target) - 2)
-        slice_end = random.randint(slice_start + 2, len(target))
-        search_term = target[slice_start:slice_end]
-    return search_term
