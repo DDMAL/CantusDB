@@ -25,6 +25,7 @@ class SourceAdmin(BaseModelAdmin):
         "shelfmark",
         "holding_institution__siglum",
         "holding_institution__name",
+        "holding_institution__migrated_identifier",
         "id",
         "provenance_notes",
     )

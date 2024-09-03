@@ -251,14 +251,22 @@ def make_fake_feast() -> Feast:
     return feast
 
 
-def make_fake_genre(name=None) -> Genre:
+def make_fake_genre(
+    name: Optional[str] = None,
+    description: Optional[str] = None,
+    mass_office: Optional[str] = None,
+) -> Genre:
     """Generates a fake Genre object."""
     if name is None:
         name = faker.lexify("???")
+    if description is None:
+        description = faker.sentence()
+    if mass_office is None:
+        mass_office = random.choice(["Mass", "Office", "Mass, Office", "Old Hispanic"])
     genre = Genre.objects.create(
         name=name,
-        description=faker.sentence(),
-        mass_office=random.choice(["Mass", "Office", "Mass, Office", "Old Hispanic"]),
+        description=description,
+        mass_office=mass_office,
     )
     return genre
 
@@ -443,3 +451,21 @@ def make_fake_source(
     source.other_editors.set([make_fake_user()])
 
     return source
+
+
+def get_random_search_term(target):
+    """Helper function for generating a random slice of a string.
+
+    Args:
+        target (str): The content of the field to search.
+
+    Returns:
+        str: A random slice of `target`
+    """
+    if len(target) <= 2:
+        search_term = target
+    else:
+        slice_start = random.randint(0, len(target) - 2)
+        slice_end = random.randint(slice_start + 2, len(target))
+        search_term = target[slice_start:slice_end]
+    return search_term

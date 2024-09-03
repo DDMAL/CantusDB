@@ -47,10 +47,10 @@
     <form method="post" style="line-height: normal">{% csrf_token %}
         <div class="form-row">
             <div class="form-group m-1 col-lg-3">
-                <label for="{{ form.holding_institution.id_for_label }}">
-                    <small>Holding Institution:</small>
+                <label for="{{ form.holding_institution.id_for_label }}" class="form-control-sm">
+                    Holding Institution:<span class="text-danger" title="This field is required">*</span>
                 </label>
-                <br>{{ form.holding_institution }}
+                {{ form.holding_institution }}
                 <p class=text-muted>
                     <small>{{ form.holding_institution.help_text }}</small>
                 </p>
@@ -58,10 +58,10 @@
         </div>
         <div class="form-row">
             <div class="form-group m-1 col-lg-3">
-                <label for="{{ form.shelfmark.id_for_label }}">
-                    <small>Shelfmark:</small>
+                <label for="{{ form.shelfmark.id_for_label }}" class="form-control-sm">
+                    Shelfmark:<span class="text-danger" title="This field is required">*</span>
                 </label>
-                <br>{{ form.shelfmark }}
+                {{ form.shelfmark }}
                 <p class=text-muted>
                     <small>{{ form.shelfmark.help_text }}</small>
                 </p>
@@ -108,7 +108,7 @@
             <div class="form-group m-1 col-lg-7">
                 {{ form.date.label_tag }}
                 {{ form.date }}
-                <small>Date of the source (e.g. "1200s", "1300-1350", etc.)</small>
+                <small>{{ form.date.help_text }}</small>
             </div>
         </div>
 

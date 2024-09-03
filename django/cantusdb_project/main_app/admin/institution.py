@@ -32,9 +32,18 @@ class InstitutionAdmin(BaseModelAdmin):
         "get_city_region",
         "country",
         "is_private_collector",
+        "is_private_collection",
     )
-    search_fields = ("name", "siglum", "city", "region", "alternate_names")
-    list_filter = ("is_private_collector", "city")
+    search_fields = (
+        "name",
+        "siglum",
+        "city",
+        "region",
+        "alternate_names",
+        "migrated_identifier",
+    )
+    readonly_fields = ("migrated_identifier",)
+    list_filter = ("is_private_collector", "is_private_collection", "city")
     inlines = (InstitutionIdentifierInline, InstitutionSourceInline)
     fieldsets = [
         (
@@ -48,6 +57,8 @@ class InstitutionAdmin(BaseModelAdmin):
                     "alternate_names",
                     "former_sigla",
                     "private_notes",
+                    "is_private_collection",
+                    "migrated_identifier",
                 )
             },
         ),
