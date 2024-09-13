@@ -181,4 +181,8 @@ class Source(BaseModel):
 
         tt = self.shelfmark if self.shelfmark else self.title
         title.append(tt)
+
+        if not self.full_source:
+            title.append("(fragment)")
+
         return " ".join(title)
