@@ -28,6 +28,7 @@ class SourceAdmin(BaseModelAdmin):
         "holding_institution__migrated_identifier",
         "id",
         "provenance_notes",
+        "name",
     )
     readonly_fields = (
         ("title", "siglum")

@@ -50,6 +50,12 @@ class Source(BaseModel):
         blank=False,
         null=False,
     )
+    name = models.CharField(
+        max_length=255,
+        blank=True,
+        null=True,
+        help_text="A colloquial or commonly-used name for the source"
+    )
     provenance = models.ForeignKey(
         "Provenance",
         on_delete=models.PROTECT,

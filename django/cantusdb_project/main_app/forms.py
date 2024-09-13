@@ -720,22 +720,27 @@ class AdminSourceForm(forms.ModelForm):
         model = Source
         fields = "__all__"
 
-    title = forms.CharField(
-        required=True,
-        widget=TextInputWidget,
-        help_text="Full Source Identification (City, Archive, Shelf-mark)",
-    )
-    title.widget.attrs.update({"style": "width: 610px;"})
-
-    siglum = forms.CharField(
-        required=True,
-        widget=TextInputWidget,
-        help_text="RISM-style siglum + Shelf-mark (e.g. GB-Ob 202).",
-    )
+    # title = forms.CharField(
+    #     required=True,
+    #     widget=TextInputWidget,
+    #     help_text="Full Source Identification (City, Archive, Shelf-mark)",
+    # )
+    # title.widget.attrs.update({"style": "width: 610px;"})
+    #
+    # siglum = forms.CharField(
+    #     required=True,
+    #     widget=TextInputWidget,
+    #     help_text="RISM-style siglum + Shelf-mark (e.g. GB-Ob 202).",
+    # )
 
     shelfmark = forms.CharField(
         required=True,
         widget=TextInputWidget,
+    )
+
+    name = forms.CharField(
+        required=False,
+        widget=TextInputWidget
     )
 
     holding_institution = forms.ModelChoiceField(
