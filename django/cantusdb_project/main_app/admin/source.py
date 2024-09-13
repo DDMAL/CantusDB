@@ -38,6 +38,7 @@ class SourceAdmin(BaseModelAdmin):
         "id",
         "provenance_notes",
         "name",
+        "identifiers__identifier"
     )
     readonly_fields = (
         ("title", "siglum")
