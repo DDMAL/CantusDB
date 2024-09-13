@@ -177,7 +177,7 @@ class Source(BaseModel):
             if holdinst.siglum and holdinst.siglum != "XX-NN":
                 title.append(f"{holdinst.siglum}")
             elif holdinst.is_private_collector:
-                title.append("Private")
+                title.append("Cantus")
 
         tt = self.shelfmark if self.shelfmark else self.title
         title.append(tt)
