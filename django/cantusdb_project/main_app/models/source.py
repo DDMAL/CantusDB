@@ -50,6 +50,12 @@ class Source(BaseModel):
         blank=False,
         null=False,
     )
+    name = models.CharField(
+        max_length=255,
+        blank=True,
+        null=True,
+        help_text="A colloquial or commonly-used name for the source"
+    )
     provenance = models.ForeignKey(
         "Provenance",
         on_delete=models.PROTECT,
@@ -171,8 +177,12 @@ class Source(BaseModel):
             if holdinst.siglum and holdinst.siglum != "XX-NN":
                 title.append(f"{holdinst.siglum}")
             elif holdinst.is_private_collector:
-                title.append("Private")
+                title.append("Cantus")
 
         tt = self.shelfmark if self.shelfmark else self.title
         title.append(tt)
+
+        if not self.full_source:
+            title.append("(fragment)")
+
         return " ".join(title)
