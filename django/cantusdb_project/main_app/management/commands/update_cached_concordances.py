@@ -112,7 +112,10 @@ def make_chant_dict(chant: dict) -> dict:
         "incipit": chant["incipit"],
         "feast": chant["feast__name"],
         "genre": chant["genre__name"],
-        "service": chant["service__name"],
+        "office": chant[
+            "service__name"
+        ],  # We keep the office key for backwards compatibility
+        # with external applications (e.g. Cantus Index) using this export
         "position": chant["position"],
         "cantus_id": chant["cantus_id"],
         "image": chant["image_link"],

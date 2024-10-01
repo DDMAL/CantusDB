@@ -270,8 +270,7 @@ class JsonMelodyExportTest(TestCase):
             "mid",
             "nid",
             "cid",
-            "holding_institution",
-            "shelfmark",
+            "siglum",
             "srcnid",
             "folio",
             "incipit",
@@ -279,7 +278,7 @@ class JsonMelodyExportTest(TestCase):
             "volpiano",
             "mode",
             "feast",
-            "service",
+            "office",
             "genre",
             "position",
             "chantlink",
@@ -765,7 +764,7 @@ class JsonCidTest(TestCase):
                     "incipit": "some string"
                     "feast": "some string"
                     "genre": "some string"
-                    "service": "some string"
+                    "office": "some string"
                     "position": "some string"
                     "cantus_id": "some string"
                     "image": "some string"
@@ -811,7 +810,7 @@ class JsonCidTest(TestCase):
             "incipit",
             "feast",
             "genre",
-            "service",
+            "office",
             "position",
             "cantus_id",
             "image",
@@ -834,7 +833,7 @@ class JsonCidTest(TestCase):
             "incipit": chant.incipit,
             "feast": chant.feast.name,
             "genre": chant.genre.name,
-            "service": chant.service.name,
+            "office": chant.service.name,
             "position": chant.position,
             "mode": chant.mode,
             "image": chant.image_link,
