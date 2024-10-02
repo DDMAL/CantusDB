@@ -553,9 +553,9 @@ class MelodySearchView(TemplateView):
         context = super().get_context_data(**kwargs)
         # if searching in a specific source, pass the source into context
         if self.request.GET.get("source"):
-            context["source"] = Source.objects.get(
-                id=self.request.GET.get("source")
-            ).select_related("holding_institution", "feast", "service", "genre")
+            context["source"] = Source.objects.select_related(
+                "holding_institution"
+            ).get(id=self.request.GET.get("source"))
         return context
 
 
