@@ -71,6 +71,18 @@ class Source(BaseModel):
         null=True,
         help_text="More exact indication of the provenance (if necessary)",
     )
+
+    class SourceCompletenessChoices(models.IntegerChoices):
+        FULL_SOURCE = 1, "Full source"
+        FRAGMENT = 2, "Fragment/Fragmented"
+        RECONSTRUCTION = 3, "Reconstruction"
+
+    source_completeness = models.IntegerField(
+        choices=SourceCompletenessChoices.choices,
+        default=SourceCompletenessChoices.FULL_SOURCE,
+        verbose_name="Full Source/Fragment",
+    )
+
     full_source = models.BooleanField(blank=True, null=True)
     date = models.CharField(
         blank=True,
@@ -140,6 +152,16 @@ class Source(BaseModel):
         blank=False, null=False, default=False
     )
 
+    class ProductionMethodChoices(models.IntegerChoices):
+        MANUSCRIPT = 1, "Manuscript"
+        PRINTED = 2, "Printed"
+
+    production_method = models.IntegerField(
+        default=ProductionMethodChoices.MANUSCRIPT,
+        choices=ProductionMethodChoices.choices,
+        verbose_name="Manuscript/Printed",
+    )
+
     # number_of_chants and number_of_melodies are used for rendering the source-list page (perhaps among other places)
     # they are automatically recalculated in main_app.signals.update_source_chant_count and
     # main_app.signals.update_source_melody_count every time a chant or sequence is saved or deleted
@@ -182,7 +204,7 @@ class Source(BaseModel):
         tt = self.shelfmark if self.shelfmark else self.title
         title.append(tt)
 
-        if not self.full_source:
+        if self.source_completeness == self.SourceCompletenessChoices.FRAGMENT:
             title.append("(fragment)")
 
         return " ".join(title)

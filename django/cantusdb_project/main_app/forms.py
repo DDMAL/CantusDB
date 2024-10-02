@@ -212,6 +212,8 @@ class SourceCreateForm(forms.ModelForm):
             "fragmentarium_id",
             "dact_id",
             "indexing_notes",
+            "production_method",
+            "source_completeness",
         ]
         widgets = {
             # "title": TextInputWidget(),
@@ -246,6 +248,8 @@ class SourceCreateForm(forms.ModelForm):
             "other_editors": autocomplete.ModelSelect2Multiple(
                 url="all-users-autocomplete"
             ),
+            "production_method": SelectWidget(),
+            "source_completeness": SelectWidget(),
         }
         field_classes = {
             "segment_m2m": CheckboxNameModelMultipleChoiceField,
@@ -262,15 +266,6 @@ class SourceCreateForm(forms.ModelForm):
         widget=TextInputWidget,
     )
 
-    TRUE_FALSE_CHOICES_SOURCE = (
-        (True, "Full source"),
-        (False, "Fragment or Fragmented"),
-    )
-
-    full_source = forms.ChoiceField(choices=TRUE_FALSE_CHOICES_SOURCE, required=False)
-    full_source.widget.attrs.update(
-        {"class": "form-control custom-select custom-select-sm"}
-    )
     TRUE_FALSE_CHOICES_INVEN = ((True, "Complete"), (False, "Incomplete"))
 
     complete_inventory = forms.ChoiceField(
@@ -413,6 +408,8 @@ class SourceEditForm(forms.ModelForm):
             "full_text_entered_by",
             "proofreaders",
             "other_editors",
+            "production_method",
+            "source_completeness",
         ]
         widgets = {
             "segment_m2m": CheckboxSelectMultiple(),
@@ -446,6 +443,8 @@ class SourceEditForm(forms.ModelForm):
             "other_editors": autocomplete.ModelSelect2Multiple(
                 url="all-users-autocomplete"
             ),
+            "production_method": SelectWidget(),
+            "source_completeness": SelectWidget(),
         }
         field_classes = {
             "segment_m2m": CheckboxNameModelMultipleChoiceField,
@@ -462,15 +461,6 @@ class SourceEditForm(forms.ModelForm):
         widget=autocomplete.ModelSelect2(url="holding-autocomplete"),
     )
 
-    CHOICES_FULL_SOURCE = (
-        (None, "None"),
-        (True, "Full source"),
-        (False, "Fragment or Fragmented"),
-    )
-    full_source = forms.ChoiceField(choices=CHOICES_FULL_SOURCE, required=False)
-    full_source.widget.attrs.update(
-        {"class": "form-control custom-select custom-select-sm"}
-    )
 
     CHOICES_CURSUS = (
         (None, "None"),

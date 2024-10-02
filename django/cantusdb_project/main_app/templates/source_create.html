@@ -89,18 +89,19 @@
                     </div>
 
                     <div class="form-group m-1 col-lg-3">
-                        <label for="{{ form.full_source.id_for_label }}">
-                            <small>Full source / fragment:</small>
-                        </label>
-                        {{ form.full_source }}
-                        <p class=text-muted><small>{{ form.full_source.help_text }}</small></p>
+                        <span class="small">{{ form.source_completeness.label_tag }}</span>
+                        {{ form.source_completeness }}
                     </div>
                 </div>
 
                 <div class="form-row">
-                    <div class="form-group m-1 col-lg-3">
+                    <div class="form-group m-1 col-lg-5">
                         <small>{{ form.century.label_tag }}</small>
                         {{ form.century }}
+                    </div>
+                    <div class="form-group m-1 col-lg-3">
+                        <span class="small">{{ form.production_method.label_tag }}</span>
+                        {{ form.production_method }}
                     </div>
                 </div>
 
