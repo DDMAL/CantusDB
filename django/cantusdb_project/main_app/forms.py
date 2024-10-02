@@ -71,6 +71,15 @@ class CheckboxNameModelMultipleChoiceField(forms.ModelMultipleChoiceField):
     widget = CheckboxSelectMultiple()
 
 
+class StyledChoiceField(forms.ChoiceField):
+    """
+    A custom ChoiceField that uses the custom SelectWidget defined in widgets.py
+    as its widget (for styling).
+    """
+
+    widget = SelectWidget()
+
+
 class ChantCreateForm(forms.ModelForm):
     class Meta:
         model = Chant
@@ -268,11 +277,8 @@ class SourceCreateForm(forms.ModelForm):
 
     TRUE_FALSE_CHOICES_INVEN = ((True, "Complete"), (False, "Incomplete"))
 
-    complete_inventory = forms.ChoiceField(
+    complete_inventory = StyledChoiceField(
         choices=TRUE_FALSE_CHOICES_INVEN, required=False
-    )
-    complete_inventory.widget.attrs.update(
-        {"class": "form-control custom-select custom-select-sm"}
     )
 
 
@@ -416,6 +422,7 @@ class SourceEditForm(forms.ModelForm):
             "provenance": autocomplete.ModelSelect2(url="provenance-autocomplete"),
             "provenance_notes": TextInputWidget(),
             "date": TextInputWidget(),
+            "cursus": SelectWidget(),
             "summary": TextAreaWidget(),
             "liturgical_occasions": TextAreaWidget(),
             "description": TextAreaWidget(),
@@ -461,23 +468,11 @@ class SourceEditForm(forms.ModelForm):
         widget=autocomplete.ModelSelect2(url="holding-autocomplete"),
     )
 
-
-    CHOICES_CURSUS = (
-        (None, "None"),
-        ("Monastic", "Monastic"),
-        ("Secular", "Secular"),
-    )
-    cursus = forms.ChoiceField(choices=CHOICES_CURSUS, required=False)
-    cursus.widget.attrs.update({"class": "form-control custom-select custom-select-sm"})
-
     CHOICES_COMPLETE_INV = (
         (True, "complete inventory"),
         (False, "partial inventory"),
     )
-    complete_inventory = forms.ChoiceField(choices=CHOICES_COMPLETE_INV, required=False)
-    complete_inventory.widget.attrs.update(
-        {"class": "form-control custom-select custom-select-sm"}
-    )
+    complete_inventory = StyledChoiceField(choices=CHOICES_COMPLETE_INV, required=False)
 
 
 class SequenceEditForm(forms.ModelForm):
