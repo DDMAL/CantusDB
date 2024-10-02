@@ -46,12 +46,9 @@
                 <div class="form-row">
                     <div class="form-group m-1 col-lg-3">
                         <label for="{{ form.holding_institution.id_for_label }}" class="form-control-sm">
-                            Holding Institution:<span class="text-danger" title="This field is required">*</span>
+                            Holding Institution:
                         </label>
                         {{ form.holding_institution }}
-                        <p class=text-muted>
-                            <small>{{ form.holding_institution.help_text }}</small>
-                        </p>
                     </div>
                 </div>
                 <div class="form-row">
@@ -60,8 +57,10 @@
                             Shelfmark:<span class="text-danger" title="This field is required">*</span>
                         </label>
                         {{ form.shelfmark }}
-                        <p class=text-muted>
-                            <small>{{ form.shelfmark.help_text }}</small>
+                        <p class="text-muted small">
+                            {{ form.shelfmark.help_text|safe }}
+                        </p>
+                    </div>
                     <div class="form-group m-1 col-lg-3">
                         <label for="{{ form.name.id_for_label }}" class="form-control-sm">
                             Name:

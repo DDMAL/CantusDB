@@ -228,6 +228,7 @@ class SourceCreateForm(forms.ModelForm):
         widgets = {
             # "title": TextInputWidget(),
             # "siglum": TextInputWidget(),
+            "shelfmark": TextInputWidget(),
             "provenance": autocomplete.ModelSelect2(url="provenance-autocomplete"),
             "name": TextInputWidget(),
             "provenance_notes": TextInputWidget(),
@@ -268,13 +269,8 @@ class SourceCreateForm(forms.ModelForm):
 
     holding_institution = forms.ModelChoiceField(
         queryset=Institution.objects.all(),
-        required=True,
         widget=autocomplete.ModelSelect2(url="holding-autocomplete"),
-    )
-
-    shelfmark = forms.CharField(
-        required=True,
-        widget=TextInputWidget,
+        required=False,
     )
 
     TRUE_FALSE_CHOICES_INVEN = ((True, "Complete"), (False, "Incomplete"))
@@ -421,6 +417,7 @@ class SourceEditForm(forms.ModelForm):
             "source_completeness",
         ]
         widgets = {
+            "shelfmark": TextInputWidget(),
             "segment_m2m": CheckboxSelectMultiple(),
             "name": TextInputWidget(),
             "provenance": autocomplete.ModelSelect2(url="provenance-autocomplete"),
@@ -461,15 +458,10 @@ class SourceEditForm(forms.ModelForm):
             "segment_m2m": CheckboxNameModelMultipleChoiceField,
         }
 
-    shelfmark = forms.CharField(
-        required=True,
-        widget=TextInputWidget,
-    )
-
     holding_institution = forms.ModelChoiceField(
         queryset=Institution.objects.all(),
-        required=True,
         widget=autocomplete.ModelSelect2(url="holding-autocomplete"),
+        required=False,
     )
 
     CHOICES_COMPLETE_INV = (
@@ -722,14 +714,9 @@ class AdminSourceForm(forms.ModelForm):
     #     help_text="RISM-style siglum + Shelf-mark (e.g. GB-Ob 202).",
     # )
 
-    shelfmark = forms.CharField(
-        required=True,
-        widget=TextInputWidget,
-    )
-
     holding_institution = forms.ModelChoiceField(
-        queryset=Institution.objects.all().order_by("name"),
-        required=True,
+        queryset=Institution.objects.all().order_by("siglum"),
+        required=False,
     )
 
     provenance = forms.ModelChoiceField(

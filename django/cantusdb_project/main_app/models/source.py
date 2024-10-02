@@ -42,13 +42,18 @@ class Source(BaseModel):
     holding_institution = models.ForeignKey(
         "Institution",
         on_delete=models.PROTECT,
-        null=False,
-        blank=False,
+        null=True,
+        blank=True,
     )
     shelfmark = models.CharField(
         max_length=255,
         blank=False,
         null=False,
+        help_text=(
+            "Primary Cantus Database identifier for the source "
+            "(e.g. library shelfmark, DACT ID, etc.)"
+        ),
+        default="[No Shelfmark]",
     )
     name = models.CharField(
         max_length=255,
@@ -186,9 +191,10 @@ class Source(BaseModel):
             title.append(city)
             title.append(f"{holdinst.name},")
 
-        tt = self.shelfmark if self.shelfmark else self.title
+        title.append(self.shelfmark)
 
-        title.append(tt)
+        if self.name:
+            title.append(f"({self.name})")
 
         return " ".join(title)
 
@@ -198,8 +204,8 @@ class Source(BaseModel):
         if holdinst := self.holding_institution:
             if holdinst.siglum and holdinst.siglum != "XX-NN":
                 title.append(f"{holdinst.siglum}")
-            elif holdinst.is_private_collector:
-                title.append("Cantus")
+        else:
+            title.append("Cantus")
 
         tt = self.shelfmark if self.shelfmark else self.title
         title.append(tt)

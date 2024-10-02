@@ -103,9 +103,16 @@
                             <b>{{ source.holding_institution.country }}</b>
                         </td>
                         <td class="text-wrap" style="text-align:center">
-                            <a href="{% url 'source-detail' source.id %}">
-                                <b>{{ source.holding_institution.city }}, {{ source.holding_institution.name }}</b>
-                            </a>
+                            {% if source.holding_institution %}
+                                <a href="{% url 'institution-detail' source.holding_institution.id %}">
+                                    <b>
+                                        {% if source.holding_institution.city %}
+                                            {{ source.holding_institution.city }},
+                                        {% endif %}
+                                        {{ source.holding_institution.name }}
+                                    </b>
+                                </a>
+                            {% endif %}
                         </td>
                         <td class="text-wrap" style="text-align:center">
                             <a href="{% url 'source-detail' source.id %}">

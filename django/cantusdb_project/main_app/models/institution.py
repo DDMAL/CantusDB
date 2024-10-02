@@ -28,7 +28,7 @@ class Institution(BaseModel):
             ),
         ]
 
-    name = models.CharField(max_length=255, default="s.n.")
+    name = models.CharField(max_length=255, default="[No Name]")
     siglum = models.CharField(
         verbose_name="RISM Siglum",
         max_length=32,
@@ -50,7 +50,7 @@ class Institution(BaseModel):
     region = models.CharField(
         max_length=64, blank=True, null=True, help_text=region_help_text
     )
-    country = models.CharField(max_length=64, default="s.l.")
+    country = models.CharField(max_length=64, default="[No Country]")
     alternate_names = models.TextField(
         blank=True, null=True, help_text="Enter alternate names on separate lines."
     )

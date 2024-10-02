@@ -54,17 +54,14 @@ class SourceCreateViewTest(TestCase):
         self.assertTemplateUsed(response, "source_create.html")
 
     def test_create_source(self):
-        hinst = make_fake_institution(siglum="FA-Ke")
         response = self.client.post(
             reverse("source-create"),
             {
                 "shelfmark": "test-shelfmark",  # shelfmark is a required field
-                "holding_institution": hinst.id,  # holding institution is a required field
                 "source_completeness": "1",  # required field
                 "production_method": "1",  # required field
             },
         )
-
         self.assertEqual(response.status_code, 302)
         created_source = Source.objects.get(shelfmark="test-shelfmark")
         self.assertRedirects(
@@ -108,13 +105,11 @@ class SourceEditViewTest(TestCase):
 
     def test_edit_source(self):
         source = make_fake_source()
-        hinst = make_fake_institution(siglum="FA-Ke")
 
         response = self.client.post(
             reverse("source-edit", args=[source.id]),
             {
                 "shelfmark": "test-shelfmark",  # shelfmark is a required field,
-                "holding_institution": hinst.id,  # holding institution is a required field
                 "source_completeness": "1",  # required field
                 "production_method": "1",  # required field
             },
@@ -985,10 +980,14 @@ class SourceListViewTest(TestCase):
         Order is currently available by country, city + institution name (parameter:
         "city_institution"), and siglum + shelfmark. Siglum + shelfmark is the default.
         """
-        # Create a bunch of sources
         sources = []
+        # Add a source from a private collector
+        private_collector = make_fake_institution(is_private_collector=True)
+        sources.append(make_fake_source(holding_institution=private_collector))
+        # Create a bunch of other sources
         for _ in range(10):
-            sources.append(make_fake_source())
+            inst = make_fake_institution(siglum=faker.word())
+            sources.append(make_fake_source(holding_institution=inst))
         # Default ordering is by siglum and shelfmark, ascending
         with self.subTest("Default ordering"):
             response = self.client.get(reverse("source-list"))
@@ -996,7 +995,13 @@ class SourceListViewTest(TestCase):
             expected_source_order = sorted(
                 sources,
                 key=lambda source: (
-                    source.holding_institution.siglum,
+                    0 if source.holding_institution else 1,
+                    1 if source.holding_institution.is_private_collector else 0,
+                    (
+                        source.holding_institution.siglum
+                        if source.holding_institution.siglum
+                        else ""
+                    ),
                     source.shelfmark,
                 ),
             )

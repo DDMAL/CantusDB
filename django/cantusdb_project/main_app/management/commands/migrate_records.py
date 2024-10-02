@@ -163,7 +163,7 @@ class Command(BaseCommand):
                     )
                 )
                 institution = print_inst
-            elif siglum in created_institutions:
+            elif siglum in created_institutions and source.id not in bad_siglum:
                 print(
                     self.style.SUCCESS(
                         f"Re-using the pre-created institution for {siglum}"
@@ -185,7 +185,7 @@ class Command(BaseCommand):
                     institution.alternate_names = "\n".join(list(deduped_names))
 
                     institution.save()
-            elif siglum not in created_institutions:
+            elif siglum not in created_institutions and source.id not in bad_siglum:
                 print(self.style.SUCCESS(f"Creating institution record for {siglum}"))
 
                 iobj = {
@@ -229,6 +229,8 @@ class Command(BaseCommand):
                 created_institutions[siglum] = institution
 
             else:
+                source.shelfmark = shelfmark.strip()
+                source.save()
                 print(
                     self.style.ERROR(
                         f"Could not determine the holding institution for {source}"
