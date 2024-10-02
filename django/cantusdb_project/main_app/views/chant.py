@@ -367,6 +367,9 @@ class ChantSearchView(ListView):
         if search_position:
             search_parameters.append(f"position={search_position}")
         search_melodies: Optional[str] = self.request.GET.get("melodies")
+        # This was added to context so that we could implement #1635 and can be
+        # removed once that is undone.
+        context["melodies"] = search_melodies
         if search_melodies:
             search_parameters.append(f"melodies={search_melodies}")
         search_bar: Optional[str] = self.request.GET.get("search_bar")
@@ -652,6 +655,12 @@ class ChantSearchMSView(ListView):
     def get_queryset(self) -> QuerySet:
         # If the "apply" button hasn't been clicked, return empty queryset
         if not self.request.GET:
+            return Chant.objects.none()
+        # See #1635 re the following source exclusion. Temporarily disable volpiano display for this source.
+        if (
+            self.request.GET.get("melodies") == "true"
+            and self.kwargs["source_pk"] == 680970
+        ):
             return Chant.objects.none()
 
         # Create a Q object to filter the QuerySet of Chants

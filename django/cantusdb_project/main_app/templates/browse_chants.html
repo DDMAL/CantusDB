@@ -88,7 +88,8 @@
                         <td class="text-wrap">
                             <a href="{% url 'chant-detail' chant.id %}"><b>{{ chant.incipit|default:"" }}</b></a>
                             <p>{{ chant.manuscript_full_text_std_spelling|default:"" }}<br>
-                            {% if chant.volpiano %}
+                            <!-- See #1635. Temporarily disable volpiano display for this source. -->
+                            {% if chant.volpiano and chant.source.id != 680970 %}
                                 <span style="font-family: volpiano; font-size:25px">{{ chant.volpiano|default:"" }}</span>
                             {% endif %}
                             </p>
