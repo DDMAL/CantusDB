@@ -200,6 +200,7 @@ class SourceCreateForm(forms.ModelForm):
             # "siglum",
             "holding_institution",
             "shelfmark",
+            "name",
             "segment_m2m",
             "provenance",
             "provenance_notes",
@@ -228,6 +229,7 @@ class SourceCreateForm(forms.ModelForm):
             # "title": TextInputWidget(),
             # "siglum": TextInputWidget(),
             "provenance": autocomplete.ModelSelect2(url="provenance-autocomplete"),
+            "name": TextInputWidget(),
             "provenance_notes": TextInputWidget(),
             "date": TextInputWidget(),
             "cursus": SelectWidget(),
@@ -392,6 +394,7 @@ class SourceEditForm(forms.ModelForm):
             # "siglum",
             "holding_institution",
             "shelfmark",
+            "name",
             "segment_m2m",
             "provenance",
             "provenance_notes",
@@ -419,6 +422,7 @@ class SourceEditForm(forms.ModelForm):
         ]
         widgets = {
             "segment_m2m": CheckboxSelectMultiple(),
+            "name": TextInputWidget(),
             "provenance": autocomplete.ModelSelect2(url="provenance-autocomplete"),
             "provenance_notes": TextInputWidget(),
             "date": TextInputWidget(),
@@ -721,11 +725,6 @@ class AdminSourceForm(forms.ModelForm):
     shelfmark = forms.CharField(
         required=True,
         widget=TextInputWidget,
-    )
-
-    name = forms.CharField(
-        required=False,
-        widget=TextInputWidget
     )
 
     holding_institution = forms.ModelChoiceField(

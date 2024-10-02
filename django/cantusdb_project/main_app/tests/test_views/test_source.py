@@ -60,6 +60,8 @@ class SourceCreateViewTest(TestCase):
             {
                 "shelfmark": "test-shelfmark",  # shelfmark is a required field
                 "holding_institution": hinst.id,  # holding institution is a required field
+                "source_completeness": "1",  # required field
+                "production_method": "1",  # required field
             },
         )
 
@@ -113,6 +115,8 @@ class SourceEditViewTest(TestCase):
             {
                 "shelfmark": "test-shelfmark",  # shelfmark is a required field,
                 "holding_institution": hinst.id,  # holding institution is a required field
+                "source_completeness": "1",  # required field
+                "production_method": "1",  # required field
             },
         )
 

@@ -34,9 +34,9 @@
 {% endif %}
 
 <dl>
+    <dt>Cantus Siglum</dt>
+    <dd>{{ source.short_heading }}{% if source.name %} <i>"{{ source.name }}"</i>{% endif %}</dd>
     {% if source.holding_institution %}
-        <dt>Cantus Siglum</dt>
-        <dd>{{ source.short_heading }}</dd>
         <dt>Holding Institution</dt>
         <dd>
             <a href="{% url "institution-detail" source.holding_institution_id %}">{{ source.holding_institution }}</a>

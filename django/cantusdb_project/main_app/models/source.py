@@ -54,7 +54,7 @@ class Source(BaseModel):
         max_length=255,
         blank=True,
         null=True,
-        help_text="A colloquial or commonly-used name for the source"
+        help_text="A colloquial or commonly-used name for the source",
     )
     provenance = models.ForeignKey(
         "Provenance",
