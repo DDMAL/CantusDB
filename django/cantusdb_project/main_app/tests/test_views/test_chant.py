@@ -4,6 +4,7 @@ Test views in views/chant.py
 
 from unittest.mock import patch
 import random
+from typing import ClassVar
 
 from django.test import TestCase, Client
 from django.urls import reverse
@@ -2699,37 +2700,62 @@ class ChantSearchMSViewTest(TestCase):
         self.assertIn(f'<a href="{image_link}" target="_blank">Image</a>', html)
 
 
+@patch("requests.get", mock_requests_get)
 class ChantCreateViewTest(TestCase):
+    source: ClassVar[Source]
+
     @classmethod
     def setUpTestData(cls):
-        Group.objects.create(name="project manager")
+        # Create project manager and contributor users
+        prod_manager_group = Group.objects.create(name="project manager")
+        contributor_group = Group.objects.create(name="contributor")
+        user_model = get_user_model()
+        pm_usr = user_model.objects.create_user(email="pm@test.com", password="pass")
+        pm_usr.groups.set([prod_manager_group])
+        pm_usr.save()
+        contributor_usr = user_model.objects.create_user(
+            email="contrib@test.com", password="pass"
+        )
+        contributor_usr.groups.set([contributor_group])
+        contributor_usr.save()
+        # Create a fake source that the contributor user can edit
+        cls.source = make_fake_source()
+        cls.source.current_editors.add(contributor_usr)
+        cls.source.save()
 
     def setUp(self):
-        self.user = get_user_model().objects.create(email="test@test.com")
-        self.user.set_password("pass")
-        self.user.save()
-        self.client = Client()
-        project_manager = Group.objects.get(name="project manager")
-        project_manager.user_set.add(self.user)
-        self.client.login(email="test@test.com", password="pass")
+        # Log in as a contributor before each test
+        self.client.login(email="contrib@test.com", password="pass")
 
-    def test_url_and_templates(self):
-        source = make_fake_source()
+    def test_permissions(self) -> None:
+        # The client starts logged in as a contributor
+        # with access to the source. Test that the client
+        # can access the ChantCreate view.
+        with self.subTest("Contributor can access ChantCreate view"):
+            response = self.client.get(reverse("chant-create", args=[self.source.id]))
+            self.assertEqual(response.status_code, 200)
+        with self.subTest("Project manager can access ChantCreate view"):
+            # Log in as a project manager
+            self.client.logout()
+            self.client.login(email="pm@test.com", password="pass")
+            response = self.client.get(reverse("chant-create", args=[self.source.id]))
+            self.assertEqual(response.status_code, 200)
+        with self.subTest("Unauthenticated user cannot access ChantCreate view"):
+            # Log out
+            self.client.logout()
+            response = self.client.get(reverse("chant-create", args=[self.source.id]))
+            self.assertEqual(response.status_code, 302)
 
-        with patch("requests.get", mock_requests_get):
-            response_1 = self.client.get(reverse("chant-create", args=[source.id]))
-            response_2 = self.client.get(
-                reverse("chant-create", args=[source.id + 100])
-            )
+    def test_url_and_templates(self) -> None:
+        source = self.source
+        response_1 = self.client.get(reverse("chant-create", args=[source.id]))
 
         self.assertEqual(response_1.status_code, 200)
         self.assertTemplateUsed(response_1, "chant_create.html")
+        self.assertTemplateUsed(response_1, "base.html")
 
-        self.assertEqual(response_2.status_code, 404)
-        self.assertTemplateUsed(response_2, "404.html")
-
-    def test_create_chant(self):
-        source = make_fake_source()
+    def test_create_chant(self) -> None:
+        source = self.source
         response = self.client.post(
             reverse("chant-create", args=[source.id]),
             {
@@ -2740,40 +2766,37 @@ class ChantCreateViewTest(TestCase):
         )
         self.assertEqual(response.status_code, 302)
         self.assertRedirects(response, reverse("chant-create", args=[source.id]))
-        chant = Chant.objects.first()
+        chant = Chant.objects.get(source=source)
         self.assertEqual(chant.manuscript_full_text_std_spelling, "initial")
 
-    def test_view_url_path(self):
-        source = make_fake_source()
-        with patch("requests.get", mock_requests_get):
-            response = self.client.get(f"/chant-create/{source.id}")
+    def test_view_url_path(self) -> None:
+        source = self.source
+        response = self.client.get(f"/chant-create/{source.id}")
         self.assertEqual(response.status_code, 200)
 
-    def test_context(self):
-        """some context variable passed to templates"""
-        source = make_fake_source()
+    def test_context(self) -> None:
+        """Test that correct source is in context"""
+        source = self.source
         url = reverse("chant-create", args=[source.id])
-        with patch("requests.get", mock_requests_get):
-            response = self.client.get(url)
-        self.assertEqual(response.context["source"].title, source.title)
+        response = self.client.get(url)
+        self.assertEqual(response.context["source"].id, source.id)
 
-    def test_post_error(self):
+    def test_empty_fulltext(self) -> None:
         """post with correct source and empty full-text"""
-        source = make_fake_source()
+        source = self.source
         url = reverse("chant-create", args=[source.id])
         response = self.client.post(url, data={"manuscript_full_text_std_spelling": ""})
         self.assertFormError(
-            response,
-            "form",
+            response.context["form"],
             "manuscript_full_text_std_spelling",
             "This field is required.",
         )
 
-    def test_nonexistent_source(self):
+    def test_nonexistent_source(self) -> None:
         """
         users should not be able to access Chant Create page for a source that doesn't exist
         """
-        nonexistent_source_id: str = faker.numerify(
+        nonexistent_source_id = faker.numerify(
             "#####"
         )  # there's not supposed to be 5-digits source id
         with patch("requests.get", mock_requests_get):
@@ -2782,16 +2805,16 @@ class ChantCreateViewTest(TestCase):
             )
         self.assertEqual(response.status_code, 404)
 
-    def test_repeated_seq(self):
+    def test_repeated_seq(self) -> None:
         """post with a folio and seq that already exists in the source"""
-        TEST_FOLIO = "001r"
+        test_folio = "001r"
         # create some chants in the test source
-        source = make_fake_source()
+        source = self.source
         for i in range(1, 5):
             Chant.objects.create(
                 source=source,
                 manuscript_full_text=faker.text(10),
-                folio=TEST_FOLIO,
+                folio=test_folio,
                 c_sequence=i,
             )
         # post a chant with the same folio and seq
@@ -2801,36 +2824,19 @@ class ChantCreateViewTest(TestCase):
             url,
             data={
                 "manuscript_full_text_std_spelling": fake_text,
-                "folio": TEST_FOLIO,
+                "folio": test_folio,
                 "c_sequence": random.randint(1, 4),
             },
             follow=True,
         )
         self.assertFormError(
-            response,
-            "form",
+            response.context["form"],
             None,
             errors="Chant with the same sequence and folio already exists in this source.",
         )
 
-    def test_view_url_reverse_name(self):
-        fake_sources = [make_fake_source() for _ in range(10)]
-        for source in fake_sources:
-            with patch("requests.get", mock_requests_get):
-                response = self.client.get(reverse("chant-create", args=[source.id]))
-            self.assertEqual(response.status_code, 200)
-
-    def test_template_used(self):
-        fake_sources = [make_fake_source() for _ in range(10)]
-        for source in fake_sources:
-            with patch("requests.get", mock_requests_get):
-                response = self.client.get(reverse("chant-create", args=[source.id]))
-            self.assertEqual(response.status_code, 200)
-            self.assertTemplateUsed(response, "base.html")
-            self.assertTemplateUsed(response, "chant_create.html")
-
-    def test_volpiano_signal(self):
-        source = make_fake_source()
+    def test_volpiano_signal(self) -> None:
+        source = self.source
         self.client.post(
             reverse("chant-create", args=[source.id]),
             {
@@ -2844,10 +2850,9 @@ class ChantCreateViewTest(TestCase):
                 # clefs, accidentals, etc., to be deleted
             },
         )
-        with patch("requests.get", mock_requests_get):
-            chant_1 = Chant.objects.get(
-                manuscript_full_text_std_spelling="ut queant lactose"
-            )
+        chant_1 = Chant.objects.get(
+            manuscript_full_text_std_spelling="ut queant lactose"
+        )
         self.assertEqual(chant_1.volpiano, "9abcdefg)A-B1C2D3E4F5G67?. yiz")
         self.assertEqual(chant_1.volpiano_notes, "9abcdefg9abcdefg")
         self.client.post(
@@ -2859,16 +2864,13 @@ class ChantCreateViewTest(TestCase):
                 "volpiano": "abacadaeafagahaja",
             },
         )
-        with patch("requests.get", mock_requests_get):
-            chant_2 = Chant.objects.get(
-                manuscript_full_text_std_spelling="resonare foobaz"
-            )
+        chant_2 = Chant.objects.get(manuscript_full_text_std_spelling="resonare foobaz")
         self.assertEqual(chant_2.volpiano, "abacadaeafagahaja")
         self.assertEqual(chant_2.volpiano_intervals, "1-12-23-34-45-56-67-78-8")
 
-    def test_initial_values(self):
+    def test_initial_values(self) -> None:
         # create a chant with a known folio, feast, service, c_sequence and image_link
-        source: Source = make_fake_source()
+        source: Source = self.source
         folio: str = "001r"
         sequence: int = 1
         feast: Feast = make_fake_feast()
@@ -2885,12 +2887,11 @@ class ChantCreateViewTest(TestCase):
                 "image_link": image_link,
             },
         )
-        with patch("requests.get", mock_requests_get):
-            # when we request the Chant Create page, the same folio, feast, service and image_link should
-            # be preselected, and c_sequence should be incremented by 1.
-            response = self.client.get(
-                reverse("chant-create", args=[source.id]),
-            )
+        # when we request the Chant Create page, the same folio, feast, service and image_link should
+        # be preselected, and c_sequence should be incremented by 1.
+        response = self.client.get(
+            reverse("chant-create", args=[source.id]),
+        )
 
         observed_initial_folio: int = response.context["form"].initial["folio"]
         with self.subTest(subtest="test initial value of folio field"):
@@ -2912,12 +2913,11 @@ class ChantCreateViewTest(TestCase):
         with self.subTest(subtest="test initial value of image_link field"):
             self.assertEqual(observed_initial_image, image_link)
 
-    def test_suggested_chant_buttons(self):
-        source: Source = make_fake_source()
-        with patch("requests.get", mock_requests_get):
-            response_empty_source = self.client.get(
-                reverse("chant-create", args=[source.id]),
-            )
+    def test_suggested_chant_buttons(self) -> None:
+        source: Source = self.source
+        response_empty_source = self.client.get(
+            reverse("chant-create", args=[source.id]),
+        )
         with self.subTest(
             test="Ensure no suggestions displayed when there is no previous chant"
         ):
@@ -2925,11 +2925,11 @@ class ChantCreateViewTest(TestCase):
                 response_empty_source, "Suggestions based on previous chant:"
             )
 
-        previous_chant: Chant = make_fake_chant(cantus_id="001010", source=source)
-        with patch("requests.get", mock_requests_get):
-            response_after_previous_chant = self.client.get(
-                reverse("chant-create", args=[source.id]),
-            )
+        # Make a chant to serve as the previous chant
+        make_fake_chant(cantus_id="001010", source=source)
+        response_after_previous_chant = self.client.get(
+            reverse("chant-create", args=[source.id]),
+        )
         suggested_chants = response_after_previous_chant.context["suggested_chants"]
         with self.subTest(
             test="Ensure suggested chant suggestions present when previous chant exists"
@@ -2940,11 +2940,11 @@ class ChantCreateViewTest(TestCase):
             self.assertIsNotNone(suggested_chants)
             self.assertEqual(len(suggested_chants), 5)
 
-        rare_chant: Chant = make_fake_chant(cantus_id="a07763", source=source)
-        with patch("requests.get", mock_requests_get):
-            response_after_rare_chant = self.client.get(
-                reverse("chant-create", args=[source.id]),
-            )
+        # Make a chant with a rare cantus_id to serve as the previous chant
+        make_fake_chant(cantus_id="a07763", source=source)
+        response_after_rare_chant = self.client.get(
+            reverse("chant-create", args=[source.id]),
+        )
         with self.subTest(
             test="When previous chant has no suggested chants, ensure no suggestions are displayed"
         ):
