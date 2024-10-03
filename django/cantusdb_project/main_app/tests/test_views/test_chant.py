@@ -113,12 +113,11 @@ class ChantDetailViewTest(TestCase):
         )
 
         # have to create project manager user - "View | Edit" toggle only visible for those with edit access for a chant's source
-        self.user = get_user_model().objects.create(email="test@test.com")
-        self.user.set_password("pass")
-        self.user.save()
-        self.client = Client()
+        pm_user = get_user_model().objects.create(email="test@test.com")
+        pm_user.set_password("pass")
+        pm_user.save()
         project_manager = Group.objects.get(name="project manager")
-        project_manager.user_set.add(self.user)
+        project_manager.user_set.add(pm_user)
         self.client.login(email="test@test.com", password="pass")
 
         response = self.client.get(reverse("chant-detail", args=[chant.id]))
@@ -502,7 +501,8 @@ class ChantSearchViewTest(TestCase):
             source=source,
             volpiano=make_fake_volpiano(),
         )
-        chant_without_melody = Chant.objects.create(source=source)
+        # Create a chant without a melody
+        Chant.objects.create(source=source)
         response = self.client.get(reverse("chant-search"), {"melodies": "true"})
         # only chants with melodies should be in the result
         self.assertEqual(len(response.context["chants"]), 1)
@@ -554,9 +554,11 @@ class ChantSearchViewTest(TestCase):
             manuscript_full_text="Full text contains, but does not start with 'the'",
             cantus_id="123456",
         )
-        chant_starting_with_a_number = make_fake_chant(
+        # Create a chant starting with a number that won't be found by either
+        # search term
+        make_fake_chant(
             manuscript_full_text=(
-                "1 is a number. " "How unusual, to find an arabic numeral in a chant!"
+                "1 is a number. How unusual, to find an arabic numeral in a chant!"
             ),
             cantus_id="234567",
         )
@@ -1371,7 +1373,7 @@ class ChantSearchViewTest(TestCase):
         # additional properties for which there are search fields
         feast = make_fake_feast()
         position = make_random_string(1)
-        chant = make_fake_chant(
+        make_fake_chant(
             manuscript_full_text_std_spelling=fulltext,
             service=service,
             genre=genre,
@@ -1528,7 +1530,7 @@ class ChantSearchViewTest(TestCase):
         url = feast.get_absolute_url()
         fulltext = "manuscript full text"
         search_term = "full"
-        chant = make_fake_chant(
+        make_fake_chant(
             source=source,
             manuscript_full_text_std_spelling=fulltext,
             feast=feast,
@@ -1552,7 +1554,7 @@ class ChantSearchViewTest(TestCase):
         url = service.get_absolute_url()
         fulltext = "manuscript full text"
         search_term = "full"
-        chant = make_fake_chant(
+        make_fake_chant(
             source=source,
             manuscript_full_text_std_spelling=fulltext,
             service=service,
@@ -1576,7 +1578,7 @@ class ChantSearchViewTest(TestCase):
         url = genre.get_absolute_url()
         fulltext = "manuscript full text"
         search_term = "full"
-        chant = make_fake_chant(
+        make_fake_chant(
             source=source,
             manuscript_full_text_std_spelling=fulltext,
             genre=genre,
@@ -1819,7 +1821,8 @@ class ChantSearchMSViewTest(TestCase):
             source=source,
             volpiano=make_fake_volpiano,
         )
-        chant_without_melody = Chant.objects.create(source=source)
+        # Create a chant without melody that won't be in the result
+        Chant.objects.create(source=source)
         response = self.client.get(
             reverse("chant-search-ms", args=[source.id]), {"melodies": "true"}
         )
@@ -1837,11 +1840,11 @@ class ChantSearchMSViewTest(TestCase):
             source=source,
             manuscript_full_text_std_spelling="quick brown fox jumps over the lazy dog",
         )
-        chant_2 = make_fake_chant(
+        make_fake_chant(
             source=source,
             manuscript_full_text_std_spelling="brown fox jumps over the lazy dog",
         )
-        chant_3 = make_fake_chant(
+        make_fake_chant(
             source=source,
             manuscript_full_text_std_spelling="lazy brown fox jumps quick over the dog",
         )
@@ -1860,7 +1863,8 @@ class ChantSearchMSViewTest(TestCase):
             source=source,
             manuscript_full_text_std_spelling="Quick brown fox jumps over the lazy dog",
         )
-        chant_2 = make_fake_chant(
+        # Make a chant that won't be returned by the search term
+        make_fake_chant(
             source=source,
             manuscript_full_text_std_spelling="brown fox jumps over the lazy dog",
         )
@@ -1886,11 +1890,11 @@ class ChantSearchMSViewTest(TestCase):
             source=source,
             indexing_notes="quick brown fox jumps over the lazy dog",
         )
-        chant_2 = make_fake_chant(
+        make_fake_chant(
             source=source,
             indexing_notes="brown fox jumps over the lazy dog",
         )
-        chant_3 = make_fake_chant(
+        make_fake_chant(
             source=source,
             indexing_notes="lazy brown fox jumps quick over the dog",
         )
@@ -1909,7 +1913,8 @@ class ChantSearchMSViewTest(TestCase):
             source=source,
             indexing_notes="Quick brown fox jumps over the lazy dog",
         )
-        chant_2 = make_fake_chant(
+        # Make a chant that won't be returned by the search term
+        make_fake_chant(
             source=source,
             indexing_notes="brown fox jumps over the lazy dog",
         )
@@ -1932,13 +1937,13 @@ class ChantSearchMSViewTest(TestCase):
         doesnt_include_search_term = "longevity is the soul of wit"
         source = make_fake_source()
 
-        chant_ms_spelling = make_fake_chant(
+        make_fake_chant(
             source=source,
             manuscript_full_text=includes_search_term,  # <== includes_search_term
             manuscript_full_text_std_spelling=doesnt_include_search_term,
         )
 
-        chant_std_spelling = make_fake_chant(
+        make_fake_chant(
             source=source,
             manuscript_full_text=doesnt_include_search_term,
             manuscript_full_text_std_spelling=includes_search_term,  # <==
@@ -1955,7 +1960,8 @@ class ChantSearchMSViewTest(TestCase):
             manuscript_full_text_std_spelling=None,
         )
 
-        chant_without_search_term = make_fake_chant(
+        # This chant contains no search terms
+        make_fake_chant(
             source=source,
             manuscript_full_text=doesnt_include_search_term,
             manuscript_full_text_std_spelling=doesnt_include_search_term,
@@ -2344,7 +2350,7 @@ class ChantSearchMSViewTest(TestCase):
         # additional properties for which there are search fields
         feast = make_fake_feast()
         position = make_random_string(1)
-        chant = make_fake_chant(
+        make_fake_chant(
             service=service,
             genre=genre,
             cantus_id=cantus_id,
@@ -2450,9 +2456,7 @@ class ChantSearchMSViewTest(TestCase):
         url = source.get_absolute_url()
         fulltext = "manuscript full text"
         search_term = "full"
-        chant = make_fake_chant(
-            source=source, manuscript_full_text_std_spelling=fulltext
-        )
+        make_fake_chant(source=source, manuscript_full_text_std_spelling=fulltext)
         response = self.client.get(
             reverse("chant-search-ms", args=[source.id]),
             {"keyword": search_term, "op": "contains"},
@@ -2488,7 +2492,7 @@ class ChantSearchMSViewTest(TestCase):
         url = feast.get_absolute_url()
         fulltext = "manuscript full text"
         search_term = "full"
-        chant = make_fake_chant(
+        make_fake_chant(
             source=source,
             manuscript_full_text_std_spelling=fulltext,
             feast=feast,
@@ -2513,7 +2517,7 @@ class ChantSearchMSViewTest(TestCase):
         url = service.get_absolute_url()
         fulltext = "manuscript full text"
         search_term = "full"
-        chant = make_fake_chant(
+        make_fake_chant(
             source=source,
             manuscript_full_text_std_spelling=fulltext,
             service=service,
@@ -2538,7 +2542,7 @@ class ChantSearchMSViewTest(TestCase):
         url = genre.get_absolute_url()
         fulltext = "manuscript full text"
         search_term = "full"
-        chant = make_fake_chant(
+        make_fake_chant(
             source=source,
             manuscript_full_text_std_spelling=fulltext,
             genre=genre,
