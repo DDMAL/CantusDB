@@ -760,13 +760,15 @@ class ChantCreateView(LoginRequiredMixin, UserPassesTestMixin, CreateView):
     template_name = "chant_create.html"
     form_class = ChantCreateForm
     pk_url_kwarg = "source_pk"
+    source: Source
+    latest_chant: Optional[Chant]
 
     def test_func(self):
         user = self.request.user
         source_id = self.kwargs.get(self.pk_url_kwarg)
-        source = get_object_or_404(Source, id=source_id)
+        self.source = get_object_or_404(Source, id=source_id)
 
-        return user_can_edit_chants_in_source(user, source)
+        return user_can_edit_chants_in_source(user, self.source)
 
     # if success_url and get_success_url not specified, will direct to chant detail page
     def get_success_url(self):
@@ -784,8 +786,10 @@ class ChantCreateView(LoginRequiredMixin, UserPassesTestMixin, CreateView):
         """
         try:
             latest_chant = self.source.chant_set.latest("date_updated")
+            self.latest_chant = latest_chant
         except Chant.DoesNotExist:
             # if there is no chant in source, start with folio 001r, and c_sequence 1
+            self.latest_chant = None
             return {
                 "folio": "001r",
                 "feast": "",
@@ -807,22 +811,12 @@ class ChantCreateView(LoginRequiredMixin, UserPassesTestMixin, CreateView):
             "image_link": latest_image,
         }
 
-    def dispatch(self, request, *args, **kwargs):
-        """Make sure the source specified in url exists before we display the form"""
-        self.source = get_object_or_404(Source, pk=kwargs["source_pk"])
-        return super().dispatch(request, *args, **kwargs)
-
-    def get_suggested_feasts(self):
+    def get_suggested_feasts(self, latest_chant: Chant) -> dict[Feast, int]:
         """based on the feast of the most recently edited chant, provide a
         list of suggested feasts that might follow the feast of that chant.
 
         Returns: a dictionary, with feast objects as keys and counts as values
         """
-        try:
-            latest_chant = self.source.chant_set.latest("date_updated")
-        except Chant.DoesNotExist:
-            return None
-
         current_feast = latest_chant.feast
         chants_that_end_current_feast = Chant.objects.filter(
             is_last_chant_in_feast=True, feast=current_feast
@@ -843,22 +837,18 @@ class ChantCreateView(LoginRequiredMixin, UserPassesTestMixin, CreateView):
     def get_context_data(self, **kwargs: Any) -> dict[Any, Any]:
         context = super().get_context_data(**kwargs)
         context["source"] = self.source
-        previous_chant: Optional[Chant] = None
-        try:
-            previous_chant = self.source.chant_set.latest("date_updated")
-        except Chant.DoesNotExist:
-            pass
+        previous_chant = self.latest_chant
         context["previous_chant"] = previous_chant
-        context["suggested_feasts"] = self.get_suggested_feasts()
-
-        previous_cantus_id: Optional[str] = None
-        if previous_chant:
-            previous_cantus_id = previous_chant.cantus_id
-
+        suggested_feasts = None
         suggested_chants = None
-        if previous_cantus_id:
-            suggested_chants = get_suggested_chants(previous_cantus_id)
+        if previous_chant:
+            suggested_feasts = self.get_suggested_feasts(previous_chant)
+            previous_cantus_id = previous_chant.cantus_id
+            if previous_cantus_id:
+                suggested_chants = get_suggested_chants(previous_cantus_id)
+        context["suggested_feasts"] = suggested_feasts
         context["suggested_chants"] = suggested_chants
+
         return context
 
     def form_valid(self, form):
