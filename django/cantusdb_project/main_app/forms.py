@@ -1,5 +1,14 @@
 from django import forms
 from django.contrib.auth.forms import ReadOnlyPasswordHashField
+from django.contrib.auth import get_user_model
+from django.db.models import Q
+from django.contrib.admin.widgets import (
+    FilteredSelectMultiple,
+)
+from django.forms.widgets import CheckboxSelectMultiple
+from dal import autocomplete
+from volpiano_display_utilities.cantus_text_syllabification import syllabify_text
+from volpiano_display_utilities.latin_word_syllabification import LatinError
 from .models import (
     Chant,
     Service,
@@ -22,13 +31,6 @@ from .widgets import (
     SelectWidget,
     CheckboxWidget,
 )
-from django.contrib.auth import get_user_model
-from django.db.models import Q
-from django.contrib.admin.widgets import (
-    FilteredSelectMultiple,
-)
-from django.forms.widgets import CheckboxSelectMultiple
-from dal import autocomplete
 
 # ModelForm allows to build a form directly from a model
 # see https://docs.djangoproject.com/en/3.0/topics/forms/modelforms/
@@ -69,6 +71,40 @@ class CheckboxNameModelMultipleChoiceField(forms.ModelMultipleChoiceField):
         return obj.name
 
     widget = CheckboxSelectMultiple()
+
+
+class CantusDBLatinField(forms.CharField):
+    """
+    A custom CharField for chant text fields. Validates that the text
+    can be syllabified (essentially, that it does not have any improper
+    characters).
+    """
+
+    def validate(self, value):
+        super().validate(value)
+        if value:
+            try:
+                syllabify_text(value)
+            except LatinError as err:
+                raise forms.ValidationError(str(err))
+            except ValueError as exc:
+                raise forms.ValidationError("Invalid characters in text.") from exc
+
+
+class CantusDBSyllabifiedLatinField(forms.CharField):
+    """
+    A custom CharField for chant syllabified text fields. Validates that the text
+    can be syllabified (essentially, that it does not have any improper
+    characters).
+    """
+
+    def validate(self, value):
+        super().validate(value)
+        if value:
+            try:
+                syllabify_text(value, text_presyllabified=True)
+            except ValueError as exc:
+                raise forms.ValidationError("Invalid characters in text.") from exc
 
 
 class ChantCreateForm(forms.ModelForm):
@@ -125,8 +161,8 @@ class ChantCreateForm(forms.ModelForm):
             "finalis": TextInputWidget(),
             "extra": TextInputWidget(),
             "chant_range": VolpianoInputWidget(),
-            # manuscript_full_text_std_spelling: defined below (required)
-            "manuscript_full_text": TextAreaWidget(),
+            # manuscript_full_text_std_spelling: defined below (required & special field)
+            # "manuscript_full_text": defined below (special field)
             "volpiano": VolpianoAreaWidget(),
             "image_link": TextInputWidget(),
             "melody_id": TextInputWidget(),
@@ -153,14 +189,18 @@ class ChantCreateForm(forms.ModelForm):
         help_text="Each folio starts with '1'.",
     )
 
-    manuscript_full_text_std_spelling = forms.CharField(
-        required=True,
+    manuscript_full_text_std_spelling = CantusDBLatinField(
         widget=TextAreaWidget,
-        help_text="Manuscript full text with standardized spelling. Enter the words "
-        "according to the manuscript but normalize their spellings following "
-        "Classical Latin forms. Use upper-case letters for proper nouns, "
-        'the first word of each chant, and the first word after "Alleluia" for '
-        "Mass Alleluias. Punctuation is omitted.",
+        help_text=Chant._meta.get_field("manuscript_full_text_std_spelling").help_text,
+        label="Full text as in Source (standardized spelling)",
+        required=True,
+    )
+
+    manuscript_full_text = CantusDBLatinField(
+        widget=TextAreaWidget,
+        label="Full text as in Source (source spelling)",
+        help_text=Chant._meta.get_field("manuscript_full_text").help_text,
+        required=False,
     )
 
     project = SelectWidgetNameModelChoiceField(
@@ -319,8 +359,8 @@ class ChantEditForm(forms.ModelForm):
             "rubrics",
         ]
         widgets = {
-            # manuscript_full_text_std_spelling: defined below (required)
-            "manuscript_full_text": TextAreaWidget(),
+            # manuscript_full_text_std_spelling: defined below (required) & special field
+            # manuscript_full_text: defined below (special field)
             "volpiano": VolpianoAreaWidget(),
             "marginalia": TextInputWidget(),
             # folio: defined below (required)
@@ -354,14 +394,18 @@ class ChantEditForm(forms.ModelForm):
             "rubrics": TextInputWidget(),
         }
 
-    manuscript_full_text_std_spelling = forms.CharField(
-        required=True,
+    manuscript_full_text_std_spelling = CantusDBLatinField(
         widget=TextAreaWidget,
-        help_text="Manuscript full text with standardized spelling. Enter the words "
-        "according to the manuscript but normalize their spellings following "
-        "Classical Latin forms. Use upper-case letters for proper nouns, "
-        'the first word of each chant, and the first word after "Alleluia" for '
-        "Mass Alleluias. Punctuation is omitted.",
+        help_text=Chant._meta.get_field("manuscript_full_text_std_spelling").help_text,
+        label="Full text as in Source (standardized spelling)",
+        required=True,
+    )
+
+    manuscript_full_text = CantusDBLatinField(
+        widget=TextAreaWidget,
+        label="Full text as in Source (source spelling)",
+        help_text=Chant._meta.get_field("manuscript_full_text").help_text,
+        required=False,
     )
 
     folio = forms.CharField(
@@ -550,10 +594,14 @@ class ChantEditSyllabificationForm(forms.ModelForm):
             "manuscript_full_text",
             "manuscript_syllabized_full_text",
         ]
-        widgets = {
-            "manuscript_full_text": TextAreaWidget(),
-            "manuscript_syllabized_full_text": TextAreaWidget(),
-        }
+
+    manuscript_full_text = CantusDBLatinField(
+        widget=TextAreaWidget, label="Full text as in Source (source spelling)"
+    )
+
+    manuscript_syllabized_full_text = CantusDBSyllabifiedLatinField(
+        widget=TextAreaWidget, label="Syllabized full text"
+    )
 
 
 class AdminCenturyForm(forms.ModelForm):
@@ -738,10 +786,7 @@ class AdminSourceForm(forms.ModelForm):
         widget=TextInputWidget,
     )
 
-    name = forms.CharField(
-        required=False,
-        widget=TextInputWidget
-    )
+    name = forms.CharField(required=False, widget=TextInputWidget)
 
     holding_institution = forms.ModelChoiceField(
         queryset=Institution.objects.all().order_by("name"),

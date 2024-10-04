@@ -7,6 +7,7 @@ from django.contrib.auth.mixins import LoginRequiredMixin
 from django.contrib.auth.mixins import UserPassesTestMixin
 from django.core.exceptions import PermissionDenied
 from django.db.models import Q, QuerySet
+from django.forms import BaseModelForm
 from django.http import Http404, HttpResponse
 from django.shortcuts import get_object_or_404
 from django.urls import reverse
@@ -18,6 +19,7 @@ from django.views.generic import (
     TemplateView,
     UpdateView,
 )
+from volpiano_display_utilities.latin_word_syllabification import LatinError
 from volpiano_display_utilities.cantus_text_syllabification import (
     syllabify_text,
     flatten_syllabified_text,
@@ -205,11 +207,14 @@ class ChantDetailView(DetailView):
         # syllabification section
         if chant.volpiano:
             has_syl_text = bool(chant.manuscript_syllabized_full_text)
-            text_and_mel, _ = align_text_and_volpiano(
-                chant.get_best_text_for_syllabizing(),
-                chant.volpiano,
-                text_presyllabified=has_syl_text,
-            )
+            try:
+                text_and_mel, _ = align_text_and_volpiano(
+                    chant.get_best_text_for_syllabizing(),
+                    chant.volpiano,
+                    text_presyllabified=has_syl_text,
+                )
+            except LatinError:
+                text_and_mel = None
             context["syllabized_text_with_melody"] = text_and_mel
 
         if project := chant.project:
@@ -848,16 +853,19 @@ class ChantCreateView(LoginRequiredMixin, UserPassesTestMixin, CreateView):
                 suggested_chants = get_suggested_chants(previous_cantus_id)
         context["suggested_feasts"] = suggested_feasts
         context["suggested_chants"] = suggested_chants
-
         return context
 
     def form_valid(self, form):
-        """compute source, incipit; folio/sequence (if left empty)
-        validate the form: add success/error message
+        """
+        Validates the new chant.
+
+        Custom validation steps are:
+        - Check if a chant with the same sequence and folio already exists in the source.
+        - Compute the chant incipit.
+        - Adds the "created_by" and "updated_by" fields to the chant.
         """
         # compute source
-        form.instance.source = self.source  # same effect as the next line
-        # form.instance.source = get_object_or_404(Source, pk=self.kwargs['source_pk'])
+        form.instance.source = self.source
 
         # compute incipit, within 30 charactors, keep words complete
         words = form.instance.manuscript_full_text_std_spelling.split(" ")
@@ -893,8 +901,7 @@ class ChantCreateView(LoginRequiredMixin, UserPassesTestMixin, CreateView):
                 "Chant '" + form.instance.incipit + "' created successfully!",
             )
             return super().form_valid(form)
-        else:
-            return super().form_invalid(form)
+        return super().form_invalid(form)
 
 
 class ChantDeleteView(LoginRequiredMixin, UserPassesTestMixin, DeleteView):
@@ -1113,11 +1120,18 @@ class SourceEditChantsView(LoginRequiredMixin, UserPassesTestMixin, UpdateView):
             has_syl_text = bool(chant.manuscript_syllabized_full_text)
             # Note: the second value returned is a flag indicating whether the alignment process
             # encountered errors. In future, this could be used to display a message to the user.
-            text_and_mel, _ = align_text_and_volpiano(
-                chant.get_best_text_for_syllabizing(),
-                chant.volpiano,
-                text_presyllabified=has_syl_text,
-            )
+            try:
+                text_and_mel, _ = align_text_and_volpiano(
+                    chant.get_best_text_for_syllabizing(),
+                    chant.volpiano,
+                    text_presyllabified=has_syl_text,
+                )
+            except LatinError as err:
+                messages.error(
+                    self.request,
+                    "Error in aligning text and melody: " + str(err),
+                )
+                text_and_mel = None
             context["syllabized_text_with_melody"] = text_and_mel
 
         user = self.request.user
@@ -1224,12 +1238,20 @@ class ChantEditSyllabificationView(LoginRequiredMixin, UserPassesTestMixin, Upda
         initial = super().get_initial()
         chant = self.get_object()
         has_syl_text = bool(chant.manuscript_syllabized_full_text)
-        syls_text, _ = syllabify_text(
-            text=chant.get_best_text_for_syllabizing(),
-            clean_text=True,
-            text_presyllabified=has_syl_text,
-        )
-        self.flattened_syls_text = flatten_syllabified_text(syls_text)
+        try:
+            syls_text, _ = syllabify_text(
+                text=chant.get_best_text_for_syllabizing(),
+                clean_text=True,
+                text_presyllabified=has_syl_text,
+            )
+            self.flattened_syls_text = flatten_syllabified_text(syls_text)
+        except LatinError as err:
+            messages.error(
+                self.request,
+                "Error in syllabifying text: " + str(err),
+            )
+            syls_text = None
+            self.flattened_syls_text = ""
         initial["manuscript_syllabized_full_text"] = self.flattened_syls_text
         return initial
 

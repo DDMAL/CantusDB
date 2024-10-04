@@ -164,7 +164,6 @@ class SourceEditChantsViewTest(TestCase):
         self.user = get_user_model().objects.create(email="test@test.com")
         self.user.set_password("pass")
         self.user.save()
-        self.client = Client()
         project_manager = Group.objects.get(name="project manager")
         project_manager.user_set.add(self.user)
         self.client.login(email="test@test.com", password="pass")
@@ -323,6 +322,44 @@ class SourceEditChantsViewTest(TestCase):
         chant.refresh_from_db()
         self.assertIs(chant.manuscript_full_text_std_proofread, True)
 
+    def test_invalid_text(self) -> None:
+        """
+        The user should not be able to create a chant with invalid text
+        (either invalid characters or unmatched brackets).
+        Instead, the user should be shown an error message.
+        """
+        source = make_fake_source()
+        with self.subTest("Chant with invalid characters"):
+            response = self.client.post(
+                reverse("source-edit-chants", args=[source.id]),
+                {
+                    "manuscript_full_text_std_spelling": "this is a ch@nt t%xt with inv&lid ch!ra+ers",
+                    "folio": "001r",
+                    "c_sequence": "1",
+                },
+            )
+            self.assertEqual(response.status_code, 200)
+            self.assertFormError(
+                response.context["form"],
+                "manuscript_full_text_std_spelling",
+                "Invalid characters in text.",
+            )
+        with self.subTest("Chant with unmatched brackets"):
+            response = self.client.post(
+                reverse("source-edit-chants", args=[source.id]),
+                {
+                    "manuscript_full_text_std_spelling": "this is a chant with [ unmatched brackets",
+                    "folio": "001r",
+                    "c_sequence": "1",
+                },
+            )
+            self.assertEqual(response.status_code, 200)
+            self.assertFormError(
+                response.context["form"],
+                "manuscript_full_text_std_spelling",
+                "Word [ contains non-alphabetic characters.",
+            )
+
 
 class ChantEditSyllabificationViewTest(TestCase):
     @classmethod
@@ -363,7 +400,10 @@ class ChantEditSyllabificationViewTest(TestCase):
         self.assertEqual(chant.manuscript_syllabized_full_text, "lorem ipsum")
         response = self.client.post(
             f"/edit-syllabification/{chant.id}",
-            {"manuscript_syllabized_full_text": "lore-m i-psum"},
+            {
+                "manuscript_full_text": "lorem ipsum",
+                "manuscript_syllabized_full_text": "lore-m i-psum",
+            },
         )
         self.assertEqual(response.status_code, 302)  # 302 Found
         chant.refresh_from_db()
@@ -2817,13 +2857,13 @@ class ChantCreateViewTest(TestCase):
         for i in range(1, 5):
             Chant.objects.create(
                 source=source,
-                manuscript_full_text=faker.text(10),
+                manuscript_full_text=" ".join(faker.words(faker.random_int(3, 10))),
                 folio=test_folio,
                 c_sequence=i,
             )
         # post a chant with the same folio and seq
         url = reverse("chant-create", args=[source.id])
-        fake_text = faker.text(10)
+        fake_text = "this is also a fake but valid text"
         response = self.client.post(
             url,
             data={
@@ -2959,6 +2999,45 @@ class ChantCreateViewTest(TestCase):
                 response_after_rare_chant, "Sorry! No suggestions found."
             )
             self.assertIsNone(response_after_rare_chant.context["suggested_chants"])
+
+    def test_invalid_text(self) -> None:
+        """
+        The user should not be able to create a chant with invalid text
+        (either invalid characters or unmatched brackets).
+        Instead, the user should be shown an error message.
+        """
+        with self.subTest("Chant with invalid characters"):
+            source = self.source
+            response = self.client.post(
+                reverse("chant-create", args=[source.id]),
+                {
+                    "manuscript_full_text_std_spelling": "this is a ch@nt t%xt with inv&lid ch!ra+ers",
+                    "folio": "001r",
+                    "c_sequence": "1",
+                },
+            )
+            self.assertEqual(response.status_code, 200)
+            self.assertFormError(
+                response.context["form"],
+                "manuscript_full_text_std_spelling",
+                "Invalid characters in text.",
+            )
+        with self.subTest("Chant with unmatched brackets"):
+            source = self.source
+            response = self.client.post(
+                reverse("chant-create", args=[source.id]),
+                {
+                    "manuscript_full_text_std_spelling": "this is a chant with [ unmatched brackets",
+                    "folio": "001r",
+                    "c_sequence": "1",
+                },
+            )
+            self.assertEqual(response.status_code, 200)
+            self.assertFormError(
+                response.context["form"],
+                "manuscript_full_text_std_spelling",
+                "Word [ contains non-alphabetic characters.",
+            )
 
 
 class CISearchViewTest(TestCase):
