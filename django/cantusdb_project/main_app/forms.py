@@ -715,7 +715,7 @@ class AdminSourceForm(forms.ModelForm):
     # )
 
     holding_institution = forms.ModelChoiceField(
-        queryset=Institution.objects.all().order_by("siglum"),
+        queryset=Institution.objects.all().order_by("city", "name"),
         required=False,
     )
 
