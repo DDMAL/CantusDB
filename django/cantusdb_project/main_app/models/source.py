@@ -209,6 +209,8 @@ class Source(BaseModel):
         if holdinst := self.holding_institution:
             if holdinst.siglum and holdinst.siglum != "XX-NN":
                 title.append(f"{holdinst.siglum}")
+            else:
+                title.append("Cantus")
         else:
             title.append("Cantus")
 
