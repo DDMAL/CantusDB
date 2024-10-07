@@ -190,11 +190,16 @@ class Source(BaseModel):
             city = f"{holdinst.city}," if holdinst.city else ""
             title.append(city)
             title.append(f"{holdinst.name},")
+        else:
+            title.append("Cantus")
 
         title.append(self.shelfmark)
 
+        if self.source_completeness == self.SourceCompletenessChoices.FRAGMENT:
+            title.append("(fragment)")
+
         if self.name:
-            title.append(f"({self.name})")
+            title.append(f'("{self.name}")')
 
         return " ".join(title)
 
@@ -207,8 +212,7 @@ class Source(BaseModel):
         else:
             title.append("Cantus")
 
-        tt = self.shelfmark if self.shelfmark else self.title
-        title.append(tt)
+        title.append(self.shelfmark)
 
         if self.source_completeness == self.SourceCompletenessChoices.FRAGMENT:
             title.append("(fragment)")

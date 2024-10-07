@@ -120,6 +120,9 @@
                             </a>
                         </td>
                         <td class="text-wrap" style="text-align:center" title="{{ source.summary|default:""|truncatechars_html:500 }}">
+                            {% if source.name %}
+                                <b>"{{ source.name }}"</b><br>
+                            {% endif %}
                             {{ source.summary|default:""|truncatechars_html:120 }}
                         </td>
                         <td class="text-wrap" style="text-align:center">
