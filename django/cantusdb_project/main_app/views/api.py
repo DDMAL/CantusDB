@@ -448,7 +448,13 @@ def json_cid_export(request, cantus_id: str) -> JsonResponse:
     """
 
     # the API in OldCantus appears to only return chants, and no sequences.
-    chants = Chant.objects.filter(cantus_id=cantus_id).filter(source__published=True)
+    chants = (
+        Chant.objects.select_related(
+            "source", "source__holding_institution", "feast", "genre", "service"
+        )
+        .filter(cantus_id=cantus_id)
+        .filter(source__published=True)
+    )
     chant_dicts = [{"chant": build_json_cid_dictionary(c, request)} for c in chants]
     response = {"chants": chant_dicts}
     return JsonResponse(response)
