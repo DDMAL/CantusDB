@@ -1,16 +1,20 @@
 {% extends "base.html" %}
+
+{% block title %}
+    <title>{{ century.name }} | Cantus Database</title>
+{% endblock %}
+
 {% block content %}
-<title>{{ century.name }} | Cantus Database</title>
 <div class="mr-3 p-3 mx-auto bg-white rounded">
     <object align="right" class="search-bar">
         {% include "global_search_bar.html" %}
     </object>
     <h3>{{ century.name }}</h3>
     <ul>
-        {% for source in sources|dictsort:"title" %}
+        {% for source in sources %}
             <li>
-                <a href="{% url 'source-detail' source.id %}" title="{{ source.siglum }}">
-                    {{ source.title }}
+                <a href="{% url 'source-detail' source.id %}" title="{{ source.short_heading }}">
+                    {{ source.heading }}
                 </a>
             </li>
         {% endfor %}

@@ -19,7 +19,7 @@ BACKUP_FILENAME=$(date "+%Y-%m-%dT%H:%M:%S").sql.gz                 # This is th
 
 
 # Create the backup and copy it to the daily backup directory
-mkdir -p $BACKUP_DIR/daily $BACKUP_DIR/weekly $BACKUP_DIR/monthly $BACKUP_DIR/yearly
+mkdir -p $BACKUP_DIR/daily $BACKUP_DIR/weekly $BACKUP_DIR/monthly $BACKUP_DIR/yearly $BACKUP_DIR/rism
 /usr/bin/docker exec cantusdb-postgres-1 /usr/local/bin/postgres_backup.sh $BACKUP_FILENAME
 /usr/bin/docker cp cantusdb-postgres-1:/var/lib/postgresql/backups/$BACKUP_FILENAME $BACKUP_DIR/daily
 /usr/bin/docker exec cantusdb-postgres-1 rm /var/lib/postgresql/backups/$BACKUP_FILENAME
@@ -34,10 +34,14 @@ MONTH_OF_YEAR=$(date "+%m")
 
 # Retain weekly backups on Mondays
 # Manage retention of weekly backups
+# Copy the partial export for RISM purposes (created weekly on Mondays)
 if [ $DAY_OF_WEEK -eq 1 ]; then
     cp $BACKUP_DIR/daily/$BACKUP_FILENAME $BACKUP_DIR/weekly
     FILES_TO_REMOVE=$(ls -td $BACKUP_DIR/weekly/* | tail -n +9)
     [[ ! -z "$FILES_TO_REMOVE" ]] && rm $FILES_TO_REMOVE
+    # Copy the partial DB backup for RISM purposes to $BACKUP_DIR/rism
+    /usr/bin/docker cp cantusdb-postgres-1:/var/lib/postgresql/backups/cantusdb_rism_export.sql.gz $BACKUP_DIR/rism
+    /usr/bin/docker exec cantusdb-postgres-1 rm /var/lib/postgresql/backups/cantusdb_rism_export.sql.gz
 fi
 
 # Retain a monthly backup on the first day of the month

@@ -6,6 +6,7 @@ from main_app.models import (
     Sequence,
 )
 from users.models import User
+from django.core.exceptions import PermissionDenied
 
 
 def user_can_edit_chants_in_source(user: User, source: Optional[Source]) -> bool:
@@ -167,3 +168,15 @@ def user_can_manage_source_editors(user: User) -> bool:
         or user.is_staff
         or user.groups.filter(name="project manager").exists()
     )
+
+
+def user_is_project_manager(user: User) -> bool:
+    """
+    A callback function that will be called by the user_passes_test decorator of content_overview.
+
+    Takes in a logged-in user as an argument.
+    Returns True if they are in a "project manager" group, raises PermissionDenied otherwise.
+    """
+    if user.groups.filter(name="project manager").exists():
+        return True
+    raise PermissionDenied

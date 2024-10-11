@@ -1,0 +1,71 @@
+{% extends "base.html" %}
+
+{% block title %}
+
+{% endblock %}
+
+{% block content %}
+    <div class="mr-3 p-3 col-md-12 mx-auto bg-white rounded">
+        <object align="right" class="search-bar">
+            {% include "global_search_bar.html" %}
+        </object>
+        <h3>{{ institution.name }} {% if institution.siglum %}({{ institution.siglum }}){% endif %}</h3>
+        <h4>{{ institution.city }}, {{ institution.country }}</h4>
+        {% if institution_authorities %}
+        <hr />
+        <div class="row">
+            <div class="col">
+                {% for authority in institution_authorities %}
+                    View this institution in <a href="{{ authority.1 }}">{{ authority.0 }}</a>
+                {% endfor %}
+            </div>
+        </div>
+        {% endif %}
+        <hr />
+        <div class="row">
+            {% if num_cantus_sources > 0 %}
+            <div class="col">
+                <h5>Cantus Database</h5>
+                <table class="table table-bordered table-sm small">
+                    <thead>
+                        <tr>
+                            <th>Shelfmark</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                    {% for source in cantus_sources %}
+                        <tr>
+                            <td>
+                                <a href="{% url "source-detail" source.id %}"><b>{{ source.shelfmark }}</b></a>
+                            </td>
+                        </tr>
+                    {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+            {% endif %}
+        
+            {% if num_bower_sources > 0 %}
+                <div class="col">
+                    <h5>Bower Sequence Database</h5>
+                    <table class="table table-bordered table-sm small">
+                        <thead>
+                        <tr>
+                            <th>Shelfmark</th>
+                        </tr>
+                        </thead>
+                        <tbody>
+                        {% for source in bower_sources %}
+                            <tr>
+                                <td>
+                                    <a href="{% url "source-detail" source.id %}"><b>{{ source.shelfmark }}</b></a>
+                                </td>
+                            </tr>
+                        {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            {% endif %}
+        </div>
+    </div>
+{% endblock %}

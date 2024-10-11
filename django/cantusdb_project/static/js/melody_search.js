@@ -68,7 +68,7 @@ function melodySearch() {
         drawAreaRight = drawAreaRect.right - docRect.left;
         drawAreaTop = drawAreaRect.top - docRect.top;
         drawAreaBottom = drawAreaRect.bottom - docRect.top;
-    };
+    }
 
     window.addEventListener("resize", changeDrawAreaPosition);
 
@@ -122,7 +122,7 @@ function melodySearch() {
             }
 
             // if the newly entered note is different from the last note
-            if (notes.slice(-1) != lastNote) {
+            if (notes.slice(-1) !== lastNote) {
                 // update `lastNote`
                 lastNote = notes.slice(-1);
                 // move focus to the next slot
@@ -133,7 +133,6 @@ function melodySearch() {
                 // if the newly entered note is the same as the last note, it's deemed invalid,
                 // remove the newly entered note from `notes`
                 notes = notes.slice(0, -1);
-                return;
             }
         }
     }
@@ -199,7 +198,7 @@ function melodySearch() {
     function search() {
         // if there's no notes, don't search
         // this happens when the user fills in the search fields but doesn't input melody
-        if (notes == "") {
+        if (notes === "") {
             return;
         }
         // whenever a new search begins, abort the previous one, so that it does not update the result table with wrong data
@@ -230,8 +229,12 @@ function melodySearch() {
             const table = document.getElementById("resultsTable").getElementsByTagName("tbody")[0];
             data.results.map(chant => {
                 const newRow = table.insertRow(table.rows.length);
+
+                const siglum = chant.source__holding_institution__siglum ?? "";
+                const shelfmark = chant.source__shelfmark ?? "";
+
                 newRow.innerHTML += `<td style="width:20%">
-                                            <b>${chant.siglum}</b>
+                                            <b>${siglum} ${shelfmark}</b>
                                             <br>
                                             fol. <b>${chant.folio}</b>
                                             <br>
@@ -266,7 +269,7 @@ function melodySearch() {
         // remove the last character from the search term
         notes = notes.slice(0, -1);
         // redo the search using updated notes
-        if (notes != "") {
+        if (notes !== "") {
             // update `lastNote`
             lastNote = notes.slice(-1);
             search();
@@ -308,7 +311,7 @@ function melodySearch() {
         // do nothing if "search beginning" is already checked
         if (anywhere) {
             anywhere = false;
-            if (notes != "") {
+            if (notes !== "") {
                 search();
             }
         }
@@ -316,9 +319,9 @@ function melodySearch() {
 
     function searchAnywhere() {
         // do nothing if "search anywhere" is already checked
-        if (anywhere == false) {
+        if (anywhere === false) {
             anywhere = true;
-            if (notes != "") {
+            if (notes !== "") {
                 search();
             }
         }
@@ -328,7 +331,7 @@ function melodySearch() {
         // do nothing if "exact matches" is already checked
         if (transpose) {
             transpose = false;
-            if (notes != "") {
+            if (notes !== "") {
                 search();
             }
         }
@@ -336,9 +339,9 @@ function melodySearch() {
 
     function searchTranspose() {
         // do nothing if "exact matches + transpositions" is already checked
-        if (transpose == false) {
+        if (transpose === false) {
             transpose = true;
-            if (notes != "") {
+            if (notes !== "") {
                 search();
             }
         }

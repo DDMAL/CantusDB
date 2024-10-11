@@ -4,7 +4,7 @@ package-mode = false
 
 [tool.poetry.dependencies]
 python = "^3.9"
-Django = "4.2.11"
+Django = "4.2.14"
 django-autocomplete-light = "3.9.4"
 django-extra-views = "0.13.0"
 django-quill-editor = "0.1.40"
@@ -27,6 +27,9 @@ mypy = "^1.10.0"
 pylint = "^2.6.0"
 pylint-django = "^2.5.5"
 django-stubs = {git = "https://github.com/typeddjango/django-stubs.git", rev = "4a5b0656be5ccfb961e4e32f4a99756eaf57bb1d"}
+django-extensions = "^3.2.3"
+werkzeug = "^3.0.3"
+types-requests = "^2.32.0.20240712"
 
 
 [build-system]

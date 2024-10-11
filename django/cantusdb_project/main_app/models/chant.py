@@ -28,7 +28,7 @@ class Chant(BaseChant):
         source = self.source.title if self.source else None
         genre = self.genre.name if self.genre else None
         feast = self.feast.name if self.feast else None
-        office = self.office.name if self.office else None
+        service = self.service.name if self.service else None
         return {
             "A": (
                 " ".join(
@@ -38,7 +38,7 @@ class Chant(BaseChant):
                     )
                 )
             ),
-            "B": (" ".join(filter(None, [genre, feast, office]))),
+            "B": (" ".join(filter(None, [genre, feast, service]))),
         }
 
     def related_chants_by_cantus_id(self) -> QuerySet:

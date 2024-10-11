@@ -1,6 +1,10 @@
 {% extends "base.html" %}
+
+{% block title %}
+    <title>{{ sequence.title }} | Cantus Database</title>
+{% endblock %}
+
 {% block content %}
-<title>{{ sequence.title }} | Cantus Database</title>
 <div class="mr-3 p-3 mx-auto bg-white rounded">
     <!--Display "submit success" message -->
     {% if messages %}
@@ -32,7 +36,7 @@
             </dt>
             <dd>
                 <a href="{% url 'source-detail' sequence.source.id %}">
-                    {{ sequence.source.title }}
+                    {{ sequence.source.heading }}
                 </a>
             </dd>
         {% endif %}
@@ -170,7 +174,6 @@
     </dl>
 
     {% if sequence.cantus_id %}
-
         <h4>Concordances</h4>
         <small>Concordances for Cantus ID <a href="{{ sequence.get_ci_url }}" target=_blank>{{ sequence.cantus_id }}</a>: Displaying 1 - {{ concordances.count }} of {{ concordances.count }}</small>
         <div class="table-responsive">
@@ -191,7 +194,7 @@
                         <tr>
                             <td class="text-wrap" style="text-align:center">
                                 {% if sequence.source %}
-                                    <a href="{% url 'source-detail' sequence.source.id %}" title="{{ sequence.source.title }}"><b>{{ sequence.siglum }}</b></a>
+                                    <a href="{% url 'source-detail' sequence.source_id %}" title="{{ sequence.source.heading }}"><b>{{ sequence.source.short_heading }}</b></a>
                                     <br>
                                     <b>{{ sequence.folio }}</b>  {{ sequence.s_sequence }}
                                 {% endif %}

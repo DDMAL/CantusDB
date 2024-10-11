@@ -1,8 +1,11 @@
 {% extends "base.html" %}
 {% load helper_tags %} {# for classname, admin_url_name #}
-{% block content %}
-<title>Content Overview | Cantus Database</title>
 
+{% block title %}
+    <title>Content Overview | Cantus Database</title>
+{% endblock %}
+
+{% block content %}
 <div class="p-3 col-12 mx-auto bg-white rounded">
     <h3>Content Overview</h3>
 
@@ -37,9 +40,9 @@
                 <tbody>
                     {% for object in page_obj %}
                         <tr>
-                            {% if object.title %}
+                            {% if object.short_heading %}
                                 <td class="text-wrap" style="text-align:center">
-                                    <a href="{{ object.get_absolute_url }}"><b>{{ object.title|truncatechars:30 }}</b></a>
+                                    <a href="{{ object.get_absolute_url }}"><b>{{ object.short_heading|truncatechars:30 }}</b></a>
                                 </td>
                             {% elif object.incipit %}
                                 <td class="text-wrap" style="text-align:center">

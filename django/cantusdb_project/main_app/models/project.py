@@ -13,4 +13,4 @@ class Project(BaseModel):
     name = models.CharField(max_length=63)
 
     def __str__(self):
-        return f"{self.name} ({self.id})"
+        return f"{self.name}"
