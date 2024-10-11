@@ -71,6 +71,15 @@ class CheckboxNameModelMultipleChoiceField(forms.ModelMultipleChoiceField):
     widget = CheckboxSelectMultiple()
 
 
+class StyledChoiceField(forms.ChoiceField):
+    """
+    A custom ChoiceField that uses the custom SelectWidget defined in widgets.py
+    as its widget (for styling).
+    """
+
+    widget = SelectWidget()
+
+
 class ChantCreateForm(forms.ModelForm):
     class Meta:
         model = Chant
@@ -191,6 +200,7 @@ class SourceCreateForm(forms.ModelForm):
             # "siglum",
             "holding_institution",
             "shelfmark",
+            "name",
             "segment_m2m",
             "provenance",
             "provenance_notes",
@@ -212,11 +222,15 @@ class SourceCreateForm(forms.ModelForm):
             "fragmentarium_id",
             "dact_id",
             "indexing_notes",
+            "production_method",
+            "source_completeness",
         ]
         widgets = {
             # "title": TextInputWidget(),
             # "siglum": TextInputWidget(),
+            "shelfmark": TextInputWidget(),
             "provenance": autocomplete.ModelSelect2(url="provenance-autocomplete"),
+            "name": TextInputWidget(),
             "provenance_notes": TextInputWidget(),
             "date": TextInputWidget(),
             "cursus": SelectWidget(),
@@ -246,6 +260,8 @@ class SourceCreateForm(forms.ModelForm):
             "other_editors": autocomplete.ModelSelect2Multiple(
                 url="all-users-autocomplete"
             ),
+            "production_method": SelectWidget(),
+            "source_completeness": SelectWidget(),
         }
         field_classes = {
             "segment_m2m": CheckboxNameModelMultipleChoiceField,
@@ -253,31 +269,14 @@ class SourceCreateForm(forms.ModelForm):
 
     holding_institution = forms.ModelChoiceField(
         queryset=Institution.objects.all(),
-        required=True,
         widget=autocomplete.ModelSelect2(url="holding-autocomplete"),
+        required=False,
     )
 
-    shelfmark = forms.CharField(
-        required=True,
-        widget=TextInputWidget,
-    )
-
-    TRUE_FALSE_CHOICES_SOURCE = (
-        (True, "Full source"),
-        (False, "Fragment or Fragmented"),
-    )
-
-    full_source = forms.ChoiceField(choices=TRUE_FALSE_CHOICES_SOURCE, required=False)
-    full_source.widget.attrs.update(
-        {"class": "form-control custom-select custom-select-sm"}
-    )
     TRUE_FALSE_CHOICES_INVEN = ((True, "Complete"), (False, "Incomplete"))
 
-    complete_inventory = forms.ChoiceField(
+    complete_inventory = StyledChoiceField(
         choices=TRUE_FALSE_CHOICES_INVEN, required=False
-    )
-    complete_inventory.widget.attrs.update(
-        {"class": "form-control custom-select custom-select-sm"}
     )
 
 
@@ -391,6 +390,7 @@ class SourceEditForm(forms.ModelForm):
             # "siglum",
             "holding_institution",
             "shelfmark",
+            "name",
             "segment_m2m",
             "provenance",
             "provenance_notes",
@@ -413,12 +413,17 @@ class SourceEditForm(forms.ModelForm):
             "full_text_entered_by",
             "proofreaders",
             "other_editors",
+            "production_method",
+            "source_completeness",
         ]
         widgets = {
+            "shelfmark": TextInputWidget(),
             "segment_m2m": CheckboxSelectMultiple(),
+            "name": TextInputWidget(),
             "provenance": autocomplete.ModelSelect2(url="provenance-autocomplete"),
             "provenance_notes": TextInputWidget(),
             "date": TextInputWidget(),
+            "cursus": SelectWidget(),
             "summary": TextAreaWidget(),
             "liturgical_occasions": TextAreaWidget(),
             "description": TextAreaWidget(),
@@ -446,48 +451,24 @@ class SourceEditForm(forms.ModelForm):
             "other_editors": autocomplete.ModelSelect2Multiple(
                 url="all-users-autocomplete"
             ),
+            "production_method": SelectWidget(),
+            "source_completeness": SelectWidget(),
         }
         field_classes = {
             "segment_m2m": CheckboxNameModelMultipleChoiceField,
         }
 
-    shelfmark = forms.CharField(
-        required=True,
-        widget=TextInputWidget,
-    )
-
     holding_institution = forms.ModelChoiceField(
         queryset=Institution.objects.all(),
-        required=True,
         widget=autocomplete.ModelSelect2(url="holding-autocomplete"),
+        required=False,
     )
-
-    CHOICES_FULL_SOURCE = (
-        (None, "None"),
-        (True, "Full source"),
-        (False, "Fragment or Fragmented"),
-    )
-    full_source = forms.ChoiceField(choices=CHOICES_FULL_SOURCE, required=False)
-    full_source.widget.attrs.update(
-        {"class": "form-control custom-select custom-select-sm"}
-    )
-
-    CHOICES_CURSUS = (
-        (None, "None"),
-        ("Monastic", "Monastic"),
-        ("Secular", "Secular"),
-    )
-    cursus = forms.ChoiceField(choices=CHOICES_CURSUS, required=False)
-    cursus.widget.attrs.update({"class": "form-control custom-select custom-select-sm"})
 
     CHOICES_COMPLETE_INV = (
         (True, "complete inventory"),
         (False, "partial inventory"),
     )
-    complete_inventory = forms.ChoiceField(choices=CHOICES_COMPLETE_INV, required=False)
-    complete_inventory.widget.attrs.update(
-        {"class": "form-control custom-select custom-select-sm"}
-    )
+    complete_inventory = StyledChoiceField(choices=CHOICES_COMPLETE_INV, required=False)
 
 
 class SequenceEditForm(forms.ModelForm):
@@ -733,19 +714,9 @@ class AdminSourceForm(forms.ModelForm):
     #     help_text="RISM-style siglum + Shelf-mark (e.g. GB-Ob 202).",
     # )
 
-    shelfmark = forms.CharField(
-        required=True,
-        widget=TextInputWidget,
-    )
-
-    name = forms.CharField(
-        required=False,
-        widget=TextInputWidget
-    )
-
     holding_institution = forms.ModelChoiceField(
-        queryset=Institution.objects.all().order_by("name"),
-        required=True,
+        queryset=Institution.objects.all().order_by("city", "name"),
+        required=False,
     )
 
     provenance = forms.ModelChoiceField(

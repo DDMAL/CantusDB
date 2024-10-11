@@ -362,15 +362,33 @@ def make_fake_institution(
     city: Optional[str] = None,
     region: Optional[str] = None,
     country: Optional[str] = None,
+    is_private_collector: Optional[bool] = None,
 ) -> Institution:
+    """
+    Note that the siglum and is_private_collector fields
+    are mutually exclusive. If both are specified, an exception
+    will be raised. If neither are specified, the function will
+    randomly determine whether the institution is a private collector or
+    will be given a fake siglum.
+    """
     name = name if name else faker.sentence()
-    siglum = siglum if siglum else faker.sentence(nb_words=1)
     city = city if city else faker.city()
     region = region if region else faker.country()
     country = country if country else faker.country()
 
+    if siglum and is_private_collector:
+        raise ValueError("Siglum and Private Collector cannot both be specified.")
+    is_private_collector = False if siglum else faker.boolean(chance_of_getting_true=20)
+    if not is_private_collector and not siglum:
+        siglum = faker.sentence(nb_words=1)
+
     inst = Institution.objects.create(
-        name=name, siglum=siglum, city=city, region=region, country=country
+        name=name,
+        siglum=siglum,
+        city=city,
+        region=region,
+        country=country,
+        is_private_collector=is_private_collector,
     )
     inst.save()
 
