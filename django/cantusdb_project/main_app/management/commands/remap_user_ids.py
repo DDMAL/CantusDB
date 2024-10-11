@@ -1,9 +1,9 @@
-from main_app.models import Source, Chant
 from django.contrib.auth import get_user_model
 from django.core.management.base import BaseCommand
-from sys import stdout
 from django.db.models.query import QuerySet
-from typing import Optional
+import reversion  # type: ignore[import-untyped]
+
+from main_app.models import Source, Chant
 
 User = get_user_model()
 
@@ -49,89 +49,66 @@ USER_ID_MAPPING = {
 }
 
 
-def reassign_sources() -> None:
-    CHUNK_SIZE = 1_000
-    sources: QuerySet[Source] = Source.objects.all()
-    sources_count: int = sources.count()
-    start_index: int = 0
-    while start_index <= sources_count:
-        stdout.write(f"processing chunk with {start_index=}\n")
-        chunk: QuerySet[Source] = sources[start_index : start_index + CHUNK_SIZE]
-        for source in chunk:
-            old_creator: Optional[User] = source.created_by
+class Command(BaseCommand):
+    def reassign_sources(self) -> None:
+        sources: QuerySet[Source] = Source.objects.filter(
+            created_by__in=USER_ID_MAPPING.keys()
+        )
+        num_sources = sources.count()
+        self.stdout.write(
+            self.style.NOTICE(f"Reassigning {num_sources} sources to new users.")
+        )
+        source_counter = 0
+        for source in sources.iterator(chunk_size=1_000):
+            old_creator = source.created_by
 
-            updated_id: Optional[int] = None
-            try:
-                updated_id: int = USER_ID_MAPPING[old_creator.id]
-            except (
-                KeyError,  # old_creator.id not in USER_ID_MAPPING
-                AttributeError,  # old_creator is None
-            ):
-                pass
+            # We know the old_creator is in USER_ID_MAPPING.keys() because of the filter
+            # on the queryset.
+            updated_id = USER_ID_MAPPING[old_creator.id]  # type: ignore[union-attr]
 
-            if updated_id is None:
-                # user ID doesn't need to be remapped
-                continue
-
-            updated_creator: Optional[User] = None
-            try:
-                updated_creator = User.objects.get(id=updated_id)
-            except (
-                User.DoesNotExist,
-                AttributeError,
-            ):
-                pass
+            updated_creator = User.objects.get(id=updated_id)
 
             source.created_by = updated_creator
             source.save()
-        start_index += CHUNK_SIZE
+            source_counter += 1
+            if source_counter % 100 == 0:
+                self.stdout.write(
+                    self.style.NOTICE(f"Reassigned {source_counter} sources.")
+                )
 
-
-def reassign_chants() -> None:
-    CHUNK_SIZE = 1_000
-    chants: QuerySet[Chant] = Chant.objects.all()
-    chants_count: int = chants.count()
-    start_index: int = 0
-    while start_index <= chants_count:
-        stdout.write(f"processing chunk with {start_index=}\n")
-        chunk: QuerySet[Chant] = chants[start_index : start_index + CHUNK_SIZE]
-        for chant in chunk:
-            old_creator: Optional[User] = chant.created_by
-
-            updated_id: Optional[int] = None
-            try:
-                updated_id: int = USER_ID_MAPPING[old_creator.id]
-            except (
-                KeyError,  # old_creator.id not in USER_ID_MAPPING
-                AttributeError,  # old_creator is None
-            ):
-                pass
-
-            if updated_id is None:
-                # user ID doesn't need to be remapped
-                continue
-
-            updated_creator: Optional[User] = None
-            try:
-                updated_creator = User.objects.get(id=updated_id)
-            except User.DoesNotExist:
-                pass
-
+    def reassign_chants(self) -> None:
+        chants: QuerySet[Chant] = Chant.objects.filter(
+            created_by__in=USER_ID_MAPPING.keys()
+        )
+        num_chants = chants.count()
+        self.stdout.write(
+            self.style.NOTICE(f"Reassigning {num_chants} sources to new users.")
+        )
+        chant_counter = 0
+        for chant in chants.iterator(chunk_size=1_000):
+            old_creator = chant.created_by
+            # We know the old_creator is in USER_ID_MAPPING.keys() because of the filter
+            # on the queryset.
+            updated_id: int = USER_ID_MAPPING[old_creator.id]  # type: ignore[union-attr]
+            updated_creator = User.objects.get(id=updated_id)
             chant.created_by = updated_creator
             chant.save()
-        start_index += CHUNK_SIZE
+            chant_counter += 1
+            if chant_counter % 100 == 0:
+                self.stdout.write(
+                    self.style.NOTICE(f"Reassigned {chant_counter} chants.")
+                )
 
-
-class Command(BaseCommand):
     def handle(self, *args, **kwargs) -> None:
-        error_message = (
-            "As of late November 2023, this command is not working. "
-            "It has been temporarily disabled until the bugs have been worked out."
-        )
-        raise NotImplementedError(error_message)
-        stdout.write("\n\n==== Reassigning Sources ====\n")
-        reassign_sources()
-        stdout.write("\n== All sources successfully remapped! ==\n")
-        stdout.write("\n\n==== Reassigning Chants ====\n")
-        reassign_chants()
-        stdout.write("\n== All chants successfully remapped! ==\n")
+        with reversion.create_revision():
+            self.stdout.write(self.style.NOTICE("==== Reassigning Sources ===="))
+            self.reassign_sources()
+            self.stdout.write(
+                self.style.SUCCESS("== All sources successfully remapped! ==")
+            )
+            self.stdout.write(self.style.NOTICE("==== Reassigning Chants ===="))
+            self.reassign_chants()
+            self.stdout.write(
+                self.style.SUCCESS("== All chants successfully remapped! ==")
+            )
+            reversion.set_comment("Command: remap user IDs")
