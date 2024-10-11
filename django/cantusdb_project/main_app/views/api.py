@@ -1,14 +1,13 @@
 import csv
-from typing import List
-from typing import Optional
+from typing import Optional, Union, Any
 from django.contrib.auth import get_user_model
 from django.contrib.flatpages.models import FlatPage
 from django.core.exceptions import PermissionDenied
 from django.db.models.query import QuerySet
-from django.db.models import Model
 from django.http.response import JsonResponse
-from django.http import HttpResponse, HttpResponseNotFound
+from django.http import HttpResponse, HttpResponseNotFound, Http404, HttpRequest
 from django.urls.base import reverse
+from django.shortcuts import get_object_or_404
 from articles.models import Article
 from main_app.models import (
     Chant,
@@ -19,16 +18,9 @@ from main_app.models import (
     Source,
 )
 from next_chants import next_chants
-from django.http import Http404
-from django.core.exceptions import PermissionDenied
-from django.urls import reverse
-from django.contrib.auth import get_user_model
-from typing import List
-from django.contrib.flatpages.models import FlatPage
-from django.shortcuts import get_object_or_404
 
 
-def ajax_melody_list(request, cantus_id) -> JsonResponse:
+def ajax_melody_list(request: HttpRequest, cantus_id: str) -> JsonResponse:
     """
     Function-based view responding to the AJAX call for melody list on the chant detail page,
     accessed with ``chants/<int:pk>``, click on "Display melodies connected with this chant"
@@ -41,7 +33,9 @@ def ajax_melody_list(request, cantus_id) -> JsonResponse:
     """
     chants: QuerySet[Chant] = (
         Chant.objects.filter(cantus_id=cantus_id)
-        .select_related("source__holding_institution", "feast", "genre", "service")
+        .select_related(
+            "source", "source__holding_institution", "feast", "genre", "service"
+        )
         .exclude(volpiano=None)
         .order_by("id")
     )
@@ -50,38 +44,29 @@ def ajax_melody_list(request, cantus_id) -> JsonResponse:
     if not display_unpublished:
         chants = chants.filter(source__published=True)
 
-    concordance_values: QuerySet[dict] = chants.values(
-        "source__holding_institution__siglum",
-        "source__shelfmark",
-        "folio",
-        "service__name",
-        "genre__name",
-        "position",
-        "feast__name",
-        "cantus_id",
-        "volpiano",
-        "mode",
-        # OldCantus seems to use whichever is present: ms spelling, std spelling, incipit (in that order)
-        "manuscript_full_text_std_spelling",
-    )
+    concordances: list[dict[str, str]] = []
+    for chant in chants:
+        concordance: dict[str, str] = {
+            "siglum": chant.source.short_heading,
+            "folio": chant.folio or "",
+            "service__name": chant.service.name if chant.service else "",
+            "genre__name": chant.genre.name if chant.genre else "",
+            "position": chant.position or "",
+            "feast__name": chant.feast.name if chant.feast else "",
+            "cantus_id": chant.cantus_id or "",
+            # Query above filters out chants with volpiano=None
+            "volpiano": chant.volpiano,  # type: ignore[dict-item]
+            "mode": chant.mode or "",
+            "manuscript_full_text_std_spelling": chant.manuscript_full_text_std_spelling
+            or "",
+            "ci_link": chant.get_ci_url(),
+            "chant_link": chant.get_absolute_url(),
+            "source_link": chant.source.get_absolute_url(),
+            "db": "CD",
+        }
+        concordances.append(concordance)
 
-    concordances: list[dict] = list(concordance_values)
-    for i, concordance in enumerate(concordances):
-        # we need to use each chant's _source_'s siglum, and not the
-        # legacy sigla that were attached to chants in OldCantus
-        holding_inst_sig = concordance.pop("source__holding_institution__siglum")
-        source_shelfmark = concordance.pop("source__shelfmark")
-
-        concordance["siglum"] = f"{holding_inst_sig} {source_shelfmark}"
-        # for chants that do not have a source, do not attempt
-        # to return a source link
-        if chants[i].source:
-            concordance["source_link"] = chants[i].source.get_absolute_url()
-        concordance["ci_link"] = chants[i].get_ci_url()
-        concordance["chant_link"] = chants[i].get_absolute_url()
-        concordance["db"] = "CD"
-
-    concordance_count: int = len(concordances)
+    concordance_count = len(concordances)
     return JsonResponse(
         {"concordances": concordances, "concordance_count": concordance_count},
         safe=True,
@@ -154,7 +139,6 @@ def csv_export(request, source_id):
         feast = entry.feast.name if entry.feast else ""
         service = entry.service.name if entry.service else ""
         genre = entry.genre.name if entry.genre else ""
-        diff_db = entry.diff_db.id if entry.diff_db else ""
 
         writer.writerow(
             [
@@ -281,17 +265,21 @@ def ajax_melody_search(request):
         chants = chants.filter(feast__name__icontains=feast_name)
     if mode:
         chants = chants.filter(mode__icontains=mode)
-
-    result_values = chants.order_by("id").values(
-        "id",
-        "source__holding_institution__siglum",
-        "source__shelfmark",
-        "folio",
-        "incipit",
-        "genre__name",
-        "feast__name",
-        "mode",
-        "volpiano",
+    # See #1635 re the following source exclusion. Temporarily disable volpiano display for this source.
+    result_values = (
+        chants.exclude(source__id=680970)
+        .order_by("id")
+        .values(
+            "id",
+            "source__holding_institution__siglum",
+            "source__shelfmark",
+            "folio",
+            "incipit",
+            "genre__name",
+            "feast__name",
+            "mode",
+            "volpiano",
+        )
     )
     # convert queryset to a list of dicts because QuerySet is not JSON serializable
     # the above constructed queryset will be evaluated here
@@ -357,88 +345,47 @@ def ajax_search_bar(request, search_term):
     return JsonResponse({"chants": returned_values}, safe=True)
 
 
-def json_melody_export(request, cantus_id: str) -> JsonResponse:
-    chants = Chant.objects.filter(
-        cantus_id=cantus_id, volpiano__isnull=False, source__published=True
-    )
-
-    db_keys = [
-        "melody_id",
-        "id",
-        "cantus_id",
-        "source__holding_institution",
-        "source__shelfmark",
-        "source__id",  # don't fetch the entire Source object, just the id of
-        # the source. __id is removed in standardize_for_api below
-        "folio",
-        "incipit",
-        "manuscript_full_text",
-        "volpiano",
-        "mode",
-        "feast__id",
-        "service__id",
-        "genre__id",
-        "position",
-    ]
-
-    chants_values = list(chants.values(*db_keys))  # a list of dictionaries. Each
-    # dictionary represents metadata on one chant
-
-    standardized_chants_values = [
-        standardize_dict_for_json_melody_export(cv, request) for cv in chants_values
-    ]
-
-    return JsonResponse(standardized_chants_values, safe=False)
-
-
-def standardize_dict_for_json_melody_export(
-    chant_values: List[dict], request
-) -> List[dict]:
-    """Take a list of dictionaries, and in each dictionary, change several
-    of the keys to match their values in OldCantus
-
-    Args:
-        chant_values (List[dict]): a list of dictionaries, each containing
-            information on a single chant in the database
-        request: passed when this is called in json_melody_export. Used to get the domain
-            while building the chant links
-
-    Returns:
-        List[dict]: a list of dictionaries, with updated keys
+def json_melody_export(request: HttpRequest, cantus_id: str) -> JsonResponse:
     """
-    keymap = {  # map attribute names from Chant model (i.e. db_keys
-        # in json_melody_export) to corresponding attribute names
-        # in old API, and remove artifacts of query process (i.e. __id suffixes)
-        "melody_id": "mid",  #                  <-
-        "id": "nid",  #                         <-
-        "cantus_id": "cid",  #                  <-
-        "source__shelfmark": "shelfmark",
-        "source__holding_institution": "holding_institution",
-        "source__id": "srcnid",  #              <-
-        "folio": "folio",
-        "incipit": "incipit",
-        "manuscript_full_text": "fulltext",  #  <-
-        "volpiano": "volpiano",
-        "mode": "mode",
-        "feast__id": "feast",  #                <-
-        "service__id": "service",  #              <-
-        "genre__id": "genre",  #                <-
-        "position": "position",
-    }
+    Similar to the ajax_melody_list view, but designed for external use (for instance,
+    it returns absolute URLs for the chant and source detail pages), only returns
+    chants in published sources, and contains slightly different chant text fields.
+    """
+    chants: QuerySet[Chant] = Chant.objects.filter(
+        cantus_id=cantus_id, volpiano__isnull=False, source__published=True
+    ).select_related("source")
 
-    standardized_chant_values = {keymap[key]: chant_values[key] for key in chant_values}
+    chants_export: list[dict[str, Optional[Union[str, int]]]] = []
+    for chant in chants:
+        chant_values = {
+            "mid": chant.melody_id,
+            "nid": chant.id,
+            "cid": chant.cantus_id,
+            "siglum": chant.source.short_heading,
+            "srcnid": chant.source.id,
+            "folio": chant.folio,
+            "incipit": chant.incipit,
+            "fulltext": chant.manuscript_full_text_std_spelling,
+            "volpiano": chant.volpiano,
+            "mode": chant.mode,
+            "feast": chant.feast_id,
+            "office": chant.service_id,  # We keep the office key for backwards compatibility
+            # with external applications
+            "genre": chant.genre_id,
+            "position": chant.position,
+        }
+        chant_uri = request.build_absolute_uri(
+            reverse("chant-detail", args=[chant_values["nid"]])
+        )
+        chant_values["chantlink"] = chant_uri
+        src_uri = request.build_absolute_uri(
+            reverse("source-detail", args=[chant_values["srcnid"]])
+        )
+        chant_values["srclink"] = src_uri
 
-    # manually build a couple of last fields that aren't represented in Chant object
-    chant_uri = request.build_absolute_uri(
-        reverse("chant-detail", args=[chant_values["id"]])
-    )
-    standardized_chant_values["chantlink"] = chant_uri
-    src_uri = request.build_absolute_uri(
-        reverse("source-detail", args=[chant_values["source__id"]])
-    )
-    standardized_chant_values["srclink"] = src_uri
+        chants_export.append(chant_values)
 
-    return standardized_chant_values
+    return JsonResponse(chants_export, safe=False)
 
 
 def json_sources_export(request) -> JsonResponse:
@@ -501,7 +448,13 @@ def json_cid_export(request, cantus_id: str) -> JsonResponse:
     """
 
     # the API in OldCantus appears to only return chants, and no sequences.
-    chants = Chant.objects.filter(cantus_id=cantus_id).filter(source__published=True)
+    chants = (
+        Chant.objects.select_related(
+            "source", "source__holding_institution", "feast", "genre", "service"
+        )
+        .filter(cantus_id=cantus_id)
+        .filter(source__published=True)
+    )
     chant_dicts = [{"chant": build_json_cid_dictionary(c, request)} for c in chants]
     response = {"chants": chant_dicts}
     return JsonResponse(response)
@@ -532,7 +485,9 @@ def build_json_cid_dictionary(chant, request) -> dict:
         "incipit": chant.incipit if chant.incipit else "",
         "feast": chant.feast.name if chant.feast else "",
         "genre": chant.genre.name if chant.genre else "",
-        "service": chant.service.name if chant.service else "",
+        "office": (
+            chant.service.name if chant.service else ""
+        ),  # We keep the office key for backwards compatibility with external applications
         "position": chant.position if chant.position else "",
         "cantus_id": chant.cantus_id if chant.cantus_id else "",
         "image": chant.image_link if chant.image_link else "",
@@ -548,7 +503,7 @@ def build_json_cid_dictionary(chant, request) -> dict:
     return dictionary
 
 
-def record_exists(rec_type: type[Model], pk: int) -> bool:
+def record_exists(rec_type: Union[Chant, Source, Sequence, Article], pk: int) -> bool:
     """Determines whether record of specific type (chant, source, sequence, article) exists for a given pk
 
     Args:
@@ -586,7 +541,9 @@ def get_user_id_from_old_indexer_id(pk: int) -> Optional[int]:
         return None
 
 
-NODE_TYPES_AND_VIEWS = [
+NODE_TYPES_AND_VIEWS: list[
+    tuple[Union[type[Chant], type[Source], type[Sequence], type[Article]], str]
+] = [
     (Chant, "chant-detail"),
     (Source, "source-detail"),
     (Sequence, "sequence-detail"),
@@ -600,7 +557,7 @@ NODE_TYPES_AND_VIEWS = [
 NODE_ID_CUTOFF = 1_000_000
 
 
-def json_node_export(request, id: int) -> HttpResponse:
+def json_node_export(request: HttpRequest, id: int) -> HttpResponse:
     """
     returns all fields of the chant/sequence/source/indexer with the specified `id`
     """
@@ -612,12 +569,12 @@ def json_node_export(request, id: int) -> HttpResponse:
         raise Http404()
 
     user_id = get_user_id_from_old_indexer_id(id)
-    if get_user_id_from_old_indexer_id(id) is not None:
+    if user_id is not None:
         User = get_user_model()
         user = User.objects.filter(id=user_id)
         # in order to easily unpack the object's properties in `vals` below, `user` needs to be
         # a queryset rather than an individual object.
-        vals = dict(*user.values())
+        vals: dict[str, Any] = dict(*user.values())
         return JsonResponse(vals)
 
     # This seems to return the first object for which the node id matches.

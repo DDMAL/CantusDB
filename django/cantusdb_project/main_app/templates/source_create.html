@@ -46,12 +46,9 @@
                 <div class="form-row">
                     <div class="form-group m-1 col-lg-3">
                         <label for="{{ form.holding_institution.id_for_label }}" class="form-control-sm">
-                            Holding Institution:<span class="text-danger" title="This field is required">*</span>
+                            Holding Institution:
                         </label>
                         {{ form.holding_institution }}
-                        <p class=text-muted>
-                            <small>{{ form.holding_institution.help_text }}</small>
-                        </p>
                     </div>
                 </div>
                 <div class="form-row">
@@ -60,8 +57,17 @@
                             Shelfmark:<span class="text-danger" title="This field is required">*</span>
                         </label>
                         {{ form.shelfmark }}
-                        <p class=text-muted>
-                            <small>{{ form.shelfmark.help_text }}</small>
+                        <p class="text-muted small">
+                            {{ form.shelfmark.help_text|safe }}
+                        </p>
+                    </div>
+                    <div class="form-group m-1 col-lg-3">
+                        <label for="{{ form.name.id_for_label }}" class="form-control-sm">
+                            Name:
+                        </label>
+                        {{ form.name }}
+                        <p class="text-muted small">
+                            {{ form.name.help_text|safe }}
                         </p>
                     </div>
                     <div class="form-group m-1 col-lg-3">
@@ -89,18 +95,19 @@
                     </div>
 
                     <div class="form-group m-1 col-lg-3">
-                        <label for="{{ form.full_source.id_for_label }}">
-                            <small>Full source / fragment:</small>
-                        </label>
-                        {{ form.full_source }}
-                        <p class=text-muted><small>{{ form.full_source.help_text }}</small></p>
+                        <span class="small">{{ form.source_completeness.label_tag }}</span>
+                        {{ form.source_completeness }}
                     </div>
                 </div>
 
                 <div class="form-row">
-                    <div class="form-group m-1 col-lg-3">
+                    <div class="form-group m-1 col-lg-5">
                         <small>{{ form.century.label_tag }}</small>
                         {{ form.century }}
+                    </div>
+                    <div class="form-group m-1 col-lg-3">
+                        <span class="small">{{ form.production_method.label_tag }}</span>
+                        {{ form.production_method }}
                     </div>
                 </div>
 
