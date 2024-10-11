@@ -7,6 +7,7 @@ from django.contrib.auth.mixins import LoginRequiredMixin
 from django.contrib.auth.mixins import UserPassesTestMixin
 from django.core.exceptions import PermissionDenied
 from django.db.models import Q, QuerySet
+from django.forms import BaseModelForm
 from django.http import Http404, HttpResponse
 from django.shortcuts import get_object_or_404
 from django.urls import reverse
@@ -18,6 +19,7 @@ from django.views.generic import (
     TemplateView,
     UpdateView,
 )
+from volpiano_display_utilities.latin_word_syllabification import LatinError
 from volpiano_display_utilities.cantus_text_syllabification import (
     syllabify_text,
     flatten_syllabified_text,
@@ -205,11 +207,14 @@ class ChantDetailView(DetailView):
         # syllabification section
         if chant.volpiano:
             has_syl_text = bool(chant.manuscript_syllabized_full_text)
-            text_and_mel, _ = align_text_and_volpiano(
-                chant.get_best_text_for_syllabizing(),
-                chant.volpiano,
-                text_presyllabified=has_syl_text,
-            )
+            try:
+                text_and_mel, _ = align_text_and_volpiano(
+                    chant.get_best_text_for_syllabizing(),
+                    chant.volpiano,
+                    text_presyllabified=has_syl_text,
+                )
+            except LatinError:
+                text_and_mel = None
             context["syllabized_text_with_melody"] = text_and_mel
 
         if project := chant.project:
@@ -769,13 +774,15 @@ class ChantCreateView(LoginRequiredMixin, UserPassesTestMixin, CreateView):
     template_name = "chant_create.html"
     form_class = ChantCreateForm
     pk_url_kwarg = "source_pk"
+    source: Source
+    latest_chant: Optional[Chant]
 
     def test_func(self):
         user = self.request.user
         source_id = self.kwargs.get(self.pk_url_kwarg)
-        source = get_object_or_404(Source, id=source_id)
+        self.source = get_object_or_404(Source, id=source_id)
 
-        return user_can_edit_chants_in_source(user, source)
+        return user_can_edit_chants_in_source(user, self.source)
 
     # if success_url and get_success_url not specified, will direct to chant detail page
     def get_success_url(self):
@@ -793,8 +800,10 @@ class ChantCreateView(LoginRequiredMixin, UserPassesTestMixin, CreateView):
         """
         try:
             latest_chant = self.source.chant_set.latest("date_updated")
+            self.latest_chant = latest_chant
         except Chant.DoesNotExist:
             # if there is no chant in source, start with folio 001r, and c_sequence 1
+            self.latest_chant = None
             return {
                 "folio": "001r",
                 "feast": "",
@@ -816,22 +825,12 @@ class ChantCreateView(LoginRequiredMixin, UserPassesTestMixin, CreateView):
             "image_link": latest_image,
         }
 
-    def dispatch(self, request, *args, **kwargs):
-        """Make sure the source specified in url exists before we display the form"""
-        self.source = get_object_or_404(Source, pk=kwargs["source_pk"])
-        return super().dispatch(request, *args, **kwargs)
-
-    def get_suggested_feasts(self):
+    def get_suggested_feasts(self, latest_chant: Chant) -> dict[Feast, int]:
         """based on the feast of the most recently edited chant, provide a
         list of suggested feasts that might follow the feast of that chant.
 
         Returns: a dictionary, with feast objects as keys and counts as values
         """
-        try:
-            latest_chant = self.source.chant_set.latest("date_updated")
-        except Chant.DoesNotExist:
-            return None
-
         current_feast = latest_chant.feast
         chants_that_end_current_feast = Chant.objects.filter(
             is_last_chant_in_feast=True, feast=current_feast
@@ -852,31 +851,30 @@ class ChantCreateView(LoginRequiredMixin, UserPassesTestMixin, CreateView):
     def get_context_data(self, **kwargs: Any) -> dict[Any, Any]:
         context = super().get_context_data(**kwargs)
         context["source"] = self.source
-        previous_chant: Optional[Chant] = None
-        try:
-            previous_chant = self.source.chant_set.latest("date_updated")
-        except Chant.DoesNotExist:
-            pass
+        previous_chant = self.latest_chant
         context["previous_chant"] = previous_chant
-        context["suggested_feasts"] = self.get_suggested_feasts()
-
-        previous_cantus_id: Optional[str] = None
-        if previous_chant:
-            previous_cantus_id = previous_chant.cantus_id
-
+        suggested_feasts = None
         suggested_chants = None
-        if previous_cantus_id:
-            suggested_chants = get_suggested_chants(previous_cantus_id)
+        if previous_chant:
+            suggested_feasts = self.get_suggested_feasts(previous_chant)
+            previous_cantus_id = previous_chant.cantus_id
+            if previous_cantus_id:
+                suggested_chants = get_suggested_chants(previous_cantus_id)
+        context["suggested_feasts"] = suggested_feasts
         context["suggested_chants"] = suggested_chants
         return context
 
     def form_valid(self, form):
-        """compute source, incipit; folio/sequence (if left empty)
-        validate the form: add success/error message
+        """
+        Validates the new chant.
+
+        Custom validation steps are:
+        - Check if a chant with the same sequence and folio already exists in the source.
+        - Compute the chant incipit.
+        - Adds the "created_by" and "updated_by" fields to the chant.
         """
         # compute source
-        form.instance.source = self.source  # same effect as the next line
-        # form.instance.source = get_object_or_404(Source, pk=self.kwargs['source_pk'])
+        form.instance.source = self.source
 
         # compute incipit, within 30 charactors, keep words complete
         words = form.instance.manuscript_full_text_std_spelling.split(" ")
@@ -912,8 +910,7 @@ class ChantCreateView(LoginRequiredMixin, UserPassesTestMixin, CreateView):
                 "Chant '" + form.instance.incipit + "' created successfully!",
             )
             return super().form_valid(form)
-        else:
-            return super().form_invalid(form)
+        return super().form_invalid(form)
 
 
 class ChantDeleteView(LoginRequiredMixin, UserPassesTestMixin, DeleteView):
@@ -1132,11 +1129,18 @@ class SourceEditChantsView(LoginRequiredMixin, UserPassesTestMixin, UpdateView):
             has_syl_text = bool(chant.manuscript_syllabized_full_text)
             # Note: the second value returned is a flag indicating whether the alignment process
             # encountered errors. In future, this could be used to display a message to the user.
-            text_and_mel, _ = align_text_and_volpiano(
-                chant.get_best_text_for_syllabizing(),
-                chant.volpiano,
-                text_presyllabified=has_syl_text,
-            )
+            try:
+                text_and_mel, _ = align_text_and_volpiano(
+                    chant.get_best_text_for_syllabizing(),
+                    chant.volpiano,
+                    text_presyllabified=has_syl_text,
+                )
+            except LatinError as err:
+                messages.error(
+                    self.request,
+                    "Error in aligning text and melody: " + str(err),
+                )
+                text_and_mel = None
             context["syllabized_text_with_melody"] = text_and_mel
 
         user = self.request.user
@@ -1243,12 +1247,20 @@ class ChantEditSyllabificationView(LoginRequiredMixin, UserPassesTestMixin, Upda
         initial = super().get_initial()
         chant = self.get_object()
         has_syl_text = bool(chant.manuscript_syllabized_full_text)
-        syls_text, _ = syllabify_text(
-            text=chant.get_best_text_for_syllabizing(),
-            clean_text=True,
-            text_presyllabified=has_syl_text,
-        )
-        self.flattened_syls_text = flatten_syllabified_text(syls_text)
+        try:
+            syls_text, _ = syllabify_text(
+                text=chant.get_best_text_for_syllabizing(),
+                clean_text=True,
+                text_presyllabified=has_syl_text,
+            )
+            self.flattened_syls_text = flatten_syllabified_text(syls_text)
+        except LatinError as err:
+            messages.error(
+                self.request,
+                "Error in syllabifying text: " + str(err),
+            )
+            syls_text = None
+            self.flattened_syls_text = ""
         initial["manuscript_syllabized_full_text"] = self.flattened_syls_text
         return initial
 

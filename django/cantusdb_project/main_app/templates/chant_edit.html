@@ -21,6 +21,7 @@
     <!--Display messages -->
     {% for message in messages %}
         <div class="alert {{ message.tags }} alert-dismissible" role="alert" >
+            <a href="#" class="close" data-dismiss="alert" aria-label="close">&times;</a>
             {{ message }}
         </div>
     {% endfor %}
@@ -283,25 +284,33 @@
                             <p><small>Syllabification is based on saved syllabized text.</small></p>
                         {% endif %}
                         <dd>
-                            {% for syl_text, syl_mel in syllabized_text_with_melody %}
-                                <span style="float: left">
-                                    <div style="font-family: volpiano; font-size: 36px">{{ syl_mel }}</div>
-                                    <!-- "mt" is margin at the top, so that the lowest note in volpiano don't overlap with text -->
-                                    <div class="mt-2" style="font-size: 12px; "><pre>{{ syl_text }}</pre></div>
-                                </span>
-                            {% endfor %}
+                            {% if syllabized_text_with_melody %}
+                                {% for syl_text, syl_mel in syllabized_text_with_melody %}
+                                    <span style="float: left">
+                                        <div style="font-family: volpiano; font-size: 36px">{{ syl_mel }}</div>
+                                        <!-- "mt" is margin at the top, so that the lowest note in volpiano don't overlap with text -->
+                                        <div class="mt-2" style="font-size: 12px; "><pre>{{ syl_text }}</pre></div>
+                                    </span>
+                                {% endfor %}
+                            {% else %}
+                                <p>Error aligning text and melody. Please check text for invalid characters.</p>
+                            {% endif %}
                         </dd>
                     </div>
                 </div>
             {% endif %}
 
-            <div class="form-row">
-                <div class="form-group m-1 col-lg-4">
-                    <a href="{% url "source-edit-syllabification" chant.id %}" style="display: inline-block; margin-top:5px;" target="_blank">
-                        <small>Edit syllabification (new window)</small>
-                    </a>
+            <!-- If there's no syllabized_text_with_melody (either there's no volpiano to align or there's an
+             error in the text), there's no need for the user to edit the syllabification. -->
+            {% if syllabized_text_with_melody %}
+                <div class="form-row">
+                    <div class="form-group m-1 col-lg-4">
+                        <a href="{% url "source-edit-syllabification" chant.id %}" style="display: inline-block; margin-top:5px;" target="_blank">
+                            <small>Edit syllabification (new window)</small>
+                        </a>
+                    </div>
                 </div>
-            </div>
+            {% endif %}
 
             <div class="form-row">
                 <div class="form-group m-1 col-lg-12">
