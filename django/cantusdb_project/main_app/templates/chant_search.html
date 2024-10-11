@@ -240,6 +240,8 @@
                 </thead>
                 <tbody>
                     {% for chant in chants %}
+                    <!-- See #1635. Temporarily disable volpiano display for this source. -->
+                        {% if chant.source.id != 680970 or melodies != "true" %}
                         <tr>
                             {% if not source %}
                             <td class="text-wrap" style="text-align:left">
@@ -297,7 +299,8 @@
                                 {% endif %}
                             </td>
                             <td class="text-wrap" style="text-align:center">
-                                {% if chant.volpiano %}
+                                <!-- See #1635. Temporarily disable volpiano display for this source. -->
+                                {% if chant.volpiano and chant.source.id !=  680970 %}
                                     <span title="Chant record has Volpiano melody">♫</span>
                                 {% endif %}
                             </td>
@@ -307,6 +310,7 @@
                                 {% endif %}
                             </td>
                         </tr>
+                        {% endif %}
                     {% endfor %}
                 </tbody>
             </table>

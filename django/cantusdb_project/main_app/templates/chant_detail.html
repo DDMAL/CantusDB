@@ -240,8 +240,9 @@
             <dt>Full text as in Source (source spelling)</dt>
             <dd>{{ chant.manuscript_full_text }}</dd>
         {% endif %}
-
-        {% if chant.volpiano %}
+ 
+        <!-- See #1635. Temporarily disable volpiano display for this source. -->
+        {% if chant.volpiano and chant.source.id != 680970 %} 
             <dt>Volpiano</dt>
             <dd>
                 <p style="font-family: volpiano; font-size:36px">{{ chant.volpiano }}</p>
@@ -253,7 +254,8 @@
             <dd>{{ chant.indexing_notes }}</dd>
         {% endif %}
 
-        {% if chant.volpiano %}
+        <!-- See #1635. Temporarily disable volpiano display for this source. -->
+        {% if chant.volpiano and chant.source.id != 680970 %}
             <div class="row">
                 <div class="col">
                     <dt>Melody with text</dt>

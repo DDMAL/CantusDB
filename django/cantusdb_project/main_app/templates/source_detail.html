@@ -34,13 +34,18 @@
 {% endif %}
 
 <dl>
+    <dt>Cantus Siglum</dt>
+    <dd>{{ source.short_heading }}</dd>
     {% if source.holding_institution %}
-        <dt>Siglum</dt>
-        <dd>{{ source.short_heading }}</dd>
         <dt>Holding Institution</dt>
         <dd>
             <a href="{% url "institution-detail" source.holding_institution_id %}">{{ source.holding_institution }}</a>
         </dd>
+    {% endif %}
+
+    {% if source.production_method %}
+        <dt>Manuscript/Printed</dt>
+        <dd>{{ source.get_production_method_display }}</dd>
     {% endif %}
 
     {% if source.summary %}
@@ -112,10 +117,8 @@
         <dd>{{ source.complete_inventory|yesno:"Complete Inventory,Partial Inventory" }}</dd>
     {% endif %}
 
-    {% if source.full_source is not None %}
-        <dt>Full Source/Fragment</dt>
-        <dd>{{ source.full_source|yesno:"Full Source,Fragment or Fragmented" }}</dd>
-    {% endif %}
+    <dt>Full Source/Fragment</dt>
+    <dd>{{ source.get_source_completeness_display }}</dd>
 
     {% if user.is_authenticated %}
         <dt>Source Status</dt>

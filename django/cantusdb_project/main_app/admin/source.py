@@ -3,7 +3,7 @@ from django.contrib import admin
 from main_app.admin.base_admin import BaseModelAdmin, EXCLUDE, READ_ONLY
 from main_app.admin.filters import InputFilter
 from main_app.forms import AdminSourceForm
-from main_app.models import Source
+from main_app.models import Source, SourceIdentifier
 
 
 class SourceKeyFilter(InputFilter):
@@ -15,10 +15,19 @@ class SourceKeyFilter(InputFilter):
             return queryset.filter(holding_institution__siglum__icontains=self.value())
 
 
+class IdentifiersInline(admin.TabularInline):
+    model = SourceIdentifier
+    extra = 0
+
+    def get_queryset(self, request):
+        return super().get_queryset(request).select_related("source__holding_institution")
+
+
 @admin.register(Source)
 class SourceAdmin(BaseModelAdmin):
     exclude = EXCLUDE + ("source_status",)
     raw_id_fields = ("holding_institution",)
+    inlines = (IdentifiersInline,)
 
     # These search fields are also available on the user-source inline relationship in the user admin page
     search_fields = (
@@ -28,6 +37,8 @@ class SourceAdmin(BaseModelAdmin):
         "holding_institution__migrated_identifier",
         "id",
         "provenance_notes",
+        "name",
+        "identifiers__identifier"
     )
     readonly_fields = (
         ("title", "siglum")

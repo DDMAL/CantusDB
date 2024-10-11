@@ -42,13 +42,24 @@ class Source(BaseModel):
     holding_institution = models.ForeignKey(
         "Institution",
         on_delete=models.PROTECT,
-        null=False,
-        blank=False,
+        null=True,
+        blank=True,
     )
     shelfmark = models.CharField(
         max_length=255,
         blank=False,
         null=False,
+        help_text=(
+            "Primary Cantus Database identifier for the source "
+            "(e.g. library shelfmark, DACT ID, etc.)"
+        ),
+        default="[No Shelfmark]",
+    )
+    name = models.CharField(
+        max_length=255,
+        blank=True,
+        null=True,
+        help_text="A colloquial or commonly-used name for the source",
     )
     provenance = models.ForeignKey(
         "Provenance",
@@ -65,6 +76,18 @@ class Source(BaseModel):
         null=True,
         help_text="More exact indication of the provenance (if necessary)",
     )
+
+    class SourceCompletenessChoices(models.IntegerChoices):
+        FULL_SOURCE = 1, "Full source"
+        FRAGMENT = 2, "Fragment/Fragmented"
+        RECONSTRUCTION = 3, "Reconstruction"
+
+    source_completeness = models.IntegerField(
+        choices=SourceCompletenessChoices.choices,
+        default=SourceCompletenessChoices.FULL_SOURCE,
+        verbose_name="Full Source/Fragment",
+    )
+
     full_source = models.BooleanField(blank=True, null=True)
     date = models.CharField(
         blank=True,
@@ -134,6 +157,16 @@ class Source(BaseModel):
         blank=False, null=False, default=False
     )
 
+    class ProductionMethodChoices(models.IntegerChoices):
+        MANUSCRIPT = 1, "Manuscript"
+        PRINTED = 2, "Printed"
+
+    production_method = models.IntegerField(
+        default=ProductionMethodChoices.MANUSCRIPT,
+        choices=ProductionMethodChoices.choices,
+        verbose_name="Manuscript/Printed",
+    )
+
     # number_of_chants and number_of_melodies are used for rendering the source-list page (perhaps among other places)
     # they are automatically recalculated in main_app.signals.update_source_chant_count and
     # main_app.signals.update_source_melody_count every time a chant or sequence is saved or deleted
@@ -157,10 +190,16 @@ class Source(BaseModel):
             city = f"{holdinst.city}," if holdinst.city else ""
             title.append(city)
             title.append(f"{holdinst.name},")
+        else:
+            title.append("Cantus")
 
-        tt = self.shelfmark if self.shelfmark else self.title
+        title.append(self.shelfmark)
 
-        title.append(tt)
+        if self.source_completeness == self.SourceCompletenessChoices.FRAGMENT:
+            title.append("(fragment)")
+
+        if self.name:
+            title.append(f'("{self.name}")')
 
         return " ".join(title)
 
@@ -170,9 +209,14 @@ class Source(BaseModel):
         if holdinst := self.holding_institution:
             if holdinst.siglum and holdinst.siglum != "XX-NN":
                 title.append(f"{holdinst.siglum}")
-            elif holdinst.is_private_collector:
-                title.append("Private")
+            else:
+                title.append("Cantus")
+        else:
+            title.append("Cantus")
 
-        tt = self.shelfmark if self.shelfmark else self.title
-        title.append(tt)
+        title.append(self.shelfmark)
+
+        if self.source_completeness == self.SourceCompletenessChoices.FRAGMENT:
+            title.append("(fragment)")
+
         return " ".join(title)

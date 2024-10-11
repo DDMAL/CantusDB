@@ -88,8 +88,8 @@
             <thead>
                 <tr>
                     {% sortable_header request "country" %}
-                    {% sortable_header request "city_institution" "City + Institution" %}
-                    {% sortable_header request "source" "Source" %}
+                    {% sortable_header request "city_institution" "City + Holding Institution" %}
+                    {% sortable_header request "source" "Cantus Siglum" %}
                     <th scope="col" class="text-wrap" style="text-align:center">Summary</th>
                     <th scope="col" class="text-wrap" style="text-align:center">Date/Origin</th>
                     <th scope="col" class="text-wrap" style="text-align:center">Image Link</th>
@@ -103,9 +103,16 @@
                             <b>{{ source.holding_institution.country }}</b>
                         </td>
                         <td class="text-wrap" style="text-align:center">
-                            <a href="{% url 'source-detail' source.id %}">
-                                <b>{{ source.holding_institution.city }}, {{ source.holding_institution.name }}</b>
-                            </a>
+                            {% if source.holding_institution %}
+                                <a href="{% url 'institution-detail' source.holding_institution.id %}">
+                                    <b>
+                                        {% if source.holding_institution.city %}
+                                            {{ source.holding_institution.city }},
+                                        {% endif %}
+                                        {{ source.holding_institution.name }}
+                                    </b>
+                                </a>
+                            {% endif %}
                         </td>
                         <td class="text-wrap" style="text-align:center">
                             <a href="{% url 'source-detail' source.id %}">
@@ -113,6 +120,9 @@
                             </a>
                         </td>
                         <td class="text-wrap" style="text-align:center" title="{{ source.summary|default:""|truncatechars_html:500 }}">
+                            {% if source.name %}
+                                <b>"{{ source.name }}"</b><br>
+                            {% endif %}
                             {{ source.summary|default:""|truncatechars_html:120 }}
                         </td>
                         <td class="text-wrap" style="text-align:center">
@@ -130,7 +140,8 @@
                         </td>
                         <td class="text-wrap" style="text-align:center">
                             <b>{{ source.number_of_chants|default_if_none:"0" }}</b>
-                            {% if source.number_of_melodies %}
+                            <!-- See #1635. Temporarily disable volpiano display for this source. -->
+                            {% if source.number_of_melodies and source.id !=  680970 %}
                                 <br>/ {{ source.number_of_melodies }}
                             {% endif %}
                         </td>
