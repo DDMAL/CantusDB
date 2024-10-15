@@ -27,7 +27,11 @@
                             {{ institution.country }}
                         </td>
                         <td>
-                            {{ institution.city }}
+                            {% if institution.city %}
+                                {{ institution.city }}
+                            {% else %}
+                                [No City]
+                            {% endif %}
                         </td>
                         <td class="text-wrap">
                             <a href="{% url "institution-detail" institution.id %}">

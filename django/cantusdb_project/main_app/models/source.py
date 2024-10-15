@@ -78,14 +78,14 @@ class Source(BaseModel):
     )
 
     class SourceCompletenessChoices(models.IntegerChoices):
-        FULL_SOURCE = 1, "Full source"
-        FRAGMENT = 2, "Fragment/Fragmented"
+        FULL_SOURCE = 1, "Complete source"
+        FRAGMENT = 2, "Fragment"
         RECONSTRUCTION = 3, "Reconstruction"
 
     source_completeness = models.IntegerField(
         choices=SourceCompletenessChoices.choices,
         default=SourceCompletenessChoices.FULL_SOURCE,
-        verbose_name="Full Source/Fragment",
+        verbose_name="Complete Source/Fragment",
     )
 
     full_source = models.BooleanField(blank=True, null=True)

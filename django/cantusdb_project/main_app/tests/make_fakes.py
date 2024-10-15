@@ -405,7 +405,7 @@ def make_fake_source(
     summary: Optional[str] = None,
     provenance: Optional[Provenance] = None,
     century: Optional[Century] = None,
-    full_source: Optional[bool] = True,
+    source_completeness: int = Source.SourceCompletenessChoices.FULL_SOURCE,
     indexing_notes: Optional[str] = None,
 ) -> Source:
     """Generates a fake Source object."""
@@ -447,7 +447,7 @@ def make_fake_source(
         summary=summary,
         provenance=provenance,
         # century: ManyToManyField, must be set below
-        full_source=full_source,
+        source_completeness=source_completeness,
         indexing_notes=indexing_notes,
         provenance_notes=faker.sentence(),
         date=faker.sentence(nb_words=3),
