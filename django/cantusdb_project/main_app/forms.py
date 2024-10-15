@@ -778,12 +778,6 @@ class AdminSourceForm(forms.ModelForm):
         queryset=Provenance.objects.all().order_by("name"),
         required=False,
     )
-    TRUE_FALSE_CHOICES_SOURCE = (
-        (True, "Full source"),
-        (False, "Fragment or Fragmented"),
-    )
-
-    full_source = forms.ChoiceField(choices=TRUE_FALSE_CHOICES_SOURCE, required=False)
 
     century = forms.ModelMultipleChoiceField(
         queryset=Century.objects.all().order_by("name"),
