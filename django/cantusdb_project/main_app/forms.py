@@ -73,7 +73,6 @@ class CheckboxNameModelMultipleChoiceField(forms.ModelMultipleChoiceField):
     widget = CheckboxSelectMultiple()
 
 
-
 class CantusDBLatinField(forms.CharField):
     """
     A custom CharField for chant text fields. Validates that the text
@@ -107,6 +106,7 @@ class CantusDBSyllabifiedLatinField(forms.CharField):
             except ValueError as exc:
                 raise forms.ValidationError("Invalid characters in text.") from exc
 
+
 class StyledChoiceField(forms.ChoiceField):
     """
     A custom ChoiceField that uses the custom SelectWidget defined in widgets.py
@@ -114,7 +114,6 @@ class StyledChoiceField(forms.ChoiceField):
     """
 
     widget = SelectWidget()
-
 
 
 class ChantCreateForm(forms.ModelForm):
@@ -314,7 +313,7 @@ class SourceCreateForm(forms.ModelForm):
         required=False,
     )
 
-    TRUE_FALSE_CHOICES_INVEN = ((True, "Complete"), (False, "Incomplete"))
+    TRUE_FALSE_CHOICES_INVEN = ((True, "Full inventory"), (False, "Partial inventory"))
 
     complete_inventory = StyledChoiceField(
         choices=TRUE_FALSE_CHOICES_INVEN, required=False
@@ -510,8 +509,8 @@ class SourceEditForm(forms.ModelForm):
     )
 
     CHOICES_COMPLETE_INV = (
-        (True, "complete inventory"),
-        (False, "partial inventory"),
+        (True, "Full inventory"),
+        (False, "Partial inventory"),
     )
     complete_inventory = StyledChoiceField(choices=CHOICES_COMPLETE_INV, required=False)
 
@@ -763,14 +762,12 @@ class AdminSourceForm(forms.ModelForm):
     #     help_text="RISM-style siglum + Shelf-mark (e.g. GB-Ob 202).",
     # )
 
-
     shelfmark = forms.CharField(
         required=True,
         widget=TextInputWidget,
     )
 
     name = forms.CharField(required=False, widget=TextInputWidget)
-
 
     holding_institution = forms.ModelChoiceField(
         queryset=Institution.objects.all().order_by("city", "name"),
@@ -841,7 +838,7 @@ class AdminSourceForm(forms.ModelForm):
         widget=FilteredSelectMultiple(verbose_name="other editors", is_stacked=False),
     )
 
-    TRUE_FALSE_CHOICES_INVEN = ((True, "Complete"), (False, "Incomplete"))
+    TRUE_FALSE_CHOICES_INVEN = ((True, "Full inventory"), (False, "Partial inventory"))
 
     complete_inventory = forms.ChoiceField(
         choices=TRUE_FALSE_CHOICES_INVEN, required=False
