@@ -846,17 +846,17 @@ class SourceListViewTest(TestCase):
 
     def test_filter_by_full_source(self):
         full_source = make_fake_source(
-            full_source=True,
+            source_completeness=Source.SourceCompletenessChoices.FULL_SOURCE,
             published=True,
             shelfmark="full source",
         )
         fragment = make_fake_source(
-            full_source=False,
+            source_completeness=Source.SourceCompletenessChoices.FRAGMENT,
             published=True,
             shelfmark="fragment",
         )
-        unknown = make_fake_source(
-            full_source=None,
+        reconstruction = make_fake_source(
+            source_completeness=Source.SourceCompletenessChoices.RECONSTRUCTION,
             published=True,
             shelfmark="full_source field is empty",
         )
@@ -864,18 +864,16 @@ class SourceListViewTest(TestCase):
         # display full sources
         response = self.client.get(reverse("source-list"), {"fullSource": "true"})
         sources = response.context["sources"]
-        # full_source and unknown_source should be in the list, fragment should not
         self.assertIn(full_source, sources)
         self.assertNotIn(fragment, sources)
-        self.assertIn(unknown, sources)
+        self.assertNotIn(reconstruction, sources)
 
         # display fragments
         response = self.client.get(reverse("source-list"), {"fullSource": "false"})
         sources = response.context["sources"]
-        # fragment should be in the list, full_source and unknown_source should not
         self.assertNotIn(full_source, sources)
         self.assertIn(fragment, sources)
-        self.assertNotIn(unknown, sources)
+        self.assertNotIn(reconstruction, sources)
 
         # display all sources
         response = self.client.get(reverse("source-list"))
@@ -883,7 +881,7 @@ class SourceListViewTest(TestCase):
         # all three should be in the list
         self.assertIn(full_source, sources)
         self.assertIn(fragment, sources)
-        self.assertIn(unknown, sources)
+        self.assertIn(reconstruction, sources)
 
     def test_search_by_title(self):
         """The "general search" field searches in `title`, `shelfmark`, `description`, and `summary`"""
