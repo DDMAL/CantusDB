@@ -29,14 +29,14 @@
                 <table class="table table-bordered table-sm small">
                     <thead>
                         <tr>
-                            <th>Shelfmark</th>
+                            <th>Sources</th>
                         </tr>
                     </thead>
                     <tbody>
                     {% for source in cantus_sources %}
                         <tr>
                             <td>
-                                <a href="{% url "source-detail" source.id %}"><b>{{ source.shelfmark }}</b></a>
+                                <a href="{% url "source-detail" source.id %}"><b>{{ source.shelfmark }}{% if source.name %} ("{{ source.name }}"){% endif %}</b></a>
                             </td>
                         </tr>
                     {% endfor %}
@@ -47,18 +47,18 @@
         
             {% if num_bower_sources > 0 %}
                 <div class="col">
-                    <h5>Bower Sequence Database</h5>
+                    <h5>Clavis Sequentiarum (Sequence Database by Calvin Bower)</h5>
                     <table class="table table-bordered table-sm small">
                         <thead>
                         <tr>
-                            <th>Shelfmark</th>
+                            <th>Sources</th>
                         </tr>
                         </thead>
                         <tbody>
                         {% for source in bower_sources %}
                             <tr>
                                 <td>
-                                    <a href="{% url "source-detail" source.id %}"><b>{{ source.shelfmark }}</b></a>
+                                    <a href="{% url "source-detail" source.id %}"><b>{{ source.shelfmark }}{% if source.name %} ("{{ source.name }}"){% endif %}</b></a>
                                 </td>
                             </tr>
                         {% endfor %}
