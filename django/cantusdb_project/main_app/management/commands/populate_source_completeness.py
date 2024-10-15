@@ -12,7 +12,7 @@ class Command(BaseCommand):
     def handle(self, *args, **options):
         sources = Source.objects.all()
         for source in sources:
-            if source.full_source:
+            if source.full_source or source.full_source is None:
                 source.source_completeness = (
                     source.SourceCompletenessChoices.FULL_SOURCE
                 )
