@@ -35,6 +35,13 @@ from .widgets import (
 # ModelForm allows to build a form directly from a model
 # see https://docs.djangoproject.com/en/3.0/topics/forms/modelforms/
 
+# Define choices for the Source model's
+# complete_inventory BooleanField
+COMPLETE_INVENTORY_FORM_CHOICES = (
+    (True, "Full inventory"),
+    (False, "Partial inventory"),
+)
+
 
 class NameModelChoiceField(forms.ModelChoiceField):
     """
@@ -313,10 +320,8 @@ class SourceCreateForm(forms.ModelForm):
         required=False,
     )
 
-    TRUE_FALSE_CHOICES_INVEN = ((True, "Full inventory"), (False, "Partial inventory"))
-
     complete_inventory = StyledChoiceField(
-        choices=TRUE_FALSE_CHOICES_INVEN, required=False
+        choices=COMPLETE_INVENTORY_FORM_CHOICES, required=False
     )
 
 
@@ -508,11 +513,9 @@ class SourceEditForm(forms.ModelForm):
         required=False,
     )
 
-    CHOICES_COMPLETE_INV = (
-        (True, "Full inventory"),
-        (False, "Partial inventory"),
+    complete_inventory = StyledChoiceField(
+        choices=COMPLETE_INVENTORY_FORM_CHOICES, required=False
     )
-    complete_inventory = StyledChoiceField(choices=CHOICES_COMPLETE_INV, required=False)
 
 
 class SequenceEditForm(forms.ModelForm):
@@ -832,10 +835,8 @@ class AdminSourceForm(forms.ModelForm):
         widget=FilteredSelectMultiple(verbose_name="other editors", is_stacked=False),
     )
 
-    TRUE_FALSE_CHOICES_INVEN = ((True, "Full inventory"), (False, "Partial inventory"))
-
     complete_inventory = forms.ChoiceField(
-        choices=TRUE_FALSE_CHOICES_INVEN, required=False
+        choices=COMPLETE_INVENTORY_FORM_CHOICES, required=False
     )
 
 
