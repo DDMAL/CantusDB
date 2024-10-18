@@ -1,5 +1,5 @@
 import calendar
-from typing import Union, Optional, Any
+from typing import Union, Optional
 
 from django import template
 from django.core.paginator import Paginator
@@ -7,9 +7,11 @@ from django.db.models import Q
 from django.template.defaultfilters import stringfilter
 from django.utils.safestring import mark_safe
 from django.http import HttpRequest
+from django.utils.html import format_html_join
 
 from articles.models import Article
 from main_app.models import Source
+from main_app.models import BaseModel
 
 register = template.Library()
 
@@ -243,3 +245,22 @@ def sortable_header(
         "current_sort_param": current_sort_param,
         "url_wo_sort_params": url_wo_sort_params,
     }
+
+
+@register.simple_tag(takes_context=False)
+def join_absolute_url_links(
+    objects: list[BaseModel], display_attr: str, sep: str
+) -> str:
+    """
+    Takes a series of objects and returns an html string of
+    links to their absolute urls (i.e. their detail page).
+
+    Additional parameters:
+        display_attr: the attribute of the object to display in the link
+        sep: the separator between links
+    """
+    return format_html_join(
+        sep,
+        '<b><a href="{0}">{1}</a></b>',
+        ((obj.get_absolute_url(), getattr(obj, display_attr)) for obj in objects),
+    )

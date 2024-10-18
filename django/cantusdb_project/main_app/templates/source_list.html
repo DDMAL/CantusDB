@@ -126,8 +126,8 @@
                             {{ source.summary|default:""|truncatechars_html:120 }}
                         </td>
                         <td class="text-wrap" style="text-align:center">
-                            {% if source.century.exists %}
-                                <b><a href="{% url 'century-detail' source.century.first.id %}">{{ source.century.first.name }}</a></b><br>
+                            {% if source.century %}
+                                {% join_absolute_url_links source.century.all 'name' '/' %}<br>
                             {% endif %}
                             {% if source.provenance %}
                                 <a href="{% url 'provenance-detail' source.provenance.id %}">{{ source.provenance.name }}</a>
