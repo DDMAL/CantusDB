@@ -256,10 +256,13 @@ class SourceListView(ListView):  # type: ignore
             q_obj_filter &= Q(segment__id=int(segment_id))
         if (full_source_str := self.request.GET.get("fullSource")) in ["true", "false"]:
             if full_source_str == "true":
-                full_source_q = Q(full_source=True) | Q(full_source=None)
-                q_obj_filter &= full_source_q
+                q_obj_filter &= Q(
+                    source_completeness=Source.SourceCompletenessChoices.FULL_SOURCE
+                )
             else:
-                q_obj_filter &= Q(full_source=False)
+                q_obj_filter &= Q(
+                    source_completeness=Source.SourceCompletenessChoices.FRAGMENT
+                )
 
         if general_str := self.request.GET.get("general"):
             # Strip spaces at the beginning and end. Then make list of terms split on spaces

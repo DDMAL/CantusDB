@@ -70,7 +70,7 @@
                 </select>
             </div>
             <div class="form-group m-1 col-lg">
-                <label for="fullSourceFilter"><small>Full source/Fragment</small></label>
+                <label for="fullSourceFilter"><small>Complete Source/Fragment</small></label>
                 <select id="fullSourceFilter"  name="fullSource" class="form-control custom-select custom-select-sm">
                     <option value="">- Any -</option>
                     <option value="true">Complete source</option>
@@ -126,8 +126,8 @@
                             {{ source.summary|default:""|truncatechars_html:120 }}
                         </td>
                         <td class="text-wrap" style="text-align:center">
-                            {% if source.century.exists %}
-                                <b><a href="{% url 'century-detail' source.century.first.id %}">{{ source.century.first.name }}</a></b><br>
+                            {% if source.century %}
+                                {% join_absolute_url_links source.century.all 'name' '/' %}<br>
                             {% endif %}
                             {% if source.provenance %}
                                 <a href="{% url 'provenance-detail' source.provenance.id %}">{{ source.provenance.name }}</a>

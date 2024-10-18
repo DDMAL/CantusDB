@@ -35,6 +35,13 @@ from .widgets import (
 # ModelForm allows to build a form directly from a model
 # see https://docs.djangoproject.com/en/3.0/topics/forms/modelforms/
 
+# Define choices for the Source model's
+# complete_inventory BooleanField
+COMPLETE_INVENTORY_FORM_CHOICES = (
+    (True, "Full inventory"),
+    (False, "Partial inventory"),
+)
+
 
 class NameModelChoiceField(forms.ModelChoiceField):
     """
@@ -73,7 +80,6 @@ class CheckboxNameModelMultipleChoiceField(forms.ModelMultipleChoiceField):
     widget = CheckboxSelectMultiple()
 
 
-
 class CantusDBLatinField(forms.CharField):
     """
     A custom CharField for chant text fields. Validates that the text
@@ -107,6 +113,7 @@ class CantusDBSyllabifiedLatinField(forms.CharField):
             except ValueError as exc:
                 raise forms.ValidationError("Invalid characters in text.") from exc
 
+
 class StyledChoiceField(forms.ChoiceField):
     """
     A custom ChoiceField that uses the custom SelectWidget defined in widgets.py
@@ -114,7 +121,6 @@ class StyledChoiceField(forms.ChoiceField):
     """
 
     widget = SelectWidget()
-
 
 
 class ChantCreateForm(forms.ModelForm):
@@ -314,10 +320,8 @@ class SourceCreateForm(forms.ModelForm):
         required=False,
     )
 
-    TRUE_FALSE_CHOICES_INVEN = ((True, "Complete"), (False, "Incomplete"))
-
     complete_inventory = StyledChoiceField(
-        choices=TRUE_FALSE_CHOICES_INVEN, required=False
+        choices=COMPLETE_INVENTORY_FORM_CHOICES, required=False
     )
 
 
@@ -509,11 +513,9 @@ class SourceEditForm(forms.ModelForm):
         required=False,
     )
 
-    CHOICES_COMPLETE_INV = (
-        (True, "complete inventory"),
-        (False, "partial inventory"),
+    complete_inventory = StyledChoiceField(
+        choices=COMPLETE_INVENTORY_FORM_CHOICES, required=False
     )
-    complete_inventory = StyledChoiceField(choices=CHOICES_COMPLETE_INV, required=False)
 
 
 class SequenceEditForm(forms.ModelForm):
@@ -763,14 +765,12 @@ class AdminSourceForm(forms.ModelForm):
     #     help_text="RISM-style siglum + Shelf-mark (e.g. GB-Ob 202).",
     # )
 
-
     shelfmark = forms.CharField(
         required=True,
         widget=TextInputWidget,
     )
 
     name = forms.CharField(required=False, widget=TextInputWidget)
-
 
     holding_institution = forms.ModelChoiceField(
         queryset=Institution.objects.all().order_by("city", "name"),
@@ -781,12 +781,6 @@ class AdminSourceForm(forms.ModelForm):
         queryset=Provenance.objects.all().order_by("name"),
         required=False,
     )
-    TRUE_FALSE_CHOICES_SOURCE = (
-        (True, "Full source"),
-        (False, "Fragment or Fragmented"),
-    )
-
-    full_source = forms.ChoiceField(choices=TRUE_FALSE_CHOICES_SOURCE, required=False)
 
     century = forms.ModelMultipleChoiceField(
         queryset=Century.objects.all().order_by("name"),
@@ -841,10 +835,8 @@ class AdminSourceForm(forms.ModelForm):
         widget=FilteredSelectMultiple(verbose_name="other editors", is_stacked=False),
     )
 
-    TRUE_FALSE_CHOICES_INVEN = ((True, "Complete"), (False, "Incomplete"))
-
     complete_inventory = forms.ChoiceField(
-        choices=TRUE_FALSE_CHOICES_INVEN, required=False
+        choices=COMPLETE_INVENTORY_FORM_CHOICES, required=False
     )
 
 

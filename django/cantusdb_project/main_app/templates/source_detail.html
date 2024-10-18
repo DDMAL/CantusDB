@@ -113,11 +113,11 @@
     {% endif %}
 
     {% if source.complete_inventory is not None %}
-        <dt>Complete/Partial Inventory</dt>
-        <dd>{{ source.complete_inventory|yesno:"Complete Inventory,Partial Inventory" }}</dd>
+        <dt>Full/Partial Inventory</dt>
+        <dd>{{ source.complete_inventory|yesno:"Full Inventory,Partial Inventory" }}</dd>
     {% endif %}
 
-    <dt>Full Source/Fragment</dt>
+    <dt>Complete Source/Fragment</dt>
     <dd>{{ source.get_source_completeness_display }}</dd>
 
     {% if user.is_authenticated %}
@@ -249,15 +249,13 @@
                     Provenance: <b><a href="{% url 'provenance-detail' source.provenance.id %}">{{source.provenance.name}}</a></b>
                     <br>
                 {% endif %}
-                {% if source.date %}
+                {% if source.date or source.century %}
                     Date: 
-                    {% for century in source.century.all %}
-                        <b><a href="{% url 'century-detail' century.id %}">
-                            {{ century.name }}
-                        </a></b>
-                    {% endfor %}
+                    {% join_absolute_url_links source.century.all 'name' '/' %}
+                    {% if source.date %} 
                     |
                     <b>{{ source.date|default_if_none:"" }}</b>
+                    {% endif %}
                     <br>
                 {% endif %}
                 {% if source.cursus %}
