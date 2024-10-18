@@ -249,15 +249,13 @@
                     Provenance: <b><a href="{% url 'provenance-detail' source.provenance.id %}">{{source.provenance.name}}</a></b>
                     <br>
                 {% endif %}
-                {% if source.date %}
+                {% if source.date or source.century %}
                     Date: 
-                    {% for century in source.century.all %}
-                        <b><a href="{% url 'century-detail' century.id %}">
-                            {{ century.name }}
-                        </a></b>
-                    {% endfor %}
+                    {% join_absolute_url_links source.century.all 'name' '/' %}
+                    {% if source.date %} 
                     |
                     <b>{{ source.date|default_if_none:"" }}</b>
+                    {% endif %}
                     <br>
                 {% endif %}
                 {% if source.cursus %}
