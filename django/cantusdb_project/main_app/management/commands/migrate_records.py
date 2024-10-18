@@ -71,6 +71,7 @@ siglum_to_country = {
     "HR": "Croatia",
     "I": "Italy",
     "IRL": "Ireland",
+    "N": "Norway",
     "NL": "Netherlands",
     "NZ": "New Zealand",
     "P": "Portugal",
