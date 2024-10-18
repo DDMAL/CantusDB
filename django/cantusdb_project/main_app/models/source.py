@@ -27,14 +27,16 @@ class Source(BaseModel):
 
     title = models.CharField(
         max_length=255,
+        blank=True,
+        null=True,
         help_text="Full Source Identification (City, Archive, Shelf-mark)",
     )
     # the siglum field as implemented on the old Cantus is composed of both the RISM siglum and the shelfmark
     # it is a human-readable ID for a source
     siglum = models.CharField(
         max_length=63,
-        null=False,
-        blank=False,
+        null=True,
+        blank=True,
         help_text="RISM-style siglum + Shelf-mark (e.g. GB-Ob 202).",
     )
     holding_institution = models.ForeignKey(
@@ -42,6 +44,22 @@ class Source(BaseModel):
         on_delete=models.PROTECT,
         null=True,
         blank=True,
+    )
+    shelfmark = models.CharField(
+        max_length=255,
+        blank=False,
+        null=False,
+        help_text=(
+            "Primary Cantus Database identifier for the source "
+            "(e.g. library shelfmark, DACT ID, etc.)"
+        ),
+        default="[No Shelfmark]",
+    )
+    name = models.CharField(
+        max_length=255,
+        blank=True,
+        null=True,
+        help_text="A colloquial or commonly-used name for the source",
     )
     provenance = models.ForeignKey(
         "Provenance",
@@ -58,12 +76,24 @@ class Source(BaseModel):
         null=True,
         help_text="More exact indication of the provenance (if necessary)",
     )
+
+    class SourceCompletenessChoices(models.IntegerChoices):
+        FULL_SOURCE = 1, "Complete source"
+        FRAGMENT = 2, "Fragment"
+        RECONSTRUCTION = 3, "Reconstruction"
+
+    source_completeness = models.IntegerField(
+        choices=SourceCompletenessChoices.choices,
+        default=SourceCompletenessChoices.FULL_SOURCE,
+        verbose_name="Complete Source/Fragment",
+    )
+
     full_source = models.BooleanField(blank=True, null=True)
     date = models.CharField(
         blank=True,
         null=True,
         max_length=63,
-        help_text='Date of the source (e.g. "1200s", "1300-1350", etc.)',
+        help_text='Date of the source, if known (e.g. "1541")',
     )
     century = models.ManyToManyField("Century", related_name="sources", blank=True)
     notation = models.ManyToManyField("Notation", related_name="sources", blank=True)
@@ -98,6 +128,9 @@ class Source(BaseModel):
     segment = models.ForeignKey(
         "Segment", on_delete=models.PROTECT, blank=True, null=True
     )
+    segment_m2m = models.ManyToManyField(
+        "Segment", blank=True, related_name="sources", verbose_name="Segments"
+    )
     source_status = models.CharField(
         blank=True, null=True, choices=source_status_choices, max_length=255
     )
@@ -124,6 +157,16 @@ class Source(BaseModel):
         blank=False, null=False, default=False
     )
 
+    class ProductionMethodChoices(models.IntegerChoices):
+        MANUSCRIPT = 1, "Manuscript"
+        PRINTED = 2, "Printed"
+
+    production_method = models.IntegerField(
+        default=ProductionMethodChoices.MANUSCRIPT,
+        choices=ProductionMethodChoices.choices,
+        verbose_name="Manuscript/Printed",
+    )
+
     # number_of_chants and number_of_melodies are used for rendering the source-list page (perhaps among other places)
     # they are automatically recalculated in main_app.signals.update_source_chant_count and
     # main_app.signals.update_source_melody_count every time a chant or sequence is saved or deleted
@@ -131,8 +174,7 @@ class Source(BaseModel):
     number_of_melodies = models.IntegerField(blank=True, null=True)
 
     def __str__(self):
-        string = "[{s}] {t} ({i})".format(s=self.siglum, t=self.title, i=self.id)
-        return string
+        return self.heading
 
     def save(self, *args, **kwargs):
         # when creating a source, assign it to "CANTUS Database" segment by default
@@ -140,3 +182,41 @@ class Source(BaseModel):
             cantus_db_segment = Segment.objects.get(name="CANTUS Database")
             self.segment = cantus_db_segment
         super().save(*args, **kwargs)
+
+    @property
+    def heading(self) -> str:
+        title = []
+        if holdinst := self.holding_institution:
+            city = f"{holdinst.city}," if holdinst.city else ""
+            title.append(city)
+            title.append(f"{holdinst.name},")
+        else:
+            title.append("Cantus")
+
+        title.append(self.shelfmark)
+
+        if self.source_completeness == self.SourceCompletenessChoices.FRAGMENT:
+            title.append("(fragment)")
+
+        if self.name:
+            title.append(f'("{self.name}")')
+
+        return " ".join(title)
+
+    @property
+    def short_heading(self) -> str:
+        title = []
+        if holdinst := self.holding_institution:
+            if holdinst.siglum and holdinst.siglum != "XX-NN":
+                title.append(f"{holdinst.siglum}")
+            else:
+                title.append("Cantus")
+        else:
+            title.append("Cantus")
+
+        title.append(self.shelfmark)
+
+        if self.source_completeness == self.SourceCompletenessChoices.FRAGMENT:
+            title.append("(fragment)")
+
+        return " ".join(title)

@@ -1,6 +1,10 @@
 {% extends "base.html" %}
+
+{% block title %}
+    <title>Service Abbreviations | Cantus Database</title>
+{% endblock %}
+
 {% block content %}
-<title>Service Abbreviations | Cantus Database</title>
 <div class="mr-3 p-3 col-md-12 mx-auto bg-white rounded">
     <object align="right" class="search-bar">
         {% include "global_search_bar.html" %}
@@ -15,12 +19,12 @@
             </tr>
         </thead>
         <tbody>
-            {% for office in offices %}
+            {% for service in services %}
                 <tr>
                     <td class="text-wrap">
-                        <a href="{% url 'office-detail' office.id %}"><b>{{ office.name }}</b></a>
+                        <a href="{% url 'service-detail' service.id %}"><b>{{ service.name }}</b></a>
                     </td>
-                    <td class="text-wrap">{{ office.description }}</td>
+                    <td class="text-wrap">{{ service.description }}</td>
                 </tr>
             {% endfor %}
         </tbody>

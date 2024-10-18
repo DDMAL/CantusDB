@@ -1,11 +1,15 @@
 {% extends "base.html" %}
+
+{% block title %}
+    <title>{{ service.name }} | Cantus Database</title>
+{% endblock %}
+
 {% block content %}
-<title>{{ office.name }} | Cantus Database</title>
 <div class="mr-3 p-3 mx-auto bg-white rounded">
     <object align="right" class="search-bar">
         {% include "global_search_bar.html" %}
     </object>
-    <h3>{{ office.name }}</h3>
-    <p>{{ office.description }}</p>
+    <h3>{{ service.name }}</h3>
+    <p>{{ service.description }}</p>
 </div>
 {% endblock %}

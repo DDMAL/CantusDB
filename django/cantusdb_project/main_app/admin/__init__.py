@@ -4,7 +4,7 @@ from main_app.admin.differentia import DifferentiaAdmin
 from main_app.admin.feast import FeastAdmin
 from main_app.admin.genre import GenreAdmin
 from main_app.admin.notation import NotationAdmin
-from main_app.admin.office import OfficeAdmin
+from main_app.admin.service import ServiceAdmin
 from main_app.admin.provenance import ProvenanceAdmin
 from main_app.admin.segment import SegmentAdmin
 from main_app.admin.sequence import SequenceAdmin

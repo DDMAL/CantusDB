@@ -1,9 +1,16 @@
 {% extends "base.html" %}
 {% load static %}
+
+{% block title %}
+    <title>Create Source | Cantus Database</title>
+{% endblock %}
+
+{% block scripts %}
+    <script type="text/javascript" src="{% static 'admin/js/vendor/jquery/jquery.js' %}"></script>
+    {{ form.media }}
+{% endblock %}
+
 {% block content %}
-<script type="text/javascript" src="{% static 'admin/js/vendor/jquery/jquery.js' %}"></script>
-{{ form.media }}
-<title>Create Source | Cantus Database</title>
 <div class="container">
     <div class="row">
         <div class="p-3 col-lg-12 bg-white rounded">
@@ -37,23 +44,39 @@
 
             <form method="post" style="line-height: normal">{% csrf_token %}
                 <div class="form-row">
-
-                    <div class="form-group m-1 col-lg-6">
-                        <label for="{{ form.title.id_for_label }}">
-                            <small>Full Source Identification (City, Archive, Shelf-mark):<span class="text-danger" title="This field is required">*</span></small>
+                    <div class="form-group m-1 col-lg-3">
+                        <label for="{{ form.holding_institution.id_for_label }}" class="form-control-sm">
+                            Holding Institution:
                         </label>
-                        {{ form.title }}
+                        {{ form.holding_institution }}
                     </div>
                 </div>
-
                 <div class="form-row">
-                    <div class="form-group m-1 col-lg-4">
-                        <small>{{ form.siglum.label_tag }}<span class="text-danger" title="This field is required">*</span></small>
-                        {{ form.siglum }}
-                        <p class=text-muted><small>{{ form.siglum.help_text }}</small></p>
-                    </div>    
+                    <div class="form-group m-1 col-lg-3">
+                        <label for="{{ form.shelfmark.id_for_label }}" class="form-control-sm">
+                            Shelfmark:<span class="text-danger" title="This field is required">*</span>
+                        </label>
+                        {{ form.shelfmark }}
+                        <p class="text-muted small">
+                            {{ form.shelfmark.help_text|safe }}
+                        </p>
+                    </div>
+                    <div class="form-group m-1 col-lg-3">
+                        <label for="{{ form.name.id_for_label }}" class="form-control-sm">
+                            Name:
+                        </label>
+                        {{ form.name }}
+                        <p class="text-muted small">
+                            {{ form.name.help_text|safe }}
+                        </p>
+                    </div>
+                    <div class="form-group m-1 col-lg-3">
+                        <label for="{{ form.segment_m2m.id_for_label }}">
+                            <small>Segments:</small>
+                        </label>
+                        <br>{{ form.segment_m2m }}
+                    </div>
                 </div>
-
                 <div class="form-row">
                     <div class="form-group m-1 col-lg-3">
                         <label for="{{ form.provenance.id_for_label }}">
@@ -72,18 +95,19 @@
                     </div>
 
                     <div class="form-group m-1 col-lg-3">
-                        <label for="{{ form.full_source.id_for_label }}">
-                            <small>Full source / fragment:</small>
-                        </label>
-                        {{ form.full_source }}
-                        <p class=text-muted><small>{{ form.full_source.help_text }}</small></p>
+                        <span class="small">{{ form.source_completeness.label_tag }}</span>
+                        {{ form.source_completeness }}
                     </div>
                 </div>
 
                 <div class="form-row">
-                    <div class="form-group m-1 col-lg-3">
+                    <div class="form-group m-1 col-lg-5">
                         <small>{{ form.century.label_tag }}</small>
                         {{ form.century }}
+                    </div>
+                    <div class="form-group m-1 col-lg-3">
+                        <span class="small">{{ form.production_method.label_tag }}</span>
+                        {{ form.production_method }}
                     </div>
                 </div>
 
@@ -138,7 +162,7 @@
                 <div class="form-row">
                     <div class="form-group m-1 col-lg-2">
                         <label for="{{ form.complete_inventory.id_for_label }}">
-                            <small>Complete / partial inventory:</small>
+                            <small>Full / partial inventory:</small>
                         </label>
                         {{ form.complete_inventory }}
                     </div>

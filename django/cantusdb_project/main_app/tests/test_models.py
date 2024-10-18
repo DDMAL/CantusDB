@@ -6,7 +6,7 @@ from main_app.models import (
     Chant,
     Feast,
     Genre,
-    Office,
+    Service,
     Sequence,
     Source,
 )
@@ -15,7 +15,7 @@ from .make_fakes import (
     make_fake_chant,
     make_fake_feast,
     make_fake_genre,
-    make_fake_office,
+    make_fake_service,
     make_fake_sequence,
     make_fake_source,
 )
@@ -82,7 +82,7 @@ class ChantModelTest(TestCase):
             "B": (
                 " ".join(
                     filter(
-                        None, [chant.genre.name, chant.feast.name, chant.office.name]
+                        None, [chant.genre.name, chant.feast.name, chant.service.name]
                     )
                 )
             ),
@@ -318,25 +318,25 @@ class GenreModelTest(TestCase):
         self.assertEqual(genre.get_absolute_url(), absolute_url)
 
 
-class OfficeModelTest(TestCase):
+class ServiceModelTest(TestCase):
     @classmethod
     def setUpTestData(cls):
-        make_fake_office()
+        make_fake_service()
 
     def test_object_string_representation(self):
-        office = Office.objects.first()
-        self.assertEqual(str(office), f"[{office.name}] {office.description}")
+        service = Service.objects.first()
+        self.assertEqual(str(service), f"[{service.name}] {service.description}")
 
     def test_display_name(self):
-        office = Office.objects.first()
-        display_name = office.display_name
-        name_str = office.__str__()
+        service = Service.objects.first()
+        display_name = service.display_name
+        name_str = service.__str__()
         self.assertEqual(display_name, name_str)
 
     def test_absolute_url(self):
-        office = Office.objects.first()
-        absolute_url = reverse("office-detail", args=[str(office.id)])
-        self.assertEqual(office.get_absolute_url(), absolute_url)
+        service = Service.objects.first()
+        absolute_url = reverse("service-detail", args=[str(service.id)])
+        self.assertEqual(service.get_absolute_url(), absolute_url)
 
 
 class SequenceModelTest(TestCase):

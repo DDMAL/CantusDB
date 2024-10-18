@@ -1,9 +1,19 @@
 from django import forms
 from django.contrib.auth.forms import ReadOnlyPasswordHashField
+from django.contrib.auth import get_user_model
+from django.db.models import Q
+from django.contrib.admin.widgets import (
+    FilteredSelectMultiple,
+)
+from django.forms.widgets import CheckboxSelectMultiple
+from dal import autocomplete
+from volpiano_display_utilities.cantus_text_syllabification import syllabify_text
+from volpiano_display_utilities.latin_word_syllabification import LatinError
 from .models import (
     Chant,
-    Office,
+    Service,
     Genre,
+    Institution,
     Notation,
     Feast,
     Source,
@@ -21,24 +31,25 @@ from .widgets import (
     SelectWidget,
     CheckboxWidget,
 )
-from django.contrib.auth import get_user_model
-from django.db.models import Q
-from django.contrib.admin.widgets import (
-    FilteredSelectMultiple,
-)
-from dal import autocomplete
 
 # ModelForm allows to build a form directly from a model
 # see https://docs.djangoproject.com/en/3.0/topics/forms/modelforms/
+
+# Define choices for the Source model's
+# complete_inventory BooleanField
+COMPLETE_INVENTORY_FORM_CHOICES = (
+    (True, "Full inventory"),
+    (False, "Partial inventory"),
+)
 
 
 class NameModelChoiceField(forms.ModelChoiceField):
     """
     A custom ModelChoiceField that overrides the label_from_instance method
     to display the object's name attribute instead of str(object).
-    This field is specifically designed for handling genre and office objects.
+    This field is specifically designed for handling genre and service objects.
     Rather than displaying the name along with its description, sometimes we
-    only want the shorthand notation for the genre and office objects.
+    only want the shorthand notation for the genre and service objects.
     (Eg. [AV] Antiphon verse --> AV)
     """
 
@@ -56,6 +67,62 @@ class SelectWidgetNameModelChoiceField(NameModelChoiceField):
     widget = SelectWidget()
 
 
+class CheckboxNameModelMultipleChoiceField(forms.ModelMultipleChoiceField):
+    """
+    A custom ModelMultipleChoiceField that overrides the label_from_instance method
+    to display the object's name attribute instead of str(object) and uses
+    the CheckboxMulitpleSelect widget.
+    """
+
+    def label_from_instance(self, obj):
+        return obj.name
+
+    widget = CheckboxSelectMultiple()
+
+
+class CantusDBLatinField(forms.CharField):
+    """
+    A custom CharField for chant text fields. Validates that the text
+    can be syllabified (essentially, that it does not have any improper
+    characters).
+    """
+
+    def validate(self, value):
+        super().validate(value)
+        if value:
+            try:
+                syllabify_text(value)
+            except LatinError as err:
+                raise forms.ValidationError(str(err))
+            except ValueError as exc:
+                raise forms.ValidationError("Invalid characters in text.") from exc
+
+
+class CantusDBSyllabifiedLatinField(forms.CharField):
+    """
+    A custom CharField for chant syllabified text fields. Validates that the text
+    can be syllabified (essentially, that it does not have any improper
+    characters).
+    """
+
+    def validate(self, value):
+        super().validate(value)
+        if value:
+            try:
+                syllabify_text(value, text_presyllabified=True)
+            except ValueError as exc:
+                raise forms.ValidationError("Invalid characters in text.") from exc
+
+
+class StyledChoiceField(forms.ChoiceField):
+    """
+    A custom ChoiceField that uses the custom SelectWidget defined in widgets.py
+    as its widget (for styling).
+    """
+
+    widget = SelectWidget()
+
+
 class ChantCreateForm(forms.ModelForm):
     class Meta:
         model = Chant
@@ -64,7 +131,7 @@ class ChantCreateForm(forms.ModelForm):
             "marginalia",
             "folio",
             "c_sequence",
-            "office",
+            "service",
             "genre",
             "position",
             "cantus_id",
@@ -99,7 +166,7 @@ class ChantCreateForm(forms.ModelForm):
             "marginalia": TextInputWidget(),
             # folio: defined below (required)
             # c_sequence: defined below (required)
-            "office": autocomplete.ModelSelect2(url="office-autocomplete"),
+            "service": autocomplete.ModelSelect2(url="service-autocomplete"),
             "genre": autocomplete.ModelSelect2(url="genre-autocomplete"),
             "position": TextInputWidget(),
             "cantus_id": TextInputWidget(),
@@ -110,8 +177,8 @@ class ChantCreateForm(forms.ModelForm):
             "finalis": TextInputWidget(),
             "extra": TextInputWidget(),
             "chant_range": VolpianoInputWidget(),
-            # manuscript_full_text_std_spelling: defined below (required)
-            "manuscript_full_text": TextAreaWidget(),
+            # manuscript_full_text_std_spelling: defined below (required & special field)
+            # "manuscript_full_text": defined below (special field)
             "volpiano": VolpianoAreaWidget(),
             "image_link": TextInputWidget(),
             "melody_id": TextInputWidget(),
@@ -138,14 +205,18 @@ class ChantCreateForm(forms.ModelForm):
         help_text="Each folio starts with '1'.",
     )
 
-    manuscript_full_text_std_spelling = forms.CharField(
-        required=True,
+    manuscript_full_text_std_spelling = CantusDBLatinField(
         widget=TextAreaWidget,
-        help_text="Manuscript full text with standardized spelling. Enter the words "
-        "according to the manuscript but normalize their spellings following "
-        "Classical Latin forms. Use upper-case letters for proper nouns, "
-        'the first word of each chant, and the first word after "Alleluia" for '
-        "Mass Alleluias. Punctuation is omitted.",
+        help_text=Chant._meta.get_field("manuscript_full_text_std_spelling").help_text,
+        label="Full text as in Source (standardized spelling)",
+        required=True,
+    )
+
+    manuscript_full_text = CantusDBLatinField(
+        widget=TextAreaWidget,
+        label="Full text as in Source (source spelling)",
+        help_text=Chant._meta.get_field("manuscript_full_text").help_text,
+        required=False,
     )
 
     project = SelectWidgetNameModelChoiceField(
@@ -172,8 +243,12 @@ class SourceCreateForm(forms.ModelForm):
     class Meta:
         model = Source
         fields = [
-            "title",
-            "siglum",
+            # "title",
+            # "siglum",
+            "holding_institution",
+            "shelfmark",
+            "name",
+            "segment_m2m",
             "provenance",
             "provenance_notes",
             "full_source",
@@ -194,11 +269,15 @@ class SourceCreateForm(forms.ModelForm):
             "fragmentarium_id",
             "dact_id",
             "indexing_notes",
+            "production_method",
+            "source_completeness",
         ]
         widgets = {
-            "title": TextInputWidget(),
-            "siglum": TextInputWidget(),
+            # "title": TextInputWidget(),
+            # "siglum": TextInputWidget(),
+            "shelfmark": TextInputWidget(),
             "provenance": autocomplete.ModelSelect2(url="provenance-autocomplete"),
+            "name": TextInputWidget(),
             "provenance_notes": TextInputWidget(),
             "date": TextInputWidget(),
             "cursus": SelectWidget(),
@@ -228,24 +307,21 @@ class SourceCreateForm(forms.ModelForm):
             "other_editors": autocomplete.ModelSelect2Multiple(
                 url="all-users-autocomplete"
             ),
+            "production_method": SelectWidget(),
+            "source_completeness": SelectWidget(),
+        }
+        field_classes = {
+            "segment_m2m": CheckboxNameModelMultipleChoiceField,
         }
 
-    TRUE_FALSE_CHOICES_SOURCE = (
-        (True, "Full source"),
-        (False, "Fragment or Fragmented"),
+    holding_institution = forms.ModelChoiceField(
+        queryset=Institution.objects.all(),
+        widget=autocomplete.ModelSelect2(url="holding-autocomplete"),
+        required=False,
     )
 
-    full_source = forms.ChoiceField(choices=TRUE_FALSE_CHOICES_SOURCE, required=False)
-    full_source.widget.attrs.update(
-        {"class": "form-control custom-select custom-select-sm"}
-    )
-    TRUE_FALSE_CHOICES_INVEN = ((True, "Complete"), (False, "Incomplete"))
-
-    complete_inventory = forms.ChoiceField(
-        choices=TRUE_FALSE_CHOICES_INVEN, required=False
-    )
-    complete_inventory.widget.attrs.update(
-        {"class": "form-control custom-select custom-select-sm"}
+    complete_inventory = StyledChoiceField(
+        choices=COMPLETE_INVENTORY_FORM_CHOICES, required=False
     )
 
 
@@ -260,7 +336,7 @@ class ChantEditForm(forms.ModelForm):
             "folio",
             "c_sequence",
             "feast",
-            "office",
+            "service",
             "genre",
             "position",
             "cantus_id",
@@ -287,14 +363,14 @@ class ChantEditForm(forms.ModelForm):
             "rubrics",
         ]
         widgets = {
-            # manuscript_full_text_std_spelling: defined below (required)
-            "manuscript_full_text": TextAreaWidget(),
+            # manuscript_full_text_std_spelling: defined below (required) & special field
+            # manuscript_full_text: defined below (special field)
             "volpiano": VolpianoAreaWidget(),
             "marginalia": TextInputWidget(),
             # folio: defined below (required)
             # c_sequence: defined below (required)
             "feast": autocomplete.ModelSelect2(url="feast-autocomplete"),
-            "office": autocomplete.ModelSelect2(url="office-autocomplete"),
+            "service": autocomplete.ModelSelect2(url="service-autocomplete"),
             "genre": autocomplete.ModelSelect2(url="genre-autocomplete"),
             "position": TextInputWidget(),
             "cantus_id": TextInputWidget(),
@@ -322,14 +398,18 @@ class ChantEditForm(forms.ModelForm):
             "rubrics": TextInputWidget(),
         }
 
-    manuscript_full_text_std_spelling = forms.CharField(
-        required=True,
+    manuscript_full_text_std_spelling = CantusDBLatinField(
         widget=TextAreaWidget,
-        help_text="Manuscript full text with standardized spelling. Enter the words "
-        "according to the manuscript but normalize their spellings following "
-        "Classical Latin forms. Use upper-case letters for proper nouns, "
-        'the first word of each chant, and the first word after "Alleluia" for '
-        "Mass Alleluias. Punctuation is omitted.",
+        help_text=Chant._meta.get_field("manuscript_full_text_std_spelling").help_text,
+        label="Full text as in Source (standardized spelling)",
+        required=True,
+    )
+
+    manuscript_full_text = CantusDBLatinField(
+        widget=TextAreaWidget,
+        label="Full text as in Source (source spelling)",
+        help_text=Chant._meta.get_field("manuscript_full_text").help_text,
+        required=False,
     )
 
     folio = forms.CharField(
@@ -347,7 +427,7 @@ class ChantEditForm(forms.ModelForm):
     project = SelectWidgetNameModelChoiceField(
         queryset=Project.objects.all().order_by("id"),
         help_text="Select the project (if any) that the chant belongs to.",
-        required = False,
+        required=False,
     )
 
 
@@ -355,8 +435,12 @@ class SourceEditForm(forms.ModelForm):
     class Meta:
         model = Source
         fields = [
-            "title",
-            "siglum",
+            # "title",
+            # "siglum",
+            "holding_institution",
+            "shelfmark",
+            "name",
+            "segment_m2m",
             "provenance",
             "provenance_notes",
             "full_source",
@@ -378,13 +462,17 @@ class SourceEditForm(forms.ModelForm):
             "full_text_entered_by",
             "proofreaders",
             "other_editors",
+            "production_method",
+            "source_completeness",
         ]
         widgets = {
-            "title": TextInputWidget(),
-            "siglum": TextInputWidget(),
+            "shelfmark": TextInputWidget(),
+            "segment_m2m": CheckboxSelectMultiple(),
+            "name": TextInputWidget(),
             "provenance": autocomplete.ModelSelect2(url="provenance-autocomplete"),
             "provenance_notes": TextInputWidget(),
             "date": TextInputWidget(),
+            "cursus": SelectWidget(),
             "summary": TextAreaWidget(),
             "liturgical_occasions": TextAreaWidget(),
             "description": TextAreaWidget(),
@@ -412,33 +500,21 @@ class SourceEditForm(forms.ModelForm):
             "other_editors": autocomplete.ModelSelect2Multiple(
                 url="all-users-autocomplete"
             ),
+            "production_method": SelectWidget(),
+            "source_completeness": SelectWidget(),
+        }
+        field_classes = {
+            "segment_m2m": CheckboxNameModelMultipleChoiceField,
         }
 
-    CHOICES_FULL_SOURCE = (
-        (None, "None"),
-        (True, "Full source"),
-        (False, "Fragment or Fragmented"),
-    )
-    full_source = forms.ChoiceField(choices=CHOICES_FULL_SOURCE, required=False)
-    full_source.widget.attrs.update(
-        {"class": "form-control custom-select custom-select-sm"}
+    holding_institution = forms.ModelChoiceField(
+        queryset=Institution.objects.all(),
+        widget=autocomplete.ModelSelect2(url="holding-autocomplete"),
+        required=False,
     )
 
-    CHOICES_CURSUS = (
-        (None, "None"),
-        ("Monastic", "Monastic"),
-        ("Secular", "Secular"),
-    )
-    cursus = forms.ChoiceField(choices=CHOICES_CURSUS, required=False)
-    cursus.widget.attrs.update({"class": "form-control custom-select custom-select-sm"})
-
-    CHOICES_COMPLETE_INV = (
-        (True, "complete inventory"),
-        (False, "partial inventory"),
-    )
-    complete_inventory = forms.ChoiceField(choices=CHOICES_COMPLETE_INV, required=False)
-    complete_inventory.widget.attrs.update(
-        {"class": "form-control custom-select custom-select-sm"}
+    complete_inventory = StyledChoiceField(
+        choices=COMPLETE_INVENTORY_FORM_CHOICES, required=False
     )
 
 
@@ -447,7 +523,7 @@ class SequenceEditForm(forms.ModelForm):
         model = Sequence
         fields = [
             "title",
-            "siglum",
+            # "siglum",
             "incipit",
             "folio",
             "s_sequence",
@@ -466,7 +542,7 @@ class SequenceEditForm(forms.ModelForm):
         ]
         widgets = {
             "title": TextInputWidget(),
-            "siglum": TextInputWidget(),
+            # "siglum": TextInputWidget(),
             "incipit": TextInputWidget(),
             "folio": TextInputWidget(),
             "s_sequence": TextInputWidget(),
@@ -502,10 +578,14 @@ class ChantEditSyllabificationForm(forms.ModelForm):
             "manuscript_full_text",
             "manuscript_syllabized_full_text",
         ]
-        widgets = {
-            "manuscript_full_text": TextAreaWidget(),
-            "manuscript_syllabized_full_text": TextAreaWidget(),
-        }
+
+    manuscript_full_text = CantusDBLatinField(
+        widget=TextAreaWidget, label="Full text as in Source (source spelling)"
+    )
+
+    manuscript_syllabized_full_text = CantusDBSyllabifiedLatinField(
+        widget=TextAreaWidget, label="Syllabized full text"
+    )
 
 
 class AdminCenturyForm(forms.ModelForm):
@@ -558,10 +638,10 @@ class AdminChantForm(forms.ModelForm):
         label="Sequence",
     )
 
-    # We use NameModelChoiceField here so the dropdown list of office/mass displays the name
+    # We use NameModelChoiceField here so the dropdown list of service/mass displays the name
     # instead of [name] + description
-    office = NameModelChoiceField(
-        queryset=Office.objects.all().order_by("name"),
+    service = NameModelChoiceField(
+        queryset=Service.objects.all().order_by("name"),
         required=False,
     )
     # We use NameModelChoiceField here so the dropdown list of genres displays the name
@@ -606,9 +686,9 @@ class AdminNotationForm(forms.ModelForm):
     name.widget.attrs.update({"style": "width: 400px;"})
 
 
-class AdminOfficeForm(forms.ModelForm):
+class AdminServiceForm(forms.ModelForm):
     class Meta:
-        model = Office
+        model = Service
         fields = "__all__"
 
     name = forms.CharField(required=True, widget=TextInputWidget)
@@ -645,10 +725,10 @@ class AdminSequenceForm(forms.ModelForm):
             "chant_range": VolpianoAreaWidget(),
         }
 
-    # We use NameModelChoiceField here so the dropdown list of office/mass displays the name
+    # We use NameModelChoiceField here so the dropdown list of service/mass displays the name
     # instead of [name] + description
-    office = NameModelChoiceField(
-        queryset=Office.objects.all().order_by("name"),
+    service = NameModelChoiceField(
+        queryset=Service.objects.all().order_by("name"),
         required=False,
     )
     # We use NameModelChoiceField here so the dropdown list of genres displays the name
@@ -672,29 +752,35 @@ class AdminSourceForm(forms.ModelForm):
         model = Source
         fields = "__all__"
 
-    title = forms.CharField(
-        required=True,
-        widget=TextInputWidget,
-        help_text="Full Source Identification (City, Archive, Shelf-mark)",
-    )
-    title.widget.attrs.update({"style": "width: 610px;"})
+    # title = forms.CharField(
+    #     required=True,
+    #     widget=TextInputWidget,
+    #     help_text="Full Source Identification (City, Archive, Shelf-mark)",
+    # )
+    # title.widget.attrs.update({"style": "width: 610px;"})
+    #
+    # siglum = forms.CharField(
+    #     required=True,
+    #     widget=TextInputWidget,
+    #     help_text="RISM-style siglum + Shelf-mark (e.g. GB-Ob 202).",
+    # )
 
-    siglum = forms.CharField(
+    shelfmark = forms.CharField(
         required=True,
         widget=TextInputWidget,
-        help_text="RISM-style siglum + Shelf-mark (e.g. GB-Ob 202).",
+    )
+
+    name = forms.CharField(required=False, widget=TextInputWidget)
+
+    holding_institution = forms.ModelChoiceField(
+        queryset=Institution.objects.all().order_by("city", "name"),
+        required=False,
     )
 
     provenance = forms.ModelChoiceField(
         queryset=Provenance.objects.all().order_by("name"),
         required=False,
     )
-    TRUE_FALSE_CHOICES_SOURCE = (
-        (True, "Full source"),
-        (False, "Fragment or Fragmented"),
-    )
-
-    full_source = forms.ChoiceField(choices=TRUE_FALSE_CHOICES_SOURCE, required=False)
 
     century = forms.ModelMultipleChoiceField(
         queryset=Century.objects.all().order_by("name"),
@@ -749,10 +835,8 @@ class AdminSourceForm(forms.ModelForm):
         widget=FilteredSelectMultiple(verbose_name="other editors", is_stacked=False),
     )
 
-    TRUE_FALSE_CHOICES_INVEN = ((True, "Complete"), (False, "Incomplete"))
-
     complete_inventory = forms.ChoiceField(
-        choices=TRUE_FALSE_CHOICES_INVEN, required=False
+        choices=COMPLETE_INVENTORY_FORM_CHOICES, required=False
     )
 
 

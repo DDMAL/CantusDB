@@ -1,6 +1,10 @@
 {% extends "base.html" %}
+
+{% block title %}
+    <title>{{ user.full_name|default_if_none:"User" }} | Cantus Database</title>
+{% endblock %}
+
 {% block content %}
-<title>{{ user.full_name|default_if_none:"User" }} | Cantus Database</title>
 <div class="mr-3 p-3 mx-auto bg-white rounded">
     <!-- global search bar-->
     <object align="right" class="search-bar">
@@ -40,7 +44,7 @@
             <ul>
                 {% for source in inventoried_sources %}
                     <li>
-                        <a href="{% url 'source-detail' source.id %}" title="{{ source.title }}">{{ source.siglum }}</a> ({{ source.title }})
+                        <a href="{% url 'source-detail' source.id %}" title="{{ source.heading }}">{{ source.short_heading }}</a> ({{ source.heading }})
                     </li>
                 {% endfor %}
             </ul>
@@ -50,7 +54,7 @@
             <ul>
                 {% for source in full_text_sources %}
                     <li>
-                        <a href="{% url 'source-detail' source.id %}" title="{{ source.title }}">{{ source.siglum }}</a> ({{ source.title }})
+                        <a href="{% url 'source-detail' source.id %}" title="{{ source.heading }}">{{ source.short_heading }}</a> ({{ source.heading }})
                     </li>
                 {% endfor %}
             </ul>
@@ -70,7 +74,7 @@
             <ul>
                 {% for source in proofread_sources %}
                     <li>
-                        <a href="{% url 'source-detail' source.id %}" title="{{ source.title }}">{{ source.siglum }}</a> ({{ source.title }})
+                        <a href="{% url 'source-detail' source.id %}" title="{{ source.heading }}">{{ source.short_heading }}</a> ({{ source.heading }})
                     </li>
                 {% endfor %}
             </ul>
@@ -80,7 +84,7 @@
             <ul>
                 {% for source in edited_sources %}
                     <li>
-                        <a href="{% url 'source-detail' source.id %}" title="{{ source.title }}">{{ source.siglum }}</a> ({{ source.title }})
+                        <a href="{% url 'source-detail' source.id %}" title="{{ source.heading }}">{{ source.short_heading }}</a> ({{ source.heading }})
                     </li>
                 {% endfor %}
             </ul>

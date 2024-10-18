@@ -1,7 +1,10 @@
 {% extends "base.html" %}
-{% block content %}
-<title>Edit Syllabification | Cantus Database</title>
 
+{% block title %}
+    <title>Edit Syllabification | Cantus Database</title>
+{% endblock %}
+
+{% block content %}
 <div class="container">
     <div class="row">
         <div class="p-3 col-12 bg-white rounded">
@@ -9,6 +12,7 @@
             <!--Display messages -->
             {% for message in messages %}
                 <div class="alert {{ message.tags }} alert-dismissible" role="alert" >
+                    <a href="#" class="close" data-dismiss="alert" aria-label="close">&times;</a>s
                     {{ message }}
                 </div>
             {% endfor %}
@@ -34,8 +38,8 @@
 
                 <div class="form-row">
                     <div class="form-group m-1 col-lg-12">
-                        <label for="{{ form.manuscript_full_text.id_for_label }}">
-                            <small><b>Manuscript Reading Full Text (MS spelling):</b></small>
+                        <label for="{{ form.manuscript_full_text.id_for_label }}" class="small font-weight-bold">
+                            {{ form.manuscript_full_text.label_tag }}
                         </label>
                         {{ form.manuscript_full_text }}
                     </div>
@@ -43,8 +47,8 @@
 
                 <div class="form-row">
                     <div class="form-group m-1 col-lg-12">
-                        <label for="{{ form.manuscript_syllabized_full_text.id_for_label }}">
-                            <small><b>Syllabized Full Text:</b></small>
+                        <label for="{{ form.manuscript_syllabized_full_text.id_for_label }}" class="small font-weight-bold">
+                            {{ form.manuscript_syllabized_full_text.label_tag }}
                         </label>
                         {{ form.manuscript_syllabized_full_text }}
                     </div>

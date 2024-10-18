@@ -1,11 +1,11 @@
 {% extends "base_page_with_side_cards.html" %}
 
 {% block title %}
-<title>Search by melody | Cantus Database</title>
+    <title>Search by melody | Cantus Database</title>
 {% endblock %}
 
-{% block script %}
-<script src="/static/js/melody_search.js"></script>
+{% block scripts %}
+    <script src="/static/js/melody_search.js"></script>
 {% endblock %}
 
 {% block maincontent %}
@@ -44,7 +44,7 @@
             <div class="form-group m-1 col-sm">
                 <label for="siglum"><small>Source siglum</small></label>
                 {% if source %}
-                    <input type="text" class="form-control form-control-sm" name="siglum" value="{{ source.siglum }}" id="siglum">
+                    <input type="text" class="form-control form-control-sm" name="siglum" value="{{ source.short_heading }}" id="siglum">
                 {% else %}
                     <input type="text" class="form-control form-control-sm" name="siglum" value="{{ request.GET.siglum }}" id="siglum">
                 {% endif %}
@@ -86,7 +86,7 @@
     </form>
 
     {% if source %}
-        <b>Searching in source: <a href="{% url 'source-detail' source.id %}" target="_blank">{{ source.title }}</a></b>
+        <b>Searching in source: <a href="{% url 'source-detail' source.id %}" target="_blank">{{ source.heading }}</a></b>
     {% endif %}
 
     <div id="resultsDiv"></div>

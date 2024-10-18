@@ -76,7 +76,7 @@ function loadMelodies(cantusId) {
             const chantCell = newRow.getElementsByTagName("td")[0];
             chantCell.innerHTML += '<br>';
             if (chant.folio) { chantCell.innerHTML += `${chant.folio} | ` } else { chantCell.innerHTML += '' }
-            if (chant.office__name) { chantCell.innerHTML += `${chant.office__name} ` } else { chantCell.innerHTML += '' }
+            if (chant.service__name) { chantCell.innerHTML += `${chant.service__name} ` } else { chantCell.innerHTML += '' }
             if (chant.genre__name) { chantCell.innerHTML += `<b>${chant.genre__name} </b>` } else { chantCell.innerHTML += '' }
             if (chant.position) { chantCell.innerHTML += `${chant.position}` } else { chantCell.innerHTML += '' }
             chantCell.innerHTML += '<br>';

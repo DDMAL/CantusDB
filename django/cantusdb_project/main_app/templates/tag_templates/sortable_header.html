@@ -1,0 +1,11 @@
+<th scope="col" class="text-wrap" style="text-align:center" title="{{ column_name }}">
+    {% if attr_is_currently_ordering %}
+        {% if current_sort_param == "desc" %}
+            <a href="{{ url_wo_sort_params }}&order={{ order_attribute }}&sort=asc">{{ column_name }}</a> ▼
+        {% else %}
+            <a href="{{ url_wo_sort_params }}&order={{ order_attribute }}&sort=desc">{{ column_name }}</a> ▲
+        {% endif %}
+    {% else %}
+        <a href="{{ url_wo_sort_params }}&order={{ order_attribute }}&sort=asc">{{ column_name }}</a>
+    {% endif %}
+</th>
