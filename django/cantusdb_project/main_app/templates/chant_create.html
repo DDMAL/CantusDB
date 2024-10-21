@@ -1,21 +1,24 @@
 {% extends "base_page_with_side_cards.html" %}
 {% load static %}
+
 {% block title %}
-<title>Create Chant | Cantus Database</title>
+    <title>Create Chant | Cantus Database</title>
 {% endblock %}
-{% block script %}
-<script src="/static/js/chant_create.js"></script>
-<script type="text/javascript" src="{% static 'admin/js/vendor/jquery/jquery.js' %}"></script>
-{{ form.media }}
+
+{% block scripts %}
+    <script src="/static/js/chant_create.js"></script>
+    <script type="text/javascript" src="{% static 'admin/js/vendor/jquery/jquery.js' %}"></script>
+    {{ form.media }}
 {% endblock %}
+
 {% block uppersidebar %}
 <div class="search-bar mb-3">
     {% include "global_search_bar.html" %}
 </div>
 {% endblock %}
+
 {% block maincontent %}
     <h3>Create Chant</h3>
-
     <!--Display "submit success" message -->
     {% if messages %}
     <div class="alert alert-success alert-dismissible">
@@ -67,9 +70,9 @@
 
         <div class="form-row">
             <div class="form-group m-1 col-lg-2">
-                <label for="{{ form.office.id_for_label }}"><small>Service:</small></label>
-                <br>{{ form.office }}
-                <a href="/description/#Office"><small>?</small></a>
+                <label for="{{ form.service.id_for_label }}"><small>Service:</small></label>
+                <br>{{ form.service }}
+                <a href="/description/#Service"><small>?</small></a>
             </div>
         </div>
 
@@ -220,7 +223,7 @@
     
         <div class="form-row align-items-end">
             <div class="form-group m-1 col-lg">
-                <label for="{{ form.manuscript_full_text_std_spelling.id_for_label }}"><small>Full text as in Source (standardized spelling):<span class="text-danger" title="This field is required">*</span></small></label>
+                <label for="{{ form.manuscript_full_text_std_spelling.id_for_label }}" class="small">{{ form.manuscript_full_text_std_spelling.label_tag }}<span class="text-danger" title="This field is required">*</span></label>
                 {{ form.manuscript_full_text_std_spelling }}
                 <p>
                     <small class="text-muted">{{ form.manuscript_full_text_std_spelling.help_text }}
@@ -238,8 +241,7 @@
 
         <div class="form-row align-items-end">
             <div class="form-group m-1 col-lg">
-                <label for="{{ form.manuscript_full_text.id_for_label }}"><small>Full text as in Source
-                        (source spelling): </small></label>
+                <label for="{{ form.manuscript_full_text.id_for_label }}" class="small">{{ form.manuscript_full_text.label_tag }}</label>
                 {{ form.manuscript_full_text }}
                 <p class="text-muted" style="line-height: normal">
                     <small>{{ form.manuscript_full_text.help_text }}
@@ -312,13 +314,13 @@
                                     value="{{ suggestion.cantus_id }}"
                                     title="{{ suggestion.cantus_id }}"
                                     onclick='autoFillSuggestedChant(
-                                        "{{ suggestion.genre_name }}",
+                                        "{{ suggestion.genre_name | escapejs }}",
                                         {{ suggestion.genre_id | default_if_none:"null" }},
-                                        "{{ suggestion.cantus_id }}",
-                                        "{{ suggestion.fulltext }}"
+                                        "{{ suggestion.cantus_id | escapejs }}",
+                                        "{{ suggestion.fulltext | escapejs }}"
                                     )'
                                 >
-                                <strong>{{ suggestion.genre_name }}</strong> - <span title="{{ suggestion.fulltext }}">{{ suggestion.incipit }}</span> (<strong>{{ suggestion.occurrences }}x</strong>)<br>
+                                <strong>{{ suggestion.genre_name }}</strong> - <span title="{{ suggestion.fulltext }}">{{ suggestion.fulltext | truncatechars_html:25 }}</span> (<strong>{{ suggestion.occurrences }}x</strong>)<br>
                             {% endfor %}
                         {% else %}
                             Sorry! No suggestions found. Please use the search form below.<br>

@@ -1,9 +1,17 @@
 {% extends "base.html" %}
-{% block content %}
-<title>Browse Sources | Cantus Database</title>
-<script src="/static/js/source_list.js"></script>
+{% load helper_tags %}
 
-<div class="mr-3 p-3 col-md-12 mx-auto bg-white rounded">
+
+{% block title %}
+    <title>Browse Sources | Cantus Database</title>
+{% endblock %}
+
+{% block scripts %}
+    <script src="/static/js/source_list.js"></script>
+{% endblock %}
+
+{% block content %}
+    <div class="mr-3 p-3 col-md-12 mx-auto bg-white rounded">
     <!-- global search bar-->
     <object align="right" class="search-bar">
         {% include "global_search_bar.html" %}
@@ -35,6 +43,15 @@
         </div>
         <div class="form-row form-row align-items-end">
             <div class="form-group m-1 col-lg">
+                <label for="countryFilter"><small>Country</small></label>
+                <select id="countryFilter" name="country" class="form-control custom-select custom-select-sm">
+                    <option value="">- Any -</option>
+                    {% for country in countries %}
+                        <option value="{{ country }}">{{ country }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="form-group m-1 col-lg">
                 <label for="provenanceFilter"><small>Provenance (origin/history)</small></label>
                 <select id="provenanceFilter" name="provenance" class="form-control custom-select custom-select-sm">
                     <option value="">- Any -</option>
@@ -53,7 +70,7 @@
                 </select>
             </div>
             <div class="form-group m-1 col-lg">
-                <label for="fullSourceFilter"><small>Full source/Fragment</small></label>
+                <label for="fullSourceFilter"><small>Complete Source/Fragment</small></label>
                 <select id="fullSourceFilter"  name="fullSource" class="form-control custom-select custom-select-sm">
                     <option value="">- Any -</option>
                     <option value="true">Complete source</option>
@@ -70,8 +87,9 @@
         <table class="table table-sm small table-bordered table-responsive">
             <thead>
                 <tr>
-                    <th scope="col" class="text-wrap" style="text-align:center">Source</th>
-                    <th scope="col" class="text-wrap" style="text-align:center">Siglum</th>
+                    {% sortable_header request "country" %}
+                    {% sortable_header request "city_institution" "City + Holding Institution" %}
+                    {% sortable_header request "source" "Cantus Siglum" %}
                     <th scope="col" class="text-wrap" style="text-align:center">Summary</th>
                     <th scope="col" class="text-wrap" style="text-align:center">Date/Origin</th>
                     <th scope="col" class="text-wrap" style="text-align:center">Image Link</th>
@@ -80,19 +98,36 @@
             </thead>
             <tbody>
                 {% for source in sources %}
-                    <tr>                        
-                        <td class="text-wrap" style="text-align:center" title="{{ source.title }}">
-                            <a href="{% url 'source-detail' source.id %}"><b>{{ source.title|truncatechars_html:50 }}</b></a>
+                    <tr>
+                        <td class="text-wrap" style="text-align:center">
+                            <b>{{ source.holding_institution.country }}</b>
                         </td>
                         <td class="text-wrap" style="text-align:center">
-                            <b>{{ source.siglum }}</b>
+                            {% if source.holding_institution %}
+                                <a href="{% url 'institution-detail' source.holding_institution.id %}">
+                                    <b>
+                                        {% if source.holding_institution.city %}
+                                            {{ source.holding_institution.city }},
+                                        {% endif %}
+                                        {{ source.holding_institution.name }}
+                                    </b>
+                                </a>
+                            {% endif %}
+                        </td>
+                        <td class="text-wrap" style="text-align:center">
+                            <a href="{% url 'source-detail' source.id %}">
+                                <b>{{ source.short_heading|truncatechars_html:100 }}</b>
+                            </a>
                         </td>
                         <td class="text-wrap" style="text-align:center" title="{{ source.summary|default:""|truncatechars_html:500 }}">
+                            {% if source.name %}
+                                <b>"{{ source.name }}"</b><br>
+                            {% endif %}
                             {{ source.summary|default:""|truncatechars_html:120 }}
                         </td>
                         <td class="text-wrap" style="text-align:center">
-                            {% if source.century.exists %}
-                                <b><a href="{% url 'century-detail' source.century.first.id %}">{{ source.century.first.name }}</a></b><br>
+                            {% if source.century %}
+                                {% join_absolute_url_links source.century.all 'name' '/' %}<br>
                             {% endif %}
                             {% if source.provenance %}
                                 <a href="{% url 'provenance-detail' source.provenance.id %}">{{ source.provenance.name }}</a>
@@ -105,7 +140,8 @@
                         </td>
                         <td class="text-wrap" style="text-align:center">
                             <b>{{ source.number_of_chants|default_if_none:"0" }}</b>
-                            {% if source.number_of_melodies %}
+                            <!-- See #1635. Temporarily disable volpiano display for this source. -->
+                            {% if source.number_of_melodies and source.id !=  680970 %}
                                 <br>/ {{ source.number_of_melodies }}
                             {% endif %}
                         </td>

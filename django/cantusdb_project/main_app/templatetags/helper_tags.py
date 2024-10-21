@@ -1,13 +1,17 @@
 import calendar
 from typing import Union, Optional
+
 from django import template
-from main_app.models import Source
-from articles.models import Article
-from django.utils.safestring import mark_safe
-from django.urls import reverse
 from django.core.paginator import Paginator
 from django.db.models import Q
+from django.template.defaultfilters import stringfilter
+from django.utils.safestring import mark_safe
+from django.http import HttpRequest
+from django.utils.html import format_html_join
 
+from articles.models import Article
+from main_app.models import Source
+from main_app.models import BaseModel
 
 register = template.Library()
 
@@ -128,14 +132,42 @@ def has_group(user, group_name):
     return user.groups.filter(name=group_name).exists()
 
 
+@register.filter(name="in_groups")
+def in_groups(user, groups: str) -> bool:
+    """
+    Takes a comma-separated string of group names and returns True if the user is in those groups.
+    """
+    grouplist = groups.split(",")
+    return user.groups.filter(name__in=grouplist).exists()
+
+
+@register.filter(name="split")
+@stringfilter
+def split(value: str, key: str) -> list[str]:
+    """
+    Returns the value turned into a list.
+    """
+    return value.split(key)
+
+
 @register.simple_tag(takes_context=True)
 def get_user_source_pagination(context):
     user_created_sources = (
         Source.objects.filter(
             Q(current_editors=context["user"]) | Q(created_by=context["user"])
         )
+        .select_related("holding_institution")
         .order_by("-date_updated")
         .distinct()
+        .only(
+            "id",
+            "holding_institution__id",
+            "holding_institution__city",
+            "holding_institution__siglum",
+            "holding_institution__name",
+            "holding_institution__is_private_collector",
+            "shelfmark",
+        )
     )
     paginator = Paginator(user_created_sources, 6)
     page_number = context["request"].GET.get("page")
@@ -147,10 +179,88 @@ def get_user_source_pagination(context):
 def get_user_created_source_pagination(context):
     user_created_sources = (
         Source.objects.filter(created_by=context["user"])
+        .select_related("holding_institution")
         .order_by("-date_created")
         .distinct()
+        .only(
+            "id",
+            "holding_institution__id",
+            "holding_institution__city",
+            "holding_institution__siglum",
+            "holding_institution__name",
+            "holding_institution__is_private_collector",
+            "shelfmark",
+        )
     )
     paginator = Paginator(user_created_sources, 6)
     page_number = context["request"].GET.get("page2")
     user_created_sources_page_obj = paginator.get_page(page_number)
     return user_created_sources_page_obj
+
+
+@register.inclusion_tag("tag_templates/sortable_header.html")
+def sortable_header(
+    request: HttpRequest,
+    order_attribute: str,
+    column_name: Optional[str] = None,
+) -> dict[str, Union[str, bool, Optional[str]]]:
+    """
+    A template tag for use in `ListView` templates or other templates that display
+    a table of model instances. This tag generates a table header (<th>) element
+    that, when clicked, sorts the table by the specified attribute.
+
+    params:
+        context: the current template-rendering context (passed by Django)
+        order_attribute: the attribute of the model that clicking the table header
+            should sort by
+        column_name: the user-facing name of the column (e.g. the text
+            of the <th> element). If None, use the camel-case version of
+            `sort_attribute`.
+
+    returns:
+        a dictionary containing the following
+            - order_attribute: the unchanged `order_attribute` parameter
+            - column_name: the user-facing name of the column (e.g. the value of `column_name`
+                or the camel-case version of `order_attribute`)
+            - attr_is_currently_ordering: a boolean indicating whether the table is currently
+                ordered by `order_attribute`
+            - current_sort_param: the current sort order (either "asc" or "desc")
+            - url_wo_sort_params: the current URL without sorting and pagination parameters
+    """
+    current_order_param = request.GET.get("order")
+    current_sort_param = request.GET.get("sort")
+    # Remove order, sort, and page parameters from the query string
+    query_dict = request.GET.copy()
+    for param in ["order", "sort", "page"]:
+        if param in query_dict:
+            query_dict.pop(param)
+    # Create the current URL without sorting and pagination parameters
+    url_wo_sort_params = f"{request.path}?{query_dict.urlencode()}"
+    if column_name is None:
+        column_name = order_attribute.replace("_", " ").title()
+    return {
+        "order_attribute": order_attribute,
+        "column_name": column_name,
+        "attr_is_currently_ordering": order_attribute == current_order_param,
+        "current_sort_param": current_sort_param,
+        "url_wo_sort_params": url_wo_sort_params,
+    }
+
+
+@register.simple_tag(takes_context=False)
+def join_absolute_url_links(
+    objects: list[BaseModel], display_attr: str, sep: str
+) -> str:
+    """
+    Takes a series of objects and returns an html string of
+    links to their absolute urls (i.e. their detail page).
+
+    Additional parameters:
+        display_attr: the attribute of the object to display in the link
+        sep: the separator between links
+    """
+    return format_html_join(
+        sep,
+        '<b><a href="{0}">{1}</a></b>',
+        ((obj.get_absolute_url(), getattr(obj, display_attr)) for obj in objects),
+    )

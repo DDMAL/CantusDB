@@ -1,6 +1,10 @@
 {% extends "base.html" %}
+
+{% block title %}
+    <title>Chants by Cantus ID: {{ cantus_id }} | Cantus Database</title>
+{% endblock %}
+
 {% block content %}
-<title>Chants by Cantus ID: {{ cantus_id }} | Cantus Database</title>
 <div class="mr-3 p-3 col-md-12 mx-auto bg-white rounded">
     <!-- global search bar-->
     <object align="right" class="search-bar">
@@ -33,7 +37,7 @@
                     <tr>
                         <td class="text-wrap">
                             {% if chant.source %}
-                                <a href="{% url 'source-detail' chant.source.id %}" title="{{ chant.source.title }}">{{ chant.source.siglum }}</a>
+                                <a href="{% url 'source-detail' chant.source.id %}" title="{{ chant.source.heading }}">{{ chant.source.short_heading }}</a>
                             {% endif %}
                         </td>
                         <td class="text-wrap">{{ chant.folio }}</td>
@@ -48,9 +52,9 @@
                             <td class="text-wrap"><a href="{% url 'sequence-detail' chant.id %}">{{ chant.incipit }}</a></td>
                         {% endif %}
                         <td class="text-wrap">
-                            {% if chant.office %}
-                                <a href="{% url 'office-detail' chant.office.id %}" title="{{ chant.office.description }}">
-                                    {{ chant.office.name }}
+                            {% if chant.service %}
+                                <a href="{% url 'service-detail' chant.service.id %}" title="{{ chant.service.description }}">
+                                    {{ chant.service.name }}
                                 </a>
                             {% endif %}
                         </td>

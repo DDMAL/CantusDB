@@ -1,0 +1,64 @@
+# This file is configured for deployment of the CantusDB project on the GitHub action 
+# test runner. The GitHub action is configured to use this compose file.
+
+services:
+  django:
+    build:
+      context: .
+      dockerfile: ./django/Dockerfile
+      args:
+        PROJECT_ENVIRONMENT: DEVELOPMENT
+    container_name: cantusdb-django-1
+    volumes:
+      - ./django/cantusdb_project:/code/cantusdb_project
+      - static_volume:/resources/static
+      - media_volume:/resources/media
+      - api_cache_volume:/resources/api_cache
+    env_file: ./config/envs/dev_env
+    restart: always
+    depends_on:
+      - postgres
+    command:
+      [
+        "gunicorn",
+        "--bind",
+        ":8000",
+        "cantusdb.wsgi:application",
+        "--workers",
+        "5"
+      ]
+
+  nginx:
+    build:
+      context: ./nginx
+    ports:
+      - 80:80
+      - 443:443
+    container_name: cantusdb-nginx-1
+    volumes:
+      - ./config/nginx/conf.d:/etc/nginx/conf.d
+      - static_volume:/resources/static
+      - media_volume:/resources/media
+      - api_cache_volume:/resources/api_cache
+      - ./certificates:/etc/nginx/ssl/live
+    restart: always
+    depends_on:
+      - django
+
+  postgres:
+    build:
+      context: ./postgres
+    env_file: ./config/envs/dev_env
+    ports:
+      - 5432:5432
+    container_name: cantusdb-postgres-1
+    volumes:
+      - postgres_data:/var/lib/postgresql/data/
+    restart: always
+    command: postgres -c 'config_file=/etc/postgresql/postgresql.conf'
+
+volumes:
+  postgres_data:
+  static_volume:
+  media_volume:
+  api_cache_volume:

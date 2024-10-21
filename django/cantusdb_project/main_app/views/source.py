@@ -1,3 +1,14 @@
+from typing import Any
+
+from django.contrib import messages
+from django.contrib.auth.mixins import LoginRequiredMixin
+from django.contrib.auth.mixins import UserPassesTestMixin
+from django.core.exceptions import PermissionDenied
+from django.db.models import Q, Prefetch, Value
+from django.db.models import QuerySet
+from django.http import HttpResponseRedirect, Http404
+from django.shortcuts import get_object_or_404
+from django.urls import reverse
 from django.views.generic import (
     DetailView,
     ListView,
@@ -6,7 +17,8 @@ from django.views.generic import (
     DeleteView,
     TemplateView,
 )
-from django.db.models import Q, Prefetch, Value
+
+from main_app.forms import SourceCreateForm, SourceEditForm
 from main_app.models import (
     Century,
     Chant,
@@ -15,19 +27,7 @@ from main_app.models import (
     Provenance,
     Segment,
     Source,
-)
-from main_app.forms import SourceCreateForm, SourceEditForm
-from django.contrib import messages
-from django.db.models import QuerySet
-from django.urls import reverse
-from django.contrib.auth.mixins import LoginRequiredMixin
-from django.http import HttpResponseRedirect, Http404
-from django.contrib.auth.mixins import UserPassesTestMixin
-from django.core.exceptions import PermissionDenied
-from django.shortcuts import get_object_or_404
-from main_app.views.chant import (
-    get_feast_selector_options,
-    user_can_edit_chants_in_source,
+    Institution,
 )
 from main_app.permissions import (
     user_can_create_sources,
@@ -35,6 +35,13 @@ from main_app.permissions import (
     user_can_view_source,
     user_can_manage_source_editors,
 )
+from main_app.views.chant import (
+    get_feast_selector_options,
+    user_can_edit_chants_in_source,
+)
+
+CANTUS_SEGMENT_ID = 4063
+BOWER_SEGMENT_ID = 4064
 
 
 class SourceBrowseChantsView(ListView):
@@ -78,7 +85,7 @@ class SourceBrowseChantsView(ListView):
         search_text = self.request.GET.get("search_text")
 
         # get all chants in the specified source
-        chants = source.chant_set.select_related("feast", "office", "genre")
+        chants = source.chant_set.select_related("feast", "service", "genre")
         # filter the chants with optional search params
         if feast_id:
             chants = chants.filter(feast__id=feast_id)
@@ -97,6 +104,16 @@ class SourceBrowseChantsView(ListView):
 
     def get_context_data(self, **kwargs):
         context: dict = super().get_context_data(**kwargs)
+        source_id: int = self.kwargs.get(self.pk_url_kwarg)
+        source: Source = get_object_or_404(Source, id=source_id)
+        if source.segment_id != CANTUS_SEGMENT_ID:
+            # the chant list ("Browse Chants") page should only be visitable
+            # for sources in the CANTUS Database segment, as sources in the Bower
+            # segment contain no chants
+            raise Http404()
+
+        context["source"] = source
+
         # these are needed in the selectors on the left side of the page
         context["feasts"] = Feast.objects.all().order_by("name")
         context["genres"] = Genre.objects.all().order_by("name")
@@ -105,24 +122,15 @@ class SourceBrowseChantsView(ListView):
 
         # sources in the Bower Segment contain only Sequences and no Chants,
         # so they should not appear among the list of sources
-        cantus_segment: QuerySet[Segment] = Segment.objects.get(id=4063)
+        cantus_segment: QuerySet[Segment] = Segment.objects.get(id=CANTUS_SEGMENT_ID)
 
-        sources: QuerySet[Source] = cantus_segment.source_set.order_by(
-            "siglum"
-        )  # to be displayed in the "Source" dropdown in the form
+        # to be displayed in the "Source" dropdown in the form
+        sources: QuerySet[Source] = cantus_segment.source_set.select_related(
+            "holding_institution", "segment"
+        ).order_by("holding_institution__siglum")
         if not display_unpublished:
             sources = sources.filter(published=True)
         context["sources"] = sources
-
-        source_id: int = self.kwargs.get(self.pk_url_kwarg)
-        source: Source = get_object_or_404(Source, id=source_id)
-        if source not in sources:
-            # the chant list ("Browse Chants") page should only be visitable
-            # for sources in the CANTUS Database segment, as sources in the Bower
-            # segment contain no chants
-            raise Http404()
-
-        context["source"] = source
 
         user = self.request.user
         context["user_can_edit_chant"] = user_can_edit_chants_in_source(user, source)
@@ -165,6 +173,11 @@ class SourceDetailView(DetailView):
     context_object_name = "source"
     template_name = "source_detail.html"
 
+    def get_queryset(self):
+        return self.model.objects.select_related(
+            "holding_institution", "segment", "provenance"
+        ).all()
+
     def get_context_data(self, **kwargs):
         source = self.get_object()
         user = self.request.user
@@ -174,13 +187,12 @@ class SourceDetailView(DetailView):
 
         context = super().get_context_data(**kwargs)
 
-        if source.segment and source.segment.id == 4064:
+        if source.segment and source.segment_id == BOWER_SEGMENT_ID:
             # if this is a sequence source
-            context["sequences"] = source.sequence_set.order_by("s_sequence")
+            sequences = source.sequence_set.select_related("genre", "service")
+            context["sequences"] = sequences.order_by("s_sequence")
             context["folios"] = (
-                source.sequence_set.values_list("folio", flat=True)
-                .distinct()
-                .order_by("folio")
+                sequences.values_list("folio", flat=True).distinct().order_by("folio")
             )
         else:
             # if this is a chant source
@@ -199,13 +211,19 @@ class SourceDetailView(DetailView):
         return context
 
 
-class SourceListView(ListView):
+class SourceListView(ListView):  # type: ignore
+    model = Source
     paginate_by = 100
     context_object_name = "sources"
     template_name = "source_list.html"
 
-    def get_context_data(self, **kwargs):
+    def get_context_data(self, **kwargs: Any) -> dict[str, Any]:
         context = super().get_context_data(**kwargs)
+        context["countries"] = (
+            Institution.objects.values_list("country", flat=True)
+            .distinct()
+            .order_by("country")
+        )
         context["provenances"] = (
             Provenance.objects.all().order_by("name").values("id", "name")
         )
@@ -214,45 +232,51 @@ class SourceListView(ListView):
         )
         return context
 
-    def get_queryset(self):
+    def get_queryset(self) -> QuerySet[Source]:
         # use select_related() for foreign keys to reduce DB queries
-        queryset = Source.objects.select_related("segment", "provenance").order_by(
-            "siglum"
+        queryset = Source.objects.select_related(
+            "segment", "provenance", "holding_institution"
         )
 
-        display_unpublished = self.request.user.is_authenticated
-        if display_unpublished:
+        if self.request.user.is_authenticated:
             q_obj_filter = Q()
         else:
             q_obj_filter = Q(published=True)
 
-        if self.request.GET.get("century"):
-            century_name = Century.objects.get(id=self.request.GET.get("century")).name
+        if country_name := self.request.GET.get("country"):
+            q_obj_filter &= Q(holding_institution__country__icontains=country_name)
+
+        if century_id := self.request.GET.get("century"):
+            century_name = Century.objects.get(id=century_id).name
             q_obj_filter &= Q(century__name__icontains=century_name)
 
-        if self.request.GET.get("provenance"):
-            provenance_id = int(self.request.GET.get("provenance"))
-            q_obj_filter &= Q(provenance__id=provenance_id)
-        if self.request.GET.get("segment"):
-            segment_id = int(self.request.GET.get("segment"))
-            q_obj_filter &= Q(segment__id=segment_id)
-        if self.request.GET.get("fullSource") in ["true", "false"]:
-            full_source_str = self.request.GET.get("fullSource")
+        if provenance_id := self.request.GET.get("provenance"):
+            q_obj_filter &= Q(provenance__id=int(provenance_id))
+        if segment_id := self.request.GET.get("segment"):
+            q_obj_filter &= Q(segment__id=int(segment_id))
+        if (full_source_str := self.request.GET.get("fullSource")) in ["true", "false"]:
             if full_source_str == "true":
-                full_source_q = Q(full_source=True) | Q(full_source=None)
-                q_obj_filter &= full_source_q
+                q_obj_filter &= Q(
+                    source_completeness=Source.SourceCompletenessChoices.FULL_SOURCE
+                )
             else:
-                q_obj_filter &= Q(full_source=False)
+                q_obj_filter &= Q(
+                    source_completeness=Source.SourceCompletenessChoices.FRAGMENT
+                )
 
-        if self.request.GET.get("general"):
+        if general_str := self.request.GET.get("general"):
             # Strip spaces at the beginning and end. Then make list of terms split on spaces
-            general_search_terms = self.request.GET.get("general").strip(" ").split(" ")
+            general_search_terms = general_str.strip(" ").split(" ")
             # We need a Q Object for each field we're gonna look into
-            title_q = Q()
+            shelfmark_q = Q()
             siglum_q = Q()
+            holding_institution_q = Q()
+            holding_institution_city_q = Q()
             description_q = Q()
-            # it seems that old cantus don't look into title and provenance for the general search terms
-            # cantus.uwaterloo.ca/source/123901 this source cannot be found by searching its provenance 'Kremsmünster' in the general search field
+            # it seems that old cantus don't look into title and provenance
+            # for the general search terms
+            # cantus.uwaterloo.ca/source/123901 this source cannot be found by searching
+            # its provenance 'Kremsmünster' in the general search field
             # provenance_q = Q()
             summary_q = Q()
 
@@ -261,8 +285,12 @@ class SourceListView(ListView):
             # field, allowing for a more flexible search, and a field needs
             # to match only one of the terms
             for term in general_search_terms:
-                title_q |= Q(title__unaccent__icontains=term)
-                siglum_q |= Q(siglum__unaccent__icontains=term)
+                holding_institution_q |= Q(holding_institution__name__icontains=term)
+                holding_institution_city_q |= Q(
+                    holding_institution__city__icontains=term
+                )
+                shelfmark_q |= Q(shelfmark__unaccent__icontains=term)
+                siglum_q |= Q(holding_institution__siglum__unaccent__icontains=term)
                 description_q |= Q(description__unaccent__icontains=term)
                 summary_q |= Q(summary__unaccent__icontains=term)
                 # provenance_q |= Q(provenance__name__icontains=term)
@@ -272,14 +300,21 @@ class SourceListView(ListView):
             # general_search_q = (
             #     title_q | siglum_q | description_q | provenance_q
             # )
-            general_search_q = title_q | siglum_q | description_q | summary_q
+            general_search_q = (
+                shelfmark_q
+                | siglum_q
+                | description_q
+                | summary_q
+                | holding_institution_q
+                | holding_institution_city_q
+            )
             q_obj_filter &= general_search_q
 
         # For the indexing notes search we follow the same procedure as above but with
         # different fields
-        if self.request.GET.get("indexing"):
+        if indexing_str := self.request.GET.get("indexing"):
             # Make list of terms split on spaces
-            indexing_search_terms = self.request.GET.get("indexing").split(" ")
+            indexing_search_terms = indexing_str.strip(" ").split(" ")
             # We need a Q Object for each field we're gonna look into
             inventoried_by_q = Q()
             full_text_entered_by_q = Q()
@@ -315,8 +350,23 @@ class SourceListView(ListView):
             )
             q_obj_filter &= indexing_search_q
 
+        order_param = self.request.GET.get("order")
+        order_fields = ["holding_institution__siglum", "shelfmark"]
+        if order_param == "country":
+            order_fields.insert(0, "holding_institution__country")
+        elif order_param == "city_institution":
+            order_fields.insert(0, "holding_institution__city")
+            order_fields.insert(1, "holding_institution__name")
+        if self.request.GET.get("sort") == "desc":
+            sort_prefix = "-"
+        else:
+            sort_prefix = ""
+
+        order_by_args = [f"{sort_prefix}{field}" for field in order_fields]
+
         return (
             queryset.filter(q_obj_filter)
+            .order_by(*order_by_args)
             .distinct()
             .prefetch_related(
                 Prefetch("century", queryset=Century.objects.all().order_by("id"))
@@ -382,10 +432,10 @@ class SourceEditView(LoginRequiredMixin, UserPassesTestMixin, UpdateView):
     pk_url_kwarg = "source_id"
 
     def get_context_data(self, **kwargs):
-        source = self.get_object()
+        source = self.object
         context = super().get_context_data(**kwargs)
 
-        if source.segment and source.segment.id == 4064:
+        if source.segment and source.segment.id == BOWER_SEGMENT_ID:
             # if this is a sequence source
             context["sequences"] = source.sequence_set.order_by("s_sequence")
             context["folios"] = (
@@ -448,7 +498,7 @@ class SourceInventoryView(TemplateView):
             raise PermissionDenied
 
         # 4064 is the id for the sequence database
-        if source.segment.id == 4064:
+        if source.segment.id == BOWER_SEGMENT_ID:
             queryset = (
                 source.sequence_set.annotate(record_type=Value("sequence"))
                 .order_by("s_sequence")
@@ -458,7 +508,7 @@ class SourceInventoryView(TemplateView):
             queryset = (
                 source.chant_set.annotate(record_type=Value("chant"))
                 .order_by("folio", "c_sequence")
-                .select_related("feast", "office", "genre", "diff_db")
+                .select_related("feast", "service", "genre", "diff_db")
             )
 
         context["source"] = source

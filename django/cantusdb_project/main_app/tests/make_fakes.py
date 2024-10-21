@@ -3,17 +3,18 @@
 import random
 from faker import Faker
 
-from main_app.models import Century
-from main_app.models import Chant
-from main_app.models import Feast
-from main_app.models import Genre
-from main_app.models import Notation
-from main_app.models import Office
-from main_app.models import Project
-from main_app.models import Provenance
-from main_app.models import Segment
-from main_app.models import Sequence
-from main_app.models import Source
+from main_app.models.century import Century
+from main_app.models.chant import Chant
+from main_app.models.feast import Feast
+from main_app.models.genre import Genre
+from main_app.models.institution import Institution
+from main_app.models.notation import Notation
+from main_app.models.service import Service
+from main_app.models.project import Project
+from main_app.models.provenance import Provenance
+from main_app.models.segment import Segment
+from main_app.models.sequence import Sequence
+from main_app.models.source import Source
 from django.contrib.auth import get_user_model
 
 from typing import Optional, List
@@ -137,7 +138,7 @@ def make_fake_chant(
     source=None,
     marginalia=None,
     folio=None,
-    office=None,
+    service=None,
     genre=None,
     position=None,
     c_sequence=None,
@@ -153,6 +154,7 @@ def make_fake_chant(
     next_chant=None,
     differentia=None,
     project=None,
+    indexing_notes=None,
 ) -> Chant:
     """Generates a fake Chant object."""
     if source is None:
@@ -162,8 +164,8 @@ def make_fake_chant(
     if folio is None:
         # two digits and one letter
         folio = faker.bothify("##?")
-    if office is None:
-        office = make_fake_office()
+    if service is None:
+        service = make_fake_service()
     if genre is None:
         genre = make_fake_genre()
     if position is None:
@@ -192,13 +194,15 @@ def make_fake_chant(
         differentia = make_random_string(2)
     if project is None:
         project = make_fake_project()
+    if indexing_notes is None:
+        indexing_notes = faker.sentence()
 
     chant = Chant.objects.create(
         source=source,
         marginalia=marginalia,
         folio=folio,
         c_sequence=c_sequence,
-        office=office,
+        service=service,
         genre=genre,
         position=position,
         cantus_id=cantus_id,
@@ -223,7 +227,7 @@ def make_fake_chant(
         cao_concordances=make_random_string(12, "ABCDEFGHIJKLMNOPQRSTUVWXYZ  "),
         melody_id="m" + make_random_string(8, "0123456789."),
         manuscript_syllabized_full_text=manuscript_syllabized_full_text,
-        indexing_notes=faker.sentence(),
+        indexing_notes=indexing_notes,
         json_info=None,
         next_chant=next_chant,
         project=project,
@@ -247,14 +251,22 @@ def make_fake_feast() -> Feast:
     return feast
 
 
-def make_fake_genre(name=None) -> Genre:
+def make_fake_genre(
+    name: Optional[str] = None,
+    description: Optional[str] = None,
+    mass_office: Optional[str] = None,
+) -> Genre:
     """Generates a fake Genre object."""
     if name is None:
         name = faker.lexify("???")
+    if description is None:
+        description = faker.sentence()
+    if mass_office is None:
+        mass_office = random.choice(["Mass", "Office", "Mass, Office", "Old Hispanic"])
     genre = Genre.objects.create(
         name=name,
-        description=faker.sentence(),
-        mass_office=random.choice(["Mass", "Office", "Mass, Office", "Old Hispanic"]),
+        description=description,
+        mass_office=mass_office,
     )
     return genre
 
@@ -278,13 +290,13 @@ def make_fake_notation() -> Notation:
     return notation
 
 
-def make_fake_office() -> Office:
-    """Generates a fake Office object."""
-    office = Office.objects.create(
+def make_fake_service() -> Service:
+    """Generates a fake Service object."""
+    service = Service.objects.create(
         name=faker.lexify(text="??"),
         description=faker.sentence(),
     )
-    return office
+    return service
 
 
 def make_fake_provenance() -> Provenance:
@@ -344,17 +356,56 @@ def make_fake_sequence(source=None, title=None, cantus_id=None) -> Sequence:
     return sequence
 
 
+def make_fake_institution(
+    name: Optional[str] = None,
+    siglum: Optional[str] = None,
+    city: Optional[str] = None,
+    region: Optional[str] = None,
+    country: Optional[str] = None,
+    is_private_collector: Optional[bool] = None,
+) -> Institution:
+    """
+    Note that the siglum and is_private_collector fields
+    are mutually exclusive. If both are specified, an exception
+    will be raised. If neither are specified, the function will
+    randomly determine whether the institution is a private collector or
+    will be given a fake siglum.
+    """
+    name = name if name else faker.sentence()
+    city = city if city else faker.city()
+    region = region if region else faker.country()
+    country = country if country else faker.country()
+
+    if siglum and is_private_collector:
+        raise ValueError("Siglum and Private Collector cannot both be specified.")
+    is_private_collector = False if siglum else faker.boolean(chance_of_getting_true=20)
+    if not is_private_collector and not siglum:
+        siglum = faker.sentence(nb_words=1)
+
+    inst = Institution.objects.create(
+        name=name,
+        siglum=siglum,
+        city=city,
+        region=region,
+        country=country,
+        is_private_collector=is_private_collector,
+    )
+    inst.save()
+
+    return inst
+
+
 def make_fake_source(
     published: bool = True,
-    title: Optional[str] = None,
+    shelfmark: Optional[str] = None,
     segment_name: Optional[str] = None,
     segment: Optional[Segment] = None,
-    siglum: Optional[str] = None,
+    holding_institution: Optional[Institution] = None,
     description: Optional[str] = None,
     summary: Optional[str] = None,
     provenance: Optional[Provenance] = None,
     century: Optional[Century] = None,
-    full_source: bool = True,
+    source_completeness: int = Source.SourceCompletenessChoices.FULL_SOURCE,
     indexing_notes: Optional[str] = None,
 ) -> Source:
     """Generates a fake Source object."""
@@ -363,14 +414,14 @@ def make_fake_source(
 
     # if published...
     #     published already defaults to True
-    if title is None:
-        title = faker.sentence()
+    if shelfmark is None:
+        shelfmark = faker.sentence()
     if segment_name is None:
         segment_name = faker.sentence(nb_words=2)
     if segment is None:
         segment = make_fake_segment(name=segment_name)
-    if siglum is None:
-        siglum = make_random_string(6)
+    if holding_institution is None:
+        holding_institution = make_fake_institution()
     if description is None:
         description = faker.sentence()
     if summary is None:
@@ -389,14 +440,14 @@ def make_fake_source(
 
     source = Source.objects.create(
         published=published,
-        title=title,
+        shelfmark=shelfmark,
         segment=segment,
-        siglum=siglum,
+        holding_institution=holding_institution,
         description=description,
         summary=summary,
         provenance=provenance,
         # century: ManyToManyField, must be set below
-        full_source=full_source,
+        source_completeness=source_completeness,
         indexing_notes=indexing_notes,
         provenance_notes=faker.sentence(),
         date=faker.sentence(nb_words=3),
@@ -418,3 +469,21 @@ def make_fake_source(
     source.other_editors.set([make_fake_user()])
 
     return source
+
+
+def get_random_search_term(target):
+    """Helper function for generating a random slice of a string.
+
+    Args:
+        target (str): The content of the field to search.
+
+    Returns:
+        str: A random slice of `target`
+    """
+    if len(target) <= 2:
+        search_term = target
+    else:
+        slice_start = random.randint(0, len(target) - 2)
+        slice_end = random.randint(slice_start + 2, len(target))
+        search_term = target[slice_start:slice_end]
+    return search_term

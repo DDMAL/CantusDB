@@ -1,10 +1,10 @@
 {% extends "base_page_with_side_cards.html" %}
 {% block title %}
-<title>Browse Chants | Cantus Database</title>
+    <title>Browse Chants | Cantus Database</title>
 {% endblock %}
 
-{% block script %}
-<script src="/static/js/chant_list.js"></script>
+{% block scripts %}
+    <script src="/static/js/chant_list.js"></script>
 {% endblock %}
 
 {% block uppersidebar %}
@@ -65,7 +65,6 @@
             <table class="table table-responsive table-sm table-bordered small">
                 <thead>
                     <tr>
-                        <th scope="col" class="text-wrap" title="Siglum">Siglum</th>
                         <th scope="col" class="text-wrap" title="Folio">Folio</th>
                         <th scope="col" class="text-wrap" title="Sequence"></th>
                         <th scope="col" class="text-wrap" title="Incipit / Full text">Incipit / Full text</th>
@@ -84,13 +83,13 @@
                 <tbody>
                     {% for chant in chants %}
                     <tr>
-                        <td class="text-wrap" style="text-align:center" title="{{ source.title }}">{{ source.siglum|default:"" }}</td>
                         <td class="text-wrap" style="text-align:center"><b>{{ chant.folio|default:"" }}</b></td>
                         <td class="text-wrap" style="text-align:center">{{ chant.c_sequence|default_if_none:"" }}</td> {# default_if_none: sometimes, c_sequence is 0, and should still be displayed #}
                         <td class="text-wrap">
                             <a href="{% url 'chant-detail' chant.id %}"><b>{{ chant.incipit|default:"" }}</b></a>
                             <p>{{ chant.manuscript_full_text_std_spelling|default:"" }}<br>
-                            {% if chant.volpiano %}
+                            <!-- See #1635. Temporarily disable volpiano display for this source. -->
+                            {% if chant.volpiano and chant.source.id != 680970 %}
                                 <span style="font-family: volpiano; font-size:25px">{{ chant.volpiano|default:"" }}</span>
                             {% endif %}
                             </p>
@@ -101,8 +100,8 @@
                             {% endif %}
                         </td>
                         <td class="text-wrap" style="text-align:center">
-                            {% if chant.office %}
-                                <a href="{% url 'office-detail' chant.office.id %}" title="{{ chant.office.description }}">{{ chant.office.name|default:"" }}</a>
+                            {% if chant.service %}
+                                <a href="{% url 'service-detail' chant.service.id %}" title="{{ chant.service.description }}">{{ chant.service.name|default:"" }}</a>
                             {% endif %}
                         </td>
                         <td class="text-wrap" style="text-align:center">
@@ -144,7 +143,7 @@
     <div class="card w-100">
 
         <div class="card-header">
-            <h4><a href="{% url 'source-detail' source.id %}" title="{{ source.title }}">{{ source.siglum }}</a></h4>
+            <h4><a href="{% url 'source-detail' source.id %}" title="{{ source.heading }}">{{ source.short_heading }}</a></h4>
         </div>
 
         <div class="card-body">
