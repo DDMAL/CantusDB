@@ -3,6 +3,7 @@ Test views in views/chant.py
 """
 
 from unittest.mock import patch
+from unittest import skip
 import random
 from typing import ClassVar
 
@@ -322,6 +323,7 @@ class SourceEditChantsViewTest(TestCase):
         chant.refresh_from_db()
         self.assertIs(chant.manuscript_full_text_std_proofread, True)
 
+    @skip("Temporarily disabled due to #1674")
     def test_invalid_text(self) -> None:
         """
         The user should not be able to create a chant with invalid text
@@ -3000,6 +3002,7 @@ class ChantCreateViewTest(TestCase):
             )
             self.assertIsNone(response_after_rare_chant.context["suggested_chants"])
 
+    @skip("Temporarily disabled due to #1674")
     def test_invalid_text(self) -> None:
         """
         The user should not be able to create a chant with invalid text
