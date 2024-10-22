@@ -89,13 +89,14 @@ class CantusDBLatinField(forms.CharField):
 
     def validate(self, value):
         super().validate(value)
-        if value:
-            try:
-                syllabify_text(value)
-            except LatinError as err:
-                raise forms.ValidationError(str(err))
-            except ValueError as exc:
-                raise forms.ValidationError("Invalid characters in text.") from exc
+        # Temporarily turn off validation; see #1674
+        # if value:
+        #     try:
+        #         syllabify_text(value)
+        #     except LatinError as err:
+        #         raise forms.ValidationError(str(err))
+        #     except ValueError as exc:
+        #         raise forms.ValidationError("Invalid characters in text.") from exc
 
 
 class CantusDBSyllabifiedLatinField(forms.CharField):
@@ -107,11 +108,12 @@ class CantusDBSyllabifiedLatinField(forms.CharField):
 
     def validate(self, value):
         super().validate(value)
-        if value:
-            try:
-                syllabify_text(value, text_presyllabified=True)
-            except ValueError as exc:
-                raise forms.ValidationError("Invalid characters in text.") from exc
+        # Temporarily turn off validation; see #1674
+        # if value:
+        #     try:
+        #         syllabify_text(value, text_presyllabified=True)
+        #     except ValueError as exc:
+        #         raise forms.ValidationError("Invalid characters in text.") from exc
 
 
 class StyledChoiceField(forms.ChoiceField):
