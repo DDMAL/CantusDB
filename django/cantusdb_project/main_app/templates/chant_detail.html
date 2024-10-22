@@ -38,7 +38,7 @@
                 <div class="col">
                     <dt>Source</dt>
                     <dd>
-                        <a href="{% url 'source-detail' chant.source.id %}">{{ chant.source.title }}</a>
+                        <a href="{% url 'source-detail' chant.source.id %}">{{ chant.source.heading }}</a>
                     </dd>
                 </div>
             {% endif %}
@@ -312,7 +312,7 @@
                 <b>Source navigation</b>
                 <br>
                 {% if source %}
-                    <a href="{% url 'source-detail' source.id %}" title="{{ source.title }}"> <b>{{ source.siglum }}</b> </a>
+                    <a href="{% url 'source-detail' source.id %}" title="{{ source.heading }}"> <b>{{ source.short_heading }}</b> </a>
                 {% else %}
                     This chant is not associated with any source. 
                 {% endif %}                            
@@ -465,7 +465,7 @@
                 <div class="card-header">
                     <small><a href="/sources?segment={{ source.segment.id }}">{{ source.segment.name }}</a></small>
                     <br>
-                    <span title="{{ source.title }}">{{ source.siglum }}</span>
+                    <span title="{{ source.heading }}">{{ source.short_heading }}</span>
                 </div>
                 <div class=" card-body">
                     <small>

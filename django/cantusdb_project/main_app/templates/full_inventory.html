@@ -20,7 +20,7 @@
 <body>
     <title>Inventory | Cantus Database</title>
     <h3>Cantus Inventory: 
-        <a href="{% url 'source-detail' source.id %}" target="_href">{{ source.title }}</a>
+        <a href="{% url 'source-detail' source.id %}" target="_href">{{ source.heading }}</a>
     </h3>
     This source inventory contains {{ chants.count }} chants.
     <table class="table table-sm small table-bordered table-striped table-hover">
