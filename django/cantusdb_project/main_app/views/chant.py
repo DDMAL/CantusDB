@@ -129,28 +129,32 @@ def get_feast_selector_options(source: Source) -> list[tuple[str, int, str]]:
     return deduped_folios_feasts_lists
 
 
-def get_chants_with_feasts(chants_in_folio: QuerySet) -> list:
-    # this will be a nested list of the following format:
-    # [
-    #   [feast_id_1, [chant, chant, ...]],
-    #   [feast_id_2, [chant, chant, ...]],
-    #   ...
-    # ]
+def get_chants_with_feasts(
+    chants_in_folio: QuerySet[Chant],
+) -> list[tuple[Optional[Feast], list[Chant]]]:
+    """
+    Takes a queryset of chants and returns a nested list
+    nested list of the following format:
+    [
+      [feast_id_1, [chant, chant, ...]],
+      [feast_id_2, [chant, chant, ...]],
+      ...
+    ]. The queryset of chants should have the related feast object prefetched.
+    """
+
     feasts_chants = defaultdict(list)
     for chant in chants_in_folio:
         # if feasts_chants is empty, append a new list
         if chant.feast:
-            feasts_chants[chant.feast.id].append(chant)
+            feasts_chants[chant.feast].append(chant)
         # else, append the following: ["no_feast", []]
         else:
             feasts_chants[None].append(chant)
 
-    feast_objects = Feast.objects.filter(id__in=feasts_chants.keys())
-    # go through feasts_chants and replace feast_id with the corresponding Feast object
-    out = []
-    for feast_obj in feast_objects:
-        out.append([feast_obj, feasts_chants[feast_obj.id]])
-    out.append([None, feasts_chants[None]])
+    # # go through feasts_chants and replace feast_id with the corresponding Feast object
+    out: list[tuple[Optional[Feast], list[Chant]]] = []
+    for feast, chants in feasts_chants.items():
+        out.append((feast, chants))
     return out
 
 
@@ -176,7 +180,7 @@ def get_chants_with_folios(chants_in_feast: QuerySet) -> list:
     return list(folios_chants.items())
 
 
-class ChantDetailView(DetailView):
+class ChantDetailView(DetailView):  # type: ignore[type-arg]
     """
     Displays a single Chant object. Accessed with ``chants/<int:pk>``
     """
@@ -185,13 +189,13 @@ class ChantDetailView(DetailView):
     context_object_name = "chant"
     template_name = "chant_detail.html"
 
-    def get_queryset(self) -> QuerySet:
+    def get_queryset(self) -> QuerySet[Chant]:
         qs = super().get_queryset()
         return qs.select_related(
             "source__holding_institution", "service", "genre", "feast", "project"
         )
 
-    def get_context_data(self, **kwargs):
+    def get_context_data(self, **kwargs: Any) -> dict[str, Any]:
         context = super().get_context_data(**kwargs)
         chant = context["chant"]
         user = self.request.user
@@ -241,30 +245,24 @@ class ChantDetailView(DetailView):
             folio_list[index + 1] if index < len(folio_list) - 1 else None
         )
 
-        chants_current_folio = (
-            chants_in_source.filter(folio=chant.folio)
-            .prefetch_related("feast")
-            .order_by("c_sequence")
+        chants_current_folio = chants_in_source.filter(folio=chant.folio).order_by(
+            "c_sequence"
         )
         context["exists_on_cantus_ultimus"] = source.exists_on_cantus_ultimus
         context["feasts_current_folio"] = get_chants_with_feasts(chants_current_folio)
 
         if context["previous_folio"]:
-            chants_previous_folio = (
-                chants_in_source.filter(folio=context["previous_folio"])
-                .prefetch_related("feast")
-                .order_by("c_sequence")
-            )
+            chants_previous_folio = chants_in_source.filter(
+                folio=context["previous_folio"]
+            ).order_by("c_sequence")
             context["feasts_previous_folio"] = get_chants_with_feasts(
                 chants_previous_folio
             )
 
         if context["next_folio"]:
-            chants_next_folio = (
-                chants_in_source.filter(folio=context["next_folio"])
-                .prefetch_related("feast")
-                .order_by("c_sequence")
-            )
+            chants_next_folio = chants_in_source.filter(
+                folio=context["next_folio"]
+            ).order_by("c_sequence")
             context["feasts_next_folio"] = get_chants_with_feasts(chants_next_folio)
 
         return context
