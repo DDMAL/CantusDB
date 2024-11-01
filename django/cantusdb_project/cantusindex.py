@@ -114,7 +114,7 @@ def get_suggested_fulltext(cantus_id: str) -> Optional[str]:
 
     try:
         suggested_fulltext = json_response["info"]["field_full_text"]
-    except KeyError:
+    except (KeyError, TypeError):
         return None
 
     return suggested_fulltext
