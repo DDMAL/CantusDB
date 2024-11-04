@@ -112,11 +112,10 @@ def get_suggested_fulltext(cantus_id: str) -> Optional[str]:
         # mostly, in case of a timeout within get_json_from_ci_api
         return None
 
-    try:
-        suggested_fulltext = json_response["info"]["field_full_text"]
-    except (KeyError, TypeError):
+    info: Optional[dict] = json_response.get("info", {})
+    if not isinstance(info, dict):
         return None
-
+    suggested_fulltext: Optional[str] = info.get("field_full_text")
     return suggested_fulltext
 
 
