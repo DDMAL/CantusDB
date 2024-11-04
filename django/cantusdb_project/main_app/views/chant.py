@@ -133,13 +133,15 @@ def get_chants_with_feasts(
     chants_in_folio: QuerySet[Chant],
 ) -> list[tuple[Optional[Feast], list[Chant]]]:
     """
-    Takes a queryset of chants and returns a nested list
-    nested list of the following format:
+    Takes a queryset of chants and returns a list
+    of tuples in the following format:
     [
-      [feast_id_1, [chant, chant, ...]],
-      [feast_id_2, [chant, chant, ...]],
+      (feast_id_1, [chant, chant, ...]),
+      (feast_id_2, [chant, chant, ...]),
       ...
-    ]. The queryset of chants should have the related feast object prefetched.
+    ].
+
+    The queryset of chants should have the related feast object prefetched.
     """
 
     feasts_chants = defaultdict(list)
