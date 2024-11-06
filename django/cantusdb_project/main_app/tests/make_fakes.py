@@ -407,6 +407,7 @@ def make_fake_source(
     century: Optional[Century] = None,
     source_completeness: int = Source.SourceCompletenessChoices.FULL_SOURCE,
     indexing_notes: Optional[str] = None,
+    name: Optional[str] = None,
 ) -> Source:
     """Generates a fake Source object."""
     # The cursus_choices and source_status_choices lists in Source are lists of
@@ -434,6 +435,8 @@ def make_fake_source(
     #     full_source already defaults to True
     if indexing_notes is None:
         indexing_notes = faker.sentence()
+    if name is None:
+        name = faker.sentence()
 
     cursus_choices = [x[0] for x in Source.cursus_choices]
     source_status_choices = [x[0] for x in Source.source_status_choices]
@@ -459,6 +462,7 @@ def make_fake_source(
         image_link=faker.image_url(),
         indexing_date=faker.sentence(),
         json_info=None,
+        name=name,
     )
     source.century.set([century])
     source.notation.set([make_fake_notation()])
@@ -471,7 +475,7 @@ def make_fake_source(
     return source
 
 
-def get_random_search_term(target):
+def get_random_search_term(target: str) -> str:
     """Helper function for generating a random slice of a string.
 
     Args:

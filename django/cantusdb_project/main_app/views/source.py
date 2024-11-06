@@ -273,6 +273,7 @@ class SourceListView(ListView):  # type: ignore
             holding_institution_q = Q()
             holding_institution_city_q = Q()
             description_q = Q()
+            name_q = Q()
             # it seems that old cantus don't look into title and provenance
             # for the general search terms
             # cantus.uwaterloo.ca/source/123901 this source cannot be found by searching
@@ -293,6 +294,7 @@ class SourceListView(ListView):  # type: ignore
                 siglum_q |= Q(holding_institution__siglum__unaccent__icontains=term)
                 description_q |= Q(description__unaccent__icontains=term)
                 summary_q |= Q(summary__unaccent__icontains=term)
+                name_q |= Q(name__icontains=term)
                 # provenance_q |= Q(provenance__name__icontains=term)
             # All the Q objects are put together with OR.
             # The end result is that at least one term has to match in at least one
@@ -307,6 +309,7 @@ class SourceListView(ListView):  # type: ignore
                 | summary_q
                 | holding_institution_q
                 | holding_institution_city_q
+                | name_q
             )
             q_obj_filter &= general_search_q
 

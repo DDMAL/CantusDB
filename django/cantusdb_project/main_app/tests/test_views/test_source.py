@@ -973,6 +973,15 @@ class SourceListViewTest(TestCase):
         response = self.client.get(reverse("source-list"), {"general": search_term})
         self.assertIn(source, response.context["sources"])
 
+    def test_search_by_name(self) -> None:
+        source = make_fake_source(
+            name=faker.sentence(), published=True, shelfmark="title"
+        )
+        # We know source.name is not None because it was just set
+        search_term = get_random_search_term(source.name)  # type: ignore[arg-type]
+        response = self.client.get(reverse("source-list"), {"general": search_term})
+        self.assertIn(source, response.context["sources"])
+
     def test_ordering(self) -> None:
         """
         Order is currently available by country, city + institution name (parameter:
