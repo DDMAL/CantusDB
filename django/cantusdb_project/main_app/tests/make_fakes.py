@@ -435,8 +435,6 @@ def make_fake_source(
     #     full_source already defaults to True
     if indexing_notes is None:
         indexing_notes = faker.sentence()
-    if name is None:
-        name = faker.sentence()
 
     cursus_choices = [x[0] for x in Source.cursus_choices]
     source_status_choices = [x[0] for x in Source.source_status_choices]
