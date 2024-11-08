@@ -214,7 +214,4 @@ class Source(BaseModel):
 
         title.append(self.shelfmark)
 
-        # if self.source_completeness == self.SourceCompletenessChoices.FRAGMENT:
-        #     title.append("(fragment)")
-
         return " ".join(title)
