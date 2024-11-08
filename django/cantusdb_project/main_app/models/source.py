@@ -196,9 +196,6 @@ class Source(BaseModel):
 
         title.append(self.shelfmark)
 
-        if self.source_completeness == self.SourceCompletenessChoices.FRAGMENT:
-            title.append("(fragment)")
-
         if self.name:
             title.append(f'("{self.name}")')
 
@@ -217,7 +214,7 @@ class Source(BaseModel):
 
         title.append(self.shelfmark)
 
-        if self.source_completeness == self.SourceCompletenessChoices.FRAGMENT:
-            title.append("(fragment)")
+        # if self.source_completeness == self.SourceCompletenessChoices.FRAGMENT:
+        #     title.append("(fragment)")
 
         return " ".join(title)
