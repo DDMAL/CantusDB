@@ -230,6 +230,10 @@ class SourceListView(ListView):  # type: ignore
         context["centuries"] = (
             Century.objects.all().order_by("name").values("id", "name")
         )
+        context["production_method_choices"] = Source.ProductionMethodChoices.choices
+        context["source_completeness_choices"] = (
+            Source.SourceCompletenessChoices.choices
+        )
         return context
 
     def get_queryset(self) -> QuerySet[Source]:
@@ -254,15 +258,10 @@ class SourceListView(ListView):  # type: ignore
             q_obj_filter &= Q(provenance__id=int(provenance_id))
         if segment_id := self.request.GET.get("segment"):
             q_obj_filter &= Q(segment__id=int(segment_id))
-        if (full_source_str := self.request.GET.get("fullSource")) in ["true", "false"]:
-            if full_source_str == "true":
-                q_obj_filter &= Q(
-                    source_completeness=Source.SourceCompletenessChoices.FULL_SOURCE
-                )
-            else:
-                q_obj_filter &= Q(
-                    source_completeness=Source.SourceCompletenessChoices.FRAGMENT
-                )
+        if source_completeness := self.request.GET.getlist("sourceCompleteness"):
+            q_obj_filter &= Q(source_completeness__in=source_completeness)
+        if production_method := self.request.GET.get("prodMethod"):
+            q_obj_filter &= Q(production_method=production_method)
 
         if general_str := self.request.GET.get("general"):
             # Strip spaces at the beginning and end. Then make list of terms split on spaces

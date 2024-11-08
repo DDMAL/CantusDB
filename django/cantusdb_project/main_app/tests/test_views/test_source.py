@@ -273,7 +273,6 @@ class SourceInventoryViewTest(TestCase):
     def test_shelfmark_column(self):
         shelfmark = "Sigl-01"
         source = make_fake_source(published=True, shelfmark=shelfmark)
-        source_shelfmark = source.shelfmark
         make_fake_chant(source=source)
         response = self.client.get(reverse("source-inventory", args=[source.id]))
         html = str(response.content)
@@ -844,7 +843,7 @@ class SourceListViewTest(TestCase):
         self.assertIn(ninth_century_first_half_source, sources)
         self.assertNotIn(multiple_century_source, sources)
 
-    def test_filter_by_full_source(self):
+    def test_filter_by_full_source(self) -> None:
         full_source = make_fake_source(
             source_completeness=Source.SourceCompletenessChoices.FULL_SOURCE,
             published=True,
@@ -858,30 +857,112 @@ class SourceListViewTest(TestCase):
         reconstruction = make_fake_source(
             source_completeness=Source.SourceCompletenessChoices.RECONSTRUCTION,
             published=True,
-            shelfmark="full_source field is empty",
+            shelfmark="reconstruction",
+        )
+        fragmented = make_fake_source(
+            source_completeness=Source.SourceCompletenessChoices.FRAGMENTED,
+            published=True,
+            shelfmark="fragmented",
         )
 
-        # display full sources
-        response = self.client.get(reverse("source-list"), {"fullSource": "true"})
-        sources = response.context["sources"]
-        self.assertIn(full_source, sources)
-        self.assertNotIn(fragment, sources)
-        self.assertNotIn(reconstruction, sources)
+        with self.subTest("Display all sources: No query params"):
+            response = self.client.get(reverse("source-list"))
+            sources = response.context["sources"]
+            self.assertIn(full_source, sources)
+            self.assertIn(fragment, sources)
+            self.assertIn(reconstruction, sources)
+            self.assertIn(fragmented, sources)
 
-        # display fragments
-        response = self.client.get(reverse("source-list"), {"fullSource": "false"})
-        sources = response.context["sources"]
-        self.assertNotIn(full_source, sources)
-        self.assertIn(fragment, sources)
-        self.assertNotIn(reconstruction, sources)
+        with self.subTest("Display all sources: All sourceCompleteness params"):
+            response = self.client.get(
+                reverse("source-list"),
+                {"sourceCompleteness": Source.SourceCompletenessChoices.values},
+            )
+            sources = response.context["sources"]
+            self.assertIn(full_source, sources)
+            self.assertIn(fragment, sources)
+            self.assertIn(reconstruction, sources)
+            self.assertIn(fragmented, sources)
 
-        # display all sources
-        response = self.client.get(reverse("source-list"))
-        sources = response.context["sources"]
-        # all three should be in the list
-        self.assertIn(full_source, sources)
-        self.assertIn(fragment, sources)
-        self.assertIn(reconstruction, sources)
+        with self.subTest("Display full sources only"):
+            response = self.client.get(
+                reverse("source-list"),
+                {"sourceCompleteness": Source.SourceCompletenessChoices.FULL_SOURCE},
+            )
+            sources = response.context["sources"]
+            self.assertIn(full_source, sources)
+            self.assertNotIn(fragment, sources)
+            self.assertNotIn(reconstruction, sources)
+            self.assertNotIn(fragmented, sources)
+
+        with self.subTest("Display fragments"):
+            response = self.client.get(
+                reverse("source-list"),
+                {"sourceCompleteness": Source.SourceCompletenessChoices.FRAGMENT},
+            )
+            sources = response.context["sources"]
+            self.assertNotIn(full_source, sources)
+            self.assertIn(fragment, sources)
+            self.assertNotIn(reconstruction, sources)
+            self.assertNotIn(fragmented, sources)
+
+        with self.subTest("Display fragmented sources"):
+            response = self.client.get(
+                reverse("source-list"),
+                {"sourceCompleteness": Source.SourceCompletenessChoices.FRAGMENTED},
+            )
+            sources = response.context["sources"]
+            self.assertNotIn(full_source, sources)
+            self.assertNotIn(fragment, sources)
+            self.assertNotIn(reconstruction, sources)
+            self.assertIn(fragmented, sources)
+
+        with self.subTest(
+            "Display multiple source types: fragmented and reconstructions"
+        ):
+            response = self.client.get(
+                reverse("source-list"),
+                {
+                    "sourceCompleteness": [
+                        Source.SourceCompletenessChoices.FRAGMENTED,
+                        Source.SourceCompletenessChoices.RECONSTRUCTION,
+                    ]
+                },
+            )
+            sources = response.context["sources"]
+            self.assertNotIn(full_source, sources)
+            self.assertNotIn(fragment, sources)
+            self.assertIn(reconstruction, sources)
+            self.assertIn(fragmented, sources)
+
+    def test_filter_by_production_method(self) -> None:
+        manuscript_source = make_fake_source(
+            production_method=Source.ProductionMethodChoices.MANUSCRIPT, published=True
+        )
+        print_source = make_fake_source(
+            production_method=Source.ProductionMethodChoices.PRINT, published=True
+        )
+        with self.subTest("All sources"):
+            response = self.client.get(reverse("source-list"))
+            sources = response.context["sources"]
+            self.assertIn(manuscript_source, sources)
+            self.assertIn(print_source, sources)
+        with self.subTest("Manuscript sources only"):
+            response = self.client.get(
+                reverse("source-list"),
+                {"prodMethod": Source.ProductionMethodChoices.MANUSCRIPT},
+            )
+            sources = response.context["sources"]
+            self.assertIn(manuscript_source, sources)
+            self.assertNotIn(print_source, sources)
+        with self.subTest("Print sources only"):
+            response = self.client.get(
+                reverse("source-list"),
+                {"prodMethod": Source.ProductionMethodChoices.PRINT},
+            )
+            sources = response.context["sources"]
+            self.assertNotIn(manuscript_source, sources)
+            self.assertIn(print_source, sources)
 
     def test_search_by_title(self):
         """The "general search" field searches in `title`, `shelfmark`, `description`, and `summary`"""
