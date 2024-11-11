@@ -58,6 +58,21 @@
                 </select>
             </div>
         </div>
+        {% if user_can_proofread_source %}
+            <fieldset>          
+                {% for field in proofread_filter_form %}
+                    <div class="filter-group">
+                        <label class="small"><b>{{ field.label }}:</b> </label>
+                        {% for radio in field %}
+                            <label for="{{ radio.id_for_label }}">
+                                {{ radio.choice_label }}
+                                <span class="radio">{{ radio.tag }}</span>
+                            </label>
+                        {% endfor %}
+                    </div>
+                {% endfor %}
+            </fieldset>
+        {% endif %}
 
     </form>
     {% with exists_on_cantus_ultimus=source.exists_on_cantus_ultimus %}
