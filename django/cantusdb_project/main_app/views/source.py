@@ -18,7 +18,11 @@ from django.views.generic import (
     TemplateView,
 )
 
-from main_app.forms import SourceCreateForm, SourceEditForm
+from main_app.forms import (
+    SourceCreateForm,
+    SourceEditForm,
+    SourceBrowseChantsProofreadForm,
+)
 from main_app.models import (
     Century,
     Chant,
@@ -34,6 +38,7 @@ from main_app.permissions import (
     user_can_edit_source,
     user_can_view_source,
     user_can_manage_source_editors,
+    user_can_proofread_source,
 )
 from main_app.views.chant import (
     get_feast_selector_options,
@@ -54,6 +59,7 @@ class SourceBrowseChantsView(ListView):
         ``search_text``: Filters by text of Chant
         ``genre``: Filters by genre of Chant
         ``folio``: Filters by folio of Chant
+        ``manuscript_full_text_proofread``: Filters if
     """
 
     model = Chant
@@ -84,8 +90,17 @@ class SourceBrowseChantsView(ListView):
         folio = self.request.GET.get("folio")
         search_text = self.request.GET.get("search_text")
 
+        # proofread fields filter
+        manuscript_full_text_proofread = self.request.GET.get(
+            "manuscript_full_text_proofread"
+        )
+        manuscript_full_text_std_proofread = self.request.GET.get(
+            "manuscript_full_text_std_proofread"
+        )
+        volpiano_proofread = self.request.GET.get("volpiano_proofread")
+
         # get all chants in the specified source
-        chants = source.chant_set.select_related("feast", "service", "genre")
+        chants: QuerySet = source.chant_set.select_related("feast", "service", "genre")
         # filter the chants with optional search params
         if feast_id:
             chants = chants.filter(feast__id=feast_id)
@@ -100,6 +115,18 @@ class SourceBrowseChantsView(ListView):
                 | Q(incipit__icontains=search_text)
                 | Q(manuscript_full_text__icontains=search_text)
             )
+        # Apply proofreading filters if they are set
+        if manuscript_full_text_proofread:
+            chants = chants.filter(
+                manuscript_full_text_std_proofread=manuscript_full_text_proofread
+            )
+        if manuscript_full_text_std_proofread:
+            chants = chants.filter(
+                manuscript_full_text_proofread=manuscript_full_text_std_proofread
+            )
+        if volpiano_proofread:
+            chants = chants.filter(volpiano_proofread=volpiano_proofread)
+
         return chants.order_by("folio", "c_sequence")
 
     def get_context_data(self, **kwargs):
@@ -134,6 +161,7 @@ class SourceBrowseChantsView(ListView):
 
         user = self.request.user
         context["user_can_edit_chant"] = user_can_edit_chants_in_source(user, source)
+        context["user_can_proofread_source"] = user_can_proofread_source(user, source)
 
         chants_in_source: QuerySet[Chant] = source.chant_set
         if chants_in_source.count() == 0:
@@ -165,6 +193,9 @@ class SourceBrowseChantsView(ListView):
 
         # the options for the feast selector on the right, same as the source detail page
         context["feasts_with_folios"] = get_feast_selector_options(source)
+        context["proofread_filter_form"] = SourceBrowseChantsProofreadForm(
+            self.request.GET or None
+        )
         return context
 
 
