@@ -59,7 +59,10 @@ class SourceBrowseChantsView(ListView):
         ``search_text``: Filters by text of Chant
         ``genre``: Filters by genre of Chant
         ``folio``: Filters by folio of Chant
-        ``manuscript_full_text_proofread``: Filters if
+        ``manuscript_full_text_proofread``: Filters by chants that have their full text proofread
+        ``manuscript_full_text_std_proofread``: Filters by chants that have their standardized
+        spelling full text proofread
+        ``volpiano_proofread``: Filters by chants that have their volpiano proofread
     """
 
     model = Chant
