@@ -1,39 +1,37 @@
 {% extends "base.html" %}
 {% load helper_tags %}
-
 {% block title %}
     <title>List of Genres | Cantus Database</title>
 {% endblock %}
-
 {% block content %}
-<div class="mr-3 p-3 col-md-12 mx-auto bg-white rounded">
-    <object align="right" class="search-bar">
-        {% include "global_search_bar.html" %}
-    </object>
-    <h3>List of Genres</h3>
-    <small>Displaying {{ page_obj.start_index }}-{{ page_obj.end_index }} of <b>{{ page_obj.paginator.count }}</b></small>
-    
-    <table class="table table-sm small table-bordered">
-        <thead>
-            <tr>
-                {% sortable_header request "name" "Abbreviation" %}
-                {% sortable_header request "description" "Genre" %}
-            </tr>
-        </thead>
-        <tbody>
-            {% for genre in genres %}
+    <div class="mr-3 p-3 col-md-12 mx-auto bg-white rounded">
+        <object align="right" class="search-bar">
+            {% include "global_search_bar.html" %}
+        </object>
+        <h3>
+            List of Genres
+        </h3>
+        <small>Displaying {{ page_obj.start_index }}-{{ page_obj.end_index }} of <b>{{ page_obj.paginator.count }}</b></small>
+        <table class="table table-sm small table-bordered">
+            <thead>
                 <tr>
-                    <td style="text-align:center">
-                        <a href="{% url 'genre-detail' genre.id %}"><b>{{ genre.name }}</b></a>
-                    </td>
-                    <td style="text-align:center">
-                        {{ genre.description|default:"" }}
-                    </td>
+                    {% sortable_header request "name" "Abbreviation" %}
+                    {% sortable_header request "description" "Genre" %}
                 </tr>
-            {% endfor %}
-        </tbody>
-    </table>
-
-    {% include "pagination.html" %}
-</div>
+            </thead>
+            <tbody>
+                {% for genre in genres %}
+                    <tr>
+                        <td style="text-align:center">
+                            <a href="{% url 'genre-detail' genre.id %}"><b>{{ genre.name }}</b></a>
+                        </td>
+                        <td style="text-align:center">
+                            {{ genre.description|default:"" }}
+                        </td>
+                    </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+        {% include "pagination.html" %}
+    </div>
 {% endblock %}
