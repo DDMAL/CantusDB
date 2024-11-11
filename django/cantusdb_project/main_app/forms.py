@@ -42,6 +42,15 @@ COMPLETE_INVENTORY_FORM_CHOICES = (
     (False, "Partial inventory"),
 )
 
+# Define choices for Chant model's
+# various proofreading fields: manuscript_full_text_std_proofread,
+# manuscript_full_text_proofread, volpiano_proofread
+PROOFREAD_CHOICES = [
+    (None, "Any"),
+    (True, "Yes"),
+    (False, "No"),
+]
+
 
 class NameModelChoiceField(forms.ModelChoiceField):
     """
@@ -517,6 +526,28 @@ class SourceEditForm(forms.ModelForm):
 
     complete_inventory = StyledChoiceField(
         choices=COMPLETE_INVENTORY_FORM_CHOICES, required=False
+    )
+
+
+class SourceBrowseChantsProofreadForm(forms.Form):
+    manuscript_full_text_std_proofread = forms.ChoiceField(
+        label="Full text as in Source (standardized spelling) proofread",
+        choices=PROOFREAD_CHOICES,
+        widget=forms.RadioSelect,
+        required=False,
+    )
+    manuscript_full_text_proofread = forms.ChoiceField(
+        label="Full text as in Source (source spelling)",
+        choices=PROOFREAD_CHOICES,
+        widget=forms.RadioSelect,
+        required=False,
+    )
+
+    volpiano_proofread = forms.ChoiceField(
+        label="Volpiano Proofread",
+        choices=PROOFREAD_CHOICES,
+        widget=forms.RadioSelect,
+        required=False,
     )
 
 
