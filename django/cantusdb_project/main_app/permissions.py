@@ -61,6 +61,28 @@ def user_can_proofread_chant(user: User, chant: Chant) -> bool:
     return user_is_project_manager or (user_is_editor and user_is_assigned_to_source)
 
 
+def user_can_proofread_source(user: User, source: Source) -> bool:
+    """
+    Checks if the user can access the proofreading page of a given Source.
+    Used in SourceBrowseChantsView.
+    """
+    if user.is_superuser:
+        return True
+
+    if user.is_anonymous:
+        return False
+
+    source_id = source.id
+    user_is_assigned_to_source: bool = user.sources_user_can_edit.filter(
+        id=source_id
+    ).exists()
+
+    user_is_project_manager: bool = user.groups.filter(name="project manager").exists()
+    user_is_editor: bool = user.groups.filter(name="editor").exists()
+
+    return user_is_project_manager or (user_is_editor and user_is_assigned_to_source)
+
+
 def user_can_view_source(user: User, source: Source) -> bool:
     """
     Checks if the user can view an unpublished Source on the site.
