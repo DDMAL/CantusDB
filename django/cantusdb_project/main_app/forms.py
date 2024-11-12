@@ -537,14 +537,14 @@ class SourceBrowseChantsProofreadForm(forms.Form):
         required=False,
     )
     manuscript_full_text_proofread = forms.ChoiceField(
-        label="Full text as in Source (source spelling)",
+        label="Full text as in Source (source spelling) proofread",
         choices=PROOFREAD_CHOICES,
         widget=forms.RadioSelect,
         required=False,
     )
 
     volpiano_proofread = forms.ChoiceField(
-        label="Volpiano Proofread",
+        label="Volpiano proofread",
         choices=PROOFREAD_CHOICES,
         widget=forms.RadioSelect,
         required=False,
