@@ -236,6 +236,7 @@ class SourceEditChantsViewTest(TestCase):
             reverse("source-edit-chants", args=[source.id]),
             {
                 "manuscript_full_text_std_spelling": "ut queant lactose",
+                "pk": chant_1.id,
                 "folio": "001r",
                 "c_sequence": "1",
                 # liquescents, to be converted to lowercase
@@ -251,7 +252,7 @@ class SourceEditChantsViewTest(TestCase):
         self.assertEqual(chant_1.volpiano, "9abcdefg)A-B1C2D3E4F5G67?. yiz")
         self.assertEqual(chant_1.volpiano_notes, "9abcdefg9abcdefg")
 
-        make_fake_chant(
+        chant_2 = make_fake_chant(
             manuscript_full_text_std_spelling="resonare foobaz",
             source=source,
             folio="001r",
@@ -266,6 +267,7 @@ class SourceEditChantsViewTest(TestCase):
                 "folio": "001r",
                 "c_sequence": "2",
                 "volpiano": "abacadaeafagahaja",
+                "pk": chant_2.id,
             },
         )
         with patch("requests.get", mock_requests_get):
@@ -319,6 +321,7 @@ class SourceEditChantsViewTest(TestCase):
                 "folio": folio,
                 "c_sequence": c_sequence,
                 "manuscript_full_text_std_spelling": ms_std,
+                "pk": chant.id,
             },
         )
         self.assertEqual(response.status_code, 302)  # 302 Found
