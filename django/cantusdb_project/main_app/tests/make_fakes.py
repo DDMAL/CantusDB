@@ -166,7 +166,7 @@ def make_fake_chant(**kwargs: Any) -> Chant:
     - melody_id
     - chant_range
     - manuscript_full_text, indexing_notes, manuscript_syllabized_full_text
-    - manuscript_full_text_proofread, volpiano_proofread, manuscript_full_text_std_proofread
+    - manuscript_full_text_proofread, volpiano_proofread, manuscript_full_text_std_proofread (default to False)
     """
     # Handle `source`, `folio`, `c_sequence`, and `manuscript_full_text_std_spelling` fields,
     # which cannot be set to None
@@ -218,13 +218,13 @@ def make_fake_chant(**kwargs: Any) -> Chant:
     ]:
         kwargs[field] = kwargs.get(field, faker.sentence())
 
-    # The following fields, when not specified, are generated with a random boolean value
+    # The following fields, when not specified, default to False
     for field in [
         "manuscript_full_text_proofread",
         "volpiano_proofread",
         "manuscript_full_text_std_proofread",
     ]:
-        kwargs[field] = kwargs.get(field, faker.boolean())
+        kwargs[field] = kwargs.get(field, False)
 
     # Remove `chant_id` from kwargs. If specified, it will be used to set the id of the chant.
     chant_id = kwargs.pop("chant_id", None)
