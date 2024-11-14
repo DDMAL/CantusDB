@@ -974,10 +974,21 @@ class SourceListViewTest(TestCase):
         # Add a source from a private collector
         private_collector = make_fake_institution(is_private_collector=True)
         sources.append(make_fake_source(holding_institution=private_collector))
+        # Add a source with no holding institution
+        sources.append(make_fake_source(holding_institution=None))
         # Create a bunch of other sources
         for _ in range(10):
-            inst = make_fake_institution(siglum=faker.word())
+            inst = make_fake_institution()
             sources.append(make_fake_source(holding_institution=inst))
+        # Make sure we have a source with the same country but different holding
+        # institution than our other sources.
+        sources.append(
+            make_fake_source(
+                holding_institution=make_fake_institution(country=inst.country)
+            )
+        )
+        # Make sure we have a source with the same institution as another source
+        sources.append(make_fake_source(holding_institution=inst))
         # Default ordering is by siglum and shelfmark, ascending
         with self.subTest("Default ordering"):
             response = self.client.get(reverse("source-list"))
@@ -985,45 +996,53 @@ class SourceListViewTest(TestCase):
             expected_source_order = sorted(
                 sources,
                 key=lambda source: (
-                    0 if source.holding_institution else 1,
-                    1 if source.holding_institution.is_private_collector else 0,
+                    source.holding_institution is None
+                    or source.holding_institution.is_private_collector,
                     (
                         source.holding_institution.siglum
-                        if source.holding_institution.siglum
+                        if source.holding_institution
+                        and not source.holding_institution.is_private_collector
                         else ""
                     ),
                     source.shelfmark,
                 ),
             )
-            self.assertEqual(
-                list(expected_source_order),
-                list(response_sources),
-            )
+            self.assertEqual(list(expected_source_order), list(response_sources))
             response_reverse = self.client.get(reverse("source-list"), {"sort": "desc"})
             response_sources_reverse = response_reverse.context["sources"]
             self.assertEqual(
-                list(reversed(expected_source_order)),
-                list(response_sources_reverse),
+                list(reversed(expected_source_order)), list(response_sources_reverse)
             )
-        with self.subTest("Order by country, ascending"):
+        with self.subTest("Order by country"):
             response = self.client.get(reverse("source-list"), {"order": "country"})
             response_sources = response.context["sources"]
             expected_source_order = sorted(
-                sources, key=lambda source: source.holding_institution.country
+                sources,
+                key=lambda source: (
+                    source.holding_institution is None,
+                    (
+                        source.holding_institution.country
+                        if source.holding_institution
+                        else ""
+                    ),
+                    (
+                        source.holding_institution.siglum
+                        if source.holding_institution
+                        and not source.holding_institution.is_private_collector
+                        else ""
+                    ),
+                    source.shelfmark,
+                ),
             )
-            self.assertEqual(
-                list(expected_source_order),
-                list(response_sources),
-            )
+            self.assertEqual(list(expected_source_order), list(response_sources))
             response_reverse = self.client.get(
                 reverse("source-list"), {"order": "country", "sort": "desc"}
             )
             response_sources_reverse = response_reverse.context["sources"]
             self.assertEqual(
-                list(reversed(expected_source_order)),
-                list(response_sources_reverse),
+                list(reversed(expected_source_order)), list(response_sources_reverse)
             )
-        with self.subTest("Order by city and institution name, ascending"):
+        with self.subTest("Order by city and institution name"):
             response = self.client.get(
                 reverse("source-list"), {"order": "city_institution"}
             )
@@ -1031,19 +1050,31 @@ class SourceListViewTest(TestCase):
             expected_source_order = sorted(
                 sources,
                 key=lambda source: (
-                    source.holding_institution.city,
-                    source.holding_institution.name,
+                    source.holding_institution is None,
+                    (
+                        source.holding_institution.city
+                        if source.holding_institution
+                        else ""
+                    ),
+                    (
+                        source.holding_institution.name
+                        if source.holding_institution
+                        else ""
+                    ),
+                    (
+                        source.holding_institution.siglum
+                        if source.holding_institution
+                        and source.holding_institution.is_private_collector
+                        else ""
+                    ),
+                    source.shelfmark,
                 ),
             )
-            self.assertEqual(
-                list(expected_source_order),
-                list(response_sources),
-            )
+            self.assertEqual(list(expected_source_order), list(response_sources))
             response_reverse = self.client.get(
                 reverse("source-list"), {"order": "city_institution", "sort": "desc"}
             )
             response_sources_reverse = response_reverse.context["sources"]
             self.assertEqual(
-                list(reversed(expected_source_order)),
-                list(response_sources_reverse),
+                list(reversed(expected_source_order)), list(response_sources_reverse)
             )
