@@ -61,6 +61,7 @@ class SourceBrowseChantsView(ListView):
     context_object_name = "chants"
     template_name = "browse_chants.html"
     pk_url_kwarg = "source_id"
+    source: Source
 
     def get_queryset(self):
         """Gather the chants to be displayed.
@@ -73,6 +74,7 @@ class SourceBrowseChantsView(ListView):
         """
         source_id = self.kwargs.get(self.pk_url_kwarg)
         source = get_object_or_404(Source, id=source_id)
+        self.source = source
 
         display_unpublished = self.request.user.is_authenticated
         if (source.published is False) and (not display_unpublished):
@@ -104,8 +106,7 @@ class SourceBrowseChantsView(ListView):
 
     def get_context_data(self, **kwargs):
         context: dict = super().get_context_data(**kwargs)
-        source_id: int = self.kwargs.get(self.pk_url_kwarg)
-        source: Source = get_object_or_404(Source, id=source_id)
+        source: Source = self.source
         if source.segment_id != CANTUS_SEGMENT_ID:
             # the chant list ("Browse Chants") page should only be visitable
             # for sources in the CANTUS Database segment, as sources in the Bower
@@ -175,11 +176,11 @@ class SourceDetailView(DetailView):
 
     def get_queryset(self):
         return self.model.objects.select_related(
-            "holding_institution", "segment", "provenance"
+            "holding_institution", "segment", "provenance", "created_by"
         ).all()
 
     def get_context_data(self, **kwargs):
-        source = self.get_object()
+        source = self.object
         user = self.request.user
 
         if not user_can_view_source(user, source):
