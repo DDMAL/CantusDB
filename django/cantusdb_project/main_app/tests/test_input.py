@@ -68,7 +68,7 @@ class ChantCreateViewTest(TestCase):
         # create some chants in the test source
         source = Source.objects.all()[self.rand_source]
         for i in range(1, 5):
-            Chant.objects.create(
+            make_fake_chant(
                 source=source,
                 manuscript_full_text=fake.text(10),
                 folio="010r",
