@@ -1,10 +1,12 @@
 import urllib.parse
 from collections import Counter, defaultdict
-from typing import Optional, Iterator, Any
+from typing import Optional, Any, Iterator
+import string
 
 from django.contrib import messages
 from django.contrib.auth.mixins import LoginRequiredMixin
 from django.contrib.auth.mixins import UserPassesTestMixin
+from django.contrib.postgres.aggregates import ArrayAgg
 from django.core.exceptions import PermissionDenied
 from django.db.models import Q, QuerySet
 from django.forms import BaseModelForm
@@ -106,27 +108,122 @@ ONLY_FIELDS = (
 )
 
 
-def get_feast_selector_options(source: Source) -> list[tuple[str, int, str]]:
-    """Generate folio-feast pairs as options for the feast selector
+def split_folio_name(folio: str) -> tuple[str, str, str]:
+    """
+    Splits a folio name into its parts: prefix, number, and suffix.
 
-    Going through all chants in the source, folio by folio,
-    a new entry (in the form of folio-feast) is added when the feast changes.
+    If
+    """
+    prefix = folio[0] if folio[0].isalpha() else ""
+    number = folio.strip(string.ascii_letters)
+    suffix = folio[-1] if folio[-1].isalpha() else ""
+    return prefix, number, suffix
+
+
+def create_folio_ranges(folios: list[str]) -> str:
+    """
+    Combines a list of folios (in ascending order)
+    into a single string with ranges.
+
+    Example:
+    combine_folio_names(['001r', '001v', '002r', '003r', '003v','005v'])
+    returns '001r-002r, 003r-003v, 005v'
+
+    Note: The resulting ranges may include folios that do not contain
+    chants with the given feast *if* the feast is on unnumbered folios or
+    adjacent to unnumbered folios. For example, if a feast appears on folios
+    001v and 002r, but there is an unnumbered folio (per CantusDB convention,
+    called 001w and 001x) between them, the resulting feast range will appear
+    as '001v-002r'. Similarly, if the feast appears on 001v and 001x, the range
+    will appear as '001v-001x'.
+    """
+    folio_ranges: list[dict[str, str]] = [{"start": folios[0]}]
+    most_recent_folio = folios[0]
+    most_recent_folio_split = split_folio_name(most_recent_folio)
+    for curr_folio in folios[1:]:
+        curr_folio_split = split_folio_name(curr_folio)
+        # Check if the folio number has incremented by one.
+        # We use this in the second conditional block below but
+        # check it here to catch if the folio number is not coercible
+        # to an integer.
+        try:
+            folio_num_inc_1 = (
+                int(curr_folio_split[1]) == int(most_recent_folio_split[1]) + 1
+            )
+        except ValueError:
+            folio_num_inc_1 = False
+        # If the folio prefix has changed, start a new range
+        if curr_folio_split[0] != most_recent_folio_split[0]:
+            folio_ranges[-1]["end"] = most_recent_folio
+            folio_ranges.append({"start": curr_folio})
+        # Next, we add to the current range if one of the following conditions
+        # is met:
+        # 1. The folio number does not change.
+        # 2. The folio number increases by one and either (a) there is no suffix
+        #    or (b) the suffix of the current folio is "r" and the suffix of the previous
+        #    folio was not "r".
+        elif (curr_folio_split[1] == most_recent_folio_split[1]) or (
+            folio_num_inc_1
+            and (
+                curr_folio_split[2] == ""
+                or (curr_folio_split[2] == "r" and most_recent_folio_split[2] != "r")
+            )
+        ):
+            folio_ranges[-1]["end"] = curr_folio
+        else:
+            folio_ranges[-1]["end"] = most_recent_folio
+            folio_ranges.append({"start": curr_folio})
+        most_recent_folio = curr_folio
+        most_recent_folio_split = curr_folio_split
+    folio_ranges[-1]["end"] = most_recent_folio
+    # Create strings in the format "start-end" for each range.
+    # If a folio range only contains one folio, we don't need to display the end folio.
+    folio_range_strs = [
+        (
+            f"{folio_range['start']}-{folio_range['end']}"
+            if folio_range["start"] != folio_range["end"]
+            else f"{folio_range['start']}"
+        )
+        for folio_range in folio_ranges
+    ]
+    return ", ".join(folio_range_strs)
+
+
+def get_feast_selector_options(source: Source) -> list[tuple[int, str, str]]:
+    """
+    Generate a list of feasts in the source to be used in the feast selector
+    dropdown. Returns a list of tuples in the following format
+    [
+        (feast_id, feast_name, folios),
+        (feast_id, feast_name, folios),
+        ...
+    ]
+    where folios is a list of folio ranges associated with the feast.
 
     Args:
-        source (Source object): The source that the user is browsing in.
+        source (Source object): The source for which the dropdown is created.
 
     Returns:
-        list of tuples: A list of folios and Feast objects, to be unpacked in template.
+        list of tuples: A list of feasts and their associated folios.
     """
-    folios_feasts_iter: Iterator[tuple[Optional[str], int, str]] = (
-        source.chant_set.exclude(feast=None)
-        .select_related("feast", "genre", "service")
-        .values_list("folio", "feast_id", "feast__name")
-        .order_by("folio", "c_sequence")
+    chant_set_w_feasts: QuerySet[Chant, tuple[int, str]] = source.chant_set.exclude(
+        feast=None
+    ).values_list("feast_id", "feast__name")
+    feasts_agg_folios: Iterator[tuple[int, str, list[str]]] = (
+        chant_set_w_feasts.annotate(folios=ArrayAgg("folio", distinct=True))
+        .order_by("folios")
         .iterator()
     )
-    deduped_folios_feasts_lists = list(dict.fromkeys(folios_feasts_iter))
-    return deduped_folios_feasts_lists
+    feasts_with_folio_range = []
+    for feast_with_folio in feasts_agg_folios:
+        feasts_with_folio_range.append(
+            (
+                feast_with_folio[0],
+                feast_with_folio[1],
+                create_folio_ranges(feast_with_folio[2]),
+            )
+        )
+    return feasts_with_folio_range
 
 
 def get_chants_with_feasts(
