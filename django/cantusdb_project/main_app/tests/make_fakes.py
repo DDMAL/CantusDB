@@ -145,8 +145,28 @@ def make_fake_chant(**kwargs: Any) -> Chant:
 
     The following fields will, if not specified, be given a fake value:
     - source (defaults to a source in the 'CANTUS Database' segment)
-    - marginalia
     - folio
+    - c_sequence
+    - manuscript_full_text_std_spelling
+    - marginalia
+    - service
+    - genre
+    - position
+    - cantus_id
+    - image_link
+    - feast
+    - mode
+    - differentia
+    - project
+    - volpiano
+    - finalis
+    - extra
+    - addendum
+    - cao_concordances
+    - melody_id
+    - chant_range
+    - manuscript_full_text, indexing_notes, manuscript_syllabized_full_text
+    - manuscript_full_text_proofread, volpiano_proofread, manuscript_full_text_std_proofread
     """
     # Handle `source`, `folio`, `c_sequence`, and `manuscript_full_text_std_spelling` fields,
     # which cannot be set to None
