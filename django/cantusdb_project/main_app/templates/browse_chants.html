@@ -147,7 +147,9 @@
                     {% endfor %}
                 </tbody>
             </table>
-            {% include "pagination.html" %}
+            <div class="small">
+                {% include "pagination.html" %}
+            </div>
         {% else %}
             No chants found.
         {% endif %}
