@@ -1201,10 +1201,18 @@ class SourceEditChantsView(LoginRequiredMixin, UserPassesTestMixin, UpdateView):
             context["suggested_fulltext"] = suggested_fulltext
         return context
 
-    def form_valid(self, form):
-        if not form.is_valid():
-            return super().form_invalid(form)
+    def get_form_kwargs(self):
+        """
+        If the request has a data parameter (ie. it is a PUT or POST request),
+        we copy the data and add the source id to it.
+        """
+        kwargs = super().get_form_kwargs()
+        if "data" in kwargs:
+            kwargs["data"] = kwargs["data"].copy()
+            kwargs["data"]["source"] = self.source.id
+        return kwargs
 
+    def form_valid(self, form):
         user: User = self.request.user
         chant: Chant = form.instance
 
@@ -1238,6 +1246,22 @@ class SourceEditChantsView(LoginRequiredMixin, UserPassesTestMixin, UpdateView):
             chant.proofread_by.set(proofreaders)
         messages.success(self.request, "Chant updated successfully!")
         return return_response
+
+    def form_invalid(self, form):
+        """
+        If the form is invalid with an error message on the
+        manuscript_full_text_std_spelling field ("Field cannot be blank
+        on this chant"), we display the edit form with all edited data
+        but the original manuscript_full_text_std_spelling field value.
+        """
+        if form.has_error("manuscript_full_text_std_spelling", "txt-req-prev-existing"):
+            data = self.request.POST.copy()
+            data["manuscript_full_text_std_spelling"] = form[
+                "manuscript_full_text_std_spelling"
+            ].initial
+            form.data = data
+            return super().form_invalid(form)
+        return super().form_invalid(form)
 
     def get_success_url(self):
         # Take user back to the referring page

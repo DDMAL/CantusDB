@@ -181,10 +181,9 @@ class SourceEditChantsViewTest(TestCase):
             response = self.client.get(reverse("source-edit-chants", args=[source1.id]))
         self.assertEqual(response.status_code, 200)
         self.assertTemplateUsed(response, "chant_edit.html")
-        with patch("requests.get", mock_requests_get):
-            response = self.client.get(
-                reverse("source-edit-chants", args=[source1.id + 100])
-            )
+        response = self.client.get(
+            reverse("source-edit-chants", args=[source1.id + 100])
+        )
         self.assertEqual(response.status_code, 404)
         self.assertTemplateUsed(response, "404.html")
 
@@ -200,10 +199,9 @@ class SourceEditChantsViewTest(TestCase):
         chant = make_fake_chant(
             source=source, manuscript_full_text_std_spelling="initial"
         )
-        with patch("requests.get", mock_requests_get):
-            response = self.client.get(
-                reverse("source-edit-chants", args=[source.id]), {"pk": chant.id}
-            )
+        response = self.client.get(
+            reverse("source-edit-chants", args=[source.id]), {"pk": chant.id}
+        )
         self.assertEqual(response.status_code, 200)
         self.assertTemplateUsed(response, "chant_edit.html")
 
@@ -270,10 +268,7 @@ class SourceEditChantsViewTest(TestCase):
                 "pk": chant_2.id,
             },
         )
-        with patch("requests.get", mock_requests_get):
-            chant_2 = Chant.objects.get(
-                manuscript_full_text_std_spelling="resonare foobaz"
-            )
+        chant_2 = Chant.objects.get(manuscript_full_text_std_spelling="resonare foobaz")
         self.assertEqual(chant_2.volpiano, expected_volpiano)
         self.assertEqual(chant_2.volpiano_intervals, expected_intervals)
 
@@ -368,6 +363,64 @@ class SourceEditChantsViewTest(TestCase):
                 "manuscript_full_text_std_spelling",
                 "Word [ contains non-alphabetic characters.",
             )
+
+    def test_full_text_requirement(self):
+        """
+        When editing a chant, we generally require a full text to be provided
+        (this is also true when creating a chant); however, some chants were
+        created before this was required and so may not have full text. In
+        these cases, the user should be allowed to save edits to a chant (for
+        example, a correction to another field) without having to provide a
+        full text.
+        """
+        source = make_fake_source()
+        with self.subTest("Chant with full text"):
+            chant_w_fulltext = make_fake_chant(
+                source=source, manuscript_full_text_std_spelling="Plena sum", mode=None
+            )
+            response = self.client.post(
+                reverse("source-edit-chants", args=[source.id]),
+                {
+                    "manuscript_full_text_std_spelling": "",
+                    "folio": chant_w_fulltext.folio,
+                    "c_sequence": chant_w_fulltext.c_sequence,
+                    "pk": chant_w_fulltext.id,
+                    "mode": "2",
+                },
+            )
+            self.assertEqual(response.status_code, 200)
+            self.assertFormError(
+                response.context["form"],
+                "manuscript_full_text_std_spelling",
+                "This field cannot be blank for this chant.",
+            )
+            self.assertEqual(response.context["form"]["mode"].data, "2")
+            self.assertEqual(
+                response.context["form"]["manuscript_full_text_std_spelling"].data,
+                "Plena sum",
+            )
+            chant_w_fulltext.refresh_from_db()
+            self.assertEqual(
+                chant_w_fulltext.manuscript_full_text_std_spelling, "Plena sum"
+            )
+            self.assertIsNone(chant_w_fulltext.mode)
+        with self.subTest("Chant with no full text"):
+            chant_wo_fulltext = make_fake_chant(
+                source=source, manuscript_full_text_std_spelling=None, mode="1"
+            )
+            response = self.client.post(
+                reverse("source-edit-chants", args=[source.id]),
+                {
+                    "folio": chant_wo_fulltext.folio,
+                    "c_sequence": chant_wo_fulltext.c_sequence,
+                    "pk": chant_wo_fulltext.id,
+                    "mode": "2",
+                },
+            )
+            self.assertEqual(response.status_code, 302)
+            chant_wo_fulltext.refresh_from_db()
+            self.assertEqual(chant_wo_fulltext.mode, "2")
+            self.assertEqual(chant_wo_fulltext.manuscript_full_text, "")
 
 
 class ChantEditSyllabificationViewTest(TestCase):
@@ -2838,7 +2891,15 @@ class ChantCreateViewTest(TestCase):
         """post with correct source and empty full-text"""
         source = self.source
         url = reverse("chant-create", args=[source.id])
-        response = self.client.post(url, data={"manuscript_full_text_std_spelling": ""})
+        response = self.client.post(
+            url,
+            data={
+                "manuscript_full_text_std_spelling": "",
+                "folio": "010r",
+                "c_sequence": "1",
+            },
+        )
+
         self.assertFormError(
             response.context["form"],
             "manuscript_full_text_std_spelling",

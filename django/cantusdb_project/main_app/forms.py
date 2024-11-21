@@ -1,3 +1,5 @@
+from typing import Optional, Any
+
 from django import forms
 from django.contrib.auth.forms import ReadOnlyPasswordHashField
 from django.contrib.auth import get_user_model
@@ -372,6 +374,7 @@ class ChantEditForm(forms.ModelForm):
             "incipit_of_refrain",
             "later_addition",
             "rubrics",
+            "source",
         ]
         widgets = {
             # manuscript_full_text_std_spelling: defined below (required) & special field
@@ -413,7 +416,7 @@ class ChantEditForm(forms.ModelForm):
         widget=TextAreaWidget,
         help_text=Chant._meta.get_field("manuscript_full_text_std_spelling").help_text,
         label="Full text as in Source (standardized spelling)",
-        required=True,
+        required=False,
     )
 
     manuscript_full_text = CantusDBLatinField(
@@ -440,6 +443,45 @@ class ChantEditForm(forms.ModelForm):
         help_text="Select the project (if any) that the chant belongs to.",
         required=False,
     )
+
+    def clean_manuscript_full_text_std_spelling(self) -> Optional[str]:
+        """
+        Provide a custom validation function for the
+        manuscript_full_text_std_spelling field to ensure that
+        if it initially contained text, it cannot be made blank.
+        """
+        if (
+            self["manuscript_full_text_std_spelling"].initial
+            and not self["manuscript_full_text_std_spelling"].data
+        ):
+            raise forms.ValidationError(
+                "This field cannot be blank for this chant.",
+                code="txt-req-prev-existing",
+            )
+        entered_text: str = self["manuscript_full_text_std_spelling"].data
+        return entered_text
+
+    def clean(self) -> dict[str, Any]:
+        """
+        Custom validation to ensure that the edited chant does not duplicate
+        the folio and c_sequence of an already-existing chant.
+        """
+        # Call super().clean() to ensure that the form's built-in validation
+        # is run before our custom validation.
+        super().clean()
+        folio = self.cleaned_data["folio"]
+        c_sequence = self.cleaned_data["c_sequence"]
+        source = self.cleaned_data["source"]
+        if (
+            source.chant_set.exclude(id=self.instance.id)
+            .filter(folio=folio, c_sequence=c_sequence)
+            .exists()
+        ):
+            raise forms.ValidationError(
+                "A chant with this folio and sequence already exists.",
+                code="duplicate-folio-sequence",
+            )
+        return self.cleaned_data
 
 
 class SourceEditForm(forms.ModelForm):
