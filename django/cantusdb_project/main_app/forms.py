@@ -170,6 +170,7 @@ class ChantCreateForm(forms.ModelForm):
             "incipit_of_refrain",
             "later_addition",
             "rubrics",
+            "source",
         ]
         # the widgets dictionary is ignored for a model field with a non-empty
         # choices attribute. In this case, you must override the form field to
@@ -239,17 +240,23 @@ class ChantCreateForm(forms.ModelForm):
         help_text="Select the project (if any) that the chant belongs to.",
     )
 
-    # automatically computed fields
-    # source and incipit are mandatory fields in model,
-    # but have to be optional in the form, otherwise the field validation won't pass
-    source = forms.ModelChoiceField(
-        queryset=Source.objects.all().order_by("title"),
-        required=False,
-        error_messages={
-            "invalid_choice": "This source does not exist, please switch to a different source."
-        },
-    )
-    incipit = forms.CharField(required=False)
+    def clean(self) -> dict[str, Any]:
+        """
+        Provide custom clean method that ensures the created chant does
+        not duplicate the folio and c_sequence of an already-existing chant.
+        """
+        # Call super().clean() to ensure that the form's built-in validation
+        # is run before our custom validation.
+        super().clean()
+        folio = self.cleaned_data["folio"]
+        c_sequence = self.cleaned_data["c_sequence"]
+        source = self.cleaned_data["source"]
+        if source.chant_set.filter(folio=folio, c_sequence=c_sequence):
+            raise forms.ValidationError(
+                "Chant with the same sequence and folio already exists in this source.",
+                code="duplicate-folio-sequence",
+            )
+        return self.cleaned_data
 
 
 class SourceCreateForm(forms.ModelForm):
