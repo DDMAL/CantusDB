@@ -119,13 +119,13 @@ class SourceBrowseChantsView(ListView):
                 | Q(manuscript_full_text__icontains=search_text)
             )
         # Apply proofreading filters if they are set
-        if manuscript_full_text_proofread:
-            chants = chants.filter(
-                manuscript_full_text_std_proofread=manuscript_full_text_proofread
-            )
         if manuscript_full_text_std_proofread:
             chants = chants.filter(
-                manuscript_full_text_proofread=manuscript_full_text_std_proofread
+                manuscript_full_text_std_proofread=manuscript_full_text_std_proofread
+            )
+        if manuscript_full_text_proofread:
+            chants = chants.filter(
+                manuscript_full_text_proofread=manuscript_full_text_proofread
             )
         if volpiano_proofread:
             chants = chants.filter(volpiano_proofread=volpiano_proofread)
