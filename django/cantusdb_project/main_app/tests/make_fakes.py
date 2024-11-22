@@ -185,15 +185,15 @@ def make_fake_chant(
     if manuscript_full_text_std_spelling is None:
         manuscript_full_text_std_spelling = faker.sentence()
     if manuscript_full_text_std_proofread is None:
-        manuscript_full_text_std_proofread = random.choice([True, False, None])
+        manuscript_full_text_std_proofread = faker.boolean()
     if manuscript_full_text is None:
         manuscript_full_text = manuscript_full_text_std_spelling
     if manuscript_full_text_proofread is None:
-        manuscript_full_text_proofread = random.choice([True, False, None])
+        manuscript_full_text_proofread = faker.boolean()
     if volpiano is None:
         volpiano = make_fake_volpiano()
     if volpiano_proofread is None:
-        volpiano_proofread = random.choice([True, False, None])
+        volpiano_proofread = faker.boolean()
     if manuscript_syllabized_full_text is None:
         manuscript_syllabized_full_text = faker.sentence(20)
     if differentia is None:
