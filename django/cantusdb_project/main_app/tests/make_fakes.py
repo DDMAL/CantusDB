@@ -149,7 +149,9 @@ def make_fake_chant(
     manuscript_full_text_std_spelling=None,
     manuscript_full_text_std_proofread=None,
     manuscript_full_text=None,
+    manuscript_full_text_proofread=None,
     volpiano=None,
+    volpiano_proofread=None,
     manuscript_syllabized_full_text=None,
     next_chant=None,
     differentia=None,
@@ -183,11 +185,15 @@ def make_fake_chant(
     if manuscript_full_text_std_spelling is None:
         manuscript_full_text_std_spelling = faker.sentence()
     if manuscript_full_text_std_proofread is None:
-        manuscript_full_text_std_proofread = False
+        manuscript_full_text_std_proofread = random.choice([True, False, None])
     if manuscript_full_text is None:
         manuscript_full_text = manuscript_full_text_std_spelling
+    if manuscript_full_text_proofread is None:
+        manuscript_full_text_proofread = random.choice([True, False, None])
     if volpiano is None:
         volpiano = make_fake_volpiano()
+    if volpiano_proofread is None:
+        volpiano_proofread = random.choice([True, False, None])
     if manuscript_syllabized_full_text is None:
         manuscript_syllabized_full_text = faker.sentence(20)
     if differentia is None:
@@ -220,9 +226,9 @@ def make_fake_chant(
         manuscript_full_text_std_spelling=manuscript_full_text_std_spelling,
         manuscript_full_text_std_proofread=manuscript_full_text_std_proofread,
         manuscript_full_text=manuscript_full_text,
-        manuscript_full_text_proofread=faker.boolean(),
+        manuscript_full_text_proofread=manuscript_full_text_proofread,
         volpiano=volpiano,
-        volpiano_proofread=faker.boolean(),
+        volpiano_proofread=volpiano_proofread,
         image_link=image_link,
         cao_concordances=make_random_string(12, "ABCDEFGHIJKLMNOPQRSTUVWXYZ  "),
         melody_id="m" + make_random_string(8, "0123456789."),
