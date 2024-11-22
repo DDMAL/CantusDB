@@ -303,7 +303,9 @@ class SourceEditChantsViewTest(TestCase):
 
     def test_proofread_chant(self):
         chant = make_fake_chant(
-            manuscript_full_text_std_spelling="lorem ipsum", folio="001r"
+            manuscript_full_text_std_spelling="lorem ipsum",
+            folio="001r",
+            manuscript_full_text_std_proofread=False,
         )
         folio = chant.folio
         c_sequence = chant.c_sequence
