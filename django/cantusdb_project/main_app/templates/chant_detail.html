@@ -4,6 +4,8 @@
 {% endblock %}
 {% block scripts %}
     <script src="/static/js/chant_detail.js"></script>
+    <link rel="stylesheet"
+          href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css" />
 {% endblock %}
 {% block uppersidebar %}
     <div class="search-bar mb-3">
@@ -377,14 +379,19 @@
         {% endif %}
     </dl>
     {% if chant.cantus_id %}
-        <h4 id="concordances">List of concordances</h4>
-        <p>
-            For concordances, please consult the
-            <a href="https://cantusindex.org/" target="_blank">Cantus Index</a> entry for Cantus ID
-            <b><a href="https://cantusindex.org/id/{{ chant.cantus_id }}" target="_blank">{{ chant.cantus_id }}</a></b>.
-        </p>
-
-        <h4>List of melodies</h4>
+        <h4 id="concordances">
+            Concordances
+        </h4>
+        <span id="concordancesLoadingStatus" class="d-none link-color"><b>Loading concordances...</b></span>
+        <a id="concordanceButton"
+           href="#"
+           class="guillemet"
+           onclick="getConcordances('{{ chant.cantus_id }}'); return false;">Display the concordances connected with this chant</a>
+        <div id="concordancesDiv" class="mb-3">
+        </div>
+        <h4>
+            Melodies
+        </h4>
         <span id="melodyLoadingPrompt" style="display: none; color: #922"><b>Loading melodies...</b></span>
         <a id="melodyButton"
            href="#"

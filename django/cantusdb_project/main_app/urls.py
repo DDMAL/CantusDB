@@ -21,6 +21,7 @@ from main_app.views.api import (
     csv_export,
     articles_list_export,
     flatpages_list_export,
+    cid_concordances,
 )
 from main_app.views.institution import InstitutionListView, InstitutionDetailView
 from main_app.views.redirect import (
@@ -567,6 +568,11 @@ urlpatterns = [
         "differentia-autocomplete/",
         DifferentiaAutocomplete.as_view(),
         name="differentia-autocomplete",
+    ),
+    path(
+        "cid-concordances/",
+        cid_concordances,
+        name="cid-concordances",
     ),
 ]
 
