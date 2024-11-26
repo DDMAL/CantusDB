@@ -133,7 +133,7 @@ function concordanceDetailToggleText(event) {
     }
 }
 
-function getConcordances(cantusID){
+function getConcordances(cantusID) {
     // Remove the concordance button
     const concordanceButton = document.getElementById("concordanceButton");
     concordanceButton.classList.add("d-none");
@@ -151,7 +151,7 @@ function getConcordances(cantusID){
         const concordancesLoadingStatus = document.getElementById("concordancesLoadingStatus");
         concordancesLoadingStatus.classList.add("d-none");
         const concordancesData = JSON.parse(this.response);
-        if (Object.keys(concordancesData.databases).length === 0){
+        if (Object.keys(concordancesData.databases).length === 0) {
             const noConcordances = document.createElement("p");
             noConcordances.innerHTML = `No concordances found for Cantus ID <b><a href="http://cantusindex.org/id/${cantusID}" target="_blank" title="${cantusID} on Cantus Index"> ${cantusID}</a></b>.`;
             concordancesDiv.appendChild(noConcordances);
@@ -185,9 +185,9 @@ function getConcordances(cantusID){
             const concordanceCountLink = document.createElement("a");
             concordanceCountLink.setAttribute("href", dbSummary.url_cid);
             concordanceCountLink.setAttribute("target", "_blank");
-            if (dbSummary.count > 1){
+            if (dbSummary.count > 1) {
                 concordanceCountLink.appendChild(document.createTextNode(`${dbSummary.count} concordances`));
-            } else if (dbSummary.count === 1){
+            } else if (dbSummary.count === 1) {
                 concordanceCountLink.appendChild(document.createTextNode(`${dbSummary.count} concordance`));
             } else {
                 concordanceCountLink.appendChild(document.createTextNode(`See concordance(s)`));
@@ -198,7 +198,7 @@ function getConcordances(cantusID){
         concordancesSummaryRow.setAttribute("class", "row");
         concordancesSummaryRow.appendChild(concordancesSummaryTable);
         concordancesDiv.appendChild(concordancesSummaryRow);
-        if (Object.keys(concordancesData.chants).length === 0){
+        if (Object.keys(concordancesData.chants).length === 0) {
             return;
         }
         // Create table collapse link
@@ -223,7 +223,7 @@ function getConcordances(cantusID){
             headerCell.classList.add("text-center");
             headerCell.innerHTML = `<b>${header}</b>`;
         }
-       var concordancesDetail = Object.values(concordancesData.chants);
+        var concordancesDetail = Object.values(concordancesData.chants);
         concordancesDetail.sort((a, b) => {
             return a.siglum.localeCompare(b.siglum);
         });
@@ -231,7 +231,7 @@ function getConcordances(cantusID){
             const newRow = concordancesTable.insertRow();
             const sourceLink = document.createElement("a");
             sourceLink.setAttribute("href", concordance.srclink);
-            sourceLink.setAttribute("target","_blank");
+            sourceLink.setAttribute("target", "_blank");
             sourceLink.innerHTML = `${concordance.siglum}`;
             const folio = document.createElement("span");
             folio.innerHTML = `, <b>${concordance.folio}</b>`;
@@ -242,7 +242,7 @@ function getConcordances(cantusID){
                 const url = new URL(concordance.image);
                 var imageLink = document.createElement("a");
                 imageLink.setAttribute("href", url.href);
-                imageLink.setAttribute("target","_blank");
+                imageLink.setAttribute("target", "_blank");
                 imageLink.classList.add("bi-camera-fill");
                 newRow.insertCell().innerHTML = sourceLink.outerHTML + folio.outerHTML + "<br>" + imageLink.outerHTML;
             } catch (e) {
@@ -250,7 +250,7 @@ function getConcordances(cantusID){
             }
             const chantLink = document.createElement("a");
             chantLink.setAttribute("href", concordance.chantlink);
-            chantLink.setAttribute("target","_blank");
+            chantLink.setAttribute("target", "_blank");
             chantLink.innerHTML = concordance.incipit;
             newRow.insertCell().innerHTML = chantLink.outerHTML;
             newRow.insertCell().innerHTML = `${concordance.office} | ${concordance.genre} | ${concordance.position}`;
