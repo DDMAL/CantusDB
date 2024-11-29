@@ -7,7 +7,7 @@ import random
 from django.test import TestCase
 from django.urls import reverse
 
-from main_app.models import Genre
+from main_app.models import Genre  # type: ignore[attr-defined]
 from main_app.tests.make_fakes import make_fake_genre
 
 
@@ -18,18 +18,18 @@ class GenreListViewTest(TestCase):
     def setUpTestData(cls) -> None:
         mass_office_genre = make_fake_genre(
             name="genre1",
-            description="test",
+            description="testB",
             mass_office="Mass, Office",
         )
         mass_genre = make_fake_genre(
-            name="genre2", description="test", mass_office="Mass"
+            name="genre2", description="testC", mass_office="Mass"
         )
         office_genre = make_fake_genre(
-            name="genre3", description="test", mass_office="Office"
+            name="genre3", description="testD", mass_office="Office"
         )
         old_hispanic_genre = make_fake_genre(
             name="genre4",
-            description="test",
+            description="testA",
             mass_office="Old Hispanic",
         )
         cls.fake_genres = {
@@ -54,27 +54,7 @@ class GenreListViewTest(TestCase):
         self.assertTemplateUsed(response, "base.html")
         self.assertTemplateUsed(response, "genre_list.html")
 
-    def test_filter_by_mass(self) -> None:
-        # filter by Mass
-        response = self.client.get(reverse("genre-list"), {"mass_office": "Mass"})
-        genres = response.context["genres"]
-        # Mass, Office and Mass should be in the list, while the others should not
-        self.assertIn(self.fake_genres["mass_genre"], genres)
-        self.assertIn(self.fake_genres["mass_office_genre"], genres)
-        self.assertNotIn(self.fake_genres["office_genre"], genres)
-        self.assertNotIn(self.fake_genres["old_hispanic_genre"], genres)
-
-    def test_filter_by_office(self) -> None:
-        # filter by Office
-        response = self.client.get(reverse("genre-list"), {"mass_office": "Office"})
-        genres = response.context["genres"]
-        # Office, Office and Mass should be in the list, while the others should not
-        self.assertNotIn(self.fake_genres["mass_genre"], genres)
-        self.assertIn(self.fake_genres["mass_office_genre"], genres)
-        self.assertIn(self.fake_genres["office_genre"], genres)
-        self.assertNotIn(self.fake_genres["old_hispanic_genre"], genres)
-
-    def test_no_filtering(self) -> None:
+    def test_returned_queryset(self) -> None:
         # default is no filtering
         response = self.client.get(reverse("genre-list"))
         genres = response.context["genres"]
@@ -84,17 +64,29 @@ class GenreListViewTest(TestCase):
         self.assertIn(self.fake_genres["office_genre"], genres)
         self.assertIn(self.fake_genres["old_hispanic_genre"], genres)
 
-    def test_invalid_filtering(self) -> None:
-        # invalid filtering parameter should default to no filtering
-        response = self.client.get(
-            reverse("genre-list"), {"mass_office": "invalid param"}
-        )
-        genres = response.context["genres"]
-        # all genres should be in the list
-        self.assertIn(self.fake_genres["mass_genre"], genres)
-        self.assertIn(self.fake_genres["mass_office_genre"], genres)
-        self.assertIn(self.fake_genres["office_genre"], genres)
-        self.assertIn(self.fake_genres["old_hispanic_genre"], genres)
+    def test_ordering(self) -> None:
+        with self.subTest("Test default ordering: by name, ascending"):
+            response = self.client.get(reverse("genre-list"))
+            genres = list(response.context["genres"])
+            self.assertEqual(genres, list(Genre.objects.order_by("name").all()))
+        with self.subTest("Test ordering by name, descending"):
+            response = self.client.get(
+                reverse("genre-list"), {"order": "name", "sort": "desc"}
+            )
+            genres = list(response.context["genres"])
+            self.assertEqual(genres, list(Genre.objects.order_by("-name").all()))
+        with self.subTest("Test ordering by description, ascending"):
+            response = self.client.get(
+                reverse("genre-list"), {"order": "description", "sort": "asc"}
+            )
+            genres = list(response.context["genres"])
+            self.assertEqual(genres, list(Genre.objects.order_by("description").all()))
+        with self.subTest("Test ordering by description, descending"):
+            response = self.client.get(
+                reverse("genre-list"), {"order": "description", "sort": "desc"}
+            )
+            genres = list(response.context["genres"])
+            self.assertEqual(genres, list(Genre.objects.order_by("-description").all()))
 
     def test_json_reponse(self) -> None:
         response = self.client.get(
