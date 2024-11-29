@@ -26,8 +26,8 @@ class PermissionsTest(TestCase):
         for i in range(5):
             source = make_fake_source()
             for i in range(5):
-                Chant.objects.create(source=source)
-                Sequence.objects.create(source=source)
+                make_fake_chant(source=source)
+                make_fake_sequence(source=source)
 
     def setUp(self):
         self.user = get_user_model().objects.create(email="test@test.com")
@@ -193,7 +193,7 @@ class PermissionsTest(TestCase):
         assigned_source = make_fake_source()
         self.user.sources_user_can_edit.add(assigned_source)
         for i in range(5):
-            Chant.objects.create(source=assigned_source)
+            make_fake_chant(source=assigned_source)
         chant_in_assigned_source = (
             Chant.objects.filter(source=assigned_source).order_by("?").first()
         )
@@ -203,7 +203,7 @@ class PermissionsTest(TestCase):
         source_created_by_contributor.created_by = self.user
         source_created_by_contributor.save()
         for i in range(5):
-            Chant.objects.create(source=source_created_by_contributor)
+            make_fake_chant(source=source_created_by_contributor)
         chant_in_source_created_by_contributor = (
             Chant.objects.filter(source=source_created_by_contributor)
             .order_by("?")
@@ -302,7 +302,7 @@ class PermissionsTest(TestCase):
         assigned_source = make_fake_source()
         self.user.sources_user_can_edit.add(assigned_source)
         for i in range(5):
-            Chant.objects.create(source=assigned_source)
+            make_fake_chant(source=assigned_source)
         chant_in_assigned_source = (
             Chant.objects.filter(source=assigned_source).order_by("?").first()
         )
@@ -312,7 +312,7 @@ class PermissionsTest(TestCase):
         source_created_by_contributor.created_by = self.user
         source_created_by_contributor.save()
         for i in range(5):
-            Chant.objects.create(source=source_created_by_contributor)
+            make_fake_chant(source=source_created_by_contributor)
         chant_in_source_created_by_contributor = (
             Chant.objects.filter(source=source_created_by_contributor)
             .order_by("?")

@@ -24,9 +24,11 @@ from main_app.tests.make_fakes import (
     make_fake_institution,
     make_random_string,
     get_random_search_term,
+    make_fake_segment,
 )
 from main_app.tests.test_functions import mock_requests_get
-from main_app.models import Chant, Segment, Source, Feast, Service
+from main_app.models import Chant, Source, Feast, Service
+from main_app.views.chant import get_feast_selector_options
 
 
 # Create a Faker instance with locale set to Latin
@@ -48,12 +50,12 @@ class ChantDetailViewTest(TestCase):
     def test_context_folios(self):
         # create a source and several chants in it
         source = make_fake_source()
-        chant = Chant.objects.create(source=source, folio="001r")
-        Chant.objects.create(source=source, folio="001r")
-        Chant.objects.create(source=source, folio="001v")
-        Chant.objects.create(source=source, folio="001v")
-        Chant.objects.create(source=source, folio="002r")
-        Chant.objects.create(source=source, folio="002v")
+        chant = make_fake_chant(source=source, folio="001r")
+        make_fake_chant(source=source, folio="001r")
+        make_fake_chant(source=source, folio="001v")
+        make_fake_chant(source=source, folio="001v")
+        make_fake_chant(source=source, folio="002r")
+        make_fake_chant(source=source, folio="002v")
         # request the page
         response = self.client.get(reverse("chant-detail", args=[chant.id]))
         # the element in "folios" should be unique and ordered in this way
@@ -64,11 +66,11 @@ class ChantDetailViewTest(TestCase):
         # create a source and several chants in it
         source = make_fake_source()
         # three folios: 001r, 001v, 002r
-        chant_without_previous_folio = Chant.objects.create(source=source, folio="001r")
-        chant_with_previous_and_next_folio = Chant.objects.create(
+        chant_without_previous_folio = make_fake_chant(source=source, folio="001r")
+        chant_with_previous_and_next_folio = make_fake_chant(
             source=source, folio="001v"
         )
-        chant_without_next_folio = Chant.objects.create(source=source, folio="002v")
+        chant_without_next_folio = make_fake_chant(source=source, folio="002v")
         # request the page and check the context variables
         # for the chant on 001r, there is no previous folio, and the next folio should be 001v
         response = self.client.get(
@@ -173,7 +175,7 @@ class SourceEditChantsViewTest(TestCase):
         source1 = make_fake_source()
 
         # must specify folio, or SourceEditChantsView.get_queryset will fail when it tries to default to displaying the first folio
-        Chant.objects.create(source=source1, folio="001r")
+        make_fake_chant(source=source1, folio="001r")
 
         with patch("requests.get", mock_requests_get):
             response = self.client.get(reverse("source-edit-chants", args=[source1.id]))
@@ -453,7 +455,7 @@ class ChantSearchViewTest(TestCase):
         # unless a segment is specified when a source is created, the source is automatically assigned
         # to the segment with the name "CANTUS Database" - to prevent errors, we must make sure that
         # such a segment exists
-        Segment.objects.create(name="CANTUS Database")
+        make_fake_segment(name="CANTUS Database")
 
     def test_view_url_path(self):
         response = self.client.get("/chant-search/")
@@ -489,7 +491,7 @@ class ChantSearchViewTest(TestCase):
     def test_search_by_service(self):
         source = make_fake_source(published=True)
         service = make_fake_service()
-        chant = Chant.objects.create(source=source, service=service)
+        chant = make_fake_chant(source=source, service=service)
         search_term = service.id
         response = self.client.get(reverse("chant-search"), {"service": search_term})
         context_chant_id = response.context["chants"][0].id
@@ -498,14 +500,14 @@ class ChantSearchViewTest(TestCase):
     def test_filter_by_genre(self):
         source = make_fake_source(published=True)
         genre = make_fake_genre()
-        chant = Chant.objects.create(source=source, genre=genre)
+        chant = make_fake_chant(source=source, genre=genre)
         response = self.client.get(reverse("chant-search"), {"genre": genre.id})
         context_chant_id = response.context["chants"][0].id
         self.assertEqual(chant.id, context_chant_id)
 
     def test_search_by_cantus_id(self):
         source = make_fake_source(published=True)
-        chant = Chant.objects.create(source=source, cantus_id=faker.numerify("######"))
+        chant = make_fake_chant(source=source, cantus_id=faker.numerify("######"))
         search_term = get_random_search_term(chant.cantus_id)
         response = self.client.get(reverse("chant-search"), {"cantus_id": search_term})
         context_chant_id = response.context["chants"][0].id
@@ -513,7 +515,7 @@ class ChantSearchViewTest(TestCase):
 
     def test_search_by_mode(self):
         source = make_fake_source(published=True)
-        chant = Chant.objects.create(source=source, mode=faker.numerify("#"))
+        chant = make_fake_chant(source=source, mode=faker.numerify("#"))
         search_term = get_random_search_term(chant.mode)
         response = self.client.get(reverse("chant-search"), {"mode": search_term})
         context_chant_id = response.context["chants"][0].id
@@ -522,7 +524,7 @@ class ChantSearchViewTest(TestCase):
     def test_search_by_feast(self):
         source = make_fake_source(published=True)
         feast = make_fake_feast()
-        chant = Chant.objects.create(source=source, feast=feast)
+        chant = make_fake_chant(source=source, feast=feast)
         search_term = get_random_search_term(feast.name)
         response = self.client.get(reverse("chant-search"), {"feast": search_term})
         context_chant_id = response.context["chants"][0].id
@@ -531,7 +533,7 @@ class ChantSearchViewTest(TestCase):
     def test_search_by_position(self):
         source = make_fake_source(published=True)
         position = 1
-        chant = Chant.objects.create(source=source, position=position)
+        chant = make_fake_chant(source=source, position=position)
         search_term = "1"
         response = self.client.get(reverse("chant-search"), {"position": search_term})
         context_chant_id = response.context["chants"][0].id
@@ -539,12 +541,12 @@ class ChantSearchViewTest(TestCase):
 
     def test_filter_by_melody(self):
         source = make_fake_source(published=True)
-        chant_with_melody = Chant.objects.create(
+        chant_with_melody = make_fake_chant(
             source=source,
             volpiano=make_fake_volpiano(),
         )
         # Create a chant without a melody
-        Chant.objects.create(source=source)
+        make_fake_chant(source=source, volpiano=None)
         response = self.client.get(reverse("chant-search"), {"melodies": "true"})
         # only chants with melodies should be in the result
         self.assertEqual(len(response.context["chants"]), 1)
@@ -553,7 +555,7 @@ class ChantSearchViewTest(TestCase):
 
     def test_keyword_search_starts_with(self):
         source = make_fake_source(published=True)
-        chant = Chant.objects.create(
+        chant = make_fake_chant(
             source=source,
             manuscript_full_text_std_spelling=faker.sentence(),
         )
@@ -569,7 +571,7 @@ class ChantSearchViewTest(TestCase):
 
     def test_keyword_search_contains(self):
         source = make_fake_source(published=True)
-        chant = Chant.objects.create(
+        chant = make_fake_chant(
             source=source,
             manuscript_full_text="hoc tantum possum dicere",
         )
@@ -1797,7 +1799,7 @@ class ChantSearchMSViewTest(TestCase):
     def test_search_by_service(self):
         source = make_fake_source()
         service = make_fake_service()
-        chant = Chant.objects.create(source=source, service=service)
+        chant = make_fake_chant(source=source, service=service)
         search_term = service.id
         response = self.client.get(
             reverse("chant-search-ms", args=[source.id]), {"service": search_term}
@@ -1808,7 +1810,7 @@ class ChantSearchMSViewTest(TestCase):
     def test_filter_by_genre(self):
         source = make_fake_source()
         genre = make_fake_genre()
-        chant = Chant.objects.create(source=source, genre=genre)
+        chant = make_fake_chant(source=source, genre=genre)
         response = self.client.get(
             reverse("chant-search-ms", args=[source.id]), {"genre": genre.id}
         )
@@ -1817,7 +1819,7 @@ class ChantSearchMSViewTest(TestCase):
 
     def test_search_by_cantus_id(self):
         source = make_fake_source()
-        chant = Chant.objects.create(source=source, cantus_id=faker.numerify("######"))
+        chant = make_fake_chant(source=source, cantus_id=faker.numerify("######"))
         search_term = get_random_search_term(chant.cantus_id)
         response = self.client.get(
             reverse("chant-search-ms", args=[source.id]), {"cantus_id": search_term}
@@ -1827,7 +1829,7 @@ class ChantSearchMSViewTest(TestCase):
 
     def test_search_by_mode(self):
         source = make_fake_source()
-        chant = Chant.objects.create(source=source, mode=faker.numerify("#"))
+        chant = make_fake_chant(source=source, mode=faker.numerify("#"))
         search_term = get_random_search_term(chant.mode)
         response = self.client.get(
             reverse("chant-search-ms", args=[source.id]), {"mode": search_term}
@@ -1838,7 +1840,7 @@ class ChantSearchMSViewTest(TestCase):
     def test_search_by_feast(self):
         source = make_fake_source()
         feast = make_fake_feast()
-        chant = Chant.objects.create(source=source, feast=feast)
+        chant = make_fake_chant(source=source, feast=feast)
         search_term = get_random_search_term(feast.name)
         response = self.client.get(
             reverse("chant-search-ms", args=[source.id]), {"feast": search_term}
@@ -1849,7 +1851,7 @@ class ChantSearchMSViewTest(TestCase):
     def test_search_by_position(self):
         source = make_fake_source(published=True)
         position = 1
-        chant = Chant.objects.create(source=source, position=position)
+        chant = make_fake_chant(source=source, position=position)
         search_term = "1"
         response = self.client.get(
             reverse("chant-search-ms", args=[source.id]), {"position": search_term}
@@ -1859,12 +1861,12 @@ class ChantSearchMSViewTest(TestCase):
 
     def test_filter_by_melody(self):
         source = make_fake_source()
-        chant_with_melody = Chant.objects.create(
+        chant_with_melody = make_fake_chant(
             source=source,
             volpiano=make_fake_volpiano,
         )
         # Create a chant without melody that won't be in the result
-        Chant.objects.create(source=source)
+        make_fake_chant(source=source, volpiano=None)
         response = self.client.get(
             reverse("chant-search-ms", args=[source.id]), {"melodies": "true"}
         )
@@ -2857,7 +2859,7 @@ class ChantCreateViewTest(TestCase):
         # create some chants in the test source
         source = self.source
         for i in range(1, 5):
-            Chant.objects.create(
+            make_fake_chant(
                 source=source,
                 manuscript_full_text=" ".join(faker.words(faker.random_int(3, 10))),
                 folio=test_folio,

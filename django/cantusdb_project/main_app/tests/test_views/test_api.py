@@ -589,14 +589,14 @@ class JsonNextChantsTest(TestCase):
         fake_source_1 = make_fake_source()
         fake_source_2 = make_fake_source()
 
-        fake_chant_2 = Chant.objects.create(
+        fake_chant_2 = make_fake_chant(
             source=fake_source_1,
             cantus_id="2000",
             folio="001r",
             c_sequence=2,
         )
 
-        fake_chant_1 = Chant.objects.create(
+        fake_chant_1 = make_fake_chant(
             source=fake_source_1,
             cantus_id="1000",
             folio="001r",
@@ -604,14 +604,14 @@ class JsonNextChantsTest(TestCase):
             next_chant=fake_chant_2,
         )
 
-        fake_chant_4 = Chant.objects.create(
+        fake_chant_4 = make_fake_chant(
             source=fake_source_2,
             cantus_id="2000",
             folio="001r",
             c_sequence=2,
         )
 
-        fake_chant_3 = Chant.objects.create(
+        fake_chant_3 = make_fake_chant(
             source=fake_source_2,
             cantus_id="1000",
             folio="001r",
@@ -629,19 +629,15 @@ class JsonNextChantsTest(TestCase):
         fake_source_1 = make_fake_source()
         fake_source_2 = make_fake_source()
 
-        fake_chant_2 = Chant.objects.create(
+        fake_chant_2 = make_fake_chant(
             source=fake_source_1,
         )
-        fake_chant_1 = Chant.objects.create(
-            source=fake_source_1, next_chant=fake_chant_2
-        )
+        fake_chant_1 = make_fake_chant(source=fake_source_1, next_chant=fake_chant_2)
 
-        fake_chant_4 = Chant.objects.create(
+        fake_chant_4 = make_fake_chant(
             source=fake_source_2,
         )
-        fake_chant_3 = Chant.objects.create(
-            source=fake_source_2, next_chant=fake_chant_4
-        )
+        fake_chant_3 = make_fake_chant(source=fake_source_2, next_chant=fake_chant_4)
 
         path = reverse("json-nextchants", args=["9000"])
         response = self.client.get(reverse("json-nextchants", args=["9000"]))
@@ -653,14 +649,14 @@ class JsonNextChantsTest(TestCase):
         fake_source_1 = make_fake_source(published=True)
         fake_source_2 = make_fake_source(published=False)
 
-        fake_chant_2 = Chant.objects.create(
+        fake_chant_2 = make_fake_chant(
             source=fake_source_1,
             cantus_id="2000",
             folio="001r",
             c_sequence=2,
         )
 
-        fake_chant_1 = Chant.objects.create(
+        fake_chant_1 = make_fake_chant(
             source=fake_source_1,
             cantus_id="1000",
             folio="001r",
@@ -668,14 +664,14 @@ class JsonNextChantsTest(TestCase):
             next_chant=fake_chant_2,
         )
 
-        fake_chant_4 = Chant.objects.create(
+        fake_chant_4 = make_fake_chant(
             source=fake_source_2,
             cantus_id="2000",
             folio="001r",
             c_sequence=2,
         )
 
-        fake_chant_3 = Chant.objects.create(
+        fake_chant_3 = make_fake_chant(
             source=fake_source_2,
             cantus_id="1000",
             folio="001r",

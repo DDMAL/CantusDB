@@ -9,12 +9,13 @@ from django.contrib.auth.models import Group
 
 from faker import Faker
 
-from main_app.models import Segment, Sequence
+from main_app.models import Sequence
 from main_app.tests.make_fakes import (
     make_fake_sequence,
     make_fake_source,
     get_random_search_term,
     make_random_string,
+    make_fake_segment,
 )
 
 # Create a Faker instance with locale set to Latin
@@ -26,7 +27,7 @@ class SequenceListViewTest(TestCase):
         # unless a segment is specified when a source is created, the source is automatically assigned
         # to the segment with the name "CANTUS Database" - to prevent errors, we must make sure that
         # such a segment exists
-        Segment.objects.create(name="CANTUS Database")
+        make_fake_segment(name="CANTUS Database")
 
     def test_url_and_templates(self):
         response = self.client.get(reverse("sequence-list"))
@@ -49,8 +50,8 @@ class SequenceListViewTest(TestCase):
             published=True,
             shelfmark="a sequence source",
         )
-        sequence = Sequence.objects.create(
-            incipit=faker.sentence(),
+        sequence = make_fake_sequence(
+            title=faker.sentence(),
             source=source,
         )
         search_term = get_random_search_term(sequence.incipit)
@@ -65,7 +66,7 @@ class SequenceListViewTest(TestCase):
             published=True,
             shelfmark="a sequence source",
         )
-        sequence = Sequence.objects.create(siglum=make_random_string(6), source=source)
+        sequence = make_fake_sequence(siglum=make_random_string(6), source=source)
         search_term = get_random_search_term(sequence.siglum)
         # request the page, search for the siglum
         response = self.client.get(reverse("sequence-list"), {"siglum": search_term})
@@ -76,9 +77,7 @@ class SequenceListViewTest(TestCase):
         # create a published sequence source and some sequence in it
         source = make_fake_source(published=True, shelfmark="a sequence source")
         # faker generates a fake cantus id, in the form of two letters followed by five digits
-        sequence = Sequence.objects.create(
-            cantus_id=faker.bothify("??#####"), source=source
-        )
+        sequence = make_fake_sequence(cantus_id=faker.bothify("??#####"), source=source)
         search_term = get_random_search_term(sequence.cantus_id)
         # request the page, search for the incipit
         response = self.client.get(reverse("sequence-list"), {"cantus_id": search_term})
