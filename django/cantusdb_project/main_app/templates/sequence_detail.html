@@ -1,28 +1,26 @@
-{% extends "base.html" %}
+{% extends "single_column_with_search_bar.html" %}
 
 {% block title %}
     <title>{{ sequence.title }} | Cantus Database</title>
 {% endblock %}
 
-{% block content %}
-<div class="mr-3 p-3 mx-auto bg-white rounded">
-    <!--Display "submit success" message -->
-    {% if messages %}
-        <div class="alert alert-success alert-dismissible">
-            {% for message in messages %}
-                {{ message }}
-            {% endfor %}
-        </div>
-    {% endif %}
-    <object align="right" class="search-bar">
-        {% include "global_search_bar.html" %}
-    </object>
+{% block header %}
     <h3>{{ sequence.title }}</h3>
     {% if user_can_edit_sequence %}
-        <p>
-            View | <a href="{% url "sequence-edit" sequence.id %}">Edit</a>
-        </p>
+    <p>
+        View | <a href="{% url "sequence-edit" sequence.id %}">Edit</a>
+    </p>
     {% endif %}
+{% endblock %}
+{% block maincontent %}
+<!--Display "submit success" message -->
+{% if messages %}
+<div class="alert alert-success alert-dismissible">
+    {% for message in messages %}
+        {{ message }}
+    {% endfor %}
+</div>
+{% endif %}
     <dl>
         <dt>
             Siglum
@@ -223,6 +221,4 @@
             </table>
         </div>
     {% endif %}
-</div>
-
 {% endblock %}

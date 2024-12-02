@@ -1,6 +1,5 @@
-{% extends "base.html" %}
+{% extends "filterable_table_with_search_bar.html" %}
 {% load helper_tags %}
-
 
 {% block title %}
     <title>Browse Sources | Cantus Database</title>
@@ -10,15 +9,10 @@
     <script src="/static/js/source_list.js"></script>
 {% endblock %}
 
-{% block content %}
-    <div class="mr-3 p-3 col-md-12 mx-auto bg-white rounded">
-    <!-- global search bar-->
-    <object align="right" class="search-bar">
-        {% include "global_search_bar.html" %}
-    </object>
+{% block header %}
     <h3>Browse Sources</h3>
-    <small>Displaying {{ page_obj.start_index }}-{{ page_obj.end_index }} of <b>{{ page_obj.paginator.count }}</b> sources</small>
-
+{% endblock %}
+{% block list_filter_form %}
     <form method="get">
         <div class="form-row align-items-end">
             <div class="form-group m-1 col-lg">
@@ -93,6 +87,8 @@
             </div> 
         </div>
     </form>
+{% endblock %}
+{% block list_table %}
     {% if sources %}
         <table class="table table-sm small table-bordered table-responsive">
             <thead>
@@ -163,9 +159,5 @@
                 {% endfor %}
             </tbody>
         </table>
-        {% include "pagination.html" %}
-    {% else %}
-        No sources found.
     {% endif %}
-</div>
 {% endblock %}

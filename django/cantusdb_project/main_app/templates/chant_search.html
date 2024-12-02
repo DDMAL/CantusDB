@@ -1,4 +1,5 @@
-{% extends "base.html" %}
+{% extends "single_column_with_search_bar.html" %}
+{% load humanize %}
 
 {% block title %}
     <title>Search Chants | Cantus Database</title>
@@ -8,53 +9,44 @@
     <script src="/static/js/chant_search.js"></script>
 {% endblock %}
 
-{% block content %}
-<div class="mr-3 p-3 col-md-12 mx-auto bg-white rounded">
-    <object align="right" class="search-bar">
-        {% include "global_search_bar.html" %}
-    </object>
+{% block header %}
     <h3>Search Chants</h3>
+{% endblock %}
+{% block maincontent %}
     {% if source %}
         <p>
             <b>Searching in source: <a href="{% url 'source-detail' source.id %}" target="_blank">{{ source.short_heading }}</a></b>
         </p>
     {% elif keyword %}
-        <p>
-            <small>
+        <p class="small">
                 » <a href="https://cantusindex.org/search?t={{ keyword }}" title="Search {{ keyword }} on CantusIndex.org" target="_blank">
                     Search <b>{{ keyword }}</b> on CantusIndex.org
                 </a>
-            </small>
         </p>
     {% endif %}
 
     {% if chants.all %}
-        <p>
-            <small>Displaying {{ page_obj.start_index }}-{{ page_obj.end_index }} of <b>{{ page_obj.paginator.count }}
-                    chant{{ page_obj.paginator.count|pluralize }}</b></small>
+        <p class="small">
+            Displaying {{ page_obj.start_index }}-{{ page_obj.end_index }} of <b>{{ page_obj.paginator.count|intcomma }}</b>
+                    chant{{ page_obj.paginator.count|pluralize }}.
         </p>
     {% endif %}
-
     <form method="get">
         <div class="form-row align-items-end">
-            <div class="form-group m-1 col-12">
-                <label for="keywordSearch"><small>Keyword search</small></label>
-            </div>
-        </div>
-        <div class="form-row align-items-end">
-            <div class="form-group m-1 col-lg-3 col-sm-3 col-3">
+            <div class="form-group col-sm-3 col-12">
+                <label for="keywordSearch" class="small">Keyword search</label>
                 <select class="form-control custom-select custom-select-sm" id="opFilter" name="op">
                     <option selected value="contains">Contains</option>
                     <option value="starts_with">Starts with</option>
                 </select>
             </div>
-            <div class="form-group m-1 col-lg col-sm col-">
+            <div class="form-group col-sm-9 col-12">
                 <input type="text" class="form-control form-control-sm" name="keyword" id="keywordSearch" value="{{ request.GET.keyword }}" />
             </div>
         </div>
         <div class="form-row align-items-end">
-            <div class="form-group m-1 col-lg-3 col-sm-6">
-                <label for="serviceFilter"><small>Service</small></label>
+            <div class="form-group col-lg-3 col-sm-6 col-12">
+                <label for="serviceFilter" class="small">Service</label>
                 <select id="serviceFilter" name="service" class="form-control custom-select custom-select-sm">
                     <option value="">- Any -</option>
                     {% for service in services %}
@@ -62,8 +54,8 @@
                     {% endfor %}
                 </select>
             </div>
-            <div class="form-group m-1 col-lg-3 col-sm">
-                <label for="genreFilter"><small>Genre</small></label>
+            <div class="form-group col-lg-3 col-sm-6 col-12">
+                <label for="genreFilter" class="small">Genre</label>
                 <select id="genreFilter" name="genre" class="form-control custom-select custom-select-sm">
                     <option value="">- Any -</option>
                     {% for genre in genres %}
@@ -71,24 +63,24 @@
                     {% endfor %}
                 </select>
             </div>
-            <div class="form-group m-1 col-lg-3 col-sm-6">
-                <label for="cantus_id"><small>Cantus ID</small></label>
+            <div class="form-group col-lg-3 col-sm-6 col-12">
+                <label for="cantus_id" class="small">Cantus ID</label>
                 <input type="text" class="form-control form-control-sm" name="cantus_id" id="cantus_id" value="{{ request.GET.cantus_id }}" />
             </div>
-            <div class="form-group m-1 col-lg col-sm">
-                <label for="mode"><small>Mode</small></label>
+            <div class="form-group col-lg-3 col-sm-6 col-12">
+                <label for="mode" class="small">Mode</label>
                 <input type="text" class="form-control form-control-sm" name="mode" id="mode" value="{{ request.GET.mode }}" />
             </div>
-            <div class="form-group m-1 col-lg-3 col-sm-6">
-                <label for="feast"><small>Feast</small></label>
+            <div class="form-group col-lg-3 col-sm-6 col-12">
+                <label for="feast" class="small">Feast</label>
                 <input type="text" class="form-control form-control-sm" name="feast" id="feast" value="{{ request.GET.feast }}" />
             </div>
-            <div class="form-group m-1 col-lg-3 col-sm">
-                <label for="position"><small>Position</small></label>
+            <div class="form-group col-lg-3 col-sm-6 col-12">
+                <label for="position" class="small">Position</label>
                 <input type="text" class="form-control form-control-sm" name="position" id="position" value="{{ request.GET.position }}" />
             </div>
-            <div class="form-group m-1 col-lg-3 col-sm-6">
-                <label for="melodiesFilter"><small>Melodies</small></label>
+            <div class="form-group col-lg-3 col-sm-6 col-12">
+                <label for="melodiesFilter" class="small">Melodies</label>
                 <select class="form-control custom-select custom-select-sm" id="melodiesFilter" name="melodies">
                     <option value="">- Any -</option>
                     <option value="true">Chants with melodies</option>
@@ -97,25 +89,21 @@
         </div>
         {% if source %}
             <div class="form-row align-items-end">
-                <div class="form-group m-1 col-12">
-                    <label for="indexingNotesSearch"><small>Indexing notes search</small></label>
-                </div>
-            </div>
-            <div class="form-row align-items-end">
-                <div class="form-group m-1 col-lg-3 col-sm-3 col-3">
+                <div class="form-group col-sm-3 col-12">
+                    <label for="indexingNotesSearch" class="small">Indexing notes search</label>
                     <select class="form-control custom-select custom-select-sm" id="indexingNotesOp" name="indexing_notes_op">
                         <option selected value="contains">Contains</option>
                         <option value="starts_with">Starts with</option>
                     </select>
                 </div>
-                <div class="form-group m-1 col-lg col-sm col-">
+                <div class="form-group col-sm-9 col-12">
                     <input type="text" class="form-control form-control-sm"  id="indexingNotesSearch" name="indexing_notes" value="{{ request.GET.indexing_notes }}" />
                 </div>
             </div>
         {% endif %}
 
         <div class="form-row align-items-end">
-            <div class="form-group m-2 col-lg">
+            <div class="form-group col-lg">
                 <button type="submit" class="btn btn-dark btn-sm" id="btn-submit"> Apply </button>
             </div>
         </div>
@@ -315,12 +303,10 @@
                 </tbody>
             </table>
         </div>
-
         {% include "pagination.html" %}
     {% else %}
         {% if request.GET %}
-            No chants found.
+            <p class="text-center">No chants found.</p>
         {% endif %}
     {% endif %}
-</div>
 {% endblock %}
