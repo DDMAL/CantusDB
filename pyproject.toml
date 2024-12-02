@@ -30,7 +30,7 @@ django-stubs = {git = "https://github.com/typeddjango/django-stubs.git", rev = "
 django-extensions = "^3.2.3"
 werkzeug = "^3.0.6"
 types-requests = "^2.32.0.20240712"
-djlint = "^1.36.1"
+djlint = "^1.36.3"
 
 
 [build-system]
