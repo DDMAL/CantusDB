@@ -264,6 +264,10 @@ class SourceListView(ListView):  # type: ignore
         context["centuries"] = (
             Century.objects.all().order_by("name").values("id", "name")
         )
+        context["production_method_choices"] = Source.ProductionMethodChoices.choices
+        context["source_completeness_choices"] = (
+            Source.SourceCompletenessChoices.choices
+        )
         return context
 
     def get_queryset(self) -> QuerySet[Source]:
@@ -288,15 +292,10 @@ class SourceListView(ListView):  # type: ignore
             q_obj_filter &= Q(provenance__id=int(provenance_id))
         if segment_id := self.request.GET.get("segment"):
             q_obj_filter &= Q(segment__id=int(segment_id))
-        if (full_source_str := self.request.GET.get("fullSource")) in ["true", "false"]:
-            if full_source_str == "true":
-                q_obj_filter &= Q(
-                    source_completeness=Source.SourceCompletenessChoices.FULL_SOURCE
-                )
-            else:
-                q_obj_filter &= Q(
-                    source_completeness=Source.SourceCompletenessChoices.FRAGMENT
-                )
+        if source_completeness := self.request.GET.getlist("sourceCompleteness"):
+            q_obj_filter &= Q(source_completeness__in=source_completeness)
+        if production_method := self.request.GET.get("prodMethod"):
+            q_obj_filter &= Q(production_method=production_method)
 
         if general_str := self.request.GET.get("general"):
             # Strip spaces at the beginning and end. Then make list of terms split on spaces
@@ -307,6 +306,7 @@ class SourceListView(ListView):  # type: ignore
             holding_institution_q = Q()
             holding_institution_city_q = Q()
             description_q = Q()
+            name_q = Q()
             # it seems that old cantus don't look into title and provenance
             # for the general search terms
             # cantus.uwaterloo.ca/source/123901 this source cannot be found by searching
@@ -327,6 +327,7 @@ class SourceListView(ListView):  # type: ignore
                 siglum_q |= Q(holding_institution__siglum__unaccent__icontains=term)
                 description_q |= Q(description__unaccent__icontains=term)
                 summary_q |= Q(summary__unaccent__icontains=term)
+                name_q |= Q(name__icontains=term)
                 # provenance_q |= Q(provenance__name__icontains=term)
             # All the Q objects are put together with OR.
             # The end result is that at least one term has to match in at least one
@@ -341,6 +342,7 @@ class SourceListView(ListView):  # type: ignore
                 | summary_q
                 | holding_institution_q
                 | holding_institution_city_q
+                | name_q
             )
             q_obj_filter &= general_search_q
 

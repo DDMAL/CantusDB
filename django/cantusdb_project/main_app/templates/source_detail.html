@@ -44,7 +44,7 @@
     {% endif %}
 
     {% if source.production_method %}
-        <dt>Manuscript/Printed</dt>
+        <dt>Manuscript/Print</dt>
         <dd>{{ source.get_production_method_display }}</dd>
     {% endif %}
 
@@ -126,8 +126,8 @@
     {% endif %}
     
     {% if source.fragmentarium_id is not None %}
-        <dt>Fragment ID</dt>
-        <dd>{{ source.fragmentarium_id }}</dd>
+        <dt>Fragmentarium ID</dt>
+        <dd><a href="https://fragmentarium.ms/overview/{{ source.fragmentarium_id }}">{{ source.fragmentarium_id }}</a></dd>
     {% endif %}
 
     {% if source.dact_id is not None %}
