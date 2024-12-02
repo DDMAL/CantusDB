@@ -103,7 +103,9 @@ class SourceBrowseChantsView(ListView):
         volpiano_proofread = self.request.GET.get("volpiano_proofread")
 
         # get all chants in the specified source
-        chants: QuerySet[Chant] = source.chant_set.select_related("feast", "service", "genre")
+        chants: QuerySet[Chant] = source.chant_set.select_related(
+            "feast", "service", "genre"
+        )
         # filter the chants with optional search params
         if feast_id:
             chants = chants.filter(feast__id=feast_id)
