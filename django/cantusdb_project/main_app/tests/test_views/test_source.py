@@ -602,6 +602,82 @@ class SourceBrowseChantsViewTest(TestCase):
         )
         self.assertIn(chant, response.context["chants"])
 
+    def test_search_proofread(self):
+        cantus_segment = make_fake_segment(id=4063)
+        source = make_fake_source(segment=cantus_segment)
+        chant_std_proofread = make_fake_chant(
+            source=source,
+            manuscript_full_text_std_proofread=True,
+            manuscript_full_text_proofread=False,
+            volpiano_proofread=False,
+        )
+        chant_ft_proofread = make_fake_chant(
+            source=source,
+            manuscript_full_text_std_proofread=False,
+            manuscript_full_text_proofread=True,
+            volpiano_proofread=False,
+        )
+        chant_volpiano_proofread = make_fake_chant(
+            source=source,
+            manuscript_full_text_std_proofread=False,
+            manuscript_full_text_proofread=False,
+            volpiano_proofread=True,
+        )
+        response = self.client.get(
+            reverse("browse-chants", args=[source.id]),
+        )
+        self.assertIn(chant_std_proofread, response.context["chants"])
+        self.assertIn(chant_ft_proofread, response.context["chants"])
+        self.assertIn(chant_volpiano_proofread, response.context["chants"])
+
+        response = self.client.get(
+            reverse("browse-chants", args=[source.id]),
+            {"manuscript_full_text_std_proofread": True},
+        )
+        self.assertIn(chant_std_proofread, response.context["chants"])
+        self.assertNotIn(chant_ft_proofread, response.context["chants"])
+        self.assertNotIn(chant_volpiano_proofread, response.context["chants"])
+
+        response = self.client.get(
+            reverse("browse-chants", args=[source.id]),
+            {"manuscript_full_text_std_proofread": False},
+        )
+        self.assertNotIn(chant_std_proofread, response.context["chants"])
+        self.assertIn(chant_ft_proofread, response.context["chants"])
+        self.assertIn(chant_volpiano_proofread, response.context["chants"])
+
+        response = self.client.get(
+            reverse("browse-chants", args=[source.id]),
+            {"manuscript_full_text_proofread": True},
+        )
+        self.assertNotIn(chant_std_proofread, response.context["chants"])
+        self.assertIn(chant_ft_proofread, response.context["chants"])
+        self.assertNotIn(chant_volpiano_proofread, response.context["chants"])
+
+        response = self.client.get(
+            reverse("browse-chants", args=[source.id]),
+            {"manuscript_full_text_proofread": False},
+        )
+        self.assertIn(chant_std_proofread, response.context["chants"])
+        self.assertNotIn(chant_ft_proofread, response.context["chants"])
+        self.assertIn(chant_volpiano_proofread, response.context["chants"])
+
+        response = self.client.get(
+            reverse("browse-chants", args=[source.id]),
+            {"volpiano_proofread": True},
+        )
+        self.assertNotIn(chant_std_proofread, response.context["chants"])
+        self.assertNotIn(chant_ft_proofread, response.context["chants"])
+        self.assertIn(chant_volpiano_proofread, response.context["chants"])
+
+        response = self.client.get(
+            reverse("browse-chants", args=[source.id]),
+            {"volpiano_proofread": False},
+        )
+        self.assertIn(chant_std_proofread, response.context["chants"])
+        self.assertIn(chant_ft_proofread, response.context["chants"])
+        self.assertNotIn(chant_volpiano_proofread, response.context["chants"])
+
     def test_context_source(self):
         cantus_segment = make_fake_segment(id=4063)
         source = make_fake_source(segment=cantus_segment)
