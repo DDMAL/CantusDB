@@ -66,6 +66,15 @@ mock_json_cid_008349_text: str = """
         "field_similar_chant_id": null,
         "field_troped_chant_id": null
     },
+    "databases": {
+        "PEM": {
+        "count": 2,
+        "name": "Portuguese Early Music Database",
+        "url": "https://pemdatabase.eu",
+        "url_cid": "https://pemdatabase.eu/musical-items?cid=008349",
+        "last_update": ""
+        }
+    },
     "chants": {
         "0": {
             "siglum": "P-BRs Ms. 032",
@@ -130,6 +139,15 @@ mock_json_cid_006928_text: str = """
         "field_related_chant_id": null,
         "field_similar_chant_id": null,
         "field_troped_chant_id": null
+    },
+    "databases": {
+        "PEM": {
+            "count": 2,
+            "name": "Portuguese Early Music Database",
+            "url": "https://pemdatabase.eu",
+            "url_cid": "https://pemdatabase.eu/musical-items?cid=006928",
+            "last_update": ""
+        }
     },
     "chants": {
         "0": {
