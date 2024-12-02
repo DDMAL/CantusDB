@@ -1,16 +1,14 @@
-{% extends "base.html" %}
+{% extends "single_column_with_search_bar.html" %}
 {% load humanize %}
 
 {% block title %}
     <title>Content Statistics | Cantus Database</title>
 {% endblock %}
 
-{% block content %}
-<div class="mr-3 p-3 mx-auto bg-white rounded">
-    <object align="right" class="search-bar">
-        {% include "global_search_bar.html" %}
-    </object>
+{% block header %}
     <h3>Content Statistics</h3>
+{% endblock %}
+{% block maincontent %}
     <table class="table table-sm table-bordered table-striped">
         <thead>
             <tr>
@@ -35,6 +33,4 @@
             </tr>
         </tbody>
     </table>
-
-</div>
 {% endblock %}

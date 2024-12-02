@@ -8,8 +8,11 @@ from django.test import TestCase, Client
 from django.urls import reverse
 
 from users.models import User
-from main_app.models import Chant, Sequence
-from main_app.tests.make_fakes import make_fake_source
+from main_app.tests.make_fakes import (
+    make_fake_source,
+    make_fake_chant,
+    make_fake_sequence,
+)
 from articles.tests.test_articles import make_fake_article
 
 
@@ -78,7 +81,7 @@ class NodeURLRedirectTest(TestCase):
         # generate dummy object with ID in valid range
         example_chant_id = random.randrange(1, 1000000)
         source = make_fake_source()
-        Chant.objects.create(id=example_chant_id, source=source)
+        make_fake_chant(chant_id=example_chant_id, source=source)
 
         # find dummy object using /node/ path
         response_1 = self.client.get(
@@ -109,7 +112,7 @@ class NodeURLRedirectTest(TestCase):
         # generate dummy object with ID in valid range
         example_sequence_id = random.randrange(1, 1000000)
         source = make_fake_source()
-        Sequence.objects.create(id=example_sequence_id, source=source)
+        make_fake_sequence(sequence_id=example_sequence_id, source=source)
 
         # find dummy object using /node/ path
         response_1 = self.client.get(
@@ -166,7 +169,7 @@ class NodeURLRedirectTest(TestCase):
         # generate dummy object with ID outside of valid range
         over_limit_node_id = 1000001
         source = make_fake_source()
-        Chant.objects.create(id=over_limit_node_id, source=source)
+        make_fake_chant(chant_id=over_limit_node_id, source=source)
 
         # ID above limit
         response_1 = self.client.get(

@@ -1,7 +1,10 @@
 """Functions to make fake objects to be used for testing"""
 
 import random
-from faker import Faker
+from typing import Optional, List, Any
+from faker import Faker  # type: ignore[import-untyped]
+
+from django.contrib.auth import get_user_model
 
 from main_app.models.century import Century
 from main_app.models.chant import Chant
@@ -15,9 +18,8 @@ from main_app.models.provenance import Provenance
 from main_app.models.segment import Segment
 from main_app.models.sequence import Sequence
 from main_app.models.source import Source
-from django.contrib.auth import get_user_model
+from users.models import User as UserAnnotation
 
-from typing import Optional, List
 
 User = get_user_model()
 
@@ -100,18 +102,18 @@ def make_fake_volpiano(
     """
     NOTES = "abcdefghklmnABCDEFGHKLMN"
     BARLINES = ("3", "4")  # 3: single barline, 4: double barline
-    if not words >= 1:
+    if words < 1:
         raise ValueError("words must be >= 1")
-    elif not syllables_per_word >= 1:
+    if syllables_per_word < 1:
         raise ValueError("syllables_per_word must be >= 1")
-    elif not neumes_per_syllable >= 1:
+    if neumes_per_syllable < 1:
         raise ValueError("neumes_per_syllable must be >= 1")
-    elif not notes_per_neume >= 1:
+    if notes_per_neume < 1:
         raise ValueError("notes_per_neume must be >= 1")
 
-    words_: List[List[List[str]]] = []
+    words_: List[str] = []
     for _ in range(words):
-        syllables: List[List[str]] = []
+        syllables: List[str] = []
         for __ in range(syllables_per_word):
             neumes: List[str] = []
             for ___ in range(neumes_per_syllable):
@@ -128,132 +130,123 @@ def make_fake_volpiano(
     return volpiano
 
 
-def make_fake_century() -> Century:
+def make_fake_century(**kwargs: Any) -> Century:
     """Generates a fake Century object."""
-    century = Century.objects.create(name=faker.sentence(nb_words=3))
+    if "name" not in kwargs:
+        kwargs["name"] = faker.sentence(nb_words=3)
+    century = Century.objects.create(**kwargs)
     return century
 
 
-def make_fake_chant(
-    source=None,
-    marginalia=None,
-    folio=None,
-    service=None,
-    genre=None,
-    position=None,
-    c_sequence=None,
-    cantus_id=None,
-    image_link=None,
-    feast=None,
-    mode=None,
-    manuscript_full_text_std_spelling=None,
-    manuscript_full_text_std_proofread=None,
-    manuscript_full_text=None,
-    manuscript_full_text_proofread=None,
-    volpiano=None,
-    volpiano_proofread=None,
-    manuscript_syllabized_full_text=None,
-    next_chant=None,
-    differentia=None,
-    project=None,
-    indexing_notes=None,
-) -> Chant:
-    """Generates a fake Chant object."""
-    if source is None:
-        source = make_fake_source(segment_name="CANTUS Database")
-    if marginalia is None:
-        marginalia = make_random_string(1)
-    if folio is None:
-        # two digits and one letter
-        folio = faker.bothify("##?")
-    if service is None:
-        service = make_fake_service()
-    if genre is None:
-        genre = make_fake_genre()
-    if position is None:
-        position = make_random_string(1)
-    if c_sequence is None:
-        c_sequence = random.randint(1, MAX_SEQUENCE_NUMBER)
-    if cantus_id is None:
-        cantus_id = make_random_string(6, "0123456789")
-    if image_link is None:
-        image_link = faker.image_url()
-    if feast is None:
-        feast = make_fake_feast()
-    if mode is None:
-        mode = make_random_string(1, "0123456789*?")
-    if manuscript_full_text_std_spelling is None:
-        manuscript_full_text_std_spelling = faker.sentence()
-    if manuscript_full_text_std_proofread is None:
-        manuscript_full_text_std_proofread = faker.boolean()
-    if manuscript_full_text is None:
-        manuscript_full_text = manuscript_full_text_std_spelling
-    if manuscript_full_text_proofread is None:
-        manuscript_full_text_proofread = faker.boolean()
-    if volpiano is None:
-        volpiano = make_fake_volpiano()
-    if volpiano_proofread is None:
-        volpiano_proofread = faker.boolean()
-    if manuscript_syllabized_full_text is None:
-        manuscript_syllabized_full_text = faker.sentence(20)
-    if differentia is None:
-        differentia = make_random_string(2)
-    if project is None:
-        project = make_fake_project()
-    if indexing_notes is None:
-        indexing_notes = faker.sentence()
+def make_fake_chant(**kwargs: Any) -> Chant:
+    """
+    Generates a fake Chant object. Kwargs can be used to specify the value of fields.
+    The `chant_id` field can be used to specify the id of the chant.
 
-    chant = Chant.objects.create(
-        source=source,
-        marginalia=marginalia,
-        folio=folio,
-        c_sequence=c_sequence,
-        service=service,
-        genre=genre,
-        position=position,
-        cantus_id=cantus_id,
-        feast=feast,
-        mode=mode,
-        differentia=differentia,
-        finalis=make_random_string(1, "abcdefg"),
-        extra=make_random_string(3, "0123456789"),
-        chant_range=make_fake_volpiano(
+    The following fields will, if not specified, be given a fake value:
+    - source (defaults to a source in the 'CANTUS Database' segment)
+    - folio
+    - c_sequence
+    - manuscript_full_text_std_spelling
+    - marginalia
+    - service
+    - genre
+    - position
+    - cantus_id
+    - image_link
+    - feast
+    - mode
+    - differentia
+    - project
+    - volpiano
+    - finalis
+    - extra
+    - addendum
+    - cao_concordances
+    - melody_id
+    - chant_range
+    - manuscript_full_text, indexing_notes, manuscript_syllabized_full_text
+    - manuscript_full_text_proofread, volpiano_proofread, manuscript_full_text_std_proofread (default to False)
+    """
+    # Handle `source`, `folio`, `c_sequence`, and `manuscript_full_text_std_spelling` fields,
+    # which cannot be set to None
+    if kwargs.get("source") is None:
+        kwargs["source"] = make_fake_source(segment_name="CANTUS Database")
+    if kwargs.get("folio") is None:
+        kwargs["folio"] = faker.bothify("##?")
+    if kwargs.get("c_sequence") is None:
+        kwargs["c_sequence"] = random.randint(1, MAX_SEQUENCE_NUMBER)
+    if kwargs.get("manuscript_full_text_std_spelling") is None:
+        kwargs["manuscript_full_text_std_spelling"] = faker.sentence()
+
+    kwargs["marginalia"] = kwargs.get("marginalia", make_random_string(1))
+    kwargs["service"] = kwargs.get("service", make_fake_service())
+    kwargs["genre"] = kwargs.get("genre", make_fake_genre())
+    kwargs["position"] = kwargs.get("position", make_random_string(1))
+    kwargs["cantus_id"] = kwargs.get("cantus_id", make_random_string(6, "0123456789"))
+    kwargs["image_link"] = kwargs.get("image_link", faker.image_url())
+    kwargs["feast"] = kwargs.get("feast", make_fake_feast())
+    kwargs["mode"] = kwargs.get("mode", make_random_string(1, "0123456789*?"))
+    kwargs["differentia"] = kwargs.get("differentia", make_random_string(2))
+    kwargs["project"] = kwargs.get("project", make_fake_project())
+    kwargs["volpiano"] = kwargs.get("volpiano", make_fake_volpiano())
+    kwargs["finalis"] = kwargs.get("finalis", make_random_string(1, "abcdefg"))
+    kwargs["extra"] = kwargs.get("extra", make_random_string(3, "0123456789"))
+    kwargs["addendum"] = kwargs.get(
+        "addendum", make_random_string(3, "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789")
+    )
+    kwargs["cao_concordances"] = kwargs.get(
+        "cao_concordances", make_random_string(12, "ABCDEFGHIJKLMNOPQRSTUVWXYZ  ")
+    )
+    kwargs["melody_id"] = kwargs.get(
+        "melody_id", "m" + make_random_string(8, "0123456789.")
+    )
+    kwargs["chant_range"] = kwargs.get(
+        "chant_range",
+        make_fake_volpiano(
             words=1, syllables_per_word=1, neumes_per_syllable=1, notes_per_neume=1
         ).replace(
             "---", "-"
         ),  # chant_range is of the form "1-x-y-4", x, y are volpiano notes
-        addendum=make_random_string(3, "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789"),
-        manuscript_full_text_std_spelling=manuscript_full_text_std_spelling,
-        manuscript_full_text_std_proofread=manuscript_full_text_std_proofread,
-        manuscript_full_text=manuscript_full_text,
-        manuscript_full_text_proofread=manuscript_full_text_proofread,
-        volpiano=volpiano,
-        volpiano_proofread=volpiano_proofread,
-        image_link=image_link,
-        cao_concordances=make_random_string(12, "ABCDEFGHIJKLMNOPQRSTUVWXYZ  "),
-        melody_id="m" + make_random_string(8, "0123456789."),
-        manuscript_syllabized_full_text=manuscript_syllabized_full_text,
-        indexing_notes=indexing_notes,
-        json_info=None,
-        next_chant=next_chant,
-        project=project,
     )
+
+    # The following fields, when not specified, are generated with a random sentence
+    for field in [
+        "manuscript_full_text",
+        "indexing_notes",
+        "manuscript_syllabized_full_text",
+    ]:
+        kwargs[field] = kwargs.get(field, faker.sentence())
+
+    # The following fields, when not specified, default to False
+    for field in [
+        "manuscript_full_text_proofread",
+        "volpiano_proofread",
+        "manuscript_full_text_std_proofread",
+    ]:
+        kwargs[field] = kwargs.get(field, False)
+
+    # Remove `chant_id` from kwargs. If specified, it will be used to set the id of the chant.
+    chant_id = kwargs.pop("chant_id", None)
+
+    chant = Chant(**kwargs)
+    if chant_id is not None:
+        chant.id = chant_id
+    chant.save()
     chant.refresh_from_db()  # several fields (e.g., incipit) are calculated automatically
     # upon chant save. By refreshing from db before returning, we ensure all the chant's fields
     # are up-to-date. For more information, refer to main_app/signals.py
     return chant
 
 
-def make_fake_feast() -> Feast:
+def make_fake_feast(**kwargs: Any) -> Feast:
     """Generates a fake Feast object."""
-    feast = Feast.objects.create(
-        name=faker.sentence(),
-        description=faker.sentence(),
-        feast_code=make_random_string(8, "0123456789"),
-        notes=faker.sentence(),
-        month=random.randint(1, 12),
-        day=random.randint(1, 31),
-    )
+    for field in ["name", "description", "notes"]:
+        kwargs[field] = kwargs.get(field, faker.sentence())
+    kwargs["feast_code"] = kwargs.get("feast_code", make_random_string(8, "0123456789"))
+    kwargs["month"] = kwargs.get("month", random.randint(1, 12))
+    kwargs["day"] = kwargs.get("day", random.randint(1, 31))
+    feast = Feast.objects.create(**kwargs)
     return feast
 
 
@@ -277,9 +270,9 @@ def make_fake_genre(
     return genre
 
 
-def make_fake_user(is_indexer=True) -> User:
+def make_fake_user(is_indexer: bool = True) -> UserAnnotation:
     """Generates a fake User object."""
-    user = User.objects.create(
+    user: UserAnnotation = User.objects.create(
         full_name=f"{faker.first_name()} {faker.last_name()}",
         institution=faker.company(),
         city=faker.city(),
@@ -311,7 +304,7 @@ def make_fake_provenance() -> Provenance:
     return provenance
 
 
-def make_fake_segment(name: str = None, id: int = None) -> Segment:
+def make_fake_segment(name: Optional[str] = None, id: Optional[int] = None) -> Segment:
     """Generates a fake Segment object."""
     if name is None:
         name = faker.sentence(nb_words=2)
@@ -322,7 +315,7 @@ def make_fake_segment(name: str = None, id: int = None) -> Segment:
     return segment
 
 
-def make_fake_project(name: str = None, id: int = None) -> Project:
+def make_fake_project(name: Optional[str] = None, id: Optional[int] = None) -> Project:
     if name is None:
         name = faker.sentence(nb_words=2)
     if id is None:
@@ -332,7 +325,14 @@ def make_fake_project(name: str = None, id: int = None) -> Project:
     return project
 
 
-def make_fake_sequence(source=None, title=None, cantus_id=None) -> Sequence:
+def make_fake_sequence(
+    sequence_id: Optional[int] = None,
+    source: Optional[Source] = None,
+    title: Optional[str] = None,
+    cantus_id: Optional[str] = None,
+    siglum: Optional[str] = None,
+    folio: Optional[str] = None,
+) -> Sequence:
     """Generates a fake Sequence object."""
     if source is None:
         source = make_fake_source(segment_name="Bower Sequence Database")
@@ -340,11 +340,16 @@ def make_fake_sequence(source=None, title=None, cantus_id=None) -> Sequence:
         title = faker.sentence()
     if cantus_id is None:
         cantus_id = make_random_string(6, "0123456789")
-    sequence = Sequence.objects.create(
+    if siglum is None:
+        siglum = make_random_string(6)
+    if folio is None:
+        # two digits and one letter
+        folio = faker.bothify("##?")
+    sequence = Sequence(
         title=title,
-        siglum=make_random_string(6),
+        siglum=siglum,
         # folio in the form of two digits and one letter
-        folio=faker.bothify("##?"),
+        folio=folio,
         s_sequence=make_random_string(2, "0123456789"),
         genre=make_fake_genre(),
         rubrics=faker.sentence(),
@@ -356,6 +361,9 @@ def make_fake_sequence(source=None, title=None, cantus_id=None) -> Sequence:
         cantus_id=cantus_id,
         image_link=faker.image_url(),
     )
+    if sequence_id is not None:
+        sequence.id = sequence_id
+    sequence.save()
     sequence.refresh_from_db()  # several fields (e.g., incipit) are calculated automatically
     # upon sequence save. By refreshing from db before returning, we ensure all the sequence's fields
     # are up-to-date. For more information, refer to main_app/signals.py
@@ -368,25 +376,27 @@ def make_fake_institution(
     city: Optional[str] = None,
     region: Optional[str] = None,
     country: Optional[str] = None,
-    is_private_collector: Optional[bool] = None,
+    is_private_collector: bool = False,
 ) -> Institution:
     """
-    Note that the siglum and is_private_collector fields
-    are mutually exclusive. If both are specified, an exception
-    will be raised. If neither are specified, the function will
-    randomly determine whether the institution is a private collector or
-    will be given a fake siglum.
+    Generate a fake institution.
+
+    Note that one of the `siglum` and `is_private_collector` arguments
+    must be specified. If a `siglum` is specified, `is_private_collector`
+    must be empty (in which case it defaults to False) or set to False.
+
+    If `is_private_collector` is set to False, and no `siglum` is specified,
+    a random siglum will be generated.
     """
+    assert siglum is None or not is_private_collector
+
+    if not is_private_collector:
+        siglum = siglum if siglum else make_random_string(6)
+
     name = name if name else faker.sentence()
     city = city if city else faker.city()
     region = region if region else faker.country()
     country = country if country else faker.country()
-
-    if siglum and is_private_collector:
-        raise ValueError("Siglum and Private Collector cannot both be specified.")
-    is_private_collector = False if siglum else faker.boolean(chance_of_getting_true=20)
-    if not is_private_collector and not siglum:
-        siglum = faker.sentence(nb_words=1)
 
     inst = Institution.objects.create(
         name=name,
@@ -401,75 +411,80 @@ def make_fake_institution(
     return inst
 
 
-def make_fake_source(
-    published: bool = True,
-    shelfmark: Optional[str] = None,
-    segment_name: Optional[str] = None,
-    segment: Optional[Segment] = None,
-    holding_institution: Optional[Institution] = None,
-    description: Optional[str] = None,
-    summary: Optional[str] = None,
-    provenance: Optional[Provenance] = None,
-    century: Optional[Century] = None,
-    source_completeness: int = Source.SourceCompletenessChoices.FULL_SOURCE,
-    indexing_notes: Optional[str] = None,
-    name: Optional[str] = None,
-    production_method: int = Source.ProductionMethodChoices.MANUSCRIPT,
-) -> Source:
-    """Generates a fake Source object."""
-    # The cursus_choices and source_status_choices lists in Source are lists of
-    # tuples and we only need the first element of each tuple
+def make_fake_source(**kwargs: Any) -> Source:
+    """
+    Generates a fake Source object. Kwargs can be used to specify the value of fields.
 
-    # if published...
-    #     published already defaults to True
-    if shelfmark is None:
-        shelfmark = faker.sentence()
-    if segment_name is None:
-        segment_name = faker.sentence(nb_words=2)
-    if segment is None:
-        segment = make_fake_segment(name=segment_name)
-    if holding_institution is None:
-        holding_institution = make_fake_institution()
-    if description is None:
-        description = faker.sentence()
-    if summary is None:
-        summary = faker.sentence()
-    if provenance is None:
-        provenance = make_fake_provenance()
-    if century is None:
-        century = make_fake_century()
-    # if full_source...
-    #     full_source already defaults to True
-    if indexing_notes is None:
-        indexing_notes = faker.sentence()
+    The following fields will, if not specified, be given a fake value:
+    - published (defaults to True)
+    - shelfmark
+    - segment (if segment_name is specified, a segment will be generated with that name)
+    - holding_institution
+    - provenance
+    - full_source (defaults to True)
+    - source_completeness (defaults to FULL_SOURCE)
+    - cursus
+    - source_status
+    - image_link
+    - date
+    - indexing_notes
+    - description
+    - summary
+    - liturgical_occasions
+    - selected_bibliography
+    - indexing_date
+    - provenance_notes
+    - century
+    - notation
+    - all fields related to user involvement (inventoried_by, full_text_entered_by, etc.)
+    """
+    # Handle `shelfmark` and `published` fields, which cannot be set to None
+    if kwargs.get("shelfmark") is None:
+        kwargs["shelfmark"] = faker.sentence()
+    if kwargs.get("published") is None:
+        kwargs["published"] = True
 
+    if "segment" not in kwargs:
+        if "segment_name" in kwargs:
+            kwargs["segment"] = make_fake_segment(name=kwargs["segment_name"])
+            kwargs.pop("segment_name")
+        else:
+            kwargs["segment"] = make_fake_segment()
+    kwargs["holding_institution"] = kwargs.get(
+        "holding_institution", make_fake_institution()
+    )
+    kwargs["provenance"] = kwargs.get("provenance", make_fake_provenance())
+    kwargs["full_source"] = kwargs.get("full_source", True)
+    kwargs["source_completeness"] = kwargs.get(
+        "source_completeness", Source.SourceCompletenessChoices.FULL_SOURCE
+    )
     cursus_choices = [x[0] for x in Source.cursus_choices]
     source_status_choices = [x[0] for x in Source.source_status_choices]
-
-    source = Source.objects.create(
-        published=published,
-        shelfmark=shelfmark,
-        segment=segment,
-        holding_institution=holding_institution,
-        description=description,
-        summary=summary,
-        provenance=provenance,
-        # century: ManyToManyField, must be set below
-        source_completeness=source_completeness,
-        indexing_notes=indexing_notes,
-        provenance_notes=faker.sentence(),
-        date=faker.sentence(nb_words=3),
-        cursus=random.choice(cursus_choices),
-        source_status=random.choice(source_status_choices),
-        complete_inventory=faker.boolean(),
-        liturgical_occasions=faker.sentence(),
-        selected_bibliography=faker.sentence(),
-        image_link=faker.image_url(),
-        indexing_date=faker.sentence(),
-        json_info=None,
-        name=name,
-        production_method=production_method,
+    kwargs["cursus"] = kwargs.get("cursus", random.choice(cursus_choices))
+    kwargs["source_status"] = kwargs.get(
+        "source_status", random.choice(source_status_choices)
     )
+    kwargs["image_link"] = kwargs.get("image_link", faker.image_url())
+    kwargs["date"] = kwargs.get("date", faker.sentence(nb_words=3))
+
+    # For the following text fields: if not specified, generate a fake sentence
+    for field in [
+        "indexing_notes",
+        "description",
+        "summary",
+        "liturgical_occasions",
+        "selected_bibliography",
+        "indexing_date",
+        "provenance_notes",
+    ]:
+        kwargs[field] = kwargs.get(field, faker.sentence())
+
+    # Remove the "century" key from kwargs. As a many-to-many field,
+    # the century field is handled after instance creation.
+    century = kwargs.pop("century", make_fake_century())
+
+    source = Source.objects.create(**kwargs)
+
     source.century.set([century])
     source.notation.set([make_fake_notation()])
     source.inventoried_by.set([make_fake_user()])

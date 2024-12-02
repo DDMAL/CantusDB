@@ -1,21 +1,17 @@
-{% extends "base.html" %}
+{% extends "filterable_table_with_search_bar.html" %}
 
 {% block title %}
     <title>Chants by Cantus ID: {{ cantus_id }} | Cantus Database</title>
 {% endblock %}
 
-{% block content %}
-<div class="mr-3 p-3 col-md-12 mx-auto bg-white rounded">
-    <!-- global search bar-->
-    <object align="right" class="search-bar">
-        {% include "global_search_bar.html" %}
-    </object>
+{% block header %}
     <h3>
         Chants by Cantus ID: <a href="https://cantusindex.org/id/{{ cantus_id }}" target="_blank">
             {{ cantus_id }}
         </a>
     </h3>
-    <small>Displaying {{ page_obj.start_index }}-{{ page_obj.end_index }} of <b>{{ page_obj.paginator.count }}</b> chants</small>
+{% endblock %}
+{% block list_table %}
     <div class="table-responsive">
         <table class="table table-bordered table-sm small">
             <thead>
@@ -78,9 +74,9 @@
                         <td class="text-wrap">
                             {{ chant.mode|default:"" }}
                         </td>
-                        <td class="text-wrap" style="font-family: volpiano; font-size:30px">
+                        <td class="text-wrap text-center">
                             {% if chant.volpiano %}
-                                <a href="{% url 'chant-detail' chant.id %}" style="text-decoration: none" title="Chant has volpiano melody">1</a>
+                                <a href="{% url 'chant-detail' chant.id %}" style="text-decoration: none" title="Chant has volpiano melody">♫</a>
                             {% endif %}
                         </td>
                         <td class="text-wrap">
@@ -93,6 +89,4 @@
             </tbody>
         </table>
     </div>
-    {% include "pagination.html" %}
-</div>
 {% endblock %}

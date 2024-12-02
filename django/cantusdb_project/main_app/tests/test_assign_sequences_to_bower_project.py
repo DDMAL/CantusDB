@@ -1,20 +1,25 @@
 from django.test import TestCase
 from django.core.management import call_command
 
-from main_app.models import Chant, Sequence, Project
+from main_app.models import Chant, Sequence
 
-from main_app.tests.make_fakes import make_fake_source
+from main_app.tests.make_fakes import (
+    make_fake_source,
+    make_fake_project,
+    make_fake_chant,
+    make_fake_sequence,
+)
 
 
 class AssignSequencesToBowerProjectTest(TestCase):
     def test_assign_sequences_to_bower_project(self):
-        project = Project.objects.create(name="Clavis Sequentiarum")
+        project = make_fake_project(name="Clavis Sequentiarum")
         chant_source = make_fake_source()
         sequence_source = make_fake_source()
         for _ in range(5):
-            Chant.objects.create(source=chant_source)
+            make_fake_chant(source=chant_source, project=None)
         for _ in range(4):
-            Sequence.objects.create(source=sequence_source)
+            make_fake_sequence(source=sequence_source)
         all_chants = Chant.objects.all()
         for chant in all_chants:
             self.assertIsNone(chant.project_id)
