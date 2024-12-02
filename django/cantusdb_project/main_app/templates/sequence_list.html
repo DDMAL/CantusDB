@@ -1,19 +1,15 @@
-{% extends "base.html" %}
+{% extends "filterable_table_with_search_bar.html" %}
 
 {% block title %}
     <title>Clavis Sequentiarum (Calvin Bower) | Cantus Database</title>
 {% endblock %}
 
-{% block content %}
-<div class="mr-3 p-3 col-md-12 mx-auto bg-white rounded">
-    <object align="right" class="search-bar">
-        {% include "global_search_bar.html" %}
-    </object>
+{% block header %}
     <h3>Clavis Sequentiarum (Calvin Bower)</h3>
-    <small>Displaying <b>{{ page_obj.start_index }}-{{ page_obj.end_index }}</b> of <b>{{ page_obj.paginator.count }}</b></small>
-
+{% endblock %}
+{% block list_filter_form %}
     <form method="get">
-        <div class="form-row align-items-end">
+        <div class="form-row align-items-end mb-2">
             <div class="form-group m-1">
                 <label for="incipit"><small><b>Incipit (any part)</b></small></label>
                 <input type="text" class="form-control form-control-sm" name="incipit" value="{{ request.GET.incipit }}" id="incipit">
@@ -31,6 +27,8 @@
             </div>
         </div>
     </form>
+{% endblock %}
+{% block list_table %}
     {% if sequences %}
         <div class="table-responsive">
             <table class="table table-bordered table-sm small">
@@ -86,9 +84,5 @@
                 </tbody>
             </table>
         </div>
-    {% else %}
-        No sequences found.
     {% endif %}
-    {% include "pagination.html" %}
-</div>
 {% endblock %}

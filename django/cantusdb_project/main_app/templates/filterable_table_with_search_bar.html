@@ -1,0 +1,46 @@
+{% extends "single_column_with_search_bar.html" %}
+{% load humanize %}
+{# A template for use with list pages. The template introduces the following blocks:
+    - list_filter_form: a block for the form displayed above the table that powers list/table filtering
+    - list_table: a block for the table that displays the list
+    A header block is inherited from `single_column_with_search_bar.html` and is displayed alongside
+    global search bar at the top of the page.
+    This template also handles display of an object count shown beneath the header: "Displaying x-y of N
+    [object type]". Views using this template must pass a `Page` object as `page_obj` in the context (this 
+    happens by default in views with a `MultipleObjectMixin`). The template uses the `context_object_name`
+    attribute of the view to determine the object type to display in this object count.
+    Pagination is included at the bottom of the page, except if no results are found.
+    #}
+
+{% block maincontent %}
+    <div class="row">
+        <div class="col">
+            <p class="small mx-0">Displaying {{ page_obj.start_index|intcomma }}-{{ page_obj.end_index|intcomma }} of <b>{{ page_obj.paginator.count|intcomma }}</b> {{ view.context_object_name }}.</p>
+        </div>
+    </div>
+    <div class="mb-3">
+        {% block list_filter_form %}
+        {% endblock %}
+    </div>      
+    {% if page_obj.paginator.count > 0 %}
+        <div class="row">
+            <div class="col">
+                {% block list_table %}
+                {% endblock %}
+            </div>
+        </div>
+    {% else %}
+        <div class="row mt-4">
+            <div class="col">
+                <p class="text-center">No {{ view.context_object_name }} found.</p>
+            </div>
+        </div>
+    {% endif %}
+    {% if page_obj.paginator.num_pages > 1%}
+        <div class="row">
+            <div class="col">
+                {% include "pagination.html" %}
+            </div>
+        </div>
+    {% endif %}
+{% endblock %}

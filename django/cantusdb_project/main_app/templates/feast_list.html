@@ -1,4 +1,4 @@
-{% extends "base.html" %}
+{% extends "filterable_table_with_search_bar.html" %}
 {% load helper_tags %} {# for month_to_string #}
 
 {% block title %}
@@ -9,21 +9,17 @@
     <script src="/static/js/feast_list.js"></script>
 {% endblock %}
 
-{% block content %}
-<div class="mr-3 p-3 col-md-12 mx-auto bg-white rounded">
-    <object align="right" class="search-bar">
-        {% include "global_search_bar.html" %}
-    </object>
-
+{% block header %}
     <h3>List of Feasts</h3>
-    <small>Displaying {{ page_obj.start_index }}-{{ page_obj.end_index }} of {{ page_obj.paginator.count }}</small>
+{% endblock %}
+{% block list_filter_form %}
     <form method="get">
         <div class="form-row align-items-end">
-            <div class="form-group m-1 col-lg-5">
+            <div class="form-group mr-1 col-lg-5">
                 <label for="feastSearch"><small>Search feasts/feast codes</small></label>
                 <input id="feastSearch" name="q" type="text" class="form-control form-control-sm" placeholder="Type any part of a word or feast code" value="{{ request.GET.q }}" />
             </div>
-            <div class="form-group m-1 col-lg">
+            <div class="form-group mr-1 col-lg">
                 <label for="dateFilter"><small>Temp/Sanc</small></label>
                 <select id="dateFilter" name="date" class="form-control custom-select custom-select-sm">
                     <option value="">- Any -</option>
@@ -31,7 +27,7 @@
                     <option value="sanc">Sanctorale</option>
                 </select>
             </div>
-            <div class="form-group m-1 col-lg">
+            <div class="form-group mr-1 col-lg">
                 <label for="monthFilter"><small>Month</small></label>
                 <select id="monthFilter" name="month" class="form-control custom-select custom-select-sm">
                     <option value="">- Any -</option>
@@ -49,18 +45,20 @@
                     <option value="10">October</option>
                 </select>
             </div>
-            <div class="form-group m-1 col-lg-2">
-                <label for="sortBy"><small>Sort By</small></label>
+            <div class="form-group mr-1 col-lg-2">
+                <label for="sortBy"><small>Sort by</small></label>
                 <select class="form-control custom-select custom-select-sm" id="sortBy" name="sort_by">
                     <option value="name">Feast Name</option>
                     <option value="feast_code">Feast Code (Date)</option>
                 </select>
             </div>
-            <div class="form-group m-1 col-lg">
+            <div class="form-group col-lg">
                 <button type="submit" class="btn btn-dark btn-sm"> Apply </button>
             </div>
         </div>
     </form>
+{% endblock %}
+{% block list_table %}
     {% if feasts %}
         <table class="table table-bordered table-sm small">
             <thead>
@@ -89,10 +87,6 @@
                     </tr>
                 {% endfor %}
             </tbody>
-        </table>
-        {% include "pagination.html" %}    
-    {% else %}
-        No feasts found.
+        </table>  
     {% endif %}
-</div>
 {% endblock %}

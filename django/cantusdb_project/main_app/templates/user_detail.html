@@ -1,15 +1,10 @@
-{% extends "base.html" %}
+{% extends "single_column_with_search_bar.html" %}
 
 {% block title %}
     <title>{{ user.full_name|default_if_none:"User" }} | Cantus Database</title>
 {% endblock %}
 
-{% block content %}
-<div class="mr-3 p-3 mx-auto bg-white rounded">
-    <!-- global search bar-->
-    <object align="right" class="search-bar">
-        {% include "global_search_bar.html" %}
-    </object>
+{% block header %}
     <h3>
         {% if user.full_name %}
             {{ user.full_name }}
@@ -17,6 +12,8 @@
             User {{ user.id }}
         {% endif %}
     </h3>
+{% endblock %}
+{% block maincontent %}
     <dl class="list-inline">
         {% if user.institution %}
             <dt>Institution</dt>
@@ -90,6 +87,4 @@
             </ul>
         {% endif %}
     {% endif %}
-    <h4>
-</div>
 {% endblock %}
