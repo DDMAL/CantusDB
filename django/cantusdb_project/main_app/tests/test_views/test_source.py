@@ -164,28 +164,6 @@ class SourceDetailViewTest(TestCase):
         # the folios should be ordered by the "folio" field
         self.assertEqual(folios.query.order_by, ("folio",))
 
-    def test_context_feasts_with_folios(self):
-        # create a source and several chants (associated with feasts) in it
-        source = make_fake_source()
-        feast_1 = make_fake_feast()
-        feast_2 = make_fake_feast()
-        make_fake_chant(source=source, folio="001r", feast=feast_1)
-        make_fake_chant(source=source, folio="001r", feast=feast_1)
-        make_fake_chant(source=source, folio="001v", feast=feast_2)
-        make_fake_chant(source=source, folio="001v", feast=None)
-        make_fake_chant(source=source, folio="001v", feast=feast_2)
-        make_fake_chant(source=source, folio="002r", feast=feast_1)
-        # request the page
-        response = self.client.get(reverse("source-detail", args=[source.id]))
-        # context "feasts_with_folios" is a list of tuples
-        # it records the folios where the feast changes
-        expected_result = [
-            ("001r", feast_1.id, feast_1.name),
-            ("001v", feast_2.id, feast_2.name),
-            ("002r", feast_1.id, feast_1.name),
-        ]
-        self.assertEqual(response.context["feasts_with_folios"], expected_result)
-
     def test_context_sequences(self):
         # create a sequence source and several sequences in it
         source = make_fake_source(
@@ -697,27 +675,6 @@ class SourceBrowseChantsViewTest(TestCase):
         # the element in "folios" should be unique and ordered in this way
         folios = response.context["folios"]
         self.assertEqual(list(folios), ["001r", "001v", "002r", "002v"])
-
-    def test_context_feasts_with_folios(self):
-        cantus_segment = make_fake_segment(id=4063)
-        source = make_fake_source(segment=cantus_segment)
-        feast_1 = make_fake_feast()
-        feast_2 = make_fake_feast()
-        make_fake_chant(source=source, folio="001r", feast=feast_1)
-        make_fake_chant(source=source, folio="001r", feast=feast_1)
-        make_fake_chant(source=source, folio="001v", feast=feast_2)
-        make_fake_chant(source=source, folio="001v", feast=None)
-        make_fake_chant(source=source, folio="001v", feast=feast_2)
-        make_fake_chant(source=source, folio="002r", feast=feast_1)
-        response = self.client.get(reverse("browse-chants", args=[source.id]))
-        # context "feasts_with_folios" is a list of tuples
-        # it records the folios where the feast changes
-        expected_result = [
-            ("001r", feast_1.id, feast_1.name),
-            ("001v", feast_2.id, feast_2.name),
-            ("002r", feast_1.id, feast_1.name),
-        ]
-        self.assertEqual(response.context["feasts_with_folios"], expected_result)
 
     def test_redirect_with_source_parameter(self):
         cantus_segment = make_fake_segment(id=4063)

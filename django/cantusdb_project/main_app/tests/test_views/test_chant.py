@@ -236,6 +236,7 @@ class SourceEditChantsViewTest(TestCase):
             reverse("source-edit-chants", args=[source.id]),
             {
                 "manuscript_full_text_std_spelling": "ut queant lactose",
+                "pk": chant_1.id,
                 "folio": "001r",
                 "c_sequence": "1",
                 # liquescents, to be converted to lowercase
@@ -251,7 +252,7 @@ class SourceEditChantsViewTest(TestCase):
         self.assertEqual(chant_1.volpiano, "9abcdefg)A-B1C2D3E4F5G67?. yiz")
         self.assertEqual(chant_1.volpiano_notes, "9abcdefg9abcdefg")
 
-        make_fake_chant(
+        chant_2 = make_fake_chant(
             manuscript_full_text_std_spelling="resonare foobaz",
             source=source,
             folio="001r",
@@ -266,6 +267,7 @@ class SourceEditChantsViewTest(TestCase):
                 "folio": "001r",
                 "c_sequence": "2",
                 "volpiano": "abacadaeafagahaja",
+                "pk": chant_2.id,
             },
         )
         with patch("requests.get", mock_requests_get):
@@ -321,6 +323,7 @@ class SourceEditChantsViewTest(TestCase):
                 "folio": folio,
                 "c_sequence": c_sequence,
                 "manuscript_full_text_std_spelling": ms_std,
+                "pk": chant.id,
             },
         )
         self.assertEqual(response.status_code, 302)  # 302 Found
@@ -3136,3 +3139,96 @@ class ChantDeleteViewTest(TestCase):
         chant = make_fake_chant()
         response = self.client.post(reverse("chant-delete", args=[chant.id + 100]))
         self.assertEqual(response.status_code, 404)
+
+
+class ChantViewHelpersTest(TestCase):
+    """
+    Tests for the helper functions defined in views.chant
+    """
+
+    @classmethod
+    def setUpTestData(cls):
+        cls.feasts = [make_fake_feast() for _ in range(4)]
+
+    def test_get_feast_selector_options(self) -> None:
+        with self.subTest("r/v foliation"):
+            source = make_fake_source()
+            feasts = self.feasts
+            # Create chants for feasts[0] for range 001v, A001v
+            for folio in ["A001v", "001v"]:
+                make_fake_chant(source=source, folio=folio, feast=feasts[0])
+            # Create chants for feasts[1] for range 001r, 002r
+            for folio in ["001r", "002r"]:
+                make_fake_chant(source=source, folio=folio, feast=feasts[1])
+            # Create chants for feasts[2] for range 002r-002v, 003v
+            for folio in ["002r", "002v", "003v"]:
+                make_fake_chant(source=source, folio=folio, feast=feasts[2])
+            # Create a chant on 003r with no feast that should show up in no ranges
+            make_fake_chant(source=source, folio="003r", feast=None)
+            feast_selector_options = get_feast_selector_options(source)
+            expected_result = [
+                (feasts[1].id, feasts[1].name, "001r, 002r"),
+                (feasts[0].id, feasts[0].name, "001v, A001v"),
+                (feasts[2].id, feasts[2].name, "002r-002v, 003v"),
+            ]
+            self.assertEqual(feast_selector_options, expected_result)
+        with self.subTest("Foliation with numbers only"):
+            source = make_fake_source()
+            feasts = self.feasts
+            # Create chants for feasts[0] for range 002-004
+            for folio in ["002", "003", "004"]:
+                make_fake_chant(source=source, folio=folio, feast=feasts[0])
+            # Create chants for feasts[1] for range 001, 003
+            for folio in ["001", "003"]:
+                make_fake_chant(source=source, folio=folio, feast=feasts[1])
+            feast_selector_options = get_feast_selector_options(source)
+            expected_result = [
+                (feasts[1].id, feasts[1].name, "001, 003"),
+                (feasts[0].id, feasts[0].name, "002-004"),
+            ]
+            self.assertEqual(feast_selector_options, expected_result)
+        with self.subTest("Unnumbered folios"):
+            source = make_fake_source()
+            feasts = self.feasts
+            # Create chants for feasts[0] for folios 003v-003w, 004v
+            for folio in ["003v", "003w", "004v"]:
+                make_fake_chant(source=source, folio=folio, feast=feasts[0])
+            # Create chants for feasts[1] for folios 002r-002x
+            for folio in ["002r", "002x"]:
+                make_fake_chant(source=source, folio=folio, feast=feasts[1])
+            # Create chants for feasts[2] for folios 003w-004r
+            for folio in ["003w", "004r"]:
+                make_fake_chant(source=source, folio=folio, feast=feasts[2])
+            # Create chants for feasts[3] for folios 003w-003x
+            for folio in ["003x", "003w"]:
+                make_fake_chant(source=source, folio=folio, feast=feasts[3])
+            feast_selector_options = get_feast_selector_options(source)
+            expected_result = [
+                (feasts[1].id, feasts[1].name, "002r-002x"),
+                (feasts[0].id, feasts[0].name, "003v-003w, 004v"),
+                (feasts[3].id, feasts[3].name, "003w-003x"),
+                (feasts[2].id, feasts[2].name, "003w-004r"),
+            ]
+            self.assertEqual(feast_selector_options, expected_result)
+        with self.subTest("Unexpected folio numbers"):
+            # This subTest ensures that unexpected folio numbers (say,
+            # a something like "00q1r") are added correctly to ranges.
+            source = make_fake_source()
+            feasts = self.feasts
+            # Create chants for feasts[0] with a normal range (001r-002r)
+            for folio in ["001r", "001v", "002r"]:
+                make_fake_chant(source=source, folio=folio, feast=feasts[0])
+            # Create chants for feasts[1] with an unexpected folio number (00q1r)
+            # and expected folio numbers
+            for folio in ["00q1r", "002v", "003r"]:
+                make_fake_chant(source=source, folio=folio, feast=feasts[1])
+            # Create chants for feasts[2] with only unexpected folio numbers
+            for folio in ["00q2r", "00q3", "X00q3"]:
+                make_fake_chant(source=source, folio=folio, feast=feasts[2])
+            feast_selector_options = get_feast_selector_options(source)
+            expected_result = [
+                (feasts[0].id, feasts[0].name, "001r-002r"),
+                (feasts[1].id, feasts[1].name, "002v-003r, 00q1r"),
+                (feasts[2].id, feasts[2].name, "00q2r, 00q3, X00q3"),
+            ]
+            self.assertEqual(feast_selector_options, expected_result)

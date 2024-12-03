@@ -43,14 +43,13 @@
         </div>
     {% endif %}
 
-    {% if pk_specified %}
-        {% if user.is_authenticated %}
+    {% if chant %}
             <p>
                 <a href="{% url 'chant-detail' chant.id %}">View</a> | Edit
             </p>
-        {% endif %}
         <form method="post" style="line-height: normal">{% csrf_token %}
             <input type="hidden" name="referrer" value="{{ request.META.HTTP_REFERER }}">
+            <input type="hidden" name="pk" value="{{ chant.id }}">
             
             <div class="form-row">
                 <div class="form-group m-1 col-lg-2">
@@ -352,28 +351,28 @@
             </div>
         </form> 
     {% else %}
-        <h3>Full text &amp; Volpiano edit form</h3>
+        <h3>Chant Edit Form</h3>
         <br>
-        <dl>
-            <dd><small>1) Select a <b>folio</b> or a <b>feast</b> (in the right block)</small></dd>
-            <dd><small>2) Click <b>"EDIT"</b> next to any chant</small></dd>
-            <dd><small>3) The <b>fulltext</b> and <b>Volpiano</b> fields should appear in this area</small></dd>
-            <dd><small>4) Edit the fields <b>according to the manuscript, following the fulltext guidelines created by Cantus</b></small></dd>
-            <dd><small>5) Click <b>"SAVE"</b></small></dd>
-        </dl>
-        <div style="margin-top:5px;">
+        <ol>
+            <li class="small">Select a <b>folio</b> or a <b>feast</b> (in the right block).</li>
+            <li class="small">Click <b>"EDIT"</b> next to any chant.</li>
+            <li class="small">A form will appear in this area that allows you to edit the chant data.</li>
+            <li class="small">Edit these fields according to the Cantus Database protocols.</li>
+            <li class="small">Click <b>"SAVE"</b>.</li>
+        </ol>
+        <div class="mt-1">
             <a href="{% url 'source-detail' source.id %}" title="{{ source.heading }}">
                 {{ source.short_heading }}
             </a>
         </div>
-        <div style="margin-top:5px;">
+        <div class="mt-1">
             <a href="{% url "chant-create" source.pk %}">
-                <small><b>&plus; Add new chant</b></small>
+                <small><b>+ Add new chant</b></small>
             </a>
         </div>
-        <div style="margin-top:5px;">
+        <div class="mt-1">
             <a href="{% url "source-create" %}">
-                <small><b>&plus; Add new source</b></small>
+                <small><b>+ Add new source</b></small>
             </a>
         </div>
     {% endif %}
@@ -385,13 +384,13 @@
             <h4><a href="{% url 'source-detail' source.id %}" title="{{ source.heading }}">{{ source.short_heading }}</a></h4>
         </div>
         <div class="card-body">
-            {% if source.chant_set.exists %}
+            {% if source_has_chants %}
                 <small>
                     <!--a small selector of all folios of this source-->
                     <select id="folioSelect" class="w-30">
                         <option value="">Select a folio:</option>
                         {% for folio in folios %}
-                            {% if folio == initial_GET_folio %}
+                            {% if folio == folio_query %}
                                 <option value="{{ folio }}" selected>{{ folio }}</option>
                             {% else %}
                                 <option value="{{ folio }}">{{ folio }}</option>
@@ -410,8 +409,8 @@
 
                     <select id="feastSelect" style="width: 200px;"> <!-- style attribute prevents select element from extending beyond left edge of div element -->
                         <option value="">Select a feast:</option>
-                        {% for folio, feast_id, feast_name in feasts_with_folios %}
-                            <option value="{{ feast_id }}">{{ folio }} - {{ feast_name }}</option>
+                        {% for feast_id, feast_name, folio_range in feast_selector_options %}
+                            <option value="{{ feast_id }}">{{ feast_name }} ({{ folio_range }})</option>
                         {% endfor %}
                     </select>
                     <br>
@@ -422,7 +421,7 @@
             {% comment %} render if the user has selected a specific folio {% endcomment %}
             {% if feasts_current_folio %}
                 {% for feast, chants in feasts_current_folio %}
-                    <small>Folio: <b>{{ chant.folio }}</b> - Feast: <b title="{{ chant.feast.description }}">{{ feast.name }}</b></small>
+                    <small>Folio: <b>{{ folio_query }}</b> - Feast: <b title="{{ chant.feast.description }}">{{ feast.name }}</b></small>
                     <table class="table table-sm small table-bordered">     
                         {% for chant in chants %}
                             <tr>
@@ -463,7 +462,7 @@
             {% comment %} render if the user has selected a specific feast {% endcomment %}
             {% elif folios_current_feast %}
                 {% for folio, chants in folios_current_feast %}
-                    <small>Folio: <b>{{ folio }}</b> - Feast: <b title="{{ chant.feast.description }}">{{ chant.feast }}</b></small>
+                    <small>Folio: <b>{{ folio }}</b> - Feast: <b title="{{ feast.description }}">{{ feast.name }}</b></small>
                     <table class="table table-sm small table-bordered">     
                         {% for chant in chants %}
                             <tr>

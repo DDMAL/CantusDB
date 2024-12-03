@@ -1,15 +1,18 @@
+from typing import Optional, Union
 from django.db.models import Q
-from typing import Optional
+from django.core.exceptions import PermissionDenied
+from django.contrib.auth.models import AnonymousUser
 from main_app.models import (
     Source,
     Chant,
     Sequence,
 )
 from users.models import User
-from django.core.exceptions import PermissionDenied
 
 
-def user_can_edit_chants_in_source(user: User, source: Optional[Source]) -> bool:
+def user_can_edit_chants_in_source(
+    user: Union[User, AnonymousUser], source: Optional[Source]
+) -> bool:
     """
     Checks if the user can edit Chants in a given Source.
     Used in ChantDetail, ChantList, ChantCreate, ChantDelete, ChantEdit,
@@ -22,16 +25,17 @@ def user_can_edit_chants_in_source(user: User, source: Optional[Source]) -> bool
         return False
 
     source_id = source.id
-    user_is_assigned_to_source: bool = user.sources_user_can_edit.filter(  # noqa
+    user_is_assigned_to_source = user.sources_user_can_edit.filter(  # type: ignore[attr-defined]
         id=source_id
     ).exists()
 
-    user_is_project_manager: bool = user.groups.filter(name="project manager").exists()
-    user_is_editor: bool = user.groups.filter(name="editor").exists()
-    user_is_contributor: bool = user.groups.filter(name="contributor").exists()
+    user_groups = user.groups.all().values_list("name", flat=True)
+    user_is_pm = "project manager" in user_groups
+    user_is_editor = "editor" in user_groups
+    user_is_contributor = "contributor" in user_groups
 
     return (
-        user_is_project_manager
+        user_is_pm
         or (user_is_editor and user_is_assigned_to_source)
         or (user_is_editor and source.created_by == user)
         or (user_is_contributor and user_is_assigned_to_source)
@@ -50,19 +54,8 @@ def user_can_proofread_chant(user: User, chant: Chant) -> bool:
     if user.is_anonymous:
         return False
 
-    source_id = chant.source.id
-    user_can_proofread_src = user_can_proofread_source(user, chant.source)
-
-    user_is_assigned_to_source: bool = user.sources_user_can_edit.filter(  # noqa
-        id=source_id
-    ).exists()
-
-    user_is_project_manager: bool = user.groups.filter(name="project manager").exists()
-    user_is_editor: bool = user.groups.filter(name="editor").exists()
-
-    return user_can_proofread_src and (
-        user_is_project_manager or (user_is_editor and user_is_assigned_to_source)
-    )
+    source = chant.source
+    return user_can_proofread_source(user, source)
 
 
 def user_can_proofread_source(user: User, source: Source) -> bool:
@@ -77,14 +70,15 @@ def user_can_proofread_source(user: User, source: Source) -> bool:
         return False
 
     source_id = source.id
-    user_is_assigned_to_source: bool = user.sources_user_can_edit.filter(
+    user_is_assigned_to_source: bool = user.sources_user_can_edit.filter(  # type: ignore[attr-defined]
         id=source_id
     ).exists()
 
-    user_is_project_manager: bool = user.groups.filter(name="project manager").exists()
-    user_is_editor: bool = user.groups.filter(name="editor").exists()
+    user_groups = user.groups.all().values_list("name", flat=True)
+    user_is_pm: bool = "project manager" in user_groups
+    user_is_editor: bool = "editor" in user_groups
 
-    return user_is_project_manager or (user_is_editor and user_is_assigned_to_source)
+    return user_is_pm or (user_is_editor and user_is_assigned_to_source)
 
 
 def user_can_view_source(user: User, source: Source) -> bool:
@@ -126,16 +120,17 @@ def user_can_edit_sequences(user: User, sequence: Sequence) -> bool:
         return False
 
     source_id = source.id
-    user_is_assigned_to_source: bool = user.sources_user_can_edit.filter(  # noqa
+    user_is_assigned_to_source = user.sources_user_can_edit.filter(  # type: ignore[attr-defined]
         id=source_id
     ).exists()
 
-    user_is_project_manager: bool = user.groups.filter(name="project manager").exists()
-    user_is_editor: bool = user.groups.filter(name="editor").exists()
-    user_is_contributor: bool = user.groups.filter(name="contributor").exists()
+    user_groups = user.groups.all().values_list("name", flat=True)
+    user_is_pm = "project manager" in user_groups
+    user_is_editor = "editor" in user_groups
+    user_is_contributor = "contributor" in user_groups
 
     return (
-        user_is_project_manager
+        user_is_pm
         or (user_is_editor and user_is_assigned_to_source)
         or (user_is_editor and source.created_by == user)
         or (user_is_contributor and user_is_assigned_to_source)
@@ -162,11 +157,14 @@ def user_can_edit_source(user: User, source: Source) -> bool:
     if user.is_anonymous:
         return False
     source_id = source.id
-    assigned_to_source = user.sources_user_can_edit.filter(id=source_id)  # noqa
+    assigned_to_source = user.sources_user_can_edit.filter(  # type: ignore[attr-defined]
+        id=source_id
+    )
 
-    is_project_manager: bool = user.groups.filter(name="project manager").exists()
-    is_editor: bool = user.groups.filter(name="editor").exists()
-    is_contributor: bool = user.groups.filter(name="contributor").exists()
+    user_groups = user.groups.all().values_list("name", flat=True)
+    is_project_manager: bool = "project manager" in user_groups
+    is_editor: bool = "editor" in user_groups
+    is_contributor: bool = "contributor" in user_groups
 
     return (
         is_project_manager
@@ -178,8 +176,8 @@ def user_can_edit_source(user: User, source: Source) -> bool:
 
 def user_can_view_user_detail(viewing_user: User, user: User) -> bool:
     """
-    Checks if the user can view the user detail pages of regular users in the database or just indexers.
-    Used in UserDetailView.
+    Checks if the user can view the user detail pages of regular users in
+    the database or just indexers. Used in UserDetailView.
     """
     return viewing_user.is_authenticated or user.is_indexer
 
