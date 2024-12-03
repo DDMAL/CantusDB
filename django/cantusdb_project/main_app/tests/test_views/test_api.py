@@ -3,9 +3,10 @@ Tests for views in views/api.py
 """
 
 import json
-from typing import Optional
+from typing import Optional, Any
 import csv
 from collections.abc import ItemsView, KeysView
+from unittest.mock import patch, MagicMock
 
 from django.test import TestCase
 from django.urls import reverse
@@ -20,6 +21,11 @@ from main_app.tests.make_fakes import (
     make_fake_segment,
 )
 from main_app.models import Chant, Source, Provenance, Notation
+
+from main_app.tests.mock_cantusindex_data import (
+    mock_json_cid_008349_json,
+    mock_json_cid_006928_json,
+)
 
 
 class AjaxSearchBarTest(TestCase):
@@ -986,3 +992,66 @@ class CsvExportTest(TestCase):
         ):
             for row in rows:
                 self.assertNotEqual(row[3], "")
+
+
+cid_concordances_mock_requests_data = {
+    "https://cantusindex.uwaterloo.ca/json-cid/008349": MagicMock(
+        **{
+            "json.return_value": mock_json_cid_008349_json,
+            "status_code": 200,
+            "text.strip.return_value": 1,  # Set this so cantusindex.get_json_from_ci_api
+            # does not return None
+        }
+    ),
+    "https://cantusindex.uwaterloo.ca/json-cid/006928": MagicMock(
+        **{
+            "json.return_value": mock_json_cid_006928_json,
+            "text.strip.return_value": 1,
+            "status_code": 200,
+        },
+    ),
+    "https://cantusindex.uwaterloo.ca/json-cid/000000": MagicMock(
+        **{
+            "json.return_value": {"databases": {}, "chants": {}},
+            "text.strip.return_value": 1,
+            "status_code": 200,
+        },
+    ),
+    "https://gregorien.info/chant/cid/008349/en": MagicMock(status_code=404),
+    "https://gregorien.info/chant/cid/006928/en": MagicMock(status_code=200),
+    "https://gregorien.info/chant/cid/000000/en": MagicMock(status_code=404),
+}
+
+
+def cid_concordances_requests_value(url: str, timeout: int) -> dict[str, Any]:
+    return cid_concordances_mock_requests_data[url]
+
+
+class CIDConcordancesTest(TestCase):
+    # A dictionary containing the data expected from the API
+    # calls made by the view. The keys are the URLs of the API
+    # calls, and the values are the data returned by the API.
+
+    @patch("requests.get", MagicMock(side_effect=cid_concordances_requests_value))
+    def test_view(self) -> None:
+        with self.subTest("Concordances exist on Cantus Index and Gregorien"):
+            response = self.client.get(
+                reverse("cid-concordances"), data={"cantus_id": "006928"}
+            )
+            self.assertEqual(response.status_code, 200)
+            self.assertEqual(len(response.json()["databases"]), 2)
+            self.assertEqual(len(response.json()["chants"]), 2)
+        with self.subTest("Concordances exist on Cantus Index but not Gregorien"):
+            response = self.client.get(
+                reverse("cid-concordances"), data={"cantus_id": "008349"}
+            )
+            self.assertEqual(response.status_code, 200)
+            self.assertEqual(len(response.json()["databases"]), 1)
+            self.assertEqual(len(response.json()["chants"]), 2)
+        with self.subTest("No concordances"):
+            response = self.client.get(
+                reverse("cid-concordances"), data={"cantus_id": "000000"}
+            )
+            self.assertEqual(response.status_code, 200)
+            self.assertEqual(len(response.json()["databases"]), 0)
+            self.assertEqual(len(response.json()["chants"]), 0)
