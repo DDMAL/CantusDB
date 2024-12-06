@@ -25,6 +25,7 @@ from main_app.tests.make_fakes import (
     make_fake_century,
     add_accents_to_string,
 )
+from main_app.tests.mixins import HTMLContentsTestMixin
 
 # Create a Faker instance with locale set to Latin
 faker = Faker("la")
@@ -210,7 +211,7 @@ class SourceDetailViewTest(TestCase):
         self.assertNotIn(bower_chant_list_link, bower_source_html)
 
 
-class SourceInventoryViewTest(TestCase):
+class SourceInventoryViewTest(HTMLContentsTestMixin, TestCase):
     def test_url_and_templates(self):
         source = make_fake_source()
         response = self.client.get(reverse("source-inventory", args=[source.id]))
@@ -253,12 +254,10 @@ class SourceInventoryViewTest(TestCase):
         source = make_fake_source(published=True, shelfmark=shelfmark)
         make_fake_chant(source=source)
         response = self.client.get(reverse("source-inventory", args=[source.id]))
-        html = str(response.content)
-        self.assertIn(shelfmark, html)
         expected_html_substring = (
             f'<td title="{source.heading}">{source.short_heading}</td>'
         )
-        self.assertIn(expected_html_substring, html)
+        self.assertContains(response, expected_html_substring, html=True)
 
     def test_marginalia_column(self):
         source = make_fake_source(published=True)
@@ -429,12 +428,10 @@ class SourceInventoryViewTest(TestCase):
         chant.save()
 
         response = self.client.get(reverse("source-inventory", args=[source.id]))
-        html: str = str(response.content)
-        self.assertIn(diff_id, html)
         expected_html_substring: str = (
             f'<a href="https://differentiaedatabase.ca/differentia/{diff_id}" target="_blank">'
         )
-        self.assertIn(expected_html_substring, html)
+        self.assertParsedContains(response, expected_html_substring)
 
     def test_redirect_with_source_parameter(self):
         cantus_segment = make_fake_segment(id=4063)
