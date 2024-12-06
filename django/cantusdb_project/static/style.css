@@ -20,8 +20,6 @@ html {
 }
 
 body {
-	margin-bottom: 30px;
-	/* Margin bottom by footer height */
 	background-image: url("background.jpg");
 }
 
@@ -30,20 +28,19 @@ body {
 	overflow-wrap: break-word;
 }
 
-.footer {
-	position: absolute;
-	bottom: 0;
-	width: 100%;
-	height: 30px;
+.error-page-container {
+	margin-bottom: 10em;
+}
+
+.copyright-footer {
+	background-color: #CC3333;
+	color: white;
 }
 
 .footer li {
 	padding: 5px 0px !important
 }
 
-.bg-footer {
-	background-color: #CC3333;
-}
 
 /* Change dropdown selected background to blue */
 .dropdown .dropdown-menu .dropdown-item:active,
@@ -56,16 +53,17 @@ hr.color {
 	border-top: 1px solid lightblue !important;
 }
 
-.nav-link {
-	color: black;
+.nav-item .nav-link {
+	color: rgba(0, 0, 0, .5)
 }
 
-.nav-item {
-	margin: 0px 10px;
+.nav-item .nav-link:hover {
+	color: rgba(0, 0, 0, .7);
+	text-decoration-line: none;
 }
 
-.nav-item .nav-link .small {
-	color: #5e5e5f;
+.nav-item .dropdown-menu .dropdown-item:hover {
+	text-decoration-line: none;
 }
 
 .navbar-toggler {
@@ -89,11 +87,20 @@ hr.color {
 
 a {
 	color: #922;
+	text-decoration-line: none;
 }
 
 a:hover {
 	color: #922;
 	text-decoration: underline;
+}
+
+a.close-success {
+	color: #155724;
+}
+
+a.close-success:hover {
+	color: #155724;
 }
 
 .footer h5 {
@@ -130,11 +137,43 @@ a:hover {
 	}
 }
 
-@media (max-width: 992px) {
-
-	/* 992px = bootstrap large breakpoint */
-	.main-content {
-		margin-bottom: 16px;
-
+@media (max-width: 350px) {
+	.navbar-brand img {
+		max-width: 150px;
 	}
+}
+
+.card-feast-select {
+	width: 58%;
+}
+
+.card-folio-select {
+	width: 38%;
+}
+
+.font-volpiano {
+	font-family: "volpiano";
+	font-size: 28px;
+}
+
+.font-volpiano-lg {
+	font-family: "volpiano";
+	font-size: 36px;
+}
+
+.fs-text-with-melody {
+	font-size: 12px;
+}
+
+a.display-link {
+	word-break: break-all;
+}
+
+.link-color {
+	color: #922;
+}
+
+.link-hover-effect:hover {
+	color: #922;
+	text-decoration: underline;
 }

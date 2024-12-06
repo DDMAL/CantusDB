@@ -1,13 +1,7 @@
 {% extends "single_column_with_search_bar.html" %}
 {% load humanize %}
-
-{% block title %}
-    <title>Content Statistics | Cantus Database</title>
-{% endblock %}
-
-{% block header %}
-    <h3>Content Statistics</h3>
-{% endblock %}
+{% block title %}<title>Content Statistics | Cantus Database</title>{% endblock %}
+{% block header %}<h3>Content Statistics</h3>{% endblock %}
 {% block maincontent %}
     <table class="table table-sm table-bordered table-striped">
         <thead>
@@ -21,12 +15,10 @@
                 <td>Chant</td>
                 <td>{{ chant_count|intcomma }}</td>
             </tr>
-
             <tr>
                 <td>Sequence</td>
                 <td>{{ sequence_count|intcomma }}</td>
             </tr>
-
             <tr>
                 <td>Source</td>
                 <td>{{ source_count|intcomma }}</td>

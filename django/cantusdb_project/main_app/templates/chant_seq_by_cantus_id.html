@@ -1,15 +1,13 @@
 {% extends "filterable_table_with_search_bar.html" %}
-
 {% block title %}
     <title>Chants by Cantus ID: {{ cantus_id }} | Cantus Database</title>
 {% endblock %}
-
 {% block header %}
     <h3>
         Chants by Cantus ID: <a href="https://cantusindex.org/id/{{ cantus_id }}" target="_blank">
-            {{ cantus_id }}
-        </a>
-    </h3>
+        {{ cantus_id }}
+    </a>
+</h3>
 {% endblock %}
 {% block list_table %}
     <div class="table-responsive">
@@ -20,11 +18,16 @@
                     <th scope="col" class="text-wrap" title="Folio">Folio</th>
                     <th scope="col" class="text-wrap" title="Title">Title</th>
                     <th scope="col" class="text-wrap" title="Service">Service</th>
-                    <th scope="col" class="text-wrap" title="Genre">Genre </th>
+                    <th scope="col" class="text-wrap" title="Genre">Genre</th>
                     <th scope="col" class="text-wrap" title="Position">Position</th>
                     <th scope="col" class="text-wrap" title="Feast">Feast</th>
                     <th scope="col" class="text-wrap" title="Mode">Mode</th>
-                    <th scope="col" class="text-wrap" style="font-family: volpiano; font-size:30px; font-weight:normal;" title="Volpiano Melody">1</th>
+                    <th scope="col"
+                        class="text-wrap"
+                        style="font-family: volpiano;
+                               font-size:30px;
+                               font-weight:normal"
+                        title="Volpiano Melody">1</th>
                     <th scope="col" class="text-wrap" title="Image Link">Facsimile</th>
                 </tr>
             </thead>
@@ -33,7 +36,8 @@
                     <tr>
                         <td class="text-wrap">
                             {% if chant.source %}
-                                <a href="{% url 'source-detail' chant.source.id %}" title="{{ chant.source.heading }}">{{ chant.source.short_heading }}</a>
+                                <a href="{% url 'source-detail' chant.source.id %}"
+                                   title="{{ chant.source.heading }}">{{ chant.source.short_heading }}</a>
                             {% endif %}
                         </td>
                         <td class="text-wrap">{{ chant.folio }}</td>
@@ -43,40 +47,45 @@
                         the combined queryset turned all objects into chants
                         so this is the only way to make the distinction {% endcomment %}
                         {% if chant.search_vector %}
-                            <td class="text-wrap"><a href="{% url 'chant-detail' chant.id %}">{{ chant.incipit }}</a></td>
+                            <td class="text-wrap">
+                                <a href="{% url 'chant-detail' chant.id %}">{{ chant.incipit }}</a>
+                            </td>
                         {% else %}
-                            <td class="text-wrap"><a href="{% url 'sequence-detail' chant.id %}">{{ chant.incipit }}</a></td>
+                            <td class="text-wrap">
+                                <a href="{% url 'sequence-detail' chant.id %}">{{ chant.incipit }}</a>
+                            </td>
                         {% endif %}
                         <td class="text-wrap">
                             {% if chant.service %}
-                                <a href="{% url 'service-detail' chant.service.id %}" title="{{ chant.service.description }}">
+                                <a href="{% url 'service-detail' chant.service.id %}"
+                                   title="{{ chant.service.description }}">
                                     {{ chant.service.name }}
                                 </a>
                             {% endif %}
                         </td>
                         <td class="text-wrap">
                             {% if chant.genre %}
-                                <a href="{% url 'genre-detail' chant.genre.id %}" title="{{ chant.genre.description }}">
+                                <a href="{% url 'genre-detail' chant.genre.id %}"
+                                   title="{{ chant.genre.description }}">
                                     {{ chant.genre.name }}
                                 </a>
                             {% endif %}
                         </td>
-                        <td class="text-wrap">
-                            {{ chant.position|default:"" }}
-                        </td>
+                        <td class="text-wrap">{{ chant.position|default:"" }}</td>
                         <td class="text-wrap">
                             {% if chant.feast %}
-                                <a href="{% url 'feast-detail' chant.feast.id %}" title="{{ chant.feast.description }}">
+                                <a href="{% url 'feast-detail' chant.feast.id %}"
+                                   title="{{ chant.feast.description }}">
                                     {{ chant.feast.name }}
                                 </a>
                             {% endif %}
                         </td>
-                        <td class="text-wrap">
-                            {{ chant.mode|default:"" }}
-                        </td>
+                        <td class="text-wrap">{{ chant.mode|default:"" }}</td>
                         <td class="text-wrap text-center">
                             {% if chant.volpiano %}
-                                <a href="{% url 'chant-detail' chant.id %}" style="text-decoration: none" title="Chant has volpiano melody">♫</a>
+                                <a href="{% url 'chant-detail' chant.id %}"
+                                   style="text-decoration: none"
+                                   title="Chant has volpiano melody">♫</a>
                             {% endif %}
                         </td>
                         <td class="text-wrap">

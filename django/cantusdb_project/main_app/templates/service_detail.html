@@ -1,16 +1,4 @@
 {% extends "single_column_with_search_bar.html" %}
-
-{% block title %}
-    <title>{{ service.name }} | Cantus Database</title>
-{% endblock %}
-
-{% block header %}
-    <h3>{{ service.name }}</h3>
-{% endblock %}
-{% block maincontent %}
-<div class="row">
-    <div class="col">
-        <p>{{ service.description }}</p>
-    </div>
-</div>
-{% endblock %}
+{% block title %}<title>{{ service.name }} | Cantus Database</title>{% endblock %}
+{% block header %}<h3>{{ service.name }}</h3>{% endblock %}
+{% block maincontent %}<p>{{ service.description }}</p>{% endblock %}

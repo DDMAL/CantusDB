@@ -1,39 +1,35 @@
 {% extends "base_page_with_side_cards.html" %}
-{% block title %}
-    <title>Browse Chants | Cantus Database</title>
-{% endblock %}
-
-{% block scripts %}
-    <script src="/static/js/chant_list.js"></script>
-{% endblock %}
-
+{% block title %}<title>Browse Chants | Cantus Database</title>{% endblock %}
+{% block scripts %}<script src="/static/js/chant_list.js"></script>{% endblock %}
 {% block uppersidebar %}
-<div class="search-bar mb-3">
-    {% include "global_search_bar.html" %}
-</div>
+    <div class="search-bar mb-3">{% include "global_search_bar.html" %}</div>
 {% endblock %}
-
 {% block maincontent %}
     <h3>Browse Chants</h3>
-    <small>Displaying <b>{{ page_obj.start_index }}-{{ page_obj.end_index }}</b> of <b>{{ page_obj.paginator.count }}</b> chants</small>
-    
+    <span class="small">Displaying {{ page_obj.start_index }}-{{ page_obj.end_index }} of <b>{{ page_obj.paginator.count }}</b> chants.</span>
     <form method="get">
-        <div class="form-row align-items-end">
-            <div class="form-group m-1 col-lg">
-                <label for="sourceFilter"><small><b>Source</b></small></label>
-                <select id="sourceFilter" name="source" class="form-control custom-select custom-select-sm">
+        <div class="row">
+            <div class="col-lg">
+                <label for="sourceFilter" class="small">
+                    <b>Source</b>
+                </label>
+                <select id="sourceFilter"
+                        name="source"
+                        class="form-control form-control-sm form-select form-select-sm">
                     {% comment %} <option value="">- Any -</option> {% endcomment %}
                     {% for source_obj in sources %}
-                        <option value="{{ source_obj.id }}"{% if source_obj.id == source.id %} selected {% endif %}>{{ source_obj.siglum }}</option>
+                        <option value="{{ source_obj.id }}"
+                                {% if source_obj.id == source.id %}selected{% endif %}>{{ source_obj.siglum }}</option>
                     {% endfor %}
                 </select>
             </div>
-        </div>
-
-        <div class="form-row align-items-end">
-            <div class="form-group m-1 col-lg">
-                <label for="feastFilter"><small><b>Feast</b></small></label>
-                <select id="feastFilter" name="feast" class="form-control custom-select custom-select-sm">
+            <div class="col-lg">
+                <label for="feastFilter" class="small">
+                    <b>Feast</b>
+                </label>
+                <select id="feastFilter"
+                        name="feast"
+                        class="form-control form-select form-select-sm">
                     <option value="">- Any -</option>
                     {% for feast in feasts %}
                         <option value="{{ feast.id }}">{{ feast.name }}</option>
@@ -41,16 +37,24 @@
                 </select>
             </div>
         </div>
-
-        <div class="form-row align-items-end">
-            <div class="form-group m-1 col-lg">
-                <label for="search"><small><b>Search Text</b></small></label>
-                <input id="search" type="text" class="form-control form-control-sm" name="search_text" value="{{ request.GET.search_text }}">
+        <div class="row">
+            <div class="col-lg">
+                <label for="search" class="small">
+                    <b>Search Text</b>
+                </label>
+                <input id="search"
+                       type="text"
+                       class="form-control form-control-sm"
+                       name="search_text"
+                       value="{{ request.GET.search_text }}" />
             </div>
-
-            <div class="form-group m-1 col-lg">
-                <label for="genreFilter"><small><b>Genre</b></small></label>
-                <select id="genreFilter" name="genre" class="form-control custom-select custom-select-sm">
+            <div class="col-lg">
+                <label for="genreFilter" class="small">
+                    <b>Genre</b>
+                </label>
+                <select id="genreFilter"
+                        name="genre"
+                        class="form-control form-select form-select-sm">
                     <option value="">- Any -</option>
                     {% for genre in genres %}
                         <option value="{{ genre.id }}">{{ genre.name }}</option>
@@ -59,21 +63,28 @@
             </div>
         </div>
         {% if user_can_proofread_source %}
-            <fieldset>          
-                {% for field in proofread_filter_form %}
-                    <div class="filter-group">
-                        <label class="small"><b>{{ field.label }}:</b></label>
-                            {% for radio in field %}
-                                <label for="{{ radio.id_for_label }}" style="margin-right: 10px;">
-                                    {{ radio.choice_label }}
-                                    <span class="radio">{{ radio.tag }}</span>
-                                </label>
-                            {% endfor %}
-                    </div>
-                {% endfor %}
+            <fieldset class="row mt-1">
+                <div class="col">
+                    <legend class="small m-0">
+                        <b>Proofread Status</b>
+                    </legend>
+                    {% for field in proofread_filter_form %}
+                        <fieldset class="row">
+                            <legend class="col-lg col-form-label-sm text-end m-0 p-0">{{ field.label }}</legend>
+                            <div class="col d-flex">
+                                {% for radio in field %}
+                                    <label for="{{ radio.id_for_label }}"
+                                           class="small ms-3 me-1 form-check-label">
+                                        {{ radio.choice_label }}
+                                    </label>
+                                    {{ radio.tag }}
+                                {% endfor %}
+                            </div>
+                        </fieldset>
+                    {% endfor %}
+                </div>
             </fieldset>
         {% endif %}
-
     </form>
     {% with exists_on_cantus_ultimus=source.exists_on_cantus_ultimus %}
         {% if chants %}
@@ -97,53 +108,60 @@
                 </thead>
                 <tbody>
                     {% for chant in chants %}
-                    <tr>
-                        <td class="text-wrap" style="text-align:center"><b>{{ chant.folio|default:"" }}</b></td>
-                        <td class="text-wrap" style="text-align:center">{{ chant.c_sequence|default_if_none:"" }}</td> {# default_if_none: sometimes, c_sequence is 0, and should still be displayed #}
-                        <td class="text-wrap">
-                            <a href="{% url 'chant-detail' chant.id %}"><b>{{ chant.incipit|default:"" }}</b></a>
-                            <p>{{ chant.manuscript_full_text_std_spelling|default:"" }}<br>
-                            <!-- See #1635. Temporarily disable volpiano display for this source. -->
-                            {% if chant.volpiano and chant.source.id != 680970 %}
-                                <span style="font-family: volpiano; font-size:25px">{{ chant.volpiano|default:"" }}</span>
-                            {% endif %}
-                            </p>
-                        </td>
-                        <td class="text-wrap" style="text-align:center">
-                            {% if chant.feast %}
-                                <a href="{% url 'feast-detail' chant.feast.id %}" title="{{ chant.feast.description }}">{{ chant.feast.name|default:"" }}</a>
-                            {% endif %}
-                        </td>
-                        <td class="text-wrap" style="text-align:center">
-                            {% if chant.service %}
-                                <a href="{% url 'service-detail' chant.service.id %}" title="{{ chant.service.description }}">{{ chant.service.name|default:"" }}</a>
-                            {% endif %}
-                        </td>
-                        <td class="text-wrap" style="text-align:center">
-                            {% if chant.genre %}
-                                <a href="{% url 'genre-detail' chant.genre.id %}" title="{{ chant.genre.description }}">{{ chant.genre.name|default:"" }}</a>
-                            {% endif %}
-                        </td>
-                        <td class="text-wrap" style="text-align:center">{{ chant.position|default:"" }}</td>
-                        <td class="text-wrap" style="text-align:center">
-                            <a href="{{ chant.get_ci_url }}" target="_blank">{{ chant.cantus_id|default:"" }}</a>
-                        </td>
-                        <td class="text-wrap" style="text-align:center">{{ chant.mode|default:"" }}</td>
-                        <td class="text-wrap" style="text-align:center">
-                            {% if exists_on_cantus_ultimus %}
-                                    <a href="https://cantus.simssa.ca/manuscript/{{ source.id }}/?folio={{ chant.folio }}&chant={{ chant.c_sequence }}" target="_blank">
-                                        Image
-                                    </a>
-                            {% elif chant.image_link %}
-                                <a href="{{ chant.image_link }}" target="_blank">Image</a>
-                            {% endif %}
-                        </td>
-                        {% if user_can_edit_chant %}
-                            <td class="text-wrap" style="text-align:center">
-                                <a href="{% url 'source-edit-chants' source.id %}?pk={{ chant.id }}&folio={{ chant.folio }}&ref=chant-list">Edit</a>
+                        <tr>
+                            <td class="text-wrap text-center">
+                                <b>{{ chant.folio|default:"" }}</b>
                             </td>
-                        {% endif %}
-                    </tr>
+                            <td class="text-wrap text-center">{{ chant.c_sequence|default_if_none:"" }}</td>
+                            {# default_if_none: sometimes, c_sequence is 0, and should still be displayed #}
+                            <td class="text-wrap">
+                                <a href="{% url 'chant-detail' chant.id %}"><b>{{ chant.incipit|default:"" }}</b></a>
+                                <p>
+                                    {{ chant.manuscript_full_text_std_spelling|default:"" }}
+                                    <br />
+                                    <!-- See #1635. Temporarily disable volpiano display for this source. -->
+                                    {% if chant.volpiano and chant.source.id != 680970 %}
+                                        <span style="font-family: volpiano; font-size:25px">{{ chant.volpiano|default:"" }}</span>
+                                    {% endif %}
+                                </p>
+                            </td>
+                            <td class="text-wrap text-center">
+                                {% if chant.feast %}
+                                    <a href="{% url 'feast-detail' chant.feast.id %}"
+                                       title="{{ chant.feast.description }}">{{ chant.feast.name|default:"" }}</a>
+                                {% endif %}
+                            </td>
+                            <td class="text-wrap text-center">
+                                {% if chant.service %}
+                                    <a href="{% url 'service-detail' chant.service.id %}"
+                                       title="{{ chant.service.description }}">{{ chant.service.name|default:"" }}</a>
+                                {% endif %}
+                            </td>
+                            <td class="text-wrap text-center">
+                                {% if chant.genre %}
+                                    <a href="{% url 'genre-detail' chant.genre.id %}"
+                                       title="{{ chant.genre.description }}">{{ chant.genre.name|default:"" }}</a>
+                                {% endif %}
+                            </td>
+                            <td class="text-wrap text-center">{{ chant.position|default:"" }}</td>
+                            <td class="text-wrap text-center">
+                                <a href="{{ chant.get_ci_url }}" target="_blank">{{ chant.cantus_id|default:"" }}</a>
+                            </td>
+                            <td class="text-wrap text-center">{{ chant.mode|default:"" }}</td>
+                            <td class="text-wrap text-center">
+                                {% if exists_on_cantus_ultimus %}
+                                    <a href="https://cantus.simssa.ca/manuscript/{{ source.id }}/?folio={{ chant.folio }}&chant={{ chant.c_sequence }}"
+                                       target="_blank">Image</a>
+                                {% elif chant.image_link %}
+                                    <a href="{{ chant.image_link }}" target="_blank">Image</a>
+                                {% endif %}
+                            </td>
+                            {% if user_can_edit_chant %}
+                                <td class="text-wrap text-center">
+                                    <a href="{% url 'source-edit-chants' source.id %}?pk={{ chant.id }}&folio={{ chant.folio }}&ref=chant-list">Edit</a>
+                                </td>
+                            {% endif %}
+                        </tr>
                     {% endfor %}
                 </tbody>
             </table>
@@ -153,53 +171,63 @@
         {% endif %}
     {% endwith %}
 {% endblock %}
-
 {% block lowersidebar %}
     <div class="card w-100">
-
         <div class="card-header">
-            <h4><a href="{% url 'source-detail' source.id %}" title="{{ source.heading }}">{{ source.short_heading }}</a></h4>
+            <h4>
+                <a href="{% url 'source-detail' source.id %}"
+                   title="{{ source.heading }}">{{ source.short_heading }}</a>
+            </h4>
         </div>
-
         <div class="card-body">
             <small>
                 <!--a small selector of all folios of this source-->
                 <select name="folio" id="folioFilter" class="w-30">
                     <option value="">Select a folio:</option>
-                    {% for folio in folios %}
-                        <option value="{{ folio }}">{{ folio }}</option>
-                    {% endfor %}
+                    {% for folio in folios %}<option value="{{ folio }}">{{ folio }}</option>{% endfor %}
                 </select>
-
                 {% if previous_folio %}
                     <a href="{% url "browse-chants" source.id %}?folio={{ previous_folio }}">{{ previous_folio }} <</a>
                 {% endif %}
                 {% if next_folio %}
                     &nbsp;<a href="{% url "browse-chants" source.id %}?folio={{ next_folio }}">> {{ next_folio }}</a>
-                {% endif %}                                
-                <br>
-
-                <select name="feast" id="feastSelect" style="width: 200px;"> <!-- style attribute prevents select element from extending beyond left edge of div element -->
+                {% endif %}
+                <br />
+                <select name="feast" id="feastSelect" style="width: 200px;">
+                    <!-- style attribute prevents select element from extending beyond left edge of div element -->
                     <option value="">Select a feast:</option>
                     {% for feast_id, feast_name, folio_range in feasts_with_folios %}
                         <option value="{{ feast_id }}">{{ feast_name }} ({{ folio_range }})</option>
                     {% endfor %}
                 </select>
-                <br>
-                <a href="{% url "browse-chants" source.id %}" class="guillemet" target="_blank">View all chants</a>
-                <a href="{% url "source-inventory" source.id %}" class="guillemet" target="_blank">View full inventory</a>
+                <br />
+                <a href="{% url "browse-chants" source.id %}"
+                   class="guillemet"
+                   target="_blank">View all chants</a>
+                <a href="{% url "source-inventory" source.id %}"
+                   class="guillemet"
+                   target="_blank">View full inventory</a>
                 {% if source.exists_on_cantus_ultimus %}
-                    <a href="https://cantus.simssa.ca/manuscript/{{ source.id }}" class="guillemet" target="_blank">View inventory with images</a>
+                    <a href="https://cantus.simssa.ca/manuscript/{{ source.id }}"
+                       class="guillemet"
+                       target="_blank">View inventory with images</a>
                 {% endif %}
                 {% if source.image_link %}
                     <a href="{{ source.image_link }}" class="guillemet" target="_blank">View images on external site</a>
-                {% endif %}                          
-                <a href="{% url "csv-export" source.id%}" class="guillemet" target="_blank">CSV export</a>
-                <a href="{% url "chant-search-ms" source.id %}" class="guillemet" target="_blank">Search chants in this source</a>
-                <a href="{% url "melody-search" %}?source={{ source.id }}"  class="guillemet" target="_blank">Search melodies in this source</a>
-                <a href="//cantusindex.org/analyse?src={{ source.id }}&db=CD" class="guillemet" target="_blank">Analyse this source (Cantus Analysis Tool)</a>
+                {% endif %}
+                <a href="{% url "csv-export" source.id %}"
+                   class="guillemet"
+                   target="_blank">CSV export</a>
+                <a href="{% url "chant-search-ms" source.id %}"
+                   class="guillemet"
+                   target="_blank">Search chants in this source</a>
+                <a href="{% url "melody-search" %}?source={{ source.id }}"
+                   class="guillemet"
+                   target="_blank">Search melodies in this source</a>
+                <a href="//cantusindex.org/analyse?src={{ source.id }}&db=CD"
+                   class="guillemet"
+                   target="_blank">Analyse this source (Cantus Analysis Tool)</a>
             </small>
-        </div>    
-
+        </div>
     </div>
 {% endblock %}

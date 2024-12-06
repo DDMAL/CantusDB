@@ -1,37 +1,27 @@
 {% extends "single_column_with_search_bar.html" %}
-
-{% block title %}
-    <title>{{ sequence.title }} | Cantus Database</title>
-{% endblock %}
-
+{% block title %}<title>{{ sequence.title }} | Cantus Database</title>{% endblock %}
 {% block header %}
     <h3>{{ sequence.title }}</h3>
     {% if user_can_edit_sequence %}
-    <p>
-        View | <a href="{% url "sequence-edit" sequence.id %}">Edit</a>
-    </p>
+        <p>
+            View | <a href="{% url "sequence-edit" sequence.id %}">Edit</a>
+        </p>
     {% endif %}
 {% endblock %}
 {% block maincontent %}
-<!--Display "submit success" message -->
-{% if messages %}
-<div class="alert alert-success alert-dismissible">
-    {% for message in messages %}
-        {{ message }}
-    {% endfor %}
-</div>
-{% endif %}
+    <!--Display "submit success" message -->
+    {% if messages %}
+        <div class="alert alert-success alert-dismissible">
+            {% for message in messages %}{{ message }}{% endfor %}
+        </div>
+    {% endif %}
     <dl>
-        <dt>
-            Siglum
-        </dt>
+        <dt>Siglum</dt>
         <dd>
             {{ sequence.siglum }}
         </dd>
         {% if sequence.source %}
-            <dt>
-                Source
-            </dt>
+            <dt>Source</dt>
             <dd>
                 <a href="{% url 'source-detail' sequence.source.id %}">
                     {{ sequence.source.heading }}
@@ -41,128 +31,97 @@
         <div class="row">
             <div class="col">
                 {% if sequence.folio %}
-                <dt>
-                    Folio
-                </dt>
-                <dd>
-                    {{ sequence.folio }}
-                </dd>
+                    <dt>Folio</dt>
+                    <dd>
+                        {{ sequence.folio }}
+                    </dd>
                 {% endif %}
             </div>
             <div class="col">
                 {% if sequence.s_sequence %}
-                <dt>
-                    Sequence
-                </dt>
-                <dd>
-                    {{ sequence.s_sequence }}
-                </dd>
+                    <dt>Sequence</dt>
+                    <dd>
+                        {{ sequence.s_sequence }}
+                    </dd>
                 {% endif %}
             </div>
         </div>
         {% if sequence.incipit %}
-        <dt>
-            Incipit
-        </dt>
-        <dd>
-            {{ sequence.incipit }}
-        </dd>
+            <dt>Incipit</dt>
+            <dd>
+                {{ sequence.incipit }}
+            </dd>
         {% endif %}
         {% if sequence.rubrics %}
-        <dt>
-            Rubrics
-        </dt>
-        <dd>
-            {{ sequence.rubrics }}
-        </dd>
+            <dt>Rubrics</dt>
+            <dd>
+                {{ sequence.rubrics }}
+            </dd>
         {% endif %}
         <div class="row">
-        
             {% if sequence.genre %}
-            <div class="col">
-                <dt>
-                    Genre
-                </dt>
-                <dd>
-                    <a href="{% url 'genre-detail' sequence.genre.id %}" title="{{ sequence.genre.description }}">{{ sequence.genre.name }}</a>
-                </dd>
-            </div>
+                <div class="col">
+                    <dt>Genre</dt>
+                    <dd>
+                        <a href="{% url 'genre-detail' sequence.genre.id %}"
+                           title="{{ sequence.genre.description }}">{{ sequence.genre.name }}</a>
+                    </dd>
+                </div>
             {% endif %}
-
             {% if sequence.cantus_id %}
-            <div class="col">
-                <dt>
-                    Cantus ID
-                </dt>
-                <dd>
-                    <a href="https://cantusindex.org/id/{{ sequence.cantus_id }}" target="_blank"> {{ sequence.cantus_id }}</a>
-                </dd>
-            </div>
+                <div class="col">
+                    <dt>Cantus ID</dt>
+                    <dd>
+                        <a href="https://cantusindex.org/id/{{ sequence.cantus_id }}"
+                           target="_blank">{{ sequence.cantus_id }}</a>
+                    </dd>
+                </div>
             {% endif %}
-
             {% if sequence.analecta_hymnica %}
-            <div class="col">
-                <dt>
-                    Analecta Hymnica
-                </dt>
-                <dd>
-                    {{ sequence.analecta_hymnica }}
-                </dd>
-            </div>
+                <div class="col">
+                    <dt>Analecta Hymnica</dt>
+                    <dd>
+                        {{ sequence.analecta_hymnica }}
+                    </dd>
+                </div>
             {% endif %}
-
             {% if sequence.date %}
-            <div class="col">
-                <dt>
-                    Date
-                </dt>
-                <dd>
-                    {{ sequence.date }}
-                </dd>
-            </div>
+                <div class="col">
+                    <dt>Date</dt>
+                    <dd>
+                        {{ sequence.date }}
+                    </dd>
+                </div>
             {% endif %}
-
             {% if sequence.col1 %}
-            <div class="col">
-                <dt>
-                    Col1
-                </dt>
-                <dd>
-                    {{ sequence.col1 }}
-                </dd>
-            </div>
+                <div class="col">
+                    <dt>Col1</dt>
+                    <dd>
+                        {{ sequence.col1 }}
+                    </dd>
+                </div>
             {% endif %}
-
             {% if sequence.col2 %}
-            <div class="col">
-                <dt>
-                    Col2
-                </dt>
-                <dd>
-                    {{ sequence.col2 }}
-                </dd>
-            </div>
+                <div class="col">
+                    <dt>Col2</dt>
+                    <dd>
+                        {{ sequence.col2 }}
+                    </dd>
+                </div>
             {% endif %}
-
             {% if sequence.col3 %}
-            <div class="col">
-                <dt>
-                    Col3
-                </dt>
-                <dd>
-                    {{ sequence.col3 }}
-                </dd>
-            </div>
+                <div class="col">
+                    <dt>Col3</dt>
+                    <dd>
+                        {{ sequence.col3 }}
+                    </dd>
+                </div>
             {% endif %}
-
         </div>
-
         <div class="row">
             {% if sequence.indexing_notes %}
                 <div class="col">
-                    <dt>
-                        Indexing notes
-                    </dt>
+                    <dt>Indexing notes</dt>
                     <dd>
                         {{ sequence.indexing_notes }}
                     </dd>
@@ -170,7 +129,6 @@
             {% endif %}
         </div>
     </dl>
-
     {% if sequence.cantus_id %}
         <h4>Concordances</h4>
         <small>Concordances for Cantus ID <a href="{{ sequence.get_ci_url }}" target=_blank>{{ sequence.cantus_id }}</a>: Displaying 1 - {{ concordances.count }} of {{ concordances.count }}</small>
@@ -178,43 +136,34 @@
             <table class="table table-sm small table-bordered">
                 <thead>
                     <tr>
-                        <th scope="col" class="text-wrap" style="text-align:center">Siglum</th>
-                        <th scope="col" class="text-wrap" style="text-align:center">Incipit</th>
-                        <th scope="col" class="text-wrap" style="text-align:center">Rubrics</th>
-                        <th scope="col" class="text-wrap" style="text-align:center">AH</th>
-                        <th scope="col" class="text-wrap" style="text-align:center">Notes:1</th>
-                        <th scope="col" class="text-wrap" style="text-align:center">Notes:2</th>
-                        <th scope="col" class="text-wrap" style="text-align:center">Notes:3</th>
+                        <th scope="col" class="text-wrap text-center">Siglum</th>
+                        <th scope="col" class="text-wrap text-center">Incipit</th>
+                        <th scope="col" class="text-wrap text-center">Rubrics</th>
+                        <th scope="col" class="text-wrap text-center">AH</th>
+                        <th scope="col" class="text-wrap text-center">Notes:1</th>
+                        <th scope="col" class="text-wrap text-center">Notes:2</th>
+                        <th scope="col" class="text-wrap text-center">Notes:3</th>
                     </tr>
                 </thead>
                 <tbody>
                     {% for sequence in concordances %}
                         <tr>
-                            <td class="text-wrap" style="text-align:center">
+                            <td class="text-wrap text-center">
                                 {% if sequence.source %}
-                                    <a href="{% url 'source-detail' sequence.source_id %}" title="{{ sequence.source.heading }}"><b>{{ sequence.source.short_heading }}</b></a>
-                                    <br>
+                                    <a href="{% url 'source-detail' sequence.source_id %}"
+                                       title="{{ sequence.source.heading }}"><b>{{ sequence.source.short_heading }}</b></a>
+                                    <br />
                                     <b>{{ sequence.folio }}</b>  {{ sequence.s_sequence }}
                                 {% endif %}
                             </td>
-                            <td class="text-wrap" style="text-align:center">
+                            <td class="text-wrap text-center">
                                 <a href="{% url 'sequence-detail' sequence.id %}">{{ sequence.incipit|default:"" }}</a>
                             </td>
-                            <td class="text-wrap" style="text-align:center">
-                                {{ sequence.rubrics|default:"" }}
-                            </td>
-                            <td class="text-wrap" style="text-align:center">
-                                {{ sequence.analecta_hymnica|default:"" }}
-                            </td>
-                            <td class="text-wrap" style="text-align:center">
-                                {{ sequence.col1|default:"" }}
-                            </td>
-                            <td class="text-wrap" style="text-align:center">
-                                {{ sequence.col2|default:"" }}
-                            </td>
-                            <td class="text-wrap" style="text-align:center">
-                                {{ sequence.col3|default:"" }}
-                            </td>
+                            <td class="text-wrap text-center">{{ sequence.rubrics|default:"" }}</td>
+                            <td class="text-wrap text-center">{{ sequence.analecta_hymnica|default:"" }}</td>
+                            <td class="text-wrap text-center">{{ sequence.col1|default:"" }}</td>
+                            <td class="text-wrap text-center">{{ sequence.col2|default:"" }}</td>
+                            <td class="text-wrap text-center">{{ sequence.col3|default:"" }}</td>
                         </tr>
                     {% endfor %}
                 </tbody>

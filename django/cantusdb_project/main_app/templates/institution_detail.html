@@ -1,12 +1,9 @@
 {% extends "single_column_with_search_bar.html" %}
-{% block title %}
-{% endblock %}
+{% block title %}{% endblock %}
 {% block header %}
     <h3>
         {{ institution.name }}
-        {% if institution.siglum %}
-            ({{ institution.siglum }})
-        {% endif %}
+        {% if institution.siglum %}({{ institution.siglum }}){% endif %}
     </h3>
     <h4>
         {% if institution.city %}
@@ -19,28 +16,22 @@
 {% endblock %}
 {% block maincontent %}
     {% if institution_authorities %}
-        <hr />
         {% for authority in institution_authorities %}
-            <div class="row">
+            <div class="row mb-3">
                 <div class="col">
                     View this institution in <a href="{{ authority.1 }}">{{ authority.0 }}</a>
                 </div>
             </div>
         {% endfor %}
     {% endif %}
-    <hr />
     <div class="row">
         {% if num_cantus_sources > 0 %}
             <div class="col">
-                <h5>
-                    Cantus Database
-                </h5>
+                <h5>Cantus Database</h5>
                 <table class="table table-bordered table-sm small">
                     <thead>
                         <tr>
-                            <th>
-                                Sources
-                            </th>
+                            <th>Sources</th>
                         </tr>
                     </thead>
                     <tbody>
@@ -48,9 +39,7 @@
                             <tr>
                                 <td>
                                     <a href="{% url "source-detail" source.id %}"><b>{{ source.shelfmark }}
-                                        {% if source.name %}
-                                            ("{{ source.name }}")
-                                        {% endif %}
+                                        {% if source.name %}("{{ source.name }}"){% endif %}
                                     </b></a>
                                 </td>
                             </tr>
@@ -61,15 +50,11 @@
         {% endif %}
         {% if num_bower_sources > 0 %}
             <div class="col">
-                <h5>
-                    Clavis Sequentiarum (Sequence Database by Calvin Bower)
-                </h5>
+                <h5>Clavis Sequentiarum (Sequence Database by Calvin Bower)</h5>
                 <table class="table table-bordered table-sm small">
                     <thead>
                         <tr>
-                            <th>
-                                Sources
-                            </th>
+                            <th>Sources</th>
                         </tr>
                     </thead>
                     <tbody>
@@ -77,9 +62,7 @@
                             <tr>
                                 <td>
                                     <a href="{% url "source-detail" source.id %}"><b>{{ source.shelfmark }}
-                                        {% if source.name %}
-                                            ("{{ source.name }}")
-                                        {% endif %}
+                                        {% if source.name %}("{{ source.name }}"){% endif %}
                                     </b></a>
                                 </td>
                             </tr>

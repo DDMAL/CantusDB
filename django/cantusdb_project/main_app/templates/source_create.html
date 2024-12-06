@@ -1,221 +1,189 @@
 {% extends "base.html" %}
 {% load static %}
-
-{% block title %}
-    <title>Create Source | Cantus Database</title>
-{% endblock %}
-
+{% block title %}<title>Create Source | Cantus Database</title>{% endblock %}
 {% block scripts %}
-    <script type="text/javascript" src="{% static 'admin/js/vendor/jquery/jquery.js' %}"></script>
+    <script type="text/javascript"
+            src="{% static 'admin/js/vendor/jquery/jquery.js' %}"></script>
     {{ form.media }}
 {% endblock %}
-
 {% block content %}
-<div class="container">
-    <div class="row">
-        <div class="p-3 col-lg-12 bg-white rounded">
-            <h3>Create Source</h3>
-
-            <!--Display "submit success" message -->
-            {% if messages %}
-                <div class="alert alert-success alert-dismissible">
-                    {% for message in messages %}
-                        {{ message }}
-                    {% endfor %}
-                </div>
-            {% endif %}
-
-            <!--Display form error message -->
-            {% if form.errors %}
-                <div class="alert alert-danger alert-dismissible">
-                    <a href="#" class="close" data-dismiss="alert" aria-label="close">&times;</a>
-                    {% for error in form.non_field_errors %}
-                        <a href="#" class="close" data-dismiss="alert" aria-label="close">&times;</a>
-                        {{ error }}
-                    {% endfor %}
-                    {% for field in form %}
-                        {% if field.errors %}
-                            <a href="#" class="close" data-dismiss="alert" aria-label="close">&times;</a>
-                            {{ field.label }}: {{ field.errors|striptags }}
-                        {% endif %}
-                    {% endfor %}
-                </div>
-            {% endif %}
-
-            <form method="post" style="line-height: normal">{% csrf_token %}
-                <div class="form-row">
-                    <div class="form-group m-1 col-lg-3">
-                        <label for="{{ form.holding_institution.id_for_label }}" class="form-control-sm">
-                            Holding Institution:
-                        </label>
-                        {{ form.holding_institution }}
+    <div class="container">
+        <div class="row">
+            <div class="p-3 col-lg-12 bg-white rounded">
+                <h3>Create Source</h3>
+                <!--Display "submit success" message -->
+                {% if messages %}
+                    <div class="alert alert-success alert-dismissible">
+                        {% for message in messages %}{{ message }}{% endfor %}
                     </div>
-                </div>
-                <div class="form-row">
-                    <div class="form-group m-1 col-lg-3">
-                        <label for="{{ form.shelfmark.id_for_label }}" class="form-control-sm">
-                            Shelfmark:<span class="text-danger" title="This field is required">*</span>
-                        </label>
-                        {{ form.shelfmark }}
-                        <p class="text-muted small">
-                            {{ form.shelfmark.help_text|safe }}
-                        </p>
+                {% endif %}
+                <!--Display form error message -->
+                {% if form.errors %}
+                    <div class="alert alert-danger alert-dismissible">
+                        <a href="#" class="close" data-bs-dismiss="alert" aria-label="close">×</a>
+                        {% for error in form.non_field_errors %}
+                            <a href="#" class="close" data-bs-dismiss="alert" aria-label="close">×</a>
+                            {{ error }}
+                        {% endfor %}
+                        {% for field in form %}
+                            {% if field.errors %}
+                                <a href="#" class="close" data-bs-dismiss="alert" aria-label="close">×</a>
+                                {{ field.label }}: {{ field.errors|striptags }}
+                            {% endif %}
+                        {% endfor %}
                     </div>
-                    <div class="form-group m-1 col-lg-3">
-                        <label for="{{ form.name.id_for_label }}" class="form-control-sm">
-                            Name:
-                        </label>
-                        {{ form.name }}
-                        <p class="text-muted small">
-                            {{ form.name.help_text|safe }}
-                        </p>
+                {% endif %}
+                <form method="post">
+                    {% csrf_token %}
+                    <div class="row mb-2">
+                        <div class="col-lg-3">
+                            <label for="{{ form.holding_institution.id_for_label }}" class="small">
+                                Holding Institution:
+                            </label>
+                            {{ form.holding_institution }}
+                        </div>
                     </div>
-                    <div class="form-group m-1 col-lg-3">
-                        <label for="{{ form.segment_m2m.id_for_label }}">
-                            <small>Segments:</small>
-                        </label>
-                        <br>{{ form.segment_m2m }}
+                    <div class="row mb-2 small">
+                        <div class="col-lg-3">
+                            <label for="{{ form.shelfmark.id_for_label }}">
+                                Shelfmark:<span class="text-danger" title="This field is required">*</span>
+                            </label>
+                            {{ form.shelfmark }}
+                            <p class="text-muted m-0">{{ form.shelfmark.help_text|safe }}</p>
+                        </div>
+                        <div class="col-lg-3">
+                            <label for="{{ form.name.id_for_label }}">Name:</label>
+                            {{ form.name }}
+                            <p class="text-muted m-0">{{ form.name.help_text|safe }}</p>
+                        </div>
+                        <div class="col-lg-3">
+                            <label for="{{ form.segment_m2m.id_for_label }}">Segments:</label>
+                            {{ form.segment_m2m }}
+                        </div>
                     </div>
-                </div>
-                <div class="form-row">
-                    <div class="form-group m-1 col-lg-3">
-                        <label for="{{ form.provenance.id_for_label }}">
-                            <small>Provenance (origin / history):</small>
-                        </label>
-                        <br>{{ form.provenance }}
-                        <p class=text-muted><small>{{ form.provenance.help_text }}</small></p>
+                    <div class="row mb-2 small">
+                        <div class="col-lg-3">
+                            <label for="{{ form.provenance.id_for_label }}">Provenance (origin / history):</label>
+                            {{ form.provenance }}
+                            <p class="text-muted m-0">{{ form.provenance.help_text }}</p>
+                        </div>
                     </div>
-                </div>
-
-                <div class="form-row">
-                    <div class="form-group m-1 col-lg-3">
-                        <small>{{ form.provenance_notes.label_tag }}</small>
-                        {{ form.provenance_notes }}
-                        <p class=text-muted><small>{{ form.provenance_notes.help_text }}</small></p>
+                    <div class="row mb-2 small">
+                        <div class="col-lg-3">
+                            {{ form.provenance_notes.label_tag }}
+                            {{ form.provenance_notes }}
+                            <p class="text-muted m-0">{{ form.provenance_notes.help_text }}</p>
+                        </div>
+                        <div class="col-lg-3">
+                            {{ form.source_completeness.label_tag }}
+                            {{ form.source_completeness }}
+                        </div>
                     </div>
-
-                    <div class="form-group m-1 col-lg-3">
-                        <span class="small">{{ form.source_completeness.label_tag }}</span>
-                        {{ form.source_completeness }}
+                    <div class="row mb-2 small">
+                        <div class="col-lg-5">
+                            {{ form.century.label_tag }}
+                            {{ form.century }}
+                        </div>
+                        <div class="col-lg-3">
+                            {{ form.production_method.label_tag }}
+                            {{ form.production_method }}
+                        </div>
                     </div>
-                </div>
-
-                <div class="form-row">
-                    <div class="form-group m-1 col-lg-5">
-                        <small>{{ form.century.label_tag }}</small>
-                        {{ form.century }}
+                    <div class="row mb-2 small">
+                        <div class="col-lg-3">
+                            {{ form.date.label_tag }}
+                            {{ form.date }}
+                            <p class="text-muted m-0">{{ form.date.help_text }}</p>
+                        </div>
+                        <div class="col-lg-1">
+                            {{ form.cursus.label_tag }}
+                            {{ form.cursus }}
+                        </div>
                     </div>
-                    <div class="form-group m-1 col-lg-3">
-                        <span class="small">{{ form.production_method.label_tag }}</span>
-                        {{ form.production_method }}
+                    <div class="row mb-2 small">
+                        <div class="col-lg-3">
+                            {{ form.current_editors.label_tag }}
+                            {{ form.current_editors }}
+                        </div>
                     </div>
-                </div>
-
-                <div class="form-row">
-                    <div class="form-group m-1 col-lg-3">
-                        <small>{{ form.date.label_tag }}</small>
-                        {{ form.date }}
-                        <p class=text-muted><small>{{ form.date.help_text }}</small></p>
+                    <div class="row mb-2 small">
+                        <div class="col-lg-3">
+                            {{ form.melodies_entered_by.label_tag }}
+                            {{ form.melodies_entered_by }}
+                        </div>
                     </div>
-                    <div class="form-group m-1 col-lg-1">
-                        <small>{{ form.cursus.label_tag }}</small>
-                        {{ form.cursus }}
+                    <div class="row mb-2 small">
+                        <div class="col-lg-3">
+                            {{ form.inventoried_by.label_tag }}
+                            {{ form.inventoried_by }}
+                        </div>
                     </div>
-                </div>
-                <div class="form-row">
-                    <div class="form-group m-1 col-lg-3">
-                        <small>{{ form.current_editors.label_tag }}</small>
-                        {{ form.current_editors }}
+                    <div class="row mb-2 small">
+                        <div class="col-lg-3">
+                            {{ form.full_text_entered_by.label_tag }}
+                            {{ form.full_text_entered_by }}
+                        </div>
                     </div>
-                </div> 
-                <div class="form-row">
-                    <div class="form-group m-1 col-lg-3">
-                        <small>{{ form.melodies_entered_by.label_tag }}</small>
-                        {{ form.melodies_entered_by }}
+                    <div class="row mb-2 small">
+                        <div class="col-lg-3">
+                            {{ form.proofreaders.label_tag }}
+                            {{ form.proofreaders }}
+                        </div>
                     </div>
-                </div>
-                <div class="form-row">
-                    <div class="form-group m-1 col-lg-3">
-                        <small>{{ form.inventoried_by.label_tag }}</small>
-                        {{ form.inventoried_by }}
+                    <div class="row mb-2 small">
+                        <div class="col-lg-3">
+                            {{ form.other_editors.label_tag }}
+                            {{ form.other_editors }}
+                        </div>
                     </div>
-                </div>
-                <div class="form-row">
-                    <div class="form-group m-1 col-lg-3">
-                        <small>{{ form.full_text_entered_by.label_tag }}</small>
-                        {{ form.full_text_entered_by }}
+                    <div class="row mb-2 small">
+                        <div class="col-lg-2">
+                            <label for="{{ form.complete_inventory.id_for_label }}">
+                                Full / partial inventory:
+                            </label>
+                            {{ form.complete_inventory }}
+                        </div>
                     </div>
-                </div>
-                <div class="form-row">
-                    <div class="form-group m-1 col-lg-3">
-                        <small>{{ form.proofreaders.label_tag }}</small>
-                        {{ form.proofreaders }}
+                    <div class="row mb-2 small">
+                        <div class="col-lg-5">
+                            {{ form.summary.label_tag }}
+                            {{ form.summary }}
+                        </div>
                     </div>
-                </div>
-                <div class="form-row">
-                    <div class="form-group m-1 col-lg-3">
-                        <small>{{ form.other_editors.label_tag }}</small>
-                        {{ form.other_editors }}
+                    <div class="row mb-2 small">
+                        <div class="col-lg-5">
+                            {{ form.description.label_tag }}
+                            {{ form.description }}
+                        </div>
+                        <div class="col-lg-5">
+                            {{ form.selected_bibliography.label_tag }}
+                            {{ form.selected_bibliography }}
+                        </div>
                     </div>
-                </div>
-
-                <div class="form-row">
-                    <div class="form-group m-1 col-lg-2">
-                        <label for="{{ form.complete_inventory.id_for_label }}">
-                            <small>Full / partial inventory:</small>
-                        </label>
-                        {{ form.complete_inventory }}
+                    <div class="row mb-2 small">
+                        <div class="col-lg-6">
+                            {{ form.image_link.label_tag }}
+                            {{ form.image_link }}
+                            <p class="text-muted m-0">{{ form.image_link.help_text }}</p>
+                        </div>
+                        <div class="col-lg-2">
+                            <label for="{{ form.fragmentarium_id.id_for_label }}">Fragmentarium ID:</label>
+                            {{ form.fragmentarium_id }}
+                        </div>
+                        <div class="col-lg-2">
+                            <label for="{{ form.dact_id.id_for_label }}">DACT ID:</label>
+                            {{ form.dact_id }}
+                        </div>
                     </div>
-                </div>
-
-                <div class="form-row">
-                    <div class="form-group m-1 col-lg-5">
-                        <small>{{ form.summary.label_tag }}</small>
-                        {{ form.summary }}
+                    <div class="row mb-2 small">
+                        <div class="col-lg-5">
+                            {{ form.indexing_notes.label_tag }}
+                            {{ form.indexing_notes }}
+                        </div>
                     </div>
-                </div>
-            
-                <div class="form-row">
-                    <div class="form-group m-1 col-lg-5">
-                        <small>{{ form.description.label_tag }}</small>
-                        {{ form.description }}
-                    </div>
-                    <div class="form-group m-1 col-lg-5">
-                        <small>{{ form.selected_bibliography.label_tag }}</small>
-                        {{ form.selected_bibliography }}
-                    </div>
-                </div>
-
-                <div class="form-row">
-                    <div class="form-group m-1 col-lg-6">
-                        <small>{{ form.image_link.label_tag }}</small>
-                        {{ form.image_link }}
-                        <p class=text-muted><small>{{ form.image_link.help_text }}</small></p>
-                    </div>
-                    <div class="form-group m-1 col-lg-2">
-                        <label for="{{ form.fragmentarium_id.id_for_label }}"><small>Fragmentarium ID:</small></label>
-                        {{ form.fragmentarium_id }}
-                    </div>
-                    <div class="form-group m-1 col-lg-2">
-                        <label for="{{ form.dact_id.id_for_label }}"><small>DACT ID:</small></label>
-                        {{ form.dact_id }}
-                    </div>
-                </div>
-
-                <div class="form-row">
-                    <div class="form-group m-1 col-lg-5">
-                        <small>{{ form.indexing_notes.label_tag }}</small>
-                        {{ form.indexing_notes }}
-                    </div>
-                </div>
-
-                <div class="form-group m-1 col-lg-2">
-                    <button type="submit" class="btn btn-dark btn-sm" id="btn-submit"> Save
-                    </button>
-                </div>
-
-            </form>
+                    <button type="submit" class="btn btn-dark btn-sm" id="btn-submit">Save</button>
+                </form>
+            </div>
         </div>
     </div>
-</div>
 {% endblock %}

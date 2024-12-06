@@ -1,19 +1,14 @@
 {% extends "base.html" %}
-{% block title %}
-    <title>404 Not Found | Cantus Database</title>
-{% endblock %}
-
+{% block title %}<title>404 Not Found | Cantus Database</title>{% endblock %}
 {% block content %}
-<div class="container">
-    <div class="row">
-        <div class="p-3 col-12 bg-white rounded">
-            <h3>404</h3>
-            <h5>Page not found</h5>
-            <br>
-            <p>
-                We couldn't find a page at this address.
-            </p>
+    <div class="container error-page-container">
+        <div class="row">
+            <div class="p-3 col bg-white rounded">
+                <h3>404</h3>
+                <h5>Page not found</h5>
+                <br />
+                <p>We couldn't find a page at this address.</p>
+            </div>
         </div>
     </div>
-</div>
 {% endblock %}

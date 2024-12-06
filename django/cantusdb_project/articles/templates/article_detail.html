@@ -1,15 +1,14 @@
 {% extends "base_page_with_side_cards.html" %}
-{% load helper_tags %} {# for recent_articles #}
+{% load helper_tags %}
+{# for recent_articles #}
 {% block title %}
-<title>{{ article.title }} | Cantus Database</title>
+    <title>{{ article.title }} | Cantus Database</title>
 {% endblock %}
-
 {% block uppersidebar %}
-    <div class="search-bar mb-3">
+    <div class="search-bar mb-3 position-relative">
         {% include "global_search_bar.html" %}
     </div>
 {% endblock %}
-
 {% block maincontent %}
     <h3>
         {{ article.title }}

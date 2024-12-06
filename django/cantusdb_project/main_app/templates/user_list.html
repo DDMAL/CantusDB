@@ -1,20 +1,19 @@
 {% extends "filterable_table_with_search_bar.html" %}
-
-{% block title %}
-    <title>All Users | Cantus Database</title>
-{% endblock %}
-
-{% block header %}
-    <h3>All Users</h3>
-{% endblock %}
-
+{% block title %}<title>All Users | Cantus Database</title>{% endblock %}
+{% block header %}<h3>All Users</h3>{% endblock %}
 {% block list_filter_form %}
-    <form method="get" class="form-row">
-        <div class="input-group col-5">
-            <input type="text" class="form-control" placeholder="Type any part of name, institution, city, or country" name="q" value="{{ request.GET.q }}">
-            <div class="input-group-append">
-                <button type="submit" class="btn btn-dark btn-sm"> Search </button>
-            </div>
+    <form method="get">
+        <div class="input-group">
+            <input type="text"
+                   class="form-control"
+                   placeholder="Type any part of name, institution, city, or country"
+                   name="q"
+                   value="{{ request.GET.q }}"
+                   aria-label="Search for name, institution, city, or country"
+                   aria-describedby="userListSearchButton" />
+            <button type="submit" class="btn btn-dark btn-sm" id="userListSearchButton">
+                Search
+            </button>
         </div>
     </form>
 {% endblock %}
@@ -22,10 +21,10 @@
     <table class="table table-bordered table-sm small">
         <thead>
             <tr>
-                <th scope="col">Name</th>
-                <th scope="col">Institution</th>
-                <th scope="col">City</th>
-                <th scope="col">Country</th>
+                <th scope="col" class="text-center">Name</th>
+                <th scope="col" class="text-center">Institution</th>
+                <th scope="col" class="text-center">City</th>
+                <th scope="col" class="text-center">Country</th>
             </tr>
         </thead>
         <tbody>

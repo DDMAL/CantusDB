@@ -1,24 +1,13 @@
 {% extends "single_column_with_search_bar.html" %}
-
-{% block title %}
-    <title>{{ provenance.name }} | Cantus Database</title>
-{% endblock %}
-
-{% block header %}
-    <h3>{{ provenance.name }}</h3>
-{% endblock %}
+{% block title %}<title>{{ provenance.name }} | Cantus Database</title>{% endblock %}
+{% block header %}<h3>{{ provenance.name }}</h3>{% endblock %}
 {% block maincontent %}
-    <div class="row">
-        <div class="col">
-            <ul>
-                {% for source in sources %}
-                    <li>
-                        <a href="{% url 'source-detail' source.id %}" title="{{ source.heading }}">
-                            {{ source.heading }}
-                        </a>
-                    </li>
-                {% endfor %}
-            </ul>
-        </div>
-    </div>
+    <ul>
+        {% for source in sources %}
+            <li>
+                <a href="{% url 'source-detail' source.id %}"
+                   title="{{ source.heading }}">{{ source.heading }}</a>
+            </li>
+        {% endfor %}
+    </ul>
 {% endblock %}

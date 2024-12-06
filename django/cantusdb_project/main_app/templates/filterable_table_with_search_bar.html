@@ -10,23 +10,22 @@
     happens by default in views with a `MultipleObjectMixin`). The template uses the `context_object_name`
     attribute of the view to determine the object type to display in this object count.
     Pagination is included at the bottom of the page, except if no results are found.
-    #}
-
+#}
 {% block maincontent %}
     <div class="row">
+        <p class="col small mx-0">
+            Displaying {{ page_obj.start_index|intcomma }}-{{ page_obj.end_index|intcomma }} of <b>{{ page_obj.paginator.count|intcomma }}</b> {{ view.context_object_name }}.
+        </p>
+    </div>
+    <div class="row mb-3">
         <div class="col">
-            <p class="small mx-0">Displaying {{ page_obj.start_index|intcomma }}-{{ page_obj.end_index|intcomma }} of <b>{{ page_obj.paginator.count|intcomma }}</b> {{ view.context_object_name }}.</p>
+            {% block list_filter_form %}{% endblock %}
         </div>
     </div>
-    <div class="mb-3">
-        {% block list_filter_form %}
-        {% endblock %}
-    </div>      
     {% if page_obj.paginator.count > 0 %}
         <div class="row">
             <div class="col">
-                {% block list_table %}
-                {% endblock %}
+                {% block list_table %}{% endblock %}
             </div>
         </div>
     {% else %}
@@ -36,11 +35,9 @@
             </div>
         </div>
     {% endif %}
-    {% if page_obj.paginator.num_pages > 1%}
-        <div class="row">
-            <div class="col">
-                {% include "pagination.html" %}
-            </div>
+    {% if page_obj.paginator.num_pages > 1 %}
+        <div class="row mb-2">
+            <div class="col">{% include "pagination.html" %}</div>
         </div>
     {% endif %}
 {% endblock %}
