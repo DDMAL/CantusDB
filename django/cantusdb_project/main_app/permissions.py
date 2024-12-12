@@ -182,7 +182,7 @@ def user_can_view_user_detail(viewing_user: User, user: User) -> bool:
     return viewing_user.is_authenticated or user.is_indexer
 
 
-def user_can_manage_source_editors(user: User) -> bool:
+def user_can_manage_source_editors(user: Union[User, AnonymousUser]) -> bool:
     """
     Checks if the user has permission to change the editors assigned to a Source.
     Used in SourceDetailView.
