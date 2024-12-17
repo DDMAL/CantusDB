@@ -44,6 +44,7 @@ from main_app.views.chant import (
     get_feast_selector_options,
     user_can_edit_chants_in_source,
 )
+from main_app.mixins import JSONResponseMixin
 
 CANTUS_SEGMENT_ID = 4063
 BOWER_SEGMENT_ID = 4064
@@ -205,17 +206,25 @@ class SourceBrowseChantsView(ListView):
         return context
 
 
-class SourceDetailView(DetailView):
+class SourceDetailView(JSONResponseMixin, DetailView):  # type: ignore[type-arg]
     model = Source
     context_object_name = "source"
     template_name = "source_detail.html"
+    json_fields = [
+        "id",
+        "description",
+        "provenance__name",
+        "date",
+        "heading",
+        "short_heading",
+    ]
 
-    def get_queryset(self):
+    def get_queryset(self) -> QuerySet[Source]:
         return self.model.objects.select_related(
             "holding_institution", "segment", "provenance", "created_by"
         ).all()
 
-    def get_context_data(self, **kwargs):
+    def get_context_data(self, **kwargs: Any) -> dict[str, Any]:
         source = self.object
         user = self.request.user
 

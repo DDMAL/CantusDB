@@ -29,6 +29,7 @@ from main_app.tests.make_fakes import (
 from main_app.tests.test_functions import mock_requests_get
 from main_app.models import Chant, Source, Feast, Service
 from main_app.views.chant import get_feast_selector_options
+from users.models import User as UserAnnotation
 
 
 # Create a Faker instance with locale set to Latin
@@ -36,18 +37,23 @@ faker = Faker("la")
 
 
 class ChantDetailViewTest(TestCase):
-    @classmethod
-    def setUpTestData(cls):
-        Group.objects.create(name="project manager")
+    pm_group: ClassVar[Group]
+    pm_user: ClassVar[UserAnnotation]
 
-    def test_url_and_templates(self):
+    @classmethod
+    def setUpTestData(cls) -> None:
+        cls.pm_group = Group.objects.create(name="project manager")
+        cls.pm_user = get_user_model().objects.create(email="pm@test.com")
+        cls.pm_user.groups.add(cls.pm_group)
+
+    def test_url_and_templates(self) -> None:
         chant = make_fake_chant()
         response = self.client.get(reverse("chant-detail", args=[chant.id]))
         self.assertEqual(response.status_code, 200)
         self.assertTemplateUsed(response, "base.html")
         self.assertTemplateUsed(response, "chant_detail.html")
 
-    def test_context_folios(self):
+    def test_context_folios(self) -> None:
         # create a source and several chants in it
         source = make_fake_source()
         chant = make_fake_chant(source=source, folio="001r")
@@ -62,7 +68,7 @@ class ChantDetailViewTest(TestCase):
         folios = response.context["folios"]
         self.assertEqual(list(folios), ["001r", "001v", "002r", "002v"])
 
-    def test_context_previous_and_next_folio(self):
+    def test_context_previous_and_next_folio(self) -> None:
         # create a source and several chants in it
         source = make_fake_source()
         # three folios: 001r, 001v, 002r
@@ -93,7 +99,7 @@ class ChantDetailViewTest(TestCase):
         self.assertEqual(response.context["previous_folio"], "001v")
         self.assertIsNone(response.context["next_folio"])
 
-    def test_published_vs_unpublished(self):
+    def test_published_vs_unpublished(self) -> None:
         source = make_fake_source()
         chant = make_fake_chant(source=source)
 
@@ -107,21 +113,11 @@ class ChantDetailViewTest(TestCase):
         response = self.client.get(reverse("chant-detail", args=[chant.id]))
         self.assertEqual(response.status_code, 403)
 
-    def test_chant_edit_link(self):
+    def test_chant_edit_link(self) -> None:
         source = make_fake_source()
-        chant = make_fake_chant(
-            source=source,
-            folio="001r",
-            manuscript_full_text_std_spelling="manuscript_full_text_std_spelling",
-        )
+        chant = make_fake_chant(source=source, folio="001r")
 
-        # have to create project manager user - "View | Edit" toggle only visible for those with edit access for a chant's source
-        pm_user = get_user_model().objects.create(email="test@test.com")
-        pm_user.set_password("pass")
-        pm_user.save()
-        project_manager = Group.objects.get(name="project manager")
-        project_manager.user_set.add(pm_user)
-        self.client.login(email="test@test.com", password="pass")
+        self.client.force_login(self.pm_user)
 
         response = self.client.get(reverse("chant-detail", args=[chant.id]))
         expected_url_fragment = (
@@ -130,21 +126,23 @@ class ChantDetailViewTest(TestCase):
 
         self.assertIn(expected_url_fragment, str(response.content))
 
-    def test_chant_with_volpiano_with_no_fulltext(self):
-        # in the past, a Chant Detail page will error rather than loading properly when the chant has volpiano but no fulltext
+    def test_chant_with_volpiano_with_no_fulltext(self) -> None:
+        # in the past, a Chant Detail page will error rather than loading
+        # properly when the chant has volpiano but no fulltext
         source = make_fake_source()
         chant = make_fake_chant(
             source=source,
             volpiano="1---c--g--e---e---d---c---c---f---e---e--d---d---c",
+            manuscript_full_text=None,
+            manuscript_full_text_std_spelling=None,
         )
-        chant.manuscript_full_text = None
-        chant.manuscript_full_text_std_spelling = None
-        chant.save()
+
         response = self.client.get(reverse("chant-detail", args=[chant.id]))
         self.assertEqual(response.status_code, 200)
 
-    def test_chant_with_volpiano_with_no_incipit(self):
-        # in the past, a Chant Detail page will error rather than loading properly when the chant has volpiano but no fulltext/incipit
+    def test_chant_with_volpiano_with_no_incipit(self) -> None:
+        # in the past, a Chant Detail page will error rather than loading properly
+        # when the chant has volpiano but no fulltext/incipit
         source = make_fake_source()
         chant = make_fake_chant(
             source=source,
@@ -156,6 +154,17 @@ class ChantDetailViewTest(TestCase):
         chant.save()
         response = self.client.get(reverse("chant-detail", args=[chant.id]))
         self.assertEqual(response.status_code, 200)
+
+    def test_json_response(self) -> None:
+        chant = make_fake_chant()
+        response = self.client.get(
+            reverse("chant-detail", args=[chant.id]), HTTP_ACCEPT="application/json"
+        )
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response["Content-Type"], "application/json")
+        resp_chant = response.json()["chant"]
+        self.assertEqual(resp_chant["id"], chant.id)
+        self.assertEqual(resp_chant["manuscript_full_text"], chant.manuscript_full_text)
 
 
 class SourceEditChantsViewTest(TestCase):
