@@ -19,6 +19,25 @@ class JSONResponseMixin:
     lists the fields to be included in the JSON response.
     """
 
+    def _get_field(self, obj: Any, field: str) -> Any:
+        """
+        Returns the value of a field on an object, allowing
+        for "double underscore" notation to access related
+        fields.
+
+        Returns the value specified by the double underscore
+        lookup. If this lookup fails, return the object as
+        far down the lookup chain as possible.
+        """
+        split_field = field.split("__")
+        temp_obj = obj
+        for part in split_field:
+            try:
+                temp_obj = getattr(temp_obj, part)
+            except AttributeError:
+                return temp_obj
+        return temp_obj
+
     def render_to_response(
         self, context: dict[Any, Any], **response_kwargs: dict[Any, Any]
     ) -> HttpResponse:
@@ -43,7 +62,7 @@ class JSONResponseMixin:
             if obj:
                 obj_json = {}
                 for field in json_fields:
-                    obj_json[field] = getattr(obj, field)
+                    obj_json[field] = self._get_field(obj, field)
                 return JsonResponse({obj.get_verbose_name(): obj_json})
             q_s = context["object_list"].values(*json_fields)
             q_s_name = str(q_s.model.get_verbose_name_plural())
