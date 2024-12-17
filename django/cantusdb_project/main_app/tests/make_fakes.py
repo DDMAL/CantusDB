@@ -5,6 +5,7 @@ from typing import Optional, List, Any
 from faker import Faker  # type: ignore[import-untyped]
 
 from django.contrib.auth import get_user_model
+from django.db.models import Max
 
 from main_app.models.century import Century
 from main_app.models.chant import Chant
@@ -22,9 +23,6 @@ from users.models import User as UserAnnotation
 
 
 User = get_user_model()
-
-# Max positive integer accepted by Django's positive integer field
-MAX_SEQUENCE_NUMBER = 2147483647
 
 # Create a Faker instance with locale set to Latin
 faker = Faker("la")
@@ -168,16 +166,23 @@ def make_fake_chant(**kwargs: Any) -> Chant:
     - manuscript_full_text, indexing_notes, manuscript_syllabized_full_text
     - manuscript_full_text_proofread, volpiano_proofread, manuscript_full_text_std_proofread (default to False)
     """
-    # Handle `source`, `folio`, `c_sequence`, and `manuscript_full_text_std_spelling` fields,
+    # Handle `source`, `folio`, and `c_sequence` fields,
     # which cannot be set to None
     if kwargs.get("source") is None:
         kwargs["source"] = make_fake_source(segment_name="CANTUS Database")
     if kwargs.get("folio") is None:
         kwargs["folio"] = faker.bothify("##?")
     if kwargs.get("c_sequence") is None:
-        kwargs["c_sequence"] = random.randint(1, MAX_SEQUENCE_NUMBER)
-    if kwargs.get("manuscript_full_text_std_spelling") is None:
-        kwargs["manuscript_full_text_std_spelling"] = faker.sentence()
+        # When c_sequence is not specified, iterate + 1 on the maximum c_sequence
+        # of the chants with the same source and folio
+        current_max_c_sequence = (
+            kwargs["source"]
+            .chant_set.filter(folio=kwargs["folio"])
+            .aggregate(Max("c_sequence"))["c_sequence__max"]
+        )
+        kwargs["c_sequence"] = (
+            current_max_c_sequence + 1 if current_max_c_sequence else 1
+        )
 
     kwargs["marginalia"] = kwargs.get("marginalia", make_random_string(1))
     kwargs["service"] = kwargs.get("service", make_fake_service())
@@ -212,6 +217,7 @@ def make_fake_chant(**kwargs: Any) -> Chant:
 
     # The following fields, when not specified, are generated with a random sentence
     for field in [
+        "manuscript_full_text_std_spelling",
         "manuscript_full_text",
         "indexing_notes",
         "manuscript_syllabized_full_text",
