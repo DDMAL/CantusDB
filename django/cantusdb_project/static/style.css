@@ -1,15 +1,179 @@
 body {
 	background-image: url("background.jpg");
-	font-family: "Segoe UI", Roboto, "Helvetica Neue", Arial, "Noto Sans", "Liberation Sans", sans-serif;
 }
 
-.page {
+.error-page {
 	margin: auto;
 	max-width: 600px;
 	background-color: white;
 	padding: 20px;
+	font-family: "Segoe UI", Roboto, "Helvetica Neue", Arial, "Noto Sans", "Liberation Sans", sans-serif;
 }
 
-h1 {
+.error-page h1 {
 	font-weight: 500;
+}
+
+html {
+	position: relative;
+	min-height: 90%;
+}
+
+body {
+	background-image: url("background.jpg");
+}
+
+.container {
+	/* this is relevant for the Article List page */
+	overflow-wrap: break-word;
+}
+
+.error-page-container {
+	margin-bottom: 10em;
+}
+
+.copyright-footer {
+	background-color: #CC3333;
+	color: white;
+}
+
+.footer li {
+	padding: 5px 0px !important
+}
+
+
+/* Change dropdown selected background to blue */
+.dropdown .dropdown-menu .dropdown-item:active,
+.dropdown .dropdown-menu .dropdown-item:hover {
+	background-color: #f6f6f6 !important;
+	color: #CC3333;
+}
+
+hr.color {
+	border-top: 1px solid lightblue !important;
+}
+
+.nav-item .nav-link {
+	color: rgba(0, 0, 0, .5)
+}
+
+.nav-item .nav-link:hover {
+	color: rgba(0, 0, 0, .7);
+	text-decoration-line: none;
+}
+
+.nav-item .dropdown-menu .dropdown-item:hover {
+	text-decoration-line: none;
+}
+
+.navbar-toggler {
+	margin: 0px 10px;
+}
+
+.navbar-brand {
+	margin: 0px 10px;
+}
+
+.navbar-brand img {
+	max-height: 60px;
+	width: auto;
+}
+
+.border-top {
+	border-style: solid none none;
+	border-width: 5px !important;
+	border-color: #CC3333 !important;
+}
+
+a {
+	color: #922;
+	text-decoration-line: none;
+}
+
+a:hover {
+	color: #922;
+	text-decoration: underline;
+}
+
+a.close-success {
+	color: #155724;
+}
+
+a.close-success:hover {
+	color: #155724;
+}
+
+.footer h5 {
+	margin: 25px 0px 10px
+}
+
+/* links, appearing in sidebars, preceded with guillemets ("»"s) */
+.guillemet {
+	display: block
+}
+
+.guillemet::before {
+	content: "» "
+}
+
+.select2 {
+	width: 100% !important;
+}
+
+/* this class is used for displaying results under the global search bar */
+.list-group-item-action:hover {
+	color: black;
+	transition: background-color .25s;
+	background-color: #CC3333;
+}
+
+@media print {
+
+	header,
+	footer,
+	.search-bar,
+	.sidebar {
+		display: none;
+	}
+}
+
+@media (max-width: 350px) {
+	.navbar-brand img {
+		max-width: 150px;
+	}
+}
+
+.card-feast-select {
+	width: 58%;
+}
+
+.card-folio-select {
+	width: 38%;
+}
+
+.font-volpiano {
+	font-family: "volpiano";
+	font-size: 28px;
+}
+
+.font-volpiano-lg {
+	font-family: "volpiano";
+	font-size: 36px;
+}
+
+.fs-text-with-melody {
+	font-size: 12px;
+}
+
+a.display-link {
+	word-break: break-all;
+}
+
+.link-color {
+	color: #922;
+}
+
+.link-hover-effect:hover {
+	color: #922;
+	text-decoration: underline;
 }

@@ -1,13 +1,8 @@
 {% extends "single_column_with_search_bar.html" %}
-{% load helper_tags %} {# for month_to_string #}
-
-{% block title %}
-    <title>{{ feast.name }} | Cantus Database</title>
-{% endblock %}
-
-{% block header %}
-    <h3>{{ feast.name }}</h3>
-{% endblock %}
+{% load helper_tags %}
+{# for month_to_string #}
+{% block title %}<title>{{ feast.name }} | Cantus Database</title>{% endblock %}
+{% block header %}<h3>{{ feast.name }}</h3>{% endblock %}
 {% block maincontent %}
     <div class="row px-3">
         <p>{{ feast.description }}</p>
@@ -16,27 +11,37 @@
         {% if feast.feast_code %}
             <div class="col">
                 <dt>Feast Code</dt>
-                <dd>{{ feast.feast_code }}</dd>
+                <dd>
+                    {{ feast.feast_code }}
+                </dd>
             </div>
         {% endif %}
         {% if feast.month and feast.day %}
             <div class="col">
                 <dt>Feast Date</dt>
-                <dd>{{ feast.month|month_to_string|default:"" }}.{{ feast.day|default:"" }}</dd>
+                <dd>
+                    {{ feast.month|month_to_string|default:"" }}.{{ feast.day|default:"" }}
+                </dd>
             </div>
             <div class="col">
                 <dt>Day</dt>
-                <dd>{{ feast.day|default:"" }}</dd>
+                <dd>
+                    {{ feast.day|default:"" }}
+                </dd>
             </div>
             <div class="col">
                 <dt>Month</dt>
-                <dd>{{ feast.month|default:"" }}</dd>
+                <dd>
+                    {{ feast.month|default:"" }}
+                </dd>
             </div>
         {% endif %}
         {% if feast.notes %}
             <div class="col">
                 <dt>Notes</dt>
-                <dd>{{ feast.notes }}</dd>
+                <dd>
+                    {{ feast.notes }}
+                </dd>
             </div>
         {% endif %}
     </div>
@@ -48,35 +53,36 @@
                 <table class="table table-bordered table-sm small">
                     <thead>
                         <tr>
-                            <th scope="col" class="text-wrap" style="text-align:center">CantusID</th>
-                            <th scope="col" class="text-wrap" style="text-align:center">Incipit</th>
-                            <th scope="col" class="text-wrap" style="text-align:center">Genres</th>
-                            <th scope="col" class="text-wrap" style="text-align:center">Chants</th>
+                            <th scope="col" class="text-wrap text-center">CantusID</th>
+                            <th scope="col" class="text-wrap text-center">Incipit</th>
+                            <th scope="col" class="text-wrap text-center">Genres</th>
+                            <th scope="col" class="text-wrap text-center">Chants</th>
                         </tr>
                     </thead>
                     <tbody>
                         {% for chant in frequent_chants %}
-                        <tr>
-                            {% comment %} use `urlencode` filter because 1 chant and 2 sequences have forward slash in their cantus_id (data error) {% endcomment %}
-                            <td><a href="{% url 'chant-by-cantus-id' chant.cantus_id|urlencode:"" %}">{{ chant.cantus_id|default:"" }}</a></td>
-                            <td>{{ chant.incipit }}</td>
-                            <td>
-                                {% if chant.genres %}
-                                    {% for genre in chant.genres %}
-                                        {% with genreinfo=genre|split:"::" %}
-                                            <a href="{% url 'genre-detail' genreinfo.0 %}" title="{{ genreinfo.2 }}">{{ genreinfo.1 }}</a>
-                                        {% endwith %}
-                                    {% endfor %}
-                                {% endif %}
-                            </td>
-                            <td>{{ chant.ccount }}</td>
-                        </tr>
+                            <tr>
+                                {% comment %} use `urlencode` filter because 1 chant and 2 sequences have forward slash in their cantus_id (data error) {% endcomment %}
+                                <td>
+                                    <a href="{% url 'chant-by-cantus-id' chant.cantus_id|urlencode:"" %}">{{ chant.cantus_id|default:"" }}</a>
+                                </td>
+                                <td>{{ chant.incipit }}</td>
+                                <td>
+                                    {% if chant.genres %}
+                                        {% for genre in chant.genres %}
+                                            {% with genreinfo=genre|split:"::" %}
+                                                <a href="{% url 'genre-detail' genreinfo.0 %}" title="{{ genreinfo.2 }}">{{ genreinfo.1 }}</a>
+                                            {% endwith %}
+                                        {% endfor %}
+                                    {% endif %}
+                                </td>
+                                <td>{{ chant.ccount }}</td>
+                            </tr>
                         {% endfor %}
                     </tbody>
                 </table>
             </div>
         {% endif %}
-
         {% if sources %}
             <div class="col">
                 <h4>Sources containing the feast</h4>
@@ -84,15 +90,20 @@
                 <table class="table table-bordered table-sm small">
                     <thead>
                         <tr>
-                            <th scope="col" class="text-wrap" style="text-align:center">Siglum</th>
-                            <th scope="col" class="text-wrap" style="text-align:center">Chants</th>
+                            <th scope="col" class="text-wrap text-center">Siglum</th>
+                            <th scope="col" class="text-wrap text-center">Chants</th>
                         </tr>
                     </thead>
                     <tbody>
                         {% for source_id, shelfmark, siglum, institution_name, chant_count in sources %}
                             <tr>
-                                <td><a href="{% url 'browse-chants' source_id %}" title="{{ institution_name }} {{ shelfmark }}">{{ siglum }} {{ shelfmark }}</a></td>
-                                <td><a href="{% url 'browse-chants' source_id %}?feast={{ feast.id }}">{{ chant_count }}</a></td>
+                                <td>
+                                    <a href="{% url 'browse-chants' source_id %}"
+                                       title="{{ institution_name }} {{ shelfmark }}">{{ siglum }} {{ shelfmark }}</a>
+                                </td>
+                                <td>
+                                    <a href="{% url 'browse-chants' source_id %}?feast={{ feast.id }}">{{ chant_count }}</a>
+                                </td>
                             </tr>
                         {% endfor %}
                     </tbody>

@@ -1,12 +1,6 @@
 {% extends "filterable_table_with_search_bar.html" %}
-
-{% block title %}
-    <title>Institutions | Cantus Database</title>
-{% endblock %}
-
-{% block header %}
-    <h3>Institutions</h3>
-{% endblock %}
+{% block title %}<title>Institutions | Cantus Database</title>{% endblock %}
+{% block header %}<h3>Institutions</h3>{% endblock %}
 {% block list_table %}
     <table class="table table-bordered table-sm small">
         <thead>
@@ -20,9 +14,7 @@
         <tbody>
             {% for institution in institutions %}
                 <tr>
-                    <td class="text-wrap">
-                        {{ institution.country }}
-                    </td>
+                    <td class="text-wrap">{{ institution.country }}</td>
                     <td>
                         {% if institution.city %}
                             {{ institution.city }}
@@ -32,7 +24,9 @@
                     </td>
                     <td class="text-wrap">
                         <a href="{% url "institution-detail" institution.id %}">
-                            <b>{{ institution.name }} {% if institution.siglum %}({{ institution.siglum }}){% endif %}</b>
+                            <b>{{ institution.name }}
+                                {% if institution.siglum %}({{ institution.siglum }}){% endif %}
+                            </b>
                         </a>
                     </td>
                     <td>{{ institution.num_sources }}</td>

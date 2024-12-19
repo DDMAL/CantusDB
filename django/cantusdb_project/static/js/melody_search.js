@@ -152,23 +152,23 @@ function melodySearch() {
                 currentPic.src = "/static/melody search tool/-.jpg";
             } else if (y_rel < 22) {
                 currentPic.src = "/static/melody search tool/b2.jpg";
-            } else if (y_rel < 30) { 
+            } else if (y_rel < 30) {
                 currentPic.src = "/static/melody search tool/a2.jpg";
-            } else if (y_rel < 37) { 
+            } else if (y_rel < 37) {
                 currentPic.src = "/static/melody search tool/g1.jpg";
-            } else if (y_rel < 45) { 
+            } else if (y_rel < 45) {
                 currentPic.src = "/static/melody search tool/f1.jpg";
-            } else if (y_rel < 52) { 
+            } else if (y_rel < 52) {
                 currentPic.src = "/static/melody search tool/e1.jpg";
-            } else if (y_rel < 60) { 
+            } else if (y_rel < 60) {
                 currentPic.src = "/static/melody search tool/d1.jpg";
-            } else if (y_rel < 67) { 
+            } else if (y_rel < 67) {
                 currentPic.src = "/static/melody search tool/c1.jpg";
-            } else if (y_rel < 75) { 
+            } else if (y_rel < 75) {
                 currentPic.src = "/static/melody search tool/b1.jpg";
-            } else if (y_rel < 82) { 
+            } else if (y_rel < 82) {
                 currentPic.src = "/static/melody search tool/a1.jpg";
-            } else if (y_rel < 90) { 
+            } else if (y_rel < 90) {
                 currentPic.src = "/static/melody search tool/g.jpg";
             } else if (y_rel < 97) {
                 currentPic.src = "/static/melody search tool/f.jpg";

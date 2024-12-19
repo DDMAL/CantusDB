@@ -295,6 +295,9 @@ class SourceCreateForm(forms.ModelForm):
         widgets = {
             # "title": TextInputWidget(),
             # "siglum": TextInputWidget(),
+            "holding_institution": autocomplete.ModelSelect2(
+                url="holding-autocomplete"
+            ),
             "shelfmark": TextInputWidget(),
             "provenance": autocomplete.ModelSelect2(url="provenance-autocomplete"),
             "name": TextInputWidget(),
@@ -333,12 +336,6 @@ class SourceCreateForm(forms.ModelForm):
         field_classes = {
             "segment_m2m": CheckboxNameModelMultipleChoiceField,
         }
-
-    holding_institution = forms.ModelChoiceField(
-        queryset=Institution.objects.all(),
-        widget=autocomplete.ModelSelect2(url="holding-autocomplete"),
-        required=False,
-    )
 
     complete_inventory = StyledChoiceField(
         choices=COMPLETE_INVENTORY_FORM_CHOICES, required=False
@@ -526,6 +523,9 @@ class SourceEditForm(forms.ModelForm):
             "source_completeness",
         ]
         widgets = {
+            "holding_institution": autocomplete.ModelSelect2(
+                url="holding-autocomplete"
+            ),
             "shelfmark": TextInputWidget(),
             "segment_m2m": CheckboxSelectMultiple(),
             "name": TextInputWidget(),
@@ -566,12 +566,6 @@ class SourceEditForm(forms.ModelForm):
         field_classes = {
             "segment_m2m": CheckboxNameModelMultipleChoiceField,
         }
-
-    holding_institution = forms.ModelChoiceField(
-        queryset=Institution.objects.all(),
-        widget=autocomplete.ModelSelect2(url="holding-autocomplete"),
-        required=False,
-    )
 
     complete_inventory = StyledChoiceField(
         choices=COMPLETE_INVENTORY_FORM_CHOICES, required=False

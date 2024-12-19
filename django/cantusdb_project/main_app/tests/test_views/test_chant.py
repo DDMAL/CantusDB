@@ -1602,12 +1602,10 @@ class ChantSearchViewTest(TestCase):
         response = self.client.get(
             reverse("chant-search"), {"keyword": search_term, "op": "contains"}
         )
-        html = str(response.content)
-        # self.assertContains(response, source_heading, html=True)
-        # self.assertContains(response, source_short_heading, html=True)
-        # self.assertContains(response, url, html=True)
-        self.assertIn(
-            f'<a href="{url}" title="{source.heading}">{source.short_heading}</a>', html
+        self.assertContains(
+            response,
+            f'<a href="{url}" title="{source.heading}">{source.short_heading}</a>',
+            html=True,
         )
 
     def test_folio_column(self):
@@ -1640,12 +1638,10 @@ class ChantSearchViewTest(TestCase):
         response = self.client.get(
             reverse("chant-search"), {"keyword": search_term, "op": "contains"}
         )
-        html = str(response.content)
-        self.assertIn(feast_name, html)
-        self.assertIn(feast_description, html)
-        self.assertIn(url, html)
-        self.assertIn(
-            f'<a href="{url}" title="{feast_description}">{feast_name}</a>', html
+        self.assertContains(
+            response,
+            f'<a href="{url}" title="{feast_description}">{feast_name}</a>',
+            html=True,
         )
 
     def test_service_column(self):
@@ -1664,12 +1660,10 @@ class ChantSearchViewTest(TestCase):
         response = self.client.get(
             reverse("chant-search"), {"keyword": search_term, "op": "contains"}
         )
-        html = str(response.content)
-        self.assertIn(service_name, html)
-        self.assertIn(service_description, html)
-        self.assertIn(url, html)
-        self.assertIn(
-            f'<a href="{url}" title="{service_description}">{service_name}</a>', html
+        self.assertContains(
+            response,
+            f'<a href="{url}" title="{service_description}">{service_name}</a>',
+            html=True,
         )
 
     def test_genre_column(self):
@@ -1688,12 +1682,10 @@ class ChantSearchViewTest(TestCase):
         response = self.client.get(
             reverse("chant-search"), {"keyword": search_term, "op": "contains"}
         )
-        html = str(response.content)
-        self.assertIn(genre_name, html)
-        self.assertIn(genre_description, html)
-        self.assertIn(url, html)
-        self.assertIn(
-            f'<a href="{url}" title="{genre_description}">{genre_name}</a>', html
+        self.assertContains(
+            response,
+            f'<a href="{url}" title="{genre_description}">{genre_name}</a>',
+            html=True,
         )
 
     def test_position_column(self):
@@ -1724,10 +1716,9 @@ class ChantSearchViewTest(TestCase):
         response = self.client.get(
             reverse("chant-search"), {"keyword": search_term, "op": "contains"}
         )
-        html = str(response.content)
-        self.assertIn(cantus_id, html)
-        self.assertIn(url, html)
-        self.assertIn(f'<a href="{url}" target="_blank">{cantus_id}</a>', html)
+        self.assertContains(
+            response, f'<a href="{url}" target="_blank">{cantus_id}</a>', html=True
+        )
 
     def test_mode_column(self):
         source = make_fake_source(published=True)
@@ -1765,7 +1756,7 @@ class ChantSearchViewTest(TestCase):
             "\\xe2\\x9c\\x94",  # checkmark character
             html,
         )
-        self.assertIn(
+        self.assertInHTML(
             '<span title="Chant record includes Manuscript Full Text">\\xe2\\x9c\\x94</span>',
             html,
         )
@@ -1828,9 +1819,9 @@ class ChantSearchViewTest(TestCase):
         response = self.client.get(
             reverse("chant-search"), {"keyword": search_term, "op": "contains"}
         )
-        html = str(response.content)
-        self.assertIn(image_link, html)
-        self.assertIn(f'<a href="{image_link}" target="_blank">Image</a>', html)
+        self.assertContains(
+            response, f'<a href="{image_link}" target="_blank">Image</a>', html=True
+        )
 
 
 class ChantSearchMSViewTest(TestCase):
@@ -2603,12 +2594,10 @@ class ChantSearchMSViewTest(TestCase):
             reverse("chant-search-ms", args=[source.id]),
             {"keyword": search_term, "op": "contains"},
         )
-        html = str(response.content)
-        self.assertIn(feast_name, html)
-        self.assertIn(feast_description, html)
-        self.assertIn(url, html)
-        self.assertIn(
-            f'<a href="{url}" title="{feast_description}">{feast_name}</a>', html
+        self.assertContains(
+            response,
+            f'<a href="{url}" title="{feast_description}">{feast_name}</a>',
+            html=True,
         )
 
     def test_service_column(self):
@@ -2628,12 +2617,10 @@ class ChantSearchMSViewTest(TestCase):
             reverse("chant-search-ms", args=[source.id]),
             {"keyword": search_term, "op": "contains"},
         )
-        html = str(response.content)
-        self.assertIn(service_name, html)
-        self.assertIn(service_description, html)
-        self.assertIn(url, html)
-        self.assertIn(
-            f'<a href="{url}" title="{service_description}">{service_name}</a>', html
+        self.assertContains(
+            response,
+            f'<a href="{url}" title="{service_description}">{service_name}</a>',
+            html=True,
         )
 
     def test_genre_column(self):
@@ -2653,12 +2640,10 @@ class ChantSearchMSViewTest(TestCase):
             reverse("chant-search-ms", args=[source.id]),
             {"keyword": search_term, "op": "contains"},
         )
-        html = str(response.content)
-        self.assertIn(genre_name, html)
-        self.assertIn(genre_description, html)
-        self.assertIn(url, html)
-        self.assertIn(
-            f'<a href="{url}" title="{genre_description}">{genre_name}</a>', html
+        self.assertContains(
+            response,
+            f'<a href="{url}" title="{genre_description}">{genre_name}</a>',
+            html=True,
         )
 
     def test_position_column(self):
@@ -2691,10 +2676,9 @@ class ChantSearchMSViewTest(TestCase):
             reverse("chant-search-ms", args=[source.id]),
             {"keyword": search_term, "op": "contains"},
         )
-        html = str(response.content)
-        self.assertIn(cantus_id, html)
-        self.assertIn(url, html)
-        self.assertIn(f'<a href="{url}" target="_blank">{cantus_id}</a>', html)
+        self.assertContains(
+            response, f'<a href="{url}" target="_blank">{cantus_id}</a>', html=True
+        )
 
     def test_mode_column(self):
         source = make_fake_source(published=True)

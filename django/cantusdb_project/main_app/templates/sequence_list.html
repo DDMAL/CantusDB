@@ -1,29 +1,43 @@
 {% extends "filterable_table_with_search_bar.html" %}
-
 {% block title %}
     <title>Clavis Sequentiarum (Calvin Bower) | Cantus Database</title>
 {% endblock %}
-
-{% block header %}
-    <h3>Clavis Sequentiarum (Calvin Bower)</h3>
-{% endblock %}
+{% block header %}<h3>Clavis Sequentiarum (Calvin Bower)</h3>{% endblock %}
 {% block list_filter_form %}
     <form method="get">
-        <div class="form-row align-items-end mb-2">
-            <div class="form-group m-1">
-                <label for="incipit"><small><b>Incipit (any part)</b></small></label>
-                <input type="text" class="form-control form-control-sm" name="incipit" value="{{ request.GET.incipit }}" id="incipit">
+        <div class="row align-items-end mb-2">
+            <div class="form-group m-1 small col-2">
+                <label for="incipit">
+                    <b>Incipit (any part)</b>
+                </label>
+                <input type="text"
+                       class="form-control form-control-sm"
+                       name="incipit"
+                       value="{{ request.GET.incipit }}"
+                       id="incipit" />
             </div>
-            <div class="form-group m-1">
-                <label for="siglum"><small><b>Siglum (any part)</b></small></label>
-                <input type="text" class="form-control form-control-sm" name="siglum" value="{{ request.GET.siglum }}" id="siglum">
+            <div class="form-group m-1 small col-2">
+                <label for="siglum">
+                    <b>Siglum (any part)</b>
+                </label>
+                <input type="text"
+                       class="form-control form-control-sm"
+                       name="siglum"
+                       value="{{ request.GET.siglum }}"
+                       id="siglum" />
             </div>
-            <div class="form-group m-1">
-                <label for="CantusID"><small><b>Cantus ID (any part)</b></small></label>
-                <input type="text" class="form-control form-control-sm" name="cantus_id" value="{{ request.GET.cantus_id }}" id="CantusID">
+            <div class="form-group m-1 small col-2">
+                <label for="CantusID">
+                    <b>Cantus ID (any part)</b>
+                </label>
+                <input type="text"
+                       class="form-control form-control-sm"
+                       name="cantus_id"
+                       value="{{ request.GET.cantus_id }}"
+                       id="CantusID" />
             </div>
-            <div class="form-group m-1">
-                <button type="submit" class="btn btn-dark btn-sm" id="btn-submit"> Apply </button>
+            <div class="form-group m-1 col-2">
+                <button type="submit" class="btn btn-dark btn-sm" id="btn-submit">Apply</button>
             </div>
         </div>
     </form>
@@ -49,36 +63,26 @@
                         <tr style="text-align:center">
                             <td class="text-wrap">
                                 {% if sequence.source %}
-                                    <a href="{% url 'source-detail' sequence.source.id %}" title="{{ sequence.source.heading }}">
-                                        <b>{{ sequence.source.short_heading }}</b><br>
+                                    <a href="{% url 'source-detail' sequence.source.id %}"
+                                       title="{{ sequence.source.heading }}">
+                                        <b>{{ sequence.source.short_heading }}</b>
+                                        <br />
                                     </a>
                                 {% endif %}
                                 <b>{{ sequence.folio|default:"" }}</b> {{ sequence.s_sequence|default:"" }}
                             </td>
                             <td class="text-wrap">
-                                <a href="{% url 'sequence-detail' sequence.id %}">
-                                    {{ sequence.incipit|default:"" }}
-                                </a>
+                                <a href="{% url 'sequence-detail' sequence.id %}">{{ sequence.incipit|default:"" }}</a>
                             </td>
-                            <td class="text-wrap">
-                                {{ sequence.rubrics|default:"" }}
-                            </td>
-                            <td class="text-wrap">
-                                {{ sequence.analecta_hymnica|default:"" }}
-                            </td>
+                            <td class="text-wrap">{{ sequence.rubrics|default:"" }}</td>
+                            <td class="text-wrap">{{ sequence.analecta_hymnica|default:"" }}</td>
                             <td class="text-wrap">
                                 {% comment %} use `urlencode` filter because 1 chant and 2 sequences have forward slash in their cantus_id (data error) {% endcomment %}
                                 <a href={% url 'chant-by-cantus-id' sequence.cantus_id|urlencode:"" %}>{{ sequence.cantus_id|default:"" }}</a>
                             </td>
-                            <td class="text-wrap">
-                                {{ sequence.col1 |default:"" }}
-                            </td>
-                            <td class="text-wrap">
-                                {{ sequence.col2 |default:"" }}
-                            </td>
-                            <td class="text-wrap">
-                                {{ sequence.col3 |default:"" }}
-                            </td>
+                            <td class="text-wrap">{{ sequence.col1 |default:"" }}</td>
+                            <td class="text-wrap">{{ sequence.col2 |default:"" }}</td>
+                            <td class="text-wrap">{{ sequence.col3 |default:"" }}</td>
                         </tr>
                     {% endfor %}
                 </tbody>

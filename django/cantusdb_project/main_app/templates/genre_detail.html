@@ -1,17 +1,4 @@
 {% extends "single_column_with_search_bar.html" %}
-
-{% block title %}
-    <title>{{ genre.name }} | Cantus Database</title>
-{% endblock %}
-
-{% block header %}
-    <h3>{{ genre.name }}</h3>
-{% endblock %}
-
-{% block maincontent %}
-<div class="row">
-    <div class="col">
-        <p>{{ genre.description }}</p>
-    </div>
-</div>
-{% endblock %}
+{% block title %}<title>{{ genre.name }} | Cantus Database</title>{% endblock %}
+{% block header %}<h3>{{ genre.name }}</h3>{% endblock %}
+{% block maincontent %}<p>{{ genre.description }}</p>{% endblock %}

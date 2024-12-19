@@ -4,26 +4,25 @@
 {# The template introduces the following blocks:
     - header: a block for content that should appear in the upper-left corner of the content area
     - maincontent: a block for the main content of the page (under the header and search bar)
-    #} 
-
+#}
 {% block content %}
-<div class="p-3 mx-auto bg-white rounded container">
-    <div class="row">
-        <div class="col-lg-4 search-bar order-lg-2">
-            {% include "global_search_bar.html" %}
+    <div class="container rounded bg-white pt-3">
+        <div class="row">
+            <div class="col-lg-4 search-bar order-lg-2">
+                {% include "global_search_bar.html" %}
+            </div>
+            <div class="col-lg-8 order-lg-1 pt-3 pt-lg-0">
+                {% block header %}
+                    {# Contents of header block show in the upper-left corner of content, in the same row as the search bar #}
+                {% endblock %}
+            </div>
         </div>
-        <div class="col-lg-8 order-lg-1 pt-2 pt-lg-0">
-            {% block header %}
-            {# Contents of header block show in the upper-left corner of content, in the same row as the search bar #}
-            {% endblock %}
+        <div class="row">
+            <div class="col">
+                {% block maincontent %}
+                    {# Contents of maincontent block show below the header block and search bar #}
+                {% endblock %}
+            </div>
         </div>
     </div>
-    <div class="row">
-        <div class="container">
-            {% block maincontent %}
-            {# Contents of maincontent block show below the header block and search bar #}
-            {% endblock %}
-        </div>
-    </div>
-</div>
 {% endblock %}
