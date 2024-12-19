@@ -18,8 +18,7 @@
                         class="form-control form-control-sm form-select form-select-sm">
                     {% comment %} <option value="">- Any -</option> {% endcomment %}
                     {% for source_obj in sources %}
-                        <option value="{{ source_obj.id }}"
-                                {% if source_obj.id == source.id %}selected{% endif %}>{{ source_obj.siglum }}</option>
+                        <option value="{{ source_obj.id }}"{% if source_obj.id == source.id %} selected {% endif %}>{{ source_obj.short_heading }}</option>
                     {% endfor %}
                 </select>
             </div>
@@ -165,7 +164,9 @@
                     {% endfor %}
                 </tbody>
             </table>
-            {% include "pagination.html" %}
+            <div class="small">
+                {% include "pagination.html" %}
+            </div>
         {% else %}
             No chants found.
         {% endif %}
