@@ -136,6 +136,9 @@
                         <br />
                         /&nbsp;Melodies
                     </th>
+                    {% if user_is_project_manager %}
+                        {% sortable_header request "all_chants_proofread" "Proofread" %}
+                    {% endif %}
                 </tr>
             </thead>
             <tbody>
@@ -196,6 +199,15 @@
                                 / {{ source.number_of_melodies }}
                             {% endif %}
                         </td>
+                        {% if user_is_project_manager %}
+                            <td class="text-center">
+                                {% if source.all_chants_proofread %}
+                                ✔
+                                {% else %}
+                                ✘
+                                {% endif %}
+                            </td>
+                        {% endif %}
                     </tr>
                 {% endfor %}
             </tbody>

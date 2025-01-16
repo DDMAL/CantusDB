@@ -39,6 +39,7 @@ from main_app.permissions import (
     user_can_view_source,
     user_can_manage_source_editors,
     user_can_proofread_source,
+    user_is_project_manager,
 )
 from main_app.views.chant import (
     get_feast_selector_options,
@@ -271,6 +272,9 @@ class SourceListView(ListView):  # type: ignore
         context["source_completeness_choices"] = (
             Source.SourceCompletenessChoices.choices
         )
+        context["user_is_project_manager"] = self.request.user.groups.filter(
+            name="project manager"
+        ).exists()
         return context
 
     def get_queryset(self) -> QuerySet[Source]:
@@ -396,6 +400,8 @@ class SourceListView(ListView):  # type: ignore
         elif order_param == "city_institution":
             order_fields.insert(0, "holding_institution__city")
             order_fields.insert(1, "holding_institution__name")
+        elif order_param == "all_chants_proofread":
+            order_fields.insert(0, "all_chants_proofread")
         if self.request.GET.get("sort") == "desc":
             sort_prefix = "-"
         else:
