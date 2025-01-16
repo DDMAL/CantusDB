@@ -3,7 +3,7 @@ from functools import reduce
 
 from django.contrib.postgres.search import SearchVector
 from django.db import models
-from django.db.models import Value
+from django.db.models import Value, Q
 from django.db.models.signals import post_save, post_delete
 from django.dispatch import receiver
 
@@ -21,6 +21,7 @@ from main_app.models import Source
 def on_chant_save(instance, **kwargs) -> None:
     update_source_chant_count(instance)
     update_source_melody_count(instance)
+    update_source_proofread_status(instance)
 
     update_chant_search_vector(instance)
     update_chant_incipit_field(instance)
@@ -31,6 +32,7 @@ def on_chant_save(instance, **kwargs) -> None:
 def on_chant_delete(instance, **kwargs) -> None:
     update_source_chant_count(instance)
     update_source_melody_count(instance)
+    update_source_proofread_status(instance)
 
 
 @receiver(post_save, sender=Sequence)
@@ -101,6 +103,18 @@ def update_source_melody_count(instance) -> None:
             .count()
         )
         source.save()
+
+
+def update_source_proofread_status(instance) -> None:
+    source = instance.source
+    # Checks if all chants in the source have their manuscript fields proofread
+    # Ignores the volpiano_proofread field for this check
+    all_proofread = not source.chant_set.filter(
+        Q(manuscript_full_text_proofread=False)
+        | Q(manuscript_full_text_std_proofread=False)
+    ).exists()
+    source.all_chants_proofread = all_proofread
+    source.save(update_fields=["all_chants_proofread"])
 
 
 def update_volpiano_fields(instance) -> None:

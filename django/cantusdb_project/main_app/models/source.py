@@ -77,6 +77,8 @@ class Source(BaseModel):
         help_text="More exact indication of the provenance (if necessary)",
     )
 
+    all_chants_proofread = models.BooleanField(default=False)
+
     class SourceCompletenessChoices(models.IntegerChoices):
         FULL_SOURCE = 1, "Complete or mostly complete"
         FRAGMENT = 2, "Fragment"
