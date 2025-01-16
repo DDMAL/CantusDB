@@ -9,7 +9,7 @@ class Command(BaseCommand):
     def handle(self, *args, **options):
         sources = Source.objects.all()
         for source in sources:
-            # Checks if all chants in the source have their manuscript fields proofread
+            # Checks if all chants in the source have their manuscript full text fields proofread
             # Ignores the volpiano_proofread field for this check
             all_proofread = not source.chant_set.filter(
                 Q(manuscript_full_text_proofread=False)
