@@ -58,7 +58,7 @@ def user_can_proofread_chant(user: User, chant: Chant) -> bool:
     return user_can_proofread_source(user, source)
 
 
-def user_can_proofread_source(user: User, source: Source) -> bool:
+def user_can_proofread_source(user: Union[User, AnonymousUser], source: Source) -> bool:
     """
     Checks if the user can access the proofreading page of a given Source.
     Used in SourceBrowseChantsView.
@@ -81,7 +81,7 @@ def user_can_proofread_source(user: User, source: Source) -> bool:
     return user_is_pm or (user_is_editor and user_is_assigned_to_source)
 
 
-def user_can_view_source(user: User, source: Source) -> bool:
+def user_can_view_source(user: Union[User, AnonymousUser], source: Source) -> bool:
     """
     Checks if the user can view an unpublished Source on the site.
     Used in ChantDetail, SequenceDetail, and SourceDetail views.
@@ -149,7 +149,7 @@ def user_can_create_sources(user: User) -> bool:
     ).exists()
 
 
-def user_can_edit_source(user: User, source: Source) -> bool:
+def user_can_edit_source(user: Union[User, AnonymousUser], source: Source) -> bool:
     """
     Checks if the user has permission to edit a Source object.
     Used in SourceDetail, SourceEdit, and SourceDelete views.
@@ -182,7 +182,7 @@ def user_can_view_user_detail(viewing_user: User, user: User) -> bool:
     return viewing_user.is_authenticated or user.is_indexer
 
 
-def user_can_manage_source_editors(user: User) -> bool:
+def user_can_manage_source_editors(user: Union[User, AnonymousUser]) -> bool:
     """
     Checks if the user has permission to change the editors assigned to a Source.
     Used in SourceDetailView.

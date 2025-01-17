@@ -9,7 +9,7 @@ from django.urls import reverse
 from django.contrib.auth import get_user_model
 from django.contrib.auth.models import Group
 
-from main_app.models import Source, Sequence, Chant, Differentia
+from main_app.models import Source, Chant, Differentia
 from main_app.tests.make_fakes import (
     make_fake_source,
     make_fake_segment,
@@ -123,14 +123,14 @@ class SourceEditViewTest(TestCase):
 
 
 class SourceDetailViewTest(TestCase):
-    def test_url_and_templates(self):
+    def test_url_and_templates(self) -> None:
         source = make_fake_source()
         response = self.client.get(reverse("source-detail", args=[source.id]))
         self.assertEqual(response.status_code, 200)
         self.assertTemplateUsed(response, "base.html")
         self.assertTemplateUsed(response, "source_detail.html")
 
-    def test_context_chant_folios(self):
+    def test_context_chant_folios(self) -> None:
         # create a source and several chants in it
         source = make_fake_source()
         make_fake_chant(source=source, folio="001r")
@@ -145,7 +145,7 @@ class SourceDetailViewTest(TestCase):
         folios = response.context["folios"]
         self.assertEqual(list(folios), ["001r", "001v", "002r", "002v"])
 
-    def test_context_sequence_folios(self):
+    def test_context_sequence_folios(self) -> None:
         # create a sequence source and several sequences in it
         bower_segment = make_fake_segment(id=4064, name="Bower Sequence Database")
         source = make_fake_source(
@@ -165,7 +165,7 @@ class SourceDetailViewTest(TestCase):
         # the folios should be ordered by the "folio" field
         self.assertEqual(folios.query.order_by, ("folio",))
 
-    def test_context_sequences(self):
+    def test_context_sequences(self) -> None:
         # create a sequence source and several sequences in it
         source = make_fake_source(
             segment=make_fake_segment(id=4064, name="Bower Sequence Database"),
@@ -180,7 +180,7 @@ class SourceDetailViewTest(TestCase):
         # the list of sequences should be ordered by the "sequence" field
         self.assertEqual(response.context["sequences"].query.order_by, ("s_sequence",))
 
-    def test_published_vs_unpublished(self):
+    def test_published_vs_unpublished(self) -> None:
         source = make_fake_source(published=False)
         response_1 = self.client.get(reverse("source-detail", args=[source.id]))
         self.assertEqual(response_1.status_code, 403)
@@ -190,7 +190,7 @@ class SourceDetailViewTest(TestCase):
         response_2 = self.client.get(reverse("source-detail", args=[source.id]))
         self.assertEqual(response_2.status_code, 200)
 
-    def test_chant_list_link(self):
+    def test_chant_list_link(self) -> None:
         cantus_segment = make_fake_segment(id=4063)
         cantus_source = make_fake_source(segment=cantus_segment)
         chant_list_link = reverse("browse-chants", args=[cantus_source.id])
@@ -209,6 +209,19 @@ class SourceDetailViewTest(TestCase):
         )
         bower_source_html = str(bower_source_response.content)
         self.assertNotIn(bower_chant_list_link, bower_source_html)
+
+    def test_json_response(self) -> None:
+        source = make_fake_source()
+        response = self.client.get(
+            reverse(
+                "source-detail",
+                args=[source.id],
+            ),
+            headers={"Accept": "application/json"},
+        )
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response["Content-Type"], "application/json")
+        self.assertEqual(response.json()["source"]["id"], source.id)
 
 
 class SourceInventoryViewTest(HTMLContentsTestMixin, TestCase):

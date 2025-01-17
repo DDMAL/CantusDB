@@ -50,6 +50,7 @@ from main_app.permissions import (
     user_can_proofread_chant,
     user_can_view_chant,
 )
+from main_app.mixins import JSONResponseMixin
 from users.models import User
 
 CHANT_SEARCH_TEMPLATE_VALUES: tuple[str, ...] = (
@@ -278,7 +279,7 @@ def get_chants_with_folios(chants_in_feast: QuerySet) -> list:
     return list(folios_chants.items())
 
 
-class ChantDetailView(DetailView):  # type: ignore[type-arg]
+class ChantDetailView(JSONResponseMixin, DetailView):  # type: ignore[type-arg]
     """
     Displays a single Chant object. Accessed with ``chants/<int:pk>``
     """
@@ -286,6 +287,27 @@ class ChantDetailView(DetailView):  # type: ignore[type-arg]
     model = Chant
     context_object_name = "chant"
     template_name = "chant_detail.html"
+    json_fields = [
+        "id",
+        "folio",
+        "c_sequence",
+        "cantus_id",
+        "feast__name",
+        "service__name",
+        "service__description",
+        "genre__name",
+        "genre__description",
+        "position",
+        "mode",
+        "differentia",
+        "differentiae_database",
+        "marginalia",
+        "finalis",
+        "manuscript_full_text",
+        "manuscript_full_text_std_spelling",
+        "volpiano",
+        "source_id",
+    ]
 
     def get_queryset(self) -> QuerySet[Chant]:
         qs = super().get_queryset()
