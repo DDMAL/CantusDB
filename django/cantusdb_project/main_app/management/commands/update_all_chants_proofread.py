@@ -4,7 +4,7 @@ from django.db.models import Q
 
 
 class Command(BaseCommand):
-    help = "Update all sources by recalculating the all_chants_proofread status"
+    help = "Update all sources by recalculating the all_chants_text_proofread status"
 
     def handle(self, *args, **options):
         sources = Source.objects.all()
@@ -14,9 +14,11 @@ class Command(BaseCommand):
             all_proofread = not source.chant_set.filter(
                 Q(manuscript_full_text_proofread=False)
                 | Q(manuscript_full_text_std_proofread=False)
+                | Q(manuscript_full_text_proofread__isnull=True)
+                | Q(manuscript_full_text_std_proofread__isnull=True)
             ).exists()
-            source.all_chants_proofread = all_proofread
-            source.save(update_fields=["all_chants_proofread"])
+            source.all_chants_text_proofread = all_proofread
+            source.save(update_fields=["all_chants_text_proofread"])
 
         self.stdout.write(
             self.style.SUCCESS(f"Successfully updated {sources.count()} sources")

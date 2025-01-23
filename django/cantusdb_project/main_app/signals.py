@@ -112,9 +112,11 @@ def update_source_proofread_status(instance) -> None:
     all_proofread = not source.chant_set.filter(
         Q(manuscript_full_text_proofread=False)
         | Q(manuscript_full_text_std_proofread=False)
+        | Q(manuscript_full_text_proofread__isnull=True)
+        | Q(manuscript_full_text_std_proofread__isnull=True)
     ).exists()
-    source.all_chants_proofread = all_proofread
-    source.save(update_fields=["all_chants_proofread"])
+    source.all_chants_text_proofread = all_proofread
+    source.save(update_fields=["all_chants_text_proofread"])
 
 
 def update_volpiano_fields(instance) -> None:
