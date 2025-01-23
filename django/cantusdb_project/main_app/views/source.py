@@ -331,7 +331,9 @@ class SourceListView(ListView):  # type: ignore
             # field, allowing for a more flexible search, and a field needs
             # to match only one of the terms
             for term in general_search_terms:
-                holding_institution_q |= Q(holding_institution__name__icontains=term)
+                holding_institution_q |= Q(
+                    holding_institution__name__unaccent__icontains=term
+                )
                 holding_institution_city_q |= Q(
                     holding_institution__city__icontains=term
                 )
