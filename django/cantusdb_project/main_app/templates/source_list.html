@@ -137,7 +137,7 @@
                         /&nbsp;Melodies
                     </th>
                     {% if user_is_project_manager %}
-                        {% sortable_header request "all_chants_proofread" "Proofread" %}
+                        {% sortable_header request "all_chants_text_proofread" "Proofread" %}
                     {% endif %}
                 </tr>
             </thead>
@@ -201,7 +201,7 @@
                         </td>
                         {% if user_is_project_manager %}
                             <td class="text-center">
-                                {% if source.all_chants_proofread %}
+                                {% if source.all_chants_text_proofread %}
                                 ✔
                                 {% else %}
                                 ✘

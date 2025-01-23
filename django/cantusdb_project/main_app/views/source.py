@@ -400,8 +400,8 @@ class SourceListView(ListView):  # type: ignore
         elif order_param == "city_institution":
             order_fields.insert(0, "holding_institution__city")
             order_fields.insert(1, "holding_institution__name")
-        elif order_param == "all_chants_proofread":
-            order_fields.insert(0, "all_chants_proofread")
+        elif order_param == "all_chants_text_proofread":
+            order_fields.insert(0, "all_chants_text_proofread")
         if self.request.GET.get("sort") == "desc":
             sort_prefix = "-"
         else:

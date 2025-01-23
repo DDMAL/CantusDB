@@ -50,7 +50,7 @@ class SourceAdmin(BaseModelAdmin):
             "number_of_melodies",
             "date_created",
             "date_updated",
-            "all_chants_proofread",
+            "all_chants_text_proofread",
         )
     )
     # from the Django docs:
