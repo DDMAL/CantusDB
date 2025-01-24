@@ -1139,7 +1139,7 @@ class SourceListViewTest(TestCase):
         )
         self.assertIn(source, response.context["sources"])
 
-    def test_search_by_name(self):
+    def test_search_by_name(self) -> None:
         source = make_fake_source(
             name=faker.sentence(), published=True, shelfmark="title"
         )
