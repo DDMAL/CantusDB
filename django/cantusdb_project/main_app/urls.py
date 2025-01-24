@@ -85,6 +85,7 @@ from main_app.views.source import (
     SourceListView,
     SourceDeleteView,
     SourceInventoryView,
+    SourceAddImageLinksView,
 )
 from main_app.views.user import (
     CustomLogoutView,
@@ -363,6 +364,11 @@ urlpatterns = [
         "source/<int:pk>/delete",
         SourceDeleteView.as_view(),
         name="source-delete",
+    ),
+    path(
+        "source/<int:source_id>/add-image-links",
+        SourceAddImageLinksView.as_view(),
+        name="source-add-image-links",
     ),
     # melody
     path(

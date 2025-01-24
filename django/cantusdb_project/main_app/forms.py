@@ -7,8 +7,8 @@ from django.db.models import Q
 from django.contrib.admin.widgets import (
     FilteredSelectMultiple,
 )
-from django.forms.widgets import CheckboxSelectMultiple
-from dal import autocomplete
+from django.forms.widgets import CheckboxSelectMultiple, HiddenInput
+from dal import autocomplete  # type: ignore[import-untyped]
 from volpiano_display_utilities.cantus_text_syllabification import syllabify_text
 from volpiano_display_utilities.latin_word_syllabification import LatinError
 from .models import (
@@ -934,3 +934,36 @@ class AdminUserChangeForm(forms.ModelForm):
             'using <a href="../password/">this form</a>.'
         )
     )
+
+
+class ImageLinkForm(forms.Form):
+    """
+    Subclass of Django's Form class that creates the form we use for
+    adding image links to chants in a source.
+
+    Initialize the Form with a field for every folio in the source,
+    passed as the "initial" parameter, which is a dictionary with a key
+    for every folio and a blank value.
+    """
+
+    def __init__(self, *args: Any, **kwargs: Any) -> None:
+        super().__init__(*args, **kwargs)
+        initial = kwargs.get("initial")
+        if initial:
+            for folio in initial:
+                self.fields[folio] = forms.CharField(
+                    widget=HiddenInput(attrs={"class": "img-link-input"}),
+                    required=False,
+                )
+
+    def save(self, source: Source) -> None:
+        """
+        Save the image links to the database.
+
+        Args:
+            source: The source to which the image links belong.
+        """
+        cleaned_data = self.cleaned_data
+        for folio, image_link in cleaned_data.items():
+            if image_link != "":
+                source.chant_set.filter(folio=folio).update(image_link=image_link)

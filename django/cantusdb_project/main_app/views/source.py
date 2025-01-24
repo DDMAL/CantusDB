@@ -1,5 +1,5 @@
 import re
-from typing import Any
+from typing import Any, Optional
 
 from django.contrib import messages
 from django.contrib.auth.mixins import LoginRequiredMixin
@@ -7,7 +7,7 @@ from django.contrib.auth.mixins import UserPassesTestMixin
 from django.core.exceptions import PermissionDenied
 from django.db.models import Q, Prefetch, Value
 from django.db.models import QuerySet
-from django.http import HttpResponseRedirect, Http404
+from django.http import HttpResponseRedirect, Http404, HttpResponse, HttpRequest
 from django.shortcuts import get_object_or_404
 from django.urls import reverse
 from django.views.generic import (
@@ -17,12 +17,14 @@ from django.views.generic import (
     UpdateView,
     DeleteView,
     TemplateView,
+    FormView,
 )
-
+from django.views.generic.detail import SingleObjectMixin
 from main_app.forms import (
     SourceCreateForm,
     SourceEditForm,
     SourceBrowseChantsProofreadForm,
+    ImageLinkForm,
 )
 from main_app.models import (
     Century,
@@ -40,12 +42,11 @@ from main_app.permissions import (
     user_can_view_source,
     user_can_manage_source_editors,
     user_can_proofread_source,
-)
-from main_app.views.chant import (
-    get_feast_selector_options,
     user_can_edit_chants_in_source,
 )
 from main_app.mixins import JSONResponseMixin
+
+from main_app.views.chant import get_feast_selector_options
 
 CANTUS_SEGMENT_ID = 4063
 BOWER_SEGMENT_ID = 4064
@@ -258,7 +259,7 @@ class SourceDetailView(JSONResponseMixin, DetailView):  # type: ignore[type-arg]
         return context
 
 
-class SourceListView(ListView):  # type: ignore
+class SourceListView(ListView):
     model = Source
     paginate_by = 100
     context_object_name = "sources"
@@ -583,3 +584,46 @@ class SourceInventoryView(TemplateView):
         context["chants"] = queryset
 
         return context
+
+
+class SourceAddImageLinksView(UserPassesTestMixin, SingleObjectMixin, FormView):  # type: ignore
+    template_name = "source_add_image_links.html"
+    pk_url_kwarg = "source_id"
+    queryset = Source.objects.select_related("holding_institution")
+    context_object_name = "source"
+    form_class = ImageLinkForm
+    object: Source
+    http_method_names = ["get", "post"]
+
+    def test_func(self) -> bool:
+        return user_can_manage_source_editors(self.request.user)
+
+    def get_success_url(self) -> str:
+        return reverse("source-detail", args=[self.object.id])
+
+    def get(self, request: HttpRequest, *args: Any, **kwargs: Any) -> HttpResponse:
+        self.object = self.get_object()
+        return super().get(request, *args, **kwargs)
+
+    def post(self, request: HttpRequest, *args: Any, **kwargs: Any) -> HttpResponse:
+        self.object = self.get_object()
+        return super().post(request, *args, **kwargs)
+
+    def get_initial(self) -> dict[str, Any]:
+        """
+        Set the initial data required by the ImageLinkForm
+        on GET requests.
+        """
+        folios: QuerySet[Chant, Optional[str]] = (
+            self.object.chant_set.values_list("folio", flat=True)
+            .distinct()
+            .order_by("folio")
+        )
+        return {folio: "" for folio in folios if folio}
+
+    def form_valid(self, form: ImageLinkForm) -> HttpResponseRedirect:
+        """
+        Save the image links to the database.
+        """
+        form.save(self.object)
+        return HttpResponseRedirect(self.get_success_url())
