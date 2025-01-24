@@ -999,7 +999,7 @@ class SourceListViewTest(TestCase):
             self.assertNotIn(manuscript_source, sources)
             self.assertIn(print_source, sources)
 
-    def test_search_by_title(self):
+    def test_search_by_title(self) -> None:
         """The "general search" field searches in `title`, `shelfmark`, `description`, and `summary`"""
         source = make_fake_source(
             shelfmark=faker.sentence(),
@@ -1027,7 +1027,7 @@ class SourceListViewTest(TestCase):
         )
         self.assertIn(source, response.context["sources"])
 
-    def test_search_by_shelfmark(self):
+    def test_search_by_shelfmark(self) -> None:
         hinst = make_fake_institution(name="Fake Institution", siglum="FA-Ke")
         source = make_fake_source(
             published=True, shelfmark="title", holding_institution=hinst
@@ -1054,7 +1054,7 @@ class SourceListViewTest(TestCase):
         )
         self.assertIn(source, response.context["sources"])
 
-    def test_search_by_description(self):
+    def test_search_by_description(self) -> None:
         source = make_fake_source(
             description=faker.sentence(),
             published=True,
@@ -1082,7 +1082,7 @@ class SourceListViewTest(TestCase):
         )
         self.assertIn(source, response.context["sources"])
 
-    def test_search_by_summary(self):
+    def test_search_by_summary(self) -> None:
         source = make_fake_source(
             summary=faker.sentence(),
             published=True,
@@ -1110,7 +1110,7 @@ class SourceListViewTest(TestCase):
         )
         self.assertIn(source, response.context["sources"])
 
-    def test_search_by_indexing_notes(self):
+    def test_search_by_indexing_notes(self) -> None:
         """The "indexing notes" field searches in `indexing_notes` and indexer/editor related fields"""
         source = make_fake_source(
             indexing_notes=faker.sentence(),
@@ -1139,7 +1139,7 @@ class SourceListViewTest(TestCase):
         )
         self.assertIn(source, response.context["sources"])
 
-    def test_search_by_name(self):
+    def test_search_by_name(self) -> None:
         source = make_fake_source(
             name=faker.sentence(), published=True, shelfmark="title"
         )
