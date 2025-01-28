@@ -21,6 +21,7 @@ from main_app.views.api import (
     csv_export,
     articles_list_export,
     flatpages_list_export,
+    cid_concordances,
 )
 from main_app.views.institution import InstitutionListView, InstitutionDetailView
 from main_app.views.redirect import (
@@ -84,6 +85,7 @@ from main_app.views.source import (
     SourceListView,
     SourceDeleteView,
     SourceInventoryView,
+    SourceAddImageLinksView,
 )
 from main_app.views.user import (
     CustomLogoutView,
@@ -363,6 +365,11 @@ urlpatterns = [
         SourceDeleteView.as_view(),
         name="source-delete",
     ),
+    path(
+        "source/<int:source_id>/add-image-links",
+        SourceAddImageLinksView.as_view(),
+        name="source-add-image-links",
+    ),
     # melody
     path(
         "melody/",
@@ -567,6 +574,11 @@ urlpatterns = [
         "differentia-autocomplete/",
         DifferentiaAutocomplete.as_view(),
         name="differentia-autocomplete",
+    ),
+    path(
+        "cid-concordances/",
+        cid_concordances,
+        name="cid-concordances",
     ),
 ]
 

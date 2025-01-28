@@ -1,4 +1,4 @@
-from typing import Any
+from typing import Any, Optional
 
 from django.contrib import messages
 from django.contrib.auth.mixins import LoginRequiredMixin
@@ -6,7 +6,7 @@ from django.contrib.auth.mixins import UserPassesTestMixin
 from django.core.exceptions import PermissionDenied
 from django.db.models import Q, Prefetch, Value
 from django.db.models import QuerySet
-from django.http import HttpResponseRedirect, Http404
+from django.http import HttpResponseRedirect, Http404, HttpResponse, HttpRequest
 from django.shortcuts import get_object_or_404
 from django.urls import reverse
 from django.views.generic import (
@@ -16,9 +16,15 @@ from django.views.generic import (
     UpdateView,
     DeleteView,
     TemplateView,
+    FormView,
 )
-
-from main_app.forms import SourceCreateForm, SourceEditForm
+from django.views.generic.detail import SingleObjectMixin
+from main_app.forms import (
+    SourceCreateForm,
+    SourceEditForm,
+    SourceBrowseChantsProofreadForm,
+    ImageLinkForm,
+)
 from main_app.models import (
     Century,
     Chant,
@@ -34,11 +40,12 @@ from main_app.permissions import (
     user_can_edit_source,
     user_can_view_source,
     user_can_manage_source_editors,
-)
-from main_app.views.chant import (
-    get_feast_selector_options,
+    user_can_proofread_source,
     user_can_edit_chants_in_source,
 )
+from main_app.mixins import JSONResponseMixin
+
+from main_app.views.chant import get_feast_selector_options
 
 CANTUS_SEGMENT_ID = 4063
 BOWER_SEGMENT_ID = 4064
@@ -54,6 +61,10 @@ class SourceBrowseChantsView(ListView):
         ``search_text``: Filters by text of Chant
         ``genre``: Filters by genre of Chant
         ``folio``: Filters by folio of Chant
+        ``manuscript_full_text_proofread``: Filters by chants that have their full text proofread
+        ``manuscript_full_text_std_proofread``: Filters by chants that have their standardized
+        spelling full text proofread
+        ``volpiano_proofread``: Filters by chants that have their volpiano proofread
     """
 
     model = Chant
@@ -61,6 +72,7 @@ class SourceBrowseChantsView(ListView):
     context_object_name = "chants"
     template_name = "browse_chants.html"
     pk_url_kwarg = "source_id"
+    source: Source
 
     def get_queryset(self):
         """Gather the chants to be displayed.
@@ -73,6 +85,7 @@ class SourceBrowseChantsView(ListView):
         """
         source_id = self.kwargs.get(self.pk_url_kwarg)
         source = get_object_or_404(Source, id=source_id)
+        self.source = source
 
         display_unpublished = self.request.user.is_authenticated
         if (source.published is False) and (not display_unpublished):
@@ -84,8 +97,19 @@ class SourceBrowseChantsView(ListView):
         folio = self.request.GET.get("folio")
         search_text = self.request.GET.get("search_text")
 
+        # proofread fields filter
+        manuscript_full_text_proofread = self.request.GET.get(
+            "manuscript_full_text_proofread"
+        )
+        manuscript_full_text_std_proofread = self.request.GET.get(
+            "manuscript_full_text_std_proofread"
+        )
+        volpiano_proofread = self.request.GET.get("volpiano_proofread")
+
         # get all chants in the specified source
-        chants = source.chant_set.select_related("feast", "service", "genre")
+        chants: QuerySet[Chant] = source.chant_set.select_related(
+            "feast", "service", "genre"
+        )
         # filter the chants with optional search params
         if feast_id:
             chants = chants.filter(feast__id=feast_id)
@@ -100,12 +124,23 @@ class SourceBrowseChantsView(ListView):
                 | Q(incipit__icontains=search_text)
                 | Q(manuscript_full_text__icontains=search_text)
             )
+        # Apply proofreading filters if they are set
+        if manuscript_full_text_std_proofread:
+            chants = chants.filter(
+                manuscript_full_text_std_proofread=manuscript_full_text_std_proofread
+            )
+        if manuscript_full_text_proofread:
+            chants = chants.filter(
+                manuscript_full_text_proofread=manuscript_full_text_proofread
+            )
+        if volpiano_proofread:
+            chants = chants.filter(volpiano_proofread=volpiano_proofread)
+
         return chants.order_by("folio", "c_sequence")
 
     def get_context_data(self, **kwargs):
         context: dict = super().get_context_data(**kwargs)
-        source_id: int = self.kwargs.get(self.pk_url_kwarg)
-        source: Source = get_object_or_404(Source, id=source_id)
+        source: Source = self.source
         if source.segment_id != CANTUS_SEGMENT_ID:
             # the chant list ("Browse Chants") page should only be visitable
             # for sources in the CANTUS Database segment, as sources in the Bower
@@ -134,6 +169,7 @@ class SourceBrowseChantsView(ListView):
 
         user = self.request.user
         context["user_can_edit_chant"] = user_can_edit_chants_in_source(user, source)
+        context["user_can_proofread_source"] = user_can_proofread_source(user, source)
 
         chants_in_source: QuerySet[Chant] = source.chant_set
         if chants_in_source.count() == 0:
@@ -165,21 +201,32 @@ class SourceBrowseChantsView(ListView):
 
         # the options for the feast selector on the right, same as the source detail page
         context["feasts_with_folios"] = get_feast_selector_options(source)
+        context["proofread_filter_form"] = SourceBrowseChantsProofreadForm(
+            self.request.GET or None
+        )
         return context
 
 
-class SourceDetailView(DetailView):
+class SourceDetailView(JSONResponseMixin, DetailView):  # type: ignore[type-arg]
     model = Source
     context_object_name = "source"
     template_name = "source_detail.html"
+    json_fields = [
+        "id",
+        "description",
+        "provenance__name",
+        "date",
+        "heading",
+        "short_heading",
+    ]
 
-    def get_queryset(self):
+    def get_queryset(self) -> QuerySet[Source]:
         return self.model.objects.select_related(
-            "holding_institution", "segment", "provenance"
+            "holding_institution", "segment", "provenance", "created_by"
         ).all()
 
-    def get_context_data(self, **kwargs):
-        source = self.get_object()
+    def get_context_data(self, **kwargs: Any) -> dict[str, Any]:
+        source = self.object
         user = self.request.user
 
         if not user_can_view_source(user, source):
@@ -211,7 +258,7 @@ class SourceDetailView(DetailView):
         return context
 
 
-class SourceListView(ListView):  # type: ignore
+class SourceListView(ListView):
     model = Source
     paginate_by = 100
     context_object_name = "sources"
@@ -229,6 +276,10 @@ class SourceListView(ListView):  # type: ignore
         )
         context["centuries"] = (
             Century.objects.all().order_by("name").values("id", "name")
+        )
+        context["production_method_choices"] = Source.ProductionMethodChoices.choices
+        context["source_completeness_choices"] = (
+            Source.SourceCompletenessChoices.choices
         )
         return context
 
@@ -254,15 +305,10 @@ class SourceListView(ListView):  # type: ignore
             q_obj_filter &= Q(provenance__id=int(provenance_id))
         if segment_id := self.request.GET.get("segment"):
             q_obj_filter &= Q(segment__id=int(segment_id))
-        if (full_source_str := self.request.GET.get("fullSource")) in ["true", "false"]:
-            if full_source_str == "true":
-                q_obj_filter &= Q(
-                    source_completeness=Source.SourceCompletenessChoices.FULL_SOURCE
-                )
-            else:
-                q_obj_filter &= Q(
-                    source_completeness=Source.SourceCompletenessChoices.FRAGMENT
-                )
+        if source_completeness := self.request.GET.getlist("sourceCompleteness"):
+            q_obj_filter &= Q(source_completeness__in=source_completeness)
+        if production_method := self.request.GET.get("prodMethod"):
+            q_obj_filter &= Q(production_method=production_method)
 
         if general_str := self.request.GET.get("general"):
             # Strip spaces at the beginning and end. Then make list of terms split on spaces
@@ -273,6 +319,7 @@ class SourceListView(ListView):  # type: ignore
             holding_institution_q = Q()
             holding_institution_city_q = Q()
             description_q = Q()
+            name_q = Q()
             # it seems that old cantus don't look into title and provenance
             # for the general search terms
             # cantus.uwaterloo.ca/source/123901 this source cannot be found by searching
@@ -293,6 +340,7 @@ class SourceListView(ListView):  # type: ignore
                 siglum_q |= Q(holding_institution__siglum__unaccent__icontains=term)
                 description_q |= Q(description__unaccent__icontains=term)
                 summary_q |= Q(summary__unaccent__icontains=term)
+                name_q |= Q(name__icontains=term)
                 # provenance_q |= Q(provenance__name__icontains=term)
             # All the Q objects are put together with OR.
             # The end result is that at least one term has to match in at least one
@@ -307,6 +355,7 @@ class SourceListView(ListView):  # type: ignore
                 | summary_q
                 | holding_institution_q
                 | holding_institution_city_q
+                | name_q
             )
             q_obj_filter &= general_search_q
 
@@ -515,3 +564,46 @@ class SourceInventoryView(TemplateView):
         context["chants"] = queryset
 
         return context
+
+
+class SourceAddImageLinksView(UserPassesTestMixin, SingleObjectMixin, FormView):  # type: ignore
+    template_name = "source_add_image_links.html"
+    pk_url_kwarg = "source_id"
+    queryset = Source.objects.select_related("holding_institution")
+    context_object_name = "source"
+    form_class = ImageLinkForm
+    object: Source
+    http_method_names = ["get", "post"]
+
+    def test_func(self) -> bool:
+        return user_can_manage_source_editors(self.request.user)
+
+    def get_success_url(self) -> str:
+        return reverse("source-detail", args=[self.object.id])
+
+    def get(self, request: HttpRequest, *args: Any, **kwargs: Any) -> HttpResponse:
+        self.object = self.get_object()
+        return super().get(request, *args, **kwargs)
+
+    def post(self, request: HttpRequest, *args: Any, **kwargs: Any) -> HttpResponse:
+        self.object = self.get_object()
+        return super().post(request, *args, **kwargs)
+
+    def get_initial(self) -> dict[str, Any]:
+        """
+        Set the initial data required by the ImageLinkForm
+        on GET requests.
+        """
+        folios: QuerySet[Chant, Optional[str]] = (
+            self.object.chant_set.values_list("folio", flat=True)
+            .distinct()
+            .order_by("folio")
+        )
+        return {folio: "" for folio in folios if folio}
+
+    def form_valid(self, form: ImageLinkForm) -> HttpResponseRedirect:
+        """
+        Save the image links to the database.
+        """
+        form.save(self.object)
+        return HttpResponseRedirect(self.get_success_url())

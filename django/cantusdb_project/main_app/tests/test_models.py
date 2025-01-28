@@ -91,7 +91,7 @@ class ChantModelTest(TestCase):
 
     def test_get_concordances(self):
         chant = Chant.objects.first()
-        chant_with_same_cantus_id = Chant.objects.create(
+        chant_with_same_cantus_id = make_fake_chant(
             cantus_id=chant.cantus_id, source=chant.source
         )
         concordances = chant.related_chants_by_cantus_id()
@@ -254,7 +254,7 @@ class FeastModelTest(TestCase):
 
     def test_date_constraints(self):
         def create_fake_feast(month, day):
-            f = Feast.objects.create(name="fakeFeast", month=month, day=day)
+            make_fake_feast(name="fakeFeast", month=month, day=day)
 
         self.assertRaises(ValidationError, create_fake_feast, month=13, day=1)
         self.assertRaises(ValidationError, create_fake_feast, month=0, day=1)
@@ -379,16 +379,16 @@ class SourceModelTest(TestCase):
 
     def test_number_of_chants(self):
         source = Source.objects.first()
-        chant = Chant.objects.create(source=source)
-        sequence = Sequence.objects.create(source=source)
+        chant = make_fake_chant(source=source)
+        sequence = make_fake_sequence(source=source)
         self.assertIn(chant, source.chant_set.all())
         self.assertIn(sequence, source.sequence_set.all())
         self.assertEqual(source.number_of_chants, 2)
 
     def test_number_of_melodies(self):
         source = Source.objects.first()
-        chant_w_melody = Chant.objects.create(source=source, volpiano="1-a-b-c")
-        chant = Chant.objects.create(source=source)
+        make_fake_chant(source=source, volpiano="1-a-b-c")
+        make_fake_chant(source=source, volpiano=None)
         self.assertEqual(source.number_of_melodies, 1)
 
     def test_display_name(self):

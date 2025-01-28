@@ -1,0 +1,27 @@
+td.img-link-preview-cell {
+    padding-left: 4rem;
+    padding-right: 4rem;
+}
+
+.csv-testing-table {
+    table-layout: fixed;
+    width: 100%;
+}
+
+.csv-testing-table-test {
+    width: 30%;
+}
+
+.csv-testing-table-icon {
+    width: 15%;
+}
+
+.csv-testing-table-instances {
+    max-height: 5em;
+    overflow-y: scroll;
+}
+
+.csv-preview-table {
+    max-height: 50em;
+    overflow-y: scroll;
+}

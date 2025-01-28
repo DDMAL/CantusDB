@@ -24,9 +24,12 @@ from main_app.tests.make_fakes import (
     make_fake_institution,
     make_random_string,
     get_random_search_term,
+    make_fake_segment,
 )
 from main_app.tests.test_functions import mock_requests_get
-from main_app.models import Chant, Segment, Source, Feast, Service
+from main_app.models import Chant, Source, Feast, Service
+from main_app.views.chant import get_feast_selector_options
+from users.models import User as UserAnnotation
 
 
 # Create a Faker instance with locale set to Latin
@@ -34,41 +37,46 @@ faker = Faker("la")
 
 
 class ChantDetailViewTest(TestCase):
-    @classmethod
-    def setUpTestData(cls):
-        Group.objects.create(name="project manager")
+    pm_group: ClassVar[Group]
+    pm_user: ClassVar[UserAnnotation]
 
-    def test_url_and_templates(self):
+    @classmethod
+    def setUpTestData(cls) -> None:
+        cls.pm_group = Group.objects.create(name="project manager")
+        cls.pm_user = get_user_model().objects.create(email="pm@test.com")
+        cls.pm_user.groups.add(cls.pm_group)
+
+    def test_url_and_templates(self) -> None:
         chant = make_fake_chant()
         response = self.client.get(reverse("chant-detail", args=[chant.id]))
         self.assertEqual(response.status_code, 200)
         self.assertTemplateUsed(response, "base.html")
         self.assertTemplateUsed(response, "chant_detail.html")
 
-    def test_context_folios(self):
+    def test_context_folios(self) -> None:
         # create a source and several chants in it
         source = make_fake_source()
-        chant = Chant.objects.create(source=source, folio="001r")
-        Chant.objects.create(source=source, folio="001r")
-        Chant.objects.create(source=source, folio="001v")
-        Chant.objects.create(source=source, folio="001v")
-        Chant.objects.create(source=source, folio="002r")
-        Chant.objects.create(source=source, folio="002v")
+        chant = make_fake_chant(source=source, folio="001r")
+        make_fake_chant(source=source, folio="001r")
+        make_fake_chant(source=source, folio="001v")
+        make_fake_chant(source=source, folio="001v")
+        make_fake_chant(source=source, folio="002r")
+        make_fake_chant(source=source, folio="002v")
         # request the page
         response = self.client.get(reverse("chant-detail", args=[chant.id]))
         # the element in "folios" should be unique and ordered in this way
         folios = response.context["folios"]
         self.assertEqual(list(folios), ["001r", "001v", "002r", "002v"])
 
-    def test_context_previous_and_next_folio(self):
+    def test_context_previous_and_next_folio(self) -> None:
         # create a source and several chants in it
         source = make_fake_source()
         # three folios: 001r, 001v, 002r
-        chant_without_previous_folio = Chant.objects.create(source=source, folio="001r")
-        chant_with_previous_and_next_folio = Chant.objects.create(
+        chant_without_previous_folio = make_fake_chant(source=source, folio="001r")
+        chant_with_previous_and_next_folio = make_fake_chant(
             source=source, folio="001v"
         )
-        chant_without_next_folio = Chant.objects.create(source=source, folio="002v")
+        chant_without_next_folio = make_fake_chant(source=source, folio="002v")
         # request the page and check the context variables
         # for the chant on 001r, there is no previous folio, and the next folio should be 001v
         response = self.client.get(
@@ -91,7 +99,7 @@ class ChantDetailViewTest(TestCase):
         self.assertEqual(response.context["previous_folio"], "001v")
         self.assertIsNone(response.context["next_folio"])
 
-    def test_published_vs_unpublished(self):
+    def test_published_vs_unpublished(self) -> None:
         source = make_fake_source()
         chant = make_fake_chant(source=source)
 
@@ -105,21 +113,11 @@ class ChantDetailViewTest(TestCase):
         response = self.client.get(reverse("chant-detail", args=[chant.id]))
         self.assertEqual(response.status_code, 403)
 
-    def test_chant_edit_link(self):
+    def test_chant_edit_link(self) -> None:
         source = make_fake_source()
-        chant = make_fake_chant(
-            source=source,
-            folio="001r",
-            manuscript_full_text_std_spelling="manuscript_full_text_std_spelling",
-        )
+        chant = make_fake_chant(source=source, folio="001r")
 
-        # have to create project manager user - "View | Edit" toggle only visible for those with edit access for a chant's source
-        pm_user = get_user_model().objects.create(email="test@test.com")
-        pm_user.set_password("pass")
-        pm_user.save()
-        project_manager = Group.objects.get(name="project manager")
-        project_manager.user_set.add(pm_user)
-        self.client.login(email="test@test.com", password="pass")
+        self.client.force_login(self.pm_user)
 
         response = self.client.get(reverse("chant-detail", args=[chant.id]))
         expected_url_fragment = (
@@ -128,21 +126,23 @@ class ChantDetailViewTest(TestCase):
 
         self.assertIn(expected_url_fragment, str(response.content))
 
-    def test_chant_with_volpiano_with_no_fulltext(self):
-        # in the past, a Chant Detail page will error rather than loading properly when the chant has volpiano but no fulltext
+    def test_chant_with_volpiano_with_no_fulltext(self) -> None:
+        # in the past, a Chant Detail page will error rather than loading
+        # properly when the chant has volpiano but no fulltext
         source = make_fake_source()
         chant = make_fake_chant(
             source=source,
             volpiano="1---c--g--e---e---d---c---c---f---e---e--d---d---c",
+            manuscript_full_text=None,
+            manuscript_full_text_std_spelling=None,
         )
-        chant.manuscript_full_text = None
-        chant.manuscript_full_text_std_spelling = None
-        chant.save()
+
         response = self.client.get(reverse("chant-detail", args=[chant.id]))
         self.assertEqual(response.status_code, 200)
 
-    def test_chant_with_volpiano_with_no_incipit(self):
-        # in the past, a Chant Detail page will error rather than loading properly when the chant has volpiano but no fulltext/incipit
+    def test_chant_with_volpiano_with_no_incipit(self) -> None:
+        # in the past, a Chant Detail page will error rather than loading properly
+        # when the chant has volpiano but no fulltext/incipit
         source = make_fake_source()
         chant = make_fake_chant(
             source=source,
@@ -154,6 +154,17 @@ class ChantDetailViewTest(TestCase):
         chant.save()
         response = self.client.get(reverse("chant-detail", args=[chant.id]))
         self.assertEqual(response.status_code, 200)
+
+    def test_json_response(self) -> None:
+        chant = make_fake_chant()
+        response = self.client.get(
+            reverse("chant-detail", args=[chant.id]), HTTP_ACCEPT="application/json"
+        )
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response["Content-Type"], "application/json")
+        resp_chant = response.json()["chant"]
+        self.assertEqual(resp_chant["id"], chant.id)
+        self.assertEqual(resp_chant["manuscript_full_text"], chant.manuscript_full_text)
 
 
 class SourceEditChantsViewTest(TestCase):
@@ -173,16 +184,15 @@ class SourceEditChantsViewTest(TestCase):
         source1 = make_fake_source()
 
         # must specify folio, or SourceEditChantsView.get_queryset will fail when it tries to default to displaying the first folio
-        Chant.objects.create(source=source1, folio="001r")
+        make_fake_chant(source=source1, folio="001r")
 
         with patch("requests.get", mock_requests_get):
             response = self.client.get(reverse("source-edit-chants", args=[source1.id]))
         self.assertEqual(response.status_code, 200)
         self.assertTemplateUsed(response, "chant_edit.html")
-        with patch("requests.get", mock_requests_get):
-            response = self.client.get(
-                reverse("source-edit-chants", args=[source1.id + 100])
-            )
+        response = self.client.get(
+            reverse("source-edit-chants", args=[source1.id + 100])
+        )
         self.assertEqual(response.status_code, 404)
         self.assertTemplateUsed(response, "404.html")
 
@@ -198,10 +208,9 @@ class SourceEditChantsViewTest(TestCase):
         chant = make_fake_chant(
             source=source, manuscript_full_text_std_spelling="initial"
         )
-        with patch("requests.get", mock_requests_get):
-            response = self.client.get(
-                reverse("source-edit-chants", args=[source.id]), {"pk": chant.id}
-            )
+        response = self.client.get(
+            reverse("source-edit-chants", args=[source.id]), {"pk": chant.id}
+        )
         self.assertEqual(response.status_code, 200)
         self.assertTemplateUsed(response, "chant_edit.html")
 
@@ -234,6 +243,7 @@ class SourceEditChantsViewTest(TestCase):
             reverse("source-edit-chants", args=[source.id]),
             {
                 "manuscript_full_text_std_spelling": "ut queant lactose",
+                "pk": chant_1.id,
                 "folio": "001r",
                 "c_sequence": "1",
                 # liquescents, to be converted to lowercase
@@ -249,7 +259,7 @@ class SourceEditChantsViewTest(TestCase):
         self.assertEqual(chant_1.volpiano, "9abcdefg)A-B1C2D3E4F5G67?. yiz")
         self.assertEqual(chant_1.volpiano_notes, "9abcdefg9abcdefg")
 
-        make_fake_chant(
+        chant_2 = make_fake_chant(
             manuscript_full_text_std_spelling="resonare foobaz",
             source=source,
             folio="001r",
@@ -264,12 +274,10 @@ class SourceEditChantsViewTest(TestCase):
                 "folio": "001r",
                 "c_sequence": "2",
                 "volpiano": "abacadaeafagahaja",
+                "pk": chant_2.id,
             },
         )
-        with patch("requests.get", mock_requests_get):
-            chant_2 = Chant.objects.get(
-                manuscript_full_text_std_spelling="resonare foobaz"
-            )
+        chant_2 = Chant.objects.get(manuscript_full_text_std_spelling="resonare foobaz")
         self.assertEqual(chant_2.volpiano, expected_volpiano)
         self.assertEqual(chant_2.volpiano_intervals, expected_intervals)
 
@@ -303,7 +311,9 @@ class SourceEditChantsViewTest(TestCase):
 
     def test_proofread_chant(self):
         chant = make_fake_chant(
-            manuscript_full_text_std_spelling="lorem ipsum", folio="001r"
+            manuscript_full_text_std_spelling="lorem ipsum",
+            folio="001r",
+            manuscript_full_text_std_proofread=False,
         )
         folio = chant.folio
         c_sequence = chant.c_sequence
@@ -317,6 +327,7 @@ class SourceEditChantsViewTest(TestCase):
                 "folio": folio,
                 "c_sequence": c_sequence,
                 "manuscript_full_text_std_spelling": ms_std,
+                "pk": chant.id,
             },
         )
         self.assertEqual(response.status_code, 302)  # 302 Found
@@ -361,6 +372,64 @@ class SourceEditChantsViewTest(TestCase):
                 "manuscript_full_text_std_spelling",
                 "Word [ contains non-alphabetic characters.",
             )
+
+    def test_full_text_requirement(self):
+        """
+        When editing a chant, we generally require a full text to be provided
+        (this is also true when creating a chant); however, some chants were
+        created before this was required and so may not have full text. In
+        these cases, the user should be allowed to save edits to a chant (for
+        example, a correction to another field) without having to provide a
+        full text.
+        """
+        source = make_fake_source()
+        with self.subTest("Chant with full text"):
+            chant_w_fulltext = make_fake_chant(
+                source=source, manuscript_full_text_std_spelling="Plena sum", mode=None
+            )
+            response = self.client.post(
+                reverse("source-edit-chants", args=[source.id]),
+                {
+                    "manuscript_full_text_std_spelling": "",
+                    "folio": chant_w_fulltext.folio,
+                    "c_sequence": chant_w_fulltext.c_sequence,
+                    "pk": chant_w_fulltext.id,
+                    "mode": "2",
+                },
+            )
+            self.assertEqual(response.status_code, 200)
+            self.assertFormError(
+                response.context["form"],
+                "manuscript_full_text_std_spelling",
+                "This field cannot be blank for this chant.",
+            )
+            self.assertEqual(response.context["form"]["mode"].data, "2")
+            self.assertEqual(
+                response.context["form"]["manuscript_full_text_std_spelling"].data,
+                "Plena sum",
+            )
+            chant_w_fulltext.refresh_from_db()
+            self.assertEqual(
+                chant_w_fulltext.manuscript_full_text_std_spelling, "Plena sum"
+            )
+            self.assertIsNone(chant_w_fulltext.mode)
+        with self.subTest("Chant with no full text"):
+            chant_wo_fulltext = make_fake_chant(
+                source=source, manuscript_full_text_std_spelling=None, mode="1"
+            )
+            response = self.client.post(
+                reverse("source-edit-chants", args=[source.id]),
+                {
+                    "folio": chant_wo_fulltext.folio,
+                    "c_sequence": chant_wo_fulltext.c_sequence,
+                    "pk": chant_wo_fulltext.id,
+                    "mode": "2",
+                },
+            )
+            self.assertEqual(response.status_code, 302)
+            chant_wo_fulltext.refresh_from_db()
+            self.assertEqual(chant_wo_fulltext.mode, "2")
+            self.assertEqual(chant_wo_fulltext.manuscript_full_text, "")
 
 
 class ChantEditSyllabificationViewTest(TestCase):
@@ -453,7 +522,7 @@ class ChantSearchViewTest(TestCase):
         # unless a segment is specified when a source is created, the source is automatically assigned
         # to the segment with the name "CANTUS Database" - to prevent errors, we must make sure that
         # such a segment exists
-        Segment.objects.create(name="CANTUS Database")
+        make_fake_segment(name="CANTUS Database")
 
     def test_view_url_path(self):
         response = self.client.get("/chant-search/")
@@ -489,7 +558,7 @@ class ChantSearchViewTest(TestCase):
     def test_search_by_service(self):
         source = make_fake_source(published=True)
         service = make_fake_service()
-        chant = Chant.objects.create(source=source, service=service)
+        chant = make_fake_chant(source=source, service=service)
         search_term = service.id
         response = self.client.get(reverse("chant-search"), {"service": search_term})
         context_chant_id = response.context["chants"][0].id
@@ -498,14 +567,14 @@ class ChantSearchViewTest(TestCase):
     def test_filter_by_genre(self):
         source = make_fake_source(published=True)
         genre = make_fake_genre()
-        chant = Chant.objects.create(source=source, genre=genre)
+        chant = make_fake_chant(source=source, genre=genre)
         response = self.client.get(reverse("chant-search"), {"genre": genre.id})
         context_chant_id = response.context["chants"][0].id
         self.assertEqual(chant.id, context_chant_id)
 
     def test_search_by_cantus_id(self):
         source = make_fake_source(published=True)
-        chant = Chant.objects.create(source=source, cantus_id=faker.numerify("######"))
+        chant = make_fake_chant(source=source, cantus_id=faker.numerify("######"))
         search_term = get_random_search_term(chant.cantus_id)
         response = self.client.get(reverse("chant-search"), {"cantus_id": search_term})
         context_chant_id = response.context["chants"][0].id
@@ -513,7 +582,7 @@ class ChantSearchViewTest(TestCase):
 
     def test_search_by_mode(self):
         source = make_fake_source(published=True)
-        chant = Chant.objects.create(source=source, mode=faker.numerify("#"))
+        chant = make_fake_chant(source=source, mode=faker.numerify("#"))
         search_term = get_random_search_term(chant.mode)
         response = self.client.get(reverse("chant-search"), {"mode": search_term})
         context_chant_id = response.context["chants"][0].id
@@ -522,7 +591,7 @@ class ChantSearchViewTest(TestCase):
     def test_search_by_feast(self):
         source = make_fake_source(published=True)
         feast = make_fake_feast()
-        chant = Chant.objects.create(source=source, feast=feast)
+        chant = make_fake_chant(source=source, feast=feast)
         search_term = get_random_search_term(feast.name)
         response = self.client.get(reverse("chant-search"), {"feast": search_term})
         context_chant_id = response.context["chants"][0].id
@@ -531,7 +600,7 @@ class ChantSearchViewTest(TestCase):
     def test_search_by_position(self):
         source = make_fake_source(published=True)
         position = 1
-        chant = Chant.objects.create(source=source, position=position)
+        chant = make_fake_chant(source=source, position=position)
         search_term = "1"
         response = self.client.get(reverse("chant-search"), {"position": search_term})
         context_chant_id = response.context["chants"][0].id
@@ -539,12 +608,12 @@ class ChantSearchViewTest(TestCase):
 
     def test_filter_by_melody(self):
         source = make_fake_source(published=True)
-        chant_with_melody = Chant.objects.create(
+        chant_with_melody = make_fake_chant(
             source=source,
             volpiano=make_fake_volpiano(),
         )
         # Create a chant without a melody
-        Chant.objects.create(source=source)
+        make_fake_chant(source=source, volpiano=None)
         response = self.client.get(reverse("chant-search"), {"melodies": "true"})
         # only chants with melodies should be in the result
         self.assertEqual(len(response.context["chants"]), 1)
@@ -553,7 +622,7 @@ class ChantSearchViewTest(TestCase):
 
     def test_keyword_search_starts_with(self):
         source = make_fake_source(published=True)
-        chant = Chant.objects.create(
+        chant = make_fake_chant(
             source=source,
             manuscript_full_text_std_spelling=faker.sentence(),
         )
@@ -569,7 +638,7 @@ class ChantSearchViewTest(TestCase):
 
     def test_keyword_search_contains(self):
         source = make_fake_source(published=True)
-        chant = Chant.objects.create(
+        chant = make_fake_chant(
             source=source,
             manuscript_full_text="hoc tantum possum dicere",
         )
@@ -1542,12 +1611,10 @@ class ChantSearchViewTest(TestCase):
         response = self.client.get(
             reverse("chant-search"), {"keyword": search_term, "op": "contains"}
         )
-        html = str(response.content)
-        # self.assertContains(response, source_heading, html=True)
-        # self.assertContains(response, source_short_heading, html=True)
-        # self.assertContains(response, url, html=True)
-        self.assertIn(
-            f'<a href="{url}" title="{source.heading}">{source.short_heading}</a>', html
+        self.assertContains(
+            response,
+            f'<a href="{url}" title="{source.heading}">{source.short_heading}</a>',
+            html=True,
         )
 
     def test_folio_column(self):
@@ -1580,12 +1647,10 @@ class ChantSearchViewTest(TestCase):
         response = self.client.get(
             reverse("chant-search"), {"keyword": search_term, "op": "contains"}
         )
-        html = str(response.content)
-        self.assertIn(feast_name, html)
-        self.assertIn(feast_description, html)
-        self.assertIn(url, html)
-        self.assertIn(
-            f'<a href="{url}" title="{feast_description}">{feast_name}</a>', html
+        self.assertContains(
+            response,
+            f'<a href="{url}" title="{feast_description}">{feast_name}</a>',
+            html=True,
         )
 
     def test_service_column(self):
@@ -1604,12 +1669,10 @@ class ChantSearchViewTest(TestCase):
         response = self.client.get(
             reverse("chant-search"), {"keyword": search_term, "op": "contains"}
         )
-        html = str(response.content)
-        self.assertIn(service_name, html)
-        self.assertIn(service_description, html)
-        self.assertIn(url, html)
-        self.assertIn(
-            f'<a href="{url}" title="{service_description}">{service_name}</a>', html
+        self.assertContains(
+            response,
+            f'<a href="{url}" title="{service_description}">{service_name}</a>',
+            html=True,
         )
 
     def test_genre_column(self):
@@ -1628,12 +1691,10 @@ class ChantSearchViewTest(TestCase):
         response = self.client.get(
             reverse("chant-search"), {"keyword": search_term, "op": "contains"}
         )
-        html = str(response.content)
-        self.assertIn(genre_name, html)
-        self.assertIn(genre_description, html)
-        self.assertIn(url, html)
-        self.assertIn(
-            f'<a href="{url}" title="{genre_description}">{genre_name}</a>', html
+        self.assertContains(
+            response,
+            f'<a href="{url}" title="{genre_description}">{genre_name}</a>',
+            html=True,
         )
 
     def test_position_column(self):
@@ -1664,10 +1725,9 @@ class ChantSearchViewTest(TestCase):
         response = self.client.get(
             reverse("chant-search"), {"keyword": search_term, "op": "contains"}
         )
-        html = str(response.content)
-        self.assertIn(cantus_id, html)
-        self.assertIn(url, html)
-        self.assertIn(f'<a href="{url}" target="_blank">{cantus_id}</a>', html)
+        self.assertContains(
+            response, f'<a href="{url}" target="_blank">{cantus_id}</a>', html=True
+        )
 
     def test_mode_column(self):
         source = make_fake_source(published=True)
@@ -1705,7 +1765,7 @@ class ChantSearchViewTest(TestCase):
             "\\xe2\\x9c\\x94",  # checkmark character
             html,
         )
-        self.assertIn(
+        self.assertInHTML(
             '<span title="Chant record includes Manuscript Full Text">\\xe2\\x9c\\x94</span>',
             html,
         )
@@ -1768,9 +1828,9 @@ class ChantSearchViewTest(TestCase):
         response = self.client.get(
             reverse("chant-search"), {"keyword": search_term, "op": "contains"}
         )
-        html = str(response.content)
-        self.assertIn(image_link, html)
-        self.assertIn(f'<a href="{image_link}" target="_blank">Image</a>', html)
+        self.assertContains(
+            response, f'<a href="{image_link}" target="_blank">Image</a>', html=True
+        )
 
 
 class ChantSearchMSViewTest(TestCase):
@@ -1797,7 +1857,7 @@ class ChantSearchMSViewTest(TestCase):
     def test_search_by_service(self):
         source = make_fake_source()
         service = make_fake_service()
-        chant = Chant.objects.create(source=source, service=service)
+        chant = make_fake_chant(source=source, service=service)
         search_term = service.id
         response = self.client.get(
             reverse("chant-search-ms", args=[source.id]), {"service": search_term}
@@ -1808,7 +1868,7 @@ class ChantSearchMSViewTest(TestCase):
     def test_filter_by_genre(self):
         source = make_fake_source()
         genre = make_fake_genre()
-        chant = Chant.objects.create(source=source, genre=genre)
+        chant = make_fake_chant(source=source, genre=genre)
         response = self.client.get(
             reverse("chant-search-ms", args=[source.id]), {"genre": genre.id}
         )
@@ -1817,7 +1877,7 @@ class ChantSearchMSViewTest(TestCase):
 
     def test_search_by_cantus_id(self):
         source = make_fake_source()
-        chant = Chant.objects.create(source=source, cantus_id=faker.numerify("######"))
+        chant = make_fake_chant(source=source, cantus_id=faker.numerify("######"))
         search_term = get_random_search_term(chant.cantus_id)
         response = self.client.get(
             reverse("chant-search-ms", args=[source.id]), {"cantus_id": search_term}
@@ -1827,7 +1887,7 @@ class ChantSearchMSViewTest(TestCase):
 
     def test_search_by_mode(self):
         source = make_fake_source()
-        chant = Chant.objects.create(source=source, mode=faker.numerify("#"))
+        chant = make_fake_chant(source=source, mode=faker.numerify("#"))
         search_term = get_random_search_term(chant.mode)
         response = self.client.get(
             reverse("chant-search-ms", args=[source.id]), {"mode": search_term}
@@ -1838,7 +1898,7 @@ class ChantSearchMSViewTest(TestCase):
     def test_search_by_feast(self):
         source = make_fake_source()
         feast = make_fake_feast()
-        chant = Chant.objects.create(source=source, feast=feast)
+        chant = make_fake_chant(source=source, feast=feast)
         search_term = get_random_search_term(feast.name)
         response = self.client.get(
             reverse("chant-search-ms", args=[source.id]), {"feast": search_term}
@@ -1849,7 +1909,7 @@ class ChantSearchMSViewTest(TestCase):
     def test_search_by_position(self):
         source = make_fake_source(published=True)
         position = 1
-        chant = Chant.objects.create(source=source, position=position)
+        chant = make_fake_chant(source=source, position=position)
         search_term = "1"
         response = self.client.get(
             reverse("chant-search-ms", args=[source.id]), {"position": search_term}
@@ -1859,12 +1919,12 @@ class ChantSearchMSViewTest(TestCase):
 
     def test_filter_by_melody(self):
         source = make_fake_source()
-        chant_with_melody = Chant.objects.create(
+        chant_with_melody = make_fake_chant(
             source=source,
             volpiano=make_fake_volpiano,
         )
         # Create a chant without melody that won't be in the result
-        Chant.objects.create(source=source)
+        make_fake_chant(source=source, volpiano=None)
         response = self.client.get(
             reverse("chant-search-ms", args=[source.id]), {"melodies": "true"}
         )
@@ -2543,12 +2603,10 @@ class ChantSearchMSViewTest(TestCase):
             reverse("chant-search-ms", args=[source.id]),
             {"keyword": search_term, "op": "contains"},
         )
-        html = str(response.content)
-        self.assertIn(feast_name, html)
-        self.assertIn(feast_description, html)
-        self.assertIn(url, html)
-        self.assertIn(
-            f'<a href="{url}" title="{feast_description}">{feast_name}</a>', html
+        self.assertContains(
+            response,
+            f'<a href="{url}" title="{feast_description}">{feast_name}</a>',
+            html=True,
         )
 
     def test_service_column(self):
@@ -2568,12 +2626,10 @@ class ChantSearchMSViewTest(TestCase):
             reverse("chant-search-ms", args=[source.id]),
             {"keyword": search_term, "op": "contains"},
         )
-        html = str(response.content)
-        self.assertIn(service_name, html)
-        self.assertIn(service_description, html)
-        self.assertIn(url, html)
-        self.assertIn(
-            f'<a href="{url}" title="{service_description}">{service_name}</a>', html
+        self.assertContains(
+            response,
+            f'<a href="{url}" title="{service_description}">{service_name}</a>',
+            html=True,
         )
 
     def test_genre_column(self):
@@ -2593,12 +2649,10 @@ class ChantSearchMSViewTest(TestCase):
             reverse("chant-search-ms", args=[source.id]),
             {"keyword": search_term, "op": "contains"},
         )
-        html = str(response.content)
-        self.assertIn(genre_name, html)
-        self.assertIn(genre_description, html)
-        self.assertIn(url, html)
-        self.assertIn(
-            f'<a href="{url}" title="{genre_description}">{genre_name}</a>', html
+        self.assertContains(
+            response,
+            f'<a href="{url}" title="{genre_description}">{genre_name}</a>',
+            html=True,
         )
 
     def test_position_column(self):
@@ -2631,10 +2685,9 @@ class ChantSearchMSViewTest(TestCase):
             reverse("chant-search-ms", args=[source.id]),
             {"keyword": search_term, "op": "contains"},
         )
-        html = str(response.content)
-        self.assertIn(cantus_id, html)
-        self.assertIn(url, html)
-        self.assertIn(f'<a href="{url}" target="_blank">{cantus_id}</a>', html)
+        self.assertContains(
+            response, f'<a href="{url}" target="_blank">{cantus_id}</a>', html=True
+        )
 
     def test_mode_column(self):
         source = make_fake_source(published=True)
@@ -2831,7 +2884,15 @@ class ChantCreateViewTest(TestCase):
         """post with correct source and empty full-text"""
         source = self.source
         url = reverse("chant-create", args=[source.id])
-        response = self.client.post(url, data={"manuscript_full_text_std_spelling": ""})
+        response = self.client.post(
+            url,
+            data={
+                "manuscript_full_text_std_spelling": "",
+                "folio": "010r",
+                "c_sequence": "1",
+            },
+        )
+
         self.assertFormError(
             response.context["form"],
             "manuscript_full_text_std_spelling",
@@ -2857,7 +2918,7 @@ class ChantCreateViewTest(TestCase):
         # create some chants in the test source
         source = self.source
         for i in range(1, 5):
-            Chant.objects.create(
+            make_fake_chant(
                 source=source,
                 manuscript_full_text=" ".join(faker.words(faker.random_int(3, 10))),
                 folio=test_folio,
@@ -3132,3 +3193,96 @@ class ChantDeleteViewTest(TestCase):
         chant = make_fake_chant()
         response = self.client.post(reverse("chant-delete", args=[chant.id + 100]))
         self.assertEqual(response.status_code, 404)
+
+
+class ChantViewHelpersTest(TestCase):
+    """
+    Tests for the helper functions defined in views.chant
+    """
+
+    @classmethod
+    def setUpTestData(cls):
+        cls.feasts = [make_fake_feast() for _ in range(4)]
+
+    def test_get_feast_selector_options(self) -> None:
+        with self.subTest("r/v foliation"):
+            source = make_fake_source()
+            feasts = self.feasts
+            # Create chants for feasts[0] for range 001v, A001v
+            for folio in ["A001v", "001v"]:
+                make_fake_chant(source=source, folio=folio, feast=feasts[0])
+            # Create chants for feasts[1] for range 001r, 002r
+            for folio in ["001r", "002r"]:
+                make_fake_chant(source=source, folio=folio, feast=feasts[1])
+            # Create chants for feasts[2] for range 002r-002v, 003v
+            for folio in ["002r", "002v", "003v"]:
+                make_fake_chant(source=source, folio=folio, feast=feasts[2])
+            # Create a chant on 003r with no feast that should show up in no ranges
+            make_fake_chant(source=source, folio="003r", feast=None)
+            feast_selector_options = get_feast_selector_options(source)
+            expected_result = [
+                (feasts[1].id, feasts[1].name, "001r, 002r"),
+                (feasts[0].id, feasts[0].name, "001v, A001v"),
+                (feasts[2].id, feasts[2].name, "002r-002v, 003v"),
+            ]
+            self.assertEqual(feast_selector_options, expected_result)
+        with self.subTest("Foliation with numbers only"):
+            source = make_fake_source()
+            feasts = self.feasts
+            # Create chants for feasts[0] for range 002-004
+            for folio in ["002", "003", "004"]:
+                make_fake_chant(source=source, folio=folio, feast=feasts[0])
+            # Create chants for feasts[1] for range 001, 003
+            for folio in ["001", "003"]:
+                make_fake_chant(source=source, folio=folio, feast=feasts[1])
+            feast_selector_options = get_feast_selector_options(source)
+            expected_result = [
+                (feasts[1].id, feasts[1].name, "001, 003"),
+                (feasts[0].id, feasts[0].name, "002-004"),
+            ]
+            self.assertEqual(feast_selector_options, expected_result)
+        with self.subTest("Unnumbered folios"):
+            source = make_fake_source()
+            feasts = self.feasts
+            # Create chants for feasts[0] for folios 003v-003w, 004v
+            for folio in ["003v", "003w", "004v"]:
+                make_fake_chant(source=source, folio=folio, feast=feasts[0])
+            # Create chants for feasts[1] for folios 002r-002x
+            for folio in ["002r", "002x"]:
+                make_fake_chant(source=source, folio=folio, feast=feasts[1])
+            # Create chants for feasts[2] for folios 003w-004r
+            for folio in ["003w", "004r"]:
+                make_fake_chant(source=source, folio=folio, feast=feasts[2])
+            # Create chants for feasts[3] for folios 003w-003x
+            for folio in ["003x", "003w"]:
+                make_fake_chant(source=source, folio=folio, feast=feasts[3])
+            feast_selector_options = get_feast_selector_options(source)
+            expected_result = [
+                (feasts[1].id, feasts[1].name, "002r-002x"),
+                (feasts[0].id, feasts[0].name, "003v-003w, 004v"),
+                (feasts[3].id, feasts[3].name, "003w-003x"),
+                (feasts[2].id, feasts[2].name, "003w-004r"),
+            ]
+            self.assertEqual(feast_selector_options, expected_result)
+        with self.subTest("Unexpected folio numbers"):
+            # This subTest ensures that unexpected folio numbers (say,
+            # a something like "00q1r") are added correctly to ranges.
+            source = make_fake_source()
+            feasts = self.feasts
+            # Create chants for feasts[0] with a normal range (001r-002r)
+            for folio in ["001r", "001v", "002r"]:
+                make_fake_chant(source=source, folio=folio, feast=feasts[0])
+            # Create chants for feasts[1] with an unexpected folio number (00q1r)
+            # and expected folio numbers
+            for folio in ["00q1r", "002v", "003r"]:
+                make_fake_chant(source=source, folio=folio, feast=feasts[1])
+            # Create chants for feasts[2] with only unexpected folio numbers
+            for folio in ["00q2r", "00q3", "X00q3"]:
+                make_fake_chant(source=source, folio=folio, feast=feasts[2])
+            feast_selector_options = get_feast_selector_options(source)
+            expected_result = [
+                (feasts[0].id, feasts[0].name, "001r-002r"),
+                (feasts[1].id, feasts[1].name, "002v-003r, 00q1r"),
+                (feasts[2].id, feasts[2].name, "00q2r, 00q3, X00q3"),
+            ]
+            self.assertEqual(feast_selector_options, expected_result)

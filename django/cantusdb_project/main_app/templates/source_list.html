@@ -1,88 +1,126 @@
-{% extends "base.html" %}
+{% extends "filterable_table_with_search_bar.html" %}
 {% load helper_tags %}
-
-
-{% block title %}
-    <title>Browse Sources | Cantus Database</title>
-{% endblock %}
-
-{% block scripts %}
-    <script src="/static/js/source_list.js"></script>
-{% endblock %}
-
-{% block content %}
-    <div class="mr-3 p-3 col-md-12 mx-auto bg-white rounded">
-    <!-- global search bar-->
-    <object align="right" class="search-bar">
-        {% include "global_search_bar.html" %}
-    </object>
-    <h3>Browse Sources</h3>
-    <small>Displaying {{ page_obj.start_index }}-{{ page_obj.end_index }} of <b>{{ page_obj.paginator.count }}</b> sources</small>
-
+{% block title %}<title>Browse Sources | Cantus Database</title>{% endblock %}
+{% block scripts %}<script src="/static/js/source_list.js"></script>{% endblock %}
+{% block header %}<h3>Browse Sources</h3>{% endblock %}
+{% block list_filter_form %}
     <form method="get">
-        <div class="form-row align-items-end">
-            <div class="form-group m-1 col-lg">
-                <label for="segmentFilter"><small>Segment</small></label>
-                <select id="segmentFilter" name="segment" class="form-control custom-select custom-select-sm">
+        <div class="row">
+            <div class="col-lg-3">
+                <label for="segmentFilter" class="small form-label">Segment</label>
+                <select id="segmentFilter"
+                        name="segment"
+                        class="form-control form-select form-select-sm">
                     <option value="">- Any -</option>
                     <option value="4063">CANTUS Database</option>
                     <option value="4064">Bower Sequence Database</option>
                 </select>
             </div>
-            <div class="form-group m-1 col-lg">
-                <label for="generalSearch"><small>General search (siglum, city, description ..)</small></label>
-                <input type="text" class="form-control form-control-sm" name="general"
-                    placeholder="Enter any part of a word" value="{{ request.GET.general }}" id="generalSearch">
+            <div class="col-lg">
+                <label for="generalSearch" class="small form-label">
+                    General search (siglum, city, description…)
+                </label>
+                <input type="text"
+                       class="form-control form-control-sm"
+                       name="general"
+                       placeholder="Enter any part of a word"
+                       value="{{ request.GET.general }}"
+                       id="generalSearch" />
             </div>
-            <div class="form-group m-1 col-lg">
-                <label for="indexingSearch"><small>Indexing Notes</small></label>
-                <input type="text" class="form-control form-control-sm" name="indexing"
-                    placeholder="Search for indexers, proofreaders, editors." value="{{ request.GET.indexing }}"
-                    id="indexingSearch">
+            <div class="col-lg">
+                <label for="indexingSearch" class="small form-label">
+                    Indexing notes and contributors
+                </label>
+                <input type="text"
+                       class="form-control form-control-sm"
+                       name="indexing"
+                       placeholder="Enter any part of a word/name"
+                       value="{{ request.GET.indexing }}"
+                       id="indexingSearch" />
             </div>
         </div>
-        <div class="form-row form-row align-items-end">
-            <div class="form-group m-1 col-lg">
-                <label for="countryFilter"><small>Country</small></label>
-                <select id="countryFilter" name="country" class="form-control custom-select custom-select-sm">
-                    <option value="">- Any -</option>
-                    {% for country in countries %}
-                        <option value="{{ country }}">{{ country }}</option>
+        <div class="row align-items-center">
+            <div class="col-lg-6">
+                <div class="row">
+                    <div class="col-lg-6">
+                        <label for="countryFilter" class="small form-label">Country</label>
+                        <select id="countryFilter"
+                                name="country"
+                                class="form-control form-select form-select-sm">
+                            <option value="">- Any -</option>
+                            {% for country in countries %}
+                                <option value="{{ country }}">{{ country }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div class="col-lg-6">
+                        <label for="provenanceFilter" class="small form-label">
+                            Provenance (origin/history)
+                        </label>
+                        <select id="provenanceFilter"
+                                name="provenance"
+                                class="form-control form-select form-select-sm">
+                            <option value="">- Any -</option>
+                            {% for provenance in provenances %}
+                                <option value="{{ provenance.id }}">{{ provenance.name }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div class="col-lg-6">
+                        <label for="centuryFilter" class="small form-label">Century</label>
+                        <select id="centuryFilter"
+                                name="century"
+                                class="form-control form-select form-select-sm">
+                            <option value="">- Any -</option>
+                            {% for century in centuries %}
+                                <option value="{{ century.id }}">{{ century.name }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div class="col-lg-6">
+                        <label for="prodMethodFilter" class="small form-label">Manuscript/Print</label>
+                        <select id="prodMethodFilter"
+                                name="prodMethod"
+                                class="form-control form-select form-select-sm">
+                            <option value="">- Any -</option>
+                            {% for prod_method_value, prod_method_label in production_method_choices %}
+                                <option value="{{ prod_method_value }}">{{ prod_method_label }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                </div>
+            </div>
+            <div class="col-lg-4">
+                <label for="sourceCompletenessFilter" class="small form-label">
+                    Complete Source/Fragment
+                </label>
+                <div class="input-group" id="sourceCompletenessFilter">
+                    {% for source_completeness_value, source_completeness_label in source_completeness_choices %}
+                        <div class="form-check form-check-inline">
+                            <input type="checkbox"
+                                   class="form-check-input"
+                                   id="sourceCompleteness-{{ source_completeness_value }}"
+                                   name="sourceCompleteness"
+                                   value="{{ source_completeness_value }}"
+                                   checked />
+                            <label class="form-label form-check-label small"
+                                   for="sourceCompleteness-{{ source_completeness_value }}">
+                                {{ source_completeness_label }}
+                            </label>
+                        </div>
                     {% endfor %}
-                </select>
+                </div>
             </div>
-            <div class="form-group m-1 col-lg">
-                <label for="provenanceFilter"><small>Provenance (origin/history)</small></label>
-                <select id="provenanceFilter" name="provenance" class="form-control custom-select custom-select-sm">
-                    <option value="">- Any -</option>
-                    {% for provenance in provenances %}
-                        <option value="{{ provenance.id }}">{{ provenance.name }}</option>
-                    {% endfor %}
-                </select>
+            <div class="col-lg-1">
+                <button type="submit" class="btn btn-dark btn-sm m-1" id="btn-submit">Apply</button>
+                <a href="/sources/?segment={{ request.GET.segment }}"
+                   class="btn btn-dark btn-sm m-1"
+                   id="btn-reset">Reset</a>
             </div>
-            <div class="form-group m-1 col-lg">
-                <label for="centuryFilter"><small>Century</small></label>
-                <select id="centuryFilter" name="century" class="form-control custom-select custom-select-sm">
-                    <option value="">- Any -</option>
-                    {% for century in centuries %}
-                        <option value="{{ century.id }}">{{ century.name }}</option>
-                    {% endfor %}
-                </select>
-            </div>
-            <div class="form-group m-1 col-lg">
-                <label for="fullSourceFilter"><small>Complete Source/Fragment</small></label>
-                <select id="fullSourceFilter"  name="fullSource" class="form-control custom-select custom-select-sm">
-                    <option value="">- Any -</option>
-                    <option value="true">Complete source</option>
-                    <option value="false">Fragment</option>
-                </select>
-            </div>
-            <div class="form-group m-1 col-lg">
-                <button type="submit" class="btn btn-dark btn-sm" id="btn-submit"> Apply </button>
-                <a href="/sources/?segment={{ request.GET.segment }}" class="btn btn-dark btn-sm" id="btn-reset"> Reset </a>
-            </div> 
         </div>
     </form>
+{% endblock %}
+{% block list_table %}
     {% if sources %}
         <table class="table table-sm small table-bordered table-responsive">
             <thead>
@@ -93,7 +131,11 @@
                     <th scope="col" class="text-wrap" style="text-align:center">Summary</th>
                     <th scope="col" class="text-wrap" style="text-align:center">Date/Origin</th>
                     <th scope="col" class="text-wrap" style="text-align:center">Image Link</th>
-                    <th scope="col" class="text-wrap" style="text-align:center">Chants<br>/&nbsp;Melodies</th>
+                    <th scope="col" class="text-wrap" style="text-align:center">
+                        Chants
+                        <br />
+                        /&nbsp;Melodies
+                    </th>
                 </tr>
             </thead>
             <tbody>
@@ -118,16 +160,24 @@
                             <a href="{% url 'source-detail' source.id %}">
                                 <b>{{ source.short_heading|truncatechars_html:100 }}</b>
                             </a>
+                            {% if source.source_completeness == 2 %}
+                                <br class="m-1" />
+                                <span class="small">Fragment</span>
+                            {% endif %}
                         </td>
-                        <td class="text-wrap" style="text-align:center" title="{{ source.summary|default:""|truncatechars_html:500 }}">
+                        <td class="text-wrap"
+                            style="text-align:center"
+                            title="{{ source.summary|default:""|truncatechars_html:500 }}">
                             {% if source.name %}
-                                <b>"{{ source.name }}"</b><br>
+                                <b>"{{ source.name }}"</b>
+                                <br />
                             {% endif %}
                             {{ source.summary|default:""|truncatechars_html:120 }}
                         </td>
                         <td class="text-wrap" style="text-align:center">
                             {% if source.century %}
-                                {% join_absolute_url_links source.century.all 'name' '/' %}<br>
+                                {% join_absolute_url_links source.century.all 'name' '/' %}
+                                <br />
                             {% endif %}
                             {% if source.provenance %}
                                 <a href="{% url 'provenance-detail' source.provenance.id %}">{{ source.provenance.name }}</a>
@@ -142,16 +192,13 @@
                             <b>{{ source.number_of_chants|default_if_none:"0" }}</b>
                             <!-- See #1635. Temporarily disable volpiano display for this source. -->
                             {% if source.number_of_melodies and source.id !=  680970 %}
-                                <br>/ {{ source.number_of_melodies }}
+                                <br />
+                                / {{ source.number_of_melodies }}
                             {% endif %}
                         </td>
                     </tr>
                 {% endfor %}
             </tbody>
         </table>
-        {% include "pagination.html" %}
-    {% else %}
-        No sources found.
     {% endif %}
-</div>
 {% endblock %}

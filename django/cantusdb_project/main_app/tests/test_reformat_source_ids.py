@@ -2,33 +2,37 @@ from django.test import TestCase
 from django.core.management import call_command
 
 from main_app.models import Source
-from main_app.tests.make_fakes import make_fake_institution, make_fake_segment
+from main_app.tests.make_fakes import (
+    make_fake_institution,
+    make_fake_segment,
+    make_fake_source,
+)
 
 
 class TestReformatSourceIDs(TestCase):
     def test_command(self):
         segment = make_fake_segment()
         fake_inst = make_fake_institution()
-        correct_source_1 = Source.objects.create(
+        correct_source_1 = make_fake_source(
             segment=segment,
             shelfmark="Correct Source 1",
             holding_institution=fake_inst,
             dact_id="0a1b3",
             fragmentarium_id="a1b3",
         )
-        correct_source_2 = Source.objects.create(
+        correct_source_2 = make_fake_source(
             segment=segment,
             shelfmark="Correct Source 2",
             holding_institution=fake_inst,
             dact_id="D-0a1b3",
             fragmentarium_id="F-a1b3",
         )
-        source_with_no_ids = Source.objects.create(
+        source_with_no_ids = make_fake_source(
             segment=segment,
             shelfmark="Source with no IDs",
             holding_institution=fake_inst,
         )
-        source_with_incorrect_ids = Source.objects.create(
+        source_with_incorrect_ids = make_fake_source(
             segment=segment,
             shelfmark="Source with incorrect IDs",
             holding_institution=fake_inst,

@@ -1,26 +1,21 @@
-{% extends "base.html" %}
-
-{% block title %}
-    <title>List of Indexers | Cantus Database</title>
-{% endblock %}
-
-{% block content %}
-<div class="mr-3 p-3 col-md-12 mx-auto bg-white rounded">
-    <object align="right" class="search-bar">
-        {% include "global_search_bar.html" %}
-    </object>
-    <h3>List of Indexers</h3>
-    <small>Displaying {{ page_obj.start_index }}-{{ page_obj.end_index }} of <b>{{ page_obj.paginator.count }}</b></small>
-    <form method="get">
-        <div class="input-group w-25">
-            <input type="text" class="form-control" placeholder="Type any part of a word" name="q" value="{{ request.GET.q }}">
-            <div class="input-group-append">
-                <button type="submit" class="btn btn-dark btn-sm"> Search </button>
+{% extends "filterable_table_with_search_bar.html" %}
+{% block title %}<title>List of Indexers | Cantus Database</title>{% endblock %}
+{% block header %}<h3>List of Indexers</h3>{% endblock %}
+{% block list_filter_form %}
+    <div class="row">
+        <form method="get" class="col col-lg-7 col-xxl-5">
+            <div class="input-group">
+                <input type="text"
+                       class="form-control"
+                       placeholder="Type any part of name, institution, city, or country"
+                       name="q"
+                       value="{{ request.GET.q }}" />
+                <button type="submit" class="btn btn-dark btn-sm">Search</button>
             </div>
-        </div>
-    </form>
-    <br>
-    
+        </form>
+    </div>
+{% endblock %}
+{% block list_table %}
     <table class="table table-bordered table-sm small">
         <thead>
             <tr>
@@ -51,6 +46,4 @@
             {% endfor %}
         </tbody>
     </table>
-    {% include "pagination.html" %}
-</div>
 {% endblock %}

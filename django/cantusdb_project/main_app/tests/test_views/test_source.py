@@ -9,7 +9,7 @@ from django.urls import reverse
 from django.contrib.auth import get_user_model
 from django.contrib.auth.models import Group
 
-from main_app.models import Source, Segment, Sequence, Chant, Differentia, Century
+from main_app.models import Source, Chant, Differentia
 from main_app.tests.make_fakes import (
     make_fake_source,
     make_fake_segment,
@@ -25,6 +25,8 @@ from main_app.tests.make_fakes import (
     make_fake_century,
     add_accents_to_string,
 )
+from main_app.tests.mixins import HTMLContentsTestMixin
+from users.models import User
 
 # Create a Faker instance with locale set to Latin
 faker = Faker("la")
@@ -46,7 +48,7 @@ class SourceCreateViewTest(TestCase):
         # unless a segment is specified when a source is created, the source is automatically assigned
         # to the segment with the name "CANTUS Database" - to prevent errors, we must make sure that
         # such a segment exists
-        Segment.objects.create(name="CANTUS Database")
+        make_fake_segment(name="CANTUS Database")
 
     def test_url_and_templates(self):
         response = self.client.get(reverse("source-create"))
@@ -122,40 +124,40 @@ class SourceEditViewTest(TestCase):
 
 
 class SourceDetailViewTest(TestCase):
-    def test_url_and_templates(self):
+    def test_url_and_templates(self) -> None:
         source = make_fake_source()
         response = self.client.get(reverse("source-detail", args=[source.id]))
         self.assertEqual(response.status_code, 200)
         self.assertTemplateUsed(response, "base.html")
         self.assertTemplateUsed(response, "source_detail.html")
 
-    def test_context_chant_folios(self):
+    def test_context_chant_folios(self) -> None:
         # create a source and several chants in it
         source = make_fake_source()
-        Chant.objects.create(source=source, folio="001r")
-        Chant.objects.create(source=source, folio="001r")
-        Chant.objects.create(source=source, folio="001v")
-        Chant.objects.create(source=source, folio="001v")
-        Chant.objects.create(source=source, folio="002r")
-        Chant.objects.create(source=source, folio="002v")
+        make_fake_chant(source=source, folio="001r")
+        make_fake_chant(source=source, folio="001r")
+        make_fake_chant(source=source, folio="001v")
+        make_fake_chant(source=source, folio="001v")
+        make_fake_chant(source=source, folio="002r")
+        make_fake_chant(source=source, folio="002v")
         # request the page
         response = self.client.get(reverse("source-detail", args=[source.id]))
         # the element in "folios" should be unique and ordered in this way
         folios = response.context["folios"]
         self.assertEqual(list(folios), ["001r", "001v", "002r", "002v"])
 
-    def test_context_sequence_folios(self):
+    def test_context_sequence_folios(self) -> None:
         # create a sequence source and several sequences in it
-        bower_segment = Segment.objects.create(id=4064, name="Bower Sequence Database")
+        bower_segment = make_fake_segment(id=4064, name="Bower Sequence Database")
         source = make_fake_source(
             shelfmark="a sequence source", published=True, segment=bower_segment
         )
-        Sequence.objects.create(source=source, folio="001r")
-        Sequence.objects.create(source=source, folio="001r")
-        Sequence.objects.create(source=source, folio="001v")
-        Sequence.objects.create(source=source, folio="001v")
-        Sequence.objects.create(source=source, folio="002r")
-        Sequence.objects.create(source=source, folio="002v")
+        make_fake_sequence(source=source, folio="001r")
+        make_fake_sequence(source=source, folio="001r")
+        make_fake_sequence(source=source, folio="001v")
+        make_fake_sequence(source=source, folio="001v")
+        make_fake_sequence(source=source, folio="002r")
+        make_fake_sequence(source=source, folio="002v")
         # request the page
         response = self.client.get(reverse("source-detail", args=[source.id]))
         # the element in "folios" should be unique and ordered in this way
@@ -164,36 +166,14 @@ class SourceDetailViewTest(TestCase):
         # the folios should be ordered by the "folio" field
         self.assertEqual(folios.query.order_by, ("folio",))
 
-    def test_context_feasts_with_folios(self):
-        # create a source and several chants (associated with feasts) in it
-        source = make_fake_source()
-        feast_1 = make_fake_feast()
-        feast_2 = make_fake_feast()
-        Chant.objects.create(source=source, folio="001r", feast=feast_1)
-        Chant.objects.create(source=source, folio="001r", feast=feast_1)
-        Chant.objects.create(source=source, folio="001v", feast=feast_2)
-        Chant.objects.create(source=source, folio="001v")
-        Chant.objects.create(source=source, folio="001v", feast=feast_2)
-        Chant.objects.create(source=source, folio="002r", feast=feast_1)
-        # request the page
-        response = self.client.get(reverse("source-detail", args=[source.id]))
-        # context "feasts_with_folios" is a list of tuples
-        # it records the folios where the feast changes
-        expected_result = [
-            ("001r", feast_1.id, feast_1.name),
-            ("001v", feast_2.id, feast_2.name),
-            ("002r", feast_1.id, feast_1.name),
-        ]
-        self.assertEqual(response.context["feasts_with_folios"], expected_result)
-
-    def test_context_sequences(self):
+    def test_context_sequences(self) -> None:
         # create a sequence source and several sequences in it
         source = make_fake_source(
-            segment=Segment.objects.create(id=4064, name="Bower Sequence Database"),
+            segment=make_fake_segment(id=4064, name="Bower Sequence Database"),
             shelfmark="a sequence source",
             published=True,
         )
-        sequence = Sequence.objects.create(source=source)
+        sequence = make_fake_sequence(source=source)
         # request the page
         response = self.client.get(reverse("source-detail", args=[source.id]))
         # the sequence should be in the list of sequences
@@ -201,7 +181,7 @@ class SourceDetailViewTest(TestCase):
         # the list of sequences should be ordered by the "sequence" field
         self.assertEqual(response.context["sequences"].query.order_by, ("s_sequence",))
 
-    def test_published_vs_unpublished(self):
+    def test_published_vs_unpublished(self) -> None:
         source = make_fake_source(published=False)
         response_1 = self.client.get(reverse("source-detail", args=[source.id]))
         self.assertEqual(response_1.status_code, 403)
@@ -211,7 +191,7 @@ class SourceDetailViewTest(TestCase):
         response_2 = self.client.get(reverse("source-detail", args=[source.id]))
         self.assertEqual(response_2.status_code, 200)
 
-    def test_chant_list_link(self):
+    def test_chant_list_link(self) -> None:
         cantus_segment = make_fake_segment(id=4063)
         cantus_source = make_fake_source(segment=cantus_segment)
         chant_list_link = reverse("browse-chants", args=[cantus_source.id])
@@ -231,8 +211,21 @@ class SourceDetailViewTest(TestCase):
         bower_source_html = str(bower_source_response.content)
         self.assertNotIn(bower_chant_list_link, bower_source_html)
 
+    def test_json_response(self) -> None:
+        source = make_fake_source()
+        response = self.client.get(
+            reverse(
+                "source-detail",
+                args=[source.id],
+            ),
+            headers={"Accept": "application/json"},
+        )
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response["Content-Type"], "application/json")
+        self.assertEqual(response.json()["source"]["id"], source.id)
 
-class SourceInventoryViewTest(TestCase):
+
+class SourceInventoryViewTest(HTMLContentsTestMixin, TestCase):
     def test_url_and_templates(self):
         source = make_fake_source()
         response = self.client.get(reverse("source-inventory", args=[source.id]))
@@ -261,11 +254,11 @@ class SourceInventoryViewTest(TestCase):
 
     def test_sequence_source_queryset(self):
         seq_source = make_fake_source(
-            segment=Segment.objects.create(id=4064, name="Clavis Sequentiarium"),
+            segment=make_fake_segment(id=4064, name="Clavis Sequentiarium"),
             shelfmark="a sequence source",
             published=True,
         )
-        sequence = Sequence.objects.create(source=seq_source)
+        sequence = make_fake_sequence(source=seq_source)
         response = self.client.get(reverse("source-inventory", args=[seq_source.id]))
         self.assertEqual(seq_source, response.context["source"])
         self.assertIn(sequence, response.context["chants"])
@@ -273,15 +266,12 @@ class SourceInventoryViewTest(TestCase):
     def test_shelfmark_column(self):
         shelfmark = "Sigl-01"
         source = make_fake_source(published=True, shelfmark=shelfmark)
-        source_shelfmark = source.shelfmark
         make_fake_chant(source=source)
         response = self.client.get(reverse("source-inventory", args=[source.id]))
-        html = str(response.content)
-        self.assertIn(shelfmark, html)
         expected_html_substring = (
             f'<td title="{source.heading}">{source.short_heading}</td>'
         )
-        self.assertIn(expected_html_substring, html)
+        self.assertContains(response, expected_html_substring, html=True)
 
     def test_marginalia_column(self):
         source = make_fake_source(published=True)
@@ -312,7 +302,7 @@ class SourceInventoryViewTest(TestCase):
         self.assertIn(c_sequence, html)
 
     def test_sequence_column_for_sequence_source(self):
-        bower_segment = Segment.objects.create(id=4064, name="Bower Sequence Database")
+        bower_segment = make_fake_segment(id=4064, name="Bower Sequence Database")
         source = make_fake_source(published=True, segment=bower_segment)
         sequence = make_fake_sequence(source=source)
         s_sequence = sequence.s_sequence
@@ -387,7 +377,7 @@ class SourceInventoryViewTest(TestCase):
         self.assertIn(expected_html_substring, html)
 
     def test_incipit_column_for_sequence_source(self):
-        bower_segment = Segment.objects.create(id=4064, name="Bower Sequence Database")
+        bower_segment = make_fake_segment(id=4064, name="Bower Sequence Database")
         source = make_fake_source(published=True, segment=bower_segment)
         sequence = make_fake_sequence(source=source)
         incipit = sequence.incipit
@@ -452,12 +442,10 @@ class SourceInventoryViewTest(TestCase):
         chant.save()
 
         response = self.client.get(reverse("source-inventory", args=[source.id]))
-        html: str = str(response.content)
-        self.assertIn(diff_id, html)
         expected_html_substring: str = (
             f'<a href="https://differentiaedatabase.ca/differentia/{diff_id}" target="_blank">'
         )
-        self.assertIn(expected_html_substring, html)
+        self.assertParsedContains(response, expected_html_substring)
 
     def test_redirect_with_source_parameter(self):
         cantus_segment = make_fake_segment(id=4063)
@@ -520,8 +508,8 @@ class SourceBrowseChantsViewTest(TestCase):
         cantus_segment = make_fake_segment(id=4063)
         source = make_fake_source(segment=cantus_segment)
         another_source = make_fake_source(segment=cantus_segment)
-        chant_in_source = Chant.objects.create(source=source)
-        chant_in_another_source = Chant.objects.create(source=another_source)
+        chant_in_source = make_fake_chant(source=source)
+        chant_in_another_source = make_fake_chant(source=another_source)
         response = self.client.get(reverse("browse-chants", args=[source.id]))
         chants = response.context["chants"]
         self.assertIn(chant_in_source, chants)
@@ -532,10 +520,8 @@ class SourceBrowseChantsViewTest(TestCase):
         source = make_fake_source(segment=cantus_segment)
         feast = make_fake_feast()
         another_feast = make_fake_feast()
-        chant_in_feast = Chant.objects.create(source=source, feast=feast)
-        chant_in_another_feast = Chant.objects.create(
-            source=source, feast=another_feast
-        )
+        chant_in_feast = make_fake_chant(source=source, feast=feast)
+        chant_in_another_feast = make_fake_chant(source=source, feast=another_feast)
         response = self.client.get(
             reverse("browse-chants", args=[source.id]), {"feast": feast.id}
         )
@@ -548,10 +534,8 @@ class SourceBrowseChantsViewTest(TestCase):
         source = make_fake_source(segment=cantus_segment)
         genre = make_fake_genre()
         another_genre = make_fake_genre()
-        chant_in_genre = Chant.objects.create(source=source, genre=genre)
-        chant_in_another_genre = Chant.objects.create(
-            source=source, genre=another_genre
-        )
+        chant_in_genre = make_fake_chant(source=source, genre=genre)
+        chant_in_another_genre = make_fake_chant(source=source, genre=another_genre)
         response = self.client.get(
             reverse("browse-chants", args=[source.id]), {"genre": genre.id}
         )
@@ -562,8 +546,8 @@ class SourceBrowseChantsViewTest(TestCase):
     def test_filter_by_folio(self):
         cantus_segment = make_fake_segment(id=4063)
         source = make_fake_source(segment=cantus_segment)
-        chant_on_folio = Chant.objects.create(source=source, folio="001r")
-        chant_on_another_folio = Chant.objects.create(source=source, folio="002r")
+        chant_on_folio = make_fake_chant(source=source, folio="001r")
+        chant_on_another_folio = make_fake_chant(source=source, folio="002r")
         response = self.client.get(
             reverse("browse-chants", args=[source.id]), {"folio": "001r"}
         )
@@ -574,9 +558,7 @@ class SourceBrowseChantsViewTest(TestCase):
     def test_search_full_text(self):
         cantus_segment = make_fake_segment(id=4063)
         source = make_fake_source(segment=cantus_segment)
-        chant = Chant.objects.create(
-            source=source, manuscript_full_text=faker.sentence()
-        )
+        chant = make_fake_chant(source=source, manuscript_full_text=faker.sentence())
         search_term = get_random_search_term(chant.manuscript_full_text)
         response = self.client.get(
             reverse("browse-chants", args=[source.id]), {"search_text": search_term}
@@ -586,9 +568,9 @@ class SourceBrowseChantsViewTest(TestCase):
     def test_search_incipit(self):
         cantus_segment = make_fake_segment(id=4063)
         source = make_fake_source(segment=cantus_segment)
-        chant = Chant.objects.create(
+        chant = make_fake_chant(
             source=source,
-            incipit=faker.sentence(),
+            manuscript_full_text_std_spelling=faker.sentence(),
         )
         search_term = get_random_search_term(chant.incipit)
         response = self.client.get(
@@ -599,7 +581,7 @@ class SourceBrowseChantsViewTest(TestCase):
     def test_search_full_text_std_spelling(self):
         cantus_segment = make_fake_segment(id=4063)
         source = make_fake_source(segment=cantus_segment)
-        chant = Chant.objects.create(
+        chant = make_fake_chant(
             source=source,
             manuscript_full_text_std_spelling=faker.sentence(),
         )
@@ -608,6 +590,82 @@ class SourceBrowseChantsViewTest(TestCase):
             reverse("browse-chants", args=[source.id]), {"search_text": search_term}
         )
         self.assertIn(chant, response.context["chants"])
+
+    def test_search_proofread(self):
+        cantus_segment = make_fake_segment(id=4063)
+        source = make_fake_source(segment=cantus_segment)
+        chant_std_proofread = make_fake_chant(
+            source=source,
+            manuscript_full_text_std_proofread=True,
+            manuscript_full_text_proofread=False,
+            volpiano_proofread=False,
+        )
+        chant_ft_proofread = make_fake_chant(
+            source=source,
+            manuscript_full_text_std_proofread=False,
+            manuscript_full_text_proofread=True,
+            volpiano_proofread=False,
+        )
+        chant_volpiano_proofread = make_fake_chant(
+            source=source,
+            manuscript_full_text_std_proofread=False,
+            manuscript_full_text_proofread=False,
+            volpiano_proofread=True,
+        )
+        response = self.client.get(
+            reverse("browse-chants", args=[source.id]),
+        )
+        self.assertIn(chant_std_proofread, response.context["chants"])
+        self.assertIn(chant_ft_proofread, response.context["chants"])
+        self.assertIn(chant_volpiano_proofread, response.context["chants"])
+
+        response = self.client.get(
+            reverse("browse-chants", args=[source.id]),
+            {"manuscript_full_text_std_proofread": True},
+        )
+        self.assertIn(chant_std_proofread, response.context["chants"])
+        self.assertNotIn(chant_ft_proofread, response.context["chants"])
+        self.assertNotIn(chant_volpiano_proofread, response.context["chants"])
+
+        response = self.client.get(
+            reverse("browse-chants", args=[source.id]),
+            {"manuscript_full_text_std_proofread": False},
+        )
+        self.assertNotIn(chant_std_proofread, response.context["chants"])
+        self.assertIn(chant_ft_proofread, response.context["chants"])
+        self.assertIn(chant_volpiano_proofread, response.context["chants"])
+
+        response = self.client.get(
+            reverse("browse-chants", args=[source.id]),
+            {"manuscript_full_text_proofread": True},
+        )
+        self.assertNotIn(chant_std_proofread, response.context["chants"])
+        self.assertIn(chant_ft_proofread, response.context["chants"])
+        self.assertNotIn(chant_volpiano_proofread, response.context["chants"])
+
+        response = self.client.get(
+            reverse("browse-chants", args=[source.id]),
+            {"manuscript_full_text_proofread": False},
+        )
+        self.assertIn(chant_std_proofread, response.context["chants"])
+        self.assertNotIn(chant_ft_proofread, response.context["chants"])
+        self.assertIn(chant_volpiano_proofread, response.context["chants"])
+
+        response = self.client.get(
+            reverse("browse-chants", args=[source.id]),
+            {"volpiano_proofread": True},
+        )
+        self.assertNotIn(chant_std_proofread, response.context["chants"])
+        self.assertNotIn(chant_ft_proofread, response.context["chants"])
+        self.assertIn(chant_volpiano_proofread, response.context["chants"])
+
+        response = self.client.get(
+            reverse("browse-chants", args=[source.id]),
+            {"volpiano_proofread": False},
+        )
+        self.assertIn(chant_std_proofread, response.context["chants"])
+        self.assertIn(chant_ft_proofread, response.context["chants"])
+        self.assertNotIn(chant_volpiano_proofread, response.context["chants"])
 
     def test_context_source(self):
         cantus_segment = make_fake_segment(id=4063)
@@ -618,37 +676,16 @@ class SourceBrowseChantsViewTest(TestCase):
     def test_context_folios(self):
         cantus_segment = make_fake_segment(id=4063)
         source = make_fake_source(segment=cantus_segment)
-        Chant.objects.create(source=source, folio="001r")
-        Chant.objects.create(source=source, folio="001r")
-        Chant.objects.create(source=source, folio="001v")
-        Chant.objects.create(source=source, folio="001v")
-        Chant.objects.create(source=source, folio="002r")
-        Chant.objects.create(source=source, folio="002v")
+        make_fake_chant(source=source, folio="001r")
+        make_fake_chant(source=source, folio="001r")
+        make_fake_chant(source=source, folio="001v")
+        make_fake_chant(source=source, folio="001v")
+        make_fake_chant(source=source, folio="002r")
+        make_fake_chant(source=source, folio="002v")
         response = self.client.get(reverse("browse-chants", args=[source.id]))
         # the element in "folios" should be unique and ordered in this way
         folios = response.context["folios"]
         self.assertEqual(list(folios), ["001r", "001v", "002r", "002v"])
-
-    def test_context_feasts_with_folios(self):
-        cantus_segment = make_fake_segment(id=4063)
-        source = make_fake_source(segment=cantus_segment)
-        feast_1 = make_fake_feast()
-        feast_2 = make_fake_feast()
-        Chant.objects.create(source=source, folio="001r", feast=feast_1)
-        Chant.objects.create(source=source, folio="001r", feast=feast_1)
-        Chant.objects.create(source=source, folio="001v", feast=feast_2)
-        Chant.objects.create(source=source, folio="001v")
-        Chant.objects.create(source=source, folio="001v", feast=feast_2)
-        Chant.objects.create(source=source, folio="002r", feast=feast_1)
-        response = self.client.get(reverse("browse-chants", args=[source.id]))
-        # context "feasts_with_folios" is a list of tuples
-        # it records the folios where the feast changes
-        expected_result = [
-            ("001r", feast_1.id, feast_1.name),
-            ("001v", feast_2.id, feast_2.name),
-            ("002r", feast_1.id, feast_1.name),
-        ]
-        self.assertEqual(response.context["feasts_with_folios"], expected_result)
 
     def test_redirect_with_source_parameter(self):
         cantus_segment = make_fake_segment(id=4063)
@@ -675,7 +712,7 @@ class SourceListViewTest(TestCase):
         # unless a segment is specified when a source is created, the source is automatically assigned
         # to the segment with the name "CANTUS Database" - to prevent errors, we must make sure that
         # such a segment exists
-        Segment.objects.create(name="CANTUS Database")
+        make_fake_segment(name="CANTUS Database")
 
     def test_url_and_templates(self):
         response = self.client.get(reverse("source-list"))
@@ -799,11 +836,9 @@ class SourceListViewTest(TestCase):
         self.assertNotIn(no_provenance_source, sources)
 
     def test_filter_by_century(self):
-        ninth_century = Century.objects.create(name="09th century")
-        ninth_century_first_half = Century.objects.create(
-            name="09th century (1st half)"
-        )
-        tenth_century = Century.objects.create(name="10th century")
+        ninth_century = make_fake_century(name="09th century")
+        ninth_century_first_half = make_fake_century(name="09th century (1st half)")
+        tenth_century = make_fake_century(name="10th century")
 
         ninth_century_source = make_fake_source(
             published=True,
@@ -844,7 +879,7 @@ class SourceListViewTest(TestCase):
         self.assertIn(ninth_century_first_half_source, sources)
         self.assertNotIn(multiple_century_source, sources)
 
-    def test_filter_by_full_source(self):
+    def test_filter_by_full_source(self) -> None:
         full_source = make_fake_source(
             source_completeness=Source.SourceCompletenessChoices.FULL_SOURCE,
             published=True,
@@ -858,30 +893,112 @@ class SourceListViewTest(TestCase):
         reconstruction = make_fake_source(
             source_completeness=Source.SourceCompletenessChoices.RECONSTRUCTION,
             published=True,
-            shelfmark="full_source field is empty",
+            shelfmark="reconstruction",
+        )
+        fragmented = make_fake_source(
+            source_completeness=Source.SourceCompletenessChoices.FRAGMENTED,
+            published=True,
+            shelfmark="fragmented",
         )
 
-        # display full sources
-        response = self.client.get(reverse("source-list"), {"fullSource": "true"})
-        sources = response.context["sources"]
-        self.assertIn(full_source, sources)
-        self.assertNotIn(fragment, sources)
-        self.assertNotIn(reconstruction, sources)
+        with self.subTest("Display all sources: No query params"):
+            response = self.client.get(reverse("source-list"))
+            sources = response.context["sources"]
+            self.assertIn(full_source, sources)
+            self.assertIn(fragment, sources)
+            self.assertIn(reconstruction, sources)
+            self.assertIn(fragmented, sources)
 
-        # display fragments
-        response = self.client.get(reverse("source-list"), {"fullSource": "false"})
-        sources = response.context["sources"]
-        self.assertNotIn(full_source, sources)
-        self.assertIn(fragment, sources)
-        self.assertNotIn(reconstruction, sources)
+        with self.subTest("Display all sources: All sourceCompleteness params"):
+            response = self.client.get(
+                reverse("source-list"),
+                {"sourceCompleteness": Source.SourceCompletenessChoices.values},
+            )
+            sources = response.context["sources"]
+            self.assertIn(full_source, sources)
+            self.assertIn(fragment, sources)
+            self.assertIn(reconstruction, sources)
+            self.assertIn(fragmented, sources)
 
-        # display all sources
-        response = self.client.get(reverse("source-list"))
-        sources = response.context["sources"]
-        # all three should be in the list
-        self.assertIn(full_source, sources)
-        self.assertIn(fragment, sources)
-        self.assertIn(reconstruction, sources)
+        with self.subTest("Display full sources only"):
+            response = self.client.get(
+                reverse("source-list"),
+                {"sourceCompleteness": Source.SourceCompletenessChoices.FULL_SOURCE},
+            )
+            sources = response.context["sources"]
+            self.assertIn(full_source, sources)
+            self.assertNotIn(fragment, sources)
+            self.assertNotIn(reconstruction, sources)
+            self.assertNotIn(fragmented, sources)
+
+        with self.subTest("Display fragments"):
+            response = self.client.get(
+                reverse("source-list"),
+                {"sourceCompleteness": Source.SourceCompletenessChoices.FRAGMENT},
+            )
+            sources = response.context["sources"]
+            self.assertNotIn(full_source, sources)
+            self.assertIn(fragment, sources)
+            self.assertNotIn(reconstruction, sources)
+            self.assertNotIn(fragmented, sources)
+
+        with self.subTest("Display fragmented sources"):
+            response = self.client.get(
+                reverse("source-list"),
+                {"sourceCompleteness": Source.SourceCompletenessChoices.FRAGMENTED},
+            )
+            sources = response.context["sources"]
+            self.assertNotIn(full_source, sources)
+            self.assertNotIn(fragment, sources)
+            self.assertNotIn(reconstruction, sources)
+            self.assertIn(fragmented, sources)
+
+        with self.subTest(
+            "Display multiple source types: fragmented and reconstructions"
+        ):
+            response = self.client.get(
+                reverse("source-list"),
+                {
+                    "sourceCompleteness": [
+                        Source.SourceCompletenessChoices.FRAGMENTED,
+                        Source.SourceCompletenessChoices.RECONSTRUCTION,
+                    ]
+                },
+            )
+            sources = response.context["sources"]
+            self.assertNotIn(full_source, sources)
+            self.assertNotIn(fragment, sources)
+            self.assertIn(reconstruction, sources)
+            self.assertIn(fragmented, sources)
+
+    def test_filter_by_production_method(self) -> None:
+        manuscript_source = make_fake_source(
+            production_method=Source.ProductionMethodChoices.MANUSCRIPT, published=True
+        )
+        print_source = make_fake_source(
+            production_method=Source.ProductionMethodChoices.PRINT, published=True
+        )
+        with self.subTest("All sources"):
+            response = self.client.get(reverse("source-list"))
+            sources = response.context["sources"]
+            self.assertIn(manuscript_source, sources)
+            self.assertIn(print_source, sources)
+        with self.subTest("Manuscript sources only"):
+            response = self.client.get(
+                reverse("source-list"),
+                {"prodMethod": Source.ProductionMethodChoices.MANUSCRIPT},
+            )
+            sources = response.context["sources"]
+            self.assertIn(manuscript_source, sources)
+            self.assertNotIn(print_source, sources)
+        with self.subTest("Print sources only"):
+            response = self.client.get(
+                reverse("source-list"),
+                {"prodMethod": Source.ProductionMethodChoices.PRINT},
+            )
+            sources = response.context["sources"]
+            self.assertNotIn(manuscript_source, sources)
+            self.assertIn(print_source, sources)
 
     def test_search_by_title(self):
         """The "general search" field searches in `title`, `shelfmark`, `description`, and `summary`"""
@@ -973,6 +1090,15 @@ class SourceListViewTest(TestCase):
         response = self.client.get(reverse("source-list"), {"general": search_term})
         self.assertIn(source, response.context["sources"])
 
+    def test_search_by_name(self) -> None:
+        source = make_fake_source(
+            name=faker.sentence(), published=True, shelfmark="title"
+        )
+        # We know source.name is not None because it was just set
+        search_term = get_random_search_term(source.name)  # type: ignore[arg-type]
+        response = self.client.get(reverse("source-list"), {"general": search_term})
+        self.assertIn(source, response.context["sources"])
+
     def test_ordering(self) -> None:
         """
         Order is currently available by country, city + institution name (parameter:
@@ -982,10 +1108,21 @@ class SourceListViewTest(TestCase):
         # Add a source from a private collector
         private_collector = make_fake_institution(is_private_collector=True)
         sources.append(make_fake_source(holding_institution=private_collector))
+        # Add a source with no holding institution
+        sources.append(make_fake_source(holding_institution=None))
         # Create a bunch of other sources
         for _ in range(10):
-            inst = make_fake_institution(siglum=faker.word())
+            inst = make_fake_institution()
             sources.append(make_fake_source(holding_institution=inst))
+        # Make sure we have a source with the same country but different holding
+        # institution than our other sources.
+        sources.append(
+            make_fake_source(
+                holding_institution=make_fake_institution(country=inst.country)
+            )
+        )
+        # Make sure we have a source with the same institution as another source
+        sources.append(make_fake_source(holding_institution=inst))
         # Default ordering is by siglum and shelfmark, ascending
         with self.subTest("Default ordering"):
             response = self.client.get(reverse("source-list"))
@@ -993,45 +1130,53 @@ class SourceListViewTest(TestCase):
             expected_source_order = sorted(
                 sources,
                 key=lambda source: (
-                    0 if source.holding_institution else 1,
-                    1 if source.holding_institution.is_private_collector else 0,
+                    source.holding_institution is None
+                    or source.holding_institution.is_private_collector,
                     (
                         source.holding_institution.siglum
-                        if source.holding_institution.siglum
+                        if source.holding_institution
+                        and not source.holding_institution.is_private_collector
                         else ""
                     ),
                     source.shelfmark,
                 ),
             )
-            self.assertEqual(
-                list(expected_source_order),
-                list(response_sources),
-            )
+            self.assertEqual(list(expected_source_order), list(response_sources))
             response_reverse = self.client.get(reverse("source-list"), {"sort": "desc"})
             response_sources_reverse = response_reverse.context["sources"]
             self.assertEqual(
-                list(reversed(expected_source_order)),
-                list(response_sources_reverse),
+                list(reversed(expected_source_order)), list(response_sources_reverse)
             )
-        with self.subTest("Order by country, ascending"):
+        with self.subTest("Order by country"):
             response = self.client.get(reverse("source-list"), {"order": "country"})
             response_sources = response.context["sources"]
             expected_source_order = sorted(
-                sources, key=lambda source: source.holding_institution.country
+                sources,
+                key=lambda source: (
+                    source.holding_institution is None,
+                    (
+                        source.holding_institution.country
+                        if source.holding_institution
+                        else ""
+                    ),
+                    (
+                        source.holding_institution.siglum
+                        if source.holding_institution
+                        and not source.holding_institution.is_private_collector
+                        else ""
+                    ),
+                    source.shelfmark,
+                ),
             )
-            self.assertEqual(
-                list(expected_source_order),
-                list(response_sources),
-            )
+            self.assertEqual(list(expected_source_order), list(response_sources))
             response_reverse = self.client.get(
                 reverse("source-list"), {"order": "country", "sort": "desc"}
             )
             response_sources_reverse = response_reverse.context["sources"]
             self.assertEqual(
-                list(reversed(expected_source_order)),
-                list(response_sources_reverse),
+                list(reversed(expected_source_order)), list(response_sources_reverse)
             )
-        with self.subTest("Order by city and institution name, ascending"):
+        with self.subTest("Order by city and institution name"):
             response = self.client.get(
                 reverse("source-list"), {"order": "city_institution"}
             )
@@ -1039,19 +1184,142 @@ class SourceListViewTest(TestCase):
             expected_source_order = sorted(
                 sources,
                 key=lambda source: (
-                    source.holding_institution.city,
-                    source.holding_institution.name,
+                    source.holding_institution is None,
+                    (
+                        source.holding_institution.city
+                        if source.holding_institution
+                        else ""
+                    ),
+                    (
+                        source.holding_institution.name
+                        if source.holding_institution
+                        else ""
+                    ),
+                    (
+                        source.holding_institution.siglum
+                        if source.holding_institution
+                        and source.holding_institution.is_private_collector
+                        else ""
+                    ),
+                    source.shelfmark,
                 ),
             )
-            self.assertEqual(
-                list(expected_source_order),
-                list(response_sources),
-            )
+            self.assertEqual(list(expected_source_order), list(response_sources))
             response_reverse = self.client.get(
                 reverse("source-list"), {"order": "city_institution", "sort": "desc"}
             )
             response_sources_reverse = response_reverse.context["sources"]
             self.assertEqual(
-                list(reversed(expected_source_order)),
-                list(response_sources_reverse),
+                list(reversed(expected_source_order)), list(response_sources_reverse)
             )
+
+
+class SourceAddImageLinksViewTest(TestCase):
+    auth_user: User
+    non_auth_user: User
+    source: Source
+
+    @classmethod
+    def setUpTestData(cls) -> None:
+        user_model = get_user_model()
+        cls.auth_user = user_model.objects.create(
+            email="authuser@test.com", password="12345", is_staff=True
+        )
+        cls.non_auth_user = user_model.objects.create(
+            email="nonauthuser@test.com", password="12345", is_staff=False
+        )
+        cls.source = make_fake_source(published=True)
+        for folio in ["001r", "001v", "003", "004A"]:
+            make_fake_chant(source=cls.source, folio=folio, image_link=None)
+        # Make a second chant for one of the folios, with an existing image link.
+        # We'll update this image_link in the process.
+        make_fake_chant(
+            source=cls.source, folio="001v", image_link="https://i-already-exist.com"
+        )
+        # Make a final chant for a different folio with an existing image link. We
+        # won't update this image_link in the process.
+        make_fake_chant(
+            source=cls.source, folio="004B", image_link="https://i-already-exist.com/2"
+        )
+
+    def test_permissions(self) -> None:
+        with self.subTest("Test unauthenticated user"):
+            response = self.client.get(
+                reverse("source-add-image-links", args=[self.source.id])
+            )
+            self.assertEqual(response.status_code, 302)
+            self.assertRedirects(
+                response,
+                f"{reverse('login')}?next={reverse('source-add-image-links', args=[self.source.id])}",
+                status_code=302,
+                target_status_code=200,
+            )
+            response = self.client.post(
+                reverse("source-add-image-links", args=[self.source.id])
+            )
+            self.assertEqual(response.status_code, 302)
+            self.assertRedirects(
+                response,
+                f"{reverse('login')}?next={reverse('source-add-image-links', args=[self.source.id])}",
+                status_code=302,
+                target_status_code=200,
+            )
+        with self.subTest("Test non-staff user"):
+            self.client.force_login(self.non_auth_user)
+            response = self.client.get(
+                reverse("source-add-image-links", args=[self.source.id])
+            )
+            self.assertEqual(response.status_code, 403)
+            response = self.client.post(
+                reverse("source-add-image-links", args=[self.source.id])
+            )
+            self.assertEqual(response.status_code, 403)
+        with self.subTest("Test staff user"):
+            self.client.force_login(self.auth_user)
+            response = self.client.get(
+                reverse("source-add-image-links", args=[self.source.id])
+            )
+            self.assertEqual(response.status_code, 200)
+            # Post redirect is tested in the `test_form` method
+
+    def test_form(self) -> None:
+        with self.subTest("Test form fields"):
+            self.client.force_login(self.auth_user)
+            response = self.client.get(
+                reverse("source-add-image-links", args=[self.source.id])
+            )
+            self.assertEqual(response.status_code, 200)
+            self.assertTemplateUsed(response, "source_add_image_links.html")
+            form = response.context["form"]
+            self.assertListEqual(
+                list(form.fields.keys()), ["001r", "001v", "003", "004A", "004B"]
+            )
+        with self.subTest("Test form submission"):
+            response = self.client.post(
+                reverse("source-add-image-links", args=[self.source.id]),
+                {
+                    "001r": "https://example.com/001r",
+                    "001v": "https://example.com/001v",
+                    "004A": "https://example.com/004A",
+                },
+            )
+            self.assertRedirects(
+                response,
+                reverse("source-detail", args=[self.source.id]),
+                status_code=302,
+                target_status_code=200,
+            )
+        with self.subTest("Test saved data"):
+            chants_001r = Chant.objects.filter(source=self.source, folio="001r").all()
+            self.assertEqual(len(chants_001r), 1)
+            self.assertEqual(chants_001r[0].image_link, "https://example.com/001r")
+            chants_001v = Chant.objects.filter(source=self.source, folio="001v").all()
+            self.assertEqual(len(chants_001v), 2)
+            for chant in chants_001v:
+                self.assertEqual(chant.image_link, "https://example.com/001v")
+            chants_003 = Chant.objects.filter(source=self.source, folio="003").all()
+            self.assertEqual(len(chants_003), 1)
+            self.assertIsNone(chants_003[0].image_link)
+            chants_004B = Chant.objects.filter(source=self.source, folio="004B").all()
+            self.assertEqual(len(chants_004B), 1)
+            self.assertEqual(chants_004B[0].image_link, "https://i-already-exist.com/2")

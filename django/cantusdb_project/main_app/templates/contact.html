@@ -1,18 +1,8 @@
-{% extends "base.html" %}
-
-{% block title %}
-    <title>Contact | Cantus Database</title>
-{% endblock %}
-
-{% block content %}
-<div class="mr-3 p-3 mx-auto bg-white rounded">
-    <!-- global search bar-->
-    <object align="right" class="search-bar">
-        {% include "global_search_bar.html" %}
-    </object>
-
-    <h3>Contact</h3>
-    <p style="padding-top: 25px;">Please direct questions or comments about Cantus Database to Debra Lacoste at <a href="mailto:debra.lacoste@dal.ca">debra.lacoste@dal.ca</a>.</p>
-
-</div>
+{% extends "single_column_with_search_bar.html" %}
+{% block title %}<title>Contact | Cantus Database</title>{% endblock %}
+{% block header %}<h3>Contact</h3>{% endblock %}
+{% block maincontent %}
+    <p class="pt-4">
+        Please direct questions or comments about Cantus Database to Debra Lacoste at <a href="mailto:debra.lacoste@dal.ca">debra.lacoste@dal.ca</a>.
+    </p>
 {% endblock %}

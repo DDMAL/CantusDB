@@ -20,7 +20,9 @@ class IdentifiersInline(admin.TabularInline):
     extra = 0
 
     def get_queryset(self, request):
-        return super().get_queryset(request).select_related("source__holding_institution")
+        return (
+            super().get_queryset(request).select_related("source__holding_institution")
+        )
 
 
 @admin.register(Source)
@@ -38,7 +40,7 @@ class SourceAdmin(BaseModelAdmin):
         "id",
         "provenance_notes",
         "name",
-        "identifiers__identifier"
+        "identifiers__identifier",
     )
     readonly_fields = (
         ("title", "siglum")

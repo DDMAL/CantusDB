@@ -1,16 +1,7 @@
-{% extends "base.html" %}
-
-{% block title %}
-    <title>Service Abbreviations | Cantus Database</title>
-{% endblock %}
-
-{% block content %}
-<div class="mr-3 p-3 col-md-12 mx-auto bg-white rounded">
-    <object align="right" class="search-bar">
-        {% include "global_search_bar.html" %}
-    </object>
-    <h3>Service Abbreviations</h3>
-    <small>Displaying {{ page_obj.start_index }}-{{ page_obj.end_index }} of {{ page_obj.paginator.count }}</small>
+{% extends "filterable_table_with_search_bar.html" %}
+{% block title %}<title>Service Abbreviations | Cantus Database</title>{% endblock %}
+{% block header %}<h3>Service Abbreviations</h3>{% endblock %}
+{% block list_table %}
     <table class="table table-bordered table-sm small">
         <thead>
             <tr>
@@ -29,6 +20,4 @@
             {% endfor %}
         </tbody>
     </table>
-    {% include "pagination.html" %}
-</div>
 {% endblock %}

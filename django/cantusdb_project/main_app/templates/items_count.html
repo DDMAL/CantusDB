@@ -1,16 +1,8 @@
-{% extends "base.html" %}
+{% extends "single_column_with_search_bar.html" %}
 {% load humanize %}
-
-{% block title %}
-    <title>Content Statistics | Cantus Database</title>
-{% endblock %}
-
-{% block content %}
-<div class="mr-3 p-3 mx-auto bg-white rounded">
-    <object align="right" class="search-bar">
-        {% include "global_search_bar.html" %}
-    </object>
-    <h3>Content Statistics</h3>
+{% block title %}<title>Content Statistics | Cantus Database</title>{% endblock %}
+{% block header %}<h3>Content Statistics</h3>{% endblock %}
+{% block maincontent %}
     <table class="table table-sm table-bordered table-striped">
         <thead>
             <tr>
@@ -23,18 +15,14 @@
                 <td>Chant</td>
                 <td>{{ chant_count|intcomma }}</td>
             </tr>
-
             <tr>
                 <td>Sequence</td>
                 <td>{{ sequence_count|intcomma }}</td>
             </tr>
-
             <tr>
                 <td>Source</td>
                 <td>{{ source_count|intcomma }}</td>
             </tr>
         </tbody>
     </table>
-
-</div>
 {% endblock %}
