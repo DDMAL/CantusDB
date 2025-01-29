@@ -142,5 +142,10 @@ class HoldingAutocomplete(autocomplete.Select2QuerySetView):
 
         qs = Institution.objects.all().order_by("name")
         if self.q:
-            qs = qs.filter(Q(name__istartswith=self.q) | Q(siglum__istartswith=self.q))
+            qs = qs.filter(
+                Q(name__istartswith=self.q)
+                | Q(siglum__istartswith=self.q)
+                | Q(city__istartswith=self.q)
+                | Q(country__istartswith=self.q)
+            )
         return qs
