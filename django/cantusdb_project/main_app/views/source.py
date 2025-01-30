@@ -354,16 +354,16 @@ class SourceListView(ListView):
             # Add quoted terms to the Q object with exact matching (iexact)
             for term in quoted_terms:
                 holding_institution_q |= Q(
-                    holding_institution__name__unaccent__iexact=term
+                    holding_institution__name__unaccent__icontains=term
                 )
                 holding_institution_city_q |= Q(
-                    holding_institution__city__unaccent__iexact=term
+                    holding_institution__city__unaccent__icontains=term
                 )
-                shelfmark_q |= Q(shelfmark__unaccent__iexact=term)
-                siglum_q |= Q(holding_institution__siglum__unaccent__iexact=term)
-                description_q |= Q(description__unaccent__iexact=term)
-                summary_q |= Q(summary__unaccent__iexact=term)
-                name_q |= Q(name__unaccent__iexact=term)
+                shelfmark_q |= Q(shelfmark__unaccent__icontains=term)
+                siglum_q |= Q(holding_institution__siglum__unaccent__icontains=term)
+                description_q |= Q(description__unaccent__icontains=term)
+                summary_q |= Q(summary__unaccent__icontains=term)
+                name_q |= Q(name__unaccent__icontains=term)
 
             # Combine all Q objects with OR
             general_search_q = (
