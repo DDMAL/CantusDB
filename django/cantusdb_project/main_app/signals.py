@@ -109,12 +109,15 @@ def update_source_proofread_status(instance) -> None:
     source = instance.source
     # Checks if all chants in the source have their manuscript full text fields proofread
     # Ignores the volpiano_proofread field for this check
-    all_proofread = not source.chant_set.filter(
-        Q(manuscript_full_text_proofread=False)
-        | Q(manuscript_full_text_std_proofread=False)
-        | Q(manuscript_full_text_proofread__isnull=True)
-        | Q(manuscript_full_text_std_proofread__isnull=True)
-    ).exists()
+    all_proofread = (
+        not source.chant_set.filter(
+            Q(manuscript_full_text_proofread=False)
+            | Q(manuscript_full_text_std_proofread=False)
+            | Q(manuscript_full_text_proofread__isnull=True)
+            | Q(manuscript_full_text_std_proofread__isnull=True)
+        ).exists()
+        and source.chant_set.exists()
+    )
     source.all_chants_text_proofread = all_proofread
     source.save(update_fields=["all_chants_text_proofread"])
 
