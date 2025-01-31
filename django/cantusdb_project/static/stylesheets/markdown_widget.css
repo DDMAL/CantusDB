@@ -1,0 +1,31 @@
+.markdown-field-tabs {
+    border-bottom: none;
+}
+
+/* Aligns top-left border of markdown-field input with tab */
+.markdown-field textarea {
+    border-top-left-radius: 0;
+    height: 250px;
+}
+
+.markdown-preview,
+.markdown-preview:focus {
+    border-style: solid none none none;
+    border-color: var(--bs-border-color);
+    border-radius: 0;
+    box-shadow: none;
+}
+
+.markdown-preview table {
+    border-collapse: collapse;
+}
+
+.markdown-preview table td {
+    border: 1px solid #ddd;
+    padding: 6px;
+}
+
+.markdown-preview table th {
+    border: 1px solid #ddd;
+    padding: 6px;
+}

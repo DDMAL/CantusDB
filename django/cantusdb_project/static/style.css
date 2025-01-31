@@ -177,3 +177,28 @@ a.display-link {
 	color: #922;
 	text-decoration: underline;
 }
+
+.markdown-field-display table {
+	border-collapse: collapse;
+	margin-bottom: 2em;
+}
+
+.markdown-field-display table th {
+	text-align: center;
+}
+
+.markdown-field-display table td {
+	padding: 5px 15px;
+}
+
+.markdown-field-display tr:nth-child(odd) {
+	background-color: #e5e5e5;
+}
+
+.markdown-field-display tr:nth-child(even) {
+	background-color: #c4c4c4;
+}
+
+.markdown-field-display p {
+	text-indent: 2em;
+}
