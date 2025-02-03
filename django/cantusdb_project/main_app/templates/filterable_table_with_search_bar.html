@@ -9,7 +9,7 @@
     [object type]". Views using this template must pass a `Page` object as `page_obj` in the context (this 
     happens by default in views with a `MultipleObjectMixin`). The template uses the `context_object_name`
     attribute of the view to determine the object type to display in this object count.
-    Pagination is included at the bottom of the page, except if no results are found.
+    Pagination is included at the bottom of the page if results span more than one page.
 #}
 {% block maincontent %}
     <div class="row">
@@ -35,7 +35,7 @@
             </div>
         </div>
     {% endif %}
-    {% if page_obj.paginator.num_pages > 1 %}
+    {% if is_paginated %}
         <div class="row mb-2">
             <div class="col">{% include "pagination.html" %}</div>
         </div>
