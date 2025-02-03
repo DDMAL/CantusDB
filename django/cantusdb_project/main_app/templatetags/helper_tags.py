@@ -285,4 +285,6 @@ def render_markdown(value: str) -> SafeString:
     Renders markdown text as HTML.
     """
     html: str = github_flavored_markdown_to_html(value)
+    # Generated html is marked safe b/c cmark is run in safe mode in
+    # github_flavored_markdown_to_html
     return mark_safe(html)
