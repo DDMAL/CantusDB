@@ -455,6 +455,7 @@ class ChantSearchView(ListView):
         context["services"] = (
             Service.objects.all().order_by("name").values("id", "name")
         )
+        context["query_empty"] = False if self.request.GET else True
         context["order"] = self.request.GET.get("order")
         context["sort"] = self.request.GET.get("sort")
 

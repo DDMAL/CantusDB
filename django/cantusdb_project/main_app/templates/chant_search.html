@@ -3,6 +3,9 @@
 {% block title %}<title>Search Chants | Cantus Database</title>{% endblock %}
 {% block scripts %}<script src="/static/js/chant_search.js"></script>{% endblock %}
 {% block header %}<h3>Search Chants</h3>{% endblock %}
+{% block results_count %}
+    {% if not query_empty %}{{ block.super }}{% endif %}
+{% endblock %}
 {% block list_filter_form %}
     {% if source %}
         <p>
@@ -340,4 +343,7 @@
             </tbody>
         </table>
     </div>
+{% endblock %}
+{% block no_results_msg %}
+    {% if not query_empty %}{{ block.super }}{% endif %}
 {% endblock %}
