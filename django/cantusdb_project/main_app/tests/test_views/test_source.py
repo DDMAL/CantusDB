@@ -1000,14 +1000,22 @@ class SourceListViewTest(TestCase):
             self.assertNotIn(manuscript_source, sources)
             self.assertIn(print_source, sources)
 
-    def test_search_by_title(self):
+    def test_search_by_title(self) -> None:
         """The "general search" field searches in `title`, `shelfmark`, `description`, and `summary`"""
         source = make_fake_source(
             shelfmark=faker.sentence(),
             published=True,
         )
         search_term = get_random_search_term(source.shelfmark)
+
+        # Partial matching
         response = self.client.get(reverse("source-list"), {"general": search_term})
+        self.assertIn(source, response.context["sources"])
+
+        # Exact matching
+        response = self.client.get(
+            reverse("source-list"), {"general": f'"{source.shelfmark}"'}
+        )
         self.assertIn(source, response.context["sources"])
 
         # Test that postgres searches unaccented version of title
@@ -1015,16 +1023,26 @@ class SourceListViewTest(TestCase):
         accented_title = add_accents_to_string(unaccented_title)
         source.title = accented_title
         source.save()
-        response = self.client.get(reverse("source-list"), {"general": search_term})
+        response = self.client.get(
+            reverse("source-list"), {"general": f'"{source.title}"'}
+        )
         self.assertIn(source, response.context["sources"])
 
-    def test_search_by_shelfmark(self):
+    def test_search_by_shelfmark(self) -> None:
         hinst = make_fake_institution(name="Fake Institution", siglum="FA-Ke")
         source = make_fake_source(
             published=True, shelfmark="title", holding_institution=hinst
         )
         search_term = get_random_search_term(source.shelfmark)
+
+        # Partial matching
         response = self.client.get(reverse("source-list"), {"general": search_term})
+        self.assertIn(source, response.context["sources"])
+
+        # Exact matching
+        response = self.client.get(
+            reverse("source-list"), {"general": f'"{source.shelfmark}"'}
+        )
         self.assertIn(source, response.context["sources"])
 
         # Test that postgres searches unaccented version of shelfmark
@@ -1032,46 +1050,68 @@ class SourceListViewTest(TestCase):
         accented_siglum = add_accents_to_string(unaccented_siglum)
         source.siglum = accented_siglum
         source.save()
-        response = self.client.get(reverse("source-list"), {"general": search_term})
+        response = self.client.get(
+            reverse("source-list"), {"general": f'"{source.siglum}"'}
+        )
         self.assertIn(source, response.context["sources"])
 
-    def test_search_by_description(self):
+    def test_search_by_description(self) -> None:
         source = make_fake_source(
             description=faker.sentence(),
             published=True,
             shelfmark="title",
         )
         search_term = get_random_search_term(source.description)
+
+        # Partial matching
         response = self.client.get(reverse("source-list"), {"general": search_term})
+        self.assertIn(source, response.context["sources"])
+
+        # Exact matching
+        response = self.client.get(
+            reverse("source-list"), {"general": f'"{source.description}"'}
+        )
         self.assertIn(source, response.context["sources"])
 
         # Test that postgres searches unaccented version of description
         unaccented_description = source.description
         accented_description = add_accents_to_string(unaccented_description)
-        source.title = accented_description
+        source.description = accented_description
         source.save()
-        response = self.client.get(reverse("source-list"), {"general": search_term})
+        response = self.client.get(
+            reverse("source-list"), {"general": f'"{source.description}"'}
+        )
         self.assertIn(source, response.context["sources"])
 
-    def test_search_by_summary(self):
+    def test_search_by_summary(self) -> None:
         source = make_fake_source(
             summary=faker.sentence(),
             published=True,
             shelfmark="title",
         )
         search_term = get_random_search_term(source.summary)
+
+        # Partial matching
         response = self.client.get(reverse("source-list"), {"general": search_term})
+        self.assertIn(source, response.context["sources"])
+
+        # Exact matching
+        response = self.client.get(
+            reverse("source-list"), {"general": f'"{source.summary}"'}
+        )
         self.assertIn(source, response.context["sources"])
 
         # Test that postgres searches unaccented version of summary
         unaccented_summary = source.summary
         accented_summary = add_accents_to_string(unaccented_summary)
-        source.title = accented_summary
+        source.summary = accented_summary
         source.save()
-        response = self.client.get(reverse("source-list"), {"general": search_term})
+        response = self.client.get(
+            reverse("source-list"), {"general": f'"{source.summary}"'}
+        )
         self.assertIn(source, response.context["sources"])
 
-    def test_search_by_indexing_notes(self):
+    def test_search_by_indexing_notes(self) -> None:
         """The "indexing notes" field searches in `indexing_notes` and indexer/editor related fields"""
         source = make_fake_source(
             indexing_notes=faker.sentence(),
@@ -1079,24 +1119,41 @@ class SourceListViewTest(TestCase):
             shelfmark="title",
         )
         search_term = get_random_search_term(source.indexing_notes)
+
+        # Partial matching
         response = self.client.get(reverse("source-list"), {"indexing": search_term})
+        self.assertIn(source, response.context["sources"])
+
+        # Exact matching
+        response = self.client.get(
+            reverse("source-list"), {"indexing": f'"{source.indexing_notes}"'}
+        )
         self.assertIn(source, response.context["sources"])
 
         # Test that postgres searches unaccented version of indexing_notes
         unaccented_indexing_notes = source.indexing_notes
         accented_indexing_notes = add_accents_to_string(unaccented_indexing_notes)
-        source.shelfmark = accented_indexing_notes
+        source.indexing_notes = accented_indexing_notes
         source.save()
-        response = self.client.get(reverse("source-list"), {"general": search_term})
+        response = self.client.get(
+            reverse("source-list"), {"indexing": f'"{source.indexing_notes}"'}
+        )
         self.assertIn(source, response.context["sources"])
 
     def test_search_by_name(self) -> None:
         source = make_fake_source(
             name=faker.sentence(), published=True, shelfmark="title"
         )
-        # We know source.name is not None because it was just set
-        search_term = get_random_search_term(source.name)  # type: ignore[arg-type]
+        search_term = get_random_search_term(source.name)
+
+        # Partial matching
         response = self.client.get(reverse("source-list"), {"general": search_term})
+        self.assertIn(source, response.context["sources"])
+
+        # Exact matching
+        response = self.client.get(
+            reverse("source-list"), {"general": f'"{source.name}"'}
+        )
         self.assertIn(source, response.context["sources"])
 
     def test_ordering(self) -> None:

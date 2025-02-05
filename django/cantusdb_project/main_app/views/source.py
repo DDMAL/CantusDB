@@ -1,3 +1,4 @@
+import re
 from typing import Any, Optional
 
 from django.contrib import messages
@@ -323,8 +324,17 @@ class SourceListView(ListView):
             q_obj_filter &= Q(production_method=production_method)
 
         if general_str := self.request.GET.get("general"):
-            # Strip spaces at the beginning and end. Then make list of terms split on spaces
-            general_search_terms = general_str.strip(" ").split(" ")
+            # Strip spaces at the beginning and end
+            general_str = general_str.strip()
+
+            # Use regex to extract quoted and unquoted terms
+            quoted_terms = re.findall(
+                r'"(.*?)"', general_str
+            )  # Extract terms in quotes
+            unquoted_terms = re.findall(
+                r"\b[\w,-.]+\b", re.sub(r'"(.*?)"', "", general_str)
+            )
+
             # We need a Q Object for each field we're gonna look into
             shelfmark_q = Q()
             siglum_q = Q()
@@ -339,27 +349,35 @@ class SourceListView(ListView):
             # provenance_q = Q()
             summary_q = Q()
 
-            # For each term, add it to the Q object of each field with an OR operation.
-            # We split the terms so that the words can be separated in the actual
-            # field, allowing for a more flexible search, and a field needs
-            # to match only one of the terms
-            for term in general_search_terms:
-                holding_institution_q |= Q(holding_institution__name__icontains=term)
+            # Add unquoted terms to the Q object with partial matching (icontains)
+            for term in unquoted_terms:
+                holding_institution_q |= Q(
+                    holding_institution__name__unaccent__icontains=term
+                )
                 holding_institution_city_q |= Q(
-                    holding_institution__city__icontains=term
+                    holding_institution__city__unaccent__icontains=term
                 )
                 shelfmark_q |= Q(shelfmark__unaccent__icontains=term)
                 siglum_q |= Q(holding_institution__siglum__unaccent__icontains=term)
                 description_q |= Q(description__unaccent__icontains=term)
                 summary_q |= Q(summary__unaccent__icontains=term)
-                name_q |= Q(name__icontains=term)
-                # provenance_q |= Q(provenance__name__icontains=term)
-            # All the Q objects are put together with OR.
-            # The end result is that at least one term has to match in at least one
-            # field
-            # general_search_q = (
-            #     title_q | siglum_q | description_q | provenance_q
-            # )
+                name_q |= Q(name__unaccent__icontains=term)
+
+            # Add quoted terms to the Q object with exact matching (iexact)
+            for term in quoted_terms:
+                holding_institution_q |= Q(
+                    holding_institution__name__unaccent__icontains=term
+                )
+                holding_institution_city_q |= Q(
+                    holding_institution__city__unaccent__icontains=term
+                )
+                shelfmark_q |= Q(shelfmark__unaccent__icontains=term)
+                siglum_q |= Q(holding_institution__siglum__unaccent__icontains=term)
+                description_q |= Q(description__unaccent__icontains=term)
+                summary_q |= Q(summary__unaccent__icontains=term)
+                name_q |= Q(name__unaccent__icontains=term)
+
+            # Combine all Q objects with OR
             general_search_q = (
                 shelfmark_q
                 | siglum_q
@@ -369,6 +387,8 @@ class SourceListView(ListView):
                 | holding_institution_city_q
                 | name_q
             )
+
+            # Apply the general search Q object to the filter
             q_obj_filter &= general_search_q
 
         # For the indexing notes search we follow the same procedure as above but with
