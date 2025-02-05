@@ -49,14 +49,14 @@
         {% endif %}
         {% if source.description %}
             <dt>Description</dt>
-            <dd>
-                {{ source.description|safe|linebreaks }}
+            <dd class="markdown-field-display">
+                {{ source.description|render_markdown }}
             </dd>
         {% endif %}
         {% if source.selected_bibliography %}
             <dt>Selected Bibliography</dt>
-            <dd>
-                {{ source.selected_bibliography|safe|linebreaks }}
+            <dd class="markdown-field-display">
+                {{ source.selected_bibliography|render_markdown }}
             </dd>
         {% endif %}
         {% if source.indexing_notes %}

@@ -36,3 +36,14 @@ class VolpianoInputWidget(TextInput):
 
 class CheckboxWidget(CheckboxInput):
     pass
+
+
+class MarkdownWidget(TextAreaWidget):
+    template_name = "widgets/markdown_widget.html"
+
+    class Media:
+        js = [
+            "https://cdn.jsdelivr.net/npm/marked/marked.min.js",
+            "js/markdown_widget.js",
+        ]
+        css = {"all": ["stylesheets/markdown_widget.css"]}

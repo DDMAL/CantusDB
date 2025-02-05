@@ -32,6 +32,7 @@ from .widgets import (
     VolpianoAreaWidget,
     SelectWidget,
     CheckboxWidget,
+    MarkdownWidget,
 )
 
 # ModelForm allows to build a form directly from a model
@@ -305,8 +306,8 @@ class SourceCreateForm(forms.ModelForm):
             "date": TextInputWidget(),
             "cursus": SelectWidget(),
             "summary": TextAreaWidget(),
-            "description": TextAreaWidget(),
-            "selected_bibliography": TextAreaWidget(),
+            "description": MarkdownWidget(),
+            "selected_bibliography": MarkdownWidget(),
             "image_link": TextInputWidget(),
             "fragmentarium_id": TextInputWidget(),
             "dact_id": TextInputWidget(),
@@ -535,8 +536,8 @@ class SourceEditForm(forms.ModelForm):
             "cursus": SelectWidget(),
             "summary": TextAreaWidget(),
             "liturgical_occasions": TextAreaWidget(),
-            "description": TextAreaWidget(),
-            "selected_bibliography": TextAreaWidget(),
+            "description": MarkdownWidget(),
+            "selected_bibliography": MarkdownWidget(),
             "image_link": TextInputWidget(),
             "fragmentarium_id": TextInputWidget(),
             "dact_id": TextInputWidget(),
