@@ -1,3 +1,5 @@
+from typing import Optional, Any
+
 from django import forms
 from django.contrib.auth.forms import ReadOnlyPasswordHashField
 from django.contrib.auth import get_user_model
@@ -5,8 +7,8 @@ from django.db.models import Q
 from django.contrib.admin.widgets import (
     FilteredSelectMultiple,
 )
-from django.forms.widgets import CheckboxSelectMultiple
-from dal import autocomplete
+from django.forms.widgets import CheckboxSelectMultiple, HiddenInput
+from dal import autocomplete  # type: ignore[import-untyped]
 from volpiano_display_utilities.cantus_text_syllabification import syllabify_text
 from volpiano_display_utilities.latin_word_syllabification import LatinError
 from .models import (
@@ -41,6 +43,15 @@ COMPLETE_INVENTORY_FORM_CHOICES = (
     (True, "Full inventory"),
     (False, "Partial inventory"),
 )
+
+# Define choices for Chant model's
+# various proofreading fields: manuscript_full_text_std_proofread,
+# manuscript_full_text_proofread, volpiano_proofread
+PROOFREAD_CHOICES = [
+    (None, "Any"),
+    (True, "Yes"),
+    (False, "No"),
+]
 
 
 class NameModelChoiceField(forms.ModelChoiceField):
@@ -159,6 +170,7 @@ class ChantCreateForm(forms.ModelForm):
             "incipit_of_refrain",
             "later_addition",
             "rubrics",
+            "source",
         ]
         # the widgets dictionary is ignored for a model field with a non-empty
         # choices attribute. In this case, you must override the form field to
@@ -228,17 +240,23 @@ class ChantCreateForm(forms.ModelForm):
         help_text="Select the project (if any) that the chant belongs to.",
     )
 
-    # automatically computed fields
-    # source and incipit are mandatory fields in model,
-    # but have to be optional in the form, otherwise the field validation won't pass
-    source = forms.ModelChoiceField(
-        queryset=Source.objects.all().order_by("title"),
-        required=False,
-        error_messages={
-            "invalid_choice": "This source does not exist, please switch to a different source."
-        },
-    )
-    incipit = forms.CharField(required=False)
+    def clean(self) -> dict[str, Any]:
+        """
+        Provide custom clean method that ensures the created chant does
+        not duplicate the folio and c_sequence of an already-existing chant.
+        """
+        # Call super().clean() to ensure that the form's built-in validation
+        # is run before our custom validation.
+        super().clean()
+        folio = self.cleaned_data["folio"]
+        c_sequence = self.cleaned_data["c_sequence"]
+        source = self.cleaned_data["source"]
+        if source.chant_set.filter(folio=folio, c_sequence=c_sequence):
+            raise forms.ValidationError(
+                "Chant with the same sequence and folio already exists in this source.",
+                code="duplicate-folio-sequence",
+            )
+        return self.cleaned_data
 
 
 class SourceCreateForm(forms.ModelForm):
@@ -277,6 +295,9 @@ class SourceCreateForm(forms.ModelForm):
         widgets = {
             # "title": TextInputWidget(),
             # "siglum": TextInputWidget(),
+            "holding_institution": autocomplete.ModelSelect2(
+                url="holding-autocomplete"
+            ),
             "shelfmark": TextInputWidget(),
             "provenance": autocomplete.ModelSelect2(url="provenance-autocomplete"),
             "name": TextInputWidget(),
@@ -315,12 +336,6 @@ class SourceCreateForm(forms.ModelForm):
         field_classes = {
             "segment_m2m": CheckboxNameModelMultipleChoiceField,
         }
-
-    holding_institution = forms.ModelChoiceField(
-        queryset=Institution.objects.all(),
-        widget=autocomplete.ModelSelect2(url="holding-autocomplete"),
-        required=False,
-    )
 
     complete_inventory = StyledChoiceField(
         choices=COMPLETE_INVENTORY_FORM_CHOICES, required=False
@@ -363,6 +378,7 @@ class ChantEditForm(forms.ModelForm):
             "incipit_of_refrain",
             "later_addition",
             "rubrics",
+            "source",
         ]
         widgets = {
             # manuscript_full_text_std_spelling: defined below (required) & special field
@@ -404,7 +420,7 @@ class ChantEditForm(forms.ModelForm):
         widget=TextAreaWidget,
         help_text=Chant._meta.get_field("manuscript_full_text_std_spelling").help_text,
         label="Full text as in Source (standardized spelling)",
-        required=True,
+        required=False,
     )
 
     manuscript_full_text = CantusDBLatinField(
@@ -431,6 +447,45 @@ class ChantEditForm(forms.ModelForm):
         help_text="Select the project (if any) that the chant belongs to.",
         required=False,
     )
+
+    def clean_manuscript_full_text_std_spelling(self) -> Optional[str]:
+        """
+        Provide a custom validation function for the
+        manuscript_full_text_std_spelling field to ensure that
+        if it initially contained text, it cannot be made blank.
+        """
+        if (
+            self["manuscript_full_text_std_spelling"].initial
+            and not self["manuscript_full_text_std_spelling"].data
+        ):
+            raise forms.ValidationError(
+                "This field cannot be blank for this chant.",
+                code="txt-req-prev-existing",
+            )
+        entered_text: str = self["manuscript_full_text_std_spelling"].data
+        return entered_text
+
+    def clean(self) -> dict[str, Any]:
+        """
+        Custom validation to ensure that the edited chant does not duplicate
+        the folio and c_sequence of an already-existing chant.
+        """
+        # Call super().clean() to ensure that the form's built-in validation
+        # is run before our custom validation.
+        super().clean()
+        folio = self.cleaned_data["folio"]
+        c_sequence = self.cleaned_data["c_sequence"]
+        source = self.cleaned_data["source"]
+        if (
+            source.chant_set.exclude(id=self.instance.id)
+            .filter(folio=folio, c_sequence=c_sequence)
+            .exists()
+        ):
+            raise forms.ValidationError(
+                "A chant with this folio and sequence already exists.",
+                code="duplicate-folio-sequence",
+            )
+        return self.cleaned_data
 
 
 class SourceEditForm(forms.ModelForm):
@@ -468,6 +523,9 @@ class SourceEditForm(forms.ModelForm):
             "source_completeness",
         ]
         widgets = {
+            "holding_institution": autocomplete.ModelSelect2(
+                url="holding-autocomplete"
+            ),
             "shelfmark": TextInputWidget(),
             "segment_m2m": CheckboxSelectMultiple(),
             "name": TextInputWidget(),
@@ -509,14 +567,30 @@ class SourceEditForm(forms.ModelForm):
             "segment_m2m": CheckboxNameModelMultipleChoiceField,
         }
 
-    holding_institution = forms.ModelChoiceField(
-        queryset=Institution.objects.all(),
-        widget=autocomplete.ModelSelect2(url="holding-autocomplete"),
+    complete_inventory = StyledChoiceField(
+        choices=COMPLETE_INVENTORY_FORM_CHOICES, required=False
+    )
+
+
+class SourceBrowseChantsProofreadForm(forms.Form):
+    manuscript_full_text_std_proofread = forms.ChoiceField(
+        label="Full text as in Source (standardized spelling) proofread",
+        choices=PROOFREAD_CHOICES,
+        widget=forms.RadioSelect,
+        required=False,
+    )
+    manuscript_full_text_proofread = forms.ChoiceField(
+        label="Full text as in Source (source spelling) proofread",
+        choices=PROOFREAD_CHOICES,
+        widget=forms.RadioSelect,
         required=False,
     )
 
-    complete_inventory = StyledChoiceField(
-        choices=COMPLETE_INVENTORY_FORM_CHOICES, required=False
+    volpiano_proofread = forms.ChoiceField(
+        label="Volpiano proofread",
+        choices=PROOFREAD_CHOICES,
+        widget=forms.RadioSelect,
+        required=False,
     )
 
 
@@ -860,3 +934,36 @@ class AdminUserChangeForm(forms.ModelForm):
             'using <a href="../password/">this form</a>.'
         )
     )
+
+
+class ImageLinkForm(forms.Form):
+    """
+    Subclass of Django's Form class that creates the form we use for
+    adding image links to chants in a source.
+
+    Initialize the Form with a field for every folio in the source,
+    passed as the "initial" parameter, which is a dictionary with a key
+    for every folio and a blank value.
+    """
+
+    def __init__(self, *args: Any, **kwargs: Any) -> None:
+        super().__init__(*args, **kwargs)
+        initial = kwargs.get("initial")
+        if initial:
+            for folio in initial:
+                self.fields[folio] = forms.CharField(
+                    widget=HiddenInput(attrs={"class": "img-link-input"}),
+                    required=False,
+                )
+
+    def save(self, source: Source) -> None:
+        """
+        Save the image links to the database.
+
+        Args:
+            source: The source to which the image links belong.
+        """
+        cleaned_data = self.cleaned_data
+        for folio, image_link in cleaned_data.items():
+            if image_link != "":
+                source.chant_set.filter(folio=folio).update(image_link=image_link)

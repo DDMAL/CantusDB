@@ -1,0 +1,49 @@
+{% extends "single_column_with_search_bar.html" %}
+{% load humanize %}
+{# A template for use with list pages. The template introduces the following blocks:
+    - results_count: a block for the object count displayed beneath the header
+    - list_filter_form: a block for the form displayed above the table that powers list/table filtering
+    - list_table: a block for the table that displays the list
+    - no_results_msg: a block for the message displayed when no results are found
+    A header block is inherited from `single_column_with_search_bar.html` and is displayed alongside
+    global search bar at the top of the page.
+    This template also handles display of an object count shown beneath the header: "Displaying x-y of N
+    [object type]". Views using this template must pass a `Page` object as `page_obj` in the context (this 
+    happens by default in views with a `MultipleObjectMixin`). The template uses the `context_object_name`
+    attribute of the view to determine the object type to display in this object count.
+    Pagination is included at the bottom of the page if results span more than one page.
+#}
+{% block maincontent %}
+    {% block results_count %}
+        <div class="row">
+            <p class="col small mx-0">
+                Displaying {{ page_obj.start_index|intcomma }}-{{ page_obj.end_index|intcomma }} of <b>{{ page_obj.paginator.count|intcomma }}</b> {{ view.context_object_name }}.
+            </p>
+        </div>
+    {% endblock %}
+    <div class="row mb-3">
+        <div class="col">
+            {% block list_filter_form %}{% endblock %}
+        </div>
+    </div>
+    {% if page_obj.paginator.count > 0 %}
+        <div class="row">
+            <div class="col">
+                {% block list_table %}{% endblock %}
+            </div>
+        </div>
+    {% else %}
+        <div class="row mt-4">
+            <div class="col">
+                {% block no_results_msg %}
+                    <p class="text-center">No {{ view.context_object_name }} found.</p>
+                {% endblock %}
+            </div>
+        </div>
+    {% endif %}
+    {% if is_paginated %}
+        <div class="row mb-2">
+            <div class="col">{% include "pagination.html" %}</div>
+        </div>
+    {% endif %}
+{% endblock %}

@@ -8,6 +8,9 @@ from django.http.response import JsonResponse
 from django.http import HttpResponse, HttpResponseNotFound, Http404, HttpRequest
 from django.urls.base import reverse
 from django.shortcuts import get_object_or_404
+from django.views.decorators.http import require_GET
+import requests
+from requests.exceptions import Timeout, ConnectionError
 from articles.models import Article
 from main_app.models import (
     Chant,
@@ -18,6 +21,7 @@ from main_app.models import (
     Source,
 )
 from next_chants import next_chants
+from cantusindex import get_json_from_ci_api
 
 
 def ajax_melody_list(request: HttpRequest, cantus_id: str) -> JsonResponse:
@@ -668,3 +672,45 @@ def flatpages_list_export(request) -> HttpResponse:
         for flatpage in flatpages
     ]
     return HttpResponse(" ".join(flatpage_urls), content_type="text/plain")
+
+
+@require_GET
+def cid_concordances(request: HttpRequest) -> JsonResponse:
+    """
+    View that proxies a request initiated from the Chant Detail page
+    to Cantus Index and Gregorien.info for the chant concordances for
+    a given Cantus ID. A proxy is required due to the CORS setup on Cantus
+    Index and because Gregorien.info does not have an API (we just check
+    whether there are concordances and then display a link to the chant).
+
+    Returns:
+        The JSON response to the json-cid endpoint on Cantus Index.
+        The resulting object should have three keys:
+            - info: an object with common information on the Cantus ID.
+            - databases: an object with summary information on concordances
+                in each database.
+            - chants: an object with the actual concordances.
+    """
+    cantus_id = request.GET.get("cantus_id")
+    if not cantus_id:
+        return JsonResponse({"error": "No Cantus ID provided."}, status=400)
+    concordances_dict = get_json_from_ci_api(f"/json-cid/{cantus_id}")
+    # If no concordances are found, the API returns an empty list.
+    if concordances_dict == []:
+        concordances_dict = {"databases": {}, "chants": {}}
+    try:
+        gregorien_response = requests.get(
+            f"https://gregorien.info/chant/cid/{cantus_id}/en",
+            timeout=5,
+        )
+    except (ConnectionError, Timeout):
+        gregorien_response = None
+    if gregorien_response and gregorien_response.status_code == 200:
+        gregorien_database_dict = {
+            "name": "Gregorien.info",
+            "url": "https://gregorien.info/",
+            "url_cid": f"https://gregorien.info/chant/cid/{cantus_id}/en",
+            "count": None,
+        }
+        concordances_dict["databases"]["GRG"] = gregorien_database_dict
+    return JsonResponse(concordances_dict)

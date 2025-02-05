@@ -9,7 +9,6 @@ from django.test import TestCase
 from django.urls import reverse
 from django.db.models.functions import Lower
 
-from main_app.models import Feast, Segment, Chant
 from main_app.tests.make_fakes import (
     make_fake_feast,
     make_fake_source,
@@ -17,6 +16,7 @@ from main_app.tests.make_fakes import (
     make_fake_institution,
     make_random_string,
     get_random_search_term,
+    make_fake_segment,
 )
 from main_app.views.feast import FeastListView
 
@@ -39,7 +39,7 @@ class FeastListViewTest(TestCase):
 
     def test_filter_by_month(self):
         for i in range(1, 13):
-            Feast.objects.create(name=f"test_feast{i}", month=i)
+            make_fake_feast(name=f"test_feast{i}", month=i)
         for i in range(1, 13):
             month = str(i)
             response = self.client.get(reverse("feast-list"), {"month": month})
@@ -147,7 +147,7 @@ class FeastDetailViewTest(TestCase):
         # unless a segment is specified when a source is created, the source is automatically assigned
         # to the segment with the name "CANTUS Database" - to prevent errors, we must make sure that
         # such a segment exists
-        Segment.objects.create(name="CANTUS Database")
+        make_fake_segment(name="CANTUS Database")
 
     def test_url_and_templates(self):
         """Test the url and templates used"""
@@ -169,12 +169,12 @@ class FeastDetailViewTest(TestCase):
         feast = make_fake_feast()
         # 3 chants with cantus id: 300000
         for i in range(3):
-            Chant.objects.create(feast=feast, cantus_id="300000", source=source)
+            make_fake_chant(feast=feast, cantus_id="300000", source=source)
         # 2 chants with cantus id: 200000
         for i in range(2):
-            Chant.objects.create(feast=feast, cantus_id="200000", source=source)
+            make_fake_chant(feast=feast, cantus_id="200000", source=source)
         # 1 chant with cantus id: 100000
-        Chant.objects.create(feast=feast, cantus_id="100000", source=source)
+        make_fake_chant(feast=feast, cantus_id="100000", source=source)
 
         response = self.client.get(reverse("feast-detail", args=[feast.id]))
         frequent_chants_zip = response.context["frequent_chants_zip"]
@@ -221,9 +221,9 @@ class FeastDetailViewTest(TestCase):
         feast = make_fake_feast()
         # 3 chants in the big source
         for i in range(3):
-            Chant.objects.create(feast=feast, source=big_source)
+            make_fake_chant(feast=feast, source=big_source)
         # 1 chant in the small source
-        Chant.objects.create(feast=feast, source=small_source)
+        make_fake_chant(feast=feast, source=small_source)
 
         response = self.client.get(reverse("feast-detail", args=[feast.id]))
         sources = list(response.context["sources"])

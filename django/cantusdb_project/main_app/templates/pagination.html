@@ -1,33 +1,27 @@
-{% load helper_tags %} {# for url_add_get_params #}
-
+{% load helper_tags %}
+{# for url_add_get_params #}
+{% load humanize %}
 <div class="pagination">
-    <span class="step-links">
+    <span class="step-links small">
         {% if page_obj.has_previous %}
             <a href="?{% url_add_get_params page=1 %}">&laquo; first</a>
         {% endif %}
-
-        {% if page_obj.number > 6 %}
-            <span class="ellipsis">...</span>
-        {% endif %}
-
+        {% if page_obj.number > 6 %}<span class="ellipsis">...</span>{% endif %}
         {% for num in page_obj.paginator.page_range %}
             {% if num > page_obj.number|add:'-6' and num < page_obj.number|add:'6' %}
                 {% if num == page_obj.number %}
-                    <b>{{ num }}</b>
+                    <b>{{ num|intcomma }}</b>
                 {% else %}
-                    <a href="?{% url_add_get_params page=num %}">{{ num }}</a>
+                    <a href="?{% url_add_get_params page=num %}">{{ num|intcomma }}</a>
                 {% endif %}
             {% endif %}
         {% endfor %}
-
         {% if page_obj.number < page_obj.paginator.num_pages|add:'-6' %}
             <span class="ellipsis">...</span>
         {% endif %}
-
         {% if page_obj.has_next %}
             <a href="?{% url_add_get_params page=page_obj.paginator.num_pages %}">last &raquo;</a>
         {% endif %}
     </span>
 </div>
-
-<span class="current">Page {{ page_obj.number }} of {{ page_obj.paginator.num_pages }}</span>
+<span class="current small">Page {{ page_obj.number|intcomma }} of {{ page_obj.paginator.num_pages|intcomma }}</span>

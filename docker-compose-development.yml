@@ -19,7 +19,10 @@ services:
     restart: always
     depends_on:
       - postgres
-    command: [ "python", "manage.py", "runserver_plus", "0:8000" ]
+    command: [ "python", "-Xfrozen_modules=off", "-m", "debugpy", "--listen", "0.0.0.0:3000", "manage.py", "runserver_plus", "0:8000", "--nopin" ]
+    ports:
+      - 3000:3000
+      - 5678:5678
 
   nginx:
     build:

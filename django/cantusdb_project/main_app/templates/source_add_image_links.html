@@ -1,0 +1,133 @@
+{% extends "base.html" %}
+{% load static %}
+{% block title %}
+    <title>Add Image Links to Source: {{ source.short_heading }}</title>
+{% endblock %}
+{% block scripts %}
+    <script src="{% static 'js/source_add_image_links.js' %}"></script>
+    <link rel="stylesheet" href="{% static 'css/source_add_image_links.css' %}" />
+{% endblock %}
+{% block content %}
+    <div class="container bg-white rounded">
+        <div class="row mt-4">
+            <div class="col">
+                <h4>
+                    Add Image Links to Source: <a href="{% url 'source-detail' source.id %}">{{ source.heading }}</a>
+                </h4>
+                <p class="small pt-3">
+                    Use this form to add image links from a csv file to the chants in this source. The csv file should
+                    contain two columns. The first column should be the folio on which the chant appears, matching the values
+                    of the "folio" field in the source inventory. The second column should be a url to an image of the chant,
+                    including the scheme (e.g., "https://") and domain. An optional header may be included.
+                </p>
+                <p class="small">
+                    The following checks will be performed on the csv file before it is uploaded:
+                </p>
+                <ol class="small">
+                    <li>A check that an image link is defined for every folio in the source.</li>
+                    <li>
+                        A check that image links are not defined for any folios that do not exist in the source.
+                    </li>
+                    <li>
+                        A check that no folios are duplicated in the file (e.g., a single
+                        folio does not have two image links defined).
+                    </li>
+                    <li>
+                        A check that either no image links are duplicated (every folio has a
+                        unique image link) or every image link is the same (image links to
+                        individual folios are not available).
+                    </li>
+                </ol>
+                <p class="small">
+                    Note: Files that fail these checks may still be uploaded but are provided as a simple
+                    validation for the user. For example, if a folio appears multiple times in the csv,
+                    the image link appearing last in the csv will be used. Sometimes, a mapping that fails
+                    these checks might be correct, such as when images show two facing folios.
+                </p>
+            </div>
+        </div>
+        <label for="imgLinksCSV" class="form-label">
+            Select CSV file containing image links
+        </label>
+        <div class="row mb-4">
+            <div class="col-4">
+                <input class="form-control form-control-sm"
+                       id="imgLinksCSV"
+                       type="file"
+                       accept=".csv" />
+                <form id="imgLinkForm" method="post">
+                    {% csrf_token %}
+                    {{ form }}
+                </form>
+            </div>
+            <div class="col">
+                <button id="imgLinkFormSubmitBtn"
+                        class="btn btn-sm btn-primary"
+                        form="imgLinkForm"
+                        type="submit">Save Image Links</button>
+            </div>
+        </div>
+        <div id="csvTestingDiv" class="row" hidden>
+            <div class="col-auto">
+                <table class="table table-sm table-borderless csv-testing-table small">
+                    <tbody>
+                        <tr>
+                            <td class="csv-testing-table-test">All image links provided</td>
+                            <td class="csv-testing-table-icon">
+                                <i id="folioCompletenessIcon"></i>
+                            </td>
+                            <td>
+                                <div id="folioCompletenessInstances" class="csv-testing-table-instances"></div>
+                            </td>
+                        </tr>
+                        <tr>
+                            <td class="csv-testing-table-test">Extra folios in CSV</td>
+                            <td class="csv-testing-table-icon">
+                                <i id="extraFoliosIcon"></i>
+                            </td>
+                            <td>
+                                <div id="extraFoliosInstances" class="csv-testing-table-instances"></div>
+                            </td>
+                        </tr>
+                        <tr>
+                            <td>Duplicate folios</td>
+                            <td class="csv-testing-table-icon">
+                                <i id="folioDuplicationIcon"></i>
+                            </td>
+                            <td>
+                                <div id="folioDuplicationInstances" class="csv-testing-table-instances"></div>
+                            </td>
+                        </tr>
+                        <tr>
+                            <td>Duplicate image links</td>
+                            <td class="csv-testing-table-icon">
+                                <i id="imageLinkDuplicationIcon"></i>
+                            </td>
+                            <td>
+                                <div id="imageLinkDuplicationInstances"
+                                     class="csv-testing-table-instances"></div>
+                            </td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+        <div id="csvPreviewDiv" hidden>
+            <h6>CSV Preview</h6>
+            <div id="csvPreviewDiv" class="row justify-content-center">
+                <div class="col-auto csv-preview-table">
+                    <table class="table table-sm table-bordered small">
+                        <thead>
+                            <tr>
+                                <th class="text-center img-link-preview-cell">Folio</th>
+                                <th class="text-center img-link-preview-cell">Image Link</th>
+                            </tr>
+                        </thead>
+                        <tbody id="csvPreviewBody">
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+{% endblock %}

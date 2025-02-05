@@ -1,23 +1,23 @@
 import calendar
-from typing import Union, Optional
+from typing import Union, Optional, Any
 
 from django import template
-from django.core.paginator import Paginator
+from django.core.paginator import Paginator, Page
 from django.db.models import Q
 from django.template.defaultfilters import stringfilter
-from django.utils.safestring import mark_safe
-from django.http import HttpRequest
-from django.utils.html import format_html_join
+from django.utils.safestring import mark_safe, SafeString
+from django.http import HttpRequest, QueryDict
+from django.utils.html import format_html_join, format_html
 
 from articles.models import Article
-from main_app.models import Source
-from main_app.models import BaseModel
+from main_app.models import Source, BaseModel
+from users.models import User
 
 register = template.Library()
 
 
 @register.simple_tag(takes_context=False)
-def recent_articles():
+def recent_articles() -> SafeString:
     """
     Generates a html unordered list of recent articles for display on the homepage
 
@@ -25,17 +25,19 @@ def recent_articles():
         templates/flatpages/default.html
     """
     articles = Article.objects.order_by("-date_created")[:5]
-    list_item_template = '<li style="padding-bottom: 0.5em;"><a href="{url}">{title}</a><br><small>{date}</small></li>'
-    list_items = [
-        list_item_template.format(
-            url=a.get_absolute_url(),
-            title=a.title,
-            date=a.date_created.strftime("%A %B %-d, %Y"),
-        )
-        for a in articles
-    ]
-    list_items_string = "".join(list_items)
-    recent_articles_string = "<ul>{lis}</ul>".format(lis=list_items_string)
+    list_item_template = (
+        '<li style="padding-bottom: 0.5em;">'
+        '<a href="{}">{}</a><br><small>{}</small></li>'
+    )
+    list_items_string = format_html_join(
+        sep="",
+        format_string=list_item_template,
+        args_generator=(
+            (a.get_absolute_url(), a.title, a.date_created.strftime("%A %B %-d, %Y"))
+            for a in articles
+        ),
+    )
+    recent_articles_string = f"<ul>{list_items_string}</ul>"
     return mark_safe(recent_articles_string)
 
 
@@ -48,14 +50,13 @@ def month_to_string(value: Optional[Union[str, int]]) -> Optional[Union[str, int
         main_app/templates/feast_detail.html
         main_app/templates/feast_list.html
     """
-    if type(value) == int and value in range(1, 13):
+    if isinstance(value, int) and value in range(1, 13):
         return calendar.month_abbr[value]
-    else:
-        return value
+    return value
 
 
 @register.simple_tag(takes_context=True)
-def url_add_get_params(context, **kwargs):
+def url_add_get_params(context: dict[str, Any], **kwargs: str) -> str:
     """
     accounts for the situations where there may be two paginations in one page
 
@@ -63,7 +64,7 @@ def url_add_get_params(context, **kwargs):
         main_app/templates/pagination.html
         main_app/templates/user_source_list.html
     """
-    query = context["request"].GET.copy()
+    query: QueryDict = context["request"].GET.copy()
     if "page" in kwargs:
         query.pop("page", None)
     if "page2" in kwargs:
@@ -73,9 +74,10 @@ def url_add_get_params(context, **kwargs):
 
 
 @register.simple_tag(takes_context=False)
-def source_links():
+def source_links() -> SafeString:
     """
-    Generates a series of html option tags linking to sources in Cantus Dabase, for display on the homepage
+    Generates a series of html option tags linking to sources in
+    Cantus Dabase, for display on the homepage
 
     Used in:
         templates/flatpages/default.html
@@ -86,18 +88,17 @@ def source_links():
         .values("siglum", "id")
         .order_by("siglum")
     )
-    options = ""
-    for source in sources:
-        option_str = (
-            f"<option value=source/{source['id']}>{source['siglum']}</option>\n"
-        )
-        options += option_str
+    options = format_html_join(
+        sep="\n",
+        format_string="<option value=source/{0}>{1}</option>",
+        args_generator=((source["id"], source["siglum"]) for source in sources),
+    )
 
-    return mark_safe(options)
+    return options
 
 
-@register.filter
-def classname(obj):
+@register.filter(is_safe=True)
+def classname(obj: BaseModel) -> str:
     """
     Returns the name of the object's class
     A use-case is: {% if object|classname == "Notation" %}
@@ -109,10 +110,12 @@ def classname(obj):
 
 
 @register.filter
-def admin_url_name(class_name, action):
+def admin_url_name(class_name: str, action: str) -> str:
     """
-    Accepts the name of a class in "main_app", and an action (either "change" or "delete") as arguments.
-    Returns the name of the URL for changing/deleting an object in the admin interface.
+    Accepts the name of a class in "main_app",
+    and an action (either "change" or "delete") as arguments.
+    Returns the name of the URL for changing/deleting an
+    object in the admin interface.
 
     Used in:
         main_app/templates/content_overview.html
@@ -124,7 +127,7 @@ def admin_url_name(class_name, action):
 
 
 @register.filter(name="has_group")
-def has_group(user, group_name):
+def has_group(user: User, group_name: str) -> bool:
     """
     Used in:
         templates/base.html
@@ -133,9 +136,10 @@ def has_group(user, group_name):
 
 
 @register.filter(name="in_groups")
-def in_groups(user, groups: str) -> bool:
+def in_groups(user: User, groups: str) -> bool:
     """
-    Takes a comma-separated string of group names and returns True if the user is in those groups.
+    Takes a comma-separated string of group names and
+    returns True if the user is in those groups.
     """
     grouplist = groups.split(",")
     return user.groups.filter(name__in=grouplist).exists()
@@ -151,7 +155,11 @@ def split(value: str, key: str) -> list[str]:
 
 
 @register.simple_tag(takes_context=True)
-def get_user_source_pagination(context):
+def get_user_source_pagination(context: dict[str, Any]) -> Page[Source]:
+    """
+    Gets the appropriate `Page` object for the user's sources,
+    based on the current page number in the request's GET parameters.
+    """
     user_created_sources = (
         Source.objects.filter(
             Q(current_editors=context["user"]) | Q(created_by=context["user"])
@@ -176,7 +184,11 @@ def get_user_source_pagination(context):
 
 
 @register.simple_tag(takes_context=True)
-def get_user_created_source_pagination(context):
+def get_user_created_source_pagination(context: dict[str, Any]) -> Page[Source]:
+    """
+    Gets the appropriate `Page` object for the user's created sources,
+    based on the current page number in the request's GET parameters.
+    """
     user_created_sources = (
         Source.objects.filter(created_by=context["user"])
         .select_related("holding_institution")
@@ -250,7 +262,7 @@ def sortable_header(
 @register.simple_tag(takes_context=False)
 def join_absolute_url_links(
     objects: list[BaseModel], display_attr: str, sep: str
-) -> str:
+) -> SafeString:
     """
     Takes a series of objects and returns an html string of
     links to their absolute urls (i.e. their detail page).

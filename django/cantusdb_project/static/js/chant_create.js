@@ -35,26 +35,38 @@ function autoFillSuggestedChant(genreName, genreID, cantusID, fullText) {
     // Since we're using a django-autocomplete-light widget for the Genre selector,
     // we need to follow a special process in selecting a value from the widget:
     // Set the value, creating a new option if necessary
-    if ($('#id_genre').find("option[value='" + genreID + "']").length) {
-        $('#id_genre').val(genreID).trigger('change');
-    } else { 
-        // Create a DOM Option and pre-select by default
-        var newOption = new Option(genreName, genreID, true, true);
-        // Append it to the select
-        $('#id_genre').append(newOption).trigger('change');
+    const genreSelect = document.getElementById('id_genre');
+    let option = genreSelect.querySelector(`option[value='${genreID}']`);
+
+    if (option) {
+        genreSelect.value = genreID;
+    } else {
+        const newOption = new Option(genreName, genreID, true, true);
+        genreSelect.appendChild(newOption);
+        genreSelect.value = genreID;
     }
+
+    // Trigger change event
+    const event = new Event('change', { bubbles: true });
+    genreSelect.dispatchEvent(event);
 }
 
 function autoFillFeast(feastName, feastID) {
     // Since we're using a django-autocomplete-light widget for the Genre selector,
     // we need to follow a special process in selecting a value from the widget:
     // Set the value, creating a new option if necessary
-    if ($('#id_feast').find("option[value='" + feastID + "']").length) {
-        $('#id_feast').val(feastID).trigger('change');
-    } else { 
-        // Create a DOM Option and pre-select by default
-        var newOption = new Option(feastName, feastID, true, true);
-        // Append it to the select
-        $('#id_feast').append(newOption).trigger('change');
+    const feastSelect = document.getElementById('id_feast');
+    let option = feastSelect.querySelector(`option[value='${feastID}']`);
+
+    if (option) {
+        feastSelect.value = feastID;
+    } else {
+        const newOption = new Option(feastName, feastID, true, true);
+        feastSelect.appendChild(newOption);
+        feastSelect.value = feastID;
     }
+
+    // Trigger change event
+    const event = new Event('change', { bubbles: true });
+    feastSelect.dispatchEvent(event);
 }

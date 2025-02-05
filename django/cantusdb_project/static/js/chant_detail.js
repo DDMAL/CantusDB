@@ -44,16 +44,18 @@ function loadMelodies(cantusId) {
     xhttp.onload = function () {
         const data = JSON.parse(this.response);
         melodyDiv.innerHTML = `Displaying <b>${data.concordance_count}</b> melodies from the following databases: `;
-        melodyDiv.innerHTML += `<table id="melodyTable" class="table table-bordered table-sm small" style="table-layout: fixed; width: 100%;">
-                                    <thead>
-                                        <tr>
-                                            <th scope="col" class="text-wrap" style="width:20%">Chant</th>
-                                            <th scope="col" class="text-wrap">Melody</th>
-                                        </tr>
-                                    </thead>
-                                    <tbody>
-                                    </tbody>
-                                </table>`;
+        melodyDiv.innerHTML += `<div class="table-responsive">
+                                    <table id="melodyTable" class="table table-bordered table-sm small w-100">
+                                        <thead>
+                                            <tr>
+                                                <th scope="col" class="text-wrap w-25">Chant</th>
+                                                <th scope="col" class="text-wrap">Melody</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                        </tbody>
+                                    </table>
+                                    </div>`;
 
         const table = document.getElementById("melodyTable").getElementsByTagName("tbody")[0];
 
@@ -86,7 +88,7 @@ function loadMelodies(cantusId) {
 
             // add the second cell to the row
             newRow.innerHTML += `<td>
-                                    <div style="font-family: volpiano; font-size: 28px; white-space: nowrap; overflow: hidden; text-overflow: clip;">
+                                    <div class="font-volpiano text-nowrap">
                                         ${chant.volpiano}
                                     </div>
                                     <br>
@@ -99,7 +101,7 @@ function loadMelodies(cantusId) {
                 melodyCell.innerHTML += "";
             }
             if (chant.manuscript_full_text_std_spelling) {
-                melodyCell.innerHTML += `<div style="white-space: nowrap; overflow: hidden; text-overflow: clip;">
+                melodyCell.innerHTML += `<div class="text-nowrap">
                                             <a href="${chant.chant_link}" target="_blank">
                                                 ${chant.manuscript_full_text_std_spelling}
                                             </a>
@@ -124,3 +126,150 @@ function loadMelodies(cantusId) {
     melodyButton.style.display = "none";
 }
 
+function concordanceDetailToggleText(event) {
+    const collapseLink = event.target;
+    if (collapseLink.innerText.includes("Hide")) {
+        collapseLink.innerText = "▶ Show concordance details";
+    } else {
+        collapseLink.innerText = "▼ Hide concordance details";
+    }
+}
+
+function getConcordances(cantusID) {
+    // Remove the concordance button
+    const concordanceButton = document.getElementById("concordanceButton");
+    concordanceButton.classList.add("d-none");
+    // Display the concordance loading status
+    const concordancesLoadingStatus = document.getElementById("concordancesLoadingStatus");
+    concordancesLoadingStatus.classList.remove("d-none");
+
+    const concordancesDiv = document.getElementById("concordancesDiv");
+    const concordancesUrl = new URL(`/cid-concordances/`, window.location.origin);
+    concordancesUrl.searchParams.set("cantus_id", cantusID);
+    const xhttp = new XMLHttpRequest();
+    xhttp.open("GET", concordancesUrl);
+    xhttp.onload = function () {
+        // Remove the concordance loading status
+        const concordancesLoadingStatus = document.getElementById("concordancesLoadingStatus");
+        concordancesLoadingStatus.classList.add("d-none");
+        const concordancesData = JSON.parse(this.response);
+        if (Object.keys(concordancesData.databases).length === 0) {
+            const noConcordances = document.createElement("p");
+            noConcordances.innerHTML = `No concordances found for Cantus ID <b><a href="http://cantusindex.org/id/${cantusID}" target="_blank" title="${cantusID} on Cantus Index"> ${cantusID}</a></b>.`;
+            concordancesDiv.appendChild(noConcordances);
+            return;
+        }
+        // Create the concordances summary table
+        const concordancesSummaryDiv = document.getElementById("concordancesSummaryDiv");
+        const concordancesSummaryTable = document.createElement("table");
+        concordancesSummaryTable.id = "concordancesSummaryTable";
+        concordancesSummaryTable.setAttribute("class", "table table-sm small border-bottom");
+        const summaryTableHeader = concordancesSummaryTable.createTHead();
+        const summaryHeaderRow = summaryTableHeader.insertRow();
+        const summaryHeaderCell = summaryHeaderRow.insertCell();
+        summaryHeaderCell.classList.add("border-top-0");
+        summaryHeaderCell.innerHTML = "<b>Summary</b>";
+        summaryHeaderCell.colSpan = 2;
+        const summaryTableBody = concordancesSummaryTable.createTBody();
+        for (const [initialism, dbSummary] of Object.entries(concordancesData.databases)) {
+            // object returned by json-con API is ordered by the number
+            // of concordances in descending order
+            const newRow = summaryTableBody.insertRow();
+            // The first cell of each row contains the database name
+            // and initialism with a link to the database home page
+            const dbNameCell = newRow.insertCell();
+            const dbNameLink = document.createElement("a");
+            dbNameLink.setAttribute("href", dbSummary.url);
+            dbNameLink.setAttribute("target", "_blank");
+            const dbNameLinkText = document.createTextNode(`${dbSummary.name} (${initialism})`);
+            dbNameLink.appendChild(dbNameLinkText);
+            dbNameCell.appendChild(dbNameLink);
+            // The second cell of each row contains the number of concordances
+            // linked to the results url on the database
+            const concordanceCountCell = newRow.insertCell();
+            const concordanceCountLink = document.createElement("a");
+            concordanceCountLink.setAttribute("href", dbSummary.url_cid);
+            concordanceCountLink.setAttribute("target", "_blank");
+            if (dbSummary.count > 1) {
+                concordanceCountLink.appendChild(document.createTextNode(`${dbSummary.count} concordances`));
+            } else if (dbSummary.count === 1) {
+                concordanceCountLink.appendChild(document.createTextNode(`${dbSummary.count} concordance`));
+            } else {
+                concordanceCountLink.appendChild(document.createTextNode(`See concordance(s)`));
+            }
+            concordanceCountCell.appendChild(concordanceCountLink);
+        }
+        concordancesSummaryDiv.appendChild(concordancesSummaryTable);
+        if (Object.keys(concordancesData.chants).length === 0) {
+            return;
+        }
+        // Create table collapse link
+        const collapseLink = document.createElement("button");
+        collapseLink.setAttribute("id", "concordanceDetailCollapseButton");
+        collapseLink.setAttribute("data-bs-toggle", "collapse");
+        collapseLink.setAttribute("data-bs-target", "#concordancesDetailTable");
+        collapseLink.setAttribute("type", "button");
+        collapseLink.setAttribute("aria-expanded", "true");
+        collapseLink.setAttribute("aria-controls", "concordancesDetailTable");
+        collapseLink.classList.add("btn", "p-0", "link-color", "link-hover-effect");
+        collapseLink.innerHTML = "▼ Hide concordance details";
+        collapseLink.addEventListener("click", concordanceDetailToggleText);
+        // Create the concordances detail table
+        const concordancesTable = document.createElement("table");
+        concordancesTable.id = "concordancesDetailTable";
+        concordancesTable.setAttribute("class", "mt-3 table table-sm table-bordered small collapse show");
+        const headerArray = ["Source", "Incipit", "Office | Genre | Position", "Feast", "Mode", "Database"];
+        const headerRow = concordancesTable.createTHead().insertRow();
+        for (const header of headerArray) {
+            const headerCell = headerRow.insertCell();
+            headerCell.classList.add("text-center");
+            headerCell.innerHTML = `<b>${header}</b>`;
+        }
+        var concordancesDetail = Object.values(concordancesData.chants);
+        concordancesDetail.sort((a, b) => {
+            return a.siglum.localeCompare(b.siglum);
+        });
+        const concordancesTableBody = concordancesTable.createTBody();
+        for (const concordance of concordancesDetail) {
+            const newRow = concordancesTableBody.insertRow();
+            const sourceLink = document.createElement("a");
+            sourceLink.setAttribute("href", concordance.srclink);
+            sourceLink.setAttribute("target", "_blank");
+            sourceLink.innerHTML = `${concordance.siglum}`;
+            const folio = document.createElement("span");
+            folio.innerHTML = `, <b>${concordance.folio}</b>`;
+            // Some concordance image links are invalid urls (e.g. "0")
+            // so we need to check both that the link is not empty and that it is
+            // a valid url before creating the image link
+            try {
+                const url = new URL(concordance.image);
+                var imageLink = document.createElement("a");
+                imageLink.setAttribute("href", url.href);
+                imageLink.setAttribute("target", "_blank");
+                imageLink.classList.add("bi-camera-fill");
+                newRow.insertCell().innerHTML = sourceLink.outerHTML + folio.outerHTML + "<br>" + imageLink.outerHTML;
+            } catch (e) {
+                newRow.insertCell().innerHTML = sourceLink.outerHTML + folio.outerHTML;
+            }
+            const chantLink = document.createElement("a");
+            chantLink.setAttribute("href", concordance.chantlink);
+            chantLink.setAttribute("target", "_blank");
+            chantLink.innerHTML = concordance.incipit;
+            newRow.insertCell().innerHTML = chantLink.outerHTML;
+            newRow.insertCell().innerHTML = `${concordance.office} | ${concordance.genre} | ${concordance.position}`;
+            newRow.insertCell().innerHTML = concordance.feast;
+            newRow.insertCell().innerHTML = concordance.mode;
+            newRow.insertCell().innerHTML = concordance.db;
+        }
+        const concordancesTableDiv = document.getElementById("concordancesTableDiv");
+        concordancesTableDiv.appendChild(collapseLink);
+        concordancesTableDiv.appendChild(concordancesTable);
+    }
+    xhttp.onerror = function () {
+        concordancesLoadingStatus.innerHTML = "";
+        const concordancesLoadError = document.createElement("p");
+        concordancesLoadError.innerHTML = `Cantus Database encountered an error while loading concordances (Cantus ID <b><a href="http://cantusindex.org/id/${cantusID}" target="_blank" title="${cantusID} on Cantus Index"> ${cantusID} </a></b>).`;
+        concordancesLoadingStatus.appendChild(concordancesLoadError);
+    }
+    xhttp.send();
+}

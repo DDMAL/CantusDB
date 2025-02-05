@@ -5,7 +5,7 @@ window.addEventListener("load", function () {
     const countryFilter = document.getElementById("countryFilter")
     const provenanceFilter = document.getElementById("provenanceFilter");
     const centuryFilter = document.getElementById("centuryFilter");
-    const fullSourceFilter = document.getElementById("fullSourceFilter");
+    const prodMethodFilter = document.getElementById("prodMethodFilter");
 
     const urlParams = new URLSearchParams(window.location.search);
     if (urlParams.has("segment")) {
@@ -20,7 +20,17 @@ window.addEventListener("load", function () {
     if (urlParams.has("century")) {
         centuryFilter.value = urlParams.get("century");
     }
-    if (urlParams.has("fullSource")) {
-        fullSourceFilter.value = urlParams.get("fullSource");
+    if (urlParams.has("sourceCompleteness")) {
+        const sourceCompletenessValues = urlParams.getAll("sourceCompleteness");
+        // We start out with all checkboxes checked, so we uncheck the ones not
+        // in the URL
+        for (let i = 1; i <= 4; i++) {
+            if (!sourceCompletenessValues.includes(i.toString())) {
+                document.getElementById(`sourceCompleteness-${i}`).checked = false;
+            }
+        }
+    }
+    if (urlParams.has("prodMethod")) {
+        prodMethodFilter.value = urlParams.get("prodMethod");
     }
 });

@@ -1,100 +1,108 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
+    <head>
+        <!-- Bootstrap CSS -->
+        <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css"
+              rel="stylesheet"
+              integrity="sha384-QWTKZyjpPEjISv5WaRU9OFeRpok6YctnYmDr5pNlyT2bRjXh0JMhjY6hW+ALEwIH"
+              crossorigin="anonymous" />
+        <style>
+            a {
+                color: #922;
+                text-decoration: none;
+            }
 
-<head>
-    <!-- Bootstrap CSS -->
-    <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.0/css/bootstrap.min.css"
-        integrity="sha384-9aIt2nRpC12Uk9gS9baDl411NQApFmC26EwAOH8WgZl5MYYxFfc+NcPb1dKGj7Sk" crossorigin="anonymous">
-    <style>
-        a {
-            color: #922;
-        }
+            a:hover {
+                color: #CC3333;
+                text-decoration: none;
+            }
 
-        a:hover {
-            color: #CC3333;
-            text-decoration: none;
-        }
-    </style>
-</head>
-
-<body>
-    <title>Inventory | Cantus Database</title>
-    <h3>Cantus Inventory: 
-        <a href="{% url 'source-detail' source.id %}" target="_href">{{ source.heading }}</a>
-    </h3>
-    This source inventory contains {{ chants.count }} chants.
-    <table class="table table-sm small table-bordered table-striped table-hover">
-        <thead>
-            <tr>
-                <th width="80" title="Siglum">Siglum</th>
-                <th width="30" title="Marginalia">Marg</th>
-                <th width="30" title="Folio">Folio</th>
-                <th width="30" title="Sequence">Seq</th>
-                <th width="80" title="Feast">Feast</th>
-                <th width="30" title="Service">Service</th>
-                <th width="30" title="Genre">Genre</th>
-                <th width="30" title="Position">Pos</th>
-                <th width="200" title="Incipit">Incipit</th>
-                <th width="80" title="Cantus ID">Cantus ID</th>
-                <th width="30" title="Mode">Mode</th>
-                <th width="30" title="Differentia">Diff</th>
-                <th width="30" title="Differentiae Database">DD</th>
-            </tr>
-        </thead>
-
-        <tbody>
-            {% for chant in chants %}
+            .font-small {
+                font-size: 0.8em;
+            }
+        </style>
+    </head>
+    <body>
+        <title>Inventory | Cantus Database</title>
+        <h3>
+            Cantus Inventory:
+            <a href="{% url 'source-detail' source.id %}" target="_href">{{ source.heading }}</a>
+        </h3>
+        This source inventory contains {{ chants.count }} chants.
+        <table class="table table-sm font-small table-bordered table-striped table-hover">
+            <thead>
                 <tr>
-                    {% comment %} 
+                    <th width="80" title="Siglum">Siglum</th>
+                    <th width="30" title="Marginalia">Marg</th>
+                    <th width="30" title="Folio">Folio</th>
+                    <th width="30" title="Sequence">Seq</th>
+                    <th width="80" title="Feast">Feast</th>
+                    <th width="30" title="Service">Service</th>
+                    <th width="30" title="Genre">Genre</th>
+                    <th width="30" title="Position">Pos</th>
+                    <th width="200" title="Incipit">Incipit</th>
+                    <th width="80" title="Cantus ID">Cantus ID</th>
+                    <th width="30" title="Mode">Mode</th>
+                    <th width="30" title="Differentia">Diff</th>
+                    <th width="30" title="Differentiae Database">DD</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for chant in chants %}
+                    <tr>
+                        {% comment %}
                         `default`: use the given default if the value evaluates to False
                         `default_if_none`: use the given default only if the value is None
-                    {% endcomment %}
-                    <td title="{{ chant.source.heading }}">{{ chant.source.short_heading|default_if_none:"" }}</td>
-                    <td>{{ chant.marginalia|default_if_none:"" }}</td>
-                    <td>{{ chant.folio|default_if_none:"" }}</td>
-                    <td>
-                        {% if chant.record_type == "chant" %}
-                            {{ chant.c_sequence }}
-                        {% elif chant.record_type == "sequence" %}
-                            {{ chant.s_sequence }}
-                        {% endif %}
-                    </td>
-                    <td>
-                        <span title="{{ chant.feast.description }}">
-                            {{ chant.feast.name|default_if_none:"" }}
-                        </span>
-                    </td>
-                    <td>
-                        <span title="{{ chant.service.description }}">
-                            {{ chant.service.name|default_if_none:"" }}
-                        </span>
-                    </td>
-                    <td>
-                        <span title="{{ chant.genre.description }}">
-                            {{ chant.genre.name|default_if_none:"" }}
-                        </span>
-                    </td>
-                    <td>{{ chant.position|default_if_none:"" }}</td>
-                    <td>
-                        {% if chant.record_type == "chant" %}
-                            <a href="{% url 'chant-detail' chant.id %}" target="_blank">{{ chant.incipit|default_if_none:"" }}</a>
-                        {% elif chant.record_type == "sequence" %}
-                            <a href="{% url 'sequence-detail' chant.id %}" target="_blank">{{ chant.incipit|default_if_none:"" }}</a>
-                        {% endif %}
-                    </td>
-                    <td>{{ chant.cantus_id|default_if_none:"" }}</td>
-                    <td>{{ chant.mode|default_if_none:"" }}</td>
-                    <td>{{ chant.differentia|default_if_none:"" }}</td>
-                    <td>
-                        {% if chant.diff_db %}
-                            <a href="https://differentiaedatabase.ca/differentia/{{chant.diff_db.differentia_id}}" target="_blank">
-                                {{ chant.diff_db.differentia_id}}
-                            </a>
-                        {% endif %}
-                    </td>
-                </tr>
-            {% endfor %}
-        </tbody>
-    </table>
-</body>
+                        {% endcomment %}
+                        <td title="{{ chant.source.heading }}">
+                            {{ chant.source.short_heading|default_if_none:"" }}
+                        </td>
+                        <td>{{ chant.marginalia|default_if_none:"" }}</td>
+                        <td>{{ chant.folio|default_if_none:"" }}</td>
+                        <td>
+                            {% if chant.record_type == "chant" %}
+                                {{ chant.c_sequence }}
+                            {% elif chant.record_type == "sequence" %}
+                                {{ chant.s_sequence }}
+                            {% endif %}
+                        </td>
+                        <td>
+                            <span title="{{ chant.feast.description }}">
+                                {{ chant.feast.name|default_if_none:"" }}
+                            </span>
+                        </td>
+                        <td>
+                            <span title="{{ chant.service.description }}">
+                                {{ chant.service.name|default_if_none:"" }}
+                            </span>
+                        </td>
+                        <td>
+                            <span title="{{ chant.genre.description }}">
+                                {{ chant.genre.name|default_if_none:"" }}
+                            </span>
+                        </td>
+                        <td>{{ chant.position|default_if_none:"" }}</td>
+                        <td>
+                            {% if chant.record_type == "chant" %}
+                                <a href="{% url 'chant-detail' chant.id %}" target="_blank">{{ chant.incipit|default_if_none:"" }}</a>
+                            {% elif chant.record_type == "sequence" %}
+                                <a href="{% url 'sequence-detail' chant.id %}" target="_blank">{{ chant.incipit|default_if_none:"" }}</a>
+                            {% endif %}
+                        </td>
+                        <td>{{ chant.cantus_id|default_if_none:"" }}</td>
+                        <td>{{ chant.mode|default_if_none:"" }}</td>
+                        <td>{{ chant.differentia|default_if_none:"" }}</td>
+                        <td>
+                            {% if chant.diff_db %}
+                                <a href="https://differentiaedatabase.ca/differentia/{{ chant.diff_db.differentia_id }}"
+                                   target="_blank">
+                                    {{ chant.diff_db.differentia_id }}
+                                </a>
+                            {% endif %}
+                        </td>
+                    </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </body>
 </html>

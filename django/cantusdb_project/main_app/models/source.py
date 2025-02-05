@@ -78,7 +78,8 @@ class Source(BaseModel):
     )
 
     class SourceCompletenessChoices(models.IntegerChoices):
-        FULL_SOURCE = 1, "Complete source"
+        FULL_SOURCE = 1, "Complete (or mostly complete)"
+        FRAGMENTED = 4, "Fragmented"
         FRAGMENT = 2, "Fragment"
         RECONSTRUCTION = 3, "Reconstruction"
 
@@ -159,12 +160,12 @@ class Source(BaseModel):
 
     class ProductionMethodChoices(models.IntegerChoices):
         MANUSCRIPT = 1, "Manuscript"
-        PRINTED = 2, "Printed"
+        PRINT = 2, "Print"
 
     production_method = models.IntegerField(
         default=ProductionMethodChoices.MANUSCRIPT,
         choices=ProductionMethodChoices.choices,
-        verbose_name="Manuscript/Printed",
+        verbose_name="Manuscript/Print",
     )
 
     # number_of_chants and number_of_melodies are used for rendering the source-list page (perhaps among other places)
@@ -195,9 +196,6 @@ class Source(BaseModel):
 
         title.append(self.shelfmark)
 
-        if self.source_completeness == self.SourceCompletenessChoices.FRAGMENT:
-            title.append("(fragment)")
-
         if self.name:
             title.append(f'("{self.name}")')
 
@@ -215,8 +213,5 @@ class Source(BaseModel):
             title.append("Cantus")
 
         title.append(self.shelfmark)
-
-        if self.source_completeness == self.SourceCompletenessChoices.FRAGMENT:
-            title.append("(fragment)")
 
         return " ".join(title)

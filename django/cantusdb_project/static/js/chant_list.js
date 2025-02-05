@@ -6,6 +6,11 @@ window.addEventListener("load", function () {
     const genreFilter = document.getElementById("genreFilter");
     const folioFilter = document.getElementById("folioFilter");
 
+    // Proofreading filters (radio buttons)
+    const manuscriptFullTextStdProofread = document.querySelectorAll('input[name="manuscript_full_text_std_proofread"]');
+    const manuscriptFullTextProofread = document.querySelectorAll('input[name="manuscript_full_text_proofread"]');
+    const volpianoProofread = document.querySelectorAll('input[name="volpiano_proofread"]');
+
     // Make sure the select components keep their values across multiple GET requests
     // so the user can "drill down" on what they want
     const urlParams = new URLSearchParams(window.location.search);
@@ -23,6 +28,18 @@ window.addEventListener("load", function () {
         folioFilter.value = urlParams.get("folio");
     }
 
+    // Set the initial state of proofreading filters based on URL parameters
+    if (urlParams.has("manuscript_full_text_std_proofread")) {
+        document.querySelector(`input[name="manuscript_full_text_std_proofread"][value="${urlParams.get("manuscript_full_text_std_proofread")}"]`).checked = true;
+    }
+    if (urlParams.has("manuscript_full_text_proofread")) {
+        document.querySelector(`input[name="manuscript_full_text_proofread"][value="${urlParams.get("manuscript_full_text_proofread")}"]`).checked = true;
+    }
+    if (urlParams.has("volpiano_proofread")) {
+        document.querySelector(`input[name="volpiano_proofread"][value="${urlParams.get("volpiano_proofread")}"]`).checked = true;
+    }
+
+    // Event listeners for the select fields and search input
     searchText.addEventListener("change", setSearch);
     sourceFilter.addEventListener("change", setSource);
     feastFilter.addEventListener("change", setFeastLeft);
@@ -30,11 +47,23 @@ window.addEventListener("load", function () {
     genreFilter.addEventListener("change", setGenre);
     folioFilter.addEventListener("change", setFolio);
 
+    // Event listeners for the proofreading radio buttons
+    manuscriptFullTextStdProofread.forEach(radio => {
+        radio.addEventListener("change", setProofreadingFilter);
+    });
+    manuscriptFullTextProofread.forEach(radio => {
+        radio.addEventListener("change", setProofreadingFilter);
+    });
+    volpianoProofread.forEach(radio => {
+        radio.addEventListener("change", setProofreadingFilter);
+    });
+
     // functions for the auto-jump of various selectors and input fields on the page
     // the folio selector and folio-feast selector on the right half do source-wide filtering
     // the feast selector, genre selector, and text search on the left half do folio-wide filtering
     var url = new URL(window.location.href);
 
+    // Handle text search change
     function setSearch() {
         const searchTerm = searchText.value;
         url.searchParams.set('search_text', searchTerm);
@@ -84,6 +113,27 @@ window.addEventListener("load", function () {
         url.searchParams.set('genre', '');
         const folio = folioFilter.options[folioFilter.selectedIndex].value;
         url.searchParams.set('folio', folio);
+        window.location.assign(url);
+    }
+
+    // Helper function to update URL parameters
+    function updateURLParam(name, value) {
+        if (value === "") {
+            url.searchParams.delete(name);
+        } else {
+            url.searchParams.set(name, value);
+        }
+    }
+
+    // Handle proofreading filters (radio buttons)
+    function setProofreadingFilter() {
+        const stdProofread = document.querySelector('input[name="manuscript_full_text_std_proofread"]:checked')?.value;
+        const proofread = document.querySelector('input[name="manuscript_full_text_proofread"]:checked')?.value;
+        const volpianoProof = document.querySelector('input[name="volpiano_proofread"]:checked')?.value;
+        
+        updateURLParam('manuscript_full_text_std_proofread', stdProofread);
+        updateURLParam('manuscript_full_text_proofread', proofread);
+        updateURLParam('volpiano_proofread', volpianoProof);
         window.location.assign(url);
     }
 });

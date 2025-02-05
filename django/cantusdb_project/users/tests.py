@@ -2,9 +2,12 @@ from django.test import TestCase
 from django.test import Client
 from django.contrib.auth import get_user_model
 from django.urls import reverse
-from main_app.models import Segment, Source
-from main_app.tests.make_fakes import make_fake_user, make_fake_source
-from main_app.tests.test_views import get_random_search_term
+from main_app.tests.make_fakes import (
+    make_fake_user,
+    make_fake_source,
+    get_random_search_term,
+    make_fake_segment,
+)
 
 # run with `python -Wa manage.py test users.tests`
 # the -Wa flag tells Python to display deprecation warnings
@@ -37,7 +40,7 @@ class IndexerListViewTest(TestCase):
         # unless a segment is specified when a source is created, the source is automatically assigned
         # to the segment with the name "CANTUS Database" - to prevent errors, we must make sure that
         # such a segment exists
-        Segment.objects.create(name="CANTUS Database")
+        make_fake_segment(name="CANTUS Database")
 
     def test_view_url_path(self):
         response = self.client.get("/indexers/")
