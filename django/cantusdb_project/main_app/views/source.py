@@ -127,18 +127,26 @@ class SourceBrowseChantsView(ListView):
         # Apply proofreading filters if they are set
         if manuscript_full_text_std_proofread:
             chants = chants.filter(
-                manuscript_full_text_std_proofread=manuscript_full_text_std_proofread,
                 manuscript_full_text_std_spelling__isnull=False,
             ).exclude(manuscript_full_text_std_spelling="")
+            if manuscript_full_text_std_proofread == "False":
+                chants = chants.exclude(manuscript_full_text_std_proofread="True")
+            else:
+                chants = chants.filter(manuscript_full_text_std_proofread="True")
         if manuscript_full_text_proofread:
             chants = chants.filter(
-                manuscript_full_text_proofread=manuscript_full_text_proofread,
                 manuscript_full_text__isnull=False,
             ).exclude(manuscript_full_text="")
+            if manuscript_full_text_proofread == "False":
+                chants = chants.exclude(manuscript_full_text_proofread="True")
+            else:
+                chants = chants.filter(manuscript_full_text_proofread="True")
         if volpiano_proofread:
-            chants = chants.filter(
-                volpiano_proofread=volpiano_proofread, volpiano__isnull=False
-            ).exclude(volpiano="")
+            chants = chants.filter(volpiano__isnull=False).exclude(volpiano="")
+            if volpiano_proofread == "False":
+                chants = chants.exclude(volpiano_proofread="True")
+            else:
+                chants = chants.filter(volpiano_proofread="True")
 
         return chants.order_by("folio", "c_sequence")
 
