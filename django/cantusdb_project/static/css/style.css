@@ -1,5 +1,5 @@
 body {
-	background-image: url("background.jpg");
+	background-image: url("../background.jpg");
 }
 
 .error-page {
@@ -17,10 +17,6 @@ body {
 html {
 	position: relative;
 	min-height: 90%;
-}
-
-body {
-	background-image: url("background.jpg");
 }
 
 .container {
