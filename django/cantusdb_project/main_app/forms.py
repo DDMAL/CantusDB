@@ -280,6 +280,7 @@ class SourceCreateForm(forms.ModelForm):
             "melodies_entered_by",
             "inventoried_by",
             "full_text_entered_by",
+            "description_entered_by",
             "proofreaders",
             "other_editors",
             "complete_inventory",
@@ -323,6 +324,9 @@ class SourceCreateForm(forms.ModelForm):
                 url="all-users-autocomplete"
             ),
             "full_text_entered_by": autocomplete.ModelSelect2Multiple(
+                url="all-users-autocomplete"
+            ),
+            "description_entered_by": autocomplete.ModelSelect2Multiple(
                 url="all-users-autocomplete"
             ),
             "proofreaders": autocomplete.ModelSelect2Multiple(
@@ -518,6 +522,7 @@ class SourceEditForm(forms.ModelForm):
             "melodies_entered_by",
             "inventoried_by",
             "full_text_entered_by",
+            "description_entered_by",
             "proofreaders",
             "other_editors",
             "production_method",
@@ -553,6 +558,9 @@ class SourceEditForm(forms.ModelForm):
                 url="all-users-autocomplete"
             ),
             "full_text_entered_by": autocomplete.ModelSelect2Multiple(
+                url="all-users-autocomplete"
+            ),
+            "description_entered_by": autocomplete.ModelSelect2Multiple(
                 url="all-users-autocomplete"
             ),
             "proofreaders": autocomplete.ModelSelect2Multiple(
@@ -891,6 +899,14 @@ class AdminSourceForm(forms.ModelForm):
             verbose_name="full text entered by", is_stacked=False
         ),
     )
+
+    # description_entered_by = forms.ModelMultipleChoiceField(
+    #     queryset=get_user_model().objects.all().order_by("full_name"),
+    #     required=False,
+    #     widget=FilteredSelectMultiple(
+    #         verbose_name="description entered by", is_stacked=False
+    #     ),
+    # )
 
     melodies_entered_by = forms.ModelMultipleChoiceField(
         queryset=get_user_model().objects.all().order_by("full_name"),

@@ -73,6 +73,13 @@ class UserDetailView(DetailView):
             .order_by("holding_institution__siglum")
         )
 
+        context["description_sources"] = (
+            user.entered_description_for_sources.filter(**display_unpublished)
+            .select_related("holding_institution")
+            .all()
+            .order_by("holding_institution__siglum")
+        )
+
         context["edited_sources"] = (
             user.edited_sources.filter(**display_unpublished)
             .select_related("holding_institution")

@@ -495,6 +495,7 @@ def make_fake_source(**kwargs: Any) -> Source:
     source.notation.set([make_fake_notation()])
     source.inventoried_by.set([make_fake_user()])
     source.full_text_entered_by.set([make_fake_user()])
+    source.description_entered_by.set([make_fake_user()])
     source.melodies_entered_by.set([make_fake_user()])
     source.proofreaders.set([make_fake_user()])
     source.other_editors.set([make_fake_user()])
