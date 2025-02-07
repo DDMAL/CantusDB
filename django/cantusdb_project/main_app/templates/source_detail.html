@@ -107,6 +107,20 @@
                 {% endfor %}
             </dd>
         {% endif %}
+        {% if source.description_entered_by.exists %}
+            <dt>Description Entered by</dt>
+            <dd>
+                {% for editor in source.description_entered_by.all %}
+                    {% if editor.full_name %}
+                        <a href="{% url 'user-detail' editor.id %}">{{ editor.full_name }}</a>
+                        <br />
+                    {% else %}
+                        <a href="{% url 'user-detail' editor.id %}">User {{ editor.id }}</a>
+                        <br />
+                    {% endif %}
+                {% endfor %}
+            </dd>
+        {% endif %}
         {% if source.complete_inventory is not None %}
             <dt>Full/Partial Inventory</dt>
             <dd>

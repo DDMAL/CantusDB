@@ -400,6 +400,7 @@ class SourceListView(ListView):
             inventoried_by_q = Q()
             full_text_entered_by_q = Q()
             melodies_entered_by_q = Q()
+            description_entered_by_q = Q()
             proofreaders_q = Q()
             other_editors_q = Q()
             indexing_notes_q = Q()
@@ -415,6 +416,9 @@ class SourceListView(ListView):
                 melodies_entered_by_q |= Q(
                     melodies_entered_by__full_name__icontains=term
                 )
+                description_entered_by_q |= Q(
+                    description_entered_by__full_name__icontains=term
+                )
                 proofreaders_q |= Q(proofreaders__full_name__icontains=term)
                 other_editors_q |= Q(other_editors__full_name__icontains=term)
                 indexing_notes_q |= Q(indexing_notes__icontains=term)
@@ -425,6 +429,7 @@ class SourceListView(ListView):
                 inventoried_by_q
                 | full_text_entered_by_q
                 | melodies_entered_by_q
+                | description_entered_by_q
                 | proofreaders_q
                 | other_editors_q
                 | indexing_notes_q
