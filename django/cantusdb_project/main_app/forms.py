@@ -900,13 +900,13 @@ class AdminSourceForm(forms.ModelForm):
         ),
     )
 
-    # description_entered_by = forms.ModelMultipleChoiceField(
-    #     queryset=get_user_model().objects.all().order_by("full_name"),
-    #     required=False,
-    #     widget=FilteredSelectMultiple(
-    #         verbose_name="description entered by", is_stacked=False
-    #     ),
-    # )
+    description_entered_by = forms.ModelMultipleChoiceField(
+        queryset=get_user_model().objects.all().order_by("full_name"),
+        required=False,
+        widget=FilteredSelectMultiple(
+            verbose_name="description entered by", is_stacked=False
+        ),
+    )
 
     melodies_entered_by = forms.ModelMultipleChoiceField(
         queryset=get_user_model().objects.all().order_by("full_name"),
