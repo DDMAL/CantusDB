@@ -1,5 +1,5 @@
 from dal import autocomplete
-from django.db.models import Q
+from django.db.models import Q, QuerySet
 from django.contrib.auth import get_user_model
 
 from main_app.models import (
@@ -57,9 +57,7 @@ class CenturyAutocomplete(autocomplete.Select2QuerySetView):
 
 
 class FeastAutocomplete(autocomplete.Select2QuerySetView):
-    def get_queryset(self):
-        if not self.request.user.is_authenticated:
-            return Feast.objects.none()
+    def get_queryset(self) -> QuerySet[Feast]:
         qs = Feast.objects.all().order_by("name")
         if self.q:
             qs = qs.filter(name__icontains=self.q)
@@ -67,10 +65,10 @@ class FeastAutocomplete(autocomplete.Select2QuerySetView):
 
 
 class ServiceAutocomplete(autocomplete.Select2QuerySetView):
-    def get_result_label(self, result):
+    def get_result_label(self, result: Service) -> str:
         return f"{result.name} - {result.description}"
 
-    def get_queryset(self):
+    def get_queryset(self) -> QuerySet[Service]:
         if not self.request.user.is_authenticated:
             return Service.objects.none()
         qs = Service.objects.all().order_by("name")
@@ -82,12 +80,10 @@ class ServiceAutocomplete(autocomplete.Select2QuerySetView):
 
 
 class GenreAutocomplete(autocomplete.Select2QuerySetView):
-    def get_result_label(self, result):
+    def get_result_label(self, result: Genre) -> str:
         return f"{result.name} - {result.description}"
 
-    def get_queryset(self):
-        if not self.request.user.is_authenticated:
-            return Genre.objects.none()
+    def get_queryset(self) -> QuerySet[Genre]:
         qs = Genre.objects.all().order_by("name")
         if self.q:
             qs = qs.filter(
