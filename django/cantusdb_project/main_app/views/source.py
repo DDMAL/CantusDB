@@ -1,5 +1,5 @@
 import re
-from typing import Any, Optional
+from typing import Any
 
 from django.contrib import messages
 from django.contrib.auth.mixins import LoginRequiredMixin
@@ -17,14 +17,11 @@ from django.views.generic import (
     UpdateView,
     DeleteView,
     TemplateView,
-    FormView,
 )
-from django.views.generic.detail import SingleObjectMixin
 from main_app.forms import (
     SourceCreateForm,
     SourceEditForm,
     SourceBrowseChantsProofreadForm,
-    ImageLinkForm,
     BrowseChantsBulkEditFormset,
 )
 from main_app.models import (
@@ -622,46 +619,3 @@ class SourceInventoryView(TemplateView):
         context["chants"] = queryset
 
         return context
-
-
-class SourceAddImageLinksView(UserPassesTestMixin, SingleObjectMixin, FormView):  # type: ignore
-    template_name = "source_add_image_links.html"
-    pk_url_kwarg = "source_id"
-    queryset = Source.objects.select_related("holding_institution")
-    context_object_name = "source"
-    form_class = ImageLinkForm
-    object: Source
-    http_method_names = ["get", "post"]
-
-    def test_func(self) -> bool:
-        return user_can_manage_source_editors(self.request.user)
-
-    def get_success_url(self) -> str:
-        return reverse("source-detail", args=[self.object.id])
-
-    def get(self, request: HttpRequest, *args: Any, **kwargs: Any) -> HttpResponse:
-        self.object = self.get_object()
-        return super().get(request, *args, **kwargs)
-
-    def post(self, request: HttpRequest, *args: Any, **kwargs: Any) -> HttpResponse:
-        self.object = self.get_object()
-        return super().post(request, *args, **kwargs)
-
-    def get_initial(self) -> dict[str, Any]:
-        """
-        Set the initial data required by the ImageLinkForm
-        on GET requests.
-        """
-        folios: QuerySet[Chant, Optional[str]] = (
-            self.object.chant_set.values_list("folio", flat=True)
-            .distinct()
-            .order_by("folio")
-        )
-        return {folio: "" for folio in folios if folio}
-
-    def form_valid(self, form: ImageLinkForm) -> HttpResponseRedirect:
-        """
-        Save the image links to the database.
-        """
-        form.save(self.object)
-        return HttpResponseRedirect(self.get_success_url())

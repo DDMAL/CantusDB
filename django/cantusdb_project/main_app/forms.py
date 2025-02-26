@@ -953,7 +953,7 @@ class AdminUserChangeForm(forms.ModelForm):
     )
 
 
-class ImageLinkForm(forms.Form):
+class AddImageLinksForm(forms.Form):
     """
     Subclass of Django's Form class that creates the form we use for
     adding image links to chants in a source.
