@@ -64,7 +64,7 @@ class JSONResponseMixin:
                 for field in json_fields:
                     obj_json[field] = self._get_field(obj, field)
                 return JsonResponse({obj.get_verbose_name(): obj_json})
-            q_s = context["object_list"].values(*json_fields)
+            q_s = self.object_list.values(*json_fields)  # type: ignore[attr-defined]
             q_s_name = str(q_s.model.get_verbose_name_plural())
             return JsonResponse({q_s_name: list(q_s)})
         try:
