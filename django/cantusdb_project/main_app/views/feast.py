@@ -7,6 +7,7 @@ from django.views.generic import DetailView, ListView
 from extra_views import SearchableListMixin
 
 from main_app.models import Feast
+from main_app.mixins import JSONResponseMixin
 
 # this categorization is not finalized yet
 # the feastcode on old cantus requires cleaning
@@ -86,10 +87,11 @@ def namedtuple_fetch(results, description) -> Generator[NamedTuple, None, None]:
         yield nt_result(*res)
 
 
-class FeastDetailView(DetailView):
+class FeastDetailView(JSONResponseMixin, DetailView):
     model = Feast
     context_object_name = "feast"
     template_name = "feast_detail.html"
+    json_fields = ["id", "name", "description", "feast_code"]
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
@@ -129,7 +131,7 @@ class FeastDetailView(DetailView):
         return context
 
 
-class FeastListView(SearchableListMixin, ListView):
+class FeastListView(JSONResponseMixin, SearchableListMixin, ListView):
     """Searchable List view for Feast model
 
     Accessed by /feasts/
@@ -146,6 +148,7 @@ class FeastListView(SearchableListMixin, ListView):
     paginate_by = 100
     context_object_name = "feasts"
     template_name = "feast_list.html"
+    json_fields = ["id", "name", "description", "feast_code"]
 
     def get_ordering(self) -> tuple:
         ordering = self.request.GET.get("sort_by")
