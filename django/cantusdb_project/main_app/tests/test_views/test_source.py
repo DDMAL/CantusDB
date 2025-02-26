@@ -27,6 +27,7 @@ from main_app.tests.make_fakes import (
 )
 from main_app.tests.mixins import HTMLContentsTestMixin
 from main_app.forms import BrowseChantsBulkEditFormset
+from users.models import User
 
 # Create a Faker instance with locale set to Latin
 faker = Faker("la")
