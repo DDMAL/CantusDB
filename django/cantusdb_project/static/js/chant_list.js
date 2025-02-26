@@ -130,10 +130,26 @@ window.addEventListener("load", function () {
         const stdProofread = document.querySelector('input[name="manuscript_full_text_std_proofread"]:checked')?.value;
         const proofread = document.querySelector('input[name="manuscript_full_text_proofread"]:checked')?.value;
         const volpianoProof = document.querySelector('input[name="volpiano_proofread"]:checked')?.value;
-        
+
         updateURLParam('manuscript_full_text_std_proofread', stdProofread);
         updateURLParam('manuscript_full_text_proofread', proofread);
         updateURLParam('volpiano_proofread', volpianoProof);
         window.location.assign(url);
+    }
+
+
+    // Use #bulkChantEditToggle button to toggle the bulk chant edit form.
+    const userCanEditChants = document.getElementById("data-user-can-edit-chants").textContent === "true";
+    if (userCanEditChants) {
+        const bulkChantEditToggle = document.getElementById("bulkChantEditToggle");
+        const bulkChantEditForm = document.getElementById("bulkChantEditForm");
+        const chantDisplayTable = document.getElementById("chantDisplayTable");
+        const bulkChantEditSubmit = document.getElementById("bulkChantEditSubmit");
+        bulkChantEditToggle.addEventListener("click", function () {
+            bulkChantEditForm.classList.toggle("d-none");
+            chantDisplayTable.classList.toggle("d-none");
+            bulkChantEditSubmit.classList.toggle("d-none");
+            bulkChantEditToggle.textContent = bulkChantEditForm.classList.contains("d-none") ? "Bulk Edit Chants" : "Stop Editing";
+        });
     }
 });
