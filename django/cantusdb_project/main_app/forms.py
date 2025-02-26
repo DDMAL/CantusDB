@@ -214,7 +214,7 @@ class ChantCreateForm(forms.ModelForm):
         help_text="Binding order",
     )
 
-    c_sequence = forms.CharField(
+    c_sequence = forms.IntegerField(
         required=True,
         widget=TextInputWidget,
         help_text="Each folio starts with '1'.",
@@ -441,7 +441,7 @@ class ChantEditForm(forms.ModelForm):
         help_text="Binding order",
     )
 
-    c_sequence = forms.CharField(
+    c_sequence = forms.IntegerField(
         required=True,
         widget=TextInputWidget,
         help_text="Each folio starts with '1'.",
