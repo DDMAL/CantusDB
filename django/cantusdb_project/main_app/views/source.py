@@ -25,6 +25,7 @@ from main_app.forms import (
     SourceEditForm,
     SourceBrowseChantsProofreadForm,
     ImageLinkForm,
+    BrowseChantsBulkEditFormset,
 )
 from main_app.models import (
     Century,
@@ -52,7 +53,7 @@ CANTUS_SEGMENT_ID = 4063
 BOWER_SEGMENT_ID = 4064
 
 
-class SourceBrowseChantsView(ListView):
+class SourceBrowseChantsView(UserPassesTestMixin, ListView):  # type: ignore[type-arg]
     """The view for the `Browse Chants` page.
 
     Displays a list of Chant objects, accessed with ``chants`` followed by a series of GET params
@@ -74,24 +75,30 @@ class SourceBrowseChantsView(ListView):
     template_name = "browse_chants.html"
     pk_url_kwarg = "source_id"
     source: Source
+    extra_context = {
+        "bulk_edit_formset": None,
+    }
 
-    def get_queryset(self):
-        """Gather the chants to be displayed.
+    def test_func(self) -> bool:
+        """
+        Gets source attribute. If the source is unpublished, only authenticated users can
+        access this view.
+        """
+        source_id = self.kwargs.get(self.pk_url_kwarg)
+        self.source = get_object_or_404(Source, id=source_id)
+        if self.request.method == "POST":
+            return user_can_edit_chants_in_source(self.request.user, self.source)
+        return self.source.published or self.request.user.is_authenticated
 
-        When in the `browse chants` page, there must be a source specified.
+    def get_queryset(self) -> QuerySet[Chant]:
+        """
+        Gather the chants to be displayed.
+
         The chants in the specified source are filtered by a set of optional search parameters.
 
         Returns:
             queryset: The Chant objects to be displayed.
         """
-        source_id = self.kwargs.get(self.pk_url_kwarg)
-        source = get_object_or_404(Source, id=source_id)
-        self.source = source
-
-        display_unpublished = self.request.user.is_authenticated
-        if (source.published is False) and (not display_unpublished):
-            raise PermissionDenied()
-
         # optional search params
         feast_id = self.request.GET.get("feast")
         genre_id = self.request.GET.get("genre")
@@ -108,7 +115,7 @@ class SourceBrowseChantsView(ListView):
         volpiano_proofread = self.request.GET.get("volpiano_proofread")
 
         # get all chants in the specified source
-        chants: QuerySet[Chant] = source.chant_set.select_related(
+        chants: QuerySet[Chant] = self.source.chant_set.select_related(
             "feast", "service", "genre"
         )
         # filter the chants with optional search params
@@ -151,8 +158,8 @@ class SourceBrowseChantsView(ListView):
 
         return chants.order_by("folio", "c_sequence")
 
-    def get_context_data(self, **kwargs):
-        context: dict = super().get_context_data(**kwargs)
+    def get_context_data(self, **kwargs: Any) -> dict[str, Any]:
+        context: dict[str, Any] = super().get_context_data(**kwargs)
         source: Source = self.source
         if source.segment_id != CANTUS_SEGMENT_ID:
             # the chant list ("Browse Chants") page should only be visitable
@@ -170,7 +177,7 @@ class SourceBrowseChantsView(ListView):
 
         # sources in the Bower Segment contain only Sequences and no Chants,
         # so they should not appear among the list of sources
-        cantus_segment: QuerySet[Segment] = Segment.objects.get(id=CANTUS_SEGMENT_ID)
+        cantus_segment: Segment = Segment.objects.get(id=CANTUS_SEGMENT_ID)
 
         # to be displayed in the "Source" dropdown in the form
         sources: QuerySet[Source] = cantus_segment.source_set.select_related(
@@ -184,7 +191,7 @@ class SourceBrowseChantsView(ListView):
         context["user_can_edit_chant"] = user_can_edit_chants_in_source(user, source)
         context["user_can_proofread_source"] = user_can_proofread_source(user, source)
 
-        chants_in_source: QuerySet[Chant] = source.chant_set
+        chants_in_source = source.chant_set
         if chants_in_source.count() == 0:
             # these are needed in the selectors and hyperlinks on the right side of the page
             # if there's no chant in the source, there should be no options in those selectors
@@ -195,16 +202,15 @@ class SourceBrowseChantsView(ListView):
             return context
 
         # generate options for the folio selector on the right side of the page
-        folios: tuple[str] = (
+        folios = (
             chants_in_source.values_list("folio", flat=True)
             .distinct()
             .order_by("folio")
         )
         context["folios"] = folios
 
-        if self.request.GET.get("folio"):
+        if folio := self.request.GET.get("folio"):
             # if browsing chants on a specific folio
-            folio: str = self.request.GET.get("folio")
             index: int = list(folios).index(folio)
             # get the previous and next folio, if available
             context["previous_folio"] = folios[index - 1] if index != 0 else None
@@ -217,7 +223,22 @@ class SourceBrowseChantsView(ListView):
         context["proofread_filter_form"] = SourceBrowseChantsProofreadForm(
             self.request.GET or None
         )
+        if not self.extra_context.get("bulk_edit_formset"):
+            context["bulk_edit_formset"] = BrowseChantsBulkEditFormset(
+                instance=source, queryset=self.object_list
+            )
         return context
+
+    def post(self, request: HttpRequest, *args: Any, **kwargs: Any) -> HttpResponse:
+        formset = BrowseChantsBulkEditFormset(request.POST, instance=self.source)
+        if formset.is_valid():
+            formset.save()
+            messages.success(request, "Chants updated successfully!")
+        else:
+            self.extra_context = {
+                "bulk_edit_formset": formset,
+            }
+        return self.get(request, *args, **kwargs)
 
 
 class SourceDetailView(JSONResponseMixin, DetailView):  # type: ignore[type-arg]

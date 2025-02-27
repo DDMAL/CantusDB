@@ -214,7 +214,7 @@ class ChantCreateForm(forms.ModelForm):
         help_text="Binding order",
     )
 
-    c_sequence = forms.CharField(
+    c_sequence = forms.IntegerField(
         required=True,
         widget=TextInputWidget,
         help_text="Each folio starts with '1'.",
@@ -441,7 +441,7 @@ class ChantEditForm(forms.ModelForm):
         help_text="Binding order",
     )
 
-    c_sequence = forms.CharField(
+    c_sequence = forms.IntegerField(
         required=True,
         widget=TextInputWidget,
         help_text="Each folio starts with '1'.",
@@ -984,3 +984,55 @@ class ImageLinkForm(forms.Form):
         for folio, image_link in cleaned_data.items():
             if image_link != "":
                 source.chant_set.filter(folio=folio).update(image_link=image_link)
+
+class BrowseChantsBulkEditForm(forms.ModelForm):
+    class Meta:
+        model = Chant
+        fields = [
+            "id",
+            "folio",
+            "c_sequence",
+            "manuscript_full_text_std_spelling",
+            "feast",
+            "service",
+            "genre",
+            "position",
+            "cantus_id",
+            "mode",
+        ]
+        widgets = {
+            "id": HiddenInput(),
+            "feast": autocomplete.ModelSelect2(url="feast-autocomplete"),
+            "service": autocomplete.ModelSelect2(url="service-autocomplete"),
+            "genre": autocomplete.ModelSelect2(url="genre-autocomplete"),
+            "position": TextInputWidget(),
+            "cantus_id": TextInputWidget(),
+            "mode": TextInputWidget(),
+        }
+
+    folio = forms.CharField(
+        required=True,
+        widget=TextInputWidget,
+    )
+
+    c_sequence = forms.IntegerField(
+        required=True,
+        widget=TextInputWidget,
+    )
+
+    manuscript_full_text_std_spelling = CantusDBLatinField(
+        widget=TextAreaWidget,
+        required=True,
+    )
+
+
+BrowseChantsBulkEditFormset = forms.inlineformset_factory(
+    Source,
+    Chant,
+    form=BrowseChantsBulkEditForm,
+    extra=0,
+    max_num=100,
+    can_delete=False,
+    can_order=False,
+    edit_only=True,
+)
