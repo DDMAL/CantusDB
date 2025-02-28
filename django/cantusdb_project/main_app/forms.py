@@ -249,14 +249,18 @@ class ChantCreateForm(forms.ModelForm):
         # Call super().clean() to ensure that the form's built-in validation
         # is run before our custom validation.
         super().clean()
-        folio = self.cleaned_data["folio"]
-        c_sequence = self.cleaned_data["c_sequence"]
-        source = self.cleaned_data["source"]
-        if source.chant_set.filter(folio=folio, c_sequence=c_sequence):
-            raise forms.ValidationError(
-                "Chant with the same sequence and folio already exists in this source.",
-                code="duplicate-folio-sequence",
-            )
+        # Only do this additional validation if the form is otherwise valid.
+        # For example, if the `folio` field has been left blank, then we can't
+        # use is to check for uniqueness.
+        if self.is_valid():
+            folio = self.cleaned_data["folio"]
+            c_sequence = self.cleaned_data["c_sequence"]
+            source = self.cleaned_data["source"]
+            if source.chant_set.filter(folio=folio, c_sequence=c_sequence):
+                raise forms.ValidationError(
+                    "Chant with the same sequence and folio already exists in this source.",
+                    code="duplicate-folio-sequence",
+                )
         return self.cleaned_data
 
 
