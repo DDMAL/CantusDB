@@ -85,7 +85,6 @@ from main_app.views.source import (
     SourceListView,
     SourceDeleteView,
     SourceInventoryView,
-    SourceAddImageLinksView,
 )
 from main_app.views.user import (
     CustomLogoutView,
@@ -105,6 +104,10 @@ from main_app.views.autocomplete import (
     ProvenanceAutocomplete,
     ProofreadByAutocomplete,
     HoldingAutocomplete,
+)
+from main_app.views.source_bulk_actions import (
+    AddImageLinksView,
+    AddChantsView,
 )
 from main_app.views.auth import change_password
 
@@ -367,8 +370,13 @@ urlpatterns = [
     ),
     path(
         "source/<int:source_id>/add-image-links",
-        SourceAddImageLinksView.as_view(),
+        AddImageLinksView.as_view(),
         name="source-add-image-links",
+    ),
+    path(
+        "source/<int:source_id>/add-chants",
+        AddChantsView.as_view(),
+        name="source-add-chants",
     ),
     # melody
     path(

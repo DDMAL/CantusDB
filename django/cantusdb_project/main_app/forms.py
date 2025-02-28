@@ -989,6 +989,22 @@ class AddImageLinksForm(forms.Form):
             if image_link != "":
                 source.chant_set.filter(folio=folio).update(image_link=image_link)
 
+
+ChantCreateFormset = forms.inlineformset_factory(
+    Source,
+    Chant,
+    form=ChantCreateForm,
+    extra=0,
+    max_num=250,
+    can_delete=False,
+    can_order=False,
+)
+
+
+class ChantCreateFromCSVForm(forms.Form):
+    new_chants = forms.JSONField(widget=forms.HiddenInput)
+
+
 class BrowseChantsBulkEditForm(forms.ModelForm):
     class Meta:
         model = Chant

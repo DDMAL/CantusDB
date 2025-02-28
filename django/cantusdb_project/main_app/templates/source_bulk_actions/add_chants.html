@@ -1,0 +1,107 @@
+{% extends "base.html" %}
+{% load static %}
+{% block title %}
+    <title>Bulk Add Chants to Source: {{ source.short_heading }}</title>
+{% endblock %}
+{% block scripts %}
+    <script src="{% static 'js/source_add_chants.js' %}"></script>
+    <link rel="stylesheet" href="{% static 'css/source_bulk_add.css' %}" />
+{% endblock %}
+{% block content %}
+    <div class="container bg-white rounded">
+        <div class="row mt-4">
+            <div class="col small">
+                <h4>
+                    Bulk Add Chants to Source: <a href="{% url 'source-detail' source.id %}">{{ source.heading }}</a>
+                </h4>
+                <p class="pt-3">
+                    Use this form to add chants from a csv file to this source. Each row of the csv file should
+                    contain the data for a single chant (note: this form is limited to creating 250 chants additional
+                    a time). The following columns are required:
+                    <ul>
+                        <li>folio</li>
+                        <li>sequence</li>
+                        <li>full_text_std_spelling</li>
+                    </ul>
+                </p>
+                <p>
+                    The following optional columns are also supported:
+                    <ul>
+                        <li>rubrics</li>
+                        <li>indexing_notes</li>
+                        <li>marginalia</li>
+                        <li>content_structure</li>
+                        <li>feast</li>
+                        <li>service</li>
+                        <li>genre</li>
+                        <li>position</li>
+                        <li>liturgical_function</li>
+                        <li>cantus_id</li>
+                        <li>mode</li>
+                        <li>finalis</li>
+                        <li>differentia</li>
+                        <li>full_text_source_spelling</li>
+                        <li>extra</li>
+                        <li>chant_range</li>
+                        <li>addendum</li>
+                        <li>polyphony</li>
+                    </ul>
+                </p>
+                <p>
+                    The following checks will be performed on the csv file before it is saved. Failure of any of these
+                    checks will leave all chants unsaved and an error message will be displayed.
+                </p>
+                <ol>
+                    <li>A check that the required columns are present.</li>
+                    <li>A check that any additional columns correspond to valid chant data fields.</li>
+                    <li>
+                        A check that the source does not contain any chants with the same folio and sequence.
+                    </li>
+                    <li>
+                        A check that the values of any of the following fields correspond to valid values:
+                        <ul>
+                            <li>feast</li>
+                            <li>genre</li>
+                            <li>service</li>
+                            <li>polyphony</li>
+                            <li>liturgical_function</li>
+                        </ul>
+                    </li>
+                </ol>
+            </div>
+        </div>
+        <label for="addChantsCSV" class="form-label">Select CSV file containing chants</label>
+        <div class="row mb-4">
+            <div class="col-4">
+                <input class="form-control form-control-sm"
+                       id="addChantsCSV"
+                       type="file"
+                       accept=".csv" />
+                <form id="addChantsForm" method="post">
+                    {% csrf_token %}
+                    {{ form }}
+                </form>
+            </div>
+            <div class="col">
+                <button id="addChantsFormSubmitBtn"
+                        class="btn btn-sm btn-primary"
+                        form="addChantsForm"
+                        type="submit">Add Chants</button>
+            </div>
+        </div>
+        <div class="row" id="formErrorAlertDiv"></div>
+        <div id="csvPreviewDiv" hidden>
+            <h6>CSV Preview</h6>
+            <div id="csvPreviewDiv" class="row justify-content-center">
+                <div class="col-auto csv-preview-table">
+                    <table class="table table-sm table-bordered small">
+                        <thead id="csvPreviewHead">
+                        </thead>
+                        <tbody id="csvPreviewBody">
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+{% endblock %}
