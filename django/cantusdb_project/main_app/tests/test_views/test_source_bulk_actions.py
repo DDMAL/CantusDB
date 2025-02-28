@@ -88,7 +88,9 @@ class AddImageLinksViewTest(TestCase):
                 reverse("source-add-image-links", args=[self.source.id])
             )
             self.assertEqual(response.status_code, 200)
-            self.assertTemplateUsed(response, "source_add_image_links.html")
+            self.assertTemplateUsed(
+                response, "source_bulk_actions/add_image_links.html"
+            )
             form = response.context["form"]
             self.assertListEqual(
                 list(form.fields.keys()), ["001r", "001v", "003", "004A", "004B"]
