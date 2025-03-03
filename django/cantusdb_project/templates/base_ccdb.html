@@ -46,16 +46,43 @@
                 integrity="sha384-0pUGZvbkm6XF6gxjEnlmuGrJXVbNuzT9qBBavbLwCsOGabYfZo0T0to5eqruptLy"
                 crossorigin="anonymous"></script>
         <link href="{% static 'css/style.css' %}" rel="stylesheet" />
+        <link href="{% static 'css/ccdb_style.css' %}" rel="stylesheet" />
         <link href="{% static 'fonts/volpiano.css' %}"
               rel="stylesheet"
               media="screen" />
         {% block scripts %}{% endblock %}
     </head>
-    <body>
-        <header>
+    <body class="canadian-chant-db-background">
+        <header id="collapsing-header" class="ccdb-header z-1 collapsing-header">
+            <script>
+                document.addEventListener("DOMContentLoaded", function () {
+                    var stickyHeaderToggle = document.getElementById("sticky-header-toggle");
+                    var stickyHeader = document.getElementById("sticky-header");
+                    var collapsingHeader = document.getElementById("collapsing-header");
+                    let lastScrollY = 0;
+
+                    window.addEventListener("scroll", function(){
+                        // if we scroll down below 80px, then collapse the header
+                        // and show the toggle button
+                        if (lastScrollY < 80 && window.scrollY >= 80) {
+                            stickyHeaderToggle.classList.remove("d-none");
+                        } 
+                        // if we scroll up to the top, then remove the toggle button
+                        else if (window.scrollY < 80 && lastScrollY >= 80) {
+                            stickyHeaderToggle.classList.add("d-none");
+                            collapsingHeader.classList.remove("collapsing-header-show");
+                        }
+                        lastScrollY = window.scrollY;
+                    });
+
+                    stickyHeaderToggle.addEventListener("click", function () {
+                        collapsingHeader.classList.toggle("collapsing-header-show");
+                    });
+                });
+            </script>
             <!-- Navbar -->
-            <nav class="navbar navbar-expand-lg py-0">
-                <div class="container bg-white border-top">
+            <nav class="navbar navbar-expand-lg">
+                <div class="container">
                     <a class="navbar-brand" href="/">
                         <img class="img-fluid"
                              src="{% static "cantus-logo.png" %}"
@@ -114,8 +141,7 @@
                             <div class="dropdown-menu" aria-labelledby="navbarDropdownLinkSources">
                                 <a class="dropdown-item" href="{% url 'source-list' %}?segment=4063">Cantus Sources</a>
                                 <a class="dropdown-item" href="{% url 'source-list' %}?segment=4064">Sequence Database (Clavis Sequentiarum by Calvin Bower)</a>
-                                <a class="dropdown-item"
-                                   href="{% url 'canadian-chant-db-source-list' %}">Canadian Chant Database</a>
+                                <a class="dropdown-item" href="{% url 'source-list' %}?segment=4065">Canadian Chant Database</a>
                             </div>
                         </li>
                         <!-- CHANTS -->
@@ -187,13 +213,15 @@
                     </ul>
                 </div>
             </nav>
-            <!-- <hr class="color" /> -->
+            <div id="sticky-header">
+                <button id="sticky-header-toggle" type="button" class="btn d-none">
+                    <i class="bi bi-list fs-4 p-1"></i>
+                </button>
+            </div>
         </header>
-        <!-- Content goes here, using the extends tag from Django -->
-        <main role="main" class="content my-4 d-flex">
+        <main role="main" class="content">
             {% block content %}{% endblock %}
         </main>
-        <!-- Footer in every page -->
         <footer class="footer">
             <div class="bg-white small w-100 pb-2">
                 <div class="container">

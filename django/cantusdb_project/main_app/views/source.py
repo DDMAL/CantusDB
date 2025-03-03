@@ -296,7 +296,12 @@ class SourceListView(ListView):
     model = Source
     paginate_by = 100
     context_object_name = "sources"
-    template_name = "source_list.html"
+    segment: Optional[Segment] = None
+
+    def get_template_names(self) -> list[str]:
+        if self.segment and self.segment.id == 4066:
+            return ["source_list_ccdb.html"]
+        return ["source_list.html"]
 
     def get_context_data(self, **kwargs: Any) -> dict[str, Any]:
         context = super().get_context_data(**kwargs)
@@ -317,6 +322,12 @@ class SourceListView(ListView):
         )
         return context
 
+    def get(self, request: HttpRequest, *args: Any, **kwargs: Any) -> HttpResponse:
+        segment_id = self.kwargs.get("segment_id")
+        if segment_id:
+            self.segment = get_object_or_404(Segment, id=segment_id)
+        return super().get(request, *args, **kwargs)
+
     def get_queryset(self) -> QuerySet[Source]:
         # use select_related() for foreign keys to reduce DB queries
         queryset = Source.objects.select_related(
@@ -328,6 +339,9 @@ class SourceListView(ListView):
         else:
             q_obj_filter = Q(published=True)
 
+        if self.segment:
+            q_obj_filter &= Q(segment_m2m=self.segment)
+
         if country_name := self.request.GET.get("country"):
             q_obj_filter &= Q(holding_institution__country__icontains=country_name)
 
@@ -338,7 +352,7 @@ class SourceListView(ListView):
         if provenance_id := self.request.GET.get("provenance"):
             q_obj_filter &= Q(provenance__id=int(provenance_id))
         if segment_id := self.request.GET.get("segment"):
-            q_obj_filter &= Q(segment__id=int(segment_id))
+            q_obj_filter &= Q(segment_m2m__id=int(segment_id))
         if source_completeness := self.request.GET.getlist("sourceCompleteness"):
             q_obj_filter &= Q(source_completeness__in=source_completeness)
         if production_method := self.request.GET.get("prodMethod"):
