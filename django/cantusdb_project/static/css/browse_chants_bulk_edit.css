@@ -1,0 +1,25 @@
+.edit-table {
+    table-layout: fixed;
+}
+
+.sm-edit-col {
+    width: 70px;
+}
+
+.med-edit-col {
+    width: 100px;
+}
+
+.full-text-edit-col {
+    width: 400px;
+}
+
+/* Override default style for 
+django-autocomplete-light select2 widget */
+.select2-container {
+    min-width: 130px !important;
+}
+
+.autocomplete-edit-col {
+    width: 150px;
+}

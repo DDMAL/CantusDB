@@ -1,0 +1,89 @@
+body.canadian-chant-db-background {
+    background-image: url("../ccdb-images/canadian-chant-db-background.png");
+    background-color: var(--bs-gray-100);
+    background-repeat: no-repeat;
+    background-attachment: fixed;
+    background-size: cover;
+}
+
+.ccdb-salzinnes-baptism-img {
+    border-radius: 20%;
+    border: solid 3px #cc3333;
+}
+
+.ccdb-button {
+    background-color: #cc3333;
+    border: none;
+
+    &:hover {
+        background-color: #992626;
+        text-decoration: none;
+    }
+}
+
+.ccdb-info a {
+    color: #cc3333;
+
+    &:hover {
+        color: #992626;
+    }
+
+}
+
+.ccdb-table-bg {
+    background-color: var(--bs-gray-400)
+}
+
+form.ccdb-filter-form input,
+form.ccdb-filter-form select {
+    background-color: var(--bs-gray-100);
+}
+
+table.ccdb-table th,
+table.ccdb-table td {
+    background-color: var(--bs-gray-100);
+}
+
+table.ccdb-table a {
+    color: #cc3333;
+
+    &:hover {
+        color: #992626;
+    }
+}
+
+
+#sticky-header-toggle {
+    color: white;
+    background-color: #cc3333eb;
+    border-radius: 0 0 20% 20%;
+    position: relative;
+    left: 10px;
+}
+
+.ccdb-header {
+    background-color: #cc3333eb;
+    color: white;
+    height: 90px;
+
+    .nav-link {
+        color: white !important;
+    }
+}
+
+.ccdb-header nav {
+    padding-top: 10px;
+    padding-bottom: 10px;
+}
+
+.collapsing-header {
+    position: sticky;
+    left: 0px;
+    width: 100%;
+    top: -80px;
+    transition: transform 0.3s;
+}
+
+.collapsing-header-show {
+    transform: translateY(80px);
+}

@@ -1,3 +1,4 @@
+import re
 from typing import Any, Optional
 
 from django.contrib import messages
@@ -24,6 +25,7 @@ from main_app.forms import (
     SourceEditForm,
     SourceBrowseChantsProofreadForm,
     ImageLinkForm,
+    BrowseChantsBulkEditFormset,
 )
 from main_app.models import (
     Century,
@@ -51,7 +53,7 @@ CANTUS_SEGMENT_ID = 4063
 BOWER_SEGMENT_ID = 4064
 
 
-class SourceBrowseChantsView(ListView):
+class SourceBrowseChantsView(UserPassesTestMixin, ListView):  # type: ignore[type-arg]
     """The view for the `Browse Chants` page.
 
     Displays a list of Chant objects, accessed with ``chants`` followed by a series of GET params
@@ -73,24 +75,30 @@ class SourceBrowseChantsView(ListView):
     template_name = "browse_chants.html"
     pk_url_kwarg = "source_id"
     source: Source
+    extra_context = {
+        "bulk_edit_formset": None,
+    }
 
-    def get_queryset(self):
-        """Gather the chants to be displayed.
+    def test_func(self) -> bool:
+        """
+        Gets source attribute. If the source is unpublished, only authenticated users can
+        access this view.
+        """
+        source_id = self.kwargs.get(self.pk_url_kwarg)
+        self.source = get_object_or_404(Source, id=source_id)
+        if self.request.method == "POST":
+            return user_can_edit_chants_in_source(self.request.user, self.source)
+        return self.source.published or self.request.user.is_authenticated
 
-        When in the `browse chants` page, there must be a source specified.
+    def get_queryset(self) -> QuerySet[Chant]:
+        """
+        Gather the chants to be displayed.
+
         The chants in the specified source are filtered by a set of optional search parameters.
 
         Returns:
             queryset: The Chant objects to be displayed.
         """
-        source_id = self.kwargs.get(self.pk_url_kwarg)
-        source = get_object_or_404(Source, id=source_id)
-        self.source = source
-
-        display_unpublished = self.request.user.is_authenticated
-        if (source.published is False) and (not display_unpublished):
-            raise PermissionDenied()
-
         # optional search params
         feast_id = self.request.GET.get("feast")
         genre_id = self.request.GET.get("genre")
@@ -107,7 +115,7 @@ class SourceBrowseChantsView(ListView):
         volpiano_proofread = self.request.GET.get("volpiano_proofread")
 
         # get all chants in the specified source
-        chants: QuerySet[Chant] = source.chant_set.select_related(
+        chants: QuerySet[Chant] = self.source.chant_set.select_related(
             "feast", "service", "genre"
         )
         # filter the chants with optional search params
@@ -150,8 +158,8 @@ class SourceBrowseChantsView(ListView):
 
         return chants.order_by("folio", "c_sequence")
 
-    def get_context_data(self, **kwargs):
-        context: dict = super().get_context_data(**kwargs)
+    def get_context_data(self, **kwargs: Any) -> dict[str, Any]:
+        context: dict[str, Any] = super().get_context_data(**kwargs)
         source: Source = self.source
         if source.segment_id != CANTUS_SEGMENT_ID:
             # the chant list ("Browse Chants") page should only be visitable
@@ -169,7 +177,7 @@ class SourceBrowseChantsView(ListView):
 
         # sources in the Bower Segment contain only Sequences and no Chants,
         # so they should not appear among the list of sources
-        cantus_segment: QuerySet[Segment] = Segment.objects.get(id=CANTUS_SEGMENT_ID)
+        cantus_segment: Segment = Segment.objects.get(id=CANTUS_SEGMENT_ID)
 
         # to be displayed in the "Source" dropdown in the form
         sources: QuerySet[Source] = cantus_segment.source_set.select_related(
@@ -183,7 +191,7 @@ class SourceBrowseChantsView(ListView):
         context["user_can_edit_chant"] = user_can_edit_chants_in_source(user, source)
         context["user_can_proofread_source"] = user_can_proofread_source(user, source)
 
-        chants_in_source: QuerySet[Chant] = source.chant_set
+        chants_in_source = source.chant_set
         if chants_in_source.count() == 0:
             # these are needed in the selectors and hyperlinks on the right side of the page
             # if there's no chant in the source, there should be no options in those selectors
@@ -194,16 +202,15 @@ class SourceBrowseChantsView(ListView):
             return context
 
         # generate options for the folio selector on the right side of the page
-        folios: tuple[str] = (
+        folios = (
             chants_in_source.values_list("folio", flat=True)
             .distinct()
             .order_by("folio")
         )
         context["folios"] = folios
 
-        if self.request.GET.get("folio"):
+        if folio := self.request.GET.get("folio"):
             # if browsing chants on a specific folio
-            folio: str = self.request.GET.get("folio")
             index: int = list(folios).index(folio)
             # get the previous and next folio, if available
             context["previous_folio"] = folios[index - 1] if index != 0 else None
@@ -216,7 +223,22 @@ class SourceBrowseChantsView(ListView):
         context["proofread_filter_form"] = SourceBrowseChantsProofreadForm(
             self.request.GET or None
         )
+        if not self.extra_context.get("bulk_edit_formset"):
+            context["bulk_edit_formset"] = BrowseChantsBulkEditFormset(
+                instance=source, queryset=self.object_list
+            )
         return context
+
+    def post(self, request: HttpRequest, *args: Any, **kwargs: Any) -> HttpResponse:
+        formset = BrowseChantsBulkEditFormset(request.POST, instance=self.source)
+        if formset.is_valid():
+            formset.save()
+            messages.success(request, "Chants updated successfully!")
+        else:
+            self.extra_context = {
+                "bulk_edit_formset": formset,
+            }
+        return self.get(request, *args, **kwargs)
 
 
 class SourceDetailView(JSONResponseMixin, DetailView):  # type: ignore[type-arg]
@@ -274,7 +296,12 @@ class SourceListView(ListView):
     model = Source
     paginate_by = 100
     context_object_name = "sources"
-    template_name = "source_list.html"
+    segment: Optional[Segment] = None
+
+    def get_template_names(self) -> list[str]:
+        if self.segment and self.segment.id == 4066:
+            return ["source_list_ccdb.html"]
+        return ["source_list.html"]
 
     def get_context_data(self, **kwargs: Any) -> dict[str, Any]:
         context = super().get_context_data(**kwargs)
@@ -295,6 +322,12 @@ class SourceListView(ListView):
         )
         return context
 
+    def get(self, request: HttpRequest, *args: Any, **kwargs: Any) -> HttpResponse:
+        segment_id = self.kwargs.get("segment_id")
+        if segment_id:
+            self.segment = get_object_or_404(Segment, id=segment_id)
+        return super().get(request, *args, **kwargs)
+
     def get_queryset(self) -> QuerySet[Source]:
         # use select_related() for foreign keys to reduce DB queries
         queryset = Source.objects.select_related(
@@ -306,6 +339,9 @@ class SourceListView(ListView):
         else:
             q_obj_filter = Q(published=True)
 
+        if self.segment:
+            q_obj_filter &= Q(segment_m2m=self.segment)
+
         if country_name := self.request.GET.get("country"):
             q_obj_filter &= Q(holding_institution__country__icontains=country_name)
 
@@ -316,15 +352,24 @@ class SourceListView(ListView):
         if provenance_id := self.request.GET.get("provenance"):
             q_obj_filter &= Q(provenance__id=int(provenance_id))
         if segment_id := self.request.GET.get("segment"):
-            q_obj_filter &= Q(segment__id=int(segment_id))
+            q_obj_filter &= Q(segment_m2m__id=int(segment_id))
         if source_completeness := self.request.GET.getlist("sourceCompleteness"):
             q_obj_filter &= Q(source_completeness__in=source_completeness)
         if production_method := self.request.GET.get("prodMethod"):
             q_obj_filter &= Q(production_method=production_method)
 
         if general_str := self.request.GET.get("general"):
-            # Strip spaces at the beginning and end. Then make list of terms split on spaces
-            general_search_terms = general_str.strip(" ").split(" ")
+            # Strip spaces at the beginning and end
+            general_str = general_str.strip()
+
+            # Use regex to extract quoted and unquoted terms
+            quoted_terms = re.findall(
+                r'"(.*?)"', general_str
+            )  # Extract terms in quotes
+            unquoted_terms = re.findall(
+                r"\b[\w,-.]+\b", re.sub(r'"(.*?)"', "", general_str)
+            )
+
             # We need a Q Object for each field we're gonna look into
             shelfmark_q = Q()
             siglum_q = Q()
@@ -339,27 +384,35 @@ class SourceListView(ListView):
             # provenance_q = Q()
             summary_q = Q()
 
-            # For each term, add it to the Q object of each field with an OR operation.
-            # We split the terms so that the words can be separated in the actual
-            # field, allowing for a more flexible search, and a field needs
-            # to match only one of the terms
-            for term in general_search_terms:
-                holding_institution_q |= Q(holding_institution__name__icontains=term)
+            # Add unquoted terms to the Q object with partial matching (icontains)
+            for term in unquoted_terms:
+                holding_institution_q |= Q(
+                    holding_institution__name__unaccent__icontains=term
+                )
                 holding_institution_city_q |= Q(
-                    holding_institution__city__icontains=term
+                    holding_institution__city__unaccent__icontains=term
                 )
                 shelfmark_q |= Q(shelfmark__unaccent__icontains=term)
                 siglum_q |= Q(holding_institution__siglum__unaccent__icontains=term)
                 description_q |= Q(description__unaccent__icontains=term)
                 summary_q |= Q(summary__unaccent__icontains=term)
-                name_q |= Q(name__icontains=term)
-                # provenance_q |= Q(provenance__name__icontains=term)
-            # All the Q objects are put together with OR.
-            # The end result is that at least one term has to match in at least one
-            # field
-            # general_search_q = (
-            #     title_q | siglum_q | description_q | provenance_q
-            # )
+                name_q |= Q(name__unaccent__icontains=term)
+
+            # Add quoted terms to the Q object with exact matching (iexact)
+            for term in quoted_terms:
+                holding_institution_q |= Q(
+                    holding_institution__name__unaccent__icontains=term
+                )
+                holding_institution_city_q |= Q(
+                    holding_institution__city__unaccent__icontains=term
+                )
+                shelfmark_q |= Q(shelfmark__unaccent__icontains=term)
+                siglum_q |= Q(holding_institution__siglum__unaccent__icontains=term)
+                description_q |= Q(description__unaccent__icontains=term)
+                summary_q |= Q(summary__unaccent__icontains=term)
+                name_q |= Q(name__unaccent__icontains=term)
+
+            # Combine all Q objects with OR
             general_search_q = (
                 shelfmark_q
                 | siglum_q
@@ -369,6 +422,8 @@ class SourceListView(ListView):
                 | holding_institution_city_q
                 | name_q
             )
+
+            # Apply the general search Q object to the filter
             q_obj_filter &= general_search_q
 
         # For the indexing notes search we follow the same procedure as above but with
@@ -380,6 +435,7 @@ class SourceListView(ListView):
             inventoried_by_q = Q()
             full_text_entered_by_q = Q()
             melodies_entered_by_q = Q()
+            description_entered_by_q = Q()
             proofreaders_q = Q()
             other_editors_q = Q()
             indexing_notes_q = Q()
@@ -395,6 +451,9 @@ class SourceListView(ListView):
                 melodies_entered_by_q |= Q(
                     melodies_entered_by__full_name__icontains=term
                 )
+                description_entered_by_q |= Q(
+                    description_entered_by__full_name__icontains=term
+                )
                 proofreaders_q |= Q(proofreaders__full_name__icontains=term)
                 other_editors_q |= Q(other_editors__full_name__icontains=term)
                 indexing_notes_q |= Q(indexing_notes__icontains=term)
@@ -405,6 +464,7 @@ class SourceListView(ListView):
                 inventoried_by_q
                 | full_text_entered_by_q
                 | melodies_entered_by_q
+                | description_entered_by_q
                 | proofreaders_q
                 | other_editors_q
                 | indexing_notes_q

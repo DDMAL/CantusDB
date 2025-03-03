@@ -106,7 +106,7 @@ class Source(BaseModel):
     )
 
     ######
-    # The following five fields have nothing to do with user permissions,
+    # The following six fields have nothing to do with user permissions,
     # instead they give credit to users who are indexers and are displayed
     # on the user detail page as sources the user has contributed to.
     inventoried_by = models.ManyToManyField(
@@ -117,6 +117,9 @@ class Source(BaseModel):
     )
     melodies_entered_by = models.ManyToManyField(
         get_user_model(), related_name="entered_melody_for_sources", blank=True
+    )
+    description_entered_by = models.ManyToManyField(
+        get_user_model(), related_name="entered_description_for_sources", blank=True
     )
     proofreaders = models.ManyToManyField(
         get_user_model(), related_name="proofread_sources", blank=True
