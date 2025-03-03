@@ -1,3 +1,5 @@
+from typing import Tuple
+
 from reversion.admin import VersionAdmin
 
 
@@ -15,7 +17,7 @@ READ_ONLY = (
 
 class BaseModelAdmin(VersionAdmin):
     exclude = EXCLUDE
-    readonly_fields = READ_ONLY
+    readonly_fields: Tuple[str, ...] = READ_ONLY
 
     # if an object is created in the admin interface, assign the user to the created_by field
     # else if an object is updated in the admin interface, assign the user to the last_updated_by field

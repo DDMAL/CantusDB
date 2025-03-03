@@ -308,6 +308,12 @@ urlpatterns = [
         ProvenanceDetailView.as_view(),
         name="provenance-detail",
     ),
+    path(
+        "CanadianChantDB/",
+        SourceListView.as_view(),
+        name="canadian-chant-db-source-list",
+        kwargs={"segment_id": 4066},
+    ),
     # sequence
     path(
         "sequences/",

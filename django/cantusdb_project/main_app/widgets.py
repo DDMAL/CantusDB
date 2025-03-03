@@ -46,4 +46,4 @@ class MarkdownWidget(TextAreaWidget):
             "https://cdn.jsdelivr.net/npm/marked/marked.min.js",
             "js/markdown_widget.js",
         ]
-        css = {"all": ["stylesheets/markdown_widget.css"]}
+        css = {"all": ["css/markdown_widget.css"]}
