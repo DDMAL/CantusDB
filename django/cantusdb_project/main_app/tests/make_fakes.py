@@ -499,6 +499,7 @@ def make_fake_source(**kwargs: Any) -> Source:
     source.melodies_entered_by.set([make_fake_user()])
     source.proofreaders.set([make_fake_user()])
     source.other_editors.set([make_fake_user()])
+    source.segment_m2m.set([kwargs["segment"]])
 
     return source
 
