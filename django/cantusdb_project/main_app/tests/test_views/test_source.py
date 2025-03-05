@@ -807,7 +807,7 @@ class SourceListViewTest(TestCase):
         response = self.client.get(reverse("source-list"))
         self.assertEqual(response.status_code, 200)
         self.assertTemplateUsed(response, "base.html")
-        self.assertTemplateUsed(response, "source_list.html")
+        self.assertTemplateUsed(response, "source_lists/source_list.html")
 
     def test_provenances_and_centuries_in_context(self):
         """Test the `provenances` and `centuries` in the context. They are displayed as options in the selectors"""

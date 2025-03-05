@@ -1,0 +1,11 @@
+{% load static %}
+<header id="collapsing-navbar" class="z-1 collapsing-navbar">
+    <script src="{% static 'js/sticky_header.js' %}"></script>
+    <link href="{% static 'css/sticky_header.css' %}" rel="stylesheet" />
+    <nav class="navbar navbar-expand-lg">
+        <div class="container">{% include "header/navbar_links.html" %}</div>
+    </nav>
+    <button id="sticky-navbar-toggle" type="button" class="btn d-none">
+        <i class="bi bi-list fs-4 p-1"></i>
+    </button>
+</header>

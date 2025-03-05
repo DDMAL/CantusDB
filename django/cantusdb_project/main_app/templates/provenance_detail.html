@@ -1,6 +1,6 @@
 {% extends "single_column_with_search_bar.html" %}
 {% block title %}<title>{{ provenance.name }} | Cantus Database</title>{% endblock %}
-{% block header %}<h3>{{ provenance.name }}</h3>{% endblock %}
+{% block heading %}<h3>{{ provenance.name }}</h3>{% endblock %}
 {% block maincontent %}
     <ul>
         {% for source in sources %}

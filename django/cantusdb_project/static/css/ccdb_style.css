@@ -1,4 +1,4 @@
-body.canadian-chant-db-background {
+body {
     background-image: url("../ccdb-images/canadian-chant-db-background.png");
     background-color: var(--bs-gray-100);
     background-repeat: no-repeat;
@@ -6,9 +6,28 @@ body.canadian-chant-db-background {
     background-size: cover;
 }
 
-.ccdb-salzinnes-baptism-img {
+.ccdb-salzinnes-img {
     border-radius: 20%;
     border: solid 3px #cc3333;
+}
+
+.ccdb-heading:hover {
+    color: inherit;
+    text-decoration: none;
+}
+
+.ccdb-landing-grid {
+    grid-template-columns: 1fr 2fr;
+    gap: 20px;
+    grid-template-rows: 1fr 1fr 1.5fr;
+}
+
+.ccdb-grid-image {
+    grid-row: 1/3;
+}
+
+.ccdb-grid-map {
+    grid-row: 2/4;
 }
 
 .ccdb-button {
@@ -21,13 +40,26 @@ body.canadian-chant-db-background {
     }
 }
 
-.ccdb-info a {
+main a {
     color: #cc3333;
 
     &:hover {
         color: #992626;
     }
+}
 
+#collapsing-navbar {
+    background-color: #cc3333eb;
+    color: white;
+
+    .nav-link {
+        color: white !important;
+    }
+}
+
+#sticky-navbar-toggle {
+    color: white;
+    background-color: #cc3333eb;
 }
 
 .ccdb-table-bg {
@@ -50,40 +82,4 @@ table.ccdb-table a {
     &:hover {
         color: #992626;
     }
-}
-
-
-#sticky-header-toggle {
-    color: white;
-    background-color: #cc3333eb;
-    border-radius: 0 0 20% 20%;
-    position: relative;
-    left: 10px;
-}
-
-.ccdb-header {
-    background-color: #cc3333eb;
-    color: white;
-    height: 90px;
-
-    .nav-link {
-        color: white !important;
-    }
-}
-
-.ccdb-header nav {
-    padding-top: 10px;
-    padding-bottom: 10px;
-}
-
-.collapsing-header {
-    position: sticky;
-    left: 0px;
-    width: 100%;
-    top: -80px;
-    transition: transform 0.3s;
-}
-
-.collapsing-header-show {
-    transform: translateY(80px);
 }
