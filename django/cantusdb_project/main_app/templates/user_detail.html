@@ -2,7 +2,7 @@
 {% block title %}
     <title>{{ user.full_name|default_if_none:"User" }} | Cantus Database</title>
 {% endblock %}
-{% block header %}
+{% block heading %}
     <h3>
         {% if user.full_name %}
             {{ user.full_name }}

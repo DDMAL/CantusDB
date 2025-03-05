@@ -1,0 +1,23 @@
+#sticky-navbar-toggle {
+    border-radius: 0 0 20% 20%;
+    position: relative;
+    left: 10px;
+}
+
+.collapsing-navbar nav {
+    padding-top: 10px;
+    padding-bottom: 10px;
+}
+
+.collapsing-navbar {
+    position: sticky;
+    left: 0px;
+    width: 100%;
+    top: -80px;
+    transition: transform 0.3s;
+    height: 90px;
+}
+
+.collapsing-navbar-show {
+    transform: translateY(80px);
+}
