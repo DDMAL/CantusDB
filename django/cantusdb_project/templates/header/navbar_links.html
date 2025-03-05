@@ -1,0 +1,130 @@
+{% load static %}
+<a class="navbar-brand" href="/">
+    <img class="img-fluid"
+         src="{% static "cantus-logo.png" %}"
+         alt="Cantus Database home"
+         title="Cantus Database Home"
+         loading="lazy" />
+</a>
+<!-- Hamburger button to show nav when screen is smaller-->
+<button class="navbar-toggler"
+        type="button"
+        data-bs-toggle="collapse"
+        data-bs-target="#navbar-links"
+        aria-controls="navbarSupportedContent"
+        aria-expanded="false"
+        aria-label="Toggle navigation">
+    <span class="navbar-toggler-icon"></span>
+</button>
+<ul class="collapse navbar-collapse navbar-nav text-lg-center align-items-start text-start"
+    id="navbar-links">
+    <!-- ABOUT -->
+    <li class="nav-item dropdown flex-fill">
+        <a class="nav-link dropdown-toggle fw-bold"
+           href="#"
+           id="navbarDropdownLinkAbout"
+           role="button"
+           data-bs-toggle="dropdown"
+           aria-haspopup="true"
+           aria-expanded="false">ABOUT</a>
+        <div class="dropdown-menu" aria-labelledby="navbarDropdownLinkAbout">
+            <a class="dropdown-item" href="/">Home</a>
+            <a class="dropdown-item" href="{% url 'article-list' %}">News</a>
+            <a class="dropdown-item" href="{% url 'indexer-list' %}">Contributors</a>
+            <a class="dropdown-item" href="/about/id-numbers/">ID Numbers: A History and
+            Explanation</a>
+            <a class="dropdown-item" href="/about/acknowledgements/">Acknowledgements</a>
+            <a class="dropdown-item" href="/about/faq/">FAQ</a>
+            <a class="dropdown-item"
+               href="https://www.youtube.com/watch?v=iMmGrUxhPj4"
+               target="_blank">Short Video
+            Introduction (YouTube)</a>
+            <a class="dropdown-item" href="/about/principles-of-indexing/">Basic Principles of Indexing</a>
+            {% if request.user.is_authenticated %}
+                <a class="dropdown-item" href="{% url 'items-count' %}">Items Count</a>
+            {% endif %}
+        </div>
+    </li>
+    <!-- SOURCES -->
+    <li class="nav-item dropdown flex-fill">
+        <a class="nav-link dropdown-toggle fw-bold"
+           href="#"
+           id="navbarDropdownLinkSources"
+           role="button"
+           data-bs-toggle="dropdown"
+           aria-haspopup="true"
+           aria-expanded="false">SOURCES</a>
+        <div class="dropdown-menu" aria-labelledby="navbarDropdownLinkSources">
+            <a class="dropdown-item" href="{% url 'source-list' %}?segment=4063">Cantus Sources</a>
+            <a class="dropdown-item" href="{% url 'source-list' %}?segment=4064">Sequence Database (Clavis Sequentiarum by Calvin Bower)</a>
+            <a class="dropdown-item"
+               href="{% url 'canadian-chant-db-source-list' %}">Canadian Chant Database</a>
+        </div>
+    </li>
+    <!-- CHANTS -->
+    <li class="nav-item dropdown flex-fill">
+        <a class="nav-link dropdown-toggle fw-bold"
+           href="#"
+           id="navbarDropdownLinkChants"
+           role="button"
+           data-bs-toggle="dropdown"
+           aria-haspopup="true"
+           aria-expanded="false">CHANTS</a>
+        <div class="dropdown-menu" aria-labelledby="navbarDropdownLinkChants">
+            <a class="dropdown-item" href="{% url 'chant-search' %}">Chant Search</a>
+            <a class="dropdown-item" href="{% url 'melody-search' %}">Search by melody</a>
+            <a class="dropdown-item" href="{% url 'sequence-list' %}">Clavis Sequentiarum (Sequence Database by Calvin
+            Bower)</a>
+        </div>
+    </li>
+    <!-- FEASTS -->
+    <li class="nav-item dropdown flex-fill">
+        <a class="nav-link dropdown-toggle fw-bold"
+           href="#"
+           id="navbarDropdownLinkFeasts"
+           role="button"
+           data-bs-toggle="dropdown"
+           aria-haspopup="true"
+           aria-expanded="false">FEASTS</a>
+        <div class="dropdown-menu" aria-labelledby="navbarDropdownLinkFeasts">
+            <a class="dropdown-item" href="{% url 'feast-list' %}">List of all feasts</a>
+            <a class="dropdown-item" href="{% url "feast-list" %}?date=sanc">Sanctorale</a>
+            <a class="dropdown-item" href="{% url "feast-list" %}?date=temp">Temporale</a>
+        </div>
+    </li>
+    <!-- TERMS -->
+    <li class="nav-item dropdown flex-fill">
+        <a class="nav-link dropdown-toggle fw-bold"
+           href="#"
+           id="navbarDropdownLinkTerms"
+           role="button"
+           data-bs-toggle="dropdown"
+           aria-haspopup="true"
+           aria-expanded="false">TERMS</a>
+        <div class="dropdown-menu" aria-labelledby="navbarDropdownLinkTerms">
+            <a class="dropdown-item" href="{% url 'genre-list' %}">Genre abbreviations</a>
+            <a class="dropdown-item" href="{% url 'service-list' %}">Service abbreviations</a>
+            <a class="dropdown-item" href="/description/">Fields</a>
+        </div>
+    </li>
+    <!-- RESOURCES -->
+    <li class="nav-item dropdown flex-fill">
+        <a class="nav-link dropdown-toggle fw-bold"
+           href="#"
+           id="navbarDropdownLinkResources"
+           role="button"
+           data-bs-toggle="dropdown"
+           aria-haspopup="true"
+           aria-expanded="false">RESOURCES</a>
+        <div class="dropdown-menu dropdown-menu-end"
+             aria-labelledby="navbarDropdownLinkResources">
+            <a class="dropdown-item" href="/tutorial/">Tutorial for Cantus Contributors</a>
+            <a class="dropdown-item" href="/documents/">Key Instructional Documents</a>
+            <a class="dropdown-item"
+               href="https://sites.google.com/view/cantus-procedures-manual/home"
+               target="_blank">Cantus Database Procedures Manual</a>
+            <a class="dropdown-item" href="/citations/">Citation Style</a>
+            <a class="dropdown-item" href="/references/">References</a>
+        </div>
+    </li>
+</ul>
