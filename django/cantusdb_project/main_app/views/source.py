@@ -300,8 +300,8 @@ class SourceListView(ListView):
 
     def get_template_names(self) -> list[str]:
         if self.segment and self.segment.id == 4066:
-            return ["source_list_ccdb.html"]
-        return ["source_list.html"]
+            return ["source_lists/canadian_chant_db.html"]
+        return ["source_lists/source_list.html"]
 
     def get_context_data(self, **kwargs: Any) -> dict[str, Any]:
         context = super().get_context_data(**kwargs)
