@@ -110,7 +110,7 @@
         {% endif %}
     </form>
     {% if user_can_edit_chant %}
-        <div class="text-end mb-3">
+        <div class="text-end mt-2">
             <button id="bulkChantEditToggle" type="button" class="btn btn-sm btn-primary">
                 Bulk Edit Chants
             </button>
@@ -123,7 +123,7 @@
     {% with exists_on_cantus_ultimus=source.exists_on_cantus_ultimus %}
         {% if chants %}
             <table id="chantDisplayTable"
-                   class="table table-responsive table-sm table-bordered small">
+                   class="table table-responsive table-sm table-bordered small mt-3">
                 <thead>
                     <tr>
                         <th scope="col" class="text-wrap" title="Folio">Folio</th>
