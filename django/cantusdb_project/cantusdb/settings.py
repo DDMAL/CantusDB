@@ -206,6 +206,10 @@ INTERNAL_IPS = [
     "127.0.0.1",
 ]
 
+# Default is 1000, but we need a few more for
+# the BulkEdit formset
+DATA_UPLOAD_MAX_NUMBER_FIELDS = 1010
+
 if DEBUG:
     INSTALLED_APPS.append("debug_toolbar")
     INSTALLED_APPS.append("django_extensions")

@@ -137,6 +137,41 @@ class StyledChoiceField(forms.ChoiceField):
     widget = SelectWidget()
 
 
+class FormsetOptimizedModelChoiceIterator(forms.models.ModelChoiceIterator):
+    """
+    An iterator for the FormsetOptimizedModelChoiceField that does not
+    evaluate the queryset for each form in the formset. Instead of iterating
+    through the field's queryset, we iterate through the field's choices.
+    """
+
+    def __init__(self, field):
+        self.field = field
+        self.choices = field.choices
+        self.queryset = field.queryset
+
+    def __iter__(self):
+        if self.field.empty_label is not None:
+            yield ("", self.field.empty_label)
+        queryset = self.queryset
+        if queryset is None:
+            queryset = self.field.queryset
+        for obj in queryset:
+            yield self.choice(obj)
+
+
+class FormsetOptimizedModelChoiceField(forms.ModelChoiceField):
+    """
+    A ModelChoiceField that is optimized for a ModelFormset.
+    In the defaul ModelChoiceField, a queryset is evaluated for
+    each form in the formset, leading to a large number of queries
+    when summed over multiple formsets.
+    """
+
+    def __init__(self, queryset, choices, *args, **kwargs):
+        super().__init__(queryset, *args, **kwargs)
+        self.choices = choices
+
+
 class ChantCreateForm(forms.ModelForm):
     class Meta:
         model = Chant
@@ -985,6 +1020,7 @@ class ImageLinkForm(forms.Form):
             if image_link != "":
                 source.chant_set.filter(folio=folio).update(image_link=image_link)
 
+
 class BrowseChantsBulkEditForm(forms.ModelForm):
     class Meta:
         model = Chant
@@ -1002,9 +1038,9 @@ class BrowseChantsBulkEditForm(forms.ModelForm):
         ]
         widgets = {
             "id": HiddenInput(),
-            "feast": autocomplete.ModelSelect2(url="feast-autocomplete"),
-            "service": autocomplete.ModelSelect2(url="service-autocomplete"),
-            "genre": autocomplete.ModelSelect2(url="genre-autocomplete"),
+            "feast": autocomplete.Select2(url="feast-autocomplete"),
+            "service": autocomplete.Select2(url="service-autocomplete"),
+            "genre": autocomplete.Select2(url="genre-autocomplete"),
             "position": TextInputWidget(),
             "cantus_id": TextInputWidget(),
             "mode": TextInputWidget(),
@@ -1025,14 +1061,33 @@ class BrowseChantsBulkEditForm(forms.ModelForm):
         required=True,
     )
 
+    def __init__(self, *args: Any, **kwargs: Any) -> None:
+        field_choices = kwargs.pop("field_choices")
+        super().__init__(*args, **kwargs)
+        self.fields["feast"].choices = field_choices["feast"]
+        self.fields["service"].choices = field_choices["service"]
+        self.fields["genre"].choices = field_choices["genre"]
 
-BrowseChantsBulkEditFormset = forms.inlineformset_factory(
-    Source,
+
+class BaseBrowseChantsBulkEditFormset(forms.BaseModelFormSet):
+
+    def __init__(self, *args: Any, **kwargs: Any) -> None:
+        form_kwargs = kwargs.get("form_kwargs", {})
+        form_kwargs["field_choices"] = {
+            "feast": Feast.objects.all().values_list("id", "name"),
+            "service": Service.objects.all().values_list("id", "name"),
+            "genre": Genre.objects.all().values_list("id", "name"),
+        }
+        kwargs["form_kwargs"] = form_kwargs
+        kwargs["prefix"] = "chant_set"
+        super().__init__(*args, **kwargs)
+
+
+BrowseChantsBulkEditFormset = forms.modelformset_factory(
     Chant,
     form=BrowseChantsBulkEditForm,
+    formset=BaseBrowseChantsBulkEditFormset,
     extra=0,
-    max_num=100,
     can_delete=False,
     can_order=False,
-    edit_only=True,
 )
