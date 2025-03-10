@@ -1079,6 +1079,7 @@ class BaseBrowseChantsBulkEditFormset(forms.BaseModelFormSet):
             "genre": Genre.objects.all().values_list("id", "name"),
         }
         kwargs["form_kwargs"] = form_kwargs
+        kwargs["prefix"] = "chant_set"
         super().__init__(*args, **kwargs)
 
 

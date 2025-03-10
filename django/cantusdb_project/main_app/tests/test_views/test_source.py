@@ -747,7 +747,6 @@ class SourceBrowseChantsViewTest(TestCase):
         chant_1 = make_fake_chant(source=source)
         make_fake_chant(source=source)
         formset = BrowseChantsBulkEditFormset(
-            instance=source,
             queryset=Chant.objects.filter(source=source),
         )
         # Collect the initial formset data
