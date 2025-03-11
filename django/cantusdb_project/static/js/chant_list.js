@@ -138,18 +138,20 @@ window.addEventListener("load", function () {
     }
 
 
+    // See #1786: Temporarily turning off the bulk edit functionality
+    // until we can get it working.
     // Use #bulkChantEditToggle button to toggle the bulk chant edit form.
-    const userCanEditChants = document.getElementById("data-user-can-edit-chants").textContent === "true";
-    if (userCanEditChants) {
-        const bulkChantEditToggle = document.getElementById("bulkChantEditToggle");
-        const bulkChantEditForm = document.getElementById("bulkChantEditForm");
-        const chantDisplayTable = document.getElementById("chantDisplayTable");
-        const bulkChantEditSubmit = document.getElementById("bulkChantEditSubmit");
-        bulkChantEditToggle.addEventListener("click", function () {
-            bulkChantEditForm.classList.toggle("d-none");
-            chantDisplayTable.classList.toggle("d-none");
-            bulkChantEditSubmit.classList.toggle("d-none");
-            bulkChantEditToggle.textContent = bulkChantEditForm.classList.contains("d-none") ? "Bulk Edit Chants" : "Stop Editing";
-        });
-    }
+    // const userCanEditChants = document.getElementById("data-user-can-edit-chants").textContent === "true";
+    // if (userCanEditChants) {
+    //     const bulkChantEditToggle = document.getElementById("bulkChantEditToggle");
+    //     const bulkChantEditForm = document.getElementById("bulkChantEditForm");
+    //     const chantDisplayTable = document.getElementById("chantDisplayTable");
+    //     const bulkChantEditSubmit = document.getElementById("bulkChantEditSubmit");
+    //     bulkChantEditToggle.addEventListener("click", function () {
+    //         bulkChantEditForm.classList.toggle("d-none");
+    //         chantDisplayTable.classList.toggle("d-none");
+    //         bulkChantEditSubmit.classList.toggle("d-none");
+    //         bulkChantEditToggle.textContent = bulkChantEditForm.classList.contains("d-none") ? "Bulk Edit Chants" : "Stop Editing";
+    //     });
+    // }
 });
