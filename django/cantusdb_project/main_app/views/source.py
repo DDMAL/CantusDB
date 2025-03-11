@@ -225,12 +225,14 @@ class SourceBrowseChantsView(UserPassesTestMixin, ListView):  # type: ignore[typ
         )
         if not self.extra_context.get("bulk_edit_formset"):
             context["bulk_edit_formset"] = BrowseChantsBulkEditFormset(
-                instance=source, queryset=self.object_list
+                queryset=context["object_list"]
             )
         return context
 
     def post(self, request: HttpRequest, *args: Any, **kwargs: Any) -> HttpResponse:
-        formset = BrowseChantsBulkEditFormset(request.POST, instance=self.source)
+        formset = BrowseChantsBulkEditFormset(
+            request.POST, queryset=self.get_queryset()
+        )
         if formset.is_valid():
             formset.save()
             messages.success(request, "Chants updated successfully!")

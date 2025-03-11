@@ -50,13 +50,13 @@
         {% if source.description %}
             <dt>Description</dt>
             <dd class="markdown-field-display">
-                {{ source.description|render_markdown }}
+                {{ source.description|safe|linebreaks }}
             </dd>
         {% endif %}
         {% if source.selected_bibliography %}
             <dt>Selected Bibliography</dt>
             <dd class="markdown-field-display">
-                {{ source.selected_bibliography|render_markdown }}
+                {{ source.selected_bibliography|safe|linebreaks }}
             </dd>
         {% endif %}
         {% if source.indexing_notes %}
