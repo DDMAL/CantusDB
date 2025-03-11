@@ -109,17 +109,16 @@
             </fieldset>
         {% endif %}
     </form>
+    {% comment "See #1786: Temporarily turning off the bulk edit functionality until we can get it working." %}
     {% if user_can_edit_chant %}
         <div class="text-end mt-2">
             <button id="bulkChantEditToggle" type="button" class="btn btn-sm btn-primary">
                 Bulk Edit Chants
             </button>
-            <button id="bulkChantEditSubmit"
-                    type="submit"
-                    form="bulkChantEditForm"
-                    class="btn btn-sm btn-dark d-none">Save Changes</button>
+            <button id="bulkChantEditSubmit" type="submit" form="bulkChantEditForm" class="btn btn-sm btn-dark d-none">Save Changes</button>
         </div>
     {% endif %}
+    {% endcomment %}
     {% with exists_on_cantus_ultimus=source.exists_on_cantus_ultimus %}
         {% if chants %}
             <table id="chantDisplayTable"
@@ -200,6 +199,7 @@
                     {% endfor %}
                 </tbody>
             </table>
+            {% comment  "See #1786: Temporarily turning off the bulk edit functionality until we can get it working." %}
             {% if user_can_edit_chant %}
                 <form id="bulkChantEditForm" class="d-none" method="post">
                     {% csrf_token %}
@@ -241,6 +241,7 @@
                     </div>
                 </form>
             {% endif %}
+            {% endcomment %}
             <div class="small">{% include "pagination.html" %}</div>
         {% else %}
             No chants found.
@@ -260,7 +261,9 @@
                 <!--a small selector of all folios of this source-->
                 <select name="folio" id="folioFilter" class="w-30">
                     <option value="">Select a folio:</option>
-                    {% for folio in folios %}<option value="{{ folio }}">{{ folio }}</option>{% endfor %}
+                    {% for folio in folios %}
+                        <option value="{{ folio }}">{{ folio }}</option>
+                    {% endfor %}
                 </select>
                 {% if previous_folio %}
                     <a href="{% url "browse-chants" source.id %}?folio={{ previous_folio }}">{{ previous_folio }} <</a>

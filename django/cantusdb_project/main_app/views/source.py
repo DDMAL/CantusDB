@@ -75,9 +75,11 @@ class SourceBrowseChantsView(UserPassesTestMixin, ListView):  # type: ignore[typ
     template_name = "browse_chants.html"
     pk_url_kwarg = "source_id"
     source: Source
-    extra_context = {
-        "bulk_edit_formset": None,
-    }
+    # See #1786: Temporarily turning off the bulk edit functionality
+    # until we can get it working.
+    # extra_context = {
+    #     "bulk_edit_formset": None,
+    # }
 
     def test_func(self) -> bool:
         """
@@ -223,24 +225,28 @@ class SourceBrowseChantsView(UserPassesTestMixin, ListView):  # type: ignore[typ
         context["proofread_filter_form"] = SourceBrowseChantsProofreadForm(
             self.request.GET or None
         )
-        if not self.extra_context.get("bulk_edit_formset"):
-            context["bulk_edit_formset"] = BrowseChantsBulkEditFormset(
-                queryset=context["object_list"]
-            )
+        # See #1786: Temporarily turning off the bulk edit functionality
+        # until we can get it working.
+        # if not self.extra_context.get("bulk_edit_formset"):
+        #     context["bulk_edit_formset"] = BrowseChantsBulkEditFormset(
+        #         queryset=context["object_list"]
+        #     )
         return context
 
-    def post(self, request: HttpRequest, *args: Any, **kwargs: Any) -> HttpResponse:
-        formset = BrowseChantsBulkEditFormset(
-            request.POST, queryset=self.get_queryset()
-        )
-        if formset.is_valid():
-            formset.save()
-            messages.success(request, "Chants updated successfully!")
-        else:
-            self.extra_context = {
-                "bulk_edit_formset": formset,
-            }
-        return self.get(request, *args, **kwargs)
+    # See #1786: Temporarily turning off the bulk edit functionality
+    # until we can get it working.
+    # def post(self, request: HttpRequest, *args: Any, **kwargs: Any) -> HttpResponse:
+    #     formset = BrowseChantsBulkEditFormset(
+    #         request.POST, queryset=self.get_queryset()
+    #     )
+    #     if formset.is_valid():
+    #         formset.save()
+    #         messages.success(request, "Chants updated successfully!")
+    #     else:
+    #         self.extra_context = {
+    #             "bulk_edit_formset": formset,
+    #         }
+    #     return self.get(request, *args, **kwargs)
 
 
 class SourceDetailView(JSONResponseMixin, DetailView):  # type: ignore[type-arg]
