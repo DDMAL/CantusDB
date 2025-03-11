@@ -2,7 +2,7 @@
 {% load humanize %}
 {% block title %}<title>Search Chants | Cantus Database</title>{% endblock %}
 {% block scripts %}<script src="/static/js/chant_search.js"></script>{% endblock %}
-{% block header %}<h3>Search Chants</h3>{% endblock %}
+{% block heading %}<h3>Search Chants</h3>{% endblock %}
 {% block results_count %}
     {% if not query_empty %}{{ block.super }}{% endif %}
 {% endblock %}

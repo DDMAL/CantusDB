@@ -2,7 +2,7 @@
 {% block title %}
     <title>{{ user.full_name|default_if_none:"User" }} | Cantus Database</title>
 {% endblock %}
-{% block header %}
+{% block heading %}
     <h3>
         {% if user.full_name %}
             {{ user.full_name }}
@@ -38,7 +38,7 @@
             </dd>
         {% endif %}
     </dl>
-    {% if inventoried_sources or full_text_sources or melody_sources or proofread_sources or edited_sources %}
+    {% if inventoried_sources or full_text_sources or melody_sources or description_sources or proofread_sources or edited_sources %}
         <h4 id="sources">Sources</h4>
         {% if inventoried_sources %}
             <h5>Inventoried</h5>
@@ -66,6 +66,17 @@
             <h5>Entered Melodies</h5>
             <ul>
                 {% for source in melody_sources %}
+                    <li>
+                        <a href="{% url 'source-detail' source.id %}"
+                           title="{{ source.heading }}">{{ source.short_heading }}</a> ({{ source.heading }})
+                    </li>
+                {% endfor %}
+            </ul>
+        {% endif %}
+        {% if description_sources %}
+            <h5>Entered Description</h5>
+            <ul>
+                {% for source in description_sources %}
                     <li>
                         <a href="{% url 'source-detail' source.id %}"
                            title="{{ source.heading }}">{{ source.short_heading }}</a> ({{ source.heading }})

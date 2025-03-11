@@ -62,6 +62,7 @@ class SourceAdmin(BaseModelAdmin):
         "inventoried_by",
         "full_text_entered_by",
         "melodies_entered_by",
+        "description_entered_by",
         "proofreaders",
         "other_editors",
     )

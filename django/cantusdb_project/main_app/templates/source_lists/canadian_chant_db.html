@@ -1,0 +1,265 @@
+{% extends "base.html" %}
+{% load helper_tags %}
+{% load static %}
+{% block title %}<title>Canadian Chant Database</title>{% endblock %}
+{% block scripts %}
+    <script src="{% static 'js/source_list.js' %}"></script>
+    <link href="{% static 'css/ccdb_style.css' %}"
+          rel="stylesheet"
+          media="screen" />
+{% endblock %}
+{% block header %}
+    {% include "header/sticky_header.html" %}
+{% endblock %}
+{% block heading %}{% endblock %}
+{% block content %}
+    <div class="container-fluid ccdb-info">
+        <div class="row py-5 bg-white bg-opacity-75">
+            <div class="col">
+                <div class="row">
+                    <div class="col">
+                        <a class="h1 ccdb-heading d-block text-center" href="#search-container">The Canadian Chant Database</a>
+                    </div>
+                </div>
+                <div class="d-lg-grid ccdb-landing-grid">
+                    <div class="ps-4 ccdb-grid-image">
+                        <figure class="figure my-4 text-center">
+                            <img src="https://lib.is/IE9434868/iiif/2/FL9435874/500,400,6055,8500/280,405/0/default.jpg"
+                                 width="280"
+                                 height="405"
+                                 class="ccdb-salzinnes-img figure-img img-fluid" />
+                            <figcaption class="figure-caption w-50 mx-auto">
+                                Folio 2r from the <a href="{% url 'source-detail' 123723 %}">Salzinnes Antiphonal</a>, held at the Patrick Power Library at Saint Mary’s University in Halifax, Canada (M2149.L4 1554)
+                            </figcaption>
+                        </figure>
+                    </div>
+                    <div class="ccdb-grid-summary px-5 pt-5">
+                        <div class="text-white d-block text-center">
+                            <a class="btn btn-primary px-5 ccdb-button" href="#search-container">Search the Database</a>
+                        </div>
+                        <p class="pt-5">
+                            The goal of the Canadian Chant Database is to catalogue–and eventually inventory–all manuscripts and manuscript fragments containing plainchant derived from the medieval European tradition in libraries, archives, institutions, and private ownership in Canada. Printed chant books are limited to those sources that were published specifically for use in Canada.
+                        </p>
+                    </div>
+                    <div class="px-5">
+                        <p>
+                            The Canadian Chant Database is an initiative of the <a href="https://dact-chant.ca/" target="_blank">Digital Analysis of Chant Transmission (DACT) Project</a>.
+                        </p>
+                        <a href="https://dact-chant.ca/" target="_blank">
+                            <img class="img-fluid p-2 ccdb-dact-logo"
+                                 src="{% static "footer/dact-logo.png" %}"
+                                 alt="Digital Analysis of Chant Transmission Logo"
+                                 title="Digital Analysis of Chant Transmission" />
+                        </a>
+                    </div>
+                    <div class="ccdb-grid-map text-center">
+                        <img src="{% static 'ccdb-images/CCDB-map.png' %}"
+                             width="1000"
+                             height="690"
+                             class="img-fluid" />
+                    </div>
+                </div>
+                <div class="row text-center mt-5">
+                    <p>
+                        Support for the database has been provided by the <a href="https://www.sshrc-crsh.gc.ca/home-accueil-eng.aspx"
+    target="_blank">Social Sciences and Humanities Research Council of Canada</a> and the <a href="https://alliancecan.ca/en" target="_blank">Digital Research Alliance of Canada</a>.
+                    </p>
+                </div>
+                <div class="row justify-content-evenly">
+                    <div class="col-xl-4 col-lg-5">
+                        <a href="https://www.sshrc-crsh.gc.ca" target="_blank">
+                            <img class="img-fluid"
+                                 src="{% static "footer/sshrc-logo.png" %}"
+                                 alt="Social Sciences and Humanities Research Council Logo"
+                                 title="Social Sciences and Humanities Research Council of Canada" />
+                        </a>
+                    </div>
+                    <div class="col-xl-4 col-lg-5">
+                        <a href="https://alliancecan.ca/" target="_blank">
+                            <img class="img-fluid"
+                                 src="{% static "footer/drac-logo.png" %}"
+                                 alt="Digital Research Alliance Logo"
+                                 title="Digital Research Alliance" />
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div id="search-container" class="container-lg">
+            <div class="row rounded my-5 ccdb-table-bg">
+                <div class="col">
+                    <form method="get" class="ccdb-filter-form mb-3">
+                        <div class="row mt-2">
+                            <div class="col-lg">
+                                <label for="generalSearch" class="small form-label">
+                                    General search (siglum, city, description…)
+                                </label>
+                                <input type="text"
+                                       class="form-control form-control-sm"
+                                       name="general"
+                                       placeholder="Enter any part of a word"
+                                       value="{{ request.GET.general }}"
+                                       id="generalSearch" />
+                            </div>
+                            <div class="col-lg">
+                                <label for="indexingSearch" class="small form-label">
+                                    Indexing notes and contributors
+                                </label>
+                                <input type="text"
+                                       class="form-control form-control-sm"
+                                       name="indexing"
+                                       placeholder="Enter any part of a word/name"
+                                       value="{{ request.GET.indexing }}"
+                                       id="indexingSearch" />
+                            </div>
+                        </div>
+                        <div class="row align-items-center">
+                            <div class="col-lg-6">
+                                <div class="row">
+                                    <div class="col-lg-6">
+                                        <label for="provenanceFilter" class="small form-label">
+                                            Provenance (origin/history)
+                                        </label>
+                                        <select id="provenanceFilter"
+                                                name="provenance"
+                                                class="form-control form-select form-select-sm">
+                                            <option value="">- Any -</option>
+                                            {% for provenance in provenances %}
+                                                <option value="{{ provenance.id }}">{{ provenance.name }}</option>
+                                            {% endfor %}
+                                        </select>
+                                    </div>
+                                    <div class="col-lg-6">
+                                        <label for="centuryFilter" class="small form-label">Century</label>
+                                        <select id="centuryFilter"
+                                                name="century"
+                                                class="form-control form-select form-select-sm">
+                                            <option value="">- Any -</option>
+                                            {% for century in centuries %}
+                                                <option value="{{ century.id }}">{{ century.name }}</option>
+                                            {% endfor %}
+                                        </select>
+                                    </div>
+                                    <div class="col-lg-6">
+                                        <label for="prodMethodFilter" class="small form-label">Manuscript/Print</label>
+                                        <select id="prodMethodFilter"
+                                                name="prodMethod"
+                                                class="form-control form-select form-select-sm">
+                                            <option value="">- Any -</option>
+                                            {% for prod_method_value, prod_method_label in production_method_choices %}
+                                                <option value="{{ prod_method_value }}">{{ prod_method_label }}</option>
+                                            {% endfor %}
+                                        </select>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col-lg-4">
+                                <label for="sourceCompletenessFilter" class="small form-label">
+                                    Complete Source/Fragment
+                                </label>
+                                <div class="input-group" id="sourceCompletenessFilter">
+                                    {% for source_completeness_value, source_completeness_label in source_completeness_choices %}
+                                        <div class="form-check form-check-inline">
+                                            <input type="checkbox"
+                                                   class="form-check-input"
+                                                   id="sourceCompleteness-{{ source_completeness_value }}"
+                                                   name="sourceCompleteness"
+                                                   value="{{ source_completeness_value }}"
+                                                   checked />
+                                            <label class="form-label form-check-label small"
+                                                   for="sourceCompleteness-{{ source_completeness_value }}">
+                                                {{ source_completeness_label }}
+                                            </label>
+                                        </div>
+                                    {% endfor %}
+                                </div>
+                            </div>
+                            <div class="col-lg-1">
+                                <button type="submit" class="btn btn-dark btn-sm m-1" id="btn-submit">Apply</button>
+                                <a href="/CanadianChantDB/#search-container"
+                                   class="btn btn-dark btn-sm m-1"
+                                   id="btn-reset">Reset</a>
+                            </div>
+                        </div>
+                    </form>
+                    {% if sources %}
+                        <table class="table table-sm small table-bordered table-responsive ccdb-table">
+                            <thead>
+                                <tr>
+                                    {% sortable_header request "city_institution" "City + Holding Institution" %}
+                                    {% sortable_header request "source" "Cantus Siglum" %}
+                                    <th scope="col" class="text-wrap" style="text-align:center">Summary</th>
+                                    <th scope="col" class="text-wrap" style="text-align:center">Date/Origin</th>
+                                    <th scope="col" class="text-wrap" style="text-align:center">Image Link</th>
+                                    <th scope="col" class="text-wrap" style="text-align:center">
+                                        Chants
+                                        <br />
+                                        /&nbsp;Melodies
+                                    </th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for source in sources %}
+                                    <tr>
+                                        <td class="text-wrap" style="text-align:center">
+                                            {% if source.holding_institution %}
+                                                <a href="{% url 'institution-detail' source.holding_institution.id %}">
+                                                    <b>
+                                                        {% if source.holding_institution.city %}
+                                                            {{ source.holding_institution.city }},
+                                                        {% endif %}
+                                                        {{ source.holding_institution.name }}
+                                                    </b>
+                                                </a>
+                                            {% endif %}
+                                        </td>
+                                        <td class="text-wrap" style="text-align:center">
+                                            <a href="{% url 'source-detail' source.id %}" target="_blank">
+                                                <b>{{ source.short_heading|truncatechars_html:100 }}</b>
+                                            </a>
+                                            {% if source.source_completeness == 2 %}
+                                                <br class="m-1" />
+                                                <span class="small">Fragment</span>
+                                            {% endif %}
+                                        </td>
+                                        <td class="text-wrap"
+                                            style="text-align:center"
+                                            title="{{ source.summary|default:""|truncatechars_html:500 }}">
+                                            {% if source.name %}
+                                                <b>"{{ source.name }}"</b>
+                                                <br />
+                                            {% endif %}
+                                            {{ source.summary|default:""|truncatechars_html:120 }}
+                                        </td>
+                                        <td class="text-wrap" style="text-align:center">
+                                            {% if source.century %}
+                                                {% join_absolute_url_links source.century.all 'name' '/' %}
+                                                <br />
+                                            {% endif %}
+                                            {% if source.provenance %}
+                                                <a href="{% url 'provenance-detail' source.provenance.id %}">{{ source.provenance.name }}</a>
+                                            {% endif %}
+                                        </td>
+                                        <td class="text-wrap" style="text-align:center">
+                                            {% if source.image_link %}
+                                                <a href="{{ source.image_link }}" target="_blank">Images</a>
+                                            {% endif %}
+                                        </td>
+                                        <td class="text-wrap" style="text-align:center">
+                                            <b>{{ source.number_of_chants|default_if_none:"0" }}</b>
+                                            <!-- See #1635. Temporarily disable volpiano display for this source. -->
+                                            {% if source.number_of_melodies and source.id !=  680970 %}
+                                                <br />
+                                                / {{ source.number_of_melodies }}
+                                            {% endif %}
+                                        </td>
+                                    </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+{% endblock %}

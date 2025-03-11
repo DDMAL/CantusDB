@@ -32,6 +32,7 @@ from .widgets import (
     VolpianoAreaWidget,
     SelectWidget,
     CheckboxWidget,
+    MarkdownWidget,
 )
 
 # ModelForm allows to build a form directly from a model
@@ -136,6 +137,41 @@ class StyledChoiceField(forms.ChoiceField):
     widget = SelectWidget()
 
 
+class FormsetOptimizedModelChoiceIterator(forms.models.ModelChoiceIterator):
+    """
+    An iterator for the FormsetOptimizedModelChoiceField that does not
+    evaluate the queryset for each form in the formset. Instead of iterating
+    through the field's queryset, we iterate through the field's choices.
+    """
+
+    def __init__(self, field):
+        self.field = field
+        self.choices = field.choices
+        self.queryset = field.queryset
+
+    def __iter__(self):
+        if self.field.empty_label is not None:
+            yield ("", self.field.empty_label)
+        queryset = self.queryset
+        if queryset is None:
+            queryset = self.field.queryset
+        for obj in queryset:
+            yield self.choice(obj)
+
+
+class FormsetOptimizedModelChoiceField(forms.ModelChoiceField):
+    """
+    A ModelChoiceField that is optimized for a ModelFormset.
+    In the defaul ModelChoiceField, a queryset is evaluated for
+    each form in the formset, leading to a large number of queries
+    when summed over multiple formsets.
+    """
+
+    def __init__(self, queryset, choices, *args, **kwargs):
+        super().__init__(queryset, *args, **kwargs)
+        self.choices = choices
+
+
 class ChantCreateForm(forms.ModelForm):
     class Meta:
         model = Chant
@@ -213,7 +249,7 @@ class ChantCreateForm(forms.ModelForm):
         help_text="Binding order",
     )
 
-    c_sequence = forms.CharField(
+    c_sequence = forms.IntegerField(
         required=True,
         widget=TextInputWidget,
         help_text="Each folio starts with '1'.",
@@ -279,6 +315,7 @@ class SourceCreateForm(forms.ModelForm):
             "melodies_entered_by",
             "inventoried_by",
             "full_text_entered_by",
+            "description_entered_by",
             "proofreaders",
             "other_editors",
             "complete_inventory",
@@ -305,8 +342,8 @@ class SourceCreateForm(forms.ModelForm):
             "date": TextInputWidget(),
             "cursus": SelectWidget(),
             "summary": TextAreaWidget(),
-            "description": TextAreaWidget(),
-            "selected_bibliography": TextAreaWidget(),
+            "description": MarkdownWidget(),
+            "selected_bibliography": MarkdownWidget(),
             "image_link": TextInputWidget(),
             "fragmentarium_id": TextInputWidget(),
             "dact_id": TextInputWidget(),
@@ -322,6 +359,9 @@ class SourceCreateForm(forms.ModelForm):
                 url="all-users-autocomplete"
             ),
             "full_text_entered_by": autocomplete.ModelSelect2Multiple(
+                url="all-users-autocomplete"
+            ),
+            "description_entered_by": autocomplete.ModelSelect2Multiple(
                 url="all-users-autocomplete"
             ),
             "proofreaders": autocomplete.ModelSelect2Multiple(
@@ -436,7 +476,7 @@ class ChantEditForm(forms.ModelForm):
         help_text="Binding order",
     )
 
-    c_sequence = forms.CharField(
+    c_sequence = forms.IntegerField(
         required=True,
         widget=TextInputWidget,
         help_text="Each folio starts with '1'.",
@@ -517,6 +557,7 @@ class SourceEditForm(forms.ModelForm):
             "melodies_entered_by",
             "inventoried_by",
             "full_text_entered_by",
+            "description_entered_by",
             "proofreaders",
             "other_editors",
             "production_method",
@@ -535,8 +576,8 @@ class SourceEditForm(forms.ModelForm):
             "cursus": SelectWidget(),
             "summary": TextAreaWidget(),
             "liturgical_occasions": TextAreaWidget(),
-            "description": TextAreaWidget(),
-            "selected_bibliography": TextAreaWidget(),
+            "description": MarkdownWidget(),
+            "selected_bibliography": MarkdownWidget(),
             "image_link": TextInputWidget(),
             "fragmentarium_id": TextInputWidget(),
             "dact_id": TextInputWidget(),
@@ -552,6 +593,9 @@ class SourceEditForm(forms.ModelForm):
                 url="all-users-autocomplete"
             ),
             "full_text_entered_by": autocomplete.ModelSelect2Multiple(
+                url="all-users-autocomplete"
+            ),
+            "description_entered_by": autocomplete.ModelSelect2Multiple(
                 url="all-users-autocomplete"
             ),
             "proofreaders": autocomplete.ModelSelect2Multiple(
@@ -891,6 +935,14 @@ class AdminSourceForm(forms.ModelForm):
         ),
     )
 
+    description_entered_by = forms.ModelMultipleChoiceField(
+        queryset=get_user_model().objects.all().order_by("full_name"),
+        required=False,
+        widget=FilteredSelectMultiple(
+            verbose_name="description entered by", is_stacked=False
+        ),
+    )
+
     melodies_entered_by = forms.ModelMultipleChoiceField(
         queryset=get_user_model().objects.all().order_by("full_name"),
         required=False,
@@ -967,3 +1019,75 @@ class ImageLinkForm(forms.Form):
         for folio, image_link in cleaned_data.items():
             if image_link != "":
                 source.chant_set.filter(folio=folio).update(image_link=image_link)
+
+
+class BrowseChantsBulkEditForm(forms.ModelForm):
+    class Meta:
+        model = Chant
+        fields = [
+            "id",
+            "folio",
+            "c_sequence",
+            "manuscript_full_text_std_spelling",
+            "feast",
+            "service",
+            "genre",
+            "position",
+            "cantus_id",
+            "mode",
+        ]
+        widgets = {
+            "id": HiddenInput(),
+            "feast": autocomplete.Select2(url="feast-autocomplete"),
+            "service": autocomplete.Select2(url="service-autocomplete"),
+            "genre": autocomplete.Select2(url="genre-autocomplete"),
+            "position": TextInputWidget(),
+            "cantus_id": TextInputWidget(),
+            "mode": TextInputWidget(),
+        }
+
+    folio = forms.CharField(
+        required=True,
+        widget=TextInputWidget,
+    )
+
+    c_sequence = forms.IntegerField(
+        required=True,
+        widget=TextInputWidget,
+    )
+
+    manuscript_full_text_std_spelling = CantusDBLatinField(
+        widget=TextAreaWidget,
+        required=True,
+    )
+
+    def __init__(self, *args: Any, **kwargs: Any) -> None:
+        field_choices = kwargs.pop("field_choices")
+        super().__init__(*args, **kwargs)
+        self.fields["feast"].choices = field_choices["feast"]
+        self.fields["service"].choices = field_choices["service"]
+        self.fields["genre"].choices = field_choices["genre"]
+
+
+class BaseBrowseChantsBulkEditFormset(forms.BaseModelFormSet):
+
+    def __init__(self, *args: Any, **kwargs: Any) -> None:
+        form_kwargs = kwargs.get("form_kwargs", {})
+        form_kwargs["field_choices"] = {
+            "feast": Feast.objects.all().values_list("id", "name"),
+            "service": Service.objects.all().values_list("id", "name"),
+            "genre": Genre.objects.all().values_list("id", "name"),
+        }
+        kwargs["form_kwargs"] = form_kwargs
+        kwargs["prefix"] = "chant_set"
+        super().__init__(*args, **kwargs)
+
+
+BrowseChantsBulkEditFormset = forms.modelformset_factory(
+    Chant,
+    form=BrowseChantsBulkEditForm,
+    formset=BaseBrowseChantsBulkEditFormset,
+    extra=0,
+    can_delete=False,
+    can_order=False,
+)
