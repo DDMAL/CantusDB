@@ -92,6 +92,7 @@ ONLY_FIELDS = (
     "source__shelfmark",
     "source__holding_institution__city",
     "source__holding_institution__name",
+    "source__name",
     "title",
     "incipit",
     "folio",
