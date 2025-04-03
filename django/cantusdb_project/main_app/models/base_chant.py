@@ -201,6 +201,8 @@ class BaseChant(BaseModel):
     )
     later_addition = models.CharField(blank=True, null=True, max_length=255)
 
+    other_fields_proofread = models.BooleanField(blank=False, null=False, default=False)
+
     def get_ci_url(self) -> str:
         """Construct the url to the entry in Cantus Index correponding to the chant.
 

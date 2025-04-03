@@ -36,6 +36,16 @@
             {% csrf_token %}
             <input type="hidden" name="referrer" value="{{ request.META.HTTP_REFERER }}" />
             <input type="hidden" name="pk" value="{{ chant.id }}" />
+            {% if user_can_proofread_chant %}
+            <div class="row small mb-2">
+                <div class="col-lg-12">
+                    <label for="{{ form.manuscript_full_text_std_spelling.id_for_label }}">
+                        Proofread (excluding text and volpiano):
+                    </label>
+                    {{ form.other_fields_proofread }}
+                </div>
+            </div>
+        {% endif %}
             <div class="row small mb-2">
                 <div class="col-lg-2">
                     {{ form.marginalia.label_tag }}
