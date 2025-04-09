@@ -139,26 +139,7 @@ class CustomLogoutView(LogoutView):
         return next_page
 
 
-class UserListView(LoginRequiredMixin, SearchableListMixin, ListView):
-    """A list of all User objects
-
-    This view is equivalent to the user list view on the old Cantus.
-    This includes all User objects on the old Cantus.
-    When passed a `?q=<query>` argument in the GET request, it will filter users
-    based on the fields defined in `search_fields` with the `icontains` lookup.
-
-    Accessed by /users/
-    """
-
-    model = get_user_model()
-    ordering = "full_name"
-    search_fields = ["full_name", "institution", "city", "country"]
-    paginate_by = 100
-    template_name = "user_list.html"
-    context_object_name = "users"
-
-
-class IndexerListView(SearchableListMixin, ListView):
+class IndexerListView(SearchableListMixin, ListView):  # type: ignore[type-arg,misc]
     """A list of User objects shown to the public
 
     This view replaces the indexer list view on the old Cantus.
