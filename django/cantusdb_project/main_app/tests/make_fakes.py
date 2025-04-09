@@ -1,9 +1,9 @@
 """Functions to make fake objects to be used for testing"""
 
 import random
-from typing import Optional, List, Any
+from typing import Optional, List, Any, Tuple, Dict
+from datetime import date, timedelta
 from faker import Faker  # type: ignore[import-untyped]
-
 from django.contrib.auth import get_user_model
 from django.db.models import Max
 
@@ -20,6 +20,7 @@ from main_app.models.segment import Segment
 from main_app.models.sequence import Sequence
 from main_app.models.source import Source
 from users.models import User as UserAnnotation
+from users.models import Group, GroupMembership
 
 
 User = get_user_model()
@@ -277,16 +278,39 @@ def make_fake_genre(
     return genre
 
 
-def make_fake_user(is_indexer: bool = True) -> UserAnnotation:
+def make_groups() -> Dict[str, Group]:
+    """Generates the user groups we use in CantusDB."""
+    groups: Dict[str, Group] = {
+        "editor": Group.objects.create(name="editor"),
+        "global viewer": Group.objects.create(name="global viewer"),
+    }
+    return groups
+
+
+def make_fake_user(
+    is_superuser: bool = False,
+    groups: Optional[List[Tuple[Group, Optional[date]]]] = None,
+) -> UserAnnotation:
     """Generates a fake User object."""
+    is_staff = is_superuser
     user: UserAnnotation = User.objects.create(
         full_name=f"{faker.first_name()} {faker.last_name()}",
         institution=faker.company(),
         city=faker.city(),
         country=faker.country(),
-        is_indexer=is_indexer,
         email=f"{faker.lexify('????????')}@fakeemail.com",
+        is_superuser=is_superuser,
+        is_staff=is_staff,
     )
+    if groups:
+        for group, expiration in groups:
+            GroupMembership.objects.create(
+                user=user,
+                group=group,
+                expiration=(
+                    expiration if expiration else date.today() + timedelta(days=2)
+                ),
+            )
     return user
 
 
@@ -449,8 +473,6 @@ def make_fake_source(**kwargs: Any) -> Source:
     - indexing_date
     - provenance_notes
     - century
-    - notation
-    - all fields related to user involvement (inventoried_by, full_text_entered_by, etc.)
     """
     # Handle `shelfmark` and `published` fields, which cannot be set to None
     if kwargs.get("shelfmark") is None:
@@ -494,13 +516,15 @@ def make_fake_source(**kwargs: Any) -> Source:
     ]:
         kwargs[field] = kwargs.get(field, faker.sentence())
 
-    # Remove the "century" key from kwargs. As a many-to-many field,
-    # the century field is handled after instance creation.
+    # Remove the "century" and "current_editors" keys from kwargs.
+    # As a many-to-many fields, these are handled after instance creation.
     century = kwargs.pop("century", make_fake_century())
+    current_editors = kwargs.pop("current_editors", [])
 
     source = Source.objects.create(**kwargs)
 
     source.century.set([century])
+    source.current_editors.set(current_editors)
     source.notation.set([make_fake_notation()])
     source.inventoried_by.set([make_fake_user()])
     source.full_text_entered_by.set([make_fake_user()])

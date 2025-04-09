@@ -2,9 +2,7 @@
 Test views in views/site_stats.py
 """
 
-from django.test import TestCase, Client
-from django.contrib.auth import get_user_model
-from django.contrib.auth.models import Group
+from django.test import TestCase
 from django.urls import reverse
 
 from main_app.tests.make_fakes import (
@@ -12,45 +10,21 @@ from main_app.tests.make_fakes import (
     make_fake_source,
     make_fake_chant,
 )
+from main_app.tests.mixins import CustomAccessTestMixin
 
 
-class ContentOverviewTest(TestCase):
-    @classmethod
-    def setUpTestData(cls):
-        Group.objects.create(name="project manager")
+class ContentOverviewTest(CustomAccessTestMixin, TestCase):
+    default_user = "superuser"
 
-    def setUp(self):
-        self.user = get_user_model().objects.create(email="test@test.com")
-        self.user.set_password("pass")
-        self.user.save()
-        self.client = Client()
-
-        project_manager = Group.objects.get(name="project manager")
-        project_manager.user_set.add(self.user)
-        self.client.login(email="test@test.com", password="pass")
-
-    def test_templates_used(self):
-        response = self.client.get(reverse("content-overview"))
-        self.assertTemplateUsed(response, "base.html")
-        self.assertTemplateUsed(response, "content_overview.html")
-
-    def test_project_manager_permission(self):
-        response = self.client.get(reverse("content-overview"))
-        self.assertEqual(response.status_code, 200)
-
-    def test_content_overview_view_with_login_required(self):
+    def test_permissions(self) -> None:
         self.client.logout()
-        response = self.client.get(reverse("content-overview"))
-        self.assertRedirects(response, "/login/?next=/content-overview/")
-
-    def test_content_overview_view_for_non_project_manager(self):
-        user = get_user_model().objects.create(email="non_project_manager@test.com")
-        user.set_password("pass")
-        user.save()
-        self.client.login(email="non_project_manager@test.com", password="pass")
-
-        response = self.client.get(reverse("content-overview"))
-        self.assertEqual(response.status_code, 403)
+        self.assertEqual(self.client.get(reverse("content-overview")).status_code, 302)
+        self.client.force_login(user=self.users["user"])
+        self.assertEqual(self.client.get(reverse("content-overview")).status_code, 403)
+        self.client.force_login(user=self.users["editor"])
+        self.assertEqual(self.client.get(reverse("content-overview")).status_code, 403)
+        self.client.force_login(user=self.users["superuser"])
+        self.assertEqual(self.client.get(reverse("content-overview")).status_code, 200)
 
     def test_content_overview_view_selected_model(self):
         response = self.client.get(reverse("content-overview"), {"model": "sources"})
