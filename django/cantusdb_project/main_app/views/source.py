@@ -295,7 +295,6 @@ class SourceDetailView(CustomAccessMixin, JSONResponseMixin, DetailView):  # typ
             context["feasts_with_folios"] = get_feast_selector_options(source)
             context["bower_segment"] = False
 
-        context["user_can_manage_source_editors"] = user_can_manage_source_editors(user)
         context["user_can_edit_chants"] = self.user_assigned_to_source(source)
         context["user_can_edit_source"] = (
             self.user_is_editor and self.user_assigned_to_source(source)
