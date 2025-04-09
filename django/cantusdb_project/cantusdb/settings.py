@@ -179,6 +179,9 @@ EMAIL_USE_TLS = True
 
 DEFAULT_FROM_EMAIL = "noreply@cantusdatabase.simssa.ca"
 
+# Session app settings
+SESSION_COOKIE_SECURE = True
+
 # automatically disable all panels which user can then manually enable
 DEBUG_TOOLBAR_CONFIG = {
     "DISABLE_PANELS": {
