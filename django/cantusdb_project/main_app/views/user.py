@@ -1,20 +1,22 @@
+from typing import Dict, Any
+
 from django.contrib import messages
 from django.contrib.auth import get_user_model
 from django.contrib.auth.mixins import LoginRequiredMixin
 from django.contrib.auth.views import LogoutView
-from django.core.exceptions import PermissionDenied
 from django.core.paginator import Paginator
-from django.db.models import Q
+from django.db.models import Q, QuerySet
 from django.db.models.aggregates import Count
 from django.views.generic import DetailView
 from django.views.generic import ListView
 from extra_views import SearchableListMixin
 
 from main_app.models import Source
-from main_app.permissions import user_can_view_user_detail
+from main_app.permissions import CustomAccessMixin
+from users.models import User as UserType
 
 
-class UserDetailView(DetailView):
+class UserDetailView(CustomAccessMixin, DetailView):  # type: ignore
     """Detail view for User model
 
     Accessed by /users/<pk>
@@ -24,64 +26,58 @@ class UserDetailView(DetailView):
     context_object_name = "user"
     template_name = "user_detail.html"
 
-    def get_context_data(self, **kwargs):
+    def test_func(self) -> bool:
         user = self.get_object()
-        # to begin, if the person viewing the site is not logged in,
-        # they should only be able to view the detail pages of indexers,
-        # and not the detail pages of run-of-the-mill users
         viewing_user = self.request.user
-        if not user_can_view_user_detail(viewing_user, user):
-            raise PermissionDenied()
+        return viewing_user.is_superuser or user.is_indexer or viewing_user == user
 
+    def get_context_data(self, **kwargs: Any) -> Dict[str, Any]:
         context = super().get_context_data(**kwargs)
+        user = context["user"]
 
-        # `display_unpublished` is now a dictionary that, if the
-        # user is not authenticated, wil. filter the sources to only
-        # those that are published. If the user is authenticated, the
-        # empty dict will not apply the filter, thus showing both
-        # published and unpublished.
-        if not viewing_user.is_authenticated:
-            display_unpublished = {"published": True}
+        viewing_user = self.request.user
+        if viewing_user.is_superuser or self.user_is_global_viewer:
+            base_source_set = Source.objects.all()
         else:
-            display_unpublished = {}
+            base_source_set = self.published_and_assigned_sources
 
         context["inventoried_sources"] = (
-            user.inventoried_sources.filter(**display_unpublished)
+            base_source_set.filter(inventoried_by=user)
             .select_related("holding_institution")
             .all()
             .order_by("holding_institution__siglum")
         )
 
         context["full_text_sources"] = (
-            user.entered_full_text_for_sources.filter(**display_unpublished)
+            base_source_set.filter(full_text_entered_by=user)
             .select_related("holding_institution")
             .all()
             .order_by("holding_institution__siglum")
         )
 
         context["melody_sources"] = (
-            user.entered_melody_for_sources.filter(**display_unpublished)
+            base_source_set.filter(melodies_entered_by=user)
             .select_related("holding_institution")
             .all()
             .order_by("holding_institution__siglum")
         )
 
         context["proofread_sources"] = (
-            user.proofread_sources.filter(**display_unpublished)
+            base_source_set.filter(proofreaders=user)
             .select_related("holding_institution")
             .all()
             .order_by("holding_institution__siglum")
         )
 
         context["description_sources"] = (
-            user.entered_description_for_sources.filter(**display_unpublished)
+            base_source_set.filter(description_entered_by=user)
             .select_related("holding_institution")
             .all()
             .order_by("holding_institution__siglum")
         )
 
         context["edited_sources"] = (
-            user.edited_sources.filter(**display_unpublished)
+            base_source_set.filter(other_editors=user)
             .select_related("holding_institution")
             .all()
             .order_by("holding_institution__siglum")
@@ -90,35 +86,26 @@ class UserDetailView(DetailView):
         return context
 
 
-class UserSourceListView(LoginRequiredMixin, ListView):
-    model = Source
+class UserSourceListView(LoginRequiredMixin, ListView):  # type: ignore [type-arg]
     context_object_name = "sources"
     template_name = "user_source_list.html"
+    paginate_by = 10
 
-    def get_context_data(self, **kwargs):
-        context = super().get_context_data(**kwargs)
-
-        my_sources = (
+    def get_queryset(self) -> QuerySet[Source]:
+        return (
             Source.objects.filter(
-                Q(current_editors=self.request.user)
-                | Q(created_by=self.request.user)
-                # | Q(inventoried_by=self.request.user)
-                # | Q(full_text_entered_by=self.request.user)
-                # | Q(melodies_entered_by=self.request.user)
-                # | Q(proofreaders=self.request.user)
-                # | Q(other_editors=self.request.user)
+                Q(current_editors=self.request.user) | Q(created_by=self.request.user)
             )
             .order_by("-date_updated")
             .select_related("holding_institution")
             .distinct()
         )
 
-        user_sources_paginator = Paginator(my_sources, 10)
-        user_sources_page_num = self.request.GET.get("page")
-        user_sources_page_obj = user_sources_paginator.get_page(user_sources_page_num)
-
+    def get_context_data(self, **kwargs: Any) -> Dict[str, Any]:
+        context = super().get_context_data(**kwargs)
+        user: UserType = self.request.user
         user_created_sources = (
-            Source.objects.filter(created_by=self.request.user)
+            Source.objects.filter(created_by=user)
             .order_by("-date_created")
             .select_related("holding_institution")
             .distinct()
@@ -157,20 +144,14 @@ class IndexerListView(SearchableListMixin, ListView):  # type: ignore[type-arg,m
     paginate_by = 100
     template_name = "indexer_list.html"
     context_object_name = "indexers"
+    test_req = False
 
-    def get_queryset(self):
-        all_users = super().get_queryset()
-        indexers = all_users.filter(is_indexer=True)
-        display_unpublished = self.request.user.is_authenticated
-        if display_unpublished:
-            indexers = indexers.annotate(source_count=Count("inventoried_sources"))
-            # display those who have at least one source
-            return indexers.filter(source_count__gte=1)
-        else:
-            indexers = indexers.annotate(
-                source_count=Count(
-                    "inventoried_sources", filter=Q(inventoried_sources__published=True)
-                )
+    def get_queryset(self) -> QuerySet[UserType]:
+        all_users: QuerySet[UserType] = super().get_queryset()
+        all_users = all_users.annotate(
+            source_count=Count(
+                "inventoried_sources", filter=Q(inventoried_sources__published=True)
             )
-            # display those who have at least one published source
-            return indexers.filter(source_count__gte=1)
+        )
+        # display those who have at least one published source
+        return all_users.filter(source_count__gte=1)

@@ -1,10 +1,8 @@
 import re
-from typing import Any, Optional, Dict
+from typing import Any, Optional, Union
 
 from django.contrib import messages
-from django.contrib.auth.mixins import LoginRequiredMixin
 from django.contrib.auth.mixins import UserPassesTestMixin
-from django.core.exceptions import PermissionDenied
 from django.db.models import Q, Prefetch, Value
 from django.db.models import QuerySet
 from django.http import (
@@ -22,7 +20,6 @@ from django.views.generic import (
     CreateView,
     UpdateView,
     DeleteView,
-    TemplateView,
     FormView,
 )
 from django.views.generic.detail import SingleObjectMixin
@@ -42,15 +39,9 @@ from main_app.models import (
     Segment,
     Source,
     Institution,
+    Sequence,
 )
-from main_app.permissions import (
-    user_can_create_sources,
-    user_can_edit_source,
-    user_can_view_source,
-    user_can_manage_source_editors,
-    user_can_proofread_source,
-    user_can_edit_chants_in_source,
-)
+from main_app.permissions import CustomAccessMixin
 from main_app.mixins import JSONResponseMixin
 
 from main_app.views.chant import get_feast_selector_options
@@ -60,7 +51,7 @@ CANTUS_SEGMENT_ID = 4063
 BOWER_SEGMENT_ID = 4064
 
 
-class SourceBrowseChantsView(UserPassesTestMixin, ListView):  # type: ignore[type-arg]
+class SourceBrowseChantsView(CustomAccessMixin, ListView):  # type: ignore[type-arg]
     """The view for the `Browse Chants` page.
 
     Displays a list of Chant objects, accessed with ``chants`` followed by a series of GET params
@@ -88,14 +79,18 @@ class SourceBrowseChantsView(UserPassesTestMixin, ListView):  # type: ignore[typ
 
     def test_func(self) -> bool:
         """
-        Gets source attribute. If the source is unpublished, only authenticated users can
-        access this view.
+        `GET` requests allowed for published sources or sources the user can edit.
+        `POST` requests allowed only for sources the user can edit.
         """
         source_id = self.kwargs.get(self.pk_url_kwarg)
         self.source = get_object_or_404(Source, id=source_id)
         if self.request.method == "POST":
-            return user_can_edit_chants_in_source(self.request.user, self.source)
-        return self.source.published or self.request.user.is_authenticated
+            return self.user_assigned_to_source(self.source)
+        return (
+            self.source.published
+            or self.user_is_global_viewer
+            or self.user_assigned_to_source(self.source)
+        )
 
     def get_queryset(self) -> QuerySet[Chant]:
         """
@@ -196,9 +191,10 @@ class SourceBrowseChantsView(UserPassesTestMixin, ListView):  # type: ignore[typ
             sources = sources.filter(published=True)
         context["sources"] = sources
 
-        user = self.request.user
-        context["user_can_edit_chant"] = user_can_edit_chants_in_source(user, source)
-        context["user_can_proofread_source"] = user_can_proofread_source(user, source)
+        context["user_can_edit_chant"] = self.user_assigned_to_source(source)
+        context["user_can_proofread_source"] = (
+            self.user_assigned_to_source(source) and self.user_is_editor
+        )
 
         chants_in_source = source.chant_set
         if chants_in_source.count() == 0:
@@ -247,7 +243,7 @@ class SourceBrowseChantsView(UserPassesTestMixin, ListView):  # type: ignore[typ
         return JsonResponse({"taskID": task.id})
 
 
-class SourceDetailView(JSONResponseMixin, DetailView):  # type: ignore[type-arg]
+class SourceDetailView(CustomAccessMixin, JSONResponseMixin, DetailView):  # type: ignore[type-arg]
     model = Source
     context_object_name = "source"
     template_name = "source_detail.html"
@@ -260,24 +256,25 @@ class SourceDetailView(JSONResponseMixin, DetailView):  # type: ignore[type-arg]
         "short_heading",
     ]
 
+    def test_func(self) -> bool:
+        source = self.get_object()
+        if self.user_is_global_viewer:
+            return True
+        return self.published_and_assigned_sources.contains(source)
+
     def get_queryset(self) -> QuerySet[Source]:
         return (
             self.model.objects.select_related(
                 "holding_institution", "provenance", "created_by"
             )
-            .prefetch_related("segment_m2m")
+            .prefetch_related("segment_m2m", "proofreaders", "inventoried_by")
             .all()
         )
 
     def get_context_data(self, **kwargs: Any) -> dict[str, Any]:
-        source = self.object
-        user = self.request.user
-
-        if not user_can_view_source(user, source):
-            raise PermissionDenied()
-
         context = super().get_context_data(**kwargs)
 
+        source = self.object
         if BOWER_SEGMENT_ID in source.segment_m2m.values_list("id", flat=True):
             # if this is a sequence source
             sequences = source.sequence_set.select_related("genre", "service")
@@ -298,17 +295,20 @@ class SourceDetailView(JSONResponseMixin, DetailView):  # type: ignore[type-arg]
             context["feasts_with_folios"] = get_feast_selector_options(source)
             context["bower_segment"] = False
 
-        context["user_can_edit_chants"] = user_can_edit_chants_in_source(user, source)
-        context["user_can_edit_source"] = user_can_edit_source(user, source)
         context["user_can_manage_source_editors"] = user_can_manage_source_editors(user)
+        context["user_can_edit_chants"] = self.user_assigned_to_source(source)
+        context["user_can_edit_source"] = (
+            self.user_is_editor and self.user_assigned_to_source(source)
+        )
         return context
 
 
-class SourceListView(ListView):
+class SourceListView(CustomAccessMixin, ListView):  # type: ignore[type-arg]
     model = Source
     paginate_by = 100
     context_object_name = "sources"
     segment: Optional[Segment] = None
+    test_req = False
 
     def get_template_names(self) -> list[str]:
         if self.segment and self.segment.id == 4066:
@@ -341,15 +341,16 @@ class SourceListView(ListView):
         return super().get(request, *args, **kwargs)
 
     def get_queryset(self) -> QuerySet[Source]:
-        # use select_related() for foreign keys to reduce DB queries
-        queryset = Source.objects.select_related(
-            "provenance", "holding_institution"
-        ).prefetch_related("segment_m2m")
-
-        if self.request.user.is_authenticated:
-            q_obj_filter = Q()
+        if self.user.is_superuser or self.user_is_global_viewer:
+            queryset = Source.objects.select_related(
+                "provenance", "holding_institution"
+            ).prefetch_related("segment_m2m")
         else:
-            q_obj_filter = Q(published=True)
+            queryset = self.published_and_assigned_sources.select_related(
+                "provenance", "holding_institution"
+            ).prefetch_related("segment_m2m")
+
+        q_obj_filter = Q()
 
         if self.segment:
             q_obj_filter &= Q(segment_m2m=self.segment)
@@ -507,14 +508,14 @@ class SourceListView(ListView):
         )
 
 
-class SourceCreateView(LoginRequiredMixin, UserPassesTestMixin, CreateView):
+class SourceCreateView(UserPassesTestMixin, CreateView):  # type: ignore[type-arg]
     model = Source
     template_name = "source_create.html"
     form_class = SourceCreateForm
 
-    def test_func(self):
+    def test_func(self) -> bool:
         user = self.request.user
-        return user_can_create_sources(user)
+        return user.is_authenticated
 
     def get_success_url(self):
         return reverse("source-detail", args=[self.object.id])
@@ -538,33 +539,37 @@ class SourceCreateView(LoginRequiredMixin, UserPassesTestMixin, CreateView):
         return HttpResponseRedirect(self.get_success_url())
 
 
-class SourceDeleteView(LoginRequiredMixin, UserPassesTestMixin, DeleteView):
-    """The view for deleting a source object
+class SourceDeleteView(CustomAccessMixin, DeleteView):  # type: ignore[type-arg]
+    """
+    The view for deleting a source object
 
     This view is linked to in the source-edit page.
     """
 
+    object: Source  # type hint to avoid typing error
     model = Source
     template_name = "source_delete.html"
+    success_url = "/"
 
-    def test_func(self):
-        user = self.request.user
-        source_id = self.kwargs.get(self.pk_url_kwarg)
-        source = get_object_or_404(Source, id=source_id)
-        return user_can_edit_source(user, source)
-
-    def get_success_url(self):
-        # redirect to homepage
-        return "/"
+    def test_func(self) -> bool:
+        return self.user_is_editor and self.user_assigned_to_source(self.get_object())
 
 
-class SourceEditView(LoginRequiredMixin, UserPassesTestMixin, UpdateView):  # type: ignore[type-arg]
+class SourceEditView(CustomAccessMixin, UpdateView):  # type: ignore[type-arg]
     template_name = "source_edit.html"
     model = Source
     form_class = SourceEditForm
     pk_url_kwarg = "source_id"
 
-    def get_context_data(self, **kwargs: Any) -> Dict[str, Any]:
+    def test_func(self) -> bool:
+        source = self.get_object()
+        if self.user_assigned_to_source(source) and (
+            self.user_is_editor or source.created_by == self.user
+        ):
+            return True
+        return False
+
+    def get_context_data(self, **kwargs):
         source = self.object
         context = super().get_context_data(**kwargs)
 
@@ -590,13 +595,6 @@ class SourceEditView(LoginRequiredMixin, UserPassesTestMixin, UpdateView):  # ty
             context["bower_segment"] = False
         return context
 
-    def test_func(self):
-        user = self.request.user
-        source_id = self.kwargs.get(self.pk_url_kwarg)
-        source = get_object_or_404(Source, id=source_id)
-
-        return user_can_edit_source(user, source)
-
     def form_valid(self, form):
         form.instance.last_updated_by = self.request.user
 
@@ -618,41 +616,43 @@ class SourceEditView(LoginRequiredMixin, UserPassesTestMixin, UpdateView):  # ty
         return HttpResponseRedirect(self.get_success_url())
 
 
-class SourceInventoryView(TemplateView):
+class SourceInventoryView(CustomAccessMixin, ListView):  # type: ignore[type-arg]
     template_name = "full_inventory.html"
     pk_url_kwarg = "source_id"
+    context_object_name = "chants"
+    source: Source
 
-    def get_context_data(self, **kwargs):
-        context = super().get_context_data(**kwargs)
-
+    def test_func(self) -> bool:
         source_id = self.kwargs.get(self.pk_url_kwarg)
-        source = get_object_or_404(Source, id=source_id)
+        self.source = get_object_or_404(Source, id=source_id)
+        return (
+            self.user_is_global_viewer
+            or self.source.published
+            or self.user_assigned_to_source(self.source)
+        )
 
-        display_unpublished = self.request.user.is_authenticated
-        if (not display_unpublished) and (source.published == False):
-            raise PermissionDenied
-
-        # 4064 is the id for the sequence database
-        if BOWER_SEGMENT_ID in source.segment_m2m.values_list("id", flat=True):
+    def get_queryset(self) -> Union[QuerySet[Chant], QuerySet[Sequence]]:
+        if BOWER_SEGMENT_ID in self.source.segment_m2m.values_list("id", flat=True):
             queryset = (
-                source.sequence_set.annotate(record_type=Value("sequence"))
+                self.source.sequence_set.annotate(record_type=Value("sequence"))
                 .order_by("s_sequence")
                 .select_related("genre")
             )
         else:
             queryset = (
-                source.chant_set.annotate(record_type=Value("chant"))
+                self.source.chant_set.annotate(record_type=Value("chant"))
                 .order_by("folio", "c_sequence")
                 .select_related("feast", "service", "genre", "diff_db")
             )
+        return queryset
 
-        context["source"] = source
-        context["chants"] = queryset
-
+    def get_context_data(self, **kwargs: Any) -> dict[str, Any]:
+        context = super().get_context_data(**kwargs)
+        context["source"] = self.source
         return context
 
 
-class SourceAddImageLinksView(UserPassesTestMixin, SingleObjectMixin, FormView):  # type: ignore
+class SourceAddImageLinksView(CustomAccessMixin, SingleObjectMixin, FormView):  # type: ignore
     template_name = "source_add_image_links.html"
     pk_url_kwarg = "source_id"
     queryset = Source.objects.select_related("holding_institution")
@@ -662,7 +662,7 @@ class SourceAddImageLinksView(UserPassesTestMixin, SingleObjectMixin, FormView):
     http_method_names = ["get", "post"]
 
     def test_func(self) -> bool:
-        return user_can_manage_source_editors(self.request.user)
+        return self.user.is_superuser
 
     def get_success_url(self) -> str:
         return reverse("source-detail", args=[self.object.id])

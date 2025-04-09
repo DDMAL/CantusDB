@@ -1,18 +1,16 @@
+from typing import Dict, Any
+
 from django.views.generic import DetailView, ListView, UpdateView
-from main_app.models import Sequence
-from django.db.models import Q
-from main_app.forms import SequenceEditForm
-from django.contrib.auth.mixins import LoginRequiredMixin
+from django.db.models import Q, QuerySet
 from django.contrib import messages
-from django.contrib.auth.mixins import UserPassesTestMixin
-from django.core.exceptions import PermissionDenied
-from main_app.permissions import (
-    user_can_view_sequence,
-    user_can_edit_sequences,
-)
+from django.http import HttpResponse
+
+from main_app.forms import SequenceEditForm
+from main_app.models import Sequence
+from main_app.permissions import CustomAccessMixin
 
 
-class SequenceDetailView(DetailView):
+class SequenceDetailView(CustomAccessMixin, DetailView):  # type: ignore[type-arg]
     """
     Displays a single Sequence object. Accessed with ``sequences/<int:pk>``
     """
@@ -21,16 +19,18 @@ class SequenceDetailView(DetailView):
     context_object_name = "sequence"
     template_name = "sequence_detail.html"
 
-    def get_context_data(self, **kwargs):
+    def test_func(self) -> bool:
         sequence = self.get_object()
-        user = self.request.user
+        source = sequence.source
+        return (
+            source.published
+            or self.user_assigned_to_source(source)
+            or self.user_is_global_viewer
+        )
 
-        # if the sequence's source isn't published,
-        # only logged-in users should be able to view the sequence's detail page
-        if not user_can_view_sequence(user, sequence):
-            raise PermissionDenied()
-
+    def get_context_data(self, **kwargs: Any) -> Dict[str, Any]:
         context = super().get_context_data(**kwargs)
+        sequence = context["sequence"]
         context["concordances"] = (
             Sequence.objects.select_related("source__holding_institution")
             .filter(cantus_id=sequence.cantus_id)
@@ -38,11 +38,13 @@ class SequenceDetailView(DetailView):
             .order_by("siglum")
         )
 
-        context["user_can_edit_sequence"] = user_can_edit_sequences(user, sequence)
+        context["user_can_edit_sequence"] = self.user_assigned_to_source(
+            sequence.source
+        )
         return context
 
 
-class SequenceListView(ListView):
+class SequenceListView(CustomAccessMixin, ListView):  # type: ignore[type-arg]
     """
     Displays a list of Sequence objects. Accessed with ``sequences/``
     """
@@ -50,14 +52,17 @@ class SequenceListView(ListView):
     paginate_by = 100
     context_object_name = "sequences"
     template_name = "sequence_list.html"
+    test_req = False
 
-    def get_queryset(self):
-        queryset = Sequence.objects.select_related("source__holding_institution")
-        display_unpublished = self.request.user.is_authenticated
-        if display_unpublished:
-            q_obj_filter = Q()
+    def get_queryset(self) -> QuerySet[Sequence]:
+        if self.user.is_superuser or self.user_is_global_viewer:
+            queryset = Sequence.objects.select_related("source__holding_institution")
         else:
-            q_obj_filter = Q(source__published=True)
+            queryset = Sequence.objects.select_related(
+                "source__holding_institution"
+            ).filter(source__in=self.published_and_assigned_sources)
+
+        q_obj_filter = Q()
 
         if self.request.GET.get("incipit"):
             incipit = self.request.GET.get("incipit")
@@ -77,13 +82,13 @@ class SequenceListView(ListView):
         )
 
 
-class SequenceEditView(LoginRequiredMixin, UserPassesTestMixin, UpdateView):
+class SequenceEditView(CustomAccessMixin, UpdateView):  # type: ignore[type-arg]
     template_name = "sequence_edit.html"
     model = Sequence
     form_class = SequenceEditForm
     pk_url_kwarg = "sequence_id"
 
-    def form_valid(self, form):
+    def form_valid(self, form: SequenceEditForm) -> HttpResponse:
         form.instance.last_updated_by = self.request.user
         messages.success(
             self.request,
@@ -91,7 +96,7 @@ class SequenceEditView(LoginRequiredMixin, UserPassesTestMixin, UpdateView):
         )
         return super().form_valid(form)
 
-    def test_func(self):
-        user = self.request.user
+    def test_func(self) -> bool:
         sequence = self.get_object()
-        return user_can_edit_sequences(user, sequence)
+        source = sequence.source
+        return self.user_assigned_to_source(source)
