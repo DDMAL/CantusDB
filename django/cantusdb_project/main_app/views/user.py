@@ -89,7 +89,7 @@ class UserDetailView(CustomAccessMixin, DetailView):  # type: ignore
 class UserSourceListView(LoginRequiredMixin, ListView):  # type: ignore [type-arg]
     context_object_name = "sources"
     template_name = "user_source_list.html"
-    paginate_by = 10
+    paginate_by = 3
 
     def get_queryset(self) -> QuerySet[Source]:
         return (
@@ -114,7 +114,6 @@ class UserSourceListView(LoginRequiredMixin, ListView):  # type: ignore [type-ar
         user_created_page_num = self.request.GET.get("page2")
         user_created_page_obj = user_created_paginator.get_page(user_created_page_num)
 
-        context["page_obj"] = user_sources_page_obj
         context["user_created_sources_page_obj"] = user_created_page_obj
         return context
 
