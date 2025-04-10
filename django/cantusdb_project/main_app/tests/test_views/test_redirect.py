@@ -6,6 +6,8 @@ import random
 
 from django.test import TestCase, Client
 from django.urls import reverse
+from django.http import HttpResponsePermanentRedirect
+from faker import Faker
 
 from users.models import User
 from main_app.tests.make_fakes import (
@@ -14,6 +16,9 @@ from main_app.tests.make_fakes import (
     make_fake_sequence,
 )
 from articles.tests.test_articles import make_fake_article
+
+
+faker = Faker("la")
 
 
 class IndexerRedirectTest(TestCase):
@@ -176,3 +181,39 @@ class NodeURLRedirectTest(TestCase):
             reverse("redirect-node-url", args=[over_limit_node_id])
         )
         self.assertEqual(response_1.status_code, 404)
+
+
+class ChantSearchRedirectTest(TestCase):
+    def test_redirects_keep_query(self) -> None:
+        cantus_id: str = faker.numerify("######")
+        chant = make_fake_chant(cantus_id=cantus_id)
+        chants_1 = [make_fake_chant(cantus_id=cantus_id) for _ in range(4)]
+        chants_1.append(chant)
+        different_cantus_id = str(int(cantus_id) + 1)
+        chants_2 = [make_fake_chant(cantus_id=different_cantus_id) for _ in range(3)]
+
+        response_1 = self.client.get(
+            reverse("redirect-search"), {"cantus_id": cantus_id}
+        )
+        self.assertRedirects(
+            response_1,
+            reverse("chant-search") + f"?cantus_id={cantus_id}",
+            status_code=301,
+        )
+        redirect_response = self.client.get(response_1.headers["Location"])
+        self.assertEqual(redirect_response.status_code, 200)
+        resp_chants_1 = redirect_response.context["chants"]
+        self.assertCountEqual(resp_chants_1, chants_1)
+
+        response_2 = self.client.get(
+            reverse("redirect-search"), {"cantus_id": different_cantus_id}
+        )
+        self.assertRedirects(
+            response_2,
+            reverse("chant-search") + f"?cantus_id={different_cantus_id}",
+            status_code=301,
+        )
+        redirect_response = self.client.get(response_2.headers["Location"])
+        self.assertEqual(redirect_response.status_code, 200)
+        resp_chants_2 = redirect_response.context["chants"]
+        self.assertCountEqual(resp_chants_2, chants_2)
