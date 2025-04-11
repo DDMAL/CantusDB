@@ -164,7 +164,7 @@ def make_fake_chant(**kwargs: Any) -> Chant:
     - melody_id
     - chant_range
     - manuscript_full_text, indexing_notes, manuscript_syllabized_full_text
-    - manuscript_full_text_proofread, volpiano_proofread, manuscript_full_text_std_proofread (default to False)
+    - manuscript_full_text_proofread, volpiano_proofread, manuscript_full_text_std_proofread, other_fields_proofread (default to False)
     """
     # Handle `source`, `folio`, and `c_sequence` fields,
     # which cannot be set to None
@@ -229,6 +229,7 @@ def make_fake_chant(**kwargs: Any) -> Chant:
         "manuscript_full_text_proofread",
         "volpiano_proofread",
         "manuscript_full_text_std_proofread",
+        "other_fields_proofread",
     ]:
         kwargs[field] = kwargs.get(field, False)
 
