@@ -73,11 +73,10 @@ class SourceAdmin(BaseModelAdmin):
         "id",
     )
 
-
     list_filter = (
         SourceKeyFilter,
         "full_source",
-        "segment",
+        "segment_m2m",
         "source_status",
         "published",
         "century",
@@ -92,8 +91,14 @@ class SourceAdmin(BaseModelAdmin):
 
     def formfield_for_manytomany(self, db_field, request, **kwargs):
         if db_field.name == "current_editors":
-            kwargs["queryset"] = get_user_model().objects.filter(
-                Q(groups__name="project manager")
-                | Q(groups__name="editor")
-                | Q(groups__name="contributor")).distinct().order_by("full_name")
+            kwargs["queryset"] = (
+                get_user_model()
+                .objects.filter(
+                    Q(groups__name="project manager")
+                    | Q(groups__name="editor")
+                    | Q(groups__name="contributor")
+                )
+                .distinct()
+                .order_by("full_name")
+            )
         return super().formfield_for_manytomany(db_field, request, **kwargs)

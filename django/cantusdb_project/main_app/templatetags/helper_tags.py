@@ -78,21 +78,21 @@ def url_add_get_params(context: dict[str, Any], **kwargs: str) -> str:
 def source_links() -> SafeString:
     """
     Generates a series of html option tags linking to sources in
-    Cantus Dabase, for display on the homepage
+    Cantus Database, for display on the homepage
 
     Used in:
         templates/flatpages/default.html
     """
     sources = (
-        Source.objects.filter(published=True, segment__id=4063)
-        .exclude(siglum=None)
-        .values("siglum", "id")
-        .order_by("siglum")
+        Source.objects.filter(published=True, segment_m2m__id=4063)
+        .select_related("holding_institution")
+        .order_by("holding_institution__siglum", "shelfmark")
+        .iterator()
     )
     options = format_html_join(
         sep="\n",
         format_string="<option value=source/{0}>{1}</option>",
-        args_generator=((source["id"], source["siglum"]) for source in sources),
+        args_generator=((source.id, source.short_heading) for source in sources),
     )
 
     return options

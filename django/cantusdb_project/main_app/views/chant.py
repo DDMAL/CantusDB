@@ -840,7 +840,9 @@ class ChantSearchMSView(ListView):
         source_id = self.kwargs["source_pk"]
         source = Source.objects.get(id=source_id)
         queryset = (
-            source.sequence_set if source.segment.id == 4064 else source.chant_set
+            source.sequence_set
+            if 4064 in source.segment_m2m.values_list("id", flat=True)
+            else source.chant_set
         )
 
         # Filter the QuerySet with Q object

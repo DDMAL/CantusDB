@@ -1,5 +1,5 @@
 import re
-from typing import Any, Optional
+from typing import Any, Optional, Dict
 
 from django.contrib import messages
 from django.contrib.auth.mixins import LoginRequiredMixin
@@ -163,7 +163,7 @@ class SourceBrowseChantsView(UserPassesTestMixin, ListView):  # type: ignore[typ
     def get_context_data(self, **kwargs: Any) -> dict[str, Any]:
         context: dict[str, Any] = super().get_context_data(**kwargs)
         source: Source = self.source
-        if source.segment_id != CANTUS_SEGMENT_ID:
+        if not CANTUS_SEGMENT_ID in source.segment_m2m.values_list("id", flat=True):
             # the chant list ("Browse Chants") page should only be visitable
             # for sources in the CANTUS Database segment, as sources in the Bower
             # segment contain no chants
@@ -182,9 +182,11 @@ class SourceBrowseChantsView(UserPassesTestMixin, ListView):  # type: ignore[typ
         cantus_segment: Segment = Segment.objects.get(id=CANTUS_SEGMENT_ID)
 
         # to be displayed in the "Source" dropdown in the form
-        sources: QuerySet[Source] = cantus_segment.source_set.select_related(
-            "holding_institution", "segment"
-        ).order_by("holding_institution__siglum")
+        sources: QuerySet[Source] = (
+            cantus_segment.sources.select_related("holding_institution")
+            .prefetch_related("segment_m2m")
+            .order_by("holding_institution__siglum")
+        )
         if not display_unpublished:
             sources = sources.filter(published=True)
         context["sources"] = sources
@@ -263,9 +265,13 @@ class SourceDetailView(JSONResponseMixin, DetailView):  # type: ignore[type-arg]
     ]
 
     def get_queryset(self) -> QuerySet[Source]:
-        return self.model.objects.select_related(
-            "holding_institution", "segment", "provenance", "created_by"
-        ).all()
+        return (
+            self.model.objects.select_related(
+                "holding_institution", "provenance", "created_by"
+            )
+            .prefetch_related("segment_m2m")
+            .all()
+        )
 
     def get_context_data(self, **kwargs: Any) -> dict[str, Any]:
         source = self.object
@@ -276,13 +282,14 @@ class SourceDetailView(JSONResponseMixin, DetailView):  # type: ignore[type-arg]
 
         context = super().get_context_data(**kwargs)
 
-        if source.segment and source.segment_id == BOWER_SEGMENT_ID:
+        if BOWER_SEGMENT_ID in source.segment_m2m.values_list("id", flat=True):
             # if this is a sequence source
             sequences = source.sequence_set.select_related("genre", "service")
             context["sequences"] = sequences.order_by("s_sequence")
             context["folios"] = (
                 sequences.values_list("folio", flat=True).distinct().order_by("folio")
             )
+            context["bower_segment"] = True
         else:
             # if this is a chant source
             folios = (
@@ -293,6 +300,7 @@ class SourceDetailView(JSONResponseMixin, DetailView):  # type: ignore[type-arg]
             context["folios"] = folios
             # the options for the feast selector on the right, only chant sources have this
             context["feasts_with_folios"] = get_feast_selector_options(source)
+            context["bower_segment"] = False
 
         context["user_can_edit_chants"] = user_can_edit_chants_in_source(user, source)
         context["user_can_edit_source"] = user_can_edit_source(user, source)
@@ -339,8 +347,8 @@ class SourceListView(ListView):
     def get_queryset(self) -> QuerySet[Source]:
         # use select_related() for foreign keys to reduce DB queries
         queryset = Source.objects.select_related(
-            "segment", "provenance", "holding_institution"
-        )
+            "provenance", "holding_institution"
+        ).prefetch_related("segment_m2m")
 
         if self.request.user.is_authenticated:
             q_obj_filter = Q()
@@ -554,17 +562,17 @@ class SourceDeleteView(LoginRequiredMixin, UserPassesTestMixin, DeleteView):
         return "/"
 
 
-class SourceEditView(LoginRequiredMixin, UserPassesTestMixin, UpdateView):
+class SourceEditView(LoginRequiredMixin, UserPassesTestMixin, UpdateView):  # type: ignore[type-arg]
     template_name = "source_edit.html"
     model = Source
     form_class = SourceEditForm
     pk_url_kwarg = "source_id"
 
-    def get_context_data(self, **kwargs):
+    def get_context_data(self, **kwargs: Any) -> Dict[str, Any]:
         source = self.object
         context = super().get_context_data(**kwargs)
 
-        if source.segment and source.segment.id == BOWER_SEGMENT_ID:
+        if BOWER_SEGMENT_ID in source.segment_m2m.values_list("id", flat=True):
             # if this is a sequence source
             context["sequences"] = source.sequence_set.order_by("s_sequence")
             context["folios"] = (
@@ -572,6 +580,7 @@ class SourceEditView(LoginRequiredMixin, UserPassesTestMixin, UpdateView):
                 .distinct()
                 .order_by("folio")
             )
+            context["bower_segment"] = True
         else:
             # if this is a chant source
             folios = (
@@ -582,6 +591,7 @@ class SourceEditView(LoginRequiredMixin, UserPassesTestMixin, UpdateView):
             context["folios"] = folios
             # the options for the feast selector on the right, only chant sources have this
             context["feasts_with_folios"] = get_feast_selector_options(source)
+            context["bower_segment"] = False
         return context
 
     def test_func(self):
@@ -627,7 +637,7 @@ class SourceInventoryView(TemplateView):
             raise PermissionDenied
 
         # 4064 is the id for the sequence database
-        if source.segment.id == BOWER_SEGMENT_ID:
+        if BOWER_SEGMENT_ID in source.segment_m2m.values_list("id", flat=True):
             queryset = (
                 source.sequence_set.annotate(record_type=Value("sequence"))
                 .order_by("s_sequence")

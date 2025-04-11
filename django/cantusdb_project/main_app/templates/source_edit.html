@@ -218,22 +218,22 @@
             <h4>{{ source.short_heading }}</h4>
         </div>
         <div class="card-body small">
-            <!--a small selector of all folios of this source-->
-            <select id="folioSelect" class="w-30" onchange="jumpToFolio({{ source.id }})">
-                <option value="">Select a folio:</option>
-                {% for folio in folios %}<option value="{{ folio }}">{{ folio }}</option>{% endfor %}
-            </select>
-            <select id="feastSelect"
-                    onchange="jumpToFeast({{ source.id }})"
-                    style="width: 200px">
-                <!-- style attribute prevents select element from extending beyond left edge of div element -->
-                <option value="">Select a feast:</option>
-                {% for feast_id, feast_name, folio_range in feasts_with_folios %}
-                    <option value="{{ feast_id }}">{{ feast_name }} ({{ folio_range }})</option>
-                {% endfor %}
-            </select>
-            <br />
-            {% if source.segment.id == 4063 %}
+            {% if not bower_segment %}
+                <!--a small selector of all folios of this source-->
+                <select id="folioSelect" class="w-30" onchange="jumpToFolio({{ source.id }})">
+                    <option value="">Select a folio:</option>
+                    {% for folio in folios %}<option value="{{ folio }}">{{ folio }}</option>{% endfor %}
+                </select>
+                <select id="feastSelect"
+                        onchange="jumpToFeast({{ source.id }})"
+                        style="width: 200px">
+                    <!-- style attribute prevents select element from extending beyond left edge of div element -->
+                    <option value="">Select a feast:</option>
+                    {% for feast_id, feast_name, folio_range in feasts_with_folios %}
+                        <option value="{{ feast_id }}">{{ feast_name }} ({{ folio_range }})</option>
+                    {% endfor %}
+                </select>
+                <br />
                 {# only display this link for sources in the CANTUS segment #}
                 <a href="{% url "browse-chants" source.id %}"
                    class="guillemet"
