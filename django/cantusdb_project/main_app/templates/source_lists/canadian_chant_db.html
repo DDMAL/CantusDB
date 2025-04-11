@@ -203,7 +203,8 @@
                                     <tr>
                                         <td class="text-wrap" style="text-align:center">
                                             {% if source.holding_institution %}
-                                                <a href="{% url 'institution-detail' source.holding_institution.id %}">
+                                                <a href="{% url 'institution-detail' source.holding_institution.id %}"
+                                                   target="_blank">
                                                     <b>
                                                         {% if source.holding_institution.city %}
                                                             {{ source.holding_institution.city }},
@@ -233,11 +234,12 @@
                                         </td>
                                         <td class="text-wrap" style="text-align:center">
                                             {% if source.century %}
-                                                {% join_absolute_url_links source.century.all 'name' '/' %}
+                                                {% join_absolute_url_links source.century.all 'name' '/' True %}
                                                 <br />
                                             {% endif %}
                                             {% if source.provenance %}
-                                                <a href="{% url 'provenance-detail' source.provenance.id %}">{{ source.provenance.name }}</a>
+                                                <a href="{% url 'provenance-detail' source.provenance.id %}"
+                                                   target="_blank">{{ source.provenance.name }}</a>
                                             {% endif %}
                                         </td>
                                         <td class="text-wrap" style="text-align:center">

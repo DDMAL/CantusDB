@@ -262,7 +262,7 @@ def sortable_header(
 
 @register.simple_tag(takes_context=False)
 def join_absolute_url_links(
-    objects: list[BaseModel], display_attr: str, sep: str
+    objects: list[BaseModel], display_attr: str, sep: str, newtab: bool = False
 ) -> SafeString:
     """
     Takes a series of objects and returns an html string of
@@ -274,8 +274,15 @@ def join_absolute_url_links(
     """
     return format_html_join(
         sep,
-        '<b><a href="{0}">{1}</a></b>',
-        ((obj.get_absolute_url(), getattr(obj, display_attr)) for obj in objects),
+        '<b><a href="{0}"{2}>{1}</a></b>',
+        (
+            (
+                obj.get_absolute_url(),
+                getattr(obj, display_attr),
+                ' target="_blank"' if newtab else "",
+            )
+            for obj in objects
+        ),
     )
 
 
