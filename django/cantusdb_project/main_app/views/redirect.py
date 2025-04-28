@@ -120,7 +120,8 @@ def redirect_genre(request) -> HttpResponse:
 
 def redirect_search(request: HttpRequest) -> HttpResponse:
     """
-    Redirects from search/ (à la OldCantus) to chant-search/ (à la NewCantus)
+    Redirects from search/ (à la OldCantus) to chant-search/ (à la NewCantus).
+    Keeps the query string parameters intact.
 
     Args:
         request
@@ -128,7 +129,10 @@ def redirect_search(request: HttpRequest) -> HttpResponse:
     Returns:
         HttpResponse
     """
-    return redirect("chant-search", permanent=True)
+    redirect_url = reverse("chant-search")
+    query_dict = request.GET.copy()
+    new_url = f"{redirect_url}?{query_dict.urlencode()}"
+    return redirect(new_url, permanent=True)
 
 
 def redirect_documents(request) -> HttpResponse:

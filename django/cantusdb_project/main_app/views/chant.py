@@ -1232,6 +1232,7 @@ class SourceEditChantsView(LoginRequiredMixin, UserPassesTestMixin, UpdateView):
             chant.manuscript_full_text_proofread = (
                 original_chant.manuscript_full_text_proofread
             )
+            chant.other_fields_proofread = original_chant.other_fields_proofread
             proofreaders: list[Optional[User]] = list(original_chant.proofread_by.all())
 
             # Handle proofreader checkboxes
@@ -1241,6 +1242,15 @@ class SourceEditChantsView(LoginRequiredMixin, UserPassesTestMixin, UpdateView):
                 chant.manuscript_full_text_std_proofread = False
             if "manuscript_full_text" in form.changed_data:
                 chant.manuscript_full_text_proofread = False
+
+            # Check if any other fields have changed
+            excluded_fields = {
+                "volpiano",
+                "manuscript_full_text_std_spelling",
+                "manuscript_full_text",
+            }
+            if any(field not in excluded_fields for field in form.changed_data):
+                chant.other_fields_proofread = False
 
         chant.last_updated_by = user
         return_response: HttpResponse = super().form_valid(form)

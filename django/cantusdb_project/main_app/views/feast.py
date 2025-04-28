@@ -54,7 +54,7 @@ ORDER BY ccount desc;"""
 # institution siglum and name, and count of the number of chants in that source
 # that match a given feast.
 feast_source_query: str = """SELECT DISTINCT ss.id AS source_id, ss.shelfmark, 
-                COALESCE(hs.siglum, 'Private') as siglum, 
+                COALESCE(hs.siglum, 'Cantus') as siglum, 
                 hs.name AS institution_name, 
                 (SELECT COUNT(cs2.id) 
                  FROM main_app_chant AS cs2 

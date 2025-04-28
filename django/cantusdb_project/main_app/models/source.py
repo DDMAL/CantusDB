@@ -1,6 +1,9 @@
+from typing import Any
+
 from django.db import models
-from main_app.models import BaseModel, Segment
 from django.contrib.auth import get_user_model
+
+from main_app.models import BaseModel, Segment
 
 
 class Source(BaseModel):
@@ -177,7 +180,7 @@ class Source(BaseModel):
     number_of_chants = models.IntegerField(blank=True, null=True)
     number_of_melodies = models.IntegerField(blank=True, null=True)
 
-    def __str__(self):
+    def __str__(self) -> str:
         return self.heading
 
     @property

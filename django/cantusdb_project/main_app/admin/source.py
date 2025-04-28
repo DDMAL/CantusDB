@@ -3,7 +3,7 @@ from django.contrib.auth import get_user_model
 from django.db.models import Q
 from main_app.admin.base_admin import EXCLUDE, READ_ONLY, BaseModelAdmin
 from main_app.admin.filters import InputFilter
-from main_app.models import Source, SourceIdentifier
+from main_app.models import Source, SourceIdentifier, SourceURL
 
 
 class SourceKeyFilter(InputFilter):
@@ -25,11 +25,17 @@ class IdentifiersInline(admin.TabularInline):
         )
 
 
+class SourceLinksInline(admin.TabularInline):
+    model = SourceURL
+    exclude = ["created_by", "last_updated_by"]
+    extra = 0
+
+
 @admin.register(Source)
 class SourceAdmin(BaseModelAdmin):
     exclude = EXCLUDE + ("source_status",)
     autocomplete_fields = ("holding_institution", "provenance")
-    inlines = (IdentifiersInline,)
+    inlines = (IdentifiersInline, SourceLinksInline)
 
     # These search fields are also available on the user-source inline relationship in the user admin page
     search_fields = (
