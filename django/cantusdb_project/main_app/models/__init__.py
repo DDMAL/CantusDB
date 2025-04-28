@@ -15,3 +15,25 @@ from main_app.models.institution import Institution
 from main_app.models.institution_identifier import InstitutionIdentifier
 from main_app.models.project import Project
 from main_app.models.source_url import SourceURL
+
+
+__all__ = [
+    "BaseModel",
+    "Century",
+    "Chant",
+    "Differentia",
+    "Feast",
+    "Genre",
+    "Notation",
+    "Service",
+    "Provenance",
+    "Segment",
+    "Sequence",
+    "Source",
+    "SourceIdentifier",
+    "Institution",
+    "InstitutionIdentifier",
+    "Project",
+    "SourceURL",
+]
+

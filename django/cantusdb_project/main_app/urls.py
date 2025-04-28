@@ -457,7 +457,7 @@ urlpatterns = [
         name="items-count",
     ),
     path(
-        "source/<str:source_id>/csv/",
+        "source/<int:source_id>/csv/",
         csv_export,
         name="csv-export",
     ),

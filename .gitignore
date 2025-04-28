@@ -99,6 +99,7 @@ django/media/
 
 # MyPy
 .mypy_cache
+mypy.ini
 
 # Virtual environments
 .env
@@ -123,3 +124,6 @@ django/cantusdb_project/Drupal_scripts
 
 # cached files for APIs
 api_cache/
+
+
+.python-version

@@ -1,6 +1,9 @@
+from typing import Any
+
 from django.db import models
-from main_app.models import BaseModel, Segment
 from django.contrib.auth import get_user_model
+
+from main_app.models import BaseModel, Segment
 
 
 class Source(BaseModel):
@@ -177,10 +180,10 @@ class Source(BaseModel):
     number_of_chants = models.IntegerField(blank=True, null=True)
     number_of_melodies = models.IntegerField(blank=True, null=True)
 
-    def __str__(self):
+    def __str__(self) -> str:
         return self.heading
 
-    def save(self, *args, **kwargs):
+    def save(self, *args: Any, **kwargs: Any) -> None:
         # when creating a source, assign it to "CANTUS Database" segment by default
         if not self.segment:
             cantus_db_segment = Segment.objects.get(name="CANTUS Database")
