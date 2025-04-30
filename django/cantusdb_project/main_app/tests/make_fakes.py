@@ -453,10 +453,11 @@ def make_fake_source(**kwargs: Any) -> Source:
 
     if "segment" not in kwargs:
         if "segment_name" in kwargs:
-            kwargs["segment"] = make_fake_segment(name=kwargs["segment_name"])
+            kwargs["segment"] = [make_fake_segment(name=kwargs["segment_name"])]
             kwargs.pop("segment_name")
         else:
-            kwargs["segment"] = make_fake_segment()
+            kwargs["segment"] = [make_fake_segment()]
+    segments = kwargs.pop("segment")
     kwargs["holding_institution"] = kwargs.get(
         "holding_institution", make_fake_institution()
     )
@@ -500,7 +501,7 @@ def make_fake_source(**kwargs: Any) -> Source:
     source.melodies_entered_by.set([make_fake_user()])
     source.proofreaders.set([make_fake_user()])
     source.other_editors.set([make_fake_user()])
-    source.segment_m2m.set([kwargs["segment"]])
+    source.segment_m2m.set(segments)
 
     return source
 

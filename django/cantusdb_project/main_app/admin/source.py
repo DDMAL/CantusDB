@@ -82,7 +82,7 @@ class SourceAdmin(BaseModelAdmin):
     list_filter = (
         SourceKeyFilter,
         "full_source",
-        "segment",
+        "segment_m2m",
         "source_status",
         "published",
         "century",

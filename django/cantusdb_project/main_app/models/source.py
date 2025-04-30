@@ -183,13 +183,6 @@ class Source(BaseModel):
     def __str__(self) -> str:
         return self.heading
 
-    def save(self, *args: Any, **kwargs: Any) -> None:
-        # when creating a source, assign it to "CANTUS Database" segment by default
-        if not self.segment:
-            cantus_db_segment = Segment.objects.get(name="CANTUS Database")
-            self.segment = cantus_db_segment
-        super().save(*args, **kwargs)
-
     @property
     def heading(self) -> str:
         title = []
