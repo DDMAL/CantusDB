@@ -18,15 +18,7 @@ services:
     restart: always
     depends_on:
       - postgres
-    command:
-      [
-        "gunicorn",
-        "--bind",
-        ":8000",
-        "cantusdb.wsgi:application",
-        "--workers",
-        "5"
-      ]
+    command: [ "gunicorn", "--bind", ":8000", "cantusdb.wsgi:application", "--workers", "5" ]
 
   nginx:
     build:
@@ -56,6 +48,22 @@ services:
       - postgres_data:/var/lib/postgresql/data/
     restart: always
     command: postgres -c 'config_file=/etc/postgresql/postgresql.conf'
+
+  redis:
+    build:
+      context: ./redis
+    container_name: cantusdb-redis-1
+    restart: always
+    ports:
+      - 6379:6379
+
+  celery-worker:
+    image: cdb-django
+    container_name: cantusdb-celery-worker-1
+    env_file: ./config/envs/dev_env
+    volumes:
+      - ./django/cantusdb_project:/code/cantusdb_project
+    command: [ "celery", "-A", "cantusdb", "worker" ]
 
 volumes:
   postgres_data:
