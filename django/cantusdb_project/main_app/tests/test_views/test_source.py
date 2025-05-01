@@ -714,87 +714,21 @@ class SourceBrowseChantsViewTest(TestCase):
         self.assertEqual(response.status_code, 400)
         self.assertTemplateUsed(response, "400.html")
 
-    # See #1786: Temporarily turning off the bulk edit functionality
-    # until we can get it working.
-    # def test_post_request_forbidden(self) -> None:
-    #     """
-    #     Ensure that a POST request is forbidden for
-    #     unauthenticated users and users that are not
-    #     allowed to edit chants in a source.
-    #     """
-    #     cantus_segment = make_fake_segment(id=4063)
-    #     source = make_fake_source(segment=cantus_segment)
-    #     user = get_user_model().objects.create(email="test@test.com")
-    #     user.groups.add(self.contrib_group)
-    #     response = self.client.post(reverse("browse-chants", args=[source.id]))
-    #     self.assertEqual(response.status_code, 302)
-    #     self.client.force_login(user)
-    #     response = self.client.post(reverse("browse-chants", args=[source.id]))
-    #     self.assertEqual(response.status_code, 403)
-
-    # def test_bulk_chant_edit_integration(self) -> None:
-    #     """
-    #     Tests integration of BrowseChantsBulkEditFormset and
-    #     the browse chants view. In particular, checks that:
-    #     - bad/incomplete request data leads to errors in the formset
-    #     - good request data leads to changes in the relevant chants (checked
-    #         by the presence of changes in the response context)
-    #     """
-    #     cantus_segment = make_fake_segment(id=4063)
-    #     source = make_fake_source(segment=cantus_segment)
-    #     user = get_user_model().objects.create(email="test@test.com")
-    #     user.groups.add(self.contrib_group)
-    #     source.current_editors.add(user)
-    #     self.client.force_login(user)
-    #     chant_1 = make_fake_chant(source=source)
-    #     make_fake_chant(source=source)
-    #     formset = BrowseChantsBulkEditFormset(
-    #         queryset=Chant.objects.filter(source=source),
-    #     )
-    #     # Collect the initial formset data
-    #     management_form_data = {
-    #         f"chant_set-{key}": str(value)
-    #         for key, value in formset.management_form.initial.items()
-    #     }
-    #     chant_1_form_data = {
-    #         f"chant_set-0-{key}": value
-    #         for key, value in formset.forms[0].initial.items()
-    #     }
-    #     chant_2_form_data = {
-    #         f"chant_set-1-{key}": value
-    #         for key, value in formset.forms[1].initial.items()
-    #     }
-    #     complete_form_data = management_form_data.copy()
-    #     complete_form_data.update(chant_1_form_data)
-    #     complete_form_data.update(chant_2_form_data)
-    #     with self.subTest("Incomplete request data"):
-    #         bad_form_data = management_form_data.copy()
-    #         bad_form_data.update(chant_1_form_data)
-    #         response = self.client.post(
-    #             reverse("browse-chants", args=[source.id]), bad_form_data
-    #         )
-    #         self.assertEqual(response.status_code, 200)
-    #         self.assertIsNotNone(response.context["bulk_edit_formset"].errors)
-    #     with self.subTest("Bad request data: empty field"):
-    #         bad_form_data = complete_form_data.copy()
-    #         bad_form_data["chant_set-0-folio"] = ""
-    #         response = self.client.post(
-    #             reverse("browse-chants", args=[source.id]), bad_form_data
-    #         )
-    #         self.assertEqual(response.status_code, 200)
-    #         self.assertIsNotNone(response.context["bulk_edit_formset"].errors)
-    #         old_folio = chant_1.folio
-    #         chant_1.refresh_from_db()
-    #         self.assertEqual(old_folio, chant_1.folio)
-    #     with self.subTest("Good request data"):
-    #         good_form_data = complete_form_data.copy()
-    #         good_form_data["chant_set-0-mode"] = "0"
-    #         response = self.client.post(
-    #             reverse("browse-chants", args=[source.id]), good_form_data
-    #         )
-    #         self.assertEqual(response.status_code, 200)
-    #         chant_1.refresh_from_db()
-    #         self.assertEqual(chant_1.mode, "0")
+    def test_post_request_forbidden(self) -> None:
+        """
+        Ensure that a POST request is forbidden for
+        unauthenticated users and users that are not
+        allowed to edit chants in a source.
+        """
+        cantus_segment = make_fake_segment(id=4063)
+        source = make_fake_source(segment=cantus_segment)
+        user = get_user_model().objects.create(email="test@test.com")
+        user.groups.add(self.contrib_group)
+        response = self.client.post(reverse("browse-chants", args=[source.id]))
+        self.assertEqual(response.status_code, 302)
+        self.client.force_login(user)
+        response = self.client.post(reverse("browse-chants", args=[source.id]))
+        self.assertEqual(response.status_code, 403)
 
 
 class SourceListViewTest(TestCase):

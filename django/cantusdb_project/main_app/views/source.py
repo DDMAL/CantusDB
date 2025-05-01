@@ -7,7 +7,13 @@ from django.contrib.auth.mixins import UserPassesTestMixin
 from django.core.exceptions import PermissionDenied
 from django.db.models import Q, Prefetch, Value
 from django.db.models import QuerySet
-from django.http import HttpResponseRedirect, Http404, HttpResponse, HttpRequest
+from django.http import (
+    HttpResponseRedirect,
+    Http404,
+    HttpResponse,
+    HttpRequest,
+    JsonResponse,
+)
 from django.shortcuts import get_object_or_404
 from django.urls import reverse
 from django.views.generic import (
@@ -48,6 +54,7 @@ from main_app.permissions import (
 from main_app.mixins import JSONResponseMixin
 
 from main_app.views.chant import get_feast_selector_options
+from main_app.tasks import save_browse_chants_formset
 
 CANTUS_SEGMENT_ID = 4063
 BOWER_SEGMENT_ID = 4064
@@ -75,11 +82,9 @@ class SourceBrowseChantsView(UserPassesTestMixin, ListView):  # type: ignore[typ
     template_name = "browse_chants.html"
     pk_url_kwarg = "source_id"
     source: Source
-    # See #1786: Temporarily turning off the bulk edit functionality
-    # until we can get it working.
-    # extra_context = {
-    #     "bulk_edit_formset": None,
-    # }
+    extra_context = {
+        "bulk_edit_formset": None,
+    }
 
     def test_func(self) -> bool:
         """
@@ -225,28 +230,19 @@ class SourceBrowseChantsView(UserPassesTestMixin, ListView):  # type: ignore[typ
         context["proofread_filter_form"] = SourceBrowseChantsProofreadForm(
             self.request.GET or None
         )
-        # See #1786: Temporarily turning off the bulk edit functionality
-        # until we can get it working.
-        # if not self.extra_context.get("bulk_edit_formset"):
-        #     context["bulk_edit_formset"] = BrowseChantsBulkEditFormset(
-        #         queryset=context["object_list"]
-        #     )
+        if not self.extra_context.get("bulk_edit_formset"):
+            context["bulk_edit_formset"] = BrowseChantsBulkEditFormset(
+                queryset=context["object_list"]
+            )
         return context
 
-    # See #1786: Temporarily turning off the bulk edit functionality
-    # until we can get it working.
-    # def post(self, request: HttpRequest, *args: Any, **kwargs: Any) -> HttpResponse:
-    #     formset = BrowseChantsBulkEditFormset(
-    #         request.POST, queryset=self.get_queryset()
-    #     )
-    #     if formset.is_valid():
-    #         formset.save()
-    #         messages.success(request, "Chants updated successfully!")
-    #     else:
-    #         self.extra_context = {
-    #             "bulk_edit_formset": formset,
-    #         }
-    #     return self.get(request, *args, **kwargs)
+    def post(self, request: HttpRequest, *args: Any, **kwargs: Any) -> HttpResponse:
+        chant_ids = list(self.get_queryset().values_list("id", flat=True))
+        task = save_browse_chants_formset.delay(
+            data=request.POST,
+            chant_ids=chant_ids,
+        )
+        return JsonResponse({"taskID": task.id})
 
 
 class SourceDetailView(JSONResponseMixin, DetailView):  # type: ignore[type-arg]

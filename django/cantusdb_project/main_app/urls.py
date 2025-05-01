@@ -22,6 +22,7 @@ from main_app.views.api import (
     articles_list_export,
     flatpages_list_export,
     cid_concordances,
+    get_task_status,
 )
 from main_app.views.institution import InstitutionListView, InstitutionDetailView
 from main_app.views.redirect import (
@@ -183,6 +184,7 @@ urlpatterns = [
         ),
         name="reset_password_complete",
     ),
+    path("task-status", get_task_status, name="get-task-status"),
     # century
     path("century/<int:pk>", CenturyDetailView.as_view(), name="century-detail"),
     # chant
