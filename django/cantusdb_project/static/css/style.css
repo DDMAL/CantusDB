@@ -8,6 +8,7 @@ body {
 	background-color: white;
 	padding: 20px;
 	font-family: "Segoe UI", Roboto, "Helvetica Neue", Arial, "Noto Sans", "Liberation Sans", sans-serif;
+	text-align: center;
 }
 
 .error-page h1 {
@@ -26,6 +27,7 @@ html {
 
 .error-page-container {
 	margin-bottom: 10em;
+	margin-top: 3em;
 }
 
 .copyright-footer {

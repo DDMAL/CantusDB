@@ -1,6 +1,6 @@
 from django.views.generic import DetailView, ListView
 from django.db.models import QuerySet
-from main_app.models import Genre  # type: ignore[attr-defined]
+from main_app.models import Genre
 from main_app.mixins import JSONResponseMixin
 
 

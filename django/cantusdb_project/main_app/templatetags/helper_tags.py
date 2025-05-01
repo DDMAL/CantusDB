@@ -78,21 +78,21 @@ def url_add_get_params(context: dict[str, Any], **kwargs: str) -> str:
 def source_links() -> SafeString:
     """
     Generates a series of html option tags linking to sources in
-    Cantus Dabase, for display on the homepage
+    Cantus Database, for display on the homepage
 
     Used in:
         templates/flatpages/default.html
     """
     sources = (
-        Source.objects.filter(published=True, segment__id=4063)
-        .exclude(siglum=None)
-        .values("siglum", "id")
-        .order_by("siglum")
+        Source.objects.filter(published=True, segment_m2m__id=4063)
+        .select_related("holding_institution")
+        .order_by("holding_institution__siglum", "shelfmark")
+        .iterator()
     )
     options = format_html_join(
         sep="\n",
         format_string="<option value=source/{0}>{1}</option>",
-        args_generator=((source["id"], source["siglum"]) for source in sources),
+        args_generator=((source.id, source.short_heading) for source in sources),
     )
 
     return options
@@ -262,7 +262,7 @@ def sortable_header(
 
 @register.simple_tag(takes_context=False)
 def join_absolute_url_links(
-    objects: list[BaseModel], display_attr: str, sep: str
+    objects: list[BaseModel], display_attr: str, sep: str, newtab: bool = False
 ) -> SafeString:
     """
     Takes a series of objects and returns an html string of
@@ -274,8 +274,15 @@ def join_absolute_url_links(
     """
     return format_html_join(
         sep,
-        '<b><a href="{0}">{1}</a></b>',
-        ((obj.get_absolute_url(), getattr(obj, display_attr)) for obj in objects),
+        '<b><a href="{0}"{2}>{1}</a></b>',
+        (
+            (
+                obj.get_absolute_url(),
+                getattr(obj, display_attr),
+                ' target="_blank"' if newtab else "",
+            )
+            for obj in objects
+        ),
     )
 
 

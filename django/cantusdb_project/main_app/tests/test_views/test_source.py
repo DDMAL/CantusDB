@@ -151,7 +151,7 @@ class SourceDetailViewTest(TestCase):
         # create a sequence source and several sequences in it
         bower_segment = make_fake_segment(id=4064, name="Bower Sequence Database")
         source = make_fake_source(
-            shelfmark="a sequence source", published=True, segment=bower_segment
+            shelfmark="a sequence source", published=True, segment=[bower_segment]
         )
         make_fake_sequence(source=source, folio="001r")
         make_fake_sequence(source=source, folio="001r")
@@ -170,7 +170,7 @@ class SourceDetailViewTest(TestCase):
     def test_context_sequences(self) -> None:
         # create a sequence source and several sequences in it
         source = make_fake_source(
-            segment=make_fake_segment(id=4064, name="Bower Sequence Database"),
+            segment=[make_fake_segment(id=4064, name="Bower Sequence Database")],
             shelfmark="a sequence source",
             published=True,
         )
@@ -194,7 +194,7 @@ class SourceDetailViewTest(TestCase):
 
     def test_chant_list_link(self) -> None:
         cantus_segment = make_fake_segment(id=4063)
-        cantus_source = make_fake_source(segment=cantus_segment)
+        cantus_source = make_fake_source(segment=[cantus_segment])
         chant_list_link = reverse("browse-chants", args=[cantus_source.id])
 
         cantus_source_response = self.client.get(
@@ -204,7 +204,7 @@ class SourceDetailViewTest(TestCase):
         self.assertIn(chant_list_link, cantus_source_html)
 
         bower_segment = make_fake_segment(id=4064)
-        bower_source = make_fake_source(segment=bower_segment)
+        bower_source = make_fake_source(segment=[bower_segment])
         bower_chant_list_link = reverse("browse-chants", args=[bower_source.id])
         bower_source_response = self.client.get(
             reverse("source-detail", args=[bower_source.id])
@@ -255,7 +255,7 @@ class SourceInventoryViewTest(HTMLContentsTestMixin, TestCase):
 
     def test_sequence_source_queryset(self):
         seq_source = make_fake_source(
-            segment=make_fake_segment(id=4064, name="Clavis Sequentiarium"),
+            segment=[make_fake_segment(id=4064, name="Clavis Sequentiarium")],
             shelfmark="a sequence source",
             published=True,
         )
@@ -304,7 +304,7 @@ class SourceInventoryViewTest(HTMLContentsTestMixin, TestCase):
 
     def test_sequence_column_for_sequence_source(self):
         bower_segment = make_fake_segment(id=4064, name="Bower Sequence Database")
-        source = make_fake_source(published=True, segment=bower_segment)
+        source = make_fake_source(published=True, segment=[bower_segment])
         sequence = make_fake_sequence(source=source)
         s_sequence = sequence.s_sequence
         response = self.client.get(reverse("source-inventory", args=[source.id]))
@@ -379,7 +379,7 @@ class SourceInventoryViewTest(HTMLContentsTestMixin, TestCase):
 
     def test_incipit_column_for_sequence_source(self):
         bower_segment = make_fake_segment(id=4064, name="Bower Sequence Database")
-        source = make_fake_source(published=True, segment=bower_segment)
+        source = make_fake_source(published=True, segment=[bower_segment])
         sequence = make_fake_sequence(source=source)
         incipit = sequence.incipit
         url = reverse("sequence-detail", args=[sequence.id])
@@ -450,7 +450,7 @@ class SourceInventoryViewTest(HTMLContentsTestMixin, TestCase):
 
     def test_redirect_with_source_parameter(self):
         cantus_segment = make_fake_segment(id=4063)
-        source = make_fake_source(segment=cantus_segment)
+        source = make_fake_source(segment=[cantus_segment])
         source_id = source.id
 
         url = reverse("redirect-source-inventory")
@@ -476,7 +476,7 @@ class SourceBrowseChantsViewTest(TestCase):
 
     def test_url_and_templates(self):
         cantus_segment = make_fake_segment(id=4063)
-        source = make_fake_source(segment=cantus_segment)
+        source = make_fake_source(segment=[cantus_segment])
         response = self.client.get(reverse("browse-chants", args=[source.id]))
         self.assertEqual(response.status_code, 200)
         self.assertTemplateUsed(response, "base.html")
@@ -485,13 +485,13 @@ class SourceBrowseChantsViewTest(TestCase):
     def test_published_vs_unpublished(self):
         cantus_segment = make_fake_segment(id=4063)
 
-        published_source = make_fake_source(segment=cantus_segment, published=True)
+        published_source = make_fake_source(segment=[cantus_segment], published=True)
         response_1 = self.client.get(
             reverse("browse-chants", args=[published_source.id])
         )
         self.assertEqual(response_1.status_code, 200)
 
-        unpublished_source = make_fake_source(segment=cantus_segment, published=False)
+        unpublished_source = make_fake_source(segment=[cantus_segment], published=False)
         response_2 = self.client.get(
             reverse("browse-chants", args=[unpublished_source.id])
         )
@@ -500,7 +500,7 @@ class SourceBrowseChantsViewTest(TestCase):
 
     def test_visibility_by_segment(self):
         cantus_segment = make_fake_segment(id=4063)
-        cantus_source = make_fake_source(segment=cantus_segment, published=True)
+        cantus_source = make_fake_source(segment=[cantus_segment], published=True)
         response_1 = self.client.get(reverse("browse-chants", args=[cantus_source.id]))
         self.assertEqual(response_1.status_code, 200)
 
@@ -508,14 +508,14 @@ class SourceBrowseChantsViewTest(TestCase):
         # for sources in the CANTUS Database segment, as sources in the Bower
         # segment contain no chants
         bower_segment = make_fake_segment(id=4064)
-        bower_source = make_fake_source(segment=bower_segment, published=True)
+        bower_source = make_fake_source(segment=[bower_segment], published=True)
         response_1 = self.client.get(reverse("browse-chants", args=[bower_source.id]))
         self.assertEqual(response_1.status_code, 404)
 
     def test_filter_by_source(self):
         cantus_segment = make_fake_segment(id=4063)
-        source = make_fake_source(segment=cantus_segment)
-        another_source = make_fake_source(segment=cantus_segment)
+        source = make_fake_source(segment=[cantus_segment])
+        another_source = make_fake_source(segment=[cantus_segment])
         chant_in_source = make_fake_chant(source=source)
         chant_in_another_source = make_fake_chant(source=another_source)
         response = self.client.get(reverse("browse-chants", args=[source.id]))
@@ -525,7 +525,7 @@ class SourceBrowseChantsViewTest(TestCase):
 
     def test_filter_by_feast(self):
         cantus_segment = make_fake_segment(id=4063)
-        source = make_fake_source(segment=cantus_segment)
+        source = make_fake_source(segment=[cantus_segment])
         feast = make_fake_feast()
         another_feast = make_fake_feast()
         chant_in_feast = make_fake_chant(source=source, feast=feast)
@@ -539,7 +539,7 @@ class SourceBrowseChantsViewTest(TestCase):
 
     def test_filter_by_genre(self):
         cantus_segment = make_fake_segment(id=4063)
-        source = make_fake_source(segment=cantus_segment)
+        source = make_fake_source(segment=[cantus_segment])
         genre = make_fake_genre()
         another_genre = make_fake_genre()
         chant_in_genre = make_fake_chant(source=source, genre=genre)
@@ -553,7 +553,7 @@ class SourceBrowseChantsViewTest(TestCase):
 
     def test_filter_by_folio(self):
         cantus_segment = make_fake_segment(id=4063)
-        source = make_fake_source(segment=cantus_segment)
+        source = make_fake_source(segment=[cantus_segment])
         chant_on_folio = make_fake_chant(source=source, folio="001r")
         chant_on_another_folio = make_fake_chant(source=source, folio="002r")
         response = self.client.get(
@@ -565,7 +565,7 @@ class SourceBrowseChantsViewTest(TestCase):
 
     def test_search_full_text(self):
         cantus_segment = make_fake_segment(id=4063)
-        source = make_fake_source(segment=cantus_segment)
+        source = make_fake_source(segment=[cantus_segment])
         chant = make_fake_chant(source=source, manuscript_full_text=faker.sentence())
         search_term = get_random_search_term(chant.manuscript_full_text)
         response = self.client.get(
@@ -575,7 +575,7 @@ class SourceBrowseChantsViewTest(TestCase):
 
     def test_search_incipit(self):
         cantus_segment = make_fake_segment(id=4063)
-        source = make_fake_source(segment=cantus_segment)
+        source = make_fake_source(segment=[cantus_segment])
         chant = make_fake_chant(
             source=source,
             manuscript_full_text_std_spelling=faker.sentence(),
@@ -588,7 +588,7 @@ class SourceBrowseChantsViewTest(TestCase):
 
     def test_search_full_text_std_spelling(self):
         cantus_segment = make_fake_segment(id=4063)
-        source = make_fake_source(segment=cantus_segment)
+        source = make_fake_source(segment=[cantus_segment])
         chant = make_fake_chant(
             source=source,
             manuscript_full_text_std_spelling=faker.sentence(),
@@ -601,7 +601,7 @@ class SourceBrowseChantsViewTest(TestCase):
 
     def test_search_proofread(self):
         cantus_segment = make_fake_segment(id=4063)
-        source = make_fake_source(segment=cantus_segment)
+        source = make_fake_source(segment=[cantus_segment])
         chant_std_proofread = make_fake_chant(
             source=source,
             manuscript_full_text_std_proofread=True,
@@ -677,13 +677,13 @@ class SourceBrowseChantsViewTest(TestCase):
 
     def test_context_source(self):
         cantus_segment = make_fake_segment(id=4063)
-        source = make_fake_source(segment=cantus_segment)
+        source = make_fake_source(segment=[cantus_segment])
         response = self.client.get(reverse("browse-chants", args=[source.id]))
         self.assertEqual(source, response.context["source"])
 
     def test_context_folios(self):
         cantus_segment = make_fake_segment(id=4063)
-        source = make_fake_source(segment=cantus_segment)
+        source = make_fake_source(segment=[cantus_segment])
         make_fake_chant(source=source, folio="001r")
         make_fake_chant(source=source, folio="001r")
         make_fake_chant(source=source, folio="001v")
@@ -697,7 +697,7 @@ class SourceBrowseChantsViewTest(TestCase):
 
     def test_redirect_with_source_parameter(self):
         cantus_segment = make_fake_segment(id=4063)
-        source = make_fake_source(segment=cantus_segment)
+        source = make_fake_source(segment=[cantus_segment])
         source_id = source.id
 
         url = reverse("redirect-chants")
@@ -836,10 +836,10 @@ class SourceListViewTest(TestCase):
         cantus_segment = make_fake_segment(name="cantus")
         clavis_segment = make_fake_segment(name="clavis")
         chant_source = make_fake_source(
-            segment=cantus_segment, shelfmark="chant source", published=True
+            segment=[cantus_segment], shelfmark="chant source", published=True
         )
         seq_source = make_fake_source(
-            segment=clavis_segment, shelfmark="sequence source", published=True
+            segment=[clavis_segment], shelfmark="sequence source", published=True
         )
 
         # display chant sources only

@@ -201,7 +201,7 @@
             <h4>{{ source.short_heading }}</h4>
         </div>
         <div class="card-body small">
-            {% if source.segment.id == 4063 %}
+            {% if not bower_segment %}
                 {# all of the following are different ways to link to the Chant List page #}
                 {# Since sources in the Bower segment contain no chants, the Chant List page #}
                 {# is currently set up to raise a 404 if you try to access it for a source in #}
@@ -253,9 +253,6 @@
     </div>
     <div class="card mb-3 w-100">
         <div class="card-header">
-            <a class="small"
-               href="{% url "source-list" %}?segment={{ source.segment.id }}">{{ source.segment.name }}</a>
-            <br />
             <b>{{ source.short_heading }}</b>
         </div>
         <div class="card-body small">

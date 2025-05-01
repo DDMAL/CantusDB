@@ -98,7 +98,7 @@ def csv_export(request, source_id):
         raise PermissionDenied
 
     # "4064" is the segment id of the sequence DB, sources in that segment have sequences instead of chants
-    if source.segment and source.segment.id == 4064:
+    if 4064 in source.segment_m2m.values_list("id", flat=True):
         entries = source.sequence_set.order_by("id")
     else:
         entries = source.chant_set.order_by("id").select_related(
@@ -397,7 +397,7 @@ def json_sources_export(request) -> JsonResponse:
     Generate a json object of published sources with their IDs and CSV links
     """
     cantus_segment = Segment.objects.get(id=4063)
-    sources = cantus_segment.source_set.filter(published=True)
+    sources = cantus_segment.sources.filter(published=True)
     ids = [source.id for source in sources]
 
     csv_links = {id: build_json_sources_export_dictionary(id, request) for id in ids}

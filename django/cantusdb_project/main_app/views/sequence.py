@@ -70,7 +70,10 @@ class SequenceListView(ListView):
             q_obj_filter &= Q(cantus_id__icontains=cantus_id)
 
         return queryset.filter(q_obj_filter).order_by(
-            "source__holding_institution__siglum", "s_sequence"
+            "source__holding_institution__siglum",
+            "source__shelfmark",
+            "folio",
+            "s_sequence",
         )
 
 

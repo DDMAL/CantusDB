@@ -41,7 +41,12 @@ class SequenceListViewTest(TestCase):
         sequences = response.context["sequences"]
         self.assertEqual(
             sequences.query.order_by,
-            ("source__holding_institution__siglum", "s_sequence"),
+            (
+                "source__holding_institution__siglum",
+                "source__shelfmark",
+                "folio",
+                "s_sequence",
+            ),
         )
 
     def test_search_incipit(self):

@@ -1,7 +1,6 @@
 from django.contrib import admin
 from django.urls import reverse
 from django.utils.safestring import mark_safe
-
 from main_app.admin.base_admin import BaseModelAdmin
 from main_app.models import Institution, InstitutionIdentifier, Source
 
@@ -42,7 +41,7 @@ class InstitutionAdmin(BaseModelAdmin):
         "alternate_names",
         "migrated_identifier",
     )
-    readonly_fields = ("migrated_identifier",)
+    readonly_fields = ("migrated_identifier", "created_by", "date_created", "date_updated", "last_updated_by")
     list_filter = ("is_private_collector", "is_private_collection", "city")
     inlines = (InstitutionIdentifierInline, InstitutionSourceInline)
     fieldsets = [
@@ -59,6 +58,10 @@ class InstitutionAdmin(BaseModelAdmin):
                     "private_notes",
                     "is_private_collection",
                     "migrated_identifier",
+                    "created_by",
+                    "date_created",
+                    "last_updated_by",
+                    "date_updated"
                 )
             },
         ),
