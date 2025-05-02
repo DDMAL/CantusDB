@@ -721,7 +721,7 @@ class SourceBrowseChantsViewTest(TestCase):
         allowed to edit chants in a source.
         """
         cantus_segment = make_fake_segment(id=4063)
-        source = make_fake_source(segment=cantus_segment)
+        source = make_fake_source(segment=[cantus_segment])
         user = get_user_model().objects.create(email="test@test.com")
         user.groups.add(self.contrib_group)
         response = self.client.post(reverse("browse-chants", args=[source.id]))
