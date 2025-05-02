@@ -58,7 +58,11 @@ services:
       - 6379:6379
 
   celery-worker:
-    image: cdb-django
+    build:
+      context: .
+      dockerfile: ./django/Dockerfile
+      args:
+        PROJECT_ENVIRONMENT: DEVELOPMENT
     container_name: cantusdb-celery-worker-1
     env_file: ./config/envs/dev_env
     volumes:
