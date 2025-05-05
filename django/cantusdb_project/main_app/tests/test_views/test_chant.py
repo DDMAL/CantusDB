@@ -1539,7 +1539,7 @@ class ChantSearchViewTest(TestCase):
         )
         html_1 = str(response_1.content)
         # if no ordering specified, all 9 links should include "&sort=asc"
-        self.assertEqual(html_1.count("&sort=asc"), 9)
+        self.assertEqual(html_1.count("&sort=asc"), 10)
 
         # test that all query parameters are present in all 9 links
         query_keys_and_values = {
@@ -1560,8 +1560,8 @@ class ChantSearchViewTest(TestCase):
         html_2 = str(response_2.content)
         for k, v in query_keys_and_values.items():
             expected_query_param = f"{k}={v}"
-            self.assertEqual(html_2.count(expected_query_param), 9)
-        self.assertEqual(html_2.count("sort=asc"), 9)
+            self.assertEqual(html_2.count(expected_query_param), 10)
+        self.assertEqual(html_2.count("sort=asc"), 10)
 
         # test links maintain search_bar
         response_3 = self.client.get(
@@ -1571,13 +1571,14 @@ class ChantSearchViewTest(TestCase):
             },
         )
         html_3 = str(response_3.content)
-        self.assertEqual(html_3.count(f"search_bar={search_term}"), 9)
+        self.assertEqual(html_3.count(f"search_bar={search_term}"), 10)
 
         # for each orderable column, check that 'asc' flips to 'desc', and vice versa
         orderings = (
             "siglum",
             "incipit",
             "service",
+            "feast",
             "genre",
             "cantus_id",
             "mode",
@@ -1604,7 +1605,7 @@ class ChantSearchViewTest(TestCase):
             # when no `sort=` is specified, all 9 columns should contain a `sort=asc` in
             # their column header link. Since an ascending sorting _is_ specified for one
             # of the columns, that column should have switched from `sort=asc` to `sort=desc`
-            self.assertEqual(html_asc.count("sort=asc"), 8)
+            self.assertEqual(html_asc.count("sort=asc"), 9)
             response_desc = self.client.get(
                 reverse("chant-search"),
                 {
