@@ -850,6 +850,39 @@ class ChantSearchViewTest(TestCase):
         last_result_incipit = descending_results[1].incipit
         self.assertEqual(last_result_incipit, chant_1.incipit)
 
+    def test_order_by_feast(self):
+        source = make_fake_source(published=True)
+        feast1 = make_fake_feast(name="A")
+        feast2 = make_fake_feast(name="B")
+        chant_1 = make_fake_chant(source=source, feast=feast1)
+        chant_2 = make_fake_chant(source=source, feast=feast2)
+
+        response_ascending = self.client.get(
+            reverse("chant-search"),
+            {
+                "order": "feast",
+                "sort": "asc",
+            },
+        )
+        ascending_results = response_ascending.context["chants"]
+        first_result_feast = ascending_results[0].feast
+        self.assertEqual(first_result_feast, chant_1.feast)
+        last_result_feast = ascending_results[1].feast
+        self.assertEqual(last_result_feast, chant_2.feast)
+
+        response_descending = self.client.get(
+            reverse("chant-search"),
+            {
+                "order": "feast",
+                "sort": "desc",
+            },
+        )
+        descending_results = response_descending.context["chants"]
+        first_result_feast = descending_results[0].feast
+        self.assertEqual(first_result_feast, chant_2.feast)
+        last_result_feast = descending_results[1].feast
+        self.assertEqual(last_result_feast, chant_1.feast)
+
     def test_order_by_incipit_global_search(self):
         source = make_fake_source(published=True)
         chant_1 = make_fake_chant(
