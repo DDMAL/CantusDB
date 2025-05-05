@@ -167,7 +167,20 @@
                             <a href="{{ url_with_search_params }}&order=incipit&sort=asc">Incipit/Full Text</a>
                         {% endif %}
                     </th>
-                    <th scope="col" class="text-wrap" style="text-align:center" title="Feast">Feast</th>
+                    <th scope="col" 
+                        class="text-wrap" 
+                        style="text-align:center" 
+                        title="Feast">
+                            {% if order == "feast" %}
+                            {% if sort == "desc" %}
+                                <a href="{{ url_with_search_params }}&order=feast&sort=asc">Feast</a> ▼
+                            {% else %}
+                                <a href="{{ url_with_search_params }}&order=feast&sort=desc">Feast</a> ▲
+                            {% endif %}
+                        {% else %}
+                            <a href="{{ url_with_search_params }}&order=feast&sort=asc">Feast</a>
+                        {% endif %}
+                    </th>
                     <th scope="col"
                         class="text-wrap"
                         style="text-align:center"

@@ -645,6 +645,7 @@ class ChantSearchView(ListView):
             "has_fulltext",
             "has_melody",
             "has_image",
+            "feast",
         )
         if order_get_param in order_param_options:
             if order_get_param == "has_fulltext":
