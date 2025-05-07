@@ -41,7 +41,13 @@ class InstitutionAdmin(BaseModelAdmin):
         "alternate_names",
         "migrated_identifier",
     )
-    readonly_fields = ("migrated_identifier", "created_by", "date_created", "date_updated", "last_updated_by")
+    readonly_fields = (
+        "migrated_identifier",
+        "created_by",
+        "date_created",
+        "date_updated",
+        "last_updated_by",
+    )
     list_filter = ("is_private_collector", "is_private_collection", "city")
     inlines = (InstitutionIdentifierInline, InstitutionSourceInline)
     fieldsets = [
@@ -61,7 +67,7 @@ class InstitutionAdmin(BaseModelAdmin):
                     "created_by",
                     "date_created",
                     "last_updated_by",
-                    "date_updated"
+                    "date_updated",
                 )
             },
         ),
