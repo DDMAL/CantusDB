@@ -3,7 +3,7 @@ name = "cantusdb"
 package-mode = false
 
 [tool.poetry.dependencies]
-python = "^3.9"
+python = ">=3.9,<3.10"
 Django = "4.2.16"
 django-autocomplete-light = "3.9.4"
 django-extra-views = "0.13.0"
