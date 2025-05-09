@@ -6,6 +6,7 @@ from unittest.mock import patch
 from unittest import skip
 import random
 from typing import ClassVar
+import urllib.parse
 
 from django.test import TestCase, Client
 from django.urls import reverse
@@ -923,9 +924,9 @@ class ChantSearchViewTest(TestCase):
 
     def test_order_by_service(self):
         # currently, service sort works by ID rather than by name
-        service_1 = make_fake_service()
-        service_2 = make_fake_service()
-        assert service_1.id < service_2.id
+        service_1 = make_fake_service(name="A")
+        service_2 = make_fake_service(name="B")
+
         chant_1 = make_fake_chant(
             service=service_1, manuscript_full_text_std_spelling="hocus"
         )
@@ -967,9 +968,8 @@ class ChantSearchViewTest(TestCase):
 
     def test_order_by_service_global_search(self):
         # currently, service sort works by ID rather than by name
-        service_1 = make_fake_service()
-        service_2 = make_fake_service()
-        assert service_1.id < service_2.id
+        service_1 = make_fake_service(name="A")
+        service_2 = make_fake_service(name="B")
         chant_1 = make_fake_chant(
             service=service_1, manuscript_full_text_std_spelling="fluffy"
         )
@@ -1008,9 +1008,8 @@ class ChantSearchViewTest(TestCase):
 
     def test_order_by_genre(self):
         # currently, genre sort works by ID rather than by name
-        genre_1 = make_fake_genre()
-        genre_2 = make_fake_genre()
-        assert genre_1.id < genre_2.id
+        genre_1 = make_fake_genre(name="A")
+        genre_2 = make_fake_genre(name="B")
         chant_1 = make_fake_chant(
             genre=genre_1, manuscript_full_text_std_spelling="hocus"
         )
@@ -1052,9 +1051,8 @@ class ChantSearchViewTest(TestCase):
 
     def test_order_by_genre_global_search(self):
         # currently, genre sort works by ID rather than by name
-        genre_1 = make_fake_genre()
-        genre_2 = make_fake_genre()
-        assert genre_1.id < genre_2.id
+        genre_1 = make_fake_genre(name="A")
+        genre_2 = make_fake_genre(name="B")
         chant_1 = make_fake_chant(
             genre=genre_1, manuscript_full_text_std_spelling="chuckle"
         )
@@ -1502,9 +1500,10 @@ class ChantSearchViewTest(TestCase):
         self.assertEqual(last_result_incipit, chant_1.incipit)
 
     def test_column_header_links(self):
-        # these are the 9 column headers users can order by:
+        # these are the 10 column headers users can order by:
         shelfmark = "glum-01"
         fulltext = "so it begins"
+        feast = make_fake_feast()
         service = make_fake_service()
         genre = make_fake_genre()
         cantus_id = make_random_string(6, "0123456789")
@@ -1515,7 +1514,6 @@ class ChantSearchViewTest(TestCase):
         source = make_fake_source(shelfmark=shelfmark, published=True)
 
         # additional properties for which there are search fields
-        feast = make_fake_feast()
         position = make_random_string(1)
         make_fake_chant(
             manuscript_full_text_std_spelling=fulltext,
@@ -1538,10 +1536,10 @@ class ChantSearchViewTest(TestCase):
             },
         )
         html_1 = str(response_1.content)
-        # if no ordering specified, all 9 links should include "&sort=asc"
+        # if no ordering specified, all 10 links should include "&sort=asc"
         self.assertEqual(html_1.count("&sort=asc"), 10)
 
-        # test that all query parameters are present in all 9 links
+        # test that all query parameters are present in all 10 links
         query_keys_and_values = {
             "op": "contains",
             "keyword": search_term,
@@ -1553,17 +1551,23 @@ class ChantSearchViewTest(TestCase):
             "position": position,
             "melodies": "true",
         }
+
         response_2 = self.client.get(
             reverse("chant-search"),
             query_keys_and_values,
         )
         html_2 = str(response_2.content)
-        for k, v in query_keys_and_values.items():
-            expected_query_param = f"{k}={v}"
-            self.assertEqual(html_2.count(expected_query_param), 10)
-        self.assertEqual(html_2.count("sort=asc"), 10)
 
-        # test links maintain search_bar
+        for k, v in query_keys_and_values.items():
+            # Generate URL-encoded parameter with + for spaces (how Django's urlencode works)
+            v_str = str(v)
+            encoded_param = urllib.parse.quote_plus(v_str)
+            expected_query_param = f"{k}={encoded_param}"
+
+            # Assert that it appears 10 times
+            self.assertEqual(html_2.count(expected_query_param), 10)
+
+        # Test search_bar in the same way
         response_3 = self.client.get(
             reverse("chant-search"),
             {
@@ -1571,7 +1575,13 @@ class ChantSearchViewTest(TestCase):
             },
         )
         html_3 = str(response_3.content)
-        self.assertEqual(html_3.count(f"search_bar={search_term}"), 10)
+
+        # Use quote_plus to encode with + for spaces
+        encoded_search_term = urllib.parse.quote_plus(search_term)
+        expected_search_param = f"search_bar={encoded_search_term}"
+
+        # Assert that it appears 10 times
+        self.assertEqual(html_3.count(expected_search_param), 10)
 
         # for each orderable column, check that 'asc' flips to 'desc', and vice versa
         orderings = (
@@ -2506,7 +2516,7 @@ class ChantSearchMSViewTest(TestCase):
         )
         html_1 = str(response_1.content)
         # if no ordering specified, all 9 links should include "&sort=asc"
-        self.assertEqual(html_1.count("&sort=asc"), 8)
+        self.assertEqual(html_1.count("&sort=asc"), 9)
 
         # test that all query parameters are present in all 9 links
         query_keys_and_values = {
@@ -2525,10 +2535,16 @@ class ChantSearchMSViewTest(TestCase):
             query_keys_and_values,
         )
         html_2 = str(response_2.content)
+
         for k, v in query_keys_and_values.items():
-            expected_query_param = f"{k}={v}"
-            self.assertEqual(html_2.count(expected_query_param), 8)
-            self.assertEqual(html_2.count("sort=asc"), 8)
+            # Generate URL-encoded parameter with + for spaces (how Django's urlencode works)
+            v_str = str(v)
+            encoded_param = urllib.parse.quote_plus(v_str)
+            expected_query_param = f"{k}={encoded_param}"
+
+            # Assert that it appears 10 times
+            self.assertEqual(html_2.count(expected_query_param), 9)
+            self.assertEqual(html_2.count("sort=asc"), 9)
 
         # for each orderable column, check that 'asc' flips to 'desc', and vice versa
         orderings = (
@@ -2560,7 +2576,7 @@ class ChantSearchMSViewTest(TestCase):
             # when no `sort=` is specified, all 7 columns should contain a `sort=asc` in
             # their column header link. Since an ascending sorting _is_ specified for one
             # of the columns, that column should have switched from `sort=asc` to `sort=desc`
-            self.assertEqual(html_asc.count("sort=asc"), 7)
+            self.assertEqual(html_asc.count("sort=asc"), 8)
             response_desc = self.client.get(
                 reverse("chant-search-ms", args=[source.id]),
                 {
