@@ -296,11 +296,18 @@ def make_fake_notation() -> Notation:
     return notation
 
 
-def make_fake_service() -> Service:
+def make_fake_service(
+    name: Optional[str] = None,
+    description: Optional[str] = None,
+) -> Service:
     """Generates a fake Service object."""
+    if name is None:
+        name = faker.lexify("???")
+    if description is None:
+        description = faker.sentence()
     service = Service.objects.create(
-        name=faker.lexify(text="??"),
-        description=faker.sentence(),
+        name=name,
+        description=description,
     )
     return service
 
