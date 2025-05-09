@@ -8,7 +8,7 @@ from django.contrib.auth.mixins import LoginRequiredMixin
 from django.contrib.auth.mixins import UserPassesTestMixin
 from django.contrib.postgres.aggregates import ArrayAgg
 from django.core.exceptions import PermissionDenied
-from django.db.models import Q, QuerySet
+from django.db.models import F, Q, QuerySet
 from django.http import Http404, HttpResponse
 from django.shortcuts import get_object_or_404
 from django.urls import reverse
@@ -636,30 +636,22 @@ class ChantSearchView(ListView):
         order_get_param: Optional[str] = self.request.GET.get("order")
         sort_get_param: Optional[str] = self.request.GET.get("sort")
 
-        order_param_options = (
-            "incipit",
-            "service",
-            "genre",
-            "cantus_id",
-            "mode",
-            "has_fulltext",
-            "has_melody",
-            "has_image",
-            "feast",
-        )
-        if order_get_param in order_param_options:
-            if order_get_param == "has_fulltext":
-                order = "manuscript_full_text"
-            elif order_get_param == "has_melody":
-                order = "volpiano"
-            elif order_get_param == "has_image":
-                order = "image_link"
-            else:
-                order = order_get_param
-        else:
-            order = "source__holding_institution__siglum"
+        order_field_mapping = {
+            "feast": "feast__name",
+            "service": "service__name",
+            "genre": "genre__name",
+            "has_fulltext": "manuscript_full_text",
+            "has_melody": "volpiano",
+            "has_image": "image_link",
+            "incipit": "incipit",
+            "cantus_id": "cantus_id",
+            "mode": "mode",
+        }
 
-        # sort values: "asc" and "desc". Default is "asc"
+        order = order_field_mapping.get(
+            order_get_param, "source__holding_institution__siglum"
+        )
+
         if sort_get_param and sort_get_param == "desc":
             order = f"-{order}"
 
