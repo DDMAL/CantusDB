@@ -8,7 +8,7 @@ from django.contrib.auth.mixins import LoginRequiredMixin
 from django.contrib.auth.mixins import UserPassesTestMixin
 from django.contrib.postgres.aggregates import ArrayAgg
 from django.core.exceptions import PermissionDenied
-from django.db.models import Q, QuerySet
+from django.db.models import F, Q, QuerySet
 from django.http import Http404, HttpResponse
 from django.shortcuts import get_object_or_404
 from django.urls import reverse
@@ -652,10 +652,24 @@ class ChantSearchView(ListView):
             order_get_param, "source__holding_institution__siglum"
         )
 
-        if sort_get_param and sort_get_param == "desc":
-            order = f"-{order}"
+        # Reverse logic for 'has_' fields: we want entries WITH data first when sorting ASC
+        reverse_sort = order_get_param in ["has_fulltext", "has_melody", "has_image"]
 
-        return queryset.order_by(order, "id")
+        # Determine sort direction, flipping if it's a 'has_' field
+        if sort_get_param == "desc":
+            order_expression = (
+                F(order).asc(nulls_last=True)
+                if reverse_sort
+                else F(order).desc(nulls_last=True)
+            )
+        else:
+            order_expression = (
+                F(order).desc(nulls_last=True)
+                if reverse_sort
+                else F(order).asc(nulls_last=True)
+            )
+
+        return queryset.order_by(order_expression, "id")
 
 
 class MelodySearchView(TemplateView):
@@ -806,29 +820,41 @@ class ChantSearchMSView(ListView):
             # as a substring
             q_obj_filter &= Q(feast__name__icontains=feast)
 
-        order_value = self.request.GET.get("order", "siglum")
+        order_value = self.request.GET.get("order")
+        sort_get_param: Optional[str] = self.request.GET.get("sort")
 
-        if order_value in {
-            "siglum",
-            "incipit",
-            "genre",
-            "cantus_id",
-            "mode",
-            "feast",
-            "service",
-        }:
-            order = order_value
-        elif order_value == "has_fulltext":
-            order = "manuscript_full_text"
-        elif order_value == "has_melody":
-            order = "volpiano"
-        elif order_value == "has_image":
-            order = "image_link"
+        order_field_mapping = {
+            "feast": "feast__name",
+            "service": "service__name",
+            "genre": "genre__name",
+            "has_fulltext": "manuscript_full_text",
+            "has_melody": "volpiano",
+            "has_image": "image_link",
+            "incipit": "incipit",
+            "cantus_id": "cantus_id",
+            "mode": "mode",
+        }
+
+        order = order_field_mapping.get(
+            order_value, "source__holding_institution__siglum"
+        )
+
+        # Reverse logic for 'has_' fields: we want entries WITH data first when sorting ASC
+        reverse_sort = order_value in ["has_fulltext", "has_melody", "has_image"]
+
+        # Determine sort direction, flipping if it's a 'has_' field
+        if sort_get_param == "desc":
+            order_expression = (
+                F(order).asc(nulls_last=True)
+                if reverse_sort
+                else F(order).desc(nulls_last=True)
+            )
         else:
-            order = "siglum"
-
-        if sort := self.request.GET.get("sort"):
-            order = f"-{order}" if sort == "desc" else order
+            order_expression = (
+                F(order).desc(nulls_last=True)
+                if reverse_sort
+                else F(order).asc(nulls_last=True)
+            )
 
         source_id = self.kwargs["source_pk"]
         source = Source.objects.get(id=source_id)
@@ -874,7 +900,7 @@ class ChantSearchMSView(ListView):
         # ordering with the folio string gives wrong order
         # old cantus is also not strictly ordered by folio (there are outliers)
         # so we order by id for now, which is the order that the chants are entered into the DB
-        queryset = queryset.order_by(order, "id")
+        queryset = queryset.order_by(order_expression, "id")
         return queryset
 
 
