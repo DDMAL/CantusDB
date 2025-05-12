@@ -1255,7 +1255,7 @@ class ChantSearchViewTest(TestCase):
         chant_2 = make_fake_chant(
             manuscript_full_text_std_spelling="this will become a chant without a MS spelling fulltext",
         )
-        chant_2.manuscript_full_text = None
+        chant_2.manuscript_full_text = ""
         chant_2.save()
 
         search_term = "a chant wit"
@@ -1298,7 +1298,7 @@ class ChantSearchViewTest(TestCase):
         chant_2 = make_fake_chant(
             manuscript_full_text_std_spelling="this will become a chant without a MS spelling fulltext",
         )
-        chant_2.manuscript_full_text = None
+        chant_2.manuscript_full_text = ""
         chant_2.save()
 
         search_term = "this"
@@ -1339,7 +1339,7 @@ class ChantSearchViewTest(TestCase):
         chant_2 = make_fake_chant(
             manuscript_full_text_std_spelling="this is a chant about parsley",
         )
-        chant_2.volpiano = None
+        chant_2.volpiano = ""
         chant_2.save()
 
         search_term = "s is a ch"
@@ -1382,7 +1382,7 @@ class ChantSearchViewTest(TestCase):
         chant_2 = make_fake_chant(
             manuscript_full_text_std_spelling="this is a chant about mushrooms",
         )
-        chant_2.volpiano = None
+        chant_2.volpiano = ""
         chant_2.save()
 
         search_term = "this is a chant"
@@ -1423,7 +1423,7 @@ class ChantSearchViewTest(TestCase):
         chant_2 = make_fake_chant(
             manuscript_full_text_std_spelling="this is a chant without",
         )
-        chant_2.image_link = None
+        chant_2.image_link = ""
         chant_2.save()
 
         search_term = "a chant with"
@@ -1466,7 +1466,7 @@ class ChantSearchViewTest(TestCase):
         chant_2 = make_fake_chant(
             manuscript_full_text_std_spelling="this is a chant without",
         )
-        chant_2.image_link = None
+        chant_2.image_link = ""
         chant_2.save()
 
         search_term = "this is"
@@ -1498,6 +1498,40 @@ class ChantSearchViewTest(TestCase):
         self.assertEqual(first_result_incipit, chant_2.incipit)
         last_result_incipit = descending_results[1].incipit
         self.assertEqual(last_result_incipit, chant_1.incipit)
+
+    def test_order_nulls_last(self):
+        source = make_fake_source(published=True)
+        feast = make_fake_feast(name="A")
+
+        chant_with_feast = make_fake_chant(source=source, feast=feast)
+        chant_without_feast = make_fake_chant(source=source, feast=None)
+
+        # Ascending sort — null should be last
+        response_asc = self.client.get(
+            reverse("chant-search"),
+            {
+                "order": "feast",
+                "sort": "asc",
+            },
+        )
+        ascending_results = response_asc.context["chants"]
+        self.assertIn(chant_with_feast, ascending_results)
+        self.assertIn(chant_without_feast, ascending_results)
+
+        self.assertEqual(ascending_results[0].feast, feast)
+        self.assertIsNone(ascending_results[1].feast)
+
+        # Descending sort — null should still be last
+        response_desc = self.client.get(
+            reverse("chant-search"),
+            {
+                "order": "feast",
+                "sort": "desc",
+            },
+        )
+        descending_results = response_desc.context["chants"]
+        self.assertEqual(descending_results[0].feast, feast)
+        self.assertIsNone(descending_results[1].feast)
 
     def test_column_header_links(self):
         # these are the 10 column headers users can order by:
@@ -2165,12 +2199,44 @@ class ChantSearchMSViewTest(TestCase):
         last_result_incipit = descending_results[1].incipit
         self.assertEqual(last_result_incipit, chant_1.incipit)
 
+    def test_order_by_feast(self):
+        source = make_fake_source(published=True)
+        feast1 = make_fake_feast(name="A")
+        feast2 = make_fake_feast(name="B")
+        chant_1 = make_fake_chant(source=source, feast=feast1)
+        chant_2 = make_fake_chant(source=source, feast=feast2)
+
+        response_ascending = self.client.get(
+            reverse("chant-search"),
+            {
+                "order": "feast",
+                "sort": "asc",
+            },
+        )
+        ascending_results = response_ascending.context["chants"]
+        first_result_feast = ascending_results[0].feast
+        self.assertEqual(first_result_feast, chant_1.feast)
+        last_result_feast = ascending_results[1].feast
+        self.assertEqual(last_result_feast, chant_2.feast)
+
+        response_descending = self.client.get(
+            reverse("chant-search"),
+            {
+                "order": "feast",
+                "sort": "desc",
+            },
+        )
+        descending_results = response_descending.context["chants"]
+        first_result_feast = descending_results[0].feast
+        self.assertEqual(first_result_feast, chant_2.feast)
+        last_result_feast = descending_results[1].feast
+        self.assertEqual(last_result_feast, chant_1.feast)
+
     def test_order_by_service(self):
         source = make_fake_source()
         # currently, service sort works by ID rather than by name
-        service_1 = make_fake_service()
-        service_2 = make_fake_service()
-        assert service_1.id < service_2.id
+        service_1 = make_fake_service(name="A")
+        service_2 = make_fake_service(name="B")
         chant_1 = make_fake_chant(
             service=service_1, manuscript_full_text_std_spelling="hocus", source=source
         )
@@ -2213,8 +2279,8 @@ class ChantSearchMSViewTest(TestCase):
     def test_order_by_genre(self):
         source = make_fake_source()
         # currently, genre sort works by ID rather than by name
-        genre_1 = make_fake_genre()
-        genre_2 = make_fake_genre()
+        genre_1 = make_fake_genre(name="A")
+        genre_2 = make_fake_genre(name="B")
         assert genre_1.id < genre_2.id
         chant_1 = make_fake_chant(
             genre=genre_1, manuscript_full_text_std_spelling="hocus", source=source
@@ -2352,7 +2418,7 @@ class ChantSearchMSViewTest(TestCase):
             manuscript_full_text_std_spelling="this is a chant without",
             source=source,
         )
-        chant_2.manuscript_full_text = None
+        chant_2.manuscript_full_text = ""
         chant_2.save()
 
         search_term = "s is a ch"
@@ -2398,7 +2464,7 @@ class ChantSearchMSViewTest(TestCase):
             source=source,
             manuscript_full_text_std_spelling="this is a chant about parsley",
         )
-        chant_2.volpiano = None
+        chant_2.volpiano = ""
         chant_2.save()
 
         search_term = "s is a ch"
@@ -2444,7 +2510,7 @@ class ChantSearchMSViewTest(TestCase):
             source=source,
             manuscript_full_text_std_spelling="this is a chant without",
         )
-        chant_2.image_link = None
+        chant_2.image_link = ""
         chant_2.save()
 
         search_term = "a chant with"
@@ -2478,6 +2544,40 @@ class ChantSearchMSViewTest(TestCase):
         self.assertEqual(first_result_incipit, chant_2.incipit)
         last_result_incipit = descending_results[1].incipit
         self.assertEqual(last_result_incipit, chant_1.incipit)
+
+    def test_order_nulls_last(self):
+        source = make_fake_source(published=True)
+        feast = make_fake_feast(name="A")
+
+        chant_with_feast = make_fake_chant(source=source, feast=feast)
+        chant_without_feast = make_fake_chant(source=source, feast=None)
+
+        # Ascending sort — null should be last
+        response_asc = self.client.get(
+            reverse("chant-search"),
+            {
+                "order": "feast",
+                "sort": "asc",
+            },
+        )
+        ascending_results = response_asc.context["chants"]
+        self.assertIn(chant_with_feast, ascending_results)
+        self.assertIn(chant_without_feast, ascending_results)
+
+        self.assertEqual(ascending_results[0].feast, feast)
+        self.assertIsNone(ascending_results[1].feast)
+
+        # Descending sort — null should still be last
+        response_desc = self.client.get(
+            reverse("chant-search"),
+            {
+                "order": "feast",
+                "sort": "desc",
+            },
+        )
+        descending_results = response_desc.context["chants"]
+        self.assertEqual(descending_results[0].feast, feast)
+        self.assertIsNone(descending_results[1].feast)
 
     def test_column_header_links(self):
         # these are the 9 column headers users can order by:
