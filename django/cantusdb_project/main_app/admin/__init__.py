@@ -6,6 +6,7 @@ from main_app.admin.genre import GenreAdmin
 from main_app.admin.notation import NotationAdmin
 from main_app.admin.service import ServiceAdmin
 from main_app.admin.provenance import ProvenanceAdmin
+from main_app.admin.proofreading_stats import ProofreadingStatsAdmin
 from main_app.admin.segment import SegmentAdmin
 from main_app.admin.sequence import SequenceAdmin
 from main_app.admin.source import SourceAdmin
