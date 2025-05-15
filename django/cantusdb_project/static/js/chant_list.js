@@ -10,6 +10,7 @@ window.addEventListener("load", function () {
     const manuscriptFullTextStdProofread = document.querySelectorAll('input[name="manuscript_full_text_std_proofread"]');
     const manuscriptFullTextProofread = document.querySelectorAll('input[name="manuscript_full_text_proofread"]');
     const volpianoProofread = document.querySelectorAll('input[name="volpiano_proofread"]');
+    const otherFieldsProofread = document.querySelectorAll('input[name="other_fields_proofread"]');
 
     // Make sure the select components keep their values across multiple GET requests
     // so the user can "drill down" on what they want
@@ -38,6 +39,8 @@ window.addEventListener("load", function () {
     if (urlParams.has("volpiano_proofread")) {
         document.querySelector(`input[name="volpiano_proofread"][value="${urlParams.get("volpiano_proofread")}"]`).checked = true;
     }
+    if (urlParams.has("other_fields_proofread")) {
+        document.querySelector(`input[name="other_fields_proofread"][value="${urlParams.get("other_fields_proofread")}"]`).checked = true;}
 
     // Event listeners for the select fields and search input
     searchText.addEventListener("change", setSearch);
@@ -57,6 +60,8 @@ window.addEventListener("load", function () {
     volpianoProofread.forEach(radio => {
         radio.addEventListener("change", setProofreadingFilter);
     });
+    otherFieldsProofread.forEach(radio => {
+        radio.addEventListener("change", setProofreadingFilter)});
 
     // functions for the auto-jump of various selectors and input fields on the page
     // the folio selector and folio-feast selector on the right half do source-wide filtering
@@ -130,10 +135,13 @@ window.addEventListener("load", function () {
         const stdProofread = document.querySelector('input[name="manuscript_full_text_std_proofread"]:checked')?.value;
         const proofread = document.querySelector('input[name="manuscript_full_text_proofread"]:checked')?.value;
         const volpianoProof = document.querySelector('input[name="volpiano_proofread"]:checked')?.value;
+        const otherFieldsProof = document.querySelector('input[name="other_fields_proofread"]:checked')?.value;
+
 
         updateURLParam('manuscript_full_text_std_proofread', stdProofread);
         updateURLParam('manuscript_full_text_proofread', proofread);
         updateURLParam('volpiano_proofread', volpianoProof);
+        updateURLParam('other_fields_proofread', otherFieldsProof);
         window.location.assign(url);
     }
 
