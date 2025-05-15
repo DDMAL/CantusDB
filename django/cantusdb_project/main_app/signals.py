@@ -15,6 +15,9 @@ from main_app.models import Chant
 from main_app.models import Sequence
 from main_app.models import Feast
 from main_app.models import Source
+from main_app.models.proofreading_stats import (
+    ProofreadingStats,
+)
 
 
 @receiver(post_save, sender=Chant)
@@ -25,12 +28,14 @@ def on_chant_save(instance, **kwargs) -> None:
     update_chant_search_vector(instance)
     update_chant_incipit_field(instance)
     update_volpiano_fields(instance)
+    update_source_proofreading_stats(instance)
 
 
 @receiver(post_delete, sender=Chant)
 def on_chant_delete(instance, **kwargs) -> None:
     update_source_chant_count(instance)
     update_source_melody_count(instance)
+    update_source_proofreading_stats(instance)
 
 
 @receiver(post_save, sender=Sequence)
@@ -47,6 +52,21 @@ def on_sequence_delete(instance, **kwargs) -> None:
 @receiver(post_save, sender=Feast)
 def on_feast_save(instance, **kwargs) -> None:
     update_prefix_field(instance)
+
+
+def update_source_proofreading_stats(instance, **kwargs) -> None:
+    """
+    Recalculates and updates the ProofreadingStats for a given Source
+    by calling the model manager method.
+    """
+    try:
+        source = instance.source
+        if source:
+            ProofreadingStats.objects.calculate_and_update_for_source(source)
+    except Source.DoesNotExist:
+        pass
+    except AttributeError:
+        pass
 
 
 def update_chant_search_vector(instance) -> None:
