@@ -198,6 +198,11 @@
                                         <li class="list-group-item p-0">
                                             <a href="{% url 'source-create' %}">Add Source</a>
                                         </li>
+                                        {% if request.user|in_groups:"editor,project manager" %}
+                                            <li class="list-group-item p-0">
+                                                <a href="{% url 'proofread' %}">Proofread Sources</a>
+                                            </li>
+                                        {% endif %}
                                         {% if request.user|has_group:"project manager" %}
                                             <li class="list-group-item p-0">
                                                 <a href="{% url 'admin:articles_article_add' %}">Add News</a>
