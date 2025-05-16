@@ -17,6 +17,19 @@
             </div>
         </form>
     </div>
+    <div class="col-md-4">
+        <form method="get" action="{% url 'proofread' %}">
+            <div class="input-group">
+                <select class="form-select" name="inactive">
+                    <option value="" {% if not current_inactive_filter %}selected{% endif %}>Show All Sources</option>
+                    <option value="3" {% if current_inactive_filter == "3" %}selected{% endif %}>Inactive for 3 Months</option>
+                    <option value="6" {% if current_inactive_filter == "6" %}selected{% endif %}>Inactive for 6 Months</option>
+                    <option value="12" {% if current_inactive_filter == "12" %}selected{% endif %}>Inactive for 12 Months</option>
+                </select>
+                <button class="btn btn-outline-secondary" type="submit">Filter</button>
+            </div>
+        </form>
+    </div>
 </div>
 
 {% if sources_to_proofread %}

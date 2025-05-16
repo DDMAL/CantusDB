@@ -3,6 +3,8 @@
 from django.contrib.auth.mixins import LoginRequiredMixin, UserPassesTestMixin
 from django.db.models import Q
 from django.views.generic import ListView
+from django.utils import timezone
+import datetime
 
 from main_app.models import Source
 
@@ -50,6 +52,22 @@ class ProofreadView(LoginRequiredMixin, UserPassesTestMixin, ListView):
                 | Q(siglum__icontains=search_query)
             )
             queryset = queryset.filter(search_filter)
+
+        # Inactive Source Filtering
+        inactive_filter = self.request.GET.get("inactive", None)
+        if inactive_filter:
+            today = timezone.now()
+            if inactive_filter == "3":
+                cutoff_date = today - datetime.timedelta(days=90)
+            elif inactive_filter == "6":
+                cutoff_date = today - datetime.timedelta(days=180)
+            elif inactive_filter == "12":
+                cutoff_date = today - datetime.timedelta(days=365)
+            else:
+                cutoff_date = None
+
+            if cutoff_date:
+                queryset = queryset.filter(date_updated__lt=cutoff_date)
 
         # Sorting
         order_param = self.request.GET.get("order", "country")
@@ -112,4 +130,5 @@ class ProofreadView(LoginRequiredMixin, UserPassesTestMixin, ListView):
             "order", "country"
         )  # Default to country
         context["current_sort_param"] = self.request.GET.get("sort", "asc")
+        context["current_inactive_filter"] = self.request.GET.get("inactive", None)
         return context
