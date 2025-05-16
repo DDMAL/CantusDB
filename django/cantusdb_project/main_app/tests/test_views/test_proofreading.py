@@ -1,13 +1,17 @@
-from django.test import TestCase, Client
-from django.urls import reverse
+import datetime
+from django.db.models import signals
 from django.contrib.auth import get_user_model
-from main_app.models import Source, Chant, ProofreadingStats, Segment
+from django.contrib.auth.models import Group
+from django.test import Client, TestCase
+from django.urls import reverse
+from django.utils import timezone
+
+from main_app.models import ProofreadingStats, Source
 from main_app.tests.make_fakes import (
-    make_fake_source,
     make_fake_chant,
     make_fake_segment,
+    make_fake_source,
 )
-from django.contrib.auth.models import Group
 
 
 class ProofreadingOverviewViewTest(TestCase):
@@ -178,3 +182,48 @@ class ProofreadingOverviewViewTest(TestCase):
         sources_to_proofread = response.context["sources_to_proofread"]
         self.assertIn(source_correct_segment, sources_to_proofread)
         self.assertNotIn(source_other_segment, sources_to_proofread)
+
+    def test_inactive_source_filtering(self):
+        # Use freeze_time to control the time
+        # Create a source that was updated recently
+        recent_source = make_fake_source(
+            title="Recent Source", segment=[self.cantus_segment]
+        )
+        make_fake_chant(source=recent_source)
+        recent_source.save()
+
+        # Create a source that was updated 6 months ago
+        six_month_old_source = make_fake_source(
+            title="Six Month Old Source", segment=[self.cantus_segment]
+        )
+        make_fake_chant(source=six_month_old_source)
+
+        six_months_ago = timezone.now() - datetime.timedelta(days=185)
+        Source.objects.filter(pk=six_month_old_source.id).update(
+            date_updated=six_months_ago
+        )
+        six_month_old_source.refresh_from_db()
+
+        # Test filtering for 3 months
+        response_3_months = self.client.get(self.url, {"inactive": "3"})
+        sources_3_months = response_3_months.context["sources_to_proofread"]
+        self.assertNotIn(recent_source, sources_3_months)
+        self.assertIn(six_month_old_source, sources_3_months)
+
+        # Test filtering for 6 months
+        response_6_months = self.client.get(self.url, {"inactive": "6"})
+        sources_6_months = response_6_months.context["sources_to_proofread"]
+        self.assertNotIn(recent_source, sources_6_months)
+        self.assertIn(six_month_old_source, sources_6_months)
+
+        # Test filtering for 12 months
+        response_12_months = self.client.get(self.url, {"inactive": "12"})
+        sources_12_months = response_12_months.context["sources_to_proofread"]
+        self.assertNotIn(recent_source, sources_12_months)
+        self.assertNotIn(six_month_old_source, sources_12_months)
+
+        # Test no filter
+        response_no_filter = self.client.get(self.url, {"inactive": ""})
+        sources_no_filter = response_no_filter.context["sources_to_proofread"]
+        self.assertIn(recent_source, sources_no_filter)
+        self.assertIn(six_month_old_source, sources_no_filter)
