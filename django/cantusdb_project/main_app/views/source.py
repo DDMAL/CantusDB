@@ -116,6 +116,8 @@ class SourceBrowseChantsView(UserPassesTestMixin, ListView):  # type: ignore[typ
         )
         volpiano_proofread = self.request.GET.get("volpiano_proofread")
 
+        other_fields_proofread = self.request.GET.get("other_fields_proofread")
+
         # get all chants in the specified source
         chants: QuerySet[Chant] = self.source.chant_set.select_related(
             "feast", "service", "genre"
@@ -136,27 +138,37 @@ class SourceBrowseChantsView(UserPassesTestMixin, ListView):  # type: ignore[typ
             )
         # Apply proofreading filters if they are set
         if manuscript_full_text_std_proofread:
-            chants = chants.filter(
-                manuscript_full_text_std_spelling__isnull=False,
-            ).exclude(manuscript_full_text_std_spelling="")
-            if manuscript_full_text_std_proofread == "False":
-                chants = chants.exclude(manuscript_full_text_std_proofread="True")
-            else:
-                chants = chants.filter(manuscript_full_text_std_proofread="True")
+            q_obj = Q(manuscript_full_text_std_spelling__isnull=False) & ~Q(
+                manuscript_full_text_std_spelling=""
+            )
+            if manuscript_full_text_std_proofread == "True":
+                q_obj &= Q(manuscript_full_text_std_proofread="True")
+            else:  # manuscript_full_text_std_proofread == "False"
+                q_obj &= ~Q(manuscript_full_text_std_proofread="True")
+            chants = chants.filter(q_obj)
+
         if manuscript_full_text_proofread:
-            chants = chants.filter(
-                manuscript_full_text__isnull=False,
-            ).exclude(manuscript_full_text="")
-            if manuscript_full_text_proofread == "False":
-                chants = chants.exclude(manuscript_full_text_proofread="True")
-            else:
-                chants = chants.filter(manuscript_full_text_proofread="True")
+            q_obj = Q(manuscript_full_text__isnull=False) & ~Q(manuscript_full_text="")
+            if manuscript_full_text_proofread == "True":
+                q_obj &= Q(manuscript_full_text_proofread="True")
+            else:  # manuscript_full_text_proofread == "False"
+                q_obj &= ~Q(manuscript_full_text_proofread="True")
+            chants = chants.filter(q_obj)
+
         if volpiano_proofread:
-            chants = chants.filter(volpiano__isnull=False).exclude(volpiano="")
-            if volpiano_proofread == "False":
-                chants = chants.exclude(volpiano_proofread="True")
-            else:
-                chants = chants.filter(volpiano_proofread="True")
+            q_obj = Q(volpiano__isnull=False) & ~Q(volpiano="")
+            if volpiano_proofread == "True":
+                q_obj &= Q(volpiano_proofread="True")
+            else:  # volpiano_proofread == "False"
+                q_obj &= ~Q(volpiano_proofread="True")
+            chants = chants.filter(q_obj)
+
+        if other_fields_proofread:
+            if other_fields_proofread == "True":
+                q_obj = Q(other_fields_proofread=True)
+            else:  # other_fields_proofread == "False"
+                q_obj = Q(other_fields_proofread=False)
+            chants = chants.filter(q_obj)
 
         return chants.order_by("folio", "c_sequence")
 
