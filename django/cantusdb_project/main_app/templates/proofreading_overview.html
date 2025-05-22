@@ -1,0 +1,136 @@
+{% extends "filterable_table_with_search_bar.html" %}
+{% load helper_tags %}
+
+{% block title %}<title>Proofreading Overview | Cantus Database</title>{% endblock %}
+
+{% block maincontent %}
+<h3>{{ title }}</h3>
+<p>Showing sources that contain chants requiring proofreading.</p>
+
+<div class="row mb-3">
+    <div class="col-md-8">
+        <form method="get" action="{% url 'proofread' %}">
+            <div class="input-group">
+                <input type="text" name="q" class="form-control" placeholder="Search by Country, City, Institution, Siglum, Shelfmark, Title" value="{{ request.GET.q }}">
+                <button class="btn btn-outline-secondary" type="submit">Search</button>
+                 <a href="{% url 'proofread' %}" class="btn btn-outline-danger ms-2">Clear</a>
+            </div>
+        </form>
+    </div>
+    <div class="col-md-4">
+        <form method="get" action="{% url 'proofread' %}">
+            <div class="input-group">
+                <select class="form-select" name="inactive">
+                    <option value="" {% if not current_inactive_filter %}selected{% endif %}>Show All Sources</option>
+                    <option value="3" {% if current_inactive_filter == "3" %}selected{% endif %}>Inactive for 3 Months</option>
+                    <option value="6" {% if current_inactive_filter == "6" %}selected{% endif %}>Inactive for 6 Months</option>
+                    <option value="12" {% if current_inactive_filter == "12" %}selected{% endif %}>Inactive for 12 Months</option>
+                </select>
+                <button class="btn btn-outline-secondary" type="submit">Filter</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+{% if sources_to_proofread %}
+    <div class="table-responsive">
+        <table class="table table-sm small table-bordered table-hover">
+            <thead class="thead-light">
+                <tr>
+                    {% sortable_header request "country" "Country" %}
+                    {% sortable_header request "city_institution" "City + Institution" %}
+                    {% sortable_header request "source_siglum" "Cantus Siglum" %}
+                    {% sortable_header request "published" "Published" %}
+                    {% sortable_header request "ms_text_std" "MS Text Std" %}
+                    {% sortable_header request "ms_text" "MS Text" %}
+                    {% sortable_header request "volpiano" "Volpiano" %}
+                    {% sortable_header request "other" "Other Fields" %}
+                    {% sortable_header request "needing_proof" "Total Need Proof" %}
+                    {% sortable_header request "total_chants" "Total Chants" %}
+                    {% sortable_header request "percent_complete" "Progress" %}
+                    <th class="text-center">Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for source in sources_to_proofread %}
+                <tr>
+                    <td class="text-wrap" style="text-align:center">{{ source.holding_institution.country|default_if_none:"" }}</td>
+                    <td class="text-wrap" style="text-align:center">
+                        {{ source.holding_institution.city|default_if_none:"" }}
+                        {% if source.holding_institution.city and source.holding_institution.name %}, {% endif %}
+                        {% if source.holding_institution %}
+                            <a href="{% url 'institution-detail' source.holding_institution.id %}" target="_blank">
+                                {{ source.holding_institution.name|default_if_none:"" }}
+                            </a>
+                        {% else %}
+                            {{ source.holding_institution.name|default_if_none:"" }}
+                        {% endif %}
+                    </td>
+                    <td class="text-wrap" style="text-align:center">
+                        <a href="{% url 'source-detail' source.id %}">
+                            {{ source.short_heading|truncatechars_html:100 }}
+                        </a>
+                        {% if source.source_completeness == 2 %}
+                            <br class="m-1" />
+                            <span class="small">Fragment</span>
+                        {% endif %}
+                    </td>
+                    <td class="text-wrap" style="text-align:center">
+                        {% if source.published %}
+                            <span class="badge bg-success">Published</span>
+                        {% else %}
+                            <span class="badge bg-warning text-dark">Unpublished</span>
+                        {% endif %}
+                    </td>
+                    <td class="text-wrap" style="text-align:center">{{ source.num_ms_full_text_std_to_proofread|default:0 }}</td>
+                    <td class="text-wrap" style="text-align:center">{{ source.num_ms_full_text_to_proofread|default:0 }}</td>
+                    <td class="text-wrap" style="text-align:center">{{ source.num_volpiano_to_proofread|default:0 }}</td>
+                    <td class="text-wrap" style="text-align:center">{{ source.num_other_fields_to_proofread|default:0 }}</td>
+                    <td class="text-center fw-bold">{{ source.total_chants_needing_proofread|default:0 }}</td>
+                    <td class="text-wrap" style="text-align:center">{{ source.number_of_chants|default:0 }}</td>
+                    <td>
+                        {% if source.number_of_chants > 0 %} 
+                            <div style="position: relative; height: 20px; font-size: 0.75rem;">
+                                <div class="progress" style="height: 100%;">
+                                    <div class="progress-bar {% if source.percent_complete == 100 %}bg-success{% elif source.percent_complete > 85 %}bg-primary{% elif source.percent_complete > 60 %}bg-info{% elif source.percent_complete > 30 %}bg-warning{% else %}bg-danger{% endif %}"
+                                        role="progressbar"
+                                        style="width: {{ source.percent_complete|floatformat:2 }}%;"
+                                        aria-valuenow="{{ source.percent_complete|floatformat:2 }}"
+                                        aria-valuemin="0"
+                                        aria-valuemax="100"
+                                        title="{{ source.percent_complete|floatformat:2 }}% Complete">
+                                    </div>
+                                </div>
+                                <span style="position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); color: black; font-weight: bold;">
+                                    {{ source.percent_complete|floatformat:1 }}%
+                                </span>
+                            </div>
+                        {% elif source.total_chants_needing_proofread == 0 %} {# If no chants need proofreading, it's 100% complete #}
+                            <div style="position: relative; height: 20px; font-size: 0.75rem;">
+                                <div class="progress" style="height: 100%;">
+                                    <div class="progress-bar bg-success" role="progressbar" style="width: 100%;" aria-valuenow="100" aria-valuemin="0" aria-valuemax="100" title="100% Complete (No chants or all proofread)">
+                                    </div>
+                                </div>
+                                <span style="position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); color: black; font-weight: bold;">
+                                    100%
+                                </span>
+                            </div>
+                        {% else %}
+                            <span class="text-center d-block"> N/A </span>
+                        {% endif %}
+                    </td>
+                    <td class="text-wrap" style="text-align:center">
+                        <a href="{% url 'browse-chants' source.pk %}" class="btn btn-sm btn-outline-primary">
+                            View Chants
+                        </a>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    {% include "pagination.html" %}
+{% else %}
+    <p>No sources currently require proofreading attention based on the criteria{% if request.GET.q %} for your search "{{ request.GET.q }}"{% endif %}.</p>
+{% endif %}
+{% endblock %}

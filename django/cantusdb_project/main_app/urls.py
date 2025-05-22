@@ -94,6 +94,7 @@ from main_app.views.user import (
     UserListView,
     UserSourceListView,
 )
+from main_app.views.proofreading import ProofreadView
 from main_app.views.autocomplete import (
     CurrentEditorsAutocomplete,
     AllUsersAutocomplete,
@@ -375,6 +376,11 @@ urlpatterns = [
         "source/<int:source_id>/add-image-links",
         SourceAddImageLinksView.as_view(),
         name="source-add-image-links",
+    ),
+    path(
+        "proofread/",
+        ProofreadView.as_view(),
+        name="proofread",
     ),
     # melody
     path(
