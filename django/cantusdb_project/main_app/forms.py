@@ -47,7 +47,7 @@ COMPLETE_INVENTORY_FORM_CHOICES = (
 
 # Define choices for Chant model's
 # various proofreading fields: manuscript_full_text_std_proofread,
-# manuscript_full_text_proofread, volpiano_proofread
+# manuscript_full_text_proofread, volpiano_proofread, other_fields_proofread
 PROOFREAD_CHOICES = [
     (None, "Any"),
     (True, "Yes"),
@@ -639,6 +639,13 @@ class SourceBrowseChantsProofreadForm(forms.Form):
         required=False,
     )
 
+    other_fields_proofread = forms.ChoiceField(
+        label="Other fields proofread",
+        choices=PROOFREAD_CHOICES,
+        widget=forms.RadioSelect,
+        required=False,
+    )
+
 
 class SequenceEditForm(forms.ModelForm):
     class Meta:
@@ -728,6 +735,7 @@ class AdminChantForm(forms.ModelForm):
             "manuscript_full_text_std_proofread": CheckboxWidget(),
             "manuscript_full_text_proofread": CheckboxWidget(),
             "volpiano_proofread": CheckboxWidget(),
+            "other_fields_proofread": CheckboxWidget(),
             "chant_range": VolpianoAreaWidget(),
         }
 
@@ -844,6 +852,7 @@ class AdminSequenceForm(forms.ModelForm):
             "manuscript_full_text_std_proofread": CheckboxWidget(),
             "manuscript_full_text_proofread": CheckboxWidget(),
             "volpiano_proofread": CheckboxWidget(),
+            "other_fields_proofread": CheckboxWidget(),
             "chant_range": VolpianoAreaWidget(),
         }
 
