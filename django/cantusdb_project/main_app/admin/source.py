@@ -1,9 +1,9 @@
 from django.contrib import admin
-
-from main_app.admin.base_admin import BaseModelAdmin, EXCLUDE, READ_ONLY
+from django.contrib.auth import get_user_model
+from django.db.models import Q
+from main_app.admin.base_admin import EXCLUDE, READ_ONLY, BaseModelAdmin
 from main_app.admin.filters import InputFilter
-from main_app.forms import AdminSourceForm
-from main_app.models import Source, SourceIdentifier
+from main_app.models import Source, SourceIdentifier, SourceURL
 
 
 class SourceKeyFilter(InputFilter):
@@ -25,11 +25,17 @@ class IdentifiersInline(admin.TabularInline):
         )
 
 
+class SourceLinksInline(admin.TabularInline):
+    model = SourceURL
+    exclude = ["created_by", "last_updated_by"]
+    extra = 0
+
+
 @admin.register(Source)
 class SourceAdmin(BaseModelAdmin):
     exclude = EXCLUDE + ("source_status",)
-    raw_id_fields = ("holding_institution",)
-    inlines = (IdentifiersInline,)
+    autocomplete_fields = ("holding_institution", "provenance")
+    inlines = (IdentifiersInline, SourceLinksInline)
 
     # These search fields are also available on the user-source inline relationship in the user admin page
     search_fields = (
@@ -76,7 +82,7 @@ class SourceAdmin(BaseModelAdmin):
     list_filter = (
         SourceKeyFilter,
         "full_source",
-        "segment",
+        "segment_m2m",
         "source_status",
         "published",
         "century",
@@ -85,8 +91,20 @@ class SourceAdmin(BaseModelAdmin):
 
     ordering = ("holding_institution__siglum", "shelfmark")
 
-    form = AdminSourceForm
-
     def get_queryset(self, request):
         queryset = super().get_queryset(request)
         return queryset.select_related("holding_institution")
+
+    def formfield_for_manytomany(self, db_field, request, **kwargs):
+        if db_field.name == "current_editors":
+            kwargs["queryset"] = (
+                get_user_model()
+                .objects.filter(
+                    Q(groups__name="project manager")
+                    | Q(groups__name="editor")
+                    | Q(groups__name="contributor")
+                )
+                .distinct()
+                .order_by("full_name")
+            )
+        return super().formfield_for_manytomany(db_field, request, **kwargs)

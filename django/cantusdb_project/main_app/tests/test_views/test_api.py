@@ -504,7 +504,7 @@ class JsonSourcesExportTest(TestCase):
         self.bower_segment = make_fake_segment(id=4064, name="CANTUS Database")
 
     def test_json_sources_response(self):
-        source = make_fake_source(published=True, segment=self.cantus_segment)
+        source = make_fake_source(published=True, segment=[self.cantus_segment])
 
         response_1 = self.client.get(f"/json-sources/")
         self.assertEqual(response_1.status_code, 200)
@@ -517,7 +517,7 @@ class JsonSourcesExportTest(TestCase):
     def test_json_sources_format(self):
         NUMBER_OF_SOURCES = 10
         for _ in range(NUMBER_OF_SOURCES):
-            _ = make_fake_source(published=True, segment=self.cantus_segment)
+            _ = make_fake_source(published=True, segment=[self.cantus_segment])
 
         sample_source = Source.objects.all().order_by("?").first()
 
@@ -543,9 +543,9 @@ class JsonSourcesExportTest(TestCase):
         NUM_PUBLISHED_SOURCES = 3
         NUM_UNPUBLISHED_SOURCES = 5
         for _ in range(NUM_PUBLISHED_SOURCES):
-            _ = make_fake_source(published=True, segment=self.cantus_segment)
+            _ = make_fake_source(published=True, segment=[self.cantus_segment])
         for _ in range(NUM_UNPUBLISHED_SOURCES):
-            _ = make_fake_source(published=False, segment=self.cantus_segment)
+            _ = make_fake_source(published=False, segment=[self.cantus_segment])
 
         sample_published_source = (
             Source.objects.filter(published=True).order_by("?").first()
@@ -568,15 +568,15 @@ class JsonSourcesExportTest(TestCase):
         NUM_CANTUS_SOURCES = 5
         NUM_BOWER_SOURCES = 7
         for _ in range(NUM_CANTUS_SOURCES):
-            _ = make_fake_source(published=True, segment=self.cantus_segment)
+            _ = make_fake_source(published=True, segment=[self.cantus_segment])
         for _ in range(NUM_BOWER_SOURCES):
-            _ = make_fake_source(published=True, segment=self.bower_segment)
+            _ = make_fake_source(published=True, segment=[self.bower_segment])
 
         sample_cantus_source = (
-            Source.objects.filter(segment=self.cantus_segment).order_by("?").first()
+            Source.objects.filter(segment_m2m=self.cantus_segment).order_by("?").first()
         )
         sample_bower_source = (
-            Source.objects.filter(segment=self.bower_segment).order_by("?").first()
+            Source.objects.filter(segment_m2m=self.bower_segment).order_by("?").first()
         )
 
         response = self.client.get(reverse("json-sources-export"))
@@ -972,7 +972,7 @@ class CsvExportTest(TestCase):
         bower_segment.id = 4064
         bower_segment.save()
         source = make_fake_source(published=True)
-        source.segment = bower_segment
+        source.segment_m2m.add(bower_segment)
         for _ in range(NUM_SEQUENCES):
             make_fake_sequence(source=source)
         response = self.client.get(reverse("csv-export", args=[source.id]))

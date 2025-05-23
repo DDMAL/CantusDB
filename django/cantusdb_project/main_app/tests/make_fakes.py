@@ -164,7 +164,7 @@ def make_fake_chant(**kwargs: Any) -> Chant:
     - melody_id
     - chant_range
     - manuscript_full_text, indexing_notes, manuscript_syllabized_full_text
-    - manuscript_full_text_proofread, volpiano_proofread, manuscript_full_text_std_proofread (default to False)
+    - manuscript_full_text_proofread, volpiano_proofread, manuscript_full_text_std_proofread, other_fields_proofread (default to False)
     """
     # Handle `source`, `folio`, and `c_sequence` fields,
     # which cannot be set to None
@@ -229,6 +229,7 @@ def make_fake_chant(**kwargs: Any) -> Chant:
         "manuscript_full_text_proofread",
         "volpiano_proofread",
         "manuscript_full_text_std_proofread",
+        "other_fields_proofread",
     ]:
         kwargs[field] = kwargs.get(field, False)
 
@@ -452,10 +453,11 @@ def make_fake_source(**kwargs: Any) -> Source:
 
     if "segment" not in kwargs:
         if "segment_name" in kwargs:
-            kwargs["segment"] = make_fake_segment(name=kwargs["segment_name"])
+            kwargs["segment"] = [make_fake_segment(name=kwargs["segment_name"])]
             kwargs.pop("segment_name")
         else:
-            kwargs["segment"] = make_fake_segment()
+            kwargs["segment"] = [make_fake_segment()]
+    segments = kwargs.pop("segment")
     kwargs["holding_institution"] = kwargs.get(
         "holding_institution", make_fake_institution()
     )
@@ -499,7 +501,7 @@ def make_fake_source(**kwargs: Any) -> Source:
     source.melodies_entered_by.set([make_fake_user()])
     source.proofreaders.set([make_fake_user()])
     source.other_editors.set([make_fake_user()])
-    source.segment_m2m.set([kwargs["segment"]])
+    source.segment_m2m.set(segments)
 
     return source
 

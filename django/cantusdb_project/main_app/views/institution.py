@@ -48,10 +48,10 @@ class InstitutionDetailView(DetailView):
         cantus_segment = Segment.objects.get(id=4063)
         bower_segment = Segment.objects.get(id=4064)
         cantus_sources = Source.objects.filter(
-            holding_institution=institution, segment=cantus_segment
+            holding_institution=institution, segment_m2m=cantus_segment
         ).select_related("holding_institution")
         bower_sources = Source.objects.filter(
-            holding_institution=institution, segment=bower_segment
+            holding_institution=institution, segment_m2m=bower_segment
         ).select_related("holding_institution")
         institution_authorities = InstitutionIdentifier.objects.filter(
             institution=institution

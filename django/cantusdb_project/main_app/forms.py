@@ -407,6 +407,7 @@ class ChantEditForm(forms.ModelForm):
             "indexing_notes",
             "addendum",
             "chant_range",
+            "other_fields_proofread",
             "manuscript_full_text_std_proofread",
             "manuscript_full_text_proofread",
             "volpiano_proofread",
@@ -442,6 +443,7 @@ class ChantEditForm(forms.ModelForm):
             "indexing_notes": TextAreaWidget(),
             "addendum": TextInputWidget(),
             "chant_range": VolpianoAreaWidget(),
+            "other_fields_proofread": CheckboxWidget(),
             "manuscript_full_text_std_proofread": CheckboxWidget(),
             "manuscript_full_text_proofread": CheckboxWidget(),
             "volpiano_proofread": CheckboxWidget(),
@@ -867,105 +869,105 @@ class AdminSequenceForm(forms.ModelForm):
     )
 
 
-class AdminSourceForm(forms.ModelForm):
-    class Meta:
-        model = Source
-        fields = "__all__"
-
-    # title = forms.CharField(
-    #     required=True,
-    #     widget=TextInputWidget,
-    #     help_text="Full Source Identification (City, Archive, Shelf-mark)",
-    # )
-    # title.widget.attrs.update({"style": "width: 610px;"})
-    #
-    # siglum = forms.CharField(
-    #     required=True,
-    #     widget=TextInputWidget,
-    #     help_text="RISM-style siglum + Shelf-mark (e.g. GB-Ob 202).",
-    # )
-
-    shelfmark = forms.CharField(
-        required=True,
-        widget=TextInputWidget,
-    )
-
-    name = forms.CharField(required=False, widget=TextInputWidget)
-
-    holding_institution = forms.ModelChoiceField(
-        queryset=Institution.objects.all().order_by("city", "name"),
-        required=False,
-    )
-
-    provenance = forms.ModelChoiceField(
-        queryset=Provenance.objects.all().order_by("name"),
-        required=False,
-    )
-
-    century = forms.ModelMultipleChoiceField(
-        queryset=Century.objects.all().order_by("name"),
-        required=False,
-        widget=FilteredSelectMultiple(verbose_name="Century", is_stacked=False),
-    )
-
-    current_editors = forms.ModelMultipleChoiceField(
-        queryset=get_user_model()
-        .objects.filter(
-            Q(groups__name="project manager")
-            | Q(groups__name="editor")
-            | Q(groups__name="contributor")
-        )
-        .distinct()
-        .order_by("full_name"),
-        required=False,
-        widget=FilteredSelectMultiple(verbose_name="current editors", is_stacked=False),
-    )
-
-    inventoried_by = forms.ModelMultipleChoiceField(
-        queryset=get_user_model().objects.all().order_by("full_name"),
-        required=False,
-        widget=FilteredSelectMultiple(verbose_name="inventoried by", is_stacked=False),
-    )
-
-    full_text_entered_by = forms.ModelMultipleChoiceField(
-        queryset=get_user_model().objects.all().order_by("full_name"),
-        required=False,
-        widget=FilteredSelectMultiple(
-            verbose_name="full text entered by", is_stacked=False
-        ),
-    )
-
-    description_entered_by = forms.ModelMultipleChoiceField(
-        queryset=get_user_model().objects.all().order_by("full_name"),
-        required=False,
-        widget=FilteredSelectMultiple(
-            verbose_name="description entered by", is_stacked=False
-        ),
-    )
-
-    melodies_entered_by = forms.ModelMultipleChoiceField(
-        queryset=get_user_model().objects.all().order_by("full_name"),
-        required=False,
-        widget=FilteredSelectMultiple(
-            verbose_name="melodies entered by", is_stacked=False
-        ),
-    )
-
-    proofreaders = forms.ModelMultipleChoiceField(
-        queryset=get_user_model().objects.all().order_by("full_name"),
-        required=False,
-        widget=FilteredSelectMultiple(verbose_name="proofreaders", is_stacked=False),
-    )
-
-    other_editors = forms.ModelMultipleChoiceField(
-        queryset=get_user_model().objects.all().order_by("full_name"),
-        required=False,
-        widget=FilteredSelectMultiple(verbose_name="other editors", is_stacked=False),
-    )
-
-    complete_inventory = forms.ChoiceField(
-        choices=COMPLETE_INVENTORY_FORM_CHOICES, required=False
-    )
+# class AdminSourceForm(forms.ModelForm):
+#     class Meta:
+#         model = Source
+#         fields = "__all__"
+#
+#     # title = forms.CharField(
+#     #     required=True,
+#     #     widget=TextInputWidget,
+#     #     help_text="Full Source Identification (City, Archive, Shelf-mark)",
+#     # )
+#     # title.widget.attrs.update({"style": "width: 610px;"})
+#     #
+#     # siglum = forms.CharField(
+#     #     required=True,
+#     #     widget=TextInputWidget,
+#     #     help_text="RISM-style siglum + Shelf-mark (e.g. GB-Ob 202).",
+#     # )
+#
+#     shelfmark = forms.CharField(
+#         required=True,
+#         widget=TextInputWidget,
+#     )
+#
+#     name = forms.CharField(required=False, widget=TextInputWidget)
+#
+#     holding_institution = forms.ModelChoiceField(
+#         queryset=Institution.objects.all().order_by("city", "name"),
+#         required=False,
+#     )
+#
+#     provenance = forms.ModelChoiceField(
+#         queryset=Provenance.objects.all().order_by("name"),
+#         required=False,
+#     )
+#
+#     century = forms.ModelMultipleChoiceField(
+#         queryset=Century.objects.all().order_by("name"),
+#         required=False,
+#         widget=FilteredSelectMultiple(verbose_name="Century", is_stacked=False),
+#     )
+#
+#     current_editors = forms.ModelMultipleChoiceField(
+#         queryset=get_user_model()
+#         .objects.filter(
+#             Q(groups__name="project manager")
+#             | Q(groups__name="editor")
+#             | Q(groups__name="contributor")
+#         )
+#         .distinct()
+#         .order_by("full_name"),
+#         required=False,
+#         widget=FilteredSelectMultiple(verbose_name="current editors", is_stacked=False),
+#     )
+#
+#     inventoried_by = forms.ModelMultipleChoiceField(
+#         queryset=get_user_model().objects.all().order_by("full_name"),
+#         required=False,
+#         widget=FilteredSelectMultiple(verbose_name="inventoried by", is_stacked=False),
+#     )
+#
+#     full_text_entered_by = forms.ModelMultipleChoiceField(
+#         queryset=get_user_model().objects.all().order_by("full_name"),
+#         required=False,
+#         widget=FilteredSelectMultiple(
+#             verbose_name="full text entered by", is_stacked=False
+#         ),
+#     )
+#
+#     description_entered_by = forms.ModelMultipleChoiceField(
+#         queryset=get_user_model().objects.all().order_by("full_name"),
+#         required=False,
+#         widget=FilteredSelectMultiple(
+#             verbose_name="description entered by", is_stacked=False
+#         ),
+#     )
+#
+#     melodies_entered_by = forms.ModelMultipleChoiceField(
+#         queryset=get_user_model().objects.all().order_by("full_name"),
+#         required=False,
+#         widget=FilteredSelectMultiple(
+#             verbose_name="melodies entered by", is_stacked=False
+#         ),
+#     )
+#
+#     proofreaders = forms.ModelMultipleChoiceField(
+#         queryset=get_user_model().objects.all().order_by("full_name"),
+#         required=False,
+#         widget=FilteredSelectMultiple(verbose_name="proofreaders", is_stacked=False),
+#     )
+#
+#     other_editors = forms.ModelMultipleChoiceField(
+#         queryset=get_user_model().objects.all().order_by("full_name"),
+#         required=False,
+#         widget=FilteredSelectMultiple(verbose_name="other editors", is_stacked=False),
+#     )
+#
+#     complete_inventory = forms.ChoiceField(
+#         choices=COMPLETE_INVENTORY_FORM_CHOICES, required=False
+#     )
 
 
 class AdminUserChangeForm(forms.ModelForm):
