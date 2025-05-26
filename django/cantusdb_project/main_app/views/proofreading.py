@@ -74,7 +74,10 @@ class ProofreadView(LoginRequiredMixin, UserPassesTestMixin, ListView):
                 cutoff_date = None
 
             if cutoff_date:
-                queryset = queryset.filter(date_updated__lt=cutoff_date)
+                queryset = queryset.filter(
+                    Q(date_created__lt=cutoff_date, last_updated_by__isnull=True)
+                    | Q(last_updated_by__isnull=False, date_updated__lt=cutoff_date)
+                )
 
         # Annotate queryset with calculated statistics
         # Counts for items TO proofread (referencing fields on the related Chant model)
