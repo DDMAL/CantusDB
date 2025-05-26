@@ -200,7 +200,7 @@
                                         </li>
                                         {% if request.user|in_groups:"editor,project manager" %}
                                             <li class="list-group-item p-0">
-                                                <a href="{% url 'proofread' %}">Proofread Sources</a>
+                                                <a href="{% url 'proofread-overview' %}">Proofread Sources</a>
                                             </li>
                                         {% endif %}
                                         {% if request.user|has_group:"project manager" %}

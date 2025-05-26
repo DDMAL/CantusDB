@@ -9,16 +9,16 @@
 
 <div class="row mb-3">
     <div class="col-md-8">
-        <form method="get" action="{% url 'proofread' %}">
+        <form method="get" action="{% url 'proofread-overview' %}">
             <div class="input-group">
                 <input type="text" name="q" class="form-control" placeholder="Search by Country, City, Institution, Siglum, Shelfmark, Title" value="{{ request.GET.q }}">
                 <button class="btn btn-outline-secondary" type="submit">Search</button>
-                 <a href="{% url 'proofread' %}" class="btn btn-outline-danger ms-2">Clear</a>
+                 <a href="{% url 'proofread-overview' %}" class="btn btn-outline-danger ms-2">Clear</a>
             </div>
         </form>
     </div>
     <div class="col-md-4">
-        <form method="get" action="{% url 'proofread' %}">
+        <form method="get" action="{% url 'proofread-overview' %}">
             <div class="input-group">
                 <select class="form-select" name="inactive">
                     <option value="" {% if not current_inactive_filter %}selected{% endif %}>Show All Sources</option>

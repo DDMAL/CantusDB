@@ -378,9 +378,9 @@ urlpatterns = [
         name="source-add-image-links",
     ),
     path(
-        "proofread/",
+        "proofread-overview/",
         ProofreadView.as_view(),
-        name="proofread",
+        name="proofread-overview",
     ),
     # melody
     path(
