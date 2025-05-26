@@ -24,7 +24,7 @@ class ProofreadingOverviewViewTest(TestCase):
             "test@example.com", "password"
         )
         self.client.login(username="test@example.com", password="password")
-        self.url = reverse("proofread")
+        self.url = reverse("proofread-overview")
         project_manager = Group.objects.get(name="project manager")
         project_manager.user_set.add(self.user)
 
