@@ -121,7 +121,11 @@ def redirect_genre(request) -> HttpResponse:
 def redirect_search(request: HttpRequest) -> HttpResponse:
     """
     Redirects from search/ (à la OldCantus) to chant-search/ (à la NewCantus).
-    Keeps the query string parameters intact.
+    Maps the query parameters of search on OldCantus to one on NewCantus:
+        - all parameters: values of "All" are mapped to ""
+        - "cid" parameter: renamed to "cantus_id"
+        - "t" parameter: renamed to "keyword"
+        - "op" parameter: values of "starts" are mapped to "starts_with"
 
     Args:
         request
@@ -129,8 +133,18 @@ def redirect_search(request: HttpRequest) -> HttpResponse:
     Returns:
         HttpResponse
     """
+    RENAMED_PARAMETERS = {"cid": "cantus_id", "t": "keyword"}
     redirect_url = reverse("chant-search")
     query_dict = request.GET.copy()
+    for param, value in query_dict.items():
+        if value == "All":
+            query_dict.setlist(param, [""])
+    for old_param, new_param in RENAMED_PARAMETERS.items():
+        if old_param in query_dict:
+            query_dict.setlist(new_param, query_dict.pop(old_param))
+    if op_val := query_dict.get("op"):
+        if op_val == "starts":
+            query_dict.setlist("op", ["starts_with"])
     new_url = f"{redirect_url}?{query_dict.urlencode()}"
     return redirect(new_url, permanent=True)
 

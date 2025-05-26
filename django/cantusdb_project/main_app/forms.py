@@ -1,12 +1,13 @@
-from typing import Optional, Any
+from typing import Optional, Any, Dict
 
 from django import forms
 from django.contrib.auth.forms import ReadOnlyPasswordHashField
 from django.contrib.auth import get_user_model
-from django.db.models import Q
+from django.db.models import Q, Model
 from django.contrib.admin.widgets import (
     FilteredSelectMultiple,
 )
+from django.core.exceptions import ValidationError
 from django.forms.widgets import CheckboxSelectMultiple, HiddenInput
 from dal import autocomplete  # type: ignore[import-untyped]
 from volpiano_display_utilities.cantus_text_syllabification import syllabify_text
@@ -1049,9 +1050,6 @@ class BrowseChantsBulkEditForm(forms.ModelForm):
         ]
         widgets = {
             "id": HiddenInput(),
-            "feast": autocomplete.Select2(url="feast-autocomplete"),
-            "service": autocomplete.Select2(url="service-autocomplete"),
-            "genre": autocomplete.Select2(url="genre-autocomplete"),
             "position": TextInputWidget(),
             "cantus_id": TextInputWidget(),
             "mode": TextInputWidget(),
@@ -1072,22 +1070,64 @@ class BrowseChantsBulkEditForm(forms.ModelForm):
         required=True,
     )
 
+    feast = forms.ChoiceField(
+        widget=autocomplete.Select2(url="feast-autocomplete"), required=False
+    )
+
+    service = forms.ChoiceField(
+        widget=autocomplete.Select2(url="service-autocomplete"), required=False
+    )
+
+    genre = forms.ChoiceField(
+        widget=autocomplete.Select2(url="genre-autocomplete"), required=False
+    )
+
     def __init__(self, *args: Any, **kwargs: Any) -> None:
         field_choices = kwargs.pop("field_choices")
+        self.field_objects: Dict[str, Dict[int, Model]] = kwargs.pop("field_objects")
         super().__init__(*args, **kwargs)
         self.fields["feast"].choices = field_choices["feast"]
         self.fields["service"].choices = field_choices["service"]
         self.fields["genre"].choices = field_choices["genre"]
 
+    def _clean_fk_field(self, field: str) -> Optional[Model]:
+        id_str = self.cleaned_data[field]
+        if id_str == "":
+            return None
+        obj = self.field_objects[field][int(id_str)]
+        return obj
+
+    def clean_feast(self) -> Optional[Feast]:
+        return self._clean_fk_field("feast")
+
+    def clean_genre(self) -> Optional[Genre]:
+        return self._clean_fk_field("genre")
+
+    def clean_service(self) -> Optional[Service]:
+        return self._clean_fk_field("service")
+
 
 class BaseBrowseChantsBulkEditFormset(forms.BaseModelFormSet):
 
     def __init__(self, *args: Any, **kwargs: Any) -> None:
+        """
+        Override the formset initialization to do a single
+        query for the field choices instead of one query
+        for each form in the formset.
+        """
         form_kwargs = kwargs.get("form_kwargs", {})
+        feasts = Feast.objects.all().in_bulk()
+        services = Service.objects.all().in_bulk()
+        genres = Genre.objects.all().in_bulk()
         form_kwargs["field_choices"] = {
-            "feast": Feast.objects.all().values_list("id", "name"),
-            "service": Service.objects.all().values_list("id", "name"),
-            "genre": Genre.objects.all().values_list("id", "name"),
+            "feast": [(feast.id, feast.name) for feast in feasts.values()],
+            "service": [(service.id, service.name) for service in services.values()],
+            "genre": [(genre.id, genre.name) for genre in genres.values()],
+        }
+        form_kwargs["field_objects"] = {
+            "feast": feasts,
+            "service": services,
+            "genre": genres,
         }
         kwargs["form_kwargs"] = form_kwargs
         kwargs["prefix"] = "chant_set"
