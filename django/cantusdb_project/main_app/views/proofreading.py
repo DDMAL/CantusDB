@@ -1,5 +1,6 @@
 # main_app/views.py (or wherever your ProofreadView is)
 
+from django.conf import settings
 from django.contrib.auth.mixins import LoginRequiredMixin, UserPassesTestMixin
 from django.db.models import (
     Q,
@@ -16,9 +17,6 @@ from django.utils import timezone
 import datetime
 
 from main_app.models import Source
-
-CANTUS_SEGMENT_ID = 4063
-BOWER_SEGMENT_ID = 4064
 
 
 class ProofreadView(LoginRequiredMixin, UserPassesTestMixin, ListView):
@@ -40,7 +38,7 @@ class ProofreadView(LoginRequiredMixin, UserPassesTestMixin, ListView):
         user = self.request.user
 
         queryset = Source.objects.filter(
-            Q(segment_m2m__id=CANTUS_SEGMENT_ID) & Q(number_of_chants__gt=0)
+            Q(segment_m2m__id=settings.CANTUS_SEGMENT_ID) & Q(number_of_chants__gt=0)
         ).select_related("holding_institution")
 
         is_project_manager = user.groups.filter(name="project manager").exists()

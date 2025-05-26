@@ -213,6 +213,9 @@ INTERNAL_IPS = [
 # the BulkEdit formset
 DATA_UPLOAD_MAX_NUMBER_FIELDS = 1010
 
+CANTUS_SEGMENT_ID = 4063
+BOWER_SEGMENT_ID = 4064
+
 if DEBUG:
     INSTALLED_APPS.append("debug_toolbar")
     INSTALLED_APPS.append("django_extensions")

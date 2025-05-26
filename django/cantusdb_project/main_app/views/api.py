@@ -1,5 +1,6 @@
 import csv
 from typing import Optional, Union, Any
+from django.conf import settings
 from django.contrib.auth import get_user_model
 from django.contrib.flatpages.models import FlatPage
 from django.core.exceptions import PermissionDenied
@@ -396,7 +397,7 @@ def json_sources_export(request) -> JsonResponse:
     """
     Generate a json object of published sources with their IDs and CSV links
     """
-    cantus_segment = Segment.objects.get(id=4063)
+    cantus_segment = Segment.objects.get(id=settings.CANTUS_SEGMENT_ID)
     sources = cantus_segment.sources.filter(published=True)
     ids = [source.id for source in sources]
 

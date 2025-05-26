@@ -1,6 +1,7 @@
 import re
 from typing import Any, Optional, Dict
 
+from django.conf import settings
 from django.contrib import messages
 from django.contrib.auth.mixins import LoginRequiredMixin
 from django.contrib.auth.mixins import UserPassesTestMixin
@@ -48,9 +49,6 @@ from main_app.permissions import (
 from main_app.mixins import JSONResponseMixin
 
 from main_app.views.chant import get_feast_selector_options
-
-CANTUS_SEGMENT_ID = 4063
-BOWER_SEGMENT_ID = 4064
 
 
 class SourceBrowseChantsView(UserPassesTestMixin, ListView):  # type: ignore[type-arg]
@@ -175,7 +173,9 @@ class SourceBrowseChantsView(UserPassesTestMixin, ListView):  # type: ignore[typ
     def get_context_data(self, **kwargs: Any) -> dict[str, Any]:
         context: dict[str, Any] = super().get_context_data(**kwargs)
         source: Source = self.source
-        if not CANTUS_SEGMENT_ID in source.segment_m2m.values_list("id", flat=True):
+        if not settings.CANTUS_SEGMENT_ID in source.segment_m2m.values_list(
+            "id", flat=True
+        ):
             # the chant list ("Browse Chants") page should only be visitable
             # for sources in the CANTUS Database segment, as sources in the Bower
             # segment contain no chants
@@ -191,7 +191,7 @@ class SourceBrowseChantsView(UserPassesTestMixin, ListView):  # type: ignore[typ
 
         # sources in the Bower Segment contain only Sequences and no Chants,
         # so they should not appear among the list of sources
-        cantus_segment: Segment = Segment.objects.get(id=CANTUS_SEGMENT_ID)
+        cantus_segment: Segment = Segment.objects.get(id=settings.CANTUS_SEGMENT_ID)
 
         # to be displayed in the "Source" dropdown in the form
         sources: QuerySet[Source] = (
@@ -294,7 +294,7 @@ class SourceDetailView(JSONResponseMixin, DetailView):  # type: ignore[type-arg]
 
         context = super().get_context_data(**kwargs)
 
-        if BOWER_SEGMENT_ID in source.segment_m2m.values_list("id", flat=True):
+        if settings.BOWER_SEGMENT_ID in source.segment_m2m.values_list("id", flat=True):
             # if this is a sequence source
             sequences = source.sequence_set.select_related("genre", "service")
             context["sequences"] = sequences.order_by("s_sequence")
@@ -584,7 +584,7 @@ class SourceEditView(LoginRequiredMixin, UserPassesTestMixin, UpdateView):  # ty
         source = self.object
         context = super().get_context_data(**kwargs)
 
-        if BOWER_SEGMENT_ID in source.segment_m2m.values_list("id", flat=True):
+        if settings.BOWER_SEGMENT_ID in source.segment_m2m.values_list("id", flat=True):
             # if this is a sequence source
             context["sequences"] = source.sequence_set.order_by("s_sequence")
             context["folios"] = (
@@ -649,7 +649,7 @@ class SourceInventoryView(TemplateView):
             raise PermissionDenied
 
         # 4064 is the id for the sequence database
-        if BOWER_SEGMENT_ID in source.segment_m2m.values_list("id", flat=True):
+        if settings.BOWER_SEGMENT_ID in source.segment_m2m.values_list("id", flat=True):
             queryset = (
                 source.sequence_set.annotate(record_type=Value("sequence"))
                 .order_by("s_sequence")

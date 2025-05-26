@@ -1,3 +1,4 @@
+from django.conf import settings
 from django.db.models import Count, Subquery, OuterRef, Aggregate, F, Q, Func
 from django.views.generic import DetailView, ListView
 
@@ -45,8 +46,8 @@ class InstitutionDetailView(DetailView):
 
         # Show the Cantus and Bower sources in separate tables, and pre-format
         # the external authority links.
-        cantus_segment = Segment.objects.get(id=4063)
-        bower_segment = Segment.objects.get(id=4064)
+        cantus_segment = Segment.objects.get(id=settings.CANTUS_SEGMENT_ID)
+        bower_segment = Segment.objects.get(id=settings.BOWER_SEGMENT_ID)
         cantus_sources = Source.objects.filter(
             holding_institution=institution, segment_m2m=cantus_segment
         ).select_related("holding_institution")
