@@ -7,6 +7,7 @@ from django.contrib.auth.views import (
     PasswordResetConfirmView,
     PasswordResetCompleteView,
 )
+from django.views.generic import TemplateView
 from main_app.views.api import (
     ajax_melody_list,
     ajax_melody_search,
@@ -377,6 +378,12 @@ urlpatterns = [
         "source/<int:source_id>/add-image-links",
         SourceAddImageLinksView.as_view(),
         name="source-add-image-links",
+    ),
+    # universal viewer
+    path(
+        "viewer/",
+        TemplateView.as_view(template_name="uv.html"),
+        name="universal-viewer",
     ),
     # melody
     path(

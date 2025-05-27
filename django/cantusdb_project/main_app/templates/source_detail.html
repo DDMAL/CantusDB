@@ -1,5 +1,6 @@
 {% extends "base_page_with_side_cards.html" %}
 {% load helper_tags %}
+{% load static %}
 {% block title %}<title>{{ source.heading }} | Cantus Database</title>{% endblock %}
 {% block scripts %}<script src="/static/js/source_detail.js"></script>{% endblock %}
 {% block uppersidebar %}
@@ -236,6 +237,19 @@
             {% if source.image_link %}
                 <a href="{{ source.image_link }}" class="guillemet" target="_blank">View images on external site</a>
             {% endif %}
+            {% for link in source.source_links.all %}
+                {% if link.url_type == 1 %}
+                    <a href="{% url 'universal-viewer' %}?manifest={{ link.url }}"
+                       class="guillemet"
+                       target="_blank">{{ link.get_url_type_display }} 
+                       <img src="{% static 'iiif.png' %}" alt="IIIF Icon" style="height: 1em; vertical-align: middle;"/>
+                    </a>
+                {% else %}
+                    <a href="{{ link.url }}"
+                       class="guillemet"
+                       target="_blank">{{ link.get_url_type_display }}</a>
+                {% endif %}
+            {% endfor %}
             <a href="{% url "csv-export" source.id %}"
                class="guillemet"
                target="_blank"
