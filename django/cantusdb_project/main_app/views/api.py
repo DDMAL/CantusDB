@@ -9,6 +9,7 @@ from django.http import HttpResponse, HttpResponseNotFound, Http404, HttpRequest
 from django.urls.base import reverse
 from django.shortcuts import get_object_or_404
 from django.views.decorators.http import require_GET
+from celery.result import AsyncResult
 import requests
 from requests.exceptions import Timeout, ConnectionError
 from articles.models import Article
@@ -714,3 +715,20 @@ def cid_concordances(request: HttpRequest) -> JsonResponse:
         }
         concordances_dict["databases"]["GRG"] = gregorien_database_dict
     return JsonResponse(concordances_dict)
+
+
+@require_GET
+def get_task_status(request: HttpRequest) -> JsonResponse:
+    if task_id := request.GET.get("taskID"):
+        result = AsyncResult(id=task_id)
+        if result.successful():
+            task_result = result.result
+            result.forget()
+            return JsonResponse({"status": "SUCCESS", "result": task_result})
+        else:
+            result_status = result.status
+            if result.failed():
+                result.forget()
+            return JsonResponse({"status": result_status})
+    else:
+        return JsonResponse({"error": "Must provide taskID parameter"})
