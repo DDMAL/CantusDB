@@ -234,20 +234,16 @@
                    class="guillemet"
                    target="_blank">View inventory with images</a>
             {% endif %}
-            {% if source.image_link %}
-                <a href="{{ source.image_link }}" class="guillemet" target="_blank">View images on external site</a>
-            {% endif %}
             {% for link in source.source_links.all %}
-                {% if link.url_type == 1 %}
-                    <a href="{% url 'universal-viewer' %}?manifest={{ link.url }}"
-                       class="guillemet"
-                       target="_blank">{{ link.get_url_type_display }} 
-                       <img src="{% static 'iiif.png' %}" alt="IIIF Icon" style="height: 1em; vertical-align: middle;"/>
+                {% if link.url_type == 1 %} {# IIIF Manifest #}
+                    <a href="{% static 'viewer/uv.html' %}#?manifest={{ link.url }}" class="guillemet" target="_blank">
+                        <img src="{% static 'iiif.png' %}" alt="IIIF icon" style="height: 1em; vertical-align: middle;">
+                        View Images on Cantus Database
                     </a>
                 {% else %}
-                    <a href="{{ link.url }}"
-                       class="guillemet"
-                       target="_blank">{{ link.get_url_type_display }}</a>
+                    <a href="{{ link.url }}" class="guillemet" target="_blank">
+                        {{ link.get_url_type_display }}
+                    </a>
                 {% endif %}
             {% endfor %}
             <a href="{% url "csv-export" source.id %}"
