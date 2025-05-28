@@ -2065,7 +2065,7 @@ files = [
 
 [[package]]
 name = "volpiano-display-utilities"
-version = "1.1.3"
+version = "1.2.0"
 description = "Provides a set of tools for the syllabification of latin chant texts and the alignment of chant texts with Volpiano-encoded melodies according to the conventionss of the Cantus Database."
 optional = false
 python-versions = "^3.8"
@@ -2076,8 +2076,8 @@ develop = false
 [package.source]
 type = "git"
 url = "https://github.com/DDMAL/volpiano-display-utilities.git"
-reference = "v1.1.3"
-resolved_reference = "fca558d8606ec5c8ba529b2e6883c4e82ba29a1e"
+reference = "v1.2.0"
+resolved_reference = "9e9cb2125d286d2436129d7956457cc2ecd33c00"
 
 [[package]]
 name = "wcwidth"
@@ -2112,4 +2112,4 @@ watchdog = ["watchdog (>=2.3)"]
 [metadata]
 lock-version = "2.1"
 python-versions = "^3.9"
-content-hash = "ccea8127ea97b73da52026fe399a11930fa7ec483b8cb50bb3e023c97da556fd"
+content-hash = "9933ff7e5eee152569d3be09decbb829962d94548215825dd4b76f7cda3d1527"
