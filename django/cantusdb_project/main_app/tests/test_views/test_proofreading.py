@@ -17,16 +17,15 @@ class ProofreadingOverviewViewTest(TestCase):
         Group.objects.create(name="editor")
         cls.cantus_segment = make_fake_segment(id=4063)
         cls.other_segment = make_fake_segment(id=4064, name="Other Segment")
+        cls.project_manager_user = get_user_model().objects.create_superuser(
+            "pm@example.com", "password"
+        )
+        project_manager_group = Group.objects.get(name="project manager")
+        project_manager_group.user_set.add(cls.project_manager_user)
+        cls.url = reverse("proofread-overview")
 
     def setUp(self):
-        self.client = Client()
-        self.user = get_user_model().objects.create_superuser(
-            "test@example.com", "password"
-        )
-        self.client.login(username="test@example.com", password="password")
-        self.url = reverse("proofread-overview")
-        project_manager = Group.objects.get(name="project manager")
-        project_manager.user_set.add(self.user)
+        self.client.login(username="pm@example.com", password="password")
 
     def test_url_exists_at_correct_location(self):
         response = self.client.get(self.url)
