@@ -13,16 +13,19 @@ from django.db.models import (
     Value,
 )
 from django.views.generic import ListView
+from django.views.generic.list import MultipleObjectMixin
 from django.utils import timezone
 import datetime
 
 from main_app.models import Source
 
 
-class ProofreadView(LoginRequiredMixin, UserPassesTestMixin, ListView):
+class ProofreadView(
+    LoginRequiredMixin, UserPassesTestMixin, ListView, MultipleObjectMixin
+):
     model = Source
     template_name = "proofreading_overview.html"
-    context_object_name = "sources_to_proofread"
+    context_object_name = "sources"
     paginate_by = 50
 
     def test_func(self):
@@ -279,6 +282,7 @@ class ProofreadView(LoginRequiredMixin, UserPassesTestMixin, ListView):
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
+        context["title"] = "Proofreading Overview"
         context["current_search_query"] = self.request.GET.get("q", "")
         context["current_order_param"] = self.request.GET.get(
             "order", "country"

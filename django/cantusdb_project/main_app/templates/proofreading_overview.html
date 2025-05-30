@@ -1,12 +1,15 @@
 {% extends "filterable_table_with_search_bar.html" %}
 {% load helper_tags %}
+{% load humanize %}
 
 {% block title %}<title>Proofreading Overview | Cantus Database</title>{% endblock %}
 
-{% block maincontent %}
-<h3>{{ title }}</h3>
-<p>Showing sources that contain chants requiring proofreading.</p>
+{% block heading %}
+    <h3>{{ title }}</h3>
+    <p>Showing sources that contain chants requiring proofreading.</p>
+{% endblock heading %}
 
+{% block list_filter_form %}
 <div class="row mb-3">
     <div class="col-md-8">
         <form method="get" action="{% url 'proofread-overview' %}">
@@ -31,8 +34,10 @@
         </form>
     </div>
 </div>
+{% endblock list_filter_form %}
 
-{% if sources_to_proofread %}
+{% block list_table %}
+    {% if sources %}
     <div class="table-responsive">
         <table class="table table-sm small table-bordered table-hover">
             <thead class="thead-light">
@@ -52,7 +57,7 @@
                 </tr>
             </thead>
             <tbody>
-                {% for source in sources_to_proofread %}
+                {% for source in sources %}
                 <tr>
                     <td class="text-wrap" style="text-align:center">{{ source.holding_institution.country|default_if_none:"" }}</td>
                     <td class="text-wrap" style="text-align:center">
@@ -129,8 +134,9 @@
             </tbody>
         </table>
     </div>
-    {% include "pagination.html" %}
-{% else %}
+    {% endif %}
+{% endblock list_table %}
+
+{% block no_results_msg %}
     <p>No sources currently require proofreading attention based on the criteria{% if request.GET.q %} for your search "{{ request.GET.q }}"{% endif %}.</p>
-{% endif %}
-{% endblock %}
+{% endblock no_results_msg %}
