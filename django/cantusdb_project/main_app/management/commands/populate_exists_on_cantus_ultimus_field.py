@@ -37,7 +37,7 @@ class Command(BaseCommand):
                 )
                 return
         else:  # No source argument provided, update all sources
-            sources = Source.objects.filter(segment=settings.CANTUS_SEGMENT_ID)
+            sources = Source.objects.filter(segment_m2m=settings.CANTUS_SEGMENT_ID)
             for source in sources:
                 self.update_exists_on_cantus_ultimus(source)
 
