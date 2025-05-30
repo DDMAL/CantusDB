@@ -81,10 +81,10 @@ class ProofreadingOverviewViewTest(TestCase):
         response = self.client.get(self.url)
 
         # Check that the editor only sees source1 and source2
-        sources_to_proofread = response.context["sources_to_proofread"]
-        self.assertIn(source1, sources_to_proofread)
-        self.assertIn(source2, sources_to_proofread)
-        self.assertNotIn(source3, sources_to_proofread)
+        sources = response.context["sources"]
+        self.assertIn(source1, sources)
+        self.assertIn(source2, sources)
+        self.assertNotIn(source3, sources)
 
     def test_context_data(self):
         source1 = make_fake_source(title="Source 1", segment=[self.cantus_segment])
@@ -92,18 +92,18 @@ class ProofreadingOverviewViewTest(TestCase):
         source2 = make_fake_source(title="Source 2", segment=[self.cantus_segment])
         chant1 = make_fake_chant(source=source1)
         response = self.client.get(self.url)
-        sources_to_proofread = response.context["sources_to_proofread"]
-        self.assertIn(source1, sources_to_proofread)
-        self.assertNotIn(source2, sources_to_proofread)
+        sources = response.context["sources"]
+        self.assertIn(source1, sources)
+        self.assertNotIn(source2, sources)
 
     def test_search_functionality(self):
         source1 = make_fake_source(title="Test Source", segment=[self.cantus_segment])
         make_fake_chant(source=source1)
         response = self.client.get(self.url, {"q": "Test"})
-        self.assertIn(source1, response.context["sources_to_proofread"])
+        self.assertIn(source1, response.context["sources"])
 
         response = self.client.get(self.url, {"q": "NonExistent"})
-        self.assertEqual(len(response.context["sources_to_proofread"]), 0)
+        self.assertEqual(len(response.context["sources"]), 0)
 
     def test_sortable_headers(self):
         response = self.client.get(self.url, {"order": "country"})
@@ -119,12 +119,12 @@ class ProofreadingOverviewViewTest(TestCase):
         response = self.client.get(self.url, {"page": 1})
         self.assertEqual(response.status_code, 200)
         self.assertTrue("page_obj" in response.context)
-        self.assertEqual(len(response.context["sources_to_proofread"]), 50)
+        self.assertEqual(len(response.context["sources"]), 50)
 
         response2 = self.client.get(self.url, {"page": 2})
         self.assertEqual(response2.status_code, 200)
         self.assertTrue("page_obj" in response2.context)
-        self.assertEqual(len(response2.context["sources_to_proofread"]), 10)
+        self.assertEqual(len(response2.context["sources"]), 10)
 
     def test_proofreading_stats_display(self):
         source = make_fake_source(segment=[self.cantus_segment], title="Stats Source")
@@ -212,7 +212,7 @@ class ProofreadingOverviewViewTest(TestCase):
 
         # Retrieve the source from the context
         # The queryset is paginated, so we get the first item if it exists
-        sources_in_context = response.context["sources_to_proofread"]
+        sources_in_context = response.context["sources"]
         self.assertTrue(len(sources_in_context) > 0, "Source not found in context")
 
         source_from_context = None
@@ -286,6 +286,6 @@ class ProofreadingOverviewViewTest(TestCase):
         response = self.client.get(self.url)
 
         # Check that only the source in the correct segment is displayed
-        sources_to_proofread = response.context["sources_to_proofread"]
-        self.assertIn(source_correct_segment, sources_to_proofread)
-        self.assertNotIn(source_other_segment, sources_to_proofread)
+        sources = response.context["sources"]
+        self.assertIn(source_correct_segment, sources)
+        self.assertNotIn(source_other_segment, sources)
