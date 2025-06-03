@@ -11,7 +11,6 @@ https://docs.djangoproject.com/en/3.0/ref/settings/
 """
 
 import os
-from distutils.util import strtobool
 from django.contrib.messages import constants as messages
 
 # https://ordinarycoders.com/blog/article/django-messages-framework
@@ -212,6 +211,10 @@ INTERNAL_IPS = [
 # Default is 1000, but we need a few more for
 # the BulkEdit formset
 DATA_UPLOAD_MAX_NUMBER_FIELDS = 1010
+
+# Celery configurations
+CELERY_BROKER_URL = "redis://redis:6379/0"
+CELERY_RESULT_BACKEND = "redis://redis:6379/0"
 
 if DEBUG:
     INSTALLED_APPS.append("debug_toolbar")

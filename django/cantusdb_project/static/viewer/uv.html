@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta http-equiv="X-UA-Compatible" content="ie=edge" />
+    <link rel="icon" href="https://cdn.jsdelivr.net/npm/universalviewer@4.0.22/dist/favicon.ico" />
+    <title>Cantus Database: Viewing IIIF Images</title>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/universalviewer@4.0.22/dist/uv.css" />
+    <script type="application/javascript"
+            src="https://cdn.jsdelivr.net/npm/universalviewer@4.0.22/dist/umd/UV.js"></script>
+    <style>
+        body {
+            padding: 0;
+            margin: 0;
+        }
+        #uv {
+            width: 100vw;
+            height: 100vh;
+        }
+    </style>
+</head>
+<body>
+<div class="uv" id="uv"></div>
+
+<script>
+    const urlAdaptor = new UV.IIIFURLAdaptor();
+    const manifestFromUrl = urlAdaptor.get("manifest");
+
+    if (manifestFromUrl !== undefined)
+    {
+        const data = urlAdaptor.getInitialData({
+            manifest: manifestFromUrl,
+        });
+
+        uv = UV.init("uv", data);
+        urlAdaptor.bindTo(uv);
+    }
+</script>
+</body>
+</html>

@@ -137,21 +137,82 @@ window.addEventListener("load", function () {
         window.location.assign(url);
     }
 
+    function clearErrors() {
+        const alert = document.getElementById("formsetErrorAlert");
+        alert.replaceChildren();
+        alert.classList.add("d-none");
+    }
 
-    // See #1786: Temporarily turning off the bulk edit functionality
-    // until we can get it working.
-    // Use #bulkChantEditToggle button to toggle the bulk chant edit form.
-    // const userCanEditChants = document.getElementById("data-user-can-edit-chants").textContent === "true";
-    // if (userCanEditChants) {
-    //     const bulkChantEditToggle = document.getElementById("bulkChantEditToggle");
-    //     const bulkChantEditForm = document.getElementById("bulkChantEditForm");
-    //     const chantDisplayTable = document.getElementById("chantDisplayTable");
-    //     const bulkChantEditSubmit = document.getElementById("bulkChantEditSubmit");
-    //     bulkChantEditToggle.addEventListener("click", function () {
-    //         bulkChantEditForm.classList.toggle("d-none");
-    //         chantDisplayTable.classList.toggle("d-none");
-    //         bulkChantEditSubmit.classList.toggle("d-none");
-    //         bulkChantEditToggle.textContent = bulkChantEditForm.classList.contains("d-none") ? "Bulk Edit Chants" : "Stop Editing";
-    //     });
-    // }
+    function addError(msg) {
+        const alert = document.getElementById("formsetErrorAlert");
+        const alertMessage = document.createElement("div");
+        alertMessage.innerText = msg;
+        alert.appendChild(alertMessage);
+        if (alert.classList.contains("d-none")) {
+            alert.classList.remove("d-none");
+        }
+    };
+
+    function toggleBulkEditForm(bulkChantEditForm, chantDisplayTable, bulkChantEditSubmit, bulkChantEditToggle) {
+        bulkChantEditForm.classList.toggle("d-none");
+        chantDisplayTable.classList.toggle("d-none");
+        bulkChantEditSubmit.classList.toggle("d-none");
+        bulkChantEditToggle.textContent = bulkChantEditForm.classList.contains("d-none") ? "Bulk Edit Chants" : "Stop Editing";
+    }
+
+    function submitBulkEditForm(bulkChantEditForm, bulkEditLoading) {
+        const editFormData = new FormData(bulkChantEditForm);
+        fetch(document.URL, { method: "POST", body: editFormData })
+            .then(response => {
+                clearErrors();
+                if (response.status === 200) {
+                    return response.json();
+                } else {
+                    throw new Error("Form submission failed. Please try again.");
+                }
+            })
+            .then(data => {
+                const taskID = data["taskID"];
+                bulkEditLoading.classList.remove("d-none");
+                const interval = setInterval(() => {
+                    fetch(`/task-status?taskID=${taskID}`)
+                        .then(response => {
+                            if (response.status === 200) {
+                                return response.json();
+                            }
+                        })
+                        .then(data => {
+                            if (data.status === "SUCCESS") {
+                                clearInterval(interval);
+                                bulkEditLoading.classList.add("d-none");
+                                const result = data.result;
+                                if (result.error_count === 0) {
+                                    window.location.reload();
+                                } else {
+                                    result.non_form_errors.forEach(error => addError(error));
+                                    result.form_errors.forEach(error => {
+                                        addError(`Error on chant ${error[0] + 1}, ${error[1]}: ${error[2]}`);
+                                    });
+                                }
+                            } else if (data.status === "FAILURE") {
+                                clearInterval(interval);
+                                addError("Form submission failed. Please try again.");
+                                bulkEditLoading.classList.add("d-none");
+                            }
+                        });
+                }, 3000);
+            }, (e) => { addError(e.message) });
+    }
+
+    const userCanEditChants = document.getElementById("data-user-can-edit-chants").textContent === "true";
+    if (userCanEditChants) {
+        const bulkChantEditToggle = document.getElementById("bulkChantEditToggle");
+        const bulkChantEditForm = document.getElementById("bulkChantEditForm");
+        const chantDisplayTable = document.getElementById("chantDisplayTable");
+        const bulkChantEditSubmit = document.getElementById("bulkChantEditSubmit");
+        const bulkEditLoading = document.getElementById("bulkEditLoading");
+
+        bulkChantEditToggle.addEventListener("click", () => toggleBulkEditForm(bulkChantEditForm, chantDisplayTable, bulkChantEditSubmit, bulkChantEditToggle));
+        bulkChantEditSubmit.addEventListener("click", () => submitBulkEditForm(bulkChantEditForm, bulkEditLoading));
+    }
 });

@@ -21,13 +21,8 @@
             {{ message }}
         </div>
     {% endfor %}
-    <!--Display form error message -->
-    {% if bulk_edit_formset.errors %}
-        <div class="alert alert-danger alert-dismissible">
-            <a href="#" class="close" data-bs-dismiss="alert" aria-label="close">×</a>
-            {% for error in bulk_edit_formset.errors %}<div>{{ error }}</div>{% endfor %}
-        </div>
-    {% endif %}
+    <!--Container for formset errors (if any) -- populated by JS -->
+    <div id="formsetErrorAlert" class="alert alert-danger d-none"></div>
     <h3>Browse Chants</h3>
     <span class="small">Displaying {{ page_obj.start_index }}-{{ page_obj.end_index }} of <b>{{ page_obj.paginator.count }}</b> chants.</span>
     <form method="get">
@@ -109,16 +104,22 @@
             </fieldset>
         {% endif %}
     </form>
-    {% comment "See #1786: Temporarily turning off the bulk edit functionality until we can get it working." %}
     {% if user_can_edit_chant %}
         <div class="text-end mt-2">
+            <div id="bulkEditMessage" class="d-none"></div>
+            <div id="bulkEditLoading"
+                 class="spinner-border text-success d-none"
+                 role="status">
+                <span class="visually-hidden">Loading...</span>
+            </div>
             <button id="bulkChantEditToggle" type="button" class="btn btn-sm btn-primary">
                 Bulk Edit Chants
             </button>
-            <button id="bulkChantEditSubmit" type="submit" form="bulkChantEditForm" class="btn btn-sm btn-dark d-none">Save Changes</button>
+            <button id="bulkChantEditSubmit"
+                    type="button"
+                    class="btn btn-sm btn-dark d-none">Save Changes</button>
         </div>
     {% endif %}
-    {% endcomment %}
     {% with exists_on_cantus_ultimus=source.exists_on_cantus_ultimus %}
         {% if chants %}
             <table id="chantDisplayTable"
@@ -199,9 +200,8 @@
                     {% endfor %}
                 </tbody>
             </table>
-            {% comment  "See #1786: Temporarily turning off the bulk edit functionality until we can get it working." %}
             {% if user_can_edit_chant %}
-                <form id="bulkChantEditForm" class="d-none" method="post">
+                <form id="bulkChantEditForm" class="d-none mt-3" method="post">
                     {% csrf_token %}
                     {{ bulk_edit_formset.management_form }}
                     <div class="table-responsive">
@@ -241,7 +241,6 @@
                     </div>
                 </form>
             {% endif %}
-            {% endcomment %}
             <div class="small">{% include "pagination.html" %}</div>
         {% else %}
             No chants found.
@@ -261,9 +260,7 @@
                 <!--a small selector of all folios of this source-->
                 <select name="folio" id="folioFilter" class="w-30">
                     <option value="">Select a folio:</option>
-                    {% for folio in folios %}
-                        <option value="{{ folio }}">{{ folio }}</option>
-                    {% endfor %}
+                    {% for folio in folios %}<option value="{{ folio }}">{{ folio }}</option>{% endfor %}
                 </select>
                 {% if previous_folio %}
                     <a href="{% url "browse-chants" source.id %}?folio={{ previous_folio }}">{{ previous_folio }} <</a>
