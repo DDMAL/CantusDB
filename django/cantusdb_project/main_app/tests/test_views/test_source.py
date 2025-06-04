@@ -63,6 +63,11 @@ class SourceCreateViewTest(TestCase):
                 "shelfmark": "test-shelfmark",  # shelfmark is a required field
                 "source_completeness": "1",  # required field
                 "production_method": "1",  # required field
+                # SourceURL formset management form fields
+                "source_links-TOTAL_FORMS": "0",
+                "source_links-INITIAL_FORMS": "0",
+                "source_links-MIN_NUM_FORMS": "0",
+                "source_links-MAX_NUM_FORMS": "1000",
             },
         )
         self.assertEqual(response.status_code, 302)
@@ -115,6 +120,11 @@ class SourceEditViewTest(TestCase):
                 "shelfmark": "test-shelfmark",  # shelfmark is a required field,
                 "source_completeness": "1",  # required field
                 "production_method": "1",  # required field
+                # SourceURL formset management form fields
+                "source_links-TOTAL_FORMS": "0",
+                "source_links-INITIAL_FORMS": "0",
+                "source_links-MIN_NUM_FORMS": "0",
+                "source_links-MAX_NUM_FORMS": "1000",
             },
         )
 
