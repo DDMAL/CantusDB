@@ -20,6 +20,7 @@ from .models import (
     Notation,
     Feast,
     Source,
+    SourceURL,
     Segment,
     Project,
     Provenance,
@@ -173,6 +174,32 @@ class FormsetOptimizedModelChoiceField(forms.ModelChoiceField):
         self.choices = choices
 
 
+class SourceURLForm(forms.ModelForm):
+    class Meta:
+        model = SourceURL
+        fields = ["url", "url_type", "url_description"]
+        labels = {
+            "url": "URL",
+            "url_type": "URL Type",
+            "url_description": "URL Description",
+        }
+        widgets = {
+            "url": TextInputWidget(),
+            "url_type": SelectWidget(),
+            "url_description": TextInputWidget(),
+        }
+
+
+SourceURLFormSet = forms.inlineformset_factory(
+    Source,
+    SourceURL,
+    form=SourceURLForm,
+    extra=1,
+    can_delete=True,
+    fields=["url", "url_type", "url_description"],
+)
+
+
 class ChantCreateForm(forms.ModelForm):
     class Meta:
         model = Chant
@@ -323,7 +350,6 @@ class SourceCreateForm(forms.ModelForm):
             "summary",
             "description",
             "selected_bibliography",
-            "image_link",
             "fragmentarium_id",
             "dact_id",
             "indexing_notes",
@@ -345,7 +371,6 @@ class SourceCreateForm(forms.ModelForm):
             "summary": TextAreaWidget(),
             "description": MarkdownWidget(),
             "selected_bibliography": MarkdownWidget(),
-            "image_link": TextInputWidget(),
             "fragmentarium_id": TextInputWidget(),
             "dact_id": TextInputWidget(),
             "indexing_notes": TextAreaWidget(),
@@ -552,7 +577,6 @@ class SourceEditForm(forms.ModelForm):
             "liturgical_occasions",
             "description",
             "selected_bibliography",
-            "image_link",
             "fragmentarium_id",
             "dact_id",
             "indexing_notes",
@@ -581,7 +605,6 @@ class SourceEditForm(forms.ModelForm):
             "liturgical_occasions": TextAreaWidget(),
             "description": MarkdownWidget(),
             "selected_bibliography": MarkdownWidget(),
-            "image_link": TextInputWidget(),
             "fragmentarium_id": TextInputWidget(),
             "dact_id": TextInputWidget(),
             "indexing_notes": TextAreaWidget(),
@@ -1099,7 +1122,6 @@ class BrowseChantsBulkEditForm(forms.ModelForm):
 
 
 class BaseBrowseChantsBulkEditFormset(forms.BaseModelFormSet):
-
     def __init__(self, *args: Any, **kwargs: Any) -> None:
         """
         Override the formset initialization to do a single

@@ -18,18 +18,31 @@
                     </div>
                 {% endif %}
                 <!--Display form error message -->
-                {% if form.errors %}
+                {% if form.errors or source_url_formset.errors %}
                     <div class="alert alert-danger alert-dismissible">
                         <a href="#" class="close" data-bs-dismiss="alert" aria-label="close">×</a>
+                        <strong>Please correct the errors below:</strong>
+                        
+                        {% comment %}Main form errors{% endcomment %}
                         {% for error in form.non_field_errors %}
-                            <a href="#" class="close" data-bs-dismiss="alert" aria-label="close">×</a>
-                            {{ error }}
+                            <div>• {{ error }}</div>
                         {% endfor %}
                         {% for field in form %}
-                            {% if field.errors %}
-                                <a href="#" class="close" data-bs-dismiss="alert" aria-label="close">×</a>
-                                {{ field.label }}: {{ field.errors|striptags }}
-                            {% endif %}
+                            {% for error in field.errors %}
+                                <div>• {{ field.label }}: {{ error }}</div>
+                            {% endfor %}
+                        {% endfor %}
+                        
+                        {% comment %}Formset errors{% endcomment %}
+                        {% for error in source_url_formset.non_form_errors %}
+                            <div>• {{ error }}</div>
+                        {% endfor %}
+                        {% for form_error in source_url_formset.errors %}
+                            {% for field, errors in form_error.items %}
+                                {% for error in errors %}
+                                    <div>• Source URL {{ field }}: {{ error }}</div>
+                                {% endfor %}
+                            {% endfor %}
                         {% endfor %}
                     </div>
                 {% endif %}
@@ -167,11 +180,12 @@
                         </div>
                     </div>
                     <div class="row mb-2 small">
-                        <div class="col-lg-6">
-                            {{ form.image_link.label_tag }}
-                            {{ form.image_link }}
-                            <p class="text-muted m-0">{{ form.image_link.help_text }}</p>
+                        <div class="col-lg-12">
+                            <h6>Source URLs</h6>
+                            {% include "formset.html" with formset=source_url_formset %}
                         </div>
+                    </div>
+                    <div class="row mb-2 small">
                         <div class="col-lg-2">
                             <label for="{{ form.fragmentarium_id.id_for_label }}">Fragmentarium ID:</label>
                             {{ form.fragmentarium_id }}

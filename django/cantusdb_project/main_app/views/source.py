@@ -30,6 +30,7 @@ from main_app.forms import (
     SourceCreateForm,
     SourceEditForm,
     SourceBrowseChantsProofreadForm,
+    SourceURLFormSet,
     ImageLinkForm,
     BrowseChantsBulkEditFormset,
 )
@@ -519,23 +520,41 @@ class SourceCreateView(LoginRequiredMixin, UserPassesTestMixin, CreateView):
     def get_success_url(self):
         return reverse("source-detail", args=[self.object.id])
 
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        if self.request.POST:
+            context["source_url_formset"] = SourceURLFormSet(
+                self.request.POST, instance=self.object
+            )
+        else:
+            context["source_url_formset"] = SourceURLFormSet(instance=self.object)
+        return context
+
     def form_valid(self, form):
-        form.instance.created_by = self.request.user
-        form.instance.last_updated_by = self.request.user
-        self.object = form.save()
+        context = self.get_context_data()
+        source_url_formset = context["source_url_formset"]
 
-        # assign this source to the "current_editors"
-        current_editors = self.object.current_editors.all()
-        self.request.user.sources_user_can_edit.add(self.object)
+        if source_url_formset.is_valid():
+            form.instance.created_by = self.request.user
+            form.instance.last_updated_by = self.request.user
+            self.object = form.save()
+            source_url_formset.instance = self.object
+            source_url_formset.save()
 
-        for editor in current_editors:
-            editor.sources_user_can_edit.add(self.object)
+            # assign this source to the "current_editors"
+            current_editors = self.object.current_editors.all()
+            self.request.user.sources_user_can_edit.add(self.object)
 
-        messages.success(
-            self.request,
-            "Source created successfully!",
-        )
-        return HttpResponseRedirect(self.get_success_url())
+            for editor in current_editors:
+                editor.sources_user_can_edit.add(self.object)
+
+            messages.success(
+                self.request,
+                "Source created successfully!",
+            )
+            return HttpResponseRedirect(self.get_success_url())
+        else:
+            return self.render_to_response(self.get_context_data(form=form))
 
 
 class SourceDeleteView(LoginRequiredMixin, UserPassesTestMixin, DeleteView):
@@ -568,6 +587,13 @@ class SourceEditView(LoginRequiredMixin, UserPassesTestMixin, UpdateView):  # ty
         source = self.object
         context = super().get_context_data(**kwargs)
 
+        if self.request.POST:
+            context["source_url_formset"] = SourceURLFormSet(
+                self.request.POST, instance=self.object
+            )
+        else:
+            context["source_url_formset"] = SourceURLFormSet(instance=self.object)
+
         if BOWER_SEGMENT_ID in source.segment_m2m.values_list("id", flat=True):
             # if this is a sequence source
             context["sequences"] = source.sequence_set.order_by("s_sequence")
@@ -598,24 +624,31 @@ class SourceEditView(LoginRequiredMixin, UserPassesTestMixin, UpdateView):  # ty
         return user_can_edit_source(user, source)
 
     def form_valid(self, form):
-        form.instance.last_updated_by = self.request.user
+        context = self.get_context_data()
+        source_url_formset = context["source_url_formset"]
 
-        # remove this source from the old "current_editors"
-        # assign this source to the new "current_editors"
+        if source_url_formset.is_valid():
+            form.instance.last_updated_by = self.request.user
 
-        old_current_editors = list(
-            Source.objects.get(id=form.instance.id).current_editors.all()
-        )
-        new_current_editors = form.cleaned_data["current_editors"]
-        source = form.save()
+            # remove this source from the old "current_editors"
+            # assign this source to the new "current_editors"
 
-        for old_editor in old_current_editors:
-            old_editor.sources_user_can_edit.remove(source)
+            old_current_editors = list(
+                Source.objects.get(id=form.instance.id).current_editors.all()
+            )
+            new_current_editors = form.cleaned_data["current_editors"]
+            source = form.save()
+            source_url_formset.save()
 
-        for new_editor in new_current_editors:
-            new_editor.sources_user_can_edit.add(source)
+            for old_editor in old_current_editors:
+                old_editor.sources_user_can_edit.remove(source)
 
-        return HttpResponseRedirect(self.get_success_url())
+            for new_editor in new_current_editors:
+                new_editor.sources_user_can_edit.add(source)
+
+            return HttpResponseRedirect(self.get_success_url())
+        else:
+            return self.render_to_response(self.get_context_data(form=form))
 
 
 class SourceInventoryView(TemplateView):
