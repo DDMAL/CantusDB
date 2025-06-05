@@ -55,7 +55,8 @@
            aria-haspopup="true"
            aria-expanded="false">SOURCES</a>
         <div class="dropdown-menu" aria-labelledby="navbarDropdownLinkSources">
-            <a class="dropdown-item" href="{% url 'source-list' %}?segment=4063">Cantus Sources</a>
+            <a class="dropdown-item" href="{% url 'source-list' %}">All Sources</a>
+            <a class="dropdown-item" href="{% url 'source-list' %}?segment=4063">Cantus DB: Sources with Inventories</a>
             <a class="dropdown-item" href="{% url 'source-list' %}?segment=4064">Sequence Database (Clavis Sequentiarum by Calvin Bower)</a>
             <a class="dropdown-item"
                href="{% url 'canadian-chant-db-source-list' %}">Canadian Chant Database</a>
