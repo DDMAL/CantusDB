@@ -1,0 +1,6 @@
+{% load humanize %}
+<div class="row">
+    <p class="col small mx-0">
+        Displaying {{ page_obj.start_index|intcomma }}-{{ page_obj.end_index|intcomma }} of <b>{{ page_obj.paginator.count|intcomma }}</b> {{ view.context_object_name }}.
+    </p>
+</div>

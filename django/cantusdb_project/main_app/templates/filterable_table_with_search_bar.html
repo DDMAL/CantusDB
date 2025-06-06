@@ -1,5 +1,4 @@
 {% extends "single_column_with_search_bar.html" %}
-{% load humanize %}
 {# A template for use with list pages. The template introduces the following blocks:
     - results_count: a block for the object count displayed beneath the header
     - list_filter_form: a block for the form displayed above the table that powers list/table filtering
@@ -15,11 +14,7 @@
 #}
 {% block maincontent %}
     {% block results_count %}
-        <div class="row">
-            <p class="col small mx-0">
-                Displaying {{ page_obj.start_index|intcomma }}-{{ page_obj.end_index|intcomma }} of <b>{{ page_obj.paginator.count|intcomma }}</b> {{ view.context_object_name }}.
-            </p>
-        </div>
+        {% include "page_count.html" %}
     {% endblock %}
     <div class="row mb-3">
         <div class="col">
