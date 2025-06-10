@@ -12,18 +12,31 @@
 {% endblock %}
 {% block maincontent %}
     <!--Display form error message -->
-    {% if form.errors %}
+    {% if form.errors or source_url_formset.errors %}
         <div class="alert alert-danger alert-dismissible">
             <a href="#" class="close" data-bs-dismiss="alert" aria-label="close">×</a>
+            <strong>Please correct the errors below:</strong>
+            
+            {% comment %}Main form errors{% endcomment %}
             {% for error in form.non_field_errors %}
-                <a href="#" class="close" data-bs-dismiss="alert" aria-label="close">×</a>
-                {{ error }}
+                <div>• {{ error }}</div>
             {% endfor %}
             {% for field in form %}
-                {% if field.errors %}
-                    <a href="#" class="close" data-bs-dismiss="alert" aria-label="close">×</a>
-                    {{ field.label }}: {{ field.errors|striptags }}
-                {% endif %}
+                {% for error in field.errors %}
+                    <div>• {{ field.label }}: {{ error }}</div>
+                {% endfor %}
+            {% endfor %}
+            
+            {% comment %}Formset errors{% endcomment %}
+            {% for error in source_url_formset.non_form_errors %}
+                <div>• {{ error }}</div>
+            {% endfor %}
+            {% for form_error in source_url_formset.errors %}
+                {% for field, errors in form_error.items %}
+                    {% for error in errors %}
+                        <div>• Source URL {{ field }}: {{ error }}</div>
+                    {% endfor %}
+                {% endfor %}
             {% endfor %}
         </div>
     {% endif %}
@@ -179,9 +192,8 @@
         </div>
         <div class="row mb-2 small">
             <div class="col-lg-12">
-                {{ form.image_link.label_tag }}
-                {{ form.image_link }}
-                HTTP link to the image gallery of the source.
+                <h6>Source URLs</h6>
+                {% include "formset.html" with formset=source_url_formset %}
             </div>
         </div>
         <div class="row mb-2 small">
@@ -200,11 +212,9 @@
                 {{ form.indexing_notes }}
             </div>
         </div>
-        <div class="row">
-            <div class="col-lg-1">
-                <button type="submit" class="btn btn-dark btn-sm" id="btn-submit">Save</button>
-            </div>
-            <div class="col-lg-2">
+        <div class="row mb-3">
+            <div class="col-lg-12">
+                <button type="submit" class="btn btn-dark btn-sm me-2" id="btn-submit">Save</button>
                 <a href="{% url "source-delete" source.id %}"
                    class="btn btn-danger btn-sm"
                    id="btn-delete">Delete</a>
@@ -247,9 +257,18 @@
                    class="guillemet"
                    target="_blank">View inventory with images</a>
             {% endif %}
-            {% if source.image_link %}
-                <a href="{{ source.image_link }}" class="guillemet" target="_blank">View images on external site</a>
-            {% endif %}
+            {% for link in source.source_links.all %}
+                {% if link.url_type == 1 %} {# IIIF Manifest #}
+                    <a href="{% static 'viewer/uv.html' %}#?manifest={{ link.url }}" class="guillemet" target="_blank">
+                        View Images on Cantus Database
+                        <img src="{% static 'iiif.png' %}" alt="IIIF icon" style="height: 1em; vertical-align: middle;">
+                    </a>
+                {% else %}
+                    <a href="{{ link.url }}" class="guillemet" target="_blank">
+                        {{ link.get_url_type_display }}
+                    </a>
+                {% endif %}
+            {% endfor %}
             <a href="{% url "csv-export" source.id %}"
                class="guillemet"
                target="_blank"

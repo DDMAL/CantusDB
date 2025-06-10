@@ -20,6 +20,7 @@ from .models import (
     Notation,
     Feast,
     Source,
+    SourceURL,
     Segment,
     Project,
     Provenance,
@@ -173,6 +174,74 @@ class FormsetOptimizedModelChoiceField(forms.ModelChoiceField):
         self.choices = choices
 
 
+class SourceURLForm(forms.ModelForm):
+    def __init__(self, *args, user=None, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.user = user
+        # Filter out IIIF Manifest option if user is not a project manager
+        if not (
+            self.user
+            and self.user.is_authenticated
+            and self.user.groups.filter(name="project manager").exists()
+        ):
+            # Get current choices (includes empty choice automatically added by Django)
+            current_choices = list(self.fields["url_type"].choices)
+            # Filter out IIIF Manifest but keep empty choice and other options
+            filtered_choices = []
+            for choice in current_choices:
+                # Keep empty choice (value is empty string or None)
+                if choice[0] == "" or choice[0] is None:
+                    filtered_choices.append(choice)
+                # Keep non-IIIF choices
+                elif choice[0] != SourceURL.URLTypes.IIIF_MANIFEST:
+                    filtered_choices.append(choice)
+            self.fields["url_type"].choices = filtered_choices
+
+    def clean_url_type(self):
+        url_type = self.cleaned_data.get("url_type")
+        is_project_manager = (
+            self.user
+            and self.user.is_authenticated
+            and self.user.groups.filter(name="project manager").exists()
+        )
+
+        if url_type == SourceURL.URLTypes.IIIF_MANIFEST and not is_project_manager:
+            raise ValidationError(
+                "You do not have permission to select 'IIIF Manifest' as the URL type.",
+                code="invalid_choice",
+            )
+        return url_type
+
+    class Meta:
+        model = SourceURL
+        fields = ["url", "url_type", "url_description"]
+        labels = {
+            "url": "URL",
+            "url_type": "URL Type",
+            "url_description": "URL Description",
+        }
+        widgets = {
+            "url": TextInputWidget(),
+            "url_type": SelectWidget(),
+            "url_description": TextInputWidget(),
+        }
+
+
+def get_source_url_formset(user=None):
+    class SourceURLFormWithUser(SourceURLForm):
+        def __init__(self, *args, **kwargs):
+            super().__init__(*args, user=user, **kwargs)
+
+    return forms.inlineformset_factory(
+        Source,
+        SourceURL,
+        form=SourceURLFormWithUser,
+        extra=1,
+        can_delete=True,
+        fields=["url", "url_type", "url_description"],
+    )
+
+
 class ChantCreateForm(forms.ModelForm):
     class Meta:
         model = Chant
@@ -323,7 +392,6 @@ class SourceCreateForm(forms.ModelForm):
             "summary",
             "description",
             "selected_bibliography",
-            "image_link",
             "fragmentarium_id",
             "dact_id",
             "indexing_notes",
@@ -345,7 +413,6 @@ class SourceCreateForm(forms.ModelForm):
             "summary": TextAreaWidget(),
             "description": MarkdownWidget(),
             "selected_bibliography": MarkdownWidget(),
-            "image_link": TextInputWidget(),
             "fragmentarium_id": TextInputWidget(),
             "dact_id": TextInputWidget(),
             "indexing_notes": TextAreaWidget(),
@@ -552,7 +619,6 @@ class SourceEditForm(forms.ModelForm):
             "liturgical_occasions",
             "description",
             "selected_bibliography",
-            "image_link",
             "fragmentarium_id",
             "dact_id",
             "indexing_notes",
@@ -581,7 +647,6 @@ class SourceEditForm(forms.ModelForm):
             "liturgical_occasions": TextAreaWidget(),
             "description": MarkdownWidget(),
             "selected_bibliography": MarkdownWidget(),
-            "image_link": TextInputWidget(),
             "fragmentarium_id": TextInputWidget(),
             "dact_id": TextInputWidget(),
             "indexing_notes": TextAreaWidget(),
@@ -1099,7 +1164,6 @@ class BrowseChantsBulkEditForm(forms.ModelForm):
 
 
 class BaseBrowseChantsBulkEditFormset(forms.BaseModelFormSet):
-
     def __init__(self, *args: Any, **kwargs: Any) -> None:
         """
         Override the formset initialization to do a single

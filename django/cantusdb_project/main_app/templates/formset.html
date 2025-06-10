@@ -1,0 +1,64 @@
+{% load static %}
+
+<div class="source-url-formset">
+    {{ formset.management_form }}
+    
+    <table class="table table-sm">
+        {% for form in formset.forms %}
+            {% if forloop.first %}
+                <thead>
+                    <tr>
+                        {% for field in form.visible_fields %}
+                            <th>{{ field.label }}</th>
+                        {% endfor %}
+                        <th>Action</th>
+                    </tr>
+                </thead>
+            {% endif %}
+            <tr class="{% cycle 'row1' 'row2' %} formset_row" data-is-existing="{{ form.instance.pk|yesno:'true,false' }}">
+                {% for field in form.visible_fields %}
+                    <td>
+                        {# Include the hidden fields in the form #}
+                        {% if forloop.first %}
+                            {% for hidden in form.hidden_fields %}
+                                {{ hidden }}
+                            {% endfor %}
+                        {% endif %}
+                        
+                        {{ field }}
+                        {# Display field errors #}
+                        {% if field.errors %}
+                            <ul class="error-list">
+                                {% for error in field.errors %}
+                                    <li>{{ error }}</li>
+                                {% endfor %}
+                            </ul>
+                        {% endif %}
+                    </td>
+                {% endfor %}
+                <td class="action-column">
+                    {% comment %}  New entry - jQuery plugin will add remove button here  {% endcomment %}
+                </td>
+            </tr>
+        {% endfor %}
+    </table>
+</div>
+
+<script src="{% static 'js/jquery_formset.js' %}"></script>
+<script type="text/javascript">
+$(document).ready(function() {
+    // Only apply jQuery formset to new (non-existing) rows
+    $('.formset_row[data-is-existing="false"]').formset({
+        addText: '<i class="fas fa-plus"></i> Add',
+        deleteText: '<i class="fas fa-trash"></i> Remove',
+        prefix: '{{ formset.prefix }}',
+        addCssClass: 'btn btn-secondary btn-sm mt-2',
+        deleteCssClass: 'btn btn-danger btn-sm',
+        formCssClass: 'formset_row',
+        added: function(row) {
+            // Mark new rows as non-existing
+            row.attr('data-is-existing', 'false');
+        }
+    });
+});
+</script>
