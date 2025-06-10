@@ -30,7 +30,7 @@ from main_app.forms import (
     SourceCreateForm,
     SourceEditForm,
     SourceBrowseChantsProofreadForm,
-    SourceURLFormSet,
+    get_source_url_formset,
     ImageLinkForm,
     BrowseChantsBulkEditFormset,
 )
@@ -508,53 +508,54 @@ class SourceListView(ListView):
         )
 
 
-class SourceCreateView(LoginRequiredMixin, UserPassesTestMixin, CreateView):
+class SourceCreateView(LoginRequiredMixin, UserPassesTestMixin, CreateView):  # type: ignore[type-arg]
+    """The view for creating a new Source object, accessed with ``source/create``"""
+
     model = Source
-    template_name = "source_create.html"
     form_class = SourceCreateForm
+    template_name = "source_create.html"
 
-    def test_func(self):
-        user = self.request.user
-        return user_can_create_sources(user)
+    def test_func(self) -> bool:
+        return user_can_create_sources(self.request.user)
 
-    def get_success_url(self):
-        return reverse("source-detail", args=[self.object.id])
-
-    def get_context_data(self, **kwargs):
+    def get_context_data(self, **kwargs: Any) -> dict[str, Any]:
         context = super().get_context_data(**kwargs)
         if self.request.POST:
-            context["source_url_formset"] = SourceURLFormSet(
-                self.request.POST, instance=self.object
-            )
+            context["source_url_formset"] = get_source_url_formset(
+                user=self.request.user
+            )(self.request.POST, prefix="source_url")
         else:
-            context["source_url_formset"] = SourceURLFormSet(instance=self.object)
+            context["source_url_formset"] = get_source_url_formset(
+                user=self.request.user
+            )(prefix="source_url")
         return context
 
-    def form_valid(self, form):
+    def form_valid(self, form: SourceCreateForm) -> HttpResponse:
         context = self.get_context_data()
         source_url_formset = context["source_url_formset"]
 
-        if source_url_formset.is_valid():
-            form.instance.created_by = self.request.user
-            form.instance.last_updated_by = self.request.user
-            self.object = form.save()
-            source_url_formset.instance = self.object
-            source_url_formset.save()
-
-            # assign this source to the "current_editors"
-            current_editors = self.object.current_editors.all()
-            self.request.user.sources_user_can_edit.add(self.object)
-
-            for editor in current_editors:
-                editor.sources_user_can_edit.add(self.object)
-
-            messages.success(
+        if not source_url_formset.is_valid():
+            messages.error(
                 self.request,
-                "Source created successfully!",
+                "Something went wrong with the URLs. Please check your input.",
             )
-            return HttpResponseRedirect(self.get_success_url())
-        else:
             return self.render_to_response(self.get_context_data(form=form))
+
+        # set created_by to the current user
+        form.instance.created_by = self.request.user
+        # save the Source object
+        self.object = form.save()
+        # save the SourceURL objects
+        source_url_formset.instance = self.object
+        source_url_formset.save()
+
+        messages.success(
+            self.request, f'Source "{self.object.title}" created successfully.'
+        )
+        return HttpResponseRedirect(self.get_success_url())
+
+    def get_success_url(self) -> str:
+        return reverse("source-detail", args=[self.object.id])
 
 
 class SourceDeleteView(LoginRequiredMixin, UserPassesTestMixin, DeleteView):
@@ -578,77 +579,59 @@ class SourceDeleteView(LoginRequiredMixin, UserPassesTestMixin, DeleteView):
 
 
 class SourceEditView(LoginRequiredMixin, UserPassesTestMixin, UpdateView):  # type: ignore[type-arg]
-    template_name = "source_edit.html"
+    """The view for editing an existing Source object, accessed with ``source/<int:pk>/edit``"""
+
     model = Source
     form_class = SourceEditForm
-    pk_url_kwarg = "source_id"
+    template_name = "source_form.html"
+    pk_url_kwarg = "pk"
 
-    def get_context_data(self, **kwargs: Any) -> Dict[str, Any]:
-        source = self.object
+    def test_func(self) -> bool:
+        # pk of the source to be edited is in self.kwargs["pk"]
+        source_id = self.kwargs.get(self.pk_url_kwarg)
+        source_obj = get_object_or_404(Source, pk=source_id)
+        return user_can_edit_source(self.request.user, source_obj)
+
+    def get_context_data(self, **kwargs: Any) -> dict[str, Any]:
         context = super().get_context_data(**kwargs)
-
         if self.request.POST:
-            context["source_url_formset"] = SourceURLFormSet(
-                self.request.POST, instance=self.object
+            context["source_url_formset"] = get_source_url_formset(
+                user=self.request.user
+            )(  # Pass user to formset factory
+                self.request.POST, instance=self.object, prefix="source_url"
             )
         else:
-            context["source_url_formset"] = SourceURLFormSet(instance=self.object)
-
-        if BOWER_SEGMENT_ID in source.segment_m2m.values_list("id", flat=True):
-            # if this is a sequence source
-            context["sequences"] = source.sequence_set.order_by("s_sequence")
-            context["folios"] = (
-                source.sequence_set.values_list("folio", flat=True)
-                .distinct()
-                .order_by("folio")
+            context["source_url_formset"] = get_source_url_formset(
+                user=self.request.user
+            )(  # Pass user to formset factory
+                instance=self.object, prefix="source_url"
             )
-            context["bower_segment"] = True
-        else:
-            # if this is a chant source
-            folios = (
-                source.chant_set.values_list("folio", flat=True)
-                .distinct()
-                .order_by("folio")
-            )
-            context["folios"] = folios
-            # the options for the feast selector on the right, only chant sources have this
-            context["feasts_with_folios"] = get_feast_selector_options(source)
-            context["bower_segment"] = False
         return context
 
-    def test_func(self):
-        user = self.request.user
-        source_id = self.kwargs.get(self.pk_url_kwarg)
-        source = get_object_or_404(Source, id=source_id)
-
-        return user_can_edit_source(user, source)
-
-    def form_valid(self, form):
+    def form_valid(self, form: SourceEditForm) -> HttpResponse:
         context = self.get_context_data()
         source_url_formset = context["source_url_formset"]
 
-        if source_url_formset.is_valid():
-            form.instance.last_updated_by = self.request.user
-
-            # remove this source from the old "current_editors"
-            # assign this source to the new "current_editors"
-
-            old_current_editors = list(
-                Source.objects.get(id=form.instance.id).current_editors.all()
+        if not source_url_formset.is_valid():
+            messages.error(
+                self.request,
+                "Something went wrong with the URLs. Please check your input.",
             )
-            new_current_editors = form.cleaned_data["current_editors"]
-            source = form.save()
-            source_url_formset.save()
-
-            for old_editor in old_current_editors:
-                old_editor.sources_user_can_edit.remove(source)
-
-            for new_editor in new_current_editors:
-                new_editor.sources_user_can_edit.add(source)
-
-            return HttpResponseRedirect(self.get_success_url())
-        else:
             return self.render_to_response(self.get_context_data(form=form))
+
+        # save the Source object
+        self.object = form.save()
+        # save the SourceURL objects
+        source_url_formset.instance = self.object
+        source_url_formset.save()
+
+        messages.success(
+            self.request, f'Source "{self.object.title}" updated successfully.'
+        )
+        return HttpResponseRedirect(self.get_success_url())
+
+    def get_success_url(self) -> str:
+        return reverse("source-detail", args=[self.object.id])
 
 
 class SourceInventoryView(TemplateView):

@@ -175,6 +175,37 @@ class FormsetOptimizedModelChoiceField(forms.ModelChoiceField):
 
 
 class SourceURLForm(forms.ModelForm):
+    def __init__(self, *args, user=None, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.user = user
+        # Filter out IIIF Manifest option if user is not a project manager
+        if not (
+            self.user
+            and self.user.is_authenticated
+            and self.user.groups.filter(name="project manager").exists()
+        ):
+            choices = [
+                choice
+                for choice in SourceURL.URLTypes.choices
+                if choice[0] != SourceURL.URLTypes.IIIF_MANIFEST
+            ]
+            self.fields["url_type"].choices = choices
+
+    def clean_url_type(self):
+        url_type = self.cleaned_data.get("url_type")
+        is_project_manager = (
+            self.user
+            and self.user.is_authenticated
+            and self.user.groups.filter(name="project manager").exists()
+        )
+
+        if url_type == SourceURL.URLTypes.IIIF_MANIFEST and not is_project_manager:
+            raise ValidationError(
+                "You do not have permission to select 'IIIF Manifest' as the URL type.",
+                code="invalid_choice",
+            )
+        return url_type
+
     class Meta:
         model = SourceURL
         fields = ["url", "url_type", "url_description"]
@@ -190,14 +221,19 @@ class SourceURLForm(forms.ModelForm):
         }
 
 
-SourceURLFormSet = forms.inlineformset_factory(
-    Source,
-    SourceURL,
-    form=SourceURLForm,
-    extra=1,
-    can_delete=True,
-    fields=["url", "url_type", "url_description"],
-)
+def get_source_url_formset(user=None):
+    class SourceURLFormWithUser(SourceURLForm):
+        def __init__(self, *args, **kwargs):
+            super().__init__(*args, user=user, **kwargs)
+
+    return forms.inlineformset_factory(
+        Source,
+        SourceURL,
+        form=SourceURLFormWithUser,
+        extra=1,
+        can_delete=True,
+        fields=["url", "url_type", "url_description"],
+    )
 
 
 class ChantCreateForm(forms.ModelForm):
