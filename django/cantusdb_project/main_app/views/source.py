@@ -523,11 +523,11 @@ class SourceCreateView(LoginRequiredMixin, UserPassesTestMixin, CreateView):  # 
         if self.request.POST:
             context["source_url_formset"] = get_source_url_formset(
                 user=self.request.user
-            )(self.request.POST, prefix="source_url")
+            )(self.request.POST, prefix="source_links")
         else:
             context["source_url_formset"] = get_source_url_formset(
                 user=self.request.user
-            )(prefix="source_url")
+            )(prefix="source_links")
         return context
 
     def form_valid(self, form: SourceCreateForm) -> HttpResponse:
@@ -583,11 +583,11 @@ class SourceEditView(LoginRequiredMixin, UserPassesTestMixin, UpdateView):  # ty
 
     model = Source
     form_class = SourceEditForm
-    template_name = "source_form.html"
-    pk_url_kwarg = "pk"
+    template_name = "source_edit.html"
+    pk_url_kwarg = "source_id"
 
     def test_func(self) -> bool:
-        # pk of the source to be edited is in self.kwargs["pk"]
+        # pk of the source to be edited is in self.kwargs["source_id"]
         source_id = self.kwargs.get(self.pk_url_kwarg)
         source_obj = get_object_or_404(Source, pk=source_id)
         return user_can_edit_source(self.request.user, source_obj)
@@ -597,15 +597,11 @@ class SourceEditView(LoginRequiredMixin, UserPassesTestMixin, UpdateView):  # ty
         if self.request.POST:
             context["source_url_formset"] = get_source_url_formset(
                 user=self.request.user
-            )(  # Pass user to formset factory
-                self.request.POST, instance=self.object, prefix="source_url"
-            )
+            )(self.request.POST, instance=self.object, prefix="source_links")
         else:
             context["source_url_formset"] = get_source_url_formset(
                 user=self.request.user
-            )(  # Pass user to formset factory
-                instance=self.object, prefix="source_url"
-            )
+            )(instance=self.object, prefix="source_links")
         return context
 
     def form_valid(self, form: SourceEditForm) -> HttpResponse:

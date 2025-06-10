@@ -184,12 +184,18 @@ class SourceURLForm(forms.ModelForm):
             and self.user.is_authenticated
             and self.user.groups.filter(name="project manager").exists()
         ):
-            choices = [
-                choice
-                for choice in SourceURL.URLTypes.choices
-                if choice[0] != SourceURL.URLTypes.IIIF_MANIFEST
-            ]
-            self.fields["url_type"].choices = choices
+            # Get current choices (includes empty choice automatically added by Django)
+            current_choices = list(self.fields["url_type"].choices)
+            # Filter out IIIF Manifest but keep empty choice and other options
+            filtered_choices = []
+            for choice in current_choices:
+                # Keep empty choice (value is empty string or None)
+                if choice[0] == "" or choice[0] is None:
+                    filtered_choices.append(choice)
+                # Keep non-IIIF choices
+                elif choice[0] != SourceURL.URLTypes.IIIF_MANIFEST:
+                    filtered_choices.append(choice)
+            self.fields["url_type"].choices = filtered_choices
 
     def clean_url_type(self):
         url_type = self.cleaned_data.get("url_type")
