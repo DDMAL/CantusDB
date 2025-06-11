@@ -3,7 +3,7 @@ from main_app.models import Source, Chant
 
 
 class Command(BaseCommand):
-    help = "Updates proofread-related fields to True for chants in published sources."
+    help = "Updates the 'other_fields_proofread' field to True for chants in published sources."
 
     def add_arguments(self, parser):
         parser.add_argument(
@@ -28,19 +28,31 @@ class Command(BaseCommand):
                 return
 
         updated_chants_count = 0
+        chunk_size = 500  # Process in smaller chunks to avoid memory issues
 
-        for source in published_sources:
-            chants_to_update = Chant.objects.filter(source=source)
-            for chant in chants_to_update:
+        for source in published_sources.iterator():
+            self.stdout.write(f"Processing source: {source} (ID: {source.id})")
+
+            chant_count = 0
+            # Use iterator to avoid loading all chants into memory at once
+            for chant in Chant.objects.filter(source=source).iterator(
+                chunk_size=chunk_size
+            ):
                 chant.other_fields_proofread = True
-                chant.manuscript_full_text_std_proofread = True
-                chant.manuscript_full_text_proofread = True
-                chant.volpiano_proofread = True
-                chant.save()
+                chant.save()  # This ensures signals are fired
+                chant_count += 1
                 updated_chants_count += 1
 
+                # Progress reporting every 100 chants
+                if chant_count % 100 == 0:
+                    self.stdout.write(
+                        f"  Processed {chant_count} chants for this source..."
+                    )
+
             self.stdout.write(
-                self.style.SUCCESS(f"Successfully updated chants for source: {source}")
+                self.style.SUCCESS(
+                    f"Successfully updated {chant_count} chants for source: {source}"
+                )
             )
 
         self.stdout.write(
