@@ -1,9 +1,12 @@
 from django.core.management.base import BaseCommand
 from main_app.models import Source, Chant
 
+# Cantus segment ID constant (same as used in source.py views)
+CANTUS_SEGMENT_ID = 4063
+
 
 class Command(BaseCommand):
-    help = "Updates the 'other_fields_proofread' field to True for chants in published sources."
+    help = "Updates the 'other_fields_proofread' field to True for chants in published sources in the Cantus segment."
 
     def add_arguments(self, parser):
         parser.add_argument(
@@ -15,7 +18,10 @@ class Command(BaseCommand):
 
     def handle(self, *args, **options):
         source_ids = options["source_ids"]
-        published_sources = Source.objects.filter(published=True)
+        # Filter for published sources in the Cantus segment only
+        published_sources = Source.objects.filter(
+            published=True, segment_m2m=CANTUS_SEGMENT_ID
+        )
 
         if source_ids:
             published_sources = published_sources.filter(id__in=source_ids)
@@ -28,20 +34,40 @@ class Command(BaseCommand):
                 return
 
         updated_chants_count = 0
+        error_count = 0
         chunk_size = 500  # Process in smaller chunks to avoid memory issues
 
+        total_sources = published_sources.count()
+        processed_sources = 0
+
         for source in published_sources.iterator():
-            self.stdout.write(f"Processing source: {source} (ID: {source.id})")
+            processed_sources += 1
+            remaining_sources = total_sources - processed_sources
+
+            self.stdout.write(
+                f"Processing source {processed_sources}/{total_sources}: {source} (ID: {source.id}) "
+                f"[{remaining_sources} remaining]"
+            )
 
             chant_count = 0
+            source_error_count = 0
             # Use iterator to avoid loading all chants into memory at once
-            for chant in Chant.objects.filter(source=source).iterator(
-                chunk_size=chunk_size
+            for chant in (
+                Chant.objects.filter(source=source)
+                .filter(other_fields_proofread=False)
+                .iterator(chunk_size=chunk_size)
             ):
-                chant.other_fields_proofread = True
-                chant.save()  # This ensures signals are fired
-                chant_count += 1
-                updated_chants_count += 1
+                try:
+                    chant.other_fields_proofread = True
+                    chant.save()  # This ensures signals are fired
+                    chant_count += 1
+                    updated_chants_count += 1
+                except Exception as e:
+                    error_count += 1
+                    source_error_count += 1
+                    self.stdout.write(
+                        self.style.WARNING(f"  Error saving chant {chant.id}: {str(e)}")
+                    )
 
                 # Progress reporting every 100 chants
                 if chant_count % 100 == 0:
@@ -49,14 +75,24 @@ class Command(BaseCommand):
                         f"  Processed {chant_count} chants for this source..."
                     )
 
-            self.stdout.write(
-                self.style.SUCCESS(
-                    f"Successfully updated {chant_count} chants for source: {source}"
-                )
+            success_msg = (
+                f"Successfully updated {chant_count} chants for source: {source}"
             )
+            if source_error_count > 0:
+                success_msg += f" ({source_error_count} errors)"
+
+            self.stdout.write(self.style.SUCCESS(success_msg))
 
         self.stdout.write(
             self.style.SUCCESS(
                 f"Finished updating. Total chants updated: {updated_chants_count}."
             )
         )
+
+        if error_count > 0:
+            self.stdout.write(
+                self.style.WARNING(
+                    f"Total errors encountered: {error_count}. "
+                    f"Check the log above for details."
+                )
+            )
