@@ -2,9 +2,19 @@
 Assorted mixins for test cases.
 """
 
-from typing import Optional
+from datetime import date
+from typing import Optional, Dict, Set, Literal, List, Union
+
 from django.http import HttpResponse
+from django.urls import resolve
+from django.test import RequestFactory
+from django.contrib.auth.models import AnonymousUser
+from django.views import View
 from bs4 import BeautifulSoup
+
+from users.models import User as UserT
+from main_app.tests.make_fakes import make_fake_user, make_groups, make_fake_source
+from main_app.models import Source
 
 
 class HTMLContentsTestMixin:
@@ -62,3 +72,104 @@ class HTMLContentsTestMixin:
                 contents,
                 "The text '%s' was not found in the response content" % text,
             )
+
+
+UserTypes = Literal["anonymous user", "user", "superuser", "editor", "global viewer"]
+
+
+class CustomAccessTestMixin:
+    """
+    Mixin to help test permissions for views.
+    """
+
+    users: Dict[str, Union[UserT, AnonymousUser]]
+    default_user: Optional[UserTypes] = None
+    factory: RequestFactory
+
+    @classmethod
+    def setUpTestData(cls) -> None:
+        groups = make_groups()
+        cls.users = {
+            "user": make_fake_user(),
+            "superuser": make_fake_user(is_superuser=True),
+            "editor": make_fake_user(groups=[(groups["editor"], None)]),
+            "global viewer": make_fake_user(groups=[(groups["global viewer"], None)]),
+            "expired global viewer": make_fake_user(
+                groups=[(groups["global viewer"], date(2020, 1, 1))]
+            ),
+            "anonymous user": AnonymousUser(),
+        }
+        cls.factory = RequestFactory()
+
+    def setUp(self) -> None:
+        if self.default_user:
+            self.client.force_login(user=self.users[self.default_user])
+
+    def testDown(self) -> None:
+        self.client.logout()
+
+    def run_request_permissions_test(
+        self,
+        url: str,
+        get_allowed_users: List[UserTypes],
+        post_allowed_users: List[UserTypes],
+        test_name: str,
+    ) -> None:
+        all_users: Set[UserTypes] = {
+            "anonymous user",
+            "user",
+            "superuser",
+            "editor",
+            "global viewer",
+        }
+        get_denied_users: Set[UserTypes] = all_users - set(get_allowed_users)
+        post_denied_users: Set[UserTypes] = all_users - set(post_allowed_users)
+        resolved_url = resolve(url)
+        view_class = resolved_url.func.view_class  # type: ignore
+        url_args = resolved_url.args
+        url_kwargs = resolved_url.kwargs
+        req = self.factory.get(url)
+        for user in get_allowed_users:
+            with self.subTest(
+                "Test GET allowed users.", user=user, test_name=test_name
+            ):
+                req.user = self.users[user]
+                view = view_class()
+                view.user = req.user
+                view.setup(request=req, *url_args, **url_kwargs)
+                test_resp = view.run_test_func()
+                self.assertTrue(test_resp)
+        for user in list(get_denied_users):
+            with self.subTest("Test GET denied users.", user=user, test_name=test_name):
+                req.user = self.users[user]
+                view = view_class()
+                view.user = req.user
+                view.setup(request=req, *url_args, **url_kwargs)
+                test_resp = view.run_test_func()
+                self.assertFalse(test_resp)
+        # When testing POST request permissions, we first check whether a POST
+        # request is even allowed for the view in question. If is it, we test
+        # individual users.
+        req = self.factory.post(url)
+        view = view_class()
+        if "POST" in view._allowed_methods():
+            for user in post_allowed_users:
+                with self.subTest(
+                    "Test POST allowed users.", user=user, test_name=test_name
+                ):
+                    req.user = self.users[user]
+                    view = view_class()
+                    view.user = req.user
+                    view.setup(request=req, *url_args, **url_kwargs)
+                    test_resp = view.run_test_func()
+                    self.assertTrue(test_resp)
+            for user in list(post_denied_users):
+                with self.subTest(
+                    "Test POST denied users.", user=user, test_name=test_name
+                ):
+                    req.user = self.users[user]
+                    view = view_class()
+                    view.user = req.user
+                    view.setup(request=req, *url_args, **url_kwargs)
+                    test_resp = view.run_test_func()
+                    self.assertFalse(test_resp)

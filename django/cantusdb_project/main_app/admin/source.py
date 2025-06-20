@@ -100,9 +100,7 @@ class SourceAdmin(BaseModelAdmin):
             kwargs["queryset"] = (
                 get_user_model()
                 .objects.filter(
-                    Q(groups__name="project manager")
-                    | Q(groups__name="editor")
-                    | Q(groups__name="contributor")
+                    is_active=True,
                 )
                 .distinct()
                 .order_by("full_name")

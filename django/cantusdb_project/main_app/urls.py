@@ -92,7 +92,6 @@ from main_app.views.user import (
     CustomLogoutView,
     IndexerListView,
     UserDetailView,
-    UserListView,
     UserSourceListView,
 )
 from main_app.views.autocomplete import (
@@ -135,11 +134,6 @@ urlpatterns = [
         "user/<int:pk>",
         UserDetailView.as_view(),
         name="user-detail",
-    ),
-    path(
-        "users/",
-        UserListView.as_view(),
-        name="user-list",
     ),
     path(
         "change-password/",

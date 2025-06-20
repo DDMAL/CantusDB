@@ -1,12 +1,14 @@
 from collections import namedtuple
-from typing import Generator, NamedTuple
+from typing import Generator, NamedTuple, Any, Dict, Tuple
 
 from django.db import connection
+from django.db.models import QuerySet
 from django.db.models.functions import Lower
 from django.views.generic import DetailView, ListView
 from extra_views import SearchableListMixin
 
 from main_app.models import Feast
+from main_app.permissions import CustomAccessMixin
 
 # this categorization is not finalized yet
 # the feastcode on old cantus requires cleaning
@@ -46,6 +48,7 @@ FROM main_app_feast AS fs
 LEFT JOIN main_app_chant AS cs ON cs.feast_id = fs.id
 LEFT JOIN main_app_source AS ss ON cs.source_id = ss.id
 LEFT JOIN main_app_genre AS gs ON cs.genre_id = gs.id
+LEFT JOIN main_app_source_current_editors AS sce ON ss.id = sce.source_id
 WHERE fs.id = %s AND cs.cantus_id IS NOT NULL {published_filt}
 GROUP BY cs.cantus_id
 ORDER BY ccount desc;"""
@@ -63,6 +66,7 @@ FROM main_app_source ss
          LEFT JOIN main_app_institution AS hs ON ss.holding_institution_id = hs.id
          LEFT JOIN main_app_chant AS cs ON cs.source_id = ss.id
          LEFT JOIN main_app_feast AS fs ON cs.feast_id = fs.id
+         LEFT JOIN main_app_source_current_editors AS sce ON ss.id = sce.source_id
 WHERE fs.id = %s AND cs.cantus_id IS NOT NULL {published_filt}
 GROUP BY ss.id, hs.name, hs.siglum
 ORDER BY chant_count DESC, siglum;
@@ -86,29 +90,27 @@ def namedtuple_fetch(results, description) -> Generator[NamedTuple, None, None]:
         yield nt_result(*res)
 
 
-class FeastDetailView(DetailView):
+class FeastDetailView(CustomAccessMixin, DetailView):  # type: ignore[type-arg]
     model = Feast
     context_object_name = "feast"
     template_name = "feast_detail.html"
+    test_req = False
 
-    def get_context_data(self, **kwargs):
+    def get_context_data(self, **kwargs: Any) -> Dict[str, Any]:
         context = super().get_context_data(**kwargs)
         feast_id = self.object.pk
 
-        display_unpublished = self.request.user.is_authenticated
-
-        # if the user is not authenticated, restrict the chant count to
-        # only those from published sources.
-        if not display_unpublished:
-            chant_sql_query = feast_chant_query.format(
-                published_filt="AND ss.published IS TRUE"
-            )
-            source_sql_query = feast_source_query.format(
-                published_filt="AND ss.published IS TRUE"
-            )
+        # We use some methods from the CustomAccessMixin to write the
+        # source filter portion of the above SQL queries.
+        if not self.user.is_authenticated:
+            src_filter_q = "AND ss.published IS TRUE"
+        elif self.user.is_superuser or self.user_is_global_viewer:
+            src_filter_q = ""
         else:
-            chant_sql_query = feast_chant_query.format(published_filt="")
-            source_sql_query = feast_source_query.format(published_filt="")
+            src_filter_q = f"AND (ss.published IS TRUE OR sce.user_id = {self.user.id})"
+
+        chant_sql_query = feast_chant_query.format(published_filt=src_filter_q)
+        source_sql_query = feast_source_query.format(published_filt=src_filter_q)
 
         with connection.cursor() as cursor:
             cursor.execute(chant_sql_query, [feast_id])
@@ -129,7 +131,7 @@ class FeastDetailView(DetailView):
         return context
 
 
-class FeastListView(SearchableListMixin, ListView):
+class FeastListView(SearchableListMixin, ListView):  # type: ignore[type-arg]
     """Searchable List view for Feast model
 
     Accessed by /feasts/
@@ -147,7 +149,7 @@ class FeastListView(SearchableListMixin, ListView):
     context_object_name = "feasts"
     template_name = "feast_list.html"
 
-    def get_ordering(self) -> tuple:
+    def get_ordering(self) -> Tuple[str]:
         ordering = self.request.GET.get("sort_by")
         # feasts can be ordered by name or feast_code,
         # default to ordering by name if given anything else
@@ -156,7 +158,7 @@ class FeastListView(SearchableListMixin, ListView):
         # case insensitive ordering by name
         return (Lower(ordering),) if ordering == "name" else (ordering,)
 
-    def get_queryset(self):
+    def get_queryset(self) -> QuerySet[Feast]:
         queryset = super().get_queryset()
         date = self.request.GET.get("date")
         month = self.request.GET.get("month")
