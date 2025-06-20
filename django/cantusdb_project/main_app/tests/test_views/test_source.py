@@ -8,6 +8,7 @@ from typing import Dict
 from django.test import TestCase
 from django.urls import reverse
 from django.core.exceptions import ObjectDoesNotExist
+from django.contrib.auth import get_user_model
 
 from main_app.models import Source, Chant, Differentia
 from main_app.tests.make_fakes import (
@@ -556,7 +557,26 @@ class SourceBrowseChantsViewTest(SourcePermissionsTestCase):
     view_name = "browse-chants"
 
     def test_permissions(self) -> None:
-        self._run_get_permissions_test()
+        self.run_request_permissions_test(
+            url=reverse(self.view_name, args=[self.sources["unassigned_source"].id]),
+            get_allowed_users=["superuser", "global viewer"],
+            post_allowed_users=["superuser"],
+            test_name="Unassigned source",
+        )
+        self.run_request_permissions_test(
+            url=reverse(self.view_name, args=[self.sources["user_assigned_source"].id]),
+            get_allowed_users=["user", "superuser", "global viewer"],
+            post_allowed_users=["user", "superuser"],
+            test_name="User assigned source",
+        )
+        self.run_request_permissions_test(
+            url=reverse(
+                self.view_name, args=[self.sources["editor_assigned_source"].id]
+            ),
+            get_allowed_users=["editor", "superuser", "global viewer"],
+            post_allowed_users=["editor", "superuser"],
+            test_name="Editor assigned source",
+        )
 
     def test_url_and_templates(self):
         cantus_segment = make_fake_segment(id=4063)
@@ -781,22 +801,6 @@ class SourceBrowseChantsViewTest(SourcePermissionsTestCase):
         response = self.client.get(url)
         self.assertEqual(response.status_code, 400)
         self.assertTemplateUsed(response, "400.html")
-
-    def test_post_request_forbidden(self) -> None:
-        """
-        Ensure that a POST request is forbidden for
-        unauthenticated users and users that are not
-        allowed to edit chants in a source.
-        """
-        cantus_segment = make_fake_segment(id=4063)
-        source = make_fake_source(segment=[cantus_segment])
-        user = get_user_model().objects.create(email="test@test.com")
-        user.groups.add(self.contrib_group)
-        response = self.client.post(reverse("browse-chants", args=[source.id]))
-        self.assertEqual(response.status_code, 302)
-        self.client.force_login(user)
-        response = self.client.post(reverse("browse-chants", args=[source.id]))
-        self.assertEqual(response.status_code, 403)
 
 
 class SourceListViewTest(CustomAccessTestMixin, TestCase):

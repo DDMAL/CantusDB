@@ -147,10 +147,12 @@ class CustomAccessTestMixin:
                 view.setup(request=req, *url_args, **url_kwargs)
                 test_resp = view.run_test_func()
                 self.assertFalse(test_resp)
+        # When testing POST request permissions, we first check whether a POST
+        # request is even allowed for the view in question. If is it, we test
+        # individual users.
         req = self.factory.post(url)
-        # If post_allowed_users is empty, then POST requests are not
-        # allowed for any user.
-        if len(post_allowed_users) > 0:
+        view = view_class()
+        if "POST" in view._allowed_methods():
             for user in post_allowed_users:
                 with self.subTest(
                     "Test POST allowed users.", user=user, test_name=test_name
