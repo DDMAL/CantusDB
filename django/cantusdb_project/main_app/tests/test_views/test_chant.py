@@ -2381,7 +2381,7 @@ class ChantSearchMSViewTest(ChantPermissionsTestCase):
         chant_2 = make_fake_chant(source=source, feast=feast2)
 
         response_ascending = self.client.get(
-            reverse("chant-search"),
+            reverse("chant-search-ms", args=[source.id]),
             {
                 "order": "feast",
                 "sort": "asc",
@@ -2394,7 +2394,7 @@ class ChantSearchMSViewTest(ChantPermissionsTestCase):
         self.assertEqual(last_result_feast, chant_2.feast)
 
         response_descending = self.client.get(
-            reverse("chant-search"),
+            reverse("chant-search-ms", args=[source.id]),
             {
                 "order": "feast",
                 "sort": "desc",
@@ -2728,7 +2728,7 @@ class ChantSearchMSViewTest(ChantPermissionsTestCase):
 
         # Ascending sort — null should be last
         response_asc = self.client.get(
-            reverse("chant-search"),
+            reverse("chant-search-ms", args=[source.id]),
             {
                 "order": "feast",
                 "sort": "asc",
@@ -2743,7 +2743,7 @@ class ChantSearchMSViewTest(ChantPermissionsTestCase):
 
         # Descending sort — null should still be last
         response_desc = self.client.get(
-            reverse("chant-search"),
+            reverse("chant-search-ms", args=[source.id]),
             {
                 "order": "feast",
                 "sort": "desc",
