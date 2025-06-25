@@ -4,34 +4,23 @@ from main_app.models import Source, Chant
 # Cantus segment ID constant (same as used in source.py views)
 CANTUS_SEGMENT_ID = 4063
 
+SOURCE_LIST = [123766, 123740, 123739, 123738, 123737, 662398, 651162]
+
 
 class Command(BaseCommand):
     help = "Updates the 'other_fields_proofread' field to True for chants in published sources in the Cantus segment."
 
-    def add_arguments(self, parser):
-        parser.add_argument(
-            "--source_ids",
-            nargs="+",
-            type=int,
-            help="Optional list of source IDs to update.",
-        )
-
     def handle(self, *args, **options):
-        source_ids = options["source_ids"]
-        # Filter for published sources in the Cantus segment only
+        # Filter for published sources in the Cantus segment only, excluding sources from SOURCE_LIST
         published_sources = Source.objects.filter(
             published=True, segment_m2m=CANTUS_SEGMENT_ID
-        )
+        ).exclude(id__in=SOURCE_LIST)
 
-        if source_ids:
-            published_sources = published_sources.filter(id__in=source_ids)
-            if not published_sources.exists():
-                self.stdout.write(
-                    self.style.WARNING(
-                        "No published sources found for the provided IDs."
-                    )
-                )
-                return
+        if not published_sources.exists():
+            self.stdout.write(
+                self.style.WARNING("No published sources found to update.")
+            )
+            return
 
         updated_chants_count = 0
         error_count = 0
