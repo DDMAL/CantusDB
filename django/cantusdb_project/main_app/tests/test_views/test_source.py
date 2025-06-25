@@ -786,6 +786,7 @@ class SourceBrowseChantsViewTest(SourcePermissionsTestCase):
     def test_context_source(self):
         cantus_segment = make_fake_segment(id=4063)
         source = make_fake_source(segment=[cantus_segment])
+        make_fake_chant(source=source)
         response = self.client.get(reverse("browse-chants", args=[source.id]))
         self.assertEqual(source, response.context["source"])
 
