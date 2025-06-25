@@ -4,17 +4,17 @@ from main_app.models import Source, Chant
 # Cantus segment ID constant (same as used in source.py views)
 CANTUS_SEGMENT_ID = 4063
 
-SOURCE_LIST = [123766, 123740, 123739, 123738, 123737, 662398, 651162]
+EXCLUDE = [123766, 123740, 123739, 123738, 123737, 662398, 651162]
 
 
 class Command(BaseCommand):
     help = "Updates the 'other_fields_proofread' field to True for chants in published sources in the Cantus segment."
 
     def handle(self, *args, **options):
-        # Filter for published sources in the Cantus segment only, excluding sources from SOURCE_LIST
+        # Filter for published sources in the Cantus segment only, excluding sources from EXCLUDE
         published_sources = Source.objects.filter(
             published=True, segment_m2m=CANTUS_SEGMENT_ID
-        ).exclude(id__in=SOURCE_LIST)
+        ).exclude(id__in=EXCLUDE)
 
         if not published_sources.exists():
             self.stdout.write(
