@@ -231,12 +231,12 @@
                                         </td>
                                         <td class="text-wrap"
                                             style="text-align:center"
-                                            title="{{ source.summary|default:""|truncatechars_html:500 }}">
+                                            title="{{ source.summary|default:""|safe|truncatechars_html:500 }}">
                                             {% if source.name %}
-                                                <b>"{{ source.name }}"</b>
+                                                <b>"{{ source.name|safe }}"</b>
                                                 <br />
                                             {% endif %}
-                                            {{ source.summary|default:""|truncatechars_html:120 }}
+                                            {{ source.summary|default:""|safe|truncatechars_html:120 }}
                                         </td>
                                         <td class="text-wrap" style="text-align:center">
                                             {% if source.century %}
