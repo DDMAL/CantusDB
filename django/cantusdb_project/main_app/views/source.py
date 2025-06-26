@@ -165,8 +165,7 @@ class SourceBrowseChantsView(CustomAccessMixin, ListView):  # type: ignore[type-
         source: Source = self.source
 
         # Check if source has any chants - if not, return 404
-        chants_in_source = source.chant_set
-        if chants_in_source.count() == 0:
+        if not source.chant_set.exists():
             raise Http404()
 
         context["source"] = source
