@@ -1,6 +1,7 @@
 import calendar
 from typing import Union, Optional, Any
 
+from django.conf import settings
 from django import template
 from django.core.paginator import Paginator, Page
 from django.db.models import Q
@@ -84,7 +85,9 @@ def source_links() -> SafeString:
         templates/flatpages/default.html
     """
     sources = (
-        Source.objects.filter(published=True, segment_m2m__id=4063)
+        Source.objects.filter(
+            published=True, segment_m2m__id=settings.CANTUS_SEGMENT_ID
+        )
         .select_related("holding_institution")
         .order_by("holding_institution__siglum", "shelfmark")
         .iterator()

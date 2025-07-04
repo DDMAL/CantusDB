@@ -1,3 +1,4 @@
+from django.conf import settings
 from typing import Any, Dict
 
 from django.db.models import Subquery, OuterRef, F, Func, QuerySet
@@ -50,8 +51,8 @@ class InstitutionDetailView(CustomAccessMixin, DetailView):  # type: ignore[type
 
         # Show the Cantus and Bower sources in separate tables, and pre-format
         # the external authority links.
-        cantus_segment = Segment.objects.get(id=4063)
-        bower_segment = Segment.objects.get(id=4064)
+        cantus_segment = Segment.objects.get(id=settings.CANTUS_SEGMENT_ID)
+        bower_segment = Segment.objects.get(id=settings.BOWER_SEGMENT_ID)
         if self.user.is_superuser or self.user_is_global_viewer:
             allowed_sources = Source.objects.all()
         else:

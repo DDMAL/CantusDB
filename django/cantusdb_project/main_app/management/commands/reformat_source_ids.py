@@ -1,10 +1,10 @@
 """
 A command designed to do a one-time reformatting of DACT IDs and Fragment
-IDs in the database. 
+IDs in the database.
 
 Fragment IDs should be of the form "F-XXXX" where XXXX is some alphanumeric.
 Fragment IDs are currently assumed to be in the form "F-XXXX" or "XXXX".
-DACT IDs should be of the form "D:0XXXX" where XXXX is the Fragment ID alphanumeric. 
+DACT IDs should be of the form "D:0XXXX" where XXXX is the Fragment ID alphanumeric.
 DACT IDs are currently assumed to be in the form "0XXXX" or  "D-0XXXX".
 
 This command simply adds the prefix "F-" to all Fragment IDs and "D:" to all
