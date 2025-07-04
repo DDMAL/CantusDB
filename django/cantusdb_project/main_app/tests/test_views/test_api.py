@@ -26,9 +26,11 @@ from main_app.tests.mock_cantusindex_data import (
     mock_json_cid_008349_json,
     mock_json_cid_006928_json,
 )
+from main_app.tests.mixins import CustomAccessTestMixin
+from main_app.tests.test_views.test_chant import ChantPermissionsTestCase
 
 
-class AjaxSearchBarTest(TestCase):
+class AjaxSearchBarTest(ChantPermissionsTestCase):
     def test_response(self):
         chant = make_fake_chant()
         cantus_id = chant.cantus_id
@@ -137,8 +139,55 @@ class AjaxSearchBarTest(TestCase):
         non_matching_chants = non_matching_content["chants"]
         self.assertEqual(len(non_matching_chants), 0)
 
+    def test_permissions(self) -> None:
+        # All chants in self.chants have the same Cantus ID
+        cantus_id = self.chants["published_chant"].cantus_id
+        all_chant_ids = [x.id for x in self.chants.values()]
+        with self.subTest("Superuser"):
+            self.client.force_login(self.users["superuser"])
+            response = self.client.get(reverse("ajax-search-bar", args=[cantus_id]))
+            returned_chants = json.loads(response.content)["chants"]
+            returned_ids = [x["id"] for x in returned_chants]
+            self.assertCountEqual(all_chant_ids, returned_ids)
+        with self.subTest("Global viewer"):
+            self.client.force_login(self.users["global viewer"])
+            response = self.client.get(reverse("ajax-search-bar", args=[cantus_id]))
+            returned_chants = json.loads(response.content)["chants"]
+            returned_ids = [x["id"] for x in returned_chants]
+            self.assertCountEqual(all_chant_ids, returned_ids)
+        with self.subTest("Editor"):
+            self.client.force_login(self.users["editor"])
+            response = self.client.get(reverse("ajax-search-bar", args=[cantus_id]))
+            returned_chants = json.loads(response.content)["chants"]
+            returned_ids = [x["id"] for x in returned_chants]
+            self.assertCountEqual(
+                [
+                    self.chants["published_chant"].id,
+                    self.chants["editor_assigned_chant"].id,
+                ],
+                returned_ids,
+            )
+        with self.subTest("User"):
+            self.client.force_login(self.users["user"])
+            response = self.client.get(reverse("ajax-search-bar", args=[cantus_id]))
+            returned_chants = json.loads(response.content)["chants"]
+            returned_ids = [x["id"] for x in returned_chants]
+            self.assertCountEqual(
+                [
+                    self.chants["published_chant"].id,
+                    self.chants["user_assigned_chant"].id,
+                ],
+                returned_ids,
+            )
+        with self.subTest("Anonymous User"):
+            self.client.logout()
+            response = self.client.get(reverse("ajax-search-bar", args=[cantus_id]))
+            returned_chants = json.loads(response.content)["chants"]
+            returned_ids = [x["id"] for x in returned_chants]
+            self.assertCountEqual([self.chants["published_chant"].id], returned_ids)
 
-class AjaxMelodyViewTest(TestCase):
+
+class AjaxMelodyViewTest(ChantPermissionsTestCase):
     def test_response(self):
         cantus_id: str = "123456"
         number_of_chants: int = 7
@@ -179,41 +228,54 @@ class AjaxMelodyViewTest(TestCase):
             self.assertIsInstance(concordance_count, int)
             self.assertEqual(concordance_count, number_of_chants)
 
-    def test_published_vs_unpublished(self):
-        cantus_id: str = "234567"
-
-        published_source: Source = make_fake_source(published=True)
-        num_matching_published_chants: int = 3
-        for _ in range(num_matching_published_chants):
-            make_fake_chant(
-                cantus_id=cantus_id,
-                source=published_source,
+    def test_permissions(self) -> None:
+        # All chants in self.chants have the same Cantus ID
+        cantus_id = self.chants["published_chant"].cantus_id
+        all_chant_ids = [x.get_absolute_url() for x in self.chants.values()]
+        with self.subTest("Superuser"):
+            self.client.force_login(self.users["superuser"])
+            response = self.client.get(reverse("ajax-melody", args=[cantus_id]))
+            returned_chants = json.loads(response.content)["concordances"]
+            returned_urls = [x["chant_link"] for x in returned_chants]
+            self.assertCountEqual(all_chant_ids, returned_urls)
+        with self.subTest("Global viewer"):
+            self.client.force_login(self.users["global viewer"])
+            response = self.client.get(reverse("ajax-melody", args=[cantus_id]))
+            returned_chants = json.loads(response.content)["concordances"]
+            returned_urls = [x["chant_link"] for x in returned_chants]
+            self.assertCountEqual(all_chant_ids, returned_urls)
+        with self.subTest("Editor"):
+            self.client.force_login(self.users["editor"])
+            response = self.client.get(reverse("ajax-melody", args=[cantus_id]))
+            returned_chants = json.loads(response.content)["concordances"]
+            returned_urls = [x["chant_link"] for x in returned_chants]
+            self.assertCountEqual(
+                [
+                    self.chants["published_chant"].get_absolute_url(),
+                    self.chants["editor_assigned_chant"].get_absolute_url(),
+                ],
+                returned_urls,
             )
-
-        unpublished_source: Source = make_fake_source(published=False)
-        num_matching_unpublished_chants: int = 5
-        for _ in range(num_matching_unpublished_chants):
-            make_fake_chant(
-                cantus_id=cantus_id,
-                source=unpublished_source,
+        with self.subTest("User"):
+            self.client.force_login(self.users["user"])
+            response = self.client.get(reverse("ajax-melody", args=[cantus_id]))
+            returned_chants = json.loads(response.content)["concordances"]
+            returned_urls = [x["chant_link"] for x in returned_chants]
+            self.assertCountEqual(
+                [
+                    self.chants["published_chant"].get_absolute_url(),
+                    self.chants["user_assigned_chant"].get_absolute_url(),
+                ],
+                returned_urls,
             )
-
-        num_nonmatching_published_chants: int = 2
-        for _ in range(num_nonmatching_published_chants):
-            make_fake_chant(
-                cantus_id="123456",
-                source=published_source,
+        with self.subTest("Anonymous User"):
+            self.client.logout()
+            response = self.client.get(reverse("ajax-melody", args=[cantus_id]))
+            returned_chants = json.loads(response.content)["concordances"]
+            returned_urls = [x["chant_link"] for x in returned_chants]
+            self.assertCountEqual(
+                [self.chants["published_chant"].get_absolute_url()], returned_urls
             )
-
-        response: JsonResponse = self.client.get(
-            reverse("ajax-melody", args=[cantus_id])
-        )
-        content: dict = json.loads(response.content)
-        concordances: list = content["concordances"]
-        concordance_count: int = content["concordance_count"]
-
-        self.assertEqual(concordance_count, num_matching_published_chants)
-        self.assertEqual(len(concordances), num_matching_published_chants)
 
     def test_concordance_items(self):
         cantus_id: str = "345678"
@@ -891,7 +953,7 @@ class JsonCidTest(TestCase):
         self.assertEqual(json_for_one_chant_3["full_text"], "standard spelling")
 
 
-class CsvExportTest(TestCase):
+class CsvExportTest(CustomAccessTestMixin, TestCase):
     def test_url(self):
         source = make_fake_source(published=True)
         response_1 = self.client.get(reverse("csv-export", args=[source.id]))
@@ -956,15 +1018,69 @@ class CsvExportTest(TestCase):
             for row in rows:
                 self.assertEqual(row[0], source_shelfmark)
 
-    def test_published_vs_unpublished(self):
+    def test_permissions(self) -> None:
         published_source = make_fake_source(published=True)
-        response_1 = self.client.get(reverse("csv-export", args=[published_source.id]))
-        self.assertEqual(response_1.status_code, 200)
-        unpublished_source = make_fake_source(published=False)
-        response_2 = self.client.get(
-            reverse("csv-export", args=[unpublished_source.id])
+        unassigned_source = make_fake_source(published=False)
+        user_assigned_source = make_fake_source(
+            published=False, current_editors=[self.users["user"]]
         )
-        self.assertEqual(response_2.status_code, 403)
+        with self.subTest("Test published source"):
+            self.client.logout()
+            response = self.client.get(
+                reverse("csv-export", args=[published_source.id])
+            )
+            self.assertEqual(response.status_code, 200)
+        with self.subTest("Test unassigned source"):
+            response = self.client.get(
+                reverse("csv-export", args=[unassigned_source.id])
+            )
+            self.assertEqual(response.status_code, 403)
+            self.client.force_login(self.users["user"])
+            response = self.client.get(
+                reverse("csv-export", args=[unassigned_source.id])
+            )
+            self.assertEqual(response.status_code, 403)
+            self.client.force_login(self.users["editor"])
+            response = self.client.get(
+                reverse("csv-export", args=[unassigned_source.id])
+            )
+            self.assertEqual(response.status_code, 403)
+            self.client.force_login(self.users["superuser"])
+            response = self.client.get(
+                reverse("csv-export", args=[unassigned_source.id])
+            )
+            self.assertEqual(response.status_code, 200)
+            self.client.force_login(self.users["global viewer"])
+            response = self.client.get(
+                reverse("csv-export", args=[unassigned_source.id])
+            )
+            self.assertEqual(response.status_code, 200)
+        with self.subTest("Test user assigned source"):
+            self.client.logout()
+            response = self.client.get(
+                reverse("csv-export", args=[user_assigned_source.id])
+            )
+            self.assertEqual(response.status_code, 403)
+            self.client.force_login(self.users["user"])
+            response = self.client.get(
+                reverse("csv-export", args=[user_assigned_source.id])
+            )
+            self.assertEqual(response.status_code, 200)
+            self.client.force_login(self.users["editor"])
+            response = self.client.get(
+                reverse("csv-export", args=[user_assigned_source.id])
+            )
+            self.assertEqual(response.status_code, 403)
+            self.client.force_login(self.users["superuser"])
+            response = self.client.get(
+                reverse("csv-export", args=[user_assigned_source.id])
+            )
+            self.assertEqual(response.status_code, 200)
+            self.client.force_login(self.users["global viewer"])
+            response = self.client.get(
+                reverse("csv-export", args=[user_assigned_source.id])
+            )
+            self.assertEqual(response.status_code, 200)
 
     def test_csv_export_on_source_with_sequences(self):
         NUM_SEQUENCES = 5

@@ -1,5 +1,5 @@
 import csv
-from typing import Optional, Union, Any
+from typing import Optional, Union, Any, Dict
 from django.contrib.auth import get_user_model
 from django.contrib.flatpages.models import FlatPage
 from django.core.exceptions import PermissionDenied
@@ -21,11 +21,15 @@ from main_app.models import (
     Sequence,
     Source,
 )
+from main_app.permissions import get_sources_visible_to_user
 from next_chants import next_chants
 from cantusindex import get_json_from_ci_api
 
 
-def ajax_melody_list(request: HttpRequest, cantus_id: str) -> JsonResponse:
+@get_sources_visible_to_user
+def ajax_melody_list(
+    request: HttpRequest, cantus_id: str, sources_visible_to_user: QuerySet[Source]
+) -> JsonResponse:
     """
     Function-based view responding to the AJAX call for melody list on the chant detail page,
     accessed with ``chants/<int:pk>``, click on "Display melodies connected with this chant"
@@ -45,9 +49,7 @@ def ajax_melody_list(request: HttpRequest, cantus_id: str) -> JsonResponse:
         .order_by("id")
     )
 
-    display_unpublished: bool = request.user.is_authenticated
-    if not display_unpublished:
-        chants = chants.filter(source__published=True)
+    chants = chants.filter(source__in=sources_visible_to_user)
 
     concordances: list[dict[str, str]] = []
     for chant in chants:
@@ -78,7 +80,10 @@ def ajax_melody_list(request: HttpRequest, cantus_id: str) -> JsonResponse:
     )
 
 
-def csv_export(request, source_id):
+@get_sources_visible_to_user
+def csv_export(
+    request: HttpRequest, source_id: int, sources_visible_to_user: QuerySet[Source]
+) -> HttpResponse:
     """
     Function-based view for the CSV export page, accessed with ``csv/<str:source_id>``
 
@@ -88,14 +93,11 @@ def csv_export(request, source_id):
     Returns:
         HttpResponse: The CSV response
     """
+    # Check if the source exists, then determine if the source is visible to the user
+    get_object_or_404(Source, id=source_id)
     try:
-        source = Source.objects.get(id=source_id)
-    except:
-        raise Http404("This source does not exist")
-
-    display_unpublished = request.user.is_authenticated
-
-    if not source.published and not display_unpublished:
+        source = sources_visible_to_user.get(id=source_id)
+    except Source.DoesNotExist:
         raise PermissionDenied
 
     # "4064" is the segment id of the sequence DB, sources in that segment have sequences instead of chants
@@ -107,7 +109,6 @@ def csv_export(request, source_id):
         )
 
     response = HttpResponse(content_type="text/csv")
-    # response["Content-Disposition"] = 'attachment; filename="somefilename.csv"'
 
     writer = csv.writer(response)
     writer.writerow(
@@ -177,7 +178,10 @@ def csv_export(request, source_id):
     return response
 
 
-def ajax_melody_search(request):
+@get_sources_visible_to_user
+def ajax_melody_search(
+    request: HttpRequest, sources_visible_to_user: QuerySet[Source]
+) -> JsonResponse:
     """
     Function-based view responding to melody search AJAX calls, accessed with ``melody``
 
@@ -211,11 +215,7 @@ def ajax_melody_search(request):
     mode = request.GET.get("mode")
     source = request.GET.get("source")
 
-    display_unpublished = request.user.is_authenticated
-    if not display_unpublished:
-        chants = Chant.objects.filter(source__published=True)
-    else:
-        chants = Chant.objects.all()
+    chants = Chant.objects.filter(source_id__in=sources_visible_to_user)
 
     chants = chants.select_related("source__holding_institution")
 
@@ -297,7 +297,10 @@ def ajax_melody_search(request):
     return JsonResponse({"results": results, "result_count": result_count}, safe=True)
 
 
-def ajax_search_bar(request, search_term):
+@get_sources_visible_to_user
+def ajax_search_bar(
+    request: HttpRequest, search_term: str, sources_visible_to_user: QuerySet[Source]
+) -> JsonResponse:
     """
     Function-based view responding to global search bar AJAX calls,
     accessed with the search bar on the top-right corner of almost every page.
@@ -323,13 +326,11 @@ def ajax_search_bar(request, search_term):
         "source__holding_institution", "genre", "feast", "service"
     )
 
-    display_unpublished: bool = request.user.is_authenticated
-    if not display_unpublished:
-        chants = chants.filter(source__published=True)
+    chants = chants.filter(source__in=sources_visible_to_user)
 
     chants = chants[:CHANT_CNT]
 
-    returned_values: list[dict] = list(
+    returned_values = list(
         chants.values(
             "id",  # not used in the js, but used to calculate chant_link below
             "incipit",
@@ -406,7 +407,9 @@ def json_sources_export(request) -> JsonResponse:
     return JsonResponse(csv_links)
 
 
-def build_json_sources_export_dictionary(id: int, request) -> dict:
+def build_json_sources_export_dictionary(
+    id: int, request: HttpRequest
+) -> Dict[str, str]:
     """Return a dictionary containing a link to the csv-export page for a source
 
     Args:
@@ -421,13 +424,13 @@ def build_json_sources_export_dictionary(id: int, request) -> dict:
     return {"csv": request.build_absolute_uri(reverse("csv-export", args=[id]))}
 
 
-def json_nextchants(request, cantus_id):
+def json_nextchants(request: HttpRequest, cantus_id: str) -> JsonResponse:
     ids_and_counts = next_chants(cantus_id, display_unpublished=False)
     suggested_chants_dict = {id: count for (id, count) in ids_and_counts}
     return JsonResponse(suggested_chants_dict)
 
 
-def json_cid_export(request, cantus_id: str) -> JsonResponse:
+def json_cid_export(request: HttpRequest, cantus_id: str) -> JsonResponse:
     """Return a JsonResponse containing information on all chants with a given
     Cantus ID, in the following format:
     {
@@ -465,7 +468,7 @@ def json_cid_export(request, cantus_id: str) -> JsonResponse:
     return JsonResponse(response)
 
 
-def build_json_cid_dictionary(chant, request) -> dict:
+def build_json_cid_dictionary(chant: Chant, request: HttpRequest) -> Dict[str, Any]:
     """Return a dictionary with information on a given chant in the database
 
     Args:
@@ -600,7 +603,7 @@ def json_node_export(request: HttpRequest, id: int) -> HttpResponse:
     return HttpResponseNotFound()
 
 
-def notation_json_export(request, id: int) -> JsonResponse:
+def notation_json_export(request: HttpRequest, id: int) -> JsonResponse:
     """
     Return JsonResponse containing several key:value pairs
     for the notation with the specified ID
@@ -620,7 +623,7 @@ def notation_json_export(request, id: int) -> JsonResponse:
     return JsonResponse(data)
 
 
-def provenance_json_export(request, id: int) -> JsonResponse:
+def provenance_json_export(request: HttpRequest, id: int) -> JsonResponse:
     """
     Return JsonResponse containing several key:value pairs
     for the provenance with the specified ID
@@ -640,7 +643,7 @@ def provenance_json_export(request, id: int) -> JsonResponse:
     return JsonResponse(data)
 
 
-def articles_list_export(request) -> HttpResponse:
+def articles_list_export(request: HttpRequest) -> HttpResponse:
     """Returns a list of URLs of all articles on the site
 
     Args:
@@ -657,8 +660,8 @@ def articles_list_export(request) -> HttpResponse:
     return HttpResponse(" ".join(article_urls), content_type="text/plain")
 
 
-def flatpages_list_export(request) -> HttpResponse:
-    """Returns a list of URLs of all articles on the site
+def flatpages_list_export(request: HttpRequest) -> HttpResponse:
+    """Returns a list of URLs of all the flat pages on the site
 
     Args:
         request: the incoming request
