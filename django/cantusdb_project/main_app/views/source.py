@@ -51,6 +51,7 @@ from main_app.tasks import save_browse_chants_formset
 CANTUS_SEGMENT_ID = 4063
 BOWER_SEGMENT_ID = 4064
 
+
 class SourceBrowseChantsView(CustomAccessMixin, ListView):  # type: ignore[type-arg]
     """The view for the `Browse Chants` page.
 

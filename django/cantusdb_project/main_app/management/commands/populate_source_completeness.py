@@ -1,5 +1,5 @@
 """
-A temporary command to populate the source_completeness field in the Source model, 
+A temporary command to populate the source_completeness field in the Source model,
 based on the full_source field. This command will be removed once the source_completeness
 is initially populated.
 """
