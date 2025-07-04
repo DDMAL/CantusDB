@@ -16,9 +16,15 @@
     <div class="container-fluid ccdb-info">
         <div class="row py-5 bg-white bg-opacity-75">
             <div class="col">
-                <div class="row">
-                    <div class="col">
-                        <a class="h1 ccdb-heading d-block text-center" href="#search-container">The Canadian Chant Database</a>
+                <div class="row mb-4">
+                    <div class="col text-center">
+                        <a href="#search-container">
+                            <img src="{% static 'ccdb-images/CCD-logo.svg' %}"
+                                 width="1000"
+                                 height="690"
+                                 class="img-fluid"
+                                 alt="Logo with words 'Canadian Chant Database'" />
+                        </a>
                     </div>
                 </div>
                 <div class="d-lg-grid ccdb-landing-grid">
@@ -53,10 +59,9 @@
                         </a>
                     </div>
                     <div class="ccdb-grid-map text-center">
-                        <img src="{% static 'ccdb-images/CCDB-map.png' %}"
-                             width="1000"
-                             height="690"
-                             class="img-fluid" />
+                        <iframe src="https://www.google.com/maps/d/embed?mid=1uTSnFP4RHFd7RSBIIZpJ0_i69hIpypo&ehbc=2E312F"
+                                width="1000"
+                                height="600"></iframe>
                     </div>
                 </div>
                 <div class="row text-center mt-5">
@@ -183,6 +188,7 @@
                         </div>
                     </form>
                     {% if sources %}
+                        {% include "page_count.html" %}
                         <table class="table table-sm small table-bordered table-responsive ccdb-table">
                             <thead>
                                 <tr>
@@ -225,12 +231,12 @@
                                         </td>
                                         <td class="text-wrap"
                                             style="text-align:center"
-                                            title="{{ source.summary|default:""|truncatechars_html:500 }}">
+                                            title="{{ source.summary|default:""|safe|truncatechars_html:500 }}">
                                             {% if source.name %}
-                                                <b>"{{ source.name }}"</b>
+                                                <b>"{{ source.name|safe }}"</b>
                                                 <br />
                                             {% endif %}
-                                            {{ source.summary|default:""|truncatechars_html:120 }}
+                                            {{ source.summary|default:""|safe|truncatechars_html:120 }}
                                         </td>
                                         <td class="text-wrap" style="text-align:center">
                                             {% if source.century %}

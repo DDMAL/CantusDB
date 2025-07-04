@@ -4,10 +4,7 @@ from typing import Optional, Any, Iterator
 import string
 
 from django.contrib import messages
-from django.contrib.auth.mixins import LoginRequiredMixin
-from django.contrib.auth.mixins import UserPassesTestMixin
 from django.contrib.postgres.aggregates import ArrayAgg
-from django.core.exceptions import PermissionDenied
 from django.db.models import F, Q, QuerySet
 from django.http import Http404, HttpResponse
 from django.shortcuts import get_object_or_404
@@ -45,11 +42,8 @@ from main_app.models import (
     Sequence,
     Service,
 )
-from main_app.permissions import (
-    user_can_edit_chants_in_source,
-    user_can_proofread_chant,
-    user_can_view_chant,
-)
+from main_app.permissions import CustomAccessMixin
+
 from main_app.mixins import JSONResponseMixin
 from users.models import User
 
@@ -280,7 +274,7 @@ def get_chants_with_folios(chants_in_feast: QuerySet) -> list:
     return list(folios_chants.items())
 
 
-class ChantDetailView(JSONResponseMixin, DetailView):  # type: ignore[type-arg]
+class ChantDetailView(CustomAccessMixin, JSONResponseMixin, DetailView):  # type: ignore[type-arg]
     """
     Displays a single Chant object. Accessed with ``chants/<int:pk>``
     """
@@ -310,6 +304,16 @@ class ChantDetailView(JSONResponseMixin, DetailView):  # type: ignore[type-arg]
         "source_id",
     ]
 
+    def test_func(self) -> bool:
+        chant_id = self.kwargs.get(self.pk_url_kwarg)
+        chant = get_object_or_404(Chant, pk=chant_id)
+        source = chant.source
+        return (
+            source.published
+            or self.user_assigned_to_source(source)
+            or self.user_is_global_viewer
+        )
+
     def get_queryset(self) -> QuerySet[Chant]:
         qs = super().get_queryset()
         return qs.select_related(
@@ -319,15 +323,9 @@ class ChantDetailView(JSONResponseMixin, DetailView):  # type: ignore[type-arg]
     def get_context_data(self, **kwargs: Any) -> dict[str, Any]:
         context = super().get_context_data(**kwargs)
         chant = context["chant"]
-        user = self.request.user
         source = chant.source
 
-        # if the chant's source isn't published, only logged-in users should be able to
-        # view the chant's detail page
-        if not user_can_view_chant(user, chant):
-            raise PermissionDenied()
-
-        context["user_can_edit_chant"] = user_can_edit_chants_in_source(user, source)
+        context["user_can_edit_chant"] = self.user_assigned_to_source(source)
 
         # syllabification section
         if chant.volpiano:
@@ -389,28 +387,31 @@ class ChantDetailView(JSONResponseMixin, DetailView):  # type: ignore[type-arg]
         return context
 
 
-class ChantByCantusIDView(ListView):
+class ChantByCantusIDView(CustomAccessMixin, ListView):  # type: ignore[type-arg]
     # model = Chant
     paginate_by = 100
     context_object_name = "chants"
     template_name = "chant_seq_by_cantus_id.html"
+    test_req = False
 
     def dispatch(self, request, *args, **kwargs):
         # decode cantus_id, which might contain forward slash and is thus percent-encoded
         self.cantus_id = urllib.parse.unquote(kwargs["cantus_id"])
         return super().dispatch(request, *args, **kwargs)
 
-    def get_queryset(self):
+    def get_queryset(self) -> QuerySet[Chant]:
         chant_set = Chant.objects.filter(cantus_id=self.cantus_id).select_related(
             "source__holding_institution", "service", "genre", "feast"
         )
         sequence_set = Sequence.objects.filter(cantus_id=self.cantus_id).select_related(
             "source__holding_institution", "service", "genre", "feast"
         )
-        display_unpublished = self.request.user.is_authenticated
-        if not display_unpublished:
-            chant_set = chant_set.filter(source__published=True)
-            sequence_set = sequence_set.filter(source__published=True)
+
+        if not self.user.is_superuser and not self.user_is_global_viewer:
+            chant_set = chant_set.filter(source__in=self.published_and_assigned_sources)
+            sequence_set = sequence_set.filter(
+                source__in=self.published_and_assigned_sources
+            )
         # the union operation turns sequences into chants, the resulting queryset contains only
         # "chant" objects this forces us to do something special on the template to render correct
         # absolute url for sequences
@@ -424,7 +425,7 @@ class ChantByCantusIDView(ListView):
         return context
 
 
-class ChantSearchView(ListView):
+class ChantSearchView(CustomAccessMixin, ListView):  # type: ignore[type-arg]
     """
     Searches Chants and displays them as a list, accessed with ``chant-search/``
 
@@ -448,6 +449,7 @@ class ChantSearchView(ListView):
     paginate_by = 100
     context_object_name = "chants"
     template_name = "chant_search.html"
+    test_req = False
 
     def get_context_data(self, **kwargs) -> dict:
         context = super().get_context_data(**kwargs)
@@ -510,44 +512,32 @@ class ChantSearchView(ListView):
 
         return context
 
-    def get_queryset(self) -> QuerySet:
+    def get_queryset(self) -> QuerySet[Chant]:
         # if user has just arrived on the Chant Search page, there will be no GET parameters.
         if not self.request.GET:
             return Chant.objects.none()
 
         # Create a Q object to filter the QuerySet of Chants
         q_obj_filter = Q()
-        display_unpublished = self.request.user.is_authenticated
 
         # if the search is accessed by the global search bar
-        if self.request.GET.get("search_bar"):
-            if display_unpublished:
-                chant_set = Chant.objects.all()
-                sequence_set = Sequence.objects.all()
-            else:
-                chant_set = Chant.objects.filter(source__published=True)
-                sequence_set = Sequence.objects.filter(source__published=True)
-
-            chant_set = chant_set.select_related(
+        if search_bar := self.request.GET.get("search_bar"):
+            chant_set = Chant.objects.select_related(
                 "source__holding_institution", "feast", "service", "genre"
             )
-            sequence_set = sequence_set.select_related(
+            sequence_set = Sequence.objects.select_related(
                 "source__holding_institution", "feast", "service", "genre"
             )
 
-            search_bar_term_contains_digits = any(
-                map(str.isdigit, self.request.GET.get("search_bar"))
-            )
+            search_bar_term_contains_digits = any(map(str.isdigit, search_bar))
             if search_bar_term_contains_digits:
                 # if search bar is doing Cantus ID search
-                cantus_id = self.request.GET.get("search_bar")
-                q_obj_filter &= Q(cantus_id__icontains=cantus_id)
+                q_obj_filter &= Q(cantus_id__icontains=search_bar)
                 chant_set = chant_set.filter(q_obj_filter).only(*ONLY_FIELDS)
                 sequence_set = sequence_set.filter(q_obj_filter).only(*ONLY_FIELDS)
-                queryset = chant_set.union(sequence_set, all=True)
             else:
                 # if search bar is doing incipit search
-                search_term = self.request.GET.get("search_bar")
+                search_term = search_bar
                 ms_spelling_filter = Q(manuscript_full_text__istartswith=search_term)
                 std_spelling_filter = Q(
                     manuscript_full_text_std_spelling__istartswith=search_term
@@ -560,7 +550,15 @@ class ChantSearchView(ListView):
                 sequence_set = sequence_set.filter(search_term_filter).only(
                     *ONLY_FIELDS
                 )
-                queryset = chant_set.union(sequence_set, all=True)
+            if not self.user.is_superuser and not self.user_is_global_viewer:
+                chant_set = chant_set.filter(
+                    source__in=self.published_and_assigned_sources
+                )
+                sequence_set = sequence_set.filter(
+                    source__in=self.published_and_assigned_sources
+                )
+
+            queryset = chant_set.union(sequence_set, all=True)
         else:
             # The field names should be keys in the "GET" QueryDict if the search button has been
             # clicked, even if the user put nothing into the search form and hit "apply" immediately.
@@ -588,20 +586,22 @@ class ChantSearchView(ListView):
                 # This will match any feast whose name contains the feast parameter as a substring
                 q_obj_filter &= Q(feast__name__icontains=feast)
 
-            if not display_unpublished:
-                chant_set: QuerySet = Chant.objects.filter(source__published=True)
-                sequence_set: QuerySet = Sequence.objects.filter(source__published=True)
-            else:
-                chant_set: QuerySet = Chant.objects.all()
-                sequence_set: QuerySet = Sequence.objects.all()
-
             # Filter the QuerySet with Q object
-            chant_set = chant_set.filter(q_obj_filter).select_related(
+            chant_set = Chant.objects.filter(q_obj_filter).select_related(
                 "source__holding_institution", "feast", "service", "genre"
             )
-            sequence_set = sequence_set.filter(q_obj_filter).select_related(
+            sequence_set = Sequence.objects.filter(q_obj_filter).select_related(
                 "source__holding_institution", "feast", "service", "genre"
             )
+
+            # Filter the QuerySet based on permissions
+            if not self.user.is_superuser and not self.user_is_global_viewer:
+                chant_set = chant_set.filter(
+                    source__in=self.published_and_assigned_sources
+                )
+                sequence_set = sequence_set.filter(
+                    source__in=self.published_and_assigned_sources
+                )
 
             # Finally, do keyword searching over the querySet
             if self.request.GET.get("keyword"):
@@ -694,7 +694,7 @@ class MelodySearchView(TemplateView):
         return context
 
 
-class ChantSearchMSView(ListView):
+class ChantSearchMSView(CustomAccessMixin, ListView):  # type: ignore[type-arg]
     """
     Searches chants/sequences in a certain manuscript, accessed with
     ``chant-search-ms/<int:source_pk>``
@@ -718,17 +718,21 @@ class ChantSearchMSView(ListView):
     paginate_by = 100
     context_object_name = "chants"
     template_name = "chant_search.html"
+    source: Source
+
+    def test_func(self) -> bool:
+        source_id = self.kwargs.get("source_pk")
+        self.source = get_object_or_404(Source, pk=source_id)
+        return (
+            self.source.published
+            or self.user_assigned_to_source(self.source)
+            or self.user_is_global_viewer
+        )
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
-        source_id = self.kwargs["source_pk"]
-        source = get_object_or_404(Source, id=source_id)
 
-        display_unpublished = self.request.user.is_authenticated
-        if source.published is False and display_unpublished is False:
-            raise PermissionDenied
-
-        context["source"] = source
+        context["source"] = self.source
         # Add to context a QuerySet of dicts with id and name of each Genre
         context["genres"] = Genre.objects.all().order_by("name").values("id", "name")
         context["services"] = (
@@ -784,7 +788,7 @@ class ChantSearchMSView(ListView):
         context["url_with_search_params"] = url_with_search_params
         return context
 
-    def get_queryset(self) -> QuerySet:
+    def get_queryset(self) -> QuerySet[Chant]:
         # If the "apply" button hasn't been clicked, return empty queryset
         if not self.request.GET:
             return Chant.objects.none()
@@ -904,7 +908,7 @@ class ChantSearchMSView(ListView):
         return queryset
 
 
-class ChantCreateView(LoginRequiredMixin, UserPassesTestMixin, CreateView):
+class ChantCreateView(CustomAccessMixin, CreateView):  # type: ignore[type-arg]
     """Create chants in a certain manuscript, accessed with `chant-create/<int:source_pk>`.
 
     This view displays the chant input form and provide access to
@@ -918,12 +922,10 @@ class ChantCreateView(LoginRequiredMixin, UserPassesTestMixin, CreateView):
     source: Source
     latest_chant: Optional[Chant]
 
-    def test_func(self):
-        user = self.request.user
+    def test_func(self) -> bool:
         source_id = self.kwargs.get(self.pk_url_kwarg)
         self.source = get_object_or_404(Source, id=source_id)
-
-        return user_can_edit_chants_in_source(user, self.source)
+        return self.user_assigned_to_source(self.source)
 
     def get_success_url(self):
         """
@@ -1033,8 +1035,9 @@ class ChantCreateView(LoginRequiredMixin, UserPassesTestMixin, CreateView):
         return super().form_valid(form)
 
 
-class ChantDeleteView(LoginRequiredMixin, UserPassesTestMixin, DeleteView):
-    """The view for deleting a chant object
+class ChantDeleteView(CustomAccessMixin, DeleteView):  # type: ignore[type-arg]
+    """
+    The view for deleting a chant object
 
     This view is used in the chant-edit page, where an authorized user is allowed to
     edit or delete chants in a certain source.
@@ -1042,21 +1045,21 @@ class ChantDeleteView(LoginRequiredMixin, UserPassesTestMixin, DeleteView):
 
     model = Chant
     template_name = "chant_delete.html"
+    object: Chant  # type hint to avoid typing error
 
-    def test_func(self):
-        user = self.request.user
+    def test_func(self) -> bool:
         chant_id = self.kwargs.get(self.pk_url_kwarg)
         chant = get_object_or_404(Chant, id=chant_id)
         source = chant.source
-
-        return user_can_edit_chants_in_source(user, source)
+        return self.user_assigned_to_source(source)
 
     def get_success_url(self):
         return reverse("source-edit-chants", args=[self.object.source.id])
 
 
 class CISearchView(TemplateView):
-    """Search in CI and write results in get_context_data
+    """
+    Search in CI and write results in get_context_data
     Shown on the chant create page as the "Input Tool"
     """
 
@@ -1092,7 +1095,7 @@ class CISearchView(TemplateView):
         return context
 
 
-class SourceEditChantsView(LoginRequiredMixin, UserPassesTestMixin, UpdateView):
+class SourceEditChantsView(CustomAccessMixin, UpdateView):  # type: ignore[type-arg]
     template_name = "chant_edit.html"
     model = Chant
     form_class = ChantEditForm
@@ -1101,11 +1104,9 @@ class SourceEditChantsView(LoginRequiredMixin, UserPassesTestMixin, UpdateView):
     source_has_chants: bool
 
     def test_func(self) -> bool:
-        user = self.request.user
         source_id = self.kwargs.get(self.pk_url_kwarg)
         self.source = get_object_or_404(Source, id=source_id)
-
-        return user_can_edit_chants_in_source(user, self.source)
+        return self.user_assigned_to_source(self.source)
 
     def get_queryset(self) -> QuerySet[Chant]:
         """
@@ -1212,8 +1213,9 @@ class SourceEditChantsView(LoginRequiredMixin, UserPassesTestMixin, UpdateView):
                 text_and_mel = None
             context["syllabized_text_with_melody"] = text_and_mel
 
-        user = self.request.user
-        context["user_can_proofread_chant"] = user_can_proofread_chant(user, chant)
+        context["user_can_proofread_chant"] = (
+            self.user_is_editor and self.user_assigned_to_source(self.source)
+        )
         # in case the chant has no manuscript_full_text_std_spelling, we check Cantus Index
         # for the expected text for chants with the same Cantus ID, and pass it to the context
         # to suggest it to the user
@@ -1240,7 +1242,11 @@ class SourceEditChantsView(LoginRequiredMixin, UserPassesTestMixin, UpdateView):
         user: User = self.request.user
         chant: Chant = form.instance
 
-        if not user_can_proofread_chant(user, chant):
+        user_can_proofread_chant = self.user_is_editor and self.user_assigned_to_source(
+            chant.source
+        )
+
+        if not user_can_proofread_chant:
             # Preserve the original values for proofreader-specific fields
             original_chant: Chant = self.get_object()
             chant.chant_range = original_chant.chant_range
@@ -1276,7 +1282,7 @@ class SourceEditChantsView(LoginRequiredMixin, UserPassesTestMixin, UpdateView):
 
         # The many-to-many `proofread_by` field is reset when the
         # parent class's `form_valid` method calls `save()` on the model instance.
-        if not user_can_proofread_chant(user, chant):
+        if not user_can_proofread_chant:
             chant.proofread_by.set(proofreaders)
         messages.success(self.request, "Chant updated successfully!")
         return return_response
@@ -1307,7 +1313,7 @@ class SourceEditChantsView(LoginRequiredMixin, UserPassesTestMixin, UpdateView):
         return self.request.get_full_path()
 
 
-class ChantEditSyllabificationView(LoginRequiredMixin, UserPassesTestMixin, UpdateView):
+class ChantEditSyllabificationView(CustomAccessMixin, UpdateView):  # type: ignore[type-arg]
     template_name = "chant_syllabification_edit.html"
     model = Chant
     context_object_name = "chant"
@@ -1318,12 +1324,10 @@ class ChantEditSyllabificationView(LoginRequiredMixin, UserPassesTestMixin, Upda
         super().__init__(*args, **kwargs)
         self.flattened_syls_text = ""
 
-    def test_func(self):
+    def test_func(self) -> bool:
         chant = self.get_object()
         source = chant.source
-        user = self.request.user
-
-        return user_can_edit_chants_in_source(user, source)
+        return self.user_assigned_to_source(source)
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)

@@ -11,7 +11,6 @@ https://docs.djangoproject.com/en/3.0/ref/settings/
 """
 
 import os
-from distutils.util import strtobool
 from django.contrib.messages import constants as messages
 
 # https://ordinarycoders.com/blog/article/django-messages-framework

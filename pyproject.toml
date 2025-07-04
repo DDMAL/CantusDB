@@ -3,16 +3,16 @@ name = "cantusdb"
 package-mode = false
 
 [tool.poetry.dependencies]
-python = "^3.9"
-Django = "4.2.16"
+python = "3.12.10"
+Django = "5.2.2"
 django-autocomplete-light = "3.9.4"
 django-extra-views = "0.13.0"
 django-quill-editor = "0.1.40"
-django-reversion = "5.0.8"
-gunicorn = "22.0.0"
-requests = "2.32.2"
+django-reversion = "5.1.0"
+gunicorn = "23.0.0"
+requests = "2.32.4"
 ujson = "5.9.0"
-volpiano-display-utilities = { git = "https://github.com/DDMAL/volpiano-display-utilities.git", tag = "v1.1.3" }
+volpiano-display-utilities = { git = "https://github.com/DDMAL/volpiano-display-utilities.git", tag = "v1.3.0" }
 psycopg = {extras = ["binary"], version = "3.1.18"}
 cmarkgfm = "2024.11.20"
 celery = "5.5.1"
