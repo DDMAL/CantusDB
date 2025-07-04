@@ -163,10 +163,9 @@ class SourceBrowseChantsView(CustomAccessMixin, ListView):  # type: ignore[type-
     def get_context_data(self, **kwargs: Any) -> dict[str, Any]:
         context: dict[str, Any] = super().get_context_data(**kwargs)
         source: Source = self.source
-        if not CANTUS_SEGMENT_ID in source.segment_m2m.values_list("id", flat=True):
-            # the chant list ("Browse Chants") page should only be visitable
-            # for sources in the CANTUS Database segment, as sources in the Bower
-            # segment contain no chants
+
+        # Check if source has any chants - if not, return 404
+        if not source.chant_set.exists():
             raise Http404()
 
         context["source"] = source
@@ -283,17 +282,16 @@ class SourceDetailView(CustomAccessMixin, JSONResponseMixin, DetailView):  # typ
                 sequences.values_list("folio", flat=True).distinct().order_by("folio")
             )
             context["bower_segment"] = True
+            context["has_chants"] = sequences.exists()
         else:
             # if this is a chant source
-            folios = (
-                source.chant_set.values_list("folio", flat=True)
-                .distinct()
-                .order_by("folio")
-            )
+            chants = source.chant_set
+            folios = chants.values_list("folio", flat=True).distinct().order_by("folio")
             context["folios"] = folios
             # the options for the feast selector on the right, only chant sources have this
             context["feasts_with_folios"] = get_feast_selector_options(source)
             context["bower_segment"] = False
+            context["has_chants"] = chants.exists()
 
         context["user_can_edit_chants"] = self.user_assigned_to_source(source)
         context["user_can_edit_source"] = (
@@ -643,6 +641,11 @@ class SourceInventoryView(CustomAccessMixin, ListView):  # type: ignore[type-arg
                 .order_by("folio", "c_sequence")
                 .select_related("feast", "service", "genre", "diff_db")
             )
+
+        # Return 404 if no chants/sequences exist
+        if not queryset.exists():
+            raise Http404()
+
         return queryset
 
     def get_context_data(self, **kwargs: Any) -> dict[str, Any]:
