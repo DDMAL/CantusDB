@@ -607,22 +607,7 @@ class SourceEditView(CustomAccessMixin, UpdateView):  # type: ignore[type-arg]
 
     def form_valid(self, form):
         form.instance.last_updated_by = self.request.user
-
-        # remove this source from the old "current_editors"
-        # assign this source to the new "current_editors"
-
-        old_current_editors = list(
-            Source.objects.get(id=form.instance.id).current_editors.all()
-        )
-        new_current_editors = form.cleaned_data["current_editors"]
-        source = form.save()
-
-        for old_editor in old_current_editors:
-            old_editor.sources_user_can_edit.remove(source)
-
-        for new_editor in new_current_editors:
-            new_editor.sources_user_can_edit.add(source)
-
+        form.save()
         return HttpResponseRedirect(self.get_success_url())
 
 
