@@ -536,7 +536,7 @@ urlpatterns = [
     path(
         "active-users-autocomplete/",
         ActiveUsersAutocomplete.as_view(),
-        name="current-editors-autocomplete",
+        name="active-users-autocomplete",
     ),
     path(
         "all-users-autocomplete/",
