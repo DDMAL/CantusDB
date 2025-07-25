@@ -350,7 +350,7 @@ class SourceCreateForm(forms.ModelForm):
             "dact_id": TextInputWidget(),
             "indexing_notes": TextAreaWidget(),
             "current_editors": autocomplete.ModelSelect2Multiple(
-                url="current-editors-autocomplete"
+                url="active-users-autocomplete"
             ),
             "melodies_entered_by": autocomplete.ModelSelect2Multiple(
                 url="all-users-autocomplete"
@@ -556,7 +556,6 @@ class SourceEditForm(forms.ModelForm):
             "fragmentarium_id",
             "dact_id",
             "indexing_notes",
-            "current_editors",
             "melodies_entered_by",
             "inventoried_by",
             "full_text_entered_by",
@@ -585,9 +584,6 @@ class SourceEditForm(forms.ModelForm):
             "fragmentarium_id": TextInputWidget(),
             "dact_id": TextInputWidget(),
             "indexing_notes": TextAreaWidget(),
-            "current_editors": autocomplete.ModelSelect2Multiple(
-                url="current-editors-autocomplete"
-            ),
             "melodies_entered_by": autocomplete.ModelSelect2Multiple(
                 url="all-users-autocomplete"
             ),

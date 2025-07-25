@@ -13,20 +13,12 @@ from main_app.models import (
 )
 
 
-class CurrentEditorsAutocomplete(autocomplete.Select2QuerySetView):
+class ActiveUsersAutocomplete(autocomplete.Select2QuerySetView):
     def get_queryset(self):
         if not self.request.user.is_authenticated:
             return get_user_model().objects.none()
         # pylint: disable=unsupported-binary-operation
-        qs = (
-            get_user_model()
-            .objects.filter(
-                Q(groups__name="project manager")
-                | Q(groups__name="editor")
-                | Q(groups__name="contributor")
-            )
-            .order_by("full_name")
-        )
+        qs = get_user_model().objects.filter(is_active=True).order_by("full_name")
         if self.q:
             qs = qs.filter(
                 Q(full_name__istartswith=self.q) | Q(email__istartswith=self.q)

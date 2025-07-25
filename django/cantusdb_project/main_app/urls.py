@@ -96,7 +96,7 @@ from main_app.views.user import (
 )
 from main_app.views.proofreading import ProofreadView
 from main_app.views.autocomplete import (
-    CurrentEditorsAutocomplete,
+    ActiveUsersAutocomplete,
     AllUsersAutocomplete,
     CenturyAutocomplete,
     FeastAutocomplete,
@@ -534,9 +534,9 @@ urlpatterns = [
         name="redirect-how-to-manuscript-descriptions",
     ),
     path(
-        "current-editors-autocomplete/",
-        CurrentEditorsAutocomplete.as_view(),
-        name="current-editors-autocomplete",
+        "active-users-autocomplete/",
+        ActiveUsersAutocomplete.as_view(),
+        name="active-users-autocomplete",
     ),
     path(
         "all-users-autocomplete/",
