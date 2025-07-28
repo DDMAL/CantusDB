@@ -162,9 +162,7 @@ class CustomAccessMixin(AccessMixin):
         return self.check_user_assignment(source)
 
     def user_created_source(self, source: Source) -> bool:
-        if source.created_by == self.user:
-            return True
-        return False
+        return source.created_by == self.user
 
     def check_user_assignment(self, source: Source) -> bool:
         """
