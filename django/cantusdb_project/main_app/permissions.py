@@ -161,6 +161,9 @@ class CustomAccessMixin(AccessMixin):
             return self.src_perm_cache.get(source.id)
         return self.check_user_assignment(source)
 
+    def user_created_source(self, source: Source) -> bool:
+        return source.created_by == self.user
+
     def check_user_assignment(self, source: Source) -> bool:
         """
         Runs a database query to check if the user is assigned to a source.

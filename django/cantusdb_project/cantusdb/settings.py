@@ -212,6 +212,9 @@ INTERNAL_IPS = [
 # the BulkEdit formset
 DATA_UPLOAD_MAX_NUMBER_FIELDS = 1010
 
+CANTUS_SEGMENT_ID = 4063
+BOWER_SEGMENT_ID = 4064
+
 # Celery configurations
 CELERY_BROKER_URL = "redis://redis:6379/0"
 CELERY_RESULT_BACKEND = "redis://redis:6379/0"

@@ -289,6 +289,8 @@ class SourceDetailViewTest(SourcePermissionsTestCase):
     def test_chant_list_link(self) -> None:
         cantus_segment = make_fake_segment(id=4063)
         cantus_source = make_fake_source(segment=[cantus_segment])
+        # Add a chant so the source has content and link should appear
+        make_fake_chant(source=cantus_source)
         chant_list_link = reverse("browse-chants", args=[cantus_source.id])
 
         cantus_source_response = self.client.get(
@@ -297,14 +299,14 @@ class SourceDetailViewTest(SourcePermissionsTestCase):
         cantus_source_html = str(cantus_source_response.content)
         self.assertIn(chant_list_link, cantus_source_html)
 
-        bower_segment = make_fake_segment(id=4064)
-        bower_source = make_fake_source(segment=[bower_segment])
-        bower_chant_list_link = reverse("browse-chants", args=[bower_source.id])
-        bower_source_response = self.client.get(
-            reverse("source-detail", args=[bower_source.id])
+        # Sources without chants should not show the link
+        source_no_chants = make_fake_source(segment=[cantus_segment])
+        no_chants_response = self.client.get(
+            reverse("source-detail", args=[source_no_chants.id])
         )
-        bower_source_html = str(bower_source_response.content)
-        self.assertNotIn(bower_chant_list_link, bower_source_html)
+        no_chants_html = str(no_chants_response.content)
+        no_chants_link = reverse("browse-chants", args=[source_no_chants.id])
+        self.assertNotIn(no_chants_link, no_chants_html)
 
     def test_json_response(self) -> None:
         source = make_fake_source()
@@ -328,9 +330,18 @@ class SourceInventoryViewTest(HTMLContentsTestMixin, SourcePermissionsTestCase):
 
     def test_url_and_templates(self):
         source = make_fake_source()
+        make_fake_chant(source=source)
         response = self.client.get(reverse("source-inventory", args=[source.id]))
         self.assertEqual(response.status_code, 200)
         self.assertTemplateUsed(response, "full_inventory.html")
+
+    def test_no_chants_returns_404(self):
+        # Test that sources without chants return 404
+        source_no_chants = make_fake_source(published=True)
+        response = self.client.get(
+            reverse("source-inventory", args=[source_no_chants.id])
+        )
+        self.assertEqual(response.status_code, 404)
 
     def test_chant_source_queryset(self):
         chant_source = make_fake_source()
@@ -538,6 +549,7 @@ class SourceInventoryViewTest(HTMLContentsTestMixin, SourcePermissionsTestCase):
         cantus_segment = make_fake_segment(id=4063)
         source = make_fake_source(segment=[cantus_segment])
         source_id = source.id
+        make_fake_chant(source=source)
 
         url = reverse("redirect-source-inventory")
         response = self.client.get(f"{url}?source={source_id}")
@@ -581,6 +593,7 @@ class SourceBrowseChantsViewTest(SourcePermissionsTestCase):
     def test_url_and_templates(self):
         cantus_segment = make_fake_segment(id=4063)
         source = make_fake_source(segment=[cantus_segment])
+        make_fake_chant(source=source)
         response = self.client.get(reverse("browse-chants", args=[source.id]))
         self.assertEqual(response.status_code, 200)
         self.assertTemplateUsed(response, "base.html")
@@ -589,16 +602,23 @@ class SourceBrowseChantsViewTest(SourcePermissionsTestCase):
     def test_visibility_by_segment(self):
         cantus_segment = make_fake_segment(id=4063)
         cantus_source = make_fake_source(segment=[cantus_segment], published=True)
+        # Add a chant so the source has content
+        make_fake_chant(source=cantus_source)
         response_1 = self.client.get(reverse("browse-chants", args=[cantus_source.id]))
         self.assertEqual(response_1.status_code, 200)
 
-        # The chant list ("Browse Chants") page should only be visitable
-        # for sources in the CANTUS Database segment, as sources in the Bower
-        # segment contain no chants
+        # Sources without chants should return 404
         bower_segment = make_fake_segment(id=4064)
         bower_source = make_fake_source(segment=[bower_segment], published=True)
         response_1 = self.client.get(reverse("browse-chants", args=[bower_source.id]))
         self.assertEqual(response_1.status_code, 404)
+
+    def test_no_chants_returns_404(self):
+        # Test that sources without chants return 404
+        cantus_segment = make_fake_segment(id=4063)
+        source_no_chants = make_fake_source(segment=[cantus_segment], published=True)
+        response = self.client.get(reverse("browse-chants", args=[source_no_chants.id]))
+        self.assertEqual(response.status_code, 404)
 
     def test_filter_by_source(self):
         cantus_segment = make_fake_segment(id=4063)
@@ -766,6 +786,7 @@ class SourceBrowseChantsViewTest(SourcePermissionsTestCase):
     def test_context_source(self):
         cantus_segment = make_fake_segment(id=4063)
         source = make_fake_source(segment=[cantus_segment])
+        make_fake_chant(source=source)
         response = self.client.get(reverse("browse-chants", args=[source.id]))
         self.assertEqual(source, response.context["source"])
 
@@ -786,6 +807,7 @@ class SourceBrowseChantsViewTest(SourcePermissionsTestCase):
     def test_redirect_with_source_parameter(self):
         cantus_segment = make_fake_segment(id=4063)
         source = make_fake_source(segment=[cantus_segment])
+        make_fake_chant(source=source)
         source_id = source.id
 
         url = reverse("redirect-chants")

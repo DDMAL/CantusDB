@@ -1,6 +1,7 @@
 import re
 from typing import Any, Optional, Union
 
+from django.conf import settings
 from django.contrib import messages
 from django.contrib.auth.mixins import UserPassesTestMixin
 from django.db.models import Q, Prefetch, Value
@@ -116,6 +117,8 @@ class SourceBrowseChantsView(CustomAccessMixin, ListView):  # type: ignore[type-
         )
         volpiano_proofread = self.request.GET.get("volpiano_proofread")
 
+        other_fields_proofread = self.request.GET.get("other_fields_proofread")
+
         # get all chants in the specified source
         chants: QuerySet[Chant] = self.source.chant_set.select_related(
             "feast", "service", "genre"
@@ -136,37 +139,46 @@ class SourceBrowseChantsView(CustomAccessMixin, ListView):  # type: ignore[type-
             )
         # Apply proofreading filters if they are set
         if manuscript_full_text_std_proofread:
-            chants = chants.filter(
-                manuscript_full_text_std_spelling__isnull=False,
-            ).exclude(manuscript_full_text_std_spelling="")
-            if manuscript_full_text_std_proofread == "False":
-                chants = chants.exclude(manuscript_full_text_std_proofread="True")
-            else:
-                chants = chants.filter(manuscript_full_text_std_proofread="True")
+            q_obj = Q(manuscript_full_text_std_spelling__isnull=False) & ~Q(
+                manuscript_full_text_std_spelling=""
+            )
+            if manuscript_full_text_std_proofread == "True":
+                q_obj &= Q(manuscript_full_text_std_proofread="True")
+            else:  # manuscript_full_text_std_proofread == "False"
+                q_obj &= ~Q(manuscript_full_text_std_proofread="True")
+            chants = chants.filter(q_obj)
+
         if manuscript_full_text_proofread:
-            chants = chants.filter(
-                manuscript_full_text__isnull=False,
-            ).exclude(manuscript_full_text="")
-            if manuscript_full_text_proofread == "False":
-                chants = chants.exclude(manuscript_full_text_proofread="True")
-            else:
-                chants = chants.filter(manuscript_full_text_proofread="True")
+            q_obj = Q(manuscript_full_text__isnull=False) & ~Q(manuscript_full_text="")
+            if manuscript_full_text_proofread == "True":
+                q_obj &= Q(manuscript_full_text_proofread="True")
+            else:  # manuscript_full_text_proofread == "False"
+                q_obj &= ~Q(manuscript_full_text_proofread="True")
+            chants = chants.filter(q_obj)
+
         if volpiano_proofread:
-            chants = chants.filter(volpiano__isnull=False).exclude(volpiano="")
-            if volpiano_proofread == "False":
-                chants = chants.exclude(volpiano_proofread="True")
-            else:
-                chants = chants.filter(volpiano_proofread="True")
+            q_obj = Q(volpiano__isnull=False) & ~Q(volpiano="")
+            if volpiano_proofread == "True":
+                q_obj &= Q(volpiano_proofread="True")
+            else:  # volpiano_proofread == "False"
+                q_obj &= ~Q(volpiano_proofread="True")
+            chants = chants.filter(q_obj)
+
+        if other_fields_proofread:
+            if other_fields_proofread == "True":
+                q_obj = Q(other_fields_proofread=True)
+            else:  # other_fields_proofread == "False"
+                q_obj = Q(other_fields_proofread=False)
+            chants = chants.filter(q_obj)
 
         return chants.order_by("folio", "c_sequence")
 
     def get_context_data(self, **kwargs: Any) -> dict[str, Any]:
         context: dict[str, Any] = super().get_context_data(**kwargs)
         source: Source = self.source
-        if not CANTUS_SEGMENT_ID in source.segment_m2m.values_list("id", flat=True):
-            # the chant list ("Browse Chants") page should only be visitable
-            # for sources in the CANTUS Database segment, as sources in the Bower
-            # segment contain no chants
+
+        # Check if source has any chants - if not, return 404
+        if not source.chant_set.exists():
             raise Http404()
 
         context["source"] = source
@@ -179,7 +191,7 @@ class SourceBrowseChantsView(CustomAccessMixin, ListView):  # type: ignore[type-
 
         # sources in the Bower Segment contain only Sequences and no Chants,
         # so they should not appear among the list of sources
-        cantus_segment: Segment = Segment.objects.get(id=CANTUS_SEGMENT_ID)
+        cantus_segment: Segment = Segment.objects.get(id=settings.CANTUS_SEGMENT_ID)
 
         # to be displayed in the "Source" dropdown in the form
         sources: QuerySet[Source] = (
@@ -283,21 +295,20 @@ class SourceDetailView(CustomAccessMixin, JSONResponseMixin, DetailView):  # typ
                 sequences.values_list("folio", flat=True).distinct().order_by("folio")
             )
             context["bower_segment"] = True
+            context["has_chants"] = sequences.exists()
         else:
             # if this is a chant source
-            folios = (
-                source.chant_set.values_list("folio", flat=True)
-                .distinct()
-                .order_by("folio")
-            )
+            chants = source.chant_set
+            folios = chants.values_list("folio", flat=True).distinct().order_by("folio")
             context["folios"] = folios
             # the options for the feast selector on the right, only chant sources have this
             context["feasts_with_folios"] = get_feast_selector_options(source)
             context["bower_segment"] = False
+            context["has_chants"] = chants.exists()
 
         context["user_can_edit_chants"] = self.user_assigned_to_source(source)
-        context["user_can_edit_source"] = (
-            self.user_is_editor and self.user_assigned_to_source(source)
+        context["user_can_edit_source"] = self.user_assigned_to_source(source) and (
+            self.user_is_editor or self.user_created_source(source)
         )
         return context
 
@@ -572,7 +583,7 @@ class SourceEditView(CustomAccessMixin, UpdateView):  # type: ignore[type-arg]
         source = self.object
         context = super().get_context_data(**kwargs)
 
-        if BOWER_SEGMENT_ID in source.segment_m2m.values_list("id", flat=True):
+        if settings.BOWER_SEGMENT_ID in source.segment_m2m.values_list("id", flat=True):
             # if this is a sequence source
             context["sequences"] = source.sequence_set.order_by("s_sequence")
             context["folios"] = (
@@ -596,22 +607,7 @@ class SourceEditView(CustomAccessMixin, UpdateView):  # type: ignore[type-arg]
 
     def form_valid(self, form):
         form.instance.last_updated_by = self.request.user
-
-        # remove this source from the old "current_editors"
-        # assign this source to the new "current_editors"
-
-        old_current_editors = list(
-            Source.objects.get(id=form.instance.id).current_editors.all()
-        )
-        new_current_editors = form.cleaned_data["current_editors"]
-        source = form.save()
-
-        for old_editor in old_current_editors:
-            old_editor.sources_user_can_edit.remove(source)
-
-        for new_editor in new_current_editors:
-            new_editor.sources_user_can_edit.add(source)
-
+        form.save()
         return HttpResponseRedirect(self.get_success_url())
 
 
@@ -643,6 +639,11 @@ class SourceInventoryView(CustomAccessMixin, ListView):  # type: ignore[type-arg
                 .order_by("folio", "c_sequence")
                 .select_related("feast", "service", "genre", "diff_db")
             )
+
+        # Return 404 if no chants/sequences exist
+        if not queryset.exists():
+            raise Http404()
+
         return queryset
 
     def get_context_data(self, **kwargs: Any) -> dict[str, Any]:
