@@ -1,7 +1,6 @@
-# main_app/views.py (or wherever your ProofreadView is)
+import datetime
 
 from django.conf import settings
-from django.contrib.auth.mixins import LoginRequiredMixin, UserPassesTestMixin
 from django.db.models import (
     Q,
     Count,
@@ -15,27 +14,19 @@ from django.db.models import (
 from django.views.generic import ListView
 from django.views.generic.list import MultipleObjectMixin
 from django.utils import timezone
-import datetime
 
 from main_app.models import Source
+from main_app.permissions import CustomAccessMixin
 
 
-class ProofreadView(
-    LoginRequiredMixin, UserPassesTestMixin, ListView, MultipleObjectMixin
-):
+class ProofreadView(CustomAccessMixin, ListView, MultipleObjectMixin):
     model = Source
     template_name = "proofreading_overview.html"
     context_object_name = "sources"
     paginate_by = 50
 
     def test_func(self):
-        user = self.request.user
-        if user.is_superuser:
-            return True
-        user_groups = user.groups.all().values_list("name", flat=True)
-        is_project_manager = "project manager" in user_groups
-        is_editor = "editor" in user_groups
-        return is_project_manager or is_editor
+        return self.user_is_editor
 
     def get_queryset(self):
         user = self.request.user
@@ -44,8 +35,7 @@ class ProofreadView(
             Q(segment_m2m__id=settings.CANTUS_SEGMENT_ID) & Q(number_of_chants__gt=0)
         ).select_related("holding_institution")
 
-        is_project_manager = user.groups.filter(name="project manager").exists()
-        if not is_project_manager and user.groups.filter(name="editor").exists():
+        if not user.is_superuser:
             queryset = queryset.filter(
                 id__in=user.sources_user_can_edit.values_list("id", flat=True)
             )

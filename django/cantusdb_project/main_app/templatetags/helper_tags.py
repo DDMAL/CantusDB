@@ -136,7 +136,7 @@ def has_group(user: User, group_name: str) -> bool:
     Used in:
         templates/base.html
     """
-    return user.groups.filter(name=group_name).exists()
+    return user.groups_new.filter(name=group_name).exists()
 
 
 @register.filter(name="in_groups")
@@ -146,7 +146,7 @@ def in_groups(user: User, groups: str) -> bool:
     returns True if the user is in those groups.
     """
     grouplist = groups.split(",")
-    return user.groups.filter(name__in=grouplist).exists()
+    return user.groups_new.filter(name__in=grouplist).exists()
 
 
 @register.filter(name="split")
