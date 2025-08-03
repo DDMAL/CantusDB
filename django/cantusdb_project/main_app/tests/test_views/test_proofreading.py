@@ -1,4 +1,4 @@
-from django.test import TestCase, Client
+from django.test import TestCase
 from django.urls import reverse
 from django.contrib.auth import get_user_model
 from main_app.tests.make_fakes import (
@@ -6,22 +6,18 @@ from main_app.tests.make_fakes import (
     make_fake_chant,
     make_fake_segment,
 )
-from django.contrib.auth.models import Group
+from users.models import Group
 
 
 class ProofreadingOverviewViewTest(TestCase):
     @classmethod
     def setUpTestData(cls):
-        Group.objects.create(name="project manager")
-        Group.objects.create(name="contributor")
         Group.objects.create(name="editor")
         cls.cantus_segment = make_fake_segment(id=4063)
         cls.other_segment = make_fake_segment(id=4064, name="Other Segment")
         cls.project_manager_user = get_user_model().objects.create_superuser(
             "pm@example.com", "password"
         )
-        project_manager_group = Group.objects.get(name="project manager")
-        project_manager_group.user_set.add(cls.project_manager_user)
         cls.url = reverse("proofread-overview")
 
     def setUp(self):
@@ -63,7 +59,7 @@ class ProofreadingOverviewViewTest(TestCase):
         editor_user = get_user_model().objects.create_user(
             "editor@example.com", "password"
         )
-        editor_group.user_set.add(editor_user)
+        editor_user.groups_new.add(editor_group)
 
         source1 = make_fake_source(title="Source 1", segment=[self.cantus_segment])
         make_fake_chant(source=source1)
