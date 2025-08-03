@@ -177,6 +177,12 @@
             </div>
         </div>
         <div class="row small mb-2">
+            <div class="col-lg-3">
+                {{ form.text_language.label_tag }}
+                {{ form.text_language }}
+            </div>
+        </div>
+        <div class="row small mb-2">
             <div class="col-lg">
                 <label for="{{ form.manuscript_full_text_std_spelling.id_for_label }}">
                     {{ form.manuscript_full_text_std_spelling.label_tag }}<span class="text-danger" title="This field is required">*</span>

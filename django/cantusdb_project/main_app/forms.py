@@ -208,6 +208,7 @@ class ChantCreateForm(forms.ModelForm):
             "later_addition",
             "rubrics",
             "source",
+            "text_language",
         ]
         # the widgets dictionary is ignored for a model field with a non-empty
         # choices attribute. In this case, you must override the form field to
@@ -242,6 +243,7 @@ class ChantCreateForm(forms.ModelForm):
             "incipit_of_refrain": TextInputWidget(),
             "later_addition": TextInputWidget(),
             "rubrics": TextInputWidget(),
+            "text_language": SelectWidget(),
         }
 
     folio = forms.CharField(
@@ -421,6 +423,7 @@ class ChantEditForm(forms.ModelForm):
             "later_addition",
             "rubrics",
             "source",
+            "text_language",
         ]
         widgets = {
             # manuscript_full_text_std_spelling: defined below (required) & special field
@@ -457,6 +460,7 @@ class ChantEditForm(forms.ModelForm):
             "incipit_of_refrain": TextInputWidget(),
             "later_addition": TextInputWidget(),
             "rubrics": TextInputWidget(),
+            "text_language": SelectWidget(),
         }
 
     manuscript_full_text_std_spelling = CantusDBLatinField(
