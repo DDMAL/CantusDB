@@ -72,7 +72,7 @@ class GroupMembership(models.Model):
     expiration = models.DateField(
         blank=True,
         null=True,
-        help_text=("The date the user's membership in the group expires. "),
+        help_text=("The date the user's membership in the group expires."),
     )
 
     class Meta:
