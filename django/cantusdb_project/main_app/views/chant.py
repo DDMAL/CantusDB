@@ -327,6 +327,12 @@ class ChantDetailView(CustomAccessMixin, JSONResponseMixin, DetailView):  # type
 
         context["user_can_edit_chant"] = self.user_assigned_to_source(source)
 
+        language = chant.text_language
+        if language.pk == 2:
+            language_str = "kanienkeha"
+        else:
+            language_str = None
+
         # syllabification section
         if chant.volpiano:
             has_syl_text = bool(chant.manuscript_syllabized_full_text)
@@ -335,6 +341,7 @@ class ChantDetailView(CustomAccessMixin, JSONResponseMixin, DetailView):  # type
                     chant.get_best_text_for_syllabizing(),
                     chant.volpiano,
                     text_presyllabified=has_syl_text,
+                    language=language_str,
                 )
             except LatinError:
                 text_and_mel = None
