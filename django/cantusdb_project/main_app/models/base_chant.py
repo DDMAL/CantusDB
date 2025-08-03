@@ -136,9 +136,8 @@ class BaseChant(BaseModel):
     volpiano_notes = models.TextField(null=True, blank=True)
     volpiano_intervals = models.TextField(null=True, blank=True)
 
-    # default to Latin (pk = 1)
     text_language = models.ForeignKey(
-        "language", on_delete=models.PROTECT, null=False, default=1
+        "language", on_delete=models.PROTECT, null=True, blank=True
     )
 
     P2V = "2v"

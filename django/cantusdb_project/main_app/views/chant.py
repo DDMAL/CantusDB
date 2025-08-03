@@ -328,7 +328,7 @@ class ChantDetailView(CustomAccessMixin, JSONResponseMixin, DetailView):  # type
         context["user_can_edit_chant"] = self.user_assigned_to_source(source)
 
         language = chant.text_language
-        if language.pk == 2:
+        if language and language.pk == 2:
             language_str = "kanienkeha"
         else:
             language_str = None
