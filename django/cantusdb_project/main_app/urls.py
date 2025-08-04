@@ -92,11 +92,11 @@ from main_app.views.user import (
     CustomLogoutView,
     IndexerListView,
     UserDetailView,
-    UserListView,
     UserSourceListView,
 )
+from main_app.views.proofreading import ProofreadView
 from main_app.views.autocomplete import (
-    CurrentEditorsAutocomplete,
+    ActiveUsersAutocomplete,
     AllUsersAutocomplete,
     CenturyAutocomplete,
     FeastAutocomplete,
@@ -135,11 +135,6 @@ urlpatterns = [
         "user/<int:pk>",
         UserDetailView.as_view(),
         name="user-detail",
-    ),
-    path(
-        "users/",
-        UserListView.as_view(),
-        name="user-list",
     ),
     path(
         "change-password/",
@@ -378,6 +373,11 @@ urlpatterns = [
         SourceAddImageLinksView.as_view(),
         name="source-add-image-links",
     ),
+    path(
+        "proofread-overview/",
+        ProofreadView.as_view(),
+        name="proofread-overview",
+    ),
     # melody
     path(
         "melody/",
@@ -534,9 +534,9 @@ urlpatterns = [
         name="redirect-how-to-manuscript-descriptions",
     ),
     path(
-        "current-editors-autocomplete/",
-        CurrentEditorsAutocomplete.as_view(),
-        name="current-editors-autocomplete",
+        "active-users-autocomplete/",
+        ActiveUsersAutocomplete.as_view(),
+        name="active-users-autocomplete",
     ),
     path(
         "all-users-autocomplete/",

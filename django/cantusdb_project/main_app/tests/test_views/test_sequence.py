@@ -2,11 +2,10 @@
 Tests for views in views/sequence.py
 """
 
-from django.test import TestCase, Client
-from django.urls import reverse
-from django.contrib.auth import get_user_model
-from django.contrib.auth.models import Group
+from typing import Dict
 
+from django.test import TestCase
+from django.urls import reverse
 from faker import Faker
 
 from main_app.models import Sequence
@@ -15,20 +14,40 @@ from main_app.tests.make_fakes import (
     make_fake_source,
     get_random_search_term,
     make_random_string,
-    make_fake_segment,
 )
+from main_app.tests.mixins import CustomAccessTestMixin
 
 # Create a Faker instance with locale set to Latin
 faker = Faker("la")
 
 
-class SequenceListViewTest(TestCase):
-    def setUp(self):
-        # unless a segment is specified when a source is created, the source is automatically assigned
-        # to the segment with the name "CANTUS Database" - to prevent errors, we must make sure that
-        # such a segment exists
-        make_fake_segment(name="CANTUS Database")
+class SequencePermissionsTestCase(CustomAccessTestMixin, TestCase):
+    sequences: Dict[str, Sequence]
 
+    @classmethod
+    def setUpTestData(cls) -> None:
+        super().setUpTestData()
+        published_source = make_fake_source(published=True)
+        published_seq = make_fake_sequence(source=published_source)
+        editor_assigned_source = make_fake_source(
+            published=False, current_editors=[cls.users["editor"]]
+        )
+        editor_assigned_seq = make_fake_sequence(source=editor_assigned_source)
+        user_assigned_source = make_fake_source(
+            published=False, current_editors=[cls.users["user"]]
+        )
+        user_assigned_seq = make_fake_sequence(source=user_assigned_source)
+        unassigned_source = make_fake_source(published=False)
+        unassigned_seq = make_fake_sequence(source=unassigned_source)
+        cls.sequences = {
+            "published_seq": published_seq,
+            "editor_assigned_seq": editor_assigned_seq,
+            "user_assigned_seq": user_assigned_seq,
+            "unassigned_seq": unassigned_seq,
+        }
+
+
+class SequenceListViewTest(SequencePermissionsTestCase):
     def test_url_and_templates(self):
         response = self.client.get(reverse("sequence-list"))
         self.assertEqual(response.status_code, 200)
@@ -89,8 +108,48 @@ class SequenceListViewTest(TestCase):
         # the sequence should be present in the results
         self.assertIn(sequence, response.context["sequences"])
 
+    def test_permissions(self) -> None:
+        with self.subTest("Visible to anonymous user"):
+            resp = self.client.get(reverse("sequence-list"))
+            sequences = resp.context["sequences"]
+            self.assertCountEqual(sequences, [self.sequences["published_seq"]])
+        with self.subTest("Visible to superuser"):
+            self.client.force_login(self.users["superuser"])
+            resp = self.client.get(reverse("sequence-list"))
+            sequences = resp.context["sequences"]
+            self.assertCountEqual(sequences, list(self.sequences.values()))
+        with self.subTest("Visible to global viewer"):
+            self.client.force_login(self.users["global viewer"])
+            resp = self.client.get(reverse("sequence-list"))
+            sequences = resp.context["sequences"]
+            self.assertCountEqual(sequences, list(self.sequences.values()))
+        with self.subTest("Visible to editor"):
+            self.client.force_login(self.users["editor"])
+            resp = self.client.get(reverse("sequence-list"))
+            sequences = resp.context["sequences"]
+            self.assertCountEqual(
+                sequences,
+                [
+                    self.sequences["published_seq"],
+                    self.sequences["editor_assigned_seq"],
+                ],
+            )
+        with self.subTest("Visible to user"):
+            self.client.force_login(self.users["user"])
+            resp = self.client.get(reverse("sequence-list"))
+            sequences = resp.context["sequences"]
+            self.assertCountEqual(
+                sequences,
+                [self.sequences["published_seq"], self.sequences["user_assigned_seq"]],
+            )
+        with self.subTest("Visible to expired global viewer"):
+            self.client.force_login(self.users["expired global viewer"])
+            resp = self.client.get(reverse("sequence-list"))
+            sequences = resp.context["sequences"]
+            self.assertCountEqual(sequences, [self.sequences["published_seq"]])
 
-class SequenceDetailViewTest(TestCase):
+
+class SequenceDetailViewTest(SequencePermissionsTestCase):
     def test_url_and_templates(self):
         sequence = make_fake_sequence()
         response = self.client.get(reverse("sequence-detail", args=[sequence.id]))
@@ -120,20 +179,45 @@ class SequenceDetailViewTest(TestCase):
         # for an unrelated reason
         self.assertIn("Siglum", html)
 
+    def test_permissions(self) -> None:
+        self.run_request_permissions_test(
+            url=reverse("sequence-detail", args=[self.sequences["published_seq"].id]),
+            get_allowed_users=[
+                "anonymous user",
+                "user",
+                "superuser",
+                "editor",
+                "global viewer",
+            ],
+            post_allowed_users=[],
+            test_name="published sequence",
+        )
+        self.run_request_permissions_test(
+            url=reverse(
+                "sequence-detail", args=[self.sequences["editor_assigned_seq"].id]
+            ),
+            get_allowed_users=["superuser", "editor", "global viewer"],
+            post_allowed_users=[],
+            test_name="editor assigned sequence",
+        )
+        self.run_request_permissions_test(
+            url=reverse(
+                "sequence-detail", args=[self.sequences["user_assigned_seq"].id]
+            ),
+            get_allowed_users=["superuser", "user", "global viewer"],
+            post_allowed_users=[],
+            test_name="user assigned sequence",
+        )
+        self.run_request_permissions_test(
+            url=reverse("sequence-detail", args=[self.sequences["unassigned_seq"].id]),
+            get_allowed_users=["superuser", "global viewer"],
+            post_allowed_users=[],
+            test_name="unassigned sequence",
+        )
 
-class SequenceEditViewTest(TestCase):
-    @classmethod
-    def setUpTestData(cls):
-        Group.objects.create(name="project manager")
 
-    def setUp(self):
-        self.user = get_user_model().objects.create(email="test@test.com")
-        self.user.set_password("pass")
-        self.user.save()
-        self.client = Client()
-        project_manager = Group.objects.get(name="project manager")
-        project_manager.user_set.add(self.user)
-        self.client.login(email="test@test.com", password="pass")
+class SequenceEditViewTest(SequencePermissionsTestCase):
+    default_user = "superuser"
 
     def test_context(self):
         sequence = make_fake_sequence()
@@ -161,3 +245,31 @@ class SequenceEditViewTest(TestCase):
         self.assertEqual(response.status_code, 302)
         sequence.refresh_from_db()
         self.assertEqual(sequence.title, "test")
+
+    def test_permissions(self) -> None:
+        self.run_request_permissions_test(
+            url=reverse("sequence-edit", args=[self.sequences["published_seq"].id]),
+            get_allowed_users=["superuser"],
+            post_allowed_users=["superuser"],
+            test_name="published sequence",
+        )
+        self.run_request_permissions_test(
+            url=reverse(
+                "sequence-edit", args=[self.sequences["editor_assigned_seq"].id]
+            ),
+            get_allowed_users=["superuser", "editor"],
+            post_allowed_users=["superuser", "editor"],
+            test_name="editor assigned sequence",
+        )
+        self.run_request_permissions_test(
+            url=reverse("sequence-edit", args=[self.sequences["user_assigned_seq"].id]),
+            get_allowed_users=["superuser", "user"],
+            post_allowed_users=["superuser", "user"],
+            test_name="user assigned sequence",
+        )
+        self.run_request_permissions_test(
+            url=reverse("sequence-edit", args=[self.sequences["unassigned_seq"].id]),
+            get_allowed_users=["superuser"],
+            post_allowed_users=["superuser"],
+            test_name="unassigned sequence",
+        )

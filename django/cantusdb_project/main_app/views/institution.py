@@ -1,27 +1,32 @@
-from django.db.models import Count, Subquery, OuterRef, Aggregate, F, Q, Func
+from django.conf import settings
+from typing import Any, Dict
+
+from django.db.models import Subquery, OuterRef, F, Func, QuerySet
 from django.views.generic import DetailView, ListView
 
-from main_app.identifiers import IDENTIFIER_TYPES, TYPE_PREFIX
-from main_app.models import Institution, Source, Segment, InstitutionIdentifier
+from main_app.models import Institution, Segment, InstitutionIdentifier, Source
+from main_app.permissions import CustomAccessMixin
 
 
-class InstitutionListView(ListView):
+class InstitutionListView(CustomAccessMixin, ListView):  # type: ignore[type-arg]
     model = Institution
     context_object_name = "institutions"
     paginate_by = 100
     template_name = "institution_list.html"
+    test_req = False
 
-    def get_queryset(self):
-        display_unpublished: bool = self.request.user.is_authenticated
+    def get_queryset(self) -> QuerySet[Institution]:
 
         # uses a subquery to get a count of the sources, filtering by published
         # sources only it the user is not logged in.
         qargs = {"holding_institution": OuterRef("pk")}
-        if display_unpublished is False:
-            qargs["published"] = True
 
+        if self.user.is_superuser or self.user_is_global_viewer:
+            allowed_sources = Source.objects.all()
+        else:
+            allowed_sources = self.published_and_assigned_sources
         sources = (
-            Source.objects.filter(**qargs)
+            allowed_sources.filter(**qargs)
             .annotate(c=Func(F("id"), function="COUNT"))
             .values("c")
         )
@@ -34,33 +39,33 @@ class InstitutionListView(ListView):
         return qset
 
 
-class InstitutionDetailView(DetailView):
+class InstitutionDetailView(CustomAccessMixin, DetailView):  # type: ignore[type-arg]
     model = Institution
     context_object_name = "institution"
     template_name = "institution_detail.html"
+    test_req = False
 
-    def get_context_data(self, **kwargs):
+    def get_context_data(self, **kwargs: Any) -> Dict[str, Any]:
         context = super().get_context_data(**kwargs)
-        institution = self.get_object()
+        institution = context["institution"]
 
         # Show the Cantus and Bower sources in separate tables, and pre-format
         # the external authority links.
-        cantus_segment = Segment.objects.get(id=4063)
-        bower_segment = Segment.objects.get(id=4064)
-        cantus_sources = Source.objects.filter(
+        cantus_segment = Segment.objects.get(id=settings.CANTUS_SEGMENT_ID)
+        bower_segment = Segment.objects.get(id=settings.BOWER_SEGMENT_ID)
+        if self.user.is_superuser or self.user_is_global_viewer:
+            allowed_sources = Source.objects.all()
+        else:
+            allowed_sources = self.published_and_assigned_sources
+        cantus_sources = allowed_sources.filter(
             holding_institution=institution, segment_m2m=cantus_segment
         ).select_related("holding_institution")
-        bower_sources = Source.objects.filter(
+        bower_sources = allowed_sources.filter(
             holding_institution=institution, segment_m2m=bower_segment
         ).select_related("holding_institution")
         institution_authorities = InstitutionIdentifier.objects.filter(
             institution=institution
         )
-
-        display_unpublished = self.request.user.is_authenticated
-        if display_unpublished is False:
-            cantus_sources = cantus_sources.filter(published=True)
-            bower_sources = bower_sources.filter(published=True)
 
         formatted_authorities = []
         for authority in institution_authorities:

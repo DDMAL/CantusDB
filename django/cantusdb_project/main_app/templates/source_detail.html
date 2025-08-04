@@ -202,33 +202,31 @@
             <h4>{{ source.short_heading }}</h4>
         </div>
         <div class="card-body small">
-            {% if not bower_segment %}
-                {# all of the following are different ways to link to the Chant List page #}
-                {# Since sources in the Bower segment contain no chants, the Chant List page #}
-                {# is currently set up to raise a 404 if you try to access it for a source in #}
-                {# the Bower segment. So, we need to display this section only for sources in #}
-                {# the CANTUS segment #}
-                <select id="folioSelect"
-                        class="card-folio-select"
-                        onchange="jumpToFolio({{ source.id }})">
-                    <option value="">Select a folio:</option>
-                    {% for folio in folios %}<option value="{{ folio }}">{{ folio }}</option>{% endfor %}
-                </select>
-                <select id="feastSelect"
-                        class="card-feast-select"
-                        onchange="jumpToFeast({{ source.id }})">
-                    <option value="">Select a feast:</option>
-                    {% for feast_id, feast_name, folio_range in feasts_with_folios %}
-                        <option value="{{ feast_id }}">{{ feast_name }} ({{ folio_range }})</option>
-                    {% endfor %}
-                </select>
-                <a href="{% url "browse-chants" source.id %}"
+            {% if has_chants %}
+                {% if not bower_segment %}
+                    {# all of the following are different ways to link to the Chant List page #}
+                    <select id="folioSelect"
+                            class="card-folio-select"
+                            onchange="jumpToFolio({{ source.id }})">
+                        <option value="">Select a folio:</option>
+                        {% for folio in folios %}<option value="{{ folio }}">{{ folio }}</option>{% endfor %}
+                    </select>
+                    <select id="feastSelect"
+                            class="card-feast-select"
+                            onchange="jumpToFeast({{ source.id }})">
+                        <option value="">Select a feast:</option>
+                        {% for feast_id, feast_name, folio_range in feasts_with_folios %}
+                            <option value="{{ feast_id }}">{{ feast_name }} ({{ folio_range }})</option>
+                        {% endfor %}
+                    </select>
+                    <a href="{% url "browse-chants" source.id %}"
+                       class="guillemet"
+                       target="_blank">View all chants</a>
+                {% endif %}
+                <a href="{% url "source-inventory" source.id %}"
                    class="guillemet"
-                   target="_blank">View all chants</a>
+                   target="_blank">View full inventory</a>
             {% endif %}
-            <a href="{% url "source-inventory" source.id %}"
-               class="guillemet"
-               target="_blank">View full inventory</a>
             {% if source.exists_on_cantus_ultimus %}
                 <a href="https://cantus.simssa.ca/manuscript/{{ source.id }}"
                    class="guillemet"
@@ -355,12 +353,7 @@
                 {% endif %}
                 {% if user_can_edit_source %}
                     <li>
-                        <a href="{% url "source-edit" source.id %}">Edit source description</a>
-                    </li>
-                {% endif %}
-                {% if user_can_manage_source_editors %}
-                    <li>
-                        <a href={% url 'admin:main_app_source_change' source.id %}>Manage source editors</a>
+                        <a href="{% url "source-edit" source.id %}">Edit source</a>
                     </li>
                 {% endif %}
             </ul>

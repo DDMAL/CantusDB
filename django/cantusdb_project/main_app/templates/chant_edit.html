@@ -37,15 +37,15 @@
             <input type="hidden" name="referrer" value="{{ request.META.HTTP_REFERER }}" />
             <input type="hidden" name="pk" value="{{ chant.id }}" />
             {% if user_can_proofread_chant %}
-            <div class="row small mb-2">
-                <div class="col-lg-12">
-                    <label for="{{ form.manuscript_full_text_std_spelling.id_for_label }}">
-                        Proofread (excluding text and volpiano):
-                    </label>
-                    {{ form.other_fields_proofread }}
+                <div class="row small mb-2">
+                    <div class="col-lg-12">
+                        <label for="{{ form.manuscript_full_text_std_spelling.id_for_label }}">
+                            Proofread (excluding text and volpiano):
+                        </label>
+                        {{ form.other_fields_proofread }}
+                    </div>
                 </div>
-            </div>
-        {% endif %}
+            {% endif %}
             <div class="row small mb-2">
                 <div class="col-lg-2">
                     {{ form.marginalia.label_tag }}
@@ -169,6 +169,12 @@
                         {{ form.rubrics.label_tag }}
                         {{ form.rubrics }}
                     </div>
+                </div>
+            </div>
+            <div class="row small mb-2">
+                <div class="col-lg-3">
+                    {{ form.text_language.label_tag }}
+                    {{ form.text_language }}
                 </div>
             </div>
             {% if suggested_fulltext %}

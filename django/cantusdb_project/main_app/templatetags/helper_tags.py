@@ -1,6 +1,7 @@
 import calendar
 from typing import Union, Optional, Any
 
+from django.conf import settings
 from django import template
 from django.core.paginator import Paginator, Page
 from django.db.models import Q
@@ -84,7 +85,9 @@ def source_links() -> SafeString:
         templates/flatpages/default.html
     """
     sources = (
-        Source.objects.filter(published=True, segment_m2m__id=4063)
+        Source.objects.filter(
+            published=True, segment_m2m__id=settings.CANTUS_SEGMENT_ID
+        )
         .select_related("holding_institution")
         .order_by("holding_institution__siglum", "shelfmark")
         .iterator()
@@ -133,7 +136,7 @@ def has_group(user: User, group_name: str) -> bool:
     Used in:
         templates/base.html
     """
-    return user.groups.filter(name=group_name).exists()
+    return user.groups_new.filter(name=group_name).exists()
 
 
 @register.filter(name="in_groups")
@@ -143,7 +146,7 @@ def in_groups(user: User, groups: str) -> bool:
     returns True if the user is in those groups.
     """
     grouplist = groups.split(",")
-    return user.groups.filter(name__in=grouplist).exists()
+    return user.groups_new.filter(name__in=grouplist).exists()
 
 
 @register.filter(name="split")

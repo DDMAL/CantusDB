@@ -2,6 +2,7 @@ from main_app.models import Source
 from django.core.management.base import BaseCommand
 import requests
 from requests import Response
+from django.conf import settings
 
 # This management command updates the exists_on_cantus_ultimus field on a single
 # Source or all sources. If a source argument is provided, it will check if the
@@ -36,7 +37,7 @@ class Command(BaseCommand):
                 )
                 return
         else:  # No source argument provided, update all sources
-            sources = Source.objects.filter(segment=4063)
+            sources = Source.objects.filter(segment_m2m=settings.CANTUS_SEGMENT_ID)
             for source in sources:
                 self.update_exists_on_cantus_ultimus(source)
 

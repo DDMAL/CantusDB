@@ -5,13 +5,11 @@ Test views in views/chant.py
 from unittest.mock import patch
 from unittest import skip
 import random
-from typing import ClassVar
+from typing import ClassVar, Dict
 import urllib.parse
 
-from django.test import TestCase, Client
+from django.test import TestCase
 from django.urls import reverse
-from django.contrib.auth import get_user_model
-from django.contrib.auth.models import Group
 
 from faker import Faker
 
@@ -25,27 +23,53 @@ from main_app.tests.make_fakes import (
     make_fake_institution,
     make_random_string,
     get_random_search_term,
-    make_fake_segment,
 )
 from main_app.tests.test_functions import mock_requests_get
+from main_app.tests.mixins import CustomAccessTestMixin
 from main_app.models import Chant, Source, Feast, Service
 from main_app.views.chant import get_feast_selector_options
-from users.models import User as UserAnnotation
 
 
 # Create a Faker instance with locale set to Latin
 faker = Faker("la")
 
 
-class ChantDetailViewTest(TestCase):
-    pm_group: ClassVar[Group]
-    pm_user: ClassVar[UserAnnotation]
+class ChantPermissionsTestCase(CustomAccessTestMixin, TestCase):
+    chants: Dict[str, Chant]
 
     @classmethod
     def setUpTestData(cls) -> None:
-        cls.pm_group = Group.objects.create(name="project manager")
-        cls.pm_user = get_user_model().objects.create(email="pm@test.com")
-        cls.pm_user.groups.add(cls.pm_group)
+        super().setUpTestData()
+        fake_cantus_id = faker.numerify("######")
+        published_source = make_fake_source(published=True)
+        published_chant = make_fake_chant(
+            source=published_source, cantus_id=fake_cantus_id
+        )
+        editor_assigned_source = make_fake_source(
+            published=False, current_editors=[cls.users["editor"]]
+        )
+        editor_assigned_chant = make_fake_chant(
+            source=editor_assigned_source, cantus_id=fake_cantus_id
+        )
+        user_assigned_source = make_fake_source(
+            published=False, current_editors=[cls.users["user"]]
+        )
+        user_assigned_chant = make_fake_chant(
+            source=user_assigned_source, cantus_id=fake_cantus_id
+        )
+        unassigned_source = make_fake_source(published=False)
+        unassigned_chant = make_fake_chant(
+            source=unassigned_source, cantus_id=fake_cantus_id
+        )
+        cls.chants = {
+            "published_chant": published_chant,
+            "editor_assigned_chant": editor_assigned_chant,
+            "user_assigned_chant": user_assigned_chant,
+            "unassigned_chant": unassigned_chant,
+        }
+
+
+class ChantDetailViewTest(ChantPermissionsTestCase):
 
     def test_url_and_templates(self) -> None:
         chant = make_fake_chant()
@@ -100,25 +124,43 @@ class ChantDetailViewTest(TestCase):
         self.assertEqual(response.context["previous_folio"], "001v")
         self.assertIsNone(response.context["next_folio"])
 
-    def test_published_vs_unpublished(self) -> None:
-        source = make_fake_source()
-        chant = make_fake_chant(source=source)
-
-        source.published = True
-        source.save()
-        response = self.client.get(reverse("chant-detail", args=[chant.id]))
-        self.assertEqual(response.status_code, 200)
-
-        source.published = False
-        source.save()
-        response = self.client.get(reverse("chant-detail", args=[chant.id]))
-        self.assertEqual(response.status_code, 403)
+    def test_permissions(self) -> None:
+        self.run_request_permissions_test(
+            url=reverse("chant-detail", args=[self.chants["published_chant"].id]),
+            get_allowed_users=[
+                "superuser",
+                "anonymous user",
+                "global viewer",
+                "editor",
+                "user",
+            ],
+            post_allowed_users=[],
+            test_name="Published chant",
+        )
+        self.run_request_permissions_test(
+            url=reverse("chant-detail", args=[self.chants["editor_assigned_chant"].id]),
+            get_allowed_users=["superuser", "global viewer", "editor"],
+            post_allowed_users=[],
+            test_name="Editor assigned chant",
+        )
+        self.run_request_permissions_test(
+            url=reverse("chant-detail", args=[self.chants["user_assigned_chant"].id]),
+            get_allowed_users=["superuser", "global viewer", "user"],
+            post_allowed_users=[],
+            test_name="User assigned chant",
+        )
+        self.run_request_permissions_test(
+            url=reverse("chant-detail", args=[self.chants["unassigned_chant"].id]),
+            get_allowed_users=["superuser", "global viewer"],
+            post_allowed_users=[],
+            test_name="Unassigned chant",
+        )
 
     def test_chant_edit_link(self) -> None:
         source = make_fake_source()
         chant = make_fake_chant(source=source, folio="001r")
 
-        self.client.force_login(self.pm_user)
+        self.client.force_login(self.users["superuser"])
 
         response = self.client.get(reverse("chant-detail", args=[chant.id]))
         expected_url_fragment = (
@@ -168,18 +210,44 @@ class ChantDetailViewTest(TestCase):
         self.assertEqual(resp_chant["manuscript_full_text"], chant.manuscript_full_text)
 
 
-class SourceEditChantsViewTest(TestCase):
-    @classmethod
-    def setUpTestData(cls):
-        Group.objects.create(name="project manager")
+class SourceEditChantsViewTest(ChantPermissionsTestCase):
+    default_user = "superuser"
 
-    def setUp(self):
-        self.user = get_user_model().objects.create(email="test@test.com")
-        self.user.set_password("pass")
-        self.user.save()
-        project_manager = Group.objects.get(name="project manager")
-        project_manager.user_set.add(self.user)
-        self.client.login(email="test@test.com", password="pass")
+    def test_permissions(self) -> None:
+        self.run_request_permissions_test(
+            url=reverse(
+                "source-edit-chants", args=[self.chants["published_chant"].source.id]
+            ),
+            get_allowed_users=["superuser"],
+            post_allowed_users=["superuser"],
+            test_name="Published chant",
+        )
+        self.run_request_permissions_test(
+            url=reverse(
+                "source-edit-chants",
+                args=[self.chants["editor_assigned_chant"].source.id],
+            ),
+            get_allowed_users=["superuser", "editor"],
+            post_allowed_users=["superuser", "editor"],
+            test_name="Editor assigned chant",
+        )
+        self.run_request_permissions_test(
+            url=reverse(
+                "source-edit-chants",
+                args=[self.chants["user_assigned_chant"].source.id],
+            ),
+            get_allowed_users=["superuser", "user"],
+            post_allowed_users=["superuser", "user"],
+            test_name="User assigned chant",
+        )
+        self.run_request_permissions_test(
+            url=reverse(
+                "source-edit-chants", args=[self.chants["unassigned_chant"].source.id]
+            ),
+            get_allowed_users=["superuser"],
+            post_allowed_users=["superuser"],
+            test_name="Unassigned chant",
+        )
 
     def test_url_and_templates(self):
         source1 = make_fake_source()
@@ -433,19 +501,44 @@ class SourceEditChantsViewTest(TestCase):
             self.assertEqual(chant_wo_fulltext.manuscript_full_text, "")
 
 
-class ChantEditSyllabificationViewTest(TestCase):
-    @classmethod
-    def setUpTestData(cls):
-        Group.objects.create(name="project manager")
+class ChantEditSyllabificationViewTest(ChantPermissionsTestCase):
+    default_user = "superuser"
 
-    def setUp(self):
-        self.user = get_user_model().objects.create(email="test@test.com")
-        self.user.set_password("pass")
-        self.user.save()
-        self.client = Client()
-        project_manager = Group.objects.get(name="project manager")
-        project_manager.user_set.add(self.user)
-        self.client.login(email="test@test.com", password="pass")
+    def test_permissions(self) -> None:
+        self.run_request_permissions_test(
+            url=reverse(
+                "source-edit-syllabification", args=[self.chants["published_chant"].id]
+            ),
+            get_allowed_users=["superuser"],
+            post_allowed_users=["superuser"],
+            test_name="Published chant",
+        )
+        self.run_request_permissions_test(
+            url=reverse(
+                "source-edit-syllabification",
+                args=[self.chants["editor_assigned_chant"].id],
+            ),
+            get_allowed_users=["superuser", "editor"],
+            post_allowed_users=["superuser", "editor"],
+            test_name="Editor assigned chant",
+        )
+        self.run_request_permissions_test(
+            url=reverse(
+                "source-edit-syllabification",
+                args=[self.chants["user_assigned_chant"].id],
+            ),
+            get_allowed_users=["superuser", "user"],
+            post_allowed_users=["superuser", "user"],
+            test_name="User assigned chant",
+        )
+        self.run_request_permissions_test(
+            url=reverse(
+                "source-edit-syllabification", args=[self.chants["unassigned_chant"].id]
+            ),
+            get_allowed_users=["superuser"],
+            post_allowed_users=["superuser"],
+            test_name="Unassigned chant",
+        )
 
     def test_view_url_and_templates(self):
         chant = make_fake_chant()
@@ -482,7 +575,7 @@ class ChantEditSyllabificationViewTest(TestCase):
         self.assertEqual(chant.manuscript_syllabized_full_text, "lore-m i-psum")
 
 
-class ChantByCantusIDViewTest(TestCase):
+class ChantByCantusIDViewTest(ChantPermissionsTestCase):
     def test_url_and_templates(self):
         chant = make_fake_chant()
         response = self.client.get(
@@ -499,32 +592,43 @@ class ChantByCantusIDViewTest(TestCase):
         )
         self.assertIn(chant, response.context["chants"])
 
-    def test_published_vs_unpublished(self):
-        source = make_fake_source()
-        chant = make_fake_chant(source=source)
+    def test_permissions(self) -> None:
+        # Chants in self.chants all have the same Cantus ID
+        cantus_id = self.chants["published_chant"].cantus_id
+        all_chants = self.chants.values()
+        with self.subTest("Anonymous user"):
+            response = self.client.get(reverse("chant-by-cantus-id", args=[cantus_id]))
+            listed_chants = response.context["chants"]
+            self.assertCountEqual([self.chants["published_chant"]], listed_chants)
+        with self.subTest("Global viewer"):
+            self.client.force_login(self.users["global viewer"])
+            response = self.client.get(reverse("chant-by-cantus-id", args=[cantus_id]))
+            listed_chants = response.context["chants"]
+            self.assertCountEqual(all_chants, listed_chants)
+        with self.subTest("Superuser"):
+            self.client.force_login(self.users["superuser"])
+            response = self.client.get(reverse("chant-by-cantus-id", args=[cantus_id]))
+            listed_chants = response.context["chants"]
+            self.assertCountEqual(all_chants, listed_chants)
+        with self.subTest("Editor"):
+            self.client.force_login(self.users["editor"])
+            response = self.client.get(reverse("chant-by-cantus-id", args=[cantus_id]))
+            listed_chants = response.context["chants"]
+            self.assertCountEqual(
+                [self.chants["published_chant"], self.chants["editor_assigned_chant"]],
+                listed_chants,
+            )
+        with self.subTest("User"):
+            self.client.force_login(self.users["user"])
+            response = self.client.get(reverse("chant-by-cantus-id", args=[cantus_id]))
+            listed_chants = response.context["chants"]
+            self.assertCountEqual(
+                [self.chants["published_chant"], self.chants["user_assigned_chant"]],
+                listed_chants,
+            )
 
-        source.published = True
-        source.save()
-        response_1 = self.client.get(
-            reverse("chant-by-cantus-id", args=[chant.cantus_id])
-        )
-        self.assertIn(chant, response_1.context["chants"])
 
-        source.published = False
-        source.save()
-        response_2 = self.client.get(
-            reverse("chant-by-cantus-id", args=[chant.cantus_id])
-        )
-        self.assertNotIn(chant, response_2.context["chants"])
-
-
-class ChantSearchViewTest(TestCase):
-    def setUp(self):
-        # unless a segment is specified when a source is created, the source is automatically assigned
-        # to the segment with the name "CANTUS Database" - to prevent errors, we must make sure that
-        # such a segment exists
-        make_fake_segment(name="CANTUS Database")
-
+class ChantSearchViewTest(CustomAccessTestMixin, TestCase):
     def test_view_url_path(self):
         response = self.client.get("/chant-search/")
         self.assertEqual(response.status_code, 200)
@@ -535,26 +639,73 @@ class ChantSearchViewTest(TestCase):
         self.assertTemplateUsed(response, "base.html")
         self.assertTemplateUsed(response, "chant_search.html")
 
-    def test_published_vs_unpublished(self):
-        source = make_fake_source()
-        chant = make_fake_chant(
-            source=source, manuscript_full_text_std_spelling="lorem ipsum"
+    def test_permissions(self) -> None:
+        # We create the desired chants here, rather than using
+        # the ChantPermissionsTestCase because we want these additions
+        # rolled back before other tests in this class.
+        published_chant = make_fake_chant(source=make_fake_source(published=True))
+        cantus_id = published_chant.cantus_id
+        editor_assigned_chant = make_fake_chant(
+            source=make_fake_source(
+                published=False, current_editors=[self.users["editor"]]
+            ),
+            cantus_id=cantus_id,
         )
-
-        source.published = True
-        source.save()
-        response = self.client.get(
-            reverse("chant-search"), {"keyword": "lorem", "op": "contains"}
+        user_assigned_chant = make_fake_chant(
+            source=make_fake_source(
+                published=False, current_editors=[self.users["user"]]
+            ),
+            cantus_id=cantus_id,
         )
-        context_chant_id = response.context["chants"][0].id
-        self.assertEqual(chant.id, context_chant_id)
-
-        source.published = False
-        source.save()
-        response = self.client.get(
-            reverse("chant-search"), {"keyword": "lorem", "op": "contains"}
+        unassigned_chant = make_fake_chant(
+            source=make_fake_source(published=False), cantus_id=cantus_id
         )
-        self.assertEqual(len(response.context["chants"]), 0)
+        all_chants = [
+            published_chant,
+            editor_assigned_chant,
+            user_assigned_chant,
+            unassigned_chant,
+        ]
+        with self.subTest("Anonymous user"):
+            response = self.client.get(
+                reverse("chant-search"), {"cantus_id": cantus_id}
+            )
+            listed_chants = response.context["chants"]
+            self.assertCountEqual([published_chant], listed_chants)
+        with self.subTest("Global viewer"):
+            self.client.force_login(self.users["global viewer"])
+            response = self.client.get(
+                reverse("chant-search"), {"cantus_id": cantus_id}
+            )
+            listed_chants = response.context["chants"]
+            self.assertCountEqual(all_chants, listed_chants)
+        with self.subTest("Superuser"):
+            self.client.force_login(self.users["superuser"])
+            response = self.client.get(
+                reverse("chant-search"), {"cantus_id": cantus_id}
+            )
+            listed_chants = response.context["chants"]
+            self.assertCountEqual(all_chants, listed_chants)
+        with self.subTest("Editor"):
+            self.client.force_login(self.users["editor"])
+            response = self.client.get(
+                reverse("chant-search"), {"cantus_id": cantus_id}
+            )
+            listed_chants = response.context["chants"]
+            self.assertCountEqual(
+                [published_chant, editor_assigned_chant],
+                listed_chants,
+            )
+        with self.subTest("User"):
+            self.client.force_login(self.users["user"])
+            response = self.client.get(
+                reverse("chant-search"), {"cantus_id": cantus_id}
+            )
+            listed_chants = response.context["chants"]
+            self.assertCountEqual(
+                [published_chant, user_assigned_chant],
+                listed_chants,
+            )
 
     def test_search_by_service(self):
         source = make_fake_source(published=True)
@@ -1911,7 +2062,7 @@ class ChantSearchViewTest(TestCase):
         )
 
 
-class ChantSearchMSViewTest(TestCase):
+class ChantSearchMSViewTest(ChantPermissionsTestCase):
     def test_url_and_templates(self):
         source = make_fake_source()
         response = self.client.get(reverse("chant-search-ms", args=[source.id]))
@@ -1919,18 +2070,41 @@ class ChantSearchMSViewTest(TestCase):
         self.assertTemplateUsed(response, "base.html")
         self.assertTemplateUsed(response, "chant_search.html")
 
-    def test_published_vs_unpublished(self):
-        source = make_fake_source()
-
-        source.published = True
-        source.save()
-        response = self.client.get(reverse("chant-search-ms", args=[source.id]))
-        self.assertEqual(response.status_code, 200)
-
-        source.published = False
-        source.save()
-        response = self.client.get(reverse("chant-search-ms", args=[source.id]))
-        self.assertEqual(response.status_code, 403)
+    def test_permissions(self) -> None:
+        published_source = self.chants["published_chant"].source
+        self.run_request_permissions_test(
+            url=reverse("chant-search-ms", args=[published_source.id]),
+            get_allowed_users=[
+                "anonymous user",
+                "user",
+                "editor",
+                "superuser",
+                "global viewer",
+            ],
+            post_allowed_users=[],
+            test_name="Published source",
+        )
+        user_assigned_source = self.chants["user_assigned_chant"].source
+        self.run_request_permissions_test(
+            url=reverse("chant-search-ms", args=[user_assigned_source.id]),
+            get_allowed_users=["user", "superuser", "global viewer"],
+            post_allowed_users=[],
+            test_name="User assigned source",
+        )
+        editor_assigned_source = self.chants["editor_assigned_chant"].source
+        self.run_request_permissions_test(
+            url=reverse("chant-search-ms", args=[editor_assigned_source.id]),
+            get_allowed_users=["editor", "superuser", "global viewer"],
+            post_allowed_users=[],
+            test_name="Editor assigned source",
+        )
+        unassigned_source = self.chants["unassigned_chant"].source
+        self.run_request_permissions_test(
+            url=reverse("chant-search-ms", args=[unassigned_source.id]),
+            get_allowed_users=["superuser", "global viewer"],
+            post_allowed_users=[],
+            test_name="Unassigned source",
+        )
 
     def test_search_by_service(self):
         source = make_fake_source()
@@ -2207,7 +2381,7 @@ class ChantSearchMSViewTest(TestCase):
         chant_2 = make_fake_chant(source=source, feast=feast2)
 
         response_ascending = self.client.get(
-            reverse("chant-search"),
+            reverse("chant-search-ms", args=[source.id]),
             {
                 "order": "feast",
                 "sort": "asc",
@@ -2220,7 +2394,7 @@ class ChantSearchMSViewTest(TestCase):
         self.assertEqual(last_result_feast, chant_2.feast)
 
         response_descending = self.client.get(
-            reverse("chant-search"),
+            reverse("chant-search-ms", args=[source.id]),
             {
                 "order": "feast",
                 "sort": "desc",
@@ -2554,7 +2728,7 @@ class ChantSearchMSViewTest(TestCase):
 
         # Ascending sort — null should be last
         response_asc = self.client.get(
-            reverse("chant-search"),
+            reverse("chant-search-ms", args=[source.id]),
             {
                 "order": "feast",
                 "sort": "asc",
@@ -2569,7 +2743,7 @@ class ChantSearchMSViewTest(TestCase):
 
         # Descending sort — null should still be last
         response_desc = self.client.get(
-            reverse("chant-search"),
+            reverse("chant-search-ms", args=[source.id]),
             {
                 "order": "feast",
                 "sort": "desc",
@@ -2950,50 +3124,33 @@ class ChantSearchMSViewTest(TestCase):
 
 
 @patch("requests.get", mock_requests_get)
-class ChantCreateViewTest(TestCase):
+class ChantCreateViewTest(CustomAccessTestMixin, TestCase):
     source: ClassVar[Source]
+    default_user = "user"
 
     @classmethod
-    def setUpTestData(cls):
-        # Create project manager and contributor users
-        prod_manager_group = Group.objects.create(name="project manager")
-        contributor_group = Group.objects.create(name="contributor")
-        user_model = get_user_model()
-        pm_usr = user_model.objects.create_user(email="pm@test.com", password="pass")
-        pm_usr.groups.set([prod_manager_group])
-        pm_usr.save()
-        contributor_usr = user_model.objects.create_user(
-            email="contrib@test.com", password="pass"
-        )
-        contributor_usr.groups.set([contributor_group])
-        contributor_usr.save()
-        # Create a fake source that the contributor user can edit
+    def setUpTestData(cls) -> None:
+        super().setUpTestData()
         cls.source = make_fake_source()
-        cls.source.current_editors.add(contributor_usr)
+        cls.source.current_editors.add(cls.users["user"])
         cls.source.save()
 
-    def setUp(self):
-        # Log in as a contributor before each test
-        self.client.login(email="contrib@test.com", password="pass")
-
     def test_permissions(self) -> None:
-        # The client starts logged in as a contributor
-        # with access to the source. Test that the client
-        # can access the ChantCreate view.
-        with self.subTest("Contributor can access ChantCreate view"):
-            response = self.client.get(reverse("chant-create", args=[self.source.id]))
-            self.assertEqual(response.status_code, 200)
-        with self.subTest("Project manager can access ChantCreate view"):
-            # Log in as a project manager
-            self.client.logout()
-            self.client.login(email="pm@test.com", password="pass")
-            response = self.client.get(reverse("chant-create", args=[self.source.id]))
-            self.assertEqual(response.status_code, 200)
-        with self.subTest("Unauthenticated user cannot access ChantCreate view"):
-            # Log out
-            self.client.logout()
-            response = self.client.get(reverse("chant-create", args=[self.source.id]))
-            self.assertEqual(response.status_code, 302)
+        self.run_request_permissions_test(
+            url=reverse("chant-create", args=[self.source.id]),
+            get_allowed_users=["user", "superuser"],
+            post_allowed_users=["user", "superuser"],
+            test_name="User assigned source",
+        )
+        editor_assigned_source = make_fake_source()
+        editor_assigned_source.current_editors.add(self.users["editor"])
+        editor_assigned_source.save()
+        self.run_request_permissions_test(
+            url=reverse("chant-create", args=[editor_assigned_source.id]),
+            get_allowed_users=["editor", "superuser"],
+            post_allowed_users=["editor", "superuser"],
+            test_name="Editor assigned source",
+        )
 
     def test_url_and_templates(self) -> None:
         source = self.source
@@ -3304,19 +3461,8 @@ class CISearchViewTest(TestCase):
         )
 
 
-class ChantDeleteViewTest(TestCase):
-    @classmethod
-    def setUpTestData(cls):
-        Group.objects.create(name="project manager")
-
-    def setUp(self):
-        self.user = get_user_model().objects.create(email="test@test.com")
-        self.user.set_password("pass")
-        self.user.save()
-        self.client = Client()
-        project_manager = Group.objects.get(name="project manager")
-        project_manager.user_set.add(self.user)
-        self.client.login(email="test@test.com", password="pass")
+class ChantDeleteViewTest(ChantPermissionsTestCase):
+    default_user = "superuser"
 
     def test_context(self):
         chant = make_fake_chant()
@@ -3343,6 +3489,26 @@ class ChantDeleteViewTest(TestCase):
         chant = make_fake_chant()
         response = self.client.post(reverse("chant-delete", args=[chant.id + 100]))
         self.assertEqual(response.status_code, 404)
+
+    def test_permissions(self) -> None:
+        self.run_request_permissions_test(
+            url=reverse("chant-delete", args=[self.chants["unassigned_chant"].id]),
+            get_allowed_users=["superuser"],
+            post_allowed_users=["superuser"],
+            test_name="Chant in unassigned source",
+        )
+        self.run_request_permissions_test(
+            url=reverse("chant-delete", args=[self.chants["user_assigned_chant"].id]),
+            get_allowed_users=["user", "superuser"],
+            post_allowed_users=["user", "superuser"],
+            test_name="Chant in user assigned source",
+        )
+        self.run_request_permissions_test(
+            url=reverse("chant-delete", args=[self.chants["editor_assigned_chant"].id]),
+            get_allowed_users=["editor", "superuser"],
+            post_allowed_users=["editor", "superuser"],
+            test_name="Chant in editor assigned source",
+        )
 
 
 class ChantViewHelpersTest(TestCase):

@@ -3,9 +3,9 @@ This command is meant to be used one time toward solving issue
 1542, assigning chants and sequences, where necessary, to their appropriate
 "project".
 
-This command assigns sequences to the Bower project. Chants 
+This command assigns sequences to the Bower project. Chants
 (in non-Bower sources) currently have
-project. 
+project.
 
 Note: This command can only be run *after* the Bower project has been created
 in the database through the Admin interface.

@@ -2,6 +2,11 @@
 A module containing views for pages that provide general site statistics.
 """
 
+from django.contrib.auth.decorators import login_required
+from django.core.paginator import Paginator
+from django.shortcuts import render
+from django.core.exceptions import PermissionDenied
+
 from main_app.models import (
     Chant,
     Sequence,
@@ -13,11 +18,6 @@ from main_app.models import (
     Notation,
     Century,
 )
-from main_app.permissions import user_is_project_manager
-
-from django.contrib.auth.decorators import login_required, user_passes_test
-from django.core.paginator import Paginator
-from django.shortcuts import render
 
 
 @login_required
@@ -49,11 +49,10 @@ def items_count(request):
     return render(request, "items_count.html", context)
 
 
-# first give the user a chance to login
 @login_required
-# if they're logged in but they're not a project manager, raise 403
-@user_passes_test(user_is_project_manager)
 def content_overview(request):
+    if not request.user.is_superuser:
+        raise PermissionDenied
     objects = []
     models = [
         Source,

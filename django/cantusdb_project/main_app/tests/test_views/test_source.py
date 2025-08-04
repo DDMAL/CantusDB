@@ -3,11 +3,12 @@ Test views in views/source.py
 """
 
 from faker import Faker
+from typing import Dict
 
-from django.test import TestCase, Client
+from django.test import TestCase
 from django.urls import reverse
+from django.core.exceptions import ObjectDoesNotExist
 from django.contrib.auth import get_user_model
-from django.contrib.auth.models import Group
 
 from main_app.models import Source, Chant, Differentia
 from main_app.tests.make_fakes import (
@@ -24,39 +25,103 @@ from main_app.tests.make_fakes import (
     make_fake_provenance,
     make_fake_century,
     add_accents_to_string,
+    make_fake_user,
 )
-from main_app.tests.mixins import HTMLContentsTestMixin
-from main_app.forms import BrowseChantsBulkEditFormset
-from users.models import User
+from main_app.tests.mixins import HTMLContentsTestMixin, CustomAccessTestMixin
+from users.models import User as UserAnnotation
 
 # Create a Faker instance with locale set to Latin
 faker = Faker("la")
 
 
-class SourceCreateViewTest(TestCase):
-    @classmethod
-    def setUpTestData(cls):
-        Group.objects.create(name="project manager")
+class SourcePermissionsTestCase(CustomAccessTestMixin, TestCase):
+    sources: Dict[str, Source]
+    view_name: str
 
-    def setUp(self):
-        self.user = get_user_model().objects.create(email="test@test.com")
-        self.user.set_password("pass")
-        self.user.save()
-        self.client = Client()
-        project_manager = Group.objects.get(name="project manager")
-        project_manager.user_set.add(self.user)
-        self.client.login(email="test@test.com", password="pass")
-        # unless a segment is specified when a source is created, the source is automatically assigned
-        # to the segment with the name "CANTUS Database" - to prevent errors, we must make sure that
-        # such a segment exists
+    @classmethod
+    def setUpTestData(cls) -> None:
+        super().setUpTestData()
+        cls.sources = {
+            "published_source": make_fake_source(),
+            "unassigned_source": make_fake_source(published=False),
+            "user_assigned_source": make_fake_source(
+                current_editors=[cls.users["user"]],
+                published=False,
+            ),
+            "editor_assigned_source": make_fake_source(
+                current_editors=[cls.users["editor"]], published=False
+            ),
+        }
+
+    def _run_get_permissions_test(self) -> None:
+        self.run_request_permissions_test(
+            url=reverse(self.view_name, args=[self.sources["published_source"].id]),
+            get_allowed_users=[
+                "anonymous user",
+                "user",
+                "editor",
+                "superuser",
+                "global viewer",
+            ],
+            post_allowed_users=[],
+            test_name="Published source",
+        )
+        self.run_request_permissions_test(
+            url=reverse(self.view_name, args=[self.sources["unassigned_source"].id]),
+            get_allowed_users=["superuser", "global viewer"],
+            post_allowed_users=[],
+            test_name="Unassigned source",
+        )
+        self.run_request_permissions_test(
+            url=reverse(self.view_name, args=[self.sources["user_assigned_source"].id]),
+            get_allowed_users=["user", "superuser", "global viewer"],
+            post_allowed_users=[],
+            test_name="User assigned source",
+        )
+        self.run_request_permissions_test(
+            url=reverse(
+                self.view_name, args=[self.sources["editor_assigned_source"].id]
+            ),
+            get_allowed_users=["editor", "superuser", "global viewer"],
+            post_allowed_users=[],
+            test_name="Editor assigned source",
+        )
+
+
+class SourceCreateViewTest(TestCase):
+    user: UserAnnotation
+
+    @classmethod
+    def setUpTestData(cls) -> None:
+        cls.user = make_fake_user()
+        # A source created will automatically be assigned
+        # to the CANTUS Database segment. We need to
+        # ensure that such a segment exists.
         make_fake_segment(name="CANTUS Database")
 
-    def test_url_and_templates(self):
+    def setUp(self) -> None:
+        self.client.force_login(self.user)
+
+    def test_permissions(self) -> None:
+        with self.subTest("Anonymous user"):
+            self.client.logout()
+            response = self.client.get(reverse("source-create"))
+            self.assertEqual(response.status_code, 302)
+            self.assertRedirects(
+                response,
+                f"{reverse('login')}?next={reverse('source-create')}",
+            )
+        with self.subTest("Authenticated user"):
+            self.client.force_login(self.user)
+            response = self.client.get(reverse("source-create"))
+            self.assertEqual(response.status_code, 200)
+
+    def test_url_and_templates(self) -> None:
         response = self.client.get(reverse("source-create"))
         self.assertEqual(response.status_code, 200)
         self.assertTemplateUsed(response, "source_create.html")
 
-    def test_create_source(self):
+    def test_create_source(self) -> None:
         response = self.client.post(
             reverse("source-create"),
             {
@@ -76,28 +141,63 @@ class SourceCreateViewTest(TestCase):
         self.assertEqual(source.shelfmark, "test-shelfmark")
 
 
-class SourceEditViewTest(TestCase):
+class SourceEditViewTest(CustomAccessTestMixin, TestCase):
+    default_user = "editor"
+    sources: Dict[str, Source]
+
     @classmethod
-    def setUpTestData(cls):
-        Group.objects.create(name="project manager")
+    def setUpTestData(cls) -> None:
+        super().setUpTestData()
+        cls.sources = {
+            "unassigned_source": make_fake_source(),
+            "user_assigned_source": make_fake_source(
+                current_editors=[cls.users["user"]]
+            ),
+            "editor_assigned_source": make_fake_source(
+                current_editors=[cls.users["editor"]]
+            ),
+            "user_created_source": make_fake_source(
+                current_editors=[cls.users["user"]]
+            ),
+        }
+        cls.sources["user_created_source"].created_by = cls.users["user"]
+        cls.sources["user_created_source"].save()
 
-    def setUp(self):
-        self.user = get_user_model().objects.create(email="test@test.com")
-        self.user.set_password("pass")
-        self.user.save()
-        self.client = Client()
-        project_manager = Group.objects.get(name="project manager")
-        project_manager.user_set.add(self.user)
-        self.client.login(email="test@test.com", password="pass")
+    def test_permissions(self) -> None:
+        self.run_request_permissions_test(
+            url=reverse("source-edit", args=[self.sources["unassigned_source"].id]),
+            get_allowed_users=["superuser"],
+            post_allowed_users=["superuser"],
+            test_name="Unassigned source",
+        )
+        self.run_request_permissions_test(
+            url=reverse("source-edit", args=[self.sources["user_assigned_source"].id]),
+            get_allowed_users=["superuser"],
+            post_allowed_users=["superuser"],
+            test_name="User assigned source",
+        )
+        self.run_request_permissions_test(
+            url=reverse(
+                "source-edit", args=[self.sources["editor_assigned_source"].id]
+            ),
+            get_allowed_users=["editor", "superuser"],
+            post_allowed_users=["editor", "superuser"],
+            test_name="Editor assigned source",
+        )
+        self.run_request_permissions_test(
+            url=reverse("source-edit", args=[self.sources["user_created_source"].id]),
+            get_allowed_users=["user", "superuser"],
+            post_allowed_users=["user", "superuser"],
+            test_name="User created source",
+        )
 
-    def test_context(self):
-        source = make_fake_source()
+    def test_context(self) -> None:
+        source = self.sources["editor_assigned_source"]
         response = self.client.get(reverse("source-edit", args=[source.id]))
         self.assertEqual(source, response.context["object"])
 
-    def test_url_and_templates(self):
-        source = make_fake_source()
-
+    def test_url_and_templates(self) -> None:
+        source = self.sources["editor_assigned_source"]
         response = self.client.get(reverse("source-edit", args=[source.id]))
         self.assertEqual(response.status_code, 200)
         self.assertTemplateUsed(response, "source_edit.html")
@@ -106,9 +206,8 @@ class SourceEditViewTest(TestCase):
         self.assertEqual(response.status_code, 404)
         self.assertTemplateUsed(response, "404.html")
 
-    def test_edit_source(self):
-        source = make_fake_source()
-
+    def test_edit_source(self) -> None:
+        source = self.sources["editor_assigned_source"]
         response = self.client.post(
             reverse("source-edit", args=[source.id]),
             {
@@ -124,7 +223,12 @@ class SourceEditViewTest(TestCase):
         self.assertEqual(source.shelfmark, "test-shelfmark")
 
 
-class SourceDetailViewTest(TestCase):
+class SourceDetailViewTest(SourcePermissionsTestCase):
+    view_name = "source-detail"
+
+    def test_permissions(self) -> None:
+        self._run_get_permissions_test()
+
     def test_url_and_templates(self) -> None:
         source = make_fake_source()
         response = self.client.get(reverse("source-detail", args=[source.id]))
@@ -182,19 +286,11 @@ class SourceDetailViewTest(TestCase):
         # the list of sequences should be ordered by the "sequence" field
         self.assertEqual(response.context["sequences"].query.order_by, ("s_sequence",))
 
-    def test_published_vs_unpublished(self) -> None:
-        source = make_fake_source(published=False)
-        response_1 = self.client.get(reverse("source-detail", args=[source.id]))
-        self.assertEqual(response_1.status_code, 403)
-
-        source.published = True
-        source.save()
-        response_2 = self.client.get(reverse("source-detail", args=[source.id]))
-        self.assertEqual(response_2.status_code, 200)
-
     def test_chant_list_link(self) -> None:
         cantus_segment = make_fake_segment(id=4063)
         cantus_source = make_fake_source(segment=[cantus_segment])
+        # Add a chant so the source has content and link should appear
+        make_fake_chant(source=cantus_source)
         chant_list_link = reverse("browse-chants", args=[cantus_source.id])
 
         cantus_source_response = self.client.get(
@@ -203,14 +299,14 @@ class SourceDetailViewTest(TestCase):
         cantus_source_html = str(cantus_source_response.content)
         self.assertIn(chant_list_link, cantus_source_html)
 
-        bower_segment = make_fake_segment(id=4064)
-        bower_source = make_fake_source(segment=[bower_segment])
-        bower_chant_list_link = reverse("browse-chants", args=[bower_source.id])
-        bower_source_response = self.client.get(
-            reverse("source-detail", args=[bower_source.id])
+        # Sources without chants should not show the link
+        source_no_chants = make_fake_source(segment=[cantus_segment])
+        no_chants_response = self.client.get(
+            reverse("source-detail", args=[source_no_chants.id])
         )
-        bower_source_html = str(bower_source_response.content)
-        self.assertNotIn(bower_chant_list_link, bower_source_html)
+        no_chants_html = str(no_chants_response.content)
+        no_chants_link = reverse("browse-chants", args=[source_no_chants.id])
+        self.assertNotIn(no_chants_link, no_chants_html)
 
     def test_json_response(self) -> None:
         source = make_fake_source()
@@ -226,25 +322,26 @@ class SourceDetailViewTest(TestCase):
         self.assertEqual(response.json()["source"]["id"], source.id)
 
 
-class SourceInventoryViewTest(HTMLContentsTestMixin, TestCase):
+class SourceInventoryViewTest(HTMLContentsTestMixin, SourcePermissionsTestCase):
+    view_name = "source-inventory"
+
+    def test_permissions(self) -> None:
+        self._run_get_permissions_test()
+
     def test_url_and_templates(self):
         source = make_fake_source()
+        make_fake_chant(source=source)
         response = self.client.get(reverse("source-inventory", args=[source.id]))
         self.assertEqual(response.status_code, 200)
         self.assertTemplateUsed(response, "full_inventory.html")
 
-    def test_published_vs_unpublished(self):
-        source = make_fake_source()
-
-        source.published = True
-        source.save()
-        response = self.client.get(reverse("source-inventory", args=[source.id]))
-        self.assertEqual(response.status_code, 200)
-
-        source.published = False
-        source.save()
-        response = self.client.get(reverse("source-inventory", args=[source.id]))
-        self.assertEqual(response.status_code, 403)
+    def test_no_chants_returns_404(self):
+        # Test that sources without chants return 404
+        source_no_chants = make_fake_source(published=True)
+        response = self.client.get(
+            reverse("source-inventory", args=[source_no_chants.id])
+        )
+        self.assertEqual(response.status_code, 404)
 
     def test_chant_source_queryset(self):
         chant_source = make_fake_source()
@@ -452,6 +549,7 @@ class SourceInventoryViewTest(HTMLContentsTestMixin, TestCase):
         cantus_segment = make_fake_segment(id=4063)
         source = make_fake_source(segment=[cantus_segment])
         source_id = source.id
+        make_fake_chant(source=source)
 
         url = reverse("redirect-source-inventory")
         response = self.client.get(f"{url}?source={source_id}")
@@ -467,50 +565,60 @@ class SourceInventoryViewTest(HTMLContentsTestMixin, TestCase):
         self.assertTemplateUsed(response, "400.html")
 
 
-class SourceBrowseChantsViewTest(TestCase):
-    contrib_group: Group
+class SourceBrowseChantsViewTest(SourcePermissionsTestCase):
+    view_name = "browse-chants"
 
-    @classmethod
-    def setUpTestData(cls) -> None:
-        cls.contrib_group = Group.objects.create(name="contributor")
+    def test_permissions(self) -> None:
+        self.run_request_permissions_test(
+            url=reverse(self.view_name, args=[self.sources["unassigned_source"].id]),
+            get_allowed_users=["superuser", "global viewer"],
+            post_allowed_users=["superuser"],
+            test_name="Unassigned source",
+        )
+        self.run_request_permissions_test(
+            url=reverse(self.view_name, args=[self.sources["user_assigned_source"].id]),
+            get_allowed_users=["user", "superuser", "global viewer"],
+            post_allowed_users=["user", "superuser"],
+            test_name="User assigned source",
+        )
+        self.run_request_permissions_test(
+            url=reverse(
+                self.view_name, args=[self.sources["editor_assigned_source"].id]
+            ),
+            get_allowed_users=["editor", "superuser", "global viewer"],
+            post_allowed_users=["editor", "superuser"],
+            test_name="Editor assigned source",
+        )
 
     def test_url_and_templates(self):
         cantus_segment = make_fake_segment(id=4063)
         source = make_fake_source(segment=[cantus_segment])
+        make_fake_chant(source=source)
         response = self.client.get(reverse("browse-chants", args=[source.id]))
         self.assertEqual(response.status_code, 200)
         self.assertTemplateUsed(response, "base.html")
         self.assertTemplateUsed(response, "browse_chants.html")
 
-    def test_published_vs_unpublished(self):
-        cantus_segment = make_fake_segment(id=4063)
-
-        published_source = make_fake_source(segment=[cantus_segment], published=True)
-        response_1 = self.client.get(
-            reverse("browse-chants", args=[published_source.id])
-        )
-        self.assertEqual(response_1.status_code, 200)
-
-        unpublished_source = make_fake_source(segment=[cantus_segment], published=False)
-        response_2 = self.client.get(
-            reverse("browse-chants", args=[unpublished_source.id])
-        )
-        # For unauthenticated user, redirects to login page
-        self.assertEqual(response_2.status_code, 302)
-
     def test_visibility_by_segment(self):
         cantus_segment = make_fake_segment(id=4063)
         cantus_source = make_fake_source(segment=[cantus_segment], published=True)
+        # Add a chant so the source has content
+        make_fake_chant(source=cantus_source)
         response_1 = self.client.get(reverse("browse-chants", args=[cantus_source.id]))
         self.assertEqual(response_1.status_code, 200)
 
-        # The chant list ("Browse Chants") page should only be visitable
-        # for sources in the CANTUS Database segment, as sources in the Bower
-        # segment contain no chants
+        # Sources without chants should return 404
         bower_segment = make_fake_segment(id=4064)
         bower_source = make_fake_source(segment=[bower_segment], published=True)
         response_1 = self.client.get(reverse("browse-chants", args=[bower_source.id]))
         self.assertEqual(response_1.status_code, 404)
+
+    def test_no_chants_returns_404(self):
+        # Test that sources without chants return 404
+        cantus_segment = make_fake_segment(id=4063)
+        source_no_chants = make_fake_source(segment=[cantus_segment], published=True)
+        response = self.client.get(reverse("browse-chants", args=[source_no_chants.id]))
+        self.assertEqual(response.status_code, 404)
 
     def test_filter_by_source(self):
         cantus_segment = make_fake_segment(id=4063)
@@ -678,6 +786,7 @@ class SourceBrowseChantsViewTest(TestCase):
     def test_context_source(self):
         cantus_segment = make_fake_segment(id=4063)
         source = make_fake_source(segment=[cantus_segment])
+        make_fake_chant(source=source)
         response = self.client.get(reverse("browse-chants", args=[source.id]))
         self.assertEqual(source, response.context["source"])
 
@@ -698,6 +807,7 @@ class SourceBrowseChantsViewTest(TestCase):
     def test_redirect_with_source_parameter(self):
         cantus_segment = make_fake_segment(id=4063)
         source = make_fake_source(segment=[cantus_segment])
+        make_fake_chant(source=source)
         source_id = source.id
 
         url = reverse("redirect-chants")
@@ -714,29 +824,8 @@ class SourceBrowseChantsViewTest(TestCase):
         self.assertEqual(response.status_code, 400)
         self.assertTemplateUsed(response, "400.html")
 
-    def test_post_request_forbidden(self) -> None:
-        """
-        Ensure that a POST request is forbidden for
-        unauthenticated users and users that are not
-        allowed to edit chants in a source.
-        """
-        cantus_segment = make_fake_segment(id=4063)
-        source = make_fake_source(segment=[cantus_segment])
-        user = get_user_model().objects.create(email="test@test.com")
-        user.groups.add(self.contrib_group)
-        response = self.client.post(reverse("browse-chants", args=[source.id]))
-        self.assertEqual(response.status_code, 302)
-        self.client.force_login(user)
-        response = self.client.post(reverse("browse-chants", args=[source.id]))
-        self.assertEqual(response.status_code, 403)
 
-
-class SourceListViewTest(TestCase):
-    def setUp(self):
-        # unless a segment is specified when a source is created, the source is automatically assigned
-        # to the segment with the name "CANTUS Database" - to prevent errors, we must make sure that
-        # such a segment exists
-        make_fake_segment(name="CANTUS Database")
+class SourceListViewTest(CustomAccessTestMixin, TestCase):
 
     def test_url_and_templates(self):
         response = self.client.get(reverse("source-list"))
@@ -754,16 +843,60 @@ class SourceListViewTest(TestCase):
         centuries = response.context["centuries"]
         self.assertIn({"id": century.id, "name": century.name}, centuries)
 
-    def test_only_published_sources_visible(self):
-        """For a source to be displayed in the list, its `published` field must be `True`"""
-        published_source = make_fake_source(
-            published=True, shelfmark="published source"
+    def test_permissions(self) -> None:
+        published_source = make_fake_source(published=True)
+        editor_assigned_source = make_fake_source(
+            published=False, current_editors=[self.users["editor"]]
         )
-        private_source = make_fake_source(published=False, shelfmark="private source")
-        response = self.client.get(reverse("source-list"))
-        sources = response.context["sources"]
-        self.assertIn(published_source, sources)
-        self.assertNotIn(private_source, sources)
+        user_assigned_source = make_fake_source(
+            published=False, current_editors=[self.users["user"]]
+        )
+        unassigned_source = make_fake_source(published=False)
+        with self.subTest("Visible to anonymous user"):
+            resp = self.client.get(reverse("source-list"))
+            sources = resp.context["sources"]
+            self.assertCountEqual(sources, [published_source])
+        with self.subTest("Visible to superuser"):
+            self.client.force_login(self.users["superuser"])
+            resp = self.client.get(reverse("source-list"))
+            sources = resp.context["sources"]
+            self.assertCountEqual(
+                sources,
+                [
+                    published_source,
+                    editor_assigned_source,
+                    user_assigned_source,
+                    unassigned_source,
+                ],
+            )
+        with self.subTest("Visible to global viewer"):
+            self.client.force_login(self.users["global viewer"])
+            resp = self.client.get(reverse("source-list"))
+            sources = resp.context["sources"]
+            self.assertCountEqual(
+                sources,
+                [
+                    published_source,
+                    editor_assigned_source,
+                    user_assigned_source,
+                    unassigned_source,
+                ],
+            )
+        with self.subTest("Visible to editor"):
+            self.client.force_login(self.users["editor"])
+            resp = self.client.get(reverse("source-list"))
+            sources = resp.context["sources"]
+            self.assertCountEqual(sources, [published_source, editor_assigned_source])
+        with self.subTest("Visible to user"):
+            self.client.force_login(self.users["user"])
+            resp = self.client.get(reverse("source-list"))
+            sources = resp.context["sources"]
+            self.assertCountEqual(sources, [published_source, user_assigned_source])
+        with self.subTest("Visible to expired global viewer"):
+            self.client.force_login(self.users["expired global viewer"])
+            resp = self.client.get(reverse("source-list"))
+            sources = resp.context["sources"]
+            self.assertCountEqual(sources, [published_source])
 
     def test_filter_by_segment(self):
         """The source list can be filtered by `segment`, `country`, `provenance`, `century`, and `full_source`"""
@@ -1295,20 +1428,13 @@ class SourceListViewTest(TestCase):
             )
 
 
-class SourceAddImageLinksViewTest(TestCase):
-    auth_user: User
-    non_auth_user: User
+class SourceAddImageLinksViewTest(CustomAccessTestMixin, TestCase):
     source: Source
+    default_user = "superuser"
 
     @classmethod
     def setUpTestData(cls) -> None:
-        user_model = get_user_model()
-        cls.auth_user = user_model.objects.create(
-            email="authuser@test.com", password="12345", is_staff=True
-        )
-        cls.non_auth_user = user_model.objects.create(
-            email="nonauthuser@test.com", password="12345", is_staff=False
-        )
+        super().setUpTestData()
         cls.source = make_fake_source(published=True)
         for folio in ["001r", "001v", "003", "004A"]:
             make_fake_chant(source=cls.source, folio=folio, image_link=None)
@@ -1324,48 +1450,15 @@ class SourceAddImageLinksViewTest(TestCase):
         )
 
     def test_permissions(self) -> None:
-        with self.subTest("Test unauthenticated user"):
-            response = self.client.get(
-                reverse("source-add-image-links", args=[self.source.id])
-            )
-            self.assertEqual(response.status_code, 302)
-            self.assertRedirects(
-                response,
-                f"{reverse('login')}?next={reverse('source-add-image-links', args=[self.source.id])}",
-                status_code=302,
-                target_status_code=200,
-            )
-            response = self.client.post(
-                reverse("source-add-image-links", args=[self.source.id])
-            )
-            self.assertEqual(response.status_code, 302)
-            self.assertRedirects(
-                response,
-                f"{reverse('login')}?next={reverse('source-add-image-links', args=[self.source.id])}",
-                status_code=302,
-                target_status_code=200,
-            )
-        with self.subTest("Test non-staff user"):
-            self.client.force_login(self.non_auth_user)
-            response = self.client.get(
-                reverse("source-add-image-links", args=[self.source.id])
-            )
-            self.assertEqual(response.status_code, 403)
-            response = self.client.post(
-                reverse("source-add-image-links", args=[self.source.id])
-            )
-            self.assertEqual(response.status_code, 403)
-        with self.subTest("Test staff user"):
-            self.client.force_login(self.auth_user)
-            response = self.client.get(
-                reverse("source-add-image-links", args=[self.source.id])
-            )
-            self.assertEqual(response.status_code, 200)
-            # Post redirect is tested in the `test_form` method
+        self.run_request_permissions_test(
+            reverse("source-add-image-links", args=[self.source.id]),
+            get_allowed_users=["superuser"],
+            post_allowed_users=["superuser"],
+            test_name="Any source",
+        )
 
     def test_form(self) -> None:
         with self.subTest("Test form fields"):
-            self.client.force_login(self.auth_user)
             response = self.client.get(
                 reverse("source-add-image-links", args=[self.source.id])
             )
@@ -1404,3 +1497,91 @@ class SourceAddImageLinksViewTest(TestCase):
             chants_004B = Chant.objects.filter(source=self.source, folio="004B").all()
             self.assertEqual(len(chants_004B), 1)
             self.assertEqual(chants_004B[0].image_link, "https://i-already-exist.com/2")
+
+
+class SourceDeleteViewTest(CustomAccessTestMixin, TestCase):
+    source: Source
+
+    def test_permissions(self) -> None:
+        unassigned_source = make_fake_source()
+        with self.subTest("Test anonymous user"):
+            resp = self.client.get(
+                reverse("source-delete", args=[unassigned_source.id])
+            )
+            self.assertEqual(resp.status_code, 302)
+            resp = self.client.post(
+                reverse("source-delete", args=[unassigned_source.id])
+            )
+            self.assertEqual(resp.status_code, 302)
+            unassigned_source.refresh_from_db()
+        with self.subTest("Test unassigned source"):
+            for user_type in ["user", "editor", "global viewer"]:
+                self.client.force_login(self.users[user_type])
+                resp = self.client.get(
+                    reverse("source-delete", args=[unassigned_source.id])
+                )
+                self.assertEqual(resp.status_code, 403)
+                resp = self.client.post(
+                    reverse("source-delete", args=[unassigned_source.id])
+                )
+                self.assertEqual(resp.status_code, 403)
+                unassigned_source.refresh_from_db()
+            self.client.force_login(self.users["superuser"])
+            resp = self.client.get(
+                reverse("source-delete", args=[unassigned_source.id])
+            )
+            self.assertEqual(resp.status_code, 200)
+            resp = self.client.post(
+                reverse("source-delete", args=[unassigned_source.id])
+            )
+            self.assertEqual(resp.status_code, 302)
+            self.assertRaises(ObjectDoesNotExist, unassigned_source.refresh_from_db)
+        with self.subTest("Test assigned source"):
+            editor_assigned_source = make_fake_source(
+                current_editors=[self.users["editor"]]
+            )
+            user_assigned_source = make_fake_source(
+                current_editors=[self.users["user"]]
+            )
+            # Test that a user can delete neither source
+            self.client.force_login(self.users["user"])
+            resp = self.client.get(
+                reverse("source-delete", args=[editor_assigned_source.id])
+            )
+            self.assertEqual(resp.status_code, 403)
+            resp = self.client.post(
+                reverse("source-delete", args=[editor_assigned_source.id])
+            )
+            self.assertEqual(resp.status_code, 403)
+            editor_assigned_source.refresh_from_db()
+            resp = self.client.get(
+                reverse("source-delete", args=[user_assigned_source.id])
+            )
+            self.assertEqual(resp.status_code, 403)
+            resp = self.client.post(
+                reverse("source-delete", args=[user_assigned_source.id])
+            )
+            self.assertEqual(resp.status_code, 403)
+            user_assigned_source.refresh_from_db()
+            # Test that an editor can delete their own source only
+            self.client.force_login(self.users["editor"])
+            resp = self.client.get(
+                reverse("source-delete", args=[editor_assigned_source.id])
+            )
+            self.assertEqual(resp.status_code, 200)
+            resp = self.client.post(
+                reverse("source-delete", args=[editor_assigned_source.id])
+            )
+            self.assertEqual(resp.status_code, 302)
+            self.assertRaises(
+                ObjectDoesNotExist, editor_assigned_source.refresh_from_db
+            )
+            resp = self.client.get(
+                reverse("source-delete", args=[user_assigned_source.id])
+            )
+            self.assertEqual(resp.status_code, 403)
+            resp = self.client.post(
+                reverse("source-delete", args=[user_assigned_source.id])
+            )
+            self.assertEqual(resp.status_code, 403)
+            user_assigned_source.refresh_from_db()

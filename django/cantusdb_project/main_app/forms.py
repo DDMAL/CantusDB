@@ -48,7 +48,7 @@ COMPLETE_INVENTORY_FORM_CHOICES = (
 
 # Define choices for Chant model's
 # various proofreading fields: manuscript_full_text_std_proofread,
-# manuscript_full_text_proofread, volpiano_proofread
+# manuscript_full_text_proofread, volpiano_proofread, other_fields_proofread
 PROOFREAD_CHOICES = [
     (None, "Any"),
     (True, "Yes"),
@@ -208,6 +208,7 @@ class ChantCreateForm(forms.ModelForm):
             "later_addition",
             "rubrics",
             "source",
+            "text_language",
         ]
         # the widgets dictionary is ignored for a model field with a non-empty
         # choices attribute. In this case, you must override the form field to
@@ -242,6 +243,7 @@ class ChantCreateForm(forms.ModelForm):
             "incipit_of_refrain": TextInputWidget(),
             "later_addition": TextInputWidget(),
             "rubrics": TextInputWidget(),
+            "text_language": SelectWidget(),
         }
 
     folio = forms.CharField(
@@ -350,7 +352,7 @@ class SourceCreateForm(forms.ModelForm):
             "dact_id": TextInputWidget(),
             "indexing_notes": TextAreaWidget(),
             "current_editors": autocomplete.ModelSelect2Multiple(
-                url="current-editors-autocomplete"
+                url="active-users-autocomplete"
             ),
             "melodies_entered_by": autocomplete.ModelSelect2Multiple(
                 url="all-users-autocomplete"
@@ -421,6 +423,7 @@ class ChantEditForm(forms.ModelForm):
             "later_addition",
             "rubrics",
             "source",
+            "text_language",
         ]
         widgets = {
             # manuscript_full_text_std_spelling: defined below (required) & special field
@@ -457,6 +460,7 @@ class ChantEditForm(forms.ModelForm):
             "incipit_of_refrain": TextInputWidget(),
             "later_addition": TextInputWidget(),
             "rubrics": TextInputWidget(),
+            "text_language": SelectWidget(),
         }
 
     manuscript_full_text_std_spelling = CantusDBLatinField(
@@ -556,7 +560,6 @@ class SourceEditForm(forms.ModelForm):
             "fragmentarium_id",
             "dact_id",
             "indexing_notes",
-            "current_editors",
             "melodies_entered_by",
             "inventoried_by",
             "full_text_entered_by",
@@ -585,9 +588,6 @@ class SourceEditForm(forms.ModelForm):
             "fragmentarium_id": TextInputWidget(),
             "dact_id": TextInputWidget(),
             "indexing_notes": TextAreaWidget(),
-            "current_editors": autocomplete.ModelSelect2Multiple(
-                url="current-editors-autocomplete"
-            ),
             "melodies_entered_by": autocomplete.ModelSelect2Multiple(
                 url="all-users-autocomplete"
             ),
@@ -635,6 +635,13 @@ class SourceBrowseChantsProofreadForm(forms.Form):
 
     volpiano_proofread = forms.ChoiceField(
         label="Volpiano proofread",
+        choices=PROOFREAD_CHOICES,
+        widget=forms.RadioSelect,
+        required=False,
+    )
+
+    other_fields_proofread = forms.ChoiceField(
+        label="Other fields proofread",
         choices=PROOFREAD_CHOICES,
         widget=forms.RadioSelect,
         required=False,
@@ -729,6 +736,7 @@ class AdminChantForm(forms.ModelForm):
             "manuscript_full_text_std_proofread": CheckboxWidget(),
             "manuscript_full_text_proofread": CheckboxWidget(),
             "volpiano_proofread": CheckboxWidget(),
+            "other_fields_proofread": CheckboxWidget(),
             "chant_range": VolpianoAreaWidget(),
         }
 
@@ -775,7 +783,7 @@ class AdminChantForm(forms.ModelForm):
 
     proofread_by = forms.ModelMultipleChoiceField(
         queryset=get_user_model()
-        .objects.filter(Q(groups__name="project manager") | Q(groups__name="editor"))
+        .objects.filter(Q(is_superuser=True) | Q(groups_new__name="editor"))
         .distinct()
         .order_by("last_name"),
         required=False,
@@ -845,6 +853,7 @@ class AdminSequenceForm(forms.ModelForm):
             "manuscript_full_text_std_proofread": CheckboxWidget(),
             "manuscript_full_text_proofread": CheckboxWidget(),
             "volpiano_proofread": CheckboxWidget(),
+            "other_fields_proofread": CheckboxWidget(),
             "chant_range": VolpianoAreaWidget(),
         }
 
@@ -862,7 +871,7 @@ class AdminSequenceForm(forms.ModelForm):
 
     proofread_by = forms.ModelMultipleChoiceField(
         queryset=get_user_model()
-        .objects.filter(Q(groups__name="project manager") | Q(groups__name="editor"))
+        .objects.filter(Q(is_superuser=True) | Q(groups_new__name="editor"))
         .distinct()
         .order_by("last_name"),
         required=False,

@@ -25,22 +25,25 @@ class AutocompleteViewsTest(TestCase):
         u2 = get_user_model().objects.create(full_name="Lucas")
         editor = Group.objects.get(name="editor")
         editor.user_set.add(u1)
+        inactive_user = get_user_model().objects.create(email="inactive@test.com")
+        inactive_user.is_active = False
+        inactive_user.save()
 
         for i in range(10):
             make_fake_century()
 
-    def test_current_editors_autocomplete(self):
-        response = self.client.get(reverse("current-editors-autocomplete"))
+    def test_active_users_autocomplete(self):
+        response = self.client.get(reverse("active-users-autocomplete"))
         self.assertEqual(response.status_code, 200)
 
         data = response.json()
-        self.assertEqual(len(data["results"]), 1)
+        self.assertEqual(len(data["results"]), 3)
 
     def test_all_users_autocomplete(self):
         response = self.client.get(reverse("all-users-autocomplete"))
         self.assertEqual(response.status_code, 200)
         data = response.json()
-        self.assertEqual(len(data["results"]), 3)
+        self.assertEqual(len(data["results"]), 4)
 
         response2 = self.client.get(reverse("all-users-autocomplete"), {"q": "L"})
         self.assertEqual(response2.status_code, 200)
@@ -55,7 +58,7 @@ class AutocompleteViewsTest(TestCase):
 
     def test_non_authenticated_user(self):
         self.client.logout()
-        response = self.client.get(reverse("current-editors-autocomplete"))
+        response = self.client.get(reverse("active-users-autocomplete"))
         self.assertEqual(response.status_code, 200)
         data = response.json()
         self.assertEqual(len(data["results"]), 0)

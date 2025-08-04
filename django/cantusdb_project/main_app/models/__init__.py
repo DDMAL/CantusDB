@@ -15,6 +15,7 @@ from main_app.models.institution import Institution
 from main_app.models.institution_identifier import InstitutionIdentifier
 from main_app.models.project import Project
 from main_app.models.source_url import SourceURL
+from main_app.models.language import Language
 
 
 __all__ = [
@@ -35,4 +36,5 @@ __all__ = [
     "InstitutionIdentifier",
     "Project",
     "SourceURL",
+    "Language",
 ]
