@@ -149,6 +149,10 @@ a.close-success:hover {
 	width: 38%;
 }
 
+.font-serif {
+	font-family: Charter, 'Bitstream Charter', 'Sitka Text', Cambria, serif
+}
+
 .font-volpiano {
 	font-family: "volpiano";
 	font-size: 28px;
