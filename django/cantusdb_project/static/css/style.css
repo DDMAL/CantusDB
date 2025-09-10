@@ -149,6 +149,10 @@ a.close-success:hover {
 	width: 38%;
 }
 
+.font-serif {
+	font-family: "Radio Canada";
+}
+
 .font-volpiano {
 	font-family: "volpiano";
 	font-size: 28px;
