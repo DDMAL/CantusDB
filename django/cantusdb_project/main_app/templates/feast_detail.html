@@ -9,7 +9,7 @@
     </div>
     <div class="row">
         {% if feast.feast_code %}
-            <div class="col">
+            <div class="col-6 col-md-3">
                 <dt>Feast Code</dt>
                 <dd>
                     {{ feast.feast_code }}
@@ -17,19 +17,19 @@
             </div>
         {% endif %}
         {% if feast.month and feast.day %}
-            <div class="col">
+            <div class="col-6 col-md-3">
                 <dt>Feast Date</dt>
                 <dd>
                     {{ feast.month|month_to_string|default:"" }}.{{ feast.day|default:"" }}
                 </dd>
             </div>
-            <div class="col">
+            <div class="col-6 col-md-3">
                 <dt>Day</dt>
                 <dd>
                     {{ feast.day|default:"" }}
                 </dd>
             </div>
-            <div class="col">
+            <div class="col-6 col-md-3">
                 <dt>Month</dt>
                 <dd>
                     {{ feast.month|default:"" }}

@@ -13,7 +13,7 @@
             {% for message in messages %}{{ message }}{% endfor %}
         </div>
     {% endif %}
-    <h3>{{ source.heading }}</h3>
+    <h3 class="font-serif">{{ source.heading }}</h3>
     {% if user_can_edit_source %}
         <p>
             View | <a href="{% url 'source-edit' source.id %}">Edit</a>
@@ -199,7 +199,7 @@
 {% block lowersidebar %}
     <div class="card mb-3 w-100">
         <div class="card-header">
-            <h4>{{ source.short_heading }}</h4>
+            <h4 class="font-serif">{{ source.short_heading }}</h4>
         </div>
         <div class="card-body small">
             {% if has_chants %}
@@ -233,9 +233,15 @@
                    target="_blank">View inventory with images</a>
             {% endif %}
             {% for link in source.source_links.all %}
-                {% if link.url_type == 1 %} {# IIIF Manifest #}
-                    <a href="{% static 'viewer/uv.html' %}#?manifest={{ link.url }}" class="guillemet" target="_blank">
-                        <img src="{% static 'iiif.png' %}" alt="IIIF icon" style="height: 1em; vertical-align: middle;">
+                {% if link.url_type == 1 %}
+                    {# IIIF Manifest #}
+                    <a href="{% static 'viewer/uv.html' %}#?manifest={{ link.url }}"
+                       class="guillemet"
+                       target="_blank">
+                        <img src="{% static 'iiif.png' %}"
+                             alt="IIIF icon"
+                             style="height: 1em;
+                                    vertical-align: middle" />
                         View Images on Cantus Database
                     </a>
                 {% else %}
@@ -260,7 +266,7 @@
         </div>
     </div>
     <div class="card mb-3 w-100">
-        <div class="card-header">
+        <div class="card-header font-serif">
             <b>{{ source.short_heading }}</b>
         </div>
         <div class="card-body small">
@@ -336,7 +342,7 @@
 </div>
 {% if user_can_edit_chants %}
     <div class="card w-100">
-        <div class="card-header">
+        <div class="card-header font-serif">
             Source edit options
             <br />
             <b>{{ source.short_heading }}</b>

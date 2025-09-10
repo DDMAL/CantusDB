@@ -1203,6 +1203,11 @@ class SourceEditChantsView(CustomAccessMixin, UpdateView):  # type: ignore[type-
         if not chant:
             return context
         if chant.volpiano:
+            language = chant.text_language
+            if language and language.pk == 2:
+                language_str = "kanienkeha"
+            else:
+                language_str = None
             has_syl_text = bool(chant.manuscript_syllabized_full_text)
             # Note: the second value returned is a flag indicating whether the alignment process
             # encountered errors. In future, this could be used to display a message to the user.
@@ -1211,6 +1216,7 @@ class SourceEditChantsView(CustomAccessMixin, UpdateView):  # type: ignore[type-
                     chant.get_best_text_for_syllabizing(),
                     chant.volpiano,
                     text_presyllabified=has_syl_text,
+                    language=language_str,
                 )
             except LatinError as err:
                 messages.error(
