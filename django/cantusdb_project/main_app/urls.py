@@ -311,6 +311,12 @@ urlpatterns = [
         name="canadian-chant-db-source-list",
         kwargs={"segment_id": 4066},
     ),
+    path(
+        "Cantorales/",
+        SourceListView.as_view(),
+        name="cantorales-source-list",
+        kwargs={"segment_id": 4067},
+    ),
     # sequence
     path(
         "sequences/",
