@@ -323,6 +323,8 @@ class SourceListView(CustomAccessMixin, ListView):  # type: ignore[type-arg]
     def get_template_names(self) -> list[str]:
         if self.segment and self.segment.id == 4066:
             return ["source_lists/canadian_chant_db.html"]
+        elif self.segment and self.segment.id == 4067:
+            return ["source_lists/cantorales.html"]
         return ["source_lists/source_list.html"]
 
     def get_context_data(self, **kwargs: Any) -> dict[str, Any]:

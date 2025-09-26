@@ -1,0 +1,73 @@
+body {
+    background-image: url("../cantorales-images/R_illumination_cropped.png");
+    background-repeat: no-repeat;
+    background-attachment: scroll;
+    background-size: 100vw;
+}
+
+.main-img {
+    border-radius: 20%;
+    border: solid 3px #1e3c65;
+}
+
+.sl-button {
+    background-color: #1e3c65;
+    border: none;
+
+    &:hover {
+        background-color: #618ac2;
+        text-decoration: none;
+    }
+}
+
+.cantorales-logo {
+    max-height: 300px;
+}
+
+.cantorales-dact-logo {
+    max-width: 450px;
+}
+
+main a {
+    color: #1e3c65;
+
+    &:hover {
+        color: #618ac2;
+    }
+}
+
+#collapsing-navbar {
+    background-color: #1e3c65eb;
+    color: white;
+
+    .nav-link {
+        color: white !important;
+    }
+}
+
+#sticky-navbar-toggle {
+    color: white;
+    background-color: #1e3c65eb;
+}
+
+.ccdb-table-bg {
+    background-color: var(--bs-gray-400)
+}
+
+form.ccdb-filter-form input,
+form.ccdb-filter-form select {
+    background-color: var(--bs-gray-100);
+}
+
+table.ccdb-table th,
+table.ccdb-table td {
+    background-color: var(--bs-gray-100);
+}
+
+table.ccdb-table a {
+    color: #1e3c65;
+
+    &:hover {
+        color: #618ac2;
+    }
+}
