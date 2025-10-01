@@ -19,6 +19,7 @@ from main_app.tests.make_fakes import (
     make_fake_notation,
     make_fake_provenance,
     make_fake_segment,
+    faker,
 )
 from main_app.models import Chant, Source, Provenance, Notation
 
@@ -107,18 +108,19 @@ class AjaxSearchBarTest(ChantPermissionsTestCase):
         self.assertEqual(asterisk_chant["id"], chant_with_asterisk.id)
 
     def test_cantus_id_search(self):
-        chant_with_normal_cantus_id = make_fake_chant(
-            cantus_id="012345",
-            manuscript_full_text_std_spelling="This fulltext contains no numerals",
-        )
+        chant_with_normal_cantus_id = self.chants["published_chant"]
+        cid_first_dig = chant_with_normal_cantus_id.cantus_id[0]
+        new_cantus_id = faker.numerify("######")
+        while new_cantus_id[0] == cid_first_dig:
+            new_cantus_id = faker.numerify("######")
         chant_with_numerals_in_incipit = make_fake_chant(
-            cantus_id="123456",
-            manuscript_full_text_std_spelling="0 me! 0 my! This is unexpected!",
+            cantus_id=new_cantus_id,
+            manuscript_full_text_std_spelling=f"{cid_first_dig} me! {cid_first_dig} my! This is unexpected!",
         )
 
         # for search terms that contain numerals, we should only return
         # matches with the cantus_id field, and not the incipit field
-        matching_search_term = "0"
+        matching_search_term = cid_first_dig
         matching_response = self.client.get(
             reverse("ajax-search-bar", args=[matching_search_term])
         )
