@@ -1,3 +1,7 @@
+:root {
+	--bs-body-font-family: 'Radio Canada', sans-serif;
+}
+
 body {
 	background-image: url("../background.jpg");
 }
