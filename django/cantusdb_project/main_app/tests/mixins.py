@@ -105,7 +105,7 @@ class CustomAccessTestMixin:
         if self.default_user:
             self.client.force_login(user=self.users[self.default_user])
 
-    def testDown(self) -> None:
+    def tearDown(self) -> None:
         self.client.logout()
 
     def run_request_permissions_test(
