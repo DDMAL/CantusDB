@@ -33,7 +33,7 @@ class SourceLinksInline(admin.TabularInline):
 
 @admin.register(Source)
 class SourceAdmin(BaseModelAdmin):
-    exclude = EXCLUDE + ("source_status",)
+    exclude = EXCLUDE + ("source_status", "segment")
     autocomplete_fields = ("holding_institution", "provenance")
     inlines = (IdentifiersInline, SourceLinksInline)
 
