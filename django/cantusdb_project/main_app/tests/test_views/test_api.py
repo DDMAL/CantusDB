@@ -20,6 +20,7 @@ from main_app.tests.make_fakes import (
     make_fake_provenance,
     make_fake_segment,
     faker,
+    get_different_digit,
 )
 from main_app.models import Chant, Source, Provenance, Notation
 
@@ -109,12 +110,11 @@ class AjaxSearchBarTest(ChantPermissionsTestCase):
 
     def test_cantus_id_search(self):
         chant_with_normal_cantus_id = self.chants["published_chant"]
-        cid_first_dig = chant_with_normal_cantus_id.cantus_id[0]
-        new_cantus_id = faker.numerify("######")
-        while new_cantus_id[0] == cid_first_dig:
-            new_cantus_id = faker.numerify("######")
+        cid_first_dig = int(chant_with_normal_cantus_id.cantus_id[0])
+        new_first_dig = get_different_digit(cid_first_dig)
+        new_cid = f'{new_first_dig}{faker.numerify("#####")}'
         chant_with_numerals_in_incipit = make_fake_chant(
-            cantus_id=new_cantus_id,
+            cantus_id=new_cid,
             manuscript_full_text_std_spelling=f"{cid_first_dig} me! {cid_first_dig} my! This is unexpected!",
         )
 
@@ -133,7 +133,7 @@ class AjaxSearchBarTest(ChantPermissionsTestCase):
         self.assertNotEqual(matching_id, chant_with_numerals_in_incipit.id)
 
         # we should only return istartswith results, and not icontains results
-        non_matching_search_term = "2"
+        non_matching_search_term = get_different_digit(cid_first_dig, new_first_dig)
         non_matching_response = self.client.get(
             reverse("ajax-search-bar", args=[non_matching_search_term])
         )

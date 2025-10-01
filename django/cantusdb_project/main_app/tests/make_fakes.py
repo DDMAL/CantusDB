@@ -29,6 +29,23 @@ User = get_user_model()
 faker = Faker("la")
 
 
+def get_different_digit(dig1: int, dig2: Optional[int] = None) -> int:
+    """
+    Returns a random digit that is different than the passed digit, or,
+    if two digits are passed, than both digits.
+
+    Args:
+        dig1 (int)
+        dig2 (Optional[int])
+    Returns:
+        int different than passed digit(s)
+    """
+    rand_dig = faker.random_digit()
+    while rand_dig == dig1 or rand_dig == dig2:
+        rand_dig = faker.random_digit()
+    return rand_dig
+
+
 def make_random_string(
     length: int, characters: str = "ABCDEFGHIJKLMNOPQRSTUVWXYZ"
 ) -> str:
