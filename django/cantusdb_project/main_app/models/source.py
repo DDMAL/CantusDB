@@ -122,7 +122,10 @@ class Source(BaseModel):
         get_user_model(), related_name="entered_melody_for_sources", blank=True
     )
     description_entered_by = models.ManyToManyField(
-        get_user_model(), related_name="entered_description_for_sources", blank=True
+        get_user_model(),
+        verbose_name="description written by",
+        related_name="entered_description_for_sources",
+        blank=True,
     )
     proofreaders = models.ManyToManyField(
         get_user_model(), related_name="proofread_sources", blank=True
