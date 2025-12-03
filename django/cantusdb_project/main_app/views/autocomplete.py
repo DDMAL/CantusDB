@@ -114,9 +114,7 @@ class ProofreadByAutocomplete(autocomplete.Select2QuerySetView):
             return get_user_model().objects.none()
         qs = (
             get_user_model()
-            .objects.filter(
-                Q(groups__name="project manager") | Q(groups__name="editor")
-            )
+            .objects.filter(Q(is_superuser=True) | Q(groups_new__name="editor"))
             .distinct()
             .order_by("full_name")
         )
