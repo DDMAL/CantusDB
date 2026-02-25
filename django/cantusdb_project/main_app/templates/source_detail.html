@@ -218,6 +218,10 @@
                 Provenance: <b><a href="{% url 'provenance-detail' source.provenance.id %}">{{ source.provenance.name }}</a></b>
                 <br />
             {% endif %}
+            {% if source.provenance_notes %}
+                Provenance notes: <b>{{ source.provenance_notes }}</b>
+                <br />
+            {% endif %}
             {% if source.date or source.century %}
                 Date:
                 {% join_absolute_url_links source.century.all 'name' '/' %}
