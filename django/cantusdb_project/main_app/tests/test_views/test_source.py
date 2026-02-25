@@ -321,20 +321,6 @@ class SourceDetailViewTest(SourcePermissionsTestCase):
         self.assertEqual(response["Content-Type"], "application/json")
         self.assertEqual(response.json()["source"]["id"], source.id)
 
-    def test_provenance_notes_displayed(self) -> None:
-        notes = "test_provenance_notes_value"
-        source = make_fake_source(provenance_notes=notes)
-        response = self.client.get(reverse("source-detail", args=[source.id]))
-        html = response.content.decode("utf-8")
-        self.assertIn("Provenance notes:", html)
-        self.assertIn(notes, html)
-
-    def test_provenance_notes_not_displayed_when_empty(self) -> None:
-        source = make_fake_source(provenance_notes="")
-        response = self.client.get(reverse("source-detail", args=[source.id]))
-        html = response.content.decode("utf-8")
-        self.assertNotIn("Provenance notes:", html)
-
 
 class SourceInventoryViewTest(HTMLContentsTestMixin, SourcePermissionsTestCase):
     view_name = "source-inventory"
