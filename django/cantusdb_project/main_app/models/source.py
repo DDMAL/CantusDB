@@ -85,6 +85,7 @@ class Source(BaseModel):
         FRAGMENTED = 4, "Fragmented"
         FRAGMENT = 2, "Fragment"
         RECONSTRUCTION = 3, "Reconstruction"
+        UNKNOWN = 5, "Unknown"
 
     source_completeness = models.IntegerField(
         choices=SourceCompletenessChoices.choices,
