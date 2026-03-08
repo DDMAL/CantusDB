@@ -292,6 +292,7 @@ class Command(BaseCommand):
                         "indexing_date": indexing_date,
                         "indexing_notes": indexing_notes,
                         "source_status": "Unpublished / No indexing activity",
+                        "published": True,
                     },
                 )
 
