@@ -12,6 +12,7 @@ import re
 
 from django.contrib.auth import get_user_model
 from django.core.management.base import BaseCommand
+from django.db import transaction
 
 from main_app.models import (
     Century,
@@ -176,6 +177,7 @@ def build_description(row):
 class Command(BaseCommand):
     help = "Import sources from the USA-1 Cantorales CSV into CantusDB."
 
+    @transaction.atomic
     def handle(self, *args, **options):
         csv_path = os.path.join(
             os.path.dirname(os.path.abspath(__file__)),
