@@ -230,6 +230,12 @@ class Command(BaseCommand):
                     skipped_count += 1
                     continue
 
+                if not rism:
+                    self.stdout.write(
+                        f"  Row {row_num}: warning — no RISM siglum (shelfmark={shelfmark!r}), "
+                        f"source will have no holding institution"
+                    )
+
                 # --- Institution ---
                 institution = None
                 if rism:
