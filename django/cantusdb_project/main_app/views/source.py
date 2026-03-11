@@ -308,6 +308,7 @@ class SourceDetailView(CustomAccessMixin, JSONResponseMixin, DetailView):  # typ
                 "melodies_entered_by",
                 "other_editors",
                 "description_entered_by",
+                "source_links",
             )
             .all()
         )

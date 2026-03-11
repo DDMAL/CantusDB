@@ -194,8 +194,8 @@
                     </a>
                 {% endif %}
             {% endfor %}
-            {% if source.image_link %}
-                <a href="{{ source.image_link }}" class="guillemet" target="_blank">View images on external site</a>
+            {% if source.image_link and not source.source_links.all %}
+                <a href="{{ source.image_link }}" class="guillemet" target="_blank" rel="noopener noreferrer">View images on external site</a>
             {% endif %}
             <a href="{% url "csv-export" source.id %}"
                class="guillemet"

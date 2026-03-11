@@ -13,7 +13,7 @@ from django.urls import reverse
 from django.core.exceptions import ObjectDoesNotExist
 from django.contrib.auth import get_user_model
 
-from main_app.models import Source, Chant, Differentia, SourceIdentifier
+from main_app.models import Source, Chant, Differentia, SourceIdentifier, SourceURL
 from main_app.tests.make_fakes import (
     make_fake_source,
     make_fake_segment,
@@ -363,6 +363,30 @@ class SourceDetailViewTest(SourcePermissionsTestCase):
         self.assertIn("Notation (Bower):", html)
         self.assertIn(notation.name, html)
         self.assertNotIn(reverse("notation-detail", args=[notation.id]), html)
+
+    def test_image_link_displayed_when_no_source_links(self) -> None:
+        source = make_fake_source(image_link="https://example.com/images")
+        response = self.client.get(reverse("source-detail", args=[source.id]))
+        html = str(response.content)
+        self.assertIn("https://example.com/images", html)
+        self.assertIn("View images on external site", html)
+
+    def test_image_link_hidden_when_source_links_exist(self) -> None:
+        source = make_fake_source(image_link="https://example.com/images")
+        SourceURL.objects.create(
+            source=source,
+            url="https://example.com/external",
+            url_type=SourceURL.URLTypes.EXTERNAL_IMAGES,
+        )
+        response = self.client.get(reverse("source-detail", args=[source.id]))
+        html = str(response.content)
+        self.assertNotIn("View images on external site", html)
+
+    def test_image_link_not_displayed_when_empty(self) -> None:
+        source = make_fake_source(image_link="")
+        response = self.client.get(reverse("source-detail", args=[source.id]))
+        html = str(response.content)
+        self.assertNotIn("View images on external site", html)
 
 
 class SourceInventoryViewTest(HTMLContentsTestMixin, SourcePermissionsTestCase):
