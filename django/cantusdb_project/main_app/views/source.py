@@ -1,7 +1,9 @@
+import logging
 import re
 from datetime import date
 from typing import Any, Optional, Union
 
+import requests
 from django.conf import settings
 from django.contrib import messages
 from django.contrib.auth.mixins import UserPassesTestMixin
@@ -23,6 +25,7 @@ from django.views.generic import (
     UpdateView,
     DeleteView,
     FormView,
+    View,
 )
 from django.views.generic.detail import SingleObjectMixin
 
@@ -44,10 +47,19 @@ from main_app.models import (
     Institution,
     Sequence,
 )
+from main_app.models.source_url import SourceURL
 from main_app.permissions import CustomAccessMixin
 from main_app.mixins import JSONResponseMixin
+from main_app.iiif_utils import (
+    fetch_manifest,
+    extract_canvases,
+    generate_folio_image_mapping,
+    mapping_to_csv,
+)
 from main_app.views.chant import get_feast_selector_options
 from main_app.tasks import save_browse_chants_formset
+
+logger = logging.getLogger(__name__)
 
 SOURCE_ADVANCED_SEARCH_FIELDS: tuple[str, ...] = (
     # GET params belonging to the collapsible "Advanced search" section of
@@ -831,9 +843,96 @@ class SourceAddImageLinksView(CustomAccessMixin, SingleObjectMixin, FormView):  
         )
         return {folio: "" for folio in folios if folio}
 
+    def get_context_data(self, **kwargs: Any) -> dict[str, Any]:
+        context = super().get_context_data(**kwargs)
+        # Check if this source has a IIIF manifest
+        has_iiif = self.object.source_links.filter(
+            url_type=SourceURL.URLTypes.IIIF_MANIFEST
+        ).exists()
+        context["has_iiif_manifest"] = has_iiif
+        return context
+
     def form_valid(self, form: ImageLinkForm) -> HttpResponseRedirect:
         """
         Save the image links to the database.
         """
         form.save(self.object)
+        messages.success(self.request, "Image links saved successfully!")
         return HttpResponseRedirect(self.get_success_url())
+
+
+class SourceIIIFMappingView(CustomAccessMixin, SingleObjectMixin, View):  # type: ignore
+    """
+    View to generate a folio-to-image CSV mapping from a source's IIIF manifest.
+
+    Fetches the IIIF manifest, parses canvases, matches them to folios
+    in the source, and returns a downloadable CSV file.
+    """
+
+    pk_url_kwarg = "source_id"
+    queryset = Source.objects.select_related("holding_institution")
+    object: Source
+    http_method_names = ["get"]
+
+    def test_func(self) -> bool:
+        return self.user.is_superuser
+
+    def get(self, request: HttpRequest, *args: Any, **kwargs: Any) -> HttpResponse:
+        self.object = self.get_object()
+
+        # Get the IIIF manifest URL for this source
+        manifest_link = self.object.source_links.filter(
+            url_type=SourceURL.URLTypes.IIIF_MANIFEST
+        ).first()
+
+        if not manifest_link:
+            return JsonResponse(
+                {"error": "No IIIF manifest found for this source."},
+                status=404,
+            )
+
+        # Fetch and parse the manifest
+        try:
+            manifest = fetch_manifest(manifest_link.url)
+        except requests.RequestException as e:
+            logger.exception("Failed to fetch IIIF manifest: %s", manifest_link.url)
+            return JsonResponse(
+                {"error": f"Failed to fetch IIIF manifest: {e}"},
+                status=502,
+            )
+        except ValueError:
+            logger.exception(
+                "Invalid JSON in IIIF manifest: %s", manifest_link.url
+            )
+            return JsonResponse(
+                {"error": "IIIF manifest is not valid JSON."},
+                status=502,
+            )
+
+        # Extract canvases from the manifest
+        canvases = extract_canvases(manifest)
+        if not canvases:
+            return JsonResponse(
+                {"error": "No canvases found in the IIIF manifest."},
+                status=404,
+            )
+
+        # Get source folios
+        source_folios = list(
+            self.object.chant_set.values_list("folio", flat=True)
+            .distinct()
+            .order_by("folio")
+        )
+        source_folios = [f for f in source_folios if f]
+
+        # Generate the mapping and CSV
+        mapping = generate_folio_image_mapping(canvases, source_folios)
+        csv_content = mapping_to_csv(mapping)
+
+        # Return as a downloadable CSV
+        response = HttpResponse(csv_content, content_type="text/csv")
+        source_id = self.object.id
+        response["Content-Disposition"] = (
+            f'attachment; filename="source_{source_id}_iiif_mapping.csv"'
+        )
+        return response
