@@ -148,10 +148,12 @@ def extract_canvases(manifest: dict) -> list[CanvasInfo]:
 
 # Regex patterns for extracting folio identifiers from canvas labels.
 # Matches patterns like "f. 1r", "fol. 23v", "folio 123r", "1r", "001v",
-# "p. 1", "page 10", etc.
+# "p. 1", "page 10", etc. Anchored to start of the normalized string
+# to avoid false positives (e.g. "Detail 2r" should NOT match "002r").
 FOLIO_PATTERN = re.compile(
     r"""
-    (?:f(?:ol(?:io)?)?\.?\s*)?  # Optional folio prefix
+    ^                            # Anchor to start of normalized string
+    (?:f(?:ol(?:io)?)?\.?\s*)?   # Optional folio prefix
     (\d{1,4})                    # Page/folio number
     \s*
     ([rv](?:ecto|erso)?)?        # Optional recto/verso suffix
@@ -160,7 +162,7 @@ FOLIO_PATTERN = re.compile(
 )
 
 PAGE_PATTERN = re.compile(
-    r"(?:p(?:age)?\.?\s*)(\d{1,4})",
+    r"^(?:p(?:age)?\.?\s*)(\d{1,4})",
     re.IGNORECASE,
 )
 
@@ -169,13 +171,16 @@ def _normalize_folio(folio_str: str) -> str:
     """
     Normalize a folio string for comparison.
 
-    Strips whitespace, lowercases, and removes common prefixes.
+    Strips whitespace, lowercases, removes common prefixes and brackets.
     """
     s = folio_str.strip().lower()
+    # Strip leading/trailing brackets
+    s = s.strip("[](){}")
     # Remove common prefixes
     for prefix in ["fol.", "fol ", "folio ", "f.", "f "]:
         if s.startswith(prefix):
             s = s[len(prefix) :].strip()
+            break
     return s
 
 
