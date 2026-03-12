@@ -240,7 +240,7 @@ class ExtractCanvasesTest(TestCase):
         }
         canvases = extract_canvases(manifest)
         self.assertEqual(len(canvases), 1)
-        self.assertEqual(canvases[0].image_url, "")
+        self.assertIsNone(canvases[0].image_url)
 
     def test_v2_fallback_to_resource_id(self) -> None:
         manifest = {
@@ -420,26 +420,30 @@ class SourceIIIFMappingViewTest(CustomAccessTestMixin, TestCase):
         self.assertIn("image_link", content)
         self.assertIn("notes", content)
 
-    def test_no_manifest_returns_404(self) -> None:
+    def test_no_manifest_redirects_with_error(self) -> None:
         source_no_manifest = make_fake_source(published=True)
         make_fake_chant(source=source_no_manifest, folio="001r")
         response = self.client.get(
             reverse("source-iiif-mapping", args=[source_no_manifest.id])
         )
-        self.assertEqual(response.status_code, 404)
+        self.assertEqual(response.status_code, 302)
 
     @patch("main_app.views.source.fetch_manifest")
-    def test_manifest_fetch_failure(self, mock_fetch: MagicMock) -> None:
+    def test_manifest_fetch_failure_redirects_with_error(
+        self, mock_fetch: MagicMock
+    ) -> None:
         import requests
 
         mock_fetch.side_effect = requests.RequestException("Connection failed")
         response = self.client.get(
             reverse("source-iiif-mapping", args=[self.source.id])
         )
-        self.assertEqual(response.status_code, 502)
+        self.assertEqual(response.status_code, 302)
 
     @patch("main_app.views.source.fetch_manifest")
-    def test_manifest_empty_canvases(self, mock_fetch: MagicMock) -> None:
+    def test_manifest_empty_canvases_redirects_with_error(
+        self, mock_fetch: MagicMock
+    ) -> None:
         mock_fetch.return_value = {
             "@context": "http://iiif.io/api/presentation/2/context.json",
             "sequences": [{"canvases": []}],
@@ -447,4 +451,4 @@ class SourceIIIFMappingViewTest(CustomAccessTestMixin, TestCase):
         response = self.client.get(
             reverse("source-iiif-mapping", args=[self.source.id])
         )
-        self.assertEqual(response.status_code, 404)
+        self.assertEqual(response.status_code, 302)

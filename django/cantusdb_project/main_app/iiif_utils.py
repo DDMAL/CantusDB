@@ -17,7 +17,7 @@ class CanvasInfo:
     """Represents a single canvas/page extracted from a IIIF manifest."""
 
     label: str
-    image_url: str
+    image_url: str | None
     canvas_index: int
 
 
@@ -67,11 +67,11 @@ def _get_label_text(label: object) -> str:
     return str(label)
 
 
-def _extract_image_url_v2(canvas: dict) -> str:
+def _extract_image_url_v2(canvas: dict) -> str | None:
     """Extract the best image URL from a IIIF 2.x canvas."""
     images = canvas.get("images", [])
     if not images:
-        return ""
+        return None
     resource = images[0].get("resource", {})
     # Try to get the IIIF Image API service URL
     service = resource.get("service", {})
@@ -82,19 +82,19 @@ def _extract_image_url_v2(canvas: dict) -> str:
         # Construct a full image URL from the service
         return f"{service_id.rstrip('/')}/full/max/0/default.jpg"
     # Fall back to the resource @id (direct image URL)
-    return resource.get("@id", "")
+    return resource.get("@id") or None
 
 
-def _extract_image_url_v3(canvas: dict) -> str:
+def _extract_image_url_v3(canvas: dict) -> str | None:
     """Extract the best image URL from a IIIF 3.0 canvas."""
     items = canvas.get("items", [])
     if not items:
-        return ""
+        return None
     # Navigate: canvas -> AnnotationPage -> Annotation -> body
     annotation_page = items[0]
     annotations = annotation_page.get("items", [])
     if not annotations:
-        return ""
+        return None
     body = annotations[0].get("body", {})
     # Try service first
     services = body.get("service", [])
@@ -105,7 +105,7 @@ def _extract_image_url_v3(canvas: dict) -> str:
         if service_id:
             return f"{service_id.rstrip('/')}/full/max/0/default.jpg"
     # Fall back to body id
-    return body.get("id", "")
+    return body.get("id") or None
 
 
 def extract_canvases(manifest: dict) -> list[CanvasInfo]:
@@ -161,11 +161,6 @@ FOLIO_PATTERN = re.compile(
     re.IGNORECASE | re.VERBOSE,
 )
 
-PAGE_PATTERN = re.compile(
-    r"^(?:p(?:age)?\.?\s*)(\d{1,4})",
-    re.IGNORECASE,
-)
-
 
 def _normalize_folio(folio_str: str) -> str:
     """
@@ -201,8 +196,30 @@ def _extract_folio_components(folio_str: str) -> tuple[str, str] | None:
     return None
 
 
+def _build_folio_lookups(
+    source_folios: list[str],
+) -> tuple[dict[str, str], dict[tuple[str, str], str]]:
+    """
+    Build lookup dicts from source folios for efficient matching.
+
+    Returns:
+        (normalized_to_original, components_to_original)
+    """
+    normalized_to_original: dict[str, str] = {}
+    components_to_original: dict[tuple[str, str], str] = {}
+    for folio in source_folios:
+        normalized_to_original[_normalize_folio(folio)] = folio
+        components = _extract_folio_components(folio)
+        if components:
+            components_to_original[components] = folio
+    return normalized_to_original, components_to_original
+
+
 def match_canvas_to_folio(
-    canvas_label: str, source_folios: list[str]
+    canvas_label: str,
+    source_folios: list[str],
+    *,
+    folio_lookups: tuple[dict[str, str], dict[tuple[str, str], str]] | None = None,
 ) -> str | None:
     """
     Attempt to match a canvas label to a folio from the source.
@@ -214,6 +231,8 @@ def match_canvas_to_folio(
     Args:
         canvas_label: The label of the IIIF canvas.
         source_folios: List of folio strings from the source.
+        folio_lookups: Optional pre-built lookup dicts from _build_folio_lookups.
+            When calling in a loop, pass this to avoid rebuilding on every call.
 
     Returns:
         The matching folio string, or None if no match is found.
@@ -221,15 +240,12 @@ def match_canvas_to_folio(
     if not canvas_label or not source_folios:
         return None
 
-    # Build lookup structures for source folios
-    normalized_to_original: dict[str, str] = {}
-    components_to_original: dict[tuple[str, str], str] = {}
-
-    for folio in source_folios:
-        normalized_to_original[_normalize_folio(folio)] = folio
-        components = _extract_folio_components(folio)
-        if components:
-            components_to_original[components] = folio
+    if folio_lookups is not None:
+        normalized_to_original, components_to_original = folio_lookups
+    else:
+        normalized_to_original, components_to_original = _build_folio_lookups(
+            source_folios
+        )
 
     # Try exact normalized match
     canvas_normalized = _normalize_folio(canvas_label)
@@ -265,9 +281,12 @@ def generate_folio_image_mapping(
     """
     rows: list[dict[str, str]] = []
     matched_folios: set[str] = set()
+    folio_lookups = _build_folio_lookups(source_folios)
 
     for canvas in canvases:
-        matched_folio = match_canvas_to_folio(canvas.label, source_folios)
+        matched_folio = match_canvas_to_folio(
+            canvas.label, source_folios, folio_lookups=folio_lookups
+        )
         note = ""
         folio = ""
 
@@ -280,7 +299,7 @@ def generate_folio_image_mapping(
         rows.append(
             {
                 "folio": folio,
-                "image_link": canvas.image_url,
+                "image_link": canvas.image_url or "",
                 "notes": note,
                 "canvas_label": canvas.label,
             }

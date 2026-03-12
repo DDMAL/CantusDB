@@ -879,6 +879,9 @@ class SourceIIIFMappingView(CustomAccessMixin, SingleObjectMixin, View):  # type
 
     def get(self, request: HttpRequest, *args: Any, **kwargs: Any) -> HttpResponse:
         self.object = self.get_object()
+        redirect_url = reverse(
+            "source-add-image-links", args=[self.object.id]
+        )
 
         # Get the IIIF manifest URL for this source
         manifest_link = self.object.source_links.filter(
@@ -886,36 +889,28 @@ class SourceIIIFMappingView(CustomAccessMixin, SingleObjectMixin, View):  # type
         ).first()
 
         if not manifest_link:
-            return JsonResponse(
-                {"error": "No IIIF manifest found for this source."},
-                status=404,
-            )
+            messages.error(request, "No IIIF manifest found for this source.")
+            return HttpResponseRedirect(redirect_url)
 
         # Fetch and parse the manifest
         try:
             manifest = fetch_manifest(manifest_link.url)
-        except requests.RequestException as e:
+        except requests.RequestException:
             logger.exception("Failed to fetch IIIF manifest: %s", manifest_link.url)
-            return JsonResponse(
-                {"error": f"Failed to fetch IIIF manifest: {e}"},
-                status=502,
-            )
+            messages.error(request, "Failed to fetch IIIF manifest.")
+            return HttpResponseRedirect(redirect_url)
         except ValueError:
             logger.exception(
                 "Invalid JSON in IIIF manifest: %s", manifest_link.url
             )
-            return JsonResponse(
-                {"error": "IIIF manifest is not valid JSON."},
-                status=502,
-            )
+            messages.error(request, "IIIF manifest is not valid JSON.")
+            return HttpResponseRedirect(redirect_url)
 
         # Extract canvases from the manifest
         canvases = extract_canvases(manifest)
         if not canvases:
-            return JsonResponse(
-                {"error": "No canvases found in the IIIF manifest."},
-                status=404,
-            )
+            messages.error(request, "No canvases found in the IIIF manifest.")
+            return HttpResponseRedirect(redirect_url)
 
         # Get source folios
         source_folios = list(
