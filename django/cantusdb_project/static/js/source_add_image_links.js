@@ -35,24 +35,28 @@ function parseAndPreviewImageLinkCSV(csv, imgLinkInputs) {
     // Return two arrays: one with the folios and one with the image links
     // for use in testing functions.
     const rows = csv.split('\n');
-    const columns = rows[0].split(',');
+    // Auto-detect delimiter: some locales (e.g. French) use semicolons
+    const delimiter = rows[0].includes(';') ? ';' : ',';
+    const columns = rows[0].split(delimiter);
     // Check if a header row is present, by checking whether
     // the second column is a URL
-    const start = columns[1].startsWith('http') ? 0 : 1;
+    const start = (columns[1] || '').startsWith('http') ? 0 : 1;
     const tableBody = document.getElementById('csvPreviewBody');
     // Clear the table and fill in the new data
     // using this rough CSV parser. Note that since this
     // function is meant to be used by just a few administrators,
     // we aren't going to worry too much about parsing edge cases. 
-    // For example, note that we just parse at the first comma to split
+    // For example, note that we just parse at the first delimiter to split
     // columns.
     tableBody.innerHTML = '';
     const parsedCSV = [];
     for (let i = start; i < rows.length; i++) {
-        const row = rows[i];
-        let [folio, imageLink] = row.split(',', 2);
+        const row = rows[i].trim();
+        if (!row) continue;
+        let [folio, imageLink] = row.split(delimiter, 2);
         folio = folio.trim();
-        imageLink = imageLink.trim();
+        if (!folio) continue;
+        imageLink = (imageLink || '').trim();
         addPreviewTableRow(tableBody, folio, imageLink);
         const folioInput = imgLinkInputs[folio];
         if (folioInput) {
@@ -77,7 +81,7 @@ function getFoliosAtDuplicatedValues(array) {
         imageLinkCounts[imageLink] = (imageLinkCounts[imageLink] || 0) + 1;
     }
     const folioDuplicates = Object.keys(folioCounts).filter(folio => folioCounts[folio] > 1);
-    const imageLinkDuplicates = Object.keys(imageLinkCounts).filter(imageLink => imageLinkCounts[imageLink] > 1);
+    const imageLinkDuplicates = Object.keys(imageLinkCounts).filter(imageLink => imageLink !== '' && imageLinkCounts[imageLink] > 1);
     const folioWImageDuplicates = [];
     for (let i = 0; i < array.length; i++) {
         if (imageLinkDuplicates.includes(array[i].imageLink)) {
@@ -127,7 +131,7 @@ function csvLoadCallback(csv) {
     if (foliosWDupImageLinks.length === csvFolios.length) {
         displayCheckResults('imageLinkDuplication', [], "", "All image links identical");
     } else {
-        displayCheckResults('imageLinkDuplication', foliosWDupImageLinks, "Image links duplicated on the following subset of folios", "No image links duplicated");
+        displayCheckResults('imageLinkDuplication', foliosWDupImageLinks, "Image links duplicated on the following subset of folios");
     }
     document.getElementById('csvTestingDiv').hidden = false;
 }

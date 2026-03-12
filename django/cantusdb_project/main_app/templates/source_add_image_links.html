@@ -46,6 +46,26 @@
                 </p>
             </div>
         </div>
+        {% if has_iiif_manifest %}
+            <div class="row mb-4">
+                <div class="col">
+                    <h5>Generate from IIIF Manifest</h5>
+                    <p class="small">
+                        This source has an associated IIIF manifest. Click below to
+                        automatically generate a folio-to-image mapping CSV. The generated
+                        CSV will contain four columns: folio, image_link, notes, and
+                        canvas_label. Review and edit the CSV, then upload it above to
+                        apply the mapping.
+                    </p>
+                    <a href="{% url 'source-iiif-mapping' source.id %}"
+                       class="btn btn-sm btn-outline-primary"
+                       id="generateIIIFBtn">
+                        <i class="bi bi-download"></i> Generate IIIF Mapping CSV
+                    </a>
+                </div>
+            </div>
+            <hr />
+        {% endif %}
         <label for="imgLinksCSV" class="form-label">
             Select CSV file containing image links
         </label>
@@ -69,6 +89,7 @@
         </div>
         <div id="csvTestingDiv" class="row" hidden>
             <div class="col-auto">
+                <h6>Validation</h6>
                 <table class="table table-sm table-borderless csv-testing-table small">
                     <tbody>
                         <tr>
