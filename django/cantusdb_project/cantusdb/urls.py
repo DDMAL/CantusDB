@@ -22,7 +22,7 @@ from django.views.generic import TemplateView
 urlpatterns = [
     path(
         "robots.txt",
-        TemplateView.as_view(template_name="robots.txt", content_type="text/plain"),
+        TemplateView.as_view(template_name="robots.txt", content_type="text/plain; charset=utf-8"),
         name="robots-txt",
     ),
     path("admin/", admin.site.urls),
