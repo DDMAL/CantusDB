@@ -12,7 +12,8 @@ Disallow: /json-nextchants/
 Disallow: /json-melody/
 Disallow: /json-cid/
 Disallow: /json-node/
-Disallow: /csv/
+Disallow: /source/*/csv/
+Disallow: /sites/default/files/csv/
 Disallow: /articles-list/
 Disallow: /flatpages-list/
 Disallow: /cid-concordances/

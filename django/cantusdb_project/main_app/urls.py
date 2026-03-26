@@ -565,7 +565,7 @@ urlpatterns = [
         name="proofread-by-autocomplete",
     ),
     path(
-        "holding-autocomplete",
+        "holding-autocomplete/",
         HoldingAutocomplete.as_view(),
         name="holding-autocomplete",
     ),
