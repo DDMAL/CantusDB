@@ -1,0 +1,37 @@
+# https://github.com/DDMAL/CantusDB/issues/1981
+User-agent: *
+
+Disallow: /chant-search/
+Disallow: /searchms/
+Disallow: /ci-search/
+Disallow: /melody/
+
+Disallow: /ajax/
+Disallow: /json-sources/
+Disallow: /json-nextchants/
+Disallow: /json-melody/
+Disallow: /json-cid/
+Disallow: /json-node/
+Disallow: /csv/
+Disallow: /articles-list/
+Disallow: /flatpages-list/
+Disallow: /cid-concordances/
+Disallow: /*-autocomplete/
+Disallow: /task-status
+
+Disallow: /admin/
+Disallow: /login/
+Disallow: /logout/
+Disallow: /change-password/
+Disallow: /reset-password/
+Disallow: /reset/
+
+Disallow: /chant-create/
+Disallow: /edit-chants/
+Disallow: /edit-syllabification/
+Disallow: /edit-sequence/
+Disallow: /edit-source/
+Disallow: /source-create/
+Disallow: /content-overview/
+Disallow: /proofread-overview/
+Disallow: /my-sources/
