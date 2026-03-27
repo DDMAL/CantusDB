@@ -17,14 +17,8 @@ Including another URLconf
 from django.contrib import admin
 from django.urls import path
 from django.urls import include
-from django.views.generic import TemplateView
 
 urlpatterns = [
-    path(
-        "robots.txt",
-        TemplateView.as_view(template_name="robots.txt", content_type="text/plain; charset=utf-8"),
-        name="robots-txt",
-    ),
     path("admin/", admin.site.urls),
     path(r"", include("main_app.urls")),
     path(r"", include("articles.urls")),

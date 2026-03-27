@@ -183,7 +183,7 @@ window.addEventListener("load", function () {
                 const taskID = data["taskID"];
                 bulkEditLoading.classList.remove("d-none");
                 const interval = setInterval(() => {
-                    fetch(`/task-status?taskID=${taskID}`)
+                    fetch(`/task-status/?taskID=${taskID}`)
                         .then(response => {
                             if (response.status === 200) {
                                 return response.json();
