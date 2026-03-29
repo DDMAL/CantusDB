@@ -279,7 +279,7 @@ class SourceDetailView(CustomAccessMixin, JSONResponseMixin, DetailView):  # typ
             self.model.objects.select_related(
                 "holding_institution", "provenance", "created_by"
             )
-            .prefetch_related("segment_m2m", "proofreaders", "inventoried_by")
+            .prefetch_related("segment_m2m", "proofreaders", "inventoried_by", "source_data_contributed_by")
             .all()
         )
 
@@ -463,6 +463,7 @@ class SourceListView(CustomAccessMixin, ListView):  # type: ignore[type-arg]
             description_entered_by_q = Q()
             proofreaders_q = Q()
             other_editors_q = Q()
+            source_data_contributed_by_q = Q()
             indexing_notes_q = Q()
             # For each term, add it to the Q object of each field with an OR operation.
             # We split the terms so that the words can be separated in the actual
@@ -481,6 +482,9 @@ class SourceListView(CustomAccessMixin, ListView):  # type: ignore[type-arg]
                 )
                 proofreaders_q |= Q(proofreaders__full_name__icontains=term)
                 other_editors_q |= Q(other_editors__full_name__icontains=term)
+                source_data_contributed_by_q |= Q(
+                    source_data_contributed_by__full_name__icontains=term
+                )
                 indexing_notes_q |= Q(indexing_notes__icontains=term)
             # All the Q objects are put together with OR.
             # The end result is that at least one term has to match in at least one
@@ -492,6 +496,7 @@ class SourceListView(CustomAccessMixin, ListView):  # type: ignore[type-arg]
                 | description_entered_by_q
                 | proofreaders_q
                 | other_editors_q
+                | source_data_contributed_by_q
                 | indexing_notes_q
             )
             q_obj_filter &= indexing_search_q

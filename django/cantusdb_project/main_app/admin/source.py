@@ -71,6 +71,7 @@ class SourceAdmin(BaseModelAdmin):
         "description_entered_by",
         "proofreaders",
         "other_editors",
+        "source_data_contributed_by",
     )
 
     list_display = (

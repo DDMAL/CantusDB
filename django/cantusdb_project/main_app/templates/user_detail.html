@@ -38,7 +38,7 @@
             </dd>
         {% endif %}
     </dl>
-    {% if inventoried_sources or full_text_sources or melody_sources or description_sources or proofread_sources or edited_sources %}
+    {% if inventoried_sources or full_text_sources or melody_sources or description_sources or proofread_sources or edited_sources or contributed_data_sources %}
         <h4 id="sources">Sources</h4>
         {% if inventoried_sources %}
             <h5>Inventoried</h5>
@@ -99,6 +99,17 @@
             <h5>Edited</h5>
             <ul>
                 {% for source in edited_sources %}
+                    <li>
+                        <a href="{% url 'source-detail' source.id %}"
+                           title="{{ source.heading }}">{{ source.short_heading }}</a> ({{ source.heading }})
+                    </li>
+                {% endfor %}
+            </ul>
+        {% endif %}
+        {% if contributed_data_sources %}
+            <h5>Contributed Source Data</h5>
+            <ul>
+                {% for source in contributed_data_sources %}
                     <li>
                         <a href="{% url 'source-detail' source.id %}"
                            title="{{ source.heading }}">{{ source.short_heading }}</a> ({{ source.heading }})
