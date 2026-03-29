@@ -179,7 +179,7 @@ urlpatterns = [
         ),
         name="reset_password_complete",
     ),
-    path("task-status", get_task_status, name="get-task-status"),
+    path("task-status/", get_task_status, name="get-task-status"),
     # century
     path("century/<int:pk>", CenturyDetailView.as_view(), name="century-detail"),
     # chant
@@ -565,7 +565,7 @@ urlpatterns = [
         name="proofread-by-autocomplete",
     ),
     path(
-        "holding-autocomplete",
+        "holding-autocomplete/",
         HoldingAutocomplete.as_view(),
         name="holding-autocomplete",
     ),
