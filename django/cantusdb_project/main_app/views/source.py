@@ -279,7 +279,16 @@ class SourceDetailView(CustomAccessMixin, JSONResponseMixin, DetailView):  # typ
             self.model.objects.select_related(
                 "holding_institution", "provenance", "created_by"
             )
-            .prefetch_related("segment_m2m", "proofreaders", "inventoried_by", "source_data_contributed_by")
+            .prefetch_related(
+                "segment_m2m",
+                "proofreaders",
+                "inventoried_by",
+                "source_data_contributed_by",
+                "full_text_entered_by",
+                "melodies_entered_by",
+                "other_editors",
+                "description_entered_by",
+            )
             .all()
         )
 
