@@ -110,9 +110,10 @@ class Source(BaseModel):
     )
 
     ######
-    # The following seven fields have nothing to do with user permissions,
-    # instead they give credit to users who are indexers and are displayed
-    # on the user detail page as sources the user has contributed to.
+    # The following seven fields have nothing to do with user permissions;
+    # instead they give credit to users who are contributors/editors (e.g.,
+    # indexers, data contributors, proofreaders) and are displayed on the
+    # user detail page as sources the user has contributed to.
     inventoried_by = models.ManyToManyField(
         get_user_model(), related_name="inventoried_sources", blank=True
     )
