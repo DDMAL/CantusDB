@@ -2,6 +2,7 @@
 {% load helper_tags %}
 {% load static %}
 {% block title %}<title>Canadian Chant Database</title>{% endblock %}
+{% block favicon %}<link rel="icon" href="{% static "ccdb-images/ccdb-favicon.png" %}" />{% endblock %}
 {% block scripts %}
     <script src="{% static 'js/source_list.js' %}"></script>
     <link href="{% static 'css/ccdb_style.css' %}"
