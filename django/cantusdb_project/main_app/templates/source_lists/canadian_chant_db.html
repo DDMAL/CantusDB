@@ -130,6 +130,37 @@
         <div id="search-container" class="container-lg">
             <div class="row rounded my-5 ccdb-table-bg">
                 <div class="col">
+                    <div class="row mt-3 mb-1">
+                        <div class="col">
+                            <h5 class="mb-2">Search Chants</h5>
+                            <form method="get"
+                                  action="{% url 'chant-search' %}"
+                                  class="d-flex flex-wrap gap-2 align-items-end">
+                                <input type="hidden" name="segment" value="4066" />
+                                <div class="flex-grow-1">
+                                    <label for="chantKeyword" class="small form-label">
+                                        Keyword search (incipit, full text, or Cantus ID)
+                                    </label>
+                                    <input type="text"
+                                           class="form-control form-control-sm"
+                                           name="keyword"
+                                           id="chantKeyword"
+                                           placeholder="Enter keyword or Cantus ID" />
+                                </div>
+                                <div>
+                                    <label for="chantSearchOp" class="small form-label">Match</label>
+                                    <select name="op"
+                                            id="chantSearchOp"
+                                            class="form-control form-select form-select-sm">
+                                        <option value="starts_with">Starts with</option>
+                                        <option value="contains">Contains</option>
+                                    </select>
+                                </div>
+                                <button type="submit" class="btn btn-dark btn-sm">Search Chants</button>
+                            </form>
+                        </div>
+                    </div>
+                    <hr class="my-3" />
                     <form method="get" class="ccdb-filter-form mb-3">
                         <div class="row mt-2">
                             <div class="col-lg">
