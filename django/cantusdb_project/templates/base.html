@@ -110,7 +110,9 @@
                                 <a href="https://www.facebook.com/CantusDatabase" target="_blank">Cantus Database on Facebook</a>
                             </div>
                         </div>
+                        {% block footer_contact_row_extra %}{% endblock %}
                     </div>
+                    {% block footer_logos_row %}
                     <div class="row">
                         <div class="col-md-8 container text-center" id="logos">
                             <div class="row justify-content-center">
@@ -245,6 +247,7 @@
                             {% endif %}
                         </div>
                     </div>
+                    {% endblock footer_logos_row %}
                 </div>
             </div>
             <div class="container-fluid copyright-footer">
