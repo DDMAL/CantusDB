@@ -3,8 +3,18 @@ from typing import Any
 from django.db.models import Q, QuerySet
 from django.views.generic import TemplateView
 
+from main_app.models import Chant, Source
 from main_app.views.chant import ChantSearchView
 from main_app.views.source import SourceListView
+
+AVAILABLE_SEGMENTS = [
+    (4066, "Canadian Chant Database"),
+    (4063, "Cantus Database"),
+    (4064, "Sequence Database"),
+    (4067, "Cantorales in the Americas and Beyond"),
+]
+
+_DEFAULT_SEGMENT_ID = 4066
 
 
 class CcdbMixin:
@@ -38,16 +48,6 @@ class CcdbMapView(CcdbMixin, TemplateView):
     template_name = "ccdb_map.html"
 
 
-AVAILABLE_SEGMENTS = [
-    (4066, "Canadian Chant Database"),
-    (4063, "Cantus Database"),
-    (4064, "Sequence Database"),
-    (4067, "Cantorales in the Americas and Beyond"),
-]
-
-_DEFAULT_SEGMENT_ID = 4066
-
-
 class CcdbChantSearchView(CcdbMixin, ChantSearchView):
     """
     Chant search page scoped to the Canadian Chant Database (segment 4066) by default.
@@ -68,8 +68,6 @@ class CcdbChantSearchView(CcdbMixin, ChantSearchView):
     def get_queryset(self) -> QuerySet:
         # If no search params, return empty queryset immediately (same as parent behaviour)
         if not self.request.GET:
-            from main_app.models import Chant
-
             return Chant.objects.none()
 
         # Compute segment IDs before any GET manipulation so they survive the copy
@@ -104,8 +102,6 @@ class CcdbChantSearchView(CcdbMixin, ChantSearchView):
 
     def get_context_data(self, **kwargs: Any) -> dict:
         context = super().get_context_data(**kwargs)
-        from main_app.models import Source
-
         # Use segment IDs cached by get_queryset; fall back to default on initial load
         segment_ids = getattr(self, "_segment_ids", [_DEFAULT_SEGMENT_ID])
         keyword = self.request.GET.get("keyword", "").strip()
