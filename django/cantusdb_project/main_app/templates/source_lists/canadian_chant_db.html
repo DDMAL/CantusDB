@@ -16,67 +16,73 @@
 {% block content %}
     <div class="container-fluid ccdb-info">
         <div class="ccdb-hero-banner">
-            <a href="#search-container">
+            <a href="{% url 'ccdb-browse' %}">
                 <img src="{% static 'ccdb-images/CCD-logo.svg' %}"
                      class="img-fluid ccdb-hero-logo"
                      alt="Logo with words 'Canadian Chant Database'" />
             </a>
+            <span class="ccdb-banner-credit">Salzinnes Antiphonal</span>
         </div>
         <div class="row py-5 bg-white bg-opacity-75">
-            <div class="col-lg-9">
-                <div class="d-lg-grid ccdb-landing-grid">
-                    <div class="ps-4 ccdb-grid-image">
-                        <div class="px-5">
-                            <p>
-                                The Canadian Chant Database is an initiative of the <a href="https://dact-chant.ca/" target="_blank">Digital Analysis of Chant Transmission (DACT) Project</a>.
-                            </p>
+            <div class="col-lg-9 px-5">
+                <form method="get" action="{% url 'ccdb-chant-search' %}" class="d-flex mb-4">
+                    <input type="text"
+                           name="keyword"
+                           class="form-control form-control-lg ccdb-search-input"
+                           placeholder="Search the database" />
+                    <button type="submit" class="btn btn-lg ccdb-button ms-2 px-4">Search</button>
+                </form>
+                <p id="about-section">
+                    The goal of the Canadian Chant Database is to catalogue–and eventually inventory–all manuscripts and manuscript fragments containing plainchant derived from the medieval European tradition in libraries, archives, institutions, and private ownership in Canada. Printed chant books are limited to those sources that were published specifically for use in Canada.
+                </p>
+                <div id="acknowledgements-section" class="ccdb-supporters mt-4">
+                    <p class="text-center mb-3">
+                        The Canadian Chant Database is an initiative of the <a href="https://dact-chant.ca/" target="_blank">Digital Analysis of Chant Transmission (DACT) Project</a>.
+                        Support has been provided by the <a href="https://www.sshrc-crsh.gc.ca/home-accueil-eng.aspx" target="_blank">Social Sciences and Humanities Research Council of Canada</a> and the <a href="https://alliancecan.ca/en" target="_blank">Digital Research Alliance of Canada</a>.
+                    </p>
+                    <div class="row align-items-center justify-content-center text-center">
+                        <div class="col-md-auto">
                             <a href="https://dact-chant.ca/" target="_blank">
-                                <img class="img-fluid p-2 ccdb-dact-logo"
-                                    src="{% static "footer/dact-logo.png" %}"
-                                    alt="Digital Analysis of Chant Transmission Logo"
-                                    title="Digital Analysis of Chant Transmission" />
+                                <img class="img-fluid p-2 ccdb-small-logo"
+                                     src="{% static 'footer/dact-logo.png' %}"
+                                     alt="Digital Analysis of Chant Transmission Logo"
+                                     title="Digital Analysis of Chant Transmission" />
+                            </a>
+                        </div>
+                        <div class="col-md-auto">
+                            <a href="https://alliancecan.ca/" target="_blank">
+                                <img class="img-fluid p-2 ccdb-small-logo"
+                                     src="{% static 'footer/drac-logo.png' %}"
+                                     alt="Digital Research Alliance Logo"
+                                     title="Digital Research Alliance" />
                             </a>
                         </div>
                     </div>
-                    <div class="ccdb-grid-summary px-5 pt-5">
-                        <div class="text-white d-block text-center">
-                            <a class="btn btn-primary px-5 ccdb-button" href="{% url 'ccdb-browse' %}">Search the Database</a>
+                    <div class="row justify-content-center text-center">
+                        <div class="col-md-8">
+                            <a href="https://www.sshrc-crsh.gc.ca" target="_blank">
+                                <img class="img-fluid p-2"
+                                     src="{% static 'footer/sshrc-logo.png' %}"
+                                     alt="Social Sciences and Humanities Research Council Logo"
+                                     title="Social Sciences and Humanities Research Council of Canada" />
+                            </a>
                         </div>
-                        <p id="about-section" class="pt-5">
-                            The goal of the Canadian Chant Database is to catalogue–and eventually inventory–all manuscripts and manuscript fragments containing plainchant derived from the medieval European tradition in libraries, archives, institutions, and private ownership in Canada. Printed chant books are limited to those sources that were published specifically for use in Canada.
-                        </p>
-                    </div>
-                </div>
-                <div id="acknowledgements-section" class="row text-center mt-5">
-                    <p>
-                        Support for the database has been provided by the <a href="https://www.sshrc-crsh.gc.ca/home-accueil-eng.aspx"
-    target="_blank">Social Sciences and Humanities Research Council of Canada</a> and the <a href="https://alliancecan.ca/en" target="_blank">Digital Research Alliance of Canada</a>.
-                    </p>
-                </div>
-                <div class="row justify-content-evenly">
-                    <div class="col-xl-4 col-lg-5">
-                        <a href="https://www.sshrc-crsh.gc.ca" target="_blank">
-                            <img class="img-fluid"
-                                 src="{% static "footer/sshrc-logo.png" %}"
-                                 alt="Social Sciences and Humanities Research Council Logo"
-                                 title="Social Sciences and Humanities Research Council of Canada" />
-                        </a>
-                    </div>
-                    <div class="col-xl-4 col-lg-5">
-                        <a href="https://alliancecan.ca/" target="_blank">
-                            <img class="img-fluid"
-                                 src="{% static "footer/drac-logo.png" %}"
-                                 alt="Digital Research Alliance Logo"
-                                 title="Digital Research Alliance" />
-                        </a>
                     </div>
                 </div>
             </div>
             <div class="col-lg-3">
                 <nav class="ccdb-segment-menu sticky-top pt-4">
                     <ul class="list-unstyled">
+                        <li>
+                            <a href="{% url 'canadian-chant-db-source-list' %}">
+                                <img src="{% static 'ccdb-images/CCDB-favicon_transparentbg.png' %}"
+                                     class="ccdb-nav-home-icon"
+                                     alt="" />Home
+                            </a>
+                        </li>
                         <li><a href="#about-section">About the Database</a></li>
                         <li><a href="{% url 'ccdb-browse' %}">Browse the Sources</a></li>
+                        <li><a href="{% url 'ccdb-chant-search' %}">Chant Search</a></li>
                         <li><a href="{% url 'ccdb-map' %}">Map of Sources</a></li>
                         <li><a href="{% url 'ccdb-team' %}">Project Team</a></li>
                         <li><a href="#acknowledgements-section">Acknowledgements</a></li>
