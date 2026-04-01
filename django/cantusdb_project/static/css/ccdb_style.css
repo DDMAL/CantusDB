@@ -81,6 +81,41 @@ main a {
     background-color: #cc3333eb;
 }
 
+.ccdb-subpage-header {
+    background-color: #cc3333;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 1.25rem;
+}
+
+.ccdb-subpage-logo {
+    max-height: 50px;
+    width: auto;
+    filter: brightness(0) invert(1);
+}
+
+.ccdb-segment-menu {
+    border-left: 3px solid #cc3333;
+    padding-left: 1rem;
+    top: 80px;
+}
+
+.ccdb-segment-menu ul li {
+    margin-bottom: 0.75rem;
+}
+
+.ccdb-segment-menu a {
+    color: #cc3333;
+    text-decoration: none;
+    font-weight: 500;
+}
+
+.ccdb-segment-menu a:hover {
+    color: #992626;
+    text-decoration: underline;
+}
+
 .ccdb-table-bg {
     background-color: var(--bs-gray-400)
 }
