@@ -234,8 +234,16 @@
             <div class="col-lg-3">
                 <nav class="ccdb-segment-menu sticky-top pt-4">
                     <ul class="list-unstyled">
+                        <li>
+                            <a href="{% url 'canadian-chant-db-source-list' %}">
+                                <img src="{% static 'ccdb-images/CCDB-favicon_transparentbg.png' %}"
+                                     class="ccdb-nav-home-icon"
+                                     alt="" />Home
+                            </a>
+                        </li>
                         <li><a href="{% url 'canadian-chant-db-source-list' %}#about-section">About the Database</a></li>
                         <li><a href="{% url 'ccdb-browse' %}">Browse the Sources</a></li>
+                        <li><a href="{% url 'ccdb-chant-search' %}">Chant Search</a></li>
                         <li><a href="{% url 'ccdb-map' %}">Map of Sources</a></li>
                         <li><a href="{% url 'ccdb-team' %}">Project Team</a></li>
                         <li><a href="{% url 'canadian-chant-db-source-list' %}#acknowledgements-section">Acknowledgements</a></li>
