@@ -27,6 +27,7 @@ from django.views.generic.detail import SingleObjectMixin
 from main_app.forms import (
     SourceCreateForm,
     SourceEditForm,
+    SourceURLFormSet,
     SourceBrowseChantsProofreadForm,
     ImageLinkForm,
     BrowseChantsBulkEditFormset,
@@ -605,11 +606,34 @@ class SourceEditView(CustomAccessMixin, UpdateView):  # type: ignore[type-arg]
             # the options for the feast selector on the right, only chant sources have this
             context["feasts_with_folios"] = get_feast_selector_options(source)
             context["bower_segment"] = False
+
+        if "url_formset" not in kwargs:
+            context["url_formset"] = SourceURLFormSet(
+                instance=source,
+                form_kwargs={"is_admin": self.request.user.is_superuser},
+            )
         return context
 
-    def form_valid(self, form):
+    def post(self, request, *args, **kwargs):
+        self.object = self.get_object()
+        form = self.get_form()
+        url_formset = SourceURLFormSet(
+            request.POST,
+            instance=self.object,
+            form_kwargs={"is_admin": request.user.is_superuser},
+        )
+        if form.is_valid() and url_formset.is_valid():
+            return self.form_valid(form, url_formset)
+        return self.render_to_response(
+            self.get_context_data(form=form, url_formset=url_formset)
+        )
+
+    def form_valid(self, form, url_formset=None):
         form.instance.last_updated_by = self.request.user
-        form.save()
+        self.object = form.save()
+        if url_formset is not None:
+            url_formset.instance = self.object
+            url_formset.save()
         return HttpResponseRedirect(self.get_success_url())
 
 

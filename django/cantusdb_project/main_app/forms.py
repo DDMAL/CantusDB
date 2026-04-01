@@ -26,6 +26,7 @@ from .models import (
     Century,
     Sequence,
 )
+from .models.source_url import SourceURL
 from .widgets import (
     TextInputWidget,
     VolpianoInputWidget,
@@ -617,6 +618,43 @@ class SourceEditForm(forms.ModelForm):
     complete_inventory = StyledChoiceField(
         choices=COMPLETE_INVENTORY_FORM_CHOICES, required=False
     )
+
+
+class SourceURLForm(forms.ModelForm):
+    """Form for a single SourceURL entry. Limits url_type choices to non-IIIF
+    types for non-admin users; admins may add IIIF Manifest URLs."""
+
+    def __init__(self, *args, is_admin: bool = False, **kwargs):
+        super().__init__(*args, **kwargs)
+        if not is_admin:
+            self.fields["url_type"].choices = [
+                (k, v)
+                for k, v in SourceURL.URLTypes.choices
+                if k != SourceURL.URLTypes.IIIF_MANIFEST
+            ]
+
+    class Meta:
+        model = SourceURL
+        fields = ["url", "url_type", "url_description"]
+        widgets = {
+            "url": TextInputWidget(),
+            "url_type": SelectWidget(),
+            "url_description": TextInputWidget(),
+        }
+        labels = {
+            "url": "URL",
+            "url_type": "URL Type",
+            "url_description": "Description (optional)",
+        }
+
+
+SourceURLFormSet = forms.inlineformset_factory(
+    Source,
+    SourceURL,
+    form=SourceURLForm,
+    extra=1,
+    can_delete=True,
+)
 
 
 class SourceBrowseChantsProofreadForm(forms.Form):

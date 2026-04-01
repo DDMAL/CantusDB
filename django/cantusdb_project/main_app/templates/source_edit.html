@@ -173,6 +173,51 @@
         </div>
         <div class="row mb-2 small">
             <div class="col-lg-12">
+                <label>Source Links</label>
+                {{ url_formset.management_form }}
+                {% if url_formset.non_form_errors %}
+                    <div class="text-danger small">{{ url_formset.non_form_errors }}</div>
+                {% endif %}
+                <table class="table table-sm small table-bordered mt-1">
+                    <thead>
+                        <tr>
+                            <th>URL</th>
+                            <th>Type</th>
+                            <th>Description</th>
+                            <th>Delete</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for url_form in url_formset %}
+                            <tr>
+                                <td>
+                                    {{ url_form.id }}
+                                    {{ url_form.url }}
+                                    {% if url_form.url.errors %}<div class="text-danger small">{{ url_form.url.errors|striptags }}</div>{% endif %}
+                                </td>
+                                <td>
+                                    {{ url_form.url_type }}
+                                    {% if url_form.url_type.errors %}<div class="text-danger small">{{ url_form.url_type.errors|striptags }}</div>{% endif %}
+                                </td>
+                                <td>
+                                    {{ url_form.url_description }}
+                                    {% if url_form.url_description.errors %}<div class="text-danger small">{{ url_form.url_description.errors|striptags }}</div>{% endif %}
+                                </td>
+                                <td class="text-center">
+                                    {% if url_form.instance.pk %}{{ url_form.DELETE }}{% endif %}
+                                </td>
+                            </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+                <p class="text-muted small">
+                    Add one row per external link. Leave the URL blank to skip a row.
+                    {% if not request.user.is_superuser %}IIIF Manifest links can only be added by administrators.{% endif %}
+                </p>
+            </div>
+        </div>
+        <div class="row mb-2 small">
+            <div class="col-lg-12">
                 {{ form.image_link.label_tag }}
                 {{ form.image_link }}
                 HTTP link to the image gallery of the source.

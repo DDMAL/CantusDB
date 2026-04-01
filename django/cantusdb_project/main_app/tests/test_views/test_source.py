@@ -214,6 +214,11 @@ class SourceEditViewTest(CustomAccessTestMixin, TestCase):
                 "shelfmark": "test-shelfmark",  # shelfmark is a required field,
                 "source_completeness": "1",  # required field
                 "production_method": "1",  # required field
+                # management form data required by SourceURLFormSet
+                "sourceurl-TOTAL_FORMS": "1",
+                "sourceurl-INITIAL_FORMS": "0",
+                "sourceurl-MIN_NUM_FORMS": "0",
+                "sourceurl-MAX_NUM_FORMS": "1000",
             },
         )
 
