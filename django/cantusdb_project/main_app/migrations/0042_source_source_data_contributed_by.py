@@ -40,7 +40,7 @@ class Migration(migrations.Migration):
                 blank=True,
                 related_name="contributed_data_for_sources",
                 to=settings.AUTH_USER_MODEL,
-                verbose_name="source data contributed by",
+                verbose_name="source metadata contributed by",
             ),
         ),
         migrations.RunPython(

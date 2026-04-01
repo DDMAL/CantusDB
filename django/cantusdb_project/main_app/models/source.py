@@ -137,7 +137,7 @@ class Source(BaseModel):
     )
     source_data_contributed_by = models.ManyToManyField(
         get_user_model(),
-        verbose_name="source data contributed by",
+        verbose_name="source metadata contributed by",
         related_name="contributed_data_for_sources",
         blank=True,
     )
