@@ -89,7 +89,12 @@ from main_app.views.source import (
     SourceAddImageLinksView,
     CcdbBrowseView,
 )
-from main_app.views.ccdb import CcdbChantSearchView, CcdbLandingView, CcdbMapView, CcdbTeamView
+from main_app.views.ccdb import (
+    CcdbChantSearchView,
+    CcdbLandingView,
+    CcdbMapView,
+    CcdbTeamView,
+)
 from main_app.views.user import (
     CustomLogoutView,
     IndexerListView,
