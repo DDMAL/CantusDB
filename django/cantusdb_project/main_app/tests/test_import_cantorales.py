@@ -8,7 +8,11 @@ from django.test import TestCase
 
 from main_app.management.commands.import_cantorales import parse_centuries
 from main_app.models import Source
-from main_app.tests.make_fakes import make_fake_century, make_fake_institution, make_fake_segment
+from main_app.tests.make_fakes import (
+    make_fake_century,
+    make_fake_institution,
+    make_fake_segment,
+)
 
 
 class TestParseCenturies(TestCase):
@@ -22,7 +26,9 @@ class TestParseCenturies(TestCase):
         self.assertEqual(parse_centuries("16, 17"), ["16th century", "17th century"])
 
     def test_dash_range(self):
-        self.assertEqual(parse_centuries("15-17"), ["15th century", "16th century", "17th century"])
+        self.assertEqual(
+            parse_centuries("15-17"), ["15th century", "16th century", "17th century"]
+        )
 
     def test_slash_separated(self):
         self.assertEqual(parse_centuries("16/17"), ["16th century", "17th century"])
@@ -36,23 +42,85 @@ class TestParseCenturies(TestCase):
 
 # Minimal valid CSV content (header + REQUIRED + SAMPLE + 1 data row)
 # Columns are 0-indexed; see COL_* constants in import_cantorales.py
-def _make_csv(rism="US-NYcu", shelfmark="Ms. 1", contributor="Jane Doe",
-              email="jane@example.com"):
-    header = ",".join(["col0", "RISM", "Shelfmark", "City", "Archive",
-                        "Condition", "Leaves", "Material", "SourceType",
-                        "ChantType", "Century", "Date", "Staves", "StaffLines",
-                        "Colophon", "Origins", "Owners", "TextScript",
-                        "Notation", "Binding", "Notes", "Images", "ArchiveLink",
-                        "CantusDBLink", "Contributor", "Email", "DateEntered",
-                        "SourceOfData", "", "", "", "", ""])
+def _make_csv(
+    rism="US-NYcu", shelfmark="Ms. 1", contributor="Jane Doe", email="jane@example.com"
+):
+    header = ",".join(
+        [
+            "col0",
+            "RISM",
+            "Shelfmark",
+            "City",
+            "Archive",
+            "Condition",
+            "Leaves",
+            "Material",
+            "SourceType",
+            "ChantType",
+            "Century",
+            "Date",
+            "Staves",
+            "StaffLines",
+            "Colophon",
+            "Origins",
+            "Owners",
+            "TextScript",
+            "Notation",
+            "Binding",
+            "Notes",
+            "Images",
+            "ArchiveLink",
+            "CantusDBLink",
+            "Contributor",
+            "Email",
+            "DateEntered",
+            "SourceOfData",
+            "",
+            "",
+            "",
+            "",
+            "",
+        ]
+    )
     required = header  # same shape
     sample = header
-    data = ",".join(["", rism, shelfmark, "New York", "Columbia University",
-                      "1", "200", "2", "1", "2", "16", "1600", "5", "4",
-                      "1", "Franciscan", "", "", "", "", "",
-                      "http://example.com/img", "http://example.com/archive",
-                      "", contributor, email, "2024-01-01", "Database",
-                      "", "", "", "", ""])
+    data = ",".join(
+        [
+            "",
+            rism,
+            shelfmark,
+            "New York",
+            "Columbia University",
+            "1",
+            "200",
+            "2",
+            "1",
+            "2",
+            "16",
+            "1600",
+            "5",
+            "4",
+            "1",
+            "Franciscan",
+            "",
+            "",
+            "",
+            "",
+            "",
+            "http://example.com/img",
+            "http://example.com/archive",
+            "",
+            contributor,
+            email,
+            "2024-01-01",
+            "Database",
+            "",
+            "",
+            "",
+            "",
+            "",
+        ]
+    )
     return "\n".join([header, required, sample, data])
 
 
@@ -78,8 +146,10 @@ class TestImportCantoralesCommand(TestCase):
         self.assertEqual(Source.objects.filter(shelfmark="Ms. 1").count(), 1)
         source = Source.objects.get(shelfmark="Ms. 1")
         self.assertTrue(source.published)
-        self.assertIn("Cantorales in the Americas",
-                      source.segment_m2m.values_list("name", flat=True))
+        self.assertIn(
+            "Cantorales in the Americas",
+            source.segment_m2m.values_list("name", flat=True),
+        )
 
     def test_idempotent(self):
         """Running the command twice should not create duplicate sources."""
