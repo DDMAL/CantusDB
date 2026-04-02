@@ -539,6 +539,13 @@ class SourceListView(CustomAccessMixin, ListView):  # type: ignore[type-arg]
         )
 
 
+class CcdbBrowseView(SourceListView):
+    """Browse/search view for the Canadian Chant Database sources page."""
+
+    def get_template_names(self) -> list[str]:
+        return ["source_lists/ccdb_browse.html"]
+
+
 class SourceCreateView(UserPassesTestMixin, CreateView):  # type: ignore[type-arg]
     model = Source
     template_name = "source_create.html"
