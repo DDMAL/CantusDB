@@ -4,9 +4,7 @@ from typing import Any, Optional, Union
 from django.conf import settings
 from django.contrib import messages
 from django.contrib.auth.mixins import UserPassesTestMixin
-from django.db.models import Q, Prefetch, Value
-from django.db.models.functions import Coalesce
-from django.db.models import QuerySet
+from django.db.models import Q, Prefetch, QuerySet, Value
 from django.http import (
     HttpResponseRedirect,
     Http404,
