@@ -100,9 +100,9 @@ def make_chant_dict(chant: dict) -> dict:
             (e.g., `siglum`) and several values calculated (e.g., `srclink`)
     """
     source_id: int = chant["source_id"]
-    source_uri: str = f"{CANTUSDB_DOMAIN}/source/{source_id}/"
+    source_uri: str = f"{CANTUSDB_DOMAIN}/source/{source_id}"
     chant_id: int = chant["id"]
-    chant_uri: str = f"{CANTUSDB_DOMAIN}/chant/{chant_id}/"
+    chant_uri: str = f"{CANTUSDB_DOMAIN}/chant/{chant_id}"
     processed_chant: dict = {
         "siglum": chant["source__siglum"],
         "srclink": source_uri,

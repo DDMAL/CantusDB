@@ -5,6 +5,9 @@
 server {
     listen 80;
 
+    # Strip trailing slashes from detail URLs: redirect /chant/123/ to /chant/123
+    rewrite ^(.*/\d+)/$ $1 permanent;
+
     location = /robots.txt {
         alias /robots.txt;
     }
