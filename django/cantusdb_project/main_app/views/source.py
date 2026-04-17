@@ -4,9 +4,8 @@ from typing import Any, Optional, Union
 from django.conf import settings
 from django.contrib import messages
 from django.contrib.auth.mixins import UserPassesTestMixin
-from django.db.models import Q, Prefetch, Value
+from django.db.models import Q, Prefetch, QuerySet, Value
 from django.db.models.functions import Coalesce
-from django.db.models import QuerySet
 from django.http import (
     HttpResponseRedirect,
     Http404,
@@ -25,6 +24,7 @@ from django.views.generic import (
     FormView,
 )
 from django.views.generic.detail import SingleObjectMixin
+
 from main_app.forms import (
     SourceCreateForm,
     SourceEditForm,
@@ -45,7 +45,6 @@ from main_app.models import (
 )
 from main_app.permissions import CustomAccessMixin
 from main_app.mixins import JSONResponseMixin
-
 from main_app.views.chant import get_feast_selector_options
 from main_app.tasks import save_browse_chants_formset
 

@@ -58,11 +58,11 @@ COL_SOURCE_OF_DATA = 27
 
 # Condition → Source.source_completeness
 CONDITION_MAP = {
-    "1": Source.SourceCompletenessChoices.FULL_SOURCE,      # complete
-    "2": Source.SourceCompletenessChoices.FRAGMENTED,       # partial
-    "3": Source.SourceCompletenessChoices.FRAGMENT,         # fragment
-    "4": Source.SourceCompletenessChoices.FRAGMENT,         # binding waste
-    "5": Source.SourceCompletenessChoices.UNKNOWN,          # unknown
+    "1": Source.SourceCompletenessChoices.FULL_SOURCE,  # complete
+    "2": Source.SourceCompletenessChoices.FRAGMENTED,  # partial
+    "3": Source.SourceCompletenessChoices.FRAGMENT,  # fragment
+    "4": Source.SourceCompletenessChoices.FRAGMENT,  # binding waste
+    "5": Source.SourceCompletenessChoices.UNKNOWN,  # unknown
 }
 
 MATERIAL_MAP = {
@@ -367,7 +367,9 @@ class Command(BaseCommand):
         sole_email = {}
         with open(csv_path, newline="", encoding="utf-8-sig") as f:
             reader = csv.reader(f)
-            next(reader); next(reader); next(reader)  # header, REQUIRED, SAMPLE
+            next(reader)
+            next(reader)
+            next(reader)  # header, REQUIRED, SAMPLE
             for row in reader:
                 while len(row) < 33:
                     row.append("")
