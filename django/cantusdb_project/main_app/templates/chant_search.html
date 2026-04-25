@@ -159,8 +159,7 @@
             </thead>
             <tbody>
                 {% for chant in chants %}
-                    <!-- See #1635. Temporarily disable volpiano display for this source. -->
-                    {% if chant.source.id != 680970 or melodies != "true" %}
+                    <!-- Volpiano display for source 680970 (MS 73) was temporarily disabled in #1635; re-enabled in #1893. -->
                         <tr>
                             {% if not source %}
                                 <td class="text-wrap" style="text-align:left">
@@ -218,8 +217,8 @@
                                 {% endif %}
                             </td>
                             <td class="text-wrap" style="text-align:center">
-                                <!-- See #1635. Temporarily disable volpiano display for this source. -->
-                                {% if chant.volpiano and chant.source.id !=  680970 %}
+                                <!-- Volpiano display for source 680970 (MS 73) was temporarily disabled in #1635; re-enabled in #1893. -->
+                                {% if chant.volpiano %}
                                     <span title="Chant record has Volpiano melody">♫</span>
                                 {% endif %}
                             </td>
@@ -229,7 +228,6 @@
                                 {% endif %}
                             </td>
                         </tr>
-                    {% endif %}
                 {% endfor %}
             </tbody>
         </table>

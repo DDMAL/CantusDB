@@ -242,8 +242,8 @@
                 {{ chant.manuscript_full_text }}
             </dd>
         {% endif %}
-        <!-- See #1635. Temporarily disable volpiano display for this source. -->
-        {% if chant.volpiano and chant.source.id != 680970 %}
+        <!-- Volpiano display for source 680970 (MS 73) was temporarily disabled in #1635; re-enabled in #1893. -->
+        {% if chant.volpiano %}
             <dt>Volpiano</dt>
             <dd>
                 <p class="font-volpiano-lg">{{ chant.volpiano }}</p>
@@ -255,8 +255,8 @@
                 {{ chant.indexing_notes }}
             </dd>
         {% endif %}
-        <!-- See #1635. Temporarily disable volpiano display for this source. -->
-        {% if chant.volpiano and chant.source.id != 680970 %}
+        <!-- Volpiano display for source 680970 (MS 73) was temporarily disabled in #1635; re-enabled in #1893. -->
+        {% if chant.volpiano %}
             <div class="row">
                 <div class="col">
                     <dt>Melody with text</dt>
