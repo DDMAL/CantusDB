@@ -271,21 +271,17 @@ def ajax_melody_search(
         chants = chants.filter(feast__name__icontains=feast_name)
     if mode:
         chants = chants.filter(mode__icontains=mode)
-    # See #1635 re the following source exclusion. Temporarily disable volpiano display for this source.
-    result_values = (
-        chants.exclude(source__id=680970)
-        .order_by("id")
-        .values(
-            "id",
-            "source__holding_institution__siglum",
-            "source__shelfmark",
-            "folio",
-            "incipit",
-            "genre__name",
-            "feast__name",
-            "mode",
-            "volpiano",
-        )
+    # Source 680970 (MS 73) was excluded from melody search in #1635; re-enabled in #1893.
+    result_values = chants.order_by("id").values(
+        "id",
+        "source__holding_institution__siglum",
+        "source__shelfmark",
+        "folio",
+        "incipit",
+        "genre__name",
+        "feast__name",
+        "mode",
+        "volpiano",
     )
     # convert queryset to a list of dicts because QuerySet is not JSON serializable
     # the above constructed queryset will be evaluated here
