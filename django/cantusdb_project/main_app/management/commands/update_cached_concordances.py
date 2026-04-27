@@ -4,6 +4,7 @@ from sys import stdout
 from datetime import datetime
 from django.db.models.query import QuerySet
 from django.core.management.base import BaseCommand
+from django.urls import reverse
 from main_app.models import Chant
 
 # Usage: `python manage.py update_cached_concordances`
@@ -100,9 +101,9 @@ def make_chant_dict(chant: dict) -> dict:
             (e.g., `siglum`) and several values calculated (e.g., `srclink`)
     """
     source_id: int = chant["source_id"]
-    source_uri: str = f"{CANTUSDB_DOMAIN}/source/{source_id}"
+    source_uri: str = f"{CANTUSDB_DOMAIN}{reverse('source-detail', args=[source_id])}"
     chant_id: int = chant["id"]
-    chant_uri: str = f"{CANTUSDB_DOMAIN}/chant/{chant_id}"
+    chant_uri: str = f"{CANTUSDB_DOMAIN}{reverse('chant-detail', args=[chant_id])}"
     processed_chant: dict = {
         "siglum": chant["source__siglum"],
         "srclink": source_uri,
