@@ -252,8 +252,8 @@ class UpdateCachedConcordancesCommandTest(TestCase):
 
         expected_items: tuple = (
             ("siglum", chant.source.siglum),
-            ("srclink", f"https://cantusdatabase.org/source/{chant.source.id}"),
-            ("chantlink", f"https://cantusdatabase.org/chant/{chant.id}"),
+            ("srclink", f"https://cantusdatabase.org/source/{chant.source.id}/"),
+            ("chantlink", f"https://cantusdatabase.org/chant/{chant.id}/"),
             ("folio", chant.folio),
             ("sequence", chant.c_sequence),
             ("incipit", chant.incipit),

@@ -5,10 +5,6 @@
 server {
     listen 80;
 
-    # Strip trailing slashes from chant/source detail URLs:
-    # redirect /chant/<id>/ to /chant/<id> and /source/<id>/ to /source/<id>
-    rewrite ^/((chant|source)/\d+)/$ /$1 permanent;
-
     location = /robots.txt {
         alias /robots.txt;
     }
