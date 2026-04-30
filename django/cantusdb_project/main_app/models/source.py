@@ -150,6 +150,20 @@ class Source(BaseModel):
     liturgical_occasions = models.TextField(blank=True, null=True)
     description = models.TextField(blank=True, null=True)
     selected_bibliography = models.TextField(blank=True, null=True)
+    # Deprecated, retiring per #1839. No longer written via SourceCreateForm /
+    # SourceEditForm — image-gallery links are now added through the SourceURL
+    # inline formset as URLTypes.EXTERNAL_IMAGES. Reads have been migrated to
+    # Source.image_gallery_url (which queries SourceURL).
+    #
+    # Before dropping this column:
+    #   1. Run `manage.py populate_source_urls` in each environment to copy
+    #      remaining values into SourceURL rows. The command is NOT idempotent
+    #      — running it twice produces duplicate rows.
+    #   2. Verify nothing reads `source.image_link` directly.
+    #   3. Remove from `make_fake_source` / `make_fake_sequence_source` in
+    #      tests/make_fakes.py and from any test that still passes it as a
+    #      kwarg.
+    #   4. Add a Django migration to drop the column.
     image_link = models.URLField(
         blank=True,
         null=True,
@@ -203,6 +217,18 @@ class Source(BaseModel):
             title.append(f'("{self.name}")')
 
         return " ".join(title)
+
+    @property
+    def image_gallery_url(self) -> str:
+        # Returns the URL of the first SourceURL of type EXTERNAL_IMAGES,
+        # or an empty string if none exists. Used in source list templates
+        # to render the legacy single "Images" link.
+        from main_app.models.source_url import SourceURL
+
+        link = self.source_links.filter(
+            url_type=SourceURL.URLTypes.EXTERNAL_IMAGES
+        ).first()
+        return link.url if link else ""
 
     @property
     def short_heading(self) -> str:

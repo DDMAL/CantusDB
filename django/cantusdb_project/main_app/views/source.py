@@ -358,11 +358,11 @@ class SourceListView(CustomAccessMixin, ListView):  # type: ignore[type-arg]
         if self.user.is_superuser or self.user_is_global_viewer:
             queryset = Source.objects.select_related(
                 "provenance", "holding_institution"
-            ).prefetch_related("segment_m2m")
+            ).prefetch_related("segment_m2m", "source_links")
         else:
             queryset = self.published_and_assigned_sources.select_related(
                 "provenance", "holding_institution"
-            ).prefetch_related("segment_m2m")
+            ).prefetch_related("segment_m2m", "source_links")
 
         q_obj_filter = Q()
 

@@ -217,13 +217,6 @@
             </div>
         </div>
         <div class="row mb-2 small">
-            <div class="col-lg-12">
-                {{ form.image_link.label_tag }}
-                {{ form.image_link }}
-                HTTP link to the image gallery of the source.
-            </div>
-        </div>
-        <div class="row mb-2 small">
             <div class="col-lg-3">
                 <label for="{{ form.fragmentarium_id.id_for_label }}">Fragmentarium ID:</label>
                 {{ form.fragmentarium_id }}
@@ -286,9 +279,24 @@
                    class="guillemet"
                    target="_blank">View inventory with images</a>
             {% endif %}
-            {% if source.image_link %}
-                <a href="{{ source.image_link }}" class="guillemet" target="_blank">View images on external site</a>
-            {% endif %}
+            {% for link in source.source_links.all %}
+                {% if link.url_type == 1 %}
+                    {# IIIF Manifest #}
+                    <a href="{% static 'viewer/uv.html' %}#?manifest={{ link.url }}"
+                       class="guillemet"
+                       target="_blank">
+                        <img src="{% static 'iiif.png' %}"
+                             alt="IIIF icon"
+                             style="height: 1em;
+                                    vertical-align: middle" />
+                        View Images on Cantus Database
+                    </a>
+                {% else %}
+                    <a href="{{ link.url }}" class="guillemet" target="_blank">
+                        {{ link.get_url_type_display }}
+                    </a>
+                {% endif %}
+            {% endfor %}
             <a href="{% url "csv-export" source.id %}"
                class="guillemet"
                target="_blank"
