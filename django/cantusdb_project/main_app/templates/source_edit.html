@@ -181,9 +181,9 @@
                 <table class="table table-sm small table-bordered mt-1">
                     <thead>
                         <tr>
-                            <th>URL</th>
-                            <th>Type</th>
-                            <th>Description</th>
+                            <th>{{ url_formset.empty_form.url.label }}</th>
+                            <th>{{ url_formset.empty_form.url_type.label }}</th>
+                            <th>{{ url_formset.empty_form.url_description.label }}</th>
                             <th>Delete</th>
                         </tr>
                     </thead>
@@ -211,7 +211,7 @@
                     </tbody>
                 </table>
                 <p class="text-muted small">
-                    Add one row per external link. Leave the URL blank to skip a row.
+                    Add one row per external link. To leave a row empty, leave all of its fields blank.
                     {% if not request.user.is_superuser %}IIIF Manifest links can only be added by administrators.{% endif %}
                 </p>
             </div>

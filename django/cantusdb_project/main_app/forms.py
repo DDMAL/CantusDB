@@ -25,8 +25,8 @@ from .models import (
     Provenance,
     Century,
     Sequence,
+    SourceURL,
 )
-from .models.source_url import SourceURL
 from .widgets import (
     TextInputWidget,
     VolpianoInputWidget,
@@ -626,12 +626,17 @@ class SourceURLForm(forms.ModelForm):
 
     def __init__(self, *args, is_admin: bool = False, **kwargs):
         super().__init__(*args, **kwargs)
-        if not is_admin:
-            self.fields["url_type"].choices = [
-                (k, v)
-                for k, v in SourceURL.URLTypes.choices
-                if k != SourceURL.URLTypes.IIIF_MANIFEST
-            ]
+        if is_admin:
+            return
+        # Always preserve the bound row's existing url_type so editors can
+        # save sources that already have an admin-created IIIF row, even
+        # though they cannot add new IIIF rows themselves.
+        existing_value = self.instance.url_type if self.instance.pk else None
+        self.fields["url_type"].choices = [
+            (k, v)
+            for k, v in SourceURL.URLTypes.choices
+            if k != SourceURL.URLTypes.IIIF_MANIFEST or k == existing_value
+        ]
 
     class Meta:
         model = SourceURL

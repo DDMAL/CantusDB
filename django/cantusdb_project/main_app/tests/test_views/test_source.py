@@ -10,7 +10,7 @@ from django.urls import reverse
 from django.core.exceptions import ObjectDoesNotExist
 from django.contrib.auth import get_user_model
 
-from main_app.models import Source, Chant, Differentia
+from main_app.models import Source, Chant, Differentia, SourceURL
 from main_app.tests.make_fakes import (
     make_fake_source,
     make_fake_segment,
@@ -206,26 +206,126 @@ class SourceEditViewTest(CustomAccessTestMixin, TestCase):
         self.assertEqual(response.status_code, 404)
         self.assertTemplateUsed(response, "404.html")
 
+    def _base_post_data(self, *, total_forms: int = 1) -> Dict[str, str]:
+        """Required fields for the source edit form plus SourceURLFormSet
+        management form data. Callers add per-row fields as needed."""
+        return {
+            "shelfmark": "test-shelfmark",  # required
+            "source_completeness": "1",  # required
+            "production_method": "1",  # required
+            "source_links-TOTAL_FORMS": str(total_forms),
+            "source_links-INITIAL_FORMS": "0",
+            "source_links-MIN_NUM_FORMS": "0",
+            "source_links-MAX_NUM_FORMS": "1000",
+        }
+
     def test_edit_source(self) -> None:
         source = self.sources["editor_assigned_source"]
         response = self.client.post(
             reverse("source-edit", args=[source.id]),
-            {
-                "shelfmark": "test-shelfmark",  # shelfmark is a required field,
-                "source_completeness": "1",  # required field
-                "production_method": "1",  # required field
-                # management form data required by SourceURLFormSet
-                "sourceurl-TOTAL_FORMS": "1",
-                "sourceurl-INITIAL_FORMS": "0",
-                "sourceurl-MIN_NUM_FORMS": "0",
-                "sourceurl-MAX_NUM_FORMS": "1000",
-            },
+            self._base_post_data(),
         )
 
         self.assertEqual(response.status_code, 302)
         self.assertRedirects(response, reverse("source-detail", args=[source.id]))
         source.refresh_from_db()
         self.assertEqual(source.shelfmark, "test-shelfmark")
+
+    def test_editor_can_add_non_iiif_url(self) -> None:
+        source = self.sources["editor_assigned_source"]
+        data = self._base_post_data()
+        data.update(
+            {
+                "source_links-0-url": "https://example.org/host-record",
+                "source_links-0-url_type": str(SourceURL.URLTypes.HOST_INSTITUTION_RECORD),
+                "source_links-0-url_description": "host institution record",
+            }
+        )
+        response = self.client.post(reverse("source-edit", args=[source.id]), data)
+        self.assertEqual(response.status_code, 302)
+        urls = source.source_links.all()
+        self.assertEqual(urls.count(), 1)
+        self.assertEqual(urls[0].url, "https://example.org/host-record")
+        self.assertEqual(
+            urls[0].url_type, SourceURL.URLTypes.HOST_INSTITUTION_RECORD
+        )
+
+    def test_editor_cannot_add_iiif_url(self) -> None:
+        source = self.sources["editor_assigned_source"]
+        data = self._base_post_data()
+        data.update(
+            {
+                "source_links-0-url": "https://example.org/manifest.json",
+                "source_links-0-url_type": str(SourceURL.URLTypes.IIIF_MANIFEST),
+            }
+        )
+        response = self.client.post(reverse("source-edit", args=[source.id]), data)
+        # Form re-renders with errors instead of redirecting.
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(source.source_links.count(), 0)
+
+    def test_superuser_can_add_iiif_url(self) -> None:
+        self.client.force_login(self.users["superuser"])
+        source = self.sources["editor_assigned_source"]
+        data = self._base_post_data()
+        data.update(
+            {
+                "source_links-0-url": "https://example.org/manifest.json",
+                "source_links-0-url_type": str(SourceURL.URLTypes.IIIF_MANIFEST),
+            }
+        )
+        response = self.client.post(reverse("source-edit", args=[source.id]), data)
+        self.assertEqual(response.status_code, 302)
+        urls = source.source_links.all()
+        self.assertEqual(urls.count(), 1)
+        self.assertEqual(urls[0].url_type, SourceURL.URLTypes.IIIF_MANIFEST)
+
+    def test_editor_can_save_source_with_existing_iiif_row(self) -> None:
+        # Regression: a non-admin used to be unable to save a source whose
+        # SourceURLs already included an IIIF row, because the IIIF choice
+        # was stripped from `url_type` choices and Django rejected the
+        # round-tripped value as an invalid choice.
+        source = self.sources["editor_assigned_source"]
+        iiif = SourceURL.objects.create(
+            source=source,
+            url="https://example.org/manifest.json",
+            url_type=SourceURL.URLTypes.IIIF_MANIFEST,
+        )
+        data = self._base_post_data(total_forms=2)
+        data.update(
+            {
+                "source_links-INITIAL_FORMS": "1",
+                "source_links-0-id": str(iiif.id),
+                "source_links-0-url": iiif.url,
+                "source_links-0-url_type": str(iiif.url_type),
+                "source_links-0-url_description": "",
+            }
+        )
+        response = self.client.post(reverse("source-edit", args=[source.id]), data)
+        self.assertEqual(response.status_code, 302)
+        iiif.refresh_from_db()
+        self.assertEqual(iiif.url_type, SourceURL.URLTypes.IIIF_MANIFEST)
+
+    def test_editor_can_delete_url(self) -> None:
+        source = self.sources["editor_assigned_source"]
+        link = SourceURL.objects.create(
+            source=source,
+            url="https://example.org/host-record",
+            url_type=SourceURL.URLTypes.HOST_INSTITUTION_RECORD,
+        )
+        data = self._base_post_data(total_forms=2)
+        data.update(
+            {
+                "source_links-INITIAL_FORMS": "1",
+                "source_links-0-id": str(link.id),
+                "source_links-0-url": link.url,
+                "source_links-0-url_type": str(link.url_type),
+                "source_links-0-DELETE": "on",
+            }
+        )
+        response = self.client.post(reverse("source-edit", args=[source.id]), data)
+        self.assertEqual(response.status_code, 302)
+        self.assertFalse(SourceURL.objects.filter(id=link.id).exists())
 
 
 class SourceDetailViewTest(SourcePermissionsTestCase):

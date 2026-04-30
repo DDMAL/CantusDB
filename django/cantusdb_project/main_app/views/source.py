@@ -4,6 +4,7 @@ from typing import Any, Optional, Union
 from django.conf import settings
 from django.contrib import messages
 from django.contrib.auth.mixins import UserPassesTestMixin
+from django.db import transaction
 from django.db.models import Q, Prefetch, Value
 from django.db.models import QuerySet
 from django.http import (
@@ -628,10 +629,10 @@ class SourceEditView(CustomAccessMixin, UpdateView):  # type: ignore[type-arg]
             self.get_context_data(form=form, url_formset=url_formset)
         )
 
-    def form_valid(self, form, url_formset=None):
+    def form_valid(self, form, url_formset):
         form.instance.last_updated_by = self.request.user
-        self.object = form.save()
-        if url_formset is not None:
+        with transaction.atomic():
+            self.object = form.save()
             url_formset.instance = self.object
             url_formset.save()
         return HttpResponseRedirect(self.get_success_url())
