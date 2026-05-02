@@ -321,6 +321,11 @@
                                 {% endfor %}
                             </tbody>
                         </table>
+                        {% if is_paginated %}
+                            <div class="row mb-2">
+                                <div class="col">{% include "pagination.html" %}</div>
+                            </div>
+                        {% endif %}
                     {% endif %}
                 </div>
             </div>
