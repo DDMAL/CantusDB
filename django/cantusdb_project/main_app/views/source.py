@@ -8,7 +8,18 @@ import requests
 from django.conf import settings
 from django.contrib import messages
 from django.contrib.auth.mixins import UserPassesTestMixin
-from django.db.models import Q, Prefetch, QuerySet, Value, Min, Max
+from django.db.models import (
+    BooleanField,
+    Case,
+    F,
+    Max,
+    Min,
+    Prefetch,
+    Q,
+    QuerySet,
+    Value,
+    When,
+)
 from django.http import (
     HttpResponseRedirect,
     Http404,
@@ -678,7 +689,31 @@ class SourceListView(CustomAccessMixin, ListView):  # type: ignore[type-arg]
         sort_desc = self.request.GET.get("sort") == "desc"
         sort_prefix = "-" if sort_desc else ""
 
-        if order_param == "country":
+        if order_param == "has_image":
+            # Annotate so the expression appears in the SELECT list — required by
+            # PostgreSQL when combining ORDER BY expressions with DISTINCT.
+            queryset = queryset.annotate(
+                _has_image_sort=Case(
+                    When(
+                        image_link__isnull=False,
+                        image_link__gt="",
+                        then=Value(True),
+                    ),
+                    default=Value(False),
+                    output_field=BooleanField(),
+                )
+            )
+            # Flip: first click (asc) → images on top; second click (desc) → no-images on top.
+            has_image_order = (
+                F("_has_image_sort").asc() if sort_desc else F("_has_image_sort").desc()
+            )
+            order_by_args = [
+                has_image_order,
+                "holding_institution__siglum",
+                "shelfmark",
+                "id",
+            ]
+        elif order_param == "country":
             # Order private collectors (whose siglum is NULL) after institutions
             # with sigla within the same country group. PostgreSQL's native default
             # already does this: NULLS LAST for ascending order, NULLS FIRST for
@@ -701,8 +736,10 @@ class SourceListView(CustomAccessMixin, ListView):  # type: ignore[type-arg]
                 f"{sort_prefix}id",
             ]
         elif order_param == "num_chants":
-            # NULL number_of_chants sorts last when ascending
-            order_by_args = [f"{sort_prefix}number_of_chants"]
+            if sort_desc:
+                order_by_args = [F("number_of_chants").desc(nulls_last=True), "id"]
+            else:
+                order_by_args = [F("number_of_chants").asc(nulls_last=True), "id"]
         else:
             order_by_args = [
                 f"{sort_prefix}holding_institution__siglum",

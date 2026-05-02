@@ -1950,6 +1950,82 @@ class SourceListViewTest(CustomAccessTestMixin, TestCase):
             self.assertEqual(
                 list(reversed(expected_source_order)), list(response_sources_reverse)
             )
+        with self.subTest("Order by has_image"):
+            src_with_img = make_fake_source(image_link="https://example.com/img.jpg")
+            src_no_img = make_fake_source(image_link=None)
+            src_empty_img = make_fake_source(image_link="")
+
+            for sort_param, expect_images_first in [("asc", True), ("desc", False)]:
+                response = self.client.get(
+                    reverse("source-list"),
+                    {"order": "has_image", "sort": sort_param},
+                )
+                result = list(response.context["sources"])
+                result_ids = {s.id for s in result}
+                self.assertIn(src_with_img.id, result_ids)
+                self.assertIn(src_no_img.id, result_ids)
+                self.assertIn(src_empty_img.id, result_ids)
+
+                if expect_images_first:
+                    # Once we see a source without an image every subsequent
+                    # source must also lack one.
+                    seen_no_image = False
+                    for s in result:
+                        if not s.image_link:
+                            seen_no_image = True
+                        elif seen_no_image:
+                            self.fail(
+                                f"sort={sort_param}: source with image_link "
+                                f"appeared after source without one"
+                            )
+                else:
+                    # Once we see a source with an image every subsequent
+                    # source must also have one.
+                    seen_with_image = False
+                    for s in result:
+                        if s.image_link:
+                            seen_with_image = True
+                        elif seen_with_image:
+                            self.fail(
+                                f"sort={sort_param}: source without image_link "
+                                f"appeared after source with one"
+                            )
+        with self.subTest("Order by num_chants"):
+            src_many = make_fake_source(number_of_chants=100)
+            src_few = make_fake_source(number_of_chants=5)
+            src_null = make_fake_source(number_of_chants=None)
+
+            # ASC: few → many → NULL (nulls always last)
+            response = self.client.get(
+                reverse("source-list"), {"order": "num_chants", "sort": "asc"}
+            )
+            result = list(response.context["sources"])
+            pos_few = next(i for i, s in enumerate(result) if s.id == src_few.id)
+            pos_many = next(i for i, s in enumerate(result) if s.id == src_many.id)
+            pos_null = next(i for i, s in enumerate(result) if s.id == src_null.id)
+            self.assertLess(
+                pos_few, pos_many, "sort=asc: src_few should precede src_many"
+            )
+            self.assertLess(pos_many, pos_null, "sort=asc: NULL chants should be last")
+
+            # DESC: many → few → NULL (nulls always last)
+            response_desc = self.client.get(
+                reverse("source-list"), {"order": "num_chants", "sort": "desc"}
+            )
+            result_desc = list(response_desc.context["sources"])
+            pos_few_d = next(i for i, s in enumerate(result_desc) if s.id == src_few.id)
+            pos_many_d = next(
+                i for i, s in enumerate(result_desc) if s.id == src_many.id
+            )
+            pos_null_d = next(
+                i for i, s in enumerate(result_desc) if s.id == src_null.id
+            )
+            self.assertLess(
+                pos_many_d, pos_few_d, "sort=desc: src_many should precede src_few"
+            )
+            self.assertLess(
+                pos_few_d, pos_null_d, "sort=desc: NULL chants should be last"
+            )
 
     def test_pagination(self):
         paginate_by = SourceListView.paginate_by
