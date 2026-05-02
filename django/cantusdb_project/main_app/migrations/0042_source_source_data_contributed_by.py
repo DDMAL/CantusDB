@@ -1,8 +1,12 @@
 from django.conf import settings
 from django.db import migrations, models
+from django.db.backends.base.schema import BaseDatabaseSchemaEditor
+from django.db.migrations.state import StateApps
 
 
-def move_cantorales_contributors(apps, schema_editor):
+def move_cantorales_contributors(
+    apps: StateApps, schema_editor: BaseDatabaseSchemaEditor
+) -> None:
     """
     Move users from inventoried_by to source_data_contributed_by for all
     sources in the "Cantorales in the Americas" segment.
