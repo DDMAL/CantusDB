@@ -500,7 +500,9 @@ class SourceListView(CustomAccessMixin, ListView):  # type: ignore[type-arg]
         sort_desc = self.request.GET.get("sort") == "desc"
         sort_prefix = "-" if sort_desc else ""
 
-        if order_param == "country":
+        if order_param == "has_image":
+            order_by_args = [f"{sort_prefix}image_link"]
+        elif order_param == "country":
             # When ordering by country, we use COALESCE to replace NULL sigla with ""
             # so that private collectors (who have no siglum) sort before institutions
             # with sigla within the same country group. This matches Python's sort
