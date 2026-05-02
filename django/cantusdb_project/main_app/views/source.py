@@ -4,7 +4,7 @@ from typing import Any, Optional, Union
 from django.conf import settings
 from django.contrib import messages
 from django.contrib.auth.mixins import UserPassesTestMixin
-from django.db.models import Q, Prefetch, Value
+from django.db.models import F, Q, Prefetch, Value
 from django.db.models.functions import Coalesce
 from django.db.models import QuerySet
 from django.http import (
@@ -501,7 +501,13 @@ class SourceListView(CustomAccessMixin, ListView):  # type: ignore[type-arg]
         sort_desc = self.request.GET.get("sort") == "desc"
         sort_prefix = "-" if sort_desc else ""
 
-        if order_param == "country":
+        if order_param == "has_image":
+            if sort_desc:
+                order_by_args = [F("image_link").asc(nulls_first=True)]
+            else:
+                order_by_args = [F("image_link").desc(nulls_last=True)]
+                
+        elif order_param == "country":
             # When ordering by country, we use COALESCE to replace NULL sigla with ""
             # so that private collectors (who have no siglum) sort before institutions
             # with sigla within the same country group. This matches Python's sort
