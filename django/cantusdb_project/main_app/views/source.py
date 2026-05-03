@@ -700,6 +700,9 @@ class SourceListView(CustomAccessMixin, ListView):  # type: ignore[type-arg]
                 f"{sort_prefix}shelfmark",
                 f"{sort_prefix}id",
             ]
+        elif order_param == "num_chants":
+            # NULL number_of_chants sorts last when ascending
+            order_by_args = [f"{sort_prefix}number_of_chants"]
         else:
             order_by_args = [
                 f"{sort_prefix}holding_institution__siglum",
