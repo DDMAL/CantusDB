@@ -494,9 +494,7 @@
                             <br />
                         {% endif %}
                         {% if source.notation.exists %}
-                            <b>
-                                <a href="{% url 'notation-detail' source.notation.all.first.id %}">{{ source.notation.all.first.name }}</a>
-                            </b>
+                            Notation{% if bower_segment %} (Bower){% endif %}: <b>{{ source.notation.all.first.name }}</b>
                             <br />
                         {% endif %}
                         {% if source.inventoried_by.exists %}

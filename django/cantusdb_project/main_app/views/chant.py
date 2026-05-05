@@ -47,6 +47,8 @@ from main_app.permissions import CustomAccessMixin
 from main_app.mixins import JSONResponseMixin
 from users.models import User
 
+BOWER_SEGMENT_ID = 4064
+
 CHANT_SEARCH_TEMPLATE_VALUES: tuple[str, ...] = (
     # for views that use chant_search.html, this allows them to
     # fetch only those values needed for rendering the template
@@ -326,6 +328,10 @@ class ChantDetailView(CustomAccessMixin, JSONResponseMixin, DetailView):  # type
         source = chant.source
 
         context["user_can_edit_chant"] = self.user_assigned_to_source(source)
+        context["bower_segment"] = (
+            source is not None
+            and BOWER_SEGMENT_ID in source.segment_m2m.values_list("id", flat=True)
+        )
 
         language = chant.text_language
         if language and language.pk == 2:
