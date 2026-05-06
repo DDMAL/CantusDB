@@ -48,8 +48,6 @@ from main_app.mixins import JSONResponseMixin
 from main_app.views.chant import get_feast_selector_options
 from main_app.tasks import save_browse_chants_formset
 
-CANTUS_SEGMENT_ID = 4063
-BOWER_SEGMENT_ID = 4064
 
 
 class SourceBrowseChantsView(CustomAccessMixin, ListView):  # type: ignore[type-arg]
@@ -287,7 +285,7 @@ class SourceDetailView(CustomAccessMixin, JSONResponseMixin, DetailView):  # typ
         context = super().get_context_data(**kwargs)
 
         source = self.object
-        if BOWER_SEGMENT_ID in source.segment_m2m.values_list("id", flat=True):
+        if settings.BOWER_SEGMENT_ID in source.segment_m2m.values_list("id", flat=True):
             # if this is a sequence source
             sequences = source.sequence_set.select_related("genre", "service")
             context["sequences"] = sequences.order_by("s_sequence")
@@ -306,6 +304,7 @@ class SourceDetailView(CustomAccessMixin, JSONResponseMixin, DetailView):  # typ
             context["bower_segment"] = False
             context["has_chants"] = chants.exists()
 
+        context["source_notation"] = source.notation.first()
         context["user_can_edit_chants"] = self.user_assigned_to_source(source)
         context["user_can_edit_source"] = self.user_assigned_to_source(source) and (
             self.user_is_editor or self.user_created_source(source)
@@ -647,7 +646,7 @@ class SourceInventoryView(CustomAccessMixin, ListView):  # type: ignore[type-arg
         )
 
     def get_queryset(self) -> Union[QuerySet[Chant], QuerySet[Sequence]]:
-        if BOWER_SEGMENT_ID in self.source.segment_m2m.values_list("id", flat=True):
+        if settings.BOWER_SEGMENT_ID in self.source.segment_m2m.values_list("id", flat=True):
             queryset = (
                 self.source.sequence_set.annotate(record_type=Value("sequence"))
                 .order_by("s_sequence")

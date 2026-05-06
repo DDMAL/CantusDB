@@ -3,6 +3,7 @@ from collections import Counter, defaultdict
 from typing import Optional, Any, Iterator
 import string
 
+from django.conf import settings
 from django.contrib import messages
 from django.contrib.postgres.aggregates import ArrayAgg
 from django.db.models import F, Q, QuerySet
@@ -46,8 +47,6 @@ from main_app.permissions import CustomAccessMixin
 
 from main_app.mixins import JSONResponseMixin
 from users.models import User
-
-BOWER_SEGMENT_ID = 4064
 
 CHANT_SEARCH_TEMPLATE_VALUES: tuple[str, ...] = (
     # for views that use chant_search.html, this allows them to
@@ -330,8 +329,9 @@ class ChantDetailView(CustomAccessMixin, JSONResponseMixin, DetailView):  # type
         context["user_can_edit_chant"] = self.user_assigned_to_source(source)
         context["bower_segment"] = (
             source is not None
-            and BOWER_SEGMENT_ID in source.segment_m2m.values_list("id", flat=True)
+            and source.segment_m2m.filter(id=settings.BOWER_SEGMENT_ID).exists()
         )
+        context["source_notation"] = source.notation.first() if source else None
 
         language = chant.text_language
         if language and language.pk == 2:

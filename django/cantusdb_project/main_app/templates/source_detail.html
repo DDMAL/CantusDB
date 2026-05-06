@@ -235,8 +235,8 @@
                 Cursus: <b>{{ source.cursus|default_if_none:"" }}</b>
                 <br />
             {% endif %}
-            {% if source.notation.exists %}
-                Notation{% if bower_segment %} (Bower){% endif %}: <b>{{ source.notation.all.first.name }}</b>
+            {% if source_notation %}
+                Notation{% if bower_segment %} (Bower){% endif %}: <b>{{ source_notation.name }}</b>
                 <br />
             {% endif %}
         {% if source.inventoried_by.exists %}
