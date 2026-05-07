@@ -67,6 +67,8 @@ def ajax_melody_list(
             "mode": chant.mode or "",
             "manuscript_full_text_std_spelling": chant.manuscript_full_text_std_spelling
             or "",
+            "manuscript_syllabized_full_text": chant.manuscript_syllabized_full_text
+            or "",
             "ci_link": chant.get_ci_url(),
             "chant_link": chant.get_absolute_url(),
             "source_link": chant.source.get_absolute_url(),
@@ -131,6 +133,7 @@ def csv_export(
             "differentiae_database",
             "fulltext_standardized",
             "fulltext_ms",
+            "syllabized_full_text",
             "volpiano",
             "image_link",
             "melody_id",
@@ -167,6 +170,7 @@ def csv_export(
                 entry.diff_db,
                 entry.manuscript_full_text_std_spelling,
                 entry.manuscript_full_text,
+                entry.manuscript_syllabized_full_text,
                 entry.volpiano,
                 entry.image_link,
                 entry.melody_id,
@@ -373,6 +377,7 @@ def json_melody_export(request: HttpRequest, cantus_id: str) -> JsonResponse:
             "folio": chant.folio,
             "incipit": chant.incipit,
             "fulltext": chant.manuscript_full_text_std_spelling,
+            "syllabized_full_text": chant.manuscript_syllabized_full_text,
             "volpiano": chant.volpiano,
             "mode": chant.mode,
             "feast": chant.feast_id,
