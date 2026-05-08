@@ -9,11 +9,14 @@ import reversion  # type: ignore[import-untyped]
 from main_app.models import Chant, Source
 
 MASTER_SOURCE_ID = 1000289
+# Pre-copy chant count on the master source. Used as an idempotency guard:
+# a non-matching count means the command likely already ran and re-running would create duplicates.
+EXPECTED_MASTER_BASELINE = 19
 FOLIO_RE = re.compile(r"^K\d{3}[A-Za-z]?$")
 
 
 class Command(BaseCommand):
-    help = "Copy ~710 chants from student-work sources into the Kaiatonsera master source (issue #2038)."
+    help = "Copy 705 chants from student-work sources into the Kaiatonsera master source (issue #2038)."
 
     def add_arguments(self, parser: argparse.ArgumentParser) -> None:
         parser.add_argument(
@@ -76,8 +79,6 @@ class Command(BaseCommand):
         ]
 
         before_count = Chant.objects.filter(source_id=MASTER_SOURCE_ID).count()
-        # master_source.siglum is None as of writing, matching the 19 existing
-        # master-source chants — copying it through preserves that consistency.
         self.stdout.write(
             self.style.NOTICE(
                 f"Master source {MASTER_SOURCE_ID} | siglum: {master_source.siglum!r}"
@@ -123,6 +124,14 @@ class Command(BaseCommand):
             self.stdout.write(self.style.SUCCESS("\nDry run complete. No data written."))
             return
 
+        if before_count != EXPECTED_MASTER_BASELINE:
+            raise CommandError(
+                f"Master source has {before_count} chants but the expected pre-copy "
+                f"baseline is {EXPECTED_MASTER_BASELINE}. This command is one-shot; "
+                "re-running it would create duplicates. If the current state is "
+                f"intentional, update EXPECTED_MASTER_BASELINE in {__name__}."
+            )
+
         if total_bad_folios:
             raise CommandError(
                 f"Refusing to copy: {total_bad_folios} folio(s) do not match "
@@ -134,16 +143,14 @@ class Command(BaseCommand):
             reversion.set_comment("copy_chants_to_master_source: issue #2038")
             for label, qs in groups:
                 group_count = 0
-                for chant in qs.iterator(chunk_size=500):
-                    proofread_by_pks = list(
-                        chant.proofread_by.values_list("pk", flat=True)
-                    )
+                for chant in qs.prefetch_related("proofread_by"):
+                    proofread_by_pks = [u.pk for u in chant.proofread_by.all()]
                     chant.pk = None
                     chant.source = master_source
+                    # Master's siglum is None; clobbering keeps new copies
+                    # consistent with the existing master-source chants.
                     chant.siglum = master_source.siglum
                     chant.folio = chant.folio[1:] if chant.folio else chant.folio
-                    # OneToOne to self with a uniqueness constraint; cleared so
-                    # populate_next_chant_fields can rebuild the chain on the master.
                     chant.next_chant = None
                     chant.save()
                     if proofread_by_pks:
