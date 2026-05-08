@@ -4,8 +4,8 @@ from typing import Any, Optional, Union
 from django.conf import settings
 from django.contrib import messages
 from django.contrib.auth.mixins import UserPassesTestMixin
-from django.db.models import Q, Prefetch, Value
-from django.db.models import QuerySet
+from django.db.models import Q, Prefetch, QuerySet, Value
+from django.db.models.functions import Coalesce
 from django.http import (
     HttpResponseRedirect,
     Http404,
@@ -24,6 +24,7 @@ from django.views.generic import (
     FormView,
 )
 from django.views.generic.detail import SingleObjectMixin
+
 from main_app.forms import (
     SourceCreateForm,
     SourceEditForm,
@@ -44,7 +45,6 @@ from main_app.models import (
 )
 from main_app.permissions import CustomAccessMixin
 from main_app.mixins import JSONResponseMixin
-
 from main_app.views.chant import get_feast_selector_options
 from main_app.tasks import save_browse_chants_formset
 
@@ -497,18 +497,36 @@ class SourceListView(CustomAccessMixin, ListView):  # type: ignore[type-arg]
             q_obj_filter &= indexing_search_q
 
         order_param = self.request.GET.get("order")
-        order_fields = ["holding_institution__siglum", "shelfmark"]
-        if order_param == "country":
-            order_fields.insert(0, "holding_institution__country")
-        elif order_param == "city_institution":
-            order_fields.insert(0, "holding_institution__city")
-            order_fields.insert(1, "holding_institution__name")
-        if self.request.GET.get("sort") == "desc":
-            sort_prefix = "-"
-        else:
-            sort_prefix = ""
+        sort_desc = self.request.GET.get("sort") == "desc"
+        sort_prefix = "-" if sort_desc else ""
 
-        order_by_args = [f"{sort_prefix}{field}" for field in order_fields]
+        if order_param == "country":
+            # When ordering by country, we use COALESCE to replace NULL sigla with ""
+            # so that private collectors (who have no siglum) sort before institutions
+            # with sigla within the same country group. This matches Python's sort
+            # behaviour, which also treats private collectors as "" for ordering.
+            # Previously, the siglum field was used directly (i.e.,
+            # "holding_institution__siglum"), which caused PostgreSQL's NULLS LAST
+            # default to place private collectors after all institutions with sigla —
+            # the opposite of what the Python sort produces.
+            siglum_coalesced = Coalesce("holding_institution__siglum", Value(""))
+            order_by_args = [
+                f"{sort_prefix}holding_institution__country",
+                siglum_coalesced.desc() if sort_desc else siglum_coalesced.asc(),
+                f"{sort_prefix}shelfmark",
+            ]
+        elif order_param == "city_institution":
+            order_by_args = [
+                f"{sort_prefix}holding_institution__city",
+                f"{sort_prefix}holding_institution__name",
+                f"{sort_prefix}holding_institution__siglum",
+                f"{sort_prefix}shelfmark",
+            ]
+        else:
+            order_by_args = [
+                f"{sort_prefix}holding_institution__siglum",
+                f"{sort_prefix}shelfmark",
+            ]
 
         return (
             queryset.filter(q_obj_filter)

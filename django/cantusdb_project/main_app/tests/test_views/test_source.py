@@ -1388,12 +1388,13 @@ class SourceListViewTest(CustomAccessTestMixin, TestCase):
                         else ""
                     ),
                     (
-                        source.holding_institution.siglum
-                        if source.holding_institution
-                        and not source.holding_institution.is_private_collector
-                        else ""
-                    ),
+                        source.holding_institution.siglum is None,
+                        source.holding_institution.siglum or ""
+                    )
+                    if source.holding_institution
+                    else (True, ""),
                     source.shelfmark,
+                    source.pk,
                 ),
             )
             self.assertEqual(list(expected_source_order), list(response_sources))

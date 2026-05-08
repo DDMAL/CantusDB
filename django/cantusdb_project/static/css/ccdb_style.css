@@ -11,6 +11,31 @@ body {
     border: solid 3px #cc3333;
 }
 
+.ccdb-hero-banner {
+    background-image: url("../ccdb-images/CCDB-salzinnes_bannercrop.jpg");
+    background-size: cover;
+    background-position: center 60%;
+    min-height: 400px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    position: relative;
+}
+
+.ccdb-hero-banner a {
+    display: block;
+    width: 75%;
+    position: relative;
+    z-index: 10;
+}
+
+.ccdb-hero-logo {
+    display: block;
+    width: 100%;
+    height: auto;
+    filter: drop-shadow(0 0 8px rgba(255, 255, 255, 0.95));
+}
+
 .ccdb-landing-grid {
     grid-template-columns: 1fr 2fr;
     gap: 20px;

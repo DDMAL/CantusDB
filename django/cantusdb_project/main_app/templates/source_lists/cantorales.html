@@ -213,7 +213,7 @@
                             </div>
                             <div class="col-lg-1">
                                 <button type="submit" class="btn btn-dark btn-sm m-1" id="btn-submit">Apply</button>
-                                <a href="/CanadianChantDB/#search-container"
+                                <a href="/Cantorales/#search-container"
                                    class="btn btn-dark btn-sm m-1"
                                    id="btn-reset">Reset</a>
                             </div>
@@ -297,6 +297,11 @@
                                 {% endfor %}
                             </tbody>
                         </table>
+                        {% if is_paginated %}
+                            <div class="row mb-2">
+                                <div class="col">{% include "pagination.html" %}</div>
+                            </div>
+                        {% endif %}
                     {% endif %}
                 </div>
             </div>

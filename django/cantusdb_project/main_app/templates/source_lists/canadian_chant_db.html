@@ -2,6 +2,7 @@
 {% load helper_tags %}
 {% load static %}
 {% block title %}<title>Canadian Chant Database</title>{% endblock %}
+{% block favicon %}<link rel="icon" href="{% static "ccdb-images/CCDB-favicon.png" %}" />{% endblock %}
 {% block scripts %}
     <script src="{% static 'js/source_list.js' %}"></script>
     <link href="{% static 'css/ccdb_style.css' %}"
@@ -14,30 +15,17 @@
 {% block heading %}{% endblock %}
 {% block content %}
     <div class="container-fluid ccdb-info">
+        <div class="ccdb-hero-banner">
+            <a href="#search-container">
+                <img src="{% static 'ccdb-images/CCD-logo.svg' %}"
+                     class="img-fluid ccdb-hero-logo"
+                     alt="Logo with words 'Canadian Chant Database'" />
+            </a>
+        </div>
         <div class="row py-5 bg-white bg-opacity-75">
             <div class="col">
-                <div class="row mb-4">
-                    <div class="col text-center">
-                        <a href="#search-container">
-                            <img src="{% static 'ccdb-images/CCD-logo.svg' %}"
-                                 width="1000"
-                                 height="690"
-                                 class="img-fluid"
-                                 alt="Logo with words 'Canadian Chant Database'" />
-                        </a>
-                    </div>
-                </div>
                 <div class="d-lg-grid ccdb-landing-grid">
                     <div class="ps-4 ccdb-grid-image">
-                        <figure class="figure my-4 text-center">
-                            <img src="https://lib.is/IE9434868/iiif/2/FL9435874/500,400,6055,8500/280,405/0/default.jpg"
-                                 width="280"
-                                 height="405"
-                                 class="ccdb-salzinnes-img figure-img img-fluid" />
-                            <figcaption class="figure-caption w-50 mx-auto">
-                                Folio 2r from the <a href="{% url 'source-detail' 123723 %}">Salzinnes Antiphonal</a>, held at the Patrick Power Library at Saint Mary’s University in Halifax, Canada (M2149.L4 1554)
-                            </figcaption>
-                        </figure>
                         <div class="px-5">
                             <p>
                                 The Canadian Chant Database is an initiative of the <a href="https://dact-chant.ca/" target="_blank">Digital Analysis of Chant Transmission (DACT) Project</a>.
@@ -130,6 +118,37 @@
         <div id="search-container" class="container-lg">
             <div class="row rounded my-5 ccdb-table-bg">
                 <div class="col">
+                    <div class="row mt-3 mb-1">
+                        <div class="col">
+                            <h5 class="mb-2">Search Chants</h5>
+                            <form method="get"
+                                  action="{% url 'chant-search' %}"
+                                  class="d-flex flex-wrap gap-2 align-items-end">
+                                <input type="hidden" name="segment" value="4066" />
+                                <div class="flex-grow-1">
+                                    <label for="chantKeyword" class="small form-label">
+                                        Keyword search (incipit, full text, or Cantus ID)
+                                    </label>
+                                    <input type="text"
+                                           class="form-control form-control-sm"
+                                           name="keyword"
+                                           id="chantKeyword"
+                                           placeholder="Enter keyword or Cantus ID" />
+                                </div>
+                                <div>
+                                    <label for="chantSearchOp" class="small form-label">Match</label>
+                                    <select name="op"
+                                            id="chantSearchOp"
+                                            class="form-control form-select form-select-sm">
+                                        <option value="starts_with">Starts with</option>
+                                        <option value="contains">Contains</option>
+                                    </select>
+                                </div>
+                                <button type="submit" class="btn btn-dark btn-sm">Search Chants</button>
+                            </form>
+                        </div>
+                    </div>
+                    <hr class="my-3" />
                     <form method="get" class="ccdb-filter-form mb-3">
                         <div class="row mt-2">
                             <div class="col-lg">
@@ -302,6 +321,11 @@
                                 {% endfor %}
                             </tbody>
                         </table>
+                        {% if is_paginated %}
+                            <div class="row mb-2">
+                                <div class="col">{% include "pagination.html" %}</div>
+                            </div>
+                        {% endif %}
                     {% endif %}
                 </div>
             </div>
