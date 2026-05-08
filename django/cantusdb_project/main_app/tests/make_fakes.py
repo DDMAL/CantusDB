@@ -1,6 +1,7 @@
 """Functions to make fake objects to be used for testing"""
 
 import random
+import re
 from typing import Optional, List, Any, Tuple, Dict
 from datetime import date, timedelta
 from faker import Faker  # type: ignore[import-untyped]
@@ -146,10 +147,78 @@ def make_fake_volpiano(
     return volpiano
 
 
+def _century_name_to_dates(century_name: str) -> Optional[Tuple[int, int]]:
+    """
+    Convert century name to (min_date, max_date) tuple.
+    Uses same logic as the data migration for consistency.
+    """
+    century_name = century_name.strip()
+
+    # Pattern 1: Explicit date range like "10th century (900-925)"
+    match = re.match(r'(\d+)(?:st|nd|rd|th) century \((\d+)-(\d+)\)', century_name)
+    if match:
+        start_year = int(match.group(2))
+        end_year = int(match.group(3))
+        return (start_year, end_year)
+
+    # Pattern 2: Half-centuries with "1st half" or "2nd half" format
+    match = re.match(r'(\d+)(?:st|nd|rd|th) century \(1st half\)', century_name)
+    if match:
+        century_num = int(match.group(1))
+        century_start = (century_num - 1) * 100
+        return (century_start, century_start + 49)
+
+    match = re.match(r'(\d+)(?:st|nd|rd|th) century \(2nd half\)', century_name)
+    if match:
+        century_num = int(match.group(1))
+        century_start = (century_num - 1) * 100
+        return (century_start + 50, century_start + 99)
+
+    # Pattern 3: Half-centuries with "first half" or "second half" format
+    match = re.match(r'(\d+)(?:st|nd|rd|th) century \(first half\)', century_name)
+    if match:
+        century_num = int(match.group(1))
+        century_start = (century_num - 1) * 100
+        return (century_start, century_start + 49)
+
+    match = re.match(r'(\d+)(?:st|nd|rd|th) century \(second half\)', century_name)
+    if match:
+        century_num = int(match.group(1))
+        century_start = (century_num - 1) * 100
+        return (century_start + 50, century_start + 99)
+
+    # Pattern 4: Special Vatican II cases
+    if "before Vatican II" in century_name:
+        return (1900, 1962)
+    if "after Vatican II" in century_name:
+        return (1962, 1999)
+
+    # Pattern 5: Full centuries like "16th century"
+    match = re.match(r'(\d+)(?:st|nd|rd|th) century$', century_name)
+    if match:
+        century_num = int(match.group(1))
+        century_start = (century_num - 1) * 100
+        century_end = century_start + 99
+        return (century_start, century_end)
+
+    # No match
+    return None
+
+
 def make_fake_century(**kwargs: Any) -> Century:
-    """Generates a fake Century object."""
+    """Generates a fake Century object with auto-populated min_date and max_date."""
     if "name" not in kwargs:
         kwargs["name"] = faker.sentence(nb_words=3)
+
+    # Auto-populate min_date and max_date if not explicitly provided
+    if "min_date" not in kwargs or "max_date" not in kwargs:
+        dates = _century_name_to_dates(kwargs["name"])
+        if dates:
+            if "min_date" not in kwargs:
+                kwargs["min_date"] = dates[0]
+            if "max_date" not in kwargs:
+                kwargs["max_date"] = dates[1]
+
     century = Century.objects.create(**kwargs)
     return century
 

@@ -4,7 +4,7 @@ from typing import Any, Optional, Union
 from django.conf import settings
 from django.contrib import messages
 from django.contrib.auth.mixins import UserPassesTestMixin
-from django.db.models import Q, Prefetch, QuerySet, Value
+from django.db.models import Q, Prefetch, QuerySet, Value, Min, Max
 from django.db.models.functions import Coalesce
 from django.http import (
     HttpResponseRedirect,
@@ -346,9 +346,16 @@ class SourceListView(CustomAccessMixin, ListView):  # type: ignore[type-arg]
         context["provenances"] = (
             Provenance.objects.all().order_by("name").values("id", "name")
         )
-        context["centuries"] = (
-            Century.objects.all().order_by("name").values("id", "name")
+        # Add date range bounds for the date range slider
+        century_dates = Century.objects.filter(
+            min_date__isnull=False, max_date__isnull=False
+        ).aggregate(
+            min_year=Min("min_date"),
+            max_year=Max("max_date"),
         )
+        context["date_range_min"] = century_dates.get("min_year", 0)
+        context["date_range_max"] = century_dates.get("max_year", 2099)
+
         context["production_method_choices"] = Source.ProductionMethodChoices.choices
         context["source_completeness_choices"] = (
             Source.SourceCompletenessChoices.choices
@@ -379,9 +386,32 @@ class SourceListView(CustomAccessMixin, ListView):  # type: ignore[type-arg]
         if country_name := self.request.GET.get("country"):
             q_obj_filter &= Q(holding_institution__country__icontains=country_name)
 
-        if century_id := self.request.GET.get("century"):
-            century_name = Century.objects.get(id=century_id).name
-            q_obj_filter &= Q(century__name__icontains=century_name)
+        # Handle direct date range filtering
+        # This allows filtering by explicit date ranges (e.g., 1400-1500)
+        date_start = self.request.GET.get("dateStart")
+        date_end = self.request.GET.get("dateEnd")
+        if date_start or date_end:
+            try:
+                date_start_int = int(date_start) if date_start else None
+                date_end_int = int(date_end) if date_end else None
+
+                # Find all centuries that overlap with the selected date range
+                # This provides the same behavior as century selection
+                if date_start_int and date_end_int:
+                    # Both dates specified: find centuries that overlap the range
+                    q_obj_filter &= Q(
+                        century__min_date__lte=date_end_int,
+                        century__max_date__gte=date_start_int,
+                    )
+                elif date_start_int:
+                    # Only start date: find centuries that haven't ended
+                    q_obj_filter &= Q(century__max_date__gte=date_start_int)
+                elif date_end_int:
+                    # Only end date: find centuries that have started
+                    q_obj_filter &= Q(century__min_date__lte=date_end_int)
+            except (ValueError, TypeError):
+                # Invalid date format, skip filtering
+                pass
 
         if provenance_id := self.request.GET.get("provenance"):
             q_obj_filter &= Q(provenance__id=int(provenance_id))
