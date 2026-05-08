@@ -3420,6 +3420,7 @@ class CISearchViewTest(TestCase):
         self.assertEqual(response.status_code, 200)
         context = response.context
         self.assertIn("results", context)
+        self.assertFalse(context["ci_error"])
 
         results_zip = context["results"]
 
@@ -3444,10 +3445,8 @@ class CISearchViewTest(TestCase):
 
         self.assertEqual(response.status_code, 200)
         context = response.context
-        self.assertIn("results", context)
-        self.assertEqual(
-            context["results"], [["No results", "No results", "No results"]]
-        )
+        self.assertTrue(context["ci_error"])
+        self.assertEqual(list(context["results"]), [])
 
     def test_server_error(self):
         with patch("requests.get", mock_requests_get):
@@ -3455,10 +3454,8 @@ class CISearchViewTest(TestCase):
 
         self.assertEqual(response.status_code, 200)
         context = response.context
-        self.assertIn("results", context)
-        self.assertEqual(
-            list(context["results"]), [["No results", "No results", "No results"]]
-        )
+        self.assertTrue(context["ci_error"])
+        self.assertEqual(list(context["results"]), [])
 
 
 class ChantDeleteViewTest(ChantPermissionsTestCase):
