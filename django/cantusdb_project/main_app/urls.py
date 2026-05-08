@@ -316,13 +316,13 @@ urlpatterns = [
         "CanadianChantDB/",
         CcdbLandingView.as_view(),
         name="canadian-chant-db-source-list",
-        kwargs={"segment_id": 4066},
+        kwargs={"segment_id": settings.CCDB_SEGMENT_ID},
     ),
     path(
         "CanadianChantDB/browse/",
         CcdbBrowseView.as_view(),
         name="ccdb-browse",
-        kwargs={"segment_id": 4066},
+        kwargs={"segment_id": settings.CCDB_SEGMENT_ID},
     ),
     path(
         "CanadianChantDB/team/",
