@@ -1,5 +1,6 @@
-from typing import Any
+from typing import Any, Optional
 
+from django.conf import settings
 from django.db.models import Q, QuerySet
 from django.views.generic import TemplateView
 
@@ -8,13 +9,11 @@ from main_app.views.chant import ChantSearchView
 from main_app.views.source import SourceListView
 
 AVAILABLE_SEGMENTS = [
-    (4066, "Canadian Chant Database"),
-    (4063, "Cantus Database"),
-    (4064, "Sequence Database"),
+    (settings.CCDB_SEGMENT_ID, "Canadian Chant Database"),
+    (settings.CANTUS_SEGMENT_ID, "Cantus Database"),
+    (settings.BOWER_SEGMENT_ID, "Sequence Database"),
     (4067, "Cantorales in the Americas and Beyond"),
 ]
-
-_DEFAULT_SEGMENT_ID = 4066
 
 
 class CcdbMixin:
@@ -50,7 +49,7 @@ class CcdbMapView(CcdbMixin, TemplateView):
 
 class CcdbChantSearchView(CcdbMixin, ChantSearchView):
     """
-    Chant search page scoped to the Canadian Chant Database (segment 4066) by default.
+    Chant search page scoped to the Canadian Chant Database by default.
     Users may expand the search to additional database segments via the 'db' GET param.
     Because ChantSearchView unions Chant and Sequence querysets before returning — and
     Django forbids filtering a unioned queryset — multi-segment support works by calling
@@ -60,40 +59,32 @@ class CcdbChantSearchView(CcdbMixin, ChantSearchView):
     template_name = "ccdb_chant_search.html"
 
     def _get_selected_segment_ids(self) -> list[int]:
-        """Return the segment IDs selected via 'db' GET params. Defaults to [4066]."""
+        """Return the segment IDs selected via 'db' GET params. Defaults to CCDB segment."""
         raw = self.request.GET.getlist("db")
         ids = [int(v) for v in raw if str(v).isdigit()]
-        return ids if ids else [_DEFAULT_SEGMENT_ID]
+        return ids if ids else [settings.CCDB_SEGMENT_ID]
+
+    def get_segment_id(self) -> Optional[str]:
+        seg = getattr(self, "_current_segment_id", None)
+        return str(seg) if seg is not None else None
 
     def get_queryset(self) -> QuerySet:
-        # If no search params, return empty queryset immediately (same as parent behaviour)
         if not self.request.GET:
             return Chant.objects.none()
 
-        # Compute segment IDs before any GET manipulation so they survive the copy
         self._segment_ids = self._get_selected_segment_ids()
 
-        # Make GET mutable
-        self.request.GET = self.request.GET.copy()
-
-        # Fast path: single segment — inject and delegate directly to parent
         if len(self._segment_ids) == 1:
-            self.request.GET["segment"] = str(self._segment_ids[0])
+            self._current_segment_id = self._segment_ids[0]
             return super().get_queryset()
 
         # Multi-segment: call the parent once per segment, then union the results.
-        # We cannot filter after .union(), so this is the only correct approach.
-        base_get = self.request.GET.copy()
-        base_get.pop("segment", None)
-
+        # We cannot filter after .union(), so segment injection happens via get_segment_id().
         querysets = []
         for seg_id in self._segment_ids:
-            self.request.GET = base_get.copy()
-            self.request.GET["segment"] = str(seg_id)
+            self._current_segment_id = seg_id
             querysets.append(super().get_queryset())
-
-        # Restore GET (minus segment) so get_context_data reads clean params
-        self.request.GET = base_get
+        self._current_segment_id = None
 
         combined = querysets[0]
         for qs in querysets[1:]:
@@ -103,7 +94,7 @@ class CcdbChantSearchView(CcdbMixin, ChantSearchView):
     def get_context_data(self, **kwargs: Any) -> dict:
         context = super().get_context_data(**kwargs)
         # Use segment IDs cached by get_queryset; fall back to default on initial load
-        segment_ids = getattr(self, "_segment_ids", [_DEFAULT_SEGMENT_ID])
+        segment_ids = getattr(self, "_segment_ids", [settings.CCDB_SEGMENT_ID])
         keyword = self.request.GET.get("keyword", "").strip()
 
         if keyword:
