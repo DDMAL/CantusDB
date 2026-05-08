@@ -1094,6 +1094,9 @@ class CISearchView(TemplateView):
             search_term
         )
 
+        # None means a network/timeout error; an empty list means CI returned no matches
+        context["ci_error"] = text_search_results is None
+
         cantus_id = []
         genre = []
         full_text = []
@@ -1105,10 +1108,7 @@ class CISearchView(TemplateView):
                     genre.append(result.get("genre", None))
                     full_text.append(result.get("fulltext", None))
 
-        if len(cantus_id) == 0:
-            context["results"] = [["No results", "No results", "No results"]]
-        else:
-            context["results"] = list(zip(cantus_id, genre, full_text))
+        context["results"] = list(zip(cantus_id, genre, full_text))
         return context
 
 

@@ -178,8 +178,8 @@ def get_ci_text_search(search_term: str) -> Optional[list[Optional[dict]]]:
     if not text_without_bom:
         return None
     text_search_results: list = json.loads(text_without_bom)
-    # if cantus index returns an empty table
-    if not text_search_results or not isinstance(text_search_results, list):
+    # Return None only for malformed responses; an empty list means CI found no matches
+    if not isinstance(text_search_results, list):
         return None
 
     return text_search_results
