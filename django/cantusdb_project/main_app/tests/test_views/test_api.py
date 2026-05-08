@@ -892,8 +892,8 @@ class JsonCidTest(TestCase):
 
         expected_values = {
             "siglum": chant.source.short_heading,
-            "srclink": f"http://testserver/source/{chant.source.id}",
-            "chantlink": f"http://testserver/chant/{chant.id}",
+            "srclink": f"http://testserver/source/{chant.source.id}/",
+            "chantlink": f"http://testserver/chant/{chant.id}/",
             "folio": chant.folio,
             "sequence": chant.c_sequence,
             "incipit": chant.incipit,
