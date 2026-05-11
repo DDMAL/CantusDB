@@ -12,7 +12,7 @@ AVAILABLE_SEGMENTS = [
     (settings.CCDB_SEGMENT_ID, "Canadian Chant Database"),
     (settings.CANTUS_SEGMENT_ID, "Cantus Database"),
     (settings.BOWER_SEGMENT_ID, "Sequence Database"),
-    (4067, "Cantorales in the Americas and Beyond"),
+    (settings.CANTORALES_SEGMENT_ID, "Cantorales in the Americas and Beyond"),
 ]
 
 
