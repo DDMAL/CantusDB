@@ -60,7 +60,7 @@ class CcdbChantSearchView(CcdbMixin, ChantSearchView):
 
     def __init__(self, **kwargs: Any) -> None:
         super().__init__(**kwargs)
-        self._current_segment_id: Optional[int] = None
+        self._current_segment_id: Optional[str] = None
         self._segment_ids: list[int] = []
 
     def _get_selected_segment_ids(self) -> list[int]:
@@ -70,7 +70,7 @@ class CcdbChantSearchView(CcdbMixin, ChantSearchView):
         return ids if ids else [settings.CCDB_SEGMENT_ID]
 
     def get_segment_id(self) -> Optional[str]:
-        return str(self._current_segment_id) if self._current_segment_id is not None else None
+        return self._current_segment_id
 
     def get_queryset(self) -> QuerySet:
         if not self.request.GET:
@@ -79,14 +79,14 @@ class CcdbChantSearchView(CcdbMixin, ChantSearchView):
         self._segment_ids = self._get_selected_segment_ids()
 
         if len(self._segment_ids) == 1:
-            self._current_segment_id = self._segment_ids[0]
+            self._current_segment_id = str(self._segment_ids[0])
             return super().get_queryset()
 
         # Multi-segment: call the parent once per segment, then union the results.
         # We cannot filter after .union(), so segment injection happens via get_segment_id().
         querysets = []
         for seg_id in self._segment_ids:
-            self._current_segment_id = seg_id
+            self._current_segment_id = str(seg_id)
             querysets.append(super().get_queryset())
         self._current_segment_id = None
 
