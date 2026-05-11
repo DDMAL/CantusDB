@@ -1,4 +1,5 @@
 import re
+from datetime import date
 from typing import Any, Optional, Union
 
 from django.conf import settings
@@ -346,11 +347,14 @@ class SourceListView(CustomAccessMixin, ListView):  # type: ignore[type-arg]
         context["provenances"] = (
             Provenance.objects.all().order_by("name").values("id", "name")
         )
-        # Year-range slider bounds, rounded out to the nearest decade so the
-        # slider's step="10" reaches both endpoints exactly. Cap excludes the
-        # "21st century" stub which has no sources.
+        # Year-range slider bounds. Endpoints are rounded out to the nearest
+        # decade so the slider's step="10" reaches both. The upper bound is
+        # clipped to the current decade so future-dated centuries (e.g. a
+        # "21st century" stub ending in 2099) do not stretch the slider past
+        # today.
+        current_decade = (date.today().year // 10) * 10
         century_dates = Century.objects.filter(
-            min_date__isnull=False, max_date__isnull=False, max_date__lte=2000
+            min_date__isnull=False, max_date__isnull=False
         ).aggregate(
             min_year=Min("min_date"),
             max_year=Max("max_date"),
@@ -358,7 +362,9 @@ class SourceListView(CustomAccessMixin, ListView):  # type: ignore[type-arg]
         min_year = century_dates["min_year"]
         max_year = century_dates["max_year"]
         context["date_range_min"] = (min_year // 10) * 10 if min_year is not None else None
-        context["date_range_max"] = -(-max_year // 10) * 10 if max_year is not None else None
+        context["date_range_max"] = (
+            min(-(-max_year // 10) * 10, current_decade) if max_year is not None else None
+        )
 
         context["production_method_choices"] = Source.ProductionMethodChoices.choices
         context["source_completeness_choices"] = (
