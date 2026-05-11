@@ -154,8 +154,8 @@
                                 <p>
                                     {{ chant.manuscript_full_text_std_spelling|default:"" }}
                                     <br />
-                                    <!-- See #1635. Temporarily disable volpiano display for this source. -->
-                                    {% if chant.volpiano and chant.source.id != 680970 %}
+                                    <!-- Volpiano display for source 680970 (MS 73) was temporarily disabled in #1635; re-enabled in #1893. -->
+                                    {% if chant.volpiano %}
                                         <span style="font-family: volpiano; font-size:25px">{{ chant.volpiano|default:"" }}</span>
                                     {% endif %}
                                 </p>

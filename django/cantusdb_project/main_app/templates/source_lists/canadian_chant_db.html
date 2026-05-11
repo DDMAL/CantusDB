@@ -311,8 +311,8 @@
                                         </td>
                                         <td class="text-wrap" style="text-align:center">
                                             <b>{{ source.number_of_chants|default_if_none:"0" }}</b>
-                                            <!-- See #1635. Temporarily disable volpiano display for this source. -->
-                                            {% if source.number_of_melodies and source.id !=  680970 %}
+                                            <!-- Volpiano display for source 680970 (MS 73) was temporarily disabled in #1635; re-enabled in #1893. -->
+                                            {% if source.number_of_melodies %}
                                                 <br />
                                                 / {{ source.number_of_melodies }}
                                             {% endif %}
