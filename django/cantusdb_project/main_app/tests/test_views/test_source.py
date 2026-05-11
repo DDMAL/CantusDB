@@ -1388,11 +1388,13 @@ class SourceListViewTest(CustomAccessTestMixin, TestCase):
                         else ""
                     ),
                     (
-                        source.holding_institution.siglum is None,
-                        source.holding_institution.siglum or ""
-                    )
-                    if source.holding_institution
-                    else (True, ""),
+                        (
+                            source.holding_institution.siglum is None,
+                            source.holding_institution.siglum or "",
+                        )
+                        if source.holding_institution
+                        else (True, "")
+                    ),
                     source.shelfmark,
                     source.pk,
                 ),

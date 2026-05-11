@@ -18,7 +18,7 @@ def move_cantorales_contributors(
     """
     Segment = apps.get_model("main_app", "Segment")
     try:
-        cantorales = Segment.objects.get(name="Cantorales in the Americas")
+        cantorales = Segment.objects.get(pk=4067)
     except Segment.DoesNotExist:
         return  # segment not yet created (e.g. fresh database)
 
