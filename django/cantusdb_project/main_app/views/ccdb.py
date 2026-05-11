@@ -61,6 +61,7 @@ class CcdbChantSearchView(CcdbMixin, ChantSearchView):
     def __init__(self, **kwargs: Any) -> None:
         super().__init__(**kwargs)
         self._current_segment_id: Optional[int] = None
+        self._segment_ids: list[int] = []
 
     def _get_selected_segment_ids(self) -> list[int]:
         """Return the segment IDs selected via 'db' GET params. Defaults to CCDB segment."""
@@ -97,7 +98,7 @@ class CcdbChantSearchView(CcdbMixin, ChantSearchView):
     def get_context_data(self, **kwargs: Any) -> dict:
         context = super().get_context_data(**kwargs)
         # Use segment IDs cached by get_queryset; fall back to default on initial load
-        segment_ids = getattr(self, "_segment_ids", [settings.CCDB_SEGMENT_ID])
+        segment_ids = self._segment_ids or [settings.CCDB_SEGMENT_ID]
         keyword = self.request.GET.get("keyword", "").strip()
 
         if keyword:
