@@ -346,15 +346,19 @@ class SourceListView(CustomAccessMixin, ListView):  # type: ignore[type-arg]
         context["provenances"] = (
             Provenance.objects.all().order_by("name").values("id", "name")
         )
-        # Add date range bounds for the date range slider
+        # Year-range slider bounds, rounded out to the nearest decade so the
+        # slider's step="10" reaches both endpoints exactly. Cap excludes the
+        # "21st century" stub which has no sources.
         century_dates = Century.objects.filter(
-            min_date__isnull=False, max_date__isnull=False
+            min_date__isnull=False, max_date__isnull=False, max_date__lte=2000
         ).aggregate(
             min_year=Min("min_date"),
             max_year=Max("max_date"),
         )
-        context["date_range_min"] = century_dates.get("min_year", 0)
-        context["date_range_max"] = century_dates.get("max_year", 2099)
+        min_year = century_dates["min_year"]
+        max_year = century_dates["max_year"]
+        context["date_range_min"] = (min_year // 10) * 10 if min_year is not None else None
+        context["date_range_max"] = -(-max_year // 10) * 10 if max_year is not None else None
 
         context["production_method_choices"] = Source.ProductionMethodChoices.choices
         context["source_completeness_choices"] = (
