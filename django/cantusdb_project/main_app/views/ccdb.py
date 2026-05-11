@@ -58,6 +58,10 @@ class CcdbChantSearchView(CcdbMixin, ChantSearchView):
 
     template_name = "ccdb_chant_search.html"
 
+    def __init__(self, **kwargs: Any) -> None:
+        super().__init__(**kwargs)
+        self._current_segment_id: Optional[int] = None
+
     def _get_selected_segment_ids(self) -> list[int]:
         """Return the segment IDs selected via 'db' GET params. Defaults to CCDB segment."""
         raw = self.request.GET.getlist("db")
@@ -65,8 +69,7 @@ class CcdbChantSearchView(CcdbMixin, ChantSearchView):
         return ids if ids else [settings.CCDB_SEGMENT_ID]
 
     def get_segment_id(self) -> Optional[str]:
-        seg = getattr(self, "_current_segment_id", None)
-        return str(seg) if seg is not None else None
+        return str(self._current_segment_id) if self._current_segment_id is not None else None
 
     def get_queryset(self) -> QuerySet:
         if not self.request.GET:
