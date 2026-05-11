@@ -6,7 +6,7 @@ from django.db import migrations, models
 class Migration(migrations.Migration):
 
     dependencies = [
-        ("main_app", "0041_alter_source_source_completeness"),
+        ("main_app", "0042_source_source_data_contributed_by"),
     ]
 
     operations = [

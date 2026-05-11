@@ -52,7 +52,7 @@ def reverse_populate_century_dates(apps, schema_editor):
 class Migration(migrations.Migration):
 
     dependencies = [
-        ("main_app", "0042_century_date_fields"),
+        ("main_app", "0043_century_date_fields"),
     ]
 
     operations = [
