@@ -1,0 +1,46 @@
+{% extends "base.html" %}
+{% load static %}
+{% block title %}<title>Map of Sources – Canadian Chant Database</title>{% endblock %}
+{% block favicon %}<link rel="icon" href="{% static "ccdb-images/CCDB-favicon.png" %}" />{% endblock %}
+{% block scripts %}
+    <link href="{% static 'css/ccdb_style.css' %}" rel="stylesheet" media="screen" />
+{% endblock %}
+{% block header %}
+    {% include "header/sticky_header.html" %}
+{% endblock %}
+{% block heading %}{% endblock %}
+{% block content %}
+    <div class="container-fluid ccdb-info">
+        {% include "ccdb_subpage_header.html" %}
+        <div class="row py-5 bg-white bg-opacity-75">
+            <div class="col-lg-9">
+                <h2 class="px-5 mb-4">Map of Sources</h2>
+                <div class="text-center">
+                    <iframe src="https://www.google.com/maps/d/embed?mid=1uTSnFP4RHFd7RSBIIZpJ0_i69hIpypo&ehbc=2E312F"
+                            width="100%"
+                            height="600"
+                            style="border: none;"></iframe>
+                </div>
+            </div>
+            <div class="col-lg-3">
+                <nav class="ccdb-segment-menu sticky-top pt-4">
+                    <ul class="list-unstyled">
+                        <li>
+                            <a href="{% url 'canadian-chant-db-source-list' %}">
+                                <img src="{% static 'ccdb-images/CCDB-favicon_transparentbg.png' %}"
+                                     class="ccdb-nav-home-icon"
+                                     alt="" />Home
+                            </a>
+                        </li>
+                        <li><a href="{% url 'canadian-chant-db-source-list' %}#about-section">About the Database</a></li>
+                        <li><a href="{% url 'ccdb-browse' %}">Browse the Sources</a></li>
+                        <li><a href="{% url 'ccdb-chant-search' %}">Chant Search</a></li>
+                        <li><a href="{% url 'ccdb-map' %}">Map of Sources</a></li>
+                        <li><a href="{% url 'ccdb-team' %}">Project Team</a></li>
+                        <li><a href="{% url 'canadian-chant-db-source-list' %}#acknowledgements-section">Acknowledgements</a></li>
+                    </ul>
+                </nav>
+            </div>
+        </div>
+    </div>
+{% endblock %}
