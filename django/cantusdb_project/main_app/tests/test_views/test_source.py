@@ -2,6 +2,8 @@
 Test views in views/source.py
 """
 
+import random
+
 from faker import Faker
 from typing import Dict
 
@@ -28,6 +30,7 @@ from main_app.tests.make_fakes import (
     make_fake_user,
 )
 from main_app.tests.mixins import HTMLContentsTestMixin, CustomAccessTestMixin
+from main_app.views.source import SourceListView
 from users.models import User as UserAnnotation
 
 # Create a Faker instance with locale set to Latin
@@ -1441,6 +1444,33 @@ class SourceListViewTest(CustomAccessTestMixin, TestCase):
             self.assertEqual(
                 list(reversed(expected_source_order)), list(response_sources_reverse)
             )
+
+    def test_pagination(self):
+        paginate_by = SourceListView.paginate_by
+        full_pages = 2
+        for _ in range(paginate_by * full_pages):
+            make_fake_source(published=True)
+
+        for page_num in range(1, full_pages + 1):
+            response = self.client.get(reverse("source-list"), {"page": page_num})
+            self.assertEqual(response.status_code, 200)
+            self.assertTrue(response.context["is_paginated"])
+            self.assertEqual(len(response.context["sources"]), paginate_by)
+
+        overflow = random.randint(1, paginate_by - 1)
+        for _ in range(overflow):
+            make_fake_source(published=True)
+
+        response = self.client.get(reverse("source-list"), {"page": full_pages + 1})
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(len(response.context["sources"]), overflow)
+
+        response = self.client.get(reverse("source-list"), {"page": "last"})
+        self.assertEqual(response.status_code, 200)
+
+        for invalid_page in [-1, 0, "lst", full_pages + 2]:
+            response = self.client.get(reverse("source-list"), {"page": invalid_page})
+            self.assertEqual(response.status_code, 404)
 
 
 class SourceAddImageLinksViewTest(CustomAccessTestMixin, TestCase):

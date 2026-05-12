@@ -27,7 +27,7 @@ from main_app.tests.make_fakes import (
 from main_app.tests.test_functions import mock_requests_get
 from main_app.tests.mixins import CustomAccessTestMixin
 from main_app.models import Chant, Source, Feast, Service
-from main_app.views.chant import get_feast_selector_options
+from main_app.views.chant import get_feast_selector_options, ChantSearchView, ChantSearchMSView
 
 
 # Create a Faker instance with locale set to Latin
@@ -2061,6 +2061,34 @@ class ChantSearchViewTest(CustomAccessTestMixin, TestCase):
             response, f'<a href="{image_link}" target="_blank">Image</a>', html=True
         )
 
+    def test_pagination(self):
+        paginate_by = ChantSearchView.paginate_by
+        full_pages = 2
+        source = make_fake_source(published=True)
+        for _ in range(paginate_by * full_pages):
+            make_fake_chant(source=source)
+
+        for page_num in range(1, full_pages + 1):
+            response = self.client.get(reverse("chant-search"), {"page": page_num})
+            self.assertEqual(response.status_code, 200)
+            self.assertTrue(response.context["is_paginated"])
+            self.assertEqual(len(response.context["chants"]), paginate_by)
+
+        overflow = random.randint(1, paginate_by - 1)
+        for _ in range(overflow):
+            make_fake_chant(source=source)
+
+        response = self.client.get(reverse("chant-search"), {"page": full_pages + 1})
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(len(response.context["chants"]), overflow)
+
+        response = self.client.get(reverse("chant-search"), {"page": "last"})
+        self.assertEqual(response.status_code, 200)
+
+        for invalid_page in [-1, 0, "lst", full_pages + 2]:
+            response = self.client.get(reverse("chant-search"), {"page": invalid_page})
+            self.assertEqual(response.status_code, 404)
+
 
 class ChantSearchMSViewTest(ChantPermissionsTestCase):
     def test_url_and_templates(self):
@@ -3121,6 +3149,35 @@ class ChantSearchMSViewTest(ChantPermissionsTestCase):
         html = str(response.content)
         self.assertIn(image_link, html)
         self.assertIn(f'<a href="{image_link}" target="_blank">Image</a>', html)
+
+    def test_pagination(self):
+        paginate_by = ChantSearchMSView.paginate_by
+        full_pages = 2
+        source = make_fake_source(published=True)
+        for _ in range(paginate_by * full_pages):
+            make_fake_chant(source=source)
+
+        url = reverse("chant-search-ms", args=[source.id])
+        for page_num in range(1, full_pages + 1):
+            response = self.client.get(url, {"page": page_num})
+            self.assertEqual(response.status_code, 200)
+            self.assertTrue(response.context["is_paginated"])
+            self.assertEqual(len(response.context["chants"]), paginate_by)
+
+        overflow = random.randint(1, paginate_by - 1)
+        for _ in range(overflow):
+            make_fake_chant(source=source)
+
+        response = self.client.get(url, {"page": full_pages + 1})
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(len(response.context["chants"]), overflow)
+
+        response = self.client.get(url, {"page": "last"})
+        self.assertEqual(response.status_code, 200)
+
+        for invalid_page in [-1, 0, "lst", full_pages + 2]:
+            response = self.client.get(url, {"page": invalid_page})
+            self.assertEqual(response.status_code, 404)
 
 
 @patch("requests.get", mock_requests_get)
