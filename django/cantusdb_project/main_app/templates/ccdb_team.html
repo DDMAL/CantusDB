@@ -1,0 +1,75 @@
+{% extends "base.html" %}
+{% load static %}
+{% block title %}<title>Project Team – Canadian Chant Database</title>{% endblock %}
+{% block favicon %}<link rel="icon" href="{% static "ccdb-images/CCDB-favicon.png" %}" />{% endblock %}
+{% block scripts %}
+    <link href="{% static 'css/ccdb_style.css' %}" rel="stylesheet" media="screen" />
+{% endblock %}
+{% block header %}
+    {% include "header/sticky_header.html" %}
+{% endblock %}
+{% block heading %}{% endblock %}
+{% block content %}
+    <div class="container-fluid ccdb-info">
+        {% include "ccdb_subpage_header.html" %}
+        <div class="row py-5 bg-white bg-opacity-75">
+            <div class="col-lg-9 px-5">
+                <h2 class="mb-4">Project Team</h2>
+                <div class="row">
+                    <div class="col-md-6">
+                        <div class="mb-3">
+                            <strong>Jennifer Bain</strong>
+                            <div class="small">DACT Project Director</div>
+                            <div class="small">Dalhousie University, Halifax</div>
+                        </div>
+                        <div class="mb-3">
+                            <strong>Debra Lacoste</strong>
+                            <div class="small">DACT Project Manager</div>
+                            <div class="small">Dalhousie University, Halifax</div>
+                        </div>
+                        <div class="mb-3">
+                            <strong>Julie Cumming</strong>
+                            <div class="small">DACT Manuscripts and Printed Chantbooks – McGill University, Team Lead</div>
+                            <div class="small">McGill University, Montreal</div>
+                        </div>
+                    </div>
+                    <div class="col-md-6">
+                        <div class="mb-3">
+                            <strong>D. Linda Pearse</strong>
+                            <div class="small">DACT Encounters in Kahnawà:ke, Team Lead</div>
+                        </div>
+                        <div class="mb-3">
+                            <strong>Kate Kennedy Steiner</strong>
+                            <div class="small">DACT Manuscripts and Fragments – Central & Eastern Canada, Team Lead</div>
+                            <div class="small">Conrad Grebel University College at the University of Waterloo</div>
+                        </div>
+                        <div class="mb-3">
+                            <strong>David Watt</strong>
+                            <div class="small">DACT Manuscripts and Fragments – Western Canada</div>
+                            <div class="small">University of Manitoba</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="col-lg-3">
+                <nav class="ccdb-segment-menu sticky-top pt-4">
+                    <ul class="list-unstyled">
+                        <li>
+                            <a href="{% url 'canadian-chant-db-source-list' %}">
+                                <img src="{% static 'ccdb-images/CCDB-favicon_transparentbg.png' %}"
+                                     class="ccdb-nav-home-icon"
+                                     alt="" />Home
+                            </a>
+                        </li>
+                        <li><a href="{% url 'canadian-chant-db-source-list' %}#about-section">About the Database</a></li>
+                        <li><a href="{% url 'ccdb-browse' %}">Browse the Sources</a></li>
+                        <li><a href="{% url 'ccdb-chant-search' %}">Chant Search</a></li>
+                        <li><a href="{% url 'ccdb-map' %}">Map of Sources</a></li>
+                        <li><a href="{% url 'ccdb-team' %}">Project Team</a></li>
+                        <li><a href="{% url 'canadian-chant-db-source-list' %}#acknowledgements-section">Acknowledgements</a></li>
+                    </ul>
+                </nav>
+            </div>
+        </div>
+    </div>
+{% endblock %}
