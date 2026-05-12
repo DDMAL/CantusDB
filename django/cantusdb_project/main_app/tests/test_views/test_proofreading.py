@@ -1,3 +1,5 @@
+import random
+
 from django.test import TestCase
 from django.urls import reverse
 from django.contrib.auth import get_user_model
@@ -6,6 +8,7 @@ from main_app.tests.make_fakes import (
     make_fake_chant,
     make_fake_segment,
 )
+from main_app.views.proofreading import ProofreadView
 from users.models import Group
 
 
@@ -106,21 +109,31 @@ class ProofreadingOverviewViewTest(TestCase):
         self.assertEqual(response.status_code, 200)
 
     def test_pagination(self):
-        for i in range(60):
-            source = make_fake_source(
-                title=f"Source {i}", segment=[self.cantus_segment]
-            )
-            make_fake_chant(source=source)
+        paginate_by = ProofreadView.paginate_by
+        full_pages = 2
+        for _ in range(paginate_by * full_pages):
+            make_fake_chant(source=make_fake_source(segment=[self.cantus_segment]))
 
-        response = self.client.get(self.url, {"page": 1})
+        for page_num in range(1, full_pages + 1):
+            response = self.client.get(self.url, {"page": page_num})
+            self.assertEqual(response.status_code, 200)
+            self.assertTrue(response.context["is_paginated"])
+            self.assertEqual(len(response.context["sources"]), paginate_by)
+
+        overflow = random.randint(1, paginate_by - 1)
+        for _ in range(overflow):
+            make_fake_chant(source=make_fake_source(segment=[self.cantus_segment]))
+
+        response = self.client.get(self.url, {"page": full_pages + 1})
         self.assertEqual(response.status_code, 200)
-        self.assertTrue("page_obj" in response.context)
-        self.assertEqual(len(response.context["sources"]), 50)
+        self.assertEqual(len(response.context["sources"]), overflow)
 
-        response2 = self.client.get(self.url, {"page": 2})
-        self.assertEqual(response2.status_code, 200)
-        self.assertTrue("page_obj" in response2.context)
-        self.assertEqual(len(response2.context["sources"]), 10)
+        response = self.client.get(self.url, {"page": "last"})
+        self.assertEqual(response.status_code, 200)
+
+        for invalid_page in [-1, 0, "lst", full_pages + 2]:
+            response = self.client.get(self.url, {"page": invalid_page})
+            self.assertEqual(response.status_code, 404)
 
     def test_proofreading_stats_display(self):
         source = make_fake_source(segment=[self.cantus_segment], title="Stats Source")
