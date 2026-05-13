@@ -627,6 +627,14 @@ class SourceEditForm(forms.ModelForm):
     )
 
 
+class ChantSearchForm(forms.Form):
+    feast = forms.ModelChoiceField(
+        queryset=Feast.objects.all(),
+        required=False,
+        widget=autocomplete.ModelSelect2(url="feast-autocomplete"),
+    )
+
+
 class SourceBrowseChantsProofreadForm(forms.Form):
     manuscript_full_text_std_proofread = forms.ChoiceField(
         label="Full text as in Source (standardized spelling) proofread",

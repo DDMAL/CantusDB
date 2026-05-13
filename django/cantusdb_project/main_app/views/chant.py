@@ -33,6 +33,7 @@ from main_app.forms import (
     ChantCreateForm,
     ChantEditForm,
     ChantEditSyllabificationForm,
+    ChantSearchForm,
 )
 from main_app.models import (
     Chant,
@@ -465,6 +466,9 @@ class ChantSearchView(CustomAccessMixin, ListView):  # type: ignore[type-arg]
         context["services"] = (
             Service.objects.all().order_by("name").values("id", "name")
         )
+        context["search_form"] = ChantSearchForm(
+            initial={"feast": self.request.GET.get("feast")}
+        )
         context["query_empty"] = False if self.request.GET else True
         context["order"] = self.request.GET.get("order")
         context["sort"] = self.request.GET.get("sort")
@@ -595,9 +599,9 @@ class ChantSearchView(CustomAccessMixin, ListView):  # type: ignore[type-arg]
                 if melodies == "true":
                     q_obj_filter &= Q(volpiano__isnull=False)
 
-            if feast := self.request.GET.get("feast"):
-                # This will match any feast whose name contains the feast parameter as a substring
-                q_obj_filter &= Q(feast__name__icontains=feast)
+            if feast_id := self.request.GET.get("feast"):
+                if feast_id.isdigit():
+                    q_obj_filter &= Q(feast_id=feast_id)
 
             # Filter the QuerySet with Q object
             chant_set = Chant.objects.filter(q_obj_filter).select_related(
@@ -831,10 +835,9 @@ class ChantSearchMSView(CustomAccessMixin, ListView):  # type: ignore[type-arg]
                 q_obj_filter &= Q(volpiano__isnull=False)
             if melodies == "false":
                 q_obj_filter &= Q(volpiano__isnull=True)
-        if feast := self.request.GET.get("feast"):
-            # This will match any feast whose name contains the feast parameter
-            # as a substring
-            q_obj_filter &= Q(feast__name__icontains=feast)
+        if feast_id := self.request.GET.get("feast"):
+            if feast_id.isdigit():
+                q_obj_filter &= Q(feast_id=feast_id)
 
         order_value = self.request.GET.get("order")
         sort_get_param: Optional[str] = self.request.GET.get("sort")
