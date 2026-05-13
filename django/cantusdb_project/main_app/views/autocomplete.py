@@ -49,12 +49,17 @@ class CenturyAutocomplete(autocomplete.Select2QuerySetView):
 
 
 class FeastAutocomplete(autocomplete.Select2QuerySetView):
+    def get_result_label(self, result):
+        if result.description:
+            return f"{result.name} – {result.description}"
+        return result.name
+
     def get_queryset(self):
-        if not self.request.user.is_authenticated:
-            return Feast.objects.none()
         qs = Feast.objects.all().order_by("name")
         if self.q:
-            qs = qs.filter(name__icontains=self.q)
+            qs = qs.filter(
+                Q(name__icontains=self.q) | Q(description__icontains=self.q)
+            )
         return qs
 
 
