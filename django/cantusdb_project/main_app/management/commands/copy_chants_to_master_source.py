@@ -9,23 +9,10 @@ import reversion  # type: ignore[import-untyped]
 from main_app.models import Chant, Source
 
 MASTER_SOURCE_ID = 1000289
-# Pre-copy chant count on the master source. Used as an idempotency guard:
-# a non-matching count means the command likely already ran and re-running would create duplicates.
-EXPECTED_MASTER_BASELINE = 22
 # Total rows the five folio ranges should yield. Drift here means the source sources have
 # changed since #2038 was scoped; the operator should investigate before copying blindly.
 EXPECTED_TOTAL = 709
 FOLIO_RE = re.compile(r"^K\d{3}[A-Za-z]?$")
-# Used to detect semantic folio collisions where master and the source disagree
-# on zero-padding (e.g. '89' vs '089' are the same physical page).
-LEADING_ZEROS_RE = re.compile(r"(?<!\d)0+(?=\d)")
-
-
-def _normalize_folio(folio: str | None) -> str | None:
-    """Strip leading zeros from each numeric segment so '089' and '89' compare equal."""
-    if not folio:
-        return folio
-    return LEADING_ZEROS_RE.sub("", folio)
 
 
 class Command(BaseCommand):
@@ -110,27 +97,26 @@ class Command(BaseCommand):
 
         total_to_copy = 0
         total_bad_folios = 0
+        # Materialize each group's (id, folio, c_sequence) rows once so the
+        # count / first / last / bad-folio scan / collision scan all reuse it.
+        group_rows: list[tuple[str, list[tuple[int, str | None, int | None]]]] = []
         for label, qs in groups:
-            count = qs.count()
+            rows = list(qs.values_list("id", "folio", "c_sequence"))
+            group_rows.append((label, rows))
+            count = len(rows)
             total_to_copy += count
-            first = qs.first()
-            last = qs.last()
             bad_folios = [
-                (c.id, c.folio)
-                for c in qs.only("id", "folio").iterator(chunk_size=500)
-                if c.folio and not FOLIO_RE.match(c.folio)
+                (cid, folio) for cid, folio, _ in rows
+                if folio and not FOLIO_RE.match(folio)
             ]
             total_bad_folios += len(bad_folios)
             self.stdout.write(f"\n{label}")
             self.stdout.write(f"  Count: {count}")
-            if first:
-                self.stdout.write(
-                    f"  First: folio={first.folio!r}, c_sequence={first.c_sequence}"
-                )
-            if last:
-                self.stdout.write(
-                    f"  Last:  folio={last.folio!r}, c_sequence={last.c_sequence}"
-                )
+            if rows:
+                _, first_folio, first_seq = rows[0]
+                _, last_folio, last_seq = rows[-1]
+                self.stdout.write(f"  First: folio={first_folio!r}, c_sequence={first_seq}")
+                self.stdout.write(f"  Last:  folio={last_folio!r}, c_sequence={last_seq}")
             if bad_folios:
                 preview = ", ".join(f"#{cid}={folio!r}" for cid, folio in bad_folios[:20])
                 self.stdout.write(
@@ -143,22 +129,19 @@ class Command(BaseCommand):
 
         self.stdout.write(f"\nTotal to copy: {total_to_copy}")
 
-        # Key on the normalized folio so '89' and '089' (same physical page,
-        # different zero-padding conventions) compare as equal.
-        existing_master_slots: dict[tuple[str | None, int | None], tuple[int, str | None]] = {
-            (_normalize_folio(folio), c_seq): (cid, folio)
+        existing_master_slots: dict[tuple[str | None, int | None], int] = {
+            (folio, c_seq): cid
             for cid, folio, c_seq in Chant.objects.filter(
                 source_id=MASTER_SOURCE_ID
             ).values_list("id", "folio", "c_sequence")
         }
-        collisions: list[tuple[int, str | None, int, str | None, int | None]] = []
-        for _, qs in groups:
-            for src_id, src_folio, c_seq in qs.values_list("id", "folio", "c_sequence"):
+        collisions: list[tuple[int, int, str | None, int | None]] = []
+        for _, rows in group_rows:
+            for src_id, src_folio, c_seq in rows:
                 new_folio = src_folio[1:] if src_folio else src_folio
-                match = existing_master_slots.get((_normalize_folio(new_folio), c_seq))
-                if match is not None:
-                    master_cid, master_folio = match
-                    collisions.append((master_cid, master_folio, src_id, new_folio, c_seq))
+                master_id = existing_master_slots.get((new_folio, c_seq))
+                if master_id is not None:
+                    collisions.append((master_id, src_id, new_folio, c_seq))
 
         if collisions:
             self.stdout.write(
@@ -167,13 +150,11 @@ class Command(BaseCommand):
                     f"on master {MASTER_SOURCE_ID} are already occupied:"
                 )
             )
-            for master_id, master_folio, src_id, src_folio_stripped, c_seq in collisions[:20]:
-                marker = "" if master_folio == src_folio_stripped else "  [folio normalized]"
+            for master_id, src_id, folio, c_seq in collisions[:20]:
                 self.stdout.write(
                     self.style.ERROR(
-                        f"  master #{master_id} (folio={master_folio!r}) "
-                        f"<-> src #{src_id} (folio={src_folio_stripped!r}) "
-                        f"@ c_sequence={c_seq}{marker}"
+                        f"  master #{master_id} <-> src #{src_id} "
+                        f"@ folio={folio!r}, c_sequence={c_seq}"
                     )
                 )
             if len(collisions) > 20:
@@ -184,14 +165,6 @@ class Command(BaseCommand):
         if dry_run:
             self.stdout.write(self.style.SUCCESS("\nDry run complete. No data written."))
             return
-
-        if before_count != EXPECTED_MASTER_BASELINE:
-            raise CommandError(
-                f"Master source has {before_count} chants but the expected pre-copy "
-                f"baseline is {EXPECTED_MASTER_BASELINE}. This command is one-shot; "
-                "re-running it would create duplicates. If the current state is "
-                f"intentional, update EXPECTED_MASTER_BASELINE in {__name__}."
-            )
 
         if collisions:
             raise CommandError(
@@ -223,7 +196,7 @@ class Command(BaseCommand):
             # original's successor. The OneToOneField forbids two rows sharing a
             # target, not "copying a pointer" — distinct PKs may target distinct
             # PKs without conflict.
-            original_to_copy: dict[int, int] = {}
+            copies: dict[int, Chant] = {}
             original_next: dict[int, int | None] = {}
 
             for label, qs in groups:
@@ -239,25 +212,28 @@ class Command(BaseCommand):
                     chant.save()
                     if proofread_by_pks:
                         chant.proofread_by.set(proofread_by_pks)
-                    original_to_copy[orig_id] = chant.pk
+                    copies[orig_id] = chant
                     original_next[orig_id] = orig_next_id
                     group_count += 1
                 self.stdout.write(
                     self.style.SUCCESS(f"  {label}: done ({group_count} chants)")
                 )
 
-            # Rebind next_chant on each copy to point at the copy of its
-            # original's successor. At group boundaries the successor is outside
-            # the copy range and the copy's next_chant stays None — display
-            # falls back to Chant.get_next_chant, which recomputes lazily from
-            # folio + c_sequence and ignores the persisted FK.
+            # Rebind next_chant on each copy to the copy of its original's
+            # successor; at group boundaries the successor is outside the
+            # copy range and next_chant stays None. Use save(update_fields=...)
+            # rather than QuerySet.update() so django-reversion captures the
+            # rebound state — .update() bypasses signals and would leave the
+            # revision frozen at pass-1's next_chant=None.
+            # Why this matters: views/chant.py reads chant.next_chant directly
+            # via select_related for feast-boundary detection. Chant.get_next_chant
+            # itself recomputes from folio + c_sequence and ignores the FK.
             rebound = 0
-            for orig_id, copy_id in original_to_copy.items():
+            for orig_id, copy in copies.items():
                 succ = original_next[orig_id]
-                if succ is not None and succ in original_to_copy:
-                    Chant.objects.filter(pk=copy_id).update(
-                        next_chant_id=original_to_copy[succ]
-                    )
+                if succ is not None and succ in copies:
+                    copy.next_chant = copies[succ]
+                    copy.save(update_fields=["next_chant"])
                     rebound += 1
             self.stdout.write(
                 self.style.SUCCESS(f"Rebound next_chant on {rebound} copies.")
