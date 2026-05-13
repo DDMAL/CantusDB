@@ -219,9 +219,18 @@ class Command(BaseCommand):
 
         with transaction.atomic(), reversion.create_revision():
             reversion.set_comment("copy_chants_to_master_source: issue #2038")
+            # Two passes so each copy's next_chant can point at the copy of its
+            # original's successor. The OneToOneField forbids two rows sharing a
+            # target, not "copying a pointer" — distinct PKs may target distinct
+            # PKs without conflict.
+            original_to_copy: dict[int, int] = {}
+            original_next: dict[int, int | None] = {}
+
             for label, qs in groups:
                 group_count = 0
                 for chant in qs.prefetch_related("proofread_by"):
+                    orig_id = chant.id
+                    orig_next_id = chant.next_chant_id
                     proofread_by_pks = [u.pk for u in chant.proofread_by.all()]
                     chant.pk = None
                     chant.source = master_source
@@ -230,10 +239,29 @@ class Command(BaseCommand):
                     chant.save()
                     if proofread_by_pks:
                         chant.proofread_by.set(proofread_by_pks)
+                    original_to_copy[orig_id] = chant.pk
+                    original_next[orig_id] = orig_next_id
                     group_count += 1
                 self.stdout.write(
                     self.style.SUCCESS(f"  {label}: done ({group_count} chants)")
                 )
+
+            # Rebind next_chant on each copy to point at the copy of its
+            # original's successor. At group boundaries the successor is outside
+            # the copy range and the copy's next_chant stays None — display
+            # falls back to Chant.get_next_chant, which recomputes lazily from
+            # folio + c_sequence and ignores the persisted FK.
+            rebound = 0
+            for orig_id, copy_id in original_to_copy.items():
+                succ = original_next[orig_id]
+                if succ is not None and succ in original_to_copy:
+                    Chant.objects.filter(pk=copy_id).update(
+                        next_chant_id=original_to_copy[succ]
+                    )
+                    rebound += 1
+            self.stdout.write(
+                self.style.SUCCESS(f"Rebound next_chant on {rebound} copies.")
+            )
 
         after_count = Chant.objects.filter(source_id=MASTER_SOURCE_ID).count()
         self.stdout.write(
