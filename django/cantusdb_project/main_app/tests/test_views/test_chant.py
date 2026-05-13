@@ -744,8 +744,7 @@ class ChantSearchViewTest(CustomAccessTestMixin, TestCase):
         source = make_fake_source(published=True)
         feast = make_fake_feast()
         chant = make_fake_chant(source=source, feast=feast)
-        search_term = get_random_search_term(feast.name)
-        response = self.client.get(reverse("chant-search"), {"feast": search_term})
+        response = self.client.get(reverse("chant-search"), {"feast": feast.id})
         context_chant_id = response.context["chants"][0].id
         self.assertEqual(chant.id, context_chant_id)
 
@@ -1732,7 +1731,7 @@ class ChantSearchViewTest(CustomAccessTestMixin, TestCase):
             "genre": genre.id,
             "cantus_id": cantus_id,
             "mode": mode,
-            "feast": feast.name,
+            "feast": feast.id,
             "position": position,
             "melodies": "true",
         }
@@ -2151,9 +2150,8 @@ class ChantSearchMSViewTest(ChantPermissionsTestCase):
         source = make_fake_source()
         feast = make_fake_feast()
         chant = make_fake_chant(source=source, feast=feast)
-        search_term = get_random_search_term(feast.name)
         response = self.client.get(
-            reverse("chant-search-ms", args=[source.id]), {"feast": search_term}
+            reverse("chant-search-ms", args=[source.id]), {"feast": feast.id}
         )
         context_chant_id = response.context["chants"][0].id
         self.assertEqual(chant.id, context_chant_id)
@@ -2800,7 +2798,7 @@ class ChantSearchMSViewTest(ChantPermissionsTestCase):
             "genre": genre.id,
             "cantus_id": cantus_id,
             "mode": mode,
-            "feast": feast.name,
+            "feast": feast.id,
             "position": position,
             "melodies": "true",
         }
