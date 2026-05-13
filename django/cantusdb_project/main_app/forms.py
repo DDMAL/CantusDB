@@ -321,6 +321,7 @@ class SourceCreateForm(forms.ModelForm):
             "description_entered_by",
             "proofreaders",
             "other_editors",
+            "source_data_contributed_by",
             "complete_inventory",
             "summary",
             "description",
@@ -371,6 +372,9 @@ class SourceCreateForm(forms.ModelForm):
                 url="all-users-autocomplete"
             ),
             "other_editors": autocomplete.ModelSelect2Multiple(
+                url="all-users-autocomplete"
+            ),
+            "source_data_contributed_by": autocomplete.ModelSelect2Multiple(
                 url="all-users-autocomplete"
             ),
             "production_method": SelectWidget(),
@@ -566,6 +570,7 @@ class SourceEditForm(forms.ModelForm):
             "description_entered_by",
             "proofreaders",
             "other_editors",
+            "source_data_contributed_by",
             "production_method",
             "source_completeness",
         ]
@@ -605,6 +610,9 @@ class SourceEditForm(forms.ModelForm):
                 url="all-users-autocomplete"
             ),
             "other_editors": autocomplete.ModelSelect2Multiple(
+                url="all-users-autocomplete"
+            ),
+            "source_data_contributed_by": autocomplete.ModelSelect2Multiple(
                 url="all-users-autocomplete"
             ),
             "production_method": SelectWidget(),

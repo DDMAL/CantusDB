@@ -584,6 +584,23 @@
                                 {% endfor %}
                             </ul>
                         {% endif %}
+                        {% if source.source_data_contributed_by.exists %}
+                            Source metadata contributed by:
+                            <ul class="mb-0">
+                                {% for contributor in source.source_data_contributed_by.all %}
+                                    <li>
+                                        {% if contributor.full_name %}
+                                            <a href="{% url 'user-detail' contributor.id %}">{{ contributor.full_name }}</a>
+                                            <br />
+                                        {% else %}
+                                            <a href="{% url 'user-detail' contributor.id %}">User {{ contributor.id }}</a>
+                                            <br />
+                                        {% endif %}
+                                        {{ contributor.institution|default_if_none:"" }}
+                                    </li>
+                                {% endfor %}
+                            </ul>
+                        {% endif %}
                         {{ source.indexing_notes|default_if_none:""|safe }}
                         <br />
                         {% with creator=source.created_by %}
