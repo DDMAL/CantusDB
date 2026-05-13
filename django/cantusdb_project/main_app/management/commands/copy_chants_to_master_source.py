@@ -11,10 +11,10 @@ from main_app.models import Chant, Source
 MASTER_SOURCE_ID = 1000289
 # Pre-copy chant count on the master source. Used as an idempotency guard:
 # a non-matching count means the command likely already ran and re-running would create duplicates.
-EXPECTED_MASTER_BASELINE = 19
+EXPECTED_MASTER_BASELINE = 22
 # Total rows the five folio ranges should yield. Drift here means the source sources have
 # changed since #2038 was scoped; the operator should investigate before copying blindly.
-EXPECTED_TOTAL = 705
+EXPECTED_TOTAL = 709
 FOLIO_RE = re.compile(r"^K\d{3}[A-Za-z]?$")
 # Used to detect semantic folio collisions where master and the source disagree
 # on zero-padding (e.g. '89' vs '089' are the same physical page).
@@ -29,7 +29,7 @@ def _normalize_folio(folio: str | None) -> str | None:
 
 
 class Command(BaseCommand):
-    help = "Copy 705 chants from student-work sources into the Kaiatonsera master source (issue #2038)."
+    help = f"Copy {EXPECTED_TOTAL} chants from student-work sources into the Kaiatonsera master source (issue #2038)."
 
     def add_arguments(self, parser: argparse.ArgumentParser) -> None:
         parser.add_argument(
