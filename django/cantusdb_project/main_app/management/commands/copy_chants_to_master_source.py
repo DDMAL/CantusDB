@@ -18,6 +18,8 @@ import reversion  # type: ignore[import-untyped]
 from main_app.models import Chant, Source
 
 MASTER_SOURCE_ID = 1000289
+STUDENT_SOURCE_260 = 1000260
+STUDENT_SOURCE_208 = 1000208
 FOLIO_RE = re.compile(r"^K\d{3}[A-Za-z]?$")
 
 # (id, folio, c_sequence) tuples materialized from each group's queryset.
@@ -112,7 +114,7 @@ class Command(BaseCommand):
             (
                 "Group 1: source 1000260, K005–K028",
                 Chant.objects.filter(
-                    source_id=1000260,
+                    source_id=STUDENT_SOURCE_260,
                     folio__gte="K005",
                     folio__lt="K029",
                 ).order_by("folio", "c_sequence"),
@@ -120,14 +122,14 @@ class Command(BaseCommand):
             (
                 "Group 2: source 1000208, K039–K053",
                 Chant.objects.filter(
-                    source_id=1000208,
+                    source_id=STUDENT_SOURCE_208,
                     folio__gte="K039",
                     folio__lt="K054",
                 ).order_by("folio", "c_sequence"),
             ),
             (
                 "Group 3: source 1000260, K053(seq≥5)–K067",
-                Chant.objects.filter(source_id=1000260)
+                Chant.objects.filter(source_id=STUDENT_SOURCE_260)
                 .filter(
                     Q(folio="K053", c_sequence__gte=5)
                     | Q(folio__gt="K053", folio__lt="K068")
@@ -137,14 +139,14 @@ class Command(BaseCommand):
             (
                 "Group 4: source 1000260, K082–K090",
                 Chant.objects.filter(
-                    source_id=1000260,
+                    source_id=STUDENT_SOURCE_260,
                     folio__gte="K082",
                     folio__lt="K091",
                 ).order_by("folio", "c_sequence"),
             ),
             (
                 "Group 5: source 1000208, K090(seq≥7)–K108",
-                Chant.objects.filter(source_id=1000208)
+                Chant.objects.filter(source_id=STUDENT_SOURCE_208)
                 .filter(
                     Q(folio="K090", c_sequence__gte=7)
                     | Q(folio__gt="K090", folio__lt="K109")
