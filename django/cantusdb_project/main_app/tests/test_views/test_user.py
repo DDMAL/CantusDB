@@ -103,6 +103,11 @@ class IndexerListViewTestCase(CustomAccessTestMixin, TestCase):
 
 
 class UserSourceListViewTest(TestCase):
+    # No setUpTestData: data is user-specific and created per test.
+    def test_unauthenticated_access(self) -> None:
+        response = self.client.get(reverse("my-sources"))
+        self.assertRedirects(response, f"/login/?next={reverse('my-sources')}")
+
     def test_pagination(self) -> None:
         paginate_by = UserSourceListView.paginate_by
         full_pages = 2
