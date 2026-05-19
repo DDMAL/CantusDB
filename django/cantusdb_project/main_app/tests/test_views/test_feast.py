@@ -134,6 +134,7 @@ class FeastListViewTest(TestCase):
         # test the "last" syntax
         response = self.client.get(reverse("feast-list"), {"page": "last"})
         self.assertEqual(response.status_code, 200)
+        self.assertEqual(len(response.context["feasts"]), new_feast_count - feast_count)
 
         # Test some invalid values for pages
         response = self.client.get(reverse("feast-list"), {"page": -1})

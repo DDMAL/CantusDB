@@ -1457,6 +1457,7 @@ class SourceListViewTest(CustomAccessTestMixin, TestCase):
             self.assertTrue(response.context["is_paginated"])
             self.assertEqual(len(response.context["sources"]), paginate_by)
 
+        random.seed(0)
         overflow = random.randint(1, paginate_by - 1)
         for _ in range(overflow):
             make_fake_source(published=True)
@@ -1467,6 +1468,7 @@ class SourceListViewTest(CustomAccessTestMixin, TestCase):
 
         response = self.client.get(reverse("source-list"), {"page": "last"})
         self.assertEqual(response.status_code, 200)
+        self.assertEqual(len(response.context["sources"]), overflow)
 
         for invalid_page in [-1, 0, "lst", full_pages + 2]:
             response = self.client.get(reverse("source-list"), {"page": invalid_page})

@@ -95,6 +95,7 @@ class IndexerListViewTestCase(CustomAccessTestMixin, TestCase):
 
         response = self.client.get(reverse("indexer-list"), {"page": "last"})
         self.assertEqual(response.status_code, 200)
+        self.assertEqual(len(response.context["indexers"]), overflow)
 
         for invalid_page in [-1, 0, "lst", full_pages + 2]:
             response = self.client.get(reverse("indexer-list"), {"page": invalid_page})
@@ -127,6 +128,7 @@ class UserSourceListViewTest(TestCase):
 
         response = self.client.get(reverse("my-sources"), {"page": "last"})
         self.assertEqual(response.status_code, 200)
+        self.assertEqual(len(response.context["sources"]), overflow)
 
         for invalid_page in [-1, 0, "lst", full_pages + 2]:
             response = self.client.get(reverse("my-sources"), {"page": invalid_page})

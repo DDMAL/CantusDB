@@ -2086,6 +2086,7 @@ class ChantSearchViewTest(CustomAccessTestMixin, TestCase):
 
         response = self.client.get(reverse("chant-search"), {"page": "last"})
         self.assertEqual(response.status_code, 200)
+        self.assertEqual(len(response.context["chants"]), overflow)
 
         for invalid_page in [-1, 0, "lst", full_pages + 2]:
             response = self.client.get(reverse("chant-search"), {"page": invalid_page})
@@ -3177,6 +3178,7 @@ class ChantSearchMSViewTest(ChantPermissionsTestCase):
 
         response = self.client.get(url, {"page": "last"})
         self.assertEqual(response.status_code, 200)
+        self.assertEqual(len(response.context["chants"]), overflow)
 
         for invalid_page in [-1, 0, "lst", full_pages + 2]:
             response = self.client.get(url, {"page": invalid_page})
