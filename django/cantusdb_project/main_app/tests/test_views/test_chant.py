@@ -779,6 +779,7 @@ class ChantSearchViewTest(CustomAccessTestMixin, TestCase):
             manuscript_full_text_std_spelling=faker.sentence(),
         )
         # use the beginning part of the full text as the search term
+        random.seed(0)
         search_term = chant.manuscript_full_text_std_spelling[
             0 : random.randint(1, len(chant.manuscript_full_text_std_spelling))
         ]
@@ -2074,6 +2075,7 @@ class ChantSearchViewTest(CustomAccessTestMixin, TestCase):
             self.assertTrue(response.context["is_paginated"])
             self.assertEqual(len(response.context["chants"]), paginate_by)
 
+        random.seed(0)
         overflow = random.randint(1, paginate_by - 1)
         for _ in range(overflow):
             make_fake_chant(source=source)
@@ -3164,6 +3166,7 @@ class ChantSearchMSViewTest(ChantPermissionsTestCase):
             self.assertTrue(response.context["is_paginated"])
             self.assertEqual(len(response.context["chants"]), paginate_by)
 
+        random.seed(0)
         overflow = random.randint(1, paginate_by - 1)
         for _ in range(overflow):
             make_fake_chant(source=source)
@@ -3291,6 +3294,7 @@ class ChantCreateViewTest(CustomAccessTestMixin, TestCase):
         # post a chant with the same folio and seq
         url = reverse("chant-create", args=[source.id])
         fake_text = "this is also a fake but valid text"
+        random.seed(0)
         response = self.client.post(
             url,
             data={

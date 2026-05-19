@@ -84,6 +84,7 @@ class IndexerListViewTestCase(CustomAccessTestMixin, TestCase):
             self.assertTrue(response.context["is_paginated"])
             self.assertEqual(len(response.context["indexers"]), paginate_by)
 
+        random.seed(0)
         overflow = random.randint(1, paginate_by - 1)
         for _ in range(overflow):
             make_fake_source(published=True)
@@ -115,6 +116,7 @@ class UserSourceListViewTest(TestCase):
             self.assertTrue(response.context["is_paginated"])
             self.assertEqual(len(response.context["sources"]), paginate_by)
 
+        random.seed(0)
         overflow = random.randint(1, paginate_by - 1)
         for _ in range(overflow):
             make_fake_source(published=True, current_editors=[user])

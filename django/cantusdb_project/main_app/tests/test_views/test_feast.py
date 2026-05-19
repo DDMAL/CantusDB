@@ -119,6 +119,7 @@ class FeastListViewTest(TestCase):
             self.assertEqual(len(response.context["feasts"]), PAGINATE_BY)
 
         # test a little more than 2 full pages of feasts
+        random.seed(0)
         new_feast_count = feast_count + random.randint(1, PAGINATE_BY - 1)
         for i in range(new_feast_count - feast_count):
             make_fake_feast()

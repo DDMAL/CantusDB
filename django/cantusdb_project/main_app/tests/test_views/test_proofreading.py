@@ -120,6 +120,7 @@ class ProofreadingOverviewViewTest(TestCase):
             self.assertTrue(response.context["is_paginated"])
             self.assertEqual(len(response.context["sources"]), paginate_by)
 
+        random.seed(0)
         overflow = random.randint(1, paginate_by - 1)
         for _ in range(overflow):
             make_fake_chant(source=make_fake_source(segment=[self.cantus_segment]))
