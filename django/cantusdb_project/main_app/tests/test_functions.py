@@ -1,10 +1,11 @@
 from typing import Union, Optional
 from unittest.mock import patch
 
-
+from django.core.exceptions import ValidationError
 from django.test import TestCase
 import requests
 from requests.exceptions import SSLError, Timeout, HTTPError
+from main_app.models.url_field import NormalizedURLField, NormalizedURLFormField
 from main_app.models import (
     Chant,
     Source,
@@ -483,3 +484,64 @@ class CantusIndexFunctionsTest(TestCase):
                 results = get_ci_text_search("HTTPError")
             self.assertRaises(HTTPError)
             self.assertIsNone(results)
+
+
+class NormalizedURLFormFieldTest(TestCase):
+    def setUp(self):
+        self.field = NormalizedURLFormField(required=False)
+
+    def test_spaces_encoded(self):
+        result = self.field.clean(
+            "https://example.com/Folio 92r.jpg"
+        )
+        self.assertEqual(
+            result,
+            "https://example.com/Folio%2092r.jpg",
+        )
+
+    def test_already_encoded_unchanged(self):
+        url = "https://example.com/Folio%2092r.jpg"
+        self.assertEqual(self.field.clean(url), url)
+
+    def test_leading_trailing_whitespace_stripped(self):
+        result = self.field.clean("  https://example.com/image.jpg  ")
+        self.assertEqual(result, "https://example.com/image.jpg")
+
+    def test_spaces_in_query_string_encoded(self):
+        result = self.field.clean("https://example.com/search?q=some query")
+        self.assertEqual(result, "https://example.com/search?q=some%20query")
+
+    def test_invalid_url_rejected(self):
+        with self.assertRaises(ValidationError):
+            self.field.clean("not a url at all")
+
+    def test_empty_string_returns_empty(self):
+        self.assertEqual(self.field.clean(""), "")
+
+
+class NormalizedURLModelFieldTest(TestCase):
+    """Covers code paths that skip forms (admin, management commands, ORM)."""
+
+    def setUp(self):
+        self.field = NormalizedURLField(blank=True, null=True)
+
+    def test_to_python_encodes_spaces(self):
+        self.assertEqual(
+            self.field.to_python("https://example.com/Folio 92r.jpg"),
+            "https://example.com/Folio%2092r.jpg",
+        )
+
+    def test_get_prep_value_encodes_spaces(self):
+        # Exercised on direct .save() even without full_clean().
+        self.assertEqual(
+            self.field.get_prep_value("https://example.com/Folio 92r.jpg"),
+            "https://example.com/Folio%2092r.jpg",
+        )
+
+    def test_deconstruct_reports_as_plain_urlfield(self):
+        # Keeps makemigrations from generating a no-op migration.
+        _, path, _, _ = self.field.deconstruct()
+        self.assertEqual(path, "django.db.models.URLField")
+
+    def test_formfield_returns_normalizing_form_field(self):
+        self.assertIsInstance(self.field.formfield(), NormalizedURLFormField)

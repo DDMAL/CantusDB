@@ -3,6 +3,7 @@ from typing import Any
 from django.db import models
 from django.contrib.auth import get_user_model
 
+from main_app.models.url_field import NormalizedURLField
 from main_app.models import BaseModel, Segment
 
 
@@ -157,7 +158,7 @@ class Source(BaseModel):
     liturgical_occasions = models.TextField(blank=True, null=True)
     description = models.TextField(blank=True, null=True)
     selected_bibliography = models.TextField(blank=True, null=True)
-    image_link = models.URLField(
+    image_link = NormalizedURLField(
         blank=True,
         null=True,
         help_text="HTTP link to the image gallery of the source.",
