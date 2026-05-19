@@ -334,7 +334,11 @@ class Command(BaseCommand):
                 chant.next_chant = None
                 chant.save()
                 if proofread_by_pks:
-                    chant.proofread_by.set(proofread_by_pks)
+                    # add() rather than set(): set() consults the prefetch
+                    # cache, which still points at the original chant's pk,
+                    # so it decides the M2M is already in place and inserts
+                    # nothing into the new row's through table.
+                    chant.proofread_by.add(*proofread_by_pks)
                 copies[orig_id] = chant
                 original_next[orig_id] = orig_next_id
                 group_count += 1
