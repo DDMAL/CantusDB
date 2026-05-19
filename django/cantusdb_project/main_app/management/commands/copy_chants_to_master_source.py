@@ -18,9 +18,6 @@ import reversion  # type: ignore[import-untyped]
 from main_app.models import Chant, Source
 
 MASTER_SOURCE_ID = 1000289
-# Total rows the five folio ranges should yield. Drift here may mean the source
-# sources have changed since #2038 was scoped
-EXPECTED_TOTAL = 709
 FOLIO_RE = re.compile(r"^K\d{3}[A-Za-z]?$")
 
 # (id, folio, c_sequence) tuples materialized from each group's queryset.
@@ -33,8 +30,10 @@ CrossCollision = tuple[str | None, int | None, list[int]]
 
 class Command(BaseCommand):
     help = (
-        f"Copy {EXPECTED_TOTAL} chants from student-work sources into the "
-        "Kaiatonsera master source (issue #2038)."
+        "Copy chants from student-work sources into the Kaiatonsera master "
+        "source (issue #2038). Pass --expected-total to declare the number "
+        "of rows you expect to copy; the command refuses to run if the "
+        "actual total differs."
     )
 
     def add_arguments(self, parser: argparse.ArgumentParser) -> None:
@@ -44,17 +43,24 @@ class Command(BaseCommand):
             help="Print per-group counts and sanity checks without writing any data.",
         )
         parser.add_argument(
-            "--allow-drift",
-            action="store_true",
+            "--expected-total",
+            type=int,
+            default=None,
             help=(
-                "Proceed even if total_to_copy != EXPECTED_TOTAL. "
-                "Only set this after verifying the dry-run output."
+                "Required for non-dry-run invocations. The command refuses "
+                "to copy if the actual row count differs from this value. "
+                "Run with --dry-run first to discover the current count."
             ),
         )
 
     def handle(self, *args, **options) -> None:
         dry_run: bool = options["dry_run"]
-        allow_drift: bool = options["allow_drift"]
+        expected_total: int | None = options["expected_total"]
+        if not dry_run and expected_total is None:
+            raise CommandError(
+                "--expected-total is required for non-dry-run invocations. "
+                "Run with --dry-run first to discover the current count."
+            )
 
         master_source = self._get_master_source()
         groups = self._build_groups()
@@ -77,7 +83,7 @@ class Command(BaseCommand):
             cross_collisions=cross_collisions,
             total_to_copy=total_to_copy,
             total_bad_folios=total_bad_folios,
-            allow_drift=allow_drift,
+            expected_total=expected_total,
         )
 
         before_count = Chant.objects.filter(source_id=MASTER_SOURCE_ID).count()
@@ -280,7 +286,7 @@ class Command(BaseCommand):
         cross_collisions: list[CrossCollision],
         total_to_copy: int,
         total_bad_folios: int,
-        allow_drift: bool,
+        expected_total: int | None,
     ) -> None:
         if collisions:
             raise CommandError(
@@ -298,13 +304,12 @@ class Command(BaseCommand):
                 "Re-run with --dry-run to see the full list, then narrow the source "
                 "ranges or coordinate with the data owner before re-running."
             )
-        if total_to_copy != EXPECTED_TOTAL and not allow_drift:
+        if expected_total is not None and total_to_copy != expected_total:
             raise CommandError(
-                f"Refusing to copy: total_to_copy={total_to_copy} but EXPECTED_TOTAL="
-                f"{EXPECTED_TOTAL}. The source sources may have drifted since #2038 "
-                "was scoped. Re-run with --dry-run to inspect, then either pass "
-                "--allow-drift for this one-time run, or bump EXPECTED_TOTAL in code "
-                f"to {total_to_copy} if the new count is the new normal."
+                f"Refusing to copy: total_to_copy={total_to_copy} but "
+                f"--expected-total={expected_total}. Re-run with --dry-run "
+                "to inspect, then either correct your --expected-total or "
+                "fix the source data."
             )
         if total_bad_folios:
             raise CommandError(
@@ -334,10 +339,6 @@ class Command(BaseCommand):
                 chant.next_chant = None
                 chant.save()
                 if proofread_by_pks:
-                    # add() rather than set(): set() consults the prefetch
-                    # cache, which still points at the original chant's pk,
-                    # so it decides the M2M is already in place and inserts
-                    # nothing into the new row's through table.
                     chant.proofread_by.add(*proofread_by_pks)
                 copies[orig_id] = chant
                 original_next[orig_id] = orig_next_id
