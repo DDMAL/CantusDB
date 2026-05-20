@@ -302,7 +302,7 @@ class Command(BaseCommand):
             raise CommandError(
                 f"Refusing to copy: {len(cross_collisions)} (folio, c_sequence) slot(s) "
                 "would be occupied by multiple copies. The source folio ranges "
-                "overlap, and two copies cannot share the same page address on master."
+                "overlap, and two copies cannot share the same page address on master. "
                 "Re-run with --dry-run to see the full list, then narrow the source "
                 "ranges or coordinate with the data owner before re-running."
             )

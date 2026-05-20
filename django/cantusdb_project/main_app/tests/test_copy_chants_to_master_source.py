@@ -198,10 +198,11 @@ class CopyChantToMasterSourceTest(TestCase):
             call_command(COMMAND, expected_total=total, stdout=out)
 
         self.assertEqual(Chant.objects.filter(source_id=MASTER_SOURCE_ID).count(), before)
-        # Offending slot must appear in the pre-guard output under the
-        # COLLISION header — substring "005" alone is too loose.
+        # The collision listing uses the stripped folio, so "folio='005'" only
+        # appears in the COLLISION line. The per-group summary prints the
+        # original "folio='K005'", which would match a looser "005" assertion.
         self.assertIn("COLLISION", out.getvalue())
-        self.assertIn("005", out.getvalue())
+        self.assertIn("folio='005'", out.getvalue())
 
     def test_cross_copy_collision_blocks(self) -> None:
         # Groups 2 and 3 overlap at K053 seq 5:
