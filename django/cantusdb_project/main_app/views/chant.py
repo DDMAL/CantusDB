@@ -450,7 +450,7 @@ class ChantSearchView(CustomAccessMixin, ListView):  # type: ignore[type-arg]
                       Volpiano form. Valid values are "true" or "false".
         ``feast``: Filters by Feast of Chant
         ``keyword``: Searches text of Chant for keywords
-        ``op``: Operation to take with keyword search. Options are "contains" and "starts_with"
+        ``op``: Operation to take with keyword search. Options are "contains", "starts_with", and "ends_with"
     """
 
     paginate_by = 100
@@ -735,7 +735,7 @@ class ChantSearchMSView(CustomAccessMixin, ListView):  # type: ignore[type-arg]
                       Volpiano form. Valid values are "true" or "false".
         ``feast``: Filters by Feast of Chant
         ``keyword``: Searches text of Chant for keywords
-        ``op``: Operation to take with keyword search. Options are "contains" and "starts_with"
+        ``op``: Operation to take with keyword search. Options are "contains", "starts_with", and "ends_with"
     """
 
     paginate_by = 100
