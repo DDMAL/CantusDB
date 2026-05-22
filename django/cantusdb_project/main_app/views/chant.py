@@ -519,6 +519,9 @@ class ChantSearchView(CustomAccessMixin, ListView):  # type: ignore[type-arg]
 
         return context
 
+    def get_segment_id(self) -> Optional[str]:
+        return self.request.GET.get("segment")
+
     def get_queryset(self) -> QuerySet[Chant]:
         # if user has just arrived on the Chant Search page, there will be no GET parameters.
         if not self.request.GET:
@@ -564,7 +567,7 @@ class ChantSearchView(CustomAccessMixin, ListView):  # type: ignore[type-arg]
                 sequence_set = sequence_set.filter(
                     source__in=self.published_and_assigned_sources
                 )
-            if segment_id := self.request.GET.get("segment"):
+            if segment_id := self.get_segment_id():
                 chant_set = chant_set.filter(source__segment_m2m=segment_id)
                 sequence_set = sequence_set.filter(source__segment_m2m=segment_id)
 
@@ -639,7 +642,7 @@ class ChantSearchView(CustomAccessMixin, ListView):  # type: ignore[type-arg]
             chant_set = chant_set.only(*ONLY_FIELDS)
             sequence_set = sequence_set.only(*ONLY_FIELDS)
 
-            if segment_id := self.request.GET.get("segment"):
+            if segment_id := self.get_segment_id():
                 chant_set = chant_set.filter(source__segment_m2m=segment_id)
                 sequence_set = sequence_set.filter(source__segment_m2m=segment_id)
 
