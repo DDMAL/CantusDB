@@ -4,11 +4,11 @@ Django app for the Cantus Database — a digital catalogue of medieval Latin cha
 
 ## Stack
 
-Django + Postgres + Redis/Celery, managed with Poetry. `django-reversion` tracks model history; `volpiano-display-utilities` is a custom DDMAL dependency installed from git. See `pyproject.toml` for versions.
+Django + Postgres + Redis/Celery, managed with Poetry. `volpiano-display-utilities` is a custom DDMAL dependency installed from git, not PyPI. See `pyproject.toml` for versions.
 
 ## Local development
 
-Docker Compose is the only supported local setup — bare `manage.py runserver` is not used.
+Docker Compose is the only supported local setup — bare `manage.py runserver` is not used. First-time setup (env file, compose file layout, Dev Containers option) is in the wiki.
 
 ```bash
 docker compose up
@@ -50,6 +50,12 @@ Branch names: `feat/<topic>` or `fix/<topic>`.
 
 Commit messages: Conventional Commits (`feat:`, `fix:`, `refactor:`, `docs:`, `chore:`).
 
+**Keep PRs small and focused.** Sprawling diffs are hard to review and slow the project down.
+
+- One concern per PR. If you spot an unrelated bug, smell, or cleanup, surface it — don't bundle it in.
+- Watch for scope creep. If you find yourself refactoring surrounding code, touching many files, or pulling in unplanned schema/migration work, pause and warn the user before continuing.
+- New dependencies need explicit sign-off — don't add them silently.
+
 ## Architecture
 
 - `users/` defines a custom `Group` and `GroupMembership` — **distinct from `django.contrib.auth.Group`, which is unregistered.** Don't confuse the two.
@@ -71,16 +77,16 @@ Old groups `contributor` and `project manager` are deprecated. Only `editor` and
 
 ## Migrations
 
-- Migrations auto-run on container build.
+- Migrations do **not** auto-run. Apply them manually: `docker compose exec -T django python manage.py migrate`.
 - Data migrations using `RunPython` should define `reverse_code` where applicable.
 
 ## Project quirks
 
-- **Single `published` field controls visibility.** OldCantus had separate `published` and `visible`; that was intentionally collapsed. `published=True` → everyone sees it; `published=False` → only logged-in users. Do not reintroduce a `visible` field.
+- **Single `published` field controls visibility.** OldCantus had separate `published` and `visible`; that was intentionally collapsed. Do not reintroduce a `visible` field. See *User permissions* for what `published` actually gates — it's not a simple "anonymous vs. logged-in" split.
 - **CSV/JSON exports diverge from OldCantus.** Some endpoints (`/json-node`, `/json-activity`) behave differently or aren't implemented. Verify the OldCantus shape before claiming parity — README has the diff.
 
 ## More context
 
-- Project wiki (API docs, history): <https://github.com/DDMAL/CantusDB/wiki>
+- Project wiki (API docs, history, local-dev setup): <https://github.com/DDMAL/CantusDB/wiki>
 - Deployment / infrastructure (Ansible playbooks): <https://github.com/DDMAL/ansible.cantus-db>
 - `README.md` covers the OldCantus → CantusDB transition and known test-data quirks.
