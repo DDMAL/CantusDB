@@ -3,9 +3,9 @@ from typing import List, Dict, Any
 
 import requests
 from celery import shared_task, Task
-from django.db.models import Count
+from django.db.models import Count, Q
 
-from main_app.models import Chant
+from main_app.models import Chant, Sequence
 from main_app.forms import BrowseChantsBulkEditFormset
 
 
@@ -54,6 +54,39 @@ def check_cantus_ids_not_in_ci() -> dict:
         "published": list(base_qs.filter(source__published=True).order_by("cantus_id")),
         "unpublished": list(base_qs.filter(source__published=False).order_by("cantus_id")),
     }
+
+def check_duplicate_folio_sequence() -> dict:
+    """
+    Returns groups where (source, folio, sequence) is duplicated.
+    Each row is one unique combination with a count of how many chants share it.
+    Folio already encodes the side (e.g. '002r', '002v').
+    Split into published and unpublished for manual correction.
+    """
+    chant_dups = (
+        Chant.objects.exclude(folio__isnull=True)
+        .exclude(c_sequence__isnull=True)
+        .values("source_id", "source__published", "folio", "c_sequence")
+        .annotate(count=Count("id"))
+        .filter(count__gt=1)
+        .order_by("source_id", "folio", "c_sequence")
+    )
+
+    seq_dups = (
+        Sequence.objects.exclude(folio__isnull=True)
+        .exclude(s_sequence__isnull=True)
+        .values("source_id", "source__published", "folio", "s_sequence")
+        .annotate(count=Count("id"))
+        .filter(count__gt=1)
+        .order_by("source_id", "folio", "s_sequence")
+    )
+
+    published = [g for g in chant_dups if g["source__published"]] + \
+                [g for g in seq_dups if g["source__published"]]
+    unpublished = [g for g in chant_dups if not g["source__published"]] + \
+                  [g for g in seq_dups if not g["source__published"]]
+
+    return {"published": published, "unpublished": unpublished}
+
 
 @shared_task(name="cantusdb.save_browse_chants_formset", bind=True)
 def save_browse_chants_formset(
