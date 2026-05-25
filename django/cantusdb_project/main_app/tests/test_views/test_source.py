@@ -627,10 +627,10 @@ class SourceBrowseChantsViewTest(SourcePermissionsTestCase):
         response_1 = self.client.get(reverse("browse-chants", args=[bower_source.id]))
         self.assertEqual(response_1.status_code, 404)
 
-    def test_non_cantus_segment_source_appears_selected_in_dropdown(self):
-        # A source outside the CantusDatabase segment must appear in the sources dropdown can be marked as selected.
+    def test_non_cantus_segment_source_appears_in_dropdown(self):
+        # A source outside the CantusDatabase segment must appear in the sources dropdown so it can be marked as selected.
         make_fake_segment(id=4063)
-        other_segment = make_fake_segment()
+        other_segment = make_fake_segment(id=9999)
         non_cantus_source = make_fake_source(segment=[other_segment], published=True)
         make_fake_chant(source=non_cantus_source)
         response = self.client.get(

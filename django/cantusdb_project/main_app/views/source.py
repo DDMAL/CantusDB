@@ -202,7 +202,7 @@ class SourceBrowseChantsView(CustomAccessMixin, ListView):  # type: ignore[type-
             )
             .select_related("holding_institution")
             .prefetch_related("segment_m2m")
-            .order_by("holding_institution__siglum")
+            .order_by("holding_institution__siglum", "shelfmark", "id")
             .distinct()
         )
         if not display_unpublished:
