@@ -319,7 +319,7 @@ class ChantDetailView(CustomAccessMixin, JSONResponseMixin, DetailView):  # type
         qs = super().get_queryset()
         return qs.select_related(
             "source__holding_institution", "service", "genre", "feast", "project"
-        )
+        ).prefetch_related("source__segment_m2m", "source__notation")
 
     def get_context_data(self, **kwargs: Any) -> dict[str, Any]:
         context = super().get_context_data(**kwargs)

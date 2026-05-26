@@ -285,7 +285,7 @@ class SourceDetailView(CustomAccessMixin, JSONResponseMixin, DetailView):  # typ
         context = super().get_context_data(**kwargs)
 
         source = self.object
-        if settings.BOWER_SEGMENT_ID in source.segment_m2m.values_list("id", flat=True):
+        if source.segment_m2m.filter(id=settings.BOWER_SEGMENT_ID).exists():
             # if this is a sequence source
             sequences = source.sequence_set.select_related("genre", "service")
             context["sequences"] = sequences.order_by("s_sequence")
@@ -602,7 +602,7 @@ class SourceEditView(CustomAccessMixin, UpdateView):  # type: ignore[type-arg]
         source = self.object
         context = super().get_context_data(**kwargs)
 
-        if settings.BOWER_SEGMENT_ID in source.segment_m2m.values_list("id", flat=True):
+        if source.segment_m2m.filter(id=settings.BOWER_SEGMENT_ID).exists():
             # if this is a sequence source
             context["sequences"] = source.sequence_set.order_by("s_sequence")
             context["folios"] = (
@@ -646,7 +646,7 @@ class SourceInventoryView(CustomAccessMixin, ListView):  # type: ignore[type-arg
         )
 
     def get_queryset(self) -> Union[QuerySet[Chant], QuerySet[Sequence]]:
-        if settings.BOWER_SEGMENT_ID in self.source.segment_m2m.values_list("id", flat=True):
+        if self.source.segment_m2m.filter(id=settings.BOWER_SEGMENT_ID).exists():
             queryset = (
                 self.source.sequence_set.annotate(record_type=Value("sequence"))
                 .order_by("s_sequence")
