@@ -94,3 +94,33 @@ class TestFKEdgeCases(TestCase):
         _run(_write_csv(csv))
         chant = Chant.objects.get(source=self.source)
         self.assertEqual(chant.source, self.source)
+
+
+class TestProofreadBooleans(TestCase):
+    """Proofread columns: 1→True, 0→False, empty→None, other→error."""
+
+    def setUp(self):
+        User.objects.create(id=1)
+        self.source = make_fake_source()
+
+    def test_proofread_values_parsed_correctly(self):
+        csv = (
+            "source_id,folio,sequence,"
+            "fulltext_standardized_proofread,fulltext_ms_proofread,volpiano_proofread\n"
+            f"{self.source.id},001r,1,1,0,\n"
+        )
+        _run(_write_csv(csv))
+        chant = Chant.objects.get(source=self.source)
+        self.assertTrue(chant.manuscript_full_text_std_proofread)
+        self.assertFalse(chant.manuscript_full_text_proofread)
+        self.assertIsNone(chant.volpiano_proofread)
+
+    def test_invalid_proofread_value_stores_null_with_warning(self):
+        csv = (
+            "source_id,folio,sequence,volpiano_proofread\n"
+            f"{self.source.id},001r,1,yes\n"
+        )
+        output = _run(_write_csv(csv))
+        chant = Chant.objects.get(source=self.source)
+        self.assertIsNone(chant.volpiano_proofread)
+        self.assertIn("storing NULL", output)

@@ -40,7 +40,10 @@ COLUMN_MAP = {
     "differentia":           "differentia",
     "fulltext_standardized": "manuscript_full_text_std_spelling",
     "fulltext_ms":           "manuscript_full_text",
+    "fulltext_standardized_proofread": "_bool:manuscript_full_text_std_proofread",
+    "fulltext_ms_proofread": "_bool:manuscript_full_text_proofread",
     "volpiano":              "volpiano",
+    "volpiano_proofread":    "_bool:volpiano_proofread",
     "image_link":            "image_link",
     "melody_id":             "melody_id",
     "cao_concordances":      "cao_concordances",
@@ -114,7 +117,7 @@ class Command(BaseCommand):
 
         # Build mapped_rows
         mapped_rows = []
-        int_conversion_errors = []
+        errors = []
         for row_num, raw_row in enumerate(raw_rows, start=2):
             mapped_row = {}
             for col, raw_value in raw_row.items():
@@ -125,38 +128,45 @@ class Command(BaseCommand):
                 value = raw_value.strip() if raw_value else ""
 
                 if value == "":
-                    mapped_row[field] = None
+                    real_key = field[6:] if field.startswith("_bool:") else field
+                    mapped_row[real_key] = None
                     continue
 
                 if field == "source_id":
                     try:
                         mapped_row[field] = int(value)
                     except ValueError:
-                        int_conversion_errors.append(
+                        errors.append(
                             f"Row {row_num}: source_id '{value}' is not a valid integer"
                         )
                 elif field == "c_sequence":
                     try:
                         mapped_row[field] = int(value)
                     except ValueError:
-                        int_conversion_errors.append(
+                        errors.append(
                             f"Row {row_num}: sequence '{value}' is not a valid integer"
                         )
+                elif field.startswith("_bool:"):
+                    real_field = field[6:]
+                    if value == "1":
+                        mapped_row[real_field] = True
+                    elif value == "0":
+                        mapped_row[real_field] = False
+                    else:
+                        self.stdout.write(
+                            self.style.WARNING(
+                                f"Row {row_num}: {real_field} '{value}' is not 0 or 1 — storing NULL"
+                            )
+                        )
+                        mapped_row[real_field] = None
                 else:
                     mapped_row[field] = value
 
             mapped_rows.append(mapped_row)
 
-        if int_conversion_errors:
-            for err in int_conversion_errors:
-                self.stdout.write(self.style.ERROR(f"  {err}"))
-            raise CommandError("Fix the errors in the CSV and try again.")
-
         # ── Validate ───────
 
         self.stdout.write("Validating data...")
-
-        errors = []
 
         # Caches so each unique value is only looked up once.
         source_cache  = {}  # int    Source object | "NOT_FOUND"
