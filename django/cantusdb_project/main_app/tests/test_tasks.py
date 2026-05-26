@@ -1,9 +1,10 @@
 from typing import List, Dict, Any
+from unittest.mock import patch, MagicMock
 
 from django.test import TestCase
 from django.db.models import QuerySet
 
-from main_app.tasks import save_browse_chants_formset
+from main_app.tasks import save_browse_chants_formset, check_cantus_ids_not_in_ci, check_duplicate_folio_sequence
 from main_app.tests.make_fakes import make_fake_source, make_fake_chant
 from main_app.models import Chant, Source
 from main_app.forms import BrowseChantsBulkEditFormset
@@ -91,3 +92,42 @@ class SaveBrowseChantsFormsetTest(TestCase):
             chant = self.chants[0]
             chant.refresh_from_db()
             self.assertNotEqual(chant.folio, "")
+
+
+class CheckCantusIdsNotInCiTest(TestCase):
+    @patch("main_app.tasks.requests.get")
+    def test_invalid_id_split_by_published(self, mock_get) -> None:
+        mock_resp = MagicMock()
+        mock_resp.status_code = 200
+        mock_resp.text = '[{"cid":"001234"}]'
+        mock_get.return_value = mock_resp
+
+        pub_source = make_fake_source(published=True)
+        unpub_source = make_fake_source(published=False)
+        pub_chant = make_fake_chant(source=pub_source, cantus_id="BADID")
+        unpub_chant = make_fake_chant(source=unpub_source, cantus_id="BADID")
+        valid_chant = make_fake_chant(source=pub_source, cantus_id="001234")
+
+        result = check_cantus_ids_not_in_ci()
+        self.assertIn(pub_chant, result["published"])
+        self.assertIn(unpub_chant, result["unpublished"])
+        self.assertNotIn(valid_chant, result["published"])
+
+
+class CheckDuplicateFolioSequenceTest(TestCase):
+    def test_duplicates_split_by_published(self) -> None:
+        pub_source = make_fake_source(published=True)
+        unpub_source = make_fake_source(published=False)
+
+        for source in (pub_source, unpub_source):
+            make_fake_chant(source=source, folio="001r", c_sequence=1)
+            Chant.objects.create(
+                source=source,
+                folio="001r",
+                c_sequence=1,
+                manuscript_full_text_std_spelling="test",
+            )
+
+        result = check_duplicate_folio_sequence()
+        self.assertIn(pub_source.id, [g["source_id"] for g in result["published"]])
+        self.assertIn(unpub_source.id, [g["source_id"] for g in result["unpublished"]])

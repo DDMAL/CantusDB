@@ -59,8 +59,6 @@ def check_duplicate_folio_sequence() -> dict:
     """
     Returns groups where (source, folio, sequence) is duplicated.
     Each row is one unique combination with a count of how many chants share it.
-    Folio already encodes the side (e.g. '002r', '002v').
-    Split into published and unpublished for manual correction.
     """
     chant_dups = (
         Chant.objects.exclude(folio__isnull=True)
