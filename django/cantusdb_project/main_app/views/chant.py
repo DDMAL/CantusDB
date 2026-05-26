@@ -1094,7 +1094,7 @@ class CISearchView(TemplateView):
             search_term
         )
 
-        # None means a network/timeout error; an empty list means CI returned no matches
+        # None means any CI request/response failure; an empty list means CI returned no matches
         context["ci_error"] = text_search_results is None
 
         cantus_id = []

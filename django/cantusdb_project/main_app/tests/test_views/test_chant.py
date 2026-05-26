@@ -3457,6 +3457,16 @@ class CISearchViewTest(TestCase):
         self.assertTrue(context["ci_error"])
         self.assertEqual(list(context["results"]), [])
 
+    def test_valid_search_term_no_matches(self):
+        # CI returns [] for a valid term with no matches
+        with patch("requests.get", mock_requests_get):
+            response = self.client.get(reverse("ci-search", args=["no_match"]))
+
+        self.assertEqual(response.status_code, 200)
+        context = response.context
+        self.assertFalse(context["ci_error"])
+        self.assertEqual(list(context["results"]), [])
+
 
 class ChantDeleteViewTest(ChantPermissionsTestCase):
     default_user = "superuser"

@@ -166,6 +166,13 @@ def mock_requests_get(url: str, timeout: float) -> MockResponse:
                 text=mock_cantusindex_data.mock_get_ci_text_search_123xyz_text,
                 json=None,
             )
+        if url.endswith("no_match"):
+            return MockResponse(
+                status_code=200,
+                content=mock_cantusindex_data.mock_get_ci_text_search_no_match_content,
+                text=mock_cantusindex_data.mock_get_ci_text_search_no_match_text,
+                json=None,
+            )
         return MockResponse(
             status_code=500,
             content=None,

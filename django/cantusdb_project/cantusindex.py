@@ -178,7 +178,7 @@ def get_ci_text_search(search_term: str) -> Optional[list[Optional[dict]]]:
     if not text_without_bom:
         return None
     text_search_results: list = json.loads(text_without_bom)
-    # Return None only for malformed responses; an empty list means CI found no matches
+    # Return None for any non-list response (malformed JSON, unexpected type, etc.); an empty list means CI found no matches
     if not isinstance(text_search_results, list):
         return None
 
