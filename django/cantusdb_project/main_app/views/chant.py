@@ -466,8 +466,9 @@ class ChantSearchView(CustomAccessMixin, ListView):  # type: ignore[type-arg]
         context["services"] = (
             Service.objects.all().order_by("name").values("id", "name")
         )
+        feast_param = self.request.GET.get("feast")
         context["search_form"] = ChantSearchForm(
-            initial={"feast": self.request.GET.get("feast")}
+            initial={"feast": feast_param} if feast_param and feast_param.isdigit() else {}
         )
         context["query_empty"] = False if self.request.GET else True
         context["order"] = self.request.GET.get("order")
@@ -758,6 +759,10 @@ class ChantSearchMSView(CustomAccessMixin, ListView):  # type: ignore[type-arg]
         context["genres"] = Genre.objects.all().order_by("name").values("id", "name")
         context["services"] = (
             Service.objects.all().order_by("name").values("id", "name")
+        )
+        feast_param = self.request.GET.get("feast")
+        context["search_form"] = ChantSearchForm(
+            initial={"feast": feast_param} if feast_param and feast_param.isdigit() else {}
         )
         context["order"] = self.request.GET.get("order")
         context["sort"] = self.request.GET.get("sort")
