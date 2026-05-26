@@ -21,7 +21,12 @@ class GenreListView(JSONResponseMixin, ListView):  # type: ignore[type-arg]
 
     def get_queryset(self) -> QuerySet[Genre]:
         order_attr = self.request.GET.get("order", "name")
+        # genres can be ordered by name or description,
+        # default to ordering by name if given anything else
+        if order_attr not in ["name", "description"]:
+            order_attr = "name"
         sort_attr = self.request.GET.get("sort", "asc")
+        ordering = Lower(order_attr)
         return Genre.objects.all().order_by(
-            Lower(order_attr) if sort_attr == "asc" else Lower(order_attr).desc()
+            ordering if sort_attr == "asc" else ordering.desc()
         )
