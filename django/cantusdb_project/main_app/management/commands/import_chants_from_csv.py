@@ -58,6 +58,25 @@ COLUMN_MAP = {
 class Command(BaseCommand):
     help = "Import chants from a CSV file into the database."
 
+    def _build_chant_data(self, row, source_cache, feast_cache, service_cache, genre_cache):
+        # visible_status '1' = published; legacy field from old Cantus, not used in current views
+        chant_data = {"visible_status": "1"}
+        for field, value in row.items():
+            if field == "source_id":
+                chant_data["source"] = source_cache[value]
+            elif field == "_feast_name":
+                chant_data["feast"] = feast_cache.get(value) if value else None
+            elif field == "_service_abbr":
+                chant_data["service"] = service_cache.get(value) if value else None
+            elif field == "_genre_name":
+                chant_data["genre"] = genre_cache.get(value) if value else None
+            elif field == "_node_id":
+                if value:
+                    chant_data["json_info"] = {"nid": value}
+            else:
+                chant_data[field] = value
+        return chant_data
+
     def add_arguments(self, parser):
         parser.add_argument("csv_file", type=str, help="Path to the CSV file")
         parser.add_argument(
@@ -235,16 +254,43 @@ class Command(BaseCommand):
             self.style.SUCCESS(f"All {len(mapped_rows)} row(s) validated successfully.")
         )
 
+        # ── Model-level validation (dry-run only) ──────────────────────────────────
+        # Calls full_clean() on each unsaved Chant so field-level constraints
+        # (URLField format, max_length, choice validation) are caught before import.
+
+        if dry_run:
+            model_errors = []
+            for i, row in enumerate(mapped_rows, start=2):
+                chant_data = self._build_chant_data(row, source_cache, feast_cache, service_cache, genre_cache)
+                try:
+                    Chant(**chant_data).full_clean()
+                except Exception as exc:
+                    model_errors.append(f"Row {i}: {exc}")
+            if model_errors:
+                self.stdout.write(self.style.ERROR(f"Model validation failed with {len(model_errors)} error(s):"))
+                for err in model_errors:
+                    self.stdout.write(f"  {err}")
+                raise CommandError("Fix the errors in the CSV and try again.")
+
         # ── Duplicate detection (apply during the dry-run only) ─────────────────────
         # We check for duplicates within the CSV and against existing database records based on
         # the unique key (source_id, folio, c_sequence). This is only happens in dry-run mode
         # as a warning to the user, since in some cases they may intentionally want to import duplicates
-        # This is ommited during actual import to avoid false positives
+        # This is omitted during actual import to avoid false positives
         
         if dry_run:
             self.stdout.write("Checking for duplicates...")
             warnings = []
             seen_keys = {}  # (source_id, folio, c_sequence) → first row number
+
+            # Fetch all potentially matching chants in one query keyed by (source_id, folio, c_sequence)
+            source_ids = {row.get("source_id") for row in mapped_rows if row.get("source_id")}
+            db_existing: dict[tuple, list[int]] = {}
+            for chant_id, sid, folio, seq in (
+                Chant.objects.filter(source_id__in=source_ids)
+                .values_list("id", "source_id", "folio", "c_sequence")
+            ):
+                db_existing.setdefault((sid, folio, seq), []).append(chant_id)
 
             for i, row in enumerate(mapped_rows, start=2):
                 key = (row.get("source_id"), row.get("folio"), row.get("c_sequence"))
@@ -258,14 +304,8 @@ class Command(BaseCommand):
                 else:
                     seen_keys[key] = i
 
-                # Database duplicates
-                existing = list(
-                    Chant.objects.filter(
-                        source_id=key[0],
-                        folio=key[1],
-                        c_sequence=key[2],
-                    ).values_list("id", flat=True)
-                )
+                # Database duplicates (in-memory lookup)
+                existing = db_existing.get(key, [])
                 if existing:
                     warnings.append(
                         f"Row {i}: already exists in database"
@@ -297,23 +337,8 @@ class Command(BaseCommand):
 
         with transaction.atomic():
             for row in mapped_rows:
-                # visible_status '1' = published; legacy field from old Cantus, not used in current views
-                chant_data = {"created_by": admin_user, "visible_status": "1"}
-                for field, value in row.items():
-                    if field == "source_id":
-                        chant_data["source"] = source_cache[value]
-                    elif field == "_feast_name":
-                        chant_data["feast"] = feast_cache.get(value) if value else None
-                    elif field == "_service_abbr":
-                        chant_data["service"] = service_cache.get(value) if value else None
-                    elif field == "_genre_name":
-                        chant_data["genre"] = genre_cache.get(value) if value else None
-                    elif field == "_node_id":
-                        if value:
-                            chant_data["json_info"] = {"nid": value}
-                    else:
-                        chant_data[field] = value
-
+                chant_data = self._build_chant_data(row, source_cache, feast_cache, service_cache, genre_cache)
+                chant_data["created_by"] = admin_user
                 Chant(**chant_data).save()
                 created_count += 1
 
