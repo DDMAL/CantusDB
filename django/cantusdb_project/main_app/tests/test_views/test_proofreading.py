@@ -7,6 +7,7 @@ from main_app.tests.make_fakes import (
     make_fake_source,
     make_fake_chant,
     make_fake_segment,
+    make_fake_institution,
 )
 from main_app.views.proofreading import ProofreadView
 from users.models import Group
@@ -107,6 +108,78 @@ class ProofreadingOverviewViewTest(TestCase):
     def test_sortable_headers(self):
         response = self.client.get(self.url, {"order": "country"})
         self.assertEqual(response.status_code, 200)
+
+    def test_ordering(self):
+        """
+        Order on the Proofreading Overview should mirror Browse Sources for the
+        shared sort modes: by country (with NULL sigla coalesced to "") and by
+        institution siglum + shelfmark.
+        """
+        sources = []
+        # A source from a private collector (NULL siglum).
+        private_collector = make_fake_institution(is_private_collector=True)
+        sources.append(
+            make_fake_source(
+                holding_institution=private_collector, segment=[self.cantus_segment]
+            )
+        )
+        # A handful of other sources with distinct institutions.
+        inst = None
+        for _ in range(10):
+            inst = make_fake_institution()
+            sources.append(
+                make_fake_source(
+                    holding_institution=inst, segment=[self.cantus_segment]
+                )
+            )
+        # Another institution sharing the last one's country, to exercise
+        # within-country ordering by siglum.
+        sources.append(
+            make_fake_source(
+                holding_institution=make_fake_institution(country=inst.country),
+                segment=[self.cantus_segment],
+            )
+        )
+        # A second source under an existing institution, to exercise shelfmark
+        # as a tiebreaker.
+        sources.append(
+            make_fake_source(holding_institution=inst, segment=[self.cantus_segment])
+        )
+        for s in sources:
+            make_fake_chant(source=s)
+
+        with self.subTest("Order by country"):
+            response = self.client.get(self.url, {"order": "country"})
+            expected = sorted(
+                sources,
+                key=lambda s: (
+                    s.holding_institution.country,
+                    s.holding_institution.siglum or "",
+                    s.shelfmark,
+                ),
+            )
+            self.assertEqual(expected, list(response.context["sources"]))
+
+            response_desc = self.client.get(
+                self.url, {"order": "country", "sort": "desc"}
+            )
+            self.assertEqual(
+                list(reversed(expected)), list(response_desc.context["sources"])
+            )
+
+        with self.subTest("Order by source_siglum"):
+            # source_siglum sorts by institution siglum then shelfmark, without
+            # COALESCE — so NULL sigla (private collectors) land last in asc.
+            response = self.client.get(self.url, {"order": "source_siglum"})
+            expected = sorted(
+                sources,
+                key=lambda s: (
+                    s.holding_institution.siglum is None,
+                    s.holding_institution.siglum or "",
+                    s.shelfmark,
+                ),
+            )
+            self.assertEqual(expected, list(response.context["sources"]))
 
     def test_pagination(self):
         paginate_by = ProofreadView.paginate_by
