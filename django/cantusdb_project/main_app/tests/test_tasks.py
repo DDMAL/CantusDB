@@ -4,9 +4,9 @@ from unittest.mock import patch, MagicMock
 from django.test import TestCase
 from django.db.models import QuerySet
 
-from main_app.tasks import save_browse_chants_formset, check_cantus_ids_not_in_ci, check_duplicate_folio_sequence
+from main_app.tasks import save_browse_chants_formset, check_cantus_ids_not_in_ci, check_duplicate_folio_sequence, check_cantus_ids_genre_mismatch
 from main_app.tests.make_fakes import make_fake_source, make_fake_chant
-from main_app.models import Chant, Source
+from main_app.models import Chant, Genre, Source
 from main_app.forms import BrowseChantsBulkEditFormset
 
 
@@ -131,3 +131,34 @@ class CheckDuplicateFolioSequenceTest(TestCase):
         result = check_duplicate_folio_sequence()
         self.assertIn(pub_source.id, [g["source_id"] for g in result["published"]])
         self.assertIn(unpub_source.id, [g["source_id"] for g in result["unpublished"]])
+
+
+class CheckCantusIdsGenreMismatchTest(TestCase):
+    @patch("main_app.tasks.requests.get")
+    def test_genre_mismatch_split_by_published(self, mock_get) -> None:
+        # CI returns H for all IDs bulk fetch, and HV for the per-ID genre fetch
+        def side_effect(url, **kwargs):
+            mock_resp = MagicMock()
+            mock_resp.status_code = 200
+            if "json-cids" in url:
+                mock_resp.text = '[{"cid":"001234"}]'
+            else:
+                mock_resp.text = '{"info":{"field_genre":"HV"}}'
+            return mock_resp
+
+        mock_get.side_effect = side_effect
+
+        pub_source = make_fake_source(published=True)
+        unpub_source = make_fake_source(published=False)
+        pub_chant = make_fake_chant(source=pub_source, cantus_id="001234")
+        unpub_chant = make_fake_chant(source=unpub_source, cantus_id="001234")
+        # Set genre to H (mismatch with CI's HV)
+        h_genre = Genre.objects.get_or_create(name="H", defaults={"description": "Hymn"})[0]
+        pub_chant.genre = h_genre
+        pub_chant.save()
+        unpub_chant.genre = h_genre
+        unpub_chant.save()
+
+        result = check_cantus_ids_genre_mismatch([pub_chant.id, unpub_chant.id])
+        self.assertIn(pub_chant, result["published"])
+        self.assertIn(unpub_chant, result["unpublished"])
