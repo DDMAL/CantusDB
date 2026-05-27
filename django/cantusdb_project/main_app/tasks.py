@@ -180,6 +180,30 @@ def check_position_service_mismatch(chant_ids: Optional[List[int]] = None) -> di
     }
 
 
+def check_blank_cantus_id(chant_ids: Optional[List[int]] = None) -> dict:
+    """
+    Returns chants with a blank or null cantus_id, split into published and unpublished.
+    """
+    qs = Chant.objects.filter(id__in=chant_ids) if chant_ids is not None else Chant.objects.all()
+    invalid = qs.filter(Q(cantus_id__isnull=True) | Q(cantus_id="")).select_related("source")
+    return {
+        "published": list(invalid.filter(source__published=True).order_by("source_id")),
+        "unpublished": list(invalid.filter(source__published=False).order_by("source_id")),
+    }
+
+
+def check_blank_mode(chant_ids: Optional[List[int]] = None) -> dict:
+    """
+    Returns chants with a blank or null mode field, split into published and unpublished.
+    """
+    qs = Chant.objects.filter(id__in=chant_ids) if chant_ids is not None else Chant.objects.all()
+    invalid = qs.filter(Q(mode__isnull=True) | Q(mode="")).select_related("source")
+    return {
+        "published": list(invalid.filter(source__published=True).order_by("source_id")),
+        "unpublished": list(invalid.filter(source__published=False).order_by("source_id")),
+    }
+
+
 @shared_task(name="cantusdb.save_browse_chants_formset", bind=True)
 def save_browse_chants_formset(
     self: Task, data: Dict[str, Any], chant_ids: List[int]
