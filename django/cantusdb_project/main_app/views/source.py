@@ -193,11 +193,17 @@ class SourceBrowseChantsView(CustomAccessMixin, ListView):  # type: ignore[type-
         # so they should not appear among the list of sources
         cantus_segment: Segment = Segment.objects.get(id=settings.CANTUS_SEGMENT_ID)
 
-        # to be displayed in the "Source" dropdown in the form
+        # to be displayed in the "Source" dropdown in the form.
+        # Always include the current source so it can be marked as selected,
+        # even if it doesn't belong to the CantusDatabase segment.
         sources: QuerySet[Source] = (
-            cantus_segment.sources.select_related("holding_institution")
+            Source.objects.filter(
+                Q(segment_m2m=cantus_segment) | Q(id=source.id)
+            )
+            .select_related("holding_institution")
             .prefetch_related("segment_m2m")
-            .order_by("holding_institution__siglum")
+            .order_by("holding_institution__siglum", "shelfmark", "id")
+            .distinct()
         )
         if not display_unpublished:
             sources = sources.filter(published=True)
