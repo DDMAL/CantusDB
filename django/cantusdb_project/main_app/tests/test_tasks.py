@@ -4,8 +4,8 @@ from unittest.mock import patch, MagicMock
 from django.test import TestCase
 from django.db.models import QuerySet
 
-from main_app.tasks import save_browse_chants_formset, check_cantus_ids_not_in_ci, check_duplicate_folio_sequence, check_cantus_ids_genre_mismatch
-from main_app.tests.make_fakes import make_fake_source, make_fake_chant
+from main_app.tasks import save_browse_chants_formset, check_cantus_ids_not_in_ci, check_duplicate_folio_sequence, check_cantus_ids_genre_mismatch, check_position_service_mismatch
+from main_app.tests.make_fakes import make_fake_source, make_fake_chant, make_fake_service
 from main_app.models import Chant, Genre, Source
 from main_app.forms import BrowseChantsBulkEditFormset
 
@@ -162,3 +162,21 @@ class CheckCantusIdsGenreMismatchTest(TestCase):
         result = check_cantus_ids_genre_mismatch([pub_chant.id, unpub_chant.id])
         self.assertIn(pub_chant, result["published"])
         self.assertIn(unpub_chant, result["unpublished"])
+
+
+class CheckPositionServiceMismatchTest(TestCase):
+    def test_position_service_mismatch_split_by_published(self) -> None:
+        wrong_service = make_fake_service(name="M")  # Matins — not valid for B or M position
+        pub_source = make_fake_source(published=True)
+        unpub_source = make_fake_source(published=False)
+
+        pub_chant = make_fake_chant(source=pub_source, position="B", service=wrong_service)
+        unpub_chant = make_fake_chant(source=unpub_source, position="M", service=wrong_service)
+
+        valid_service = make_fake_service(name="L")
+        valid_chant = make_fake_chant(source=pub_source, position="B", service=valid_service)
+
+        result = check_position_service_mismatch([pub_chant.id, unpub_chant.id, valid_chant.id])
+        self.assertIn(pub_chant, result["published"])
+        self.assertIn(unpub_chant, result["unpublished"])
+        self.assertNotIn(valid_chant, result["published"])

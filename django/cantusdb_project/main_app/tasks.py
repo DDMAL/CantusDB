@@ -160,6 +160,26 @@ def check_cantus_ids_genre_mismatch(chant_ids: Optional[List[int]] = None) -> di
     }
 
 
+def check_position_service_mismatch(chant_ids: Optional[List[int]] = None) -> dict:
+    """
+    Flags chants where position and service are inconsistent:
+      - position "M" must only appear in Vespers (service V or V2)
+      - position "B" must only appear in Lauds (service L)
+    Split into published and unpublished.
+    """
+    qs = Chant.objects.filter(id__in=chant_ids) if chant_ids is not None else Chant.objects.all()
+
+    invalid = qs.filter(
+        Q(position="M") & ~Q(service__name__in=["V", "V2"]) |
+        Q(position="B") & ~Q(service__name="L")
+    ).select_related("source", "service")
+
+    return {
+        "published": list(invalid.filter(source__published=True).order_by("position", "source_id")),
+        "unpublished": list(invalid.filter(source__published=False).order_by("position", "source_id")),
+    }
+
+
 @shared_task(name="cantusdb.save_browse_chants_formset", bind=True)
 def save_browse_chants_formset(
     self: Task, data: Dict[str, Any], chant_ids: List[int]
