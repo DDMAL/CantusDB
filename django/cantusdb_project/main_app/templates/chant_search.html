@@ -2,7 +2,12 @@
 {% load humanize %}
 {% load helper_tags %}
 {% block title %}<title>Search Chants | Cantus Database</title>{% endblock %}
-{% block scripts %}<script src="/static/js/chant_search.js"></script>{% endblock %}
+{% block scripts %}
+{% load static %}
+<script src="{% static 'admin/js/vendor/jquery/jquery.js' %}"></script>
+{{ search_form.media }}
+<script src="/static/js/chant_search.js"></script>
+{% endblock %}
 {% block heading %}<h3>Search Chants</h3>{% endblock %}
 {% block results_count %}
     {% if not query_empty %}{{ block.super }}{% endif %}
@@ -80,14 +85,6 @@
                    value="{{ request.GET.mode }}" />
         </div>
         <div class="form-group col-lg-3 col-sm-6 col-12">
-            <label for="feast" class="small">Feast</label>
-            <input type="text"
-                   class="form-control form-control-sm"
-                   name="feast"
-                   id="feast"
-                   value="{{ request.GET.feast }}" />
-        </div>
-        <div class="form-group col-lg-3 col-sm-6 col-12">
             <label for="position" class="small">Position</label>
             <input type="text"
                    class="form-control form-control-sm"
@@ -103,6 +100,10 @@
                 <option value="">- Any -</option>
                 <option value="true">Chants with melodies</option>
             </select>
+        </div>
+        <div class="form-group col-lg-6 col-sm-12 col-12">
+            <label for="{{ search_form.feast.id_for_label }}" class="small">Feast</label>
+            {{ search_form.feast }}
         </div>
     </div>
     {% if source %}
