@@ -3481,6 +3481,7 @@ class CISearchViewTest(TestCase):
         self.assertEqual(response.status_code, 200)
         context = response.context
         self.assertIn("results", context)
+        self.assertFalse(context["ci_error"])
 
         results_zip = context["results"]
 
@@ -3505,10 +3506,8 @@ class CISearchViewTest(TestCase):
 
         self.assertEqual(response.status_code, 200)
         context = response.context
-        self.assertIn("results", context)
-        self.assertEqual(
-            context["results"], [["No results", "No results", "No results"]]
-        )
+        self.assertTrue(context["ci_error"])
+        self.assertEqual(list(context["results"]), [])
 
     def test_server_error(self):
         with patch("requests.get", mock_requests_get):
@@ -3516,10 +3515,18 @@ class CISearchViewTest(TestCase):
 
         self.assertEqual(response.status_code, 200)
         context = response.context
-        self.assertIn("results", context)
-        self.assertEqual(
-            list(context["results"]), [["No results", "No results", "No results"]]
-        )
+        self.assertTrue(context["ci_error"])
+        self.assertEqual(list(context["results"]), [])
+
+    def test_valid_search_term_no_matches(self):
+        # CI returns [] for a valid term with no matches
+        with patch("requests.get", mock_requests_get):
+            response = self.client.get(reverse("ci-search", args=["no_match"]))
+
+        self.assertEqual(response.status_code, 200)
+        context = response.context
+        self.assertFalse(context["ci_error"])
+        self.assertEqual(list(context["results"]), [])
 
 
 class ChantDeleteViewTest(ChantPermissionsTestCase):
