@@ -10,7 +10,7 @@ from django.urls import reverse
 from django.core.exceptions import ObjectDoesNotExist
 from django.contrib.auth import get_user_model
 
-from main_app.models import Source, Chant, Differentia
+from main_app.models import Source, Chant, Differentia, SourceIdentifier
 from main_app.tests.make_fakes import (
     make_fake_source,
     make_fake_segment,
@@ -1326,6 +1326,39 @@ class SourceListViewTest(CustomAccessTestMixin, TestCase):
             reverse("source-list"), {"general": f'"{source.name}"'}
         )
         self.assertIn(source, response.context["sources"])
+
+    def test_search_by_provenance_and_trailing_punctuation(self) -> None:
+        provenance = make_fake_provenance()
+        provenance.name = "Kremsmünster"
+        provenance.save()
+        source = make_fake_source(
+            provenance=provenance,
+            published=True,
+            shelfmark="title",
+        )
+
+        for term in ["Kremsmünster", "Kremsmünster,"]:
+            with self.subTest(term=term):
+                response = self.client.get(reverse("source-list"), {"general": term})
+                self.assertIn(source, response.context["sources"])
+
+    def test_search_by_identifier_with_colon_and_trailing_punctuation(self) -> None:
+        source = make_fake_source(
+            published=True,
+            shelfmark="title",
+            dact_id="D:06e4d",
+            fragmentarium_id="F:01a2b",
+        )
+        SourceIdentifier.objects.create(
+            source=source,
+            identifier="ID:123",
+            type=SourceIdentifier.OTHER,
+        )
+
+        for term in ["D:06e4d", "D:06e4d,", "F:01a2b", "ID:123", "ID:123,"]:
+            with self.subTest(term=term):
+                response = self.client.get(reverse("source-list"), {"general": term})
+                self.assertIn(source, response.context["sources"])
 
     def test_ordering(self) -> None:
         """

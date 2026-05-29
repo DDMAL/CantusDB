@@ -392,7 +392,7 @@ class SourceListView(CustomAccessMixin, ListView):  # type: ignore[type-arg]
                 r'"(.*?)"', general_str
             )  # Extract terms in quotes
             unquoted_terms = re.findall(
-                r"\b[\w,-.:]+", re.sub(r'"(.*?)"', "", general_str)
+                r"\b[\w,-.:]+\b", re.sub(r'"(.*?)"', "", general_str)
             )
 
             # We need a Q Object for each field we're gonna look into
