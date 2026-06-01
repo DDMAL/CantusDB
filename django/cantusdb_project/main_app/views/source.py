@@ -407,16 +407,16 @@ class SourceListView(CustomAccessMixin, ListView):  # type: ignore[type-arg]
 
                 # Find all centuries that overlap with the selected date range
                 # This provides the same behavior as century selection
-                if date_start_int and date_end_int:
+                if date_start_int is not None and date_end_int is not None:
                     # Both dates specified: find centuries that overlap the range
                     q_obj_filter &= Q(
                         century__min_date__lte=date_end_int,
                         century__max_date__gte=date_start_int,
                     )
-                elif date_start_int:
+                elif date_start_int is not None:
                     # Only start date: find centuries that haven't ended
                     q_obj_filter &= Q(century__max_date__gte=date_start_int)
-                elif date_end_int:
+                elif date_end_int is not None:
                     # Only end date: find centuries that have started
                     q_obj_filter &= Q(century__min_date__lte=date_end_int)
             except (ValueError, TypeError):

@@ -71,6 +71,7 @@
                         </select>
                     </div>
                     <div class="col-lg-6">
+                        {% if date_range_min is not None and date_range_max is not None %}
                         <div class="d-flex justify-content-between align-items-center">
                             <label class="small form-label fw-bold mb-0">Year range (overlapping)</label>
                             <button type="button"
@@ -102,6 +103,7 @@
                             <span class="fw-bold text-primary" id="rangeSelectedLabel"></span>
                             <span class="fw-bold">{{ date_range_max }}</span>
                         </div>
+                        {% endif %}
                     </div>
                     <div class="col-lg-6">
                         <label for="prodMethodFilter" class="small form-label">Manuscript/Print</label>
