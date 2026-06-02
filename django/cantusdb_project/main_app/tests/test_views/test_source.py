@@ -371,7 +371,7 @@ class SourceDetailViewTest(SourcePermissionsTestCase):
         self.assertIn("https://example.com/images", html)
         self.assertIn("View images on external site", html)
 
-    def test_image_link_hidden_when_source_links_exist(self) -> None:
+    def test_image_link_hidden_when_external_images_source_link_exists(self) -> None:
         source = make_fake_source(image_link="https://example.com/images")
         SourceURL.objects.create(
             source=source,
@@ -381,6 +381,18 @@ class SourceDetailViewTest(SourcePermissionsTestCase):
         response = self.client.get(reverse("source-detail", args=[source.id]))
         html = str(response.content)
         self.assertNotIn("View images on external site", html)
+
+    def test_image_link_displayed_when_only_non_image_source_link_exists(self) -> None:
+        source = make_fake_source(image_link="https://example.com/images")
+        SourceURL.objects.create(
+            source=source,
+            url="https://example.com/iiif/manifest.json",
+            url_type=SourceURL.URLTypes.IIIF_MANIFEST,
+        )
+        response = self.client.get(reverse("source-detail", args=[source.id]))
+        html = str(response.content)
+        self.assertIn("https://example.com/images", html)
+        self.assertIn("View images on external site", html)
 
     def test_image_link_not_displayed_when_empty(self) -> None:
         source = make_fake_source(image_link="")

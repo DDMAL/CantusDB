@@ -41,6 +41,7 @@ from main_app.models import (
     Provenance,
     Segment,
     Source,
+    SourceURL,
     Institution,
     Sequence,
 )
@@ -317,6 +318,11 @@ class SourceDetailView(CustomAccessMixin, JSONResponseMixin, DetailView):  # typ
         context = super().get_context_data(**kwargs)
 
         source = self.object
+        # Iterates the prefetched source_links cache — keep "source_links" in prefetch_related above.
+        context["show_legacy_image_link"] = source.image_link and not any(
+            link.url_type == SourceURL.URLTypes.EXTERNAL_IMAGES
+            for link in source.source_links.all()
+        )
         if source.segment_m2m.filter(id=settings.BOWER_SEGMENT_ID).exists():
             # if this is a sequence source
             sequences = source.sequence_set.select_related("genre", "service")
