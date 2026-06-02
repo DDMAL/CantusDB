@@ -318,7 +318,6 @@ class SourceDetailView(CustomAccessMixin, JSONResponseMixin, DetailView):  # typ
         context = super().get_context_data(**kwargs)
 
         source = self.object
-        # Iterates the prefetched source_links cache — keep "source_links" in prefetch_related above.
         context["show_legacy_image_link"] = source.image_link and not any(
             link.url_type == SourceURL.URLTypes.EXTERNAL_IMAGES
             for link in source.source_links.all()
