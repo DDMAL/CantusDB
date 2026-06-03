@@ -146,7 +146,9 @@ class CopyChantToMasterSourceTest(TestCase):
             Chant.objects.filter(source_id=MASTER_SOURCE_ID).count(), before + fix.total
         )
 
-        copy_b = Chant.objects.get(source_id=MASTER_SOURCE_ID, folio="005", c_sequence=2)
+        copy_b = Chant.objects.get(
+            source_id=MASTER_SOURCE_ID, folio="005", c_sequence=2
+        )
         self.assertNotEqual(copy_b.pk, orig_b_pk)
         self.assertEqual(copy_b.source_id, MASTER_SOURCE_ID)
         self.assertEqual(copy_b.folio, "005")
@@ -155,7 +157,9 @@ class CopyChantToMasterSourceTest(TestCase):
         self.assertIn(fix.proofread_user, copy_b.proofread_by.all())
 
         # next_chant must rebind to the copy of chant_b, not the original donor row.
-        copy_a = Chant.objects.get(source_id=MASTER_SOURCE_ID, folio="005", c_sequence=1)
+        copy_a = Chant.objects.get(
+            source_id=MASTER_SOURCE_ID, folio="005", c_sequence=1
+        )
         self.assertEqual(copy_a.next_chant_id, copy_b.pk)
 
         # copy_b is the tail of the chain — its next_chant stays None.
@@ -168,7 +172,9 @@ class CopyChantToMasterSourceTest(TestCase):
         # --dry-run must not require --expected-total.
         self._run(dry_run=True)
 
-        self.assertEqual(Chant.objects.filter(source_id=MASTER_SOURCE_ID).count(), before)
+        self.assertEqual(
+            Chant.objects.filter(source_id=MASTER_SOURCE_ID).count(), before
+        )
 
     def test_expected_total_mismatch_blocks(self) -> None:
         fix = self._build_full_fixture()
@@ -176,7 +182,9 @@ class CopyChantToMasterSourceTest(TestCase):
 
         with self.assertRaises(CommandError):
             self._run(expected_total=fix.total + 1)
-        self.assertEqual(Chant.objects.filter(source_id=MASTER_SOURCE_ID).count(), before)
+        self.assertEqual(
+            Chant.objects.filter(source_id=MASTER_SOURCE_ID).count(), before
+        )
 
         with self.assertRaisesRegex(CommandError, "--expected-total is required"):
             self._run()
@@ -197,7 +205,9 @@ class CopyChantToMasterSourceTest(TestCase):
         with self.assertRaises(CommandError):
             call_command(COMMAND, expected_total=total, stdout=out)
 
-        self.assertEqual(Chant.objects.filter(source_id=MASTER_SOURCE_ID).count(), before)
+        self.assertEqual(
+            Chant.objects.filter(source_id=MASTER_SOURCE_ID).count(), before
+        )
         # The collision listing uses the stripped folio, so "folio='005'" only
         # appears in the COLLISION line. The per-group summary prints the
         # original "folio='K005'", which would match a looser "005" assertion.
@@ -222,7 +232,9 @@ class CopyChantToMasterSourceTest(TestCase):
         before = Chant.objects.filter(source_id=MASTER_SOURCE_ID).count()
         with self.assertRaises(CommandError):
             self._run(expected_total=total)
-        self.assertEqual(Chant.objects.filter(source_id=MASTER_SOURCE_ID).count(), before)
+        self.assertEqual(
+            Chant.objects.filter(source_id=MASTER_SOURCE_ID).count(), before
+        )
 
     # ---------------- guards not covered by the original tests ----------------
 
@@ -236,7 +248,9 @@ class CopyChantToMasterSourceTest(TestCase):
         before = Chant.objects.filter(source_id=MASTER_SOURCE_ID).count()
         with self.assertRaisesRegex(CommandError, r"do not match"):
             self._run(expected_total=1)
-        self.assertEqual(Chant.objects.filter(source_id=MASTER_SOURCE_ID).count(), before)
+        self.assertEqual(
+            Chant.objects.filter(source_id=MASTER_SOURCE_ID).count(), before
+        )
 
     def test_master_source_not_found_blocks(self) -> None:
         # Drop the master source; the lookup at the top of handle() should fail
@@ -265,7 +279,9 @@ class CopyChantToMasterSourceTest(TestCase):
 
         self._run(expected_total=1)
 
-        copy_x = Chant.objects.get(source_id=MASTER_SOURCE_ID, folio="005", c_sequence=1)
+        copy_x = Chant.objects.get(
+            source_id=MASTER_SOURCE_ID, folio="005", c_sequence=1
+        )
         self.assertIsNone(copy_x.next_chant_id)
         # Original X still points at Y; the original chain is untouched.
         chant_x.refresh_from_db()

@@ -27,8 +27,11 @@ from main_app.tests.make_fakes import (
 from main_app.tests.test_functions import mock_requests_get
 from main_app.tests.mixins import CustomAccessTestMixin
 from main_app.models import Chant, Source, Feast, Service
-from main_app.views.chant import get_feast_selector_options, ChantSearchView, ChantSearchMSView
-
+from main_app.views.chant import (
+    get_feast_selector_options,
+    ChantSearchView,
+    ChantSearchMSView,
+)
 
 # Create a Faker instance with locale set to Latin
 faker = Faker("la")

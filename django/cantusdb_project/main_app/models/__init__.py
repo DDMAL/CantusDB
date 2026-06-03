@@ -17,7 +17,6 @@ from main_app.models.project import Project
 from main_app.models.source_url import SourceURL
 from main_app.models.language import Language
 
-
 __all__ = [
     "BaseModel",
     "Century",

@@ -1,7 +1,6 @@
 from django.core.management.base import BaseCommand
 from main_app.models import Feast, Chant, Sequence
 
-
 FEAST_MAPPING = {
     2456: 4474,
     2094: 4475,

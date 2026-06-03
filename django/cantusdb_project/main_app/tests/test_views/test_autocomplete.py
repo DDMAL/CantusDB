@@ -83,9 +83,7 @@ class AutocompleteViewsTest(TestCase):
         data = response.json()
         self.assertEqual(len(data["results"]), 1)
 
-        response = self.client.get(
-            reverse("feast-autocomplete"), {"q": "Whitsunday"}
-        )
+        response = self.client.get(reverse("feast-autocomplete"), {"q": "Whitsunday"})
         data = response.json()
         self.assertEqual(len(data["results"]), 1)
 

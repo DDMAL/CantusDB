@@ -3,7 +3,6 @@ from django.db.models import CheckConstraint, Q
 
 from main_app.models import BaseModel
 
-
 region_help_text = """Province / State / Canton / County. Used to disambiguate cities, e.g., "London (Ontario)"."""
 city_help_text = """City / Town / Village / Settlement"""
 private_collector_help = """Mark this institution as private collector."""

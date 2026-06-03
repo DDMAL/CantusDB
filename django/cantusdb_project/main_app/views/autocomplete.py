@@ -57,9 +57,7 @@ class FeastAutocomplete(autocomplete.Select2QuerySetView):
     def get_queryset(self):
         qs = Feast.objects.all().order_by("name")
         if self.q:
-            qs = qs.filter(
-                Q(name__icontains=self.q) | Q(description__icontains=self.q)
-            )
+            qs = qs.filter(Q(name__icontains=self.q) | Q(description__icontains=self.q))
         return qs
 
 
