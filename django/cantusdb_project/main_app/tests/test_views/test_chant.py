@@ -8,6 +8,7 @@ import random
 from typing import ClassVar, Dict
 import urllib.parse
 
+from django.conf import settings
 from django.test import TestCase
 from django.urls import reverse
 
@@ -16,6 +17,7 @@ from faker import Faker
 from main_app.tests.make_fakes import (
     make_fake_chant,
     make_fake_source,
+    make_fake_segment,
     make_fake_volpiano,
     make_fake_service,
     make_fake_genre,
@@ -208,6 +210,33 @@ class ChantDetailViewTest(ChantPermissionsTestCase):
         resp_chant = response.json()["chant"]
         self.assertEqual(resp_chant["id"], chant.id)
         self.assertEqual(resp_chant["manuscript_full_text"], chant.manuscript_full_text)
+
+    def test_notation_displayed_without_link(self) -> None:
+        # Regression for #1995: clicking the notation link 500'd, so it was disabled.
+        source = make_fake_source()
+        chant = make_fake_chant(source=source)
+        notation = source.notation.first()
+        response = self.client.get(reverse("chant-detail", args=[chant.id]))
+        self.assertEqual(response.status_code, 200)
+        html = response.content.decode("utf-8")
+        self.assertIn("Notation:", html)
+        self.assertIn(notation.name, html)
+        self.assertNotIn(reverse("notation-detail", args=[notation.id]), html)
+        self.assertNotIn("(Bower)", html)
+
+    def test_notation_bower_label(self) -> None:
+        bower_segment = make_fake_segment(
+            id=settings.BOWER_SEGMENT_ID, name="Bower Sequence Database"
+        )
+        source = make_fake_source(segment=[bower_segment])
+        chant = make_fake_chant(source=source)
+        notation = source.notation.first()
+        response = self.client.get(reverse("chant-detail", args=[chant.id]))
+        self.assertEqual(response.status_code, 200)
+        html = response.content.decode("utf-8")
+        self.assertIn("Notation (Bower):", html)
+        self.assertIn(notation.name, html)
+        self.assertNotIn(reverse("notation-detail", args=[notation.id]), html)
 
 
 class SourceEditChantsViewTest(ChantPermissionsTestCase):

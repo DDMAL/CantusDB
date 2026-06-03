@@ -5,6 +5,7 @@ Test views in views/source.py
 from faker import Faker
 from typing import Dict
 
+from django.conf import settings
 from django.test import TestCase
 from django.urls import reverse
 from django.core.exceptions import ObjectDoesNotExist
@@ -334,6 +335,31 @@ class SourceDetailViewTest(SourcePermissionsTestCase):
         response = self.client.get(reverse("source-detail", args=[source.id]))
         html = response.content.decode("utf-8")
         self.assertNotIn("Provenance notes:", html)
+
+    def test_notation_displayed_without_link(self) -> None:
+        # Regression for #1995: clicking the notation link 500'd, so it was disabled.
+        source = make_fake_source()
+        notation = source.notation.first()
+        response = self.client.get(reverse("source-detail", args=[source.id]))
+        self.assertEqual(response.status_code, 200)
+        html = response.content.decode("utf-8")
+        self.assertIn("Notation:", html)
+        self.assertIn(notation.name, html)
+        self.assertNotIn(reverse("notation-detail", args=[notation.id]), html)
+        self.assertNotIn("(Bower)", html)
+
+    def test_notation_bower_label(self) -> None:
+        bower_segment = make_fake_segment(
+            id=settings.BOWER_SEGMENT_ID, name="Bower Sequence Database"
+        )
+        source = make_fake_source(segment=[bower_segment])
+        notation = source.notation.first()
+        response = self.client.get(reverse("source-detail", args=[source.id]))
+        self.assertEqual(response.status_code, 200)
+        html = response.content.decode("utf-8")
+        self.assertIn("Notation (Bower):", html)
+        self.assertIn(notation.name, html)
+        self.assertNotIn(reverse("notation-detail", args=[notation.id]), html)
 
 
 class SourceInventoryViewTest(HTMLContentsTestMixin, SourcePermissionsTestCase):
