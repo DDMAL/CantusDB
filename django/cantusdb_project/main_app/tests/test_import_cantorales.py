@@ -126,7 +126,7 @@ def _make_csv(
 
 class TestImportCantoralesCommand(TestCase):
     def setUp(self):
-        make_fake_segment(name="Cantorales in the Americas", id=4067)
+        make_fake_segment(name="Cantorales in the Americas and Beyond", id=4067)
         make_fake_century(name="16th century")
 
     def test_creates_source(self):
@@ -147,7 +147,7 @@ class TestImportCantoralesCommand(TestCase):
         source = Source.objects.get(shelfmark="Ms. 1")
         self.assertTrue(source.published)
         self.assertIn(
-            "Cantorales in the Americas",
+            "Cantorales in the Americas and Beyond",
             source.segment_m2m.values_list("name", flat=True),
         )
 
