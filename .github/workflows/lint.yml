@@ -1,0 +1,24 @@
+name: lint
+on:
+    pull_request:
+        types: [opened, synchronize]
+jobs:
+    black:
+        runs-on: ubuntu-latest
+        steps:
+            - uses: actions/checkout@v4
+            - name: Read Poetry version from poetry.lock
+              id: poetry-version
+              run: |
+                  VERSION=$(grep -m1 -oE 'Poetry [0-9]+\.[0-9]+\.[0-9]+' poetry.lock | awk '{print $2}')
+                  echo "version=$VERSION" >> "$GITHUB_OUTPUT"
+            - name: Install Poetry
+              run: pipx install "poetry==${{ steps.poetry-version.outputs.version }}"
+            - uses: actions/setup-python@v5
+              with:
+                  python-version-file: pyproject.toml
+                  cache: poetry
+            - name: Install dev dependencies
+              run: poetry install --only=dev
+            - name: Check formatting with Black
+              run: poetry run black --check django scripts
