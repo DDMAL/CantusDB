@@ -399,15 +399,15 @@ class SourceListView(CustomAccessMixin, ListView):  # type: ignore[type-arg]
             q_obj_filter &= Q(production_method=production_method)
 
         if general_str := self.request.GET.get("general"):
-            # Strip spaces at the beginning and end
-            general_str = general_str.strip()
+            # Strip leading/trailing spaces and collapse internal whitespace
+            general_str = " ".join(general_str.split())
 
             # Use regex to extract quoted and unquoted terms
             quoted_terms = re.findall(
                 r'"(.*?)"', general_str
             )  # Extract terms in quotes
             unquoted_terms = re.findall(
-                r"\b[\w,-.]+\b", re.sub(r'"(.*?)"', "", general_str)
+                r"\b[\w,-.:]+\b", re.sub(r'"(.*?)"', "", general_str)
             )
 
             # We need a Q Object for each field we're gonna look into
@@ -417,12 +417,11 @@ class SourceListView(CustomAccessMixin, ListView):  # type: ignore[type-arg]
             holding_institution_city_q = Q()
             description_q = Q()
             name_q = Q()
-            # it seems that old cantus don't look into title and provenance
-            # for the general search terms
-            # cantus.uwaterloo.ca/source/123901 this source cannot be found by searching
-            # its provenance 'Kremsmünster' in the general search field
-            # provenance_q = Q()
             summary_q = Q()
+            provenance_q = Q()
+            fragmentarium_id_q = Q()
+            dact_id_q = Q()
+            identifiers_q = Q()
 
             # Add unquoted terms to the Q object with partial matching (icontains)
             for term in unquoted_terms:
@@ -437,6 +436,10 @@ class SourceListView(CustomAccessMixin, ListView):  # type: ignore[type-arg]
                 description_q |= Q(description__unaccent__icontains=term)
                 summary_q |= Q(summary__unaccent__icontains=term)
                 name_q |= Q(name__unaccent__icontains=term)
+                provenance_q |= Q(provenance__name__unaccent__icontains=term)
+                fragmentarium_id_q |= Q(fragmentarium_id__icontains=term)
+                dact_id_q |= Q(dact_id__icontains=term)
+                identifiers_q |= Q(identifiers__identifier__unaccent__icontains=term)
 
             # Add quoted terms to the Q object with exact matching (iexact)
             for term in quoted_terms:
@@ -451,6 +454,10 @@ class SourceListView(CustomAccessMixin, ListView):  # type: ignore[type-arg]
                 description_q |= Q(description__unaccent__icontains=term)
                 summary_q |= Q(summary__unaccent__icontains=term)
                 name_q |= Q(name__unaccent__icontains=term)
+                provenance_q |= Q(provenance__name__unaccent__icontains=term)
+                fragmentarium_id_q |= Q(fragmentarium_id__icontains=term)
+                dact_id_q |= Q(dact_id__icontains=term)
+                identifiers_q |= Q(identifiers__identifier__unaccent__icontains=term)
 
             # Combine all Q objects with OR
             general_search_q = (
@@ -461,6 +468,10 @@ class SourceListView(CustomAccessMixin, ListView):  # type: ignore[type-arg]
                 | holding_institution_q
                 | holding_institution_city_q
                 | name_q
+                | provenance_q
+                | fragmentarium_id_q
+                | dact_id_q
+                | identifiers_q
             )
 
             # Apply the general search Q object to the filter
