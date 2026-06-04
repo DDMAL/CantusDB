@@ -863,15 +863,17 @@ class SourceListViewTest(CustomAccessTestMixin, TestCase):
         self.assertTemplateUsed(response, "base.html")
         self.assertTemplateUsed(response, "source_lists/source_list.html")
 
-    def test_provenances_and_centuries_in_context(self):
-        """Test the `provenances` and `centuries` in the context. They are displayed as options in the selectors"""
+    def test_provenances_and_date_range_in_context(self):
+        """`provenances` are options in the selector; `date_range_min`/`date_range_max`
+        bound the year-range slider."""
         provenance = make_fake_provenance()
-        century = make_fake_century()
+        make_fake_century(name="10th century")
+        make_fake_century(name="15th century")
         response = self.client.get(reverse("source-list"))
         provenances = response.context["provenances"]
         self.assertIn({"id": provenance.id, "name": provenance.name}, provenances)
-        centuries = response.context["centuries"]
-        self.assertIn({"id": century.id, "name": century.name}, centuries)
+        self.assertEqual(response.context["date_range_min"], 900)
+        self.assertEqual(response.context["date_range_max"], 1500)
 
     def test_permissions(self) -> None:
         published_source = make_fake_source(published=True)
@@ -1022,49 +1024,42 @@ class SourceListViewTest(CustomAccessTestMixin, TestCase):
         self.assertNotIn(albi_source, sources)
         self.assertNotIn(no_provenance_source, sources)
 
-    def test_filter_by_century(self):
+    def test_filter_by_date_range(self):
         ninth_century = make_fake_century(name="09th century")
-        ninth_century_first_half = make_fake_century(name="09th century (1st half)")
         tenth_century = make_fake_century(name="10th century")
+        fifteenth_century = make_fake_century(name="15th century")
 
-        ninth_century_source = make_fake_source(
-            published=True,
-            shelfmark="source",
-        )
+        ninth_century_source = make_fake_source(published=True, shelfmark="9th")
         ninth_century_source.century.set([ninth_century])
 
-        ninth_century_first_half_source = make_fake_source(
-            published=True,
-            shelfmark="source",
-        )
-        ninth_century_first_half_source.century.set([ninth_century_first_half])
+        tenth_century_source = make_fake_source(published=True, shelfmark="10th")
+        tenth_century_source.century.set([tenth_century])
 
-        multiple_century_source = make_fake_source(
-            published=True,
-            shelfmark="source",
-        )
-        multiple_century_source.century.set([ninth_century, tenth_century])
+        fifteenth_century_source = make_fake_source(published=True, shelfmark="15th")
+        fifteenth_century_source.century.set([fifteenth_century])
 
-        # display sources in ninth century
+        # Range 800-999 overlaps 9th and 10th centuries; not 15th
         response = self.client.get(
-            reverse("source-list"), {"century": ninth_century.id}
+            reverse("source-list"), {"dateStart": 800, "dateEnd": 999}
         )
         sources = response.context["sources"]
-        # ninth_century_source, ninth_century_first_half_source, and
-        # multiple_century_source should all be in the list
         self.assertIn(ninth_century_source, sources)
-        self.assertIn(ninth_century_first_half_source, sources)
-        self.assertIn(multiple_century_source, sources)
+        self.assertIn(tenth_century_source, sources)
+        self.assertNotIn(fifteenth_century_source, sources)
 
-        # display sources in ninth century first half
-        response = self.client.get(
-            reverse("source-list"), {"century": ninth_century_first_half.id}
-        )
+        # Only dateStart: sources whose century max_date >= 1400
+        response = self.client.get(reverse("source-list"), {"dateStart": 1400})
         sources = response.context["sources"]
-        # only ninth_century_first_half_source should be in the list
         self.assertNotIn(ninth_century_source, sources)
-        self.assertIn(ninth_century_first_half_source, sources)
-        self.assertNotIn(multiple_century_source, sources)
+        self.assertNotIn(tenth_century_source, sources)
+        self.assertIn(fifteenth_century_source, sources)
+
+        # Only dateEnd: sources whose century min_date <= 999
+        response = self.client.get(reverse("source-list"), {"dateEnd": 999})
+        sources = response.context["sources"]
+        self.assertIn(ninth_century_source, sources)
+        self.assertIn(tenth_century_source, sources)
+        self.assertNotIn(fifteenth_century_source, sources)
 
     def test_filter_by_full_source(self) -> None:
         full_source = make_fake_source(

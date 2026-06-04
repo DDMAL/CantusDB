@@ -7,6 +7,7 @@
     <link href="{% static 'css/cantorales_style.css' %}"
           rel="stylesheet"
           media="screen" />
+    <link href="{% static 'css/source_list.css' %}" rel="stylesheet" />
 {% endblock %}
 {% block header %}
     {% include "header/sticky_header.html" %}
@@ -167,15 +168,39 @@
                                         </select>
                                     </div>
                                     <div class="col-lg-6">
-                                        <label for="centuryFilter" class="small form-label">Century</label>
-                                        <select id="centuryFilter"
-                                                name="century"
-                                                class="form-control form-select form-select-sm">
-                                            <option value="">- Any -</option>
-                                            {% for century in centuries %}
-                                                <option value="{{ century.id }}">{{ century.name }}</option>
-                                            {% endfor %}
-                                        </select>
+                                        {% if date_range_min is not None and date_range_max is not None %}
+                                        <div class="d-flex justify-content-between align-items-center">
+                                            <label class="small form-label fw-bold mb-0">Year range (overlapping)</label>
+                                            <button type="button"
+                                                    id="rangeResetBtn"
+                                                    class="btn btn-link btn-sm p-0 small text-danger">Clear</button>
+                                        </div>
+                                        <div class="range-slider">
+                                            <div class="range-slider-track"></div>
+                                            <div class="range-slider-fill" id="rangeSliderFill"></div>
+                                            <input type="range"
+                                                   id="dateStartFilter"
+                                                   name="dateStart"
+                                                   class="range-slider-input"
+                                                   min="{{ date_range_min }}"
+                                                   max="{{ date_range_max }}"
+                                                   step="10"
+                                                   value="{{ request.GET.dateStart|default:date_range_min }}" />
+                                            <input type="range"
+                                                   id="dateEndFilter"
+                                                   name="dateEnd"
+                                                   class="range-slider-input"
+                                                   min="{{ date_range_min }}"
+                                                   max="{{ date_range_max }}"
+                                                   step="10"
+                                                   value="{{ request.GET.dateEnd|default:date_range_max }}" />
+                                        </div>
+                                        <div class="d-flex justify-content-between small mt-1">
+                                            <span class="fw-bold">{{ date_range_min }}</span>
+                                            <span class="fw-bold text-primary" id="rangeSelectedLabel"></span>
+                                            <span class="fw-bold">{{ date_range_max }}</span>
+                                        </div>
+                                        {% endif %}
                                     </div>
                                     <div class="col-lg-6">
                                         <label for="prodMethodFilter" class="small form-label">Manuscript/Print</label>

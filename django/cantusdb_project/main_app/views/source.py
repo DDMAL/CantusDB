@@ -1,10 +1,11 @@
 import re
+from datetime import date
 from typing import Any, Optional, Union
 
 from django.conf import settings
 from django.contrib import messages
 from django.contrib.auth.mixins import UserPassesTestMixin
-from django.db.models import Q, Prefetch, QuerySet, Value
+from django.db.models import Q, Prefetch, QuerySet, Value, Min, Max
 from django.db.models.functions import Coalesce
 from django.http import (
     HttpResponseRedirect,
@@ -350,9 +351,25 @@ class SourceListView(CustomAccessMixin, ListView):  # type: ignore[type-arg]
         context["provenances"] = (
             Provenance.objects.all().order_by("name").values("id", "name")
         )
-        context["centuries"] = (
-            Century.objects.all().order_by("name").values("id", "name")
+        # Year-range slider bounds. Endpoints are rounded out to the nearest
+        # decade so the slider's step="10" reaches both. The upper bound is
+        # clipped to the current decade so future-dated centuries (e.g. a
+        # "21st century" stub ending in 2099) do not stretch the slider past
+        # today.
+        current_decade = (date.today().year // 10) * 10
+        century_dates = Century.objects.filter(
+            min_date__isnull=False, max_date__isnull=False
+        ).aggregate(
+            min_year=Min("min_date"),
+            max_year=Max("max_date"),
         )
+        min_year = century_dates["min_year"]
+        max_year = century_dates["max_year"]
+        context["date_range_min"] = (min_year // 10) * 10 if min_year is not None else None
+        context["date_range_max"] = (
+            min(-(-max_year // 10) * 10, current_decade) if max_year is not None else None
+        )
+
         context["production_method_choices"] = Source.ProductionMethodChoices.choices
         context["source_completeness_choices"] = (
             Source.SourceCompletenessChoices.choices
@@ -383,9 +400,32 @@ class SourceListView(CustomAccessMixin, ListView):  # type: ignore[type-arg]
         if country_name := self.request.GET.get("country"):
             q_obj_filter &= Q(holding_institution__country__icontains=country_name)
 
-        if century_id := self.request.GET.get("century"):
-            century_name = Century.objects.get(id=century_id).name
-            q_obj_filter &= Q(century__name__icontains=century_name)
+        # Handle direct date range filtering
+        # This allows filtering by explicit date ranges (e.g., 1400-1500)
+        date_start = self.request.GET.get("dateStart")
+        date_end = self.request.GET.get("dateEnd")
+        if date_start or date_end:
+            try:
+                date_start_int = int(date_start) if date_start else None
+                date_end_int = int(date_end) if date_end else None
+
+                # Find all centuries that overlap with the selected date range
+                # This provides the same behavior as century selection
+                if date_start_int is not None and date_end_int is not None:
+                    # Both dates specified: find centuries that overlap the range
+                    q_obj_filter &= Q(
+                        century__min_date__lte=date_end_int,
+                        century__max_date__gte=date_start_int,
+                    )
+                elif date_start_int is not None:
+                    # Only start date: find centuries that haven't ended
+                    q_obj_filter &= Q(century__max_date__gte=date_start_int)
+                elif date_end_int is not None:
+                    # Only end date: find centuries that have started
+                    q_obj_filter &= Q(century__min_date__lte=date_end_int)
+            except (ValueError, TypeError):
+                # Invalid date format, skip filtering
+                pass
 
         if provenance_id := self.request.GET.get("provenance"):
             q_obj_filter &= Q(provenance__id=int(provenance_id))
