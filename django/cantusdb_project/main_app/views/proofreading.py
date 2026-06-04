@@ -244,14 +244,26 @@ class ProofreadView(CustomAccessMixin, ListView, MultipleObjectMixin):
                 "holding_institution__siglum",
             ],
             "published": ["published", "holding_institution__siglum", "shelfmark"],
-            "volpiano": ["num_volpiano_to_proofread", "holding_institution__siglum", "shelfmark"],
-            "ms_text": ["num_ms_full_text_to_proofread", "holding_institution__siglum", "shelfmark"],
+            "volpiano": [
+                "num_volpiano_to_proofread",
+                "holding_institution__siglum",
+                "shelfmark",
+            ],
+            "ms_text": [
+                "num_ms_full_text_to_proofread",
+                "holding_institution__siglum",
+                "shelfmark",
+            ],
             "ms_text_std": [
                 "num_ms_full_text_std_to_proofread",
                 "holding_institution__siglum",
                 "shelfmark",
             ],
-            "other": ["num_other_fields_to_proofread", "holding_institution__siglum", "shelfmark"],
+            "other": [
+                "num_other_fields_to_proofread",
+                "holding_institution__siglum",
+                "shelfmark",
+            ],
             "needing_proof": [
                 "total_chants_needing_proofread",
                 "holding_institution__siglum",
@@ -262,7 +274,11 @@ class ProofreadView(CustomAccessMixin, ListView, MultipleObjectMixin):
                 "holding_institution__siglum",
                 "shelfmark",
             ],
-            "percent_complete": ["percent_complete", "holding_institution__siglum", "shelfmark"],
+            "percent_complete": [
+                "percent_complete",
+                "holding_institution__siglum",
+                "shelfmark",
+            ],
         }
 
         primary_sort_fields = sort_mapping.get(order_param, [])

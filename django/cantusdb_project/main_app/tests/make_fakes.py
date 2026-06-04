@@ -22,7 +22,6 @@ from main_app.models.source import Source
 from users.models import User as UserAnnotation
 from users.models import Group, GroupMembership
 
-
 User = get_user_model()
 
 # Create a Faker instance with locale set to Latin

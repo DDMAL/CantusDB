@@ -197,9 +197,7 @@ class SourceBrowseChantsView(CustomAccessMixin, ListView):  # type: ignore[type-
         # Always include the current source so it can be marked as selected,
         # even if it doesn't belong to the CantusDatabase segment.
         sources: QuerySet[Source] = (
-            Source.objects.filter(
-                Q(segment_m2m=cantus_segment) | Q(id=source.id)
-            )
+            Source.objects.filter(Q(segment_m2m=cantus_segment) | Q(id=source.id))
             .select_related("holding_institution")
             .prefetch_related("segment_m2m")
             .order_by("holding_institution__siglum", "shelfmark", "id")

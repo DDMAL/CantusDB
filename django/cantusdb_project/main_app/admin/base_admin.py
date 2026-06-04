@@ -2,7 +2,6 @@ from typing import Tuple
 
 from reversion.admin import VersionAdmin
 
-
 # these fields should not be editable by all classes
 EXCLUDE = ("json_info",)
 
