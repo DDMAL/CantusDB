@@ -801,6 +801,21 @@ class ChantSearchViewTest(CustomAccessTestMixin, TestCase):
         context_chant_id = response.context["chants"][0].id
         self.assertEqual(chant.id, context_chant_id)
 
+    def test_keyword_search_ends_with(self):
+        source = make_fake_source(published=True)
+        chant = make_fake_chant(
+            source=source,
+            manuscript_full_text_std_spelling=faker.sentence(),
+        )
+        # use the end of the full text as the search term
+        full_text = chant.manuscript_full_text_std_spelling
+        search_term = full_text[random.randint(0, len(full_text) - 1) :]
+        response = self.client.get(
+            reverse("chant-search"), {"keyword": search_term, "op": "ends_with"}
+        )
+        context_chant_id = response.context["chants"][0].id
+        self.assertEqual(chant.id, context_chant_id)
+
     def test_search_bar_search(self):
         # note to developers: if you are changing the behavior of search_bar
         # searches, be sure to check static/js/chant_search.js to see if it needs
@@ -2263,6 +2278,31 @@ class ChantSearchMSViewTest(ChantPermissionsTestCase):
         self.assertEqual(chant_1.id, first_context_chant_id)
         second_context_chant_id = response.context["chants"][1].id
         self.assertEqual(chant_3.id, second_context_chant_id)
+
+    def test_keyword_search_ends_with(self):
+        source = make_fake_source()
+        search_term = "dog"
+
+        # We have three chants to make sure the result is only chant 1 where dog is the last word
+        chant_1 = make_fake_chant(
+            source=source,
+            manuscript_full_text_std_spelling="quick brown fox jumps over the lazy dog",
+        )
+        make_fake_chant(
+            source=source,
+            manuscript_full_text_std_spelling="quick brown fox jumps over the lazy",
+        )
+        make_fake_chant(
+            source=source,
+            manuscript_full_text_std_spelling="quick brown dog jumps over the lazy fox",
+        )
+        response = self.client.get(
+            reverse("chant-search-ms", args=[source.id]),
+            {"keyword": search_term, "op": "ends_with"},
+        )
+        self.assertEqual(len(response.context["chants"]), 1)
+        context_chant_id = response.context["chants"][0].id
+        self.assertEqual(chant_1.id, context_chant_id)
 
     def test_indexing_notes_search_starts_with(self):
         source = make_fake_source()

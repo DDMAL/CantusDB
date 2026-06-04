@@ -451,7 +451,7 @@ class ChantSearchView(CustomAccessMixin, ListView):  # type: ignore[type-arg]
                       Volpiano form. Valid values are "true" or "false".
         ``feast``: Filters by Feast of Chant
         ``keyword``: Searches text of Chant for keywords
-        ``op``: Operation to take with keyword search. Options are "contains" and "starts_with"
+        ``op``: Operation to take with keyword search. Options are "contains", "starts_with", and "ends_with"
     """
 
     paginate_by = 100
@@ -631,6 +631,12 @@ class ChantSearchView(CustomAccessMixin, ListView):  # type: ignore[type-arg]
                         manuscript_full_text_std_spelling__icontains=keyword
                     )
                     incipit_filter = Q(incipit__icontains=keyword)
+                elif operation and operation == "ends_with":
+                    ms_spelling_filter = Q(manuscript_full_text__iendswith=keyword)
+                    std_spelling_filter = Q(
+                        manuscript_full_text_std_spelling__iendswith=keyword
+                    )
+                    incipit_filter = Q(incipit__iendswith=keyword)
                 else:
                     ms_spelling_filter = Q(manuscript_full_text__istartswith=keyword)
                     std_spelling_filter = Q(
@@ -734,7 +740,7 @@ class ChantSearchMSView(CustomAccessMixin, ListView):  # type: ignore[type-arg]
                       Volpiano form. Valid values are "true" or "false".
         ``feast``: Filters by Feast of Chant
         ``keyword``: Searches text of Chant for keywords
-        ``op``: Operation to take with keyword search. Options are "contains" and "starts_with"
+        ``op``: Operation to take with keyword search. Options are "contains", "starts_with", and "ends_with"
     """
 
     paginate_by = 100
@@ -897,13 +903,19 @@ class ChantSearchMSView(CustomAccessMixin, ListView):  # type: ignore[type-arg]
         # Finally, do keyword searching over the QuerySet
         if keyword := self.request.GET.get("keyword"):
             operation = self.request.GET.get("op")
-            # the operation parameter can be "contains" or "starts_with"
+            # the operation parameter can be "contains", "starts_with", or "ends_with"
             if operation == "contains":
                 ms_spelling_filter = Q(manuscript_full_text__icontains=keyword)
                 std_spelling_filter = Q(
                     manuscript_full_text_std_spelling__icontains=keyword
                 )
                 incipit_filter = Q(incipit__icontains=keyword)
+            elif operation == "ends_with":
+                ms_spelling_filter = Q(manuscript_full_text__iendswith=keyword)
+                std_spelling_filter = Q(
+                    manuscript_full_text_std_spelling__iendswith=keyword
+                )
+                incipit_filter = Q(incipit__iendswith=keyword)
             else:
                 ms_spelling_filter = Q(manuscript_full_text__istartswith=keyword)
                 std_spelling_filter = Q(
