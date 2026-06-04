@@ -402,11 +402,6 @@ class SourceListView(CustomAccessMixin, ListView):  # type: ignore[type-arg]
             holding_institution_city_q = Q()
             description_q = Q()
             name_q = Q()
-            # it seems that old cantus don't look into title and provenance
-            # for the general search terms
-            # cantus.uwaterloo.ca/source/123901 this source cannot be found by searching
-            # its provenance 'Kremsmünster' in the general search field
-            # provenance_q = Q()
             summary_q = Q()
             provenance_q = Q()
             fragmentarium_id_q = Q()
