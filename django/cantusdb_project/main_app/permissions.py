@@ -13,6 +13,16 @@ from django.db.models import Q, QuerySet
 from main_app.models import Source
 from users.models import User
 
+# IDs of the two "master" sources of the chant transcribed in Kanien'kehá
+# (Mohawk) for the Kaiatonsera project. The "Chant record created by" field is
+# only shown for chants belonging to these sources. See issue #2077.
+KAIATONSERA_SOURCE_IDS: frozenset[int] = frozenset({1000289, 1000212})
+
+# Name of the user group whose members may see the "Chant record created by"
+# field (the people in the class). This group is created in users migration
+# 0004_create_kaiatonsera_viewer_group. See issue #2077.
+KAIATONSERA_VIEWER_GROUP: str = "kaiatonsera viewer"
+
 
 def get_user_groups(user: Union[User, AnonymousUser]) -> Dict[str, Optional[date]]:
     """
@@ -66,6 +76,33 @@ def user_group_valid(group: str, user_groups: Dict[str, Optional[date]]) -> bool
     if expiration is not None and expiration < date.today():
         return False
     return True
+
+
+def user_can_view_record_creator(
+    source_id: Optional[int],
+    user_is_editor: bool,
+    user_groups: Dict[str, Optional[date]],
+) -> bool:
+    """
+    Returns True if the "Chant record created by" field should be visible to
+    the user for a chant in the given source.
+
+    The field is only shown for chants in the Kaiatonsera master sources
+    (see KAIATONSERA_SOURCE_IDS), and only to editors/superusers or to members
+    of the Kaiatonsera viewer group (the people in the class). See issue #2077.
+
+    :param source_id: ID of the source the chant belongs to (None if the chant
+                    has no source).
+    :param user_is_editor: True if the user is a superuser or an editor (as
+                    given by CustomAccessMixin.user_is_editor).
+    :param user_groups: Dictionary of the user's groups and expiration dates
+                    (as returned by get_user_groups()).
+
+    :return: True if the field should be visible, False otherwise.
+    """
+    if source_id not in KAIATONSERA_SOURCE_IDS:
+        return False
+    return user_is_editor or user_group_valid(KAIATONSERA_VIEWER_GROUP, user_groups)
 
 
 class CustomAccessMixin(AccessMixin):

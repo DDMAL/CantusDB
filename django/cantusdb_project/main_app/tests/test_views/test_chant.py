@@ -18,6 +18,7 @@ from main_app.tests.make_fakes import (
     make_fake_chant,
     make_fake_source,
     make_fake_segment,
+    make_fake_user,
     make_fake_volpiano,
     make_fake_service,
     make_fake_genre,
@@ -29,11 +30,13 @@ from main_app.tests.make_fakes import (
 from main_app.tests.test_functions import mock_requests_get
 from main_app.tests.mixins import CustomAccessTestMixin
 from main_app.models import Chant, Source, Feast, Service
+from main_app.permissions import KAIATONSERA_SOURCE_IDS, KAIATONSERA_VIEWER_GROUP
 from main_app.views.chant import (
     get_feast_selector_options,
     ChantSearchView,
     ChantSearchMSView,
 )
+from users.models import Group
 
 # Create a Faker instance with locale set to Latin
 faker = Faker("la")
@@ -240,6 +243,87 @@ class ChantDetailViewTest(ChantPermissionsTestCase):
         self.assertIn("Notation (Bower):", html)
         self.assertIn(notation.name, html)
         self.assertNotIn(reverse("notation-detail", args=[notation.id]), html)
+
+
+class ChantRecordCreatedByTest(CustomAccessTestMixin, TestCase):
+    """
+    Tests for the "Chant record created by" field on the chant detail page.
+
+    The field is only shown for chants in the Kaiatonsera master sources, and
+    only to the people in the class (the "kaiatonsera viewer" group) plus
+    editors/superusers. See issue #2077.
+    """
+
+    LABEL = "Chant record created by"
+    CREATOR_NAME = "Linda Pearse"
+
+    @classmethod
+    def setUpTestData(cls) -> None:
+        super().setUpTestData()
+        # The "kaiatonsera viewer" group is created by the
+        # users.0004_create_kaiatonsera_viewer_group data migration.
+        kaiatonsera_group, _ = Group.objects.get_or_create(
+            name=KAIATONSERA_VIEWER_GROUP
+        )
+        cls.users["kaiatonsera viewer"] = make_fake_user(
+            groups=[(kaiatonsera_group, None)]
+        )
+        creator = make_fake_user()
+        creator.full_name = cls.CREATOR_NAME
+        creator.save()
+        # A published Kaiatonsera master source: the page is viewable by all,
+        # but the "Chant record created by" field is gated.
+        kaiatonsera_source = make_fake_source(
+            id=sorted(KAIATONSERA_SOURCE_IDS)[0], published=True
+        )
+        cls.kaiatonsera_chant = make_fake_chant(
+            source=kaiatonsera_source, created_by=creator
+        )
+        # A published source that is not a Kaiatonsera master source.
+        other_source = make_fake_source(published=True)
+        cls.other_chant = make_fake_chant(source=other_source, created_by=creator)
+
+    def assert_field_visibility(self, chant, user_keys, visible) -> None:
+        for user_key in user_keys:
+            with self.subTest(user=user_key):
+                self.client.logout()
+                if user_key != "anonymous user":
+                    self.client.force_login(self.users[user_key])
+                response = self.client.get(reverse("chant-detail", args=[chant.id]))
+                self.assertEqual(response.status_code, 200)
+                self.assertEqual(
+                    response.context["user_can_view_record_creator"], visible
+                )
+                if visible:
+                    self.assertContains(response, self.LABEL)
+                    self.assertContains(response, self.CREATOR_NAME)
+                else:
+                    self.assertNotContains(response, self.LABEL)
+
+    def test_field_visible_to_class_members_and_staff(self) -> None:
+        self.assert_field_visibility(
+            self.kaiatonsera_chant,
+            ["kaiatonsera viewer", "superuser", "editor"],
+            visible=True,
+        )
+
+    def test_field_hidden_from_others(self) -> None:
+        # Regular users, global viewers, and anonymous users can view the page
+        # but must not see the field.
+        self.assert_field_visibility(
+            self.kaiatonsera_chant,
+            ["user", "global viewer", "anonymous user"],
+            visible=False,
+        )
+
+    def test_field_hidden_outside_kaiatonsera_sources(self) -> None:
+        # Even class members and staff don't see the field for chants that do
+        # not belong to a Kaiatonsera master source.
+        self.assert_field_visibility(
+            self.other_chant,
+            ["kaiatonsera viewer", "superuser"],
+            visible=False,
+        )
 
 
 class SourceEditChantsViewTest(ChantPermissionsTestCase):
