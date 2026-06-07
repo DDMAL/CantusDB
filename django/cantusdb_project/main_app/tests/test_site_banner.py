@@ -61,6 +61,61 @@ class SiteBannerModelTest(TestCase):
         banner.message = ""
         self.assertFalse(banner.is_displayable())
 
+    def test_rendered_message_blank_returns_empty(self) -> None:
+        banner = SiteBanner(message="   ")
+        self.assertEqual(banner.rendered_message(), "")
+
+    def test_rendered_message_renders_link_and_bold(self) -> None:
+        banner = SiteBanner(
+            message="See [the wiki](https://example.com) for **details**."
+        )
+        html = banner.rendered_message()
+        self.assertIn('<a href="https://example.com">the wiki</a>', html)
+        self.assertIn("<strong>details</strong>", html)
+
+    def test_rendered_message_strips_outer_p_for_single_paragraph(self) -> None:
+        banner = SiteBanner(message="hello")
+        self.assertEqual(banner.rendered_message(), "hello")
+
+    def test_rendered_message_keeps_p_tags_for_multi_paragraph(self) -> None:
+        banner = SiteBanner(message="Para 1\n\nPara 2")
+        html = banner.rendered_message()
+        self.assertEqual(html.count("<p>"), 2)
+        self.assertIn("Para 1", html)
+        self.assertIn("Para 2", html)
+
+    def test_rendered_message_hard_wraps_single_newlines(self) -> None:
+        banner = SiteBanner(message="Line 1\nLine 2")
+        html = banner.rendered_message()
+        self.assertIn("<br", html)
+        self.assertIn("Line 1", html)
+        self.assertIn("Line 2", html)
+
+    def test_rendered_message_suppresses_raw_html(self) -> None:
+        banner = SiteBanner(message="Hello <script>alert(1)</script> world")
+        html = banner.rendered_message()
+        self.assertNotIn("<script>", html)
+        self.assertNotIn("alert(1)</script>", html)
+        # cmarkgfm replaces raw HTML with a comment marker
+        self.assertIn("raw HTML omitted", html)
+
+    def test_rendered_message_strips_javascript_url(self) -> None:
+        banner = SiteBanner(message="[click](javascript:alert(1))")
+        html = banner.rendered_message()
+        self.assertNotIn("javascript:", html)
+        self.assertIn('href=""', html)
+
+    def test_rendered_message_strips_data_url(self) -> None:
+        banner = SiteBanner(message="[click](data:text/html,foo)")
+        html = banner.rendered_message()
+        self.assertNotIn("data:", html)
+
+    def test_rendered_message_allows_mailto_and_relative(self) -> None:
+        banner = SiteBanner(message="[mail](mailto:a@b.com) [home](/articles/)")
+        html = banner.rendered_message()
+        self.assertIn('href="mailto:a@b.com"', html)
+        self.assertIn('href="/articles/"', html)
+
 
 class SiteBannerContextProcessorTest(TestCase):
     @classmethod
@@ -120,13 +175,15 @@ class SiteBannerRenderingTest(TestCase):
 
     def test_active_banner_appears_in_page_for_anonymous(self) -> None:
         SiteBanner.objects.create(
-            message='<a href="https://example.com">read more</a>',
+            message="See [read more](https://example.com) for details.",
             is_active=True,
         )
         response = self.client.get(reverse("article-list"))
-        self.assertContains(response, "read more")
+        self.assertContains(response, '<a href="https://example.com">read more</a>')
         self.assertContains(response, "alert-warning")
         self.assertNotContains(response, "PREVIEW")
+        # Raw markdown source must not leak into the page
+        self.assertNotContains(response, "[read more](")
 
     def test_preview_appears_only_for_superuser(self) -> None:
         SiteBanner.objects.create(message="draft notice", is_active=False)

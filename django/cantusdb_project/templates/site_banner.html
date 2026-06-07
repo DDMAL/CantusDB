@@ -1,6 +1,6 @@
 {% if SITE_BANNER %}
     <div class="alert alert-warning mb-0 rounded-0 text-center position-relative" role="alert">
-        {{ SITE_BANNER.message|safe }}
+        {{ SITE_BANNER.rendered_message }}
         {% if SITE_BANNER_IS_PREVIEW %}
             <span class="badge bg-dark text-white position-absolute bottom-0 start-0 m-1"
                   title="Only superusers see this banner. Check 'Is active' to publish it.">PREVIEW</span>

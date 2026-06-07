@@ -36,7 +36,7 @@ class Migration(migrations.Migration):
                     "message",
                     models.TextField(
                         blank=True,
-                        help_text='Banner text shown to all site visitors. HTML is allowed — use <a href="URL">text</a> for links.',
+                        help_text="Markdown supported: [text](URL) for links, **bold**, *italic*. Press Enter for a new line.",
                     ),
                 ),
                 (

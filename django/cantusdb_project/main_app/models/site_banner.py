@@ -1,6 +1,10 @@
+from cmarkgfm import github_flavored_markdown_to_html
+from cmarkgfm.cmark import Options
+
 from django.contrib.auth import get_user_model
 from django.db import models
 from django.utils import timezone
+from django.utils.safestring import SafeString, mark_safe
 
 
 class SiteBanner(models.Model):
@@ -21,8 +25,8 @@ class SiteBanner(models.Model):
     message = models.TextField(
         blank=True,
         help_text=(
-            "Banner text shown to all site visitors. HTML is allowed — "
-            'use <a href="URL">text</a> for links.'
+            "Markdown supported: [text](URL) for links, **bold**, *italic*. "
+            "Press Enter for a new line."
         ),
     )
     expires_at = models.DateTimeField(
@@ -75,3 +79,21 @@ class SiteBanner(models.Model):
     def is_displayable(self) -> bool:
         """True if the banner should be shown to all visitors."""
         return self.is_active and self.has_content()
+
+    def rendered_message(self) -> SafeString:
+        """Render the message from GFM markdown to sanitized HTML.
+
+        cmarkgfm's default ("safe") mode drops raw HTML and rewrites unsafe
+        URL schemes (javascript:, data:) to an empty href, so the output is
+        safe to mark for the template.
+        """
+        if not self.message.strip():
+            return mark_safe("")
+        html = github_flavored_markdown_to_html(
+            self.message, options=Options.CMARK_OPT_HARDBREAKS
+        ).strip()
+        # Drop the outer <p> wrapper for single-paragraph messages so the
+        # alert box doesn't inherit a paragraph's default bottom margin.
+        if html.startswith("<p>") and html.endswith("</p>") and html.count("<p>") == 1:
+            html = html[3:-4]
+        return mark_safe(html)
