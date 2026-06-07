@@ -1,13 +1,13 @@
 from django.conf import settings
 
 
-def determine_project_environment(request):
+def determine_project_environment(request) -> dict:
     return {
         "PROJECT_ENVIRONMENT": settings.PROJECT_ENVIRONMENT,
     }
 
 
-def site_banner(request):
+def site_banner(request) -> dict:
     # Local import to avoid app-loading order issues.
     from main_app.models import SiteBanner
 

@@ -2,6 +2,7 @@ from cmarkgfm import github_flavored_markdown_to_html
 from cmarkgfm.cmark import Options
 
 from django.contrib.auth import get_user_model
+from django.core.exceptions import ValidationError
 from django.db import models
 from django.utils import timezone
 from django.utils.safestring import SafeString, mark_safe
@@ -32,7 +33,11 @@ class SiteBanner(models.Model):
     expires_at = models.DateTimeField(
         null=True,
         blank=True,
-        help_text="Optional. Banner is automatically hidden after this time.",
+        help_text=(
+            "Optional. Banner is automatically hidden at this time. "
+            "Must be in the future, or leave blank to keep showing until "
+            "you uncheck 'Is active'."
+        ),
     )
     updated_by = models.ForeignKey(
         get_user_model(),
@@ -47,11 +52,18 @@ class SiteBanner(models.Model):
     class Meta:
         app_label = "main_app"
         verbose_name = "site banner"
+        # Singular on purpose: the admin only ever shows one row.
         verbose_name_plural = "site banner"
 
     def __str__(self) -> str:
         state = "active" if self.is_active else "inactive"
         return f"Site banner ({state})"
+
+    def clean(self) -> None:
+        if self.expires_at is not None and self.expires_at <= timezone.now():
+            raise ValidationError(
+                {"expires_at": "Expiry time must be in the future."}
+            )
 
     def save(self, *args, **kwargs) -> None:
         # Enforce singleton: always pk=1. Drop force_insert so Django picks
@@ -59,6 +71,10 @@ class SiteBanner(models.Model):
         # force_insert=True, which would otherwise collide on the fixed pk).
         self.pk = 1
         kwargs.pop("force_insert", None)
+        # Skip validate_unique: the fixed pk=1 makes a second create() look
+        # like a duplicate row, but it's actually meant to overwrite the
+        # singleton. Field-level validation still runs.
+        self.full_clean(validate_unique=False)
         super().save(*args, **kwargs)
 
     def delete(self, *args, **kwargs) -> None:

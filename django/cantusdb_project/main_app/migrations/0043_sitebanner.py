@@ -43,7 +43,7 @@ class Migration(migrations.Migration):
                     "expires_at",
                     models.DateTimeField(
                         blank=True,
-                        help_text="Optional. Banner is automatically hidden after this time.",
+                        help_text="Optional. Banner is automatically hidden at this time. Must be in the future, or leave blank to keep showing until you uncheck 'Is active'.",
                         null=True,
                     ),
                 ),

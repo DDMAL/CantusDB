@@ -17,7 +17,7 @@ class SiteBannerAdmin(admin.ModelAdmin):
     def has_delete_permission(self, request, obj=None) -> bool:
         return False
 
-    def changelist_view(self, request, extra_context=None):
+    def changelist_view(self, request, extra_context=None) -> HttpResponseRedirect:
         # Skip the changelist and jump straight to the singleton's edit form.
         SiteBanner.load()
         return HttpResponseRedirect(

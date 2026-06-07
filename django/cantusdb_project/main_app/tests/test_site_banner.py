@@ -1,6 +1,8 @@
 from datetime import timedelta
+from unittest.mock import patch
 
 from django.contrib.auth.models import AnonymousUser
+from django.core.exceptions import ValidationError
 from django.test import RequestFactory, TestCase
 from django.urls import reverse
 from django.utils import timezone
@@ -34,6 +36,31 @@ class SiteBannerModelTest(TestCase):
         banner = SiteBanner.objects.create(message="keep me")
         banner.delete()
         self.assertEqual(SiteBanner.objects.count(), 1)
+
+    def test_save_rejects_past_expiry(self) -> None:
+        past = timezone.now() - timedelta(minutes=1)
+        with self.assertRaises(ValidationError) as ctx:
+            SiteBanner.objects.create(message="hi", expires_at=past)
+        self.assertIn("expires_at", ctx.exception.message_dict)
+
+    def test_save_accepts_future_expiry(self) -> None:
+        future = timezone.now() + timedelta(hours=1)
+        SiteBanner.objects.create(message="hi", expires_at=future)
+        self.assertEqual(SiteBanner.objects.get().expires_at, future)
+
+    def test_save_accepts_blank_expiry(self) -> None:
+        SiteBanner.objects.create(message="hi", expires_at=None)
+        self.assertIsNone(SiteBanner.objects.get().expires_at)
+
+    def test_save_runs_full_clean(self) -> None:
+        """Regression guard: save() must run model validation so any
+        validator added in the future is enforced. Mirrors BaseModel's
+        contract; SiteBanner doesn't extend BaseModel because its
+        singleton semantics don't fit (no detail URL, no meaningful
+        creator)."""
+        with patch.object(SiteBanner, "full_clean") as mocked:
+            SiteBanner.objects.create(message="hi")
+        mocked.assert_called_once()
 
     def test_has_content_false_when_message_blank(self) -> None:
         banner = SiteBanner(is_active=True, message="   ")
@@ -152,10 +179,16 @@ class SiteBannerContextProcessorTest(TestCase):
         self.assertTrue(context["SITE_BANNER_IS_PREVIEW"])
 
     def test_expired_banner_hidden_even_from_superuser(self) -> None:
+        # Save with a future expiry (validation requires it), then push the
+        # row's expires_at into the past via queryset update to bypass save().
+        # Models the real-world case of a banner whose expiry time has elapsed.
         SiteBanner.objects.create(
             message="old notice",
             is_active=True,
-            expires_at=timezone.now() - timedelta(hours=1),
+            expires_at=timezone.now() + timedelta(hours=1),
+        )
+        SiteBanner.objects.filter(pk=1).update(
+            expires_at=timezone.now() - timedelta(hours=1)
         )
         context = site_banner(self._request(self.superuser))
         self.assertIsNone(context["SITE_BANNER"])
