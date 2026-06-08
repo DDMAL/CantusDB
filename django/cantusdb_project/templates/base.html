@@ -55,6 +55,7 @@
         {% block scripts %}{% endblock %}
     </head>
     <body>
+        {% include "site_banner.html" %}
         {% block header %}
             {% include "header/base_header.html" %}
         {% endblock %}
@@ -209,6 +210,9 @@
                                     {% if request.user.is_superuser %}
                                         <li class="list-group-item p-0">
                                             <a href="{% url 'admin:articles_article_add' %}">Add News</a>
+                                        </li>
+                                        <li class="list-group-item p-0">
+                                            <a href="{% url 'admin:main_app_sitebanner_change' 1 %}">Edit Site Banner</a>
                                         </li>
                                         <li class="list-group-item p-0">
                                             <a href="{% url 'admin:main_app_feast_add' %}">Add Feast</a>

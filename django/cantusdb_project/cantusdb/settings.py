@@ -93,6 +93,7 @@ TEMPLATES = [
                 "django.contrib.auth.context_processors.auth",
                 "django.contrib.messages.context_processors.messages",
                 "main_app.context_processors.determine_project_environment",
+                "main_app.context_processors.site_banner",
             ],
         },
     },
