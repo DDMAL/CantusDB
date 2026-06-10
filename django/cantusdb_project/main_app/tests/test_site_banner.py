@@ -53,6 +53,31 @@ class SiteBannerModelTest(TestCase):
         SiteBanner.objects.create(message="hi", expires_at=None)
         self.assertIsNone(SiteBanner.objects.get().expires_at)
 
+    def test_save_allows_resaving_untouched_past_expiry(self) -> None:
+        """An expiry that has already elapsed must not block further edits;
+        only a newly entered past time is rejected."""
+        SiteBanner.objects.create(
+            message="old",
+            is_active=True,
+            expires_at=timezone.now() + timedelta(hours=1),
+        )
+        # Force the stored expiry into the past, mimicking elapsed time.
+        SiteBanner.objects.filter(pk=1).update(
+            expires_at=timezone.now() - timedelta(hours=1)
+        )
+        banner = SiteBanner.load()
+        banner.message = "updated"
+        banner.save()  # must not raise even though expires_at is in the past
+        self.assertEqual(SiteBanner.objects.get().message, "updated")
+
+    def test_save_rejects_newly_set_past_expiry_on_existing_row(self) -> None:
+        SiteBanner.objects.create(message="hi")  # row exists, no expiry
+        banner = SiteBanner.load()
+        banner.expires_at = timezone.now() - timedelta(minutes=1)
+        with self.assertRaises(ValidationError) as ctx:
+            banner.save()
+        self.assertIn("expires_at", ctx.exception.message_dict)
+
     def test_save_runs_full_clean(self) -> None:
         """Regression guard: save() must run model validation so any
         validator added in the future is enforced. Mirrors BaseModel's

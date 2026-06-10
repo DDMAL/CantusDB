@@ -60,10 +60,20 @@ class SiteBanner(models.Model):
         return f"Site banner ({state})"
 
     def clean(self) -> None:
-        if self.expires_at is not None and self.expires_at <= timezone.now():
-            raise ValidationError(
-                {"expires_at": "Expiry time must be in the future."}
-            )
+        if self.expires_at is None or self.expires_at > timezone.now():
+            return
+        # The expiry is in the past. Reject it only if the editor is setting a
+        # new value -- an already-elapsed expiry left untouched must stay
+        # editable (e.g. to fix the message or clear the date), since an
+        # expired banner is a valid state that simply doesn't display.
+        stored_expiry = (
+            type(self)
+            .objects.filter(pk=self.pk)
+            .values_list("expires_at", flat=True)
+            .first()
+        )
+        if stored_expiry != self.expires_at:
+            raise ValidationError({"expires_at": "Expiry time must be in the future."})
 
     def save(self, *args, **kwargs) -> None:
         # Enforce singleton: always pk=1. Drop force_insert so Django picks
