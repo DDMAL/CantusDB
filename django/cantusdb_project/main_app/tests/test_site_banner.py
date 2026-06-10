@@ -3,6 +3,7 @@ from unittest.mock import patch
 
 from django.contrib.auth.models import AnonymousUser
 from django.core.exceptions import ValidationError
+from django.db import ProgrammingError
 from django.test import RequestFactory, TestCase
 from django.urls import reverse
 from django.utils import timezone
@@ -197,6 +198,17 @@ class SiteBannerContextProcessorTest(TestCase):
         SiteBanner.load()  # row exists, but message is empty
         context = site_banner(self._request(self.superuser))
         self.assertIsNone(context["SITE_BANNER"])
+
+    def test_fails_closed_when_table_missing(self) -> None:
+        """The deploy serves new code before `migrate` creates the table, so
+        this processor runs against a missing table mid-rollout. It must return
+        no banner instead of raising, which would 500 every page site-wide."""
+        with patch.object(
+            SiteBanner, "load", side_effect=ProgrammingError("table does not exist")
+        ):
+            context = site_banner(self._request(AnonymousUser()))
+        self.assertIsNone(context["SITE_BANNER"])
+        self.assertFalse(context["SITE_BANNER_IS_PREVIEW"])
 
 
 class SiteBannerRenderingTest(TestCase):
