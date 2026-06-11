@@ -2,6 +2,7 @@ from django.db import models
 from django.contrib.auth import get_user_model
 from django.contrib.postgres.search import SearchVectorField
 
+from main_app.models.url_field import NormalizedURLField
 from main_app.models import BaseModel
 
 
@@ -53,7 +54,7 @@ class BaseChant(BaseModel):
     cantus_id = models.CharField(
         blank=True, null=True, max_length=255, db_index=True, verbose_name="cantus ID"
     )
-    image_link = models.URLField(blank=True, null=True)
+    image_link = NormalizedURLField(blank=True, null=True)
     json_info = models.JSONField(null=True, blank=True)
     marginalia = models.CharField(max_length=63, null=True, blank=True)
     service = models.ForeignKey(

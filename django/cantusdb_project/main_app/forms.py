@@ -26,6 +26,7 @@ from .models import (
     Century,
     Sequence,
 )
+from .models.url_field import NormalizedURLFormField
 from .widgets import (
     TextInputWidget,
     VolpianoInputWidget,
@@ -1031,7 +1032,7 @@ class ImageLinkForm(forms.Form):
         initial = kwargs.get("initial")
         if initial:
             for folio in initial:
-                self.fields[folio] = forms.CharField(
+                self.fields[folio] = NormalizedURLFormField(
                     widget=HiddenInput(attrs={"class": "img-link-input"}),
                     required=False,
                 )
