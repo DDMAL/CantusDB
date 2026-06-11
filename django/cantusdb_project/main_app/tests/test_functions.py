@@ -545,3 +545,34 @@ class NormalizedURLModelFieldTest(TestCase):
 
     def test_formfield_returns_normalizing_form_field(self):
         self.assertIsInstance(self.field.formfield(), NormalizedURLFormField)
+
+
+class ImageLinkSpaceEncodingIntegrationTest(TestCase):
+    """End-to-end coverage: saving a model whose image_link
+    contains spaces must succeed and persist the URL with spaces encoded."""
+
+    def test_chant_with_spaced_image_link_saves(self) -> None:
+        # Mirrors the management-command path from #1868: a direct .save(),
+        # which BaseModel.save() routes through full_clean()/URLValidator.
+        chant = make_fake_chant()
+        chant.image_link = "https://example.com/Folio 92r.jpg"
+        chant.save()
+        chant.refresh_from_db()
+        self.assertEqual(chant.image_link, "https://example.com/Folio%2092r.jpg")
+
+    def test_source_with_spaced_image_link_saves(self) -> None:
+        source = make_fake_source()
+        source.image_link = "https://example.com/image gallery.jpg"
+        source.save()
+        source.refresh_from_db()
+        self.assertEqual(source.image_link, "https://example.com/image%20gallery.jpg")
+
+    def test_save_does_not_raise_on_spaces(self) -> None:
+        # Without the fix this raises ValidationError ("Enter a valid URL"),
+        # which is exactly the failure reported in #1868.
+        chant = make_fake_chant()
+        chant.image_link = "https://example.com/a b c.jpg"
+        try:
+            chant.save()
+        except ValidationError:
+            self.fail("Saving a chant with spaces in image_link should not raise.")
