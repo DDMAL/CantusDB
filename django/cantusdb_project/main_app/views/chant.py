@@ -509,6 +509,9 @@ class ChantSearchView(CustomAccessMixin, ListView):  # type: ignore[type-arg]
         search_bar: Optional[str] = self.request.GET.get("search_bar")
         if search_bar:
             search_parameters.append(f"search_bar={search_bar}")
+        search_segment: Optional[str] = self.request.GET.get("segment")
+        if search_segment:
+            search_parameters.append(f"segment={search_segment}")
 
         url_with_search_params: str = current_url + "?"
         if search_parameters:
