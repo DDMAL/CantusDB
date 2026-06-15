@@ -87,6 +87,13 @@ from main_app.views.source import (
     SourceDeleteView,
     SourceInventoryView,
     SourceAddImageLinksView,
+    CcdbBrowseView,
+)
+from main_app.views.ccdb import (
+    CcdbChantSearchView,
+    CcdbLandingView,
+    CcdbMapView,
+    CcdbTeamView,
 )
 from main_app.views.user import (
     CustomLogoutView,
@@ -307,9 +314,30 @@ urlpatterns = [
     ),
     path(
         "CanadianChantDB/",
-        SourceListView.as_view(),
+        CcdbLandingView.as_view(),
         name="canadian-chant-db-source-list",
-        kwargs={"segment_id": 4066},
+        kwargs={"segment_id": settings.CCDB_SEGMENT_ID},
+    ),
+    path(
+        "CanadianChantDB/browse/",
+        CcdbBrowseView.as_view(),
+        name="ccdb-browse",
+        kwargs={"segment_id": settings.CCDB_SEGMENT_ID},
+    ),
+    path(
+        "CanadianChantDB/team/",
+        CcdbTeamView.as_view(),
+        name="ccdb-team",
+    ),
+    path(
+        "CanadianChantDB/map/",
+        CcdbMapView.as_view(),
+        name="ccdb-map",
+    ),
+    path(
+        "CanadianChantDB/chant-search/",
+        CcdbChantSearchView.as_view(),
+        name="ccdb-chant-search",
     ),
     path(
         "Cantorales/",
