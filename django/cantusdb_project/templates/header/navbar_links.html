@@ -74,7 +74,7 @@
            aria-haspopup="true"
            aria-expanded="false">CHANTS</a>
         <div class="dropdown-menu" aria-labelledby="navbarDropdownLinkChants">
-            <a class="dropdown-item" href="{% url 'chant-search' %}">Chant Search</a>
+            <a class="dropdown-item" href="{% if ccdb_site %}{% url 'ccdb-chant-search' %}{% else %}{% url 'chant-search' %}{% endif %}">Chant Search</a>
             <a class="dropdown-item" href="{% url 'melody-search' %}">Search by melody</a>
             <a class="dropdown-item" href="{% url 'sequence-list' %}">Clavis Sequentiarum (Sequence Database by Calvin
             Bower)</a>

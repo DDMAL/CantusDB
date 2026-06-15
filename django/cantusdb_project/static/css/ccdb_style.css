@@ -11,6 +11,42 @@ body {
     border: solid 3px #cc3333;
 }
 
+.ccdb-hero-banner {
+    background-image: url("../ccdb-images/CCDB-salzinnes_bannercrop.jpg");
+    background-size: cover;
+    background-position: center 60%;
+    min-height: 400px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    position: relative;
+}
+
+.ccdb-banner-credit {
+    position: absolute;
+    bottom: 0.4rem;
+    left: 0.6rem;
+    font-size: 0.65rem;
+    color: rgba(255, 255, 255, 0.8);
+    text-shadow: 0 1px 3px rgba(0, 0, 0, 0.6);
+    z-index: 5;
+    pointer-events: none;
+}
+
+.ccdb-hero-banner a {
+    display: block;
+    width: 75%;
+    position: relative;
+    z-index: 10;
+}
+
+.ccdb-hero-logo {
+    display: block;
+    width: 100%;
+    height: auto;
+    filter: drop-shadow(0 0 8px rgba(255, 255, 255, 0.95));
+}
+
 .ccdb-landing-grid {
     grid-template-columns: 1fr 2fr;
     gap: 20px;
@@ -56,6 +92,66 @@ main a {
     background-color: #cc3333eb;
 }
 
+.ccdb-subpage-header {
+    background-color: #cc3333;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 1.25rem;
+}
+
+.ccdb-subpage-logo {
+    max-height: 50px;
+    width: auto;
+    filter: brightness(0) invert(1);
+}
+
+.ccdb-search-input:focus {
+    border-color: #cc3333;
+    box-shadow: 0 0 0 0.2rem rgba(204, 51, 51, 0.25);
+}
+
+.ccdb-supporters {
+    border-top: 2px solid #cc3333;
+    border-bottom: 2px solid #cc3333;
+    padding: 1rem 0;
+}
+
+.ccdb-supporters .ccdb-small-logo {
+    max-height: 86px;
+    width: auto;
+}
+
+.ccdb-nav-home-icon {
+    height: 1em;
+    width: auto;
+    vertical-align: middle;
+    margin-right: 2px;
+    position: relative;
+    top: -1px;
+}
+
+.ccdb-segment-menu {
+    border-left: 3px solid #cc3333;
+    padding-left: 1rem;
+    top: 80px;
+}
+
+.ccdb-segment-menu ul li {
+    margin-bottom: 0.75rem;
+}
+
+.ccdb-segment-menu a {
+    color: #cc3333;
+    text-decoration: none;
+    font-weight: 500;
+}
+
+.ccdb-segment-menu a:hover {
+    color: #992626;
+    text-decoration: underline;
+}
+
 .ccdb-table-bg {
     background-color: var(--bs-gray-400)
 }
@@ -63,6 +159,34 @@ main a {
 form.ccdb-filter-form input,
 form.ccdb-filter-form select {
     background-color: var(--bs-gray-100);
+}
+
+/* Databases multi-select dropdown — styled to match form-select-sm siblings */
+.ccdb-db-dropdown-btn {
+    background-color: var(--bs-gray-100);
+    border: 1px solid #dee2e6;
+    border-radius: 0.25rem;
+    padding: 0.25rem 2.25rem 0.25rem 0.5rem;
+    font-size: 0.875rem;
+    line-height: 1.5;
+    width: 100%;
+    text-align: left;
+    /* Reuse the same dropdown arrow as Bootstrap's form-select */
+    background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3e%3cpath fill='none' stroke='%23343a40' stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='m2 5 6 6 6-6'/%3e%3c/svg%3e");
+    background-repeat: no-repeat;
+    background-position: right 0.75rem center;
+    background-size: 16px 12px;
+    cursor: pointer;
+}
+
+.ccdb-db-dropdown-btn:focus {
+    border-color: #cc3333;
+    box-shadow: 0 0 0 0.2rem rgba(204, 51, 51, 0.25);
+    outline: none;
+}
+
+.ccdb-db-dropdown-btn.show {
+    border-color: #cc3333;
 }
 
 table.ccdb-table th,
@@ -76,4 +200,30 @@ table.ccdb-table a {
     &:hover {
         color: #992626;
     }
+}
+
+.ccdb-tabs .nav-link {
+    color: #cc3333;
+    border-color: transparent;
+}
+
+.ccdb-tabs .nav-link:hover:not(.active) {
+    color: #992626;
+    border-color: #dee2e6 #dee2e6 transparent;
+}
+
+.ccdb-tabs .nav-link.active {
+    color: white;
+    background-color: #cc3333;
+    border-color: #cc3333;
+}
+
+.ccdb-tabs .nav-link .badge {
+    background-color: rgba(255, 255, 255, 0.3);
+    color: inherit;
+    font-size: 0.75em;
+}
+
+.ccdb-tabs .nav-link.active .badge {
+    background-color: rgba(255, 255, 255, 0.35);
 }

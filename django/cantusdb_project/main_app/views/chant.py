@@ -509,6 +509,9 @@ class ChantSearchView(CustomAccessMixin, ListView):  # type: ignore[type-arg]
         search_bar: Optional[str] = self.request.GET.get("search_bar")
         if search_bar:
             search_parameters.append(f"search_bar={search_bar}")
+        search_segment: Optional[str] = self.request.GET.get("segment")
+        if search_segment:
+            search_parameters.append(f"segment={search_segment}")
 
         url_with_search_params: str = current_url + "?"
         if search_parameters:
@@ -518,6 +521,9 @@ class ChantSearchView(CustomAccessMixin, ListView):  # type: ignore[type-arg]
         context["url_with_search_params"] = url_with_search_params
 
         return context
+
+    def get_segment_id(self) -> Optional[str]:
+        return self.request.GET.get("segment")
 
     def get_queryset(self) -> QuerySet[Chant]:
         # if user has just arrived on the Chant Search page, there will be no GET parameters.
@@ -564,6 +570,9 @@ class ChantSearchView(CustomAccessMixin, ListView):  # type: ignore[type-arg]
                 sequence_set = sequence_set.filter(
                     source__in=self.published_and_assigned_sources
                 )
+            if segment_id := self.get_segment_id():
+                chant_set = chant_set.filter(source__segment_m2m=segment_id)
+                sequence_set = sequence_set.filter(source__segment_m2m=segment_id)
 
             queryset = chant_set.union(sequence_set, all=True)
         else:
@@ -635,6 +644,10 @@ class ChantSearchView(CustomAccessMixin, ListView):  # type: ignore[type-arg]
             # Fetch only the values necessary for rendering the template
             chant_set = chant_set.only(*ONLY_FIELDS)
             sequence_set = sequence_set.only(*ONLY_FIELDS)
+
+            if segment_id := self.get_segment_id():
+                chant_set = chant_set.filter(source__segment_m2m=segment_id)
+                sequence_set = sequence_set.filter(source__segment_m2m=segment_id)
 
             # once unioned, the queryset cannot be filtered/annotated anymore, so we put union to the last
             queryset = chant_set.union(sequence_set, all=True)
