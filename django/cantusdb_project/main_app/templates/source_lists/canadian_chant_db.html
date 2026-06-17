@@ -8,6 +8,7 @@
     <link href="{% static 'css/ccdb_style.css' %}"
           rel="stylesheet"
           media="screen" />
+    <link href="{% static 'css/source_list.css' %}" rel="stylesheet" />
 {% endblock %}
 {% block header %}
     {% include "header/sticky_header.html" %}
@@ -176,58 +177,244 @@
                     </a>
                 </div>
             </div>
-            <div class="row justify-content-center align-items-center">
-                <div class="col-md-4 d-flex justify-content-center align-items-center">
-                    <a href="https://www.mcgill.ca/music/" target="_blank">
-                        <img class="img-fluid p-2"
-                             style="max-width: 100%"
-                             src="{% static 'footer/mcgill-logo.png' %}"
-                             alt="McGill University Logo"
-                             title="McGill University"
-                             loading="lazy" />
-                    </a>
-                </div>
-                <div class="col-md-4 d-flex justify-content-center align-items-center">
-                    <a href="https://ddmal.music.mcgill.ca/" target="_blank">
-                        <img class="img-fluid p-2"
-                             style="max-width: 100%"
-                             src="{% static 'footer/ddmal-logo.png' %}"
-                             alt="Distributed Digital Music Archives & Libraries Lab Logo"
-                             title="Distributed Digital Music Archives & Libraries Lab"
-                             loading="lazy" />
-                    </a>
-                </div>
-                <div class="col-md-4 d-flex justify-content-center align-items-center">
-                    <a href="https://alliancecan.ca/" target="_blank">
-                        <img class="img-fluid p-2"
-                             style="max-width: 100%"
-                             src="{% static 'footer/drac-logo.png' %}"
-                             alt="Digital Research Alliance Logo"
-                             title="Digital Research Alliance"
-                             loading="lazy" />
-                    </a>
-                </div>
-            </div>
-            <div class="row justify-content-center align-items-center">
-                <div class="col-md-6 d-flex justify-content-center align-items-center">
-                    <a href="https://www.sshrc-crsh.gc.ca" target="_blank">
-                        <img class="img-fluid p-2"
-                             style="max-width: 100%"
-                             src="{% static 'footer/sshrc-logo.png' %}"
-                             alt="Social Sciences and Humanities Research Council Logo"
-                             title="Social Sciences and Humanities Research Council of Canada"
-                             loading="lazy" />
-                    </a>
-                </div>
-                <div class="col-md-6 d-flex justify-content-center align-items-center">
-                    <a href="https://www.ace-net.ca/" target="_blank">
-                        <img class="img-fluid p-2"
-                             style="max-width: 60%"
-                             src="{% static 'footer/acenet-logo.png' %}"
-                             alt="Acenet Logo"
-                             title="Acenet"
-                             loading="lazy" />
-                    </a>
+        </div>
+        <div id="search-container" class="container-lg">
+            <div class="row rounded my-5 ccdb-table-bg">
+                <div class="col">
+                    <div class="row mt-3 mb-1">
+                        <div class="col">
+                            <h5 class="mb-2">Search Chants</h5>
+                            <form method="get"
+                                  action="{% url 'chant-search' %}"
+                                  class="d-flex flex-wrap gap-2 align-items-end">
+                                <input type="hidden" name="segment" value="4066" />
+                                <div class="flex-grow-1">
+                                    <label for="chantKeyword" class="small form-label">
+                                        Keyword search (incipit, full text, or Cantus ID)
+                                    </label>
+                                    <input type="text"
+                                           class="form-control form-control-sm"
+                                           name="keyword"
+                                           id="chantKeyword"
+                                           placeholder="Enter keyword or Cantus ID" />
+                                </div>
+                                <div>
+                                    <label for="chantSearchOp" class="small form-label">Match</label>
+                                    <select name="op"
+                                            id="chantSearchOp"
+                                            class="form-control form-select form-select-sm">
+                                        <option value="starts_with">Starts with</option>
+                                        <option value="ends_with">Ends with</option>
+                                        <option value="contains">Contains</option>
+                                    </select>
+                                </div>
+                                <button type="submit" class="btn btn-dark btn-sm">Search Chants</button>
+                            </form>
+                        </div>
+                    </div>
+                    <hr class="my-3" />
+                    <form method="get" class="ccdb-filter-form mb-3">
+                        <div class="row mt-2">
+                            <div class="col-lg">
+                                <label for="generalSearch" class="small form-label">
+                                    General search (siglum, city, description…)
+                                </label>
+                                <input type="text"
+                                       class="form-control form-control-sm"
+                                       name="general"
+                                       placeholder="Enter any part of a word"
+                                       value="{{ request.GET.general }}"
+                                       id="generalSearch" />
+                            </div>
+                            <div class="col-lg">
+                                <label for="indexingSearch" class="small form-label">
+                                    Indexing notes and contributors
+                                </label>
+                                <input type="text"
+                                       class="form-control form-control-sm"
+                                       name="indexing"
+                                       placeholder="Enter any part of a word/name"
+                                       value="{{ request.GET.indexing }}"
+                                       id="indexingSearch" />
+                            </div>
+                        </div>
+                        <div class="row align-items-center">
+                            <div class="col-lg-6">
+                                <div class="row">
+                                    <div class="col-lg-6">
+                                        <label for="provenanceFilter" class="small form-label">
+                                            Provenance (origin/history)
+                                        </label>
+                                        <select id="provenanceFilter"
+                                                name="provenance"
+                                                class="form-control form-select form-select-sm">
+                                            <option value="">- Any -</option>
+                                            {% for provenance in provenances %}
+                                                <option value="{{ provenance.id }}">{{ provenance.name }}</option>
+                                            {% endfor %}
+                                        </select>
+                                    </div>
+                                    <div class="col-lg-6">
+                                        {% if date_range_min is not None and date_range_max is not None %}
+                                        <div class="d-flex justify-content-between align-items-center">
+                                            <label class="small form-label fw-bold mb-0">Year range (overlapping)</label>
+                                            <button type="button"
+                                                    id="rangeResetBtn"
+                                                    class="btn btn-link btn-sm p-0 small text-danger">Clear</button>
+                                        </div>
+                                        <div class="range-slider">
+                                            <div class="range-slider-track"></div>
+                                            <div class="range-slider-fill" id="rangeSliderFill"></div>
+                                            <input type="range"
+                                                   id="dateStartFilter"
+                                                   name="dateStart"
+                                                   class="range-slider-input"
+                                                   min="{{ date_range_min }}"
+                                                   max="{{ date_range_max }}"
+                                                   step="10"
+                                                   value="{{ request.GET.dateStart|default:date_range_min }}" />
+                                            <input type="range"
+                                                   id="dateEndFilter"
+                                                   name="dateEnd"
+                                                   class="range-slider-input"
+                                                   min="{{ date_range_min }}"
+                                                   max="{{ date_range_max }}"
+                                                   step="10"
+                                                   value="{{ request.GET.dateEnd|default:date_range_max }}" />
+                                        </div>
+                                        <div class="d-flex justify-content-between small mt-1">
+                                            <span class="fw-bold">{{ date_range_min }}</span>
+                                            <span class="fw-bold text-primary" id="rangeSelectedLabel"></span>
+                                            <span class="fw-bold">{{ date_range_max }}</span>
+                                        </div>
+                                        {% endif %}
+                                    </div>
+                                    <div class="col-lg-6">
+                                        <label for="prodMethodFilter" class="small form-label">Manuscript/Print</label>
+                                        <select id="prodMethodFilter"
+                                                name="prodMethod"
+                                                class="form-control form-select form-select-sm">
+                                            <option value="">- Any -</option>
+                                            {% for prod_method_value, prod_method_label in production_method_choices %}
+                                                <option value="{{ prod_method_value }}">{{ prod_method_label }}</option>
+                                            {% endfor %}
+                                        </select>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col-lg-4">
+                                <label for="sourceCompletenessFilter" class="small form-label">
+                                    Complete Source/Fragment
+                                </label>
+                                <div class="input-group" id="sourceCompletenessFilter">
+                                    {% for source_completeness_value, source_completeness_label in source_completeness_choices %}
+                                        <div class="form-check form-check-inline">
+                                            <input type="checkbox"
+                                                   class="form-check-input"
+                                                   id="sourceCompleteness-{{ source_completeness_value }}"
+                                                   name="sourceCompleteness"
+                                                   value="{{ source_completeness_value }}"
+                                                   checked />
+                                            <label class="form-label form-check-label small"
+                                                   for="sourceCompleteness-{{ source_completeness_value }}">
+                                                {{ source_completeness_label }}
+                                            </label>
+                                        </div>
+                                    {% endfor %}
+                                </div>
+                            </div>
+                            <div class="col-lg-1">
+                                <button type="submit" class="btn btn-dark btn-sm m-1" id="btn-submit">Apply</button>
+                                <a href="/CanadianChantDB/#search-container"
+                                   class="btn btn-dark btn-sm m-1"
+                                   id="btn-reset">Reset</a>
+                            </div>
+                        </div>
+                    </form>
+                    {% if sources %}
+                        {% include "page_count.html" %}
+                        <table class="table table-sm small table-bordered table-responsive ccdb-table">
+                            <thead>
+                                <tr>
+                                    {% sortable_header request "city_institution" "City + Holding Institution" %}
+                                    {% sortable_header request "source" "Cantus Siglum" %}
+                                    <th scope="col" class="text-wrap" style="text-align:center">Summary</th>
+                                    <th scope="col" class="text-wrap" style="text-align:center">Date/Origin</th>
+                                    <th scope="col" class="text-wrap" style="text-align:center">Image Link</th>
+                                    <th scope="col" class="text-wrap" style="text-align:center">
+                                        Chants
+                                        <br />
+                                        /&nbsp;Melodies
+                                    </th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for source in sources %}
+                                    <tr>
+                                        <td class="text-wrap" style="text-align:center">
+                                            {% if source.holding_institution %}
+                                                <a href="{% url 'institution-detail' source.holding_institution.id %}"
+                                                   target="_blank">
+                                                    <b>
+                                                        {% if source.holding_institution.city %}
+                                                            {{ source.holding_institution.city }},
+                                                        {% endif %}
+                                                        {{ source.holding_institution.name }}
+                                                    </b>
+                                                </a>
+                                            {% endif %}
+                                        </td>
+                                        <td class="text-wrap" style="text-align:center">
+                                            <a href="{% url 'source-detail' source.id %}" target="_blank">
+                                                <b>{{ source.short_heading|truncatechars_html:100 }}</b>
+                                            </a>
+                                            {% if source.source_completeness == 2 %}
+                                                <br class="m-1" />
+                                                <span class="small">Fragment</span>
+                                            {% endif %}
+                                        </td>
+                                        <td class="text-wrap"
+                                            style="text-align:center"
+                                            title="{{ source.summary|default:""|safe|truncatechars_html:500 }}">
+                                            {% if source.name %}
+                                                <b>"{{ source.name|safe }}"</b>
+                                                <br />
+                                            {% endif %}
+                                            {{ source.summary|default:""|safe|truncatechars_html:120 }}
+                                        </td>
+                                        <td class="text-wrap" style="text-align:center">
+                                            {% if source.century %}
+                                                {% join_absolute_url_links source.century.all 'name' '/' True %}
+                                                <br />
+                                            {% endif %}
+                                            {% if source.provenance %}
+                                                <a href="{% url 'provenance-detail' source.provenance.id %}"
+                                                   target="_blank">{{ source.provenance.name }}</a>
+                                            {% endif %}
+                                        </td>
+                                        <td class="text-wrap" style="text-align:center">
+                                            {% if source.image_link %}
+                                                <a href="{{ source.image_link }}" target="_blank">Images</a>
+                                            {% endif %}
+                                        </td>
+                                        <td class="text-wrap" style="text-align:center">
+                                            <b>{{ source.number_of_chants|default_if_none:"0" }}</b>
+                                            <!-- Volpiano display for source 680970 (MS 73) was temporarily disabled in #1635; re-enabled in #1893. -->
+                                            {% if source.number_of_melodies %}
+                                                <br />
+                                                / {{ source.number_of_melodies }}
+                                            {% endif %}
+                                        </td>
+                                    </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                        {% if is_paginated %}
+                            <div class="row mb-2">
+                                <div class="col">{% include "pagination.html" %}</div>
+                            </div>
+                        {% endif %}
+                    {% endif %}
                 </div>
             </div>
         </div>

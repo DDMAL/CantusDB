@@ -8,6 +8,7 @@ import random
 from typing import ClassVar, Dict
 import urllib.parse
 
+from django.conf import settings
 from django.test import TestCase
 from django.urls import reverse
 
@@ -16,6 +17,8 @@ from faker import Faker
 from main_app.tests.make_fakes import (
     make_fake_chant,
     make_fake_source,
+    make_fake_segment,
+    make_fake_user,
     make_fake_volpiano,
     make_fake_service,
     make_fake_genre,
@@ -27,8 +30,13 @@ from main_app.tests.make_fakes import (
 from main_app.tests.test_functions import mock_requests_get
 from main_app.tests.mixins import CustomAccessTestMixin
 from main_app.models import Chant, Source, Feast, Service
-from main_app.views.chant import get_feast_selector_options
-
+from main_app.permissions import KAIATONSERA_SOURCE_IDS, KAIATONSERA_VIEWER_GROUP
+from main_app.views.chant import (
+    get_feast_selector_options,
+    ChantSearchView,
+    ChantSearchMSView,
+)
+from users.models import Group
 
 # Create a Faker instance with locale set to Latin
 faker = Faker("la")
@@ -208,6 +216,114 @@ class ChantDetailViewTest(ChantPermissionsTestCase):
         resp_chant = response.json()["chant"]
         self.assertEqual(resp_chant["id"], chant.id)
         self.assertEqual(resp_chant["manuscript_full_text"], chant.manuscript_full_text)
+
+    def test_notation_displayed_without_link(self) -> None:
+        # Regression for #1995: clicking the notation link 500'd, so it was disabled.
+        source = make_fake_source()
+        chant = make_fake_chant(source=source)
+        notation = source.notation.first()
+        response = self.client.get(reverse("chant-detail", args=[chant.id]))
+        self.assertEqual(response.status_code, 200)
+        html = response.content.decode("utf-8")
+        self.assertIn("Notation:", html)
+        self.assertIn(notation.name, html)
+        self.assertNotIn(reverse("notation-detail", args=[notation.id]), html)
+        self.assertNotIn("(Bower)", html)
+
+    def test_notation_bower_label(self) -> None:
+        bower_segment = make_fake_segment(
+            id=settings.BOWER_SEGMENT_ID, name="Bower Sequence Database"
+        )
+        source = make_fake_source(segment=[bower_segment])
+        chant = make_fake_chant(source=source)
+        notation = source.notation.first()
+        response = self.client.get(reverse("chant-detail", args=[chant.id]))
+        self.assertEqual(response.status_code, 200)
+        html = response.content.decode("utf-8")
+        self.assertIn("Notation (Bower):", html)
+        self.assertIn(notation.name, html)
+        self.assertNotIn(reverse("notation-detail", args=[notation.id]), html)
+
+
+class ChantRecordCreatedByTest(CustomAccessTestMixin, TestCase):
+    """
+    Tests for the "Chant record created by" field on the chant detail page.
+
+    The field is only shown for chants in the Kaiatonsera master sources, and
+    only to the people in the class (the "kaiatonsera viewer" group) plus
+    editors/superusers. See issue #2077.
+    """
+
+    LABEL = "Chant record created by"
+    CREATOR_NAME = "Linda Pearse"
+
+    @classmethod
+    def setUpTestData(cls) -> None:
+        super().setUpTestData()
+        # The "kaiatonsera viewer" group is created by the
+        # users.0004_create_kaiatonsera_viewer_group data migration.
+        kaiatonsera_group, _ = Group.objects.get_or_create(
+            name=KAIATONSERA_VIEWER_GROUP
+        )
+        cls.users["kaiatonsera viewer"] = make_fake_user(
+            groups=[(kaiatonsera_group, None)]
+        )
+        creator = make_fake_user()
+        creator.full_name = cls.CREATOR_NAME
+        creator.save()
+        # A published Kaiatonsera master source: the page is viewable by all,
+        # but the "Chant record created by" field is gated.
+        kaiatonsera_source = make_fake_source(
+            id=sorted(KAIATONSERA_SOURCE_IDS)[0], published=True
+        )
+        cls.kaiatonsera_chant = make_fake_chant(
+            source=kaiatonsera_source, created_by=creator
+        )
+        # A published source that is not a Kaiatonsera master source.
+        other_source = make_fake_source(published=True)
+        cls.other_chant = make_fake_chant(source=other_source, created_by=creator)
+
+    def assert_field_visibility(self, chant, user_keys, visible) -> None:
+        for user_key in user_keys:
+            with self.subTest(user=user_key):
+                self.client.logout()
+                if user_key != "anonymous user":
+                    self.client.force_login(self.users[user_key])
+                response = self.client.get(reverse("chant-detail", args=[chant.id]))
+                self.assertEqual(response.status_code, 200)
+                self.assertEqual(
+                    response.context["user_can_view_record_creator"], visible
+                )
+                if visible:
+                    self.assertContains(response, self.LABEL)
+                    self.assertContains(response, self.CREATOR_NAME)
+                else:
+                    self.assertNotContains(response, self.LABEL)
+
+    def test_field_visible_to_class_members_and_staff(self) -> None:
+        self.assert_field_visibility(
+            self.kaiatonsera_chant,
+            ["kaiatonsera viewer", "superuser", "editor"],
+            visible=True,
+        )
+
+    def test_field_hidden_from_others(self) -> None:
+        # Regular users, global viewers, and anonymous users can view the page
+        # but must not see the field.
+        self.assert_field_visibility(
+            self.kaiatonsera_chant,
+            ["user", "global viewer", "anonymous user"],
+            visible=False,
+        )
+
+    def test_field_hidden_outside_kaiatonsera_sources(self) -> None:
+        # Even class members and staff don't see the field for chants that do
+        # not belong to a Kaiatonsera master source.
+        self.assert_field_visibility(
+            self.other_chant,
+            ["kaiatonsera viewer", "superuser"],
+            visible=False,
+        )
 
 
 class SourceEditChantsViewTest(ChantPermissionsTestCase):
@@ -744,8 +860,7 @@ class ChantSearchViewTest(CustomAccessTestMixin, TestCase):
         source = make_fake_source(published=True)
         feast = make_fake_feast()
         chant = make_fake_chant(source=source, feast=feast)
-        search_term = get_random_search_term(feast.name)
-        response = self.client.get(reverse("chant-search"), {"feast": search_term})
+        response = self.client.get(reverse("chant-search"), {"feast": feast.id})
         context_chant_id = response.context["chants"][0].id
         self.assertEqual(chant.id, context_chant_id)
 
@@ -779,6 +894,7 @@ class ChantSearchViewTest(CustomAccessTestMixin, TestCase):
             manuscript_full_text_std_spelling=faker.sentence(),
         )
         # use the beginning part of the full text as the search term
+        random.seed(0)
         search_term = chant.manuscript_full_text_std_spelling[
             0 : random.randint(1, len(chant.manuscript_full_text_std_spelling))
         ]
@@ -797,6 +913,21 @@ class ChantSearchViewTest(CustomAccessTestMixin, TestCase):
         search_term = "tantum possum"
         response = self.client.get(
             reverse("chant-search"), {"keyword": search_term, "op": "contains"}
+        )
+        context_chant_id = response.context["chants"][0].id
+        self.assertEqual(chant.id, context_chant_id)
+
+    def test_keyword_search_ends_with(self):
+        source = make_fake_source(published=True)
+        chant = make_fake_chant(
+            source=source,
+            manuscript_full_text_std_spelling=faker.sentence(),
+        )
+        # use the end of the full text as the search term
+        full_text = chant.manuscript_full_text_std_spelling
+        search_term = full_text[random.randint(0, len(full_text) - 1) :]
+        response = self.client.get(
+            reverse("chant-search"), {"keyword": search_term, "op": "ends_with"}
         )
         context_chant_id = response.context["chants"][0].id
         self.assertEqual(chant.id, context_chant_id)
@@ -1732,7 +1863,7 @@ class ChantSearchViewTest(CustomAccessTestMixin, TestCase):
             "genre": genre.id,
             "cantus_id": cantus_id,
             "mode": mode,
-            "feast": feast.name,
+            "feast": feast.id,
             "position": position,
             "melodies": "true",
         }
@@ -2061,6 +2192,36 @@ class ChantSearchViewTest(CustomAccessTestMixin, TestCase):
             response, f'<a href="{image_link}" target="_blank">Image</a>', html=True
         )
 
+    def test_pagination(self):
+        paginate_by = ChantSearchView.paginate_by
+        full_pages = 2
+        source = make_fake_source(published=True)
+        for _ in range(paginate_by * full_pages):
+            make_fake_chant(source=source)
+
+        for page_num in range(1, full_pages + 1):
+            response = self.client.get(reverse("chant-search"), {"page": page_num})
+            self.assertEqual(response.status_code, 200)
+            self.assertTrue(response.context["is_paginated"])
+            self.assertEqual(len(response.context["chants"]), paginate_by)
+
+        random.seed(0)
+        overflow = random.randint(1, paginate_by - 1)
+        for _ in range(overflow):
+            make_fake_chant(source=source)
+
+        response = self.client.get(reverse("chant-search"), {"page": full_pages + 1})
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(len(response.context["chants"]), overflow)
+
+        response = self.client.get(reverse("chant-search"), {"page": "last"})
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(len(response.context["chants"]), overflow)
+
+        for invalid_page in [-1, 0, "lst", full_pages + 2]:
+            response = self.client.get(reverse("chant-search"), {"page": invalid_page})
+            self.assertEqual(response.status_code, 404)
+
 
 class ChantSearchMSViewTest(ChantPermissionsTestCase):
     def test_url_and_templates(self):
@@ -2151,9 +2312,8 @@ class ChantSearchMSViewTest(ChantPermissionsTestCase):
         source = make_fake_source()
         feast = make_fake_feast()
         chant = make_fake_chant(source=source, feast=feast)
-        search_term = get_random_search_term(feast.name)
         response = self.client.get(
-            reverse("chant-search-ms", args=[source.id]), {"feast": search_term}
+            reverse("chant-search-ms", args=[source.id]), {"feast": feast.id}
         )
         context_chant_id = response.context["chants"][0].id
         self.assertEqual(chant.id, context_chant_id)
@@ -2234,6 +2394,31 @@ class ChantSearchMSViewTest(ChantPermissionsTestCase):
         self.assertEqual(chant_1.id, first_context_chant_id)
         second_context_chant_id = response.context["chants"][1].id
         self.assertEqual(chant_3.id, second_context_chant_id)
+
+    def test_keyword_search_ends_with(self):
+        source = make_fake_source()
+        search_term = "dog"
+
+        # We have three chants to make sure the result is only chant 1 where dog is the last word
+        chant_1 = make_fake_chant(
+            source=source,
+            manuscript_full_text_std_spelling="quick brown fox jumps over the lazy dog",
+        )
+        make_fake_chant(
+            source=source,
+            manuscript_full_text_std_spelling="quick brown fox jumps over the lazy",
+        )
+        make_fake_chant(
+            source=source,
+            manuscript_full_text_std_spelling="quick brown dog jumps over the lazy fox",
+        )
+        response = self.client.get(
+            reverse("chant-search-ms", args=[source.id]),
+            {"keyword": search_term, "op": "ends_with"},
+        )
+        self.assertEqual(len(response.context["chants"]), 1)
+        context_chant_id = response.context["chants"][0].id
+        self.assertEqual(chant_1.id, context_chant_id)
 
     def test_indexing_notes_search_starts_with(self):
         source = make_fake_source()
@@ -2800,7 +2985,7 @@ class ChantSearchMSViewTest(ChantPermissionsTestCase):
             "genre": genre.id,
             "cantus_id": cantus_id,
             "mode": mode,
-            "feast": feast.name,
+            "feast": feast.id,
             "position": position,
             "melodies": "true",
         }
@@ -3122,6 +3307,37 @@ class ChantSearchMSViewTest(ChantPermissionsTestCase):
         self.assertIn(image_link, html)
         self.assertIn(f'<a href="{image_link}" target="_blank">Image</a>', html)
 
+    def test_pagination(self):
+        paginate_by = ChantSearchMSView.paginate_by
+        full_pages = 2
+        source = make_fake_source(published=True)
+        for _ in range(paginate_by * full_pages):
+            make_fake_chant(source=source)
+
+        url = reverse("chant-search-ms", args=[source.id])
+        for page_num in range(1, full_pages + 1):
+            response = self.client.get(url, {"page": page_num})
+            self.assertEqual(response.status_code, 200)
+            self.assertTrue(response.context["is_paginated"])
+            self.assertEqual(len(response.context["chants"]), paginate_by)
+
+        random.seed(0)
+        overflow = random.randint(1, paginate_by - 1)
+        for _ in range(overflow):
+            make_fake_chant(source=source)
+
+        response = self.client.get(url, {"page": full_pages + 1})
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(len(response.context["chants"]), overflow)
+
+        response = self.client.get(url, {"page": "last"})
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(len(response.context["chants"]), overflow)
+
+        for invalid_page in [-1, 0, "lst", full_pages + 2]:
+            response = self.client.get(url, {"page": invalid_page})
+            self.assertEqual(response.status_code, 404)
+
 
 @patch("requests.get", mock_requests_get)
 class ChantCreateViewTest(CustomAccessTestMixin, TestCase):
@@ -3234,6 +3450,7 @@ class ChantCreateViewTest(CustomAccessTestMixin, TestCase):
         # post a chant with the same folio and seq
         url = reverse("chant-create", args=[source.id])
         fake_text = "this is also a fake but valid text"
+        random.seed(0)
         response = self.client.post(
             url,
             data={
@@ -3420,6 +3637,7 @@ class CISearchViewTest(TestCase):
         self.assertEqual(response.status_code, 200)
         context = response.context
         self.assertIn("results", context)
+        self.assertFalse(context["ci_error"])
 
         results_zip = context["results"]
 
@@ -3444,10 +3662,8 @@ class CISearchViewTest(TestCase):
 
         self.assertEqual(response.status_code, 200)
         context = response.context
-        self.assertIn("results", context)
-        self.assertEqual(
-            context["results"], [["No results", "No results", "No results"]]
-        )
+        self.assertTrue(context["ci_error"])
+        self.assertEqual(list(context["results"]), [])
 
     def test_server_error(self):
         with patch("requests.get", mock_requests_get):
@@ -3455,10 +3671,18 @@ class CISearchViewTest(TestCase):
 
         self.assertEqual(response.status_code, 200)
         context = response.context
-        self.assertIn("results", context)
-        self.assertEqual(
-            list(context["results"]), [["No results", "No results", "No results"]]
-        )
+        self.assertTrue(context["ci_error"])
+        self.assertEqual(list(context["results"]), [])
+
+    def test_valid_search_term_no_matches(self):
+        # CI returns [] for a valid term with no matches
+        with patch("requests.get", mock_requests_get):
+            response = self.client.get(reverse("ci-search", args=["no_match"]))
+
+        self.assertEqual(response.status_code, 200)
+        context = response.context
+        self.assertFalse(context["ci_error"])
+        self.assertEqual(list(context["results"]), [])
 
 
 class ChantDeleteViewTest(ChantPermissionsTestCase):

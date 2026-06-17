@@ -7,6 +7,7 @@ from faker import Faker  # type: ignore[import-untyped]
 from django.contrib.auth import get_user_model
 from django.db.models import Max
 
+from main_app.century_dates import century_name_to_dates
 from main_app.models.century import Century
 from main_app.models.chant import Chant
 from main_app.models.feast import Feast
@@ -21,7 +22,6 @@ from main_app.models.sequence import Sequence
 from main_app.models.source import Source
 from users.models import User as UserAnnotation
 from users.models import Group, GroupMembership
-
 
 User = get_user_model()
 
@@ -147,9 +147,18 @@ def make_fake_volpiano(
 
 
 def make_fake_century(**kwargs: Any) -> Century:
-    """Generates a fake Century object."""
+    """Generates a fake Century object with auto-populated min_date and max_date."""
     if "name" not in kwargs:
         kwargs["name"] = faker.sentence(nb_words=3)
+
+    if "min_date" not in kwargs or "max_date" not in kwargs:
+        dates = century_name_to_dates(kwargs["name"])
+        if dates:
+            if "min_date" not in kwargs:
+                kwargs["min_date"] = dates[0]
+            if "max_date" not in kwargs:
+                kwargs["max_date"] = dates[1]
+
     century = Century.objects.create(**kwargs)
     return century
 

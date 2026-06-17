@@ -340,7 +340,9 @@ class Command(BaseCommand):
                     for name in re.split(r",\s*", contributor_raw):
                         name = name.strip()
                         if name in contributor_users:
-                            source.source_data_contributed_by.add(contributor_users[name])
+                            source.source_data_contributed_by.add(
+                                contributor_users[name]
+                            )
 
                 verb = "Created" if was_created else "Updated"
                 self.stdout.write(f"  {verb} source: {source} (row {row_num})")

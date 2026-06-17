@@ -11,6 +11,7 @@ from django.db.models import (
     When,
     Value,
 )
+from django.db.models.functions import Coalesce
 from django.views.generic import ListView
 from django.views.generic.list import MultipleObjectMixin
 from django.utils import timezone
@@ -217,44 +218,70 @@ class ProofreadView(CustomAccessMixin, ListView, MultipleObjectMixin):
         sort_param = self.request.GET.get("sort", "asc")
         sort_prefix = "-" if sort_param == "desc" else ""
 
+        # Mirror Browse Sources: coalesce NULL holding_institution__siglum to ""
+        # so private collectors sort consistently regardless of DB NULL ordering.
+        siglum_coalesced = Coalesce("holding_institution__siglum", Value(""))
+
+        if order_param == "country":
+            ordering_fields = [
+                f"{sort_prefix}holding_institution__country",
+                siglum_coalesced.desc() if sort_prefix else siglum_coalesced.asc(),
+                f"{sort_prefix}shelfmark",
+            ]
+            return queryset.order_by(*ordering_fields)
+
         # Updated sort_mapping to use annotated fields
         sort_mapping = {
-            "country": [
-                "holding_institution__country",
-                "holding_institution__city",
-                "holding_institution__name",
-                "siglum",
-            ],
             "city_institution": [
                 "holding_institution__city",
                 "holding_institution__name",
-                "siglum",
+                "holding_institution__siglum",
+                "shelfmark",
             ],
-            "source_siglum": ["siglum"],
+            "source_siglum": ["holding_institution__siglum", "shelfmark"],
             "shelfmark": [
                 "shelfmark",
                 "holding_institution__siglum",
             ],
-            "published": ["published", "siglum"],
-            "volpiano": ["num_volpiano_to_proofread", "siglum"],
-            "ms_text": ["num_ms_full_text_to_proofread", "siglum"],
+            "published": ["published", "holding_institution__siglum", "shelfmark"],
+            "volpiano": [
+                "num_volpiano_to_proofread",
+                "holding_institution__siglum",
+                "shelfmark",
+            ],
+            "ms_text": [
+                "num_ms_full_text_to_proofread",
+                "holding_institution__siglum",
+                "shelfmark",
+            ],
             "ms_text_std": [
                 "num_ms_full_text_std_to_proofread",
-                "siglum",
+                "holding_institution__siglum",
+                "shelfmark",
             ],
-            "other": ["num_other_fields_to_proofread", "siglum"],
+            "other": [
+                "num_other_fields_to_proofread",
+                "holding_institution__siglum",
+                "shelfmark",
+            ],
             "needing_proof": [
                 "total_chants_needing_proofread",
-                "siglum",
+                "holding_institution__siglum",
+                "shelfmark",
             ],
             "total_chants": [
                 "number_of_chants",
-                "siglum",
+                "holding_institution__siglum",
+                "shelfmark",
             ],
-            "percent_complete": ["percent_complete", "siglum"],
+            "percent_complete": [
+                "percent_complete",
+                "holding_institution__siglum",
+                "shelfmark",
+            ],
         }
 
-        primary_sort_fields = sort_mapping.get(order_param, sort_mapping["country"])
+        primary_sort_fields = sort_mapping.get(order_param, [])
 
         if not isinstance(primary_sort_fields, list):
             primary_sort_fields = [primary_sort_fields]
@@ -265,7 +292,8 @@ class ProofreadView(CustomAccessMixin, ListView, MultipleObjectMixin):
         if not ordering_fields:
             ordering_fields = [
                 f"{sort_prefix}holding_institution__country",
-                f"{sort_prefix}siglum",
+                siglum_coalesced.desc() if sort_prefix else siglum_coalesced.asc(),
+                f"{sort_prefix}shelfmark",
             ]
 
         return queryset.order_by(*ordering_fields)

@@ -29,7 +29,7 @@ class User(AbstractUser):
     is_indexer = models.BooleanField(default=False)
     # if the user has an associated indexer object on old Cantus, save its ID
     old_indexer_id = models.IntegerField(blank=True, null=True)
-    groups_new = models.ManyToManyField(  # type:ignore[var-annotated]
+    groups_new = models.ManyToManyField(  # type: ignore[var-annotated]
         Group,
         verbose_name="groups",
         through="GroupMembership",
@@ -40,7 +40,7 @@ class User(AbstractUser):
     USERNAME_FIELD = "email"
     REQUIRED_FIELDS = []
 
-    objects = CustomUserManager()  # type:ignore
+    objects = CustomUserManager()  # type: ignore
 
     class Meta:
         constraints = [
