@@ -7,11 +7,13 @@ from django.core.management import call_command
 from django.test import TestCase
 
 from main_app.management.commands.import_cantorales import parse_centuries
-from main_app.models import Source
+from main_app.models import Provenance, Source
 from main_app.tests.make_fakes import (
     make_fake_century,
     make_fake_institution,
     make_fake_segment,
+    make_fake_source,
+    make_fake_user,
 )
 
 
@@ -43,7 +45,11 @@ class TestParseCenturies(TestCase):
 # Minimal valid CSV content (header + REQUIRED + SAMPLE + 1 data row)
 # Columns are 0-indexed; see COL_* constants in import_cantorales.py
 def _make_csv(
-    rism="US-NYcu", shelfmark="Ms. 1", contributor="Jane Doe", email="jane@example.com"
+    rism="US-NYcu",
+    shelfmark="Ms. 1",
+    contributor="Jane Doe",
+    email="jane@example.com",
+    origins="Franciscan",
 ):
     header = ",".join(
         [
@@ -101,7 +107,7 @@ def _make_csv(
             "5",
             "4",
             "1",
-            "Franciscan",
+            origins,
             "",
             "",
             "",
@@ -150,6 +156,113 @@ class TestImportCantoralesCommand(TestCase):
             "Cantorales in the Americas",
             source.segment_m2m.values_list("name", flat=True),
         )
+
+    def test_provenance_fk_set_from_origins(self):
+        """The 'Origins and History' value should create a Provenance entry and
+        link it via the FK (not only provenance_notes), so it appears on the
+        browse-sources page."""
+        with tempfile.NamedTemporaryFile(mode="w", suffix=".csv", delete=False) as f:
+            f.write(_make_csv(origins="Franciscan"))
+            csv_path = f.name
+
+        with patch(
+            "main_app.management.commands.import_cantorales.os.path.join",
+            return_value=csv_path,
+        ):
+            call_command("import_cantorales", stdout=io.StringIO())
+
+        source = Source.objects.get(shelfmark="Ms. 1")
+        self.assertIsNotNone(source.provenance)
+        self.assertEqual(source.provenance.name, "Franciscan")
+        self.assertEqual(source.provenance_notes, "Franciscan")
+        self.assertTrue(Provenance.objects.filter(name="Franciscan").exists())
+
+    def test_provenance_no_value_leaves_fk_null(self):
+        """An Origins value of 'no' should leave both the provenance FK and
+        provenance_notes empty."""
+        with tempfile.NamedTemporaryFile(mode="w", suffix=".csv", delete=False) as f:
+            f.write(_make_csv(origins="no"))
+            csv_path = f.name
+
+        with patch(
+            "main_app.management.commands.import_cantorales.os.path.join",
+            return_value=csv_path,
+        ):
+            call_command("import_cantorales", stdout=io.StringIO())
+
+        source = Source.objects.get(shelfmark="Ms. 1")
+        self.assertIsNone(source.provenance)
+        self.assertIsNone(source.provenance_notes)
+
+    def test_does_not_overwrite_existing_source(self):
+        """Regression test for issue #2059.
+
+        When a source already exists in CDB with the same holding institution
+        and shelfmark as a CSV row, the import must leave it completely
+        untouched: curated scalar fields are preserved, no unexpected editor is
+        added, and the Cantorales segment is not attached.
+        """
+        institution = make_fake_institution(siglum="US-NYcu", country="United States")
+        source = make_fake_source(
+            holding_institution=institution,
+            shelfmark="Ms. 1",
+            description="Curated description, do not touch",
+            provenance_notes="Curated provenance note",
+            published=False,
+            segment_name="CANTUS Database",
+        )
+        original_description = source.description
+        original_provenance_notes = source.provenance_notes
+        original_provenance_id = source.provenance_id
+        original_contributor_ids = set(
+            source.source_data_contributed_by.values_list("id", flat=True)
+        )
+        original_inventoried_ids = set(
+            source.inventoried_by.values_list("id", flat=True)
+        )
+
+        # CSV row collides on (US-NYcu, Ms. 1) and carries different data plus a
+        # new contributor ("Jane Doe").
+        with tempfile.NamedTemporaryFile(mode="w", suffix=".csv", delete=False) as f:
+            f.write(_make_csv())
+            csv_path = f.name
+
+        with patch(
+            "main_app.management.commands.import_cantorales.os.path.join",
+            return_value=csv_path,
+        ):
+            call_command("import_cantorales", stdout=io.StringIO())
+
+        source.refresh_from_db()
+
+        # Scalar fields untouched.
+        self.assertEqual(source.description, original_description)
+        self.assertEqual(source.provenance_notes, original_provenance_notes)
+        self.assertEqual(source.provenance_id, original_provenance_id)
+        self.assertFalse(source.published)
+
+        # No editor was added or removed (the CSV's "Jane Doe" must not appear).
+        self.assertEqual(
+            set(source.source_data_contributed_by.values_list("id", flat=True)),
+            original_contributor_ids,
+        )
+        self.assertEqual(
+            set(source.inventoried_by.values_list("id", flat=True)),
+            original_inventoried_ids,
+        )
+        self.assertNotIn(
+            "Jane Doe",
+            source.source_data_contributed_by.values_list("full_name", flat=True),
+        )
+
+        # The Cantorales segment was not attached to the pre-existing source.
+        self.assertNotIn(
+            "Cantorales in the Americas",
+            source.segment_m2m.values_list("name", flat=True),
+        )
+
+        # No duplicate source was created.
+        self.assertEqual(Source.objects.filter(shelfmark="Ms. 1").count(), 1)
 
     def test_idempotent(self):
         """Running the command twice should not create duplicate sources."""

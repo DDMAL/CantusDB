@@ -17,6 +17,7 @@ from django.db import transaction
 from main_app.models import (
     Century,
     Institution,
+    Provenance,
     Segment,
     Source,
 )
@@ -194,14 +195,15 @@ class Command(BaseCommand):
 
         cantorales_segment = Segment.objects.get(name="Cantorales in the Americas")
 
-        # Pre-fetch century lookup
+        # Pre-fetch century and provenance lookups
         century_by_name = {c.name: c for c in Century.objects.all()}
+        provenance_by_name = {p.name: p for p in Provenance.objects.all()}
 
         # Create stub User accounts for contributors (unusable passwords)
         contributor_users = self._ensure_contributor_users(csv_path)
 
         created_count = 0
-        updated_count = 0
+        skipped_existing_count = 0
         skipped_count = 0
         institution_created_count = 0
 
@@ -260,14 +262,45 @@ class Command(BaseCommand):
                             f"  Created institution: {institution} ({rism})"
                         )
 
+                # --- Skip existing sources entirely (issue #2059) ---
+                # An earlier version of this import used update_or_create, which
+                # overwrote curated metadata and added unexpected editors on
+                # sources that already existed in CDB. We now refuse to modify
+                # any existing source: if one already matches
+                # (holding_institution, shelfmark) we skip the whole row
+                existing = Source.objects.filter(
+                    holding_institution=institution, shelfmark=shelfmark
+                ).first()
+                if existing is not None:
+                    skipped_existing_count += 1
+                    self.stdout.write(
+                        f"  Row {row_num}: SKIP — source already exists, leaving "
+                        f"it untouched: {existing} (id={existing.pk})"
+                    )
+                    continue
+
                 # --- Source completeness ---
                 condition_raw = row[COL_CONDITION].strip()
                 completeness = CONDITION_MAP.get(
                     condition_raw, Source.SourceCompletenessChoices.UNKNOWN
                 )
 
-                # --- Provenance notes (from Origins and History) ---
-                provenance_notes = row[COL_ORIGINS].strip() or None
+                # --- Provenance (from Origins and History) ---
+                # "no" means no origin info; otherwise get or create a
+                # Provenance taxonomy entry (so it shows on the browse-sources
+                # page, which reads the FK) and also keep the raw string in
+                # provenance_notes for extra detail.
+                origins_raw = row[COL_ORIGINS].strip()
+                if not origins_raw or origins_raw.lower() == "no":
+                    provenance_obj = None
+                    provenance_notes = None
+                else:
+                    provenance_notes = origins_raw
+                    provenance_obj = provenance_by_name.get(origins_raw)
+                    if provenance_obj is None:
+                        provenance_obj = Provenance.objects.create(name=origins_raw)
+                        provenance_by_name[origins_raw] = provenance_obj
+                        self.stdout.write(f"  Created provenance: {origins_raw!r}")
 
                 # --- Description ---
                 description = build_description(row)
@@ -287,27 +320,22 @@ class Command(BaseCommand):
                     f"Source of data: {source_of_data}" if source_of_data else None
                 )
 
-                # --- Create or update the Source ---
-                source, was_created = Source.objects.update_or_create(
+                # --- Create the new Source ---
+                source = Source.objects.create(
                     holding_institution=institution,
                     shelfmark=shelfmark,
-                    defaults={
-                        "source_completeness": completeness,
-                        "provenance_notes": provenance_notes,
-                        "date": date,
-                        "description": description or None,
-                        "image_link": image_link,
-                        "indexing_date": indexing_date,
-                        "indexing_notes": indexing_notes,
-                        "source_status": "Unpublished / No indexing activity",
-                        "published": True,
-                    },
+                    source_completeness=completeness,
+                    provenance=provenance_obj,
+                    provenance_notes=provenance_notes,
+                    date=date,
+                    description=description or None,
+                    image_link=image_link,
+                    indexing_date=indexing_date,
+                    indexing_notes=indexing_notes,
+                    source_status="Unpublished / No indexing activity",
+                    published=True,
                 )
-
-                if was_created:
-                    created_count += 1
-                else:
-                    updated_count += 1
+                created_count += 1
 
                 # --- Segment (Cantorales) ---
                 source.segment_m2m.add(cantorales_segment)
@@ -344,13 +372,13 @@ class Command(BaseCommand):
                                 contributor_users[name]
                             )
 
-                verb = "Created" if was_created else "Updated"
-                self.stdout.write(f"  {verb} source: {source} (row {row_num})")
+                self.stdout.write(f"  Created source: {source} (row {row_num})")
 
         self.stdout.write("")
         self.stdout.write(
-            f"Done. Created {created_count}, updated {updated_count}, "
-            f"skipped {skipped_count}. "
+            f"Done. Created {created_count}, "
+            f"skipped {skipped_existing_count} already-existing, "
+            f"skipped {skipped_count} invalid. "
             f"New institutions: {institution_created_count}."
         )
 
