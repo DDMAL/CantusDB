@@ -24,10 +24,10 @@ class InstitutionIdentifier(BaseModel):
 
     @property
     def identifier_prefix(self) -> str:
-        (pfx, _) = TYPE_PREFIX[self.identifier_type]
+        pfx, _ = TYPE_PREFIX[self.identifier_type]
         return pfx
 
     @property
     def identifier_url(self) -> str:
-        (_, url) = TYPE_PREFIX[self.identifier_type]
+        _, url = TYPE_PREFIX[self.identifier_type]
         return f"{url}{self.identifier}"

@@ -1,5 +1,6 @@
 from django.views.generic import DetailView, ListView
 from django.db.models import QuerySet
+from django.db.models.functions import Lower
 from main_app.models import Genre
 from main_app.mixins import JSONResponseMixin
 
@@ -20,7 +21,12 @@ class GenreListView(JSONResponseMixin, ListView):  # type: ignore[type-arg]
 
     def get_queryset(self) -> QuerySet[Genre]:
         order_attr = self.request.GET.get("order", "name")
+        # genres can be ordered by name or description,
+        # default to ordering by name if given anything else
+        if order_attr not in ["name", "description"]:
+            order_attr = "name"
         sort_attr = self.request.GET.get("sort", "asc")
+        ordering = Lower(order_attr)
         return Genre.objects.all().order_by(
-            order_attr if sort_attr == "asc" else f"-{order_attr}"
+            ordering if sort_attr == "asc" else ordering.desc()
         )

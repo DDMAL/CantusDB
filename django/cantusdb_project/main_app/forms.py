@@ -26,6 +26,7 @@ from .models import (
     Century,
     Sequence,
 )
+from .models.url_field import NormalizedURLFormField
 from .widgets import (
     TextInputWidget,
     VolpianoInputWidget,
@@ -627,6 +628,14 @@ class SourceEditForm(forms.ModelForm):
     )
 
 
+class ChantSearchForm(forms.Form):
+    feast = forms.ModelChoiceField(
+        queryset=Feast.objects.all(),
+        required=False,
+        widget=autocomplete.ModelSelect2(url="feast-autocomplete"),
+    )
+
+
 class SourceBrowseChantsProofreadForm(forms.Form):
     manuscript_full_text_std_proofread = forms.ChoiceField(
         label="Full text as in Source (standardized spelling) proofread",
@@ -1023,7 +1032,7 @@ class ImageLinkForm(forms.Form):
         initial = kwargs.get("initial")
         if initial:
             for folio in initial:
-                self.fields[folio] = forms.CharField(
+                self.fields[folio] = NormalizedURLFormField(
                     widget=HiddenInput(attrs={"class": "img-link-input"}),
                     required=False,
                 )

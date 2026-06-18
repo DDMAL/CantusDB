@@ -18,7 +18,6 @@ from main_app.models.source_url import SourceURL
 from main_app.models.language import Language
 from main_app.models.site_banner import SiteBanner
 
-
 __all__ = [
     "BaseModel",
     "Century",
