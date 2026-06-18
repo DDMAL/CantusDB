@@ -9,7 +9,7 @@ def move_cantorales_contributors(
 ) -> None:
     """
     Move users from inventoried_by to source_data_contributed_by for all
-    sources in the "Cantorales in the Americas" segment.
+    sources in the Cantorales segment (settings.CANTORALES_SEGMENT_ID).
 
     These sources were populated by the import_cantorales management command,
     which put contributor names into inventoried_by by mistake.  Since
@@ -18,7 +18,7 @@ def move_cantorales_contributors(
     """
     Segment = apps.get_model("main_app", "Segment")
     try:
-        cantorales = Segment.objects.get(name="Cantorales in the Americas")
+        cantorales = Segment.objects.get(pk=settings.CANTORALES_SEGMENT_ID)
     except Segment.DoesNotExist:
         return  # segment not yet created (e.g. fresh database)
 

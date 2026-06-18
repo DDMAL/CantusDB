@@ -2,14 +2,15 @@
 One-off management command to import sources from the
 "cantorales_2024-05-01.csv" spreadsheet into CantusDB.
 
-Sources are tagged with the "Cantorales in the Americas" segment so they
-appear on /Cantorales/ but NOT on /sources/?segment=4063 (CANTUS Database).
+Sources are tagged with the Cantorales segment (settings.CANTORALES_SEGMENT_ID)
+so they appear on /Cantorales/ but NOT on /sources/?segment=4063 (CANTUS Database).
 """
 
 import csv
 import os
 import re
 
+from django.conf import settings
 from django.contrib.auth import get_user_model
 from django.core.management.base import BaseCommand
 from django.db import transaction
@@ -192,7 +193,7 @@ class Command(BaseCommand):
             self.stderr.write(f"CSV not found at {csv_path}")
             return
 
-        cantorales_segment = Segment.objects.get(name="Cantorales in the Americas")
+        cantorales_segment = Segment.objects.get(pk=settings.CANTORALES_SEGMENT_ID)
 
         # Pre-fetch century lookup
         century_by_name = {c.name: c for c in Century.objects.all()}
