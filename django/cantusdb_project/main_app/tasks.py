@@ -1,12 +1,16 @@
 import json
 from concurrent.futures import ThreadPoolExecutor, as_completed
+from datetime import timedelta
 from typing import List, Dict, Any, Optional
 
 import requests
 from celery import shared_task, Task
+from django.core.mail import EmailMessage
 from django.db.models import Count, Q
+from django.utils import timezone
 
 from main_app.models import Chant, Sequence
+from main_app.models.data_check_config import DataCheckConfig
 from main_app.forms import BrowseChantsBulkEditFormset
 
 CI_DOMAIN = "https://cantusindex.uwaterloo.ca"
@@ -202,6 +206,119 @@ def check_blank_mode(chant_ids: Optional[List[int]] = None) -> dict:
         "published": list(invalid.filter(source__published=True).order_by("source_id")),
         "unpublished": list(invalid.filter(source__published=False).order_by("source_id")),
     }
+
+
+FREQUENCY_DELTAS = {
+    "daily": timedelta(days=1),
+    "weekly": timedelta(weeks=1),
+    "monthly": timedelta(days=30),
+}
+
+CHECK_LABELS = {
+    "cantus_ids_not_in_ci": "Cantus IDs not found in Cantus Index",
+    "duplicate_folio_sequence": "Duplicate folio/sequence numbers",
+    "genre_mismatch": "Genre mismatch with Cantus Index",
+    "position_service_mismatch": "Position/service mismatch",
+    "blank_cantus_id": "Blank Cantus ID",
+    "blank_mode": "Blank mode",
+}
+
+
+def _format_check_attachment(label: str, result: dict) -> str:
+    lines = [label, "=" * len(label), ""]
+
+    if "error" in result:
+        lines.append(f"ERROR: {result['error']}")
+        return "\n".join(lines)
+
+    for section in ("published", "unpublished"):
+        items = result.get(section) or []
+        lines.append(f"--- {section.capitalize()} ({len(items)}) ---")
+        if not items:
+            lines.append("No issues found.")
+        else:
+            for item in items:
+                if isinstance(item, dict):
+                    # duplicate folio/sequence results are dicts
+                    lines.append(
+                        f"  source_id={item.get('source_id')}  "
+                        f"folio={item.get('folio')}  "
+                        f"sequence={item.get('c_sequence', item.get('s_sequence'))}  "
+                        f"count={item.get('count')}"
+                    )
+                else:
+                    # Chant model instances
+                    lines.append(
+                        f"  chant_id={item.id}  "
+                        f"source={getattr(item.source, 'siglum', item.source_id)}  "
+                        f"folio={item.folio}  "
+                        f"cantus_id={item.cantus_id}  "
+                        f"genre={getattr(item.genre, 'name', '')}  "
+                        f"mode={item.mode}"
+                    )
+        lines.append("")
+
+    return "\n".join(lines)
+
+
+@shared_task(name="cantusdb.run_data_checks")
+def run_data_checks() -> None:
+    config = DataCheckConfig.objects.order_by("-id").first()
+    if config is None:
+        return
+
+    now = timezone.now()
+
+    # Skip if not enough time has passed since the last run
+    if config.last_run is not None:
+        delta = FREQUENCY_DELTAS.get(config.frequency)
+        if delta and now - config.last_run < delta:
+            return
+
+    # Determine which chants to check
+    chant_ids = None
+    if config.scope == "edited" and config.last_run is not None:
+        chant_ids = list(
+            Chant.objects.filter(date_updated__gte=config.last_run)
+            .values_list("id", flat=True)
+        )
+
+    # Run all checks
+    results = {
+        "cantus_ids_not_in_ci": check_cantus_ids_not_in_ci(chant_ids),
+        "duplicate_folio_sequence": check_duplicate_folio_sequence(chant_ids),
+        "genre_mismatch": check_cantus_ids_genre_mismatch(chant_ids),
+        "position_service_mismatch": check_position_service_mismatch(chant_ids),
+        "blank_cantus_id": check_blank_cantus_id(chant_ids),
+        "blank_mode": check_blank_mode(chant_ids),
+    }
+
+    # Update last_run before sending so a mail failure doesn't trigger a re-run
+    DataCheckConfig.objects.filter(pk=config.pk).update(last_run=now)
+
+    recipients = [r.strip() for r in config.recipients.split(",") if r.strip()]
+    if not recipients:
+        return
+
+    date_str = now.strftime("%Y-%m-%d")
+    scope_note = (
+        f"Scope: records edited since {config.last_run.strftime('%Y-%m-%d')}"
+        if config.scope == "edited" and config.last_run
+        else "Scope: all records"
+    )
+
+    email = EmailMessage(
+        subject=f"CantusDB Data Check Report — {date_str}",
+        body=f"CantusDB Data Check Report — {date_str}\n{scope_note}\n\nSee attached files for full results.",
+        to=recipients,
+    )
+
+    for key, label in CHECK_LABELS.items():
+        content = _format_check_attachment(label, results[key])
+        filename = f"{key}_{date_str}.txt"
+        email.attach(filename, content, "text/plain")
+
+    email.send()
 
 
 @shared_task(name="cantusdb.save_browse_chants_formset", bind=True)
