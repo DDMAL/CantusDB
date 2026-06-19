@@ -498,9 +498,7 @@ class NormalizedURLFormFieldTest(TestCase):
         self.field = NormalizedURLFormField(required=False)
 
     def test_spaces_encoded(self):
-        result = self.field.clean(
-            "https://example.com/Folio 92r.jpg"
-        )
+        result = self.field.clean("https://example.com/Folio 92r.jpg")
         self.assertEqual(
             result,
             "https://example.com/Folio%2092r.jpg",

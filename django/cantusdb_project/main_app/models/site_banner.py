@@ -61,9 +61,7 @@ class SiteBanner(models.Model):
 
     def clean(self) -> None:
         if self.expires_at is not None and self.expires_at <= timezone.now():
-            raise ValidationError(
-                {"expires_at": "Expiry time must be in the future."}
-            )
+            raise ValidationError({"expires_at": "Expiry time must be in the future."})
 
     def save(self, *args, **kwargs) -> None:
         # Enforce singleton: always pk=1. Drop force_insert so Django picks
