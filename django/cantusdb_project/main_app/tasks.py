@@ -24,7 +24,7 @@ def get_all_ci_ids() -> set[str] | None:
     """
     try:
         response = requests.get(
-            "https://cantusindex.uwaterloo.ca/json-cids", timeout=30
+            f"{CI_DOMAIN}/json-cids", timeout=30
         )
     except requests.exceptions.RequestException:
         return None
@@ -267,7 +267,8 @@ def _format_check_attachment(label: str, result: dict) -> str:
                 else:
                     # Chant model instances
                     lines.append(
-                        f"  chant_id={item.id}  "
+                        f"  source_id={item.source_id}  "
+                        f"chant_id={item.id}  "
                         f"source={getattr(item.source, 'siglum', item.source_id)}  "
                         f"folio={item.folio}  "
                         f"cantus_id={item.cantus_id}  "
