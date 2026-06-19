@@ -1,8 +1,8 @@
 import io
 import tempfile
-import textwrap
 from unittest.mock import patch
 
+from django.conf import settings
 from django.core.management import call_command
 from django.test import TestCase
 
@@ -13,7 +13,6 @@ from main_app.tests.make_fakes import (
     make_fake_institution,
     make_fake_segment,
     make_fake_source,
-    make_fake_user,
 )
 
 
@@ -132,7 +131,10 @@ def _make_csv(
 
 class TestImportCantoralesCommand(TestCase):
     def setUp(self):
-        make_fake_segment(name="Cantorales in the Americas", id=4067)
+        make_fake_segment(
+            name="Cantorales in the Americas and Beyond",
+            id=settings.CANTORALES_SEGMENT_ID,
+        )
         make_fake_century(name="16th century")
 
     def test_creates_source(self):
@@ -153,7 +155,7 @@ class TestImportCantoralesCommand(TestCase):
         source = Source.objects.get(shelfmark="Ms. 1")
         self.assertTrue(source.published)
         self.assertIn(
-            "Cantorales in the Americas",
+            "Cantorales in the Americas and Beyond",
             source.segment_m2m.values_list("name", flat=True),
         )
 
@@ -257,8 +259,8 @@ class TestImportCantoralesCommand(TestCase):
 
         # The Cantorales segment was not attached to the pre-existing source.
         self.assertNotIn(
-            "Cantorales in the Americas",
-            source.segment_m2m.values_list("name", flat=True),
+            settings.CANTORALES_SEGMENT_ID,
+            source.segment_m2m.values_list("pk", flat=True),
         )
 
         # No duplicate source was created.
