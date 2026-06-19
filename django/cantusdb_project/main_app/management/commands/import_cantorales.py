@@ -268,14 +268,13 @@ class Command(BaseCommand):
                 # sources that already existed in CDB. We now refuse to modify
                 # any existing source: if one already matches
                 # (holding_institution, shelfmark) we skip the whole row
-                existing = Source.objects.filter(
+                if Source.objects.filter(
                     holding_institution=institution, shelfmark=shelfmark
-                ).first()
-                if existing is not None:
+                ).exists():
                     skipped_existing_count += 1
                     self.stdout.write(
                         f"  Row {row_num}: SKIP — source already exists, leaving "
-                        f"it untouched: {existing} (id={existing.pk})"
+                        f"it untouched: {institution} {shelfmark}"
                     )
                     continue
 
