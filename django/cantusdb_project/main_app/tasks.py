@@ -208,6 +208,23 @@ def check_blank_mode(chant_ids: Optional[List[int]] = None) -> dict:
     }
 
 
+def check_blank_invitatory_differentia(chant_ids: Optional[List[int]] = None) -> dict:
+    """
+    Returns invitatories (genre "I" or "IP") with a blank or null differentia field,
+    split into published and unpublished.
+    """
+    qs = Chant.objects.filter(id__in=chant_ids) if chant_ids is not None else Chant.objects.all()
+    invalid = (
+        qs.filter(genre__name__in=["I", "IP"])
+        .filter(Q(differentia__isnull=True) | Q(differentia=""))
+        .select_related("source", "genre")
+    )
+    return {
+        "published": list(invalid.filter(source__published=True).order_by("source_id", "folio", "c_sequence")),
+        "unpublished": list(invalid.filter(source__published=False).order_by("source_id", "folio", "c_sequence")),
+    }
+
+
 FREQUENCY_DELTAS = {
     "daily": timedelta(days=1),
     "weekly": timedelta(weeks=1),
@@ -221,6 +238,7 @@ CHECK_LABELS = {
     "position_service_mismatch": "Position/service mismatch",
     "blank_cantus_id": "Blank Cantus ID",
     "blank_mode": "Blank mode",
+    "blank_invitatory_differentia": "Blank differentia in invitatories (genre I or IP)",
 }
 
 
@@ -291,6 +309,7 @@ def run_data_checks() -> None:
         "position_service_mismatch": check_position_service_mismatch(chant_ids),
         "blank_cantus_id": check_blank_cantus_id(chant_ids),
         "blank_mode": check_blank_mode(chant_ids),
+        "blank_invitatory_differentia": check_blank_invitatory_differentia(chant_ids),
     }
 
     # Update last_run before sending so a mail failure doesn't trigger a re-run

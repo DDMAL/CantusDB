@@ -4,8 +4,8 @@ from unittest.mock import patch, MagicMock
 from django.test import TestCase
 from django.db.models import QuerySet
 
-from main_app.tasks import save_browse_chants_formset, check_cantus_ids_not_in_ci, check_duplicate_folio_sequence, check_cantus_ids_genre_mismatch, check_position_service_mismatch, check_blank_cantus_id, check_blank_mode
-from main_app.tests.make_fakes import make_fake_source, make_fake_chant, make_fake_service
+from main_app.tasks import save_browse_chants_formset, check_cantus_ids_not_in_ci, check_duplicate_folio_sequence, check_cantus_ids_genre_mismatch, check_position_service_mismatch, check_blank_cantus_id, check_blank_mode, check_blank_invitatory_differentia
+from main_app.tests.make_fakes import make_fake_source, make_fake_chant, make_fake_service, make_fake_genre
 from main_app.models import Chant, Genre, Source
 from main_app.forms import BrowseChantsBulkEditFormset
 
@@ -208,3 +208,27 @@ class CheckBlankModeTest(TestCase):
         self.assertIn(pub_chant, result["published"])
         self.assertIn(unpub_chant, result["unpublished"])
         self.assertNotIn(valid_chant, result["published"])
+
+
+class CheckBlankInvitatoryDifferentiaTest(TestCase):
+    def test_blank_differentia_on_invitatory_genres(self) -> None:
+        pub_source = make_fake_source(published=True)
+        unpub_source = make_fake_source(published=False)
+        genre_I = make_fake_genre(name="I")
+        genre_IP = make_fake_genre(name="IP")
+        other_genre = make_fake_genre(name="A")
+
+        pub_chant = make_fake_chant(source=pub_source, genre=genre_I, differentia="")
+        unpub_chant = make_fake_chant(source=unpub_source, genre=genre_IP, differentia="")
+        # invitatory with a differentia — should not appear
+        valid_invitatory = make_fake_chant(source=pub_source, genre=genre_I, differentia="A")
+        # non-invitatory with blank differentia — should not appear
+        non_invitatory = make_fake_chant(source=pub_source, genre=other_genre, differentia="")
+
+        result = check_blank_invitatory_differentia(
+            [pub_chant.id, unpub_chant.id, valid_invitatory.id, non_invitatory.id]
+        )
+        self.assertIn(pub_chant, result["published"])
+        self.assertIn(unpub_chant, result["unpublished"])
+        self.assertNotIn(valid_invitatory, result["published"])
+        self.assertNotIn(non_invitatory, result["published"])
