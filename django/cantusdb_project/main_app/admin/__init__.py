@@ -13,3 +13,4 @@ from main_app.admin.institution import InstitutionAdmin
 from main_app.admin.institution_identifier import InstitutionIdentifierAdmin
 from main_app.admin.project import ProjectAdmin
 from main_app.admin.language import LanguageAdmin
+from main_app.admin.site_banner import SiteBannerAdmin
