@@ -50,7 +50,6 @@ from main_app.views.chant import get_feast_selector_options
 from main_app.tasks import save_browse_chants_formset
 
 
-
 class SourceBrowseChantsView(CustomAccessMixin, ListView):  # type: ignore[type-arg]
     """The view for the `Browse Chants` page.
 
@@ -364,9 +363,13 @@ class SourceListView(CustomAccessMixin, ListView):  # type: ignore[type-arg]
         )
         min_year = century_dates["min_year"]
         max_year = century_dates["max_year"]
-        context["date_range_min"] = (min_year // 10) * 10 if min_year is not None else None
+        context["date_range_min"] = (
+            (min_year // 10) * 10 if min_year is not None else None
+        )
         context["date_range_max"] = (
-            min(-(-max_year // 10) * 10, current_decade) if max_year is not None else None
+            min(-(-max_year // 10) * 10, current_decade)
+            if max_year is not None
+            else None
         )
 
         context["production_method_choices"] = Source.ProductionMethodChoices.choices
