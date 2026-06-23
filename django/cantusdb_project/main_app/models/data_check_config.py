@@ -2,27 +2,25 @@ from django.db import models
 
 
 class DataCheckConfig(models.Model):
-    FREQUENCY_CHOICES = [
-        ("daily", "Daily"),
-        ("weekly", "Weekly"),
-        ("monthly", "Monthly"),
-    ]
+    class Frequency(models.TextChoices):
+        DAILY = "daily", "Daily"
+        WEEKLY = "weekly", "Weekly"
+        MONTHLY = "monthly", "Monthly"
 
-    SCOPE_CHOICES = [
-        ("all", "All records"),
-        ("edited", "Only records edited in the period"),
-    ]
+    class Scope(models.TextChoices):
+        ALL = "all", "All records"
+        EDITED = "edited", "Only records edited in the period"
 
     frequency = models.CharField(
         max_length=20,
-        choices=FREQUENCY_CHOICES,
-        default="weekly",
+        choices=Frequency.choices,
+        default=Frequency.WEEKLY,
         help_text="How often the data checks should run.",
     )
     scope = models.CharField(
         max_length=20,
-        choices=SCOPE_CHOICES,
-        default="all",
+        choices=Scope.choices,
+        default=Scope.ALL,
         help_text=(
             "All records: run checks against the full dataset. "
             "Only edited: restrict checks to records modified since the last run."

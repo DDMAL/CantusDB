@@ -1,4 +1,5 @@
 import json
+import logging
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from datetime import timedelta
 from typing import List, Dict, Any, Optional
@@ -16,6 +17,8 @@ from main_app.forms import BrowseChantsBulkEditFormset
 CI_DOMAIN = "https://cantusindex.uwaterloo.ca"
 CI_WORKERS = 10
 
+logger = logging.getLogger(__name__)
+
 
 def get_all_ci_ids() -> set[str] | None:
     """
@@ -27,9 +30,11 @@ def get_all_ci_ids() -> set[str] | None:
             f"{CI_DOMAIN}/json-cids", timeout=30
         )
     except requests.exceptions.RequestException:
+        logger.error("Failed to reach Cantus Index at %s/json-cids", CI_DOMAIN, exc_info=True)
         return None
 
     if response.status_code != 200:
+        logger.error("Cantus Index returned status %s for /json-cids", response.status_code)
         return None
 
     text = response.text.encode().decode("utf-8-sig")
@@ -226,9 +231,9 @@ def check_blank_invitatory_differentia(chant_ids: Optional[List[int]] = None) ->
 
 
 FREQUENCY_DELTAS = {
-    "daily": timedelta(days=1),
-    "weekly": timedelta(weeks=1),
-    "monthly": timedelta(days=30),
+    DataCheckConfig.Frequency.DAILY: timedelta(days=1),
+    DataCheckConfig.Frequency.WEEKLY: timedelta(weeks=1),
+    DataCheckConfig.Frequency.MONTHLY: timedelta(days=30),
 }
 
 CHECK_LABELS = {
@@ -296,7 +301,7 @@ def run_data_checks() -> None:
 
     # Determine which chants to check
     chant_ids = None
-    if config.scope == "edited" and config.last_run is not None:
+    if config.scope == DataCheckConfig.Scope.EDITED and config.last_run is not None:
         chant_ids = list(
             Chant.objects.filter(date_updated__gte=config.last_run)
             .values_list("id", flat=True)
@@ -318,12 +323,13 @@ def run_data_checks() -> None:
 
     recipients = [r.strip() for r in config.recipients.split(",") if r.strip()]
     if not recipients:
+        logger.warning("Data check completed but no recipients configured; report not sent.")
         return
 
     date_str = now.strftime("%Y-%m-%d")
     scope_note = (
         f"Scope: records edited since {config.last_run.strftime('%Y-%m-%d')}"
-        if config.scope == "edited" and config.last_run
+        if config.scope == DataCheckConfig.Scope.EDITED and config.last_run
         else "Scope: all records"
     )
 
