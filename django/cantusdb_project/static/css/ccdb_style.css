@@ -81,6 +81,7 @@ main a {
 #collapsing-navbar {
     background-color: #cc3333eb;
     color: white;
+    z-index: 100;
 
     .nav-link {
         color: white !important;
