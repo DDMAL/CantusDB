@@ -1,5 +1,6 @@
-import json
 import logging
+
+import ujson as json
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from datetime import timedelta
 from typing import List, Dict, Any, Optional
