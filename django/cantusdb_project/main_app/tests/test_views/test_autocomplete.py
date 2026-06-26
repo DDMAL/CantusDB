@@ -7,7 +7,7 @@ from django.contrib.auth import get_user_model
 from django.contrib.auth.models import Group
 from django.urls import reverse
 
-from main_app.tests.make_fakes import make_fake_century
+from main_app.tests.make_fakes import make_fake_century, make_fake_feast
 
 
 class AutocompleteViewsTest(TestCase):
@@ -31,6 +31,17 @@ class AutocompleteViewsTest(TestCase):
 
         for i in range(10):
             make_fake_century()
+
+        make_fake_feast(
+            name="Adalberti", description="Adalbert of Prague, Bishop and Martyr"
+        )
+        make_fake_feast(
+            name="Ad Mandatum", description="At the Mandatum (Foot-Washing)"
+        )
+        make_fake_feast(
+            name="Dom. Pentecostes",
+            description='Pentecost Sunday (also "Whitsunday")',
+        )
 
     def test_active_users_autocomplete(self):
         response = self.client.get(reverse("active-users-autocomplete"))
@@ -56,6 +67,26 @@ class AutocompleteViewsTest(TestCase):
         data = response.json()
         self.assertEqual(len(data["results"]), 10)
 
+    def test_feast_autocomplete(self):
+        response = self.client.get(reverse("feast-autocomplete"))
+        self.assertEqual(response.status_code, 200)
+        data = response.json()
+        self.assertEqual(len(data["results"]), 3)
+
+        # Searches match feast name
+        response = self.client.get(reverse("feast-autocomplete"), {"q": "Adalberti"})
+        data = response.json()
+        self.assertEqual(len(data["results"]), 1)
+
+        # Searches also match feast description (keyword only in description)
+        response = self.client.get(reverse("feast-autocomplete"), {"q": "Prague"})
+        data = response.json()
+        self.assertEqual(len(data["results"]), 1)
+
+        response = self.client.get(reverse("feast-autocomplete"), {"q": "Whitsunday"})
+        data = response.json()
+        self.assertEqual(len(data["results"]), 1)
+
     def test_non_authenticated_user(self):
         self.client.logout()
         response = self.client.get(reverse("active-users-autocomplete"))
@@ -72,3 +103,11 @@ class AutocompleteViewsTest(TestCase):
         self.assertEqual(response.status_code, 200)
         data = response.json()
         self.assertEqual(len(data["results"]), 0)
+
+        # FeastAutocomplete is intentionally public: the chant search page is
+        # reachable anonymously and uses this endpoint to populate its Select2
+        # feast widget.
+        response = self.client.get(reverse("feast-autocomplete"))
+        self.assertEqual(response.status_code, 200)
+        data = response.json()
+        self.assertEqual(len(data["results"]), 3)

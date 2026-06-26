@@ -1,11 +1,12 @@
 import re
+from datetime import date
 from typing import Any, Optional, Union
 
 from django.conf import settings
 from django.contrib import messages
 from django.contrib.auth.mixins import UserPassesTestMixin
-from django.db.models import Q, Prefetch, Value
-from django.db.models import QuerySet
+from django.db.models import Q, Prefetch, QuerySet, Value, Min, Max
+from django.db.models.functions import Coalesce
 from django.http import (
     HttpResponseRedirect,
     Http404,
@@ -24,6 +25,7 @@ from django.views.generic import (
     FormView,
 )
 from django.views.generic.detail import SingleObjectMixin
+
 from main_app.forms import (
     SourceCreateForm,
     SourceEditForm,
@@ -44,12 +46,8 @@ from main_app.models import (
 )
 from main_app.permissions import CustomAccessMixin
 from main_app.mixins import JSONResponseMixin
-
 from main_app.views.chant import get_feast_selector_options
 from main_app.tasks import save_browse_chants_formset
-
-CANTUS_SEGMENT_ID = 4063
-BOWER_SEGMENT_ID = 4064
 
 
 class SourceBrowseChantsView(CustomAccessMixin, ListView):  # type: ignore[type-arg]
@@ -193,11 +191,15 @@ class SourceBrowseChantsView(CustomAccessMixin, ListView):  # type: ignore[type-
         # so they should not appear among the list of sources
         cantus_segment: Segment = Segment.objects.get(id=settings.CANTUS_SEGMENT_ID)
 
-        # to be displayed in the "Source" dropdown in the form
+        # to be displayed in the "Source" dropdown in the form.
+        # Always include the current source so it can be marked as selected,
+        # even if it doesn't belong to the CantusDatabase segment.
         sources: QuerySet[Source] = (
-            cantus_segment.sources.select_related("holding_institution")
+            Source.objects.filter(Q(segment_m2m=cantus_segment) | Q(id=source.id))
+            .select_related("holding_institution")
             .prefetch_related("segment_m2m")
-            .order_by("holding_institution__siglum")
+            .order_by("holding_institution__siglum", "shelfmark", "id")
+            .distinct()
         )
         if not display_unpublished:
             sources = sources.filter(published=True)
@@ -279,7 +281,16 @@ class SourceDetailView(CustomAccessMixin, JSONResponseMixin, DetailView):  # typ
             self.model.objects.select_related(
                 "holding_institution", "provenance", "created_by"
             )
-            .prefetch_related("segment_m2m", "proofreaders", "inventoried_by")
+            .prefetch_related(
+                "segment_m2m",
+                "proofreaders",
+                "inventoried_by",
+                "source_data_contributed_by",
+                "full_text_entered_by",
+                "melodies_entered_by",
+                "other_editors",
+                "description_entered_by",
+            )
             .all()
         )
 
@@ -287,7 +298,7 @@ class SourceDetailView(CustomAccessMixin, JSONResponseMixin, DetailView):  # typ
         context = super().get_context_data(**kwargs)
 
         source = self.object
-        if BOWER_SEGMENT_ID in source.segment_m2m.values_list("id", flat=True):
+        if source.segment_m2m.filter(id=settings.BOWER_SEGMENT_ID).exists():
             # if this is a sequence source
             sequences = source.sequence_set.select_related("genre", "service")
             context["sequences"] = sequences.order_by("s_sequence")
@@ -306,6 +317,7 @@ class SourceDetailView(CustomAccessMixin, JSONResponseMixin, DetailView):  # typ
             context["bower_segment"] = False
             context["has_chants"] = chants.exists()
 
+        context["source_notation"] = source.notation.first()
         context["user_can_edit_chants"] = self.user_assigned_to_source(source)
         context["user_can_edit_source"] = self.user_assigned_to_source(source) and (
             self.user_is_editor or self.user_created_source(source)
@@ -337,9 +349,29 @@ class SourceListView(CustomAccessMixin, ListView):  # type: ignore[type-arg]
         context["provenances"] = (
             Provenance.objects.all().order_by("name").values("id", "name")
         )
-        context["centuries"] = (
-            Century.objects.all().order_by("name").values("id", "name")
+        # Year-range slider bounds. Endpoints are rounded out to the nearest
+        # decade so the slider's step="10" reaches both. The upper bound is
+        # clipped to the current decade so future-dated centuries (e.g. a
+        # "21st century" stub ending in 2099) do not stretch the slider past
+        # today.
+        current_decade = (date.today().year // 10) * 10
+        century_dates = Century.objects.filter(
+            min_date__isnull=False, max_date__isnull=False
+        ).aggregate(
+            min_year=Min("min_date"),
+            max_year=Max("max_date"),
         )
+        min_year = century_dates["min_year"]
+        max_year = century_dates["max_year"]
+        context["date_range_min"] = (
+            (min_year // 10) * 10 if min_year is not None else None
+        )
+        context["date_range_max"] = (
+            min(-(-max_year // 10) * 10, current_decade)
+            if max_year is not None
+            else None
+        )
+
         context["production_method_choices"] = Source.ProductionMethodChoices.choices
         context["source_completeness_choices"] = (
             Source.SourceCompletenessChoices.choices
@@ -370,9 +402,32 @@ class SourceListView(CustomAccessMixin, ListView):  # type: ignore[type-arg]
         if country_name := self.request.GET.get("country"):
             q_obj_filter &= Q(holding_institution__country__icontains=country_name)
 
-        if century_id := self.request.GET.get("century"):
-            century_name = Century.objects.get(id=century_id).name
-            q_obj_filter &= Q(century__name__icontains=century_name)
+        # Handle direct date range filtering
+        # This allows filtering by explicit date ranges (e.g., 1400-1500)
+        date_start = self.request.GET.get("dateStart")
+        date_end = self.request.GET.get("dateEnd")
+        if date_start or date_end:
+            try:
+                date_start_int = int(date_start) if date_start else None
+                date_end_int = int(date_end) if date_end else None
+
+                # Find all centuries that overlap with the selected date range
+                # This provides the same behavior as century selection
+                if date_start_int is not None and date_end_int is not None:
+                    # Both dates specified: find centuries that overlap the range
+                    q_obj_filter &= Q(
+                        century__min_date__lte=date_end_int,
+                        century__max_date__gte=date_start_int,
+                    )
+                elif date_start_int is not None:
+                    # Only start date: find centuries that haven't ended
+                    q_obj_filter &= Q(century__max_date__gte=date_start_int)
+                elif date_end_int is not None:
+                    # Only end date: find centuries that have started
+                    q_obj_filter &= Q(century__min_date__lte=date_end_int)
+            except (ValueError, TypeError):
+                # Invalid date format, skip filtering
+                pass
 
         if provenance_id := self.request.GET.get("provenance"):
             q_obj_filter &= Q(provenance__id=int(provenance_id))
@@ -384,15 +439,15 @@ class SourceListView(CustomAccessMixin, ListView):  # type: ignore[type-arg]
             q_obj_filter &= Q(production_method=production_method)
 
         if general_str := self.request.GET.get("general"):
-            # Strip spaces at the beginning and end
-            general_str = general_str.strip()
+            # Strip leading/trailing spaces and collapse internal whitespace
+            general_str = " ".join(general_str.split())
 
             # Use regex to extract quoted and unquoted terms
             quoted_terms = re.findall(
                 r'"(.*?)"', general_str
             )  # Extract terms in quotes
             unquoted_terms = re.findall(
-                r"\b[\w,-.]+\b", re.sub(r'"(.*?)"', "", general_str)
+                r"\b[\w,-.:]+\b", re.sub(r'"(.*?)"', "", general_str)
             )
 
             # We need a Q Object for each field we're gonna look into
@@ -402,12 +457,11 @@ class SourceListView(CustomAccessMixin, ListView):  # type: ignore[type-arg]
             holding_institution_city_q = Q()
             description_q = Q()
             name_q = Q()
-            # it seems that old cantus don't look into title and provenance
-            # for the general search terms
-            # cantus.uwaterloo.ca/source/123901 this source cannot be found by searching
-            # its provenance 'Kremsmünster' in the general search field
-            # provenance_q = Q()
             summary_q = Q()
+            provenance_q = Q()
+            fragmentarium_id_q = Q()
+            dact_id_q = Q()
+            identifiers_q = Q()
 
             # Add unquoted terms to the Q object with partial matching (icontains)
             for term in unquoted_terms:
@@ -422,6 +476,10 @@ class SourceListView(CustomAccessMixin, ListView):  # type: ignore[type-arg]
                 description_q |= Q(description__unaccent__icontains=term)
                 summary_q |= Q(summary__unaccent__icontains=term)
                 name_q |= Q(name__unaccent__icontains=term)
+                provenance_q |= Q(provenance__name__unaccent__icontains=term)
+                fragmentarium_id_q |= Q(fragmentarium_id__icontains=term)
+                dact_id_q |= Q(dact_id__icontains=term)
+                identifiers_q |= Q(identifiers__identifier__unaccent__icontains=term)
 
             # Add quoted terms to the Q object with exact matching (iexact)
             for term in quoted_terms:
@@ -436,6 +494,10 @@ class SourceListView(CustomAccessMixin, ListView):  # type: ignore[type-arg]
                 description_q |= Q(description__unaccent__icontains=term)
                 summary_q |= Q(summary__unaccent__icontains=term)
                 name_q |= Q(name__unaccent__icontains=term)
+                provenance_q |= Q(provenance__name__unaccent__icontains=term)
+                fragmentarium_id_q |= Q(fragmentarium_id__icontains=term)
+                dact_id_q |= Q(dact_id__icontains=term)
+                identifiers_q |= Q(identifiers__identifier__unaccent__icontains=term)
 
             # Combine all Q objects with OR
             general_search_q = (
@@ -446,6 +508,10 @@ class SourceListView(CustomAccessMixin, ListView):  # type: ignore[type-arg]
                 | holding_institution_q
                 | holding_institution_city_q
                 | name_q
+                | provenance_q
+                | fragmentarium_id_q
+                | dact_id_q
+                | identifiers_q
             )
 
             # Apply the general search Q object to the filter
@@ -463,6 +529,7 @@ class SourceListView(CustomAccessMixin, ListView):  # type: ignore[type-arg]
             description_entered_by_q = Q()
             proofreaders_q = Q()
             other_editors_q = Q()
+            source_data_contributed_by_q = Q()
             indexing_notes_q = Q()
             # For each term, add it to the Q object of each field with an OR operation.
             # We split the terms so that the words can be separated in the actual
@@ -481,6 +548,9 @@ class SourceListView(CustomAccessMixin, ListView):  # type: ignore[type-arg]
                 )
                 proofreaders_q |= Q(proofreaders__full_name__icontains=term)
                 other_editors_q |= Q(other_editors__full_name__icontains=term)
+                source_data_contributed_by_q |= Q(
+                    source_data_contributed_by__full_name__icontains=term
+                )
                 indexing_notes_q |= Q(indexing_notes__icontains=term)
             # All the Q objects are put together with OR.
             # The end result is that at least one term has to match in at least one
@@ -492,23 +562,42 @@ class SourceListView(CustomAccessMixin, ListView):  # type: ignore[type-arg]
                 | description_entered_by_q
                 | proofreaders_q
                 | other_editors_q
+                | source_data_contributed_by_q
                 | indexing_notes_q
             )
             q_obj_filter &= indexing_search_q
 
         order_param = self.request.GET.get("order")
-        order_fields = ["holding_institution__siglum", "shelfmark"]
-        if order_param == "country":
-            order_fields.insert(0, "holding_institution__country")
-        elif order_param == "city_institution":
-            order_fields.insert(0, "holding_institution__city")
-            order_fields.insert(1, "holding_institution__name")
-        if self.request.GET.get("sort") == "desc":
-            sort_prefix = "-"
-        else:
-            sort_prefix = ""
+        sort_desc = self.request.GET.get("sort") == "desc"
+        sort_prefix = "-" if sort_desc else ""
 
-        order_by_args = [f"{sort_prefix}{field}" for field in order_fields]
+        if order_param == "country":
+            # When ordering by country, we use COALESCE to replace NULL sigla with ""
+            # so that private collectors (who have no siglum) sort before institutions
+            # with sigla within the same country group. This matches Python's sort
+            # behaviour, which also treats private collectors as "" for ordering.
+            # Previously, the siglum field was used directly (i.e.,
+            # "holding_institution__siglum"), which caused PostgreSQL's NULLS LAST
+            # default to place private collectors after all institutions with sigla —
+            # the opposite of what the Python sort produces.
+            siglum_coalesced = Coalesce("holding_institution__siglum", Value(""))
+            order_by_args = [
+                f"{sort_prefix}holding_institution__country",
+                siglum_coalesced.desc() if sort_desc else siglum_coalesced.asc(),
+                f"{sort_prefix}shelfmark",
+            ]
+        elif order_param == "city_institution":
+            order_by_args = [
+                f"{sort_prefix}holding_institution__city",
+                f"{sort_prefix}holding_institution__name",
+                f"{sort_prefix}holding_institution__siglum",
+                f"{sort_prefix}shelfmark",
+            ]
+        else:
+            order_by_args = [
+                f"{sort_prefix}holding_institution__siglum",
+                f"{sort_prefix}shelfmark",
+            ]
 
         return (
             queryset.filter(q_obj_filter)
@@ -592,7 +681,7 @@ class SourceEditView(CustomAccessMixin, UpdateView):  # type: ignore[type-arg]
         source = self.object
         context = super().get_context_data(**kwargs)
 
-        if settings.BOWER_SEGMENT_ID in source.segment_m2m.values_list("id", flat=True):
+        if source.segment_m2m.filter(id=settings.BOWER_SEGMENT_ID).exists():
             # if this is a sequence source
             context["sequences"] = source.sequence_set.order_by("s_sequence")
             context["folios"] = (
@@ -636,7 +725,7 @@ class SourceInventoryView(CustomAccessMixin, ListView):  # type: ignore[type-arg
         )
 
     def get_queryset(self) -> Union[QuerySet[Chant], QuerySet[Sequence]]:
-        if BOWER_SEGMENT_ID in self.source.segment_m2m.values_list("id", flat=True):
+        if self.source.segment_m2m.filter(id=settings.BOWER_SEGMENT_ID).exists():
             queryset = (
                 self.source.sequence_set.annotate(record_type=Value("sequence"))
                 .order_by("s_sequence")

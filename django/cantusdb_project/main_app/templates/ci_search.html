@@ -17,30 +17,36 @@
             If your chant is not included here, please add it into
             <a href="https://cantusindex.org/">Cantus Index</a> or contact the <a href="mailto:kolacek2010@gmail.com">administrator</a>
         </p>
-        <table class="table table-responsive table-sm small table-bordered table-striped table-hover"
-               style="display: table">
-            {# if we don't include 'style="display: table;"', the table is very narrow when viewed in certain browsers (e.g. Firefox) #}
-            <thead class="thead-dark">
-                <tr>
-                    <th width="50">Select</th>
-                    <th width="80">Cantus ID</th>
-                    <th width="80">Genre</th>
-                    <th width="100">Fulltext</th>
-                </tr>
-            </thead>
-            <tbody>
-                {% for cantus_id, genre, full_text in results %}
-                    <tr id="{{ cantus_id }}">
-                        <td>
-                            <input type="button" value="OK" />
-                        </td>
-                        <td>{{ cantus_id }}</td>
-                        <td>{{ genre }}</td>
-                        <td>{{ full_text }}</td>
+        {% if ci_error %}
+            <p class="text-danger">Unable to retrieve results from Cantus Index. The service may be temporarily unavailable or the request timed out. Please try again.</p>
+        {% elif not results %}
+            <p>No results found.</p>
+        {% else %}
+            <table class="table table-responsive table-sm small table-bordered table-striped table-hover"
+                   style="display: table">
+                {# if we don't include 'style="display: table;"', the table is very narrow when viewed in certain browsers (e.g. Firefox) #}
+                <thead class="thead-dark">
+                    <tr>
+                        <th width="50">Select</th>
+                        <th width="80">Cantus ID</th>
+                        <th width="80">Genre</th>
+                        <th width="100">Fulltext</th>
                     </tr>
-                {% endfor %}
-            </tbody>
-        </table>
+                </thead>
+                <tbody>
+                    {% for cantus_id, genre, full_text in results %}
+                        <tr id="{{ cantus_id }}">
+                            <td>
+                                <input type="button" value="OK" />
+                            </td>
+                            <td>{{ cantus_id }}</td>
+                            <td>{{ genre }}</td>
+                            <td>{{ full_text }}</td>
+                        </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        {% endif %}
         <script>
             document.addEventListener('DOMContentLoaded', function() {
                 // This function will be called when the page is loaded

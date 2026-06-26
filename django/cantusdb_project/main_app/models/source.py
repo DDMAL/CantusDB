@@ -3,6 +3,7 @@ from typing import Any
 from django.db import models
 from django.contrib.auth import get_user_model
 
+from main_app.models.url_field import NormalizedURLField
 from main_app.models import BaseModel, Segment
 
 
@@ -85,6 +86,7 @@ class Source(BaseModel):
         FRAGMENTED = 4, "Fragmented"
         FRAGMENT = 2, "Fragment"
         RECONSTRUCTION = 3, "Reconstruction"
+        UNKNOWN = 5, "Unknown"
 
     source_completeness = models.IntegerField(
         choices=SourceCompletenessChoices.choices,
@@ -109,9 +111,10 @@ class Source(BaseModel):
     )
 
     ######
-    # The following six fields have nothing to do with user permissions,
-    # instead they give credit to users who are indexers and are displayed
-    # on the user detail page as sources the user has contributed to.
+    # The following seven fields have nothing to do with user permissions;
+    # instead they give credit to users who are contributors/editors (e.g.,
+    # indexers, data contributors, proofreaders) and are displayed on the
+    # user detail page as sources the user has contributed to.
     inventoried_by = models.ManyToManyField(
         get_user_model(), related_name="inventoried_sources", blank=True
     )
@@ -133,6 +136,12 @@ class Source(BaseModel):
     other_editors = models.ManyToManyField(
         get_user_model(), related_name="edited_sources", blank=True
     )
+    source_data_contributed_by = models.ManyToManyField(
+        get_user_model(),
+        verbose_name="source metadata contributed by",
+        related_name="contributed_data_for_sources",
+        blank=True,
+    )
     ######
 
     segment = models.ForeignKey(
@@ -149,7 +158,7 @@ class Source(BaseModel):
     liturgical_occasions = models.TextField(blank=True, null=True)
     description = models.TextField(blank=True, null=True)
     selected_bibliography = models.TextField(blank=True, null=True)
-    image_link = models.URLField(
+    image_link = NormalizedURLField(
         blank=True,
         null=True,
         help_text="HTTP link to the image gallery of the source.",

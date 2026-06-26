@@ -1,3 +1,5 @@
+import random
+
 from django.test import TestCase
 from django.urls import reverse
 from django.contrib.auth import get_user_model
@@ -5,7 +7,9 @@ from main_app.tests.make_fakes import (
     make_fake_source,
     make_fake_chant,
     make_fake_segment,
+    make_fake_institution,
 )
+from main_app.views.proofreading import ProofreadView
 from users.models import Group
 
 
@@ -105,22 +109,106 @@ class ProofreadingOverviewViewTest(TestCase):
         response = self.client.get(self.url, {"order": "country"})
         self.assertEqual(response.status_code, 200)
 
-    def test_pagination(self):
-        for i in range(60):
-            source = make_fake_source(
-                title=f"Source {i}", segment=[self.cantus_segment]
+    def test_ordering(self):
+        """
+        Order on the Proofreading Overview should mirror Browse Sources for the
+        shared sort modes: by country (with NULL sigla coalesced to "") and by
+        institution siglum + shelfmark.
+        """
+        sources = []
+        # A source from a private collector (NULL siglum).
+        private_collector = make_fake_institution(is_private_collector=True)
+        sources.append(
+            make_fake_source(
+                holding_institution=private_collector, segment=[self.cantus_segment]
             )
-            make_fake_chant(source=source)
+        )
+        # A handful of other sources with distinct institutions.
+        inst = None
+        for _ in range(10):
+            inst = make_fake_institution()
+            sources.append(
+                make_fake_source(
+                    holding_institution=inst, segment=[self.cantus_segment]
+                )
+            )
+        # Another institution sharing the last one's country, to exercise
+        # within-country ordering by siglum.
+        sources.append(
+            make_fake_source(
+                holding_institution=make_fake_institution(country=inst.country),
+                segment=[self.cantus_segment],
+            )
+        )
+        # A second source under an existing institution, to exercise shelfmark
+        # as a tiebreaker.
+        sources.append(
+            make_fake_source(holding_institution=inst, segment=[self.cantus_segment])
+        )
+        for s in sources:
+            make_fake_chant(source=s)
 
-        response = self.client.get(self.url, {"page": 1})
+        with self.subTest("Order by country"):
+            response = self.client.get(self.url, {"order": "country"})
+            expected = sorted(
+                sources,
+                key=lambda s: (
+                    s.holding_institution.country,
+                    s.holding_institution.siglum or "",
+                    s.shelfmark,
+                ),
+            )
+            self.assertEqual(expected, list(response.context["sources"]))
+
+            response_desc = self.client.get(
+                self.url, {"order": "country", "sort": "desc"}
+            )
+            self.assertEqual(
+                list(reversed(expected)), list(response_desc.context["sources"])
+            )
+
+        with self.subTest("Order by source_siglum"):
+            # source_siglum sorts by institution siglum then shelfmark, without
+            # COALESCE — so NULL sigla (private collectors) land last in asc.
+            response = self.client.get(self.url, {"order": "source_siglum"})
+            expected = sorted(
+                sources,
+                key=lambda s: (
+                    s.holding_institution.siglum is None,
+                    s.holding_institution.siglum or "",
+                    s.shelfmark,
+                ),
+            )
+            self.assertEqual(expected, list(response.context["sources"]))
+
+    def test_pagination(self):
+        paginate_by = ProofreadView.paginate_by
+        full_pages = 2
+        for _ in range(paginate_by * full_pages):
+            make_fake_chant(source=make_fake_source(segment=[self.cantus_segment]))
+
+        for page_num in range(1, full_pages + 1):
+            response = self.client.get(self.url, {"page": page_num})
+            self.assertEqual(response.status_code, 200)
+            self.assertTrue(response.context["is_paginated"])
+            self.assertEqual(len(response.context["sources"]), paginate_by)
+
+        random.seed(0)
+        overflow = random.randint(1, paginate_by - 1)
+        for _ in range(overflow):
+            make_fake_chant(source=make_fake_source(segment=[self.cantus_segment]))
+
+        response = self.client.get(self.url, {"page": full_pages + 1})
         self.assertEqual(response.status_code, 200)
-        self.assertTrue("page_obj" in response.context)
-        self.assertEqual(len(response.context["sources"]), 50)
+        self.assertEqual(len(response.context["sources"]), overflow)
 
-        response2 = self.client.get(self.url, {"page": 2})
-        self.assertEqual(response2.status_code, 200)
-        self.assertTrue("page_obj" in response2.context)
-        self.assertEqual(len(response2.context["sources"]), 10)
+        response = self.client.get(self.url, {"page": "last"})
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(len(response.context["sources"]), overflow)
+
+        for invalid_page in [-1, 0, "lst", full_pages + 2]:
+            response = self.client.get(self.url, {"page": invalid_page})
+            self.assertEqual(response.status_code, 404)
 
     def test_proofreading_stats_display(self):
         source = make_fake_source(segment=[self.cantus_segment], title="Stats Source")

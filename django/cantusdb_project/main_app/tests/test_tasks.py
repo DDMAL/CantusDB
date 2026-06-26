@@ -67,14 +67,19 @@ class SaveBrowseChantsFormsetTest(TestCase):
             for key in self.initial_form_data.keys():
                 if key.startswith("chant_set-1"):
                     bad_form_data.pop(key)
-            bad_form_data["chant_set-0-mode"] = "0"
+            chant = self.chants[0]
+            chant.refresh_from_db()
+            original_mode = chant.mode
+            # Use a mode value distinct from the chant's current mode so we can
+            # verify the invalid submission did not update the record.
+            new_mode = "1" if original_mode != "1" else "2"
+            bad_form_data["chant_set-0-mode"] = new_mode
             res = save_browse_chants_formset.apply(
                 args=(bad_form_data, self.chant_ids)
             ).get()
             self.assertGreater(res["error_count"], 0)
-            chant = self.chants[0]
             chant.refresh_from_db()
-            self.assertNotEqual(chant.mode, "0")
+            self.assertEqual(chant.mode, original_mode)
         with self.subTest("Bad formset data: empty field"):
             bad_form_data = self.initial_form_data.copy()
             # Empty folio field should not be allowed

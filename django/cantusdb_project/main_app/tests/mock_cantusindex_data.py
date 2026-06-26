@@ -712,3 +712,14 @@ mock_get_ci_text_search_123xyz_content: bytes = utf8_bom + bytes(
     mock_get_ci_text_search_123xyz_text,
     encoding="utf-8",
 )
+
+#########################################################################
+### mocking requests.get("https://cantusindex.org/json-text/no_match") ###
+#########################################################################
+
+# CI returns an empty JSON list when the search term is valid but has no matches.
+mock_get_ci_text_search_no_match_text: str = "[]"
+mock_get_ci_text_search_no_match_content: bytes = utf8_bom + bytes(
+    mock_get_ci_text_search_no_match_text,
+    encoding="utf-8",
+)

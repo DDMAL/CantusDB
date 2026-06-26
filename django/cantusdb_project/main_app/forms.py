@@ -26,6 +26,7 @@ from .models import (
     Century,
     Sequence,
 )
+from .models.url_field import NormalizedURLFormField
 from .widgets import (
     TextInputWidget,
     VolpianoInputWidget,
@@ -321,6 +322,7 @@ class SourceCreateForm(forms.ModelForm):
             "description_entered_by",
             "proofreaders",
             "other_editors",
+            "source_data_contributed_by",
             "complete_inventory",
             "summary",
             "description",
@@ -371,6 +373,9 @@ class SourceCreateForm(forms.ModelForm):
                 url="all-users-autocomplete"
             ),
             "other_editors": autocomplete.ModelSelect2Multiple(
+                url="all-users-autocomplete"
+            ),
+            "source_data_contributed_by": autocomplete.ModelSelect2Multiple(
                 url="all-users-autocomplete"
             ),
             "production_method": SelectWidget(),
@@ -566,6 +571,7 @@ class SourceEditForm(forms.ModelForm):
             "description_entered_by",
             "proofreaders",
             "other_editors",
+            "source_data_contributed_by",
             "production_method",
             "source_completeness",
         ]
@@ -607,6 +613,9 @@ class SourceEditForm(forms.ModelForm):
             "other_editors": autocomplete.ModelSelect2Multiple(
                 url="all-users-autocomplete"
             ),
+            "source_data_contributed_by": autocomplete.ModelSelect2Multiple(
+                url="all-users-autocomplete"
+            ),
             "production_method": SelectWidget(),
             "source_completeness": SelectWidget(),
         }
@@ -616,6 +625,14 @@ class SourceEditForm(forms.ModelForm):
 
     complete_inventory = StyledChoiceField(
         choices=COMPLETE_INVENTORY_FORM_CHOICES, required=False
+    )
+
+
+class ChantSearchForm(forms.Form):
+    feast = forms.ModelChoiceField(
+        queryset=Feast.objects.all(),
+        required=False,
+        widget=autocomplete.ModelSelect2(url="feast-autocomplete"),
     )
 
 
@@ -1015,7 +1032,7 @@ class ImageLinkForm(forms.Form):
         initial = kwargs.get("initial")
         if initial:
             for folio in initial:
-                self.fields[folio] = forms.CharField(
+                self.fields[folio] = NormalizedURLFormField(
                     widget=HiddenInput(attrs={"class": "img-link-input"}),
                     required=False,
                 )

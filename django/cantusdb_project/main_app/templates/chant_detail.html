@@ -242,8 +242,8 @@
                 {{ chant.manuscript_full_text }}
             </dd>
         {% endif %}
-        <!-- See #1635. Temporarily disable volpiano display for this source. -->
-        {% if chant.volpiano and chant.source.id != 680970 %}
+        <!-- Volpiano display for source 680970 (MS 73) was temporarily disabled in #1635; re-enabled in #1893. -->
+        {% if chant.volpiano %}
             <dt>Volpiano</dt>
             <dd>
                 <p class="font-volpiano-lg">{{ chant.volpiano }}</p>
@@ -255,8 +255,8 @@
                 {{ chant.indexing_notes }}
             </dd>
         {% endif %}
-        <!-- See #1635. Temporarily disable volpiano display for this source. -->
-        {% if chant.volpiano and chant.source.id != 680970 %}
+        <!-- Volpiano display for source 680970 (MS 73) was temporarily disabled in #1635; re-enabled in #1893. -->
+        {% if chant.volpiano %}
             <div class="row">
                 <div class="col">
                     <dt>Melody with text</dt>
@@ -293,6 +293,18 @@
                    class="display-link">
                     https://cantus.simssa.ca/manuscript/{{ chant.source.id }}/?folio={{ chant.folio }}&chant={{ chant.c_sequence }}
                 </a>
+            </dd>
+        {% endif %}
+        {# "Chant record created by" is only shown for the Kaiatonsera master sources, #}
+        {# and only to the people in the class (plus editors/superusers). See issue #2077. #}
+        {% if user_can_view_record_creator and chant.created_by %}
+            <dt>Chant record created by</dt>
+            <dd>
+                {% if chant.created_by.full_name %}
+                    {{ chant.created_by.full_name }}
+                {% else %}
+                    User {{ chant.created_by.id }}
+                {% endif %}
             </dd>
         {% endif %}
     </dl>
@@ -493,10 +505,8 @@
                             Cursus: <b>{{ source.cursus|default_if_none:"" }}</b>
                             <br />
                         {% endif %}
-                        {% if source.notation.exists %}
-                            <b>
-                                <a href="{% url 'notation-detail' source.notation.all.first.id %}">{{ source.notation.all.first.name }}</a>
-                            </b>
+                        {% if source_notation %}
+                            Notation{% if bower_segment %} (Bower){% endif %}: <b>{{ source_notation.name }}</b>
                             <br />
                         {% endif %}
                         {% if source.inventoried_by.exists %}
@@ -580,6 +590,23 @@
                                             <br />
                                         {% endif %}
                                         {{ editor.institution|default_if_none:"" }}
+                                    </li>
+                                {% endfor %}
+                            </ul>
+                        {% endif %}
+                        {% if source.source_data_contributed_by.exists %}
+                            Source metadata contributed by:
+                            <ul class="mb-0">
+                                {% for contributor in source.source_data_contributed_by.all %}
+                                    <li>
+                                        {% if contributor.full_name %}
+                                            <a href="{% url 'user-detail' contributor.id %}">{{ contributor.full_name }}</a>
+                                            <br />
+                                        {% else %}
+                                            <a href="{% url 'user-detail' contributor.id %}">User {{ contributor.id }}</a>
+                                            <br />
+                                        {% endif %}
+                                        {{ contributor.institution|default_if_none:"" }}
                                     </li>
                                 {% endfor %}
                             </ul>

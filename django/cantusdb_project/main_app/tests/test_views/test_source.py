@@ -2,15 +2,18 @@
 Test views in views/source.py
 """
 
+import random
+
 from faker import Faker
 from typing import Dict
 
+from django.conf import settings
 from django.test import TestCase
 from django.urls import reverse
 from django.core.exceptions import ObjectDoesNotExist
 from django.contrib.auth import get_user_model
 
-from main_app.models import Source, Chant, Differentia
+from main_app.models import Source, Chant, Differentia, SourceIdentifier
 from main_app.tests.make_fakes import (
     make_fake_source,
     make_fake_segment,
@@ -28,6 +31,7 @@ from main_app.tests.make_fakes import (
     make_fake_user,
 )
 from main_app.tests.mixins import HTMLContentsTestMixin, CustomAccessTestMixin
+from main_app.views.source import SourceListView
 from users.models import User as UserAnnotation
 
 # Create a Faker instance with locale set to Latin
@@ -321,6 +325,45 @@ class SourceDetailViewTest(SourcePermissionsTestCase):
         self.assertEqual(response["Content-Type"], "application/json")
         self.assertEqual(response.json()["source"]["id"], source.id)
 
+    def test_provenance_notes_displayed(self) -> None:
+        notes = "test_provenance_notes_value"
+        source = make_fake_source(provenance_notes=notes)
+        response = self.client.get(reverse("source-detail", args=[source.id]))
+        html = response.content.decode("utf-8")
+        self.assertIn("Provenance notes:", html)
+        self.assertIn(notes, html)
+
+    def test_provenance_notes_not_displayed_when_empty(self) -> None:
+        source = make_fake_source(provenance_notes="")
+        response = self.client.get(reverse("source-detail", args=[source.id]))
+        html = response.content.decode("utf-8")
+        self.assertNotIn("Provenance notes:", html)
+
+    def test_notation_displayed_without_link(self) -> None:
+        # Regression for #1995: clicking the notation link 500'd, so it was disabled.
+        source = make_fake_source()
+        notation = source.notation.first()
+        response = self.client.get(reverse("source-detail", args=[source.id]))
+        self.assertEqual(response.status_code, 200)
+        html = response.content.decode("utf-8")
+        self.assertIn("Notation:", html)
+        self.assertIn(notation.name, html)
+        self.assertNotIn(reverse("notation-detail", args=[notation.id]), html)
+        self.assertNotIn("(Bower)", html)
+
+    def test_notation_bower_label(self) -> None:
+        bower_segment = make_fake_segment(
+            id=settings.BOWER_SEGMENT_ID, name="Bower Sequence Database"
+        )
+        source = make_fake_source(segment=[bower_segment])
+        notation = source.notation.first()
+        response = self.client.get(reverse("source-detail", args=[source.id]))
+        self.assertEqual(response.status_code, 200)
+        html = response.content.decode("utf-8")
+        self.assertIn("Notation (Bower):", html)
+        self.assertIn(notation.name, html)
+        self.assertNotIn(reverse("notation-detail", args=[notation.id]), html)
+
 
 class SourceInventoryViewTest(HTMLContentsTestMixin, SourcePermissionsTestCase):
     view_name = "source-inventory"
@@ -613,6 +656,19 @@ class SourceBrowseChantsViewTest(SourcePermissionsTestCase):
         response_1 = self.client.get(reverse("browse-chants", args=[bower_source.id]))
         self.assertEqual(response_1.status_code, 404)
 
+    def test_non_cantus_segment_source_appears_in_dropdown(self):
+        # A source outside the CantusDatabase segment must appear in the sources dropdown so it can be marked as selected.
+        make_fake_segment(id=4063)
+        other_segment = make_fake_segment(id=9999)
+        non_cantus_source = make_fake_source(segment=[other_segment], published=True)
+        make_fake_chant(source=non_cantus_source)
+        response = self.client.get(
+            reverse("browse-chants", args=[non_cantus_source.id])
+        )
+        self.assertEqual(response.status_code, 200)
+        sources_in_context = response.context["sources"]
+        self.assertIn(non_cantus_source, sources_in_context)
+
     def test_no_chants_returns_404(self):
         # Test that sources without chants return 404
         cantus_segment = make_fake_segment(id=4063)
@@ -833,15 +889,17 @@ class SourceListViewTest(CustomAccessTestMixin, TestCase):
         self.assertTemplateUsed(response, "base.html")
         self.assertTemplateUsed(response, "source_lists/source_list.html")
 
-    def test_provenances_and_centuries_in_context(self):
-        """Test the `provenances` and `centuries` in the context. They are displayed as options in the selectors"""
+    def test_provenances_and_date_range_in_context(self):
+        """`provenances` are options in the selector; `date_range_min`/`date_range_max`
+        bound the year-range slider."""
         provenance = make_fake_provenance()
-        century = make_fake_century()
+        make_fake_century(name="10th century")
+        make_fake_century(name="15th century")
         response = self.client.get(reverse("source-list"))
         provenances = response.context["provenances"]
         self.assertIn({"id": provenance.id, "name": provenance.name}, provenances)
-        centuries = response.context["centuries"]
-        self.assertIn({"id": century.id, "name": century.name}, centuries)
+        self.assertEqual(response.context["date_range_min"], 900)
+        self.assertEqual(response.context["date_range_max"], 1500)
 
     def test_permissions(self) -> None:
         published_source = make_fake_source(published=True)
@@ -992,49 +1050,42 @@ class SourceListViewTest(CustomAccessTestMixin, TestCase):
         self.assertNotIn(albi_source, sources)
         self.assertNotIn(no_provenance_source, sources)
 
-    def test_filter_by_century(self):
+    def test_filter_by_date_range(self):
         ninth_century = make_fake_century(name="09th century")
-        ninth_century_first_half = make_fake_century(name="09th century (1st half)")
         tenth_century = make_fake_century(name="10th century")
+        fifteenth_century = make_fake_century(name="15th century")
 
-        ninth_century_source = make_fake_source(
-            published=True,
-            shelfmark="source",
-        )
+        ninth_century_source = make_fake_source(published=True, shelfmark="9th")
         ninth_century_source.century.set([ninth_century])
 
-        ninth_century_first_half_source = make_fake_source(
-            published=True,
-            shelfmark="source",
-        )
-        ninth_century_first_half_source.century.set([ninth_century_first_half])
+        tenth_century_source = make_fake_source(published=True, shelfmark="10th")
+        tenth_century_source.century.set([tenth_century])
 
-        multiple_century_source = make_fake_source(
-            published=True,
-            shelfmark="source",
-        )
-        multiple_century_source.century.set([ninth_century, tenth_century])
+        fifteenth_century_source = make_fake_source(published=True, shelfmark="15th")
+        fifteenth_century_source.century.set([fifteenth_century])
 
-        # display sources in ninth century
+        # Range 800-999 overlaps 9th and 10th centuries; not 15th
         response = self.client.get(
-            reverse("source-list"), {"century": ninth_century.id}
+            reverse("source-list"), {"dateStart": 800, "dateEnd": 999}
         )
         sources = response.context["sources"]
-        # ninth_century_source, ninth_century_first_half_source, and
-        # multiple_century_source should all be in the list
         self.assertIn(ninth_century_source, sources)
-        self.assertIn(ninth_century_first_half_source, sources)
-        self.assertIn(multiple_century_source, sources)
+        self.assertIn(tenth_century_source, sources)
+        self.assertNotIn(fifteenth_century_source, sources)
 
-        # display sources in ninth century first half
-        response = self.client.get(
-            reverse("source-list"), {"century": ninth_century_first_half.id}
-        )
+        # Only dateStart: sources whose century max_date >= 1400
+        response = self.client.get(reverse("source-list"), {"dateStart": 1400})
         sources = response.context["sources"]
-        # only ninth_century_first_half_source should be in the list
         self.assertNotIn(ninth_century_source, sources)
-        self.assertIn(ninth_century_first_half_source, sources)
-        self.assertNotIn(multiple_century_source, sources)
+        self.assertNotIn(tenth_century_source, sources)
+        self.assertIn(fifteenth_century_source, sources)
+
+        # Only dateEnd: sources whose century min_date <= 999
+        response = self.client.get(reverse("source-list"), {"dateEnd": 999})
+        sources = response.context["sources"]
+        self.assertIn(ninth_century_source, sources)
+        self.assertIn(tenth_century_source, sources)
+        self.assertNotIn(fifteenth_century_source, sources)
 
     def test_filter_by_full_source(self) -> None:
         full_source = make_fake_source(
@@ -1313,6 +1364,39 @@ class SourceListViewTest(CustomAccessTestMixin, TestCase):
         )
         self.assertIn(source, response.context["sources"])
 
+    def test_search_by_provenance_and_trailing_punctuation(self) -> None:
+        provenance = make_fake_provenance()
+        provenance.name = "Kremsmünster"
+        provenance.save()
+        source = make_fake_source(
+            provenance=provenance,
+            published=True,
+            shelfmark="title",
+        )
+
+        for term in ["Kremsmünster", "Kremsmünster,"]:
+            with self.subTest(term=term):
+                response = self.client.get(reverse("source-list"), {"general": term})
+                self.assertIn(source, response.context["sources"])
+
+    def test_search_by_identifier_with_colon_and_trailing_punctuation(self) -> None:
+        source = make_fake_source(
+            published=True,
+            shelfmark="title",
+            dact_id="D:06e4d",
+            fragmentarium_id="F:01a2b",
+        )
+        SourceIdentifier.objects.create(
+            source=source,
+            identifier="ID:123",
+            type=SourceIdentifier.OTHER,
+        )
+
+        for term in ["D:06e4d", "D:06e4d,", "F:01a2b", "ID:123", "ID:123,"]:
+            with self.subTest(term=term):
+                response = self.client.get(reverse("source-list"), {"general": term})
+                self.assertIn(source, response.context["sources"])
+
     def test_ordering(self) -> None:
         """
         Order is currently available by country, city + institution name (parameter:
@@ -1374,12 +1458,15 @@ class SourceListViewTest(CustomAccessTestMixin, TestCase):
                         else ""
                     ),
                     (
-                        source.holding_institution.siglum
+                        (
+                            source.holding_institution.siglum is None,
+                            source.holding_institution.siglum or "",
+                        )
                         if source.holding_institution
-                        and not source.holding_institution.is_private_collector
-                        else ""
+                        else (True, "")
                     ),
                     source.shelfmark,
+                    source.pk,
                 ),
             )
             self.assertEqual(list(expected_source_order), list(response_sources))
@@ -1426,6 +1513,35 @@ class SourceListViewTest(CustomAccessTestMixin, TestCase):
             self.assertEqual(
                 list(reversed(expected_source_order)), list(response_sources_reverse)
             )
+
+    def test_pagination(self):
+        paginate_by = SourceListView.paginate_by
+        full_pages = 2
+        for _ in range(paginate_by * full_pages):
+            make_fake_source(published=True)
+
+        for page_num in range(1, full_pages + 1):
+            response = self.client.get(reverse("source-list"), {"page": page_num})
+            self.assertEqual(response.status_code, 200)
+            self.assertTrue(response.context["is_paginated"])
+            self.assertEqual(len(response.context["sources"]), paginate_by)
+
+        random.seed(0)
+        overflow = random.randint(1, paginate_by - 1)
+        for _ in range(overflow):
+            make_fake_source(published=True)
+
+        response = self.client.get(reverse("source-list"), {"page": full_pages + 1})
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(len(response.context["sources"]), overflow)
+
+        response = self.client.get(reverse("source-list"), {"page": "last"})
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(len(response.context["sources"]), overflow)
+
+        for invalid_page in [-1, 0, "lst", full_pages + 2]:
+            response = self.client.get(reverse("source-list"), {"page": invalid_page})
+            self.assertEqual(response.status_code, 404)
 
 
 class SourceAddImageLinksViewTest(CustomAccessTestMixin, TestCase):

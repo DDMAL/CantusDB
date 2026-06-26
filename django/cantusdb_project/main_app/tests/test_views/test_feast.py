@@ -119,6 +119,7 @@ class FeastListViewTest(TestCase):
             self.assertEqual(len(response.context["feasts"]), PAGINATE_BY)
 
         # test a little more than 2 full pages of feasts
+        random.seed(0)
         new_feast_count = feast_count + random.randint(1, PAGINATE_BY - 1)
         for i in range(new_feast_count - feast_count):
             make_fake_feast()
@@ -133,6 +134,7 @@ class FeastListViewTest(TestCase):
         # test the "last" syntax
         response = self.client.get(reverse("feast-list"), {"page": "last"})
         self.assertEqual(response.status_code, 200)
+        self.assertEqual(len(response.context["feasts"]), new_feast_count - feast_count)
 
         # Test some invalid values for pages
         response = self.client.get(reverse("feast-list"), {"page": -1})

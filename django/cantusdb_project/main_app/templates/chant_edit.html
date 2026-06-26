@@ -212,6 +212,12 @@
                     </button>
                 </div>
             </div>
+            {% if chant.manuscript_syllabized_full_text %}
+                <div class="alert alert-info alert-dismissible small mb-2" role="alert">
+                    <a href="#" class="close" data-bs-dismiss="alert" aria-label="close">×</a>
+                    <strong>Note:</strong> This chant has saved syllabized text. Changes to the text field will not be reflected in the Volpiano preview. To update the preview, edit or clear the syllabized full text.
+                </div>
+            {% endif %}
             <div class="row small mb-2">
                 <div class="col-lg-12">
                     <label for="{{ form.manuscript_full_text.id_for_label }}">
