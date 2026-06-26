@@ -147,7 +147,7 @@
                             {% if sources %}
                                 {% include "page_count.html" %}
                                 <div class="table-responsive">
-                                <table class="table table-sm small table-bordered ccdb-table">
+                                    <table class="table table-sm small table-bordered ccdb-table">
                                     <thead>
                                         <tr>
                                             {% sortable_header request "city_institution" "City + Holding Institution" %}
@@ -221,7 +221,7 @@
                                             </tr>
                                         {% endfor %}
                                     </tbody>
-                                </table>
+                                    </table>
                                 </div>
                                 {% if is_paginated %}
                                     <div class="row mb-2">
