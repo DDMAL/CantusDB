@@ -21,3 +21,12 @@
 .collapsing-navbar-show {
     transform: translateY(80px);
 }
+
+@media (max-width: 991.98px) {
+    .collapsing-navbar {
+        position: relative;
+        top: 0;
+        height: auto;
+        transform: none !important;
+    }
+}
