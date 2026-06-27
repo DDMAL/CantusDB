@@ -5,8 +5,6 @@ Disallow: /chant-search/
 Disallow: /searchms/
 Disallow: /ci-search/
 Disallow: /melody/
-Disallow: /chants/
-Disallow: /sources/
 
 Disallow: /ajax/
 Disallow: /json-sources/
