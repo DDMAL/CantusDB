@@ -49,7 +49,7 @@ window.addEventListener("load", function () {
             selectedLabel.textContent = `${startVal} – ${endVal}`;
         }
 
-        const minGap = 20;
+        const minGap = 25;
         dateStart.addEventListener("input", function () {
             if (parseInt(dateStart.value) > parseInt(dateEnd.value) - minGap) {
                 dateStart.value = Math.max(min, parseInt(dateEnd.value) - minGap);

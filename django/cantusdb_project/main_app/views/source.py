@@ -354,7 +354,7 @@ class SourceListView(CustomAccessMixin, ListView):  # type: ignore[type-arg]
         # clipped to the current decade so future-dated centuries (e.g. a
         # "21st century" stub ending in 2099) do not stretch the slider past
         # today.
-        current_decade = (date.today().year // 10) * 10
+        current_decade = (date.today().year // 5) * 5
         century_dates = Century.objects.filter(
             min_date__isnull=False, max_date__isnull=False
         ).aggregate(
@@ -364,10 +364,10 @@ class SourceListView(CustomAccessMixin, ListView):  # type: ignore[type-arg]
         min_year = century_dates["min_year"]
         max_year = century_dates["max_year"]
         context["date_range_min"] = (
-            (min_year // 10) * 10 if min_year is not None else None
+            (min_year // 5) * 5 if min_year is not None else None
         )
         context["date_range_max"] = (
-            min(-(-max_year // 10) * 10, current_decade)
+            min(-(-max_year // 5) * 5, current_decade)
             if max_year is not None
             else None
         )

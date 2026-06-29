@@ -184,7 +184,7 @@
                                                    class="range-slider-input"
                                                    min="{{ date_range_min }}"
                                                    max="{{ date_range_max }}"
-                                                   step="10"
+                                                   step="5"
                                                    value="{{ request.GET.dateStart|default:date_range_min }}" />
                                             <input type="range"
                                                    id="dateEndFilter"
@@ -192,7 +192,7 @@
                                                    class="range-slider-input"
                                                    min="{{ date_range_min }}"
                                                    max="{{ date_range_max }}"
-                                                   step="10"
+                                                   step="5"
                                                    value="{{ request.GET.dateEnd|default:date_range_max }}" />
                                         </div>
                                         <div class="d-flex justify-content-between small mt-1">
