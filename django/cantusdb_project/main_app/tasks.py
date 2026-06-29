@@ -322,7 +322,7 @@ def run_data_checks() -> None:
     # Update last_run before sending so a mail failure doesn't trigger a re-run
     DataCheckConfig.objects.filter(pk=config.pk).update(last_run=now)
 
-    recipients = [r.strip() for r in config.recipients.split(",") if r.strip()]
+    recipients = list(config.recipients.values_list("email", flat=True))
     if not recipients:
         logger.warning("Data check completed but no recipients configured; report not sent.")
         return

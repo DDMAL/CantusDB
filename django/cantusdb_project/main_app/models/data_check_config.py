@@ -1,3 +1,4 @@
+from django.conf import settings
 from django.db import models
 
 
@@ -34,9 +35,11 @@ class DataCheckConfig(models.Model):
             "Used to determine the editing window when scope is 'Only edited'."
         ),
     )
-    recipients = models.TextField(
+    recipients = models.ManyToManyField(
+        settings.AUTH_USER_MODEL,
         blank=True,
-        help_text="Comma-separated email addresses that receive the data check report.",
+        limit_choices_to={"is_staff": True},
+        help_text="Staff users who will receive the data check report.",
     )
 
     class Meta:

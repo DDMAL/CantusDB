@@ -8,3 +8,4 @@ class DataCheckConfigAdmin(admin.ModelAdmin):
     list_display = ("frequency", "scope", "last_run")
     list_filter = ("frequency", "scope")
     readonly_fields = ("last_run",)
+    filter_horizontal = ("recipients",)
