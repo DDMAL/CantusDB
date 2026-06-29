@@ -37,6 +37,8 @@
                         </option>
                         <option value="12"
                                 {% if current_inactive_filter == "12" %}selected{% endif %}>Inactive for 12 Months</option>
+                        <option value="proofread_unpublished"
+                                {% if current_inactive_filter == "proofread_unpublished" %}selected{% endif %}>Proofread but Unpublished</option>
                     </select>
                     <button class="btn btn-outline-secondary" type="submit">Filter</button>
                 </div>

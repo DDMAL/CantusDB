@@ -56,7 +56,7 @@ class ProofreadView(CustomAccessMixin, ListView, MultipleObjectMixin):
 
         # Inactive Source Filtering
         inactive_filter = self.request.GET.get("inactive", None)
-        if inactive_filter:
+        if inactive_filter and inactive_filter != "proofread_unpublished":
             today = timezone.now()
             if inactive_filter == "3":
                 cutoff_date = today - datetime.timedelta(days=90)
@@ -212,6 +212,11 @@ class ProofreadView(CustomAccessMixin, ListView, MultipleObjectMixin):
                 output_field=FloatField(),
             )
         )
+
+        if inactive_filter == "proofread_unpublished":
+            queryset = queryset.filter(
+                published=False, total_chants_needing_proofread=0
+            )
 
         # Sorting
         order_param = self.request.GET.get("order", "country")
