@@ -65,6 +65,7 @@ INSTALLED_APPS = [
     "django_quill",  # to provide rich-text field for articles
     "reversion",  # django-reversion, for version history of objects in database
     "users",
+    "django_extensions",
 ]
 
 MIDDLEWARE = [
@@ -224,6 +225,5 @@ CELERY_RESULT_BACKEND = "redis://redis:6379/0"
 
 if DEBUG:
     INSTALLED_APPS.append("debug_toolbar")
-    INSTALLED_APPS.append("django_extensions")
     # debug toolbar must be inserted as early in the middleware as possible
     MIDDLEWARE.insert(0, "debug_toolbar.middleware.DebugToolbarMiddleware")
