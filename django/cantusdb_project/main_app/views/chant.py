@@ -50,6 +50,22 @@ from main_app.permissions import CustomAccessMixin, user_can_view_record_creator
 from main_app.mixins import JSONResponseMixin
 from users.models import User
 
+ADVANCED_SEARCH_FIELDS: tuple[str, ...] = (
+    # GET params belonging to the collapsible "Advanced search" section of
+    # chant_search.html; used to auto-expand it when any of them are set.
+    "service",
+    "genre",
+    "cantus_id",
+    "mode",
+    "position",
+    "melodies",
+    "feast",
+    "liturgical_function",
+    "segment",
+    "indexing_notes_op",
+    "indexing_notes",
+)
+
 CHANT_SEARCH_TEMPLATE_VALUES: tuple[str, ...] = (
     # for views that use chant_search.html, this allows them to
     # fetch only those values needed for rendering the template
@@ -492,6 +508,9 @@ class ChantSearchView(CustomAccessMixin, ListView):  # type: ignore[type-arg]
         context["segments"] = (
             Segment.objects.all().order_by("name").values("id", "name")
         )
+        context["advanced_search_active"] = any(
+            self.request.GET.get(field) for field in ADVANCED_SEARCH_FIELDS
+        )
         feast_param = self.request.GET.get("feast")
         context["search_form"] = ChantSearchForm(
             initial=(
@@ -806,6 +825,9 @@ class ChantSearchMSView(CustomAccessMixin, ListView):  # type: ignore[type-arg]
             Service.objects.all().order_by("name").values("id", "name")
         )
         context["liturgical_functions"] = Chant.LITURGICAL_FUNCTION_CHOICES
+        context["advanced_search_active"] = any(
+            self.request.GET.get(field) for field in ADVANCED_SEARCH_FIELDS
+        )
         feast_param = self.request.GET.get("feast")
         context["search_form"] = ChantSearchForm(
             initial=(

@@ -46,6 +46,18 @@
                    value="{{ request.GET.keyword }}" />
         </div>
     </div>
+    <div class="row">
+        <div class="col-12">
+            <a href="#advancedSearchFilters"
+               class="small"
+               data-bs-toggle="collapse"
+               role="button"
+               aria-expanded="{% if advanced_search_active %}true{% else %}false{% endif %}"
+               aria-controls="advancedSearchFilters">Advanced search ▾</a>
+        </div>
+    </div>
+    <div class="collapse{% if advanced_search_active %} show{% endif %}"
+         id="advancedSearchFilters">
     <div class="row align-items-end">
         <div class="form-group col-lg-3 col-sm-6 col-12">
             <label for="serviceFilter" class="small">Service</label>
@@ -153,6 +165,7 @@
             </div>
         </div>
     {% endif %}
+    </div>
     <div class="row align-items-end pt-2">
         <div class="form-group col-lg">
             <button type="submit" class="btn btn-dark btn-sm" id="btn-submit">Apply</button>
