@@ -49,6 +49,20 @@ from main_app.mixins import JSONResponseMixin
 from main_app.views.chant import get_feast_selector_options
 from main_app.tasks import save_browse_chants_formset
 
+SOURCE_ADVANCED_SEARCH_FIELDS: tuple[str, ...] = (
+    # GET params belonging to the collapsible "Advanced search" section of
+    # source_list.html / canadian_chant_db.html / cantorales.html; used to
+    # auto-expand it when any of them are set.
+    "country",
+    "dateStart",
+    "dateEnd",
+    "provenance",
+    "segment",
+    "sourceCompleteness",
+    "prodMethod",
+    "indexing",
+)
+
 
 class SourceBrowseChantsView(CustomAccessMixin, ListView):  # type: ignore[type-arg]
     """The view for the `Browse Chants` page.
@@ -375,6 +389,10 @@ class SourceListView(CustomAccessMixin, ListView):  # type: ignore[type-arg]
         context["production_method_choices"] = Source.ProductionMethodChoices.choices
         context["source_completeness_choices"] = (
             Source.SourceCompletenessChoices.choices
+        )
+        context["advanced_search_active"] = any(
+            self.request.GET.get(field) or self.request.GET.getlist(field)
+            for field in SOURCE_ADVANCED_SEARCH_FIELDS
         )
         return context
 

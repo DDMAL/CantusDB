@@ -8,6 +8,37 @@
 {% block heading %}<h3>Browse Sources</h3>{% endblock %}
 {% block list_filter_form %}
     <form method="get">
+        <div class="row align-items-end">
+            <div class="col-lg">
+                <label for="generalSearch" class="small form-label">
+                    General search (siglum, city, description…)
+                </label>
+                <input type="text"
+                       class="form-control form-control-sm"
+                       name="general"
+                       placeholder="Enter any part of a word"
+                       value="{{ request.GET.general }}"
+                       id="generalSearch" />
+            </div>
+            <div class="col-lg-1">
+                <button type="submit" class="btn btn-dark btn-sm m-1" id="btn-submit">Apply</button>
+                <a href="/sources/?segment={{ request.GET.segment }}"
+                   class="btn btn-dark btn-sm m-1"
+                   id="btn-reset">Reset</a>
+            </div>
+        </div>
+        <div class="row">
+            <div class="col-12">
+                <a href="#advancedSourceSearchFilters"
+                   class="small"
+                   data-bs-toggle="collapse"
+                   role="button"
+                   aria-expanded="{% if advanced_search_active %}true{% else %}false{% endif %}"
+                   aria-controls="advancedSourceSearchFilters">Advanced search ▾</a>
+            </div>
+        </div>
+        <div class="collapse{% if advanced_search_active %} show{% endif %}"
+             id="advancedSourceSearchFilters">
         <div class="row">
             <div class="col-lg-3">
                 <label for="segmentFilter" class="small form-label">Segment</label>
@@ -19,17 +50,6 @@
                     <option value="4064">Bower Sequence Database</option>
                     <option value="4066">Canadian Chant Database</option>
                 </select>
-            </div>
-            <div class="col-lg">
-                <label for="generalSearch" class="small form-label">
-                    General search (siglum, city, description…)
-                </label>
-                <input type="text"
-                       class="form-control form-control-sm"
-                       name="general"
-                       placeholder="Enter any part of a word"
-                       value="{{ request.GET.general }}"
-                       id="generalSearch" />
             </div>
             <div class="col-lg">
                 <label for="indexingSearch" class="small form-label">
@@ -139,12 +159,7 @@
                     {% endfor %}
                 </div>
             </div>
-            <div class="col-lg-1">
-                <button type="submit" class="btn btn-dark btn-sm m-1" id="btn-submit">Apply</button>
-                <a href="/sources/?segment={{ request.GET.segment }}"
-                   class="btn btn-dark btn-sm m-1"
-                   id="btn-reset">Reset</a>
-            </div>
+        </div>
         </div>
     </form>
 {% endblock %}
