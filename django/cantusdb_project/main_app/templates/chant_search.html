@@ -107,6 +107,19 @@
             {{ search_form.feast }}
         </div>
     </div>
+    <div class="row align-items-end">
+        <div class="form-group col-lg-3 col-sm-6 col-12">
+            <label for="functionFilter" class="small">Function</label>
+            <select id="functionFilter"
+                    name="liturgical_function"
+                    class="form-control form-select form-select-sm">
+                <option value="">- Any -</option>
+                {% for value, label in liturgical_functions %}
+                    <option value="{{ value }}">{{ label }}</option>
+                {% endfor %}
+            </select>
+        </div>
+    </div>
     {% if source %}
         <div class="row align-items-end">
             <div class="form-group col-sm-3 col-12">
