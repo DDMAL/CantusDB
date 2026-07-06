@@ -325,6 +325,7 @@ class ChantDetailView(CustomAccessMixin, JSONResponseMixin, DetailView):  # type
             "feast",
             "project",
             "created_by",
+            "last_updated_by",
         ).prefetch_related("source__segment_m2m", "source__notation")
 
     def get_context_data(self, **kwargs: Any) -> dict[str, Any]:

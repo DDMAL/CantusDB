@@ -243,6 +243,65 @@ class ChantDetailViewTest(ChantPermissionsTestCase):
         self.assertNotIn(reverse("notation-detail", args=[notation.id]), html)
 
 
+class ChantRecordCreatedByTest(CustomAccessTestMixin, TestCase):
+    """
+    Tests for the "Record contributed by" / "Last modified by" lines on the
+    chant detail page. These are visible to anyone, for any chant, as long
+    as the corresponding field is set. See issue #2056.
+    """
+
+    CREATED_BY_LABEL = "Record contributed by"
+    MODIFIED_BY_LABEL = "Last modified by"
+    CREATOR_NAME = "Linda Pearse"
+    EDITOR_NAME = "Debra Lacoste"
+
+    @classmethod
+    def setUpTestData(cls) -> None:
+        super().setUpTestData()
+        creator = make_fake_user()
+        creator.full_name = cls.CREATOR_NAME
+        creator.save()
+        editor = make_fake_user()
+        editor.full_name = cls.EDITOR_NAME
+        editor.save()
+        source = make_fake_source(published=True)
+        cls.chant_with_attribution = make_fake_chant(
+            source=source, created_by=creator, last_updated_by=editor
+        )
+        cls.chant_without_attribution = make_fake_chant(source=source)
+
+    def assert_field_visibility(self, chant, user_keys, visible) -> None:
+        for user_key in user_keys:
+            with self.subTest(user=user_key):
+                self.client.logout()
+                if user_key != "anonymous user":
+                    self.client.force_login(self.users[user_key])
+                response = self.client.get(reverse("chant-detail", args=[chant.id]))
+                self.assertEqual(response.status_code, 200)
+                if visible:
+                    self.assertContains(response, self.CREATED_BY_LABEL)
+                    self.assertContains(response, self.CREATOR_NAME)
+                    self.assertContains(response, self.MODIFIED_BY_LABEL)
+                    self.assertContains(response, self.EDITOR_NAME)
+                else:
+                    self.assertNotContains(response, self.CREATED_BY_LABEL)
+                    self.assertNotContains(response, self.MODIFIED_BY_LABEL)
+
+    def test_field_visible_to_everyone(self) -> None:
+        self.assert_field_visibility(
+            self.chant_with_attribution,
+            ["superuser", "editor", "user", "global viewer", "anonymous user"],
+            visible=True,
+        )
+
+    def test_field_hidden_when_attribution_missing(self) -> None:
+        self.assert_field_visibility(
+            self.chant_without_attribution,
+            ["superuser", "anonymous user"],
+            visible=False,
+        )
+
+
 class SourceEditChantsViewTest(ChantPermissionsTestCase):
     default_user = "superuser"
 
