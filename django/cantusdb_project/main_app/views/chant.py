@@ -40,6 +40,7 @@ from main_app.models import (
     Chant,
     Feast,
     Genre,
+    Segment,
     Source,
     Sequence,
     Service,
@@ -470,6 +471,7 @@ class ChantSearchView(CustomAccessMixin, ListView):  # type: ignore[type-arg]
                       Volpiano form. Valid values are "true" or "false".
         ``feast``: Filters by Feast of Chant
         ``liturgical_function``: Filters by liturgical function of Chant
+        ``segment``: Filters by Segment of the Chant's Source
         ``keyword``: Searches text of Chant for keywords
         ``op``: Operation to take with keyword search. Options are "contains", "starts_with", and "ends_with"
     """
@@ -487,6 +489,9 @@ class ChantSearchView(CustomAccessMixin, ListView):  # type: ignore[type-arg]
             Service.objects.all().order_by("name").values("id", "name")
         )
         context["liturgical_functions"] = Chant.LITURGICAL_FUNCTION_CHOICES
+        context["segments"] = (
+            Segment.objects.all().order_by("name").values("id", "name")
+        )
         feast_param = self.request.GET.get("feast")
         context["search_form"] = ChantSearchForm(
             initial=(

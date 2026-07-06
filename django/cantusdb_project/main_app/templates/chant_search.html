@@ -119,6 +119,19 @@
                 {% endfor %}
             </select>
         </div>
+        {% if not source %}
+            <div class="form-group col-lg-3 col-sm-6 col-12">
+                <label for="segmentFilter" class="small">Segment</label>
+                <select id="segmentFilter"
+                        name="segment"
+                        class="form-control form-select form-select-sm">
+                    <option value="">- Any -</option>
+                    {% for segment in segments %}
+                        <option value="{{ segment.id }}">{{ segment.name }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+        {% endif %}
     </div>
     {% if source %}
         <div class="row align-items-end">
