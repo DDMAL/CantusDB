@@ -52,13 +52,17 @@ from main_app.tasks import save_browse_chants_formset
 SOURCE_ADVANCED_SEARCH_FIELDS: tuple[str, ...] = (
     # GET params belonging to the collapsible "Advanced search" section of
     # source_list.html / canadian_chant_db.html / cantorales.html; used to
-    # auto-expand it when any of them are set.
+    # auto-expand it when any of them are set. These are all "plain" fields
+    # with no value unless the user actually filled them in.
+    #
+    # "segment", "dateStart"/"dateEnd", and "sourceCompleteness" are handled
+    # separately in get_context_data: their widgets always submit a value on
+    # Apply (the full slider range, all checkboxes checked, or a segment
+    # already scoped via the URL on CCDB/Cantorales) even when the user
+    # hasn't changed anything from the default, so a naive presence check
+    # would keep the section expanded after every single search.
     "country",
-    "dateStart",
-    "dateEnd",
     "provenance",
-    "segment",
-    "sourceCompleteness",
     "prodMethod",
     "indexing",
 )
@@ -390,9 +394,35 @@ class SourceListView(CustomAccessMixin, ListView):  # type: ignore[type-arg]
         context["source_completeness_choices"] = (
             Source.SourceCompletenessChoices.choices
         )
-        context["advanced_search_active"] = any(
-            self.request.GET.get(field) or self.request.GET.getlist(field)
-            for field in SOURCE_ADVANCED_SEARCH_FIELDS
+
+        date_start_param = self.request.GET.get("dateStart")
+        date_end_param = self.request.GET.get("dateEnd")
+        date_range_active = (
+            date_start_param is not None
+            and date_start_param != str(context["date_range_min"])
+        ) or (
+            date_end_param is not None
+            and date_end_param != str(context["date_range_max"])
+        )
+
+        selected_completeness = set(self.request.GET.getlist("sourceCompleteness"))
+        all_completeness_values = {
+            str(value) for value, _ in Source.SourceCompletenessChoices.choices
+        }
+        source_completeness_active = bool(selected_completeness) and (
+            selected_completeness != all_completeness_values
+        )
+
+        # "segment" only counts as an active advanced filter on the
+        # unscoped source list; on CCDB/Cantorales it's already fixed by
+        # the URL and the field doesn't even appear in those templates.
+        segment_active = not self.segment and bool(self.request.GET.get("segment"))
+
+        context["advanced_search_active"] = (
+            any(self.request.GET.get(field) for field in SOURCE_ADVANCED_SEARCH_FIELDS)
+            or date_range_active
+            or source_completeness_active
+            or segment_active
         )
         return context
 
