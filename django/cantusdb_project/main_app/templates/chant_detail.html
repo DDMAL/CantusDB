@@ -295,18 +295,6 @@
                 </a>
             </dd>
         {% endif %}
-        {# "Chant record created by" is only shown for the Kaiatonsera master sources, #}
-        {# and only to the people in the class (plus editors/superusers). See issue #2077. #}
-        {% if user_can_view_record_creator and chant.created_by %}
-            <dt>Chant record created by</dt>
-            <dd>
-                {% if chant.created_by.full_name %}
-                    {{ chant.created_by.full_name }}
-                {% else %}
-                    User {{ chant.created_by.id }}
-                {% endif %}
-            </dd>
-        {% endif %}
     </dl>
     {% if chant.cantus_id %}
         <h4 id="concordances">Concordances</h4>

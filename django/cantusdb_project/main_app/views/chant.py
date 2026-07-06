@@ -44,7 +44,7 @@ from main_app.models import (
     Sequence,
     Service,
 )
-from main_app.permissions import CustomAccessMixin, user_can_view_record_creator
+from main_app.permissions import CustomAccessMixin
 
 from main_app.mixins import JSONResponseMixin
 from users.models import User
@@ -338,14 +338,6 @@ class ChantDetailView(CustomAccessMixin, JSONResponseMixin, DetailView):  # type
             and source.segment_m2m.filter(id=settings.BOWER_SEGMENT_ID).exists()
         )
         context["source_notation"] = source.notation.first() if source else None
-        # The "Chant record created by" field is only shown for chants in the
-        # Kaiatonsera master sources, and only to the people in the class (plus
-        # editors/superusers). See issue #2077.
-        context["user_can_view_record_creator"] = user_can_view_record_creator(
-            source.id if source else None,
-            self.user_is_editor,
-            self.user_groups,
-        )
 
         language = chant.text_language
         if language and language.pk == 2:
