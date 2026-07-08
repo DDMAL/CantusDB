@@ -820,6 +820,38 @@ class SourceEditView(CustomAccessMixin, UpdateView):  # type: ignore[type-arg]
         return HttpResponseRedirect(self.get_success_url())
 
 
+class SourceSubmitForProofreadingView(CustomAccessMixin, SingleObjectMixin, View):  # type: ignore[type-arg]
+    """
+    Lets a source's editor mark it as ready for proofreading. Sets the
+    source's status accordingly and revokes the submitting user's editing
+    access, so admins can see the source is done and hand it off to a
+    proofreader. See issue #1962.
+    """
+
+    model = Source
+    pk_url_kwarg = "source_id"
+
+    def test_func(self) -> bool:
+        source = self.get_object()
+        if self.user_assigned_to_source(source) and (
+            self.user_is_editor or source.created_by == self.user
+        ):
+            return True
+        return False
+
+    def post(self, request: HttpRequest, *args: Any, **kwargs: Any) -> HttpResponse:
+        source = self.get_object()
+        source.source_status = "Unpublished / Proofread pending"
+        source.save()
+        source.current_editors.remove(self.user)
+
+        messages.success(
+            request,
+            "Source submitted for proofreading. You no longer have editing access to it.",
+        )
+        return HttpResponseRedirect(reverse("source-detail", args=[source.id]))
+
+
 class SourceInventoryView(CustomAccessMixin, ListView):  # type: ignore[type-arg]
     template_name = "full_inventory.html"
     pk_url_kwarg = "source_id"
