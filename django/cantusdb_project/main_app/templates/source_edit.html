@@ -211,6 +211,18 @@
             </div>
         </div>
     </form>
+    <form method="post"
+          action="{% url "source-submit-for-proofreading" source.id %}"
+          onsubmit="return confirm('This will mark the source as ready for proofreading and remove your editing access. Continue?');">
+        {% csrf_token %}
+        <div class="row">
+            <div class="col-lg-3">
+                <button type="submit" class="btn btn-outline-dark btn-sm" id="btn-submit-for-proofreading">
+                    Submit for Proofreading
+                </button>
+            </div>
+        </div>
+    </form>
 {% endblock %}
 {% block lowersidebar %}
     <div class="card mb-3 w-100">
