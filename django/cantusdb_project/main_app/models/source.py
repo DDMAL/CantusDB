@@ -10,6 +10,7 @@ from main_app.models.source_url import SourceURL
 
 class Source(BaseModel):
     cursus_choices = [("Monastic", "Monastic"), ("Secular", "Secular")]
+    PROOFREAD_PENDING_STATUS = "Unpublished / Proofread pending"
     source_status_choices = [
         (
             "Editing process (not all the fields have been proofread)",
@@ -19,7 +20,7 @@ class Source(BaseModel):
         ("Published / Proofread pending", "Published / Proofread pending"),
         ("Unpublished / Editing process", "Unpublished / Editing process"),
         ("Unpublished / Indexing process", "Unpublished / Indexing process"),
-        ("Unpublished / Proofread pending", "Unpublished / Proofread pending"),
+        (PROOFREAD_PENDING_STATUS, PROOFREAD_PENDING_STATUS),
         ("Unpublished / Proofreading process", "Unpublished / Proofreading process"),
         ("Unpublished / No indexing activity", "Unpublished / No indexing activity"),
     ]

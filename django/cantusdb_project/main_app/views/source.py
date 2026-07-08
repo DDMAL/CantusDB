@@ -782,6 +782,13 @@ class SourceEditView(CustomAccessMixin, UpdateView):  # type: ignore[type-arg]
 
     def test_func(self) -> bool:
         source = self.get_object()
+        if source.source_status == Source.PROOFREAD_PENDING_STATUS and not (
+            self.user_is_editor
+        ):
+            # Once a source has been submitted for proofreading, only
+            # editors (not the assigned indexer/creator) may edit it
+            # further. See issue #1962.
+            return False
         if self.user_assigned_to_source(source) and (
             self.user_is_editor or source.created_by == self.user
         ):
@@ -823,9 +830,9 @@ class SourceEditView(CustomAccessMixin, UpdateView):  # type: ignore[type-arg]
 class SourceSubmitForProofreadingView(CustomAccessMixin, SingleObjectMixin, View):  # type: ignore[type-arg]
     """
     Lets a source's editor mark it as ready for proofreading. Sets the
-    source's status accordingly and revokes the submitting user's editing
-    access, so admins can see the source is done and hand it off to a
-    proofreader. See issue #1962.
+    source's status accordingly, which locks it from further edits by
+    the assigned indexer/creator (though they can still view it) until
+    an editor picks it up for proofreading. See issue #1962.
     """
 
     model = Source
@@ -841,13 +848,13 @@ class SourceSubmitForProofreadingView(CustomAccessMixin, SingleObjectMixin, View
 
     def post(self, request: HttpRequest, *args: Any, **kwargs: Any) -> HttpResponse:
         source = self.get_object()
-        source.source_status = "Unpublished / Proofread pending"
+        source.source_status = Source.PROOFREAD_PENDING_STATUS
         source.save()
-        source.current_editors.remove(self.user)
 
         messages.success(
             request,
-            "Source submitted for proofreading. You no longer have editing access to it.",
+            "Source submitted for proofreading. You can still view it, but "
+            "editing is now locked until an editor picks it up.",
         )
         return HttpResponseRedirect(reverse("source-detail", args=[source.id]))
 
