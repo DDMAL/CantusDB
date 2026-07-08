@@ -722,6 +722,16 @@ class ChantSearchView(CustomAccessMixin, ListView):  # type: ignore[type-arg]
                 chant_set = chant_set.filter(keyword_filter)
                 sequence_set = sequence_set.filter(keyword_filter)
 
+            if notes := self.request.GET.get("indexing_notes"):
+                operation = self.request.GET.get("indexing_notes_op")
+                # the operation parameter can be "contains" or "starts_with"
+                if operation == "contains":
+                    indexing_notes_filter = Q(indexing_notes__icontains=notes)
+                else:
+                    indexing_notes_filter = Q(indexing_notes__istartswith=notes)
+                chant_set = chant_set.filter(indexing_notes_filter)
+                sequence_set = sequence_set.filter(indexing_notes_filter)
+
             # Fetch only the values necessary for rendering the template
             chant_set = chant_set.only(*ONLY_FIELDS)
             sequence_set = sequence_set.only(*ONLY_FIELDS)

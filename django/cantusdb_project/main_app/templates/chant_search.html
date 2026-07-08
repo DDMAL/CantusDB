@@ -145,26 +145,23 @@
             </div>
         {% endif %}
     </div>
-    {% if source %}
-        <div class="row align-items-end">
-            <div class="form-group col-sm-3 col-12">
-                <label for="indexingNotesSearch" class="small">Indexing notes search</label>
-                <select class="form-control form-select form-select-sm"
-                        id="indexingNotesOp"
-                        name="indexing_notes_op">
-                    <option selected value="contains">Contains</option>
-                    <option value="starts_with">Starts with</option>
-                </select>
-            </div>
-            <div class="form-group col-sm-9 col-12">
-                <input type="text"
-                       class="form-control form-control-sm"
-                       id="indexingNotesSearch"
-                       name="indexing_notes"
-                       value="{{ request.GET.indexing_notes }}" />
-            </div>
+    <div class="row align-items-end">
+        <div class="form-group col-sm-3 col-12">
+            <label for="indexingNotesSearch" class="small">Indexing notes search</label>
+            <select class="form-control form-select form-select-sm"
+                    id="indexingNotesOp"
+                    name="indexing_notes_op">
+                <option selected value="contains">Contains</option>
+                <option value="starts_with">Starts with</option>
+            </select>
         </div>
-    {% endif %}
+        <div class="form-group col-sm-9 col-12">
+            <input type="text"
+                   class="form-control form-control-sm"
+                   id="indexingNotesSearch"
+                   name="indexing_notes"
+                   value="{{ request.GET.indexing_notes }}" />
+        </div>
     </div>
     <div class="row align-items-end pt-2">
         <div class="form-group col-lg">
