@@ -55,13 +55,21 @@
         {% if source.description %}
             <dt>Description</dt>
             <dd class="markdown-field-display">
-                {{ source.description|safe|linebreaks }}
+                {% if source.description|contains_html_tags %}
+                    {{ source.description|safe|linebreaks }}
+                {% else %}
+                    {{ source.description|render_markdown }}
+                {% endif %}
             </dd>
         {% endif %}
         {% if source.selected_bibliography %}
             <dt>Selected Bibliography</dt>
             <dd class="markdown-field-display">
-                {{ source.selected_bibliography|safe|linebreaks }}
+                {% if source.selected_bibliography|contains_html_tags %}
+                    {{ source.selected_bibliography|safe|linebreaks }}
+                {% else %}
+                    {{ source.selected_bibliography|render_markdown }}
+                {% endif %}
             </dd>
         {% endif %}
         {% if source.indexing_notes %}

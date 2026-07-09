@@ -1,4 +1,5 @@
 import calendar
+import re
 from typing import Union, Optional, Any
 
 from django.conf import settings
@@ -10,6 +11,7 @@ from django.utils.safestring import mark_safe, SafeString
 from django.http import HttpRequest, QueryDict
 from django.utils.html import format_html_join
 from cmarkgfm import github_flavored_markdown_to_html
+from cmarkgfm.cmark import Options as cmarkgfmOptions
 
 from articles.models import Article
 from main_app.models import Source, BaseModel
@@ -289,12 +291,37 @@ def join_absolute_url_links(
     )
 
 
+HTML_TAG_RE = re.compile(r"<\s*/?\s*[a-zA-Z][a-zA-Z0-9]*[^<>]*>")
+
+
 @register.filter
 def render_markdown(value: str) -> SafeString:
     """
     Renders markdown text as HTML.
     """
-    html: str = github_flavored_markdown_to_html(value)
-    # Generated html is marked safe b/c cmark is run in safe mode in
-    # github_flavored_markdown_to_html
+    # CMARK_OPT_DEFAULT (i.e. not passing CMARK_OPT_UNSAFE) runs cmark in its "safe"
+    # mode: raw HTML blocks in the input are dropped (replaced with an HTML comment)
+    # rather than passed through, since this field is editable by many indexer
+    # accounts and we don't want to allow arbitrary raw HTML/script injection through
+    # it. Note this is a block-level operation: a description built entirely out of
+    # HTML blocks (<p>, <table>, <ul>...) with no plain text outside them -- as with
+    # legacy content from #1239 -- would have ALL of its visible text stripped, not
+    # just its formatting. Callers should use `contains_html_tags` to detect this and
+    # fall back to the legacy `linebreaks`-based rendering for such fields (see
+    # `source_detail.html`) until they're converted to markdown; see
+    # `audit_markdown_fields` management command for tracking affected sources.
+    html: str = github_flavored_markdown_to_html(
+        value, options=cmarkgfmOptions.CMARK_OPT_DEFAULT
+    )
     return mark_safe(html)
+
+
+@register.filter
+def contains_html_tags(value: str) -> bool:
+    """
+    Returns True if `value` contains a raw HTML tag. Used to decide whether a
+    markdown/plain-text field should be rendered with `render_markdown` or (for
+    legacy content authored with raw HTML) with the old `linebreaks`-based
+    rendering -- see `render_markdown` docstring and #1239.
+    """
+    return bool(value) and bool(HTML_TAG_RE.search(value))
