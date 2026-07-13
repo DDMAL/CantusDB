@@ -864,6 +864,17 @@ class ChantSearchViewTest(CustomAccessTestMixin, TestCase):
         context_chant_id = response.context["chants"][0].id
         self.assertEqual(chant.id, context_chant_id)
 
+    def test_search_by_liturgical_function(self):
+        source = make_fake_source(published=True)
+        chant = make_fake_chant(source=source, liturgical_function=Chant.PROCESSIONAL)
+        make_fake_chant(source=source, liturgical_function=Chant.HISTORIAE)
+        response = self.client.get(
+            reverse("chant-search"), {"liturgical_function": Chant.PROCESSIONAL}
+        )
+        self.assertEqual(len(response.context["chants"]), 1)
+        context_chant_id = response.context["chants"][0].id
+        self.assertEqual(chant.id, context_chant_id)
+
     def test_search_by_position(self):
         source = make_fake_source(published=True)
         position = 1
@@ -2315,6 +2326,18 @@ class ChantSearchMSViewTest(ChantPermissionsTestCase):
         response = self.client.get(
             reverse("chant-search-ms", args=[source.id]), {"feast": feast.id}
         )
+        context_chant_id = response.context["chants"][0].id
+        self.assertEqual(chant.id, context_chant_id)
+
+    def test_search_by_liturgical_function(self):
+        source = make_fake_source()
+        chant = make_fake_chant(source=source, liturgical_function=Chant.PROCESSIONAL)
+        make_fake_chant(source=source, liturgical_function=Chant.HISTORIAE)
+        response = self.client.get(
+            reverse("chant-search-ms", args=[source.id]),
+            {"liturgical_function": Chant.PROCESSIONAL},
+        )
+        self.assertEqual(len(response.context["chants"]), 1)
         context_chant_id = response.context["chants"][0].id
         self.assertEqual(chant.id, context_chant_id)
 
