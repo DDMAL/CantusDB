@@ -1002,6 +1002,56 @@ class ChantSearchViewTest(CustomAccessTestMixin, TestCase):
         context_chant_id = response.context["chants"][0].id
         self.assertEqual(chant.id, context_chant_id)
 
+    def test_indexing_notes_search_starts_with(self):
+        source = make_fake_source(published=True)
+        search_term = "quick"
+
+        # We have three chants to make sure the result is only chant 1 where quick is the first word
+        chant_1 = make_fake_chant(
+            source=source,
+            indexing_notes="quick brown fox jumps over the lazy dog",
+        )
+        make_fake_chant(
+            source=source,
+            indexing_notes="brown fox jumps over the lazy dog",
+        )
+        make_fake_chant(
+            source=source,
+            indexing_notes="lazy brown fox jumps quick over the dog",
+        )
+        response = self.client.get(
+            reverse("chant-search"),
+            {"indexing_notes": search_term, "indexing_notes_op": "starts_with"},
+        )
+        self.assertEqual(len(response.context["chants"]), 1)
+        context_chant_id = response.context["chants"][0].id
+        self.assertEqual(chant_1.id, context_chant_id)
+
+    def test_indexing_notes_search_contains(self):
+        source = make_fake_source(published=True)
+        search_term = "quick"
+        chant_1 = make_fake_chant(
+            source=source,
+            indexing_notes="Quick brown fox jumps over the lazy dog",
+        )
+        # Make a chant that won't be returned by the search term
+        make_fake_chant(
+            source=source,
+            indexing_notes="brown fox jumps over the lazy dog",
+        )
+        chant_3 = make_fake_chant(
+            source=source,
+            indexing_notes="lazy brown fox jumps quickly over the dog",
+        )
+        response = self.client.get(
+            reverse("chant-search"),
+            {"indexing_notes": search_term, "indexing_notes_op": "contains"},
+        )
+        first_context_chant_id = response.context["chants"][0].id
+        self.assertEqual(chant_1.id, first_context_chant_id)
+        second_context_chant_id = response.context["chants"][1].id
+        self.assertEqual(chant_3.id, second_context_chant_id)
+
     def test_search_bar_search(self):
         # note to developers: if you are changing the behavior of search_bar
         # searches, be sure to check static/js/chant_search.js to see if it needs
