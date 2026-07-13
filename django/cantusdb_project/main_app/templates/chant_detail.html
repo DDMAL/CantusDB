@@ -323,12 +323,12 @@
         <p class="text-muted small fst-italic mt-3 mb-0">
             {% if chant.created_by %}
                 Record contributed by:
-                {% if chant.created_by.full_name %}{{ chant.created_by.full_name }}{% else %}User {{ chant.created_by.id }}{% endif %}{% if chant.date_created %}, {{ chant.date_created|date:"j F Y" }}{% endif %}
-                <br />
+                {% if chant.created_by.full_name %}<a href="{% url 'user-detail' chant.created_by.id %}">{{ chant.created_by.full_name }}</a>{% else %}<a href="{% url 'user-detail' chant.created_by.id %}">User {{ chant.created_by.id }}</a>{% endif %}{% if chant.date_created %}, {{ chant.date_created|date:"j F Y" }}{% endif %}
+                {% if chant.last_updated_by %}<br />{% endif %}
             {% endif %}
             {% if chant.last_updated_by %}
                 Last modified by:
-                {% if chant.last_updated_by.full_name %}{{ chant.last_updated_by.full_name }}{% else %}User {{ chant.last_updated_by.id }}{% endif %}{% if chant.date_updated %}, {{ chant.date_updated|date:"j F Y" }}{% endif %}
+                {% if chant.last_updated_by.full_name %}<a href="{% url 'user-detail' chant.last_updated_by.id %}">{{ chant.last_updated_by.full_name }}</a>{% else %}<a href="{% url 'user-detail' chant.last_updated_by.id %}">User {{ chant.last_updated_by.id }}</a>{% endif %}{% if chant.date_updated %}, {{ chant.date_updated|date:"j F Y" }}{% endif %}
             {% endif %}
         </p>
     {% endif %}
