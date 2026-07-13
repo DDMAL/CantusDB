@@ -243,7 +243,7 @@ class ChantDetailViewTest(ChantPermissionsTestCase):
         self.assertNotIn(reverse("notation-detail", args=[notation.id]), html)
 
 
-class ChantRecordCreatedByTest(CustomAccessTestMixin, TestCase):
+class ChantAttributionFooterTest(CustomAccessTestMixin, TestCase):
     """
     Tests for the "Record contributed by" / "Last modified by" lines on the
     chant detail page. These are visible to anyone, for any chant, as long
