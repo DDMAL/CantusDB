@@ -438,7 +438,6 @@ class SourceListView(CustomAccessMixin, ListView):  # type: ignore[type-arg]
         if production_method := self.request.GET.get("prodMethod"):
             q_obj_filter &= Q(production_method=production_method)
 
-
         if general_str := self.request.GET.get("general"):
             # Strip leading/trailing spaces and collapse internal whitespace
             general_str = " ".join(general_str.split())
