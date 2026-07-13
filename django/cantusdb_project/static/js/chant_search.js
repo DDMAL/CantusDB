@@ -25,7 +25,7 @@ window.addEventListener("load", function () {
     if (urlParams.has("genre")) {
         genreFilter.value = urlParams.get("genre");
     }
-    if (urlParams.has("liturgical_function")) {
+    if (functionFilter && urlParams.has("liturgical_function")) {
         functionFilter.value = urlParams.get("liturgical_function");
     }
     if (segmentFilter && urlParams.has("segment")) {
