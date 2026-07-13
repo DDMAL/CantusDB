@@ -56,7 +56,7 @@ class ProofreadView(CustomAccessMixin, ListView, MultipleObjectMixin):
 
         # Inactive Source Filtering
         inactive_filter = self.request.GET.get("inactive", None)
-        if inactive_filter and inactive_filter != "proofread_unpublished":
+        if inactive_filter:
             today = timezone.now()
             if inactive_filter == "3":
                 cutoff_date = today - datetime.timedelta(days=90)
