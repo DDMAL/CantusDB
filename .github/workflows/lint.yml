@@ -1,7 +1,7 @@
 name: lint
 on:
     pull_request:
-        types: [opened, synchronize]
+        types: [opened, synchronize, reopened, ready_for_review]
 jobs:
     black:
         runs-on: ubuntu-latest

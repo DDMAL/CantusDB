@@ -11,7 +11,9 @@ class Command(BaseCommand):
         updated = 0
         skipped = []
 
-        for century in Century.objects.filter(min_date__isnull=True, max_date__isnull=True):
+        for century in Century.objects.filter(
+            min_date__isnull=True, max_date__isnull=True
+        ):
             dates = century_name_to_dates(century.name)
             if dates:
                 century.min_date, century.max_date = dates
@@ -22,6 +24,8 @@ class Command(BaseCommand):
 
         self.stdout.write(self.style.SUCCESS(f"Updated {updated} centuries."))
         if skipped:
-            self.stdout.write(self.style.WARNING(f"Could not parse {len(skipped)} centuries:"))
+            self.stdout.write(
+                self.style.WARNING(f"Could not parse {len(skipped)} centuries:")
+            )
             for name in skipped:
                 self.stdout.write(f"  - {name}")
