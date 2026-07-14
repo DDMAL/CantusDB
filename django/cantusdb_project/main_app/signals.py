@@ -212,16 +212,25 @@ def update_chant_incipit_field(chant: Chant) -> None:
     """Update the incipit field of the specified Chant to be the first
     several words of the chant's standardized-spelling fulltext
 
+    A curated incipit is protected from being clobbered by an unproofread
+    full text (issue #1803): the incipit is only (re)generated when the chant
+    has no incipit yet, or once its standardized-spelling full text has been
+    marked proofread.
+
     Args:
         chant (Chant): The chant from the database whose `incipit` field
         is to be updated
     """
     fulltext: Optional[str] = chant.manuscript_full_text_std_spelling
-    if fulltext:  # many chants in the database have only an incipit -
-        # we should only update the incipit if the chant has a fulltext,
-        # just in case a chant manages to get saved without a fulltext somehow
-        new_incipit: str = generate_incipit(fulltext)
-        Chant.objects.filter(id=chant.id).update(incipit=new_incipit)
+    # many chants in the database have only an incipit - we should only update
+    # the incipit if the chant has a fulltext, just in case a chant manages to
+    # get saved without a fulltext somehow
+    if not fulltext:
+        return
+    if chant.incipit and not chant.manuscript_full_text_std_proofread:
+        return
+    new_incipit: str = generate_incipit(fulltext)
+    Chant.objects.filter(id=chant.id).update(incipit=new_incipit)
 
 
 def update_sequence_incipit_field(sequence: Sequence) -> None:

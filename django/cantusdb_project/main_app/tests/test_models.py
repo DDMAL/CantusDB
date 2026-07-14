@@ -232,16 +232,43 @@ class ChantModelTest(TestCase):
         self.assertEqual(chant1.get_next_chant(), lacuna)
         self.assertEqual(lacuna.get_next_chant(), chant3)
 
-    def test_incipit_signal(self):
-        """Test whether a chant's incipit is updated to reflect its fulltext upon save"""
-        chant: Chant = make_fake_chant()
-        full_text: str = "Incipit should be five words sheep headphones bongoes"
-        expected_incipit: str = "Incipit should be five words"
-        chant.manuscript_full_text_std_spelling = full_text
+    def test_incipit_generated_from_fulltext(self):
+        """A chant with no existing incipit has one generated from its
+        standardized-spelling fulltext upon save."""
+        chant: Chant = make_fake_chant(
+            manuscript_full_text_std_spelling="Incipit should be five words sheep headphones bongoes"
+        )
+        self.assertEqual(chant.incipit, "Incipit should be five words")
+
+    def test_incipit_protected_when_not_proofread(self):
+        """When a chant already has an incipit and its standardized-spelling
+        fulltext is not proofread, changing the fulltext does not overwrite the
+        incipit (issue #1803)."""
+        chant: Chant = make_fake_chant(
+            manuscript_full_text_std_spelling="Original curated incipit words here",
+            manuscript_full_text_std_proofread=False,
+        )
+        original_incipit: str = chant.incipit
+        chant.manuscript_full_text_std_spelling = (
+            "Completely different replacement fulltext now"
+        )
         chant.save()
         chant.refresh_from_db()
-        observed_incipit: str = chant.incipit
-        self.assertEqual(observed_incipit, expected_incipit)
+        self.assertEqual(chant.incipit, original_incipit)
+
+    def test_incipit_updated_when_proofread(self):
+        """Once the standardized-spelling fulltext is marked proofread, saving
+        re-syncs the incipit to the fulltext."""
+        chant: Chant = make_fake_chant(
+            manuscript_full_text_std_spelling="Original curated incipit words here",
+        )
+        chant.manuscript_full_text_std_spelling = (
+            "Corrected fulltext after proofreading is complete"
+        )
+        chant.manuscript_full_text_std_proofread = True
+        chant.save()
+        chant.refresh_from_db()
+        self.assertEqual(chant.incipit, "Corrected fulltext after proofreading is")
 
 
 class FeastModelTest(TestCase):
