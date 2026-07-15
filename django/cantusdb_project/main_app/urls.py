@@ -87,6 +87,7 @@ from main_app.views.source import (
     SourceDeleteView,
     SourceInventoryView,
     SourceAddImageLinksView,
+    SourceIIIFMappingView,
     CcdbBrowseView,
 )
 from main_app.views.ccdb import (
@@ -94,7 +95,6 @@ from main_app.views.ccdb import (
     CcdbLandingView,
     CcdbMapView,
     CcdbTeamView,
-    SourceIIIFMappingView,
 )
 from main_app.views.user import (
     CustomLogoutView,
