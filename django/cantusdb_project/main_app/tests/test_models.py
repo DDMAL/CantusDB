@@ -241,24 +241,24 @@ class ChantModelTest(TestCase):
         self.assertEqual(chant.incipit, "Incipit should be five words")
 
     def test_incipit_protected_when_not_proofread(self):
-        """When a chant already has an incipit and its standardized-spelling
-        fulltext is not proofread, changing the fulltext does not overwrite the
-        incipit (issue #1803)."""
+        """A hand-curated incipit that differs from its standardized-spelling
+        fulltext is not overwritten while the fulltext is unproofread, even when
+        the fulltext changes (issue #1803)."""
         chant: Chant = make_fake_chant(
-            manuscript_full_text_std_spelling="Original curated incipit words here",
+            incipit="Hand-curated incipit",
+            manuscript_full_text_std_spelling="Automatic incipit would read quite differently",
             manuscript_full_text_std_proofread=False,
         )
-        original_incipit: str = chant.incipit
         chant.manuscript_full_text_std_spelling = (
             "Completely different replacement fulltext now"
         )
         chant.save()
         chant.refresh_from_db()
-        self.assertEqual(chant.incipit, original_incipit)
+        self.assertEqual(chant.incipit, "Hand-curated incipit")
 
-    def test_incipit_updated_when_proofread(self):
-        """Once the standardized-spelling fulltext is marked proofread, saving
-        re-syncs the incipit to the fulltext."""
+    def test_incipit_resynced_when_fulltext_marked_proofread(self):
+        """At the moment the standardized-spelling fulltext is first marked
+        proofread, the incipit re-syncs to the fulltext (issue #1803)."""
         chant: Chant = make_fake_chant(
             manuscript_full_text_std_spelling="Original curated incipit words here",
         )
@@ -269,6 +269,23 @@ class ChantModelTest(TestCase):
         chant.save()
         chant.refresh_from_db()
         self.assertEqual(chant.incipit, "Corrected fulltext after proofreading is")
+
+    def test_incipit_untouched_when_editing_proofread_chant(self):
+        """Editing an already-proofread chant does not regenerate its incipit:
+        the re-sync happens only at the proofread transition, not on every later
+        save, so a curated incipit survives ordinary edits (issue #1803)."""
+        chant: Chant = make_fake_chant(
+            incipit="Hand-curated incipit",
+            manuscript_full_text_std_spelling="Automatic incipit would read quite differently",
+            manuscript_full_text_std_proofread=True,
+        )
+        # Reload so the instance carries the proofread flag as loaded from the
+        # DB, mirroring an editor opening an already-proofread chant.
+        reloaded: Chant = Chant.objects.get(id=chant.id)
+        reloaded.marginalia = "edited"
+        reloaded.save()
+        reloaded.refresh_from_db()
+        self.assertEqual(reloaded.incipit, "Hand-curated incipit")
 
 
 class FeastModelTest(TestCase):

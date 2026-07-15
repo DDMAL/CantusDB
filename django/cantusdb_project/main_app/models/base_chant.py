@@ -1,3 +1,5 @@
+from typing import Any, Optional, Sequence
+
 from django.db import models
 from django.contrib.auth import get_user_model
 from django.contrib.postgres.search import SearchVectorField
@@ -207,6 +209,21 @@ class BaseChant(BaseModel):
     later_addition = models.CharField(blank=True, null=True, max_length=255)
 
     other_fields_proofread = models.BooleanField(blank=False, null=False, default=False)
+
+    @classmethod
+    def from_db(
+        cls, db: Optional[str], field_names: Sequence[str], values: Sequence[Any]
+    ) -> "BaseChant":
+        instance = super().from_db(db, field_names, values)
+        # Snapshot the proofread flag as loaded so the incipit signal can tell
+        # when the standardized-spelling full text is *first* marked proofread
+        # and re-sync the incipit only then (issue #1803). Guarded so a deferred
+        # queryset that excludes the field doesn't trigger an extra fetch.
+        if "manuscript_full_text_std_proofread" in field_names:
+            instance._std_proofread_at_load = (
+                instance.manuscript_full_text_std_proofread
+            )
+        return instance
 
     def get_ci_url(self) -> str:
         """Construct the url to the entry in Cantus Index correponding to the chant.

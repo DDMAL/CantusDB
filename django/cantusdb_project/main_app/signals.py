@@ -18,12 +18,12 @@ from main_app.models import Source
 
 
 @receiver(post_save, sender=Chant)
-def on_chant_save(instance, **kwargs) -> None:
+def on_chant_save(instance, created, **kwargs) -> None:
     update_source_chant_count(instance)
     update_source_melody_count(instance)
 
     update_chant_search_vector(instance)
-    update_chant_incipit_field(instance)
+    update_chant_incipit_field(instance, created)
     update_volpiano_fields(instance)
 
 
@@ -208,18 +208,22 @@ def update_prefix_field(instance) -> None:
         instance.__class__.objects.filter(pk=pk).update(prefix="")
 
 
-def update_chant_incipit_field(chant: Chant) -> None:
+def update_chant_incipit_field(chant: Chant, created: bool) -> None:
     """Update the incipit field of the specified Chant to be the first
     several words of the chant's standardized-spelling fulltext
 
     A curated incipit is protected from being clobbered by an unproofread
-    full text (issue #1803): the incipit is only (re)generated when the chant
-    has no incipit yet, or once its standardized-spelling full text has been
-    marked proofread.
+    full text (issue #1803): a chant with no incipit yet always has one
+    generated, but an existing incipit is only overwritten at the moment its
+    standardized-spelling full text is first marked proofread. It is left
+    untouched on every other save, so hand-curated and imported incipits
+    survive later edits.
 
     Args:
         chant (Chant): The chant from the database whose `incipit` field
         is to be updated
+        created (bool): Whether this save created the chant, as passed by the
+        post_save signal
     """
     fulltext: Optional[str] = chant.manuscript_full_text_std_spelling
     # many chants in the database have only an incipit - we should only update
@@ -227,8 +231,13 @@ def update_chant_incipit_field(chant: Chant) -> None:
     # get saved without a fulltext somehow
     if not fulltext:
         return
-    if chant.incipit and not chant.manuscript_full_text_std_proofread:
-        return
+    if chant.incipit:
+        proofread_at_load: bool = getattr(chant, "_std_proofread_at_load", False)
+        just_proofread: bool = (
+            bool(chant.manuscript_full_text_std_proofread) and not proofread_at_load
+        )
+        if created or not just_proofread:
+            return
     new_incipit: str = generate_incipit(fulltext)
     Chant.objects.filter(id=chant.id).update(incipit=new_incipit)
 
