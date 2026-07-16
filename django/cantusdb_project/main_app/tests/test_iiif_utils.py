@@ -21,7 +21,6 @@ from main_app.models.source_url import SourceURL
 from main_app.tests.make_fakes import make_fake_source, make_fake_chant
 from main_app.tests.mixins import CustomAccessTestMixin
 
-
 # ---- Sample IIIF manifests for testing ----
 
 SAMPLE_MANIFEST_V2 = {
@@ -139,9 +138,7 @@ class GetLabelTextTest(TestCase):
         self.assertEqual(_get_label_text(["f. 1r", "Folio 1"]), "f. 1r")
 
     def test_dict_label_v3(self) -> None:
-        self.assertEqual(
-            _get_label_text({"en": ["Folio 1 recto"]}), "Folio 1 recto"
-        )
+        self.assertEqual(_get_label_text({"en": ["Folio 1 recto"]}), "Folio 1 recto")
 
     def test_dict_label_multiple_languages(self) -> None:
         label = {"en": ["Folio 1 recto"], "none": ["f. 1r"]}
@@ -251,11 +248,7 @@ class ExtractCanvasesTest(TestCase):
                         {
                             "label": "page 1",
                             "images": [
-                                {
-                                    "resource": {
-                                        "@id": "https://example.com/direct.jpg"
-                                    }
-                                }
+                                {"resource": {"@id": "https://example.com/direct.jpg"}}
                             ],
                         }
                     ]

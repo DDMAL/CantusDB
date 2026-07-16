@@ -131,7 +131,9 @@ def extract_canvases(manifest: dict) -> list[CanvasInfo]:
         for i, canvas in enumerate(canvas_list):
             label = _get_label_text(canvas.get("label", ""))
             image_url = _extract_image_url_v3(canvas)
-            canvases.append(CanvasInfo(label=label, image_url=image_url, canvas_index=i))
+            canvases.append(
+                CanvasInfo(label=label, image_url=image_url, canvas_index=i)
+            )
     else:
         # API 2.x
         sequences = manifest.get("sequences", [])
@@ -141,7 +143,9 @@ def extract_canvases(manifest: dict) -> list[CanvasInfo]:
         for i, canvas in enumerate(canvas_list):
             label = _get_label_text(canvas.get("label", ""))
             image_url = _extract_image_url_v2(canvas)
-            canvases.append(CanvasInfo(label=label, image_url=image_url, canvas_index=i))
+            canvases.append(
+                CanvasInfo(label=label, image_url=image_url, canvas_index=i)
+            )
 
     return canvases
 

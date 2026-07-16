@@ -879,9 +879,7 @@ class SourceIIIFMappingView(CustomAccessMixin, SingleObjectMixin, View):  # type
 
     def get(self, request: HttpRequest, *args: Any, **kwargs: Any) -> HttpResponse:
         self.object = self.get_object()
-        redirect_url = reverse(
-            "source-add-image-links", args=[self.object.id]
-        )
+        redirect_url = reverse("source-add-image-links", args=[self.object.id])
 
         # Get the IIIF manifest URL for this source
         manifest_link = self.object.source_links.filter(
@@ -900,9 +898,7 @@ class SourceIIIFMappingView(CustomAccessMixin, SingleObjectMixin, View):  # type
             messages.error(request, "Failed to fetch IIIF manifest.")
             return HttpResponseRedirect(redirect_url)
         except ValueError:
-            logger.exception(
-                "Invalid JSON in IIIF manifest: %s", manifest_link.url
-            )
+            logger.exception("Invalid JSON in IIIF manifest: %s", manifest_link.url)
             messages.error(request, "IIIF manifest is not valid JSON.")
             return HttpResponseRedirect(redirect_url)
 
