@@ -23,42 +23,44 @@ User = get_user_model()
 # Maps CSV column names (lowercase) to Chant model field names.
 # Columns mapped to None are recognised but intentionally skipped.
 COLUMN_MAP = {
-    "source_id":             "source_id",
-    "siglum":                "siglum",
-    "marginalia":            "marginalia",
-    "folio":                 "folio",
-    "content structure":     "content_structure",
-    "sequence":              "c_sequence",
-    "incipit":               "incipit",
-    "feast":                 "_feast_name",       # resolved to FK in validation
-    "office":                "_service_abbr",     # resolved to FK in validation
-    "genre":                 "_genre_name",       # resolved to FK in validation
-    "position":              "position",
-    "cantus_id":             "cantus_id",
-    "mode":                  "mode",
-    "finalis":               "finalis",
-    "differentia":           "differentia",
+    "source_id": "source_id",
+    "siglum": "siglum",
+    "marginalia": "marginalia",
+    "folio": "folio",
+    "content structure": "content_structure",
+    "sequence": "c_sequence",
+    "incipit": "incipit",
+    "feast": "_feast_name",  # resolved to FK in validation
+    "office": "_service_abbr",  # resolved to FK in validation
+    "genre": "_genre_name",  # resolved to FK in validation
+    "position": "position",
+    "cantus_id": "cantus_id",
+    "mode": "mode",
+    "finalis": "finalis",
+    "differentia": "differentia",
     "fulltext_standardized": "manuscript_full_text_std_spelling",
-    "fulltext_ms":           "manuscript_full_text",
+    "fulltext_ms": "manuscript_full_text",
     "fulltext_standardized_proofread": "_bool:manuscript_full_text_std_proofread",
     "fulltext_ms_proofread": "_bool:manuscript_full_text_proofread",
-    "volpiano":              "volpiano",
-    "volpiano_proofread":    "_bool:volpiano_proofread",
-    "image_link":            "image_link",
-    "melody_id":             "melody_id",
-    "cao_concordances":      "cao_concordances",
-    "addendum":              "addendum",
-    "extra":                 "extra",
-    "indexing_notes":        "indexing_notes",
-    "node_id":               "_node_id",  # old cantusdatabase.org ID → json_info["nid"]
-    "frag_id":               None,        # fragmentarium ID — skip as it is a source-level attribute
+    "volpiano": "volpiano",
+    "volpiano_proofread": "_bool:volpiano_proofread",
+    "image_link": "image_link",
+    "melody_id": "melody_id",
+    "cao_concordances": "cao_concordances",
+    "addendum": "addendum",
+    "extra": "extra",
+    "indexing_notes": "indexing_notes",
+    "node_id": "_node_id",  # old cantusdatabase.org ID → json_info["nid"]
+    "frag_id": None,  # fragmentarium ID — skip as it is a source-level attribute
 }
 
 
 class Command(BaseCommand):
     help = "Import chants from a CSV file into the database."
 
-    def _build_chant_data(self, row, source_cache, feast_cache, service_cache, genre_cache):
+    def _build_chant_data(
+        self, row, source_cache, feast_cache, service_cache, genre_cache
+    ):
         # visible_status '1' = published; legacy field from old Cantus, not used in current views
         chant_data = {"visible_status": "1"}
         for field, value in row.items():
@@ -126,7 +128,9 @@ class Command(BaseCommand):
             else:
                 mapped_cols.append(col)
 
-        self.stdout.write(f"Found {len(raw_rows)} data row(s) and {len(raw_columns)} column(s).")
+        self.stdout.write(
+            f"Found {len(raw_rows)} data row(s) and {len(raw_columns)} column(s)."
+        )
         self.stdout.write(f"  Mapped  : {', '.join(mapped_cols)}")
 
         if skipped_cols:
@@ -188,10 +192,10 @@ class Command(BaseCommand):
         self.stdout.write("Validating data...")
 
         # Caches so each unique value is only looked up once.
-        source_cache  = {}  # int    Source object | "NOT_FOUND"
-        feast_cache   = {}  # str    Feast object  | "NOT_FOUND"
+        source_cache = {}  # int    Source object | "NOT_FOUND"
+        feast_cache = {}  # str    Feast object  | "NOT_FOUND"
         service_cache = {}  # str    Service object | "NOT_FOUND"
-        genre_cache   = {}  # str    Genre object  | "NOT_FOUND"
+        genre_cache = {}  # str    Genre object  | "NOT_FOUND"
 
         for i, row in enumerate(mapped_rows, start=2):
 
@@ -245,7 +249,9 @@ class Command(BaseCommand):
                     errors.append(f"Row {i}: Genre '{genre_name}' not found")
 
         if errors:
-            self.stdout.write(self.style.ERROR(f"Validation failed with {len(errors)} error(s):"))
+            self.stdout.write(
+                self.style.ERROR(f"Validation failed with {len(errors)} error(s):")
+            )
             for err in errors:
                 self.stdout.write(f"  {err}")
             raise CommandError("Fix the errors in the CSV and try again.")
@@ -261,13 +267,19 @@ class Command(BaseCommand):
         if dry_run:
             model_errors = []
             for i, row in enumerate(mapped_rows, start=2):
-                chant_data = self._build_chant_data(row, source_cache, feast_cache, service_cache, genre_cache)
+                chant_data = self._build_chant_data(
+                    row, source_cache, feast_cache, service_cache, genre_cache
+                )
                 try:
                     Chant(**chant_data).full_clean()
                 except Exception as exc:
                     model_errors.append(f"Row {i}: {exc}")
             if model_errors:
-                self.stdout.write(self.style.ERROR(f"Model validation failed with {len(model_errors)} error(s):"))
+                self.stdout.write(
+                    self.style.ERROR(
+                        f"Model validation failed with {len(model_errors)} error(s):"
+                    )
+                )
                 for err in model_errors:
                     self.stdout.write(f"  {err}")
                 raise CommandError("Fix the errors in the CSV and try again.")
@@ -277,19 +289,20 @@ class Command(BaseCommand):
         # the unique key (source_id, folio, c_sequence). This is only happens in dry-run mode
         # as a warning to the user, since in some cases they may intentionally want to import duplicates
         # This is omitted during actual import to avoid false positives
-        
+
         if dry_run:
             self.stdout.write("Checking for duplicates...")
             warnings = []
             seen_keys = {}  # (source_id, folio, c_sequence) → first row number
 
             # Fetch all potentially matching chants in one query keyed by (source_id, folio, c_sequence)
-            source_ids = {row.get("source_id") for row in mapped_rows if row.get("source_id")}
+            source_ids = {
+                row.get("source_id") for row in mapped_rows if row.get("source_id")
+            }
             db_existing: dict[tuple, list[int]] = {}
-            for chant_id, sid, folio, seq in (
-                Chant.objects.filter(source_id__in=source_ids)
-                .values_list("id", "source_id", "folio", "c_sequence")
-            ):
+            for chant_id, sid, folio, seq in Chant.objects.filter(
+                source_id__in=source_ids
+            ).values_list("id", "source_id", "folio", "c_sequence"):
                 db_existing.setdefault((sid, folio, seq), []).append(chant_id)
 
             for i, row in enumerate(mapped_rows, start=2):
@@ -314,7 +327,9 @@ class Command(BaseCommand):
                     )
 
             if warnings:
-                self.stdout.write(self.style.WARNING(f"Found {len(warnings)} duplicate warning(s):"))
+                self.stdout.write(
+                    self.style.WARNING(f"Found {len(warnings)} duplicate warning(s):")
+                )
                 for w in warnings:
                     self.stdout.write(f"  {w}")
             else:
@@ -337,7 +352,9 @@ class Command(BaseCommand):
 
         with transaction.atomic():
             for row in mapped_rows:
-                chant_data = self._build_chant_data(row, source_cache, feast_cache, service_cache, genre_cache)
+                chant_data = self._build_chant_data(
+                    row, source_cache, feast_cache, service_cache, genre_cache
+                )
                 chant_data["created_by"] = admin_user
                 Chant(**chant_data).save()
                 created_count += 1

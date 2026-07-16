@@ -367,9 +367,7 @@ class SourceListView(CustomAccessMixin, ListView):  # type: ignore[type-arg]
             (min_year // 5) * 5 if min_year is not None else None
         )
         context["date_range_max"] = (
-            min(-(-max_year // 5) * 5, current_decade)
-            if max_year is not None
-            else None
+            min(-(-max_year // 5) * 5, current_decade) if max_year is not None else None
         )
 
         context["production_method_choices"] = Source.ProductionMethodChoices.choices

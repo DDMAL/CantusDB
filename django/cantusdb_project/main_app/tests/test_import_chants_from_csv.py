@@ -16,6 +16,7 @@ from main_app.tests.make_fakes import (
 
 User = get_user_model()
 
+
 def _write_csv(content: str) -> str:
     with tempfile.NamedTemporaryFile(
         mode="w", suffix=".csv", delete=False, encoding="utf-8"
@@ -82,7 +83,8 @@ class TestFKEdgeCases(TestCase):
             _run(_write_csv(csv))
         # Exclude FK integrity checks (SELECT 1 AS "a" FROM ...) fired by Django on INSERT
         feast_lookups = [
-            q for q in ctx.captured_queries
+            q
+            for q in ctx.captured_queries
             if "main_app_feast" in q["sql"]
             and "SELECT" in q["sql"]
             and "1 AS" not in q["sql"]
