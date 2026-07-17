@@ -12,20 +12,21 @@
 {% endblock %}
 {% block maincontent %}
     <h3>Create Chant</h3>
-    <!--Display "submit success" message -->
-    {% if messages %}
-        <div class="alert alert-success alert-dismissible">
-            {% for message in messages %}
-                <a href="#"
-                   class="close close-success"
-                   data-bs-dismiss="alert"
-                   aria-label="close">×</a>
+    <!--Display messages: the "submit success" message links to the created
+        chant; other messages (e.g. invalid-text warnings) render normally. -->
+    {% for message in messages %}
+        {% if 'alert-success' in message.tags %}
+            <div class="alert alert-success">
                 <a href="{% url 'chant-detail' previous_chant.id %}"
                    style="color:#155724"
                    target="_blank">{{ message }}</a>
-            {% endfor %}
-        </div>
-    {% endif %}
+            </div>
+        {% else %}
+            <div class="alert {{ message.tags }}" role="alert">
+                {{ message }}
+            </div>
+        {% endif %}
+    {% endfor %}
     <!--Display form error message -->
     {% if form.errors %}
         <div class="alert alert-danger alert-dismissible">
@@ -242,6 +243,7 @@
             <button type="submit" class="btn btn-dark btn-sm" id="btn-submit">Save</button>
         </div>
     </form>
+    {% include "chant_text_warning.html" %}
 {% endblock %}
 {% block lowersidebar %}
     <div class="card w-100 mb-3">

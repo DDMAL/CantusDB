@@ -1,0 +1,60 @@
+{% load static %}
+{% comment %}
+    "Save anyway?" confirmation dialog for invalid chant text (see #1681).
+    Include this once inside a chant create/edit form's page. The modal is
+    populated by chant_text_validation.js, which validates the text fields
+    against the `validate-chant-text` endpoint before allowing the save.
+{% endcomment %}
+<div class="modal fade"
+     id="chant-text-warning-modal"
+     tabindex="-1"
+     aria-labelledby="chant-text-warning-modal-label"
+     aria-hidden="true"
+     data-validate-url="{% url 'validate-chant-text' %}">
+    <div class="modal-dialog modal-lg modal-dialog-scrollable modal-fullscreen-sm-down">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="chant-text-warning-modal-label">
+                    Warning: Nonstandard text
+                </h5>
+                <button type="button"
+                        class="btn-close"
+                        data-bs-dismiss="modal"
+                        aria-label="Close"></button>
+            </div>
+            <div class="modal-body" id="chant-text-warning-modal-body"></div>
+            <div class="modal-footer">
+                <button type="button"
+                        class="btn btn-outline-secondary"
+                        data-bs-dismiss="modal">Go back &amp; fix</button>
+                <button type="button"
+                        class="btn btn-dark"
+                        id="chant-text-warning-save-anyway">Save anyway</button>
+            </div>
+        </div>
+    </div>
+</div>
+<style>
+    .chant-text-warning-field {
+        border-color: #ffc107 !important;
+        box-shadow: 0 0 0 0.15rem rgba(255, 193, 7, 0.4) !important;
+    }
+    .chant-text-warning-echo {
+        color: #997404;
+    }
+    .chant-text-warning-marked {
+        font-family: monospace;
+        white-space: pre-wrap;
+        overflow-wrap: anywhere;
+        max-height: 10rem;
+        overflow-y: auto;
+        margin-top: 0.25rem;
+        padding: 0.25rem 0.5rem;
+        background-color: rgba(0, 0, 0, 0.04);
+        border-radius: 0.25rem;
+    }
+    .chant-text-warning-marked mark {
+        padding: 0 0.1em;
+    }
+</style>
+<script src="{% static 'js/chant_text_validation.js' %}"></script>

@@ -54,6 +54,7 @@ from main_app.views.chant import (
     CISearchView,
     MelodySearchView,
     SourceEditChantsView,
+    ValidateChantTextView,
 )
 from main_app.views.feast import (
     FeastDetailView,
@@ -224,6 +225,11 @@ urlpatterns = [
         "edit-syllabification/<int:chant_id>",
         ChantEditSyllabificationView.as_view(),
         name="source-edit-syllabification",
+    ),
+    path(
+        "validate-chant-text/",
+        ValidateChantTextView.as_view(),
+        name="validate-chant-text",
     ),
     path(
         "chants/",

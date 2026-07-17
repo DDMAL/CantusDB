@@ -3,12 +3,13 @@ Test views in views/chant.py
 """
 
 from unittest.mock import patch
-from unittest import skip
 import random
 from typing import ClassVar, Dict
 import urllib.parse
 
 from django.conf import settings
+from django.contrib.messages import constants as message_constants
+from django.contrib.messages import get_messages
 from django.test import TestCase
 from django.urls import reverse
 
@@ -519,44 +520,76 @@ class SourceEditChantsViewTest(ChantPermissionsTestCase):
         chant.refresh_from_db()
         self.assertIs(chant.manuscript_full_text_std_proofread, True)
 
-    @skip("Temporarily disabled due to #1674")
-    def test_invalid_text(self) -> None:
+    def test_invalid_text_warns_but_saves(self) -> None:
         """
-        The user should not be able to create a chant with invalid text
-        (either invalid characters or unmatched brackets).
-        Instead, the user should be shown an error message.
+        Editing a chant so that its text is invalid (either invalid characters
+        or unmatched brackets) should not be blocked. When the edit is submitted
+        without acknowledging the problems (the no-JavaScript fallback), the edit
+        is saved and the user is shown a non-blocking warning message rather than
+        a form error (see #1681).
         """
         source = make_fake_source()
-        with self.subTest("Chant with invalid characters"):
-            response = self.client.post(
-                reverse("source-edit-chants", args=[source.id]),
-                {
-                    "manuscript_full_text_std_spelling": "this is a ch@nt t%xt with inv&lid ch!ra+ers",
-                    "folio": "001r",
-                    "c_sequence": "1",
-                },
-            )
-            self.assertEqual(response.status_code, 200)
-            self.assertFormError(
-                response.context["form"],
-                "manuscript_full_text_std_spelling",
-                "Invalid characters in text.",
-            )
-        with self.subTest("Chant with unmatched brackets"):
-            response = self.client.post(
-                reverse("source-edit-chants", args=[source.id]),
-                {
-                    "manuscript_full_text_std_spelling": "this is a chant with [ unmatched brackets",
-                    "folio": "001r",
-                    "c_sequence": "1",
-                },
-            )
-            self.assertEqual(response.status_code, 200)
-            self.assertFormError(
-                response.context["form"],
-                "manuscript_full_text_std_spelling",
-                "Word [ contains non-alphabetic characters.",
-            )
+        invalid_texts = [
+            (
+                "invalid characters",
+                "this is a ch@nt t%xt with inv&lid ch!ra+ers",
+                "001r",
+            ),
+            ("unmatched brackets", "this is a chant with [ unmatched brackets", "002r"),
+        ]
+        for description, invalid_text, folio in invalid_texts:
+            with self.subTest(description):
+                chant = make_fake_chant(
+                    source=source,
+                    folio=folio,
+                    manuscript_full_text_std_spelling="Plena sum",
+                )
+                response = self.client.post(
+                    reverse("source-edit-chants", args=[source.id]),
+                    {
+                        "manuscript_full_text_std_spelling": invalid_text,
+                        "folio": chant.folio,
+                        "c_sequence": chant.c_sequence,
+                        "pk": chant.id,
+                    },
+                )
+                # The save succeeds (redirect), rather than re-rendering the
+                # form with an error.
+                self.assertEqual(response.status_code, 302)
+                chant.refresh_from_db()
+                self.assertEqual(chant.manuscript_full_text_std_spelling, invalid_text)
+                # ...and a non-blocking warning was shown.
+                message_levels = [m.level for m in get_messages(response.wsgi_request)]
+                self.assertIn(message_constants.WARNING, message_levels)
+
+    def test_invalid_text_confirmed_suppresses_warning(self) -> None:
+        """
+        When the user has acknowledged the invalid text via the "Save anyway"
+        flow (which posts ``confirm_invalid_text=1``), the chant is saved and no
+        warning message is shown -- they already saw the confirmation dialog
+        (see #1681).
+        """
+        source = make_fake_source()
+        chant = make_fake_chant(
+            source=source,
+            folio="003r",
+            manuscript_full_text_std_spelling="Plena sum",
+        )
+        response = self.client.post(
+            reverse("source-edit-chants", args=[source.id]),
+            {
+                "manuscript_full_text_std_spelling": "this is a ch@nt",
+                "folio": chant.folio,
+                "c_sequence": chant.c_sequence,
+                "pk": chant.id,
+                "confirm_invalid_text": "1",
+            },
+        )
+        self.assertEqual(response.status_code, 302)
+        chant.refresh_from_db()
+        self.assertEqual(chant.manuscript_full_text_std_spelling, "this is a ch@nt")
+        message_levels = [m.level for m in get_messages(response.wsgi_request)]
+        self.assertNotIn(message_constants.WARNING, message_levels)
 
     def test_full_text_requirement(self):
         """
@@ -3587,45 +3620,117 @@ class ChantCreateViewTest(CustomAccessTestMixin, TestCase):
             )
             self.assertIsNone(response_after_rare_chant.context["suggested_chants"])
 
-    @skip("Temporarily disabled due to #1674")
-    def test_invalid_text(self) -> None:
+    def test_invalid_text_warns_but_saves(self) -> None:
         """
-        The user should not be able to create a chant with invalid text
-        (either invalid characters or unmatched brackets).
-        Instead, the user should be shown an error message.
+        Creating a chant with invalid text (either invalid characters or
+        unmatched brackets) should not be blocked. The chant is created and the
+        user is shown a non-blocking warning message rather than a form error
+        (see #1681).
         """
-        with self.subTest("Chant with invalid characters"):
-            source = self.source
-            response = self.client.post(
-                reverse("chant-create", args=[source.id]),
-                {
-                    "manuscript_full_text_std_spelling": "this is a ch@nt t%xt with inv&lid ch!ra+ers",
-                    "folio": "001r",
-                    "c_sequence": "1",
-                },
-            )
-            self.assertEqual(response.status_code, 200)
-            self.assertFormError(
-                response.context["form"],
-                "manuscript_full_text_std_spelling",
-                "Invalid characters in text.",
-            )
-        with self.subTest("Chant with unmatched brackets"):
-            source = self.source
-            response = self.client.post(
-                reverse("chant-create", args=[source.id]),
-                {
-                    "manuscript_full_text_std_spelling": "this is a chant with [ unmatched brackets",
-                    "folio": "001r",
-                    "c_sequence": "1",
-                },
-            )
-            self.assertEqual(response.status_code, 200)
-            self.assertFormError(
-                response.context["form"],
-                "manuscript_full_text_std_spelling",
-                "Word [ contains non-alphabetic characters.",
-            )
+        invalid_texts = [
+            ("invalid characters", "this is a ch@nt t%xt with inv&lid ch!ra+ers"),
+            ("unmatched brackets", "this is a chant with [ unmatched brackets"),
+        ]
+        for c_sequence, (description, invalid_text) in enumerate(
+            invalid_texts, start=1
+        ):
+            with self.subTest(description):
+                source = self.source
+                response = self.client.post(
+                    reverse("chant-create", args=[source.id]),
+                    {
+                        "manuscript_full_text_std_spelling": invalid_text,
+                        "folio": "001r",
+                        "c_sequence": c_sequence,
+                    },
+                )
+                # The chant is created (redirect) rather than the form being
+                # re-rendered with an error.
+                self.assertEqual(response.status_code, 302)
+                self.assertTrue(
+                    Chant.objects.filter(
+                        source=source,
+                        manuscript_full_text_std_spelling=invalid_text,
+                    ).exists()
+                )
+                # ...and a non-blocking warning was shown.
+                message_levels = [m.level for m in get_messages(response.wsgi_request)]
+                self.assertIn(message_constants.WARNING, message_levels)
+
+
+class ValidateChantTextViewTest(TestCase):
+    """
+    Tests for the `validate-chant-text` JSON endpoint that backs the
+    "Save anyway?" confirmation dialog (see #1681).
+    """
+
+    def setUp(self) -> None:
+        self.user = make_fake_user()
+        self.client.force_login(self.user)
+
+    def test_requires_login(self) -> None:
+        self.client.logout()
+        response = self.client.post(
+            reverse("validate-chant-text"),
+            {"manuscript_full_text_std_spelling": "Plena sum"},
+        )
+        self.assertEqual(response.status_code, 302)
+
+    def test_valid_text_reports_no_problems(self) -> None:
+        response = self.client.post(
+            reverse("validate-chant-text"),
+            {"manuscript_full_text_std_spelling": "Plena sum"},
+        )
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.json()["problems"], [])
+
+    def test_invalid_characters_are_marked(self) -> None:
+        response = self.client.post(
+            reverse("validate-chant-text"),
+            {"manuscript_full_text_std_spelling": "this is a ch@nt"},
+        )
+        problems = response.json()["problems"]
+        self.assertEqual(len(problems), 1)
+        problem = problems[0]
+        self.assertEqual(problem["field"], "manuscript_full_text_std_spelling")
+        self.assertEqual(problem["kind"], "invalid_characters")
+        # The offending character is wrapped in <mark> so the UI can show
+        # exactly where the problem is.
+        self.assertIn("<mark>@</mark>", problem["marked_html"])
+
+    def test_marked_html_escapes_input(self) -> None:
+        response = self.client.post(
+            reverse("validate-chant-text"),
+            {"manuscript_full_text_std_spelling": "ch@nt <script>"},
+        )
+        marked_html = response.json()["problems"][0]["marked_html"]
+        # Angle brackets are themselves invalid characters, so they are escaped
+        # (and marked) rather than passed through as raw HTML.
+        self.assertNotIn("<script>", marked_html)
+        self.assertIn("&lt;", marked_html)
+        self.assertIn("&gt;", marked_html)
+
+    def test_unmatched_bracket_is_structural(self) -> None:
+        response = self.client.post(
+            reverse("validate-chant-text"),
+            {"manuscript_full_text_std_spelling": "chant with [ unmatched"},
+        )
+        problems = response.json()["problems"]
+        self.assertEqual(len(problems), 1)
+        self.assertEqual(problems[0]["kind"], "structural")
+
+    def test_only_fields_present_are_checked(self) -> None:
+        response = self.client.post(
+            reverse("validate-chant-text"),
+            {
+                "manuscript_full_text_std_spelling": "this is a ch@nt",
+                "manuscript_full_text": "Plena sum",
+                "manuscript_syllabized_full_text": "Ple-na sum",
+            },
+        )
+        problems = response.json()["problems"]
+        reported_fields = {p["field"] for p in problems}
+        self.assertEqual(reported_fields, {"manuscript_full_text_std_spelling"})
 
 
 class CISearchViewTest(TestCase):

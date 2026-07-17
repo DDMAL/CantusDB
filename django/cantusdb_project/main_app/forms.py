@@ -1,3 +1,4 @@
+import html
 from typing import Optional, Any, Dict
 
 from django import forms
@@ -10,7 +11,10 @@ from django.contrib.admin.widgets import (
 from django.core.exceptions import ValidationError
 from django.forms.widgets import CheckboxSelectMultiple, HiddenInput
 from dal import autocomplete  # type: ignore[import-untyped]
-from volpiano_display_utilities.cantus_text_syllabification import syllabify_text
+from volpiano_display_utilities.cantus_text_syllabification import (
+    syllabify_text,
+    INVALID_CHAR_REGEX,
+)
 from volpiano_display_utilities.latin_word_syllabification import LatinError
 from .models import (
     Chant,
@@ -94,40 +98,140 @@ class CheckboxNameModelMultipleChoiceField(forms.ModelMultipleChoiceField):
     widget = CheckboxSelectMultiple()
 
 
+# The chant text fields that are checked for syllabification problems, mapped
+# to a short label (used in the warning UI) and whether the field holds
+# already-syllabified text. Both the ``ChantTextWarningsMixin`` and the
+# ``ValidateChantTextView`` endpoint use this as the single source of truth.
+CHANT_TEXT_FIELDS: Dict[str, Dict[str, Any]] = {
+    "manuscript_full_text_std_spelling": {
+        "label": "Full text (standardized spelling)",
+        "text_presyllabified": False,
+    },
+    "manuscript_full_text": {
+        "label": "Full text (source spelling)",
+        "text_presyllabified": False,
+    },
+    "manuscript_syllabized_full_text": {
+        "label": "Syllabized full text",
+        "text_presyllabified": True,
+    },
+}
+
+
+def _mark_invalid_characters(value: str) -> tuple[list[str], str]:
+    """
+    Locate every character in ``value`` that isn't allowed in a chant text
+    (per ``INVALID_CHAR_REGEX``). Return a tuple of ``(invalid_chars, marked)``
+    where ``invalid_chars`` is the list of offending characters (in order of
+    appearance, with duplicates) and ``marked`` is an HTML-escaped copy of
+    ``value`` with each offending character wrapped in a ``<mark>`` element so
+    the user can see exactly where the problems are.
+    """
+    invalid_chars: list[str] = []
+    parts: list[str] = []
+    last = 0
+    for match in INVALID_CHAR_REGEX.finditer(value):
+        parts.append(html.escape(value[last : match.start()]))
+        char = match.group()
+        invalid_chars.append(char)
+        parts.append(f"<mark>{html.escape(char)}</mark>")
+        last = match.end()
+    parts.append(html.escape(value[last:]))
+    return invalid_chars, "".join(parts)
+
+
+def find_chant_text_problem(
+    value: Optional[str], text_presyllabified: bool = False
+) -> Optional[Dict[str, str]]:
+    """
+    Check whether ``value`` (the contents of a chant text field) can be
+    syllabified. If it cannot -- because it contains improper characters or,
+    for example, unmatched brackets -- return a dict describing the problem::
+
+        {"kind": ..., "message": ..., "marked_html": ...}
+
+    where ``marked_html`` is an HTML-escaped rendering of the text with any
+    offending characters wrapped in ``<mark>``. Otherwise (including for empty
+    values) return ``None``.
+
+    This backs a *non-blocking* warning: texts that don't conform to the entry
+    protocols can still be saved (see #1681). Previously (see #1653) these
+    problems raised ``ValidationError`` and prevented saving, which turned out
+    to block editing of already-existing chants (see #1674).
+    """
+    if not value:
+        return None
+    invalid_chars, marked_html = _mark_invalid_characters(value)
+    if invalid_chars:
+        # Preserve order but drop duplicates for a readable message.
+        distinct = list(dict.fromkeys(invalid_chars))
+        shown = ", ".join("space" if c == " " else c for c in distinct)
+        return {
+            "kind": "invalid_characters",
+            "message": f"contains character(s) that aren't allowed: {shown}",
+            "marked_html": marked_html,
+        }
+    try:
+        syllabify_text(value, text_presyllabified=text_presyllabified)
+    except LatinError as err:
+        return {
+            "kind": "structural",
+            "message": str(err),
+            "marked_html": html.escape(value),
+        }
+    except ValueError:
+        return {
+            "kind": "invalid_characters",
+            "message": "contains invalid characters.",
+            "marked_html": marked_html,
+        }
+    return None
+
+
 class CantusDBLatinField(forms.CharField):
     """
-    A custom CharField for chant text fields. Validates that the text
-    can be syllabified (essentially, that it does not have any improper
-    characters).
+    A CharField for chant text fields (source/standardized spelling). Its
+    contents are checked for syllabification problems by
+    ``ChantTextWarningsMixin`` / ``find_chant_text_problem`` (keyed by field
+    name via ``CHANT_TEXT_FIELDS``), warning the user without blocking the save.
     """
-
-    def validate(self, value):
-        super().validate(value)
-        # Temporarily turn off validation; see #1674
-        # if value:
-        #     try:
-        #         syllabify_text(value)
-        #     except LatinError as err:
-        #         raise forms.ValidationError(str(err))
-        #     except ValueError as exc:
-        #         raise forms.ValidationError("Invalid characters in text.") from exc
 
 
 class CantusDBSyllabifiedLatinField(forms.CharField):
     """
-    A custom CharField for chant syllabified text fields. Validates that the text
-    can be syllabified (essentially, that it does not have any improper
-    characters).
+    A CharField for chant *syllabified* text fields. Like ``CantusDBLatinField``,
+    but its contents are checked as pre-syllabified text.
     """
 
-    def validate(self, value):
-        super().validate(value)
-        # Temporarily turn off validation; see #1674
-        # if value:
-        #     try:
-        #         syllabify_text(value, text_presyllabified=True)
-        #     except ValueError as exc:
-        #         raise forms.ValidationError("Invalid characters in text.") from exc
+
+class ChantTextWarningsMixin:
+    """
+    A form mixin for chant forms with text fields. After the form's data has
+    been cleaned, each field named in ``CHANT_TEXT_FIELDS`` is checked to see
+    whether its contents can be syllabified. Texts that cannot be syllabified do
+    *not* invalidate the form (so the chant can still be saved); instead each
+    problem is collected in ``self.text_problems`` -- a list of dicts with
+    ``field``, ``label``, ``kind``, ``message`` and ``marked_html`` keys -- for
+    the view to surface as a non-blocking warning (see #1681).
+    """
+
+    def clean(self) -> dict[str, Any]:
+        cleaned_data = super().clean()
+        # ``cleaned_data`` can be None if a parent ``clean()`` returns nothing.
+        data = cleaned_data if cleaned_data is not None else self.cleaned_data
+        self.text_problems: list[dict[str, str]] = []
+        for field_name, spec in CHANT_TEXT_FIELDS.items():
+            if field_name not in self.fields:
+                continue
+            problem = find_chant_text_problem(
+                data.get(field_name),
+                text_presyllabified=spec["text_presyllabified"],
+            )
+            if problem:
+                self.text_problems.append(
+                    {"field": field_name, "label": spec["label"], **problem}
+                )
+        return cleaned_data
 
 
 class StyledChoiceField(forms.ChoiceField):
@@ -174,7 +278,7 @@ class FormsetOptimizedModelChoiceField(forms.ModelChoiceField):
         self.choices = choices
 
 
-class ChantCreateForm(forms.ModelForm):
+class ChantCreateForm(ChantTextWarningsMixin, forms.ModelForm):
     class Meta:
         model = Chant
         # specify either 'fields' or 'excludes' so that django knows which fields to use
@@ -390,7 +494,7 @@ class SourceCreateForm(forms.ModelForm):
     )
 
 
-class ChantEditForm(forms.ModelForm):
+class ChantEditForm(ChantTextWarningsMixin, forms.ModelForm):
     class Meta:
         model = Chant
         fields = [
@@ -718,7 +822,7 @@ class SequenceEditForm(forms.ModelForm):
     source.widget.attrs.update({"class": "form-control custom-select custom-select-sm"})
 
 
-class ChantEditSyllabificationForm(forms.ModelForm):
+class ChantEditSyllabificationForm(ChantTextWarningsMixin, forms.ModelForm):
     class Meta:
         model = Chant
         fields = [

@@ -13,8 +13,7 @@
 {% block maincontent %}
     <!--Display messages -->
     {% for message in messages %}
-        <div class="alert {{ message.tags }} alert-dismissible" role="alert">
-            <a href="#" class="close" data-bs-dismiss="alert" aria-label="close">×</a>
+        <div class="alert {{ message.tags }}" role="alert">
             {{ message }}
         </div>
     {% endfor %}
@@ -323,6 +322,7 @@
                 </div>
             </div>
         </form>
+        {% include "chant_text_warning.html" %}
     {% else %}
         <h3>Chant Edit Form</h3>
         <br />
