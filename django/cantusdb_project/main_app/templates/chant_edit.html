@@ -139,12 +139,10 @@
                     {{ form.addendum.label_tag }}
                     {{ form.addendum }}
                 </div>
-                {% if user_can_proofread_chant %}
-                    <div class="col-lg-2">
-                        {{ form.chant_range.label_tag }}
-                        {{ form.chant_range }}
-                    </div>
-                {% endif %}
+                <div class="col-lg-2">
+                    {{ form.chant_range.label_tag }}
+                    {{ form.chant_range }}
+                </div>
             </div>
             <!-- The next three rows of fields are hidden unless the Benedicamus Domino project is selected. -->
             <div id="benedicamus-domino-project-fields" hidden>

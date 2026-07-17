@@ -519,6 +519,39 @@ class SourceEditChantsViewTest(ChantPermissionsTestCase):
         chant.refresh_from_db()
         self.assertIs(chant.manuscript_full_text_std_proofread, True)
 
+    def test_non_proofreader_can_edit_chant_range(self):
+        # A creator/editor who is not a proofreader (assigned to the source but
+        # not in the "editor" group) can now edit chant_range: the value must
+        # persist rather than being reverted, and the edit routes the chant back
+        # for proofreading via other_fields_proofread. See #2081 / #1176.
+        self.client.logout()
+        self.client.force_login(self.users["user"])
+        source = make_fake_source(published=False, current_editors=[self.users["user"]])
+        chant = make_fake_chant(
+            source=source,
+            folio="001r",
+            c_sequence=1,
+            volpiano="1---c--d---4",
+            chant_range="1-c-d-4",
+            manuscript_full_text_std_spelling="lorem ipsum",
+            other_fields_proofread=True,
+        )
+        response = self.client.post(
+            reverse("source-edit-chants", args=[source.id]),
+            {
+                "manuscript_full_text_std_spelling": "lorem ipsum",
+                "pk": chant.id,
+                "folio": "001r",
+                "c_sequence": 1,
+                "volpiano": "1---c--d---4",
+                "chant_range": "1-e-f-4",
+            },
+        )
+        self.assertEqual(response.status_code, 302)
+        chant.refresh_from_db()
+        self.assertEqual(chant.chant_range, "1-e-f-4")
+        self.assertIs(chant.other_fields_proofread, False)
+
     @skip("Temporarily disabled due to #1674")
     def test_invalid_text(self) -> None:
         """

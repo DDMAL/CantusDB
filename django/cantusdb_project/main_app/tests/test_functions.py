@@ -16,7 +16,11 @@ from main_app.tests.make_fakes import (
     make_fake_source,
 )
 from main_app.management.commands import update_cached_concordances
-from main_app.signals import generate_incipit
+from main_app.signals import (
+    generate_incipit,
+    generate_volpiano_notes,
+    generate_chant_range,
+)
 from cantusindex import (
     get_suggested_chants,
     get_json_from_ci_api,
@@ -298,6 +302,83 @@ class IncipitSignalTest(TestCase):
         observed_incipit_2 = generate_incipit(short_fulltext)
         with self.subTest(test="fulltext that's already a short incipit"):
             self.assertEqual(observed_incipit_2, expected_incipit_2)
+
+
+class ChantRangeSignalTest(TestCase):
+    # testing generate_chant_range, within main_app/signals.py.
+    def test_lowest_and_highest_notes(self):
+        # input is already-normalized volpiano_notes (note chars only)
+        self.assertEqual(generate_chant_range("cdefg"), "1-c-g-4")
+
+    def test_order_of_notes_does_not_matter(self):
+        # the range depends on pitch extremes, not on where they appear
+        self.assertEqual(generate_chant_range("gfedc"), "1-c-g-4")
+        self.assertEqual(generate_chant_range("edcgf"), "1-c-g-4")
+
+    def test_single_note(self):
+        self.assertEqual(generate_chant_range("f"), "1-f-f-4")
+
+    def test_no_notes_returns_empty_string(self):
+        self.assertEqual(generate_chant_range(""), "")
+
+    def test_low_g_is_below_a(self):
+        # "9" (low G) is the lowest note character, ranking below "a"
+        self.assertEqual(generate_chant_range("9abc"), "1-9-c-4")
+
+    def test_b_is_j_not_i(self):
+        # "i" is skipped in volpiano; a span from A ("h") to C ("k")
+        # crosses B ("j") and must treat "k" as the highest note
+        self.assertEqual(generate_chant_range("hjk"), "1-h-k-4")
+
+    def test_full_gamut(self):
+        self.assertEqual(generate_chant_range("89abcdefghjklmnopqrs"), "1-8-s-4")
+
+    def test_end_to_end_from_raw_volpiano(self):
+        # liquescents (upper-case) lower-case to the same pitch, consecutive
+        # duplicates collapse, and clefs/barlines are stripped by
+        # generate_volpiano_notes before the range is computed
+        raw_volpiano: str = "1---cD--Ef--g---4"
+        notes: str = generate_volpiano_notes(raw_volpiano)
+        self.assertEqual(generate_chant_range(notes), "1-c-g-4")
+
+    def test_end_to_end_low_g_liquescent(self):
+        # ")" is the low-G liquescent, normalized to "9" by generate_volpiano_notes
+        raw_volpiano: str = "1---)abc---4"
+        notes: str = generate_volpiano_notes(raw_volpiano)
+        self.assertEqual(generate_chant_range(notes), "1-9-c-4")
+
+    def test_end_to_end_melodyless_volpiano(self):
+        # a volpiano with only clef and barlines yields no notes, hence no range
+        raw_volpiano: str = "1---3---4"
+        notes: str = generate_volpiano_notes(raw_volpiano)
+        self.assertEqual(generate_chant_range(notes), "")
+
+
+class ChantRangeAutofillSignalTest(TestCase):
+    # testing the fill-when-empty wiring in update_volpiano_fields (signals.py):
+    # saving a chant should derive chant_range from its volpiano only when the
+    # stored range is blank, never overwriting an existing value. See #2081 / #1176.
+    def test_blank_range_is_filled_from_volpiano(self):
+        chant = make_fake_chant(volpiano="1---c--d--e--f--g---4", chant_range="")
+        self.assertEqual(chant.chant_range, "1-c-g-4")
+
+    def test_existing_range_is_preserved(self):
+        # the derived range would be "1-c-g-4", but the hand-entered value wins
+        chant = make_fake_chant(volpiano="1---c--d--e--f--g---4", chant_range="1-a-b-4")
+        self.assertEqual(chant.chant_range, "1-a-b-4")
+
+    def test_existing_range_not_recomputed_on_later_edit(self):
+        # decision #2: once set, the range is not recomputed when volpiano changes
+        chant = make_fake_chant(volpiano="1---c--d---4", chant_range="")
+        self.assertEqual(chant.chant_range, "1-c-d-4")
+        chant.volpiano = "1---f--g--a---4"
+        chant.save()
+        chant.refresh_from_db()
+        self.assertEqual(chant.chant_range, "1-c-d-4")
+
+    def test_no_volpiano_leaves_range_untouched(self):
+        chant = make_fake_chant(volpiano=None, chant_range="1-a-b-4")
+        self.assertEqual(chant.chant_range, "1-a-b-4")
 
 
 class CantusIndexFunctionsTest(TestCase):

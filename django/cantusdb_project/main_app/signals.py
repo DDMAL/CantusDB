@@ -113,12 +113,19 @@ def update_volpiano_fields(instance) -> None:
         return
 
     volpiano_notes = generate_volpiano_notes(instance.volpiano)
-    volpiano_intervals = generate_volpiano_intervals(volpiano_notes)
+    fields_to_update = {
+        "volpiano_notes": volpiano_notes,
+        "volpiano_intervals": generate_volpiano_intervals(volpiano_notes),
+    }
+    # Derive chant_range from the volpiano only when it isn't already set; an
+    # existing value (hand-entered or previously derived) is preserved as ground
+    # truth until a human validates any change. See #2081 / #1176.
+    if not instance.chant_range:
+        chant_range = generate_chant_range(volpiano_notes)
+        if chant_range:
+            fields_to_update["chant_range"] = chant_range
 
-    Chant.objects.filter(id=instance.id).update(
-        volpiano_notes=volpiano_notes,
-        volpiano_intervals=volpiano_intervals,
-    )
+    Chant.objects.filter(id=instance.id).update(**fields_to_update)
 
 
 def generate_volpiano_notes(volpiano) -> str:
@@ -196,6 +203,32 @@ def generate_volpiano_intervals(volpiano_notes) -> str:
         intervals.append(ord(notes_list[j]) - ord(notes_list[j - 1]))
     volpiano_intervals: str = "".join([str(interval) for interval in intervals])
     return volpiano_intervals
+
+
+# Volpiano note characters in ascending pitch order. "8" and "9" are the two
+# lowest notes; the letter "i" is skipped in volpiano (the note B is "j").
+VOLPIANO_PITCH_ORDER: str = "89abcdefghjklmnopqrs"
+
+
+def generate_chant_range(volpiano_notes: str) -> str:
+    """Derive a chant's ``chant_range`` from its normalized volpiano notes.
+
+    The range is itself a short volpiano string of the form
+    ``"1-{lowest}-{highest}-4"`` (clef, lowest note, highest note, barline)
+    that renders in the volpiano font as the chant's ambitus.
+
+    Args:
+        volpiano_notes (str): The content of ``chant.volpiano_notes``,
+        populated by ``generate_volpiano_notes`` (note characters only).
+
+    Returns:
+        str: The ``chant_range`` string, or ``""`` if there are no notes.
+    """
+    if not volpiano_notes:
+        return ""
+    lowest: str = min(volpiano_notes, key=VOLPIANO_PITCH_ORDER.index)
+    highest: str = max(volpiano_notes, key=VOLPIANO_PITCH_ORDER.index)
+    return f"1-{lowest}-{highest}-4"
 
 
 def update_prefix_field(instance) -> None:
