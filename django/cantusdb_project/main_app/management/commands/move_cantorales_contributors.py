@@ -11,6 +11,8 @@ empty and re-running is a no-op.
 Run: python manage.py move_cantorales_contributors
 """
 
+from typing import Any
+
 from django.conf import settings
 from django.core.management.base import BaseCommand
 from django.db import transaction
@@ -25,7 +27,7 @@ class Command(BaseCommand):
     )
 
     @transaction.atomic
-    def handle(self, *args, **options):
+    def handle(self, *args: Any, **options: Any) -> None:
         segment = Segment.objects.filter(pk=settings.CANTORALES_SEGMENT_ID).first()
         if segment is None:
             self.stdout.write(

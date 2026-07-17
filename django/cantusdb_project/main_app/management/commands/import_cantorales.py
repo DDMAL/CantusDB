@@ -18,7 +18,6 @@ from django.db import transaction
 from main_app.models import (
     Century,
     Institution,
-    Provenance,
     Segment,
     Source,
 )
@@ -196,9 +195,8 @@ class Command(BaseCommand):
 
         cantorales_segment = Segment.objects.get(pk=settings.CANTORALES_SEGMENT_ID)
 
-        # Pre-fetch century and provenance lookups
+        # Pre-fetch century lookup
         century_by_name = {c.name: c for c in Century.objects.all()}
-        provenance_by_name = {p.name: p for p in Provenance.objects.all()}
 
         # Create stub User accounts for contributors (unusable passwords)
         contributor_users = self._ensure_contributor_users(csv_path)
@@ -285,22 +283,11 @@ class Command(BaseCommand):
                     condition_raw, Source.SourceCompletenessChoices.UNKNOWN
                 )
 
-                # --- Provenance (from Origins and History) ---
-                # "no" means no origin info; otherwise get or create a
-                # Provenance taxonomy entry (so it shows on the browse-sources
-                # page, which reads the FK) and also keep the raw string in
-                # provenance_notes for extra detail.
-                origins_raw = row[COL_ORIGINS].strip()
-                if not origins_raw or origins_raw.lower() == "no":
-                    provenance_obj = None
-                    provenance_notes = None
-                else:
-                    provenance_notes = origins_raw
-                    provenance_obj = provenance_by_name.get(origins_raw)
-                    if provenance_obj is None:
-                        provenance_obj = Provenance.objects.create(name=origins_raw)
-                        provenance_by_name[origins_raw] = provenance_obj
-                        self.stdout.write(f"  Created provenance: {origins_raw!r}")
+                # --- Provenance notes (from Origins and History) ---
+                # The Origins column is free text (e.g. "Seville? Spain"), so
+                # it stays in provenance_notes; we don't derive a controlled
+                # Provenance taxonomy entry from it.
+                provenance_notes = row[COL_ORIGINS].strip() or None
 
                 # --- Description ---
                 description = build_description(row)
@@ -325,7 +312,6 @@ class Command(BaseCommand):
                     holding_institution=institution,
                     shelfmark=shelfmark,
                     source_completeness=completeness,
-                    provenance=provenance_obj,
                     provenance_notes=provenance_notes,
                     date=date,
                     description=description or None,
