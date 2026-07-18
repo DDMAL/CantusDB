@@ -416,6 +416,28 @@ class SourceEditChantsViewTest(ChantPermissionsTestCase):
         chant.refresh_from_db()
         self.assertEqual(chant.manuscript_full_text_std_spelling, "test")
 
+    def test_update_chant_returns_to_edited_chant_row(self):
+        # When editing from the browse-chants list (ref=chant-list), the user is
+        # returned to the edited chant's row via a URL fragment so they keep their
+        # place in the long list (#1433).
+        source = make_fake_source()
+        chant = make_fake_chant(
+            source=source, manuscript_full_text_std_spelling="initial"
+        )
+        referrer = reverse("browse-chants", args=[source.id])
+        response = self.client.post(
+            reverse("source-edit-chants", args=[source.id]) + "?ref=chant-list",
+            {
+                "manuscript_full_text_std_spelling": "test",
+                "pk": chant.id,
+                "folio": chant.folio,
+                "c_sequence": chant.c_sequence,
+                "referrer": referrer,
+            },
+        )
+        self.assertEqual(response.status_code, 302)
+        self.assertEqual(response.url, f"{referrer}#chant-{chant.id}")
+
     def test_volpiano_signal(self):
         source = make_fake_source()
         chant_1 = make_fake_chant(

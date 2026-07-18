@@ -1368,8 +1368,11 @@ class SourceEditChantsView(CustomAccessMixin, UpdateView):  # type: ignore[type-
         # Take user back to the referring page
         # `ref` url parameter is used to indicate referring page
         next_url = self.request.GET.get("ref")
-        if next_url:
-            return self.request.POST.get("referrer")
+        referrer = self.request.POST.get("referrer")
+        if next_url and referrer:
+            # Return to the edited chant's row so the user keeps their place in
+            # the (often very long) chant list rather than landing at the top (#1433).
+            return f"{referrer}#chant-{self.object.pk}"
         # ref not found, stay on the same page after save
         return self.request.get_full_path()
 

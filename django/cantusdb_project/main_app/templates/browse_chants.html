@@ -143,7 +143,7 @@
                 </thead>
                 <tbody>
                     {% for chant in chants %}
-                        <tr>
+                        <tr id="chant-{{ chant.id }}">
                             <td class="text-wrap text-center">
                                 <b>{{ chant.folio|default:"" }}</b>
                             </td>
