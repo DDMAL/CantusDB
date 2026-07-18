@@ -3,7 +3,7 @@ from functools import reduce
 
 from django.contrib.postgres.search import SearchVector
 from django.db import models
-from django.db.models import Value
+from django.db.models import Value, Q
 from django.db.models.signals import post_save, post_delete
 from django.dispatch import receiver
 
@@ -113,19 +113,24 @@ def update_volpiano_fields(instance) -> None:
         return
 
     volpiano_notes = generate_volpiano_notes(instance.volpiano)
-    fields_to_update = {
-        "volpiano_notes": volpiano_notes,
-        "volpiano_intervals": generate_volpiano_intervals(volpiano_notes),
-    }
-    # Derive chant_range from the volpiano only when it isn't already set; an
-    # existing value (hand-entered or previously derived) is preserved as ground
-    # truth until a human validates any change. See #2081 / #1176.
+    Chant.objects.filter(id=instance.id).update(
+        volpiano_notes=volpiano_notes,
+        volpiano_intervals=generate_volpiano_intervals(volpiano_notes),
+    )
+
+    # Fill chant_range from the volpiano ONLY when it is not already set. We
+    # never overwrite an existing value: any stored range (hand-entered or
+    # previously derived) is ground truth until a human validates a change
+    # (#2081 / #1176). Two independent guards enforce this — the in-memory
+    # check skips the write in the common case, and the blank filter on the
+    # UPDATE itself makes it impossible to clobber a stored value even if
+    # `instance` is stale (e.g. saved with update_fields excluding chant_range).
     if not instance.chant_range:
         chant_range = generate_chant_range(volpiano_notes)
         if chant_range:
-            fields_to_update["chant_range"] = chant_range
-
-    Chant.objects.filter(id=instance.id).update(**fields_to_update)
+            Chant.objects.filter(id=instance.id).filter(
+                Q(chant_range__isnull=True) | Q(chant_range="")
+            ).update(chant_range=chant_range)
 
 
 def generate_volpiano_notes(volpiano) -> str:
@@ -224,11 +229,15 @@ def generate_chant_range(volpiano_notes: str) -> str:
     Returns:
         str: The ``chant_range`` string, or ``""`` if there are no notes.
     """
-    if not volpiano_notes:
+    # Real volpiano fields contain occasional dirty characters — stray
+    # punctuation, whitespace, and typos (e.g. a literal "TEST!") — that
+    # survive generate_volpiano_notes. Restrict to recognized pitches so the
+    # ambitus reflects actual notes and a bad character can't crash a batch.
+    present: set[str] = set(volpiano_notes)
+    pitches: list[str] = [pitch for pitch in VOLPIANO_PITCH_ORDER if pitch in present]
+    if not pitches:
         return ""
-    lowest: str = min(volpiano_notes, key=VOLPIANO_PITCH_ORDER.index)
-    highest: str = max(volpiano_notes, key=VOLPIANO_PITCH_ORDER.index)
-    return f"1-{lowest}-{highest}-4"
+    return f"1-{pitches[0]}-{pitches[-1]}-4"
 
 
 def update_prefix_field(instance) -> None:

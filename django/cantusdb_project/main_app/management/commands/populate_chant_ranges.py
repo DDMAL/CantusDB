@@ -36,9 +36,18 @@ class Command(BaseCommand):
             chant_range = generate_chant_range(generate_volpiano_notes(chant.volpiano))
             if not chant_range:
                 continue
-            if not dry_run:
-                Chant.objects.filter(id=chant.id).update(chant_range=chant_range)
-            updated += 1
+            if dry_run:
+                updated += 1
+                continue
+            # Re-check the blank condition at the DB level inside the write. This
+            # makes it impossible to clobber a value written between our read and
+            # our write, and .update() returns the number of rows it actually
+            # touched — so the count never overstates what was written.
+            updated += (
+                Chant.objects.filter(id=chant.id)
+                .filter(Q(chant_range__isnull=True) | Q(chant_range=""))
+                .update(chant_range=chant_range)
+            )
 
         verb = "would be updated" if dry_run else "updated"
         self.stdout.write(self.style.SUCCESS(f"Success! {updated} chants {verb}."))

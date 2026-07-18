@@ -353,6 +353,16 @@ class ChantRangeSignalTest(TestCase):
         notes: str = generate_volpiano_notes(raw_volpiano)
         self.assertEqual(generate_chant_range(notes), "")
 
+    def test_non_pitch_characters_are_ignored(self):
+        # real volpiano fields contain dirty data (stray punctuation, whitespace,
+        # typos) that survives normalization; the range must span real pitches
+        # only, never crash. "w" here is a typo mid-melody, not a high note.
+        self.assertEqual(generate_chant_range("c|d]e\nf*g"), "1-c-g-4")
+        self.assertEqual(generate_chant_range("fghwg"), "1-f-h-4")
+
+    def test_only_junk_returns_empty_string(self):
+        self.assertEqual(generate_chant_range("|[]*\n\r"), "")
+
 
 class ChantRangeAutofillSignalTest(TestCase):
     # testing the fill-when-empty wiring in update_volpiano_fields (signals.py):
@@ -379,6 +389,71 @@ class ChantRangeAutofillSignalTest(TestCase):
     def test_no_volpiano_leaves_range_untouched(self):
         chant = make_fake_chant(volpiano=None, chant_range="1-a-b-4")
         self.assertEqual(chant.chant_range, "1-a-b-4")
+
+    def test_preexisting_values_are_never_overwritten(self):
+        # Any non-blank stored range is ground truth and must survive a save
+        # untouched, however it compares to the derived "1-c-g-4": a plainly
+        # wrong ambitus, an uppercase (liquescent) extreme, a malformed value,
+        # or even whitespace-only content are all preserved.
+        volpiano = "1---c--d--e--f--g---4"
+        preexisting_ranges = {
+            "plainly wrong ambitus": "1-a-b-4",
+            "uppercase liquescent extreme": "1-c-G-4",
+            "malformed (missing dash)": "1c-g-4",
+            "whitespace only": " ",
+        }
+        for label, stored in preexisting_ranges.items():
+            with self.subTest(case=label):
+                chant = make_fake_chant(volpiano=volpiano, chant_range=stored)
+                self.assertEqual(chant.chant_range, stored)
+
+    def test_none_and_empty_are_both_filled_when_volpiano_present(self):
+        # Both blank representations count as "no value yet" and get filled.
+        for blank in (None, ""):
+            with self.subTest(blank=repr(blank)):
+                chant = make_fake_chant(volpiano="1---c--d---4", chant_range=blank)
+                self.assertEqual(chant.chant_range, "1-c-d-4")
+
+    def test_none_and_empty_are_both_preserved_without_volpiano(self):
+        for blank in (None, ""):
+            with self.subTest(blank=repr(blank)):
+                chant = make_fake_chant(volpiano=None, chant_range=blank)
+                self.assertEqual(chant.chant_range, blank)
+
+    def test_junk_only_volpiano_leaves_blank_range_blank(self):
+        # A volpiano whose only surviving characters are non-pitches (stray
+        # punctuation) yields no range, and must not write "" churn or crash.
+        chant = make_fake_chant(volpiano="1---|[]*---4", chant_range="")
+        self.assertEqual(chant.chant_range, "")
+
+    def test_stale_instance_cannot_clobber_stored_range(self):
+        # The critical guard: even if the in-memory instance reports a blank
+        # range, a save that excludes chant_range must not wipe the stored value.
+        # Fails without the DB-level blank filter on the UPDATE.
+        chant = make_fake_chant(volpiano="1---c--d---4", chant_range="1-a-b-4")
+        chant.chant_range = ""  # blank in memory only; DB still holds "1-a-b-4"
+        chant.save(update_fields=["volpiano"])
+        chant.refresh_from_db()
+        self.assertEqual(chant.chant_range, "1-a-b-4")
+
+    def test_autofill_is_idempotent(self):
+        chant = make_fake_chant(volpiano="1---c--d--e---4", chant_range="")
+        self.assertEqual(chant.chant_range, "1-c-e-4")
+        for _ in range(3):
+            chant.save()
+            chant.refresh_from_db()
+            self.assertEqual(chant.chant_range, "1-c-e-4")
+
+    def test_autofill_touches_only_chant_range(self):
+        # Filling a blank range must not disturb any other field on the chant.
+        fulltext = "originalus fulltextus"
+        chant = make_fake_chant(
+            volpiano="1---c--d---4",
+            chant_range="",
+            manuscript_full_text_std_spelling=fulltext,
+        )
+        self.assertEqual(chant.chant_range, "1-c-d-4")  # the fill happened
+        self.assertEqual(chant.manuscript_full_text_std_spelling, fulltext)
 
 
 class CantusIndexFunctionsTest(TestCase):
