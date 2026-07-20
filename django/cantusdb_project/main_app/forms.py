@@ -102,7 +102,7 @@ class CheckboxNameModelMultipleChoiceField(forms.ModelMultipleChoiceField):
 # to a short label (used in the warning UI) and whether the field holds
 # already-syllabified text. Both the ``ChantTextWarningsMixin`` and the
 # ``ValidateChantTextView`` endpoint use this as the single source of truth.
-CHANT_TEXT_FIELDS: Dict[str, Dict[str, Any]] = {
+CHANT_TEXT_FIELDS: dict[str, dict[str, Any]] = {
     "manuscript_full_text_std_spelling": {
         "label": "Full text (standardized spelling)",
         "text_presyllabified": False,
@@ -142,7 +142,7 @@ def _mark_invalid_characters(value: str) -> tuple[list[str], str]:
 
 def find_chant_text_problem(
     value: Optional[str], text_presyllabified: bool = False
-) -> Optional[Dict[str, str]]:
+) -> Optional[dict[str, str]]:
     """
     Check whether ``value`` (the contents of a chant text field) can be
     syllabified. If it cannot -- because it contains improper characters or,
@@ -165,10 +165,10 @@ def find_chant_text_problem(
     if invalid_chars:
         # Preserve order but drop duplicates for a readable message.
         distinct = list(dict.fromkeys(invalid_chars))
-        shown = ", ".join("space" if c == " " else c for c in distinct)
+        shown = ", ".join(distinct)
         return {
             "kind": "invalid_characters",
-            "message": f"contains character(s) that aren't allowed: {shown}",
+            "message": f"contains character(s) that aren't allowed: {shown}.",
             "marked_html": marked_html,
         }
     try:
@@ -180,10 +180,14 @@ def find_chant_text_problem(
             "marked_html": html.escape(value),
         }
     except ValueError:
+        # ``INVALID_CHAR_REGEX`` already ruled out disallowed characters, so
+        # this is some other syllabification failure. Describe it generically
+        # rather than claiming a character problem we haven't actually located
+        # (there would be nothing marked to point at).
         return {
-            "kind": "invalid_characters",
-            "message": "contains invalid characters.",
-            "marked_html": marked_html,
+            "kind": "structural",
+            "message": "couldn't be syllabified.",
+            "marked_html": html.escape(value),
         }
     return None
 
@@ -215,7 +219,7 @@ class ChantTextWarningsMixin:
     the view to surface as a non-blocking warning (see #1681).
     """
 
-    def clean(self) -> dict[str, Any]:
+    def clean(self) -> Optional[dict[str, Any]]:
         cleaned_data = super().clean()
         # ``cleaned_data`` can be None if a parent ``clean()`` returns nothing.
         data = cleaned_data if cleaned_data is not None else self.cleaned_data

@@ -15,6 +15,9 @@
 (function () {
     "use strict";
 
+    // Must stay in sync with the keys of ``CHANT_TEXT_FIELDS`` in
+    // main_app/forms.py, which is the source of truth for which fields the
+    // server checks. Only fields actually present on the page are sent.
     var FIELD_NAMES = [
         "manuscript_full_text_std_spelling",
         "manuscript_full_text",
@@ -47,6 +50,7 @@
         );
         var bsModal = new bootstrap.Modal(modalEl);
         var pendingSubmitter = null;
+        var bypassValidation = false;
 
         function csrfToken() {
             var input = form.querySelector('[name="csrfmiddlewaretoken"]');
@@ -116,7 +120,13 @@
             modalBody.innerHTML = parts.join("");
         }
 
-        function confirmedSubmit() {
+        // Submit the form, bypassing this script's own interception.
+        // ``acknowledged`` records whether the user actually saw and dismissed
+        // the warning modal; it posts `confirm_invalid_text=1`, which tells the
+        // server to skip its non-blocking warning message. When we submit for
+        // any other reason -- nothing to warn about, or the validation request
+        // failed -- we leave it unset so the server-side warning still fires.
+        function submitForm(acknowledged) {
             var hidden = form.querySelector('[name="confirm_invalid_text"]');
             if (!hidden) {
                 hidden = document.createElement("input");
@@ -124,13 +134,18 @@
                 hidden.name = "confirm_invalid_text";
                 form.appendChild(hidden);
             }
-            hidden.value = "1";
-            form.dataset.textConfirmed = "1";
+            hidden.value = acknowledged ? "1" : "";
+            // Scoped to this one programmatic submit: the submit event fires
+            // synchronously from requestSubmit(), so if the browser instead
+            // blocks it on native constraint validation, the next attempt gets
+            // validated again rather than silently skipping the check.
+            bypassValidation = true;
             if (form.requestSubmit) {
                 form.requestSubmit(pendingSubmitter || undefined);
             } else {
                 form.submit();
             }
+            bypassValidation = false;
         }
 
         function collectBody() {
@@ -145,8 +160,8 @@
         }
 
         form.addEventListener("submit", function (event) {
-            if (form.dataset.textConfirmed === "1") {
-                return; // already acknowledged -> let the submit proceed
+            if (bypassValidation) {
+                return; // our own re-submit -> let it proceed
             }
             event.preventDefault();
             pendingSubmitter = event.submitter || null;
@@ -169,7 +184,7 @@
                     var problems = (data && data.problems) || [];
                     if (!problems.length) {
                         clearMarks();
-                        confirmedSubmit();
+                        submitForm(false);
                         return;
                     }
                     renderInlineEchoes(problems);
@@ -177,16 +192,18 @@
                     bsModal.show();
                 })
                 .catch(function () {
-                    // Never block saving if validation can't be reached; the
-                    // server-side warning is the fallback.
-                    confirmedSubmit();
+                    // Never block saving if validation can't be reached. Submit
+                    // without the acknowledgement flag, so the server's own
+                    // non-blocking warning still reaches the user -- they never
+                    // saw a dialog to acknowledge.
+                    submitForm(false);
                 });
         });
 
         if (saveAnywayBtn) {
             saveAnywayBtn.addEventListener("click", function () {
                 bsModal.hide();
-                confirmedSubmit();
+                submitForm(true);
             });
         }
     }

@@ -8,7 +8,7 @@ from django.contrib import messages
 from django.contrib.auth.mixins import LoginRequiredMixin
 from django.contrib.postgres.aggregates import ArrayAgg
 from django.db.models import F, Q, QuerySet
-from django.http import Http404, HttpResponse, JsonResponse
+from django.http import Http404, HttpRequest, HttpResponse, JsonResponse
 from django.shortcuts import get_object_or_404
 from django.urls import reverse
 from django.views.generic import (
@@ -58,7 +58,7 @@ from users.models import User
 MAX_VALIDATED_TEXT_LENGTH: int = 10000
 
 
-def add_unconfirmed_text_warnings(request: HttpResponse, form: Any) -> None:
+def add_unconfirmed_text_warnings(request: HttpRequest, form: Any) -> None:
     """
     After a chant form saves, surface a non-blocking warning message for each
     invalid-text problem the form found (see #1681), *unless* the user already
@@ -86,7 +86,7 @@ class ValidateChantTextView(LoginRequiredMixin, View):  # type: ignore[type-arg]
     confirmation dialog (see #1681).
     """
 
-    def post(self, request: HttpResponse) -> JsonResponse:
+    def post(self, request: HttpRequest) -> JsonResponse:
         problems: list[dict[str, str]] = []
         for field_name, spec in CHANT_TEXT_FIELDS.items():
             if field_name not in request.POST:
