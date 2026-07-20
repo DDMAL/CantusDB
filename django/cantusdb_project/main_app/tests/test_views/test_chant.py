@@ -438,6 +438,53 @@ class SourceEditChantsViewTest(ChantPermissionsTestCase):
         self.assertEqual(response.status_code, 302)
         self.assertEqual(response.url, f"{referrer}#chant-{chant.id}")
 
+    def test_update_chant_ignores_off_site_referrer(self):
+        # `referrer` is a client-supplied form field, so an off-site value must
+        # never become the redirect target (open redirect).
+        source = make_fake_source()
+        chant = make_fake_chant(
+            source=source, manuscript_full_text_std_spelling="initial"
+        )
+        edit_url = reverse("source-edit-chants", args=[source.id])
+        response = self.client.post(
+            edit_url + "?ref=chant-list",
+            {
+                "manuscript_full_text_std_spelling": "test",
+                "pk": chant.id,
+                "folio": chant.folio,
+                "c_sequence": chant.c_sequence,
+                "referrer": "https://evil.example.com/phish",
+            },
+        )
+        self.assertEqual(response.status_code, 302)
+        self.assertNotIn("evil.example.com", response.url)
+        # Falls back to staying on the edit page.
+        self.assertEqual(response.url, f"{edit_url}?ref=chant-list")
+        # The edit itself still went through.
+        chant.refresh_from_db()
+        self.assertEqual(chant.manuscript_full_text_std_spelling, "test")
+
+    def test_update_chant_without_referrer_stays_on_edit_page(self):
+        # The Referer header is optional, so `referrer` can arrive empty. That
+        # must fall back to the edit page rather than redirect to nowhere.
+        source = make_fake_source()
+        chant = make_fake_chant(
+            source=source, manuscript_full_text_std_spelling="initial"
+        )
+        edit_url = reverse("source-edit-chants", args=[source.id])
+        response = self.client.post(
+            edit_url + "?ref=chant-list",
+            {
+                "manuscript_full_text_std_spelling": "test",
+                "pk": chant.id,
+                "folio": chant.folio,
+                "c_sequence": chant.c_sequence,
+                "referrer": "",
+            },
+        )
+        self.assertEqual(response.status_code, 302)
+        self.assertEqual(response.url, f"{edit_url}?ref=chant-list")
+
     def test_volpiano_signal(self):
         source = make_fake_source()
         chant_1 = make_fake_chant(
