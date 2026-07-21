@@ -13,13 +13,14 @@ from main_app.models import (
 from main_app.tests import mock_cantusindex_data
 from main_app.tests.make_fakes import (
     make_fake_chant,
+    make_fake_sequence,
     make_fake_source,
 )
 from main_app.management.commands import update_cached_concordances
 from main_app.signals import (
     generate_incipit,
-    generate_volpiano_notes,
     generate_chant_range,
+    extract_volpiano_clef,
 )
 from cantusindex import (
     get_suggested_chants,
@@ -306,8 +307,9 @@ class IncipitSignalTest(TestCase):
 
 class ChantRangeSignalTest(TestCase):
     # testing generate_chant_range, within main_app/signals.py.
+    # Input is a raw volpiano string; normalization and clef extraction both
+    # happen inside generate_chant_range.
     def test_lowest_and_highest_notes(self):
-        # input is already-normalized volpiano_notes (note chars only)
         self.assertEqual(generate_chant_range("cdefg"), "1-c-g-4")
 
     def test_order_of_notes_does_not_matter(self):
@@ -331,27 +333,34 @@ class ChantRangeSignalTest(TestCase):
         self.assertEqual(generate_chant_range("hjk"), "1-h-k-4")
 
     def test_full_gamut(self):
-        self.assertEqual(generate_chant_range("89abcdefghjklmnopqrs"), "1-8-s-4")
+        # "9" is the lowest pitch character; the gamut runs "9" to "s"
+        self.assertEqual(generate_chant_range("9abcdefghjklmnopqrs"), "1-9-s-4")
+
+    def test_eight_is_not_treated_as_a_note(self):
+        # "8" is not a recognized volpiano pitch (see VOLPIANO_PITCH_ORDER).
+        # generate_volpiano_notes strips only "1"-"7", so a stray "8" survives
+        # normalization and would otherwise sort below every real note and
+        # silently widen the ambitus.
+        self.assertEqual(generate_chant_range("1---c--d--8--e--f--g---4"), "1-c-g-4")
+
+    def test_volpiano_of_only_an_eight_yields_no_range(self):
+        # Guards the worst case: a bogus range derived from junk would be
+        # written once and then never overwritten, becoming permanent.
+        self.assertEqual(generate_chant_range("1---8---4"), "")
 
     def test_end_to_end_from_raw_volpiano(self):
         # liquescents (upper-case) lower-case to the same pitch, consecutive
-        # duplicates collapse, and clefs/barlines are stripped by
-        # generate_volpiano_notes before the range is computed
-        raw_volpiano: str = "1---cD--Ef--g---4"
-        notes: str = generate_volpiano_notes(raw_volpiano)
-        self.assertEqual(generate_chant_range(notes), "1-c-g-4")
+        # duplicates collapse, and clefs/barlines are stripped before the
+        # range is computed
+        self.assertEqual(generate_chant_range("1---cD--Ef--g---4"), "1-c-g-4")
 
     def test_end_to_end_low_g_liquescent(self):
-        # ")" is the low-G liquescent, normalized to "9" by generate_volpiano_notes
-        raw_volpiano: str = "1---)abc---4"
-        notes: str = generate_volpiano_notes(raw_volpiano)
-        self.assertEqual(generate_chant_range(notes), "1-9-c-4")
+        # ")" is the low-G liquescent, normalized to "9"
+        self.assertEqual(generate_chant_range("1---)abc---4"), "1-9-c-4")
 
     def test_end_to_end_melodyless_volpiano(self):
         # a volpiano with only clef and barlines yields no notes, hence no range
-        raw_volpiano: str = "1---3---4"
-        notes: str = generate_volpiano_notes(raw_volpiano)
-        self.assertEqual(generate_chant_range(notes), "")
+        self.assertEqual(generate_chant_range("1---3---4"), "")
 
     def test_non_pitch_characters_are_ignored(self):
         # real volpiano fields contain dirty data (stray punctuation, whitespace,
@@ -364,37 +373,127 @@ class ChantRangeSignalTest(TestCase):
         self.assertEqual(generate_chant_range("|[]*\n\r"), "")
 
 
+class VolpianoClefTest(TestCase):
+    # testing extract_volpiano_clef and the clef half of generate_chant_range.
+    # The clef is copied from the melody so a range renders on the same staff
+    # as the chant it describes, rather than being hardcoded to the G clef.
+    def test_g_clef_is_read_from_the_melody(self):
+        self.assertEqual(extract_volpiano_clef("1---c--d---4"), "1")
+
+    def test_f_clef_is_read_from_the_melody(self):
+        self.assertEqual(extract_volpiano_clef("2---c--d---4"), "2")
+
+    def test_leading_separators_are_skipped(self):
+        self.assertEqual(extract_volpiano_clef("---2---c--d---4"), "2")
+
+    def test_missing_clef_falls_back_to_g_clef(self):
+        self.assertEqual(extract_volpiano_clef("cdefg"), "1")
+
+    def test_empty_volpiano_falls_back_to_g_clef(self):
+        self.assertEqual(extract_volpiano_clef(""), "1")
+
+    def test_non_clef_leading_character_falls_back_to_g_clef(self):
+        # "3" is a barline, not a clef
+        self.assertEqual(extract_volpiano_clef("3---c--d---4"), "1")
+
+    def test_repeated_clef_is_not_a_clef_change(self):
+        # The same clef restated mid-melody still describes one staff.
+        self.assertEqual(extract_volpiano_clef("1---c--d---1---e--f---4"), "1")
+
+    def test_clef_change_returns_none(self):
+        # Volpiano allows the clef to change mid-melody. The same letter then
+        # denotes a different pitch on either side of the change, so no single
+        # clef describes the whole ambitus.
+        self.assertIsNone(extract_volpiano_clef("1---c--d---2---e--f---4"))
+
+    def test_clef_change_yields_no_range(self):
+        # Better to derive nothing than a confidently wrong ambitus. A human
+        # can enter the range for these by hand.
+        self.assertEqual(generate_chant_range("1---c--d---2---e--f---4"), "")
+
+    def test_range_carries_the_f_clef_through(self):
+        self.assertEqual(generate_chant_range("2---c--d--e---4"), "2-c-e-4")
+
+    def test_range_defaults_to_g_clef_when_melody_has_none(self):
+        self.assertEqual(generate_chant_range("---c--d--e---"), "1-c-e-4")
+
+
 class ChantRangeAutofillSignalTest(TestCase):
-    # testing the fill-when-empty wiring in update_volpiano_fields (signals.py):
-    # saving a chant should derive chant_range from its volpiano only when the
-    # stored range is blank, never overwriting an existing value. See #2081 / #1176.
+    # testing the derivation wiring in update_volpiano_fields (signals.py):
+    # whenever a chant has volpiano, saving it recomputes chant_range from that
+    # volpiano and overwrites whatever was stored. A stored range that disagrees
+    # with the melody is an error, not ground truth. See #2081 / #1176.
     def test_blank_range_is_filled_from_volpiano(self):
         chant = make_fake_chant(volpiano="1---c--d--e--f--g---4", chant_range="")
         self.assertEqual(chant.chant_range, "1-c-g-4")
 
-    def test_existing_range_is_preserved(self):
-        # the derived range would be "1-c-g-4", but the hand-entered value wins
+    def test_existing_range_is_overwritten(self):
+        # the headline behaviour: the melody wins over a hand-entered value even
+        # when the melody itself did not change on this save
         chant = make_fake_chant(volpiano="1---c--d--e--f--g---4", chant_range="1-a-b-4")
-        self.assertEqual(chant.chant_range, "1-a-b-4")
+        self.assertEqual(chant.chant_range, "1-c-g-4")
 
-    def test_existing_range_not_recomputed_on_later_edit(self):
-        # decision #2: once set, the range is not recomputed when volpiano changes
+    def test_unproofread_volpiano_still_overwrites(self):
+        # Derivation is deliberately not conditioned on volpiano_proofread: an
+        # unverified melody is still a better description of the ambitus than a
+        # range typed by hand.
+        chant = make_fake_chant(
+            volpiano="1---c--d--e--f--g---4",
+            chant_range="1-a-b-4",
+            volpiano_proofread=False,
+        )
+        self.assertEqual(chant.chant_range, "1-c-g-4")
+
+    def test_range_is_recomputed_when_volpiano_is_edited(self):
+        # chant_range is derived data: editing the melody makes the stored range
+        # stale, so it follows the new volpiano. ("k"-"m" sit above "c"-"d" in
+        # the volpiano gamut; note that "a" is near the BOTTOM of that gamut.)
         chant = make_fake_chant(volpiano="1---c--d---4", chant_range="")
         self.assertEqual(chant.chant_range, "1-c-d-4")
-        chant.volpiano = "1---f--g--a---4"
+        chant.volpiano = "1---k--l--m---4"
+        chant.save()
+        chant.refresh_from_db()
+        self.assertEqual(chant.chant_range, "1-k-m-4")
+
+    def test_hand_entered_range_is_recomputed_when_volpiano_is_edited(self):
+        chant = make_fake_chant(volpiano="1---c--d---4", chant_range="1-a-b-4")
+        self.assertEqual(chant.chant_range, "1-c-d-4")
+        chant.volpiano = "1---k--l--m---4"
+        chant.save()
+        chant.refresh_from_db()
+        self.assertEqual(chant.chant_range, "1-k-m-4")
+
+    def test_range_is_corrected_by_a_save_that_does_not_touch_the_melody(self):
+        # A mismatch introduced behind the ORM's back (or predating this feature)
+        # is repaired by the next save of any kind — the range is derived data,
+        # so it does not need the melody to have changed to be recomputed.
+        chant = make_fake_chant(volpiano="1---c--d---4", chant_range="")
+        Chant.objects.filter(pk=chant.pk).update(chant_range="1-a-b-4")
+        chant.refresh_from_db()
+        chant.manuscript_full_text_std_spelling = "edited elsewhere"
         chant.save()
         chant.refresh_from_db()
         self.assertEqual(chant.chant_range, "1-c-d-4")
+
+    def test_clef_change_alone_recomputes_the_range(self):
+        # Editing only the clef leaves the notes identical, so the old
+        # change-detection approach missed it. Deriving unconditionally means the
+        # range's clef now follows the melody's.
+        chant = make_fake_chant(volpiano="1---c--d---4", chant_range="")
+        self.assertEqual(chant.chant_range, "1-c-d-4")
+        chant.volpiano = "2---c--d---4"
+        chant.save()
+        chant.refresh_from_db()
+        self.assertEqual(chant.chant_range, "2-c-d-4")
 
     def test_no_volpiano_leaves_range_untouched(self):
         chant = make_fake_chant(volpiano=None, chant_range="1-a-b-4")
         self.assertEqual(chant.chant_range, "1-a-b-4")
 
-    def test_preexisting_values_are_never_overwritten(self):
-        # Any non-blank stored range is ground truth and must survive a save
-        # untouched, however it compares to the derived "1-c-g-4": a plainly
-        # wrong ambitus, an uppercase (liquescent) extreme, a malformed value,
-        # or even whitespace-only content are all preserved.
+    def test_preexisting_values_are_overwritten_at_creation(self):
+        # A range supplied at creation gives way to the derived "1-c-g-4",
+        # whatever form it took: a plainly wrong ambitus, an uppercase
+        # (liquescent) extreme, a malformed value, or whitespace-only content.
         volpiano = "1---c--d--e--f--g---4"
         preexisting_ranges = {
             "plainly wrong ambitus": "1-a-b-4",
@@ -405,10 +504,10 @@ class ChantRangeAutofillSignalTest(TestCase):
         for label, stored in preexisting_ranges.items():
             with self.subTest(case=label):
                 chant = make_fake_chant(volpiano=volpiano, chant_range=stored)
-                self.assertEqual(chant.chant_range, stored)
+                self.assertEqual(chant.chant_range, "1-c-g-4")
 
     def test_none_and_empty_are_both_filled_when_volpiano_present(self):
-        # Both blank representations count as "no value yet" and get filled.
+        # Both blank representations get filled from the melody.
         for blank in (None, ""):
             with self.subTest(blank=repr(blank)):
                 chant = make_fake_chant(volpiano="1---c--d---4", chant_range=blank)
@@ -426,15 +525,29 @@ class ChantRangeAutofillSignalTest(TestCase):
         chant = make_fake_chant(volpiano="1---|[]*---4", chant_range="")
         self.assertEqual(chant.chant_range, "")
 
-    def test_stale_instance_cannot_clobber_stored_range(self):
-        # The critical guard: even if the in-memory instance reports a blank
-        # range, a save that excludes chant_range must not wipe the stored value.
-        # Fails without the DB-level blank filter on the UPDATE.
+    def test_underivable_range_leaves_a_stored_value_alone(self):
+        # The one case where a stored range survives a chant that has volpiano:
+        # the melody yields nothing to derive from, so it says nothing about the
+        # ambitus and blanking the stored value would only destroy information.
+        # A mid-melody clef change and a pitchless volpiano are the two ways in.
+        underivable = {
+            "clef change": "1---c--2---c---4",
+            "no recognized pitches": "1---|[]*---4",
+        }
+        for label, volpiano in underivable.items():
+            with self.subTest(case=label):
+                chant = make_fake_chant(volpiano=volpiano, chant_range="1-a-b-4")
+                self.assertEqual(chant.chant_range, "1-a-b-4")
+
+    def test_stale_blank_instance_does_not_blank_the_stored_range(self):
+        # The signal reads instance.volpiano and never instance.chant_range, so a
+        # save whose in-memory range is blank still writes the derived value
+        # rather than propagating the blank.
         chant = make_fake_chant(volpiano="1---c--d---4", chant_range="1-a-b-4")
-        chant.chant_range = ""  # blank in memory only; DB still holds "1-a-b-4"
+        chant.chant_range = ""  # blank in memory only
         chant.save(update_fields=["volpiano"])
         chant.refresh_from_db()
-        self.assertEqual(chant.chant_range, "1-a-b-4")
+        self.assertEqual(chant.chant_range, "1-c-d-4")
 
     def test_autofill_is_idempotent(self):
         chant = make_fake_chant(volpiano="1---c--d--e---4", chant_range="")
@@ -454,6 +567,42 @@ class ChantRangeAutofillSignalTest(TestCase):
         )
         self.assertEqual(chant.chant_range, "1-c-d-4")  # the fill happened
         self.assertEqual(chant.manuscript_full_text_std_spelling, fulltext)
+
+
+class SequenceRangeAutofillSignalTest(TestCase):
+    # volpiano and chant_range are both declared on BaseChant, so sequences carry
+    # them too. on_sequence_save now runs the same derivation as on_chant_save
+    # (#2081 / #1176); before that it skipped update_volpiano_fields entirely.
+    def test_range_is_derived_from_volpiano(self):
+        sequence = make_fake_sequence()
+        sequence.volpiano = "1---c--d--e---4"
+        sequence.save()
+        sequence.refresh_from_db()
+        self.assertEqual(sequence.chant_range, "1-c-e-4")
+
+    def test_existing_range_is_overwritten(self):
+        sequence = make_fake_sequence()
+        sequence.volpiano = "1---c--d--e---4"
+        sequence.chant_range = "1-a-b-4"
+        sequence.save()
+        sequence.refresh_from_db()
+        self.assertEqual(sequence.chant_range, "1-c-e-4")
+
+    def test_no_volpiano_leaves_range_untouched(self):
+        sequence = make_fake_sequence()
+        sequence.chant_range = "1-a-b-4"
+        sequence.save()
+        sequence.refresh_from_db()
+        self.assertEqual(sequence.chant_range, "1-a-b-4")
+
+    def test_volpiano_notes_and_intervals_are_populated(self):
+        # These two melody-search fields were never written for sequences either.
+        sequence = make_fake_sequence()
+        sequence.volpiano = "1---c--d--e---4"
+        sequence.save()
+        sequence.refresh_from_db()
+        self.assertEqual(sequence.volpiano_notes, "cde")
+        self.assertEqual(sequence.volpiano_intervals, "11")
 
 
 class CantusIndexFunctionsTest(TestCase):

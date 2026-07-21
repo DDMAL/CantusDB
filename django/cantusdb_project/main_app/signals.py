@@ -3,7 +3,7 @@ from functools import reduce
 
 from django.contrib.postgres.search import SearchVector
 from django.db import models
-from django.db.models import Value, Q
+from django.db.models import Value
 from django.db.models.signals import post_save, post_delete
 from django.dispatch import receiver
 
@@ -15,6 +15,7 @@ from main_app.models import Chant
 from main_app.models import Sequence
 from main_app.models import Feast
 from main_app.models import Source
+from main_app.models.base_chant import BaseChant
 
 
 @receiver(post_save, sender=Chant)
@@ -37,6 +38,7 @@ def on_chant_delete(instance, **kwargs) -> None:
 def on_sequence_save(instance, **kwargs) -> None:
     update_source_chant_count(instance)
     update_sequence_incipit_field(instance)
+    update_volpiano_fields(instance)
 
 
 @receiver(post_delete, sender=Sequence)
@@ -103,34 +105,42 @@ def update_source_melody_count(instance) -> None:
         source.save()
 
 
-def update_volpiano_fields(instance) -> None:
-    """When saving a Chant, make sure the chant's volpiano_notes and volpiano_intervals are up-to-date
+def update_volpiano_fields(instance: BaseChant) -> None:
+    """When saving a Chant or Sequence, make sure its volpiano_notes,
+    volpiano_intervals and chant_range are up-to-date
 
-    Called in on_chant_save()
+    chant_range is derived data: whenever a record has volpiano, its range is
+    recomputed from that volpiano and whatever was stored is overwritten. A
+    stored range that disagrees with the melody is treated as an error to be
+    corrected, not as ground truth (#2081 / #1176). Proofread status is
+    deliberately not consulted — an unproofread melody is still a better
+    description of the ambitus than a range typed by hand.
+
+    Called in on_chant_save() and on_sequence_save()
     """
 
     if instance.volpiano is None:
         return
 
     volpiano_notes = generate_volpiano_notes(instance.volpiano)
-    Chant.objects.filter(id=instance.id).update(
+    volpiano_intervals = generate_volpiano_intervals(volpiano_notes)
+
+    # Write through the queryset rather than the instance so that saving does
+    # not re-fire the post_save cascade.
+    records = instance.__class__.objects.filter(pk=instance.pk)
+    records.update(
         volpiano_notes=volpiano_notes,
-        volpiano_intervals=generate_volpiano_intervals(volpiano_notes),
+        volpiano_intervals=volpiano_intervals,
     )
 
-    # Fill chant_range from the volpiano ONLY when it is not already set. We
-    # never overwrite an existing value: any stored range (hand-entered or
-    # previously derived) is ground truth until a human validates a change
-    # (#2081 / #1176). Two independent guards enforce this — the in-memory
-    # check skips the write in the common case, and the blank filter on the
-    # UPDATE itself makes it impossible to clobber a stored value even if
-    # `instance` is stale (e.g. saved with update_fields excluding chant_range).
-    if not instance.chant_range:
-        chant_range = generate_chant_range(volpiano_notes)
-        if chant_range:
-            Chant.objects.filter(id=instance.id).filter(
-                Q(chant_range__isnull=True) | Q(chant_range="")
-            ).update(chant_range=chant_range)
+    chant_range = generate_chant_range(instance.volpiano)
+    if not chant_range:
+        # A melody that yields no derivable range (no recognized pitches, or a
+        # mid-melody clef change) tells us nothing about the ambitus, so the
+        # stored value is left alone rather than blanked.
+        return
+
+    records.update(chant_range=chant_range)
 
 
 def generate_volpiano_notes(volpiano) -> str:
@@ -210,34 +220,75 @@ def generate_volpiano_intervals(volpiano_notes) -> str:
     return volpiano_intervals
 
 
-# Volpiano note characters in ascending pitch order. "8" and "9" are the two
-# lowest notes; the letter "i" is skipped in volpiano (the note B is "j").
-VOLPIANO_PITCH_ORDER: str = "89abcdefghjklmnopqrs"
+# Volpiano note characters in ascending pitch order. "9" is the lowest note
+# (the G below A); the letter "i" is skipped in volpiano (the note B is "j").
+VOLPIANO_PITCH_ORDER: str = "9abcdefghjklmnopqrs"
+
+# Volpiano defines exactly two clefs: "1" (G clef) and "2" (F clef). The
+# notation has no C-clef character; if one is ever added, listing it here is
+# the only change needed. Chants are overwhelmingly notated with the G clef,
+# which is what we fall back to for a melody that declares no clef at all.
+VOLPIANO_CLEFS: str = "12"
+DEFAULT_VOLPIANO_CLEF: str = "1"
+
+# The character that terminates a chant_range string: a volpiano double barline.
+VOLPIANO_RANGE_TERMINATOR: str = "4"
 
 
-def generate_chant_range(volpiano_notes: str) -> str:
-    """Derive a chant's ``chant_range`` from its normalized volpiano notes.
+def extract_volpiano_clef(volpiano: str) -> Optional[str]:
+    """Return the clef a raw volpiano melody is written in.
 
-    The range is itself a short volpiano string of the form
-    ``"1-{lowest}-{highest}-4"`` (clef, lowest note, highest note, barline)
-    that renders in the volpiano font as the chant's ambitus.
+    Falls back to the G clef when the melody declares no clef. Returns ``None``
+    when the melody changes clef partway through: the same note letter denotes
+    a different pitch on either side of the change, so no single clef can
+    describe the melody's ambitus.
 
     Args:
-        volpiano_notes (str): The content of ``chant.volpiano_notes``,
-        populated by ``generate_volpiano_notes`` (note characters only).
+        volpiano (str): The content of ``chant.volpiano`` (raw, un-normalized).
 
     Returns:
-        str: The ``chant_range`` string, or ``""`` if there are no notes.
+        Optional[str]: The clef character, or None if the melody changes clef.
+    """
+    clefs: set[str] = {char for char in volpiano if char in VOLPIANO_CLEFS}
+    if not clefs:
+        return DEFAULT_VOLPIANO_CLEF
+    if len(clefs) > 1:
+        return None
+    return clefs.pop()
+
+
+def generate_chant_range(volpiano: str) -> str:
+    """Derive a chant's ``chant_range`` from its raw volpiano.
+
+    The range is itself a short volpiano string of the form
+    ``"{clef}-{lowest}-{highest}-4"`` (clef, lowest note, highest note,
+    double barline) that renders in the volpiano font as the chant's ambitus.
+
+    The clef is copied from the melody rather than hardcoded, so that a range
+    always renders on the same staff as the melody it describes.
+
+    Args:
+        volpiano (str): The content of ``chant.volpiano`` (raw, un-normalized).
+
+    Returns:
+        str: The ``chant_range`` string, or ``""`` if there are no notes or the
+        melody changes clef.
     """
     # Real volpiano fields contain occasional dirty characters — stray
     # punctuation, whitespace, and typos (e.g. a literal "TEST!") — that
     # survive generate_volpiano_notes. Restrict to recognized pitches so the
     # ambitus reflects actual notes and a bad character can't crash a batch.
-    present: set[str] = set(volpiano_notes)
+    present: set[str] = set(generate_volpiano_notes(volpiano))
     pitches: list[str] = [pitch for pitch in VOLPIANO_PITCH_ORDER if pitch in present]
     if not pitches:
         return ""
-    return f"1-{pitches[0]}-{pitches[-1]}-4"
+    clef: Optional[str] = extract_volpiano_clef(volpiano)
+    if clef is None:
+        # The melody changes clef, so its ambitus cannot be written as a single
+        # clef plus two notes. Deriving nothing is better than deriving a range
+        # that is confidently wrong.
+        return ""
+    return f"{clef}-{pitches[0]}-{pitches[-1]}-{VOLPIANO_RANGE_TERMINATOR}"
 
 
 def update_prefix_field(instance) -> None:

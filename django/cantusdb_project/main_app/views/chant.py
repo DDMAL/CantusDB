@@ -1068,6 +1068,12 @@ class ChantCreateView(CustomAccessMixin, CreateView):  # type: ignore[type-arg]
                 suggested_chants = get_suggested_chants(previous_cantus_id)
         context["suggested_feasts"] = suggested_feasts
         context["suggested_chants"] = suggested_chants
+        # chant_range is a proofreader-only field on chant-edit; gating it the
+        # same way here keeps the two forms consistent, so that a range can only
+        # ever be entered by hand by someone who could also correct it (#2081).
+        context["user_can_proofread_chant"] = (
+            self.user_is_editor and self.user_assigned_to_source(self.source)
+        )
         return context
 
     def get_form_kwargs(self):
@@ -1087,6 +1093,11 @@ class ChantCreateView(CustomAccessMixin, CreateView):  # type: ignore[type-arg]
         """
         form.instance.created_by = self.request.user
         form.instance.last_updated_by = self.request.user
+        if not (self.user_is_editor and self.user_assigned_to_source(self.source)):
+            # The template hides chant_range from non-proofreaders; dropping it
+            # here too means the gate can't be bypassed by crafting a request.
+            # Mirrors the revert in SourceEditChantsView.form_valid.
+            form.instance.chant_range = None
         return super().form_valid(form)
 
 
@@ -1310,6 +1321,7 @@ class SourceEditChantsView(CustomAccessMixin, UpdateView):  # type: ignore[type-
         if not user_can_proofread_chant:
             # Preserve the original values for proofreader-specific fields
             original_chant: Chant = self.get_object()
+            chant.chant_range = original_chant.chant_range
             chant.volpiano_proofread = original_chant.volpiano_proofread
             chant.manuscript_full_text_std_proofread = (
                 original_chant.manuscript_full_text_std_proofread

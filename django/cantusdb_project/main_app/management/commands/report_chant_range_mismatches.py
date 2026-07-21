@@ -2,21 +2,30 @@ import csv
 import sys
 from collections import Counter
 from contextlib import contextmanager
-from typing import Any, Iterator, Optional, TextIO
+from typing import Any, Iterator, Optional, TextIO, Union
 
-from django.core.management.base import BaseCommand
+from django.core.management.base import BaseCommand, CommandParser
 from django.db.models import Q
 
-from main_app.models import Chant
-from main_app.signals import generate_chant_range, generate_volpiano_notes
+from main_app.models import Chant, Sequence
+from main_app.signals import generate_chant_range
 
 CSV_HEADER = [
-    "chant_id",
+    "model",
+    "record_id",
     "source_id",
     "folio",
     "stored_range",
     "derived_range",
     "difference_type",
+]
+
+# The models this report covers, paired with the label written to the CSV. Kept
+# in step with populate_chant_ranges so this report can serve as that command's
+# backup before an --overwrite run.
+TARGET_MODELS: list[tuple[str, Union[type[Chant], type[Sequence]]]] = [
+    ("chant", Chant),
+    ("sequence", Sequence),
 ]
 
 
@@ -47,14 +56,14 @@ def open_output(path: Optional[str]) -> Iterator[TextIO]:
 
 class Command(BaseCommand):
     help = (
-        "Read-only report of chants whose stored chant_range disagrees with the "
-        "range derived from their volpiano. Each row is tagged with a "
-        "difference_type (case / formatting / pitch) so proofreaders can filter; "
-        "'pitch' rows are the genuine ambitus disagreements. Mutates nothing "
-        "(see #2081 / #1176)."
+        "Read-only report of chants and sequences whose stored chant_range "
+        "disagrees with the range derived from their volpiano. Each row is tagged "
+        "with a difference_type (case / formatting / pitch) so proofreaders can "
+        "filter; 'pitch' rows are the genuine ambitus disagreements. Mutates "
+        "nothing (see #2081 / #1176)."
     )
 
-    def add_arguments(self, parser: Any) -> None:
+    def add_arguments(self, parser: CommandParser) -> None:
         parser.add_argument(
             "--output",
             type=str,
@@ -65,35 +74,48 @@ class Command(BaseCommand):
     def handle(self, *args: Any, **options: Any) -> None:
         output_path: Optional[str] = options["output"]
 
-        chants = Chant.objects.filter(
-            Q(volpiano__isnull=False) & ~Q(volpiano="")
-        ).exclude(Q(chant_range__isnull=True) | Q(chant_range=""))
-
-        counts: Counter = Counter()
+        counts: Counter[str] = Counter()
         with open_output(output_path) as output:
             writer = csv.writer(output)
             writer.writerow(CSV_HEADER)
-            for chant in chants.iterator(chunk_size=500):
-                derived = generate_chant_range(generate_volpiano_notes(chant.volpiano))
-                if derived and derived != chant.chant_range:
-                    difference_type = classify_difference(chant.chant_range, derived)
-                    counts[difference_type] += 1
-                    writer.writerow(
-                        [
-                            chant.id,
-                            chant.source_id,
-                            chant.folio,
-                            chant.chant_range,
-                            derived,
-                            difference_type,
-                        ]
-                    )
+            for label, model in TARGET_MODELS:
+                # Only the fields this report reads are loaded; records carry
+                # large text columns (full texts, search_vector) that would
+                # otherwise be fetched for every row. Safe because this command
+                # never writes.
+                records = (
+                    model.objects.filter(Q(volpiano__isnull=False) & ~Q(volpiano=""))
+                    .exclude(Q(chant_range__isnull=True) | Q(chant_range=""))
+                    .only("id", "source", "folio", "chant_range", "volpiano")
+                )
+                for record in records.iterator(chunk_size=500):
+                    derived = generate_chant_range(record.volpiano)
+                    if derived and derived != record.chant_range:
+                        difference_type = classify_difference(
+                            record.chant_range, derived
+                        )
+                        counts[difference_type] += 1
+                        writer.writerow(
+                            [
+                                label,
+                                record.pk,
+                                # .source_id (not .source.pk) so reading the FK
+                                # never triggers a per-row query. django-stubs
+                                # doesn't model the implicit "<fk>_id" attribute,
+                                # hence the ignore.
+                                record.source_id,  # type: ignore[union-attr]
+                                record.folio,
+                                record.chant_range,
+                                derived,
+                                difference_type,
+                            ]
+                        )
 
         # Summary goes to stderr so it never pollutes a CSV streamed to stdout.
+        # Written unstyled: OutputWrapper already applies its own style_func to
+        # stderr, which would wrap (not replace) any style applied here.
         breakdown = ", ".join(f"{n} {t}" for t, n in sorted(counts.items()))
         self.stderr.write(
-            self.style.SUCCESS(
-                f"Found {sum(counts.values())} mismatched chants"
-                + (f" ({breakdown})." if breakdown else ".")
-            )
+            f"Found {sum(counts.values())} mismatched records"
+            + (f" ({breakdown})." if breakdown else ".")
         )

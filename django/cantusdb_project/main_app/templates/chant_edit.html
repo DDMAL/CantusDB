@@ -3,6 +3,7 @@
 {% block title %}<title>{{ source.heading }} | Cantus Database</title>{% endblock %}
 {% block scripts %}
     <script src="/static/js/chant_edit.js"></script>
+    <script src="/static/js/chant_range.js"></script>
     <script type="text/javascript"
             src="{% static 'admin/js/vendor/jquery/jquery.js' %}"></script>
     {{ form.media }}
@@ -139,10 +140,17 @@
                     {{ form.addendum.label_tag }}
                     {{ form.addendum }}
                 </div>
-                <div class="col-lg-2">
-                    {{ form.chant_range.label_tag }}
-                    {{ form.chant_range }}
-                </div>
+                {% if user_can_proofread_chant %}
+                    <div class="col-lg-2">
+                        {{ form.chant_range.label_tag }}
+                        {{ form.chant_range }}
+                        <small id="chantRangeDerivedNote"
+                               class="text-muted"
+                               {% if not form.chant_range.field.disabled %}hidden{% endif %}>
+                            Derived automatically from the volpiano.
+                        </small>
+                    </div>
+                {% endif %}
             </div>
             <!-- The next three rows of fields are hidden unless the Benedicamus Domino project is selected. -->
             <div id="benedicamus-domino-project-fields" hidden>

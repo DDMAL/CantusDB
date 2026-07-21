@@ -29,6 +29,7 @@ from main_app.tests.make_fakes import (
 )
 from main_app.tests.test_functions import mock_requests_get
 from main_app.tests.mixins import CustomAccessTestMixin
+from main_app.forms import ChantEditForm
 from main_app.models import Chant, Source, Feast, Service
 from main_app.permissions import KAIATONSERA_SOURCE_IDS, KAIATONSERA_VIEWER_GROUP
 from main_app.views.chant import (
@@ -519,11 +520,11 @@ class SourceEditChantsViewTest(ChantPermissionsTestCase):
         chant.refresh_from_db()
         self.assertIs(chant.manuscript_full_text_std_proofread, True)
 
-    def test_non_proofreader_can_edit_chant_range(self):
-        # A creator/editor who is not a proofreader (assigned to the source but
-        # not in the "editor" group) can now edit chant_range: the value must
-        # persist rather than being reverted, and the edit routes the chant back
-        # for proofreading via other_fields_proofread. See #2081 / #1176.
+    def test_non_proofreader_cannot_edit_chant_range(self):
+        # chant_range remains a proofreader-only field: the template hides it
+        # from non-proofreaders and form_valid reverts it, so a posted value is
+        # discarded. Non-proofreaders get correct ranges derived from the
+        # volpiano instead of by hand. See #2081 / #1176.
         self.client.logout()
         self.client.force_login(self.users["user"])
         source = make_fake_source(published=False, current_editors=[self.users["user"]])
@@ -534,7 +535,6 @@ class SourceEditChantsViewTest(ChantPermissionsTestCase):
             volpiano="1---c--d---4",
             chant_range="1-c-d-4",
             manuscript_full_text_std_spelling="lorem ipsum",
-            other_fields_proofread=True,
         )
         response = self.client.post(
             reverse("source-edit-chants", args=[source.id]),
@@ -549,11 +549,12 @@ class SourceEditChantsViewTest(ChantPermissionsTestCase):
         )
         self.assertEqual(response.status_code, 302)
         chant.refresh_from_db()
-        self.assertEqual(chant.chant_range, "1-e-f-4")
-        self.assertIs(chant.other_fields_proofread, False)
+        self.assertEqual(chant.chant_range, "1-c-d-4")
 
-    def test_non_proofreader_edit_preserves_unchanged_chant_range(self):
-        # Re-submitting the same chant_range must not silently blank or lose it.
+    def test_non_proofreader_edit_still_triggers_chant_range_autofill(self):
+        # The revert preserves the stored blank, and the post_save signal then
+        # derives the range from the volpiano. This is how a non-proofreader's
+        # chant ends up with a range despite not being able to edit the field.
         self.client.logout()
         self.client.force_login(self.users["user"])
         source = make_fake_source(published=False, current_editors=[self.users["user"]])
@@ -562,9 +563,10 @@ class SourceEditChantsViewTest(ChantPermissionsTestCase):
             folio="001r",
             c_sequence=1,
             volpiano="1---c--d---4",
-            chant_range="1-c-d-4",
+            chant_range="",
             manuscript_full_text_std_spelling="lorem ipsum",
         )
+        Chant.objects.filter(id=chant.id).update(chant_range="")
         response = self.client.post(
             reverse("source-edit-chants", args=[source.id]),
             {
@@ -573,17 +575,17 @@ class SourceEditChantsViewTest(ChantPermissionsTestCase):
                 "folio": "001r",
                 "c_sequence": 1,
                 "volpiano": "1---c--d---4",
-                "chant_range": "1-c-d-4",
             },
         )
         self.assertEqual(response.status_code, 302)
         chant.refresh_from_db()
         self.assertEqual(chant.chant_range, "1-c-d-4")
 
-    def test_proofreader_can_still_edit_chant_range(self):
-        # Regression: removing the template gate + the view's revert line must
-        # not break the proofreader's own ability to edit chant_range. The
-        # default user here (superuser) is treated as a proofreader.
+    def test_proofreader_cannot_override_a_derived_chant_range(self):
+        # Once a chant has volpiano its range is derived data, so the form
+        # disables the field and Django ignores anything posted for it. Even a
+        # proofreader (the default user here is a superuser) cannot hand-enter a
+        # range that disagrees with the melody. See #2081 / #1176.
         source = make_fake_source()
         chant = make_fake_chant(
             source=source,
@@ -606,7 +608,76 @@ class SourceEditChantsViewTest(ChantPermissionsTestCase):
         )
         self.assertEqual(response.status_code, 302)
         chant.refresh_from_db()
+        self.assertEqual(chant.chant_range, "1-c-d-4")
+
+    def test_proofreader_can_edit_chant_range_without_volpiano(self):
+        # With no melody there is nothing to derive from, so the field stays
+        # editable and a hand-entered range is the only source of truth.
+        source = make_fake_source()
+        chant = make_fake_chant(
+            source=source,
+            folio="001r",
+            c_sequence=1,
+            volpiano=None,
+            chant_range="",
+            manuscript_full_text_std_spelling="lorem ipsum",
+        )
+        response = self.client.post(
+            reverse("source-edit-chants", args=[source.id]),
+            {
+                "manuscript_full_text_std_spelling": "lorem ipsum",
+                "pk": chant.id,
+                "folio": "001r",
+                "c_sequence": 1,
+                "chant_range": "1-e-f-4",
+            },
+        )
+        self.assertEqual(response.status_code, 302)
+        chant.refresh_from_db()
         self.assertEqual(chant.chant_range, "1-e-f-4")
+
+    def test_chant_range_field_is_disabled_only_when_volpiano_is_present(self):
+        # The form-level half of the two tests above: the field is disabled
+        # exactly when a melody exists to derive the range from.
+        with_melody = ChantEditForm(instance=make_fake_chant(volpiano="1---c--d---4"))
+        self.assertTrue(with_melody.fields["chant_range"].disabled)
+
+        without_melody = ChantEditForm(instance=make_fake_chant(volpiano=None))
+        self.assertFalse(without_melody.fields["chant_range"].disabled)
+
+    def test_adding_volpiano_and_a_range_together_is_rejected(self):
+        # The chant has no volpiano yet, so the field renders enabled - this is
+        # the case the disabled attribute cannot catch, and the one the
+        # either/or validation exists for. Agreed with @annamorphism on #2081.
+        source = make_fake_source()
+        chant = make_fake_chant(
+            source=source,
+            folio="001r",
+            c_sequence=1,
+            volpiano=None,
+            chant_range="",
+            manuscript_full_text_std_spelling="lorem ipsum",
+        )
+        response = self.client.post(
+            reverse("source-edit-chants", args=[source.id]),
+            {
+                "manuscript_full_text_std_spelling": "lorem ipsum",
+                "pk": chant.id,
+                "folio": "001r",
+                "c_sequence": 1,
+                "volpiano": "1---c--d---4",
+                "chant_range": "1-e-f-4",
+            },
+        )
+        self.assertEqual(response.status_code, 200)  # form redisplayed
+        errors = response.context["form"].errors
+        self.assertIn("chant_range", errors)
+        self.assertIn(
+            "either volpiano or a hand-entered range", errors["chant_range"][0]
+        )
+        chant.refresh_from_db()
+        self.assertIsNone(chant.volpiano)
+        self.assertEqual(chant.chant_range, "")
 
     @skip("Temporarily disabled due to #1674")
     def test_invalid_text(self) -> None:
@@ -3480,6 +3551,29 @@ class ChantCreateViewTest(CustomAccessTestMixin, TestCase):
         chant = Chant.objects.get(source=source)
         self.assertEqual(chant.manuscript_full_text_std_spelling, "initial")
 
+    def test_non_proofreader_does_not_see_the_range_field(self) -> None:
+        # chant_range was proofreader-only on chant-edit but open to anyone on
+        # chant-create; the two now match. This class's default user is assigned
+        # to the source but is not an editor, so is not a proofreader. See #2081.
+        response = self.client.get(reverse("chant-create", args=[self.source.id]))
+        self.assertNotContains(response, 'id="id_chant_range"')
+
+    def test_non_proofreader_posted_range_is_dropped(self) -> None:
+        # The template hides the field; form_valid drops it as well, so hiding it
+        # can't be worked around by crafting a request.
+        response = self.client.post(
+            reverse("chant-create", args=[self.source.id]),
+            {
+                "manuscript_full_text_std_spelling": "initial",
+                "folio": "001r",
+                "c_sequence": "1",
+                "chant_range": "1-e-f-4",
+            },
+        )
+        self.assertEqual(response.status_code, 302)
+        chant = Chant.objects.get(source=self.source)
+        self.assertIsNone(chant.chant_range)
+
     def test_view_url_path(self) -> None:
         source = self.source
         response = self.client.get(f"/chant-create/{source.id}")
@@ -3715,6 +3809,67 @@ class ChantCreateViewTest(CustomAccessTestMixin, TestCase):
                 "manuscript_full_text_std_spelling",
                 "Word [ contains non-alphabetic characters.",
             )
+
+
+class ChantCreateRangeDerivationTest(CustomAccessTestMixin, TestCase):
+    """A chant carries either volpiano or a hand-entered range, never both.
+
+    The range is derived from the melody on save, so accepting both would mean
+    silently discarding what the user typed. Agreed with @annamorphism on #2081;
+    enforced by forms.DerivedChantRangeMixin. The default user here is a
+    superuser, which counts as a proofreader for any source.
+    """
+
+    source: ClassVar[Source]
+    default_user = "superuser"
+
+    @classmethod
+    def setUpTestData(cls) -> None:
+        super().setUpTestData()
+        cls.source = make_fake_source()
+
+    def _create(self, **extra: str):
+        data = {
+            "manuscript_full_text_std_spelling": "initial",
+            "folio": "001r",
+            "c_sequence": "1",
+        }
+        data.update(extra)
+        return self.client.post(reverse("chant-create", args=[self.source.id]), data)
+
+    def test_proofreader_sees_the_range_field(self):
+        response = self.client.get(reverse("chant-create", args=[self.source.id]))
+        self.assertContains(response, 'id="id_chant_range"')
+
+    def test_volpiano_and_range_together_are_rejected(self):
+        response = self._create(volpiano="1---c--d---4", chant_range="1-e-f-4")
+        self.assertEqual(response.status_code, 200)  # form redisplayed
+        errors = response.context["form"].errors
+        self.assertIn("chant_range", errors)
+        self.assertIn(
+            "either volpiano or a hand-entered range", errors["chant_range"][0]
+        )
+        self.assertFalse(Chant.objects.filter(source=self.source).exists())
+
+    def test_volpiano_alone_derives_the_range(self):
+        response = self._create(volpiano="1---c--d---4")
+        self.assertEqual(response.status_code, 302)
+        chant = Chant.objects.get(source=self.source)
+        self.assertEqual(chant.chant_range, "1-c-d-4")
+
+    def test_range_alone_is_accepted(self):
+        # No melody to derive from, so a hand-entered range is the only source
+        # of information and stands.
+        response = self._create(chant_range="1-e-f-4")
+        self.assertEqual(response.status_code, 302)
+        chant = Chant.objects.get(source=self.source)
+        self.assertEqual(chant.chant_range, "1-e-f-4")
+
+    def test_neither_is_accepted(self):
+        response = self._create()
+        self.assertEqual(response.status_code, 302)
+        chant = Chant.objects.get(source=self.source)
+        self.assertIn(chant.chant_range, (None, ""))
 
 
 class CISearchViewTest(TestCase):
