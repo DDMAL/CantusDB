@@ -202,6 +202,9 @@
                         <label class="form-check-label" for="has-general-elements">Has general elements</label>
                     </div>
                 </div>
+                <p id="general-elements-hint" class="text-muted small mb-1" hidden>
+                    Type in the field to search general elements, then pick one from the dropdown to insert it.
+                </p>
                 {{ form.manuscript_full_text_std_spelling }}
                 <!-- Element composer; JS hides the textarea above and shows this when a cluster is active. -->
                 <div id="cluster-composer"
@@ -319,18 +322,6 @@
                     var ci = window.open(address, "ci", "height=400px, width=1200px, top=0, left=50px, status=no, toolbar=no, location=no, scrollbars=yes, resizable=yes");
                 }
             </script>
-        </div>
-    </div>
-    <!-- Chant cluster prototype (#2128): bank of general elements, shown when "Has general elements" is checked. -->
-    <div id="general-elements-card" class="card w-100 mt-3" hidden>
-        <div class="card-header">
-            <h5>General elements</h5>
-        </div>
-        <div class="card-body small">
-            <p class="text-muted mb-2">
-                Drag an element into the full text, or click to insert it at the cursor.
-            </p>
-            <div id="general-elements-bank" class="general-elements-bank"></div>
         </div>
     </div>
 {% endblock %}
