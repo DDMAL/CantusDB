@@ -1,7 +1,8 @@
 import logging
+import time
 
 import ujson as json
-from concurrent.futures import ThreadPoolExecutor, as_completed
+from concurrent.futures import ThreadPoolExecutor, as_completed, TimeoutError as FuturesTimeoutError
 from datetime import timedelta
 from typing import List, Dict, Any, Optional
 
@@ -17,6 +18,8 @@ from main_app.forms import BrowseChantsBulkEditFormset
 
 CI_DOMAIN = "https://cantusindex.uwaterloo.ca"
 CI_WORKERS = 10
+CI_REQUEST_DELAY = 0.2  # seconds between requests per worker, so we don't hammer CI
+CI_BATCH_TIMEOUT = 300  # overall seconds allotted to fetch CI genres for one check run
 
 logger = logging.getLogger(__name__)
 
@@ -82,11 +85,12 @@ def check_cantus_ids_not_in_ci(chant_ids: Optional[List[int]] = None) -> dict:
 def check_duplicate_folio_sequence(chant_ids: Optional[List[int]] = None) -> dict:
     """
     Returns groups where (source, folio, sequence) is duplicated.
-    Each row is one unique combination with a count of how many chants share it.
+    Each row is one unique combination with a count of how many chants/sequences
+    share it, plus the ids of the individual records so reviewers can look them up.
     """
     base_qs = Chant.objects.filter(id__in=chant_ids) if chant_ids is not None else Chant.objects.all()
 
-    chant_dups = (
+    chant_dups = list(
         base_qs.exclude(folio__isnull=True)
         .exclude(c_sequence__isnull=True)
         .values("source_id", "source__published", "folio", "c_sequence")
@@ -94,8 +98,16 @@ def check_duplicate_folio_sequence(chant_ids: Optional[List[int]] = None) -> dic
         .filter(count__gt=1)
         .order_by("source_id", "folio", "c_sequence")
     )
+    for group in chant_dups:
+        group["chant_ids"] = list(
+            base_qs.filter(
+                source_id=group["source_id"],
+                folio=group["folio"],
+                c_sequence=group["c_sequence"],
+            ).values_list("id", flat=True)
+        )
 
-    seq_dups = (
+    seq_dups = list(
         Sequence.objects.exclude(folio__isnull=True)
         .exclude(s_sequence__isnull=True)
         .values("source_id", "source__published", "folio", "s_sequence")
@@ -103,6 +115,14 @@ def check_duplicate_folio_sequence(chant_ids: Optional[List[int]] = None) -> dic
         .filter(count__gt=1)
         .order_by("source_id", "folio", "s_sequence")
     )
+    for group in seq_dups:
+        group["sequence_ids"] = list(
+            Sequence.objects.filter(
+                source_id=group["source_id"],
+                folio=group["folio"],
+                s_sequence=group["s_sequence"],
+            ).values_list("id", flat=True)
+        )
 
     published = [g for g in chant_dups if g["source__published"]] + \
                 [g for g in seq_dups if g["source__published"]]
@@ -114,6 +134,7 @@ def check_duplicate_folio_sequence(chant_ids: Optional[List[int]] = None) -> dic
 
 def _fetch_ci_genre(cantus_id: str) -> tuple[str, Optional[str]]:
     """Fetch the genre for a single cantus_id from CI. Returns (cantus_id, genre_or_None)."""
+    time.sleep(CI_REQUEST_DELAY)
     try:
         response = requests.get(f"{CI_DOMAIN}/json-cid/{cantus_id}", timeout=10)
         if response.status_code == 200:
@@ -150,13 +171,23 @@ def check_cantus_ids_genre_mismatch(chant_ids: Optional[List[int]] = None) -> di
     )
     distinct_cids = {cid for cid, _ in pairs}
 
-    # Fetch CI genres in parallel
+    # Fetch CI genres in parallel, bounded by an overall deadline so a slow
+    # or unresponsive CI can't stall this check indefinitely
     ci_genres: dict[str, Optional[str]] = {}
     with ThreadPoolExecutor(max_workers=CI_WORKERS) as executor:
         futures = {executor.submit(_fetch_ci_genre, cid): cid for cid in distinct_cids}
-        for future in as_completed(futures):
-            cid, ci_genre = future.result()
-            ci_genres[cid] = ci_genre
+        try:
+            for future in as_completed(futures, timeout=CI_BATCH_TIMEOUT):
+                cid, ci_genre = future.result()
+                ci_genres[cid] = ci_genre
+        except FuturesTimeoutError:
+            logger.warning(
+                "Genre mismatch check hit the %ss batch timeout; %d/%d cantus_ids were not checked",
+                CI_BATCH_TIMEOUT,
+                len(futures) - len(ci_genres),
+                len(futures),
+            )
+            executor.shutdown(cancel_futures=True)
 
     # Build a Q filter for chants where their specific (cantus_id, genre) pair mismatches CI.
     # Iterate over `pairs` directly (not a cid-keyed dict) so cantus_ids with more than one
@@ -275,11 +306,13 @@ def _format_check_attachment(label: str, result: dict) -> str:
             for item in items:
                 if isinstance(item, dict):
                     # duplicate folio/sequence results are dicts
+                    id_label = "chant_ids" if "chant_ids" in item else "sequence_ids"
                     lines.append(
                         f"  source_id={item.get('source_id')}  "
                         f"folio={item.get('folio')}  "
                         f"sequence={item.get('c_sequence', item.get('s_sequence'))}  "
-                        f"count={item.get('count')}"
+                        f"count={item.get('count')}  "
+                        f"{id_label}={item[id_label]}"
                     )
                 else:
                     # Chant model instances

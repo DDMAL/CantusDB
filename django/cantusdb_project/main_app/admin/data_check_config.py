@@ -9,3 +9,7 @@ class DataCheckConfigAdmin(admin.ModelAdmin):
     list_filter = ("frequency", "scope")
     readonly_fields = ("last_run",)
     filter_horizontal = ("recipients",)
+
+    def has_add_permission(self, request) -> bool:
+        # Singleton config: allow creating it once, then only editing that row.
+        return not DataCheckConfig.objects.exists()
