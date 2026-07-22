@@ -1,12 +1,29 @@
 from typing import List, Dict, Any
-from unittest.mock import patch, MagicMock
+from unittest.mock import patch, MagicMock, DEFAULT
 
+from django.core import mail
 from django.test import TestCase
 from django.db.models import QuerySet
 
-from main_app.tasks import save_browse_chants_formset, check_cantus_ids_not_in_ci, check_duplicate_folio_sequence, check_cantus_ids_genre_mismatch, check_position_service_mismatch, check_blank_cantus_id, check_blank_mode, check_blank_invitatory_differentia
-from main_app.tests.make_fakes import make_fake_source, make_fake_chant, make_fake_service, make_fake_genre
-from main_app.models import Chant, Genre, Source
+from main_app.tasks import (
+    save_browse_chants_formset,
+    check_cantus_ids_not_in_ci,
+    check_duplicate_folio_sequence,
+    check_cantus_ids_genre_mismatch,
+    check_position_service_mismatch,
+    check_blank_cantus_id,
+    check_blank_mode,
+    check_blank_invitatory_differentia,
+    run_data_checks,
+)
+from main_app.tests.make_fakes import (
+    make_fake_source,
+    make_fake_chant,
+    make_fake_service,
+    make_fake_genre,
+    make_fake_user,
+)
+from main_app.models import Chant, DataCheckConfig, Genre, Source
 from main_app.forms import BrowseChantsBulkEditFormset
 
 
@@ -153,7 +170,9 @@ class CheckCantusIdsGenreMismatchTest(TestCase):
         pub_chant = make_fake_chant(source=pub_source, cantus_id="001234")
         unpub_chant = make_fake_chant(source=unpub_source, cantus_id="001234")
         # Set genre to H (mismatch with CI's HV)
-        h_genre = Genre.objects.get_or_create(name="H", defaults={"description": "Hymn"})[0]
+        h_genre = Genre.objects.get_or_create(
+            name="H", defaults={"description": "Hymn"}
+        )[0]
         pub_chant.genre = h_genre
         pub_chant.save()
         unpub_chant.genre = h_genre
@@ -166,17 +185,27 @@ class CheckCantusIdsGenreMismatchTest(TestCase):
 
 class CheckPositionServiceMismatchTest(TestCase):
     def test_position_service_mismatch_split_by_published(self) -> None:
-        wrong_service = make_fake_service(name="M")  # Matins — not valid for B or M position
+        wrong_service = make_fake_service(
+            name="M"
+        )  # Matins — not valid for B or M position
         pub_source = make_fake_source(published=True)
         unpub_source = make_fake_source(published=False)
 
-        pub_chant = make_fake_chant(source=pub_source, position="B", service=wrong_service)
-        unpub_chant = make_fake_chant(source=unpub_source, position="M", service=wrong_service)
+        pub_chant = make_fake_chant(
+            source=pub_source, position="B", service=wrong_service
+        )
+        unpub_chant = make_fake_chant(
+            source=unpub_source, position="M", service=wrong_service
+        )
 
         valid_service = make_fake_service(name="L")
-        valid_chant = make_fake_chant(source=pub_source, position="B", service=valid_service)
+        valid_chant = make_fake_chant(
+            source=pub_source, position="B", service=valid_service
+        )
 
-        result = check_position_service_mismatch([pub_chant.id, unpub_chant.id, valid_chant.id])
+        result = check_position_service_mismatch(
+            [pub_chant.id, unpub_chant.id, valid_chant.id]
+        )
         self.assertIn(pub_chant, result["published"])
         self.assertIn(unpub_chant, result["unpublished"])
         self.assertNotIn(valid_chant, result["published"])
@@ -219,11 +248,17 @@ class CheckBlankInvitatoryDifferentiaTest(TestCase):
         other_genre = make_fake_genre(name="A")
 
         pub_chant = make_fake_chant(source=pub_source, genre=genre_I, differentia="")
-        unpub_chant = make_fake_chant(source=unpub_source, genre=genre_IP, differentia="")
+        unpub_chant = make_fake_chant(
+            source=unpub_source, genre=genre_IP, differentia=""
+        )
         # invitatory with a differentia — should not appear
-        valid_invitatory = make_fake_chant(source=pub_source, genre=genre_I, differentia="A")
+        valid_invitatory = make_fake_chant(
+            source=pub_source, genre=genre_I, differentia="A"
+        )
         # non-invitatory with blank differentia — should not appear
-        non_invitatory = make_fake_chant(source=pub_source, genre=other_genre, differentia="")
+        non_invitatory = make_fake_chant(
+            source=pub_source, genre=other_genre, differentia=""
+        )
 
         result = check_blank_invitatory_differentia(
             [pub_chant.id, unpub_chant.id, valid_invitatory.id, non_invitatory.id]
@@ -232,3 +267,56 @@ class CheckBlankInvitatoryDifferentiaTest(TestCase):
         self.assertIn(unpub_chant, result["unpublished"])
         self.assertNotIn(valid_invitatory, result["published"])
         self.assertNotIn(non_invitatory, result["published"])
+
+
+class RunDataChecksTest(TestCase):
+    def _patch_checks(self):
+        empty_result = {"published": [], "unpublished": []}
+        patcher = patch.multiple(
+            "main_app.tasks",
+            check_cantus_ids_not_in_ci=DEFAULT,
+            check_duplicate_folio_sequence=DEFAULT,
+            check_cantus_ids_genre_mismatch=DEFAULT,
+            check_position_service_mismatch=DEFAULT,
+            check_blank_cantus_id=DEFAULT,
+            check_blank_mode=DEFAULT,
+            check_blank_invitatory_differentia=DEFAULT,
+        )
+        mocks = patcher.start()
+        self.addCleanup(patcher.stop)
+        for mock in mocks.values():
+            mock.return_value = empty_result
+        return mocks
+
+    def test_skips_everything_when_no_recipients(self) -> None:
+        """When no recipients are configured, the check window is not
+        consumed: no checks run and `last_run` is left untouched, so the
+        full check runs once recipients are eventually added."""
+        config = DataCheckConfig.objects.create(
+            frequency=DataCheckConfig.Frequency.DAILY
+        )
+
+        mocks = self._patch_checks()
+        run_data_checks.apply().get()
+
+        mocks["check_blank_mode"].assert_not_called()
+        self.assertEqual(len(mail.outbox), 0)
+        config.refresh_from_db()
+        self.assertIsNone(config.last_run)
+
+    def test_sends_email_to_recipients_with_attachments(self) -> None:
+        config = DataCheckConfig.objects.create(
+            frequency=DataCheckConfig.Frequency.DAILY
+        )
+        recipient = make_fake_user(is_superuser=True)
+        config.recipients.add(recipient)
+
+        self._patch_checks()
+        run_data_checks.apply().get()
+
+        self.assertEqual(len(mail.outbox), 1)
+        sent = mail.outbox[0]
+        self.assertEqual(sent.to, [recipient.email])
+        self.assertEqual(len(sent.attachments), 7)
+        config.refresh_from_db()
+        self.assertIsNotNone(config.last_run)

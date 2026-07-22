@@ -2,7 +2,11 @@ import logging
 import time
 
 import ujson as json
-from concurrent.futures import ThreadPoolExecutor, as_completed, TimeoutError as FuturesTimeoutError
+from concurrent.futures import (
+    ThreadPoolExecutor,
+    as_completed,
+    TimeoutError as FuturesTimeoutError,
+)
 from datetime import timedelta
 from typing import List, Dict, Any, Optional
 
@@ -30,28 +34,30 @@ def get_all_ci_ids() -> set[str] | None:
     Returns None if the request fails.
     """
     try:
-        response = requests.get(
-            f"{CI_DOMAIN}/json-cids", timeout=30
-        )
+        response = requests.get(f"{CI_DOMAIN}/json-cids", timeout=30)
     except requests.exceptions.RequestException:
-        logger.error("Failed to reach Cantus Index at %s/json-cids", CI_DOMAIN, exc_info=True)
+        logger.error(
+            "Failed to reach Cantus Index at %s/json-cids", CI_DOMAIN, exc_info=True
+        )
         return None
 
     if response.status_code != 200:
-        logger.error("Cantus Index returned status %s for /json-cids", response.status_code)
+        logger.error(
+            "Cantus Index returned status %s for /json-cids", response.status_code
+        )
         return None
 
     text = response.text.encode().decode("utf-8-sig")
     try:
         data = json.loads(text)
     except ValueError:
-        logger.error("Cantus Index returned malformed JSON for /json-cids", exc_info=True)
+        logger.error(
+            "Cantus Index returned malformed JSON for /json-cids", exc_info=True
+        )
         return None
 
     return {
-        entry["cid"]
-        for entry in data
-        if isinstance(entry, dict) and entry.get("cid")
+        entry["cid"] for entry in data if isinstance(entry, dict) and entry.get("cid")
     }
 
 
@@ -62,9 +68,17 @@ def check_cantus_ids_not_in_ci(chant_ids: Optional[List[int]] = None) -> dict:
     """
     ci_ids = get_all_ci_ids()
     if ci_ids is None:
-        return {"published": None, "unpublished": None, "error": "Failed to fetch CI IDs"}
+        return {
+            "published": None,
+            "unpublished": None,
+            "error": "Failed to fetch CI IDs",
+        }
 
-    qs = Chant.objects.filter(id__in=chant_ids) if chant_ids is not None else Chant.objects.all()
+    qs = (
+        Chant.objects.filter(id__in=chant_ids)
+        if chant_ids is not None
+        else Chant.objects.all()
+    )
 
     local_ids: list[str] = list(
         qs.exclude(cantus_id__isnull=True)
@@ -78,17 +92,31 @@ def check_cantus_ids_not_in_ci(chant_ids: Optional[List[int]] = None) -> dict:
     base_qs = qs.filter(cantus_id__in=invalid_ids).select_related("source")
     return {
         "published": list(base_qs.filter(source__published=True).order_by("cantus_id")),
-        "unpublished": list(base_qs.filter(source__published=False).order_by("cantus_id")),
+        "unpublished": list(
+            base_qs.filter(source__published=False).order_by("cantus_id")
+        ),
     }
 
 
-def check_duplicate_folio_sequence(chant_ids: Optional[List[int]] = None) -> dict:
+def check_duplicate_folio_sequence(
+    chant_ids: Optional[List[int]] = None,
+    sequence_ids: Optional[List[int]] = None,
+) -> dict:
     """
     Returns groups where (source, folio, sequence) is duplicated.
     Each row is one unique combination with a count of how many chants/sequences
     share it, plus the ids of the individual records so reviewers can look them up.
     """
-    base_qs = Chant.objects.filter(id__in=chant_ids) if chant_ids is not None else Chant.objects.all()
+    base_qs = (
+        Chant.objects.filter(id__in=chant_ids)
+        if chant_ids is not None
+        else Chant.objects.all()
+    )
+    seq_qs = (
+        Sequence.objects.filter(id__in=sequence_ids)
+        if sequence_ids is not None
+        else Sequence.objects.all()
+    )
 
     chant_dups = list(
         base_qs.exclude(folio__isnull=True)
@@ -108,7 +136,7 @@ def check_duplicate_folio_sequence(chant_ids: Optional[List[int]] = None) -> dic
         )
 
     seq_dups = list(
-        Sequence.objects.exclude(folio__isnull=True)
+        seq_qs.exclude(folio__isnull=True)
         .exclude(s_sequence__isnull=True)
         .values("source_id", "source__published", "folio", "s_sequence")
         .annotate(count=Count("id"))
@@ -117,17 +145,19 @@ def check_duplicate_folio_sequence(chant_ids: Optional[List[int]] = None) -> dic
     )
     for group in seq_dups:
         group["sequence_ids"] = list(
-            Sequence.objects.filter(
+            seq_qs.filter(
                 source_id=group["source_id"],
                 folio=group["folio"],
                 s_sequence=group["s_sequence"],
             ).values_list("id", flat=True)
         )
 
-    published = [g for g in chant_dups if g["source__published"]] + \
-                [g for g in seq_dups if g["source__published"]]
-    unpublished = [g for g in chant_dups if not g["source__published"]] + \
-                  [g for g in seq_dups if not g["source__published"]]
+    published = [g for g in chant_dups if g["source__published"]] + [
+        g for g in seq_dups if g["source__published"]
+    ]
+    unpublished = [g for g in chant_dups if not g["source__published"]] + [
+        g for g in seq_dups if not g["source__published"]
+    ]
 
     return {"published": published, "unpublished": unpublished}
 
@@ -143,7 +173,9 @@ def _fetch_ci_genre(cantus_id: str) -> tuple[str, Optional[str]]:
             if isinstance(data, dict) and data.get("info"):
                 return cantus_id, data["info"].get("field_genre")
     except (requests.exceptions.RequestException, ValueError):
-        logger.warning("Failed to fetch CI genre for cantus_id=%s", cantus_id, exc_info=True)
+        logger.warning(
+            "Failed to fetch CI genre for cantus_id=%s", cantus_id, exc_info=True
+        )
     return cantus_id, None
 
 
@@ -154,11 +186,19 @@ def check_cantus_ids_genre_mismatch(chant_ids: Optional[List[int]] = None) -> di
 
     Uses 10 parallel workers to fetch CI genres efficiently.
     """
-    qs = Chant.objects.filter(id__in=chant_ids) if chant_ids is not None else Chant.objects.all()
+    qs = (
+        Chant.objects.filter(id__in=chant_ids)
+        if chant_ids is not None
+        else Chant.objects.all()
+    )
 
     ci_ids = get_all_ci_ids()
     if ci_ids is None:
-        return {"published": None, "unpublished": None, "error": "Failed to fetch CI IDs"}
+        return {
+            "published": None,
+            "unpublished": None,
+            "error": "Failed to fetch CI IDs",
+        }
 
     # Collect distinct (cantus_id, local_genre) pairs, limited to IDs that exist in CI
     pairs = list(
@@ -202,9 +242,7 @@ def check_cantus_ids_genre_mismatch(chant_ids: Optional[List[int]] = None) -> di
         return {"published": [], "unpublished": []}
 
     base_qs = (
-        qs.filter(mismatch_q)
-        .select_related("source", "genre")
-        .order_by("cantus_id")
+        qs.filter(mismatch_q).select_related("source", "genre").order_by("cantus_id")
     )
     return {
         "published": list(base_qs.filter(source__published=True)),
@@ -219,16 +257,24 @@ def check_position_service_mismatch(chant_ids: Optional[List[int]] = None) -> di
       - position "B" must only appear in Lauds (service L)
     Split into published and unpublished.
     """
-    qs = Chant.objects.filter(id__in=chant_ids) if chant_ids is not None else Chant.objects.all()
+    qs = (
+        Chant.objects.filter(id__in=chant_ids)
+        if chant_ids is not None
+        else Chant.objects.all()
+    )
 
     invalid = qs.filter(
-        Q(position="M") & ~Q(service__name__in=["V", "V2"]) |
-        Q(position="B") & ~Q(service__name="L")
+        Q(position="M") & ~Q(service__name__in=["V", "V2"])
+        | Q(position="B") & ~Q(service__name="L")
     ).select_related("source", "service")
 
     return {
-        "published": list(invalid.filter(source__published=True).order_by("position", "source_id")),
-        "unpublished": list(invalid.filter(source__published=False).order_by("position", "source_id")),
+        "published": list(
+            invalid.filter(source__published=True).order_by("position", "source_id")
+        ),
+        "unpublished": list(
+            invalid.filter(source__published=False).order_by("position", "source_id")
+        ),
     }
 
 
@@ -236,11 +282,19 @@ def check_blank_cantus_id(chant_ids: Optional[List[int]] = None) -> dict:
     """
     Returns chants with a blank or null cantus_id, split into published and unpublished.
     """
-    qs = Chant.objects.filter(id__in=chant_ids) if chant_ids is not None else Chant.objects.all()
-    invalid = qs.filter(Q(cantus_id__isnull=True) | Q(cantus_id="")).select_related("source")
+    qs = (
+        Chant.objects.filter(id__in=chant_ids)
+        if chant_ids is not None
+        else Chant.objects.all()
+    )
+    invalid = qs.filter(Q(cantus_id__isnull=True) | Q(cantus_id="")).select_related(
+        "source"
+    )
     return {
         "published": list(invalid.filter(source__published=True).order_by("source_id")),
-        "unpublished": list(invalid.filter(source__published=False).order_by("source_id")),
+        "unpublished": list(
+            invalid.filter(source__published=False).order_by("source_id")
+        ),
     }
 
 
@@ -248,11 +302,17 @@ def check_blank_mode(chant_ids: Optional[List[int]] = None) -> dict:
     """
     Returns chants with a blank or null mode field, split into published and unpublished.
     """
-    qs = Chant.objects.filter(id__in=chant_ids) if chant_ids is not None else Chant.objects.all()
+    qs = (
+        Chant.objects.filter(id__in=chant_ids)
+        if chant_ids is not None
+        else Chant.objects.all()
+    )
     invalid = qs.filter(Q(mode__isnull=True) | Q(mode="")).select_related("source")
     return {
         "published": list(invalid.filter(source__published=True).order_by("source_id")),
-        "unpublished": list(invalid.filter(source__published=False).order_by("source_id")),
+        "unpublished": list(
+            invalid.filter(source__published=False).order_by("source_id")
+        ),
     }
 
 
@@ -261,15 +321,27 @@ def check_blank_invitatory_differentia(chant_ids: Optional[List[int]] = None) ->
     Returns invitatories (genre "I" or "IP") with a blank or null differentia field,
     split into published and unpublished.
     """
-    qs = Chant.objects.filter(id__in=chant_ids) if chant_ids is not None else Chant.objects.all()
+    qs = (
+        Chant.objects.filter(id__in=chant_ids)
+        if chant_ids is not None
+        else Chant.objects.all()
+    )
     invalid = (
         qs.filter(genre__name__in=["I", "IP"])
         .filter(Q(differentia__isnull=True) | Q(differentia=""))
         .select_related("source", "genre")
     )
     return {
-        "published": list(invalid.filter(source__published=True).order_by("source_id", "folio", "c_sequence")),
-        "unpublished": list(invalid.filter(source__published=False).order_by("source_id", "folio", "c_sequence")),
+        "published": list(
+            invalid.filter(source__published=True).order_by(
+                "source_id", "folio", "c_sequence"
+            )
+        ),
+        "unpublished": list(
+            invalid.filter(source__published=False).order_by(
+                "source_id", "folio", "c_sequence"
+            )
+        ),
     }
 
 
@@ -344,12 +416,19 @@ def run_data_checks() -> None:
         if delta and now - config.last_run < delta:
             return
 
-    # Determine which chants to check
+    # Determine which chants/sequences to check
     chant_ids = None
+    sequence_ids = None
     if config.scope == DataCheckConfig.Scope.EDITED and config.last_run is not None:
         chant_ids = list(
-            Chant.objects.filter(date_updated__gte=config.last_run)
-            .values_list("id", flat=True)
+            Chant.objects.filter(date_updated__gte=config.last_run).values_list(
+                "id", flat=True
+            )
+        )
+        sequence_ids = list(
+            Sequence.objects.filter(date_updated__gte=config.last_run).values_list(
+                "id", flat=True
+            )
         )
 
     recipients = list(config.recipients.values_list("email", flat=True))
@@ -360,7 +439,9 @@ def run_data_checks() -> None:
     # Run all checks
     results = {
         "cantus_ids_not_in_ci": check_cantus_ids_not_in_ci(chant_ids),
-        "duplicate_folio_sequence": check_duplicate_folio_sequence(chant_ids),
+        "duplicate_folio_sequence": check_duplicate_folio_sequence(
+            chant_ids, sequence_ids
+        ),
         "genre_mismatch": check_cantus_ids_genre_mismatch(chant_ids),
         "position_service_mismatch": check_position_service_mismatch(chant_ids),
         "blank_cantus_id": check_blank_cantus_id(chant_ids),
@@ -389,7 +470,10 @@ def run_data_checks() -> None:
         filename = f"{key}_{date_str}.txt"
         email.attach(filename, content, "text/plain")
 
-    email.send()
+    try:
+        email.send()
+    except Exception:
+        logger.error("Failed to send data check report email.", exc_info=True)
 
 
 @shared_task(name="cantusdb.save_browse_chants_formset", bind=True)
