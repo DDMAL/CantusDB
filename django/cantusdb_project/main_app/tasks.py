@@ -39,8 +39,17 @@ def get_all_ci_ids() -> set[str] | None:
         return None
 
     text = response.text.encode().decode("utf-8-sig")
-    data = json.loads(text)
-    return {entry["cid"] for entry in data if isinstance(entry, dict)}
+    try:
+        data = json.loads(text)
+    except ValueError:
+        logger.error("Cantus Index returned malformed JSON for /json-cids", exc_info=True)
+        return None
+
+    return {
+        entry["cid"]
+        for entry in data
+        if isinstance(entry, dict) and entry.get("cid")
+    }
 
 
 def check_cantus_ids_not_in_ci(chant_ids: Optional[List[int]] = None) -> dict:
@@ -63,7 +72,7 @@ def check_cantus_ids_not_in_ci(chant_ids: Optional[List[int]] = None) -> dict:
 
     invalid_ids = {cid for cid in local_ids if cid not in ci_ids}
 
-    base_qs = Chant.objects.filter(cantus_id__in=invalid_ids).select_related("source")
+    base_qs = qs.filter(cantus_id__in=invalid_ids).select_related("source")
     return {
         "published": list(base_qs.filter(source__published=True).order_by("cantus_id")),
         "unpublished": list(base_qs.filter(source__published=False).order_by("cantus_id")),
@@ -112,8 +121,8 @@ def _fetch_ci_genre(cantus_id: str) -> tuple[str, Optional[str]]:
             data = json.loads(text)
             if isinstance(data, dict) and data.get("info"):
                 return cantus_id, data["info"].get("field_genre")
-    except requests.exceptions.RequestException:
-        pass
+    except (requests.exceptions.RequestException, ValueError):
+        logger.warning("Failed to fetch CI genre for cantus_id=%s", cantus_id, exc_info=True)
     return cantus_id, None
 
 
@@ -139,19 +148,21 @@ def check_cantus_ids_genre_mismatch(chant_ids: Optional[List[int]] = None) -> di
         .values_list("cantus_id", "genre__name")
         .distinct()
     )
-    local_genres: dict[str, str] = {cid: genre for cid, genre in pairs}
+    distinct_cids = {cid for cid, _ in pairs}
 
     # Fetch CI genres in parallel
     ci_genres: dict[str, Optional[str]] = {}
     with ThreadPoolExecutor(max_workers=CI_WORKERS) as executor:
-        futures = {executor.submit(_fetch_ci_genre, cid): cid for cid in local_genres}
+        futures = {executor.submit(_fetch_ci_genre, cid): cid for cid in distinct_cids}
         for future in as_completed(futures):
             cid, ci_genre = future.result()
             ci_genres[cid] = ci_genre
 
-    # Build a Q filter for chants where their specific (cantus_id, genre) pair mismatches CI
+    # Build a Q filter for chants where their specific (cantus_id, genre) pair mismatches CI.
+    # Iterate over `pairs` directly (not a cid-keyed dict) so cantus_ids with more than one
+    # local genre are checked against CI individually rather than collapsing to a single genre.
     mismatch_q = Q()
-    for cid, local_genre in local_genres.items():
+    for cid, local_genre in pairs:
         ci_genre = ci_genres.get(cid)
         if ci_genre is not None and ci_genre != local_genre:
             mismatch_q |= Q(cantus_id=cid, genre__name=local_genre)
@@ -160,7 +171,7 @@ def check_cantus_ids_genre_mismatch(chant_ids: Optional[List[int]] = None) -> di
         return {"published": [], "unpublished": []}
 
     base_qs = (
-        Chant.objects.filter(mismatch_q)
+        qs.filter(mismatch_q)
         .select_related("source", "genre")
         .order_by("cantus_id")
     )
@@ -308,6 +319,11 @@ def run_data_checks() -> None:
             .values_list("id", flat=True)
         )
 
+    recipients = list(config.recipients.values_list("email", flat=True))
+    if not recipients:
+        logger.warning("Data check skipped: no recipients configured.")
+        return
+
     # Run all checks
     results = {
         "cantus_ids_not_in_ci": check_cantus_ids_not_in_ci(chant_ids),
@@ -321,11 +337,6 @@ def run_data_checks() -> None:
 
     # Update last_run before sending so a mail failure doesn't trigger a re-run
     DataCheckConfig.objects.filter(pk=config.pk).update(last_run=now)
-
-    recipients = list(config.recipients.values_list("email", flat=True))
-    if not recipients:
-        logger.warning("Data check completed but no recipients configured; report not sent.")
-        return
 
     date_str = now.strftime("%Y-%m-%d")
     scope_note = (
