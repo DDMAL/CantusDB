@@ -1,0 +1,61 @@
+/* Chant cluster prototype (issue #2128) — minimal styling for the element
+ * composer on the Create Chant page. Kept close to the plain text field. */
+
+.cluster-composer {
+    min-height: 5rem;
+    height: auto;
+    white-space: pre-wrap;
+    line-height: 1.8;
+    cursor: text;
+}
+
+/* inline element tokens: subtle, roughly the weight of the surrounding text */
+.cluster-token {
+    display: inline;
+    padding: 0.05rem 0.25rem;
+    border-radius: 3px;
+    white-space: nowrap;
+}
+.cluster-token--core {
+    background: #eef1f4;
+    box-shadow: inset 0 0 0 1px #d7dde3;
+}
+.cluster-token--general {
+    background: #e7f0ff;
+    box-shadow: inset 0 0 0 1px #b9d1f5;
+}
+.token-remove {
+    margin-left: 0.2rem;
+    color: #adb5bd;
+    cursor: pointer;
+    font-weight: 700;
+    visibility: hidden;
+}
+.cluster-token:hover .token-remove {
+    visibility: visible;
+}
+.token-remove:hover {
+    color: #dc3545;
+}
+
+/* sidebar bank of draggable general elements */
+.general-elements-bank {
+    display: flex;
+    flex-direction: column;
+    gap: 0.3rem;
+}
+.bank-item {
+    cursor: grab;
+    text-align: left;
+    background: #e7f0ff;
+    border: 1px solid #b9d1f5;
+    color: #1a3f7a;
+    border-radius: 4px;
+    padding: 0.25rem 0.5rem;
+}
+.bank-item:hover {
+    filter: brightness(0.97);
+}
+.bank-item:active {
+    cursor: grabbing;
+}
