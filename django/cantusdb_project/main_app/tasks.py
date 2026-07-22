@@ -1,7 +1,6 @@
 import logging
 import time
 
-import ujson as json
 from concurrent.futures import (
     ThreadPoolExecutor,
     as_completed,
@@ -10,17 +9,16 @@ from concurrent.futures import (
 from datetime import timedelta
 from typing import List, Dict, Any, Optional
 
-import requests
 from celery import shared_task, Task
 from django.core.mail import EmailMessage
 from django.db.models import Count, Q
 from django.utils import timezone
 
+from cantusindex import get_json_from_ci_api
 from main_app.models import Chant, Sequence
 from main_app.models.data_check_config import DataCheckConfig
 from main_app.forms import BrowseChantsBulkEditFormset
 
-CI_DOMAIN = "https://cantusindex.uwaterloo.ca"
 CI_WORKERS = 10
 CI_REQUEST_DELAY = 0.2  # seconds between requests per worker, so we don't hammer CI
 CI_BATCH_TIMEOUT = 300  # overall seconds allotted to fetch CI genres for one check run
@@ -33,27 +31,9 @@ def get_all_ci_ids() -> set[str] | None:
     Fetches the full set of Cantus IDs from Cantus Index in a single request.
     Returns None if the request fails.
     """
-    try:
-        response = requests.get(f"{CI_DOMAIN}/json-cids", timeout=30)
-    except requests.exceptions.RequestException:
-        logger.error(
-            "Failed to reach Cantus Index at %s/json-cids", CI_DOMAIN, exc_info=True
-        )
-        return None
-
-    if response.status_code != 200:
-        logger.error(
-            "Cantus Index returned status %s for /json-cids", response.status_code
-        )
-        return None
-
-    text = response.text.encode().decode("utf-8-sig")
-    try:
-        data = json.loads(text)
-    except ValueError:
-        logger.error(
-            "Cantus Index returned malformed JSON for /json-cids", exc_info=True
-        )
+    data = get_json_from_ci_api("/json-cids", timeout=30)
+    if not isinstance(data, list):
+        logger.error("Failed to fetch or parse Cantus Index /json-cids")
         return None
 
     return {
@@ -165,17 +145,11 @@ def check_duplicate_folio_sequence(
 def _fetch_ci_genre(cantus_id: str) -> tuple[str, Optional[str]]:
     """Fetch the genre for a single cantus_id from CI. Returns (cantus_id, genre_or_None)."""
     time.sleep(CI_REQUEST_DELAY)
-    try:
-        response = requests.get(f"{CI_DOMAIN}/json-cid/{cantus_id}", timeout=10)
-        if response.status_code == 200:
-            text = response.text.encode().decode("utf-8-sig")
-            data = json.loads(text)
-            if isinstance(data, dict) and data.get("info"):
-                return cantus_id, data["info"].get("field_genre")
-    except (requests.exceptions.RequestException, ValueError):
-        logger.warning(
-            "Failed to fetch CI genre for cantus_id=%s", cantus_id, exc_info=True
-        )
+    data = get_json_from_ci_api(f"/json-cid/{cantus_id}", timeout=10)
+    if isinstance(data, dict) and data.get("info"):
+        return cantus_id, data["info"].get("field_genre")
+    if data is None:
+        logger.warning("Failed to fetch CI genre for cantus_id=%s", cantus_id)
     return cantus_id, None
 
 

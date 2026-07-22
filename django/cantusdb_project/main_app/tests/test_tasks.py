@@ -1,5 +1,5 @@
 from typing import List, Dict, Any
-from unittest.mock import patch, MagicMock, DEFAULT
+from unittest.mock import patch, DEFAULT
 
 from django.core import mail
 from django.test import TestCase
@@ -112,12 +112,9 @@ class SaveBrowseChantsFormsetTest(TestCase):
 
 
 class CheckCantusIdsNotInCiTest(TestCase):
-    @patch("main_app.tasks.requests.get")
-    def test_invalid_id_split_by_published(self, mock_get) -> None:
-        mock_resp = MagicMock()
-        mock_resp.status_code = 200
-        mock_resp.text = '[{"cid":"001234"}]'
-        mock_get.return_value = mock_resp
+    @patch("main_app.tasks.get_json_from_ci_api")
+    def test_invalid_id_split_by_published(self, mock_get_json) -> None:
+        mock_get_json.return_value = [{"cid": "001234"}]
 
         pub_source = make_fake_source(published=True)
         unpub_source = make_fake_source(published=False)
@@ -151,19 +148,15 @@ class CheckDuplicateFolioSequenceTest(TestCase):
 
 
 class CheckCantusIdsGenreMismatchTest(TestCase):
-    @patch("main_app.tasks.requests.get")
-    def test_genre_mismatch_split_by_published(self, mock_get) -> None:
+    @patch("main_app.tasks.get_json_from_ci_api")
+    def test_genre_mismatch_split_by_published(self, mock_get_json) -> None:
         # CI returns H for all IDs bulk fetch, and HV for the per-ID genre fetch
-        def side_effect(url, **kwargs):
-            mock_resp = MagicMock()
-            mock_resp.status_code = 200
-            if "json-cids" in url:
-                mock_resp.text = '[{"cid":"001234"}]'
-            else:
-                mock_resp.text = '{"info":{"field_genre":"HV"}}'
-            return mock_resp
+        def side_effect(path, **kwargs):
+            if "json-cids" in path:
+                return [{"cid": "001234"}]
+            return {"info": {"field_genre": "HV"}}
 
-        mock_get.side_effect = side_effect
+        mock_get_json.side_effect = side_effect
 
         pub_source = make_fake_source(published=True)
         unpub_source = make_fake_source(published=False)
