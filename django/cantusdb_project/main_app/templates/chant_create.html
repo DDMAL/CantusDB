@@ -6,6 +6,9 @@
     <script type="text/javascript"
             src="{% static 'admin/js/vendor/jquery/jquery.js' %}"></script>
     {{ form.media }}
+    <!-- Chant cluster prototype (#2128) -->
+    <link href="{% static 'css/chant_create_clusters.css' %}" rel="stylesheet" />
+    <script src="{% static 'js/chant_create_clusters.js' %}" defer></script>
 {% endblock %}
 {% block uppersidebar %}
     <div class="search-bar mb-3">{% include "global_search_bar.html" %}</div>
@@ -187,7 +190,24 @@
                 <label for="{{ form.manuscript_full_text_std_spelling.id_for_label }}">
                     {{ form.manuscript_full_text_std_spelling.label_tag }}<span class="text-danger" title="This field is required">*</span>
                 </label>
+                <!-- Chant cluster prototype (#2128): demo controls, revealed by JS. -->
+                <div id="cluster-controls" class="d-flex flex-wrap align-items-center mb-1" hidden>
+                    <label for="cluster-select" class="me-1 mb-0">Cluster (demo):</label>
+                    <select id="cluster-select"
+                            class="form-select form-select-sm d-inline-block w-auto me-3">
+                        <option value="">— none —</option>
+                    </select>
+                    <div class="form-check mb-0">
+                        <input class="form-check-input" type="checkbox" id="has-general-elements">
+                        <label class="form-check-label" for="has-general-elements">Has general elements</label>
+                    </div>
+                </div>
                 {{ form.manuscript_full_text_std_spelling }}
+                <!-- Element composer; JS hides the textarea above and shows this when a cluster is active. -->
+                <div id="cluster-composer"
+                     class="form-control cluster-composer"
+                     contenteditable="true"
+                     hidden></div>
                 <p class="text-muted">
                     {{ form.manuscript_full_text_std_spelling.help_text }}
                     For more information, consult <a href="/description/#Fulltext" target="_blank">Fields and Content Descriptions</a>.
@@ -299,6 +319,18 @@
                     var ci = window.open(address, "ci", "height=400px, width=1200px, top=0, left=50px, status=no, toolbar=no, location=no, scrollbars=yes, resizable=yes");
                 }
             </script>
+        </div>
+    </div>
+    <!-- Chant cluster prototype (#2128): bank of general elements, shown when "Has general elements" is checked. -->
+    <div id="general-elements-card" class="card w-100 mt-3" hidden>
+        <div class="card-header">
+            <h5>General elements</h5>
+        </div>
+        <div class="card-body small">
+            <p class="text-muted mb-2">
+                Drag an element into the full text, or click to insert it at the cursor.
+            </p>
+            <div id="general-elements-bank" class="general-elements-bank"></div>
         </div>
     </div>
 {% endblock %}
