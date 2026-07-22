@@ -21,7 +21,7 @@ from main_app.forms import BrowseChantsBulkEditFormset
 
 CI_WORKERS = 10
 CI_REQUEST_DELAY = 0.2  # seconds between requests per worker, so we don't hammer CI
-CI_BATCH_TIMEOUT = 300  # overall seconds allotted to fetch CI genres for one check run
+CI_BATCH_TIMEOUT = 1500  # overall seconds allotted to fetch CI genres for one check run
 
 logger = logging.getLogger(__name__)
 

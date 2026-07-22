@@ -175,6 +175,40 @@ class CheckCantusIdsGenreMismatchTest(TestCase):
         self.assertIn(pub_chant, result["published"])
         self.assertIn(unpub_chant, result["unpublished"])
 
+    @patch("main_app.tasks.get_json_from_ci_api")
+    def test_genre_mismatch_with_multiple_local_genres_per_cantus_id(
+        self, mock_get_json
+    ) -> None:
+        # Both chants share cantus_id "001234". CI reports its genre as "H".
+        # One chant's local genre matches CI ("H"), the other doesn't ("R"),
+        # so only the mismatching one should be flagged.
+        def side_effect(path, **kwargs):
+            if "json-cids" in path:
+                return [{"cid": "001234"}]
+            return {"info": {"field_genre": "H"}}
+
+        mock_get_json.side_effect = side_effect
+
+        source = make_fake_source(published=True)
+        h_genre = Genre.objects.get_or_create(
+            name="H", defaults={"description": "Hymn"}
+        )[0]
+        r_genre = Genre.objects.get_or_create(
+            name="R", defaults={"description": "Responsory"}
+        )[0]
+        matching_chant = make_fake_chant(
+            source=source, cantus_id="001234", genre=h_genre
+        )
+        mismatching_chant = make_fake_chant(
+            source=source, cantus_id="001234", genre=r_genre
+        )
+
+        result = check_cantus_ids_genre_mismatch(
+            [matching_chant.id, mismatching_chant.id]
+        )
+        self.assertIn(mismatching_chant, result["published"])
+        self.assertNotIn(matching_chant, result["published"])
+
 
 class CheckPositionServiceMismatchTest(TestCase):
     def test_position_service_mismatch_split_by_published(self) -> None:
