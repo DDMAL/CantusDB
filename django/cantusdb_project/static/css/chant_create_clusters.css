@@ -5,16 +5,15 @@
     min-height: 5rem;
     height: auto;
     white-space: pre-wrap;
-    line-height: 1.8;
+    line-height: 2;
     cursor: text;
 }
 
-/* inline element tokens: subtle, roughly the weight of the surrounding text */
+/* inline element tokens: subtle, roughly the weight of the surrounding text.
+ * Long elements are allowed to wrap; only the Cantus ID + remove stay together. */
 .cluster-token {
-    display: inline;
-    padding: 0.05rem 0.25rem;
+    padding: 0.05rem 0.3rem;
     border-radius: 3px;
-    white-space: nowrap;
 }
 .cluster-token--core {
     background: #eef1f4;
@@ -23,6 +22,12 @@
 .cluster-token--general {
     background: #e7f0ff;
     box-shadow: inset 0 0 0 1px #b9d1f5;
+}
+.token-cid {
+    margin-left: 0.3rem;
+    font-size: 0.72em;
+    color: #8a94a0;
+    white-space: nowrap;
 }
 .token-remove {
     margin-left: 0.2rem;
@@ -38,24 +43,38 @@
     color: #dc3545;
 }
 
-/* sidebar bank of draggable general elements */
-.general-elements-bank {
-    display: flex;
-    flex-direction: column;
-    gap: 0.3rem;
-}
-.bank-item {
-    cursor: grab;
-    text-align: left;
-    background: #e7f0ff;
+/* inline typeahead dropdown for finding general elements while typing */
+.element-typeahead {
+    position: fixed;
+    z-index: 1080;
+    margin: 0.1rem 0 0;
+    padding: 0.2rem 0;
+    list-style: none;
+    max-width: 34rem;
+    max-height: 15rem;
+    overflow-y: auto;
+    background: #fff;
     border: 1px solid #b9d1f5;
-    color: #1a3f7a;
     border-radius: 4px;
-    padding: 0.25rem 0.5rem;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
 }
-.bank-item:hover {
-    filter: brightness(0.97);
+.typeahead-item {
+    display: flex;
+    align-items: baseline;
+    gap: 0.5rem;
+    padding: 0.25rem 0.6rem;
+    cursor: pointer;
+    font-size: 0.85rem;
 }
-.bank-item:active {
-    cursor: grabbing;
+.typeahead-item.active,
+.typeahead-item:hover {
+    background: #e7f0ff;
+}
+.typeahead-label {
+    flex: 1;
+}
+.typeahead-cid {
+    font-size: 0.72em;
+    color: #8a94a0;
+    white-space: nowrap;
 }
