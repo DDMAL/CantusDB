@@ -4,7 +4,9 @@ Tests for views in views/sequence.py
 
 from typing import Dict
 
+from django.db import connection
 from django.test import TestCase
+from django.test.utils import CaptureQueriesContext
 from django.urls import reverse
 from faker import Faker
 
@@ -223,6 +225,26 @@ class SequenceEditViewTest(SequencePermissionsTestCase):
         sequence = make_fake_sequence()
         response = self.client.get(reverse("sequence-edit", args=[sequence.id]))
         self.assertEqual(sequence, response.context["object"])
+
+    def test_source_dropdown_does_not_scale_queries(self):
+        """The source dropdown must not run one query per Source (#2039)."""
+        sequence = make_fake_sequence()
+        url = reverse("sequence-edit", args=[sequence.id])
+
+        # Warm per-process caches (content types, permissions) so the two
+        # measured requests below differ only by the number of sources.
+        self.client.get(url)
+
+        with CaptureQueriesContext(connection) as baseline:
+            self.client.get(url)
+
+        for _ in range(10):
+            make_fake_source()
+
+        with CaptureQueriesContext(connection) as with_more_sources:
+            self.client.get(url)
+
+        self.assertEqual(len(with_more_sources), len(baseline))
 
     def test_url_and_templates(self):
         sequence = make_fake_sequence()

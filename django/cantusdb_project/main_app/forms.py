@@ -714,8 +714,11 @@ class SequenceEditForm(forms.ModelForm):
     )
     genre.widget.attrs.update({"class": "form-control custom-select custom-select-sm"})
 
+    # select_related avoids an N+1 query: rendering each option calls
+    # Source.__str__, which reads source.holding_institution (see #2039).
     source = forms.ModelChoiceField(
-        queryset=Source.objects.all().order_by("title"), required=False
+        queryset=Source.objects.select_related("holding_institution").order_by("title"),
+        required=False,
     )
     source.widget.attrs.update({"class": "form-control custom-select custom-select-sm"})
 
