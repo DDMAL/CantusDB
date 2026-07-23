@@ -4,7 +4,7 @@ package-mode = false
 
 [tool.poetry.dependencies]
 python = "3.12.10"
-Django = "5.2.2"
+Django = "5.2.15"
 django-autocomplete-light = "3.9.4"
 django-extra-views = "0.13.0"
 django-quill-editor = "0.1.40"
