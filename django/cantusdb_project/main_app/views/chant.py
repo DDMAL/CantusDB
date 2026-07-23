@@ -40,6 +40,7 @@ from main_app.models import (
     Chant,
     Feast,
     Genre,
+    Segment,
     Source,
     Sequence,
     Service,
@@ -48,6 +49,22 @@ from main_app.permissions import CustomAccessMixin, user_can_view_record_creator
 
 from main_app.mixins import JSONResponseMixin
 from users.models import User
+
+ADVANCED_SEARCH_FIELDS: tuple[str, ...] = (
+    # GET params belonging to the collapsible "Advanced search" section of
+    # chant_search.html; used to auto-expand it when any of them are set.
+    "service",
+    "genre",
+    "cantus_id",
+    "mode",
+    "position",
+    "melodies",
+    "feast",
+    "liturgical_function",
+    "segment",
+    "indexing_notes_op",
+    "indexing_notes",
+)
 
 CHANT_SEARCH_TEMPLATE_VALUES: tuple[str, ...] = (
     # for views that use chant_search.html, this allows them to
@@ -469,6 +486,8 @@ class ChantSearchView(CustomAccessMixin, ListView):  # type: ignore[type-arg]
         ``melodies``: Filters Chant by whether or not it contains a melody in
                       Volpiano form. Valid values are "true" or "false".
         ``feast``: Filters by Feast of Chant
+        ``liturgical_function``: Filters by liturgical function of Chant
+        ``segment``: Filters by Segment of the Chant's Source
         ``keyword``: Searches text of Chant for keywords
         ``op``: Operation to take with keyword search. Options are "contains", "starts_with", and "ends_with"
     """
@@ -484,6 +503,13 @@ class ChantSearchView(CustomAccessMixin, ListView):  # type: ignore[type-arg]
         context["genres"] = Genre.objects.all().order_by("name").values("id", "name")
         context["services"] = (
             Service.objects.all().order_by("name").values("id", "name")
+        )
+        context["liturgical_functions"] = Chant.LITURGICAL_FUNCTION_CHOICES
+        context["segments"] = (
+            Segment.objects.all().order_by("name").values("id", "name")
+        )
+        context["advanced_search_active"] = any(
+            self.request.GET.get(field) for field in ADVANCED_SEARCH_FIELDS
         )
         feast_param = self.request.GET.get("feast")
         context["search_form"] = ChantSearchForm(
@@ -529,6 +555,13 @@ class ChantSearchView(CustomAccessMixin, ListView):  # type: ignore[type-arg]
         search_melodies: Optional[str] = self.request.GET.get("melodies")
         if search_melodies:
             search_parameters.append(f"melodies={search_melodies}")
+        search_liturgical_function: Optional[str] = self.request.GET.get(
+            "liturgical_function"
+        )
+        if search_liturgical_function:
+            search_parameters.append(
+                f"liturgical_function={search_liturgical_function}"
+            )
         search_bar: Optional[str] = self.request.GET.get("search_bar")
         if search_bar:
             search_parameters.append(f"search_bar={search_bar}")
@@ -624,6 +657,9 @@ class ChantSearchView(CustomAccessMixin, ListView):  # type: ignore[type-arg]
             if feast_id := self.request.GET.get("feast"):
                 if feast_id.isdigit():
                     q_obj_filter &= Q(feast_id=feast_id)
+
+            if liturgical_function := self.request.GET.get("liturgical_function"):
+                q_obj_filter &= Q(liturgical_function=liturgical_function)
 
             # Filter the QuerySet with Q object
             chant_set = Chant.objects.filter(q_obj_filter).select_related(
@@ -760,6 +796,7 @@ class ChantSearchMSView(CustomAccessMixin, ListView):  # type: ignore[type-arg]
         ``melodies``: Filters Chant by whether or not it contains a melody in
                       Volpiano form. Valid values are "true" or "false".
         ``feast``: Filters by Feast of Chant
+        ``liturgical_function``: Filters by liturgical function of Chant
         ``keyword``: Searches text of Chant for keywords
         ``op``: Operation to take with keyword search. Options are "contains", "starts_with", and "ends_with"
     """
@@ -786,6 +823,10 @@ class ChantSearchMSView(CustomAccessMixin, ListView):  # type: ignore[type-arg]
         context["genres"] = Genre.objects.all().order_by("name").values("id", "name")
         context["services"] = (
             Service.objects.all().order_by("name").values("id", "name")
+        )
+        context["liturgical_functions"] = Chant.LITURGICAL_FUNCTION_CHOICES
+        context["advanced_search_active"] = any(
+            self.request.GET.get(field) for field in ADVANCED_SEARCH_FIELDS
         )
         feast_param = self.request.GET.get("feast")
         context["search_form"] = ChantSearchForm(
@@ -827,6 +868,11 @@ class ChantSearchMSView(CustomAccessMixin, ListView):  # type: ignore[type-arg]
         search_melodies = self.request.GET.get("melodies")
         if search_melodies:
             search_parameters.append(f"melodies={search_melodies}")
+        search_liturgical_function = self.request.GET.get("liturgical_function")
+        if search_liturgical_function:
+            search_parameters.append(
+                f"liturgical_function={search_liturgical_function}"
+            )
         search_indexing_notes_op = self.request.GET.get("indexing_notes_op")
         if search_indexing_notes_op:
             search_parameters.append(f"indexing_notes_op={search_indexing_notes_op}")
@@ -872,6 +918,9 @@ class ChantSearchMSView(CustomAccessMixin, ListView):  # type: ignore[type-arg]
         if feast_id := self.request.GET.get("feast"):
             if feast_id.isdigit():
                 q_obj_filter &= Q(feast_id=feast_id)
+
+        if liturgical_function := self.request.GET.get("liturgical_function"):
+            q_obj_filter &= Q(liturgical_function=liturgical_function)
 
         order_value = self.request.GET.get("order")
         sort_get_param: Optional[str] = self.request.GET.get("sort")
