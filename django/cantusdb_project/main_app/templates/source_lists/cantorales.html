@@ -127,7 +127,7 @@
             <div class="row rounded my-5 ccdb-table-bg">
                 <div class="col">
                     <form method="get" class="ccdb-filter-form mb-3">
-                        <div class="row mt-2">
+                        <div class="row mt-2 align-items-end">
                             <div class="col-lg">
                                 <label for="generalSearch" class="small form-label">
                                     General search (siglum, city, description…)
@@ -139,6 +139,26 @@
                                        value="{{ request.GET.general }}"
                                        id="generalSearch" />
                             </div>
+                            <div class="col-lg-1">
+                                <button type="submit" class="btn btn-dark btn-sm m-1" id="btn-submit">Apply</button>
+                                <a href="/Cantorales/#search-container"
+                                   class="btn btn-dark btn-sm m-1"
+                                   id="btn-reset">Reset</a>
+                            </div>
+                        </div>
+                        <div class="row">
+                            <div class="col-12">
+                                <a href="#advancedSourceSearchFilters"
+                                   class="small"
+                                   data-bs-toggle="collapse"
+                                   role="button"
+                                   aria-expanded="{% if advanced_search_active %}true{% else %}false{% endif %}"
+                                   aria-controls="advancedSourceSearchFilters">Advanced search ▾</a>
+                            </div>
+                        </div>
+                        <div class="collapse{% if advanced_search_active %} show{% endif %}"
+                             id="advancedSourceSearchFilters">
+                        <div class="row mt-2">
                             <div class="col-lg">
                                 <label for="indexingSearch" class="small form-label">
                                     Indexing notes and contributors
@@ -236,12 +256,7 @@
                                     {% endfor %}
                                 </div>
                             </div>
-                            <div class="col-lg-1">
-                                <button type="submit" class="btn btn-dark btn-sm m-1" id="btn-submit">Apply</button>
-                                <a href="/Cantorales/#search-container"
-                                   class="btn btn-dark btn-sm m-1"
-                                   id="btn-reset">Reset</a>
-                            </div>
+                        </div>
                         </div>
                     </form>
                     {% if sources %}
