@@ -1,3 +1,4 @@
+import hashlib
 import urllib.parse
 from collections import Counter, defaultdict
 from typing import Optional, Any, Iterator
@@ -6,8 +7,9 @@ import string
 from django.conf import settings
 from django.contrib import messages
 from django.contrib.postgres.aggregates import ArrayAgg
+from django.core.cache import cache
 from django.db.models import Case, F, Q, QuerySet, When
-from django.http import Http404, HttpResponse
+from django.http import Http404, HttpRequest, HttpResponse, JsonResponse
 from django.shortcuts import get_object_or_404
 from django.urls import reverse
 from django.utils.http import url_has_allowed_host_and_scheme
@@ -18,6 +20,7 @@ from django.views.generic import (
     ListView,
     TemplateView,
     UpdateView,
+    View,
 )
 from volpiano_display_utilities.latin_word_syllabification import LatinError
 from volpiano_display_utilities.cantus_text_syllabification import (
@@ -1247,6 +1250,56 @@ class CISearchView(TemplateView):
 
         context["results"] = list(zip(cantus_id, genre, full_text))
         return context
+
+
+class CIComponentSearchView(View):
+    """
+    Read-only JSON proxy for Cantus Index's text search (/json-text), backing the
+    chant cluster prototype's inline component-element typeahead on the Create Chant
+    page (issues #2128 / #2129). The browser can't call cantusindex.org directly
+    (CORS), so we proxy it — the same mechanism as the "Input Tool" (CISearchView),
+    but returning JSON for a live, as-you-type dropdown instead of a rendered popup.
+
+    Results are cached briefly: CI's data changes rarely, so this spares repeat
+    lookups and shields the typeahead from CI latency/outages. The cache key is the
+    search term alone (not cluster-specific); ranking a cluster's own sub-IDs to the
+    top is left to the client, which knows the active cluster.
+    """
+
+    MIN_QUERY_LENGTH: int = 3
+    CACHE_TTL: int = 60 * 60  # seconds; CI text data is effectively static
+
+    def get(self, request: HttpRequest, search_term: str) -> JsonResponse:
+        """Return Cantus Index text-search matches for ``search_term`` as JSON."""
+        term: str = search_term.strip()
+        if len(term) < self.MIN_QUERY_LENGTH:
+            return JsonResponse({"results": []})
+
+        # Hash the term: free text may contain spaces/punctuation that are invalid
+        # in a memcached key. (md5 is a key digest here, not a security primitive.)
+        digest: str = hashlib.md5(
+            term.lower().encode("utf-8"), usedforsecurity=False
+        ).hexdigest()
+        cache_key: str = f"ci-component-search:{digest}"
+        results: Optional[list[dict[str, Optional[str]]]] = cache.get(cache_key)
+        if results is None:
+            raw = get_ci_text_search(term.replace(" ", "+"))
+            if raw is None:
+                # None is a CI failure (timeout/non-200); flag it so the UI can show
+                # an error state rather than a misleading "no matches". Not cached.
+                return JsonResponse({"results": [], "error": True})
+            results = [
+                {
+                    "cid": result.get("cid"),
+                    "genre": result.get("genre"),
+                    "fulltext": result.get("fulltext"),
+                }
+                for result in raw
+                if result and result.get("cid")
+            ]
+            cache.set(cache_key, results, self.CACHE_TTL)
+
+        return JsonResponse({"results": results})
 
 
 class SourceEditChantsView(CustomAccessMixin, UpdateView):  # type: ignore[type-arg]

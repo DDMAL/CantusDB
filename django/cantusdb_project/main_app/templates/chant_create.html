@@ -190,20 +190,23 @@
                 <label for="{{ form.manuscript_full_text_std_spelling.id_for_label }}">
                     {{ form.manuscript_full_text_std_spelling.label_tag }}<span class="text-danger" title="This field is required">*</span>
                 </label>
-                <!-- Chant cluster prototype (#2128): demo controls, revealed by JS. -->
+                <!-- Chant cluster prototype (#2128/#2129): demo controls, revealed by JS. -->
                 <div id="cluster-controls" class="d-flex flex-wrap align-items-center mb-1" hidden>
                     <label for="cluster-select" class="me-1 mb-0">Cluster (demo):</label>
                     <select id="cluster-select"
                             class="form-select form-select-sm d-inline-block w-auto me-3">
                         <option value="">— none —</option>
                     </select>
-                    <div class="form-check mb-0">
-                        <input class="form-check-input" type="checkbox" id="has-general-elements">
-                        <label class="form-check-label" for="has-general-elements">Has general elements</label>
+                    <div class="form-check mb-0 me-3">
+                        <input class="form-check-input" type="checkbox" id="has-component-elements">
+                        <label class="form-check-label" for="has-component-elements">Has component elements</label>
                     </div>
+                    <button type="button" id="cluster-undo" class="btn btn-outline-secondary btn-sm" hidden disabled>
+                        Undo
+                    </button>
                 </div>
-                <p id="general-elements-hint" class="text-muted small mb-1" hidden>
-                    Type in the field to search general elements, then pick one from the dropdown to insert it.
+                <p id="component-elements-hint" class="text-muted small mb-1" hidden>
+                    Type in the field to search component elements, then pick one from the dropdown to insert it.
                 </p>
                 {{ form.manuscript_full_text_std_spelling }}
                 <!-- Element composer; JS hides the textarea above and shows this when a cluster is active. -->
@@ -211,6 +214,8 @@
                      class="form-control cluster-composer"
                      contenteditable="true"
                      hidden></div>
+                <!-- Deleted core elements land here; click a chip to restore. -->
+                <div id="removed-cores-tray" class="cluster-tray small mt-1" hidden></div>
                 <p class="text-muted">
                     {{ form.manuscript_full_text_std_spelling.help_text }}
                     For more information, consult <a href="/description/#Fulltext" target="_blank">Fields and Content Descriptions</a>.
