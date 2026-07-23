@@ -9,6 +9,7 @@ from django.http.response import JsonResponse
 from django.http import HttpResponse, HttpResponseNotFound, Http404, HttpRequest
 from django.urls.base import reverse
 from django.shortcuts import get_object_or_404
+from django.utils.http import content_disposition_header
 from django.views.decorators.http import require_GET
 from celery.result import AsyncResult
 import requests
@@ -112,6 +113,10 @@ def csv_export(
         )
 
     response = HttpResponse(content_type="text/csv")
+    filename = f"{source_id}.csv"
+    if source.siglum:
+        filename = f"{source_id}-{source.siglum}.csv"
+    response["Content-Disposition"] = content_disposition_header(True, filename)
 
     writer = csv.writer(response)
     writer.writerow(

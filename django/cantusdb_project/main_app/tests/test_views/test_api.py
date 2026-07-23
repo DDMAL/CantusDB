@@ -959,9 +959,22 @@ class JsonCidTest(TestCase):
 
 class CsvExportTest(CustomAccessTestMixin, TestCase):
     def test_url(self):
-        source = make_fake_source(published=True)
+        source = make_fake_source(published=True, siglum="A-Gu Ms. 211")
         response_1 = self.client.get(reverse("csv-export", args=[source.id]))
         self.assertEqual(response_1.status_code, 200)
+        self.assertEqual(
+            response_1["Content-Disposition"],
+            f'attachment; filename="{source.id}-A-Gu Ms. 211.csv"',
+        )
+
+    def test_url_without_siglum(self):
+        source = make_fake_source(published=True)
+        response = self.client.get(reverse("csv-export", args=[source.id]))
+
+        self.assertEqual(
+            response["Content-Disposition"],
+            f'attachment; filename="{source.id}.csv"',
+        )
 
     def test_content(self):
         NUM_CHANTS = 5

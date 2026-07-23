@@ -240,6 +240,14 @@ class SourceDetailViewTest(SourcePermissionsTestCase):
         self.assertTemplateUsed(response, "base.html")
         self.assertTemplateUsed(response, "source_detail.html")
 
+    def test_csv_export_link_uses_response_filename(self) -> None:
+        source = make_fake_source()
+        response = self.client.get(reverse("source-detail", args=[source.id]))
+
+        html = response.content.decode("utf-8")
+        self.assertIn(reverse("csv-export", args=[source.id]), html)
+        self.assertNotIn("download=", html)
+
     def test_context_chant_folios(self) -> None:
         # create a source and several chants in it
         source = make_fake_source()

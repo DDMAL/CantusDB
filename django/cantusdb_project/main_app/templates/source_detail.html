@@ -196,8 +196,7 @@
             {% endfor %}
             <a href="{% url "csv-export" source.id %}"
                class="guillemet"
-               target="_blank"
-               download="{{ source.id }}.csv">CSV export</a>
+               target="_blank">CSV export</a>
             <a href="{% url "chant-search-ms" source.id %}"
                class="guillemet"
                target="_blank">Search chants in this source</a>
