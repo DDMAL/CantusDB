@@ -46,7 +46,7 @@ from main_app.models import (
     Sequence,
     Service,
 )
-from main_app.permissions import CustomAccessMixin, user_can_view_record_creator
+from main_app.permissions import CustomAccessMixin
 
 from main_app.mixins import JSONResponseMixin
 from users.models import User
@@ -343,7 +343,26 @@ class ChantDetailView(CustomAccessMixin, JSONResponseMixin, DetailView):  # type
             "feast",
             "project",
             "created_by",
+            "last_updated_by",
         ).prefetch_related("source__segment_m2m", "source__notation")
+
+    @staticmethod
+    def _attributable_user(user: Optional[User]) -> Optional[User]:
+        """Returns ``user``, or ``None`` if it's the generic admin account.
+
+        Records migrated from OldCantus are attributed to a generic "Cantus
+        Database Administrator" account (settings.GENERIC_ADMIN_FULL_NAME)
+        rather than a named editor. Per Debra's feedback on #2104, this
+        placeholder shouldn't be shown in the public attribution footer until
+        a real editor is recorded.
+        """
+        if (
+            user
+            and (user.full_name or "").strip().lower()
+            == settings.GENERIC_ADMIN_FULL_NAME
+        ):
+            return None
+        return user
 
     def get_context_data(self, **kwargs: Any) -> dict[str, Any]:
         context = super().get_context_data(**kwargs)
@@ -351,19 +370,15 @@ class ChantDetailView(CustomAccessMixin, JSONResponseMixin, DetailView):  # type
         source = chant.source
 
         context["user_can_edit_chant"] = self.user_assigned_to_source(source)
+        context["attribution_created_by"] = self._attributable_user(chant.created_by)
+        context["attribution_last_updated_by"] = self._attributable_user(
+            chant.last_updated_by
+        )
         context["bower_segment"] = (
             source is not None
             and source.segment_m2m.filter(id=settings.BOWER_SEGMENT_ID).exists()
         )
         context["source_notation"] = source.notation.first() if source else None
-        # The "Chant record created by" field is only shown for chants in the
-        # Kaiatonsera master sources, and only to the people in the class (plus
-        # editors/superusers). See issue #2077.
-        context["user_can_view_record_creator"] = user_can_view_record_creator(
-            source.id if source else None,
-            self.user_is_editor,
-            self.user_groups,
-        )
 
         language = chant.text_language
         if language and language.pk == 2:
