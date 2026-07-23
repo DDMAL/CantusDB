@@ -642,6 +642,17 @@ class SourceBrowseChantsViewTest(SourcePermissionsTestCase):
         self.assertTemplateUsed(response, "base.html")
         self.assertTemplateUsed(response, "browse_chants.html")
 
+    def test_chant_rows_have_anchor_ids(self):
+        # SourceEditChantsView.get_success_url redirects to `#chant-<pk>` after an
+        # edit, so each row must carry the matching anchor or the user lands at
+        # the top of the list instead of on the chant they edited (#1433).
+        cantus_segment = make_fake_segment(id=4063)
+        source = make_fake_source(segment=[cantus_segment])
+        chant = make_fake_chant(source=source)
+        response = self.client.get(reverse("browse-chants", args=[source.id]))
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, f'id="chant-{chant.id}"')
+
     def test_visibility_by_segment(self):
         cantus_segment = make_fake_segment(id=4063)
         cantus_source = make_fake_source(segment=[cantus_segment], published=True)

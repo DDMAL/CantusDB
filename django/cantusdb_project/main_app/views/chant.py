@@ -10,6 +10,7 @@ from django.db.models import F, Q, QuerySet
 from django.http import Http404, HttpResponse
 from django.shortcuts import get_object_or_404
 from django.urls import reverse
+from django.utils.http import url_has_allowed_host_and_scheme
 from django.views.generic import (
     CreateView,
     DeleteView,
@@ -1413,12 +1414,23 @@ class SourceEditChantsView(CustomAccessMixin, UpdateView):  # type: ignore[type-
             return super().form_invalid(form)
         return super().form_invalid(form)
 
-    def get_success_url(self):
+    def get_success_url(self) -> str:
         # Take user back to the referring page
         # `ref` url parameter is used to indicate referring page
         next_url = self.request.GET.get("ref")
-        if next_url:
-            return self.request.POST.get("referrer")
+        # `referrer` is a client-supplied form field, so it can't be trusted as a
+        # redirect target unless it points back at this site. This also rejects a
+        # missing or empty referrer, which would otherwise redirect to nowhere.
+        referrer = self.request.POST.get("referrer")
+        referrer_is_safe = url_has_allowed_host_and_scheme(
+            referrer,
+            allowed_hosts={self.request.get_host()},
+            require_https=self.request.is_secure(),
+        )
+        if next_url and referrer_is_safe:
+            # Return to the edited chant's row so the user keeps their place in
+            # the (often very long) chant list rather than landing at the top (#1433).
+            return f"{referrer}#chant-{self.object.pk}"
         # ref not found, stay on the same page after save
         return self.request.get_full_path()
 
