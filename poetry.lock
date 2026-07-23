@@ -945,7 +945,7 @@ version = "3.15"
 description = "Internationalized Domain Names in Applications (IDNA)"
 optional = false
 python-versions = ">=3.8"
-groups = ["main", "dev"]
+groups = ["main"]
 files = [
     {file = "idna-3.15-py3-none-any.whl", hash = "sha256:048adeaf8c2d788c40fee287673ccaa74c24ffd8dcf09ffa555a2fbb59f10ac8"},
     {file = "idna-3.15.tar.gz", hash = "sha256:ca962446ea538f7092a95e057da437618e886f4d349216d2b1e294abfdb65fdc"},
@@ -2339,18 +2339,18 @@ files = [
 
 [[package]]
 name = "werkzeug"
-version = "3.1.3"
+version = "3.1.6"
 description = "The comprehensive WSGI web application library."
 optional = false
 python-versions = ">=3.9"
 groups = ["dev"]
 files = [
-    {file = "werkzeug-3.1.3-py3-none-any.whl", hash = "sha256:54b78bf3716d19a65be4fceccc0d1d7b89e608834989dfae50ea87564639213e"},
-    {file = "werkzeug-3.1.3.tar.gz", hash = "sha256:60723ce945c19328679790e3282cc758aa4a6040e4bb330f53d30fa546d44746"},
+    {file = "werkzeug-3.1.6-py3-none-any.whl", hash = "sha256:7ddf3357bb9564e407607f988f683d72038551200c704012bb9a4c523d42f131"},
+    {file = "werkzeug-3.1.6.tar.gz", hash = "sha256:210c6bede5a420a913956b4791a7f4d6843a43b6fcee4dfa08a65e93007d0d25"},
 ]
 
 [package.dependencies]
-MarkupSafe = ">=2.1.1"
+markupsafe = ">=2.1.1"
 
 [package.extras]
 watchdog = ["watchdog (>=2.3)"]
@@ -2358,4 +2358,4 @@ watchdog = ["watchdog (>=2.3)"]
 [metadata]
 lock-version = "2.1"
 python-versions = "3.12.10"
-content-hash = "5b7ea5359781abee4ddfb4769fbd2a012e81ee51b31ae6147f827e0bf99e8ebb"
+content-hash = "8a881e34da7f1e881021e17a055b38d44bce09b76579a2420cfc300de6f9ba38"
