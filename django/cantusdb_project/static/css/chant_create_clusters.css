@@ -1,27 +1,43 @@
-/* Chant cluster prototype (issue #2128) — minimal styling for the element
+/* Chant cluster prototype (issues #2128 / #2129) — styling for the element
  * composer on the Create Chant page. Kept close to the plain text field. */
 
 .cluster-composer {
     min-height: 5rem;
     height: auto;
     white-space: pre-wrap;
-    line-height: 2;
+    line-height: 2.2;
     cursor: text;
 }
 
-/* inline element tokens: subtle, roughly the weight of the surrounding text.
- * Long elements are allowed to wrap; only the Cantus ID + remove stay together. */
+/* Inline element tokens: subtle, roughly the weight of the surrounding text.
+ * Core and component elements are clearly different colours (feedback #2).
+ * Long elements are allowed to wrap; only the Cantus ID stays on its line. */
 .cluster-token {
-    padding: 0.05rem 0.3rem;
+    padding: 0.05rem 0.35rem;
+    /* horizontal gap so the caret is easy to place between adjacent boxes */
+    margin: 0 0.3rem;
     border-radius: 3px;
+    cursor: pointer;
+    user-select: none;
 }
+/* core = the base chant's own text: cool slate/grey */
 .cluster-token--core {
-    background: #eef1f4;
-    box-shadow: inset 0 0 0 1px #d7dde3;
+    background: #e7ebf0;
+    box-shadow: inset 0 0 0 1px #c4ccd6;
 }
-.cluster-token--general {
-    background: #e7f0ff;
-    box-shadow: inset 0 0 0 1px #b9d1f5;
+.cluster-token--core:hover {
+    box-shadow: inset 0 0 0 1px #8a97a8;
+}
+/* component = troped / added: warm amber, distinct from the core grey */
+.cluster-token--component {
+    background: #fdeecf;
+    box-shadow: inset 0 0 0 1px #e6c266;
+}
+.cluster-token--component:hover {
+    box-shadow: inset 0 0 0 1px #c99a1f;
+}
+.cluster-token.dragging {
+    opacity: 0.45;
 }
 .token-cid {
     margin-left: 0.3rem;
@@ -29,21 +45,127 @@
     color: #8a94a0;
     white-space: nowrap;
 }
-.token-remove {
-    margin-left: 0.2rem;
-    color: #adb5bd;
+
+/* split mode: the core's words with clickable boundaries between them.
+ * inline-flex + align-items:stretch makes every boundary the exact same height
+ * and vertically aligned, so the hairlines line up cleanly across the chunk. */
+.cluster-token--splitting {
+    display: inline-flex;
+    flex-wrap: wrap;
+    align-items: stretch;
+    cursor: default;
+    vertical-align: middle;
+}
+.split-word {
+    display: inline-flex;
+    align-items: center;
+    padding: 0 0.15rem;
+}
+.split-point {
+    position: relative;
+    align-self: stretch; /* full height of the flex line */
+    width: 0.7rem;
     cursor: pointer;
-    font-weight: 700;
-    visibility: hidden;
 }
-.cluster-token:hover .token-remove {
-    visibility: visible;
+.split-point::before {
+    content: "";
+    position: absolute;
+    left: 50%;
+    top: 0.15em;
+    bottom: 0.15em;
+    width: 2px;
+    transform: translateX(-50%);
+    background: #c99a1f;
+    border-radius: 1px;
+    opacity: 0.5;
+    transition: opacity 0.1s ease, width 0.1s ease, background 0.1s ease;
 }
-.token-remove:hover {
-    color: #dc3545;
+.split-point:hover::before {
+    opacity: 1;
+    width: 3px;
+    background: #dc3545;
 }
 
-/* inline typeahead dropdown for finding general elements while typing */
+/* floating action menu shown when a box is clicked */
+.token-menu {
+    position: fixed;
+    z-index: 1090;
+    display: flex;
+    gap: 0.25rem;
+    padding: 0.2rem;
+    background: #fff;
+    border: 1px solid #ced4da;
+    border-radius: 4px;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+}
+.token-menu-btn {
+    padding: 0.1rem 0.5rem;
+    font-size: 0.8rem;
+    line-height: 1.4;
+    background: #f1f3f5;
+    border: 1px solid #ced4da;
+    border-radius: 3px;
+    cursor: pointer;
+}
+.token-menu-btn:hover {
+    background: #e9ecef;
+}
+.token-menu-btn--danger {
+    color: #fff;
+    background: #dc3545;
+    border-color: #dc3545;
+}
+.token-menu-btn--danger:hover {
+    background: #bb2d3b;
+    border-color: #b02a37;
+}
+/* Physical-keycap treatment for the shortcut hint: white cap, thin border and a
+ * hard (blur-less) bottom shadow — the long-standing convention for showing keys
+ * (cf. MDN's <kbd>, dylanatsmith.com/wrote/styling-the-kbd-element). min-width +
+ * centering keeps a single character optically centered. */
+kbd.token-menu-key {
+    display: inline-block;
+    min-width: 1.1em;
+    margin-left: 0.45rem;
+    padding: 1px 5px;
+    font-family: inherit; /* sans-serif, matches the button label */
+    font-size: 0.78em;
+    line-height: 1;
+    text-align: center;
+    color: #343a40;
+    background: #fff;
+    border: 1px solid #adb5bd;
+    border-radius: 4px;
+    box-shadow: 0 2px 0 rgba(0, 0, 0, 0.12);
+    position: relative;
+    top: -1px;
+}
+
+/* restore tray for deleted core elements */
+.cluster-tray {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 0.35rem;
+}
+.tray-label {
+    color: #6c757d;
+}
+.tray-chip {
+    padding: 0.05rem 0.4rem;
+    font-size: 0.8rem;
+    color: #495057;
+    background: #e7ebf0;
+    border: 1px dashed #adb5bd;
+    border-radius: 3px;
+    cursor: pointer;
+}
+.tray-chip:hover {
+    background: #d7dde3;
+    border-style: solid;
+}
+
+/* inline typeahead dropdown for finding component elements while typing */
 .element-typeahead {
     position: fixed;
     z-index: 1080;
@@ -54,7 +176,7 @@
     max-height: 15rem;
     overflow-y: auto;
     background: #fff;
-    border: 1px solid #b9d1f5;
+    border: 1px solid #e6c266;
     border-radius: 4px;
     box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
 }
@@ -68,13 +190,34 @@
 }
 .typeahead-item.active,
 .typeahead-item:hover {
-    background: #e7f0ff;
+    background: #fdeecf;
 }
 .typeahead-label {
     flex: 1;
 }
+/* the matched element's Cantus ID, so g04828:01 reads apart from a whole chant */
 .typeahead-cid {
     font-size: 0.72em;
     color: #8a94a0;
     white-space: nowrap;
+}
+/* prompt shown when nothing is typed yet (the pool is searched, not browsed) */
+.typeahead-hint {
+    padding: 0.25rem 0.6rem;
+    font-size: 0.8rem;
+    font-style: italic;
+    color: #8a94a0;
+}
+/* Cantus Index unreachable → offline fallback: a warning, not a hard error */
+.typeahead-notice {
+    color: #9a6b00;
+}
+/* the "propose a new component" action row */
+.typeahead-propose {
+    color: #0f7b4f;
+    border-top: 1px solid #eee;
+}
+.typeahead-propose.active,
+.typeahead-propose:hover {
+    background: #e6f4ea;
 }

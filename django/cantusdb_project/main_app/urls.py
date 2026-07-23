@@ -51,6 +51,7 @@ from main_app.views.chant import (
     ChantEditSyllabificationView,
     ChantSearchView,
     ChantSearchMSView,
+    CIComponentSearchView,
     CISearchView,
     MelodySearchView,
     SourceEditChantsView,
@@ -475,6 +476,12 @@ urlpatterns = [
         "ci-search/<str:search_term>",
         CISearchView.as_view(),
         name="ci-search",
+    ),
+    path(
+        # JSON proxy for the chant cluster prototype's live component typeahead (#2128)
+        "ci-component-search/<str:search_term>",
+        CIComponentSearchView.as_view(),
+        name="ci-component-search",
     ),
     path(
         "search/",
