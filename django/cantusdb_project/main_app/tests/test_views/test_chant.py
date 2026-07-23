@@ -270,6 +270,13 @@ class ChantAttributionFooterTest(CustomAccessTestMixin, TestCase):
         )
         cls.chant_without_attribution = make_fake_chant(source=source)
 
+        admin = make_fake_user()
+        admin.full_name = "Cantus Database Administrator"
+        admin.save()
+        cls.chant_with_generic_admin = make_fake_chant(
+            source=source, created_by=admin, last_updated_by=admin
+        )
+
     def assert_field_visibility(self, chant, user_keys, visible) -> None:
         for user_key in user_keys:
             with self.subTest(user=user_key):
@@ -297,6 +304,13 @@ class ChantAttributionFooterTest(CustomAccessTestMixin, TestCase):
     def test_field_hidden_when_attribution_missing(self) -> None:
         self.assert_field_visibility(
             self.chant_without_attribution,
+            ["superuser", "anonymous user"],
+            visible=False,
+        )
+
+    def test_field_hidden_when_attributed_to_generic_admin(self) -> None:
+        self.assert_field_visibility(
+            self.chant_with_generic_admin,
             ["superuser", "anonymous user"],
             visible=False,
         )

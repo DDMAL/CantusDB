@@ -218,6 +218,12 @@ BOWER_SEGMENT_ID = 4064
 CCDB_SEGMENT_ID = 4066
 CANTORALES_SEGMENT_ID = 4067
 
+# Records migrated from OldCantus are attributed to this generic account
+# rather than a named editor. Chants attributed only to this account don't
+# show a "Record contributed by" / "Last modified by" line on the chant
+# detail page until a real editor is recorded. See issue #2104.
+GENERIC_ADMIN_FULL_NAME = "cantus database administrator"
+
 # Celery configurations
 CELERY_BROKER_URL = "redis://redis:6379/0"
 CELERY_RESULT_BACKEND = "redis://redis:6379/0"
