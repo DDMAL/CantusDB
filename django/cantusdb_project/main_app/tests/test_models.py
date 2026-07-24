@@ -1,18 +1,23 @@
 from django.forms import ValidationError
 from django.test import TestCase
 from django.urls import reverse
+from typing import Any, List, Type
+
 from main_app.models import (
     Century,
     Chant,
+    ChantElement,
     Feast,
     Genre,
     Service,
     Sequence,
     Source,
 )
+from main_app.models.base_model import BaseModel
 from .make_fakes import (
     make_fake_century,
     make_fake_chant,
+    make_fake_chant_element,
     make_fake_feast,
     make_fake_genre,
     make_fake_service,
@@ -22,6 +27,33 @@ from .make_fakes import (
 
 # run with `python -Wa manage.py test main_app.tests.test_models`
 # the -Wa flag tells Python to display deprecation warnings
+
+
+def unionable_fields(model: Type[BaseModel]) -> List[Any]:
+    """A model's fields minus its reverse relations.
+
+    The chant search views UNION Chant with Sequence, which is what requires the two
+    models to stay harmonized: SQL UNION needs matching *columns*. Reverse relations
+    aren't columns and take no part in it, so they may legitimately differ — Chant has
+    `elements` (ChantElement, #2129) and Sequence has no equivalent.
+    """
+    return [
+        field
+        for field in model._meta.get_fields()
+        if not (field.auto_created and not field.concrete)
+    ]
+
+
+def unionable_fields_and_properties(model: Type[BaseModel]) -> List[str]:
+    """``get_fields_and_properties()`` minus reverse relations. See `unionable_fields`."""
+    reverse_relations = {f.name for f in model._meta.get_fields()} - {
+        f.name for f in unionable_fields(model)
+    }
+    return [
+        name
+        for name in model.get_fields_and_properties()
+        if name not in reverse_relations
+    ]
 
 
 class CenturyModelTest(TestCase):
@@ -109,8 +141,8 @@ class ChantModelTest(TestCase):
         self.assertEqual(chant.get_absolute_url(), absolute_url)
 
     def test_chant_and_sequence_have_same_fields(self):
-        chant_fields = Chant.get_fields_and_properties()
-        seq_fields = Sequence.get_fields_and_properties()
+        chant_fields = unionable_fields_and_properties(Chant)
+        seq_fields = unionable_fields_and_properties(Sequence)
         self.assertEqual(chant_fields, seq_fields)
 
     def test_get_next_chant__same_folio_next_sequence_number(self):
@@ -297,6 +329,75 @@ class FeastModelTest(TestCase):
         self.assertEqual(feast.prefix, "")
 
 
+class ChantElementModelTest(TestCase):
+    """Tests for the troped-chant element model (#2129)."""
+
+    def test_elements_are_ordered_by_order(self):
+        chant = make_fake_chant()
+        third = make_fake_chant_element(chant=chant, order=3, text="third")
+        first = make_fake_chant_element(chant=chant, order=1, text="first")
+        second = make_fake_chant_element(chant=chant, order=2, text="second")
+        self.assertEqual(list(chant.elements.all()), [first, second, third])
+
+    def test_core_element_resolves_cantus_id_from_its_chant(self):
+        chant = make_fake_chant(cantus_id="g02711")
+        core = make_fake_chant_element(
+            chant=chant, kind=ChantElement.Kind.CORE, cantus_id=None
+        )
+        self.assertIsNone(core.cantus_id)
+        self.assertEqual(core.resolved_cantus_id, "g02711")
+
+    def test_component_element_resolves_its_own_cantus_id(self):
+        chant = make_fake_chant(cantus_id="g02711")
+        component = make_fake_chant_element(
+            chant=chant, kind=ChantElement.Kind.COMPONENT, cantus_id="g02711:07"
+        )
+        self.assertEqual(component.resolved_cantus_id, "g02711:07")
+
+    def test_component_may_carry_an_unrelated_cantus_id(self):
+        """A shared doxology is its own chant, not a sub-ID of the hymn it follows."""
+        chant = make_fake_chant(cantus_id="830142")
+        doxology = make_fake_chant_element(
+            chant=chant, kind=ChantElement.Kind.COMPONENT, cantus_id="909030"
+        )
+        self.assertEqual(doxology.resolved_cantus_id, "909030")
+
+    def test_core_elements_do_not_inflate_a_cantus_id_count(self):
+        """Instances of a Cantus ID are counted at the chant level, not the element
+        level (per Anna on #2128). Splitting a chant's text into more core elements
+        must not change how many instances of its Cantus ID exist."""
+        chant = make_fake_chant(cantus_id="g02711")
+        for order in range(1, 5):
+            make_fake_chant_element(
+                chant=chant,
+                order=order,
+                kind=ChantElement.Kind.CORE,
+                cantus_id=None,
+            )
+        self.assertEqual(Chant.objects.filter(cantus_id="g02711").count(), 1)
+        self.assertEqual(ChantElement.objects.filter(cantus_id="g02711").count(), 0)
+
+    def test_proposed_element_is_valid_without_a_cantus_id(self):
+        """Sub-IDs are assigned by Cantus Index, so a proposed element has none yet."""
+        element = make_fake_chant_element(proposed=True, cantus_id=None)
+        element.full_clean()  # BaseModel.save() calls this; assert it doesn't raise
+        self.assertTrue(element.proposed)
+        self.assertIsNone(element.cantus_id)
+
+    def test_elements_are_deleted_with_their_chant(self):
+        chant = make_fake_chant()
+        make_fake_chant_element(chant=chant)
+        make_fake_chant_element(chant=chant)
+        self.assertEqual(ChantElement.objects.count(), 2)
+        chant.delete()
+        self.assertEqual(ChantElement.objects.count(), 0)
+
+    def test_chant_without_elements_has_none(self):
+        """`has elements` is derived, not stored."""
+        chant = make_fake_chant()
+        self.assertFalse(chant.elements.exists())
+
+
 class GenreModelTest(TestCase):
     @classmethod
     def setUpTestData(cls):
@@ -356,8 +457,8 @@ class SequenceModelTest(TestCase):
         self.assertEqual(sequence.get_absolute_url(), absolute_url)
 
     def test_chant_and_sequence_have_same_fields(self):
-        chant_fields = Chant.get_fields_and_properties()
-        seq_fields = Sequence.get_fields_and_properties()
+        chant_fields = unionable_fields_and_properties(Chant)
+        seq_fields = unionable_fields_and_properties(Sequence)
         self.assertEqual(chant_fields, seq_fields)
 
     def test_incipit_signal(self):
@@ -418,9 +519,9 @@ class ChantSequenceSyncTest(TestCase):
         # we assert true
 
         chant_field_names = [
-            (f.name, f.get_internal_type()) for f in Chant._meta.get_fields()
+            (f.name, f.get_internal_type()) for f in unionable_fields(Chant)
         ]
         sequence_field_names = [
-            (f.name, f.get_internal_type()) for f in Sequence._meta.get_fields()
+            (f.name, f.get_internal_type()) for f in unionable_fields(Sequence)
         ]
         self.assertEqual(chant_field_names, sequence_field_names)

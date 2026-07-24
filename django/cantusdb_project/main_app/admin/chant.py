@@ -1,6 +1,7 @@
 from django.contrib import admin
 
 from main_app.admin.base_admin import EXCLUDE, READ_ONLY, BaseModelAdmin
+from main_app.admin.chant_element import ChantElementInline
 from main_app.admin.filters import InputFilter
 from main_app.forms import AdminChantForm
 from main_app.models import Chant
@@ -70,3 +71,4 @@ class ChantAdmin(BaseModelAdmin):
         "feast",
     )
     ordering = ("source__holding_institution__siglum", "source__shelfmark")
+    inlines = (ChantElementInline,)
