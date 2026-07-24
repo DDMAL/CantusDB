@@ -69,7 +69,7 @@ def check_cantus_ids_not_in_ci(chant_ids: Optional[List[int]] = None) -> dict:
 
     invalid_ids = {cid for cid in local_ids if cid not in ci_ids}
 
-    base_qs = qs.filter(cantus_id__in=invalid_ids).select_related("source")
+    base_qs = qs.filter(cantus_id__in=invalid_ids).select_related("source", "genre")
     return {
         "published": list(base_qs.filter(source__published=True).order_by("cantus_id")),
         "unpublished": list(
@@ -238,8 +238,8 @@ def check_position_service_mismatch(chant_ids: Optional[List[int]] = None) -> di
     )
 
     invalid = qs.filter(
-        Q(position="M") & ~Q(service__name__in=["V", "V2"])
-        | Q(position="B") & ~Q(service__name="L")
+        Q(position="M") & (Q(service__isnull=True) | ~Q(service__name__in=["V", "V2"]))
+        | Q(position="B") & (Q(service__isnull=True) | ~Q(service__name="L"))
     ).select_related("source", "service")
 
     return {
@@ -262,7 +262,7 @@ def check_blank_cantus_id(chant_ids: Optional[List[int]] = None) -> dict:
         else Chant.objects.all()
     )
     invalid = qs.filter(Q(cantus_id__isnull=True) | Q(cantus_id="")).select_related(
-        "source"
+        "source", "genre"
     )
     return {
         "published": list(invalid.filter(source__published=True).order_by("source_id")),
@@ -281,7 +281,9 @@ def check_blank_mode(chant_ids: Optional[List[int]] = None) -> dict:
         if chant_ids is not None
         else Chant.objects.all()
     )
-    invalid = qs.filter(Q(mode__isnull=True) | Q(mode="")).select_related("source")
+    invalid = qs.filter(Q(mode__isnull=True) | Q(mode="")).select_related(
+        "source", "genre"
+    )
     return {
         "published": list(invalid.filter(source__published=True).order_by("source_id")),
         "unpublished": list(

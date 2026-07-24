@@ -237,6 +237,15 @@ class CheckPositionServiceMismatchTest(TestCase):
         self.assertIn(unpub_chant, result["unpublished"])
         self.assertNotIn(valid_chant, result["published"])
 
+    def test_position_service_mismatch_flags_null_service(self) -> None:
+        pub_source = make_fake_source(published=True)
+        no_service_chant = make_fake_chant(
+            source=pub_source, position="M", service=None
+        )
+
+        result = check_position_service_mismatch([no_service_chant.id])
+        self.assertIn(no_service_chant, result["published"])
+
 
 class CheckBlankCantusIdTest(TestCase):
     def test_blank_cantus_id_split_by_published(self) -> None:
