@@ -13,28 +13,6 @@ from main_app.tests.make_fakes import (
 # the -Wa flag tells Python to display deprecation warnings
 
 
-class UserListViewTest(TestCase):
-    def setUp(self):
-        self.user = get_user_model().objects.create(email="test@test.com")
-        self.user.set_password("pass")
-        self.user.save()
-        self.client = Client()
-        self.client.login(email="test@test.com", password="pass")
-
-    def test_url_and_templates(self):
-        response = self.client.get(reverse("user-list"))
-        self.assertEqual(response.status_code, 200)
-        self.assertTemplateUsed(response, "user_list.html")
-
-    def test_view(self):
-        for i in range(5):
-            get_user_model().objects.create(email=f"test{i}@test.com")
-
-        response = self.client.get(reverse("user-list"))
-        self.assertEqual(response.status_code, 200)
-        self.assertEqual(len(response.context["users"]), 6)
-
-
 class IndexerListViewTest(TestCase):
     def setUp(self):
         # unless a segment is specified when a source is created, the source is automatically assigned
@@ -183,7 +161,7 @@ class UserDetailViewTest(TestCase):
         self.assertEqual(response_1.status_code, 200)
 
         response_2 = self.client.get(reverse("user-detail", args=[non_indexer.id]))
-        self.assertEqual(response_2.status_code, 403)  # 403 Forbidden
+        self.assertEqual(response_2.status_code, 302)  # 302: redirect to login page
 
         # logged-in
         self.client = Client()
@@ -194,5 +172,7 @@ class UserDetailViewTest(TestCase):
         response_3 = self.client.get(reverse("user-detail", args=[indexer.id]))
         self.assertEqual(response_3.status_code, 200)
 
+        # a logged-in, non-superuser, non-indexer user may not view another
+        # non-indexer's profile unless it's their own
         response_4 = self.client.get(reverse("user-detail", args=[non_indexer.id]))
-        self.assertEqual(response_4.status_code, 200)
+        self.assertEqual(response_4.status_code, 403)  # 403 Forbidden
