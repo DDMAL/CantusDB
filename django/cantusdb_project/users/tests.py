@@ -162,6 +162,7 @@ class UserDetailViewTest(TestCase):
 
         response_2 = self.client.get(reverse("user-detail", args=[non_indexer.id]))
         self.assertEqual(response_2.status_code, 302)  # 302: redirect to login page
+        self.assertTrue(response_2.headers["Location"].startswith(reverse("login")))
 
         # logged-in
         self.client = Client()
@@ -176,3 +177,6 @@ class UserDetailViewTest(TestCase):
         # non-indexer's profile unless it's their own
         response_4 = self.client.get(reverse("user-detail", args=[non_indexer.id]))
         self.assertEqual(response_4.status_code, 403)  # 403 Forbidden
+
+        response_5 = self.client.get(reverse("user-detail", args=[viewing_user.id]))
+        self.assertEqual(response_5.status_code, 200)
