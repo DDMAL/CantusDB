@@ -1098,6 +1098,47 @@ class SourceListViewTest(CustomAccessTestMixin, TestCase):
         self.assertIn(tenth_century_source, sources)
         self.assertNotIn(fifteenth_century_source, sources)
 
+    def test_date_range_does_not_hide_sources_without_century(self) -> None:
+        """A source with no century assigned must not disappear from the list
+        just because the date-range form was submitted at its default (full)
+        span -- it should only be filtered out when the range is actually
+        narrowed. Regression test for undated sources vanishing from search.
+        """
+        # Dated centuries establish the outer slider bounds: 800-1499, which
+        # the view rounds/clips to a default range of 800-1500.
+        make_fake_century(name="09th century")
+        tenth_century = make_fake_century(name="10th century")
+        make_fake_century(name="15th century")
+
+        undated_source = make_fake_source(published=True, shelfmark="no century")
+        undated_source.century.set([])
+        tenth_century_source = make_fake_source(published=True, shelfmark="10th")
+        tenth_century_source.century.set([tenth_century])
+
+        with self.subTest("No date params: undated source is shown"):
+            response = self.client.get(reverse("source-list"))
+            self.assertIn(undated_source, response.context["sources"])
+
+        with self.subTest("Default full-range params: undated source is shown"):
+            response = self.client.get(
+                reverse("source-list"), {"dateStart": 800, "dateEnd": 1500}
+            )
+            self.assertIn(undated_source, response.context["sources"])
+
+        with self.subTest("Range beyond the bounds: undated source is shown"):
+            response = self.client.get(
+                reverse("source-list"), {"dateStart": 600, "dateEnd": 3000}
+            )
+            self.assertIn(undated_source, response.context["sources"])
+
+        with self.subTest("Genuine narrowing: undated source is filtered out"):
+            response = self.client.get(
+                reverse("source-list"), {"dateStart": 900, "dateEnd": 999}
+            )
+            sources = response.context["sources"]
+            self.assertNotIn(undated_source, sources)
+            self.assertIn(tenth_century_source, sources)
+
     def test_filter_by_full_source(self) -> None:
         full_source = make_fake_source(
             source_completeness=Source.SourceCompletenessChoices.FULL_SOURCE,
