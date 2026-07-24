@@ -113,9 +113,10 @@ def csv_export(
         )
 
     response = HttpResponse(content_type="text/csv")
-    filename = f"{source_id}.csv"
-    if source.siglum:
-        filename = f"{source_id}-{source.siglum}.csv"
+    # short_heading (e.g. "A-Gu Ms. 211") is the source's human-readable identifier;
+    # replace path separators so shelfmarks like "Ms. 12/1" can't corrupt the filename.
+    heading = source.short_heading.replace("/", "-").replace("\\", "-")
+    filename = f"{source_id}-{heading}.csv"
     response["Content-Disposition"] = content_disposition_header(True, filename)
 
     writer = csv.writer(response)

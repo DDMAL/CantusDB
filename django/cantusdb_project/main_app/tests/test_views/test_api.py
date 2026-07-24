@@ -14,6 +14,7 @@ from django.http import JsonResponse
 
 from main_app.tests.make_fakes import (
     make_fake_chant,
+    make_fake_institution,
     make_fake_sequence,
     make_fake_source,
     make_fake_notation,
@@ -959,7 +960,10 @@ class JsonCidTest(TestCase):
 
 class CsvExportTest(CustomAccessTestMixin, TestCase):
     def test_url(self):
-        source = make_fake_source(published=True, siglum="A-Gu Ms. 211")
+        institution = make_fake_institution(siglum="A-Gu")
+        source = make_fake_source(
+            published=True, holding_institution=institution, shelfmark="Ms. 211"
+        )
         response_1 = self.client.get(reverse("csv-export", args=[source.id]))
         self.assertEqual(response_1.status_code, 200)
         self.assertEqual(
@@ -967,13 +971,27 @@ class CsvExportTest(CustomAccessTestMixin, TestCase):
             f'attachment; filename="{source.id}-A-Gu Ms. 211.csv"',
         )
 
-    def test_url_without_siglum(self):
-        source = make_fake_source(published=True)
+    def test_url_without_holding_institution(self):
+        source = make_fake_source(
+            published=True, holding_institution=None, shelfmark="Ms. 211"
+        )
         response = self.client.get(reverse("csv-export", args=[source.id]))
 
         self.assertEqual(
             response["Content-Disposition"],
-            f'attachment; filename="{source.id}.csv"',
+            f'attachment; filename="{source.id}-Cantus Ms. 211.csv"',
+        )
+
+    def test_url_filename_sanitizes_path_separators(self):
+        institution = make_fake_institution(siglum="A-Gu")
+        source = make_fake_source(
+            published=True, holding_institution=institution, shelfmark="Ms. 12/1"
+        )
+        response = self.client.get(reverse("csv-export", args=[source.id]))
+
+        self.assertEqual(
+            response["Content-Disposition"],
+            f'attachment; filename="{source.id}-A-Gu Ms. 12-1.csv"',
         )
 
     def test_content(self):
