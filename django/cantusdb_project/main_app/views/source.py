@@ -351,9 +351,9 @@ class SourceListView(CustomAccessMixin, ListView):  # type: ignore[type-arg]
     test_req = False
 
     def get_template_names(self) -> list[str]:
-        if self.segment and self.segment.id == 4066:
+        if self.segment and self.segment.id == settings.CCDB_SEGMENT_ID:
             return ["source_lists/canadian_chant_db.html"]
-        elif self.segment and self.segment.id == 4067:
+        elif self.segment and self.segment.id == settings.CANTORALES_SEGMENT_ID:
             return ["source_lists/cantorales.html"]
         return ["source_lists/source_list.html"]
 

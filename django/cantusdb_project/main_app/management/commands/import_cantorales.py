@@ -3,7 +3,8 @@ One-off management command to import sources from the
 "cantorales_2024-05-01.csv" spreadsheet into CantusDB.
 
 Sources are tagged with the "Cantorales in the Americas" segment so they
-appear on /Cantorales/ but NOT on /sources/?segment=4063 (CANTUS Database).
+appear on /Cantorales/ but NOT on the main CANTUS Database source list
+(/sources/?segment=<CANTUS_SEGMENT_ID>).
 """
 
 import csv

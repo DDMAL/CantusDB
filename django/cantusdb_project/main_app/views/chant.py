@@ -978,7 +978,8 @@ class ChantSearchMSView(CustomAccessMixin, ListView):  # type: ignore[type-arg]
         source = Source.objects.get(id=source_id)
         queryset = (
             source.sequence_set
-            if 4064 in source.segment_m2m.values_list("id", flat=True)
+            if settings.BOWER_SEGMENT_ID
+            in source.segment_m2m.values_list("id", flat=True)
             else source.chant_set
         )
 

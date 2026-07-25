@@ -25,7 +25,7 @@
                                     <form method="get"
                                           action="{% url 'chant-search' %}"
                                           class="d-flex flex-wrap gap-2 align-items-end">
-                                        <input type="hidden" name="segment" value="4066" />
+                                        <input type="hidden" name="segment" value="{% segment_id 'ccdb' %}" />
                                         <div class="flex-grow-1">
                                             <label for="chantKeyword" class="small form-label">
                                                 Keyword search (incipit, full text, or Cantus ID)

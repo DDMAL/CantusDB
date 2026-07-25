@@ -103,8 +103,8 @@ def csv_export(
     except Source.DoesNotExist:
         raise PermissionDenied
 
-    # "4064" is the segment id of the sequence DB, sources in that segment have sequences instead of chants
-    if 4064 in source.segment_m2m.values_list("id", flat=True):
+    # The Bower/sequence DB segment holds sources with sequences instead of chants
+    if settings.BOWER_SEGMENT_ID in source.segment_m2m.values_list("id", flat=True):
         entries = source.sequence_set.order_by("id")
     else:
         entries = source.chant_set.order_by("id").select_related(

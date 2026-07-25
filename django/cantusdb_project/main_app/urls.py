@@ -343,7 +343,7 @@ urlpatterns = [
         "Cantorales/",
         SourceListView.as_view(),
         name="cantorales-source-list",
-        kwargs={"segment_id": 4067},
+        kwargs={"segment_id": settings.CANTORALES_SEGMENT_ID},
     ),
     # sequence
     path(
