@@ -4,15 +4,18 @@ Test views in views/chant.py
 
 from unittest.mock import patch
 from unittest import skip
+import json
 import random
 from typing import ClassVar, Dict
 import urllib.parse
 
 from django.conf import settings
+from django.core.cache import cache
 from django.test import TestCase
 from django.urls import reverse
 
 from faker import Faker
+from reversion.models import Version
 
 from main_app.tests.make_fakes import (
     make_fake_chant,
@@ -30,7 +33,7 @@ from main_app.tests.make_fakes import (
 )
 from main_app.tests.test_functions import mock_requests_get
 from main_app.tests.mixins import CustomAccessTestMixin
-from main_app.models import Chant, Source, Feast, Service
+from main_app.models import Chant, ChantElement, Source, Feast, Service
 from main_app.views.chant import (
     get_feast_selector_options,
     ChantSearchView,
@@ -3560,6 +3563,132 @@ class ChantCreateViewTest(CustomAccessTestMixin, TestCase):
         chant = Chant.objects.get(source=source)
         self.assertEqual(chant.manuscript_full_text_std_spelling, "initial")
 
+    def test_create_chant_persists_composed_elements(self) -> None:
+        """A troped chant's composed elements are saved as ordered ChantElement rows."""
+        source = self.source
+        elements = [
+            {
+                "kind": "core",
+                "text": "Sanctus",
+                "cantus_id": "g04828",
+                "proposed": False,
+            },
+            {
+                "kind": "component",
+                "text": "Perpetuo numine",
+                "cantus_id": "g04828:01",
+                "proposed": False,
+            },
+            {
+                "kind": "core",
+                "text": "Dominus Deus",
+                "cantus_id": "g04828",
+                "proposed": False,
+            },
+            {
+                "kind": "component",
+                "text": "Novum tropus",
+                "cantus_id": "",
+                "proposed": True,
+            },
+        ]
+        response = self.client.post(
+            reverse("chant-create", args=[source.id]),
+            {
+                "manuscript_full_text_std_spelling": "Sanctus Perpetuo numine Dominus Deus Novum tropus",
+                "folio": "001r",
+                "c_sequence": "1",
+                "cantus_id": "g04828",
+                "elements_json": json.dumps(elements),
+            },
+        )
+        self.assertEqual(response.status_code, 302)
+        chant = Chant.objects.get(source=source)
+
+        created = list(chant.elements.all())  # Meta.ordering = ["order"]
+        self.assertEqual([e.order for e in created], [0, 1, 2, 3])
+        self.assertEqual(
+            [e.kind for e in created],
+            ["core", "component", "core", "component"],
+        )
+        # Cores never store a Cantus ID, even though the client sent the parent's; they
+        # resolve it through the chant instead.
+        first_core = created[0]
+        self.assertIsNone(first_core.cantus_id)
+        self.assertEqual(first_core.resolved_cantus_id, "g04828")
+        # Components keep their own IDs; a proposed one has none until CI catalogues it.
+        self.assertEqual(created[1].cantus_id, "g04828:01")
+        self.assertFalse(created[1].proposed)
+        self.assertTrue(created[3].proposed)
+        self.assertIsNone(created[3].cantus_id)
+
+    def test_create_chant_without_elements_creates_none(self) -> None:
+        """A normal (non-troped) chant creation persists no ChantElement rows."""
+        source = self.source
+        self.client.post(
+            reverse("chant-create", args=[source.id]),
+            {
+                "manuscript_full_text_std_spelling": "plain chant text",
+                "folio": "002r",
+                "c_sequence": "1",
+            },
+        )
+        chant = Chant.objects.get(source=source)
+        self.assertFalse(chant.elements.exists())
+
+    def test_malformed_elements_json_is_rejected(self) -> None:
+        """Invalid element JSON fails validation instead of silently dropping elements."""
+        source = self.source
+        response = self.client.post(
+            reverse("chant-create", args=[source.id]),
+            {
+                "manuscript_full_text_std_spelling": "text",
+                "folio": "003r",
+                "c_sequence": "1",
+                "elements_json": "not json",
+            },
+        )
+        self.assertFormError(
+            response.context["form"],
+            "elements_json",
+            "Composed elements are not valid JSON.",
+        )
+        self.assertFalse(Chant.objects.filter(source=source).exists())
+
+    def test_created_elements_are_versioned(self) -> None:
+        """Composed elements land in the chant's django-reversion history on creation."""
+        source = self.source
+        elements = [
+            {
+                "kind": "core",
+                "text": "Sanctus",
+                "cantus_id": "g04828",
+                "proposed": False,
+            }
+        ]
+        self.client.post(
+            reverse("chant-create", args=[source.id]),
+            {
+                "manuscript_full_text_std_spelling": "Sanctus",
+                "folio": "004r",
+                "c_sequence": "1",
+                "cantus_id": "g04828",
+                "elements_json": json.dumps(elements),
+            },
+        )
+        chant = Chant.objects.get(source=source)
+        element = chant.elements.get()
+        chant_versions = Version.objects.get_for_object(chant)
+        self.assertTrue(chant_versions.exists())
+        revision = chant_versions[0].revision
+        self.assertTrue(
+            revision.version_set.filter(
+                content_type__model="chantelement",
+                object_id=str(element.pk),
+            ).exists(),
+            "created element should be captured in the chant's revision",
+        )
+
     def test_view_url_path(self) -> None:
         source = self.source
         response = self.client.get(f"/chant-create/{source.id}")
@@ -3995,3 +4124,26 @@ class ChantViewHelpersTest(TestCase):
                 (feasts[2].id, feasts[2].name, "00q2r, 00q3, X00q3"),
             ]
             self.assertEqual(feast_selector_options, expected_result)
+
+
+class CIBaseTextViewTest(TestCase):
+    """The Cantus Index base-text proxy that seeds the cluster composer's first core."""
+
+    def setUp(self) -> None:
+        cache.clear()  # the view caches by Cantus ID; keep tests independent
+
+    @patch("main_app.views.chant.get_suggested_fulltext")
+    def test_returns_base_text_for_cantus_id(self, mock_fulltext) -> None:
+        mock_fulltext.return_value = "Sanctus Sanctus Sanctus"
+        response = self.client.get(reverse("ci-base-text", args=["g04828"]))
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.json(), {"base_text": "Sanctus Sanctus Sanctus"})
+
+    @patch("main_app.views.chant.get_suggested_fulltext")
+    def test_returns_empty_when_ci_has_no_text(self, mock_fulltext) -> None:
+        """An unknown ID or CI failure yields empty text, not an error, so the composer
+        can fall back to manual entry."""
+        mock_fulltext.return_value = None
+        response = self.client.get(reverse("ci-base-text", args=["unknown"]))
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.json(), {"base_text": ""})

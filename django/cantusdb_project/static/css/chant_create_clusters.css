@@ -45,6 +45,19 @@
     color: #8a94a0;
     white-space: nowrap;
 }
+/* proposed = a component not yet in Cantus Index: a badge stands in for the missing
+ * ID. Captured locally only — there is no CI write API, so nothing is submitted
+ * upstream; a later edit fills the real ID once CI catalogues it. */
+.cluster-token[data-proposed="true"] .token-cid::after {
+    content: "proposed";
+    margin-left: 0.3rem;
+    padding: 0 0.4em;
+    border-radius: 0.6em;
+    background: #f0d9a8;
+    box-shadow: inset 0 0 0 1px #c99a1f;
+    color: #6b5410;
+    font-style: italic;
+}
 
 /* split mode: the core's words with clickable boundaries between them.
  * inline-flex + align-items:stretch makes every boundary the exact same height

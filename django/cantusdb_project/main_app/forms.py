@@ -1,3 +1,4 @@
+import json
 from typing import Optional, Any, Dict
 
 from django import forms
@@ -15,6 +16,7 @@ from volpiano_display_utilities.cantus_text_syllabification import syllabify_tex
 from volpiano_display_utilities.latin_word_syllabification import LatinError
 from .models import (
     Chant,
+    ChantElement,
     Service,
     Genre,
     Institution,
@@ -280,6 +282,49 @@ class ChantCreateForm(forms.ModelForm):
         required=False,
         help_text="Select the project (if any) that the chant belongs to.",
     )
+
+    # Non-model field: the cluster composer serialises its element tokens here as JSON
+    # so ChantCreateView can persist ChantElement rows. The std-spelling text above
+    # stays authoritative for the chant's full text; this is structure layered beside it.
+    elements_json = forms.CharField(required=False, widget=HiddenInput)
+
+    def clean_elements_json(self) -> list[dict[str, Any]]:
+        """Parse and shape-validate the composer's serialised elements.
+
+        Returns a list of ``{kind, text, cantus_id, proposed}`` dicts (empty when the
+        chant isn't a cluster). Malformed input is rejected rather than silently
+        dropped. Cores keep whatever ``cantus_id`` the client sent; the view blanks it
+        on save, since the model invariant is that cores resolve their ID via the parent.
+        """
+        raw: str = (self.cleaned_data.get("elements_json") or "").strip()
+        if not raw:
+            return []
+        try:
+            data = json.loads(raw)
+        except json.JSONDecodeError:
+            raise forms.ValidationError("Composed elements are not valid JSON.")
+        if not isinstance(data, list):
+            raise forms.ValidationError("Composed elements must be a list.")
+        valid_kinds = {kind.value for kind in ChantElement.Kind}
+        elements: list[dict[str, Any]] = []
+        for entry in data:
+            if not isinstance(entry, dict):
+                raise forms.ValidationError("Each composed element must be an object.")
+            kind = entry.get("kind")
+            text = (entry.get("text") or "").strip()
+            if kind not in valid_kinds:
+                raise forms.ValidationError(f"Unknown element kind: {kind!r}.")
+            if not text:
+                raise forms.ValidationError("Composed elements must have text.")
+            elements.append(
+                {
+                    "kind": kind,
+                    "text": text,
+                    "cantus_id": (entry.get("cantus_id") or "").strip(),
+                    "proposed": bool(entry.get("proposed")),
+                }
+            )
+        return elements
 
     def clean(self) -> dict[str, Any]:
         """
