@@ -42,6 +42,7 @@ from main_app.forms import (
 )
 from main_app.models import (
     Chant,
+    ChantElement,
     Feast,
     Genre,
     Segment,
@@ -1185,11 +1186,33 @@ class ChantCreateView(CustomAccessMixin, CreateView):  # type: ignore[type-arg]
 
     def form_valid(self, form):
         """
-        Adds the "created_by" and "updated_by" fields to the chant.
+        Adds the "created_by" and "updated_by" fields to the chant, then persists any
+        composed cluster elements (troped chants) as ChantElement rows.
         """
         form.instance.created_by = self.request.user
         form.instance.last_updated_by = self.request.user
-        return super().form_valid(form)
+        response = super().form_valid(form)  # saves the chant → self.object
+        self._create_elements(form.cleaned_data.get("elements_json") or [])
+        return response
+
+    def _create_elements(self, elements: list[dict[str, Any]]) -> None:
+        """Persist a newly-created troped chant's composed elements as ChantElement rows.
+
+        Per-instance ``save()`` (not ``bulk_create``) so django-reversion's post_save
+        signal captures each element under the request's revision. Core elements get a
+        blank ``cantus_id`` here regardless of what the client sent — the model invariant
+        is that a core resolves its ID through the parent chant.
+        """
+        for order, element in enumerate(elements):
+            is_core = element["kind"] == ChantElement.Kind.CORE
+            ChantElement(
+                chant=self.object,
+                order=order,
+                kind=element["kind"],
+                text=element["text"],
+                cantus_id=None if is_core else (element["cantus_id"] or None),
+                proposed=element["proposed"],
+            ).save()
 
 
 class ChantDeleteView(CustomAccessMixin, DeleteView):  # type: ignore[type-arg]
@@ -1300,6 +1323,39 @@ class CIComponentSearchView(View):
             cache.set(cache_key, results, self.CACHE_TTL)
 
         return JsonResponse({"results": results})
+
+
+class CIBaseTextView(View):
+    """
+    Read-only JSON proxy for a chant's standard full text from Cantus Index
+    (/json-cid/{cantus_id}), backing the Create Chant cluster composer (issues
+    #2128 / #2129). When a cataloguer starts composing a troped chant, the composer
+    seeds its single core element from this base text. Sibling to
+    ``CIComponentSearchView``: the browser can't reach cantusindex.org directly
+    (CORS), so we proxy it, and cache briefly since CI text is effectively static.
+
+    CI does not (yet) split a chant's text into elements, so the base text arrives as
+    one blob; the cataloguer splits it into cores by hand. An empty result is a normal
+    outcome (unknown ID, or CI has no text) — the composer then lets the cataloguer
+    type the base text in. Empty/failed fetches are not cached, so a retry re-hits CI.
+    """
+
+    CACHE_TTL: int = 60 * 60  # seconds; CI text data is effectively static
+
+    def get(self, request: HttpRequest, cantus_id: str) -> JsonResponse:
+        """Return the base chant's standard full text for ``cantus_id`` as JSON."""
+        cid: str = cantus_id.strip()
+        if not cid:
+            return JsonResponse({"base_text": ""})
+
+        cache_key: str = f"ci-base-text:{cid}"
+        base_text: Optional[str] = cache.get(cache_key)
+        if base_text is None:
+            base_text = get_suggested_fulltext(cid)
+            if base_text:
+                cache.set(cache_key, base_text, self.CACHE_TTL)
+
+        return JsonResponse({"base_text": base_text or ""})
 
 
 class SourceEditChantsView(CustomAccessMixin, UpdateView):  # type: ignore[type-arg]

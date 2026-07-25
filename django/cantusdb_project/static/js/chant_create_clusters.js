@@ -1,15 +1,16 @@
 /*
- * Chant cluster prototype (issues #2128 / #2129) — enhancement to the Create
+ * Chant cluster composer (issues #2128 / #2129) — enhancement to the Create
  * Chant page.
  *
  * Turns the "Full text (standardized spelling)" field into an element composer.
  * A chant cluster's full text is an ordered sequence of typed elements; position
  * is just the order in the field:
  *
- *   - core elements      — chunks of the base chant's own text. They carry the
- *                          cluster's (parent) Cantus ID, e.g. g04828. Pre-filled
- *                          when a cluster is selected. Deletable, but deleting one
- *                          is a deliberate act (click the box → red Delete): the
+ *   - core elements      — chunks of the base chant's own text. They display the
+ *                          parent Cantus ID (read live from the Cantus ID field),
+ *                          but never store it — the server resolves a core's ID
+ *                          through the parent chant. Deletable, but deleting one is
+ *                          a deliberate act (click the box → red Delete): the
  *                          removed core drops into a restore tray and Undo reverts
  *                          it. A core can also be SPLIT into two cores.
  *   - component elements — troped/added, reusable, found by TYPING in the field
@@ -18,132 +19,35 @@
  *                          — e.g. g04828:01 (a sub-ID of the parent) or a wholly
  *                          separate ID like a shared doxology's 909030. IDs are
  *                          NEVER computed here. A component the user PROPOSES (not
- *                          yet in CI) shows no ID; the backend assigns one later
- *                          (for the g04828 cluster it would be g04828:XXXXXX).
+ *                          yet in CI) shows no ID and is captured locally only —
+ *                          there is no CI write API, so nothing is submitted upstream.
  *
  * Only elements are saved: free text typed into the field is just a search query
  * for the dropdown. It is discarded when it isn't turned into an element (the
  * hidden textarea is built from tokens only).
  *
- * Data is hardcoded for now. Eventually clusters come from a table and the
- * typeahead can query Cantus Index live (its /json-text endpoint already backs
- * the sidebar "Input Tool"). Cantus IDs below are illustrative, except g04828,
- * which is copied from Cantus Index.
+ * The composer activates when the cataloguer ticks "Has interleaved component
+ * elements". On activation it seeds a single core from the base chant's standard
+ * text, fetched from Cantus Index by the Cantus ID (the ci-base-text endpoint);
+ * the cataloguer splits that into cores and interleaves components. Components come
+ * from a live, debounced Cantus Index text search (the ci-component-search
+ * endpoint). CI does not pre-split text, so the base text arrives as one blob.
  */
 (function () {
     "use strict";
-
-    // Two of Anna's #2128 examples trope the same base chant (g02711); they share
-    // a component pool but split the base text differently.
-    // Cantus IDs here stand in for what Cantus Index would return; they are fixed
-    // per component (not computed). Illustrative only — the real ones come from CI.
-    const G02711_TROPES = [
-        { id: "g-tp7", text: "Hodie regi archangelorum laudes promamus cum psalmista", cantusId: "g02711:07" },
-        { id: "g-tp8", text: "Ipsum collaudantes in quem cernere cupitis semper", cantusId: "g02711:08" },
-        { id: "g-tp9", text: "Vim habentes divinam per quam geritis mirabiles res", cantusId: "g02711:09" },
-        { id: "g-tp10", text: "Adimplentes jussa jugiter domini", cantusId: "g02711:10" },
-        { id: "g-36", text: "Humani superas jungentes vocibus odas", cantusId: "g02711:36" },
-        { id: "g-37", text: "Et vos concentu pariter celebrate faventes", cantusId: "g02711:37" },
-        { id: "g-38", text: "Nuntia dum geritis per quae bene corda paratis", cantusId: "g02711:38" },
-    ];
-
-    const CLUSTER_DEMO_DATA = [
-        {
-            // Copied from cantusindex.org/id/g04828 (troped Sanctus, genre TpSa):
-            // its four tropes are numbered g04828:01–04. The user's "clean example".
-            key: "g04828-sanctus",
-            label: "g04828 Sanctus (troped) — cantusindex.org/id/g04828",
-            parentCantusId: "g04828",
-            core: [
-                { id: "c-04828-1", text: "Sanctus" },
-                { id: "c-04828-2", text: "Sanctus" },
-                { id: "c-04828-3", text: "Sanctus" },
-                { id: "c-04828-4", text: "Dominus Deus Sabaoth" },
-                { id: "c-04828-5", text: "Pleni sunt caeli et terra gloria tua" },
-                { id: "c-04828-6", text: "Hosanna in excelsis" },
-                { id: "c-04828-7", text: "Benedictus qui venit in nomine Domini" },
-                { id: "c-04828-8", text: "Hosanna in excelsis" },
-            ],
-            component: [
-                { id: "g-04828-a", text: "Perpetuo numine cuncta regens", cantusId: "g04828:01" },
-                { id: "g-04828-b", text: "Regna patris disponens jure parili", cantusId: "g04828:02" },
-                { id: "g-04828-c", text: "Consimilis qui bona cuncta nutris", cantusId: "g04828:03" },
-                { id: "g-04828-d", text: "O deitas clemens servorum suscipe laudes", cantusId: "g04828:04" },
-            ],
-        },
-        {
-            // Anna's first worked example: g02711 troped for St Michael, split 4 ways.
-            key: "g02711-ex1",
-            label: "g02711 Benedicite domino (troped, ex. 1)",
-            parentCantusId: "g02711",
-            core: [
-                { id: "c-g02711a-1", text: "Benedicite domino omnes angeli ejus" },
-                { id: "c-g02711a-2", text: "Potentes virtutes" },
-                { id: "c-g02711a-3", text: "Qui facitis verbum ejus" },
-                { id: "c-g02711a-4", text: "ad audiendam vocem sermonum ejus" },
-            ],
-            component: G02711_TROPES,
-        },
-        {
-            // Anna's second example: same base chant, but it does not divide before
-            // "qui facitis", so that word stays in the second core chunk. Three chunks.
-            key: "g02711-ex2",
-            label: "g02711 Benedicite domino (troped, ex. 2)",
-            parentCantusId: "g02711",
-            core: [
-                { id: "c-g02711b-1", text: "Benedicite domino omnes angeli ejus" },
-                { id: "c-g02711b-2", text: "Potentes virtutes qui facitis" },
-                { id: "c-g02711b-3", text: "Ad audiendam vocem sermonum ejus" },
-            ],
-            component: G02711_TROPES,
-        },
-        {
-            key: "kyrie-trope",
-            label: "Kyrie eleison (troped)",
-            parentCantusId: "g02549",
-            core: [
-                { id: "c-kyrie-1", text: "Kyrie" },
-                { id: "c-eleison-1", text: "eleison" },
-                { id: "c-christe", text: "Christe" },
-                { id: "c-eleison-2", text: "eleison" },
-                { id: "c-kyrie-2", text: "Kyrie" },
-                { id: "c-eleison-3", text: "eleison" },
-            ],
-            component: [
-                { id: "g-fons-bonitatis", text: "fons bonitatis", cantusId: "g02549:01" },
-                { id: "g-pater-ingenite", text: "pater ingenite", cantusId: "g02549:02" },
-                { id: "g-a-quo-cuncta", text: "a quo bona cuncta procedunt", cantusId: "g02549:03" },
-                { id: "g-magne-deus", text: "magnae potentiae", cantusId: "g02549:04" },
-                { id: "g-rex-genitor", text: "rex genitor", cantusId: "g02549:05" },
-            ],
-        },
-        {
-            key: "hymn-veni-creator",
-            label: "Hymn: Veni Creator Spiritus",
-            parentCantusId: "830142",
-            core: [
-                { id: "c-vc-1", text: "Veni Creator Spiritus, mentes tuorum visita" },
-                { id: "c-vc-2", text: "Imple superna gratia quae tu creasti pectora" },
-                { id: "c-vc-3", text: "Qui Paraclitus diceris, donum Dei altissimi" },
-            ],
-            // Doxologies are shared chants with their OWN Cantus IDs — not sub-IDs of
-            // the hymn — showing that a component's ID need not match the parent.
-            component: [
-                { id: "g-dox-deo-patri", text: "Deo Patri sit gloria, et Filio qui a mortuis surrexit, ac Paraclito", cantusId: "909030" },
-                { id: "g-dox-sit-laus", text: "Sit laus Deo Patri, summo Christo decus, Spiritui Sancto honor unus", cantusId: "909031" },
-                { id: "g-gloria-patri", text: "Gloria Patri et Filio et Spiritui Sancto", cantusId: "909000" },
-                { id: "g-amen", text: "Amen", cantusId: "909999" },
-            ],
-        },
-    ];
 
     const MAX_MATCHES = 8;
     const MAX_UNDO = 50;
     const CI_MIN_QUERY = 3; // characters before we query Cantus Index (matches the Input Tool)
     const CI_DEBOUNCE_MS = 250; // wait for a typing pause before firing a request
+    const BASE_TEXT_URL = "/ci-base-text/"; // + cantus_id → { base_text }
 
-    let textarea, composer, select, hasComponentCheckbox, hint, undoButton, tray;
+    let textarea, composer, cantusIdInput, hasComponentCheckbox, hint, status, undoButton, tray;
+    let elementsField; // hidden input carrying the composed elements as JSON to the server
+    // Truthy while the composer is active (cluster mode on); null when off. No preset
+    // payload any more — the base text is fetched and the parent ID is read live.
     let currentCluster = null;
+    let activateSeq = 0; // guards the async base-text seed against a fast off-toggle
 
     // inline typeahead state
     let typeahead = null; // the floating <ul> (created once, appended to body)
@@ -169,9 +73,9 @@
     // A token is an atomic, non-editable inline unit. It is draggable (reorder)
     // and clickable (its action menu). No per-token listeners: everything is
     // delegated on the composer, so rebuilding innerHTML (undo, normalize) is safe.
-    // `proposed` marks a component the user is proposing to Cantus Index. It's a
-    // backend-only flag (data-proposed) — in the UI a proposed component looks and
-    // behaves exactly like any other component (same :NN, menu, drag, undo).
+    // `proposed` marks a component not yet in Cantus Index (data-proposed). It behaves
+    // like any other component (menu, drag, undo) but carries no ID and shows a
+    // "proposed" badge in place of one — captured locally only, never submitted to CI.
     function makeToken(kind, text, cantusId, proposed) {
         const token = document.createElement("span");
         token.className = "cluster-token cluster-token--" + kind;
@@ -195,8 +99,15 @@
         return token;
     }
 
+    // The parent Cantus ID, read live from the Cantus ID field. Cores display it but
+    // never store it (the server resolves a core's ID through the parent chant), so a
+    // later correction to the field just re-labels existing cores — no data at stake.
+    function parentCantusId() {
+        return cantusIdInput ? cantusIdInput.value.trim() : "";
+    }
+
     function makeCoreToken(text) {
-        return makeToken("core", text, currentCluster ? currentCluster.parentCantusId : "");
+        return makeToken("core", text, parentCantusId());
     }
 
     function isToken(node) {
@@ -250,6 +161,29 @@
             parts.push(token.dataset.text);
         });
         textarea.value = parts.join(" ").replace(/\s+/g, " ").trim();
+        syncToElementsField();
+    }
+
+    // Serialise the composer's tokens (DOM order = element order) into the hidden
+    // field the server persists as ChantElement rows. Kept in lockstep with the
+    // textarea. Empty when cluster mode is off, so un-ticking the box saves no
+    // elements — the flattened text alone remains.
+    function syncToElementsField() {
+        if (!elementsField) return;
+        if (!currentCluster) {
+            elementsField.value = "";
+            return;
+        }
+        const elements = [];
+        composer.querySelectorAll(".cluster-token").forEach(function (token) {
+            elements.push({
+                kind: token.dataset.kind,
+                text: token.dataset.text,
+                cantus_id: token.dataset.cantusId || "",
+                proposed: token.dataset.proposed === "true",
+            });
+        });
+        elementsField.value = JSON.stringify(elements);
     }
 
     // Drop any stray free text, keeping only tokens separated by single spaces,
@@ -335,15 +269,22 @@
 
     // ---- activate / deactivate ------------------------------------------
 
-    function activateCluster(cluster) {
-        currentCluster = cluster;
+    function setStatus(msg) {
+        if (!status) return;
+        status.textContent = msg || "";
+        status.hidden = !msg;
+    }
+
+    // Turn the composer on. The base text isn't known synchronously — it's fetched
+    // from Cantus Index by the Cantus ID — so we reveal the composer immediately and
+    // seed the core once the fetch resolves (seedBaseText).
+    function activateFromCantusId() {
+        activateSeq += 1;
+        currentCluster = {}; // active sentinel; parent ID + components are read live
         removedCores = [];
         undoStack = [];
+        const preTyped = textarea.value.trim(); // manual base text, used if CI has none
         composer.innerHTML = "";
-        cluster.core.forEach(function (element, i) {
-            if (i > 0) composer.appendChild(document.createTextNode(" "));
-            composer.appendChild(makeCoreToken(element.text));
-        });
         composer.appendChild(document.createTextNode(" "));
         textarea.style.display = "none";
         composer.hidden = false;
@@ -352,9 +293,74 @@
         renderTray();
         updateUndoButton();
         syncToTextarea();
+        seedBaseText(activateSeq, preTyped);
+    }
+
+    // Fetch the base chant's standard text from CI and seed it as one core. Falls back
+    // to any text the cataloguer had already typed; if neither exists, leaves the
+    // composer empty with a prompt. Guarded so a quick off-toggle can't seed late.
+    function seedBaseText(seq, preTyped) {
+        const cid = parentCantusId();
+        setStatus(cid ? "Fetching base text from Cantus Index…" : "");
+        const done = function (base) {
+            if (seq !== activateSeq || !currentCluster) return; // toggled off meanwhile
+            const text = (base || "").trim() || preTyped;
+            if (text) {
+                seedCore(text);
+                setStatus("");
+            } else {
+                setStatus(
+                    "No base text found. Add a Cantus ID, or turn this off and type the " +
+                        "base chant text into the field, then turn it back on."
+                );
+            }
+        };
+        if (!cid) {
+            done("");
+            return;
+        }
+        fetchBaseText(cid).then(done);
+    }
+
+    function seedCore(text) {
+        composer.innerHTML = "";
+        composer.appendChild(makeCoreToken(text));
+        composer.appendChild(document.createTextNode(" "));
+        syncToTextarea();
+    }
+
+    // GET the base chant's standard full text (one blob; CI doesn't pre-split it).
+    function fetchBaseText(cantusId) {
+        return fetch(BASE_TEXT_URL + encodeURIComponent(cantusId), {
+            headers: { "X-Requested-With": "XMLHttpRequest" },
+        })
+            .then(function (r) {
+                return r.ok ? r.json() : null;
+            })
+            .then(function (data) {
+                return data ? data.base_text : "";
+            })
+            .catch(function () {
+                return "";
+            });
+    }
+
+    // Re-label existing cores when the Cantus ID field changes (cosmetic: cores don't
+    // store the ID — the server resolves it via the parent chant). Components keep
+    // their own IDs untouched.
+    function updateCoreCantusIds() {
+        if (!currentCluster) return;
+        const parent = parentCantusId();
+        allTokens().forEach(function (token) {
+            if (!isCoreToken(token)) return;
+            token.dataset.cantusId = parent;
+            const cid = token.querySelector(".token-cid");
+            if (cid) cid.textContent = parent;
+        });
     }
 
     function deactivateCluster() {
+        activateSeq += 1; // cancel any in-flight base-text seed
         exitSplitMode();
         closeMenu();
         normalizeComposer(); // preserve composed elements back into the textarea
@@ -365,8 +371,10 @@
         removedCores = [];
         undoStack = [];
         hint.hidden = true;
+        setStatus("");
         if (undoButton) undoButton.hidden = true;
         renderTray();
+        syncToElementsField(); // cluster mode off → submit no elements, just the flattened text
     }
 
     // ---- inline typeahead for component elements ------------------------
@@ -391,34 +399,13 @@
         return { elementNode: node, offset: range.startOffset, leadWs: "", query: "" };
     }
 
-    // Local, per-cluster component pool — the offline fallback used only when
-    // Cantus Index can't be reached (see refreshTypeahead). Ranks by where the query
-    // lands: text start first, then a word start, then anywhere. Stable within tiers.
-    function findMatches(query) {
-        const q = query.trim().toLowerCase();
-        if (!currentCluster || !q) return [];
-        const scored = [];
-        currentCluster.component.forEach(function (e, i) {
-            const text = e.text.toLowerCase();
-            const idx = text.indexOf(q);
-            if (idx < 0) return;
-            const rank = idx === 0 ? 0 : /\s/.test(text.charAt(idx - 1)) ? 1 : 2;
-            scored.push({ e: e, rank: rank, i: i });
-        });
-        scored.sort(function (a, b) {
-            return a.rank - b.rank || a.i - b.i;
-        });
-        return scored.slice(0, MAX_MATCHES).map(function (s) {
-            return s.e;
-        });
-    }
-
     // Float this cluster's own sub-elements (Cantus IDs like "<parent>:NN" or
     // "<parent>.Tp7") to the top, keeping CI's order within each group — search all
-    // of Cantus Index, but surface the obvious in-cluster ones first.
+    // of Cantus Index, but surface the obvious in-cluster ones first. The parent is
+    // read live from the Cantus ID field; with no ID yet, leave CI's order untouched.
     function rankResults(results) {
-        if (!currentCluster) return results;
-        const parent = currentCluster.parentCantusId;
+        const parent = parentCantusId();
+        if (!currentCluster || !parent) return results;
         const own = [];
         const rest = [];
         results.forEach(function (r) {
@@ -447,15 +434,13 @@
         return rows;
     }
 
-    // Offline fallback: the cluster's own components, clearly flagged so they're not
-    // mistaken for a live Cantus Index result.
-    function localFallbackRows(query) {
-        const rows = [{ kind: "notice", text: "Cantus Index unavailable — showing this cluster’s known components" }];
-        findMatches(query).forEach(function (e) {
-            rows.push({ kind: "match", element: e });
-        });
-        rows.push({ kind: "propose", text: query });
-        return rows;
+    // CI unreachable: no local pool to fall back on, so flag the outage and still let
+    // the cataloguer propose the typed text as a new component.
+    function ciErrorRows(query) {
+        return [
+            { kind: "notice", text: "Cantus Index unavailable — try again in a moment" },
+            { kind: "propose", text: query },
+        ];
     }
 
     function isNavigable(row) {
@@ -626,7 +611,7 @@
                 if (seq !== ciSeq || outcome.aborted || !isTypeaheadOpen()) return;
                 const ctx = currentQueryContext();
                 if (!ctx || ctx.query.trim().toLowerCase() !== query.toLowerCase()) return;
-                const rows = outcome.error ? localFallbackRows(query) : rowsFromResults(outcome.results, query);
+                const rows = outcome.error ? ciErrorRows(query) : rowsFromResults(outcome.results, query);
                 openTypeahead(rows, ctx);
             });
         }, CI_DEBOUNCE_MS);
@@ -944,19 +929,21 @@
     // ---- wiring ---------------------------------------------------------
 
     function wire() {
-        select.addEventListener("change", function () {
-            const cluster = CLUSTER_DEMO_DATA.find((c) => c.key === select.value);
-            if (cluster) {
-                activateCluster(cluster);
+        // The checkbox is the sole activation control (the demo cluster <select> is
+        // gone): ticking it seeds the composer from the base chant, unticking it
+        // flattens the composed elements back to the plain text field.
+        hasComponentCheckbox.addEventListener("change", function () {
+            if (hasComponentCheckbox.checked) {
+                activateFromCantusId();
             } else {
                 deactivateCluster();
             }
         });
 
-        hasComponentCheckbox.addEventListener("change", function () {
-            hint.hidden = !(hasComponentCheckbox.checked && currentCluster);
-            if (!hasComponentCheckbox.checked) closeTypeahead();
-        });
+        // Correcting the Cantus ID re-labels existing cores live (cosmetic only).
+        if (cantusIdInput) {
+            cantusIdInput.addEventListener("input", updateCoreCantusIds);
+        }
 
         composer.addEventListener("input", onComposerInput);
         composer.addEventListener("beforeinput", onBeforeInput);
@@ -1114,13 +1101,15 @@
     function init() {
         textarea = document.getElementById("id_manuscript_full_text_std_spelling");
         composer = document.getElementById("cluster-composer");
-        select = document.getElementById("cluster-select");
+        cantusIdInput = document.getElementById("id_cantus_id");
         hasComponentCheckbox = document.getElementById("has-component-elements");
         hint = document.getElementById("component-elements-hint");
+        status = document.getElementById("cluster-status");
+        elementsField = document.getElementById("id_elements_json");
         undoButton = document.getElementById("cluster-undo");
         tray = document.getElementById("removed-cores-tray");
         const controls = document.getElementById("cluster-controls");
-        if (!textarea || !composer || !select || !controls || !hasComponentCheckbox || !hint) return;
+        if (!textarea || !composer || !controls || !hasComponentCheckbox || !hint) return;
 
         typeahead = document.createElement("ul");
         typeahead.id = "element-typeahead";
@@ -1133,13 +1122,6 @@
         tokenMenu.className = "token-menu";
         tokenMenu.hidden = true;
         document.body.appendChild(tokenMenu);
-
-        CLUSTER_DEMO_DATA.forEach(function (cluster) {
-            const opt = document.createElement("option");
-            opt.value = cluster.key;
-            opt.textContent = cluster.label;
-            select.appendChild(opt);
-        });
 
         controls.hidden = false; // reveal now that JS is running (progressive enhancement)
         wire();

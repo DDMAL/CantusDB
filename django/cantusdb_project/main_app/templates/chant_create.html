@@ -190,30 +190,30 @@
                 <label for="{{ form.manuscript_full_text_std_spelling.id_for_label }}">
                     {{ form.manuscript_full_text_std_spelling.label_tag }}<span class="text-danger" title="This field is required">*</span>
                 </label>
-                <!-- Chant cluster prototype (#2128/#2129): demo controls, revealed by JS. -->
+                <!-- Chant cluster composer (#2128/#2129): controls revealed by JS. -->
                 <div id="cluster-controls" class="d-flex flex-wrap align-items-center mb-1" hidden>
-                    <label for="cluster-select" class="me-1 mb-0">Cluster (demo):</label>
-                    <select id="cluster-select"
-                            class="form-select form-select-sm d-inline-block w-auto me-3">
-                        <option value="">— none —</option>
-                    </select>
                     <div class="form-check mb-0 me-3">
                         <input class="form-check-input" type="checkbox" id="has-component-elements">
-                        <label class="form-check-label" for="has-component-elements">Has component elements</label>
+                        <label class="form-check-label" for="has-component-elements">Has interleaved component elements</label>
                     </div>
                     <button type="button" id="cluster-undo" class="btn btn-outline-secondary btn-sm" hidden disabled>
                         Undo
                     </button>
                 </div>
+                <p id="cluster-status" class="text-muted small mb-1" hidden></p>
                 <p id="component-elements-hint" class="text-muted small mb-1" hidden>
-                    Type in the field to search component elements, then pick one from the dropdown to insert it.
+                    The base chant text is loaded from Cantus Index by its Cantus ID. Split it into
+                    core chunks, then type in the field to search Cantus Index for component elements
+                    and pick one from the dropdown to interleave it.
                 </p>
                 {{ form.manuscript_full_text_std_spelling }}
-                <!-- Element composer; JS hides the textarea above and shows this when a cluster is active. -->
+                <!-- Element composer; JS hides the textarea above and shows this when cluster mode is on. -->
                 <div id="cluster-composer"
                      class="form-control cluster-composer"
                      contenteditable="true"
                      hidden></div>
+                <!-- Composed elements are serialised here for the server (ChantCreateForm.elements_json). -->
+                {{ form.elements_json }}
                 <!-- Deleted core elements land here; click a chip to restore. -->
                 <div id="removed-cores-tray" class="cluster-tray small mt-1" hidden></div>
                 <p class="text-muted">
