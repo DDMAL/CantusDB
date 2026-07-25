@@ -388,6 +388,34 @@ class CantusIndexFunctionsTest(TestCase):
                 ValueError, get_json_from_ci_api, "path/lacking/a/leading/slash"
             )
 
+        def raise_connection_error(*args, **kwargs):
+            raise requests.exceptions.ConnectionError
+
+        with patch("requests.get", raise_connection_error):
+            response_connection_error = get_json_from_ci_api(path="/json-cids")
+        with self.subTest(
+            test="Ensure returns None when requests.get raises a connection error"
+        ):
+            self.assertIsNone(response_connection_error)
+
+        malformed_json_response = MockResponse(
+            status_code=200,
+            text="this is not valid json",
+            json=None,
+            content=b"this is not valid json",
+        )
+
+        def json_raises_value_error():
+            raise ValueError("Expecting value")
+
+        malformed_json_response.json = json_raises_value_error
+        with patch("requests.get", lambda *args, **kwargs: malformed_json_response):
+            response_malformed_json = get_json_from_ci_api(path="/json-cids")
+        with self.subTest(
+            test="Ensure returns None when Cantus Index returns malformed JSON"
+        ):
+            self.assertIsNone(response_malformed_json)
+
     def test_get_suggested_fulltext(self) -> None:
         with self.subTest("Test CantusID with full text"):
             with patch("requests.get", mock_requests_get):

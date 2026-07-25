@@ -11,6 +11,7 @@ https://docs.djangoproject.com/en/3.0/ref/settings/
 """
 
 import os
+from celery.schedules import crontab
 from django.contrib.messages import constants as messages
 
 # https://ordinarycoders.com/blog/article/django-messages-framework
@@ -228,6 +229,13 @@ GENERIC_ADMIN_FULL_NAME = "cantus database administrator"
 # Celery configurations
 CELERY_BROKER_URL = "redis://redis:6379/0"
 CELERY_RESULT_BACKEND = "redis://redis:6379/0"
+CELERY_TIMEZONE = "America/New_York"
+CELERY_BEAT_SCHEDULE = {
+    "run-data-checks": {
+        "task": "cantusdb.run_data_checks",
+        "schedule": crontab(hour=9, minute=0),  # 9 AM Eastern
+    },
+}
 
 if DEBUG:
     INSTALLED_APPS.append("debug_toolbar")
