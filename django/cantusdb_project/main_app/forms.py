@@ -284,9 +284,12 @@ class ChantCreateForm(forms.ModelForm):
     )
 
     # Non-model field: the cluster composer serialises its element tokens here as JSON
-    # so ChantCreateView can persist ChantElement rows. The std-spelling text above
-    # stays authoritative for the chant's full text; this is structure layered beside it.
+    # so ChantCreateView can persist ChantElement rows. clean() derives the std-spelling
+    # full text from these when present, so the two representations can't diverge.
     elements_json = forms.CharField(required=False, widget=HiddenInput)
+    # A real troped cluster has a few dozen elements at most; cap it so a crafted or
+    # runaway payload can't drive an unbounded row-creation loop.
+    MAX_ELEMENTS = 200
 
     def clean_elements_json(self) -> list[dict[str, Any]]:
         """Parse and shape-validate the composer's serialised elements.
@@ -305,6 +308,10 @@ class ChantCreateForm(forms.ModelForm):
             raise forms.ValidationError("Composed elements are not valid JSON.")
         if not isinstance(data, list):
             raise forms.ValidationError("Composed elements must be a list.")
+        if len(data) > self.MAX_ELEMENTS:
+            raise forms.ValidationError(
+                f"A cluster can have at most {self.MAX_ELEMENTS} elements."
+            )
         valid_kinds = {kind.value for kind in ChantElement.Kind}
         elements: list[dict[str, Any]] = []
         for entry in data:
@@ -341,6 +348,15 @@ class ChantCreateForm(forms.ModelForm):
             raise forms.ValidationError(
                 "Chant with the same sequence and folio already exists in this source.",
                 code="duplicate-folio-sequence",
+            )
+        # When a cluster is composed, the standardized full text IS the elements' text in
+        # order. Derive it from the elements rather than trusting the separately-submitted
+        # textarea, so the flattened text and the structured elements can never diverge
+        # (this reproduces exactly what the composer's JS writes into the field).
+        elements = self.cleaned_data.get("elements_json")
+        if elements:
+            self.cleaned_data["manuscript_full_text_std_spelling"] = " ".join(
+                " ".join(element["text"].split()) for element in elements
             )
         return self.cleaned_data
 

@@ -1,4 +1,5 @@
 import hashlib
+import re
 import urllib.parse
 from collections import Counter, defaultdict
 from typing import Optional, Any, Iterator
@@ -6,8 +7,10 @@ import string
 
 from django.conf import settings
 from django.contrib import messages
+from django.contrib.auth.mixins import LoginRequiredMixin
 from django.contrib.postgres.aggregates import ArrayAgg
 from django.core.cache import cache
+from django.db import transaction
 from django.db.models import Case, F, Q, QuerySet, When
 from django.http import Http404, HttpRequest, HttpResponse, JsonResponse
 from django.shortcuts import get_object_or_404
@@ -1188,11 +1191,15 @@ class ChantCreateView(CustomAccessMixin, CreateView):  # type: ignore[type-arg]
         """
         Adds the "created_by" and "updated_by" fields to the chant, then persists any
         composed cluster elements (troped chants) as ChantElement rows.
+
+        The chant and its elements are saved in one transaction so a failure partway
+        through element creation can't leave a chant with a half-built cluster.
         """
         form.instance.created_by = self.request.user
         form.instance.last_updated_by = self.request.user
-        response = super().form_valid(form)  # saves the chant → self.object
-        self._create_elements(form.cleaned_data.get("elements_json") or [])
+        with transaction.atomic():
+            response = super().form_valid(form)  # saves the chant → self.object
+            self._create_elements(form.cleaned_data.get("elements_json") or [])
         return response
 
     def _create_elements(self, elements: list[dict[str, Any]]) -> None:
@@ -1275,7 +1282,7 @@ class CISearchView(TemplateView):
         return context
 
 
-class CIComponentSearchView(View):
+class CIComponentSearchView(LoginRequiredMixin, View):
     """
     Read-only JSON proxy for Cantus Index's text search (/json-text), backing the
     chant cluster prototype's inline component-element typeahead on the Create Chant
@@ -1325,7 +1332,7 @@ class CIComponentSearchView(View):
         return JsonResponse({"results": results})
 
 
-class CIBaseTextView(View):
+class CIBaseTextView(LoginRequiredMixin, View):
     """
     Read-only JSON proxy for a chant's standard full text from Cantus Index
     (/json-cid/{cantus_id}), backing the Create Chant cluster composer (issues
@@ -1341,11 +1348,15 @@ class CIBaseTextView(View):
     """
 
     CACHE_TTL: int = 60 * 60  # seconds; CI text data is effectively static
+    # Cantus IDs are short alphanumerics with optional :/./- separators (g04828,
+    # g04828:01, 909030). Reject anything else so a crafted id can't append a query
+    # or fragment to the CI request path.
+    ID_PATTERN = re.compile(r"[A-Za-z0-9.:_-]+")
 
     def get(self, request: HttpRequest, cantus_id: str) -> JsonResponse:
         """Return the base chant's standard full text for ``cantus_id`` as JSON."""
         cid: str = cantus_id.strip()
-        if not cid:
+        if not cid or not self.ID_PATTERN.fullmatch(cid):
             return JsonResponse({"base_text": ""})
 
         cache_key: str = f"ci-base-text:{cid}"

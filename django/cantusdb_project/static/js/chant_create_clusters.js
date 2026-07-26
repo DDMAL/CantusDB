@@ -286,6 +286,7 @@
         const preTyped = textarea.value.trim(); // manual base text, used if CI has none
         composer.innerHTML = "";
         composer.appendChild(document.createTextNode(" "));
+        composer.contentEditable = "true"; // reset (seedBaseText locks it while fetching)
         textarea.style.display = "none";
         composer.hidden = false;
         hint.hidden = !hasComponentCheckbox.checked;
@@ -302,8 +303,12 @@
     function seedBaseText(seq, preTyped) {
         const cid = parentCantusId();
         setStatus(cid ? "Fetching base text from Cantus Index…" : "");
+        // Lock the composer while the fetch is in flight so anything typed in that
+        // window isn't wiped when the seeded core replaces the contents.
+        if (cid) composer.contentEditable = "false";
         const done = function (base) {
             if (seq !== activateSeq || !currentCluster) return; // toggled off meanwhile
+            composer.contentEditable = "true";
             const text = (base || "").trim() || preTyped;
             if (text) {
                 seedCore(text);
