@@ -3655,6 +3655,66 @@ class ChantCreateViewTest(CustomAccessTestMixin, TestCase):
         )
         self.assertFalse(Chant.objects.filter(source=source).exists())
 
+    def test_elements_json_shape_validation(self) -> None:
+        """Each malformed-elements shape is rejected with its own message; no chant saved."""
+        source = self.source
+        cases = [
+            ('{"not": "a list"}', "Composed elements must be a list."),
+            ("[1]", "Each composed element must be an object."),
+            ('[{"kind": "bogus", "text": "x"}]', "Unknown element kind: 'bogus'."),
+            ('[{"kind": "core", "text": "   "}]', "Composed elements must have text."),
+            (
+                json.dumps([{"kind": "core", "text": "x"}] * 201),
+                "A cluster can have at most 200 elements.",
+            ),
+        ]
+        for raw, message in cases:
+            with self.subTest(case=message):
+                response = self.client.post(
+                    reverse("chant-create", args=[source.id]),
+                    {
+                        "manuscript_full_text_std_spelling": "text",
+                        "folio": "091r",
+                        "c_sequence": "1",
+                        "elements_json": raw,
+                    },
+                )
+                self.assertFormError(response.context["form"], "elements_json", message)
+        self.assertFalse(Chant.objects.filter(source=source).exists())
+
+    def test_full_text_is_derived_from_elements(self) -> None:
+        """The stored full text is rebuilt from the elements, so a divergent textarea
+        value submitted alongside them can't take effect."""
+        source = self.source
+        elements = [
+            {
+                "kind": "core",
+                "text": "Sanctus",
+                "cantus_id": "g04828",
+                "proposed": False,
+            },
+            {
+                "kind": "component",
+                "text": "Perpetuo numine",
+                "cantus_id": "g04828:01",
+                "proposed": False,
+            },
+        ]
+        self.client.post(
+            reverse("chant-create", args=[source.id]),
+            {
+                "manuscript_full_text_std_spelling": "a divergent value",
+                "folio": "005r",
+                "c_sequence": "1",
+                "cantus_id": "g04828",
+                "elements_json": json.dumps(elements),
+            },
+        )
+        chant = Chant.objects.get(source=source)
+        self.assertEqual(
+            chant.manuscript_full_text_std_spelling, "Sanctus Perpetuo numine"
+        )
+
     def test_created_elements_are_versioned(self) -> None:
         """Composed elements land in the chant's django-reversion history on creation."""
         source = self.source
@@ -4131,6 +4191,12 @@ class CIBaseTextViewTest(TestCase):
 
     def setUp(self) -> None:
         cache.clear()  # the view caches by Cantus ID; keep tests independent
+        self.client.force_login(make_fake_user())  # endpoint is login-gated
+
+    def test_requires_login(self) -> None:
+        self.client.logout()
+        response = self.client.get(reverse("ci-base-text", args=["g04828"]))
+        self.assertEqual(response.status_code, 302)  # redirected to login
 
     @patch("main_app.views.chant.get_suggested_fulltext")
     def test_returns_base_text_for_cantus_id(self, mock_fulltext) -> None:
@@ -4147,3 +4213,13 @@ class CIBaseTextViewTest(TestCase):
         response = self.client.get(reverse("ci-base-text", args=["unknown"]))
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response.json(), {"base_text": ""})
+
+    @patch("main_app.views.chant.get_suggested_fulltext")
+    def test_rejects_malformed_cantus_id_without_hitting_ci(
+        self, mock_fulltext
+    ) -> None:
+        """A Cantus ID with illegal characters can't reach the CI request path."""
+        response = self.client.get(reverse("ci-base-text", args=["bad id?x=1"]))
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.json(), {"base_text": ""})
+        mock_fulltext.assert_not_called()
