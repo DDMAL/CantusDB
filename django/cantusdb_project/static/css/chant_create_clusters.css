@@ -16,6 +16,8 @@
     padding: 0.05rem 0.35rem;
     /* horizontal gap so the caret is easy to place between adjacent boxes */
     margin: 0 0.3rem;
+    /* reserved transparent border so a proposed token's dashed border adds no layout shift */
+    border: 1px solid transparent;
     border-radius: 3px;
     cursor: pointer;
     user-select: none;
@@ -39,24 +41,37 @@
 .cluster-token.dragging {
     opacity: 0.45;
 }
+/* blue insertion bar marking where a dragged token will land */
+.cluster-drop-indicator {
+    position: fixed;
+    z-index: 1095;
+    width: 2px;
+    background: #0d6efd;
+    border-radius: 1px;
+    pointer-events: none;
+}
 .token-cid {
     margin-left: 0.3rem;
     font-size: 0.72em;
     color: #8a94a0;
     white-space: nowrap;
 }
-/* proposed = a component not yet in Cantus Index: a badge stands in for the missing
- * ID. Captured locally only — there is no CI write API, so nothing is submitted
- * upstream; a later edit fills the real ID once CI catalogues it. */
+/* proposed = a component not yet in Cantus Index. It IS a component, so it keeps the
+ * warm amber fill; a dashed border marks it as provisional, and the word "proposed"
+ * stands in for the missing ID — styled exactly like a real Cantus ID (grey, small,
+ * non-italic, inherited from .token-cid). Captured locally only — there is no CI write
+ * API, so nothing is submitted upstream; a later edit fills the real ID once CI has it. */
+.cluster-token--component[data-proposed="true"] {
+    box-shadow: none;
+    border-color: #c99a1f;
+    border-style: dashed;
+}
+.cluster-token--component[data-proposed="true"]:hover {
+    box-shadow: none;
+    border-color: #a67c15;
+}
 .cluster-token[data-proposed="true"] .token-cid::after {
     content: "proposed";
-    margin-left: 0.3rem;
-    padding: 0 0.4em;
-    border-radius: 0.6em;
-    background: #f0d9a8;
-    box-shadow: inset 0 0 0 1px #c99a1f;
-    color: #6b5410;
-    font-style: italic;
 }
 
 /* split mode: the core's words with clickable boundaries between them.
@@ -159,6 +174,7 @@ kbd.token-menu-key {
     display: flex;
     flex-wrap: wrap;
     align-items: center;
+    justify-content: flex-start; /* left-align the label + chips with the composer */
     gap: 0.35rem;
 }
 .tray-label {
