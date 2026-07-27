@@ -66,6 +66,7 @@ SOURCE_ADVANCED_SEARCH_FIELDS: tuple[str, ...] = (
     "provenance",
     "prodMethod",
     "indexing",
+    "nonInventoried",
 )
 
 
@@ -518,6 +519,8 @@ class SourceListView(CustomAccessMixin, ListView):  # type: ignore[type-arg]
             q_obj_filter &= Q(source_completeness__in=source_completeness)
         if production_method := self.request.GET.get("prodMethod"):
             q_obj_filter &= Q(production_method=production_method)
+        if self.request.GET.get("nonInventoried") == "true":
+            q_obj_filter &= Q(number_of_chants__isnull=True) | Q(number_of_chants=0)
 
         if general_str := self.request.GET.get("general"):
             # Strip leading/trailing spaces and collapse internal whitespace

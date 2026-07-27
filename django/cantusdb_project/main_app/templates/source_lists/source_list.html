@@ -158,6 +158,17 @@
                         </div>
                     {% endfor %}
                 </div>
+                <div class="form-check form-check-inline mt-1">
+                    <input type="checkbox"
+                           class="form-check-input"
+                           id="nonInventoriedFilter"
+                           name="nonInventoried"
+                           value="true"
+                           {% if request.GET.nonInventoried == "true" %}checked{% endif %} />
+                    <label class="form-label form-check-label small" for="nonInventoriedFilter">
+                        Non-inventoried
+                    </label>
+                </div>
             </div>
         </div>
         </div>
