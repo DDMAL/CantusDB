@@ -196,15 +196,22 @@
                         <input class="form-check-input" type="checkbox" id="has-component-elements">
                         <label class="form-check-label" for="has-component-elements">Has interleaved component elements</label>
                     </div>
+                    <button type="button"
+                            id="cluster-reload"
+                            class="btn btn-outline-secondary btn-sm me-2"
+                            title="Fetch the base chant's text again from Cantus Index using the Cantus ID above"
+                            hidden
+                            disabled>
+                        Reload base text from Cantus Index
+                    </button>
                     <button type="button" id="cluster-undo" class="btn btn-outline-secondary btn-sm" hidden disabled>
                         Undo
                     </button>
                 </div>
                 <p id="cluster-status" class="text-muted small mb-1" hidden></p>
                 <p id="component-elements-hint" class="text-muted small mb-1" hidden>
-                    The base chant text is loaded from Cantus Index by its Cantus ID. Split it into
-                    core chunks, then type in the field to search Cantus Index for component elements
-                    and pick one from the dropdown to interleave it.
+                    Click a core chunk to split it, or type to search Cantus Index for component
+                    elements to interleave.
                 </p>
                 {{ form.manuscript_full_text_std_spelling }}
                 <!-- Element composer; JS hides the textarea above and shows this when cluster mode is on. -->

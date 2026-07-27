@@ -42,7 +42,7 @@
     const CI_DEBOUNCE_MS = 250; // wait for a typing pause before firing a request
     const BASE_TEXT_URL = "/ci-base-text/"; // + cantus_id → { base_text }
 
-    let textarea, composer, cantusIdInput, hasComponentCheckbox, hint, status, undoButton, tray;
+    let textarea, composer, cantusIdInput, hasComponentCheckbox, hint, status, undoButton, reloadButton, tray;
     let elementsField; // hidden input carrying the composed elements as JSON to the server
     // Truthy while the composer is active (cluster mode on); null when off. No preset
     // payload any more — the base text is fetched and the parent ID is read live.
@@ -279,27 +279,35 @@
     // from Cantus Index by the Cantus ID — so we reveal the composer immediately and
     // seed the core once the fetch resolves (seedBaseText).
     function activateFromCantusId() {
-        activateSeq += 1;
         currentCluster = {}; // active sentinel; parent ID + components are read live
-        removedCores = [];
-        undoStack = [];
-        const preTyped = textarea.value.trim(); // manual base text, used if CI has none
-        composer.innerHTML = "";
-        composer.appendChild(document.createTextNode(" "));
-        composer.contentEditable = "true"; // reset (seedBaseText locks it while fetching)
         textarea.style.display = "none";
         composer.hidden = false;
         hint.hidden = !hasComponentCheckbox.checked;
         if (undoButton) undoButton.hidden = false;
+        if (reloadButton) reloadButton.hidden = false;
+        updateReloadButton();
+        // manual base text is the fallback only when there's no Cantus ID to fetch by
+        reseed(textarea.value.trim());
+    }
+
+    // Reset the composer and (re)seed the base text. Runs on activation and on an
+    // explicit reload (a Cantus ID change) — it clears any composed work first.
+    function reseed(preTyped) {
+        activateSeq += 1;
+        removedCores = [];
+        undoStack = [];
+        composer.innerHTML = "";
+        composer.appendChild(document.createTextNode(" "));
+        composer.contentEditable = "true"; // reset (seedBaseText locks it while fetching)
         renderTray();
         updateUndoButton();
         syncToTextarea();
         seedBaseText(activateSeq, preTyped);
     }
 
-    // Fetch the base chant's standard text from CI and seed it as one core. Falls back
-    // to any text the cataloguer had already typed; if neither exists, leaves the
-    // composer empty with a prompt. Guarded so a quick off-toggle can't seed late.
+    // Fetch the base chant's standard text from CI and seed it as one core. With a
+    // Cantus ID, CI is authoritative; with none, seeds from any text the cataloguer
+    // typed. Empty either way → a prompt. Guarded so a quick off-toggle can't seed late.
     function seedBaseText(seq, preTyped) {
         const cid = parentCantusId();
         setStatus(cid ? "Fetching base text from Cantus Index…" : "");
@@ -309,15 +317,18 @@
         const done = function (base) {
             if (seq !== activateSeq || !currentCluster) return; // toggled off meanwhile
             composer.contentEditable = "true";
-            const text = (base || "").trim() || preTyped;
+            // With a Cantus ID, Cantus Index is the sole source of the base text — never
+            // fall back to text already in the field, or arbitrary typed text would be
+            // relabelled as a core of this ID. Typing the base text in is only the path
+            // when there's no ID to fetch by.
+            const text = cid ? (base || "").trim() : preTyped;
             if (text) {
                 seedCore(text);
                 setStatus("");
+            } else if (cid) {
+                setStatus("No base text found in Cantus Index for Cantus ID " + cid + ".");
             } else {
-                setStatus(
-                    "No base text found. Add a Cantus ID, or turn this off and type the " +
-                        "base chant text into the field, then turn it back on."
-                );
+                setStatus("Add a Cantus ID to load the base chant text from Cantus Index.");
             }
         };
         if (!cid) {
@@ -350,18 +361,28 @@
             });
     }
 
-    // Re-label existing cores when the Cantus ID field changes (cosmetic: cores don't
-    // store the ID — the server resolves it via the parent chant). Components keep
-    // their own IDs untouched.
-    function updateCoreCantusIds() {
-        if (!currentCluster) return;
-        const parent = parentCantusId();
-        allTokens().forEach(function (token) {
-            if (!isCoreToken(token)) return;
-            token.dataset.cantusId = parent;
-            const cid = token.querySelector(".token-cid");
-            if (cid) cid.textContent = parent;
-        });
+    // Reload the base text from Cantus Index for the current Cantus ID. Driven by an
+    // explicit button — a silent reload on the field's blur was undiscoverable. Reloading
+    // replaces the base chant, so confirm first whenever any elements are composed,
+    // including a freshly-seeded core the cataloguer hasn't touched yet.
+    function reloadBaseText() {
+        if (!currentCluster || !parentCantusId()) return;
+        if (
+            allTokens().length > 0 &&
+            !window.confirm(
+                "This will reload the base text from Cantus Index and discard the current elements. Continue?"
+            )
+        ) {
+            return;
+        }
+        reseed("");
+    }
+
+    // The reload button can only fetch when there's a Cantus ID, so keep it visible but
+    // disabled until one is entered.
+    function updateReloadButton() {
+        if (!reloadButton) return;
+        reloadButton.disabled = !parentCantusId();
     }
 
     function deactivateCluster() {
@@ -378,6 +399,7 @@
         hint.hidden = true;
         setStatus("");
         if (undoButton) undoButton.hidden = true;
+        if (reloadButton) reloadButton.hidden = true;
         renderTray();
         syncToElementsField(); // cluster mode off → submit no elements, just the flattened text
     }
@@ -812,6 +834,9 @@
         const left = words.slice(0, wordIndex).join(" ");
         const right = words.slice(wordIndex).join(" ");
         if (!left || !right) return;
+        // Restore the token's normal display before snapshotting, so undoing the split
+        // returns to the intact element — not the split-mode markup it was showing.
+        exitSplitMode();
         pushUndo();
         // Two of the same kind: a core yields two cores; a proposed component
         // yields two proposed components (still uncatalogued, so no Cantus ID).
@@ -827,6 +852,36 @@
     // ---- drag to reorder ------------------------------------------------
 
     let dragToken = null;
+    let dropIndicator = null; // blue insertion bar shown while dragging (created in init)
+
+    // Show the insertion bar at the boundary a drop would land on: the left edge of the
+    // target token, or the right edge of the last token when appending past the end.
+    function showDropIndicator(target) {
+        if (!dropIndicator) return;
+        let rect, left;
+        if (target) {
+            const rects = target.getClientRects();
+            rect = rects.length ? rects[0] : target.getBoundingClientRect();
+            left = rect.left;
+        } else {
+            const others = allTokens().filter(function (t) {
+                return t !== dragToken;
+            });
+            if (!others.length) return hideDropIndicator();
+            const last = others[others.length - 1];
+            const rects = last.getClientRects();
+            rect = rects.length ? rects[rects.length - 1] : last.getBoundingClientRect();
+            left = rect.right;
+        }
+        dropIndicator.style.left = left - 1 + "px"; // centre the 2px bar on the boundary
+        dropIndicator.style.top = rect.top + "px";
+        dropIndicator.style.height = rect.height + "px";
+        dropIndicator.hidden = false;
+    }
+
+    function hideDropIndicator() {
+        if (dropIndicator) dropIndicator.hidden = true;
+    }
 
     function onDragStart(e) {
         const token = e.target.closest && e.target.closest(".cluster-token");
@@ -843,6 +898,7 @@
     function onDragEnd() {
         if (dragToken) dragToken.classList.remove("dragging");
         dragToken = null;
+        hideDropIndicator();
     }
 
     // The token before which the dragged token should land (null → append).
@@ -872,11 +928,13 @@
         if (!dragToken) return;
         e.preventDefault();
         e.dataTransfer.dropEffect = "move";
+        showDropIndicator(dragTargetToken(e.clientX, e.clientY));
     }
 
     function onDrop(e) {
         if (!dragToken) return;
         e.preventDefault();
+        hideDropIndicator();
         const target = dragTargetToken(e.clientX, e.clientY);
         if (target === dragToken) return;
         pushUndo();
@@ -945,9 +1003,13 @@
             }
         });
 
-        // Correcting the Cantus ID re-labels existing cores live (cosmetic only).
+        // Reloading is an explicit button, not a silent blur (which was undiscoverable);
+        // keep it enabled only while there's a Cantus ID to fetch by.
         if (cantusIdInput) {
-            cantusIdInput.addEventListener("input", updateCoreCantusIds);
+            cantusIdInput.addEventListener("input", updateReloadButton);
+        }
+        if (reloadButton) {
+            reloadButton.addEventListener("click", reloadBaseText);
         }
 
         composer.addEventListener("input", onComposerInput);
@@ -1062,8 +1124,18 @@
             });
         }
 
-        // clicking outside the composer/menu closes the menu
+        // clicking outside the composer/menu closes the menu; clicking anywhere
+        // outside the composer while splitting cancels split mode (Esc also does)
         document.addEventListener("mousedown", function (e) {
+            // ...but not the token menu, whose own "Split" button enters split mode (its
+            // mousedown bubbles here right after) — that click must not cancel it.
+            if (
+                splittingToken() &&
+                !composer.contains(e.target) &&
+                !tokenMenu.contains(e.target)
+            ) {
+                exitSplitMode();
+            }
             if (!isMenuOpen()) return;
             if (tokenMenu.contains(e.target) || (menuToken && menuToken.contains(e.target))) return;
             closeMenu();
@@ -1112,6 +1184,7 @@
         status = document.getElementById("cluster-status");
         elementsField = document.getElementById("id_elements_json");
         undoButton = document.getElementById("cluster-undo");
+        reloadButton = document.getElementById("cluster-reload");
         tray = document.getElementById("removed-cores-tray");
         const controls = document.getElementById("cluster-controls");
         if (!textarea || !composer || !controls || !hasComponentCheckbox || !hint) return;
@@ -1127,6 +1200,11 @@
         tokenMenu.className = "token-menu";
         tokenMenu.hidden = true;
         document.body.appendChild(tokenMenu);
+
+        dropIndicator = document.createElement("div");
+        dropIndicator.className = "cluster-drop-indicator";
+        dropIndicator.hidden = true;
+        document.body.appendChild(dropIndicator);
 
         controls.hidden = false; // reveal now that JS is running (progressive enhancement)
         wire();
