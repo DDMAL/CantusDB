@@ -854,26 +854,40 @@
     let dragToken = null;
     let dropIndicator = null; // blue insertion bar shown while dragging (created in init)
 
-    // Show the insertion bar at the boundary a drop would land on: the left edge of the
-    // target token, or the right edge of the last token when appending past the end.
+    function lastClientRect(el) {
+        const rects = el.getClientRects();
+        return rects.length ? rects[rects.length - 1] : el.getBoundingClientRect();
+    }
+
+    // Show the insertion bar centred in the gap a drop would land in. With a token on each
+    // side of the same line it sits at the true midpoint between their edges (the gap is
+    // wider than the two margins — there's a space glyph between tokens too — so a plain
+    // margin offset would list toward one side). At a wrapped line start or the very
+    // beginning/end there's only one neighbour, so it sits one margin-width in for even
+    // spacing rather than hugging that token.
     function showDropIndicator(target) {
         if (!dropIndicator) return;
-        let rect, left;
+        const tokens = allTokens().filter(function (t) {
+            return t !== dragToken;
+        });
+        let rect, x;
         if (target) {
             const rects = target.getClientRects();
             rect = rects.length ? rects[0] : target.getBoundingClientRect();
-            left = rect.left;
+            const prev = tokens[tokens.indexOf(target) - 1];
+            const prevRect = prev && lastClientRect(prev);
+            if (prevRect && Math.abs(prevRect.top - rect.top) < 1 && prevRect.right <= rect.left) {
+                x = (prevRect.right + rect.left) / 2;
+            } else {
+                x = rect.left - (parseFloat(getComputedStyle(target).marginLeft) || 0);
+            }
         } else {
-            const others = allTokens().filter(function (t) {
-                return t !== dragToken;
-            });
-            if (!others.length) return hideDropIndicator();
-            const last = others[others.length - 1];
-            const rects = last.getClientRects();
-            rect = rects.length ? rects[rects.length - 1] : last.getBoundingClientRect();
-            left = rect.right;
+            if (!tokens.length) return hideDropIndicator();
+            const last = tokens[tokens.length - 1];
+            rect = lastClientRect(last);
+            x = rect.right + (parseFloat(getComputedStyle(last).marginRight) || 0);
         }
-        dropIndicator.style.left = left - 1 + "px"; // centre the 2px bar on the boundary
+        dropIndicator.style.left = x - 1 + "px"; // centre the 2px bar on x
         dropIndicator.style.top = rect.top + "px";
         dropIndicator.style.height = rect.height + "px";
         dropIndicator.hidden = false;

@@ -169,6 +169,16 @@ kbd.token-menu-key {
     top: -1px;
 }
 
+/* Reload / Undo sit inline with the activation checkbox. Bootstrap's btn-sm still
+ * renders them taller and heavier than the checkbox label, which looked bulky next to
+ * it (#2129 review); shrink them so they read as quiet secondary actions in the same
+ * visual register as the label rather than towering over it. */
+#cluster-controls .btn {
+    padding: 0.1rem 0.45rem;
+    font-size: 0.8rem;
+    line-height: 1.5;
+}
+
 /* restore tray for deleted core elements */
 .cluster-tray {
     display: flex;
