@@ -29,6 +29,7 @@ from main_app.tasks import (
 from main_app.tests.make_fakes import (
     make_fake_source,
     make_fake_chant,
+    make_fake_institution,
     make_fake_service,
     make_fake_genre,
     make_fake_user,
@@ -347,14 +348,20 @@ class FormatCheckCsvTest(TestCase):
         self.assertEqual(unpub_row["published"], "0")
 
     def test_formula_injection_trigger_chars_are_neutralized(self) -> None:
-        source = make_fake_source(published=True, siglum="=cmd|'/c calc'!A1")
+        # The `source` column is now the composed short_heading (institution
+        # siglum + shelfmark, #2025), so a trigger char leading the institution
+        # siglum must still be neutralized. `cantus_id` is plain free text.
+        institution = make_fake_institution(siglum="=cmd|'/c calc'!A1")
+        source = make_fake_source(
+            published=True, holding_institution=institution, shelfmark="MS 1"
+        )
         chant = make_fake_chant(source=source, genre=None, cantus_id="=2+2")
 
         content = _format_check_csv({"published": [chant], "unpublished": []})
         rows = list(csv.DictReader(io.StringIO(content)))
         row = rows[0]
 
-        self.assertEqual(row["source"], "'=cmd|'/c calc'!A1")
+        self.assertEqual(row["source"], "'=cmd|'/c calc'!A1 MS 1")
         self.assertEqual(row["cantus_id"], "'=2+2")
 
     def test_duplicate_check_uses_group_header_even_with_no_rows(self) -> None:
@@ -422,6 +429,38 @@ class FormatCheckCsvTest(TestCase):
         )
         self.assertEqual(row["link"], expected_link)
         self.assertEqual(row["published"], "1")
+
+    def test_source_column_uses_composed_heading_not_legacy_siglum(self) -> None:
+        """The `source` column shows `Source.short_heading` (institution siglum
+        + shelfmark), not the frozen `Source.siglum` column. See #2025.
+        """
+        institution = make_fake_institution(siglum="V-CVbav")
+        source = make_fake_source(
+            published=True,
+            shelfmark="San Pietro B.79",
+            holding_institution=institution,
+        )
+        # The stale value the report used to print.
+        Source.objects.filter(id=source.id).update(siglum="V-CVbav B.79")
+        chant = make_fake_chant(source=source)
+
+        content = _format_check_csv({"published": [chant], "unpublished": []})
+        rows = list(csv.DictReader(io.StringIO(content)))
+
+        self.assertEqual(rows[0]["source"], "V-CVbav San Pietro B.79")
+        self.assertNotIn("V-CVbav B.79", content)
+
+    def test_source_column_falls_back_to_cantus_without_usable_siglum(self) -> None:
+        institution = make_fake_institution(is_private_collector=True)
+        source = make_fake_source(
+            published=True, shelfmark="MS 123", holding_institution=institution
+        )
+        chant = make_fake_chant(source=source)
+
+        content = _format_check_csv({"published": [chant], "unpublished": []})
+        rows = list(csv.DictReader(io.StringIO(content)))
+
+        self.assertEqual(rows[0]["source"], "Cantus MS 123")
 
 
 class PrivateMediaStorageTest(SimpleTestCase):
