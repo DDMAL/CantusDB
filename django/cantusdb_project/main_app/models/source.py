@@ -1,4 +1,4 @@
-from typing import Any, Optional
+from typing import Optional
 
 from django.db import models
 from django.contrib.auth import get_user_model
@@ -255,14 +255,15 @@ class Source(BaseModel):
         )
 
     @staticmethod
-    def compose_short_heading(
-        institution_siglum: Optional[str], shelfmark: Optional[str]
-    ) -> str:
+    def compose_short_heading(institution_siglum: Optional[str], shelfmark: str) -> str:
         """Build a source's short heading from its component values.
 
         Kept separate from the `short_heading` property so that bulk exports,
         which read the underlying columns with `QuerySet.values()` rather than
         instantiating Source objects, produce identical strings.
+
+        `feast_source_query` in `main_app/views/feast.py` reimplements this in
+        SQL; keep the two in sync.
         """
         title = []
         if institution_siglum and institution_siglum != "XX-NN":

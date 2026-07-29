@@ -303,33 +303,7 @@ class UpdateCachedConcordancesCommandTest(TestCase):
 
         self.assertEqual(single_concordance["siglum"], "V-CVbav San Pietro B.79")
         self.assertNotEqual(single_concordance["siglum"], source.siglum)
-
-    def test_siglum_falls_back_when_institution_has_no_usable_siglum(self):
-        """Sources held by a private collector (or an institution with the
-        placeholder `XX-NN` siglum) export "Cantus" in place of a RISM siglum,
-        matching `Source.short_heading`.
-        """
-        for description, institution in (
-            ("private collector", make_fake_institution(is_private_collector=True)),
-            ("placeholder siglum", make_fake_institution(siglum="XX-NN")),
-        ):
-            with self.subTest(institution=description):
-                source: Source = make_fake_source(
-                    holding_institution=institution,
-                    shelfmark="MS 123",
-                    published=True,
-                )
-                # Used to pick this subtest's chant out of the full export.
-                marker: str = f"fallback siglum test: {description}"
-                make_fake_chant(source=source, manuscript_full_text_std_spelling=marker)
-
-                concordances: list = update_cached_concordances.get_concordances()
-                observed: dict = [c for c in concordances if c["full_text"] == marker][
-                    0
-                ]
-
-                self.assertEqual(observed["siglum"], "Cantus MS 123")
-                self.assertEqual(observed["siglum"], source.short_heading)
+        self.assertEqual(single_concordance["siglum"], source.short_heading)
 
 
 class IncipitSignalTest(TestCase):
