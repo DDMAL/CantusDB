@@ -13,6 +13,7 @@ from main_app.models import (
 from main_app.tests import mock_cantusindex_data
 from main_app.tests.make_fakes import (
     make_fake_chant,
+    make_fake_institution,
     make_fake_source,
 )
 from main_app.management.commands import update_cached_concordances
@@ -259,7 +260,7 @@ class UpdateCachedConcordancesCommandTest(TestCase):
         single_concordance: dict = concordances[0]
 
         expected_items: tuple = (
-            ("siglum", chant.source.siglum),
+            ("siglum", chant.source.short_heading),
             ("srclink", f"https://cantusdatabase.org/source/{chant.source.id}/"),
             ("chantlink", f"https://cantusdatabase.org/chant/{chant.id}/"),
             ("folio", chant.folio),
@@ -281,6 +282,54 @@ class UpdateCachedConcordancesCommandTest(TestCase):
             observed_value: Union[str, int, None] = single_concordance[key]
             with self.subTest(key=key):
                 self.assertEqual(observed_value, value)
+
+    def test_siglum_is_composed_not_read_from_legacy_column(self):
+        """The exported siglum must be built from the holding institution's RISM
+        siglum and the source's shelfmark, not from the stale `Source.siglum`
+        column, which is no longer maintained. See #2025.
+        """
+        institution = make_fake_institution(siglum="V-CVbav")
+        source: Source = make_fake_source(
+            holding_institution=institution,
+            shelfmark="San Pietro B.79",
+            published=True,
+        )
+        # Simulate the out-of-date legacy value that this export used to emit.
+        source.siglum = "V-CVbav B.79"
+        source.save()
+        make_fake_chant(source=source)
+
+        single_concordance: dict = update_cached_concordances.get_concordances()[0]
+
+        self.assertEqual(single_concordance["siglum"], "V-CVbav San Pietro B.79")
+        self.assertNotEqual(single_concordance["siglum"], source.siglum)
+
+    def test_siglum_falls_back_when_institution_has_no_usable_siglum(self):
+        """Sources held by a private collector (or an institution with the
+        placeholder `XX-NN` siglum) export "Cantus" in place of a RISM siglum,
+        matching `Source.short_heading`.
+        """
+        for description, institution in (
+            ("private collector", make_fake_institution(is_private_collector=True)),
+            ("placeholder siglum", make_fake_institution(siglum="XX-NN")),
+        ):
+            with self.subTest(institution=description):
+                source: Source = make_fake_source(
+                    holding_institution=institution,
+                    shelfmark="MS 123",
+                    published=True,
+                )
+                # Used to pick this subtest's chant out of the full export.
+                marker: str = f"fallback siglum test: {description}"
+                make_fake_chant(source=source, manuscript_full_text_std_spelling=marker)
+
+                concordances: list = update_cached_concordances.get_concordances()
+                observed: dict = [c for c in concordances if c["full_text"] == marker][
+                    0
+                ]
+
+                self.assertEqual(observed["siglum"], "Cantus MS 123")
+                self.assertEqual(observed["siglum"], source.short_heading)
 
 
 class IncipitSignalTest(TestCase):

@@ -254,17 +254,29 @@ class Source(BaseModel):
             for link in self.source_links.all()  # type: ignore[attr-defined]
         )
 
-    @property
-    def short_heading(self) -> str:
+    @staticmethod
+    def compose_short_heading(
+        institution_siglum: Optional[str], shelfmark: Optional[str]
+    ) -> str:
+        """Build a source's short heading from its component values.
+
+        Kept separate from the `short_heading` property so that bulk exports,
+        which read the underlying columns with `QuerySet.values()` rather than
+        instantiating Source objects, produce identical strings.
+        """
         title = []
-        if holdinst := self.holding_institution:
-            if holdinst.siglum and holdinst.siglum != "XX-NN":
-                title.append(f"{holdinst.siglum}")
-            else:
-                title.append("Cantus")
+        if institution_siglum and institution_siglum != "XX-NN":
+            title.append(institution_siglum)
         else:
             title.append("Cantus")
 
-        title.append(self.shelfmark)
+        title.append(shelfmark)
 
         return " ".join(title)
+
+    @property
+    def short_heading(self) -> str:
+        holdinst = self.holding_institution
+        return self.compose_short_heading(
+            holdinst.siglum if holdinst else None, self.shelfmark
+        )
