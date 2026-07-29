@@ -1,3 +1,8 @@
+:root {
+	/* Radio Canada distinguishes "1" from uppercase "I" — needed for sigla like D-WI1. */
+	--bs-body-font-family: "Radio Canada", sans-serif;
+}
+
 body {
 	background-image: url("../background.jpg");
 }
@@ -7,7 +12,6 @@ body {
 	max-width: 600px;
 	background-color: white;
 	padding: 20px;
-	font-family: "Segoe UI", Roboto, "Helvetica Neue", Arial, "Noto Sans", "Liberation Sans", sans-serif;
 	text-align: center;
 }
 
@@ -150,7 +154,7 @@ a.close-success:hover {
 }
 
 .font-serif {
-	font-family: "Radio Canada";
+	font-family: "Radio Canada", sans-serif;
 }
 
 .font-volpiano {
