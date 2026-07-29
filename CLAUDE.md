@@ -26,7 +26,7 @@ docker compose exec -T django python manage.py makemigrations --dry-run
 
 UI/template changes can't be verified from the terminal — say so explicitly rather than claiming success.
 
-**No pre-commit hook is configured** — run `black`, `mypy`, `pylint`, and `djlint` yourself before pushing.
+**Black is the only enforced check** — CI runs `black --check django scripts` (`.github/workflows/lint.yml`), so unformatted Python fails the PR.
 
 ## Branches and PRs
 
