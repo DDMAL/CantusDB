@@ -23,7 +23,6 @@ from main_app.tasks import (
     check_blank_invitatory_differentia,
     run_data_checks,
     _format_check_csv,
-    PRODUCTION_BASE_URL,
     CHECK_LABELS,
 )
 from main_app.tests.make_fakes import (
@@ -315,7 +314,10 @@ class CheckBlankInvitatoryDifferentiaTest(TestCase):
         self.assertNotIn(non_invitatory, result["published"])
 
 
+@override_settings(CANTUSDB_HOST="cantusdatabase.org")
 class FormatCheckCsvTest(TestCase):
+    EXPECTED_BASE_URL = "https://cantusdatabase.org"
+
     def test_chant_row_links_to_chant_detail_and_flags_published(self) -> None:
         pub_source = make_fake_source(published=True)
         unpub_source = make_fake_source(published=False)
@@ -330,10 +332,29 @@ class FormatCheckCsvTest(TestCase):
         pub_row = next(r for r in rows if r["chant_id"] == str(pub_chant.id))
         unpub_row = next(r for r in rows if r["chant_id"] == str(unpub_chant.id))
 
-        expected_link = f'=HYPERLINK("{PRODUCTION_BASE_URL}/chant/{pub_chant.id}/","{pub_chant.id}")'
+        expected_link = f'=HYPERLINK("{self.EXPECTED_BASE_URL}/chant/{pub_chant.id}/","{pub_chant.id}")'
         self.assertEqual(pub_row["link"], expected_link)
         self.assertEqual(pub_row["published"], "1")
         self.assertEqual(unpub_row["published"], "0")
+
+    def test_formula_injection_trigger_chars_are_neutralized(self) -> None:
+        source = make_fake_source(published=True, siglum="=cmd|'/c calc'!A1")
+        chant = make_fake_chant(source=source, genre=None, cantus_id="=2+2")
+
+        content = _format_check_csv({"published": [chant], "unpublished": []})
+        rows = list(csv.DictReader(io.StringIO(content)))
+        row = rows[0]
+
+        self.assertEqual(row["source"], "'=cmd|'/c calc'!A1")
+        self.assertEqual(row["cantus_id"], "'=2+2")
+
+    def test_duplicate_check_uses_group_header_even_with_no_rows(self) -> None:
+        content = _format_check_csv(
+            {"published": [], "unpublished": []},
+            check_key="duplicate_folio_sequence",
+        )
+        header = content.splitlines()[0]
+        self.assertEqual(header, "link,source_id,folio,sequence,count,ids,published")
 
     def test_position_service_mismatch_shows_position_and_service_not_mode(
         self,
@@ -368,7 +389,7 @@ class FormatCheckCsvTest(TestCase):
         rows = list(csv.DictReader(io.StringIO(content)))
 
         row = next(r for r in rows if r["source_id"] == str(source.id))
-        expected_link = f'=HYPERLINK("{PRODUCTION_BASE_URL}/source/{source.id}/chants/?folio=001r","{source.id}")'
+        expected_link = f'=HYPERLINK("{self.EXPECTED_BASE_URL}/source/{source.id}/chants/?folio=001r","{source.id}")'
         self.assertEqual(row["link"], expected_link)
         self.assertEqual(row["published"], "1")
 

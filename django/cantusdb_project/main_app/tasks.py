@@ -11,8 +11,10 @@ from concurrent.futures import (
 )
 from datetime import timedelta
 from typing import List, Dict, Any, Optional
+from urllib.parse import quote
 
 from celery import shared_task, Task
+from django.conf import settings
 from django.core.files.base import ContentFile
 from django.core.mail import EmailMessage
 from django.db.models import Count, Q
@@ -28,7 +30,16 @@ CI_WORKERS = 10
 CI_REQUEST_DELAY = 0.2  # seconds between requests per worker, so we don't hammer CI
 CI_BATCH_TIMEOUT = 4500  # overall seconds allotted to fetch CI genres for one check run
 
-PRODUCTION_BASE_URL = "https://cantusdatabase.org"
+
+def _site_base_url() -> str:
+    """
+    The scheme+host to build report links against. Sourced from
+    `CANTUSDB_HOST` (already used for ALLOWED_HOSTS/CSRF_TRUSTED_ORIGINS) so
+    links point at whichever environment (production/staging) actually ran
+    the check, instead of always pointing at production.
+    """
+    return f"https://{settings.CANTUSDB_HOST}"
+
 
 logger = logging.getLogger(__name__)
 
@@ -345,6 +356,22 @@ CHECK_LABELS = {
 }
 
 
+_FORMULA_TRIGGER_CHARS = ("=", "+", "-", "@", "\t", "\r")
+
+
+def _csv_safe(value: Any) -> str:
+    """
+    Neutralize values that spreadsheet apps (Excel, Sheets, Numbers) could
+    interpret as formulas when the CSV is opened, per OWASP CSV injection
+    guidance. Contributor-editable fields (siglum, folio, genre, etc.) are
+    free text and could start with a formula-trigger character.
+    """
+    text = "" if value is None else str(value)
+    if text.startswith(_FORMULA_TRIGGER_CHARS):
+        return f"'{text}"
+    return text
+
+
 def _format_check_csv(result: dict, check_key: Optional[str] = None) -> str:
     """
     CSV formatter for a single check's result: one row per item, with a
@@ -363,8 +390,13 @@ def _format_check_csv(result: dict, check_key: Optional[str] = None) -> str:
     sample = next(
         iter(result.get("published") or result.get("unpublished") or []), None
     )
+    is_group_check = (
+        check_key == "duplicate_folio_sequence"
+        if check_key is not None
+        else isinstance(sample, dict)
+    )
 
-    if isinstance(sample, dict):
+    if is_group_check:
         writer.writerow(
             ["link", "source_id", "folio", "sequence", "count", "ids", "published"]
         )
@@ -376,17 +408,17 @@ def _format_check_csv(result: dict, check_key: Optional[str] = None) -> str:
                 id_label = "chant_ids" if "chant_ids" in item else "sequence_ids"
                 source_id = item.get("source_id")
                 folio = item.get("folio")
-                link_url = (
-                    f"{PRODUCTION_BASE_URL}/source/{source_id}/chants/?folio={folio}"
-                )
+                # Folio is free text; URL-quote it so it can't break out of
+                # the HYPERLINK formula's quoted URL argument.
+                link_url = f"{_site_base_url()}/source/{source_id}/chants/?folio={quote(str(folio), safe='')}"
                 writer.writerow(
                     [
                         f'=HYPERLINK("{link_url}","{source_id}")',
-                        source_id,
-                        folio,
-                        item.get("c_sequence", item.get("s_sequence")),
-                        item.get("count"),
-                        ",".join(str(i) for i in item[id_label]),
+                        _csv_safe(source_id),
+                        _csv_safe(folio),
+                        _csv_safe(item.get("c_sequence", item.get("s_sequence"))),
+                        _csv_safe(item.get("count")),
+                        _csv_safe(",".join(str(i) for i in item[id_label])),
                         published,
                     ]
                 )
@@ -410,20 +442,23 @@ def _format_check_csv(result: dict, check_key: Optional[str] = None) -> str:
             (0, result.get("unpublished") or []),
         ):
             for item in items:
-                link_url = f"{PRODUCTION_BASE_URL}/chant/{item.id}/"
+                link_url = f"{_site_base_url()}/chant/{item.id}/"
                 row = [
                     f'=HYPERLINK("{link_url}","{item.id}")',
-                    item.source_id,
-                    item.id,
-                    getattr(item.source, "siglum", item.source_id),
-                    item.folio,
-                    item.cantus_id,
-                    getattr(item.genre, "name", ""),
+                    _csv_safe(item.source_id),
+                    _csv_safe(item.id),
+                    _csv_safe(getattr(item.source, "siglum", item.source_id)),
+                    _csv_safe(item.folio),
+                    _csv_safe(item.cantus_id),
+                    _csv_safe(getattr(item.genre, "name", "")),
                 ]
                 if show_position_service:
-                    row += [item.position, getattr(item.service, "name", "")]
+                    row += [
+                        _csv_safe(item.position),
+                        _csv_safe(getattr(item.service, "name", "")),
+                    ]
                 else:
-                    row.append(item.mode)
+                    row.append(_csv_safe(item.mode))
                 row.append(published)
                 writer.writerow(row)
 
