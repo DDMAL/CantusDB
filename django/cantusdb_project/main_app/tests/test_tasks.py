@@ -1,12 +1,16 @@
 import csv
 import io
+import shutil
+import tempfile
 import zipfile
 from typing import List, Dict, Any
 from unittest.mock import patch, DEFAULT
 
 from django.core import mail
-from django.test import TestCase
+from django.core.files.base import ContentFile
+from django.test import TestCase, override_settings
 from django.db.models import QuerySet
+from django.urls import reverse
 
 from main_app.tasks import (
     save_browse_chants_formset,
@@ -29,7 +33,7 @@ from main_app.tests.make_fakes import (
     make_fake_genre,
     make_fake_user,
 )
-from main_app.models import Chant, DataCheckConfig, Genre, Source
+from main_app.models import Chant, DataCheckConfig, DataCheckReport, Genre, Source
 from main_app.forms import BrowseChantsBulkEditFormset
 
 
@@ -336,9 +340,7 @@ class FormatCheckCsvTest(TestCase):
     ) -> None:
         source = make_fake_source(published=True)
         vespers = make_fake_service(name="V")
-        chant = make_fake_chant(
-            source=source, position="M", service=vespers, mode="3"
-        )
+        chant = make_fake_chant(source=source, position="M", service=vespers, mode="3")
 
         content = _format_check_csv(
             {"published": [chant], "unpublished": []},
@@ -366,14 +368,25 @@ class FormatCheckCsvTest(TestCase):
         rows = list(csv.DictReader(io.StringIO(content)))
 
         row = next(r for r in rows if r["source_id"] == str(source.id))
-        expected_link = (
-            f'=HYPERLINK("{PRODUCTION_BASE_URL}/source/{source.id}/chants/?folio=001r","{source.id}")'
-        )
+        expected_link = f'=HYPERLINK("{PRODUCTION_BASE_URL}/source/{source.id}/chants/?folio=001r","{source.id}")'
         self.assertEqual(row["link"], expected_link)
         self.assertEqual(row["published"], "1")
 
 
 class RunDataChecksTest(TestCase):
+    @classmethod
+    def setUpClass(cls) -> None:
+        super().setUpClass()
+        cls._media_root = tempfile.mkdtemp()
+        cls._media_root_override = override_settings(MEDIA_ROOT=cls._media_root)
+        cls._media_root_override.enable()
+
+    @classmethod
+    def tearDownClass(cls) -> None:
+        cls._media_root_override.disable()
+        shutil.rmtree(cls._media_root, ignore_errors=True)
+        super().tearDownClass()
+
     def _patch_checks(self):
         empty_result = {"published": [], "unpublished": []}
         patcher = patch.multiple(
@@ -426,6 +439,97 @@ class RunDataChecksTest(TestCase):
         self.assertTrue(filename.endswith(".zip"))
         self.assertEqual(mimetype, "application/zip")
         with zipfile.ZipFile(io.BytesIO(content)) as zip_file:
-            self.assertEqual(set(zip_file.namelist()), {f"{key}.csv" for key in CHECK_LABELS})
+            self.assertEqual(
+                set(zip_file.namelist()), {f"{key}.csv" for key in CHECK_LABELS}
+            )
         config.refresh_from_db()
         self.assertIsNotNone(config.last_run)
+
+        self.assertEqual(DataCheckReport.objects.count(), 1)
+        report = DataCheckReport.objects.first()
+        self.assertTrue(report.file.name)
+        self.assertFalse(report.completed)
+
+
+class DataCheckReportAdminTest(TestCase):
+    @classmethod
+    def setUpClass(cls) -> None:
+        super().setUpClass()
+        cls._media_root = tempfile.mkdtemp()
+        cls._media_root_override = override_settings(MEDIA_ROOT=cls._media_root)
+        cls._media_root_override.enable()
+
+    @classmethod
+    def tearDownClass(cls) -> None:
+        cls._media_root_override.disable()
+        shutil.rmtree(cls._media_root, ignore_errors=True)
+        super().tearDownClass()
+
+    def setUp(self) -> None:
+        self.superuser = make_fake_user(is_superuser=True)
+        self.client.force_login(self.superuser)
+
+    def _make_report(self) -> DataCheckReport:
+        return DataCheckReport.objects.create(
+            file=ContentFile(b"fake zip contents", name="report.zip")
+        )
+
+    def test_add_view_is_disabled(self) -> None:
+        url = reverse("admin:main_app_datacheckreport_add")
+        response = self.client.get(url)
+        # has_add_permission=False -> 403.
+        self.assertEqual(response.status_code, 403)
+
+    def test_changelist_shows_download_link(self) -> None:
+        report = self._make_report()
+        url = reverse("admin:main_app_datacheckreport_changelist")
+        response = self.client.get(url)
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, report.file.url)
+        self.assertContains(response, "Download")
+
+    def test_changelist_allows_marking_completed_via_list_editable(self) -> None:
+        report = self._make_report()
+        url = reverse("admin:main_app_datacheckreport_changelist")
+        response = self.client.post(
+            url,
+            {
+                "form-TOTAL_FORMS": "1",
+                "form-INITIAL_FORMS": "1",
+                "form-MIN_NUM_FORMS": "0",
+                "form-MAX_NUM_FORMS": "1000",
+                "form-0-id": str(report.id),
+                "form-0-completed": "on",
+                "_save": "Save",
+            },
+            follow=True,
+        )
+        self.assertEqual(response.status_code, 200)
+        report.refresh_from_db()
+        self.assertTrue(report.completed)
+
+    def test_change_view_allows_editing_notes(self) -> None:
+        report = self._make_report()
+        url = reverse("admin:main_app_datacheckreport_change", args=[report.id])
+        response = self.client.post(
+            url,
+            {"completed": "on", "notes": "reviewed, looks fine"},
+            follow=True,
+        )
+        self.assertEqual(response.status_code, 200)
+        report.refresh_from_db()
+        self.assertTrue(report.completed)
+        self.assertEqual(report.notes, "reviewed, looks fine")
+
+    def test_delete_view_removes_file_from_storage(self) -> None:
+        report = self._make_report()
+        file_name = report.file.name
+        storage = report.file.storage
+        self.assertTrue(storage.exists(file_name))
+
+        url = reverse("admin:main_app_datacheckreport_delete", args=[report.id])
+        response = self.client.post(url, {"post": "yes"}, follow=True)
+
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(DataCheckReport.objects.count(), 0)
+        self.assertFalse(storage.exists(file_name))

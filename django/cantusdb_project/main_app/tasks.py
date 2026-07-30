@@ -13,6 +13,7 @@ from datetime import timedelta
 from typing import List, Dict, Any, Optional
 
 from celery import shared_task, Task
+from django.core.files.base import ContentFile
 from django.core.mail import EmailMessage
 from django.db.models import Count, Q
 from django.utils import timezone
@@ -20,6 +21,7 @@ from django.utils import timezone
 from cantusindex import get_json_from_ci_api
 from main_app.models import Chant, Sequence
 from main_app.models.data_check_config import DataCheckConfig
+from main_app.models.data_check_report import DataCheckReport
 from main_app.forms import BrowseChantsBulkEditFormset
 
 CI_WORKERS = 10
@@ -358,7 +360,9 @@ def _format_check_csv(result: dict, check_key: Optional[str] = None) -> str:
         writer.writerow([result["error"]])
         return output.getvalue()
 
-    sample = next(iter(result.get("published") or result.get("unpublished") or []), None)
+    sample = next(
+        iter(result.get("published") or result.get("unpublished") or []), None
+    )
 
     if isinstance(sample, dict):
         writer.writerow(
@@ -372,7 +376,9 @@ def _format_check_csv(result: dict, check_key: Optional[str] = None) -> str:
                 id_label = "chant_ids" if "chant_ids" in item else "sequence_ids"
                 source_id = item.get("source_id")
                 folio = item.get("folio")
-                link_url = f"{PRODUCTION_BASE_URL}/source/{source_id}/chants/?folio={folio}"
+                link_url = (
+                    f"{PRODUCTION_BASE_URL}/source/{source_id}/chants/?folio={folio}"
+                )
                 writer.writerow(
                     [
                         f'=HYPERLINK("{link_url}","{source_id}")',
@@ -422,8 +428,6 @@ def _format_check_csv(result: dict, check_key: Optional[str] = None) -> str:
                 writer.writerow(row)
 
     return output.getvalue()
-
-
 
 
 @shared_task(name="cantusdb.run_data_checks")
@@ -492,8 +496,15 @@ def run_data_checks() -> None:
     zip_buffer = io.BytesIO()
     with zipfile.ZipFile(zip_buffer, "w", zipfile.ZIP_DEFLATED) as zip_file:
         for key in CHECK_LABELS:
-            zip_file.writestr(f"{key}.csv", _format_check_csv(results[key], check_key=key))
-    email.attach(f"data_check_report_{date_str}.zip", zip_buffer.getvalue(), "application/zip")
+            zip_file.writestr(
+                f"{key}.csv", _format_check_csv(results[key], check_key=key)
+            )
+    zip_filename = f"data_check_report_{date_str}.zip"
+    email.attach(zip_filename, zip_buffer.getvalue(), "application/zip")
+
+    DataCheckReport.objects.create(
+        file=ContentFile(zip_buffer.getvalue(), name=zip_filename)
+    )
 
     try:
         email.send()
