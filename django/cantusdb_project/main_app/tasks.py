@@ -537,9 +537,12 @@ def run_data_checks() -> None:
     zip_filename = f"data_check_report_{date_str}.zip"
     email.attach(zip_filename, zip_buffer.getvalue(), "application/zip")
 
-    DataCheckReport.objects.create(
-        file=ContentFile(zip_buffer.getvalue(), name=zip_filename)
-    )
+    try:
+        DataCheckReport.objects.create(
+            file=ContentFile(zip_buffer.getvalue(), name=zip_filename)
+        )
+    except Exception:
+        logger.error("Failed to persist data check report.", exc_info=True)
 
     try:
         email.send()

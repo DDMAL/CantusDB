@@ -1,4 +1,4 @@
-from django.db import models
+from django.db import models, transaction
 from django.db.models.signals import post_delete
 from django.dispatch import receiver
 
@@ -22,5 +22,7 @@ class DataCheckReport(models.Model):
 def delete_report_file(sender, instance: "DataCheckReport", **kwargs) -> None:
     # Connecting a post_delete receiver also disables Django's collector
     # fast-delete path, so this reliably fires for bulk admin deletes too.
+    # Deferred to on_commit so a rolled-back transaction doesn't leave the
+    # DB row restored but its file already gone.
     if instance.file:
-        instance.file.delete(save=False)
+        transaction.on_commit(lambda: instance.file.delete(save=False))

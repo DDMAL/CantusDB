@@ -549,7 +549,8 @@ class DataCheckReportAdminTest(TestCase):
         self.assertTrue(storage.exists(file_name))
 
         url = reverse("admin:main_app_datacheckreport_delete", args=[report.id])
-        response = self.client.post(url, {"post": "yes"}, follow=True)
+        with self.captureOnCommitCallbacks(execute=True):
+            response = self.client.post(url, {"post": "yes"}, follow=True)
 
         self.assertEqual(response.status_code, 200)
         self.assertEqual(DataCheckReport.objects.count(), 0)
