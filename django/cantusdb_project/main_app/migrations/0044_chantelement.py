@@ -8,7 +8,7 @@ from django.db import migrations, models
 class Migration(migrations.Migration):
 
     dependencies = [
-        ("main_app", "0041_century_max_date_century_min_date_and_more"),
+        ("main_app", "0043_datacheckreport"),
         migrations.swappable_dependency(settings.AUTH_USER_MODEL),
     ]
 
