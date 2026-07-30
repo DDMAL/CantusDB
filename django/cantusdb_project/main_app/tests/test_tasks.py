@@ -331,6 +331,26 @@ class FormatCheckCsvTest(TestCase):
         self.assertEqual(pub_row["published"], "1")
         self.assertEqual(unpub_row["published"], "0")
 
+    def test_position_service_mismatch_shows_position_and_service_not_mode(
+        self,
+    ) -> None:
+        source = make_fake_source(published=True)
+        vespers = make_fake_service(name="V")
+        chant = make_fake_chant(
+            source=source, position="M", service=vespers, mode="3"
+        )
+
+        content = _format_check_csv(
+            {"published": [chant], "unpublished": []},
+            check_key="position_service_mismatch",
+        )
+        rows = list(csv.DictReader(io.StringIO(content)))
+        row = rows[0]
+
+        self.assertNotIn("mode", row)
+        self.assertEqual(row["position"], "M")
+        self.assertEqual(row["service"], "V")
+
     def test_duplicate_group_row_links_to_source_folio(self) -> None:
         source = make_fake_source(published=True)
         make_fake_chant(source=source, folio="001r", c_sequence=1)

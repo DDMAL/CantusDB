@@ -343,7 +343,7 @@ CHECK_LABELS = {
 }
 
 
-def _format_check_csv(result: dict) -> str:
+def _format_check_csv(result: dict, check_key: Optional[str] = None) -> str:
     """
     CSV formatter for a single check's result: one row per item, with a
     `published` column (1/0) instead of separate published/unpublished
@@ -385,6 +385,7 @@ def _format_check_csv(result: dict) -> str:
                     ]
                 )
     else:
+        show_position_service = check_key == "position_service_mismatch"
         writer.writerow(
             [
                 "link",
@@ -394,7 +395,7 @@ def _format_check_csv(result: dict) -> str:
                 "folio",
                 "cantus_id",
                 "genre",
-                "mode",
+                *(["position", "service"] if show_position_service else ["mode"]),
                 "published",
             ]
         )
@@ -404,19 +405,21 @@ def _format_check_csv(result: dict) -> str:
         ):
             for item in items:
                 link_url = f"{PRODUCTION_BASE_URL}/chant/{item.id}/"
-                writer.writerow(
-                    [
-                        f'=HYPERLINK("{link_url}","{item.id}")',
-                        item.source_id,
-                        item.id,
-                        getattr(item.source, "siglum", item.source_id),
-                        item.folio,
-                        item.cantus_id,
-                        getattr(item.genre, "name", ""),
-                        item.mode,
-                        published,
-                    ]
-                )
+                row = [
+                    f'=HYPERLINK("{link_url}","{item.id}")',
+                    item.source_id,
+                    item.id,
+                    getattr(item.source, "siglum", item.source_id),
+                    item.folio,
+                    item.cantus_id,
+                    getattr(item.genre, "name", ""),
+                ]
+                if show_position_service:
+                    row += [item.position, getattr(item.service, "name", "")]
+                else:
+                    row.append(item.mode)
+                row.append(published)
+                writer.writerow(row)
 
     return output.getvalue()
 
@@ -489,7 +492,7 @@ def run_data_checks() -> None:
     zip_buffer = io.BytesIO()
     with zipfile.ZipFile(zip_buffer, "w", zipfile.ZIP_DEFLATED) as zip_file:
         for key in CHECK_LABELS:
-            zip_file.writestr(f"{key}.csv", _format_check_csv(results[key]))
+            zip_file.writestr(f"{key}.csv", _format_check_csv(results[key], check_key=key))
     email.attach(f"data_check_report_{date_str}.zip", zip_buffer.getvalue(), "application/zip")
 
     try:
