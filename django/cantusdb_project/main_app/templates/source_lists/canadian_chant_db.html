@@ -409,8 +409,10 @@
                                             {% endif %}
                                         </td>
                                         <td class="text-wrap" style="text-align:center">
-                                            {% if source.image_link %}
-                                                <a href="{{ source.image_link }}" target="_blank">Images</a>
+                                            {% if source.external_images_url %}
+                                                <a href="{{ source.external_images_url }}"
+                                                   target="_blank"
+                                                   rel="noopener noreferrer">Images</a>
                                             {% endif %}
                                         </td>
                                         <td class="text-wrap" style="text-align:center">

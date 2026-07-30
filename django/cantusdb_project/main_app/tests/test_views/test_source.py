@@ -8,7 +8,9 @@ from faker import Faker
 from typing import Dict
 
 from django.conf import settings
+from django.db import connection
 from django.test import TestCase
+from django.test.utils import CaptureQueriesContext
 from django.urls import reverse
 from django.core.exceptions import ObjectDoesNotExist
 from django.contrib.auth import get_user_model
@@ -399,8 +401,8 @@ class SourceDetailViewTest(SourcePermissionsTestCase):
         response = self.client.get(reverse("source-detail", args=[source.id]))
         html = str(response.content)
         self.assertNotIn("View images on external site", html)
-        # The flag is a template boolean; a blank image_link must not leak "" through.
-        self.assertIs(response.context["show_legacy_image_link"], False)
+        # The property is a template boolean; a blank image_link must not leak "" through.
+        self.assertIs(source.show_legacy_image_link, False)
 
     def test_iiif_manifest_link_renders_viewer(self) -> None:
         # Guards the template's url_type comparison: if it stops matching
@@ -722,6 +724,36 @@ class SourceBrowseChantsViewTest(SourcePermissionsTestCase):
         self.assertEqual(response.status_code, 200)
         self.assertContains(response, f'id="chant-{chant.id}"')
 
+    def test_external_images_link_prefers_source_url(self):
+        # This page renders a single images link and does not render
+        # source_links, so it must follow the SourceURL that supersedes
+        # image_link rather than showing the stale legacy URL.
+        cantus_segment = make_fake_segment(id=4063)
+        source = make_fake_source(
+            segment=[cantus_segment], image_link="https://example.com/legacy-images"
+        )
+        make_fake_chant(source=source)
+        SourceURL.objects.create(
+            source=source,
+            url="https://example.com/source-url-images",
+            url_type=SourceURL.URLTypes.EXTERNAL_IMAGES,
+        )
+        response = self.client.get(reverse("browse-chants", args=[source.id]))
+        html = response.content.decode("utf-8")
+        self.assertIn("https://example.com/source-url-images", html)
+        self.assertNotIn("https://example.com/legacy-images", html)
+
+    def test_external_images_link_falls_back_to_legacy_field(self):
+        cantus_segment = make_fake_segment(id=4063)
+        source = make_fake_source(
+            segment=[cantus_segment], image_link="https://example.com/legacy-images"
+        )
+        make_fake_chant(source=source)
+        response = self.client.get(reverse("browse-chants", args=[source.id]))
+        html = response.content.decode("utf-8")
+        self.assertIn("https://example.com/legacy-images", html)
+        self.assertIn("View images on external site", html)
+
     def test_visibility_by_segment(self):
         cantus_segment = make_fake_segment(id=4063)
         cantus_source = make_fake_source(segment=[cantus_segment], published=True)
@@ -968,6 +1000,38 @@ class SourceListViewTest(CustomAccessTestMixin, TestCase):
         self.assertEqual(response.status_code, 200)
         self.assertTemplateUsed(response, "base.html")
         self.assertTemplateUsed(response, "source_lists/source_list.html")
+
+    def test_images_column_prefers_source_url(self):
+        source = make_fake_source(
+            published=True, image_link="https://example.com/legacy-images"
+        )
+        SourceURL.objects.create(
+            source=source,
+            url="https://example.com/source-url-images",
+            url_type=SourceURL.URLTypes.EXTERNAL_IMAGES,
+        )
+        response = self.client.get(reverse("source-list"))
+        html = response.content.decode("utf-8")
+        self.assertIn("https://example.com/source-url-images", html)
+        self.assertNotIn("https://example.com/legacy-images", html)
+
+    def test_images_column_does_not_query_per_source(self):
+        # The Images column calls Source.external_images_url on every row, so
+        # the list queryset prefetches source_links. Without it this page costs
+        # one extra query per source, up to paginate_by = 100.
+        for _ in range(5):
+            source = make_fake_source(published=True)
+            SourceURL.objects.create(
+                source=source,
+                url="https://example.com/source-url-images",
+                url_type=SourceURL.URLTypes.EXTERNAL_IMAGES,
+            )
+        with CaptureQueriesContext(connection) as ctx:
+            self.client.get(reverse("source-list"))
+        source_link_queries = [
+            q for q in ctx.captured_queries if "main_app_sourceurl" in q["sql"]
+        ]
+        self.assertEqual(len(source_link_queries), 1, source_link_queries)
 
     def test_provenances_and_date_range_in_context(self):
         """`provenances` are options in the selector; `date_range_min`/`date_range_max`

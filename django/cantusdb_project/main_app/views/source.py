@@ -41,7 +41,6 @@ from main_app.models import (
     Provenance,
     Segment,
     Source,
-    SourceURL,
     Institution,
     Sequence,
 )
@@ -318,13 +317,6 @@ class SourceDetailView(CustomAccessMixin, JSONResponseMixin, DetailView):  # typ
         context = super().get_context_data(**kwargs)
 
         source = self.object
-        # Fall back to the legacy image_link field only when no SourceURL supersedes it.
-        # Iterated in Python rather than filtered in SQL so this reads the "source_links"
-        # prefetch cache above; a .filter() here would cost one query per page load.
-        context["show_legacy_image_link"] = bool(source.image_link) and not any(
-            link.url_type == SourceURL.URLTypes.EXTERNAL_IMAGES
-            for link in source.source_links.all()
-        )
         if source.segment_m2m.filter(id=settings.BOWER_SEGMENT_ID).exists():
             # if this is a sequence source
             sequences = source.sequence_set.select_related("genre", "service")
@@ -659,7 +651,10 @@ class SourceListView(CustomAccessMixin, ListView):  # type: ignore[type-arg]
             .order_by(*order_by_args)
             .distinct()
             .prefetch_related(
-                Prefetch("century", queryset=Century.objects.all().order_by("id"))
+                Prefetch("century", queryset=Century.objects.all().order_by("id")),
+                # Read by Source.external_images_url for the sidebar/table image
+                # link; without it each source on the page costs a query.
+                "source_links",
             )
         )
 
