@@ -1,5 +1,8 @@
+import csv
+import io
 import logging
 import time
+import zipfile
 
 from concurrent.futures import (
     ThreadPoolExecutor,
@@ -21,7 +24,7 @@ from main_app.forms import BrowseChantsBulkEditFormset
 
 CI_WORKERS = 10
 CI_REQUEST_DELAY = 0.2  # seconds between requests per worker, so we don't hammer CI
-CI_BATCH_TIMEOUT = 1500  # overall seconds allotted to fetch CI genres for one check run
+CI_BATCH_TIMEOUT = 4500  # overall seconds allotted to fetch CI genres for one check run
 
 PRODUCTION_BASE_URL = "https://cantusdatabase.org"
 
@@ -340,50 +343,84 @@ CHECK_LABELS = {
 }
 
 
-def _format_check_attachment(label: str, result: dict) -> str:
-    lines = [label, "=" * len(label), ""]
+def _format_check_csv(result: dict) -> str:
+    """
+    CSV formatter for a single check's result: one row per item, with a
+    `published` column (1/0) instead of separate published/unpublished
+    sections. Handles both chant-style results (Chant model instances) and
+    the duplicate_folio_sequence check's group dicts.
+    """
+    output = io.StringIO()
+    writer = csv.writer(output)
 
     if "error" in result:
-        lines.append(f"ERROR: {result['error']}")
-        return "\n".join(lines)
+        writer.writerow(["error"])
+        writer.writerow([result["error"]])
+        return output.getvalue()
 
-    for section in ("published", "unpublished"):
-        items = result.get(section) or []
-        lines.append(f"--- {section.capitalize()} ({len(items)}) ---")
-        if not items:
-            lines.append("No issues found.")
-        else:
+    sample = next(iter(result.get("published") or result.get("unpublished") or []), None)
+
+    if isinstance(sample, dict):
+        writer.writerow(
+            ["link", "source_id", "folio", "sequence", "count", "ids", "published"]
+        )
+        for published, items in (
+            (1, result.get("published") or []),
+            (0, result.get("unpublished") or []),
+        ):
             for item in items:
-                if isinstance(item, dict):
-                    # duplicate folio/sequence results are dicts
-                    id_label = "chant_ids" if "chant_ids" in item else "sequence_ids"
-                    source_id = item.get("source_id")
-                    folio = item.get("folio")
-                    link = f"{PRODUCTION_BASE_URL}/source/{source_id}/chants/?folio={folio}"
-                    lines.append(
-                        f"  link={link}  "
-                        f"source_id={source_id}  "
-                        f"folio={folio}  "
-                        f"sequence={item.get('c_sequence', item.get('s_sequence'))}  "
-                        f"count={item.get('count')}  "
-                        f"{id_label}={item[id_label]}"
-                    )
-                else:
-                    # Chant model instances
-                    link = f"{PRODUCTION_BASE_URL}/chant/{item.id}/"
-                    lines.append(
-                        f"  link={link}  "
-                        f"source_id={item.source_id}  "
-                        f"chant_id={item.id}  "
-                        f"source={getattr(item.source, 'siglum', item.source_id)}  "
-                        f"folio={item.folio}  "
-                        f"cantus_id={item.cantus_id}  "
-                        f"genre={getattr(item.genre, 'name', '')}  "
-                        f"mode={item.mode}"
-                    )
-        lines.append("")
+                id_label = "chant_ids" if "chant_ids" in item else "sequence_ids"
+                source_id = item.get("source_id")
+                folio = item.get("folio")
+                link_url = f"{PRODUCTION_BASE_URL}/source/{source_id}/chants/?folio={folio}"
+                writer.writerow(
+                    [
+                        f'=HYPERLINK("{link_url}","{source_id}")',
+                        source_id,
+                        folio,
+                        item.get("c_sequence", item.get("s_sequence")),
+                        item.get("count"),
+                        ",".join(str(i) for i in item[id_label]),
+                        published,
+                    ]
+                )
+    else:
+        writer.writerow(
+            [
+                "link",
+                "source_id",
+                "chant_id",
+                "source",
+                "folio",
+                "cantus_id",
+                "genre",
+                "mode",
+                "published",
+            ]
+        )
+        for published, items in (
+            (1, result.get("published") or []),
+            (0, result.get("unpublished") or []),
+        ):
+            for item in items:
+                link_url = f"{PRODUCTION_BASE_URL}/chant/{item.id}/"
+                writer.writerow(
+                    [
+                        f'=HYPERLINK("{link_url}","{item.id}")',
+                        item.source_id,
+                        item.id,
+                        getattr(item.source, "siglum", item.source_id),
+                        item.folio,
+                        item.cantus_id,
+                        getattr(item.genre, "name", ""),
+                        item.mode,
+                        published,
+                    ]
+                )
 
-    return "\n".join(lines)
+    return output.getvalue()
+
+
 
 
 @shared_task(name="cantusdb.run_data_checks")
@@ -449,10 +486,11 @@ def run_data_checks() -> None:
         to=recipients,
     )
 
-    for key, label in CHECK_LABELS.items():
-        content = _format_check_attachment(label, results[key])
-        filename = f"{key}_{date_str}.txt"
-        email.attach(filename, content, "text/plain")
+    zip_buffer = io.BytesIO()
+    with zipfile.ZipFile(zip_buffer, "w", zipfile.ZIP_DEFLATED) as zip_file:
+        for key in CHECK_LABELS:
+            zip_file.writestr(f"{key}.csv", _format_check_csv(results[key]))
+    email.attach(f"data_check_report_{date_str}.zip", zip_buffer.getvalue(), "application/zip")
 
     try:
         email.send()

@@ -1,3 +1,6 @@
+import csv
+import io
+import zipfile
 from typing import List, Dict, Any
 from unittest.mock import patch, DEFAULT
 
@@ -15,8 +18,9 @@ from main_app.tasks import (
     check_blank_mode,
     check_blank_invitatory_differentia,
     run_data_checks,
-    _format_check_attachment,
+    _format_check_csv,
     PRODUCTION_BASE_URL,
+    CHECK_LABELS,
 )
 from main_app.tests.make_fakes import (
     make_fake_source,
@@ -307,21 +311,27 @@ class CheckBlankInvitatoryDifferentiaTest(TestCase):
         self.assertNotIn(non_invitatory, result["published"])
 
 
-class FormatCheckAttachmentTest(TestCase):
-    def test_chant_row_starts_with_link_to_chant_detail(self) -> None:
-        source = make_fake_source(published=True)
-        chant = make_fake_chant(source=source, cantus_id="BADID")
+class FormatCheckCsvTest(TestCase):
+    def test_chant_row_links_to_chant_detail_and_flags_published(self) -> None:
+        pub_source = make_fake_source(published=True)
+        unpub_source = make_fake_source(published=False)
+        pub_chant = make_fake_chant(source=pub_source, cantus_id="BADID")
+        unpub_chant = make_fake_chant(source=unpub_source, cantus_id="BADID")
 
-        content = _format_check_attachment(
-            "Label", {"published": [chant], "unpublished": []}
+        content = _format_check_csv(
+            {"published": [pub_chant], "unpublished": [unpub_chant]}
         )
+        rows = list(csv.DictReader(io.StringIO(content)))
 
-        expected_link = f"{PRODUCTION_BASE_URL}/chant/{chant.id}/"
-        row = next(line for line in content.splitlines() if "chant_id=" in line)
-        self.assertTrue(row.strip().startswith(f"link={expected_link}"))
-        self.assertIn(f"chant_id={chant.id}", row)
+        pub_row = next(r for r in rows if r["chant_id"] == str(pub_chant.id))
+        unpub_row = next(r for r in rows if r["chant_id"] == str(unpub_chant.id))
 
-    def test_duplicate_group_row_starts_with_link_to_source_folio(self) -> None:
+        expected_link = f'=HYPERLINK("{PRODUCTION_BASE_URL}/chant/{pub_chant.id}/","{pub_chant.id}")'
+        self.assertEqual(pub_row["link"], expected_link)
+        self.assertEqual(pub_row["published"], "1")
+        self.assertEqual(unpub_row["published"], "0")
+
+    def test_duplicate_group_row_links_to_source_folio(self) -> None:
         source = make_fake_source(published=True)
         make_fake_chant(source=source, folio="001r", c_sequence=1)
         Chant.objects.create(
@@ -332,11 +342,15 @@ class FormatCheckAttachmentTest(TestCase):
         )
 
         result = check_duplicate_folio_sequence()
-        content = _format_check_attachment("Label", result)
+        content = _format_check_csv(result)
+        rows = list(csv.DictReader(io.StringIO(content)))
 
-        expected_link = f"{PRODUCTION_BASE_URL}/source/{source.id}/chants/?folio=001r"
-        row = next(line for line in content.splitlines() if "chant_ids=" in line)
-        self.assertTrue(row.strip().startswith(f"link={expected_link}"))
+        row = next(r for r in rows if r["source_id"] == str(source.id))
+        expected_link = (
+            f'=HYPERLINK("{PRODUCTION_BASE_URL}/source/{source.id}/chants/?folio=001r","{source.id}")'
+        )
+        self.assertEqual(row["link"], expected_link)
+        self.assertEqual(row["published"], "1")
 
 
 class RunDataChecksTest(TestCase):
@@ -387,6 +401,11 @@ class RunDataChecksTest(TestCase):
         self.assertEqual(len(mail.outbox), 1)
         sent = mail.outbox[0]
         self.assertEqual(sent.to, [recipient.email])
-        self.assertEqual(len(sent.attachments), 7)
+        self.assertEqual(len(sent.attachments), 1)
+        filename, content, mimetype = sent.attachments[0]
+        self.assertTrue(filename.endswith(".zip"))
+        self.assertEqual(mimetype, "application/zip")
+        with zipfile.ZipFile(io.BytesIO(content)) as zip_file:
+            self.assertEqual(set(zip_file.namelist()), {f"{key}.csv" for key in CHECK_LABELS})
         config.refresh_from_db()
         self.assertIsNotNone(config.last_run)
