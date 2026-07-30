@@ -195,7 +195,10 @@
                 {% endif %}
             {% endfor %}
             {% if show_legacy_image_link %}
-                <a href="{{ source.image_link }}" class="guillemet" target="_blank" rel="noopener noreferrer">View images on external site</a>
+                <a href="{{ source.image_link }}"
+                   class="guillemet"
+                   target="_blank"
+                   rel="noopener noreferrer">View images on external site</a>
             {% endif %}
             <a href="{% url "csv-export" source.id %}"
                class="guillemet"

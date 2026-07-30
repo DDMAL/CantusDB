@@ -399,6 +399,8 @@ class SourceDetailViewTest(SourcePermissionsTestCase):
         response = self.client.get(reverse("source-detail", args=[source.id]))
         html = str(response.content)
         self.assertNotIn("View images on external site", html)
+        # The flag is a template boolean; a blank image_link must not leak "" through.
+        self.assertIs(response.context["show_legacy_image_link"], False)
 
 
 class SourceInventoryViewTest(HTMLContentsTestMixin, SourcePermissionsTestCase):
