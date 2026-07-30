@@ -394,7 +394,9 @@ class FormatCheckCsvTest(TestCase):
         self.assertEqual(row["published"], "1")
 
 
-class RunDataChecksTest(TestCase):
+class TempMediaRootMixin:
+    """Sandboxes FileField writes to a temp dir instead of the real media volume."""
+
     @classmethod
     def setUpClass(cls) -> None:
         super().setUpClass()
@@ -407,6 +409,9 @@ class RunDataChecksTest(TestCase):
         cls._media_root_override.disable()
         shutil.rmtree(cls._media_root, ignore_errors=True)
         super().tearDownClass()
+
+
+class RunDataChecksTest(TempMediaRootMixin, TestCase):
 
     def _patch_checks(self):
         empty_result = {"published": [], "unpublished": []}
@@ -472,19 +477,7 @@ class RunDataChecksTest(TestCase):
         self.assertFalse(report.completed)
 
 
-class DataCheckReportAdminTest(TestCase):
-    @classmethod
-    def setUpClass(cls) -> None:
-        super().setUpClass()
-        cls._media_root = tempfile.mkdtemp()
-        cls._media_root_override = override_settings(MEDIA_ROOT=cls._media_root)
-        cls._media_root_override.enable()
-
-    @classmethod
-    def tearDownClass(cls) -> None:
-        cls._media_root_override.disable()
-        shutil.rmtree(cls._media_root, ignore_errors=True)
-        super().tearDownClass()
+class DataCheckReportAdminTest(TempMediaRootMixin, TestCase):
 
     def setUp(self) -> None:
         self.superuser = make_fake_user(is_superuser=True)
