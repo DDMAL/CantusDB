@@ -882,6 +882,22 @@ class ChantSearchViewTest(CustomAccessTestMixin, TestCase):
                 listed_chants,
             )
 
+    def test_segments_excludes_benedicamus_and_lists_cantus_first(self):
+        make_fake_segment(
+            name="Benedicamus Domino", id=settings.BENEDICAMUS_DOMINO_SEGMENT_ID
+        )
+        make_fake_segment(name="Zzz Cantus Database", id=settings.CANTUS_SEGMENT_ID)
+        make_fake_segment(name="Aaa Sequence Database")
+        response = self.client.get(reverse("chant-search"))
+        segments = list(response.context["segments"])
+        segment_ids = [segment["id"] for segment in segments]
+        segment_names = [segment["name"] for segment in segments]
+        self.assertNotIn(settings.BENEDICAMUS_DOMINO_SEGMENT_ID, segment_ids)
+        # "Cantus Database" is listed first (right after "Any"), despite
+        # sorting last alphabetically among the fake segment names used here.
+        self.assertEqual(segment_names[0], "Zzz Cantus Database")
+        self.assertEqual(segment_names[1], "Aaa Sequence Database")
+
     def test_search_by_service(self):
         source = make_fake_source(published=True)
         service = make_fake_service()

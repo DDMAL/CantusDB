@@ -524,7 +524,7 @@ class ChantSearchView(CustomAccessMixin, ListView):  # type: ignore[type-arg]
         # "Benedicamus Domino" is a chant-level project designation, not a
         # source segment, so it's excluded here. "Cantus Database" is listed
         # first (after "Any", added in the template), the rest alphabetically.
-        segments = list(
+        context["segments"] = list(
             Segment.objects.exclude(id=settings.BENEDICAMUS_DOMINO_SEGMENT_ID)
             .order_by(
                 Case(When(id=settings.CANTUS_SEGMENT_ID, then=0), default=1),
@@ -532,13 +532,6 @@ class ChantSearchView(CustomAccessMixin, ListView):  # type: ignore[type-arg]
             )
             .values("id", "name")
         )
-        for segment in segments:
-            # Display-only override: the stored name is "CANTUS Database",
-            # but "CANTUS" isn't an acronym, so it's shown title-cased here
-            # without altering the underlying data.
-            if segment["id"] == settings.CANTUS_SEGMENT_ID:
-                segment["name"] = "Cantus Database"
-        context["segments"] = segments
         context["advanced_search_active"] = any(
             self.request.GET.get(field) for field in ADVANCED_SEARCH_FIELDS
         )
