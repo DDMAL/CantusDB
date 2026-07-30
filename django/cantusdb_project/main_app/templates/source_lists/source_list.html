@@ -46,9 +46,9 @@
                         name="segment"
                         class="form-control form-select form-select-sm">
                     <option value="">- Any -</option>
-                    <option value="4063">CANTUS Database</option>
-                    <option value="4064">Bower Sequence Database</option>
-                    <option value="4066">Canadian Chant Database</option>
+                    <option value="{% segment_id 'cantus' %}">CANTUS Database</option>
+                    <option value="{% segment_id 'bower' %}">Bower Sequence Database</option>
+                    <option value="{% segment_id 'ccdb' %}">Canadian Chant Database</option>
                 </select>
             </div>
             <div class="col-lg">

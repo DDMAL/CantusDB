@@ -101,6 +101,41 @@ def source_links() -> SafeString:
     return options
 
 
+# Short keys mapped to the segment-ID constants in settings.py. Lets
+# templates reference segment IDs by name instead of hardcoding the
+# numbers (templates can't import settings directly). Scoped on purpose:
+# only these constants are exposed, never arbitrary settings.
+_SEGMENT_ID_SETTINGS = {
+    "cantus": "CANTUS_SEGMENT_ID",
+    "bower": "BOWER_SEGMENT_ID",
+    "ccdb": "CCDB_SEGMENT_ID",
+    "cantorales": "CANTORALES_SEGMENT_ID",
+}
+
+
+@register.simple_tag(takes_context=False)
+def segment_id(key: str) -> int:
+    """
+    Returns a chant segment's numeric ID from settings, so templates can
+    reference segment IDs without hardcoding them. `key` is one of
+    "cantus", "bower", "ccdb", or "cantorales" (case-insensitive).
+
+    Used in:
+        main_app/templates/source_lists/source_list.html
+        main_app/templates/source_lists/canadian_chant_db.html
+        main_app/templates/source_lists/ccdb_browse.html
+        templates/header/navbar_links.html
+    """
+    try:
+        setting_name = _SEGMENT_ID_SETTINGS[key.lower()]
+    except KeyError:
+        raise template.TemplateSyntaxError(
+            f"segment_id: unknown segment key {key!r}; expected one of "
+            f"{', '.join(sorted(_SEGMENT_ID_SETTINGS))}"
+        )
+    return getattr(settings, setting_name)
+
+
 @register.filter(is_safe=True)
 def classname(obj: BaseModel) -> str:
     """

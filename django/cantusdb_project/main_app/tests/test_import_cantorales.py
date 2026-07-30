@@ -3,6 +3,7 @@ import tempfile
 import textwrap
 from unittest.mock import patch
 
+from django.conf import settings
 from django.core.management import call_command
 from django.test import TestCase
 
@@ -126,7 +127,9 @@ def _make_csv(
 
 class TestImportCantoralesCommand(TestCase):
     def setUp(self):
-        make_fake_segment(name="Cantorales in the Americas", id=4067)
+        make_fake_segment(
+            name="Cantorales in the Americas", id=settings.CANTORALES_SEGMENT_ID
+        )
         make_fake_century(name="16th century")
 
     def test_creates_source(self):

@@ -8,6 +8,7 @@ import csv
 from collections.abc import ItemsView, KeysView
 from unittest.mock import patch, MagicMock
 
+from django.conf import settings
 from django.test import TestCase
 from django.urls import reverse
 from django.http import JsonResponse
@@ -566,8 +567,12 @@ class JsonSourcesExportTest(TestCase):
     def setUp(self):
         # the JsonSourcesExport View uses the CANTUS Segment's .source_set property,
         # so we need to make sure to set up a CANTUS segment with the right ID for each test.
-        self.cantus_segment = make_fake_segment(id=4063, name="Bower Sequence Database")
-        self.bower_segment = make_fake_segment(id=4064, name="CANTUS Database")
+        self.cantus_segment = make_fake_segment(
+            id=settings.CANTUS_SEGMENT_ID, name="Bower Sequence Database"
+        )
+        self.bower_segment = make_fake_segment(
+            id=settings.BOWER_SEGMENT_ID, name="CANTUS Database"
+        )
 
     def test_json_sources_response(self):
         source = make_fake_source(published=True, segment=[self.cantus_segment])
@@ -1090,7 +1095,7 @@ class CsvExportTest(CustomAccessTestMixin, TestCase):
     def test_csv_export_on_source_with_sequences(self):
         NUM_SEQUENCES = 5
         bower_segment = make_fake_segment(name="Bower Sequence Database")
-        bower_segment.id = 4064
+        bower_segment.id = settings.BOWER_SEGMENT_ID
         bower_segment.save()
         source = make_fake_source(published=True)
         source.segment_m2m.add(bower_segment)
