@@ -15,6 +15,8 @@ from main_app.tasks import (
     check_blank_mode,
     check_blank_invitatory_differentia,
     run_data_checks,
+    _format_check_attachment,
+    PRODUCTION_BASE_URL,
 )
 from main_app.tests.make_fakes import (
     make_fake_source,
@@ -303,6 +305,38 @@ class CheckBlankInvitatoryDifferentiaTest(TestCase):
         self.assertIn(unpub_chant, result["unpublished"])
         self.assertNotIn(valid_invitatory, result["published"])
         self.assertNotIn(non_invitatory, result["published"])
+
+
+class FormatCheckAttachmentTest(TestCase):
+    def test_chant_row_starts_with_link_to_chant_detail(self) -> None:
+        source = make_fake_source(published=True)
+        chant = make_fake_chant(source=source, cantus_id="BADID")
+
+        content = _format_check_attachment(
+            "Label", {"published": [chant], "unpublished": []}
+        )
+
+        expected_link = f"{PRODUCTION_BASE_URL}/chant/{chant.id}/"
+        row = next(line for line in content.splitlines() if "chant_id=" in line)
+        self.assertTrue(row.strip().startswith(f"link={expected_link}"))
+        self.assertIn(f"chant_id={chant.id}", row)
+
+    def test_duplicate_group_row_starts_with_link_to_source_folio(self) -> None:
+        source = make_fake_source(published=True)
+        make_fake_chant(source=source, folio="001r", c_sequence=1)
+        Chant.objects.create(
+            source=source,
+            folio="001r",
+            c_sequence=1,
+            manuscript_full_text_std_spelling="test",
+        )
+
+        result = check_duplicate_folio_sequence()
+        content = _format_check_attachment("Label", result)
+
+        expected_link = f"{PRODUCTION_BASE_URL}/source/{source.id}/chants/?folio=001r"
+        row = next(line for line in content.splitlines() if "chant_ids=" in line)
+        self.assertTrue(row.strip().startswith(f"link={expected_link}"))
 
 
 class RunDataChecksTest(TestCase):

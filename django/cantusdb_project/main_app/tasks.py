@@ -23,6 +23,8 @@ CI_WORKERS = 10
 CI_REQUEST_DELAY = 0.2  # seconds between requests per worker, so we don't hammer CI
 CI_BATCH_TIMEOUT = 1500  # overall seconds allotted to fetch CI genres for one check run
 
+PRODUCTION_BASE_URL = "https://cantusdatabase.org"
+
 logger = logging.getLogger(__name__)
 
 
@@ -355,17 +357,23 @@ def _format_check_attachment(label: str, result: dict) -> str:
                 if isinstance(item, dict):
                     # duplicate folio/sequence results are dicts
                     id_label = "chant_ids" if "chant_ids" in item else "sequence_ids"
+                    source_id = item.get("source_id")
+                    folio = item.get("folio")
+                    link = f"{PRODUCTION_BASE_URL}/source/{source_id}/chants/?folio={folio}"
                     lines.append(
-                        f"  source_id={item.get('source_id')}  "
-                        f"folio={item.get('folio')}  "
+                        f"  link={link}  "
+                        f"source_id={source_id}  "
+                        f"folio={folio}  "
                         f"sequence={item.get('c_sequence', item.get('s_sequence'))}  "
                         f"count={item.get('count')}  "
                         f"{id_label}={item[id_label]}"
                     )
                 else:
                     # Chant model instances
+                    link = f"{PRODUCTION_BASE_URL}/chant/{item.id}/"
                     lines.append(
-                        f"  source_id={item.source_id}  "
+                        f"  link={link}  "
+                        f"source_id={item.source_id}  "
                         f"chant_id={item.id}  "
                         f"source={getattr(item.source, 'siglum', item.source_id)}  "
                         f"folio={item.folio}  "
