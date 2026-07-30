@@ -522,8 +522,9 @@ class ChantSearchView(CustomAccessMixin, ListView):  # type: ignore[type-arg]
         )
         context["liturgical_functions"] = Chant.LITURGICAL_FUNCTION_CHOICES
         # "Benedicamus Domino" is a chant-level project designation, not a
-        # source segment, so it's excluded here. "Cantus Database" is listed
-        # first (after "Any", added in the template), the rest alphabetically.
+        # source segment, so it's excluded here (see #2131). "Cantus Database"
+        # is listed first (after "Any", added in the template), the rest
+        # alphabetically.
         context["segments"] = list(
             Segment.objects.exclude(id=settings.BENEDICAMUS_DOMINO_SEGMENT_ID)
             .order_by(
