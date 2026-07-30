@@ -318,6 +318,9 @@ class SourceDetailView(CustomAccessMixin, JSONResponseMixin, DetailView):  # typ
         context = super().get_context_data(**kwargs)
 
         source = self.object
+        # Fall back to the legacy image_link field only when no SourceURL supersedes it.
+        # Iterated in Python rather than filtered in SQL so this reads the "source_links"
+        # prefetch cache above; a .filter() here would cost one query per page load.
         context["show_legacy_image_link"] = bool(source.image_link) and not any(
             link.url_type == SourceURL.URLTypes.EXTERNAL_IMAGES
             for link in source.source_links.all()

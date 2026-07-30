@@ -402,6 +402,37 @@ class SourceDetailViewTest(SourcePermissionsTestCase):
         # The flag is a template boolean; a blank image_link must not leak "" through.
         self.assertIs(response.context["show_legacy_image_link"], False)
 
+    def test_iiif_manifest_link_renders_viewer(self) -> None:
+        # Guards the template's url_type comparison: if it stops matching
+        # IIIF_MANIFEST, this link silently degrades to the generic {% else %}
+        # branch instead of the Universal Viewer.
+        source = make_fake_source(image_link="")
+        SourceURL.objects.create(
+            source=source,
+            url="https://example.com/iiif/manifest.json",
+            url_type=SourceURL.URLTypes.IIIF_MANIFEST,
+        )
+        response = self.client.get(reverse("source-detail", args=[source.id]))
+        html = response.content.decode("utf-8")
+        self.assertIn("viewer/uv.html", html)
+        self.assertIn("#?manifest=https://example.com/iiif/manifest.json", html)
+        self.assertIn("View Images on Cantus Database", html)
+        # The generic branch renders the url_type display name instead.
+        self.assertNotIn("IIIF Manifest</a>", html)
+
+    def test_non_iiif_source_link_renders_generic_label(self) -> None:
+        source = make_fake_source(image_link="")
+        SourceURL.objects.create(
+            source=source,
+            url="https://example.com/catalogue/record",
+            url_type=SourceURL.URLTypes.HOST_INSTITUTION_RECORD,
+        )
+        response = self.client.get(reverse("source-detail", args=[source.id]))
+        html = response.content.decode("utf-8")
+        self.assertIn("https://example.com/catalogue/record", html)
+        self.assertIn("Host Institution Record", html)
+        self.assertNotIn("viewer/uv.html", html)
+
 
 class SourceInventoryViewTest(HTMLContentsTestMixin, SourcePermissionsTestCase):
     view_name = "source-inventory"

@@ -177,8 +177,7 @@
                    target="_blank">View inventory with images</a>
             {% endif %}
             {% for link in source.source_links.all %}
-                {% if link.url_type == 1 %}
-                    {# IIIF Manifest #}
+                {% if link.url_type == link.URLTypes.IIIF_MANIFEST %}
                     <a href="{% static 'viewer/uv.html' %}#?manifest={{ link.url }}"
                        class="guillemet"
                        target="_blank">
