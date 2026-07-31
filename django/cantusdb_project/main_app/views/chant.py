@@ -63,7 +63,10 @@ ADVANCED_SEARCH_FIELDS: tuple[str, ...] = (
     "feast",
     "liturgical_function",
     "segment",
-    "indexing_notes_op",
+    # "indexing_notes_op" is intentionally excluded: its <select> has no blank
+    # option, so browsers always submit a value ("contains") even when the user
+    # never touched it. Including it here would keep this section expanded on
+    # every search.
     "indexing_notes",
 )
 
