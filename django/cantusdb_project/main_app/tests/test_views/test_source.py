@@ -1139,6 +1139,53 @@ class SourceListViewTest(CustomAccessTestMixin, TestCase):
             self.assertNotIn(undated_source, sources)
             self.assertIn(tenth_century_source, sources)
 
+    def test_search_by_identifier_does_not_hide_undated_source(self) -> None:
+        """Regression test for an undated source (e.g. Otto Ege MS 22)
+        disappearing from an identifier search. The source list form submits
+        the date-range slider's default (full) bounds alongside any search
+        term, so a general/identifier search must not be affected by that.
+        """
+        make_fake_century(name="09th century")
+        make_fake_century(name="15th century")
+
+        undated_source = make_fake_source(published=True, shelfmark="Otto Ege MS 22")
+        undated_source.century.set([])
+        SourceIdentifier.objects.create(
+            source=undated_source,
+            identifier="Ege-22",
+            type=SourceIdentifier.OTHER,
+        )
+
+        response = self.client.get(
+            reverse("source-list"),
+            {"general": "Ege-22", "dateStart": 800, "dateEnd": 1500},
+        )
+        self.assertIn(undated_source, response.context["sources"])
+
+    def test_advanced_search_active_reflects_date_range_narrowing(self) -> None:
+        """`advanced_search_active` controls whether the advanced-search
+        panel opens by default; it must not flip on just because the
+        date-range slider submits its default (full) bounds.
+        """
+        make_fake_century(name="09th century")
+        make_fake_century(name="15th century")
+
+        with self.subTest("No params: advanced search not active"):
+            response = self.client.get(reverse("source-list"))
+            self.assertFalse(response.context["advanced_search_active"])
+
+        with self.subTest("Default full-range params: advanced search not active"):
+            response = self.client.get(
+                reverse("source-list"), {"dateStart": 800, "dateEnd": 1500}
+            )
+            self.assertFalse(response.context["advanced_search_active"])
+
+        with self.subTest("Narrowed range: advanced search active"):
+            response = self.client.get(
+                reverse("source-list"), {"dateStart": 900, "dateEnd": 999}
+            )
+            self.assertTrue(response.context["advanced_search_active"])
+
     def test_filter_by_full_source(self) -> None:
         full_source = make_fake_source(
             source_completeness=Source.SourceCompletenessChoices.FULL_SOURCE,

@@ -362,12 +362,12 @@ class SourceListView(CustomAccessMixin, ListView):  # type: ignore[type-arg]
     def date_range_bounds(self) -> tuple[Optional[int], Optional[int]]:
         """
         Year-range slider bounds. Endpoints are rounded out to the nearest
-        decade so the slider's step="10" reaches both. The upper bound is
-        clipped to the current decade so future-dated centuries (e.g. a
-        "21st century" stub ending in 2099) do not stretch the slider past
-        today.
+        multiple of 5 so the slider's step="5" reaches both. The upper bound
+        is clipped to the current multiple of 5 so future-dated centuries
+        (e.g. a "21st century" stub ending in 2099) do not stretch the
+        slider past today.
         """
-        current_decade = (date.today().year // 5) * 5
+        current_year_rounded = (date.today().year // 5) * 5
         century_dates = Century.objects.filter(
             min_date__isnull=False, max_date__isnull=False
         ).aggregate(
@@ -378,7 +378,9 @@ class SourceListView(CustomAccessMixin, ListView):  # type: ignore[type-arg]
         max_year = century_dates["max_year"]
         date_range_min = (min_year // 5) * 5 if min_year is not None else None
         date_range_max = (
-            min(-(-max_year // 5) * 5, current_decade) if max_year is not None else None
+            min(-(-max_year // 5) * 5, current_year_rounded)
+            if max_year is not None
+            else None
         )
         return date_range_min, date_range_max
 
