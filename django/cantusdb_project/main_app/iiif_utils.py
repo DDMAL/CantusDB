@@ -324,6 +324,19 @@ def generate_folio_image_mapping(
     return rows
 
 
+# Leading characters that spreadsheet apps (Excel, Sheets) interpret as the
+# start of a formula. Canvas labels come from a remote manifest, so a crafted
+# label could execute on open (CWE-1236); prefix such values with an apostrophe.
+_CSV_INJECTION_PREFIXES = ("=", "+", "-", "@", "\t", "\r")
+
+
+def _escape_csv_field(value: str) -> str:
+    """Neutralize spreadsheet formula injection in untrusted text."""
+    if value.startswith(_CSV_INJECTION_PREFIXES):
+        return "'" + value
+    return value
+
+
 def mapping_to_csv(mapping: list[dict[str, str]]) -> str:
     """
     Convert a folio-image mapping to a CSV string.
@@ -338,7 +351,14 @@ def mapping_to_csv(mapping: list[dict[str, str]]) -> str:
     writer = csv.writer(output)
     writer.writerow(["folio", "image_link", "notes", "canvas_label"])
     for row in mapping:
+        # Only canvas_label is untrusted; folio/image_link/notes are our own
+        # data and prefixing a URL would corrupt it on re-import.
         writer.writerow(
-            [row["folio"], row["image_link"], row["notes"], row["canvas_label"]]
+            [
+                row["folio"],
+                row["image_link"],
+                row["notes"],
+                _escape_csv_field(row["canvas_label"]),
+            ]
         )
     return output.getvalue().rstrip("\r\n")

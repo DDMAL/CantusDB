@@ -370,6 +370,24 @@ class MappingToCSVTest(TestCase):
         self.assertIn("1r", lines[1])
         self.assertIn("https://img/1", lines[1])
 
+    def test_escapes_formula_injection_in_canvas_label(self) -> None:
+        # A canvas label from a remote manifest that starts with a formula
+        # trigger character must be neutralized so it can't execute when the
+        # CSV is opened in Excel/Sheets (CWE-1236).
+        mapping = [
+            {
+                "folio": "1r",
+                "image_link": "https://img/1",
+                "notes": "",
+                "canvas_label": "=cmd|'/c calc'!A1",
+            }
+        ]
+        csv_str = mapping_to_csv(mapping)
+        data_row = csv_str.strip().split("\n")[1]
+        self.assertIn("'=cmd", data_row)
+        # The untrusted-but-benign columns are left untouched.
+        self.assertIn("https://img/1", data_row)
+
 
 class SourceIIIFMappingViewTest(CustomAccessTestMixin, TestCase):
     source: Source
