@@ -213,6 +213,10 @@ class Source(BaseModel):
 
         return " ".join(title)
 
+    # Both properties below are transitional: once the legacy image_link column
+    # is dropped (#1839, after populate_source_urls runs), external_images_url
+    # collapses to a plain source_links lookup and show_legacy_image_link is
+    # always False. Simplify or remove them then.
     @property
     def external_images_url(self) -> Optional[str]:
         """The URL of this source's external image gallery, or None.

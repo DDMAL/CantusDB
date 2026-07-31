@@ -187,6 +187,13 @@
                                     vertical-align: middle" />
                         View Images on Cantus Database
                     </a>
+                {% elif link.url_type == link.URLTypes.EXTERNAL_IMAGES %}
+                    {# Same label as the legacy image_link below, so a source's
+                       image gallery reads identically however it's recorded. #}
+                    <a href="{{ link.url }}"
+                       class="guillemet"
+                       target="_blank"
+                       rel="noopener noreferrer">View images on external site</a>
                 {% else %}
                     <a href="{{ link.url }}" class="guillemet" target="_blank">
                         {{ link.get_url_type_display }}

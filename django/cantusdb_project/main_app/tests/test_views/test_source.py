@@ -382,7 +382,11 @@ class SourceDetailViewTest(SourcePermissionsTestCase):
         )
         response = self.client.get(reverse("source-detail", args=[source.id]))
         html = str(response.content)
-        self.assertNotIn("View images on external site", html)
+        # The SourceURL supersedes the legacy field: its link renders and the
+        # legacy image_link does not, so the gallery link appears exactly once.
+        self.assertIn("https://example.com/external", html)
+        self.assertNotIn("https://example.com/images", html)
+        self.assertEqual(html.count("View images on external site"), 1)
 
     def test_image_link_displayed_when_only_non_image_source_link_exists(self) -> None:
         source = make_fake_source(image_link="https://example.com/images")
