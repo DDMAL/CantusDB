@@ -849,7 +849,8 @@ class SourceSubmitForProofreadingView(CustomAccessMixin, SingleObjectMixin, View
     def post(self, request: HttpRequest, *args: Any, **kwargs: Any) -> HttpResponse:
         source = self.get_object()
         source.source_status = Source.PROOFREAD_PENDING_STATUS
-        source.save()
+        source.last_updated_by = request.user
+        source.save(update_fields=["source_status", "last_updated_by"])
 
         messages.success(
             request,

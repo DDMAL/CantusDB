@@ -199,13 +199,15 @@ class SourceEditViewTest(CsvExportLinkTestMixin, CustomAccessTestMixin, TestCase
         cls.sources = {
             "unassigned_source": make_fake_source(),
             "user_assigned_source": make_fake_source(
-                current_editors=[cls.users["user"]]
+                current_editors=[cls.users["user"]],
+                source_status=Source.source_status_choices[0][0],
             ),
             "editor_assigned_source": make_fake_source(
                 current_editors=[cls.users["editor"]]
             ),
             "user_created_source": make_fake_source(
-                current_editors=[cls.users["user"]]
+                current_editors=[cls.users["user"]],
+                source_status=Source.source_status_choices[0][0],
             ),
         }
         cls.sources["user_created_source"].created_by = cls.users["user"]
@@ -292,6 +294,88 @@ class SourceEditViewTest(CsvExportLinkTestMixin, CustomAccessTestMixin, TestCase
             .queryset.values_list("id", flat=True)
         )
         self.assertNotIn(settings.BENEDICAMUS_DOMINO_SEGMENT_ID, segment_ids)
+
+
+class SourceSubmitForProofreadingViewTest(CustomAccessTestMixin, TestCase):
+    default_user = "editor"
+    sources: Dict[str, Source]
+
+    @classmethod
+    def setUpTestData(cls) -> None:
+        super().setUpTestData()
+        cls.sources = {
+            "unassigned_source": make_fake_source(),
+            "user_assigned_source": make_fake_source(
+                current_editors=[cls.users["user"]]
+            ),
+            "editor_assigned_source": make_fake_source(
+                current_editors=[cls.users["editor"]]
+            ),
+            "user_created_source": make_fake_source(
+                current_editors=[cls.users["user"], cls.users["editor"]]
+            ),
+        }
+        cls.sources["user_created_source"].created_by = cls.users["user"]
+        cls.sources["user_created_source"].save()
+
+    def test_permissions(self) -> None:
+        self.run_request_permissions_test(
+            url=reverse(
+                "source-submit-for-proofreading",
+                args=[self.sources["unassigned_source"].id],
+            ),
+            get_allowed_users=["superuser"],
+            post_allowed_users=["superuser"],
+            test_name="Unassigned source",
+        )
+        self.run_request_permissions_test(
+            url=reverse(
+                "source-submit-for-proofreading",
+                args=[self.sources["user_assigned_source"].id],
+            ),
+            get_allowed_users=["superuser"],
+            post_allowed_users=["superuser"],
+            test_name="User assigned source",
+        )
+        self.run_request_permissions_test(
+            url=reverse(
+                "source-submit-for-proofreading",
+                args=[self.sources["editor_assigned_source"].id],
+            ),
+            get_allowed_users=["editor", "superuser"],
+            post_allowed_users=["editor", "superuser"],
+            test_name="Editor assigned source",
+        )
+        self.run_request_permissions_test(
+            url=reverse(
+                "source-submit-for-proofreading",
+                args=[self.sources["user_created_source"].id],
+            ),
+            get_allowed_users=["user", "editor", "superuser"],
+            post_allowed_users=["user", "editor", "superuser"],
+            test_name="User created source",
+        )
+
+    def test_submit_locks_editing_for_creator(self) -> None:
+        source = self.sources["user_created_source"]
+        self.client.force_login(user=self.users["user"])
+        response = self.client.post(
+            reverse("source-submit-for-proofreading", args=[source.id])
+        )
+        self.assertRedirects(response, reverse("source-detail", args=[source.id]))
+        source.refresh_from_db()
+        self.assertEqual(source.source_status, Source.PROOFREAD_PENDING_STATUS)
+
+        # the creator can no longer edit the source, but can still view it
+        edit_response = self.client.get(reverse("source-edit", args=[source.id]))
+        self.assertEqual(edit_response.status_code, 403)
+        detail_response = self.client.get(reverse("source-detail", args=[source.id]))
+        self.assertEqual(detail_response.status_code, 200)
+
+        # an editor assigned to the source can still edit it to proofread
+        self.client.force_login(user=self.users["editor"])
+        editor_edit_response = self.client.get(reverse("source-edit", args=[source.id]))
+        self.assertEqual(editor_edit_response.status_code, 200)
 
 
 class SourceDetailViewTest(CsvExportLinkTestMixin, SourcePermissionsTestCase):
