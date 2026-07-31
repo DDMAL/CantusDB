@@ -14,6 +14,7 @@ from django.conf import settings
 from django.contrib.auth import get_user_model
 from django.core.management.base import BaseCommand
 from django.db import transaction
+import reversion  # type: ignore[import-untyped]
 
 from main_app.models import (
     Century,
@@ -193,7 +194,15 @@ class Command(BaseCommand):
             self.stderr.write(f"CSV not found at {csv_path}")
             return
 
-        cantorales_segment = Segment.objects.get(pk=settings.CANTORALES_SEGMENT_ID)
+        cantorales_segment = Segment.objects.filter(
+            pk=settings.CANTORALES_SEGMENT_ID
+        ).first()
+        if cantorales_segment is None:
+            self.stderr.write(
+                f"Cantorales segment (pk={settings.CANTORALES_SEGMENT_ID}) "
+                "not found; aborting."
+            )
+            return
 
         # Pre-fetch century lookup
         century_by_name = {c.name: c for c in Century.objects.all()}
@@ -307,57 +316,63 @@ class Command(BaseCommand):
                     f"Source of data: {source_of_data}" if source_of_data else None
                 )
 
-                # --- Create the new Source ---
-                source = Source.objects.create(
-                    holding_institution=institution,
-                    shelfmark=shelfmark,
-                    source_completeness=completeness,
-                    provenance_notes=provenance_notes,
-                    date=date,
-                    description=description or None,
-                    image_link=image_link,
-                    indexing_date=indexing_date,
-                    indexing_notes=indexing_notes,
-                    source_status="Unpublished / No indexing activity",
-                    published=True,
-                )
-                created_count += 1
-
-                # --- Segment (Cantorales) ---
-                source.segment_m2m.add(cantorales_segment)
-
-                # --- Centuries ---
-                century_names = parse_centuries(row[COL_CENTURY].strip())
-                for cname in century_names:
-                    century_obj = century_by_name.get(cname)
-                    if century_obj:
-                        source.century.add(century_obj)
-                    else:
-                        self.stdout.write(
-                            f"  Row {row_num}: century not found: {cname!r}"
-                        )
-
-                # --- Archive permalink → SourceURL ---
-                archive_link = row[COL_ARCHIVE_LINK].strip()
-                if archive_link:
-                    SourceURL.objects.get_or_create(
-                        source=source,
-                        url=archive_link,
-                        defaults={
-                            "url_type": SourceURL.URLTypes.HOST_INSTITUTION_RECORD,
-                        },
+                # --- Create the new Source and everything attached to it in a
+                # single reversion revision. Management-command writes bypass
+                # RevisionMiddleware, so we wrap them explicitly to keep the
+                # import auditable (issue #2059 was about undetected changes). ---
+                with reversion.create_revision():
+                    source = Source.objects.create(
+                        holding_institution=institution,
+                        shelfmark=shelfmark,
+                        source_completeness=completeness,
+                        provenance_notes=provenance_notes,
+                        date=date,
+                        description=description or None,
+                        image_link=image_link,
+                        indexing_date=indexing_date,
+                        indexing_notes=indexing_notes,
+                        source_status="Unpublished / No indexing activity",
+                        published=True,
                     )
 
-                # --- Link contributor users ---
-                contributor_raw = row[COL_CONTRIBUTOR].strip()
-                if contributor_raw:
-                    for name in re.split(r",\s*", contributor_raw):
-                        name = name.strip()
-                        if name in contributor_users:
-                            source.source_data_contributed_by.add(
-                                contributor_users[name]
+                    # --- Segment (Cantorales) ---
+                    source.segment_m2m.add(cantorales_segment)
+
+                    # --- Centuries ---
+                    century_names = parse_centuries(row[COL_CENTURY].strip())
+                    for cname in century_names:
+                        century_obj = century_by_name.get(cname)
+                        if century_obj:
+                            source.century.add(century_obj)
+                        else:
+                            self.stdout.write(
+                                f"  Row {row_num}: century not found: {cname!r}"
                             )
 
+                    # --- Archive permalink → SourceURL ---
+                    archive_link = row[COL_ARCHIVE_LINK].strip()
+                    if archive_link:
+                        SourceURL.objects.get_or_create(
+                            source=source,
+                            url=archive_link,
+                            defaults={
+                                "url_type": SourceURL.URLTypes.HOST_INSTITUTION_RECORD,
+                            },
+                        )
+
+                    # --- Link contributor users ---
+                    contributor_raw = row[COL_CONTRIBUTOR].strip()
+                    if contributor_raw:
+                        for name in re.split(r",\s*", contributor_raw):
+                            name = name.strip()
+                            if name in contributor_users:
+                                source.source_data_contributed_by.add(
+                                    contributor_users[name]
+                                )
+
+                    reversion.set_comment("import_cantorales: issue #2059")
+
+                created_count += 1
                 self.stdout.write(f"  Created source: {source} (row {row_num})")
 
         self.stdout.write("")
