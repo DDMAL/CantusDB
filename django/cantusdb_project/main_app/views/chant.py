@@ -584,6 +584,14 @@ class ChantSearchView(CustomAccessMixin, ListView):  # type: ignore[type-arg]
         search_segment: Optional[str] = self.request.GET.get("segment")
         if search_segment:
             search_parameters.append(f"segment={search_segment}")
+        search_indexing_notes_op: Optional[str] = self.request.GET.get(
+            "indexing_notes_op"
+        )
+        if search_indexing_notes_op:
+            search_parameters.append(f"indexing_notes_op={search_indexing_notes_op}")
+        search_indexing_notes: Optional[str] = self.request.GET.get("indexing_notes")
+        if search_indexing_notes:
+            search_parameters.append(f"indexing_notes={search_indexing_notes}")
 
         url_with_search_params: str = current_url + "?"
         if search_parameters:

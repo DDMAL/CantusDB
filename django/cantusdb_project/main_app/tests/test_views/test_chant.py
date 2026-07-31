@@ -16,6 +16,7 @@ from faker import Faker
 
 from main_app.tests.make_fakes import (
     make_fake_chant,
+    make_fake_sequence,
     make_fake_source,
     make_fake_segment,
     make_fake_user,
@@ -1051,6 +1052,21 @@ class ChantSearchViewTest(CustomAccessTestMixin, TestCase):
         self.assertEqual(chant_1.id, first_context_chant_id)
         second_context_chant_id = response.context["chants"][1].id
         self.assertEqual(chant_3.id, second_context_chant_id)
+
+    def test_indexing_notes_search_matches_sequence(self):
+        source = make_fake_source(published=True)
+        search_term = "quick"
+        sequence = make_fake_sequence(
+            source=source,
+            indexing_notes="quick brown fox jumps over the lazy dog",
+        )
+        response = self.client.get(
+            reverse("chant-search"),
+            {"indexing_notes": search_term, "indexing_notes_op": "contains"},
+        )
+        self.assertEqual(len(response.context["chants"]), 1)
+        context_sequence_id = response.context["chants"][0].id
+        self.assertEqual(sequence.id, context_sequence_id)
 
     def test_search_bar_search(self):
         # note to developers: if you are changing the behavior of search_bar
