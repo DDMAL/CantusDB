@@ -10,9 +10,9 @@
  *                          parent Cantus ID (read live from the Cantus ID field),
  *                          but never store it — the server resolves a core's ID
  *                          through the parent chant. Deletable, but deleting one is
- *                          a deliberate act (click the box → red Delete): the
- *                          removed core drops into a restore tray and Undo reverts
- *                          it. A core can also be SPLIT into two cores.
+ *                          a deliberate act (click the box, or Backspace beside it,
+ *                          then red Delete): the removed core drops into a restore
+ *                          tray and Undo reverts it. A core can also be SPLIT in two.
  *   - component elements — troped/added, reusable, found by TYPING in the field
  *                          (a filtered dropdown inserts one inline). Each carries
  *                          its OWN Cantus ID exactly as retrieved from Cantus Index
@@ -50,7 +50,7 @@
     const TYPEAHEAD_MIN_HEIGHT = 120;
 
     let textarea, composer, cantusIdInput, hasComponentCheckbox, hint, status, undoButton, reloadButton, tray;
-    let bank, bankItems, bankStatus; // the element bank card in the sidebar
+    let bank, bankItems, bankStatus, bankHeading; // the elements card in the sidebar
     let elementsField; // hidden input carrying the composed elements as JSON to the server
     // Truthy while the composer is active (cluster mode on); null when off. No preset
     // payload any more — the base text is fetched and the parent ID is read live.
@@ -84,12 +84,6 @@
     // selection, so the position has to be remembered while it still exists.
     // null = the caret was past the last element (append).
     let caretBeforeToken = null;
-
-    // Keyboard deletion is two-step: the first Backspace/Delete next to an element
-    // selects it (this is that selection), a second one removes it. Elements are atomic
-    // and expensive to rebuild, so a single stray keystroke should never destroy one —
-    // but making them unreachable from the keyboard was worse.
-    let armedToken = null;
 
     // ---- tokens ---------------------------------------------------------
 
@@ -160,20 +154,26 @@
         return Array.from(composer.querySelectorAll(".cluster-token--component"));
     }
 
-    // Insert a token at a collapsed range, padded with spaces so words stay
-    // separated. Returns the trailing space node so callers can place the caret.
+    // Insert a token at a collapsed range. No padding spaces: elements sit directly
+    // against one another and the gap between them is margin, not a character. Callers
+    // follow up with normalizeComposer(token), which also places the caret.
     function insertTokenAtRange(range, token) {
         range.insertNode(token);
-        const after = document.createTextNode(" ");
-        token.after(after);
-        token.before(document.createTextNode(" "));
-        return after;
     }
 
     function placeCaretAfter(node) {
+        placeCaretAt(node, node.length);
+    }
+
+    // Collapse the selection at container/offset. In a text node the offset is a
+    // character index; in the composer itself it is a CHILD index, which is how the caret
+    // addresses the boundary between two adjacent elements now that no space separates
+    // them. Typing there inserts a text node in the gap, which is what the typeahead's
+    // element-node query context is for.
+    function placeCaretAt(container, offset) {
         const sel = window.getSelection();
         const caret = document.createRange();
-        caret.setStart(node, node.length);
+        caret.setStart(container, offset);
         caret.collapse(true);
         sel.removeAllRanges();
         sel.addRange(caret);
@@ -213,13 +213,16 @@
         elementsField.value = JSON.stringify(elements);
     }
 
-    // Drop any stray free text, keeping only tokens separated by single spaces, so the
-    // field shows exactly what will be saved.
+    // Drop any stray free text, leaving nothing but the tokens, so the field shows exactly
+    // what will be saved.
     //
-    // This is also what keeps elements visually aligned. The composer is `pre-wrap`, so
-    // redundant spaces are rendered rather than collapsed: an element inserted mid-typing
-    // is padded with its own spaces on both sides, and left un-normalized those stack up
-    // and indent the element when it lands at the start of a wrapped line.
+    // Adjacent elements are left DIRECTLY against each other, with no separator character
+    // between them (3 Aug 2026 feedback). A space used to sit in every gap, which was a
+    // real character the cataloguer could put a caret inside and delete — it read as
+    // punctuation they hadn't typed. Their whole visible separation is `.cluster-token`'s
+    // horizontal margin now, so there is nothing there to select or delete, and the text
+    // that gets saved is unaffected either way: syncToTextarea() joins the element texts
+    // with single spaces of its own.
     //
     // Pass `caretAfter` to keep typing where an element was just inserted — the rebuild
     // otherwise drops the selection, which is why this used to be reserved for structural
@@ -227,21 +230,20 @@
     function normalizeComposer(caretAfter) {
         const tokens = allTokens();
         composer.innerHTML = "";
-        let caretTarget = null;
-        tokens.forEach(function (token, i) {
-            if (i > 0) {
-                // Reuse the separator that already goes here rather than adding one for
-                // the caret, which would put two spaces between those two elements.
-                const separator = document.createTextNode(" ");
-                composer.appendChild(separator);
-                if (tokens[i - 1] === caretAfter) caretTarget = separator;
-            }
+        tokens.forEach(function (token) {
             composer.appendChild(token);
         });
+        // One trailing space, so there is still somewhere to type a query after the last
+        // element. It is the only text node left in a normalized composer.
         const tail = document.createTextNode(" ");
         composer.appendChild(tail);
-        if (caretAfter && !caretTarget) caretTarget = tail; // it was the last element
-        if (caretTarget) placeCaretAfter(caretTarget);
+        if (caretAfter) {
+            const at = tokens.indexOf(caretAfter);
+            // Between two elements the caret is a child offset in the composer; after the
+            // last one it goes in the tail space, where typing continues normally.
+            if (at >= 0 && at < tokens.length - 1) placeCaretAt(composer, at + 1);
+            else placeCaretAfter(tail);
+        }
         syncToTextarea();
     }
 
@@ -257,8 +259,7 @@
     function undo() {
         const snapshot = undoStack.pop();
         if (!snapshot) return;
-        closeMenu();
-        armedToken = null; // the rebuild below replaces every element node
+        closeMenu(); // the rebuild below replaces every element node
         composer.innerHTML = snapshot.html;
         removedCores = snapshot.cores;
         renderTray();
@@ -273,6 +274,9 @@
     }
 
     // ---- restore tray ---------------------------------------------------
+
+    // Deleted core elements, offered back. Lives at the foot of the element bank's card
+    // rather than under the composer (3 Aug 2026 feedback) — one elements panel, not two.
 
     function renderTray() {
         if (!tray) return;
@@ -317,11 +321,22 @@
     // ---- element bank ---------------------------------------------------
 
     // The trope elements Cantus Index already holds for this chant's Cantus ID, offered
-    // beside the composer so they can be dragged straight in rather than searched for
-    // one at a time (28 Jul 2026 demo feedback).
+    // in the sidebar so they can be dragged straight in rather than searched for one at a
+    // time (28 Jul 2026 demo feedback). Shares its card with the restore tray above, so
+    // the whole element inventory — available and removed — is in one place.
 
     function setBankStatus(msg) {
         if (bankStatus) bankStatus.textContent = msg || "";
+    }
+
+    // Name the chant being catalogued in the heading rather than saying "this Cantus ID"
+    // (3 Aug 2026 feedback) — with the card over in the sidebar, away from the field, the
+    // deixis had nothing nearby to point at.
+    function setBankHeading(cantusId) {
+        if (!bankHeading) return;
+        bankHeading.textContent = cantusId
+            ? "Component Elements for " + cantusId
+            : "Component Elements";
     }
 
     // Which bank elements are already in the composer, by Cantus ID — those chips are
@@ -357,7 +372,7 @@
                 chip.title = "Already placed in the text";
             } else {
                 chip.draggable = true;
-                chip.title = "Drag into the text, or click to add it at the end";
+                chip.title = "Drag into the text, or click to add it at the cursor";
             }
             bankItems.appendChild(chip);
         });
@@ -372,6 +387,7 @@
         const cid = parentCantusId();
         bankElements = [];
         renderBank();
+        setBankHeading(cid);
         if (!currentCluster) {
             bank.hidden = true;
             return;
@@ -487,7 +503,7 @@
         removedCores = [];
         undoStack = [];
         caretBeforeToken = null;
-        disarmToken();
+        closeMenu(); // the wipe below replaces every element node
         composer.innerHTML = "";
         composer.appendChild(document.createTextNode(" "));
         composer.contentEditable = "true"; // reset (seedBaseText locks it while fetching)
@@ -593,7 +609,6 @@
         removedCores = [];
         undoStack = [];
         caretBeforeToken = null;
-        disarmToken();
         hint.hidden = true;
         setStatus("");
         if (undoButton) undoButton.hidden = true;
@@ -753,15 +768,32 @@
         const GAP = 4; // breathing room from the caret and the viewport edge
         const below = window.innerHeight - rect.bottom - GAP;
         const above = rect.top - GAP;
-        const flip = below < TYPEAHEAD_MIN_HEIGHT && above > below;
+        // Stay below the caret whenever the full list fits there; otherwise open on
+        // whichever side has more room. Flipping only when the space below fell under the
+        // bare minimum meant a caret partway down the form got a stub of a list — 3 rows
+        // in 195px — while ~500px sat unused above it (3 Aug 2026 feedback: the dropdown
+        // showing fewer results than the ten it is sized for).
+        const flip = below < TYPEAHEAD_MAX_HEIGHT && above > below;
         const room = Math.max(TYPEAHEAD_MIN_HEIGHT, flip ? above : below);
 
         typeahead.style.maxHeight = Math.min(TYPEAHEAD_MAX_HEIGHT, room) + "px";
-        typeahead.style.left = rect.left + "px";
+        // Page coordinates, not viewport ones: the list is positioned absolutely so the
+        // browser scrolls it along with the text it belongs to. It used to be fixed and
+        // re-positioned from a scroll handler, which runs after the page has already
+        // painted at the new offset — so it lagged a frame behind every scroll and
+        // visibly bounced (3 Aug 2026 feedback). Nothing re-positions it on scroll now.
+        // Clamped horizontally as well as vertically: the caret can sit far enough right in
+        // the full-width composer that a wide list would otherwise run off the edge.
+        const maxLeft = Math.max(GAP, window.innerWidth - typeahead.offsetWidth - GAP);
+        typeahead.style.left = Math.min(rect.left, maxLeft) + window.scrollX + "px";
         // Measuring the height needs it laid out, which it is: callers unhide first.
-        typeahead.style.top = flip
-            ? Math.max(GAP, rect.top - typeahead.offsetHeight - GAP) + "px"
-            : rect.bottom + "px";
+        // The flip clamp is viewport-relative, so translate after clamping.
+        typeahead.style.top =
+            (flip
+                ? Math.max(GAP, rect.top - typeahead.offsetHeight - GAP)
+                : rect.bottom) +
+            window.scrollY +
+            "px";
     }
 
     function firstNavigable() {
@@ -979,7 +1011,6 @@
 
     function openMenu(token) {
         closeMenu();
-        disarmToken(); // the menu is its own selection; don't leave a second one showing
         closeTypeahead(); // opening a box's menu dismisses the search prompt
         menuToken = token;
         tokenMenu.innerHTML = "";
@@ -1024,8 +1055,10 @@
         const center = r.left + r.width / 2;
         let left = center - tokenMenu.offsetWidth / 2;
         left = Math.max(4, Math.min(left, window.innerWidth - tokenMenu.offsetWidth - 4));
-        tokenMenu.style.left = left + "px";
-        tokenMenu.style.top = r.top - tokenMenu.offsetHeight - 6 + "px";
+        // Page coordinates for the same reason as the typeahead: absolutely positioned so
+        // it scrolls with its element instead of being chased by a scroll handler.
+        tokenMenu.style.left = left + window.scrollX + "px";
+        tokenMenu.style.top = r.top - tokenMenu.offsetHeight - 6 + window.scrollY + "px";
     }
 
     function closeMenu() {
@@ -1040,19 +1073,32 @@
 
     // ---- two-step keyboard deletion -------------------------------------
 
-    function disarmToken() {
-        if (!armedToken) return;
-        armedToken.classList.remove("cluster-token--armed");
-        armedToken = null;
+    // Keys an open menu acts on itself. Anything else typed in the composer means the
+    // cataloguer has moved on, so the menu closes rather than lingering somewhere a much
+    // later Backspace could confirm a deletion they had forgotten was pending.
+    function isMenuHotkey(key) {
+        return (
+            key === "s" ||
+            key === "S" ||
+            key === "x" ||
+            key === "X" ||
+            key === "Backspace" ||
+            key === "Delete" ||
+            key === "Escape"
+        );
     }
 
-    function armToken(token) {
-        disarmToken();
-        armedToken = token;
-        token.classList.add("cluster-token--armed");
+    function isModifierKey(key) {
+        return key === "Shift" || key === "Control" || key === "Meta" || key === "Alt";
     }
 
-    // Backspace/Delete beside an element: select it first, remove it on the repeat.
+    // Backspace/Delete beside an element picks it out; a second press removes it.
+    // Elements are atomic and expensive to rebuild, so a stray keystroke should never
+    // destroy one — but the intermediate step is the ordinary menu the cataloguer
+    // already knows from clicking a box (View on Cantus Index, Split, Remove) rather
+    // than a selection idiom of its own (3 Aug 2026 feedback). That also means the
+    // keyboard reaches every element action, not just deletion.
+    //
     // Returns true when the keystroke was consumed. Only fires on a collapsed caret
     // sitting directly against an element, so editing a half-typed search query is
     // untouched — that text is ordinary content and deletes character by character.
@@ -1061,21 +1107,13 @@
         if (!selection.rangeCount) return false;
         const range = selection.getRangeAt(0);
         if (!range.collapsed) return false;
-        const backwards = key === "Backspace";
-        const neighbour = backwards ? nodeBeforeCaret(range) : nodeAfterCaret(range);
-        if (!isToken(neighbour)) {
-            // Moved away from whatever was selected without confirming: let it go.
-            disarmToken();
-            return false;
-        }
-        if (armedToken === neighbour) {
-            // Clear the marker before snapshotting, so Undo restores an unselected
-            // element rather than one that still looks armed.
-            disarmToken();
-            deleteToken(neighbour);
-        } else {
-            armToken(neighbour);
-        }
+        const neighbour =
+            key === "Backspace" ? nodeBeforeCaret(range) : nodeAfterCaret(range);
+        if (!isToken(neighbour)) return false;
+        // Already showing this element's menu, so the press is the confirmation. A menu
+        // open on some *other* element just retargets — the caret is what decides.
+        if (isMenuOpen() && menuToken === neighbour) deleteToken(neighbour);
+        else openMenu(neighbour);
         return true;
     }
 
@@ -1213,10 +1251,11 @@
     // happened to wrap, which is why it did not reproduce on a shorter chant.
     //
     // The bar sits at the true midpoint of the gap when a token ends on the same line just
-    // before this one (the gap is wider than the two margins — there's a space glyph
-    // between tokens too — so a plain margin offset would list toward one side). At a
-    // wrapped line start or the very beginning there's no such neighbour, so it sits one
-    // margin-width in for even spacing rather than hugging the token.
+    // before this one. At a wrapped line start or the very beginning there is no such
+    // neighbour, so it falls back to the token's own edge, inset by whatever horizontal
+    // margin the token carries. Elements carry none today — the separator space alone
+    // spaces them — so the bar sits flush to the edge; the term is kept so it stays
+    // evenly placed rather than hugging the token if a margin is ever reintroduced.
     function insertionPoints() {
         const tokens = allTokens().filter(function (t) {
             return t !== dragToken;
@@ -1286,7 +1325,6 @@
         if (!token) return;
         closeMenu();
         closeTypeahead();
-        disarmToken();
         dragToken = token;
         token.classList.add("dragging");
         e.dataTransfer.effectAllowed = "move";
@@ -1448,7 +1486,6 @@
 
         // click a box → its action menu (unless we're splitting or just dragged)
         composer.addEventListener("click", function (e) {
-            disarmToken(); // the caret moved; whatever was picked out is no longer it
             const splitPoint = e.target.closest && e.target.closest(".split-point");
             if (splitPoint) {
                 performSplit(splitPoint.closest(".cluster-token"), Number(splitPoint.dataset.splitIndex));
@@ -1484,19 +1521,22 @@
                 undo();
                 return;
             }
-            // Backspace/Delete against an element: select, then remove on the repeat.
-            // Checked before the typeahead block so a stray dropdown doesn't swallow it;
-            // handleDeleteKey declines whenever the caret isn't touching an element, and
-            // the keystroke falls through to ordinary text editing.
+            // Backspace/Delete against an element: open its menu, then remove on the
+            // repeat. Checked before the typeahead block so a stray dropdown doesn't
+            // swallow it; handleDeleteKey declines whenever the caret isn't touching an
+            // element, and the keystroke falls through to ordinary text editing.
             if (e.key === "Backspace" || e.key === "Delete") {
                 if (handleDeleteKey(e.key)) {
                     e.preventDefault();
+                    // Without this the document-level menu hotkeys below would see the
+                    // menu this very keystroke just opened and delete on the same press.
+                    e.stopPropagation();
                     return;
                 }
-            } else if (e.key !== "Shift" && e.key !== "Control" && e.key !== "Meta" && e.key !== "Alt") {
-                // Any other key means the cataloguer moved on; drop the pending selection
-                // so it can't be confirmed by a much later, unrelated Delete.
-                disarmToken();
+            } else if (isMenuOpen() && !isMenuHotkey(e.key) && !isModifierKey(e.key)) {
+                // The cataloguer moved on (typing, arrows): drop the menu so a later
+                // Backspace can't confirm a deletion they'd forgotten was pending.
+                closeMenu();
             }
             if (isTypeaheadOpen()) {
                 if (e.key === "ArrowDown") {
@@ -1563,7 +1603,7 @@
             }
         });
 
-        // element bank: drag a chip into the composer, or click to add it at the end
+        // element bank: drag a chip into the composer, or click to add it at the cursor
         // (the chips are buttons, so the keyboard path works without a drag).
         if (bankItems) {
             bankItems.addEventListener("dragstart", onBankDragStart);
@@ -1613,19 +1653,13 @@
             // defer so a mousedown on a typeahead item can fire first
             window.setTimeout(function () {
                 closeTypeahead();
-                disarmToken(); // focus left the field; don't hold a selection across it
                 if (currentCluster && !splittingToken()) normalizeComposer();
             }, 0);
         });
 
-        window.addEventListener(
-            "scroll",
-            function () {
-                if (isTypeaheadOpen()) positionTypeahead();
-                if (isMenuOpen()) positionMenu();
-            },
-            true
-        );
+        // No scroll handler: both overlays are absolutely positioned in page coordinates,
+        // so the browser moves them with the document. A resize genuinely changes how much
+        // room the dropdown has, so that one still re-measures.
         window.addEventListener("resize", function () {
             if (isTypeaheadOpen()) positionTypeahead();
             if (isMenuOpen()) positionMenu();
@@ -1657,6 +1691,7 @@
         bank = document.getElementById("cluster-bank");
         bankItems = document.getElementById("cluster-bank-items");
         bankStatus = document.getElementById("cluster-bank-status");
+        bankHeading = document.getElementById("cluster-bank-heading");
         const controls = document.getElementById("cluster-controls");
         if (!textarea || !composer || !controls || !hasComponentCheckbox || !hint) return;
 

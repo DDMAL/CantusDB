@@ -14,9 +14,22 @@
  * Long elements are allowed to wrap; only the Cantus ID stays on its line. */
 .cluster-token {
     padding: 0.05rem 0.35rem;
-    /* horizontal gap so the caret is easy to place between adjacent boxes */
+    /* This margin is the ENTIRE visible gap between two adjacent elements — there is no
+     * separator character any more (see normalizeComposer), because a real space was
+     * something the cataloguer could put a caret inside and delete. 0.3rem a side gives
+     * ~9.6px, which is what the gap needs to be to click into comfortably.
+     *
+     * Do not read the 0.3rem as a revert: it used to be 0.3rem PLUS a 4.2px space glyph,
+     * totalling ~13.8px, which read as extra whitespace between elements. Same margin,
+     * no space, so the gap now lands where it should. */
     margin: 0 0.3rem;
-    /* reserved transparent border so a proposed token's dashed border adds no layout shift */
+    /* The border IS the visible edge, so what you see is what you can click. It used to be
+     * transparent, with an inset box-shadow drawing the outline at the padding-box edge
+     * instead — but hit-testing uses the border box, so an element was clickable 1px
+     * outside its own visible outline. Two neighbours each stealing 1px left the gap
+     * between them ~2px narrower than it looked and off-centre with it, which is why
+     * clicks between elements kept landing on an element (3 Aug 2026 feedback). Kept 1px
+     * in every state so a proposed token's dashed border adds no layout shift. */
     border: 1px solid transparent;
     border-radius: 3px;
     cursor: pointer;
@@ -25,31 +38,21 @@
 /* core = the base chant's own text: cool slate/grey */
 .cluster-token--core {
     background: #e7ebf0;
-    box-shadow: inset 0 0 0 1px #c4ccd6;
+    border-color: #c4ccd6;
 }
 .cluster-token--core:hover {
-    box-shadow: inset 0 0 0 1px #8a97a8;
+    border-color: #8a97a8;
 }
 /* component = troped / added: warm amber, distinct from the core grey */
 .cluster-token--component {
     background: #fdeecf;
-    box-shadow: inset 0 0 0 1px #e6c266;
+    border-color: #e6c266;
 }
 .cluster-token--component:hover {
-    box-shadow: inset 0 0 0 1px #c99a1f;
+    border-color: #c99a1f;
 }
 .cluster-token.dragging {
     opacity: 0.45;
-}
-/* Picked out by a first Backspace/Delete and awaiting a second one to confirm. It has to
- * read as "this is selected and one more keystroke removes it", so it borrows the
- * browser's own selection-blue plus a danger-red ring rather than inventing a new idiom.
- * The ring is an outline, not a border, so nothing reflows as it appears. */
-.cluster-token--armed,
-.cluster-token--armed:hover {
-    background: #cfe2ff;
-    outline: 2px solid #dc3545;
-    outline-offset: 1px;
 }
 /* blue insertion bar marking where a dragged token will land */
 .cluster-drop-indicator {
@@ -75,13 +78,11 @@
  * has it. */
 .cluster-token--component[data-proposed="true"] {
     background: #fdecec;
-    box-shadow: none;
     border-color: #dc3545;
     border-style: dashed;
 }
 .cluster-token--component[data-proposed="true"]:hover {
     background: #fbdcdc;
-    box-shadow: none;
     border-color: #b02a37;
 }
 .cluster-token[data-proposed="true"] .token-cid {
@@ -133,7 +134,7 @@
 
 /* floating action menu shown when a box is clicked */
 .token-menu {
-    position: fixed;
+    position: absolute;
     z-index: 1090;
     display: flex;
     gap: 0.25rem;
@@ -224,8 +225,10 @@ kbd.token-menu-key {
 }
 
 /* The element bank is a sidebar card under the Input Tool, so the composer keeps the
- * full width of the form. Only the chip list scrolls — the card header stays put. */
-#cluster-bank .card-body {
+ * full width of the form. Only the chip list scrolls — the card header, the status line
+ * and the restore tray below it all stay put, so a restore chip cannot be scrolled out
+ * of reach behind a long list of component elements. */
+#cluster-bank-items {
     max-height: 22rem;
     overflow-y: auto;
 }
@@ -273,20 +276,29 @@ kbd.token-menu-key {
     color: #8a94a0;
 }
 
-/* restore tray for deleted core elements */
+/* Restore tray for deleted core elements. It shares the bank's card — one elements
+ * panel rather than two — so it reads as a ruled-off section at the foot of it instead
+ * of a row beneath the composer. */
 .cluster-tray {
     display: flex;
     flex-wrap: wrap;
     align-items: center;
-    justify-content: flex-start; /* left-align the label + chips with the composer */
+    justify-content: flex-start;
     gap: 0.35rem;
+    margin-top: 0.5rem;
+    padding-top: 0.5rem;
+    border-top: 1px solid #dee2e6;
 }
 .tray-label {
+    flex: 1 0 100%; /* the sidebar is narrow: label on its own line above the chips */
     color: #6c757d;
 }
 .tray-chip {
     padding: 0.05rem 0.4rem;
     font-size: 0.8rem;
+    /* A core's text is long and wraps in the narrow sidebar; a button centres its text by
+     * default, which read as ragged beside the left-aligned component chips above. */
+    text-align: left;
     color: #495057;
     background: #e7ebf0;
     border: 1px dashed #adb5bd;
@@ -300,7 +312,7 @@ kbd.token-menu-key {
 
 /* inline typeahead dropdown for finding component elements while typing */
 .element-typeahead {
-    position: fixed;
+    position: absolute;
     z-index: 1080;
     margin: 0.1rem 0 0;
     /* No bottom padding: the sticky "propose" row pins to the scrollport's bottom edge,
