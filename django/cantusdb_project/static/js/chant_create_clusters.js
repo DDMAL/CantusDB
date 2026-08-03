@@ -591,11 +591,22 @@
                 element: { text: (r.fulltext || "").trim(), cantusId: r.cid || "" },
             };
         });
-        const hidden = Math.max(0, (payload.total || results.length) - results.length);
-        if (hidden > 0) {
+        // Say how much is out of view. Two different shortfalls, worded apart:
+        //   - Cantus Index hit its own 100-result ceiling, so matches were lost upstream
+        //     before the genre filter ran. The count names CI's matches, not the
+        //     component elements listed here — often far fewer, sometimes none — so it
+        //     says "Cantus Index matches" rather than implying 100+ usable ones.
+        //   - Otherwise the filtered total is exact and simply larger than the page.
+        const total = payload.total || results.length;
+        if (payload.capped) {
             rows.push({
                 kind: "more",
-                text: hidden + " more " + (hidden === 1 ? "match" : "matches") + " — keep typing to narrow the search",
+                text: "100+ Cantus Index matches — keep typing to narrow the search",
+            });
+        } else if (total > results.length) {
+            rows.push({
+                kind: "more",
+                text: total + " matches — keep typing to narrow the search",
             });
         }
         rows.push({ kind: "propose", text: query });
@@ -765,7 +776,11 @@
                 const results = data.results || [];
                 // Cache the clipped page together with the unclipped total, so a repeat
                 // query reports the same "N more matches" as the first one did.
-                const payload = { results: results, total: data.total || results.length };
+                const payload = {
+                    results: results,
+                    total: data.total || results.length,
+                    capped: !!data.capped,
+                };
                 ciCache.set(key, payload);
                 return { payload: payload };
             })

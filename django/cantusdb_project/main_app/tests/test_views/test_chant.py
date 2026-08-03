@@ -4245,7 +4245,7 @@ class CIComponentSearchViewTest(TestCase):
     @patch("main_app.views.chant.get_ci_text_search")
     def test_short_query_does_not_reach_ci(self, mock_search) -> None:
         response = self.client.get(reverse("ci-component-search", args=["sa"]))
-        self.assertEqual(response.json(), {"results": [], "total": 0})
+        self.assertEqual(response.json(), {"results": [], "total": 0, "capped": False})
         mock_search.assert_not_called()
 
     @patch("main_app.views.chant.get_ci_text_search")
@@ -4294,13 +4294,34 @@ class CIComponentSearchViewTest(TestCase):
         payload = response.json()
         self.assertEqual(len(payload["results"]), CIComponentSearchView.MAX_RESULTS)
         self.assertEqual(payload["total"], over_limit)
+        # Well under CI's ceiling, so the exact total is trustworthy.
+        self.assertFalse(payload["capped"])
+
+    @patch("main_app.views.chant.get_ci_text_search")
+    def test_flags_ci_result_ceiling(self, mock_search) -> None:
+        """CI returns at most 100 matches per term. Hitting that means matches were lost
+        upstream, before the genre filter ran, so the surviving count understates the
+        truth and the UI must say "100+" rather than name a number."""
+        mock_search.return_value = [
+            self._ci_result(f"00{i:04d}", "A")  # all filtered out by genre
+            for i in range(CIComponentSearchView.CI_RESULT_CAP - 1)
+        ] + [self._ci_result("g04828:01", "TpSa")]
+        payload = self.client.get(
+            reverse("ci-component-search", args=["sanctus"])
+        ).json()
+        self.assertTrue(payload["capped"])
+        # Only one match survives filtering, but the ceiling was still hit upstream.
+        self.assertEqual(payload["total"], 1)
 
     @patch("main_app.views.chant.get_ci_text_search")
     def test_flags_ci_failure_without_caching_it(self, mock_search) -> None:
         """A CI outage is an error state, not "no matches" — and a retry must re-hit CI."""
         mock_search.return_value = None
         response = self.client.get(reverse("ci-component-search", args=["sanctus"]))
-        self.assertEqual(response.json(), {"results": [], "total": 0, "error": True})
+        self.assertEqual(
+            response.json(),
+            {"results": [], "total": 0, "capped": False, "error": True},
+        )
 
         mock_search.return_value = [self._ci_result("g04828:01", "TpSa")]
         response = self.client.get(reverse("ci-component-search", args=["sanctus"]))
