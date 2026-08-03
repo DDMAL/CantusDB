@@ -52,6 +52,7 @@ from main_app.views.chant import (
     ChantSearchView,
     ChantSearchMSView,
     CIBaseTextView,
+    CIClusterElementsView,
     CIComponentSearchView,
     CISearchView,
     MelodySearchView,
@@ -489,6 +490,12 @@ urlpatterns = [
         "ci-base-text/<str:cantus_id>",
         CIBaseTextView.as_view(),
         name="ci-base-text",
+    ),
+    path(
+        # JSON list of a chant's catalogued trope elements, for the composer's bank (#2129)
+        "ci-cluster-elements/<str:cantus_id>",
+        CIClusterElementsView.as_view(),
+        name="ci-cluster-elements",
     ),
     path(
         "search/",
