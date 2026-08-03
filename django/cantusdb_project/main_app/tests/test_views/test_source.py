@@ -51,6 +51,11 @@ def get_csv_export_anchor_tag(html: str, source_id: int) -> str:
     return match.group(0) if match else ""
 
 
+# Matches a `download` attribute — with or without a value — but not attribute
+# names that merely contain the word, e.g. `data-download-name`.
+DOWNLOAD_ATTRIBUTE_RE = re.compile(r"\sdownload\b", re.IGNORECASE)
+
+
 class SourcePermissionsTestCase(CustomAccessTestMixin, TestCase):
     sources: Dict[str, Source]
     view_name: str
@@ -234,7 +239,7 @@ class SourceEditViewTest(CustomAccessTestMixin, TestCase):
         )
         # The server sets the filename via Content-Disposition, so the link must
         # not carry a client-side download attribute that would override it.
-        self.assertNotIn("download", csv_export_link)
+        self.assertNotRegex(csv_export_link, DOWNLOAD_ATTRIBUTE_RE)
 
     def test_edit_source(self) -> None:
         source = self.sources["editor_assigned_source"]
@@ -277,7 +282,7 @@ class SourceDetailViewTest(SourcePermissionsTestCase):
         )
         # The server sets the filename via Content-Disposition, so the link must
         # not carry a client-side download attribute that would override it.
-        self.assertNotIn("download", csv_export_link)
+        self.assertNotRegex(csv_export_link, DOWNLOAD_ATTRIBUTE_RE)
 
     def test_context_chant_folios(self) -> None:
         # create a source and several chants in it

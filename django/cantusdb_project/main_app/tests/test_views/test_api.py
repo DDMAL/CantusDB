@@ -3,14 +3,16 @@ Tests for views in views/api.py
 """
 
 import json
+import re
 from typing import Optional, Any
 import csv
 from collections.abc import ItemsView, KeysView
 from unittest.mock import patch, MagicMock
+from urllib.parse import unquote
 
 from django.test import TestCase
 from django.urls import reverse
-from django.http import JsonResponse
+from django.http import HttpResponse, JsonResponse
 
 from main_app.tests.make_fakes import (
     make_fake_chant,
@@ -958,6 +960,23 @@ class JsonCidTest(TestCase):
         self.assertEqual(json_for_one_chant_3["full_text"], "standard spelling")
 
 
+def get_filename_from_response(response: HttpResponse) -> str:
+    """Return the filename ``Content-Disposition`` asks the browser to save as.
+
+    Handles both forms Django emits: a quoted ASCII ``filename`` and the
+    percent-encoded ``filename*`` it falls back to when the name is not ASCII.
+    """
+    disposition = response["Content-Disposition"]
+    if encoded_match := re.match(
+        r"attachment; filename\*=utf-8''(?P<name>.+)$", disposition, re.IGNORECASE
+    ):
+        return unquote(encoded_match["name"])
+    quoted_match = re.match(r'attachment; filename="(?P<name>.*)"$', disposition)
+    if quoted_match is None:
+        raise AssertionError(f"unexpected Content-Disposition: {disposition}")
+    return quoted_match["name"]
+
+
 class CsvExportTest(CustomAccessTestMixin, TestCase):
     def test_url(self):
         institution = make_fake_institution(siglum="A-Gu")
@@ -992,6 +1011,63 @@ class CsvExportTest(CustomAccessTestMixin, TestCase):
         self.assertEqual(
             response["Content-Disposition"],
             f'attachment; filename="{source.id}-A-Gu Ms. 12-1.csv"',
+        )
+
+    def test_url_filename_sanitizes_characters_windows_disallows(self):
+        institution = make_fake_institution(siglum="A-Gu")
+        source = make_fake_source(
+            published=True,
+            holding_institution=institution,
+            shelfmark='Ms. 12<>:"|?*1',
+        )
+        response = self.client.get(reverse("csv-export", args=[source.id]))
+
+        self.assertEqual(
+            response["Content-Disposition"],
+            f'attachment; filename="{source.id}-A-Gu Ms. 12-1.csv"',
+        )
+
+    def test_url_filename_sanitizes_control_characters(self):
+        # A newline reaching the header value would make Django raise
+        # BadHeaderError, so control characters must be replaced too.
+        institution = make_fake_institution(siglum="A-Gu")
+        source = make_fake_source(
+            published=True, holding_institution=institution, shelfmark="Ms.\n211"
+        )
+        response = self.client.get(reverse("csv-export", args=[source.id]))
+
+        self.assertEqual(
+            response["Content-Disposition"],
+            f'attachment; filename="{source.id}-A-Gu Ms.-211.csv"',
+        )
+
+    def test_url_filename_truncates_long_shelfmarks(self):
+        institution = make_fake_institution(siglum="A-Gu")
+        source = make_fake_source(
+            published=True,
+            holding_institution=institution,
+            shelfmark="M" * 255,  # the maximum length of the shelfmark field
+        )
+        response = self.client.get(reverse("csv-export", args=[source.id]))
+
+        filename = get_filename_from_response(response)
+        # 255 bytes is the per-filename limit on Windows, macOS and Linux alike.
+        self.assertLessEqual(len(filename.encode("utf-8")), 255)
+        self.assertTrue(filename.startswith(f"{source.id}-A-Gu M"))
+        self.assertTrue(filename.endswith(".csv"))
+
+    def test_url_filename_keeps_non_ascii_characters(self):
+        institution = make_fake_institution(siglum="F-Pn")
+        source = make_fake_source(
+            published=True, holding_institution=institution, shelfmark="Ms. Réserve 1"
+        )
+        response = self.client.get(reverse("csv-export", args=[source.id]))
+
+        # Accented characters are legitimate in shelfmarks, so they are kept
+        # rather than stripped; Django percent-encodes them per RFC 5987.
+        self.assertEqual(
+            get_filename_from_response(response),
+            f"{source.id}-F-Pn Ms. Réserve 1.csv",
         )
 
     def test_content(self):
