@@ -509,6 +509,8 @@ class ChantSearchView(CustomAccessMixin, ListView):  # type: ignore[type-arg]
         ``segment``: Filters by Segment of the Chant's Source
         ``keyword``: Searches text of Chant for keywords
         ``op``: Operation to take with keyword search. Options are "contains", "starts_with", and "ends_with"
+        ``indexing_notes``: Searches indexing notes of Chant/Sequence for text
+        ``indexing_notes_op``: Operation to take with indexing notes search. Options are "contains" and "starts_with"
     """
 
     paginate_by = 100
@@ -836,6 +838,8 @@ class ChantSearchMSView(CustomAccessMixin, ListView):  # type: ignore[type-arg]
         ``liturgical_function``: Filters by liturgical function of Chant
         ``keyword``: Searches text of Chant for keywords
         ``op``: Operation to take with keyword search. Options are "contains", "starts_with", and "ends_with"
+        ``indexing_notes``: Searches indexing notes of Chant/Sequence for text
+        ``indexing_notes_op``: Operation to take with indexing notes search. Options are "contains" and "starts_with"
     """
 
     paginate_by = 100
