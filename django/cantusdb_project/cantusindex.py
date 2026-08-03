@@ -116,6 +116,73 @@ def get_suggested_fulltext(cantus_id: str) -> Optional[str]:
     return info.get("field_full_text")
 
 
+class ClusterElement(TypedDict):
+    """One catalogued sub-element of a troped chant, as Cantus Index holds it."""
+
+    cantus_id: str
+    genre: Optional[str]
+    fulltext: Optional[str]
+
+
+def get_cantus_id_info(cantus_id: str) -> Optional[dict[Any, Any]]:
+    """Return Cantus Index's ``info`` block for a Cantus ID, or None if it has none.
+
+    A Cantus ID that CI doesn't know still answers 200, with ``{"info": null, ...}``
+    — so an absent/empty ``info`` is the "no such chant" signal, not an error.
+    """
+    json_response: Union[dict, list, None] = get_json_from_ci_api(
+        f"/json-cid/{cantus_id}"
+    )
+    if not isinstance(json_response, dict):
+        return None
+    info = json_response.get("info")
+    return info if isinstance(info, dict) and info else None
+
+
+def get_cluster_elements(
+    cantus_id: str,
+    max_elements: int = 40,
+    max_consecutive_misses: int = 2,
+) -> list[ClusterElement]:
+    """Collect the catalogued sub-elements of a troped chant, e.g. g04828:01…:04.
+
+    Cantus Index has no endpoint that lists a chant's constituent elements, and none
+    that lists Cantus IDs in bulk (``/json-cantusids``, which the CantusDB wiki cites,
+    404s on both CI hosts as of 2026-08). What CI *does* expose is each sub-element as
+    a chant in its own right — ``/json-cid/g04828:01`` is a full record — so the only
+    way to enumerate them is to walk the numbering until it runs out.
+
+    Sub-elements are numbered from 01 in a contiguous, zero-padded run, so we probe in
+    order and stop after ``max_consecutive_misses`` gaps (tolerating a single hole in
+    the sequence) or ``max_elements`` probes, whichever comes first. Callers should
+    cache the result: this costs one upstream request per probe.
+
+    Known limitation: only the ``<parent>:NN`` form is discoverable this way. A
+    sub-element using another suffix convention (``<parent>.Tp7``) can't be guessed at
+    and won't appear — it stays reachable through the text search instead.
+    """
+    elements: list[ClusterElement] = []
+    consecutive_misses: int = 0
+    for number in range(1, max_elements + 1):
+        sub_id: str = f"{cantus_id}:{number:02d}"
+        info: Optional[dict[Any, Any]] = get_cantus_id_info(sub_id)
+        if not info:
+            consecutive_misses += 1
+            if consecutive_misses >= max_consecutive_misses:
+                break
+            continue
+        consecutive_misses = 0
+        fulltext: Optional[str] = info.get("field_full_text")
+        elements.append(
+            {
+                "cantus_id": sub_id,
+                "genre": info.get("field_genre"),
+                "fulltext": fulltext.strip() if fulltext else None,
+            }
+        )
+    return elements
+
+
 def get_merged_cantus_ids() -> Optional[list[Optional[dict]]]:
     """Retrieve merged Cantus IDs from the Cantus Index API (/json-merged-chants)
 

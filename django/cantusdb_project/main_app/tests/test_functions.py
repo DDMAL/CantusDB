@@ -22,6 +22,7 @@ from cantusindex import (
     get_json_from_ci_api,
     CANTUS_INDEX_DOMAIN,
     OLD_CANTUS_INDEX_DOMAIN,
+    get_cluster_elements,
     get_suggested_fulltext,
     get_merged_cantus_ids,
     get_ci_text_search,
@@ -519,6 +520,93 @@ class CantusIndexFunctionsTest(TestCase):
                 results = get_ci_text_search("HTTPError")
             self.assertRaises(HTTPError)
             self.assertIsNone(results)
+
+
+class GetClusterElementsTest(TestCase):
+    """
+    Walking a troped chant's sub-elements (#2129).
+
+    Cantus Index exposes no endpoint listing a chant's elements, so they're found by
+    probing ``/json-cid/<parent>:NN`` in order. A Cantus ID CI doesn't hold still
+    answers 200, with ``{"info": null, ...}`` — that null is the "no such element"
+    signal these tests stand in for.
+    """
+
+    @staticmethod
+    def _fake_ci(known: dict) -> "callable":
+        """A get_json_from_ci_api stand-in serving only the Cantus IDs in ``known``."""
+
+        def fake(path: str, *args, **kwargs) -> dict:
+            cantus_id = path.rsplit("/", 1)[-1]
+            if cantus_id in known:
+                return {"info": known[cantus_id]}
+            return {"info": None, "databases": [], "chants": []}
+
+        return fake
+
+    def test_collects_contiguous_elements_then_stops(self) -> None:
+        known = {
+            f"g04828:{i:02d}": {
+                "field_genre": "TpSa",
+                "field_full_text": f"element {i}",
+            }
+            for i in range(1, 4)
+        }
+        with patch("cantusindex.get_json_from_ci_api", self._fake_ci(known)):
+            elements = get_cluster_elements("g04828")
+        self.assertEqual(
+            [element["cantus_id"] for element in elements],
+            ["g04828:01", "g04828:02", "g04828:03"],
+        )
+        self.assertEqual(elements[0]["genre"], "TpSa")
+
+    def test_strips_whitespace_from_fulltext(self) -> None:
+        """CI's field_full_text carries trailing whitespace; it becomes a token's text."""
+        known = {
+            "g04828:01": {
+                "field_genre": "TpSa",
+                "field_full_text": "Perpetuo numine cuncta regens ",
+            }
+        }
+        with patch("cantusindex.get_json_from_ci_api", self._fake_ci(known)):
+            elements = get_cluster_elements("g04828")
+        self.assertEqual(elements[0]["fulltext"], "Perpetuo numine cuncta regens")
+
+    def test_tolerates_a_single_gap_in_the_numbering(self) -> None:
+        """One missing number is a hole in CI's catalogue, not the end of the run."""
+        known = {
+            "g04828:01": {"field_genre": "TpSa", "field_full_text": "first"},
+            "g04828:03": {"field_genre": "TpSa", "field_full_text": "third"},
+        }
+        with patch("cantusindex.get_json_from_ci_api", self._fake_ci(known)):
+            elements = get_cluster_elements("g04828")
+        self.assertEqual(
+            [element["cantus_id"] for element in elements], ["g04828:01", "g04828:03"]
+        )
+
+    def test_untroped_chant_yields_no_elements(self) -> None:
+        with patch("cantusindex.get_json_from_ci_api", self._fake_ci({})):
+            self.assertEqual(get_cluster_elements("008349"), [])
+
+    def test_stops_probing_at_max_elements(self) -> None:
+        """An unbroken run can't drive an unbounded number of upstream requests."""
+        known = {
+            f"g04828:{i:02d}": {
+                "field_genre": "TpSa",
+                "field_full_text": f"element {i}",
+            }
+            for i in range(1, 40)
+        }
+        calls: list = []
+
+        def counting(path: str, *args, **kwargs) -> dict:
+            calls.append(path)
+            return self._fake_ci(known)(path)
+
+        with patch("cantusindex.get_json_from_ci_api", counting):
+            elements = get_cluster_elements("g04828", max_elements=5)
+        self.assertEqual(len(elements), 5)
+        self.assertEqual(len(calls), 5)
 
 
 class NormalizedURLFormFieldTest(TestCase):
