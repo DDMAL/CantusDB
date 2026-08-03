@@ -33,9 +33,10 @@ from cantusindex import get_json_from_ci_api
 # value if they include a newline.
 UNSAFE_FILENAME_CHARS = re.compile(r'[<>:"/\\|?*\x00-\x1f\x7f]')
 
-# Generous cap on the descriptive part of a download filename: a shelfmark can
-# be up to 255 characters, which would push the filename past the 255-byte
-# limit that Windows, macOS and Linux all impose.
+# Cap on the descriptive part of a download filename, in characters: a shelfmark
+# can be up to 255 characters, which makes for an unwieldy filename. This keeps
+# names to a manageable length; it is not a guarantee about the 255-byte limit
+# filesystems impose, which 100 non-ASCII characters could still exceed.
 MAX_FILENAME_STEM_LENGTH = 100
 
 
@@ -44,9 +45,10 @@ def make_csv_download_filename(source_id: int, heading: str) -> str:
     Build the download filename for a source's CSV export.
 
     Shelfmarks are free text, so a heading like "A-Gu Ms. 12/1" would otherwise
-    produce a filename the operating system rejects or truncates. Unsafe
-    characters become hyphens, runs of hyphens collapse into one, and stray
-    hyphens and spaces are trimmed from the ends.
+    produce a filename the operating system rejects. Unsafe characters become
+    hyphens, runs of hyphens collapse into one, stray hyphens and spaces are
+    trimmed from the ends, and the heading is capped at
+    ``MAX_FILENAME_STEM_LENGTH`` characters.
 
     ``django.utils.text.get_valid_filename`` is deliberately not used here: it
     replaces spaces with underscores, which would obscure the heading.
@@ -150,7 +152,13 @@ def csv_export(
 
     response = HttpResponse(content_type="text/csv")
     filename = make_csv_download_filename(source_id, source.short_heading)
-    response["Content-Disposition"] = content_disposition_header(True, filename)
+    # `content_disposition_header` is typed as returning `str | None`, but only
+    # returns None when the response is neither an attachment nor named, and
+    # `make_csv_download_filename` never returns an empty name.
+    disposition: str = content_disposition_header(  # type: ignore[assignment]
+        as_attachment=True, filename=filename
+    )
+    response["Content-Disposition"] = disposition
 
     writer = csv.writer(response)
     writer.writerow(

@@ -39,21 +39,31 @@ from users.models import User as UserAnnotation
 faker = Faker("la")
 
 
-def get_csv_export_anchor_tag(html: str, source_id: int) -> str:
-    """Return the opening ``<a>`` tag of the CSV export link for a source.
-
-    Locates the anchor by its ``csv-export`` URL so assertions can be scoped
-    to that specific element instead of the whole page. Returns an empty string
-    if the link is not present.
+class CsvExportLinkTestMixin:
     """
-    csv_url = reverse("csv-export", args=[source_id])
-    match = re.search(rf'<a\b[^>]*href="{re.escape(csv_url)}"[^>]*>', html)
-    return match.group(0) if match else ""
+    A mixin for pages that link to a source's CSV export.
+    """
 
+    def assertCsvExportLinkHasNoDownloadAttribute(
+        self, html: str, source_id: int
+    ) -> None:
+        """
+        Assert the page's CSV export link carries no ``download`` attribute.
 
-# Matches a `download` attribute — with or without a value — but not attribute
-# names that merely contain the word, e.g. `data-download-name`.
-DOWNLOAD_ATTRIBUTE_RE = re.compile(r"\sdownload\b", re.IGNORECASE)
+        ``csv_export`` names the downloaded file via ``Content-Disposition``; a
+        client-side ``download`` attribute on the link would override it.
+
+        :param html: The rendered HTML of the page containing the link.
+        :param source_id: The ID of the source the export link points to.
+        """
+        # Scope the assertion to the export anchor rather than the whole page.
+        csv_url = reverse("csv-export", args=[source_id])
+        match = re.search(rf'<a\b[^>]*href="{re.escape(csv_url)}"[^>]*>', html)
+        anchor_tag = match.group(0) if match else ""
+        self.assertTrue(anchor_tag, "CSV export link not found in the response")
+        # `\sdownload\b` matches the attribute with or without a value, but not
+        # attribute names that merely contain the word, e.g. `data-download-name`.
+        self.assertNotRegex(anchor_tag, r"\sdownload\b")
 
 
 class SourcePermissionsTestCase(CustomAccessTestMixin, TestCase):
@@ -163,7 +173,7 @@ class SourceCreateViewTest(TestCase):
         self.assertEqual(source.shelfmark, "test-shelfmark")
 
 
-class SourceEditViewTest(CustomAccessTestMixin, TestCase):
+class SourceEditViewTest(CsvExportLinkTestMixin, CustomAccessTestMixin, TestCase):
     default_user = "editor"
     sources: Dict[str, Source]
 
@@ -232,14 +242,9 @@ class SourceEditViewTest(CustomAccessTestMixin, TestCase):
         source = self.sources["editor_assigned_source"]
         response = self.client.get(reverse("source-edit", args=[source.id]))
 
-        html = response.content.decode("utf-8")
-        csv_export_link = get_csv_export_anchor_tag(html, source.id)
-        self.assertTrue(
-            csv_export_link, "CSV export link not found on source edit page"
+        self.assertCsvExportLinkHasNoDownloadAttribute(
+            response.content.decode("utf-8"), source.id
         )
-        # The server sets the filename via Content-Disposition, so the link must
-        # not carry a client-side download attribute that would override it.
-        self.assertNotRegex(csv_export_link, DOWNLOAD_ATTRIBUTE_RE)
 
     def test_edit_source(self) -> None:
         source = self.sources["editor_assigned_source"]
@@ -258,7 +263,7 @@ class SourceEditViewTest(CustomAccessTestMixin, TestCase):
         self.assertEqual(source.shelfmark, "test-shelfmark")
 
 
-class SourceDetailViewTest(SourcePermissionsTestCase):
+class SourceDetailViewTest(CsvExportLinkTestMixin, SourcePermissionsTestCase):
     view_name = "source-detail"
 
     def test_permissions(self) -> None:
@@ -275,14 +280,9 @@ class SourceDetailViewTest(SourcePermissionsTestCase):
         source = make_fake_source()
         response = self.client.get(reverse("source-detail", args=[source.id]))
 
-        html = response.content.decode("utf-8")
-        csv_export_link = get_csv_export_anchor_tag(html, source.id)
-        self.assertTrue(
-            csv_export_link, "CSV export link not found on source detail page"
+        self.assertCsvExportLinkHasNoDownloadAttribute(
+            response.content.decode("utf-8"), source.id
         )
-        # The server sets the filename via Content-Disposition, so the link must
-        # not carry a client-side download attribute that would override it.
-        self.assertNotRegex(csv_export_link, DOWNLOAD_ATTRIBUTE_RE)
 
     def test_context_chant_folios(self) -> None:
         # create a source and several chants in it
@@ -652,7 +652,7 @@ class SourceInventoryViewTest(HTMLContentsTestMixin, SourcePermissionsTestCase):
         self.assertTemplateUsed(response, "400.html")
 
 
-class SourceBrowseChantsViewTest(SourcePermissionsTestCase):
+class SourceBrowseChantsViewTest(CsvExportLinkTestMixin, SourcePermissionsTestCase):
     view_name = "browse-chants"
 
     def test_permissions(self) -> None:
@@ -685,6 +685,16 @@ class SourceBrowseChantsViewTest(SourcePermissionsTestCase):
         self.assertEqual(response.status_code, 200)
         self.assertTemplateUsed(response, "base.html")
         self.assertTemplateUsed(response, "browse_chants.html")
+
+    def test_csv_export_link_uses_response_filename(self):
+        cantus_segment = make_fake_segment(id=4063)
+        source = make_fake_source(segment=[cantus_segment])
+        make_fake_chant(source=source)
+        response = self.client.get(reverse("browse-chants", args=[source.id]))
+
+        self.assertCsvExportLinkHasNoDownloadAttribute(
+            response.content.decode("utf-8"), source.id
+        )
 
     def test_chant_rows_have_anchor_ids(self):
         # SourceEditChantsView.get_success_url redirects to `#chant-<pk>` after an

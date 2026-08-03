@@ -10,7 +10,7 @@ from collections.abc import ItemsView, KeysView
 from unittest.mock import patch, MagicMock
 from urllib.parse import unquote
 
-from django.test import TestCase
+from django.test import SimpleTestCase, TestCase
 from django.urls import reverse
 from django.http import HttpResponse, JsonResponse
 
@@ -33,6 +33,7 @@ from main_app.tests.mock_cantusindex_data import (
 )
 from main_app.tests.mixins import CustomAccessTestMixin
 from main_app.tests.test_views.test_chant import ChantPermissionsTestCase
+from main_app.views.api import make_csv_download_filename
 
 
 class AjaxSearchBarTest(ChantPermissionsTestCase):
@@ -971,65 +972,72 @@ def get_filename_from_response(response: HttpResponse) -> str:
         r"attachment; filename\*=utf-8''(?P<name>.+)$", disposition, re.IGNORECASE
     ):
         return unquote(encoded_match["name"])
-    quoted_match = re.match(r'attachment; filename="(?P<name>.*)"$', disposition)
+    quoted_match = re.match(
+        r'attachment; filename="(?P<name>.*)"$', disposition, re.IGNORECASE
+    )
     if quoted_match is None:
         raise AssertionError(f"unexpected Content-Disposition: {disposition}")
     return quoted_match["name"]
 
 
+class MakeCsvDownloadFilenameTest(SimpleTestCase):
+    """
+    Tests for the filename sanitizer used by the CSV export view. These call the
+    function directly; ``CsvExportTest`` covers getting the result into the
+    response header.
+    """
+
+    def test_sanitizes_path_separators(self):
+        self.assertEqual(
+            make_csv_download_filename(123, "A-Gu Ms. 12/1"),
+            "123-A-Gu Ms. 12-1.csv",
+        )
+
+    def test_sanitizes_characters_windows_disallows(self):
+        self.assertEqual(
+            make_csv_download_filename(123, 'A-Gu Ms. 12<>:"|?*1'),
+            "123-A-Gu Ms. 12-1.csv",
+        )
+
+    def test_truncates_long_headings(self):
+        # A shelfmark can be up to 255 characters. The heading is capped at 100,
+        # so "A-Gu " plus the first 95 M's survives.
+        filename = make_csv_download_filename(123, "A-Gu " + "M" * 255)
+
+        self.assertEqual(filename, "123-A-Gu " + "M" * 95 + ".csv")
+
+
 class CsvExportTest(CustomAccessTestMixin, TestCase):
     def test_url(self):
+        source = make_fake_source(published=True)
+        response_1 = self.client.get(reverse("csv-export", args=[source.id]))
+        self.assertEqual(response_1.status_code, 200)
+
+    def test_download_filename(self):
         institution = make_fake_institution(siglum="A-Gu")
         source = make_fake_source(
             published=True, holding_institution=institution, shelfmark="Ms. 211"
         )
-        response_1 = self.client.get(reverse("csv-export", args=[source.id]))
-        self.assertEqual(response_1.status_code, 200)
+        response = self.client.get(reverse("csv-export", args=[source.id]))
+
         self.assertEqual(
-            response_1["Content-Disposition"],
-            f'attachment; filename="{source.id}-A-Gu Ms. 211.csv"',
+            get_filename_from_response(response), f"{source.id}-A-Gu Ms. 211.csv"
         )
 
-    def test_url_without_holding_institution(self):
+    def test_download_filename_without_holding_institution(self):
         source = make_fake_source(
             published=True, holding_institution=None, shelfmark="Ms. 211"
         )
         response = self.client.get(reverse("csv-export", args=[source.id]))
 
         self.assertEqual(
-            response["Content-Disposition"],
-            f'attachment; filename="{source.id}-Cantus Ms. 211.csv"',
+            get_filename_from_response(response), f"{source.id}-Cantus Ms. 211.csv"
         )
 
-    def test_url_filename_sanitizes_path_separators(self):
-        institution = make_fake_institution(siglum="A-Gu")
-        source = make_fake_source(
-            published=True, holding_institution=institution, shelfmark="Ms. 12/1"
-        )
-        response = self.client.get(reverse("csv-export", args=[source.id]))
-
-        self.assertEqual(
-            response["Content-Disposition"],
-            f'attachment; filename="{source.id}-A-Gu Ms. 12-1.csv"',
-        )
-
-    def test_url_filename_sanitizes_characters_windows_disallows(self):
-        institution = make_fake_institution(siglum="A-Gu")
-        source = make_fake_source(
-            published=True,
-            holding_institution=institution,
-            shelfmark='Ms. 12<>:"|?*1',
-        )
-        response = self.client.get(reverse("csv-export", args=[source.id]))
-
-        self.assertEqual(
-            response["Content-Disposition"],
-            f'attachment; filename="{source.id}-A-Gu Ms. 12-1.csv"',
-        )
-
-    def test_url_filename_sanitizes_control_characters(self):
+    def test_download_filename_with_control_characters_in_shelfmark(self):
         # A newline reaching the header value would make Django raise
-        # BadHeaderError, so control characters must be replaced too.
+        # BadHeaderError, so this exercises the full request rather than the
+        # sanitizer alone.
         institution = make_fake_institution(siglum="A-Gu")
         source = make_fake_source(
             published=True, holding_institution=institution, shelfmark="Ms.\n211"
@@ -1037,26 +1045,10 @@ class CsvExportTest(CustomAccessTestMixin, TestCase):
         response = self.client.get(reverse("csv-export", args=[source.id]))
 
         self.assertEqual(
-            response["Content-Disposition"],
-            f'attachment; filename="{source.id}-A-Gu Ms.-211.csv"',
+            get_filename_from_response(response), f"{source.id}-A-Gu Ms.-211.csv"
         )
 
-    def test_url_filename_truncates_long_shelfmarks(self):
-        institution = make_fake_institution(siglum="A-Gu")
-        source = make_fake_source(
-            published=True,
-            holding_institution=institution,
-            shelfmark="M" * 255,  # the maximum length of the shelfmark field
-        )
-        response = self.client.get(reverse("csv-export", args=[source.id]))
-
-        filename = get_filename_from_response(response)
-        # 255 bytes is the per-filename limit on Windows, macOS and Linux alike.
-        self.assertLessEqual(len(filename.encode("utf-8")), 255)
-        self.assertTrue(filename.startswith(f"{source.id}-A-Gu M"))
-        self.assertTrue(filename.endswith(".csv"))
-
-    def test_url_filename_keeps_non_ascii_characters(self):
+    def test_download_filename_keeps_non_ascii_characters(self):
         institution = make_fake_institution(siglum="F-Pn")
         source = make_fake_source(
             published=True, holding_institution=institution, shelfmark="Ms. Réserve 1"
