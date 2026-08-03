@@ -1068,6 +1068,11 @@ class ChantSearchViewTest(CustomAccessTestMixin, TestCase):
         context_sequence_id = response.context["chants"][0].id
         self.assertEqual(sequence.id, context_sequence_id)
 
+    def test_indexing_notes_search_box_renders_on_global_search(self):
+        response = self.client.get(reverse("chant-search"))
+        self.assertContains(response, 'name="indexing_notes"')
+        self.assertContains(response, 'name="indexing_notes_op"')
+
     def test_search_bar_search(self):
         # note to developers: if you are changing the behavior of search_bar
         # searches, be sure to check static/js/chant_search.js to see if it needs
