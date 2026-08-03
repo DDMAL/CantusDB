@@ -38,6 +38,7 @@ from main_app.views.chant import (
     get_feast_selector_options,
     ChantSearchView,
     ChantSearchMSView,
+    CIComponentSearchView,
 )
 
 # Create a Faker instance with locale set to Latin
@@ -4223,3 +4224,140 @@ class CIBaseTextViewTest(TestCase):
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response.json(), {"base_text": ""})
         mock_fulltext.assert_not_called()
+
+
+class CIComponentSearchViewTest(TestCase):
+    """The Cantus Index text-search proxy behind the composer's component typeahead."""
+
+    def setUp(self) -> None:
+        cache.clear()  # the view caches by search term; keep tests independent
+        self.client.force_login(make_fake_user())  # endpoint is login-gated
+
+    @staticmethod
+    def _ci_result(cid: str, genre: str) -> Dict[str, str]:
+        return {"cid": cid, "genre": genre, "fulltext": f"text for {cid}"}
+
+    def test_requires_login(self) -> None:
+        self.client.logout()
+        response = self.client.get(reverse("ci-component-search", args=["sanctus"]))
+        self.assertEqual(response.status_code, 302)  # redirected to login
+
+    @patch("main_app.views.chant.get_ci_text_search")
+    def test_short_query_does_not_reach_ci(self, mock_search) -> None:
+        response = self.client.get(reverse("ci-component-search", args=["sa"]))
+        self.assertEqual(response.json(), {"results": [], "total": 0})
+        mock_search.assert_not_called()
+
+    @patch("main_app.views.chant.get_ci_text_search")
+    def test_keeps_only_component_genres(self, mock_search) -> None:
+        """Only genres that can be interleaved survive: the Tp* family (a Sanctus
+        trope's elements are catalogued as TpSa, not Tp), prosulae, hymn verses and
+        litany verses. Whole antiphons/responsories are never component elements."""
+        mock_search.return_value = [
+            self._ci_result("g04828:01", "TpSa"),  # trope element
+            self._ci_result("001234", "Tp"),  # trope
+            self._ci_result("008411c", "HV"),  # hymn verse
+            self._ci_result("007000", "LiV"),  # litany verse
+            self._ci_result("009000", "Psl"),  # prosula (a type of trope)
+            self._ci_result("001774", "A"),  # antiphon — excluded
+            self._ci_result("006928", "R"),  # responsory — excluded
+            self._ci_result("008349", "H"),  # whole hymn — excluded
+        ]
+        response = self.client.get(reverse("ci-component-search", args=["sanctus"]))
+        returned = [result["cid"] for result in response.json()["results"]]
+        self.assertEqual(
+            returned, ["g04828:01", "001234", "008411c", "007000", "009000"]
+        )
+
+    @patch("main_app.views.chant.get_ci_text_search")
+    def test_drops_results_without_a_cid_or_genre(self, mock_search) -> None:
+        mock_search.return_value = [
+            None,
+            {"cid": "", "genre": "Tp", "fulltext": "no id"},
+            {"cid": "001234", "genre": None, "fulltext": "no genre"},
+            self._ci_result("g04828:01", "TpSa"),
+        ]
+        response = self.client.get(reverse("ci-component-search", args=["sanctus"]))
+        self.assertEqual(
+            [result["cid"] for result in response.json()["results"]], ["g04828:01"]
+        )
+
+    @patch("main_app.views.chant.get_ci_text_search")
+    def test_reports_total_beyond_the_returned_page(self, mock_search) -> None:
+        """The dropdown shows a page but says how many matches there are, so a clipped
+        list can't read as "these are all of them"."""
+        over_limit = CIComponentSearchView.MAX_RESULTS + 7
+        mock_search.return_value = [
+            self._ci_result(f"g04828:{i:02d}", "TpSa") for i in range(over_limit)
+        ]
+        response = self.client.get(reverse("ci-component-search", args=["sanctus"]))
+        payload = response.json()
+        self.assertEqual(len(payload["results"]), CIComponentSearchView.MAX_RESULTS)
+        self.assertEqual(payload["total"], over_limit)
+
+    @patch("main_app.views.chant.get_ci_text_search")
+    def test_flags_ci_failure_without_caching_it(self, mock_search) -> None:
+        """A CI outage is an error state, not "no matches" — and a retry must re-hit CI."""
+        mock_search.return_value = None
+        response = self.client.get(reverse("ci-component-search", args=["sanctus"]))
+        self.assertEqual(response.json(), {"results": [], "total": 0, "error": True})
+
+        mock_search.return_value = [self._ci_result("g04828:01", "TpSa")]
+        response = self.client.get(reverse("ci-component-search", args=["sanctus"]))
+        self.assertEqual(len(response.json()["results"]), 1)
+
+
+class CIClusterElementsViewTest(TestCase):
+    """The element-bank proxy: the trope elements CI already holds for a Cantus ID."""
+
+    def setUp(self) -> None:
+        cache.clear()  # the view caches by Cantus ID; keep tests independent
+        self.client.force_login(make_fake_user())  # endpoint is login-gated
+
+    def test_requires_login(self) -> None:
+        self.client.logout()
+        response = self.client.get(reverse("ci-cluster-elements", args=["g04828"]))
+        self.assertEqual(response.status_code, 302)  # redirected to login
+
+    @patch("main_app.views.chant.get_cluster_elements")
+    def test_returns_elements_for_cantus_id(self, mock_elements) -> None:
+        mock_elements.return_value = [
+            {
+                "cantus_id": "g04828:01",
+                "genre": "TpSa",
+                "fulltext": "Perpetuo numine cuncta regens",
+            }
+        ]
+        response = self.client.get(reverse("ci-cluster-elements", args=["g04828"]))
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(
+            response.json(),
+            {
+                "elements": [
+                    {
+                        "cantus_id": "g04828:01",
+                        "genre": "TpSa",
+                        "fulltext": "Perpetuo numine cuncta regens",
+                    }
+                ]
+            },
+        )
+
+    @patch("main_app.views.chant.get_cluster_elements")
+    def test_caches_the_empty_result(self, mock_elements) -> None:
+        """Most chants aren't troped. Without caching the empty answer, every activation
+        of the composer would re-probe Cantus Index for elements that don't exist."""
+        mock_elements.return_value = []
+        for _ in range(2):
+            response = self.client.get(reverse("ci-cluster-elements", args=["008349"]))
+            self.assertEqual(response.json(), {"elements": []})
+        mock_elements.assert_called_once()
+
+    @patch("main_app.views.chant.get_cluster_elements")
+    def test_rejects_malformed_cantus_id_without_hitting_ci(
+        self, mock_elements
+    ) -> None:
+        response = self.client.get(reverse("ci-cluster-elements", args=["bad id?x=1"]))
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.json(), {"elements": []})
+        mock_elements.assert_not_called()
