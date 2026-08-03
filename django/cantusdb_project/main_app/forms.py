@@ -1,6 +1,7 @@
 from typing import Optional, Any, Dict
 
 from django import forms
+from django.conf import settings
 from django.contrib.auth.forms import ReadOnlyPasswordHashField
 from django.contrib.auth import get_user_model
 from django.db.models import Q, Model
@@ -391,6 +392,14 @@ class SourceCreateForm(forms.ModelForm):
         choices=COMPLETE_INVENTORY_FORM_CHOICES, required=False
     )
 
+    def __init__(self, *args: Any, **kwargs: Any) -> None:
+        super().__init__(*args, **kwargs)
+        # "Benedicamus Domino" is a chant-level project designation, not a
+        # source segment, so it's excluded here (see #2131).
+        self.fields["segment_m2m"].queryset = Segment.objects.exclude(
+            id=settings.BENEDICAMUS_DOMINO_SEGMENT_ID
+        )
+
 
 class ChantEditForm(forms.ModelForm):
     class Meta:
@@ -628,6 +637,14 @@ class SourceEditForm(forms.ModelForm):
     complete_inventory = StyledChoiceField(
         choices=COMPLETE_INVENTORY_FORM_CHOICES, required=False
     )
+
+    def __init__(self, *args: Any, **kwargs: Any) -> None:
+        super().__init__(*args, **kwargs)
+        # "Benedicamus Domino" is a chant-level project designation, not a
+        # source segment, so it's excluded here (see #2131).
+        self.fields["segment_m2m"].queryset = Segment.objects.exclude(
+            id=settings.BENEDICAMUS_DOMINO_SEGMENT_ID
+        )
 
 
 class ChantSearchForm(forms.Form):

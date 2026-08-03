@@ -144,6 +144,20 @@ class SourceCreateViewTest(TestCase):
         source = Source.objects.first()
         self.assertEqual(source.shelfmark, "test-shelfmark")
 
+    def test_segment_m2m_excludes_benedicamus_domino(self) -> None:
+        # "Benedicamus Domino" is a chant-level project designation, not a
+        # source segment, so it should not be offered here (see #2131).
+        make_fake_segment(
+            name="Benedicamus Domino", id=settings.BENEDICAMUS_DOMINO_SEGMENT_ID
+        )
+        response = self.client.get(reverse("source-create"))
+        segment_ids = (
+            response.context["form"]
+            .fields["segment_m2m"]
+            .queryset.values_list("id", flat=True)
+        )
+        self.assertNotIn(settings.BENEDICAMUS_DOMINO_SEGMENT_ID, segment_ids)
+
 
 class SourceEditViewTest(CustomAccessTestMixin, TestCase):
     default_user = "editor"
@@ -225,6 +239,21 @@ class SourceEditViewTest(CustomAccessTestMixin, TestCase):
         self.assertRedirects(response, reverse("source-detail", args=[source.id]))
         source.refresh_from_db()
         self.assertEqual(source.shelfmark, "test-shelfmark")
+
+    def test_segment_m2m_excludes_benedicamus_domino(self) -> None:
+        # "Benedicamus Domino" is a chant-level project designation, not a
+        # source segment, so it should not be offered here (see #2131).
+        make_fake_segment(
+            name="Benedicamus Domino", id=settings.BENEDICAMUS_DOMINO_SEGMENT_ID
+        )
+        source = self.sources["editor_assigned_source"]
+        response = self.client.get(reverse("source-edit", args=[source.id]))
+        segment_ids = (
+            response.context["form"]
+            .fields["segment_m2m"]
+            .queryset.values_list("id", flat=True)
+        )
+        self.assertNotIn(settings.BENEDICAMUS_DOMINO_SEGMENT_ID, segment_ids)
 
 
 class SourceDetailViewTest(SourcePermissionsTestCase):
