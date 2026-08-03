@@ -56,19 +56,26 @@
     color: #8a94a0;
     white-space: nowrap;
 }
-/* proposed = a component not yet in Cantus Index. It IS a component, so it keeps the
- * warm amber fill; a dashed border marks it as provisional, and the word "proposed"
- * stands in for the missing ID — styled exactly like a real Cantus ID (grey, small,
- * non-italic, inherited from .token-cid). Captured locally only — there is no CI write
- * API, so nothing is submitted upstream; a later edit fills the real ID once CI has it. */
+/* proposed = a component not yet in Cantus Index. It is still a component, but it reads
+ * red rather than amber (28 Jul 2026 demo feedback) so the elements awaiting a real
+ * Cantus ID stand out at a glance from the approved ones. The dashed border keeps
+ * marking it as provisional, and the word "proposed" stands in for the missing ID —
+ * also red, so the whole box reads as one state. Captured locally only — there is no CI
+ * write API, so nothing is submitted upstream; a later edit fills the real ID once CI
+ * has it. */
 .cluster-token--component[data-proposed="true"] {
+    background: #fdecec;
     box-shadow: none;
-    border-color: #c99a1f;
+    border-color: #dc3545;
     border-style: dashed;
 }
 .cluster-token--component[data-proposed="true"]:hover {
+    background: #fbdcdc;
     box-shadow: none;
-    border-color: #a67c15;
+    border-color: #b02a37;
+}
+.cluster-token[data-proposed="true"] .token-cid {
+    color: #b02a37;
 }
 .cluster-token[data-proposed="true"] .token-cid::after {
     content: "proposed";
@@ -138,6 +145,15 @@
 .token-menu-btn:hover {
     background: #e9ecef;
 }
+/* "View on Cantus Index" is an anchor, not a button, so it needs the link decoration
+ * stripped and flex alignment to sit level with its button siblings. */
+.token-menu-btn--link,
+.token-menu-btn--link:hover {
+    display: inline-flex;
+    align-items: center;
+    color: #212529;
+    text-decoration: none;
+}
 .token-menu-btn--danger {
     color: #fff;
     background: #dc3545;
@@ -169,6 +185,24 @@ kbd.token-menu-key {
     top: -1px;
 }
 
+/* Help icon carrying the composer's instructions (28 Jul 2026 demo feedback). btn-link
+ * brings an underline and link colouring that read as a hyperlink; strip both so it
+ * reads as a quiet affordance sitting beside the checkbox label. */
+/* Scoped by id so it outranks the #cluster-controls .btn sizing rule below, which would
+ * otherwise shrink the icon along with the Reload/Undo buttons. */
+#cluster-controls .cluster-help {
+    font-size: 1rem;
+    line-height: 1;
+    text-decoration: none;
+    vertical-align: middle;
+    border: 0;
+}
+#cluster-controls .cluster-help:hover,
+#cluster-controls .cluster-help:focus {
+    color: #495057 !important;
+    text-decoration: none;
+}
+
 /* Reload / Undo sit inline with the activation checkbox. Bootstrap's btn-sm still
  * renders them taller and heavier than the checkbox label, which looked bulky next to
  * it (#2129 review); shrink them so they read as quiet secondary actions in the same
@@ -177,6 +211,87 @@ kbd.token-menu-key {
     padding: 0.1rem 0.45rem;
     font-size: 0.8rem;
     line-height: 1.5;
+}
+
+/* Composer and its element bank sit side by side, the bank fixed-width on the right and
+ * the composer taking the rest. The wrapper is flex at all times; with the bank hidden
+ * (cluster mode off) the plain textarea is the only child and still fills the width.
+ * Below the Bootstrap lg breakpoint there isn't room for two columns, so the bank drops
+ * underneath rather than squeezing the composer. */
+.cluster-workspace {
+    display: flex;
+    align-items: flex-start;
+    gap: 0.75rem;
+}
+.cluster-workspace > textarea,
+.cluster-workspace > .cluster-composer {
+    flex: 1 1 auto;
+    min-width: 0; /* let the composer shrink instead of overflowing the row */
+}
+.cluster-bank {
+    flex: 0 0 15rem;
+    max-height: 18rem;
+    overflow-y: auto;
+    padding: 0.5rem;
+    background: #fbfbfc;
+    border: 1px solid #dee2e6;
+    border-radius: 4px;
+}
+@media (max-width: 991.98px) {
+    .cluster-workspace {
+        flex-wrap: wrap;
+    }
+    .cluster-bank {
+        flex: 1 1 100%;
+        max-height: 12rem;
+    }
+}
+.cluster-bank-label {
+    font-weight: 600;
+    color: #495057;
+}
+.cluster-bank-status {
+    color: #8a94a0;
+    font-style: italic;
+}
+.cluster-bank-status:empty {
+    display: none;
+}
+/* A bank chip is a component element not yet placed: same warm amber as a placed
+ * component, but dashed and dimmer so the bank doesn't read as part of the text. */
+.cluster-bank-item {
+    display: block;
+    width: 100%;
+    margin-bottom: 0.3rem;
+    padding: 0.2rem 0.4rem;
+    text-align: left;
+    background: #fdeecf;
+    border: 1px dashed #e6c266;
+    border-radius: 3px;
+    cursor: grab;
+}
+.cluster-bank-item:hover {
+    background: #fbe3b0;
+    border-style: solid;
+}
+.cluster-bank-item:active {
+    cursor: grabbing;
+}
+.cluster-bank-item.dragging {
+    opacity: 0.45;
+}
+/* Already placed in the composer — kept visible for context but not re-draggable, so
+ * the same element can't be interleaved twice by accident. */
+.cluster-bank-item[disabled] {
+    background: #f1f3f5;
+    border-color: #ced4da;
+    color: #adb5bd;
+    cursor: default;
+}
+.cluster-bank-cid {
+    display: block;
+    font-size: 0.72em;
+    color: #8a94a0;
 }
 
 /* restore tray for deleted core elements */
@@ -251,9 +366,20 @@ kbd.token-menu-key {
 .typeahead-notice {
     color: #9a6b00;
 }
-/* the "propose a new component" action row */
+/* "N more matches" footer: the list is clipped, so say so rather than let the last
+ * visible row imply it is the last match (28 Jul 2026 demo feedback). */
+.typeahead-more {
+    border-top: 1px solid #eee;
+    font-style: normal;
+}
+/* The "propose a new component" action row. The result list scrolls now that many more
+ * matches are shown, so pin this to the bottom of the dropdown — otherwise the action
+ * scrolls out of reach exactly when a search returns too much to page through. */
 .typeahead-propose {
+    position: sticky;
+    bottom: 0;
     color: #0f7b4f;
+    background: #fff;
     border-top: 1px solid #eee;
 }
 .typeahead-propose.active,

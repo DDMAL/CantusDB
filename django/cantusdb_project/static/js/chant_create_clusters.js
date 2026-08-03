@@ -36,13 +36,20 @@
 (function () {
     "use strict";
 
-    const MAX_MATCHES = 8;
+    // The server clips the match list and reports the unclipped total, so the dropdown
+    // scrolls through what it got and names how many more are out there rather than
+    // truncating in silence (28 Jul 2026 demo feedback).
     const MAX_UNDO = 50;
     const CI_MIN_QUERY = 3; // characters before we query Cantus Index (matches the Input Tool)
     const CI_DEBOUNCE_MS = 250; // wait for a typing pause before firing a request
     const BASE_TEXT_URL = "/ci-base-text/"; // + cantus_id → { base_text }
+    // Cantus Index's public chant page, for the menu's "View on Cantus Index" link.
+    // cantusindex.org (not the uwaterloo host) is what serves /id/ today.
+    const CI_ID_URL = "https://cantusindex.org/id/";
+    const CLUSTER_ELEMENTS_URL = "/ci-cluster-elements/"; // + cantus_id → { elements }
 
     let textarea, composer, cantusIdInput, hasComponentCheckbox, hint, status, undoButton, reloadButton, tray;
+    let bank, bankItems, bankStatus; // the element bank shown beside the composer
     let elementsField; // hidden input carrying the composed elements as JSON to the server
     // Truthy while the composer is active (cluster mode on); null when off. No preset
     // payload any more — the base text is fetched and the parent ID is read live.
@@ -67,6 +74,10 @@
 
     let removedCores = []; // { id, text, index } — the restore tray's contents
     let undoStack = []; // snapshots captured *before* each mutation
+
+    // element bank state
+    let bankElements = []; // { cantus_id, genre, fulltext } as returned by the proxy
+    let bankSeq = 0; // guards a slow bank fetch against a newer Cantus ID
 
     // ---- tokens ---------------------------------------------------------
 
@@ -131,6 +142,10 @@
 
     function allTokens() {
         return Array.from(composer.querySelectorAll(".cluster-token"));
+    }
+
+    function componentTokens() {
+        return Array.from(composer.querySelectorAll(".cluster-token--component"));
     }
 
     // Insert a token at a collapsed range, padded with spaces so words stay
@@ -216,6 +231,7 @@
         composer.innerHTML = snapshot.html;
         removedCores = snapshot.cores;
         renderTray();
+        renderBank(); // undoing may have put an element back in, or taken one out
         syncToTextarea();
         updateUndoButton();
     }
@@ -267,6 +283,116 @@
         renderTray();
     }
 
+    // ---- element bank ---------------------------------------------------
+
+    // The trope elements Cantus Index already holds for this chant's Cantus ID, offered
+    // beside the composer so they can be dragged straight in rather than searched for
+    // one at a time (28 Jul 2026 demo feedback).
+
+    function setBankStatus(msg) {
+        if (bankStatus) bankStatus.textContent = msg || "";
+    }
+
+    // Which bank elements are already in the composer, by Cantus ID — those chips are
+    // shown but disabled, so an element can't be interleaved twice by accident.
+    function placedCantusIds() {
+        const placed = new Set();
+        composer.querySelectorAll(".cluster-token--component").forEach(function (token) {
+            if (token.dataset.cantusId) placed.add(token.dataset.cantusId);
+        });
+        return placed;
+    }
+
+    function renderBank() {
+        if (!bank || !bankItems) return;
+        bankItems.innerHTML = "";
+        const placed = placedCantusIds();
+        bankElements.forEach(function (element, i) {
+            const chip = document.createElement("button");
+            chip.type = "button";
+            chip.className = "cluster-bank-item";
+            chip.dataset.bankIndex = String(i);
+            const label = document.createElement("span");
+            label.textContent = element.fulltext || "";
+            const cid = document.createElement("span");
+            cid.className = "cluster-bank-cid";
+            cid.textContent = element.genre
+                ? element.cantus_id + " · " + element.genre
+                : element.cantus_id;
+            chip.append(label, cid);
+            if (placed.has(element.cantus_id)) {
+                chip.disabled = true;
+                chip.draggable = false;
+                chip.title = "Already placed in the text";
+            } else {
+                chip.draggable = true;
+                chip.title = "Drag into the text, or click to add it at the end";
+            }
+            bankItems.appendChild(chip);
+        });
+    }
+
+    // Load the bank for the current Cantus ID. Guarded by a sequence number so a slow
+    // response for an old Cantus ID can't land after the cataloguer has changed it.
+    function loadBank() {
+        if (!bank) return;
+        bankSeq += 1;
+        const seq = bankSeq;
+        const cid = parentCantusId();
+        bankElements = [];
+        renderBank();
+        if (!currentCluster) {
+            bank.hidden = true;
+            return;
+        }
+        bank.hidden = false;
+        if (!cid) {
+            setBankStatus("Add a Cantus ID to see its catalogued elements.");
+            return;
+        }
+        setBankStatus("Loading elements from Cantus Index…");
+        fetch(CLUSTER_ELEMENTS_URL + encodeURIComponent(cid), {
+            headers: { "X-Requested-With": "XMLHttpRequest" },
+        })
+            .then(function (r) {
+                return r.ok ? r.json() : null;
+            })
+            .catch(function () {
+                return null;
+            })
+            .then(function (data) {
+                if (seq !== bankSeq || !currentCluster) return; // superseded meanwhile
+                bankElements = (data && data.elements) || [];
+                setBankStatus(
+                    bankElements.length
+                        ? ""
+                        : "Cantus Index lists no elements for " + cid + "."
+                );
+                renderBank();
+            });
+    }
+
+    // Add a bank element to the composer as a component token. `before` is the token to
+    // insert ahead of (null → append), matching the drop-point model.
+    function insertBankElement(index, before) {
+        const element = bankElements[index];
+        if (!element) return;
+        pushUndo();
+        const token = makeToken(
+            "component",
+            element.fulltext || "",
+            element.cantus_id || "",
+            false
+        );
+        if (before) {
+            composer.insertBefore(token, before);
+        } else {
+            composer.appendChild(token);
+        }
+        normalizeComposer();
+        renderBank(); // the element is placed now, so grey its chip out
+    }
+
     // ---- activate / deactivate ------------------------------------------
 
     function setStatus(msg) {
@@ -302,6 +428,7 @@
         renderTray();
         updateUndoButton();
         syncToTextarea();
+        loadBank(); // the bank follows the Cantus ID, so it reloads alongside the base text
         seedBaseText(activateSeq, preTyped);
     }
 
@@ -366,11 +493,14 @@
     // replaces the base chant, so confirm first whenever any elements are composed,
     // including a freshly-seeded core the cataloguer hasn't touched yet.
     function reloadBaseText() {
-        if (!currentCluster || !parentCantusId()) return;
+        const cid = parentCantusId();
+        if (!currentCluster || !cid) return;
         if (
             allTokens().length > 0 &&
             !window.confirm(
-                "This will reload the base text from Cantus Index and discard the current elements. Continue?"
+                "This will reload the base text for " +
+                    cid +
+                    " from Cantus Index and discard the current elements. Continue?"
             )
         ) {
             return;
@@ -400,6 +530,9 @@
         setStatus("");
         if (undoButton) undoButton.hidden = true;
         if (reloadButton) reloadButton.hidden = true;
+        bankSeq += 1; // cancel any in-flight bank fetch
+        bankElements = [];
+        if (bank) bank.hidden = true;
         renderTray();
         syncToElementsField(); // cluster mode off → submit no elements, just the flattened text
     }
@@ -448,15 +581,23 @@
 
     // Live CI results (+ an always-present "propose new" row) → dropdown rows. CI's
     // fulltext carries trailing whitespace, so trim it before it becomes a token.
-    function rowsFromResults(results, query) {
-        const rows = rankResults(results)
-            .slice(0, MAX_MATCHES)
-            .map(function (r) {
-                return {
-                    kind: "match",
-                    element: { text: (r.fulltext || "").trim(), cantusId: r.cid || "" },
-                };
+    // `payload` is the proxy's {results, total}: results is the page to render, total the
+    // number of matches before clipping, so the shortfall can be reported to the user.
+    function rowsFromResults(payload, query) {
+        const results = payload.results || [];
+        const rows = rankResults(results).map(function (r) {
+            return {
+                kind: "match",
+                element: { text: (r.fulltext || "").trim(), cantusId: r.cid || "" },
+            };
+        });
+        const hidden = Math.max(0, (payload.total || results.length) - results.length);
+        if (hidden > 0) {
+            rows.push({
+                kind: "more",
+                text: hidden + " more " + (hidden === 1 ? "match" : "matches") + " — keep typing to narrow the search",
             });
+        }
         rows.push({ kind: "propose", text: query });
         return rows;
     }
@@ -486,8 +627,10 @@
             const li = document.createElement("li");
             if (!isNavigable(row)) {
                 li.className = "typeahead-hint";
+                // "notice" and "more" carry their own text; the rest are fixed prompts.
                 if (row.kind === "notice") li.classList.add("typeahead-notice");
-                li.textContent = row.kind === "notice" ? row.text : messageRowText(row.kind);
+                if (row.kind === "more") li.classList.add("typeahead-more");
+                li.textContent = row.text || messageRowText(row.kind);
                 typeahead.appendChild(li);
                 return;
             }
@@ -602,6 +745,7 @@
         placeCaretAfter(trailingSpace);
         closeTypeahead();
         syncToTextarea();
+        renderBank(); // a searched component may be one the bank also offers
     }
 
     // Query the Django proxy (which wraps Cantus Index's /json-text) for a term,
@@ -609,7 +753,7 @@
     // answer can't clobber a newer one. Resolves to {results} | {error} | {aborted}.
     function ciSearch(query) {
         const key = query.trim().toLowerCase();
-        if (ciCache.has(key)) return Promise.resolve({ results: ciCache.get(key) });
+        if (ciCache.has(key)) return Promise.resolve({ payload: ciCache.get(key) });
         if (ciAbort) ciAbort.abort();
         ciAbort = new AbortController();
         return fetch("/ci-component-search/" + encodeURIComponent(query.trim()), { signal: ciAbort.signal })
@@ -619,8 +763,11 @@
             .then(function (data) {
                 if (data.error) return { error: true };
                 const results = data.results || [];
-                ciCache.set(key, results);
-                return { results: results };
+                // Cache the clipped page together with the unclipped total, so a repeat
+                // query reports the same "N more matches" as the first one did.
+                const payload = { results: results, total: data.total || results.length };
+                ciCache.set(key, payload);
+                return { payload: payload };
             })
             .catch(function (error) {
                 return error && error.name === "AbortError" ? { aborted: true } : { error: true };
@@ -638,7 +785,7 @@
                 if (seq !== ciSeq || outcome.aborted || !isTypeaheadOpen()) return;
                 const ctx = currentQueryContext();
                 if (!ctx || ctx.query.trim().toLowerCase() !== query.toLowerCase()) return;
-                const rows = outcome.error ? ciErrorRows(query) : rowsFromResults(outcome.results, query);
+                const rows = outcome.error ? ciErrorRows(query) : rowsFromResults(outcome.payload, query);
                 openTypeahead(rows, ctx);
             });
         }, CI_DEBOUNCE_MS);
@@ -706,11 +853,43 @@
         return btn;
     }
 
+    // The element's Cantus ID for display/linking. A core has no ID of its own — it is
+    // the parent chant's, read live from the field — while a component carries its own.
+    function tokenCantusId(token) {
+        return isCoreToken(token) ? parentCantusId() : token.dataset.cantusId || "";
+    }
+
+    // "View on Cantus Index" — a real anchor rather than a scripted window.open, so
+    // middle-click and ctrl-click open a background tab the way they do anywhere else.
+    function menuLink(label, url) {
+        const link = document.createElement("a");
+        link.className = "token-menu-btn token-menu-btn--link";
+        link.href = url;
+        link.target = "_blank";
+        link.rel = "noopener noreferrer";
+        link.textContent = label;
+        // Dismiss the menu on the way out; the navigation itself proceeds as normal.
+        link.addEventListener("click", function () {
+            closeMenu();
+        });
+        return link;
+    }
+
     function openMenu(token) {
         closeMenu();
         closeTypeahead(); // opening a box's menu dismisses the search prompt
         menuToken = token;
         tokenMenu.innerHTML = "";
+
+        // Look the element up externally (28 Jul 2026 demo feedback). Only offered when
+        // there is an ID to look up: a proposed component isn't in Cantus Index yet, and
+        // a core has nothing to link to until the chant's Cantus ID is filled in.
+        const cantusId = tokenCantusId(token);
+        if (cantusId) {
+            tokenMenu.appendChild(
+                menuLink("View on Cantus Index", CI_ID_URL + encodeURIComponent(cantusId))
+            );
+        }
 
         // Splittable elements (core, proposed) get Split; every element gets a
         // delete. Cores drop into the restore tray; components just go (undo only).
@@ -768,6 +947,7 @@
         token.remove();
         closeMenu();
         normalizeComposer();
+        renderBank(); // it's available again if it came from the bank
     }
 
     function deleteCore(token) {
@@ -851,45 +1031,105 @@
 
     // ---- drag to reorder ------------------------------------------------
 
-    let dragToken = null;
+    let dragToken = null; // reordering a token already in the composer
+    let bankDragIndex = -1; // dragging a new element in from the bank (index into bankElements)
     let dropIndicator = null; // blue insertion bar shown while dragging (created in init)
+
+    // Both drag sources share the drop machinery: the only difference is whether the drop
+    // moves the dragged token or creates a new one from the bank.
+    function isDragging() {
+        return !!dragToken || bankDragIndex >= 0;
+    }
+
+    function firstClientRect(el) {
+        const rects = el.getClientRects();
+        return rects.length ? rects[0] : el.getBoundingClientRect();
+    }
 
     function lastClientRect(el) {
         const rects = el.getClientRects();
         return rects.length ? rects[rects.length - 1] : el.getBoundingClientRect();
     }
 
-    // Show the insertion bar centred in the gap a drop would land in. With a token on each
-    // side of the same line it sits at the true midpoint between their edges (the gap is
-    // wider than the two margins — there's a space glyph between tokens too — so a plain
-    // margin offset would list toward one side). At a wrapped line start or the very
-    // beginning/end there's only one neighbour, so it sits one margin-width in for even
-    // spacing rather than hugging that token.
-    function showDropIndicator(target) {
-        if (!dropIndicator) return;
+    function styleWidth(el, property) {
+        return parseFloat(getComputedStyle(el)[property]) || 0;
+    }
+
+    // Every gap a drop can land in, in document order, as {token, x, top, height}: the bar
+    // is drawn at x/top/height and the dragged token lands before `token` (null → append).
+    //
+    // Each point is anchored to a single LINE FRAGMENT — a token's first rect for the gap
+    // before it, the last token's last rect for the gap at the end — never to the union
+    // bounding box getBoundingClientRect() returns. That box is what made one gap
+    // undroppable (28 Jul 2026 demo feedback): for a token wrapping across two lines the
+    // union spans both, so its centre sits in the blank space between them and its left
+    // edge is the container's, not the token's. Hit-testing against that centre meant a
+    // wrapped token never registered as "after" a pointer to the right of it on its own
+    // first line, leaving the gap in front of it unreachable — and only when the text
+    // happened to wrap, which is why it did not reproduce on a shorter chant.
+    //
+    // The bar sits at the true midpoint of the gap when a token ends on the same line just
+    // before this one (the gap is wider than the two margins — there's a space glyph
+    // between tokens too — so a plain margin offset would list toward one side). At a
+    // wrapped line start or the very beginning there's no such neighbour, so it sits one
+    // margin-width in for even spacing rather than hugging the token.
+    function insertionPoints() {
         const tokens = allTokens().filter(function (t) {
             return t !== dragToken;
         });
-        let rect, x;
-        if (target) {
-            const rects = target.getClientRects();
-            rect = rects.length ? rects[0] : target.getBoundingClientRect();
-            const prev = tokens[tokens.indexOf(target) - 1];
-            const prevRect = prev && lastClientRect(prev);
-            if (prevRect && Math.abs(prevRect.top - rect.top) < 1 && prevRect.right <= rect.left) {
-                x = (prevRect.right + rect.left) / 2;
-            } else {
-                x = rect.left - (parseFloat(getComputedStyle(target).marginLeft) || 0);
-            }
-        } else {
-            if (!tokens.length) return hideDropIndicator();
+        const points = [];
+        tokens.forEach(function (token, i) {
+            const rect = firstClientRect(token);
+            const prev = i > 0 ? lastClientRect(tokens[i - 1]) : null;
+            const afterPrevOnThisLine =
+                prev && Math.abs(prev.top - rect.top) < 1 && prev.right <= rect.left;
+            points.push({
+                token: token,
+                x: afterPrevOnThisLine
+                    ? (prev.right + rect.left) / 2
+                    : rect.left - styleWidth(token, "marginLeft"),
+                top: rect.top,
+                height: rect.height,
+            });
+        });
+        if (tokens.length) {
             const last = tokens[tokens.length - 1];
-            rect = lastClientRect(last);
-            x = rect.right + (parseFloat(getComputedStyle(last).marginRight) || 0);
+            const rect = lastClientRect(last);
+            points.push({
+                token: null, // append
+                x: rect.right + styleWidth(last, "marginRight"),
+                top: rect.top,
+                height: rect.height,
+            });
         }
-        dropIndicator.style.left = x - 1 + "px"; // centre the 2px bar on x
-        dropIndicator.style.top = rect.top + "px";
-        dropIndicator.style.height = rect.height + "px";
+        return points;
+    }
+
+    // The gap nearest the pointer. Vertical distance dominates, so a drop never jumps to
+    // another line just because a gap there is closer in raw pixels; within a line it's
+    // the nearest gap horizontally. Every pointer position resolves to some gap, so the
+    // bar can't blink out over a spot that is in fact droppable.
+    function nearestInsertionPoint(x, y) {
+        let best = null;
+        let bestScore = Infinity;
+        insertionPoints().forEach(function (point) {
+            // 0 while the pointer is level with this line, else the distance off it
+            const dy = Math.max(0, point.top - y, y - (point.top + point.height));
+            const score = dy * 10000 + Math.abs(point.x - x);
+            if (score < bestScore) {
+                bestScore = score;
+                best = point;
+            }
+        });
+        return best;
+    }
+
+    function showDropIndicator(point) {
+        if (!dropIndicator) return;
+        if (!point) return hideDropIndicator();
+        dropIndicator.style.left = point.x - 1 + "px"; // centre the 2px bar on x
+        dropIndicator.style.top = point.top + "px";
+        dropIndicator.style.height = point.height + "px";
         dropIndicator.hidden = false;
     }
 
@@ -915,45 +1155,51 @@
         hideDropIndicator();
     }
 
-    // The token before which the dragged token should land (null → append).
-    function dragTargetToken(x, y) {
-        const tokens = allTokens().filter(function (t) {
-            return t !== dragToken;
-        });
-        let best = null;
-        let bestDist = Infinity;
-        tokens.forEach(function (t) {
-            const box = t.getBoundingClientRect();
-            const cx = box.left + box.width / 2;
-            const cy = box.top + box.height / 2;
-            // consider tokens that sit after the pointer in reading order
-            const after = cy > y + box.height / 2 || (Math.abs(cy - y) <= box.height / 2 && cx > x);
-            if (!after) return;
-            const dist = Math.hypot(cx - x, cy - y);
-            if (dist < bestDist) {
-                bestDist = dist;
-                best = t;
-            }
-        });
-        return best;
+    // Dragging a catalogued element out of the bank. It isn't a token yet — one is
+    // created only if it lands in the composer.
+    function onBankDragStart(e) {
+        const chip = e.target.closest && e.target.closest(".cluster-bank-item");
+        if (!chip || chip.disabled) return;
+        closeMenu();
+        closeTypeahead();
+        bankDragIndex = Number(chip.dataset.bankIndex);
+        chip.classList.add("dragging");
+        e.dataTransfer.effectAllowed = "copy";
+        // Firefox needs data set for a drag to start.
+        e.dataTransfer.setData("text/plain", (bankElements[bankDragIndex] || {}).fulltext || "");
+    }
+
+    function onBankDragEnd(e) {
+        const chip = e.target.closest && e.target.closest(".cluster-bank-item");
+        if (chip) chip.classList.remove("dragging");
+        bankDragIndex = -1;
+        hideDropIndicator();
     }
 
     function onDragOver(e) {
-        if (!dragToken) return;
+        if (!isDragging()) return;
         e.preventDefault();
-        e.dataTransfer.dropEffect = "move";
-        showDropIndicator(dragTargetToken(e.clientX, e.clientY));
+        e.dataTransfer.dropEffect = dragToken ? "move" : "copy";
+        showDropIndicator(nearestInsertionPoint(e.clientX, e.clientY));
     }
 
+    // Drop where the bar was showing: the same nearestInsertionPoint() call decides both,
+    // so the token can't land somewhere other than the gap the cataloguer was shown.
     function onDrop(e) {
-        if (!dragToken) return;
+        if (!isDragging()) return;
         e.preventDefault();
         hideDropIndicator();
-        const target = dragTargetToken(e.clientX, e.clientY);
-        if (target === dragToken) return;
+        const point = nearestInsertionPoint(e.clientX, e.clientY);
+        if (bankDragIndex >= 0) {
+            // No insertion point means an empty composer — the element becomes its first.
+            insertBankElement(bankDragIndex, point ? point.token : null);
+            bankDragIndex = -1;
+            return;
+        }
+        if (!point) return; // the only token: nowhere else for it to go
         pushUndo();
-        if (target) {
-            composer.insertBefore(dragToken, target);
+        if (point.token) {
+            composer.insertBefore(dragToken, point.token);
         } else {
             composer.appendChild(dragToken);
         }
@@ -1012,15 +1258,37 @@
         hasComponentCheckbox.addEventListener("change", function () {
             if (hasComponentCheckbox.checked) {
                 activateFromCantusId();
-            } else {
-                deactivateCluster();
+                return;
             }
+            // Unticking flattens the cluster back to plain text, so the interleaved
+            // components stop being saved as elements. That's destructive once any exist
+            // — confirm, and put the tick back if the cataloguer backs out.
+            const components = componentTokens().length;
+            if (
+                components > 0 &&
+                !window.confirm(
+                    "This will discard the " +
+                        components +
+                        (components === 1 ? " component element" : " component elements") +
+                        " you have composed, keeping only the flattened text. Continue?"
+                )
+            ) {
+                hasComponentCheckbox.checked = true;
+                return;
+            }
+            deactivateCluster();
         });
 
         // Reloading is an explicit button, not a silent blur (which was undiscoverable);
         // keep it enabled only while there's a Cantus ID to fetch by.
         if (cantusIdInput) {
             cantusIdInput.addEventListener("input", updateReloadButton);
+            // The bank is keyed on the Cantus ID, so refresh it once the field settles.
+            // On "change" rather than "input": the bank costs upstream requests, and
+            // every keystroke of a Cantus ID would fire one against a partial ID.
+            cantusIdInput.addEventListener("change", function () {
+                if (currentCluster) loadBank();
+            });
         }
         if (reloadButton) {
             reloadButton.addEventListener("click", reloadBaseText);
@@ -1124,6 +1392,17 @@
             }
         });
 
+        // element bank: drag a chip into the composer, or click to add it at the end
+        // (the chips are buttons, so the keyboard path works without a drag).
+        if (bankItems) {
+            bankItems.addEventListener("dragstart", onBankDragStart);
+            bankItems.addEventListener("dragend", onBankDragEnd);
+            bankItems.addEventListener("click", function (e) {
+                const chip = e.target.closest(".cluster-bank-item");
+                if (chip && !chip.disabled) insertBankElement(Number(chip.dataset.bankIndex), null);
+            });
+        }
+
         // restore-tray chips
         if (tray) {
             tray.addEventListener("click", function (e) {
@@ -1200,8 +1479,18 @@
         undoButton = document.getElementById("cluster-undo");
         reloadButton = document.getElementById("cluster-reload");
         tray = document.getElementById("removed-cores-tray");
+        bank = document.getElementById("cluster-bank");
+        bankItems = document.getElementById("cluster-bank-items");
+        bankStatus = document.getElementById("cluster-bank-status");
         const controls = document.getElementById("cluster-controls");
         if (!textarea || !composer || !controls || !hasComponentCheckbox || !hint) return;
+
+        // The instructions are a hover/focus tooltip on the help icon now. Bootstrap's
+        // tooltips are opt-in, so upgrade the icon's title into one; without Bootstrap the
+        // plain title attribute still shows the same text as a native tooltip.
+        if (window.bootstrap && window.bootstrap.Tooltip) {
+            new window.bootstrap.Tooltip(hint);
+        }
 
         typeahead = document.createElement("ul");
         typeahead.id = "element-typeahead";
