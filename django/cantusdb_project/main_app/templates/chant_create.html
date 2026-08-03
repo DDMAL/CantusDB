@@ -192,10 +192,23 @@
                 </label>
                 <!-- Chant cluster composer (#2128/#2129): controls revealed by JS. -->
                 <div id="cluster-controls" class="d-flex flex-wrap align-items-center mb-1" hidden>
-                    <div class="form-check mb-0 me-3">
+                    <div class="form-check mb-0 me-2">
                         <input class="form-check-input" type="checkbox" id="has-component-elements">
                         <label class="form-check-label" for="has-component-elements">Has interleaved component elements</label>
                     </div>
+                    <!-- The composer's instructions live behind this icon rather than in a
+                         standing paragraph (28 Jul 2026 demo feedback). button, not a bare
+                         icon, so it is reachable and dismissable by keyboard as well as hover. -->
+                    <button type="button"
+                            id="component-elements-hint"
+                            class="btn btn-link p-0 me-3 text-muted cluster-help"
+                            aria-label="How to compose elements"
+                            data-bs-toggle="tooltip"
+                            data-bs-placement="right"
+                            title="Click a core chunk to split it, or type to search Cantus Index for component elements to interleave."
+                            hidden>
+                        <i class="bi bi-question-circle" aria-hidden="true"></i>
+                    </button>
                     <button type="button"
                             id="cluster-reload"
                             class="btn btn-outline-secondary btn-sm me-2"
@@ -209,16 +222,21 @@
                     </button>
                 </div>
                 <p id="cluster-status" class="text-muted small mb-1" hidden></p>
-                <p id="component-elements-hint" class="text-muted small mb-1" hidden>
-                    Click a core chunk to split it, or type to search Cantus Index for component
-                    elements to interleave.
-                </p>
-                {{ form.manuscript_full_text_std_spelling }}
-                <!-- Element composer; JS hides the textarea above and shows this when cluster mode is on. -->
-                <div id="cluster-composer"
-                     class="form-control cluster-composer"
-                     contenteditable="true"
-                     hidden></div>
+                <div class="cluster-workspace">
+                    {{ form.manuscript_full_text_std_spelling }}
+                    <!-- Element composer; JS hides the textarea above and shows this when cluster mode is on. -->
+                    <div id="cluster-composer"
+                         class="form-control cluster-composer"
+                         contenteditable="true"
+                         hidden></div>
+                    <!-- Bank of trope elements Cantus Index already holds for this Cantus ID
+                         (28 Jul 2026 demo feedback); drag a chip into the composer. -->
+                    <aside id="cluster-bank" class="cluster-bank small" hidden>
+                        <p class="cluster-bank-label mb-1">Elements for this Cantus ID</p>
+                        <p id="cluster-bank-status" class="cluster-bank-status mb-0"></p>
+                        <div id="cluster-bank-items"></div>
+                    </aside>
+                </div>
                 <!-- Composed elements are serialised here for the server (ChantCreateForm.elements_json). -->
                 {{ form.elements_json }}
                 <!-- Deleted core elements land here; click a chip to restore. -->
