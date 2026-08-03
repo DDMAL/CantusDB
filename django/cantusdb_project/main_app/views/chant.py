@@ -33,6 +33,8 @@ from volpiano_display_utilities.cantus_text_syllabification import (
 from volpiano_display_utilities.text_volpiano_alignment import align_text_and_volpiano
 
 from cantusindex import (
+    ClusterElement,
+    get_cluster_elements,
     get_suggested_chants,
     get_suggested_fulltext,
     get_ci_text_search,
@@ -1294,16 +1296,44 @@ class CIComponentSearchView(LoginRequiredMixin, View):
     lookups and shields the typeahead from CI latency/outages. The cache key is the
     search term alone (not cluster-specific); ranking a cluster's own sub-IDs to the
     top is left to the client, which knows the active cluster.
+
+    Matches are restricted to the genres that can actually be interleaved into a
+    cluster (28 Jul 2026 demo feedback) — a whole antiphon or responsory is never a
+    component element, and leaving them in buried the usable matches. Filtering here
+    rather than in the browser keeps the cached payload small and the client dumb.
     """
 
     MIN_QUERY_LENGTH: int = 3
     CACHE_TTL: int = 60 * 60  # seconds; CI text data is effectively static
+    # Trope elements, hymn verses and litany verses — the genres a component element
+    # can have. Tropes are the "Tp" family rather than a single code: a Sanctus trope's
+    # elements are catalogued under the troped-chant genre (g04828:01 is TpSa, not Tp),
+    # so match the whole prefix. "Psl" (prosula) is included because Cantus Index
+    # defines it as a type of trope.
+    #
+    # Open question from the demo, deliberately not settled here: whether to constrain
+    # on the genre CI reports (what this does) or on what the Cantus ID itself implies.
+    COMPONENT_GENRE_PREFIX: str = "Tp"
+    COMPONENT_GENRES: frozenset[str] = frozenset({"Psl", "HV", "LiV"})
+    # How many matches the dropdown renders. The response reports the unclipped total so
+    # the UI can say how many more there are instead of silently truncating.
+    MAX_RESULTS: int = 25
+
+    @classmethod
+    def is_component_genre(cls, genre: Optional[str]) -> bool:
+        """Whether a Cantus Index genre code can appear as a component element."""
+        if not genre:
+            return False
+        code: str = genre.strip()
+        return (
+            code.startswith(cls.COMPONENT_GENRE_PREFIX) or code in cls.COMPONENT_GENRES
+        )
 
     def get(self, request: HttpRequest, search_term: str) -> JsonResponse:
         """Return Cantus Index text-search matches for ``search_term`` as JSON."""
         term: str = search_term.strip()
         if len(term) < self.MIN_QUERY_LENGTH:
-            return JsonResponse({"results": []})
+            return JsonResponse({"results": [], "total": 0})
 
         # Hash the term: free text may contain spaces/punctuation that are invalid
         # in a memcached key. (md5 is a key digest here, not a security primitive.)
@@ -1317,7 +1347,7 @@ class CIComponentSearchView(LoginRequiredMixin, View):
             if raw is None:
                 # None is a CI failure (timeout/non-200); flag it so the UI can show
                 # an error state rather than a misleading "no matches". Not cached.
-                return JsonResponse({"results": [], "error": True})
+                return JsonResponse({"results": [], "total": 0, "error": True})
             results = [
                 {
                     "cid": result.get("cid"),
@@ -1325,11 +1355,16 @@ class CIComponentSearchView(LoginRequiredMixin, View):
                     "fulltext": result.get("fulltext"),
                 }
                 for result in raw
-                if result and result.get("cid")
+                if result
+                and result.get("cid")
+                and self.is_component_genre(result.get("genre"))
             ]
             cache.set(cache_key, results, self.CACHE_TTL)
 
-        return JsonResponse({"results": results})
+        # `total` counts every match; `results` is the clipped page the dropdown shows.
+        return JsonResponse(
+            {"results": results[: self.MAX_RESULTS], "total": len(results)}
+        )
 
 
 class CIBaseTextView(LoginRequiredMixin, View):
@@ -1367,6 +1402,40 @@ class CIBaseTextView(LoginRequiredMixin, View):
                 cache.set(cache_key, base_text, self.CACHE_TTL)
 
         return JsonResponse({"base_text": base_text or ""})
+
+
+class CIClusterElementsView(LoginRequiredMixin, View):
+    """
+    Read-only JSON list of the trope elements Cantus Index already holds for a Cantus
+    ID, backing the composer's element bank (28 Jul 2026 demo feedback on #2129): the
+    cataloguer drags a chant's own catalogued elements straight in rather than
+    text-searching for each one.
+
+    Assembling the list costs several upstream requests (see ``get_cluster_elements``
+    for why CI leaves no cheaper option), so the result is cached for an hour —
+    including the empty result, which is the common case. Most chants are not troped,
+    and without caching those would re-probe CI on every activation.
+    """
+
+    CACHE_TTL: int = (
+        60 * 60
+    )  # seconds; CI's catalogue of elements is effectively static
+    # Same guard as CIBaseTextView: keep a crafted id from reshaping the CI request path.
+    ID_PATTERN = re.compile(r"[A-Za-z0-9.:_-]+")
+
+    def get(self, request: HttpRequest, cantus_id: str) -> JsonResponse:
+        """Return the catalogued sub-elements of ``cantus_id`` as JSON."""
+        cid: str = cantus_id.strip()
+        if not cid or not self.ID_PATTERN.fullmatch(cid):
+            return JsonResponse({"elements": []})
+
+        cache_key: str = f"ci-cluster-elements:{cid}"
+        elements: Optional[list[ClusterElement]] = cache.get(cache_key)
+        if elements is None:
+            elements = get_cluster_elements(cid)
+            cache.set(cache_key, elements, self.CACHE_TTL)
+
+        return JsonResponse({"elements": elements})
 
 
 class SourceEditChantsView(CustomAccessMixin, UpdateView):  # type: ignore[type-arg]
