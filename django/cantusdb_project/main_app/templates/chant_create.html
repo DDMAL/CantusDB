@@ -222,21 +222,13 @@
                     </button>
                 </div>
                 <p id="cluster-status" class="text-muted small mb-1" hidden></p>
-                <div class="cluster-workspace">
-                    {{ form.manuscript_full_text_std_spelling }}
-                    <!-- Element composer; JS hides the textarea above and shows this when cluster mode is on. -->
-                    <div id="cluster-composer"
-                         class="form-control cluster-composer"
-                         contenteditable="true"
-                         hidden></div>
-                    <!-- Bank of trope elements Cantus Index already holds for this Cantus ID
-                         (28 Jul 2026 demo feedback); drag a chip into the composer. -->
-                    <aside id="cluster-bank" class="cluster-bank small" hidden>
-                        <p class="cluster-bank-label mb-1">Elements for this Cantus ID</p>
-                        <p id="cluster-bank-status" class="cluster-bank-status mb-0"></p>
-                        <div id="cluster-bank-items"></div>
-                    </aside>
-                </div>
+                {{ form.manuscript_full_text_std_spelling }}
+                <!-- Element composer; JS hides the textarea above and shows this when cluster mode is on.
+                     Its element bank lives in the sidebar (see the lowersidebar block). -->
+                <div id="cluster-composer"
+                     class="form-control cluster-composer"
+                     contenteditable="true"
+                     hidden></div>
                 <!-- Composed elements are serialised here for the server (ChantCreateForm.elements_json). -->
                 {{ form.elements_json }}
                 <!-- Deleted core elements land here; click a chip to restore. -->
@@ -354,4 +346,17 @@
             </script>
         </div>
     </div>
+    <!-- Bank of trope elements Cantus Index already holds for this chant's Cantus ID
+         (#2129). It sits under the Input Tool rather than beside the composer so the
+         composer keeps the full width of the form. Revealed by JS in cluster mode;
+         drag a chip into the composer, or click one to drop it at the cursor. -->
+    <aside id="cluster-bank" class="card w-100 mt-3" hidden>
+        <div class="card-header">
+            <h5>Elements for this Cantus ID</h5>
+        </div>
+        <div class="card-body small">
+            <p id="cluster-bank-status" class="cluster-bank-status mb-0"></p>
+            <div id="cluster-bank-items"></div>
+        </div>
+    </aside>
 {% endblock %}
