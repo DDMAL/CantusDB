@@ -1318,6 +1318,12 @@ class CIComponentSearchView(LoginRequiredMixin, View):
     # How many matches the dropdown renders. The response reports the unclipped total so
     # the UI can say how many more there are instead of silently truncating.
     MAX_RESULTS: int = 25
+    # Cantus Index's /json-text returns at most 100 matches for any term (verified
+    # 2026-08 against several broad queries). Hitting that ceiling means the match set
+    # was truncated upstream, before our genre filter ever saw it — so there may be
+    # component elements we never had the chance to offer. That is a different claim
+    # from "more matches than fit in the dropdown", and the UI words it differently.
+    CI_RESULT_CAP: int = 100
 
     @classmethod
     def is_component_genre(cls, genre: Optional[str]) -> bool:
@@ -1333,7 +1339,7 @@ class CIComponentSearchView(LoginRequiredMixin, View):
         """Return Cantus Index text-search matches for ``search_term`` as JSON."""
         term: str = search_term.strip()
         if len(term) < self.MIN_QUERY_LENGTH:
-            return JsonResponse({"results": [], "total": 0})
+            return JsonResponse({"results": [], "total": 0, "capped": False})
 
         # Hash the term: free text may contain spaces/punctuation that are invalid
         # in a memcached key. (md5 is a key digest here, not a security primitive.)
@@ -1341,29 +1347,42 @@ class CIComponentSearchView(LoginRequiredMixin, View):
             term.lower().encode("utf-8"), usedforsecurity=False
         ).hexdigest()
         cache_key: str = f"ci-component-search:{digest}"
-        results: Optional[list[dict[str, Optional[str]]]] = cache.get(cache_key)
-        if results is None:
+        cached: Optional[dict[str, Any]] = cache.get(cache_key)
+        if cached is None:
             raw = get_ci_text_search(term.replace(" ", "+"))
             if raw is None:
                 # None is a CI failure (timeout/non-200); flag it so the UI can show
                 # an error state rather than a misleading "no matches". Not cached.
-                return JsonResponse({"results": [], "total": 0, "error": True})
-            results = [
-                {
-                    "cid": result.get("cid"),
-                    "genre": result.get("genre"),
-                    "fulltext": result.get("fulltext"),
-                }
-                for result in raw
-                if result
-                and result.get("cid")
-                and self.is_component_genre(result.get("genre"))
-            ]
-            cache.set(cache_key, results, self.CACHE_TTL)
+                return JsonResponse(
+                    {"results": [], "total": 0, "capped": False, "error": True}
+                )
+            cached = {
+                "results": [
+                    {
+                        "cid": result.get("cid"),
+                        "genre": result.get("genre"),
+                        "fulltext": result.get("fulltext"),
+                    }
+                    for result in raw
+                    if result
+                    and result.get("cid")
+                    and self.is_component_genre(result.get("genre"))
+                ],
+                # Measured on CI's raw response, before genre filtering: the ceiling was
+                # hit upstream, so matches were lost regardless of how few survive here.
+                "capped": len(raw) >= self.CI_RESULT_CAP,
+            }
+            cache.set(cache_key, cached, self.CACHE_TTL)
 
-        # `total` counts every match; `results` is the clipped page the dropdown shows.
+        results: list[dict[str, Optional[str]]] = cached["results"]
+        # `total` counts every match that survived filtering; `results` is the clipped
+        # page the dropdown renders; `capped` says CI truncated the set before we saw it.
         return JsonResponse(
-            {"results": results[: self.MAX_RESULTS], "total": len(results)}
+            {
+                "results": results[: self.MAX_RESULTS],
+                "total": len(results),
+                "capped": cached["capped"],
+            }
         )
 
 
