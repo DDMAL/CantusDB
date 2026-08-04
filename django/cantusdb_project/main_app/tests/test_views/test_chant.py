@@ -2688,11 +2688,14 @@ class ChantSearchMSViewTest(ChantPermissionsTestCase):
         source = make_fake_source(published=True)
         position = 1
         chant = make_fake_chant(source=source, position=position)
+        make_fake_chant(source=source, position=2)
         search_term = "1"
         response = self.client.get(
             reverse("chant-search-ms", args=[source.id]), {"position": search_term}
         )
-        context_chant_id = response.context["chants"][0].id
+        listed_chants = response.context["chants"]
+        self.assertEqual(len(listed_chants), 1)
+        context_chant_id = listed_chants[0].id
         self.assertEqual(chant.id, context_chant_id)
 
     def test_filter_by_melody(self):
