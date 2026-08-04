@@ -30,6 +30,11 @@ STATIC_ROOT = os.getenv("CANTUSDB_STATIC_ROOT")
 MEDIA_ROOT = os.getenv("CANTUSDB_MEDIA_ROOT")
 MEDIA_URL = "/media/"
 
+# Storage for files that must never be reachable through nginx's public
+# /media alias (e.g. data check reports). Served only via authenticated
+# Django views.
+PRIVATE_MEDIA_ROOT = os.getenv("CANTUSDB_PRIVATE_MEDIA_ROOT")
+
 # Quick-start development settings - unsuitable for production
 # See https://docs.djangoproject.com/en/3.0/howto/deployment/checklist/
 

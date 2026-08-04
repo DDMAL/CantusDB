@@ -6,6 +6,7 @@ import zipfile
 from typing import List, Dict, Any
 from unittest.mock import patch, DEFAULT
 
+from django.conf import settings
 from django.core import mail
 from django.core.files.base import ContentFile
 from django.test import TestCase, override_settings
@@ -395,19 +396,24 @@ class FormatCheckCsvTest(TestCase):
 
 
 class TempMediaRootMixin:
-    """Sandboxes FileField writes to a temp dir instead of the real media volume."""
+    """Sandboxes FileField writes to temp dirs instead of the real media volumes."""
 
     @classmethod
     def setUpClass(cls) -> None:
         super().setUpClass()
         cls._media_root = tempfile.mkdtemp()
-        cls._media_root_override = override_settings(MEDIA_ROOT=cls._media_root)
+        cls._private_media_root = tempfile.mkdtemp()
+        cls._media_root_override = override_settings(
+            MEDIA_ROOT=cls._media_root,
+            PRIVATE_MEDIA_ROOT=cls._private_media_root,
+        )
         cls._media_root_override.enable()
 
     @classmethod
     def tearDownClass(cls) -> None:
         cls._media_root_override.disable()
         shutil.rmtree(cls._media_root, ignore_errors=True)
+        shutil.rmtree(cls._private_media_root, ignore_errors=True)
         super().tearDownClass()
 
 
@@ -499,8 +505,32 @@ class DataCheckReportAdminTest(TempMediaRootMixin, TestCase):
         url = reverse("admin:main_app_datacheckreport_changelist")
         response = self.client.get(url)
         self.assertEqual(response.status_code, 200)
-        self.assertContains(response, report.file.url)
+        download_url = reverse(
+            "admin:main_app_datacheckreport_download", args=[report.pk]
+        )
+        self.assertContains(response, download_url)
         self.assertContains(response, "Download")
+
+    def test_download_view_streams_file_contents(self) -> None:
+        report = self._make_report()
+        url = reverse("admin:main_app_datacheckreport_download", args=[report.pk])
+        response = self.client.get(url)
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(b"".join(response.streaming_content), b"fake zip contents")
+
+    def test_download_view_requires_staff(self) -> None:
+        self.client.logout()
+        report = self._make_report()
+        url = reverse("admin:main_app_datacheckreport_download", args=[report.pk])
+        response = self.client.get(url)
+        self.assertNotEqual(response.status_code, 200)
+
+    def test_file_is_not_stored_under_public_media_root(self) -> None:
+        """Reports must live outside MEDIA_ROOT, which nginx serves publicly."""
+        report = self._make_report()
+        absolute_path = report.file.path
+        self.assertFalse(absolute_path.startswith(str(settings.MEDIA_ROOT)))
+        self.assertTrue(absolute_path.startswith(str(settings.PRIVATE_MEDIA_ROOT)))
 
     def test_changelist_allows_marking_completed_via_list_editable(self) -> None:
         report = self._make_report()

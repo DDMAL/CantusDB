@@ -2,9 +2,15 @@ from django.db import models, transaction
 from django.db.models.signals import post_delete
 from django.dispatch import receiver
 
+from main_app.storage import private_media_storage
+
 
 class DataCheckReport(models.Model):
-    file = models.FileField(upload_to="data_check_reports/%Y/%m/")
+    # Stored privately (not under MEDIA_ROOT) since reports may contain
+    # unpublished data; download is only exposed through the admin.
+    file = models.FileField(
+        upload_to="data_check_reports/%Y/%m/", storage=private_media_storage
+    )
     created_at = models.DateTimeField(auto_now_add=True)
     completed = models.BooleanField(default=False)
     notes = models.TextField(blank=True)
