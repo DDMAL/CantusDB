@@ -839,7 +839,7 @@ class MelodySearchView(TemplateView):
 class ChantSearchMSView(CustomAccessMixin, ListView):  # type: ignore[type-arg]
     """
     Searches chants/sequences in a certain manuscript, accessed with
-    ``chant-search-ms/<int:source_pk>``
+    ``searchms/<int:source_pk>/``
 
     This view uses the same template as ``ChantSearchView``
 
