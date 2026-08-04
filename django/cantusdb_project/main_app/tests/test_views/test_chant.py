@@ -952,6 +952,99 @@ class ChantSearchViewTest(CustomAccessTestMixin, TestCase):
         self.assertEqual(len(listed_chants), 1)
         self.assertEqual(chant.id, listed_chants[0].id)
 
+    def test_search_by_differentia_id_excludes_chants_with_other_differentiae(self):
+        source = make_fake_source(published=True)
+        diff_db_a = Differentia.objects.create(differentia_id=faker.numerify("###a"))
+        diff_db_b = Differentia.objects.create(differentia_id=faker.numerify("###b"))
+        chant_a = make_fake_chant(source=source, diff_db=diff_db_a)
+        make_fake_chant(source=source, diff_db=diff_db_b)
+        response = self.client.get(
+            reverse("chant-search"), {"differentia_id": diff_db_a.id}
+        )
+        listed_chants = response.context["chants"]
+        self.assertEqual(len(listed_chants), 1)
+        self.assertEqual(chant_a.id, listed_chants[0].id)
+
+    def test_search_by_differentia_id_no_matching_chants(self):
+        source = make_fake_source(published=True)
+        diff_db = Differentia.objects.create(differentia_id=faker.numerify("###a"))
+        make_fake_chant(source=source)  # not linked to diff_db
+        response = self.client.get(
+            reverse("chant-search"), {"differentia_id": diff_db.id}
+        )
+        listed_chants = response.context["chants"]
+        self.assertEqual(len(listed_chants), 0)
+
+    def test_search_by_differentia_id_nonexistent_id_returns_no_chants(self):
+        source = make_fake_source(published=True)
+        make_fake_chant(source=source)
+        nonexistent_id = Differentia.objects.count() + 1000
+        response = self.client.get(
+            reverse("chant-search"), {"differentia_id": nonexistent_id}
+        )
+        listed_chants = response.context["chants"]
+        self.assertEqual(len(listed_chants), 0)
+
+    def test_search_by_differentia_id_non_numeric_value_is_ignored(self):
+        # The dropdown widget always submits a Differentia pk. A non-numeric
+        # value (e.g. a stale/tampered query string) should be ignored rather
+        # than raising, falling back to an unfiltered (all chants) result.
+        source = make_fake_source(published=True)
+        chant = make_fake_chant(source=source)
+        response = self.client.get(
+            reverse("chant-search"), {"differentia_id": "not-a-valid-id"}
+        )
+        self.assertEqual(response.status_code, 200)
+        listed_chants = response.context["chants"]
+        self.assertEqual(len(listed_chants), 1)
+        self.assertEqual(chant.id, listed_chants[0].id)
+
+    def test_search_by_differentia_id_marks_advanced_search_active(self):
+        diff_db = Differentia.objects.create(differentia_id=faker.numerify("###a"))
+        response = self.client.get(
+            reverse("chant-search"), {"differentia_id": diff_db.id}
+        )
+        self.assertTrue(response.context["advanced_search_active"])
+
+    def test_search_by_differentia_id_populates_search_form_initial(self):
+        diff_db = Differentia.objects.create(differentia_id=faker.numerify("###a"))
+        response = self.client.get(
+            reverse("chant-search"), {"differentia_id": diff_db.id}
+        )
+        search_form = response.context["search_form"]
+        self.assertEqual(search_form.initial.get("differentia_id"), str(diff_db.id))
+
+    def test_search_by_differentia_id_included_in_url_with_search_params(self):
+        diff_db = Differentia.objects.create(differentia_id=faker.numerify("###a"))
+        response = self.client.get(
+            reverse("chant-search"), {"differentia_id": diff_db.id}
+        )
+        self.assertIn(
+            f"differentia_id={diff_db.id}", response.context["url_with_search_params"]
+        )
+
+    def test_search_by_differentia_id_respects_source_permissions(self):
+        diff_db = Differentia.objects.create(differentia_id=faker.numerify("###a"))
+        published_chant = make_fake_chant(
+            source=make_fake_source(published=True), diff_db=diff_db
+        )
+        unassigned_chant = make_fake_chant(
+            source=make_fake_source(published=False), diff_db=diff_db
+        )
+        with self.subTest("Anonymous user"):
+            response = self.client.get(
+                reverse("chant-search"), {"differentia_id": diff_db.id}
+            )
+            self.assertCountEqual([published_chant], response.context["chants"])
+        with self.subTest("Superuser"):
+            self.client.force_login(self.users["superuser"])
+            response = self.client.get(
+                reverse("chant-search"), {"differentia_id": diff_db.id}
+            )
+            self.assertCountEqual(
+                [published_chant, unassigned_chant], response.context["chants"]
+            )
+
     def test_search_by_liturgical_function(self):
         source = make_fake_source(published=True)
         chant = make_fake_chant(source=source, liturgical_function=Chant.PROCESSIONAL)
@@ -2489,6 +2582,85 @@ class ChantSearchMSViewTest(ChantPermissionsTestCase):
         listed_chants = response.context["chants"]
         self.assertEqual(len(listed_chants), 1)
         self.assertEqual(chant.id, listed_chants[0].id)
+
+    def test_search_by_differentia_id_excludes_chants_with_other_differentiae(self):
+        source = make_fake_source()
+        diff_db_a = Differentia.objects.create(differentia_id=faker.numerify("###a"))
+        diff_db_b = Differentia.objects.create(differentia_id=faker.numerify("###b"))
+        chant_a = make_fake_chant(source=source, diff_db=diff_db_a)
+        make_fake_chant(source=source, diff_db=diff_db_b)
+        response = self.client.get(
+            reverse("chant-search-ms", args=[source.id]),
+            {"differentia_id": diff_db_a.id},
+        )
+        listed_chants = response.context["chants"]
+        self.assertEqual(len(listed_chants), 1)
+        self.assertEqual(chant_a.id, listed_chants[0].id)
+
+    def test_search_by_differentia_id_no_matching_chants(self):
+        source = make_fake_source()
+        diff_db = Differentia.objects.create(differentia_id=faker.numerify("###a"))
+        make_fake_chant(source=source)  # not linked to diff_db
+        response = self.client.get(
+            reverse("chant-search-ms", args=[source.id]),
+            {"differentia_id": diff_db.id},
+        )
+        listed_chants = response.context["chants"]
+        self.assertEqual(len(listed_chants), 0)
+
+    def test_search_by_differentia_id_only_matches_within_source(self):
+        source = make_fake_source()
+        other_source = make_fake_source()
+        diff_db = Differentia.objects.create(differentia_id=faker.numerify("###a"))
+        make_fake_chant(source=other_source, diff_db=diff_db)
+        response = self.client.get(
+            reverse("chant-search-ms", args=[source.id]),
+            {"differentia_id": diff_db.id},
+        )
+        listed_chants = response.context["chants"]
+        self.assertEqual(len(listed_chants), 0)
+
+    def test_search_by_differentia_id_non_numeric_value_is_ignored(self):
+        source = make_fake_source()
+        chant = make_fake_chant(source=source)
+        response = self.client.get(
+            reverse("chant-search-ms", args=[source.id]),
+            {"differentia_id": "not-a-valid-id"},
+        )
+        self.assertEqual(response.status_code, 200)
+        listed_chants = response.context["chants"]
+        self.assertEqual(len(listed_chants), 1)
+        self.assertEqual(chant.id, listed_chants[0].id)
+
+    def test_search_by_differentia_id_marks_advanced_search_active(self):
+        source = make_fake_source()
+        diff_db = Differentia.objects.create(differentia_id=faker.numerify("###a"))
+        response = self.client.get(
+            reverse("chant-search-ms", args=[source.id]),
+            {"differentia_id": diff_db.id},
+        )
+        self.assertTrue(response.context["advanced_search_active"])
+
+    def test_search_by_differentia_id_populates_search_form_initial(self):
+        source = make_fake_source()
+        diff_db = Differentia.objects.create(differentia_id=faker.numerify("###a"))
+        response = self.client.get(
+            reverse("chant-search-ms", args=[source.id]),
+            {"differentia_id": diff_db.id},
+        )
+        search_form = response.context["search_form"]
+        self.assertEqual(search_form.initial.get("differentia_id"), str(diff_db.id))
+
+    def test_search_by_differentia_id_included_in_url_with_search_params(self):
+        source = make_fake_source()
+        diff_db = Differentia.objects.create(differentia_id=faker.numerify("###a"))
+        response = self.client.get(
+            reverse("chant-search-ms", args=[source.id]),
+            {"differentia_id": diff_db.id},
+        )
+        self.assertIn(
+            f"differentia_id={diff_db.id}", response.context["url_with_search_params"]
+        )
 
     def test_search_by_feast(self):
         source = make_fake_source()
