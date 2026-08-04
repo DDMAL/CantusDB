@@ -544,10 +544,20 @@ class ChantSearchView(CustomAccessMixin, ListView):  # type: ignore[type-arg]
             self.request.GET.get(field) for field in ADVANCED_SEARCH_FIELDS
         )
         feast_param = self.request.GET.get("feast")
+        differentia_id_param = self.request.GET.get("differentia_id")
         context["search_form"] = ChantSearchForm(
-            initial=(
-                {"feast": feast_param} if feast_param and feast_param.isdigit() else {}
-            )
+            initial={
+                **(
+                    {"feast": feast_param}
+                    if feast_param and feast_param.isdigit()
+                    else {}
+                ),
+                **(
+                    {"differentia_id": differentia_id_param}
+                    if differentia_id_param and differentia_id_param.isdigit()
+                    else {}
+                ),
+            }
         )
         context["query_empty"] = False if self.request.GET else True
         context["order"] = self.request.GET.get("order")
@@ -705,7 +715,8 @@ class ChantSearchView(CustomAccessMixin, ListView):  # type: ignore[type-arg]
                 q_obj_filter &= Q(liturgical_function=liturgical_function)
 
             if differentia_id := self.request.GET.get("differentia_id"):
-                q_obj_filter &= Q(diff_db__differentia_id__icontains=differentia_id)
+                if differentia_id.isdigit():
+                    q_obj_filter &= Q(diff_db_id=differentia_id)
 
             # Filter the QuerySet with Q object
             chant_set = Chant.objects.filter(q_obj_filter).select_related(
@@ -888,10 +899,20 @@ class ChantSearchMSView(CustomAccessMixin, ListView):  # type: ignore[type-arg]
             self.request.GET.get(field) for field in ADVANCED_SEARCH_FIELDS
         )
         feast_param = self.request.GET.get("feast")
+        differentia_id_param = self.request.GET.get("differentia_id")
         context["search_form"] = ChantSearchForm(
-            initial=(
-                {"feast": feast_param} if feast_param and feast_param.isdigit() else {}
-            )
+            initial={
+                **(
+                    {"feast": feast_param}
+                    if feast_param and feast_param.isdigit()
+                    else {}
+                ),
+                **(
+                    {"differentia_id": differentia_id_param}
+                    if differentia_id_param and differentia_id_param.isdigit()
+                    else {}
+                ),
+            }
         )
         context["order"] = self.request.GET.get("order")
         context["sort"] = self.request.GET.get("sort")
@@ -985,7 +1006,8 @@ class ChantSearchMSView(CustomAccessMixin, ListView):  # type: ignore[type-arg]
             q_obj_filter &= Q(liturgical_function=liturgical_function)
 
         if differentia_id := self.request.GET.get("differentia_id"):
-            q_obj_filter &= Q(diff_db__differentia_id__icontains=differentia_id)
+            if differentia_id.isdigit():
+                q_obj_filter &= Q(diff_db_id=differentia_id)
 
         order_value = self.request.GET.get("order")
         sort_get_param: Optional[str] = self.request.GET.get("sort")
