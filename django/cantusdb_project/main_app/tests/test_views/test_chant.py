@@ -1171,9 +1171,8 @@ class ChantSearchViewTest(CustomAccessTestMixin, TestCase):
         diff_db = Differentia.objects.create(differentia_id=faker.numerify("###a"))
         chant = make_fake_chant(source=source, diff_db=diff_db)
         make_fake_chant(source=source)
-        search_term = get_random_search_term(diff_db.differentia_id)
         response = self.client.get(
-            reverse("chant-search"), {"differentia_id": search_term}
+            reverse("chant-search"), {"differentia_id": diff_db.id}
         )
         listed_chants = response.context["chants"]
         self.assertEqual(len(listed_chants), 1)
@@ -2713,10 +2712,9 @@ class ChantSearchMSViewTest(ChantPermissionsTestCase):
         diff_db = Differentia.objects.create(differentia_id=faker.numerify("###a"))
         chant = make_fake_chant(source=source, diff_db=diff_db)
         make_fake_chant(source=source)
-        search_term = get_random_search_term(diff_db.differentia_id)
         response = self.client.get(
             reverse("chant-search-ms", args=[source.id]),
-            {"differentia_id": search_term},
+            {"differentia_id": diff_db.id},
         )
         listed_chants = response.context["chants"]
         self.assertEqual(len(listed_chants), 1)
