@@ -2493,6 +2493,17 @@ class ChantSearchMSViewTest(ChantPermissionsTestCase):
         self.assertTemplateUsed(response, "base.html")
         self.assertTemplateUsed(response, "chant_search.html")
 
+    def test_url_without_trailing_slash_redirects(self):
+        # Regression test: the URL pattern used to omit the trailing slash,
+        # so a URL like /searchms/123/ (with a trailing slash, as commonly
+        # typed/shared) would 404 instead of resolving.
+        source = make_fake_source()
+        url = reverse("chant-search-ms", args=[source.id])
+        self.assertTrue(url.endswith("/"))
+        response = self.client.get(url.rstrip("/"), follow=True)
+        self.assertEqual(response.status_code, 200)
+        self.assertTemplateUsed(response, "chant_search.html")
+
     def test_permissions(self) -> None:
         published_source = self.chants["published_chant"].source
         self.run_request_permissions_test(
