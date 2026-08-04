@@ -30,7 +30,7 @@ from main_app.tests.make_fakes import (
 )
 from main_app.tests.test_functions import mock_requests_get
 from main_app.tests.mixins import CustomAccessTestMixin
-from main_app.models import Chant, Source, Feast, Service
+from main_app.models import Chant, Source, Feast, Service, Differentia
 from main_app.views.chant import (
     get_feast_selector_options,
     ChantSearchView,
@@ -939,6 +939,19 @@ class ChantSearchViewTest(CustomAccessTestMixin, TestCase):
         response = self.client.get(reverse("chant-search"), {"feast": feast.id})
         context_chant_id = response.context["chants"][0].id
         self.assertEqual(chant.id, context_chant_id)
+
+    def test_search_by_differentia_id(self):
+        source = make_fake_source(published=True)
+        diff_db = Differentia.objects.create(differentia_id=faker.numerify("###a"))
+        chant = make_fake_chant(source=source, diff_db=diff_db)
+        make_fake_chant(source=source)
+        search_term = get_random_search_term(diff_db.differentia_id)
+        response = self.client.get(
+            reverse("chant-search"), {"differentia_id": search_term}
+        )
+        listed_chants = response.context["chants"]
+        self.assertEqual(len(listed_chants), 1)
+        self.assertEqual(chant.id, listed_chants[0].id)
 
     def test_search_by_liturgical_function(self):
         source = make_fake_source(published=True)
@@ -2464,6 +2477,20 @@ class ChantSearchMSViewTest(ChantPermissionsTestCase):
         )
         context_chant_id = response.context["chants"][0].id
         self.assertEqual(chant.id, context_chant_id)
+
+    def test_search_by_differentia_id(self):
+        source = make_fake_source()
+        diff_db = Differentia.objects.create(differentia_id=faker.numerify("###a"))
+        chant = make_fake_chant(source=source, diff_db=diff_db)
+        make_fake_chant(source=source)
+        search_term = get_random_search_term(diff_db.differentia_id)
+        response = self.client.get(
+            reverse("chant-search-ms", args=[source.id]),
+            {"differentia_id": search_term},
+        )
+        listed_chants = response.context["chants"]
+        self.assertEqual(len(listed_chants), 1)
+        self.assertEqual(chant.id, listed_chants[0].id)
 
     def test_search_by_feast(self):
         source = make_fake_source()

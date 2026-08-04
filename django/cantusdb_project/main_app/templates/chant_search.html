@@ -106,6 +106,16 @@
                        value="{{ request.GET.position }}" />
             </div>
             <div class="form-group col-lg-3 col-sm-6 col-12">
+                <label for="differentia_id" class="small">
+                    Differentia ID (<a href="https://differentiaedatabase.ca/" target="_blank">Differentiae Database</a>)
+                </label>
+                <input type="text"
+                       class="form-control form-control-sm"
+                       name="differentia_id"
+                       id="differentia_id"
+                       value="{{ request.GET.differentia_id }}" />
+            </div>
+            <div class="form-group col-lg-3 col-sm-6 col-12">
                 <label for="melodiesFilter" class="small">Melodies</label>
                 <select class="form-control form-select form-select-sm"
                         id="melodiesFilter"
