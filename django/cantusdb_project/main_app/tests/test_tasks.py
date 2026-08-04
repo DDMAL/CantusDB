@@ -9,7 +9,7 @@ from unittest.mock import patch, DEFAULT
 from django.conf import settings
 from django.core import mail
 from django.core.files.base import ContentFile
-from django.test import TestCase, override_settings
+from django.test import SimpleTestCase, TestCase, override_settings
 from django.db.models import QuerySet
 from django.urls import reverse
 
@@ -35,6 +35,7 @@ from main_app.tests.make_fakes import (
 )
 from main_app.models import Chant, DataCheckConfig, DataCheckReport, Genre, Source
 from main_app.forms import BrowseChantsBulkEditFormset
+from main_app.storage import private_media_storage
 
 
 class SaveBrowseChantsFormsetTest(TestCase):
@@ -395,6 +396,30 @@ class FormatCheckCsvTest(TestCase):
         self.assertEqual(row["published"], "1")
 
 
+class PrivateMediaStorageTest(SimpleTestCase):
+    """Unit tests for the storage mechanics, independent of the model using it."""
+
+    def test_location_resolves_from_private_media_root_setting(self) -> None:
+        with override_settings(PRIVATE_MEDIA_ROOT="/tmp/one"):
+            self.assertEqual(private_media_storage().location, "/tmp/one")
+
+    def test_location_tracks_setting_changes(self) -> None:
+        # base_location/location must be recomputed on override_settings,
+        # not resolved once at __init__ time, or tests using TempMediaRootMixin
+        # would silently write into the real private media volume.
+        storage = private_media_storage()
+        with override_settings(PRIVATE_MEDIA_ROOT="/tmp/one"):
+            self.assertEqual(storage.location, "/tmp/one")
+        with override_settings(PRIVATE_MEDIA_ROOT="/tmp/two"):
+            self.assertEqual(storage.location, "/tmp/two")
+
+    def test_location_is_independent_of_media_root(self) -> None:
+        with override_settings(
+            MEDIA_ROOT="/tmp/media", PRIVATE_MEDIA_ROOT="/tmp/private"
+        ):
+            self.assertEqual(private_media_storage().location, "/tmp/private")
+
+
 class TempMediaRootMixin:
     """Sandboxes FileField writes to temp dirs instead of the real media volumes."""
 
@@ -524,6 +549,19 @@ class DataCheckReportAdminTest(TempMediaRootMixin, TestCase):
         url = reverse("admin:main_app_datacheckreport_download", args=[report.pk])
         response = self.client.get(url)
         self.assertNotEqual(response.status_code, 200)
+
+    def test_download_view_returns_404_for_unknown_pk(self) -> None:
+        url = reverse("admin:main_app_datacheckreport_download", args=[999999])
+        response = self.client.get(url)
+        self.assertEqual(response.status_code, 404)
+
+    def test_download_view_sets_attachment_filename(self) -> None:
+        report = self._make_report()
+        stored_filename = report.file.name.rsplit("/", 1)[-1]
+        url = reverse("admin:main_app_datacheckreport_download", args=[report.pk])
+        response = self.client.get(url)
+        self.assertIn("attachment", response.headers["Content-Disposition"])
+        self.assertIn(stored_filename, response.headers["Content-Disposition"])
 
     def test_file_is_not_stored_under_public_media_root(self) -> None:
         """Reports must live outside MEDIA_ROOT, which nginx serves publicly."""
