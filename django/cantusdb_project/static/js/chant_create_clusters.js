@@ -112,7 +112,14 @@
         cid.textContent = cantusId || "";
         cid.title = "Cantus ID";
 
-        token.append(label, cid);
+        // A zero-width break opportunity after the token. Adjacent tokens sit directly
+        // against each other with no whitespace between them (the gap is margin, not a
+        // character — see normalizeComposer), so the browser has no soft-wrap point at a
+        // token boundary: a run of single-word tokens glues into one unbreakable unit that
+        // overflows or forces the line to wrap at an odd earlier point (#2188). <wbr> is an
+        // element, not a character, so it adds the break point without anything the caret
+        // can land in or delete — the composer's child-offset model is unchanged.
+        token.append(label, cid, document.createElement("wbr"));
         return token;
     }
 
@@ -1188,7 +1195,7 @@
         cid.className = "token-cid";
         cid.textContent = token.dataset.cantusId || "";
         cid.title = "Cantus ID";
-        token.append(label, cid);
+        token.append(label, cid, document.createElement("wbr")); // trailing break opportunity, see makeToken
     }
 
     function performSplit(token, wordIndex) {
