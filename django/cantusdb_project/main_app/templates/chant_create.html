@@ -354,7 +354,9 @@
              (drag a chip into the composer, or click one to drop it at the cursor), and
            - any core elements deleted from the text, offered back for restoring.
          The heading names the Cantus ID being catalogued; JS fills it in from the field. -->
-    <aside id="cluster-bank" class="card w-100 mt-3" hidden>
+    <!-- No mt-3 here: that utility carries !important, which would beat the inline margin
+         JS sets to drop the card. The base gap lives in the stylesheet instead (#cluster-bank). -->
+    <aside id="cluster-bank" class="card w-100" hidden>
         <div class="card-header">
             <h5 id="cluster-bank-heading">Component Elements</h5>
         </div>
