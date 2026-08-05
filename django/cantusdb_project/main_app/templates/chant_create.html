@@ -185,7 +185,7 @@
                 {{ form.text_language }}
             </div>
         </div>
-        <div class="row small mb-2 align-items-start">
+        <div class="row small mb-2">
             <div class="col-lg">
                 <label for="{{ form.manuscript_full_text_std_spelling.id_for_label }}">
                     {{ form.manuscript_full_text_std_spelling.label_tag }}<span class="text-danger" title="This field is required">*</span>
@@ -224,7 +224,7 @@
                 <p id="cluster-status" class="text-muted small mb-1" hidden></p>
                 {{ form.manuscript_full_text_std_spelling }}
                 <!-- Element composer; JS hides the textarea above and shows this when cluster mode is on.
-                     Its element bank sits in the column to the right (see below). -->
+                     Its element bank lives in the sidebar (see the lowersidebar block). -->
                 <div id="cluster-composer"
                      class="form-control cluster-composer"
                      contenteditable="true"
@@ -236,27 +236,6 @@
                     For more information, consult <a href="/description/#Fulltext" target="_blank">Fields and Content Descriptions</a>.
                 </p>
             </div>
-            <!-- The one elements panel (#2129), revealed by JS in cluster mode. It sits inline with
-                 the full text field (#2188) so the elements stay beside the text they belong to,
-                 rather than up in the sidebar away from it. While cluster mode is off it is hidden,
-                 and the composer's col-lg grows back to the full width of the form. It holds both
-                 halves of the element inventory, so the cataloguer has a single place to look:
-                   - the component elements Cantus Index already holds for this chant's Cantus ID
-                     (drag a chip into the composer, or click one to drop it at the cursor), and
-                   - any core elements deleted from the text, offered back for restoring.
-                 The heading names the Cantus ID being catalogued; JS fills it in from the field. -->
-            <aside id="cluster-bank" class="col-lg-4" hidden>
-                <div class="card w-100">
-                    <div class="card-header">
-                        <h5 id="cluster-bank-heading">Component Elements</h5>
-                    </div>
-                    <div class="card-body small">
-                        <p id="cluster-bank-status" class="cluster-bank-status mb-0"></p>
-                        <div id="cluster-bank-items"></div>
-                        <div id="removed-cores-tray" class="cluster-tray small" hidden></div>
-                    </div>
-                </div>
-            </aside>
         </div>
         <div class="row small mb-3">
             <div class="col-lg-4">
@@ -365,4 +344,24 @@
             </script>
         </div>
     </div>
+    <!-- The one elements panel (#2129), revealed by JS in cluster mode. It stays in the
+         sidebar so the composer keeps the full width of the form, but JS drops it down to
+         sit level with the full text field (#2188) — the sidebar cards above are short, so
+         left alone it floats up near the Input Tool, far above the field it belongs to. It
+         holds both halves of the element inventory, so the cataloguer has a single place
+         to look:
+           - the component elements Cantus Index already holds for this chant's Cantus ID
+             (drag a chip into the composer, or click one to drop it at the cursor), and
+           - any core elements deleted from the text, offered back for restoring.
+         The heading names the Cantus ID being catalogued; JS fills it in from the field. -->
+    <aside id="cluster-bank" class="card w-100 mt-3" hidden>
+        <div class="card-header">
+            <h5 id="cluster-bank-heading">Component Elements</h5>
+        </div>
+        <div class="card-body small">
+            <p id="cluster-bank-status" class="cluster-bank-status mb-0"></p>
+            <div id="cluster-bank-items"></div>
+            <div id="removed-cores-tray" class="cluster-tray small" hidden></div>
+        </div>
+    </aside>
 {% endblock %}

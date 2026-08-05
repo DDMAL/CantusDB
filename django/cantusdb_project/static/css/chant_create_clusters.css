@@ -224,10 +224,11 @@ kbd.token-menu-key {
     line-height: 1.5;
 }
 
-/* The element bank is a card in the column beside the composer (#2188), inline with the
- * full text field. Only the chip list scrolls — the card header, the status line and the
- * restore tray below it all stay put, so a restore chip cannot be scrolled out of reach
- * behind a long list of component elements. */
+/* The element bank is a sidebar card, dropped down by JS to sit level with the full text
+ * field (#2188), so the composer keeps the full width of the form. Only the chip list
+ * scrolls — the card header, the status line and the restore tray below it all stay put,
+ * so a restore chip cannot be scrolled out of reach behind a long list of component
+ * elements. */
 #cluster-bank-items {
     max-height: 22rem;
     overflow-y: auto;
@@ -290,14 +291,14 @@ kbd.token-menu-key {
     border-top: 1px solid #dee2e6;
 }
 .tray-label {
-    flex: 1 0 100%; /* the bank column is narrow: label on its own line above the chips */
+    flex: 1 0 100%; /* the sidebar is narrow: label on its own line above the chips */
     color: #6c757d;
 }
 .tray-chip {
     padding: 0.05rem 0.4rem;
     font-size: 0.8rem;
-    /* A core's text is long and wraps in the narrow bank column; a button centres its text
-     * by default, which read as ragged beside the left-aligned component chips above. */
+    /* A core's text is long and wraps in the narrow sidebar; a button centres its text by
+     * default, which read as ragged beside the left-aligned component chips above. */
     text-align: left;
     color: #495057;
     background: #e7ebf0;

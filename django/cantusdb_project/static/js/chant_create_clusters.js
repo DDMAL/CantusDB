@@ -85,6 +85,13 @@
     // null = the caret was past the last element (append).
     let caretBeforeToken = null;
 
+    // The bank is a sidebar card, but the cards above it are short, so it floats up near the
+    // Input Tool — far above the full text field it belongs to. We drop it down with a
+    // margin so its top sits level with the field (#2188). Recomputed on any layout change
+    // (via a ResizeObserver on the form) and coalesced into one rAF so a burst of changes
+    // doesn't thrash layout.
+    let alignScheduled = false;
+
     // ---- tokens ---------------------------------------------------------
 
     // A token is an atomic, non-editable inline unit. It is draggable (reorder)
@@ -400,6 +407,7 @@
             return;
         }
         bank.hidden = false;
+        scheduleAlign(); // now that it's shown, drop it down to the field
         if (!cid) {
             setBankStatus("Add a Cantus ID to see its catalogued elements.");
             return;
@@ -424,6 +432,38 @@
                 );
                 renderBank();
             });
+    }
+
+    // Drop the bank down so its top sits level with the full text field. The sidebar card
+    // and the field are in independently-floated columns, so nothing but measurement can
+    // line them up. Only ever pushes down — the form is long, the sidebar short, so the
+    // field is always the lower of the two.
+    function alignBankToField() {
+        if (!bank) return;
+        bank.style.marginTop = ""; // reset before measuring; also the small-screen default
+        // Below lg the sidebar stacks under the form, so there's no column beside the field
+        // to line up with — leave the bank in normal flow.
+        if (bank.hidden || !window.matchMedia("(min-width: 992px)").matches) return;
+        const fieldRow = textarea.closest(".row");
+        if (!fieldRow) return;
+        // The card already carries a top margin (mt-3) for the no-JS / stacked layout. The
+        // drop is added ON TOP of it — set the inline value from the shift alone and it
+        // would replace that base margin, landing the bank a notch high.
+        const base = parseFloat(getComputedStyle(bank).marginTop) || 0;
+        const shift =
+            fieldRow.getBoundingClientRect().top - bank.getBoundingClientRect().top;
+        if (shift > 0) bank.style.marginTop = base + shift + "px";
+    }
+
+    // Coalesce a burst of layout changes (a field toggling, the composer growing, a resize)
+    // into a single realign on the next frame.
+    function scheduleAlign() {
+        if (alignScheduled) return;
+        alignScheduled = true;
+        requestAnimationFrame(function () {
+            alignScheduled = false;
+            alignBankToField();
+        });
     }
 
     // The first element at or after the caret — i.e. the one an insertion here would sit
@@ -1670,6 +1710,7 @@
         window.addEventListener("resize", function () {
             if (isTypeaheadOpen()) positionTypeahead();
             if (isMenuOpen()) positionMenu();
+            scheduleAlign();
         });
 
         // guarantee the submitted value is the composed elements, not stray text
@@ -1681,6 +1722,13 @@
                     normalizeComposer();
                 }
             });
+            // The field's position shifts whenever the form reflows — a project's extra
+            // fields toggling, the composer growing as elements are added, the window
+            // resizing. Re-drop the bank to match on any of it. Observing the form (not the
+            // bank) can't feed back into itself, since the bank sits in the other column.
+            if (window.ResizeObserver) {
+                new ResizeObserver(scheduleAlign).observe(form);
+            }
         }
     }
 
