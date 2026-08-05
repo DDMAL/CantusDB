@@ -225,10 +225,17 @@ kbd.token-menu-key {
 }
 
 /* The element bank is a sidebar card, dropped down by JS to sit level with the full text
- * field (#2188), so the composer keeps the full width of the form. Only the chip list
- * scrolls — the card header, the status line and the restore tray below it all stay put,
- * so a restore chip cannot be scrolled out of reach behind a long list of component
- * elements. */
+ * field (#2188), so the composer keeps the full width of the form. The drop is an inline
+ * margin-top JS measures and sets; this rule is the base gap it starts from (the value the
+ * old mt-3 gave), and the one left in place when the bank stacks under the form below lg.
+ * It is a plain rule, not a utility class, because Bootstrap's mt-3 is !important and would
+ * beat the inline value, pinning the card up near the Input Tool. */
+#cluster-bank {
+    margin-top: 1rem;
+}
+/* Only the chip list scrolls — the card header, the status line and the restore tray below
+ * it all stay put, so a restore chip cannot be scrolled out of reach behind a long list of
+ * component elements. */
 #cluster-bank-items {
     max-height: 22rem;
     overflow-y: auto;
