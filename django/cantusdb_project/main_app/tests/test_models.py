@@ -24,6 +24,41 @@ from .make_fakes import (
 # the -Wa flag tells Python to display deprecation warnings
 
 
+def _is_reverse_relation(field) -> bool:
+    """Whether a field returned by ``_meta.get_fields()`` is a reverse relation.
+
+    Django's own idiom: a reverse accessor is auto-created and has no column backing it.
+    """
+    return bool(field.auto_created and not field.concrete)
+
+
+def unionable_fields(model) -> list[tuple[str, str]]:
+    """The ``(name, type)`` pairs of a model's own columns, in declaration order.
+
+    Chant and Sequence must stay harmonised because the chant search views combine them
+    with a SQL UNION, and UNION requires matching *columns*. A reverse relation is not a
+    column — it is an accessor Django synthesises on the far side of someone else's
+    foreign key — so a model that relates to Chant alone (``Chant.cluster``) cannot break
+    the UNION. Excluding those here keeps the guard on what actually matters; without it,
+    the parity tests would forbid ever relating a new model to one of the two.
+    """
+    return [
+        (field.name, field.get_internal_type())
+        for field in model._meta.get_fields()
+        if not _is_reverse_relation(field)
+    ]
+
+
+def unionable_fields_and_properties(model) -> list[str]:
+    """``get_fields_and_properties()`` minus reverse relations. See ``unionable_fields``."""
+    reverse_names = {
+        field.name for field in model._meta.get_fields() if _is_reverse_relation(field)
+    }
+    return [
+        name for name in model.get_fields_and_properties() if name not in reverse_names
+    ]
+
+
 class CenturyModelTest(TestCase):
     @classmethod
     def setUpTestData(cls):
@@ -109,8 +144,8 @@ class ChantModelTest(TestCase):
         self.assertEqual(chant.get_absolute_url(), absolute_url)
 
     def test_chant_and_sequence_have_same_fields(self):
-        chant_fields = Chant.get_fields_and_properties()
-        seq_fields = Sequence.get_fields_and_properties()
+        chant_fields = unionable_fields_and_properties(Chant)
+        seq_fields = unionable_fields_and_properties(Sequence)
         self.assertEqual(chant_fields, seq_fields)
 
     def test_get_next_chant__same_folio_next_sequence_number(self):
@@ -356,8 +391,8 @@ class SequenceModelTest(TestCase):
         self.assertEqual(sequence.get_absolute_url(), absolute_url)
 
     def test_chant_and_sequence_have_same_fields(self):
-        chant_fields = Chant.get_fields_and_properties()
-        seq_fields = Sequence.get_fields_and_properties()
+        chant_fields = unionable_fields_and_properties(Chant)
+        seq_fields = unionable_fields_and_properties(Sequence)
         self.assertEqual(chant_fields, seq_fields)
 
     def test_incipit_signal(self):
@@ -417,10 +452,6 @@ class ChantSequenceSyncTest(TestCase):
         # they specify the same fields (with the same name and type) in the same order,
         # we assert true
 
-        chant_field_names = [
-            (f.name, f.get_internal_type()) for f in Chant._meta.get_fields()
-        ]
-        sequence_field_names = [
-            (f.name, f.get_internal_type()) for f in Sequence._meta.get_fields()
-        ]
+        chant_field_names = unionable_fields(Chant)
+        sequence_field_names = unionable_fields(Sequence)
         self.assertEqual(chant_field_names, sequence_field_names)
