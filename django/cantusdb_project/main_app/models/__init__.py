@@ -1,6 +1,8 @@
 from main_app.models.base_model import BaseModel
 from main_app.models.century import Century
 from main_app.models.chant import Chant
+from main_app.models.chant_cluster import ChantCluster
+from main_app.models.cluster_segment import ClusterSegment
 from main_app.models.differentia import Differentia
 from main_app.models.feast import Feast
 from main_app.models.genre import Genre
@@ -18,11 +20,14 @@ from main_app.models.source_url import SourceURL
 from main_app.models.language import Language
 from main_app.models.site_banner import SiteBanner
 from main_app.models.data_check_config import DataCheckConfig
+from main_app.models.trope_element import TropeElement
 
 __all__ = [
     "BaseModel",
     "Century",
     "Chant",
+    "ChantCluster",
+    "ClusterSegment",
     "Differentia",
     "Feast",
     "Genre",
@@ -40,4 +45,5 @@ __all__ = [
     "Language",
     "SiteBanner",
     "DataCheckConfig",
+    "TropeElement",
 ]
