@@ -1,26 +1,30 @@
-"""Model tests for troped-chant clusters.
+"""Model and view tests for troped-chant clusters.
 
 The rules themselves are tested without a database in test_cluster_structure.py; these
-cover what only the ORM can show — the frozen base text, the cached flat text, and cascade
-and PROTECT behaviour.
+cover what only the ORM and the request cycle can show — the frozen base text, the cached
+flat text, cascade and PROTECT behaviour, reversion, and the create wiring.
 
 run with `python -Wa manage.py test main_app.tests.test_chant_cluster`
 """
 
 import json
-from typing import Any
+from typing import Any, ClassVar
 
 from django.core.exceptions import ValidationError
 from django.db.models import ProtectedError
 from django.test import TestCase
+from django.urls import reverse
+from reversion.models import Version
 
 from main_app.cluster_structure import parse_cluster_payload
-from main_app.models import Chant, ChantCluster, ClusterSegment, TropeElement
+from main_app.models import Chant, ChantCluster, ClusterSegment, Source, TropeElement
 from main_app.tests.make_fakes import (
     make_fake_chant,
     make_fake_chant_cluster,
+    make_fake_source,
     make_fake_trope_element,
 )
+from main_app.tests.mixins import CustomAccessTestMixin
 
 BASE_TEXT = "Sanctus sanctus sanctus Dominus Deus Sabaoth"
 
@@ -305,3 +309,105 @@ class ClusterSegmentModelTest(TestCase):
         self.cluster.set_structure([catalogued(element)])
         self.assertEqual(self.cluster.segments.get().resolved_text, "Ad laudem tuam")
 
+
+class ChantClusterCreateViewTest(CustomAccessTestMixin, TestCase):
+    source: ClassVar[Source]
+    default_user = "user"
+
+    @classmethod
+    def setUpTestData(cls) -> None:
+        super().setUpTestData()
+        cls.source = make_fake_source()
+        cls.source.current_editors.add(cls.users["user"])
+        cls.source.save()
+
+    def chant_post_data(self, **overrides: Any) -> dict[str, Any]:
+        # `source` is injected by ChantCreateView.get_form_kwargs, so it is not posted.
+        data: dict[str, Any] = {
+            "folio": "001r",
+            "c_sequence": "1",
+            "manuscript_full_text_std_spelling": BASE_TEXT,
+        }
+        data.update(overrides)
+        return data
+
+    def cluster_json(self, **overrides: Any) -> str:
+        payload: dict[str, Any] = {
+            "base_cantus_id": "g04828",
+            "base_text": BASE_TEXT,
+            "segments": [
+                {"start": 0, "end": 3},
+                {"cantus_id": "g04828:01", "text": "Perpetuo numine"},
+                {"start": 3, "end": 6},
+                {"text": "Novum tropus"},
+            ],
+        }
+        payload.update(overrides)
+        return json.dumps(payload)
+
+    def post_create(self, **data: Any):
+        return self.client.post(
+            reverse("chant-create", args=[self.source.id]), self.chant_post_data(**data)
+        )
+
+    def test_creating_a_chant_persists_its_cluster(self):
+        response = self.post_create(cluster_json=self.cluster_json())
+        self.assertEqual(response.status_code, 302)
+        chant = Chant.objects.get(source=self.source)
+        cluster = chant.cluster
+        self.assertEqual(cluster.base_cantus_id, "g04828")
+        self.assertEqual(cluster.base_text, BASE_TEXT)
+        self.assertEqual(
+            [(s.start, s.end) for s in cluster.segments.all()],
+            [(0, 3), (None, None), (3, 6), (None, None)],
+        )
+
+    def test_created_cluster_derives_the_chants_full_text(self):
+        """The submitted textarea cannot end up disagreeing with the structure."""
+        self.post_create(
+            manuscript_full_text_std_spelling="a divergent value",
+            cluster_json=self.cluster_json(),
+        )
+        chant = Chant.objects.get(source=self.source)
+        self.assertEqual(
+            chant.manuscript_full_text_std_spelling,
+            "Sanctus sanctus sanctus Perpetuo numine Dominus Deus Sabaoth Novum tropus",
+        )
+
+    def test_creating_a_chant_without_a_cluster_creates_none(self):
+        response = self.post_create()
+        self.assertEqual(response.status_code, 302)
+        self.assertEqual(ChantCluster.objects.count(), 0)
+
+    def test_malformed_cluster_json_is_rejected_and_no_chant_is_created(self):
+        response = self.post_create(cluster_json="not json")
+        self.assertEqual(response.status_code, 200)
+        self.assertFalse(Chant.objects.filter(source=self.source).exists())
+        self.assertEqual(ChantCluster.objects.count(), 0)
+
+    def test_an_out_of_bounds_range_is_rejected_and_no_chant_is_created(self):
+        response = self.post_create(
+            cluster_json=self.cluster_json(segments=[{"start": 0, "end": 99}])
+        )
+        self.assertEqual(response.status_code, 200)
+        self.assertFalse(Chant.objects.filter(source=self.source).exists())
+
+    def test_a_catalogued_trope_without_text_is_rejected(self):
+        response = self.post_create(
+            cluster_json=self.cluster_json(segments=[{"cantus_id": "g04828:01"}])
+        )
+        self.assertEqual(response.status_code, 200)
+        self.assertFalse(Chant.objects.filter(source=self.source).exists())
+
+    def test_created_cluster_lands_in_the_reversion_history(self):
+        self.post_create(cluster_json=self.cluster_json())
+        chant = Chant.objects.get(source=self.source)
+        chant_versions = Version.objects.get_for_object(chant)
+        self.assertTrue(chant_versions.exists())
+        revision = chant_versions[0].revision
+        self.assertTrue(
+            revision.version_set.filter(content_type__model="chantcluster").exists()
+        )
+        self.assertTrue(
+            revision.version_set.filter(content_type__model="clustersegment").exists()
+        )
