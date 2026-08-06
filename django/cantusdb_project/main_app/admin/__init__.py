@@ -1,5 +1,6 @@
 from main_app.admin.century import CenturyAdmin
 from main_app.admin.chant import ChantAdmin
+from main_app.admin.chant_cluster import ChantClusterAdmin, ClusterSegmentInline
 from main_app.admin.differentia import DifferentiaAdmin
 from main_app.admin.feast import FeastAdmin
 from main_app.admin.genre import GenreAdmin
@@ -15,3 +16,4 @@ from main_app.admin.project import ProjectAdmin
 from main_app.admin.language import LanguageAdmin
 from main_app.admin.site_banner import SiteBannerAdmin
 from main_app.admin.data_check_config import DataCheckConfigAdmin
+from main_app.admin.trope_element import TropeElementAdmin
