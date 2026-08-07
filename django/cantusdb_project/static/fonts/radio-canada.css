@@ -6,12 +6,9 @@
  *
  * Variable fonts: one file per subset covers the whole 300-700 weight range.
  *
- * Google serves four subsets. We ship three. The omitted one, canadian-aboriginal, is 111 KB of
- * Unified Canadian Aboriginal Syllabics (added upstream in v2.103 for CBC/Radio-Canada's
- * Indigenous-language broadcasting); an audit of ~26M characters of production chant text and
- * page markup found no codepoint from it. The vietnamese subset is kept despite the name: it is
- * the only one carrying combining acute, grave and tilde (U+0300, U+0301, U+0303), which NFD-
- * normalised Latin text can produce, and it costs 15 KB.
+ * Google serves four subsets. We ship three; canadian-aboriginal is omitted as unused. The
+ * vietnamese subset is kept despite the name: it is the only one carrying combining acute,
+ * grave and tilde (U+0300, U+0301, U+0303), which NFD-normalised Latin text can produce.
  *
  * unicode-range means browsers download only the subsets a page actually needs, and any
  * uncovered codepoint simply falls back to the system font.
