@@ -1,6 +1,9 @@
 :root {
-	/* Radio Canada distinguishes "1" from uppercase "I" — needed for sigla like D-WI1. */
-	--bs-body-font-family: "Radio Canada", sans-serif;
+	/* Radio Canada distinguishes "1" from uppercase "I" — needed for sigla like D-WI1.
+	   Overriding --bs-font-sans-serif rather than --bs-body-font-family: Bootstrap derives
+	   the latter from the former, and components that reset their own font (tooltips,
+	   popovers) read --bs-font-sans-serif directly. */
+	--bs-font-sans-serif: "Radio Canada", sans-serif;
 }
 
 body {
