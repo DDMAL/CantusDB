@@ -63,7 +63,10 @@ ADVANCED_SEARCH_FIELDS: tuple[str, ...] = (
     "feast",
     "liturgical_function",
     "segment",
-    "indexing_notes_op",
+    # "indexing_notes_op" is intentionally excluded: its <select> has no blank
+    # option, so browsers always submit a value ("contains") even when the user
+    # never touched it. Including it here would keep this section expanded on
+    # every search.
     "indexing_notes",
 )
 
@@ -506,6 +509,8 @@ class ChantSearchView(CustomAccessMixin, ListView):  # type: ignore[type-arg]
         ``segment``: Filters by Segment of the Chant's Source
         ``keyword``: Searches text of Chant for keywords
         ``op``: Operation to take with keyword search. Options are "contains", "starts_with", and "ends_with"
+        ``indexing_notes``: Searches indexing notes of Chant/Sequence for text
+        ``indexing_notes_op``: Operation to take with indexing notes search. Options are "contains" and "starts_with"
     """
 
     paginate_by = 100
@@ -593,6 +598,14 @@ class ChantSearchView(CustomAccessMixin, ListView):  # type: ignore[type-arg]
         search_segment: Optional[str] = self.request.GET.get("segment")
         if search_segment:
             search_parameters.append(f"segment={search_segment}")
+        search_indexing_notes_op: Optional[str] = self.request.GET.get(
+            "indexing_notes_op"
+        )
+        if search_indexing_notes_op:
+            search_parameters.append(f"indexing_notes_op={search_indexing_notes_op}")
+        search_indexing_notes: Optional[str] = self.request.GET.get("indexing_notes")
+        if search_indexing_notes:
+            search_parameters.append(f"indexing_notes={search_indexing_notes}")
 
         url_with_search_params: str = current_url + "?"
         if search_parameters:
@@ -731,6 +744,16 @@ class ChantSearchView(CustomAccessMixin, ListView):  # type: ignore[type-arg]
                 chant_set = chant_set.filter(keyword_filter)
                 sequence_set = sequence_set.filter(keyword_filter)
 
+            if notes := self.request.GET.get("indexing_notes"):
+                operation = self.request.GET.get("indexing_notes_op")
+                # the operation parameter can be "contains" or "starts_with"
+                if operation == "contains":
+                    indexing_notes_filter = Q(indexing_notes__icontains=notes)
+                else:
+                    indexing_notes_filter = Q(indexing_notes__istartswith=notes)
+                chant_set = chant_set.filter(indexing_notes_filter)
+                sequence_set = sequence_set.filter(indexing_notes_filter)
+
             # Fetch only the values necessary for rendering the template
             chant_set = chant_set.only(*ONLY_FIELDS)
             sequence_set = sequence_set.only(*ONLY_FIELDS)
@@ -824,6 +847,8 @@ class ChantSearchMSView(CustomAccessMixin, ListView):  # type: ignore[type-arg]
         ``liturgical_function``: Filters by liturgical function of Chant
         ``keyword``: Searches text of Chant for keywords
         ``op``: Operation to take with keyword search. Options are "contains", "starts_with", and "ends_with"
+        ``indexing_notes``: Searches indexing notes of Chant/Sequence for text
+        ``indexing_notes_op``: Operation to take with indexing notes search. Options are "contains" and "starts_with"
     """
 
     paginate_by = 100
