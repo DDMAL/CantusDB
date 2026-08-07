@@ -14,7 +14,14 @@
     <link href="{% static 'fonts/radio-canada.css' %}" rel="stylesheet" />
     <style>
         /* The admin's body reads var(--font-family-primary); overriding it here keeps the
-           "1" vs uppercase "I" distinction on the pages where sigla are actually typed. */
+           "1" vs uppercase "I" distinction on the pages where sigla are actually typed.
+
+           Django's base.css declares this variable on `html[data-theme="light"], :root`.
+           Selectors in a list keep their own specificity, so a bare :root (0,1,0) loses to
+           the attribute selector (0,1,1) whenever a user picks Light from the theme toggle.
+           Matching Django's selector list is what makes the override hold in every theme. */
+        html[data-theme="light"],
+        html[data-theme="dark"],
         :root {
             --font-family-primary: "Radio Canada", sans-serif;
         }
