@@ -1,0 +1,33 @@
+{% extends "admin/base.html" %}
+{% load i18n static %}
+
+{# Overrides django/contrib/admin/templates/admin/base_site.html. The title, branding and #}
+{# nav-global blocks below are copied verbatim from Django's version; the only addition is #}
+{# extrastyle, which applies Radio Canada to the admin the same way style.css does to the #}
+{# rest of the site. The admin doesn't extend base.html, so it needs its own hook. Admin #}
+{# templates that override extrastyle all call block.super, so this survives inheritance. #}
+
+{% block title %}{% if subtitle %}{{ subtitle }} | {% endif %}{{ title }} | {{ site_title|default:_('Django site admin') }}{% endblock %}
+
+{% block extrastyle %}
+    {{ block.super }}
+    <link href="{% static 'fonts/radio-canada.css' %}" rel="stylesheet" />
+    <style>
+        /* The admin's body reads var(--font-family-primary); overriding it here keeps the
+           "1" vs uppercase "I" distinction on the pages where sigla are actually typed. */
+        :root {
+            --font-family-primary: "Radio Canada", sans-serif;
+        }
+    </style>
+{% endblock %}
+
+{% block branding %}
+    <div id="site-name">
+        <a href="{% url 'admin:index' %}">{{ site_header|default:_('Django administration') }}</a>
+    </div>
+    {% if user.is_anonymous %}
+        {% include "admin/color_theme_toggle.html" %}
+    {% endif %}
+{% endblock %}
+
+{% block nav-global %}{% endblock %}
