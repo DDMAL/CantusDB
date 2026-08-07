@@ -13,6 +13,7 @@ from django.forms.widgets import CheckboxSelectMultiple, HiddenInput
 from dal import autocomplete  # type: ignore[import-untyped]
 from volpiano_display_utilities.cantus_text_syllabification import syllabify_text
 from volpiano_display_utilities.latin_word_syllabification import LatinError
+from .cluster_structure import ClusterPayload, parse_cluster_payload
 from .models import (
     Chant,
     Service,
@@ -281,6 +282,16 @@ class ChantCreateForm(forms.ModelForm):
         help_text="Select the project (if any) that the chant belongs to.",
     )
 
+    # Non-model field: the cluster composer serialises a troped chant's structure here.
+    # The view hands it to ChantCluster.apply_payload, which rewrites
+    # manuscript_full_text_std_spelling from the segments — so the submitted textarea
+    # value cannot end up disagreeing with the stored structure.
+    cluster_json = forms.CharField(required=False, widget=HiddenInput)
+
+    def clean_cluster_json(self) -> Optional[ClusterPayload]:
+        """Parse and shape-validate the submitted cluster. See parse_cluster_payload."""
+        return parse_cluster_payload(self.cleaned_data.get("cluster_json") or "")
+
     def clean(self) -> dict[str, Any]:
         """
         Provide custom clean method that ensures the created chant does
@@ -510,6 +521,15 @@ class ChantEditForm(forms.ModelForm):
         help_text="Select the project (if any) that the chant belongs to.",
         required=False,
     )
+
+    # See ChantCreateForm.cluster_json. Present here too so a troped chant's structure
+    # survives editing: without it, an edit would save a flat text with no way to keep the
+    # segments in step, and the two would silently diverge.
+    cluster_json = forms.CharField(required=False, widget=HiddenInput)
+
+    def clean_cluster_json(self) -> Optional[ClusterPayload]:
+        """Parse and shape-validate the submitted cluster. See parse_cluster_payload."""
+        return parse_cluster_payload(self.cleaned_data.get("cluster_json") or "")
 
     def clean_manuscript_full_text_std_spelling(self) -> Optional[str]:
         """

@@ -1,3 +1,4 @@
+import json
 import urllib.parse
 from collections import Counter, defaultdict
 from typing import Optional, Any, Iterator
@@ -6,6 +7,7 @@ import string
 from django.conf import settings
 from django.contrib import messages
 from django.contrib.postgres.aggregates import ArrayAgg
+from django.db import transaction
 from django.db.models import Case, F, Q, QuerySet, When
 from django.http import Http404, HttpResponse
 from django.shortcuts import get_object_or_404
@@ -39,6 +41,7 @@ from main_app.forms import (
 )
 from main_app.models import (
     Chant,
+    ChantCluster,
     Feast,
     Genre,
     Segment,
@@ -1157,11 +1160,21 @@ class ChantCreateView(CustomAccessMixin, CreateView):  # type: ignore[type-arg]
 
     def form_valid(self, form):
         """
-        Adds the "created_by" and "updated_by" fields to the chant.
+        Adds the "created_by" and "updated_by" fields to the chant, then applies any
+        composed cluster (a troped chant) submitted alongside it.
+
+        Both happen in one transaction, so a failure while building the cluster can't
+        leave a chant with a half-built structure. ``apply_payload`` rewrites the chant's
+        cached full text from the segments, so the flat text and the structure agree.
         """
         form.instance.created_by = self.request.user
         form.instance.last_updated_by = self.request.user
-        return super().form_valid(form)
+        payload = form.cleaned_data.get("cluster_json")
+        with transaction.atomic():
+            response = super().form_valid(form)  # saves the chant → self.object
+            if payload:
+                ChantCluster.apply_payload(self.object, payload)
+        return response
 
 
 class ChantDeleteView(CustomAccessMixin, DeleteView):  # type: ignore[type-arg]
@@ -1272,6 +1285,19 @@ class SourceEditChantsView(CustomAccessMixin, UpdateView):  # type: ignore[type-
         if not self.source_has_chants:
             return None
         return queryset.get(pk=pk)
+
+    def get_initial(self) -> dict[str, Any]:
+        """Seed the cluster field with the chant's stored structure, if it has one.
+
+        Without this the composer would open empty on a troped chant, and saving would
+        wipe the cluster it never saw.
+        """
+        initial: dict[str, Any] = super().get_initial()
+        chant: Optional[Chant] = self.object
+        cluster = ChantCluster.objects.filter(chant=chant).first() if chant else None
+        if cluster is not None:
+            initial["cluster_json"] = json.dumps(cluster.as_payload())
+        return initial
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
@@ -1408,12 +1434,26 @@ class SourceEditChantsView(CustomAccessMixin, UpdateView):  # type: ignore[type-
                 "volpiano",
                 "manuscript_full_text_std_spelling",
                 "manuscript_full_text",
+                # A cluster edit is a full-text edit, not an "other field" one. The
+                # composer writes the flattened text into
+                # manuscript_full_text_std_spelling, so the check above already clears the
+                # right proofread flag when the structure changed the text.
+                "cluster_json",
             }
             if any(field not in excluded_fields for field in form.changed_data):
                 chant.other_fields_proofread = False
 
         chant.last_updated_by = user
-        return_response: HttpResponse = super().form_valid(form)
+        payload = form.cleaned_data.get("cluster_json")
+        with transaction.atomic():
+            return_response: HttpResponse = super().form_valid(form)
+            if payload:
+                ChantCluster.apply_payload(chant, payload)
+            elif "cluster_json" in self.request.POST:
+                # The field was submitted empty: cluster mode was switched off, so the
+                # structure is gone and the plain full text the form saved now stands on
+                # its own. Only clients that render the field can trigger this.
+                ChantCluster.objects.filter(chant=chant).delete()
 
         # The many-to-many `proofread_by` field is reset when the
         # parent class's `form_valid` method calls `save()` on the model instance.

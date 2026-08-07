@@ -10,6 +10,7 @@ from django.db.models import Max
 from main_app.century_dates import century_name_to_dates
 from main_app.models.century import Century
 from main_app.models.chant import Chant
+from main_app.models.chant_cluster import ChantCluster
 from main_app.models.feast import Feast
 from main_app.models.genre import Genre
 from main_app.models.institution import Institution
@@ -20,6 +21,7 @@ from main_app.models.provenance import Provenance
 from main_app.models.segment import Segment
 from main_app.models.sequence import Sequence
 from main_app.models.source import Source
+from main_app.models.trope_element import TropeElement
 from users.models import User as UserAnnotation
 from users.models import Group, GroupMembership
 
@@ -271,6 +273,49 @@ def make_fake_chant(**kwargs: Any) -> Chant:
     # upon chant save. By refreshing from db before returning, we ensure all the chant's fields
     # are up-to-date. For more information, refer to main_app/signals.py
     return chant
+
+
+def make_fake_trope_element(**kwargs: Any) -> TropeElement:
+    """
+    Generates a fake TropeElement object.
+
+    The following fields will, if not specified, be given a fake value:
+    - cantus_id (a sub-ID shape, e.g. `g04828:07`)
+    - text
+    """
+    if kwargs.get("cantus_id") is None:
+        kwargs["cantus_id"] = (
+            f"g{random.randint(1, 99999):05d}:{random.randint(1, 99):02d}"
+        )
+    kwargs["text"] = kwargs.get("text", faker.sentence())
+    return TropeElement.objects.create(**kwargs)
+
+
+def make_fake_chant_cluster(**kwargs: Any) -> ChantCluster:
+    """
+    Generates a fake ChantCluster object, with no segments.
+
+    Use `ChantCluster.set_structure` to give it segments: it is the only write path, and
+    it canonicalises the list and refreshes the chant's cached full text.
+
+    The following fields will, if not specified, be given a fake value:
+    - chant
+    - base_text (defaults to the chant's standardized full text, so a cluster spanning
+      the whole base text flattens back to what the chant already says)
+    - base_cantus_id (defaults to the chant's own Cantus ID)
+    - base_text_hash (derived from base_text)
+    """
+    if kwargs.get("chant") is None:
+        kwargs["chant"] = make_fake_chant()
+    chant = kwargs["chant"]
+    kwargs["base_text"] = kwargs.get(
+        "base_text", chant.manuscript_full_text_std_spelling or faker.sentence()
+    )
+    kwargs["base_cantus_id"] = kwargs.get("base_cantus_id", chant.cantus_id or "")
+    kwargs["base_text_hash"] = kwargs.get(
+        "base_text_hash", ChantCluster.hash_base_text(kwargs["base_text"])
+    )
+    return ChantCluster.objects.create(**kwargs)
 
 
 def make_fake_feast(**kwargs: Any) -> Feast:
