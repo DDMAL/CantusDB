@@ -1168,6 +1168,46 @@ class SourceListViewTest(CustomAccessTestMixin, TestCase):
             self.assertNotIn(undated_source, sources)
             self.assertIn(tenth_century_source, sources)
 
+    def test_ccdb_browse_date_range_does_not_hide_sources_without_century(
+        self,
+    ) -> None:
+        """`CcdbBrowseView` reuses `SourceListView`'s date-range filtering
+        unchanged, so it must exhibit the same undated-source regression
+        fix as the plain source list: shown at the default (full) range,
+        filtered out only once the range is genuinely narrowed.
+        """
+        ccdb_segment = make_fake_segment(id=settings.CCDB_SEGMENT_ID)
+        make_fake_century(name="09th century")
+        tenth_century = make_fake_century(name="10th century")
+        make_fake_century(name="15th century")
+
+        undated_source = make_fake_source(
+            segment=[ccdb_segment], published=True, shelfmark="no century"
+        )
+        undated_source.century.set([])
+        tenth_century_source = make_fake_source(
+            segment=[ccdb_segment], published=True, shelfmark="10th"
+        )
+        tenth_century_source.century.set([tenth_century])
+
+        with self.subTest("No date params: undated source is shown"):
+            response = self.client.get(reverse("ccdb-browse"))
+            self.assertIn(undated_source, response.context["sources"])
+
+        with self.subTest("Default full-range params: undated source is shown"):
+            response = self.client.get(
+                reverse("ccdb-browse"), {"dateStart": 800, "dateEnd": 1500}
+            )
+            self.assertIn(undated_source, response.context["sources"])
+
+        with self.subTest("Genuine narrowing: undated source is filtered out"):
+            response = self.client.get(
+                reverse("ccdb-browse"), {"dateStart": 900, "dateEnd": 999}
+            )
+            sources = response.context["sources"]
+            self.assertNotIn(undated_source, sources)
+            self.assertIn(tenth_century_source, sources)
+
     def test_search_by_identifier_does_not_hide_undated_source(self) -> None:
         """Regression test for an undated source (e.g. Otto Ege MS 22)
         disappearing from an identifier search. The source list form submits

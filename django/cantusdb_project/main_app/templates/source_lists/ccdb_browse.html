@@ -6,6 +6,7 @@
 {% block scripts %}
     <script src="{% static 'js/source_list.js' %}"></script>
     <link href="{% static 'css/ccdb_style.css' %}" rel="stylesheet" media="screen" />
+    <link href="{% static 'css/source_list.css' %}" rel="stylesheet" />
 {% endblock %}
 {% block header %}
     {% include "header/sticky_header.html" %}
@@ -19,39 +20,8 @@
                 <div id="search-container" class="container-lg">
                     <div class="row rounded my-3 ccdb-table-bg">
                         <div class="col">
-                            <div class="row mt-3 mb-1">
-                                <div class="col">
-                                    <h5 class="mb-2">Search Chants</h5>
-                                    <form method="get"
-                                          action="{% url 'chant-search' %}"
-                                          class="d-flex flex-wrap gap-2 align-items-end">
-                                        <input type="hidden" name="segment" value="4066" />
-                                        <div class="flex-grow-1">
-                                            <label for="chantKeyword" class="small form-label">
-                                                Keyword search (incipit, full text, or Cantus ID)
-                                            </label>
-                                            <input type="text"
-                                                   class="form-control form-control-sm"
-                                                   name="keyword"
-                                                   id="chantKeyword"
-                                                   placeholder="Enter keyword or Cantus ID" />
-                                        </div>
-                                        <div>
-                                            <label for="chantSearchOp" class="small form-label">Match</label>
-                                            <select name="op"
-                                                    id="chantSearchOp"
-                                                    class="form-control form-select form-select-sm">
-                                                <option value="starts_with">Starts with</option>
-                                                <option value="contains">Contains</option>
-                                            </select>
-                                        </div>
-                                        <button type="submit" class="btn btn-dark btn-sm">Search Chants</button>
-                                    </form>
-                                </div>
-                            </div>
-                            <hr class="my-3" />
                             <form method="get" class="ccdb-filter-form mb-3">
-                                <div class="row mt-2">
+                                <div class="row mt-2 align-items-end">
                                     <div class="col-lg">
                                         <label for="generalSearch" class="small form-label">
                                             General search (siglum, city, description…)
@@ -63,84 +33,134 @@
                                                value="{{ request.GET.general }}"
                                                id="generalSearch" />
                                     </div>
-                                    <div class="col-lg">
-                                        <label for="indexingSearch" class="small form-label">
-                                            Indexing notes and contributors
-                                        </label>
-                                        <input type="text"
-                                               class="form-control form-control-sm"
-                                               name="indexing"
-                                               placeholder="Enter any part of a word/name"
-                                               value="{{ request.GET.indexing }}"
-                                               id="indexingSearch" />
-                                    </div>
-                                </div>
-                                <div class="row align-items-center">
-                                    <div class="col-lg-6">
-                                        <div class="row">
-                                            <div class="col-lg-6">
-                                                <label for="provenanceFilter" class="small form-label">
-                                                    Provenance (origin/history)
-                                                </label>
-                                                <select id="provenanceFilter"
-                                                        name="provenance"
-                                                        class="form-control form-select form-select-sm">
-                                                    <option value="">- Any -</option>
-                                                    {% for provenance in provenances %}
-                                                        <option value="{{ provenance.id }}">{{ provenance.name }}</option>
-                                                    {% endfor %}
-                                                </select>
-                                            </div>
-                                            <div class="col-lg-6">
-                                                <label for="centuryFilter" class="small form-label">Century</label>
-                                                <select id="centuryFilter"
-                                                        name="century"
-                                                        class="form-control form-select form-select-sm">
-                                                    <option value="">- Any -</option>
-                                                    {% for century in centuries %}
-                                                        <option value="{{ century.id }}">{{ century.name }}</option>
-                                                    {% endfor %}
-                                                </select>
-                                            </div>
-                                            <div class="col-lg-6">
-                                                <label for="prodMethodFilter" class="small form-label">Manuscript/Print</label>
-                                                <select id="prodMethodFilter"
-                                                        name="prodMethod"
-                                                        class="form-control form-select form-select-sm">
-                                                    <option value="">- Any -</option>
-                                                    {% for prod_method_value, prod_method_label in production_method_choices %}
-                                                        <option value="{{ prod_method_value }}">{{ prod_method_label }}</option>
-                                                    {% endfor %}
-                                                </select>
-                                            </div>
-                                        </div>
-                                    </div>
-                                    <div class="col-lg-4">
-                                        <label for="sourceCompletenessFilter" class="small form-label">
-                                            Complete Source/Fragment
-                                        </label>
-                                        <div class="input-group" id="sourceCompletenessFilter">
-                                            {% for source_completeness_value, source_completeness_label in source_completeness_choices %}
-                                                <div class="form-check form-check-inline">
-                                                    <input type="checkbox"
-                                                           class="form-check-input"
-                                                           id="sourceCompleteness-{{ source_completeness_value }}"
-                                                           name="sourceCompleteness"
-                                                           value="{{ source_completeness_value }}"
-                                                           checked />
-                                                    <label class="form-label form-check-label small"
-                                                           for="sourceCompleteness-{{ source_completeness_value }}">
-                                                        {{ source_completeness_label }}
-                                                    </label>
-                                                </div>
-                                            {% endfor %}
-                                        </div>
-                                    </div>
                                     <div class="col-lg-1">
                                         <button type="submit" class="btn btn-dark btn-sm m-1" id="btn-submit">Apply</button>
-                                        <a href="{% url 'ccdb-browse' %}"
+                                        <a href="{% url 'ccdb-browse' %}#search-container"
                                            class="btn btn-dark btn-sm m-1"
                                            id="btn-reset">Reset</a>
+                                    </div>
+                                </div>
+                                <div class="row">
+                                    <div class="col-12">
+                                        <a href="#advancedSourceSearchFilters"
+                                           class="small"
+                                           data-bs-toggle="collapse"
+                                           role="button"
+                                           aria-expanded="{% if advanced_search_active %}true{% else %}false{% endif %}"
+                                           aria-controls="advancedSourceSearchFilters">Advanced search ▾</a>
+                                    </div>
+                                </div>
+                                <div class="collapse{% if advanced_search_active %} show{% endif %}"
+                                     id="advancedSourceSearchFilters">
+                                    <div class="row mt-2">
+                                        <div class="col-lg">
+                                            <label for="indexingSearch" class="small form-label">
+                                                Indexing notes and contributors
+                                            </label>
+                                            <input type="text"
+                                                   class="form-control form-control-sm"
+                                                   name="indexing"
+                                                   placeholder="Enter any part of a word/name"
+                                                   value="{{ request.GET.indexing }}"
+                                                   id="indexingSearch" />
+                                        </div>
+                                    </div>
+                                    <div class="row align-items-center">
+                                        <div class="col-lg-6">
+                                            <div class="row">
+                                                <div class="col-lg-6">
+                                                    <label for="countryFilter" class="small form-label">Country</label>
+                                                    <select id="countryFilter"
+                                                            name="country"
+                                                            class="form-control form-select form-select-sm">
+                                                        <option value="">- Any -</option>
+                                                        {% for country in countries %}
+                                                            <option value="{{ country }}">{{ country }}</option>
+                                                        {% endfor %}
+                                                    </select>
+                                                </div>
+                                                <div class="col-lg-6">
+                                                    <label for="provenanceFilter" class="small form-label">
+                                                        Provenance (origin/history)
+                                                    </label>
+                                                    <select id="provenanceFilter"
+                                                            name="provenance"
+                                                            class="form-control form-select form-select-sm">
+                                                        <option value="">- Any -</option>
+                                                        {% for provenance in provenances %}
+                                                            <option value="{{ provenance.id }}">{{ provenance.name }}</option>
+                                                        {% endfor %}
+                                                    </select>
+                                                </div>
+                                                <div class="col-lg-6">
+                                                    {% if date_range_min is not None and date_range_max is not None %}
+                                                    <div class="d-flex justify-content-between align-items-center">
+                                                        <label class="small form-label fw-bold mb-0">Year range (overlapping)</label>
+                                                        <button type="button"
+                                                                id="rangeResetBtn"
+                                                                class="btn btn-link btn-sm p-0 small text-danger">Clear</button>
+                                                    </div>
+                                                    <div class="range-slider">
+                                                        <div class="range-slider-track"></div>
+                                                        <div class="range-slider-fill" id="rangeSliderFill"></div>
+                                                        <input type="range"
+                                                               id="dateStartFilter"
+                                                               class="range-slider-input"
+                                                               min="{{ date_range_min }}"
+                                                               max="{{ date_range_max }}"
+                                                               step="5"
+                                                               value="{{ request.GET.dateStart|default:date_range_min }}" />
+                                                        <input type="range"
+                                                               id="dateEndFilter"
+                                                               class="range-slider-input"
+                                                               min="{{ date_range_min }}"
+                                                               max="{{ date_range_max }}"
+                                                               step="5"
+                                                               value="{{ request.GET.dateEnd|default:date_range_max }}" />
+                                                    </div>
+                                                    <div class="d-flex justify-content-between small mt-1">
+                                                        <span class="fw-bold">{{ date_range_min }}</span>
+                                                        <span class="fw-bold text-primary">
+                                                            <input type="number" id="rangeStartInput" name="dateStart" min="{{ date_range_min }}" max="{{ date_range_max }}" value="{{ request.GET.dateStart|default:date_range_min }}" style="width:3.5rem;border:none;background:transparent;font-weight:bold;color:inherit;text-align:right;" />–&nbsp;&nbsp;&nbsp;<input type="number" id="rangeEndInput" name="dateEnd" min="{{ date_range_min }}" max="{{ date_range_max }}" value="{{ request.GET.dateEnd|default:date_range_max }}" style="width:3.5rem;border:none;background:transparent;font-weight:bold;color:inherit;text-align:left;" />
+                                                        </span>
+                                                        <span class="fw-bold">{{ date_range_max }}</span>
+                                                    </div>
+                                                    {% endif %}
+                                                </div>
+                                                <div class="col-lg-6">
+                                                    <label for="prodMethodFilter" class="small form-label">Manuscript/Print</label>
+                                                    <select id="prodMethodFilter"
+                                                            name="prodMethod"
+                                                            class="form-control form-select form-select-sm">
+                                                        <option value="">- Any -</option>
+                                                        {% for prod_method_value, prod_method_label in production_method_choices %}
+                                                            <option value="{{ prod_method_value }}">{{ prod_method_label }}</option>
+                                                        {% endfor %}
+                                                    </select>
+                                                </div>
+                                            </div>
+                                        </div>
+                                        <div class="col-lg-4">
+                                            <label for="sourceCompletenessFilter" class="small form-label">
+                                                Complete Source/Fragment
+                                            </label>
+                                            <div class="input-group" id="sourceCompletenessFilter">
+                                                {% for source_completeness_value, source_completeness_label in source_completeness_choices %}
+                                                    <div class="form-check form-check-inline">
+                                                        <input type="checkbox"
+                                                               class="form-check-input"
+                                                               id="sourceCompleteness-{{ source_completeness_value }}"
+                                                               name="sourceCompleteness"
+                                                               value="{{ source_completeness_value }}"
+                                                               checked />
+                                                        <label class="form-label form-check-label small"
+                                                               for="sourceCompleteness-{{ source_completeness_value }}">
+                                                            {{ source_completeness_label }}
+                                                        </label>
+                                                    </div>
+                                                {% endfor %}
+                                            </div>
+                                        </div>
                                     </div>
                                 </div>
                             </form>

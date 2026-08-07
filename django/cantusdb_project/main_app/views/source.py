@@ -52,8 +52,8 @@ from main_app.tasks import save_browse_chants_formset
 
 SOURCE_ADVANCED_SEARCH_FIELDS: tuple[str, ...] = (
     # GET params belonging to the collapsible "Advanced search" section of
-    # source_list.html / canadian_chant_db.html / cantorales.html; used to
-    # auto-expand it when any of them are set. These are all "plain" fields
+    # source_list.html / canadian_chant_db.html / cantorales.html / ccdb_browse.html;
+    # used to auto-expand it when any of them are set. These are all "plain" fields
     # with no value unless the user actually filled them in.
     #
     # "segment", "dateStart"/"dateEnd", and "sourceCompleteness" are handled
