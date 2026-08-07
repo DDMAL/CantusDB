@@ -33,7 +33,14 @@ from main_app.tests.make_fakes import (
     make_fake_genre,
     make_fake_user,
 )
-from main_app.models import Chant, DataCheckConfig, DataCheckReport, Genre, Source
+from main_app.models import (
+    Chant,
+    DataCheckConfig,
+    DataCheckReport,
+    Genre,
+    Sequence,
+    Source,
+)
 from main_app.forms import BrowseChantsBulkEditFormset
 from main_app.storage import private_media_storage
 
@@ -392,6 +399,27 @@ class FormatCheckCsvTest(TestCase):
 
         row = next(r for r in rows if r["source_id"] == str(source.id))
         expected_link = f'=HYPERLINK("{self.EXPECTED_BASE_URL}/source/{source.id}/chants/?folio=001r","{source.id}")'
+        self.assertEqual(row["link"], expected_link)
+        self.assertEqual(row["published"], "1")
+
+    def test_sequence_duplicate_group_row_links_to_source_not_chants(self) -> None:
+        # Bower-segment sources hold only Sequences, so SourceBrowseChantsView
+        # (the /chants/ page) 404s for them; the row must link to the source
+        # detail page instead.
+        source = make_fake_source(
+            published=True, segment_name="Bower Sequence Database"
+        )
+        Sequence.objects.create(source=source, folio="001r", s_sequence="1")
+        Sequence.objects.create(source=source, folio="001r", s_sequence="1")
+
+        result = check_duplicate_folio_sequence()
+        content = _format_check_csv(result, check_key="duplicate_folio_sequence")
+        rows = list(csv.DictReader(io.StringIO(content)))
+
+        row = next(r for r in rows if r["source_id"] == str(source.id))
+        expected_link = (
+            f'=HYPERLINK("{self.EXPECTED_BASE_URL}/source/{source.id}/","{source.id}")'
+        )
         self.assertEqual(row["link"], expected_link)
         self.assertEqual(row["published"], "1")
 

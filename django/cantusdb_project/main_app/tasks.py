@@ -408,9 +408,15 @@ def _format_check_csv(result: dict, check_key: Optional[str] = None) -> str:
                 id_label = "chant_ids" if "chant_ids" in item else "sequence_ids"
                 source_id = item.get("source_id")
                 folio = item.get("folio")
-                # Folio is free text; URL-quote it so it can't break out of
-                # the HYPERLINK formula's quoted URL argument.
-                link_url = f"{_site_base_url()}/source/{source_id}/chants/?folio={quote(str(folio), safe='')}"
+                if id_label == "sequence_ids":
+                    # Sequence-only sources (e.g. the Bower segment) have no
+                    # chants, so SourceBrowseChantsView 404s; link to the
+                    # source page instead, which does list sequences.
+                    link_url = f"{_site_base_url()}/source/{source_id}/"
+                else:
+                    # Folio is free text; URL-quote it so it can't break out
+                    # of the HYPERLINK formula's quoted URL argument.
+                    link_url = f"{_site_base_url()}/source/{source_id}/chants/?folio={quote(str(folio), safe='')}"
                 writer.writerow(
                     [
                         f'=HYPERLINK("{link_url}","{source_id}")',
