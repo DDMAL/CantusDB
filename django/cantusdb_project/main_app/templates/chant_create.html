@@ -16,13 +16,15 @@
         chant; other messages (e.g. invalid-text warnings) render normally. -->
     {% for message in messages %}
         {% if 'alert-success' in message.tags %}
-            <div class="alert alert-success">
+            <div class="alert alert-success alert-dismissible">
+                <a href="#" class="close close-success" data-bs-dismiss="alert" aria-label="close">×</a>
                 <a href="{% url 'chant-detail' previous_chant.id %}"
                    style="color:#155724"
                    target="_blank">{{ message }}</a>
             </div>
         {% else %}
-            <div class="alert {{ message.tags }}" role="alert">
+            <div class="alert {{ message.tags }} alert-dismissible" role="alert">
+                <a href="#" class="close" data-bs-dismiss="alert" aria-label="close">×</a>
                 {{ message }}
             </div>
         {% endif %}

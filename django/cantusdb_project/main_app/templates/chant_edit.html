@@ -13,7 +13,8 @@
 {% block maincontent %}
     <!--Display messages -->
     {% for message in messages %}
-        <div class="alert {{ message.tags }}" role="alert">
+        <div class="alert {{ message.tags }} alert-dismissible" role="alert">
+            <a href="#" class="close" data-bs-dismiss="alert" aria-label="close">×</a>
             {{ message }}
         </div>
     {% endfor %}

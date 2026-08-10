@@ -73,7 +73,7 @@ def add_unconfirmed_text_warnings(request: HttpRequest, form: Any) -> None:
     for problem in getattr(form, "text_problems", []):
         messages.warning(
             request,
-            f'The {problem["label"]} text {problem["message"]} '
+            f'The {problem["label"]} {problem["message"]} '
             "The chant was saved, but you may want to review this field.",
         )
 
