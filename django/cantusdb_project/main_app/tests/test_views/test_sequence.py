@@ -120,6 +120,18 @@ class SequenceListViewTest(SequencePermissionsTestCase):
             response = self.client.get(reverse("sequence-list"), {"siglum": "ZZ-stale"})
             self.assertNotIn(sequence, response.context["sequences"])
 
+    def test_search_matches_cantus_fallback(self):
+        # A source with no usable institution siglum displays (and is searched)
+        # as "Cantus <shelfmark>", mirroring `Source.compose_short_heading`.
+        source = make_fake_source(
+            published=True,
+            shelfmark="MS 123",
+            holding_institution=make_fake_institution(is_private_collector=True),
+        )
+        sequence = make_fake_sequence(source=source)
+        response = self.client.get(reverse("sequence-list"), {"siglum": "Cantus"})
+        self.assertIn(sequence, response.context["sequences"])
+
     def test_search_cantus_id(self):
         # create a published sequence source and some sequence in it
         source = make_fake_source(published=True, shelfmark="a sequence source")
@@ -189,19 +201,36 @@ class SequenceDetailViewTest(SequencePermissionsTestCase):
 
     def test_concordances_ordering(self):
         # Concordances are ordered by the source's current siglum + shelfmark,
-        # not the frozen `Sequence.siglum` column (#2025).
-        sequence = make_fake_sequence()
-        response = self.client.get(reverse("sequence-detail", args=[sequence.id]))
-        concordances = response.context["concordances"]
-        self.assertEqual(
-            concordances.query.order_by,
-            (
-                "source__holding_institution__siglum",
-                "source__shelfmark",
-                "folio",
-                "s_sequence",
+        # not the frozen `Sequence.siglum` column (#2025). Created out of order
+        # to prove the ordering isn't just insertion order.
+        cantus_id = "900000"
+        first = make_fake_sequence(
+            cantus_id=cantus_id,
+            source=make_fake_source(
+                published=True,
+                shelfmark="MS 1",
+                holding_institution=make_fake_institution(siglum="A-Wn"),
             ),
         )
+        third = make_fake_sequence(
+            cantus_id=cantus_id,
+            source=make_fake_source(
+                published=True,
+                shelfmark="MS 1",
+                holding_institution=make_fake_institution(siglum="B-Br"),
+            ),
+        )
+        second = make_fake_sequence(
+            cantus_id=cantus_id,
+            source=make_fake_source(
+                published=True,
+                shelfmark="MS 2",
+                holding_institution=make_fake_institution(siglum="A-Wn"),
+            ),
+        )
+        response = self.client.get(reverse("sequence-detail", args=[first.id]))
+        concordances = list(response.context["concordances"])
+        self.assertEqual(concordances, [first, second, third])
 
     def test_detail_displays_composed_siglum(self):
         # The "Siglum" field shows the source's current composed heading, not the

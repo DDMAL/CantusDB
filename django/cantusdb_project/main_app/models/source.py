@@ -262,8 +262,10 @@ class Source(BaseModel):
         which read the underlying columns with `QuerySet.values()` rather than
         instantiating Source objects, produce identical strings.
 
-        `feast_source_query` in `main_app/views/feast.py` reimplements this in
-        SQL; keep the two in sync.
+        `feast_source_query` in `main_app/views/feast.py` and the
+        `computed_siglum` annotation in `SequenceListView`
+        (`main_app/views/sequence.py`) reimplement this fallback in SQL/ORM;
+        keep the three in sync.
         """
         title = []
         if institution_siglum and institution_siglum != "XX-NN":

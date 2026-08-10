@@ -2,7 +2,7 @@ from typing import Dict, Any
 
 from django.views.generic import DetailView, ListView, UpdateView
 from django.db.models import Q, QuerySet, Value
-from django.db.models.functions import Coalesce, Concat
+from django.db.models.functions import Coalesce, Concat, NullIf
 from django.contrib import messages
 from django.http import HttpResponse
 
@@ -76,10 +76,19 @@ class SequenceListView(CustomAccessMixin, ListView):  # type: ignore[type-arg]
             siglum = self.request.GET.get("siglum")
             # `Sequence.siglum` is a frozen legacy column; match the source's
             # current composed heading (institution siglum + shelfmark) instead,
-            # which is what the list actually displays (#2025).
+            # which is what the list actually displays (#2025). This mirrors the
+            # fallback in `Source.compose_short_heading` (and the SQL in
+            # `feast_source_query`): a missing, empty, or placeholder ("XX-NN")
+            # institution siglum displays as "Cantus". Keep the three in sync.
             queryset = queryset.annotate(
                 computed_siglum=Concat(
-                    Coalesce("source__holding_institution__siglum", Value("")),
+                    Coalesce(
+                        NullIf(
+                            NullIf("source__holding_institution__siglum", Value("")),
+                            Value("XX-NN"),
+                        ),
+                        Value("Cantus"),
+                    ),
                     Value(" "),
                     Coalesce("source__shelfmark", Value("")),
                 )
