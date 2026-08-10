@@ -2,6 +2,7 @@ import html
 from typing import Optional, Any, Dict
 
 from django import forms
+from django.conf import settings
 from django.contrib.auth.forms import ReadOnlyPasswordHashField
 from django.contrib.auth import get_user_model
 from django.db.models import Q, Model
@@ -433,6 +434,7 @@ class SourceCreateForm(forms.ModelForm):
             "source_data_contributed_by",
             "complete_inventory",
             "summary",
+            "liturgical_occasions",
             "description",
             "selected_bibliography",
             "image_link",
@@ -455,6 +457,7 @@ class SourceCreateForm(forms.ModelForm):
             "date": TextInputWidget(),
             "cursus": SelectWidget(),
             "summary": TextAreaWidget(),
+            "liturgical_occasions": TextAreaWidget(),
             "description": MarkdownWidget(),
             "selected_bibliography": MarkdownWidget(),
             "image_link": TextInputWidget(),
@@ -496,6 +499,14 @@ class SourceCreateForm(forms.ModelForm):
     complete_inventory = StyledChoiceField(
         choices=COMPLETE_INVENTORY_FORM_CHOICES, required=False
     )
+
+    def __init__(self, *args: Any, **kwargs: Any) -> None:
+        super().__init__(*args, **kwargs)
+        # "Benedicamus Domino" is a chant-level project designation, not a
+        # source segment, so it's excluded here (see #2131).
+        self.fields["segment_m2m"].queryset = Segment.objects.exclude(
+            id=settings.BENEDICAMUS_DOMINO_SEGMENT_ID
+        )
 
 
 class ChantEditForm(ChantTextWarningsMixin, forms.ModelForm):
@@ -735,6 +746,14 @@ class SourceEditForm(forms.ModelForm):
         choices=COMPLETE_INVENTORY_FORM_CHOICES, required=False
     )
 
+    def __init__(self, *args: Any, **kwargs: Any) -> None:
+        super().__init__(*args, **kwargs)
+        # "Benedicamus Domino" is a chant-level project designation, not a
+        # source segment, so it's excluded here (see #2131).
+        self.fields["segment_m2m"].queryset = Segment.objects.exclude(
+            id=settings.BENEDICAMUS_DOMINO_SEGMENT_ID
+        )
+
 
 class ChantSearchForm(forms.Form):
     feast = forms.ModelChoiceField(
@@ -820,8 +839,11 @@ class SequenceEditForm(forms.ModelForm):
     )
     genre.widget.attrs.update({"class": "form-control custom-select custom-select-sm"})
 
+    # select_related avoids an N+1 query: rendering each option calls
+    # Source.__str__, which reads source.holding_institution (see #2039).
     source = forms.ModelChoiceField(
-        queryset=Source.objects.all().order_by("title"), required=False
+        queryset=Source.objects.select_related("holding_institution").order_by("title"),
+        required=False,
     )
     source.widget.attrs.update({"class": "form-control custom-select custom-select-sm"})
 

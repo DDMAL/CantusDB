@@ -128,3 +128,7 @@ api_cache/
 
 .python-version
 runtests.sh
+
+# Personal Claude Code files
+CLAUDE.local.md
+.claude*

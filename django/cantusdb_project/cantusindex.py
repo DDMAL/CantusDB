@@ -210,7 +210,7 @@ def get_json_from_ci_api(
     uri = f"{CANTUS_INDEX_DOMAIN}{path}"
     try:
         response: requests.Response = requests.get(uri, timeout=timeout)
-    except requests.exceptions.Timeout:
+    except requests.exceptions.RequestException:
         return None
 
     if not response.status_code == 200:
@@ -223,7 +223,10 @@ def get_json_from_ci_api(
         # there are no suggested chants
         return None
 
-    parsed_response = response.json()
+    try:
+        parsed_response = response.json()
+    except ValueError:
+        return None
 
     if not isinstance(parsed_response, (dict, list)):
         return None

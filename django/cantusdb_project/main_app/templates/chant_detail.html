@@ -295,18 +295,6 @@
                 </a>
             </dd>
         {% endif %}
-        {# "Chant record created by" is only shown for the Kaiatonsera master sources, #}
-        {# and only to the people in the class (plus editors/superusers). See issue #2077. #}
-        {% if user_can_view_record_creator and chant.created_by %}
-            <dt>Chant record created by</dt>
-            <dd>
-                {% if chant.created_by.full_name %}
-                    {{ chant.created_by.full_name }}
-                {% else %}
-                    User {{ chant.created_by.id }}
-                {% endif %}
-            </dd>
-        {% endif %}
     </dl>
     {% if chant.cantus_id %}
         <h4 id="concordances">Concordances</h4>
@@ -330,6 +318,19 @@
            class="guillemet"
            onclick="loadMelodies('{{ chant.cantus_id }}'); return false;">Display the melodies connected with this chant</a>
         <div id="melodyDiv"></div>
+    {% endif %}
+    {% if attribution_created_by or attribution_last_updated_by %}
+        <p class="text-muted small mt-3 mb-0">
+            {% if attribution_created_by %}
+                Record contributed by:
+                {% if attribution_created_by.full_name %}<a href="{% url 'user-detail' attribution_created_by.id %}">{{ attribution_created_by.full_name }}</a>{% else %}<a href="{% url 'user-detail' attribution_created_by.id %}">User {{ attribution_created_by.id }}</a>{% endif %}{% if chant.date_created %}, {{ chant.date_created|date:"j F Y" }}{% endif %}
+                {% if attribution_last_updated_by %}<br />{% endif %}
+            {% endif %}
+            {% if attribution_last_updated_by %}
+                Last modified by:
+                {% if attribution_last_updated_by.full_name %}<a href="{% url 'user-detail' attribution_last_updated_by.id %}">{{ attribution_last_updated_by.full_name }}</a>{% else %}<a href="{% url 'user-detail' attribution_last_updated_by.id %}">User {{ attribution_last_updated_by.id }}</a>{% endif %}{% if chant.date_updated %}, {{ chant.date_updated|date:"j F Y" }}{% endif %}
+            {% endif %}
+        </p>
     {% endif %}
 {% endblock %}
 {% block lowersidebar %}

@@ -1,5 +1,6 @@
 import re
 from datetime import date
+from functools import cached_property
 from typing import Any, Optional, Union
 
 from django.conf import settings
@@ -48,6 +49,24 @@ from main_app.permissions import CustomAccessMixin
 from main_app.mixins import JSONResponseMixin
 from main_app.views.chant import get_feast_selector_options
 from main_app.tasks import save_browse_chants_formset
+
+SOURCE_ADVANCED_SEARCH_FIELDS: tuple[str, ...] = (
+    # GET params belonging to the collapsible "Advanced search" section of
+    # source_list.html / canadian_chant_db.html / cantorales.html / ccdb_browse.html;
+    # used to auto-expand it when any of them are set. These are all "plain" fields
+    # with no value unless the user actually filled them in.
+    #
+    # "segment", "dateStart"/"dateEnd", and "sourceCompleteness" are handled
+    # separately in get_context_data: their widgets always submit a value on
+    # Apply (the full slider range, all checkboxes checked, or a segment
+    # already scoped via the URL on CCDB/Cantorales) even when the user
+    # hasn't changed anything from the default, so a naive presence check
+    # would keep the section expanded after every single search.
+    "country",
+    "provenance",
+    "prodMethod",
+    "indexing",
+)
 
 
 class SourceBrowseChantsView(CustomAccessMixin, ListView):  # type: ignore[type-arg]
@@ -339,6 +358,76 @@ class SourceListView(CustomAccessMixin, ListView):  # type: ignore[type-arg]
             return ["source_lists/cantorales.html"]
         return ["source_lists/source_list.html"]
 
+    @cached_property
+    def date_range_bounds(self) -> tuple[Optional[int], Optional[int]]:
+        """
+        Year-range slider bounds. Endpoints are rounded out to the nearest
+        multiple of 5 so the slider's step="5" reaches both. The upper bound
+        is clipped to the current multiple of 5 so future-dated centuries
+        (e.g. a "21st century" stub ending in 2099) do not stretch the
+        slider past today.
+        """
+        current_year_rounded = (date.today().year // 5) * 5
+        century_dates = Century.objects.filter(
+            min_date__isnull=False, max_date__isnull=False
+        ).aggregate(
+            min_year=Min("min_date"),
+            max_year=Max("max_date"),
+        )
+        min_year = century_dates["min_year"]
+        max_year = century_dates["max_year"]
+        date_range_min = (min_year // 5) * 5 if min_year is not None else None
+        date_range_max = (
+            min(-(-max_year // 5) * 5, current_year_rounded)
+            if max_year is not None
+            else None
+        )
+        return date_range_min, date_range_max
+
+    @cached_property
+    def requested_date_range(self) -> tuple[Optional[int], Optional[int]]:
+        """
+        The dateStart/dateEnd query parameters parsed to ints. A missing or
+        non-numeric value becomes None rather than raising, so a mangled
+        querystring can't break the source list.
+        """
+
+        def parse(param: str) -> Optional[int]:
+            raw = self.request.GET.get(param)
+            if not raw:
+                return None
+            try:
+                return int(raw)
+            except (TypeError, ValueError):
+                return None
+
+        return parse("dateStart"), parse("dateEnd")
+
+    @cached_property
+    def date_range_active(self) -> bool:
+        """
+        True only when the requested range actually narrows the full range of
+        dated sources (a bound sits strictly inside the outer bounds). When
+        the slider is untouched the form still submits the outer bounds, so
+        comparing against them keeps us from applying a century filter the
+        user never asked for -- which would silently drop every source that
+        has no century assigned. The numeric comparison also shrugs off
+        differently-formatted or hand-edited querystrings.
+        """
+        date_range_min, date_range_max = self.date_range_bounds
+        requested_start, requested_end = self.requested_date_range
+        narrows_start = (
+            requested_start is not None
+            and date_range_min is not None
+            and requested_start > date_range_min
+        )
+        narrows_end = (
+            requested_end is not None
+            and date_range_max is not None
+            and requested_end < date_range_max
+        )
+        return narrows_start or narrows_end
+
     def get_context_data(self, **kwargs: Any) -> dict[str, Any]:
         context = super().get_context_data(**kwargs)
         context["countries"] = (
@@ -349,30 +438,31 @@ class SourceListView(CustomAccessMixin, ListView):  # type: ignore[type-arg]
         context["provenances"] = (
             Provenance.objects.all().order_by("name").values("id", "name")
         )
-        # Year-range slider bounds. Endpoints are rounded out to the nearest
-        # decade so the slider's step="10" reaches both. The upper bound is
-        # clipped to the current decade so future-dated centuries (e.g. a
-        # "21st century" stub ending in 2099) do not stretch the slider past
-        # today.
-        current_decade = (date.today().year // 5) * 5
-        century_dates = Century.objects.filter(
-            min_date__isnull=False, max_date__isnull=False
-        ).aggregate(
-            min_year=Min("min_date"),
-            max_year=Max("max_date"),
-        )
-        min_year = century_dates["min_year"]
-        max_year = century_dates["max_year"]
-        context["date_range_min"] = (
-            (min_year // 5) * 5 if min_year is not None else None
-        )
-        context["date_range_max"] = (
-            min(-(-max_year // 5) * 5, current_decade) if max_year is not None else None
-        )
+        context["date_range_min"], context["date_range_max"] = self.date_range_bounds
 
         context["production_method_choices"] = Source.ProductionMethodChoices.choices
         context["source_completeness_choices"] = (
             Source.SourceCompletenessChoices.choices
+        )
+
+        selected_completeness = set(self.request.GET.getlist("sourceCompleteness"))
+        all_completeness_values = {
+            str(value) for value, _ in Source.SourceCompletenessChoices.choices
+        }
+        source_completeness_active = bool(selected_completeness) and (
+            selected_completeness != all_completeness_values
+        )
+
+        # "segment" only counts as an active advanced filter on the
+        # unscoped source list; on CCDB/Cantorales it's already fixed by
+        # the URL and the field doesn't even appear in those templates.
+        segment_active = not self.segment and bool(self.request.GET.get("segment"))
+
+        context["advanced_search_active"] = (
+            any(self.request.GET.get(field) for field in SOURCE_ADVANCED_SEARCH_FIELDS)
+            or self.date_range_active
+            or source_completeness_active
+            or segment_active
         )
         return context
 
@@ -400,32 +490,25 @@ class SourceListView(CustomAccessMixin, ListView):  # type: ignore[type-arg]
         if country_name := self.request.GET.get("country"):
             q_obj_filter &= Q(holding_institution__country__icontains=country_name)
 
-        # Handle direct date range filtering
-        # This allows filtering by explicit date ranges (e.g., 1400-1500)
-        date_start = self.request.GET.get("dateStart")
-        date_end = self.request.GET.get("dateEnd")
-        if date_start or date_end:
-            try:
-                date_start_int = int(date_start) if date_start else None
-                date_end_int = int(date_end) if date_end else None
-
-                # Find all centuries that overlap with the selected date range
-                # This provides the same behavior as century selection
-                if date_start_int is not None and date_end_int is not None:
-                    # Both dates specified: find centuries that overlap the range
-                    q_obj_filter &= Q(
-                        century__min_date__lte=date_end_int,
-                        century__max_date__gte=date_start_int,
-                    )
-                elif date_start_int is not None:
-                    # Only start date: find centuries that haven't ended
-                    q_obj_filter &= Q(century__max_date__gte=date_start_int)
-                elif date_end_int is not None:
-                    # Only end date: find centuries that have started
-                    q_obj_filter &= Q(century__min_date__lte=date_end_int)
-            except (ValueError, TypeError):
-                # Invalid date format, skip filtering
-                pass
+        # Handle direct date range filtering (e.g., 1400-1500) by keeping only
+        # sources with a century that overlaps the range. This is skipped when
+        # the range still spans the full extent of dated sources -- see
+        # date_range_active -- so leaving the slider untouched does not drop
+        # sources that simply have no century assigned.
+        if self.date_range_active:
+            date_start_int, date_end_int = self.requested_date_range
+            if date_start_int is not None and date_end_int is not None:
+                # Both dates specified: find centuries that overlap the range
+                q_obj_filter &= Q(
+                    century__min_date__lte=date_end_int,
+                    century__max_date__gte=date_start_int,
+                )
+            elif date_start_int is not None:
+                # Only start date: find centuries that haven't ended
+                q_obj_filter &= Q(century__max_date__gte=date_start_int)
+            elif date_end_int is not None:
+                # Only end date: find centuries that have started
+                q_obj_filter &= Q(century__min_date__lte=date_end_int)
 
         if provenance_id := self.request.GET.get("provenance"):
             q_obj_filter &= Q(provenance__id=int(provenance_id))

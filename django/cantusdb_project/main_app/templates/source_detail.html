@@ -36,6 +36,10 @@
                 {{ source.get_production_method_display }}
             </dd>
         {% endif %}
+        <dt>Complete Source/Fragment</dt>
+        <dd>
+            {{ source.get_source_completeness_display }}
+        </dd>
         {% if source.summary %}
             <dt>Summary</dt>
             <dd>
@@ -72,10 +76,6 @@
                 {{ source.complete_inventory|yesno:"Full Inventory,Partial Inventory" }}
             </dd>
         {% endif %}
-        <dt>Complete Source/Fragment</dt>
-        <dd>
-            {{ source.get_source_completeness_display }}
-        </dd>
         {% if user.is_authenticated %}
             <dt>Source Status</dt>
             <dd>
@@ -85,7 +85,7 @@
         {% if source.fragmentarium_id is not None %}
             <dt>Fragmentarium ID</dt>
             <dd>
-                <a href="https://fragmentarium.ms/overview/{{ source.fragmentarium_id }}">{{ source.fragmentarium_id }}</a>
+                <a href="https://fragmentarium.ms/overview/{{ source.fragmentarium_id }}" target="_blank" rel="noopener noreferrer">{{ source.fragmentarium_id }}</a>
             </dd>
         {% endif %}
         {% if source.dact_id is not None %}

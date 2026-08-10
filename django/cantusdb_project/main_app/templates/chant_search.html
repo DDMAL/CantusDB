@@ -46,70 +46,105 @@
                    value="{{ request.GET.keyword }}" />
         </div>
     </div>
-    <div class="row align-items-end">
-        <div class="form-group col-lg-3 col-sm-6 col-12">
-            <label for="serviceFilter" class="small">Service</label>
-            <select id="serviceFilter"
-                    name="service"
-                    class="form-control form-select form-select-sm">
-                <option value="">- Any -</option>
-                {% for service in services %}
-                    <option value="{{ service.id }}">{{ service.name }}</option>
-                {% endfor %}
-            </select>
-        </div>
-        <div class="form-group col-lg-3 col-sm-6 col-12">
-            <label for="genreFilter" class="small">Genre</label>
-            <select id="genreFilter"
-                    name="genre"
-                    class="form-control form-select form-select-sm">
-                <option value="">- Any -</option>
-                {% for genre in genres %}
-                    <option value="{{ genre.id }}">{{ genre.name }}</option>
-                {% endfor %}
-            </select>
-        </div>
-        <div class="form-group col-lg-3 col-sm-6 col-12">
-            <label for="cantus_id" class="small">Cantus ID</label>
-            <input type="text"
-                   class="form-control form-control-sm"
-                   name="cantus_id"
-                   id="cantus_id"
-                   value="{{ request.GET.cantus_id }}" />
-        </div>
-        <div class="form-group col-lg-3 col-sm-6 col-12">
-            <label for="mode" class="small">Mode</label>
-            <input type="text"
-                   class="form-control form-control-sm"
-                   name="mode"
-                   id="mode"
-                   value="{{ request.GET.mode }}" />
-        </div>
-        <div class="form-group col-lg-3 col-sm-6 col-12">
-            <label for="position" class="small">Position</label>
-            <input type="text"
-                   class="form-control form-control-sm"
-                   name="position"
-                   id="position"
-                   value="{{ request.GET.position }}" />
-        </div>
-        <div class="form-group col-lg-3 col-sm-6 col-12">
-            <label for="melodiesFilter" class="small">Melodies</label>
-            <select class="form-control form-select form-select-sm"
-                    id="melodiesFilter"
-                    name="melodies">
-                <option value="">- Any -</option>
-                <option value="true">Chants with melodies</option>
-            </select>
-        </div>
-        <div class="form-group col-lg-6 col-sm-12 col-12">
-            <label for="{{ search_form.feast.id_for_label }}" class="small">Feast</label>
-            {{ search_form.feast }}
+    <div class="row">
+        <div class="col-12">
+            <a href="#advancedSearchFilters"
+               class="small"
+               data-bs-toggle="collapse"
+               role="button"
+               aria-expanded="{% if advanced_search_active %}true{% else %}false{% endif %}"
+               aria-controls="advancedSearchFilters">Advanced search ▾</a>
         </div>
     </div>
-    {% if source %}
+    <div class="collapse{% if advanced_search_active %} show{% endif %}"
+         id="advancedSearchFilters">
         <div class="row align-items-end">
-            <div class="form-group col-sm-3 col-12">
+            <div class="form-group col-lg-3 col-sm-6 col-12">
+                <label for="serviceFilter" class="small">Service</label>
+                <select id="serviceFilter"
+                        name="service"
+                        class="form-control form-select form-select-sm">
+                    <option value="">- Any -</option>
+                    {% for service in services %}
+                        <option value="{{ service.id }}">{{ service.name }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="form-group col-lg-3 col-sm-6 col-12">
+                <label for="genreFilter" class="small">Genre</label>
+                <select id="genreFilter"
+                        name="genre"
+                        class="form-control form-select form-select-sm">
+                    <option value="">- Any -</option>
+                    {% for genre in genres %}
+                        <option value="{{ genre.id }}">{{ genre.name }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="form-group col-lg-3 col-sm-6 col-12">
+                <label for="cantus_id" class="small">Cantus ID</label>
+                <input type="text"
+                       class="form-control form-control-sm"
+                       name="cantus_id"
+                       id="cantus_id"
+                       value="{{ request.GET.cantus_id }}" />
+            </div>
+            <div class="form-group col-lg-3 col-sm-6 col-12">
+                <label for="mode" class="small">Mode</label>
+                <input type="text"
+                       class="form-control form-control-sm"
+                       name="mode"
+                       id="mode"
+                       value="{{ request.GET.mode }}" />
+            </div>
+            <div class="form-group col-lg-3 col-sm-6 col-12">
+                <label for="position" class="small">Position</label>
+                <input type="text"
+                       class="form-control form-control-sm"
+                       name="position"
+                       id="position"
+                       value="{{ request.GET.position }}" />
+            </div>
+            <div class="form-group col-lg-3 col-sm-6 col-12">
+                <label for="melodiesFilter" class="small">Melodies</label>
+                <select class="form-control form-select form-select-sm"
+                        id="melodiesFilter"
+                        name="melodies">
+                    <option value="">- Any -</option>
+                    <option value="true">Chants with melodies</option>
+                </select>
+            </div>
+            <div class="form-group col-lg-6 col-sm-12 col-12">
+                <label for="{{ search_form.feast.id_for_label }}" class="small">Feast</label>
+                {{ search_form.feast }}
+            </div>
+        </div>
+        <div class="row align-items-end">
+            <div class="form-group col-lg-3 col-sm-6 col-12">
+                <label for="functionFilter" class="small">Function</label>
+                <select id="functionFilter"
+                        name="liturgical_function"
+                        class="form-control form-select form-select-sm">
+                    <option value="">- Any -</option>
+                    {% for value, label in liturgical_functions %}
+                        <option value="{{ value }}">{{ label }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            {% if not source %}
+                <div class="form-group col-lg-3 col-sm-6 col-12">
+                    <label for="segmentFilter" class="small">Segment</label>
+                    <select id="segmentFilter"
+                            name="segment"
+                            class="form-control form-select form-select-sm">
+                        <option value="">- Any -</option>
+                        {% for segment in segments %}
+                            <option value="{{ segment.id }}">{{ segment.name }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+            {% endif %}
+            <div class="form-group col-lg-2 col-sm-6 col-12">
                 <label for="indexingNotesSearch" class="small">Indexing notes search</label>
                 <select class="form-control form-select form-select-sm"
                         id="indexingNotesOp"
@@ -118,7 +153,8 @@
                     <option value="starts_with">Starts with</option>
                 </select>
             </div>
-            <div class="form-group col-sm-9 col-12">
+            <div class="form-group col-lg-4 col-sm-6 col-12">
+                <label class="small">&nbsp;</label>
                 <input type="text"
                        class="form-control form-control-sm"
                        id="indexingNotesSearch"
@@ -126,7 +162,7 @@
                        value="{{ request.GET.indexing_notes }}" />
             </div>
         </div>
-    {% endif %}
+    </div>
     <div class="row align-items-end pt-2">
         <div class="form-group col-lg">
             <button type="submit" class="btn btn-dark btn-sm" id="btn-submit">Apply</button>

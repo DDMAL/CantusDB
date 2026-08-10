@@ -144,6 +144,20 @@ class SourceCreateViewTest(TestCase):
         source = Source.objects.first()
         self.assertEqual(source.shelfmark, "test-shelfmark")
 
+    def test_segment_m2m_excludes_benedicamus_domino(self) -> None:
+        # "Benedicamus Domino" is a chant-level project designation, not a
+        # source segment, so it should not be offered here (see #2131).
+        make_fake_segment(
+            name="Benedicamus Domino", id=settings.BENEDICAMUS_DOMINO_SEGMENT_ID
+        )
+        response = self.client.get(reverse("source-create"))
+        segment_ids = (
+            response.context["form"]
+            .fields["segment_m2m"]
+            .queryset.values_list("id", flat=True)
+        )
+        self.assertNotIn(settings.BENEDICAMUS_DOMINO_SEGMENT_ID, segment_ids)
+
 
 class SourceEditViewTest(CustomAccessTestMixin, TestCase):
     default_user = "editor"
@@ -225,6 +239,21 @@ class SourceEditViewTest(CustomAccessTestMixin, TestCase):
         self.assertRedirects(response, reverse("source-detail", args=[source.id]))
         source.refresh_from_db()
         self.assertEqual(source.shelfmark, "test-shelfmark")
+
+    def test_segment_m2m_excludes_benedicamus_domino(self) -> None:
+        # "Benedicamus Domino" is a chant-level project designation, not a
+        # source segment, so it should not be offered here (see #2131).
+        make_fake_segment(
+            name="Benedicamus Domino", id=settings.BENEDICAMUS_DOMINO_SEGMENT_ID
+        )
+        source = self.sources["editor_assigned_source"]
+        response = self.client.get(reverse("source-edit", args=[source.id]))
+        segment_ids = (
+            response.context["form"]
+            .fields["segment_m2m"]
+            .queryset.values_list("id", flat=True)
+        )
+        self.assertNotIn(settings.BENEDICAMUS_DOMINO_SEGMENT_ID, segment_ids)
 
 
 class SourceDetailViewTest(SourcePermissionsTestCase):
@@ -641,6 +670,17 @@ class SourceBrowseChantsViewTest(SourcePermissionsTestCase):
         self.assertEqual(response.status_code, 200)
         self.assertTemplateUsed(response, "base.html")
         self.assertTemplateUsed(response, "browse_chants.html")
+
+    def test_chant_rows_have_anchor_ids(self):
+        # SourceEditChantsView.get_success_url redirects to `#chant-<pk>` after an
+        # edit, so each row must carry the matching anchor or the user lands at
+        # the top of the list instead of on the chant they edited (#1433).
+        cantus_segment = make_fake_segment(id=4063)
+        source = make_fake_source(segment=[cantus_segment])
+        chant = make_fake_chant(source=source)
+        response = self.client.get(reverse("browse-chants", args=[source.id]))
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, f'id="chant-{chant.id}"')
 
     def test_visibility_by_segment(self):
         cantus_segment = make_fake_segment(id=4063)
@@ -1086,6 +1126,134 @@ class SourceListViewTest(CustomAccessTestMixin, TestCase):
         self.assertIn(ninth_century_source, sources)
         self.assertIn(tenth_century_source, sources)
         self.assertNotIn(fifteenth_century_source, sources)
+
+    def test_date_range_does_not_hide_sources_without_century(self) -> None:
+        """A source with no century assigned must not disappear from the list
+        just because the date-range form was submitted at its default (full)
+        span -- it should only be filtered out when the range is actually
+        narrowed. Regression test for undated sources vanishing from search.
+        """
+        # Dated centuries establish the outer slider bounds: 800-1499, which
+        # the view rounds/clips to a default range of 800-1500.
+        make_fake_century(name="09th century")
+        tenth_century = make_fake_century(name="10th century")
+        make_fake_century(name="15th century")
+
+        undated_source = make_fake_source(published=True, shelfmark="no century")
+        undated_source.century.set([])
+        tenth_century_source = make_fake_source(published=True, shelfmark="10th")
+        tenth_century_source.century.set([tenth_century])
+
+        with self.subTest("No date params: undated source is shown"):
+            response = self.client.get(reverse("source-list"))
+            self.assertIn(undated_source, response.context["sources"])
+
+        with self.subTest("Default full-range params: undated source is shown"):
+            response = self.client.get(
+                reverse("source-list"), {"dateStart": 800, "dateEnd": 1500}
+            )
+            self.assertIn(undated_source, response.context["sources"])
+
+        with self.subTest("Range beyond the bounds: undated source is shown"):
+            response = self.client.get(
+                reverse("source-list"), {"dateStart": 600, "dateEnd": 3000}
+            )
+            self.assertIn(undated_source, response.context["sources"])
+
+        with self.subTest("Genuine narrowing: undated source is filtered out"):
+            response = self.client.get(
+                reverse("source-list"), {"dateStart": 900, "dateEnd": 999}
+            )
+            sources = response.context["sources"]
+            self.assertNotIn(undated_source, sources)
+            self.assertIn(tenth_century_source, sources)
+
+    def test_ccdb_browse_date_range_does_not_hide_sources_without_century(
+        self,
+    ) -> None:
+        """`CcdbBrowseView` reuses `SourceListView`'s date-range filtering
+        unchanged, so it must exhibit the same undated-source regression
+        fix as the plain source list: shown at the default (full) range,
+        filtered out only once the range is genuinely narrowed.
+        """
+        ccdb_segment = make_fake_segment(id=settings.CCDB_SEGMENT_ID)
+        make_fake_century(name="09th century")
+        tenth_century = make_fake_century(name="10th century")
+        make_fake_century(name="15th century")
+
+        undated_source = make_fake_source(
+            segment=[ccdb_segment], published=True, shelfmark="no century"
+        )
+        undated_source.century.set([])
+        tenth_century_source = make_fake_source(
+            segment=[ccdb_segment], published=True, shelfmark="10th"
+        )
+        tenth_century_source.century.set([tenth_century])
+
+        with self.subTest("No date params: undated source is shown"):
+            response = self.client.get(reverse("ccdb-browse"))
+            self.assertIn(undated_source, response.context["sources"])
+
+        with self.subTest("Default full-range params: undated source is shown"):
+            response = self.client.get(
+                reverse("ccdb-browse"), {"dateStart": 800, "dateEnd": 1500}
+            )
+            self.assertIn(undated_source, response.context["sources"])
+
+        with self.subTest("Genuine narrowing: undated source is filtered out"):
+            response = self.client.get(
+                reverse("ccdb-browse"), {"dateStart": 900, "dateEnd": 999}
+            )
+            sources = response.context["sources"]
+            self.assertNotIn(undated_source, sources)
+            self.assertIn(tenth_century_source, sources)
+
+    def test_search_by_identifier_does_not_hide_undated_source(self) -> None:
+        """Regression test for an undated source (e.g. Otto Ege MS 22)
+        disappearing from an identifier search. The source list form submits
+        the date-range slider's default (full) bounds alongside any search
+        term, so a general/identifier search must not be affected by that.
+        """
+        make_fake_century(name="09th century")
+        make_fake_century(name="15th century")
+
+        undated_source = make_fake_source(published=True, shelfmark="Otto Ege MS 22")
+        undated_source.century.set([])
+        SourceIdentifier.objects.create(
+            source=undated_source,
+            identifier="Ege-22",
+            type=SourceIdentifier.OTHER,
+        )
+
+        response = self.client.get(
+            reverse("source-list"),
+            {"general": "Ege-22", "dateStart": 800, "dateEnd": 1500},
+        )
+        self.assertIn(undated_source, response.context["sources"])
+
+    def test_advanced_search_active_reflects_date_range_narrowing(self) -> None:
+        """`advanced_search_active` controls whether the advanced-search
+        panel opens by default; it must not flip on just because the
+        date-range slider submits its default (full) bounds.
+        """
+        make_fake_century(name="09th century")
+        make_fake_century(name="15th century")
+
+        with self.subTest("No params: advanced search not active"):
+            response = self.client.get(reverse("source-list"))
+            self.assertFalse(response.context["advanced_search_active"])
+
+        with self.subTest("Default full-range params: advanced search not active"):
+            response = self.client.get(
+                reverse("source-list"), {"dateStart": 800, "dateEnd": 1500}
+            )
+            self.assertFalse(response.context["advanced_search_active"])
+
+        with self.subTest("Narrowed range: advanced search active"):
+            response = self.client.get(
+                reverse("source-list"), {"dateStart": 900, "dateEnd": 999}
+            )
+            self.assertTrue(response.context["advanced_search_active"])
 
     def test_filter_by_full_source(self) -> None:
         full_source = make_fake_source(
