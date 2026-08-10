@@ -1,7 +1,8 @@
 from typing import Dict, Any
 
 from django.views.generic import DetailView, ListView, UpdateView
-from django.db.models import Q, QuerySet
+from django.db.models import Q, QuerySet, Value
+from django.db.models.functions import Coalesce, Concat
 from django.contrib import messages
 from django.http import HttpResponse
 
@@ -34,8 +35,12 @@ class SequenceDetailView(CustomAccessMixin, DetailView):  # type: ignore[type-ar
         context["concordances"] = (
             Sequence.objects.select_related("source__holding_institution")
             .filter(cantus_id=sequence.cantus_id)
-            .select_related("source")
-            .order_by("siglum")
+            .order_by(
+                "source__holding_institution__siglum",
+                "source__shelfmark",
+                "folio",
+                "s_sequence",
+            )
         )
 
         context["user_can_edit_sequence"] = self.user_assigned_to_source(
@@ -69,7 +74,17 @@ class SequenceListView(CustomAccessMixin, ListView):  # type: ignore[type-arg]
             q_obj_filter &= Q(incipit__icontains=incipit)
         if self.request.GET.get("siglum"):
             siglum = self.request.GET.get("siglum")
-            q_obj_filter &= Q(siglum__icontains=siglum)
+            # `Sequence.siglum` is a frozen legacy column; match the source's
+            # current composed heading (institution siglum + shelfmark) instead,
+            # which is what the list actually displays (#2025).
+            queryset = queryset.annotate(
+                computed_siglum=Concat(
+                    Coalesce("source__holding_institution__siglum", Value("")),
+                    Value(" "),
+                    Coalesce("source__shelfmark", Value("")),
+                )
+            )
+            q_obj_filter &= Q(computed_siglum__icontains=siglum)
         if self.request.GET.get("cantus_id"):
             cantus_id = self.request.GET.get("cantus_id")
             q_obj_filter &= Q(cantus_id__icontains=cantus_id)
