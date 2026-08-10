@@ -1,4 +1,4 @@
-from typing import Optional
+from typing import Any, Optional
 
 from django.db import models
 from django.contrib.auth import get_user_model
@@ -255,7 +255,7 @@ class Source(BaseModel):
         )
 
     @staticmethod
-    def compose_short_heading(institution_siglum: Optional[str], shelfmark: str) -> str:
+    def compose_short_heading(institution_siglum: str | None, shelfmark: str) -> str:
         """Build a source's short heading from its component values.
 
         Kept separate from the `short_heading` property so that bulk exports,
