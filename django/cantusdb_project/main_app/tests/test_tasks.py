@@ -1,9 +1,17 @@
+import csv
+import io
+import shutil
+import tempfile
+import zipfile
 from typing import List, Dict, Any
 from unittest.mock import patch, DEFAULT
 
+from django.conf import settings
 from django.core import mail
-from django.test import TestCase
+from django.core.files.base import ContentFile
+from django.test import SimpleTestCase, TestCase, override_settings
 from django.db.models import QuerySet
+from django.urls import reverse
 
 from main_app.tasks import (
     save_browse_chants_formset,
@@ -15,6 +23,8 @@ from main_app.tasks import (
     check_blank_mode,
     check_blank_invitatory_differentia,
     run_data_checks,
+    _format_check_csv,
+    CHECK_LABELS,
 )
 from main_app.tests.make_fakes import (
     make_fake_source,
@@ -23,8 +33,16 @@ from main_app.tests.make_fakes import (
     make_fake_genre,
     make_fake_user,
 )
-from main_app.models import Chant, DataCheckConfig, Genre, Source
+from main_app.models import (
+    Chant,
+    DataCheckConfig,
+    DataCheckReport,
+    Genre,
+    Sequence,
+    Source,
+)
 from main_app.forms import BrowseChantsBulkEditFormset
+from main_app.storage import private_media_storage
 
 
 class SaveBrowseChantsFormsetTest(TestCase):
@@ -305,7 +323,155 @@ class CheckBlankInvitatoryDifferentiaTest(TestCase):
         self.assertNotIn(non_invitatory, result["published"])
 
 
-class RunDataChecksTest(TestCase):
+@override_settings(CANTUSDB_HOST="cantusdatabase.org")
+class FormatCheckCsvTest(TestCase):
+    EXPECTED_BASE_URL = "https://cantusdatabase.org"
+
+    def test_chant_row_links_to_chant_detail_and_flags_published(self) -> None:
+        pub_source = make_fake_source(published=True)
+        unpub_source = make_fake_source(published=False)
+        pub_chant = make_fake_chant(source=pub_source, cantus_id="BADID")
+        unpub_chant = make_fake_chant(source=unpub_source, cantus_id="BADID")
+
+        content = _format_check_csv(
+            {"published": [pub_chant], "unpublished": [unpub_chant]}
+        )
+        rows = list(csv.DictReader(io.StringIO(content)))
+
+        pub_row = next(r for r in rows if r["chant_id"] == str(pub_chant.id))
+        unpub_row = next(r for r in rows if r["chant_id"] == str(unpub_chant.id))
+
+        expected_link = f'=HYPERLINK("{self.EXPECTED_BASE_URL}/chant/{pub_chant.id}/","{pub_chant.id}")'
+        self.assertEqual(pub_row["link"], expected_link)
+        self.assertEqual(pub_row["published"], "1")
+        self.assertEqual(unpub_row["published"], "0")
+
+    def test_formula_injection_trigger_chars_are_neutralized(self) -> None:
+        source = make_fake_source(published=True, siglum="=cmd|'/c calc'!A1")
+        chant = make_fake_chant(source=source, genre=None, cantus_id="=2+2")
+
+        content = _format_check_csv({"published": [chant], "unpublished": []})
+        rows = list(csv.DictReader(io.StringIO(content)))
+        row = rows[0]
+
+        self.assertEqual(row["source"], "'=cmd|'/c calc'!A1")
+        self.assertEqual(row["cantus_id"], "'=2+2")
+
+    def test_duplicate_check_uses_group_header_even_with_no_rows(self) -> None:
+        content = _format_check_csv(
+            {"published": [], "unpublished": []},
+            check_key="duplicate_folio_sequence",
+        )
+        header = content.splitlines()[0]
+        self.assertEqual(header, "link,source_id,folio,sequence,count,ids,published")
+
+    def test_position_service_mismatch_shows_position_and_service_not_mode(
+        self,
+    ) -> None:
+        source = make_fake_source(published=True)
+        vespers = make_fake_service(name="V")
+        chant = make_fake_chant(source=source, position="M", service=vespers, mode="3")
+
+        content = _format_check_csv(
+            {"published": [chant], "unpublished": []},
+            check_key="position_service_mismatch",
+        )
+        rows = list(csv.DictReader(io.StringIO(content)))
+        row = rows[0]
+
+        self.assertNotIn("mode", row)
+        self.assertEqual(row["position"], "M")
+        self.assertEqual(row["service"], "V")
+
+    def test_duplicate_group_row_links_to_source_folio(self) -> None:
+        source = make_fake_source(published=True)
+        make_fake_chant(source=source, folio="001r", c_sequence=1)
+        Chant.objects.create(
+            source=source,
+            folio="001r",
+            c_sequence=1,
+            manuscript_full_text_std_spelling="test",
+        )
+
+        result = check_duplicate_folio_sequence()
+        content = _format_check_csv(result)
+        rows = list(csv.DictReader(io.StringIO(content)))
+
+        row = next(r for r in rows if r["source_id"] == str(source.id))
+        expected_link = f'=HYPERLINK("{self.EXPECTED_BASE_URL}/source/{source.id}/chants/?folio=001r","{source.id}")'
+        self.assertEqual(row["link"], expected_link)
+        self.assertEqual(row["published"], "1")
+
+    def test_sequence_duplicate_group_row_links_to_source_not_chants(self) -> None:
+        # Bower-segment sources hold only Sequences, so SourceBrowseChantsView
+        # (the /chants/ page) 404s for them; the row must link to the source
+        # detail page instead.
+        source = make_fake_source(
+            published=True, segment_name="Bower Sequence Database"
+        )
+        Sequence.objects.create(source=source, folio="001r", s_sequence="1")
+        Sequence.objects.create(source=source, folio="001r", s_sequence="1")
+
+        result = check_duplicate_folio_sequence()
+        content = _format_check_csv(result, check_key="duplicate_folio_sequence")
+        rows = list(csv.DictReader(io.StringIO(content)))
+
+        row = next(r for r in rows if r["source_id"] == str(source.id))
+        expected_link = (
+            f'=HYPERLINK("{self.EXPECTED_BASE_URL}/source/{source.id}/","{source.id}")'
+        )
+        self.assertEqual(row["link"], expected_link)
+        self.assertEqual(row["published"], "1")
+
+
+class PrivateMediaStorageTest(SimpleTestCase):
+    """Unit tests for the storage mechanics, independent of the model using it."""
+
+    def test_location_resolves_from_private_media_root_setting(self) -> None:
+        with override_settings(PRIVATE_MEDIA_ROOT="/tmp/one"):
+            self.assertEqual(private_media_storage().location, "/tmp/one")
+
+    def test_location_tracks_setting_changes(self) -> None:
+        # base_location/location must be recomputed on override_settings,
+        # not resolved once at __init__ time, or tests using TempMediaRootMixin
+        # would silently write into the real private media volume.
+        storage = private_media_storage()
+        with override_settings(PRIVATE_MEDIA_ROOT="/tmp/one"):
+            self.assertEqual(storage.location, "/tmp/one")
+        with override_settings(PRIVATE_MEDIA_ROOT="/tmp/two"):
+            self.assertEqual(storage.location, "/tmp/two")
+
+    def test_location_is_independent_of_media_root(self) -> None:
+        with override_settings(
+            MEDIA_ROOT="/tmp/media", PRIVATE_MEDIA_ROOT="/tmp/private"
+        ):
+            self.assertEqual(private_media_storage().location, "/tmp/private")
+
+
+class TempMediaRootMixin:
+    """Sandboxes FileField writes to temp dirs instead of the real media volumes."""
+
+    @classmethod
+    def setUpClass(cls) -> None:
+        super().setUpClass()
+        cls._media_root = tempfile.mkdtemp()
+        cls._private_media_root = tempfile.mkdtemp()
+        cls._media_root_override = override_settings(
+            MEDIA_ROOT=cls._media_root,
+            PRIVATE_MEDIA_ROOT=cls._private_media_root,
+        )
+        cls._media_root_override.enable()
+
+    @classmethod
+    def tearDownClass(cls) -> None:
+        cls._media_root_override.disable()
+        shutil.rmtree(cls._media_root, ignore_errors=True)
+        shutil.rmtree(cls._private_media_root, ignore_errors=True)
+        super().tearDownClass()
+
+
+class RunDataChecksTest(TempMediaRootMixin, TestCase):
+
     def _patch_checks(self):
         empty_result = {"published": [], "unpublished": []}
         patcher = patch.multiple(
@@ -353,6 +519,128 @@ class RunDataChecksTest(TestCase):
         self.assertEqual(len(mail.outbox), 1)
         sent = mail.outbox[0]
         self.assertEqual(sent.to, [recipient.email])
-        self.assertEqual(len(sent.attachments), 7)
+        self.assertEqual(len(sent.attachments), 1)
+        filename, content, mimetype = sent.attachments[0]
+        self.assertTrue(filename.endswith(".zip"))
+        self.assertEqual(mimetype, "application/zip")
+        with zipfile.ZipFile(io.BytesIO(content)) as zip_file:
+            self.assertEqual(
+                set(zip_file.namelist()), {f"{key}.csv" for key in CHECK_LABELS}
+            )
         config.refresh_from_db()
         self.assertIsNotNone(config.last_run)
+
+        self.assertEqual(DataCheckReport.objects.count(), 1)
+        report = DataCheckReport.objects.first()
+        self.assertTrue(report.file.name)
+        self.assertFalse(report.completed)
+
+
+class DataCheckReportAdminTest(TempMediaRootMixin, TestCase):
+
+    def setUp(self) -> None:
+        self.superuser = make_fake_user(is_superuser=True)
+        self.client.force_login(self.superuser)
+
+    def _make_report(self) -> DataCheckReport:
+        return DataCheckReport.objects.create(
+            file=ContentFile(b"fake zip contents", name="report.zip")
+        )
+
+    def test_add_view_is_disabled(self) -> None:
+        url = reverse("admin:main_app_datacheckreport_add")
+        response = self.client.get(url)
+        # has_add_permission=False -> 403.
+        self.assertEqual(response.status_code, 403)
+
+    def test_changelist_shows_download_link(self) -> None:
+        report = self._make_report()
+        url = reverse("admin:main_app_datacheckreport_changelist")
+        response = self.client.get(url)
+        self.assertEqual(response.status_code, 200)
+        download_url = reverse(
+            "admin:main_app_datacheckreport_download", args=[report.pk]
+        )
+        self.assertContains(response, download_url)
+        self.assertContains(response, "Download")
+
+    def test_download_view_streams_file_contents(self) -> None:
+        report = self._make_report()
+        url = reverse("admin:main_app_datacheckreport_download", args=[report.pk])
+        response = self.client.get(url)
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(b"".join(response.streaming_content), b"fake zip contents")
+
+    def test_download_view_requires_staff(self) -> None:
+        self.client.logout()
+        report = self._make_report()
+        url = reverse("admin:main_app_datacheckreport_download", args=[report.pk])
+        response = self.client.get(url)
+        self.assertNotEqual(response.status_code, 200)
+
+    def test_download_view_returns_404_for_unknown_pk(self) -> None:
+        url = reverse("admin:main_app_datacheckreport_download", args=[999999])
+        response = self.client.get(url)
+        self.assertEqual(response.status_code, 404)
+
+    def test_download_view_sets_attachment_filename(self) -> None:
+        report = self._make_report()
+        stored_filename = report.file.name.rsplit("/", 1)[-1]
+        url = reverse("admin:main_app_datacheckreport_download", args=[report.pk])
+        response = self.client.get(url)
+        self.assertIn("attachment", response.headers["Content-Disposition"])
+        self.assertIn(stored_filename, response.headers["Content-Disposition"])
+
+    def test_file_is_not_stored_under_public_media_root(self) -> None:
+        """Reports must live outside MEDIA_ROOT, which nginx serves publicly."""
+        report = self._make_report()
+        absolute_path = report.file.path
+        self.assertFalse(absolute_path.startswith(str(settings.MEDIA_ROOT)))
+        self.assertTrue(absolute_path.startswith(str(settings.PRIVATE_MEDIA_ROOT)))
+
+    def test_changelist_allows_marking_completed_via_list_editable(self) -> None:
+        report = self._make_report()
+        url = reverse("admin:main_app_datacheckreport_changelist")
+        response = self.client.post(
+            url,
+            {
+                "form-TOTAL_FORMS": "1",
+                "form-INITIAL_FORMS": "1",
+                "form-MIN_NUM_FORMS": "0",
+                "form-MAX_NUM_FORMS": "1000",
+                "form-0-id": str(report.id),
+                "form-0-completed": "on",
+                "_save": "Save",
+            },
+            follow=True,
+        )
+        self.assertEqual(response.status_code, 200)
+        report.refresh_from_db()
+        self.assertTrue(report.completed)
+
+    def test_change_view_allows_editing_notes(self) -> None:
+        report = self._make_report()
+        url = reverse("admin:main_app_datacheckreport_change", args=[report.id])
+        response = self.client.post(
+            url,
+            {"completed": "on", "notes": "reviewed, looks fine"},
+            follow=True,
+        )
+        self.assertEqual(response.status_code, 200)
+        report.refresh_from_db()
+        self.assertTrue(report.completed)
+        self.assertEqual(report.notes, "reviewed, looks fine")
+
+    def test_delete_view_removes_file_from_storage(self) -> None:
+        report = self._make_report()
+        file_name = report.file.name
+        storage = report.file.storage
+        self.assertTrue(storage.exists(file_name))
+
+        url = reverse("admin:main_app_datacheckreport_delete", args=[report.id])
+        with self.captureOnCommitCallbacks(execute=True):
+            response = self.client.post(url, {"post": "yes"}, follow=True)
+
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(DataCheckReport.objects.count(), 0)
+        self.assertFalse(storage.exists(file_name))

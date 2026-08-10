@@ -28,6 +28,12 @@ BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 
 STATIC_ROOT = os.getenv("CANTUSDB_STATIC_ROOT")
 MEDIA_ROOT = os.getenv("CANTUSDB_MEDIA_ROOT")
+MEDIA_URL = "/media/"
+
+# Storage for files that must never be reachable through nginx's public
+# /media alias (e.g. data check reports). Served only via authenticated
+# Django views.
+PRIVATE_MEDIA_ROOT = os.getenv("CANTUSDB_PRIVATE_MEDIA_ROOT")
 
 # Quick-start development settings - unsuitable for production
 # See https://docs.djangoproject.com/en/3.0/howto/deployment/checklist/
@@ -40,8 +46,9 @@ PROJECT_ENVIRONMENT = os.getenv("PROJECT_ENVIRONMENT")
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = False  # this is switched to True below when PROJECT_ENVIRONMENT=="DEVELOPMENT"
 
-ALLOWED_HOSTS = [os.getenv("CANTUSDB_HOST")]
-CSRF_TRUSTED_ORIGINS = [f'https://{os.getenv("CANTUSDB_HOST")}']
+CANTUSDB_HOST = os.getenv("CANTUSDB_HOST")
+ALLOWED_HOSTS = [CANTUSDB_HOST]
+CSRF_TRUSTED_ORIGINS = [f"https://{CANTUSDB_HOST}"]
 if PROJECT_ENVIRONMENT == "DEVELOPMENT":
     DEBUG = True
 
