@@ -636,11 +636,13 @@ class SourceListView(CustomAccessMixin, ListView):  # type: ignore[type-arg]
                 f"{sort_prefix}holding_institution__name",
                 f"{sort_prefix}holding_institution__siglum",
                 f"{sort_prefix}shelfmark",
+                f"{sort_prefix}id",
             ]
         else:
             order_by_args = [
                 f"{sort_prefix}holding_institution__siglum",
                 f"{sort_prefix}shelfmark",
+                f"{sort_prefix}id",
             ]
 
         return (
