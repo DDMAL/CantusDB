@@ -3887,6 +3887,8 @@ class ValidateChantTextViewTest(TestCase):
         problems = response.json()["problems"]
         self.assertEqual(len(problems), 1)
         self.assertEqual(problems[0]["kind"], "structural")
+        # The offending word is quoted so its boundaries are clear.
+        self.assertIn('"["', problems[0]["message"])
 
     def test_only_fields_present_are_checked(self) -> None:
         response = self.client.post(

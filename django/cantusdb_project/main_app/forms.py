@@ -1,4 +1,5 @@
 import html
+import re
 from typing import Optional, Any, Dict
 
 from django import forms
@@ -175,9 +176,18 @@ def find_chant_text_problem(
     try:
         syllabify_text(value, text_presyllabified=text_presyllabified)
     except LatinError as err:
+        # volpiano-display-utilities phrases this as
+        # "Word {word} contains non-alphabetic characters."; quote the word so
+        # its boundaries are clear (e.g. an unmatched "["). If the upstream
+        # wording ever changes, the message passes through unquoted.
+        message = re.sub(
+            r"^Word (.+) (contains non-alphabetic characters\.)$",
+            r'Word "\1" \2',
+            str(err),
+        )
         return {
             "kind": "structural",
-            "message": str(err),
+            "message": message,
             "marked_html": html.escape(value),
         }
     except ValueError:
