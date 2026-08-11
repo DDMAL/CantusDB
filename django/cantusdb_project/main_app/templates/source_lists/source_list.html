@@ -140,9 +140,9 @@
             </div>
             <div class="col-lg-4">
                 <label for="sourceCompletenessFilter" class="small form-label">
-                    Complete Source/Fragment
+                    Source: Physical Status
                 </label>
-                <div class="input-group" id="sourceCompletenessFilter">
+                <div class="d-flex flex-wrap" id="sourceCompletenessFilter">
                     {% for source_completeness_value, source_completeness_label in source_completeness_choices %}
                         <div class="form-check form-check-inline">
                             <input type="checkbox"
@@ -157,6 +157,44 @@
                             </label>
                         </div>
                     {% endfor %}
+                </div>
+                <label for="inventoriedFilter" class="small form-label mt-1">
+                    Source: Indexing Status
+                </label>
+                <div class="d-flex flex-wrap" id="inventoriedFilter">
+                    <div class="form-check form-check-inline">
+                        <input type="radio"
+                               class="form-check-input"
+                               id="inventoried-all"
+                               name="inventoried"
+                               value="all"
+                               {% if request.GET.inventoried != "inventoried" and request.GET.inventoried != "nonInventoried" %}checked{% endif %} />
+                        <label class="form-label form-check-label small" for="inventoried-all">
+                            All
+                        </label>
+                    </div>
+                    <div class="form-check form-check-inline">
+                        <input type="radio"
+                               class="form-check-input"
+                               id="inventoried-inventoried"
+                               name="inventoried"
+                               value="inventoried"
+                               {% if request.GET.inventoried == "inventoried" %}checked{% endif %} />
+                        <label class="form-label form-check-label small" for="inventoried-inventoried">
+                            Inventoried
+                        </label>
+                    </div>
+                    <div class="form-check form-check-inline">
+                        <input type="radio"
+                               class="form-check-input"
+                               id="inventoried-nonInventoried"
+                               name="inventoried"
+                               value="nonInventoried"
+                               {% if request.GET.inventoried == "nonInventoried" %}checked{% endif %} />
+                        <label class="form-label form-check-label small" for="inventoried-nonInventoried">
+                            Non-inventoried
+                        </label>
+                    </div>
                 </div>
             </div>
         </div>

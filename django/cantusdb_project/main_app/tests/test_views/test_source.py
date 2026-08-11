@@ -1376,6 +1376,47 @@ class SourceListViewTest(CustomAccessTestMixin, TestCase):
             self.assertNotIn(manuscript_source, sources)
             self.assertIn(print_source, sources)
 
+    def test_filter_by_inventoried(self) -> None:
+        inventoried_source = make_fake_source(number_of_chants=5, published=True)
+        zero_chants_source = make_fake_source(number_of_chants=0, published=True)
+        null_chants_source = make_fake_source(number_of_chants=None, published=True)
+
+        with self.subTest("No parameter: all sources shown"):
+            response = self.client.get(reverse("source-list"))
+            sources = response.context["sources"]
+            self.assertIn(inventoried_source, sources)
+            self.assertIn(zero_chants_source, sources)
+            self.assertIn(null_chants_source, sources)
+
+        with self.subTest("inventoried=all: all sources shown"):
+            response = self.client.get(reverse("source-list"), {"inventoried": "all"})
+            sources = response.context["sources"]
+            self.assertIn(inventoried_source, sources)
+            self.assertIn(zero_chants_source, sources)
+            self.assertIn(null_chants_source, sources)
+
+        with self.subTest(
+            "inventoried=inventoried: only sources with chants are shown"
+        ):
+            response = self.client.get(
+                reverse("source-list"), {"inventoried": "inventoried"}
+            )
+            sources = response.context["sources"]
+            self.assertIn(inventoried_source, sources)
+            self.assertNotIn(zero_chants_source, sources)
+            self.assertNotIn(null_chants_source, sources)
+
+        with self.subTest(
+            "inventoried=nonInventoried: sources with chants are excluded"
+        ):
+            response = self.client.get(
+                reverse("source-list"), {"inventoried": "nonInventoried"}
+            )
+            sources = response.context["sources"]
+            self.assertNotIn(inventoried_source, sources)
+            self.assertIn(zero_chants_source, sources)
+            self.assertIn(null_chants_source, sources)
+
     def test_search_by_title(self) -> None:
         """The "general search" field searches in `title`, `shelfmark`, `description`, and `summary`"""
         source = make_fake_source(
