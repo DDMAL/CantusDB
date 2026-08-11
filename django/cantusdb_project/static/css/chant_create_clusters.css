@@ -92,6 +92,40 @@
     content: "proposed";
 }
 
+/* Automatic split (#2165). Everything the split produces is a core element — it does by
+ * machine exactly what the cataloguer would have done by hand — so the only thing
+ * data-auto-kind marks is which boxes are the "|"-type separators the split cut the text
+ * at. It drives "Remove separators" and this styling, and nothing else. Placed after the
+ * core/component rules above so it wins on both order and specificity (one class + one
+ * attribute beats one class).
+ *
+ * A separator is markup the cataloguer is expected to drop, so it reads as markup rather
+ * than as text, and shows no Cantus ID: labelling a bare "|" with the parent chant's
+ * Cantus ID would be nonsense. */
+.cluster-token[data-auto-kind="separator"] {
+    background: #f1f3f5;
+    border-color: #ced4da;
+    color: #6c757d;
+    font-family: var(--bs-font-monospace, monospace);
+    padding-left: 0.25rem;
+    padding-right: 0.25rem;
+}
+.cluster-token[data-auto-kind="separator"]:hover {
+    border-color: #adb5bd;
+}
+.cluster-token[data-auto-kind="separator"] .token-cid {
+    display: none;
+}
+
+/* A shift-clicked run waiting to be merged or deleted (#2165). An outline rather than a
+ * background: the box keeps saying what it IS while it is picked, and outline is drawn
+ * outside the border box so adding it shifts nothing — the same reason the token border is
+ * kept at 1px in every state. */
+.cluster-token[data-selected="true"] {
+    outline: 2px solid #0d6efd;
+    outline-offset: 1px;
+}
+
 /* split mode: the core's words with clickable boundaries between them.
  * inline-flex + align-items:stretch makes every boundary the exact same height
  * and vertically aligned, so the hairlines line up cleanly across the chunk. */
