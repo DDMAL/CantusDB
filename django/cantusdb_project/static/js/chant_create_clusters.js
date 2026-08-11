@@ -50,6 +50,8 @@
     const TYPEAHEAD_MIN_HEIGHT = 120;
 
     let textarea, composer, cantusIdInput, hasComponentCheckbox, hint, status, undoButton, reloadButton, tray;
+    // The Clean up menu (#2165): the automatic split, then the removal it enables.
+    let cleanup, cleanupButton, autoSplitItem, removeSeparatorsItem;
     let bank, bankItems, bankStatus, bankHeading; // the elements card in the sidebar
     let elementsField; // hidden input carrying the composed elements as JSON to the server
     // Truthy while the composer is active (cluster mode on); null when off. No preset
@@ -91,6 +93,11 @@
     // (via a ResizeObserver on the form) and coalesced into one rAF so a burst of changes
     // doesn't thrash layout.
     let alignScheduled = false;
+
+    // "1 element" / "2 elements", for the confirm dialogs.
+    function plural(count, singular, pluralForm) {
+        return count + " " + (count === 1 ? singular : pluralForm);
+    }
 
     // ---- tokens ---------------------------------------------------------
 
@@ -160,12 +167,50 @@
         return isCoreToken(node) || isProposedToken(node);
     }
 
+    // Splittable in principle AND actually divisible. A one-word element has no boundary to
+    // split at, and enterSplitMode already declines it — which left the menu offering a Split
+    // that quietly did nothing. Automatic splitting produces plenty of one-word elements
+    // ("SANCTUS", "|"), so that dead item is now common enough to be worth withholding.
+    function canSplit(node) {
+        return (
+            isSplittable(node) &&
+            String(node.dataset.text).trim().split(/\s+/).filter(Boolean).length > 1
+        );
+    }
+
     function allTokens() {
         return Array.from(composer.querySelectorAll(".cluster-token"));
     }
 
     function componentTokens() {
         return Array.from(composer.querySelectorAll(".cluster-token--component"));
+    }
+
+    // Whether the cataloguer has composed anything worth protecting from a wipe. A single
+    // core element is just the untouched seed, so it doesn't count: warning about that would
+    // put a confirm in front of every stray tick of the checkbox. Anything else — a split, an
+    // interleaved component, something sitting in the restore tray — is real work.
+    function hasComposedWork() {
+        return (
+            allTokens().length > 1 || componentTokens().length > 0 || removedCores.length > 0
+        );
+    }
+
+    // Re-label existing cores after the Cantus ID field changes. Cores display the parent's
+    // ID but never store it as their own identity, so this is presentation only — without it
+    // the boxes keep showing the ID of the chant they were seeded from, which is a display
+    // that has quietly stopped being true.
+    function relabelCores() {
+        const parent = parentCantusId();
+        allTokens()
+            .filter(isCoreToken)
+            .forEach(function (token) {
+                token.dataset.cantusId = parent;
+                const cid = token.querySelector(".token-cid");
+                // Separator boxes hide their ID in CSS, but keep the data consistent anyway.
+                if (cid) cid.textContent = parent;
+            });
+        syncToTextarea(); // cores carry the parent ID into elements_json
     }
 
     // Insert a token at a collapsed range. No padding spaces: elements sit directly
@@ -203,6 +248,10 @@
         });
         textarea.value = parts.join(" ").replace(/\s+/g, " ").trim();
         syncToElementsField();
+        // Every path that changes the elements ends here — normalizeComposer, the seed,
+        // undo, deactivation — so this is the one place the Clean up menu's enabled states
+        // need refreshing from. Hooking normalizeComposer instead would miss undo.
+        updateCleanupMenu();
     }
 
     // Serialise the composer's tokens (DOM order = element order) into the hidden
@@ -274,6 +323,10 @@
         const snapshot = undoStack.pop();
         if (!snapshot) return;
         closeMenu(); // the rebuild below replaces every element node
+        // Same reason: the selected run and the anchor would be left pointing at nodes that
+        // are no longer in the document.
+        clearRangeSelection();
+        mergeAnchor = null;
         composer.innerHTML = snapshot.html;
         removedCores = snapshot.cores;
         renderTray();
@@ -538,7 +591,9 @@
         hint.hidden = !hasComponentCheckbox.checked;
         if (undoButton) undoButton.hidden = false;
         if (reloadButton) reloadButton.hidden = false;
+        if (cleanup) cleanup.hidden = false;
         updateReloadButton();
+        updateCleanupMenu();
         // manual base text is the fallback only when there's no Cantus ID to fetch by
         reseed(textarea.value.trim());
     }
@@ -551,6 +606,8 @@
         undoStack = [];
         caretBeforeToken = null;
         closeMenu(); // the wipe below replaces every element node
+        clearRangeSelection();
+        mergeAnchor = null;
         composer.innerHTML = "";
         composer.appendChild(document.createTextNode(" "));
         composer.contentEditable = "true"; // reset (seedBaseText locks it while fetching)
@@ -648,6 +705,8 @@
         activateSeq += 1; // cancel any in-flight base-text seed
         exitSplitMode();
         closeMenu();
+        clearRangeSelection();
+        mergeAnchor = null;
         normalizeComposer(); // preserve composed elements back into the textarea
         closeTypeahead();
         composer.hidden = true;
@@ -660,6 +719,7 @@
         setStatus("");
         if (undoButton) undoButton.hidden = true;
         if (reloadButton) reloadButton.hidden = true;
+        if (cleanup) cleanup.hidden = true;
         bankSeq += 1; // cancel any in-flight bank fetch
         bankElements = [];
         if (bank) bank.hidden = true;
@@ -1074,10 +1134,26 @@
 
         // Splittable elements (core, proposed) get Split; every element gets a
         // delete. Cores drop into the restore tray; components just go (undo only).
-        if (isSplittable(token)) {
+        if (canSplit(token)) {
             tokenMenu.appendChild(
                 menuButton("Split", "s", false, function () {
                     enterSplitMode(token);
+                })
+            );
+        }
+        // Merging is offered only towards a neighbour it is allowed with, so the menu never
+        // shows an action that would refuse. Shift-click a second box for a longer run.
+        if (mergeableNeighbour(token, -1)) {
+            tokenMenu.appendChild(
+                menuButton("Merge with previous", "p", false, function () {
+                    mergeWithNeighbour(token, -1);
+                })
+            );
+        }
+        if (mergeableNeighbour(token, 1)) {
+            tokenMenu.appendChild(
+                menuButton("Merge with next", "m", false, function () {
+                    mergeWithNeighbour(token, 1);
                 })
             );
         }
@@ -1127,6 +1203,10 @@
         return (
             key === "s" ||
             key === "S" ||
+            key === "m" ||
+            key === "M" ||
+            key === "p" ||
+            key === "P" ||
             key === "x" ||
             key === "X" ||
             key === "Backspace" ||
@@ -1187,6 +1267,41 @@
         closeMenu();
         normalizeComposer();
         renderTray();
+    }
+
+    // Several boxes at once — a shift-clicked run, or every separator a split found. Each
+    // one leaves exactly as deleteToken would take it alone (cores to the restore tray,
+    // components just gone), so a run is only a way of naming several deletions; what makes
+    // this its own function is that they share one undo step.
+    //
+    // Deleting the trope text is the main use. Cantus Index catalogues the separate
+    // <parent>:NN elements for very few chants, so that text is usually the only record of
+    // the trope — hence the tray, and hence cores going into it even in bulk.
+    function deleteTokens(tokens) {
+        if (!tokens.length) return;
+        exitSplitMode();
+        closeMenu();
+        pushUndo();
+        // Indexes are read from the composer as it stands, before anything leaves it, so the
+        // tray restores each element to the place it actually came from.
+        const order = allTokens();
+        let hadComponent = false;
+        tokens.forEach(function (token) {
+            if (isCoreToken(token)) {
+                removedCores.push({
+                    id: token.dataset.text,
+                    text: token.dataset.text,
+                    index: order.indexOf(token),
+                });
+            } else {
+                hadComponent = true;
+            }
+            token.remove();
+        });
+        clearRangeSelection();
+        normalizeComposer();
+        renderTray();
+        if (hadComponent) renderBank(); // a bank element it held is on offer again
     }
 
     // ---- split a core into two cores ------------------------------------
@@ -1256,6 +1371,247 @@
               };
         token.replaceWith(make(left), document.createTextNode(" "), make(right));
         normalizeComposer();
+    }
+
+    // ---- merge adjacent elements (#2165) --------------------------------
+    //
+    // The inverse of Split, for putting back together what a split — by hand or automatic —
+    // divided too finely. Everything the automatic split produces is a core element, so a
+    // merge is plain text concatenation with no type to reconcile.
+    //
+    // Two ways in, over one operation:
+    //   - the box's own menu offers "Merge with previous/next", and stays open on the result,
+    //     so m,m,m glues a run without re-clicking;
+    //   - shift-clicking a second box selects the whole run between the two and offers
+    //     "Merge N elements", for a split that came out too fine to fix a pair at a time.
+
+    let mergeAnchor = null; // the box a plain click last landed on: shift-click's origin
+    let selectedRange = []; // the run a shift-click has selected, in document order
+
+    // A run is mergeable when it is at least two boxes, holds no separator, and is all of
+    // one kind. Separators are punctuation to be removed, not text to be folded into an
+    // element; and merging across kinds would turn core text into component text or the
+    // reverse, which is not an operation this tool performs. An approved component owns its
+    // Cantus ID for its whole text, so it is excluded for the same reason it can't be split.
+    function isMergeable(tokens) {
+        if (tokens.length < 2) return false;
+        const kind = tokens[0].dataset.kind;
+        const proposed = isProposedToken(tokens[0]);
+        return tokens.every(function (token) {
+            return (
+                token.dataset.autoKind !== "separator" &&
+                token.dataset.kind === kind &&
+                isProposedToken(token) === proposed &&
+                (isCoreToken(token) || proposed)
+            );
+        });
+    }
+
+    // Fuse a run into one element. Returns the new element, or null if the run can't merge.
+    function mergeTokens(tokens) {
+        if (!isMergeable(tokens)) return null;
+        exitSplitMode();
+        closeMenu(); // the boxes below are about to be replaced
+        pushUndo();
+        const text = tokens
+            .map(function (token) {
+                return token.dataset.text;
+            })
+            .join(" ")
+            .replace(/\s+/g, " ")
+            .trim();
+        // Same kind in, same kind out — as performSplit does in the other direction.
+        const merged = isCoreToken(tokens[0])
+            ? makeCoreToken(text)
+            : makeToken("component", text, "", true);
+        // Deliberately no data-auto-kind: the result is the cataloguer's judgement, not the
+        // rules', so it stops wearing the colour the automatic split gave it — and stops
+        // being swept up by "Remove separators"/"Remove component elements".
+        tokens[0].replaceWith(merged);
+        tokens.slice(1).forEach(function (token) {
+            token.remove();
+        });
+        clearRangeSelection();
+        normalizeComposer();
+        return merged;
+    }
+
+    // The neighbour on one side, if merging with it is allowed. direction: -1 before, +1 after.
+    function mergeableNeighbour(token, direction) {
+        const tokens = allTokens();
+        const at = tokens.indexOf(token);
+        if (at < 0) return null;
+        const other = tokens[at + direction];
+        if (!other) return null;
+        const run = direction < 0 ? [other, token] : [token, other];
+        return isMergeable(run) ? other : null;
+    }
+
+    function mergeWithNeighbour(token, direction) {
+        const other = mergeableNeighbour(token, direction);
+        if (!other) return;
+        const merged = mergeTokens(direction < 0 ? [other, token] : [token, other]);
+        // Leave the menu up on the result so the same key merges again straight away.
+        if (merged) openMenu(merged);
+    }
+
+    function clearRangeSelection() {
+        selectedRange.forEach(function (token) {
+            delete token.dataset.selected;
+        });
+        selectedRange = [];
+    }
+
+    // Select the run between the anchor and the shift-clicked box, inclusive. Taking every
+    // box in the index span makes the run contiguous by construction.
+    function selectRangeTo(token) {
+        const tokens = allTokens();
+        const from = tokens.indexOf(mergeAnchor);
+        const to = tokens.indexOf(token);
+        if (from < 0 || to < 0 || from === to) return;
+        clearRangeSelection();
+        selectedRange = tokens.slice(Math.min(from, to), Math.max(from, to) + 1);
+        selectedRange.forEach(function (selected) {
+            selected.dataset.selected = "true";
+        });
+        openRangeMenu();
+    }
+
+    // The selected run's menu: fold it into one element, or delete the lot. Merge is shown
+    // disabled rather than withheld when the run can't take it, so the reason is legible
+    // where the cataloguer is looking instead of nothing appearing to happen. Delete has no
+    // such condition — a run of anything can be deleted, and separators mixed in with trope
+    // text is the ordinary case after a split.
+    function openRangeMenu() {
+        if (selectedRange.length < 2) return;
+        closeMenu();
+        closeTypeahead();
+        // positionMenu anchors on menuToken; the first box in the run is where it should sit.
+        menuToken = selectedRange[0];
+        tokenMenu.innerHTML = "";
+        const run = selectedRange.slice();
+        const merge = menuButton("Merge " + run.length + " elements", "m", false, function () {
+            mergeTokens(run);
+        });
+        merge.disabled = !isMergeable(run);
+        tokenMenu.appendChild(merge);
+        tokenMenu.appendChild(
+            menuButton("Delete " + run.length + " elements", "x", true, function () {
+                deleteTokens(run);
+            })
+        );
+        tokenMenu.hidden = false;
+        positionMenu();
+    }
+
+    // A document-level hotkey must not fire while the cataloguer is typing somewhere else:
+    // "m" is the merge key only when the composer is what holds focus.
+    function isTypingElsewhere(target) {
+        if (!target || target === composer || composer.contains(target)) return false;
+        if (tokenMenu && tokenMenu.contains(target)) return false;
+        const tag = (target.tagName || "").toLowerCase();
+        return (
+            tag === "input" || tag === "textarea" || tag === "select" || !!target.isContentEditable
+        );
+    }
+
+    // ---- automatic split of Cantus Index text (#2165) --------------------
+
+    // The rules themselves live in chant_create_auto_split.js, loaded just before this file.
+    // They are pure functions over a string — no DOM, no page state — and keeping them apart
+    // is what lets tests/js/auto_split.test.js run them under Node with no browser. Read that
+    // file's header comment for the conventions and the evidence behind them.
+    //
+    // If it somehow fails to load, the composer still works and the Clean up menu simply finds
+    // nothing to do, which is the right way for a missing rule set to fail.
+    function autoSplitText(text) {
+        return window.ChantAutoSplit ? window.ChantAutoSplit.splitText(text) : [];
+    }
+
+    // ---- the Clean up menu's two actions --------------------------------
+
+    function separatorTokens() {
+        return allTokens().filter(function (token) {
+            return isCoreToken(token) && token.dataset.autoKind === "separator";
+        });
+    }
+
+    // "Split automatically". Splits every core element wherever the text says so with
+    // certainty, and no further. A segment with no signal in it is left as one element
+    // rather than guessed at, so a text like ah47196 — where the "|" boundaries are
+    // unambiguous but nothing distinguishes the Gloria's own words from the trope's — still
+    // gets its separators picked out, with everything between them left whole.
+    //
+    // Reports nothing: the composer itself is the feedback, and the outcome is visible in
+    // it. Silence is safe here because the boundaries we are sure of are split in every
+    // case, so a click that finds anything at all shows it.
+    function autoSplitAll() {
+        if (!currentCluster) return;
+        const plans = [];
+        allTokens()
+            .filter(isCoreToken)
+            .forEach(function (token) {
+                const parts = autoSplitText(token.dataset.text);
+                if (parts.length < 2) return; // nothing certain enough to divide
+                plans.push({ token: token, parts: parts });
+            });
+        if (!plans.length) return;
+        exitSplitMode();
+        closeMenu();
+        pushUndo();
+        plans.forEach(function (plan) {
+            const replacements = [];
+            plan.parts.forEach(function (part, i) {
+                // A space between the new elements, as performSplit leaves: normalizeComposer
+                // drops it again, and the gap on screen is the token margin.
+                if (i > 0) replacements.push(document.createTextNode(" "));
+                const token = makeCoreToken(part.text);
+                // Only the separators are marked. The rest are cores indistinguishable from
+                // hand-made ones, which is the whole point — there is nothing to record.
+                if (part.hint === "separator") token.dataset.autoKind = "separator";
+                replacements.push(token);
+            });
+            plan.token.replaceWith.apply(plan.token, replacements);
+        });
+        normalizeComposer();
+    }
+
+    // "Remove separators". The "|"-type markers are core tokens like any other, so they
+    // leave by the same path a hand-deleted core does — into the restore tray, recoverable —
+    // as one undo step for the whole batch.
+    //
+    // The trope text has no action of its own: the rules no longer claim to know which
+    // elements it is, so removing it is the cataloguer's own deletion — one box from its
+    // menu, or a shift-clicked run at once.
+    function removeSeparators() {
+        if (!currentCluster) return;
+        deleteTokens(separatorTokens()); // declines an empty run itself
+    }
+
+    // Neither action is offered when it would do nothing. Called from normalizeComposer, so
+    // it tracks every structural change including undo.
+    function updateCleanupMenu() {
+        if (!cleanupButton) return;
+        cleanupButton.disabled = !currentCluster;
+        if (autoSplitItem) {
+            // Greyed out when nothing in the composer holds a boundary the rules are sure of,
+            // so a plain untroped chant like 007989 says so before the click rather than
+            // after. This runs the rules over every core element on every structural change;
+            // measured over all 4,325 Cantus Index texts that costs ~45 µs for a typical one
+            // and under 2 ms for a composer holding 40 of them, with the worst case in the
+            // whole corpus — a single 12,000-character un-split blob — at ~2.4 ms. Cheap
+            // enough that caching it would only be a way of getting it wrong.
+            autoSplitItem.disabled =
+                !currentCluster ||
+                !allTokens()
+                    .filter(isCoreToken)
+                    .some(function (token) {
+                        return autoSplitText(token.dataset.text).length > 1;
+                    });
+        }
+        if (removeSeparatorsItem) {
+            removeSeparatorsItem.disabled = !currentCluster || separatorTokens().length === 0;
+        }
     }
 
     // ---- drag to reorder ------------------------------------------------
@@ -1490,16 +1846,17 @@
                 activateFromCantusId();
                 return;
             }
-            // Unticking flattens the cluster back to plain text, so the interleaved
-            // components stop being saved as elements. That's destructive once any exist
-            // — confirm, and put the tick back if the cataloguer backs out.
-            const components = componentTokens().length;
+            // Unticking flattens the cluster back to plain text, so the composed elements
+            // stop being saved as elements. That's destructive once any exist — confirm, and
+            // put the tick back if the cataloguer backs out. Counts every element, not just
+            // the interleaved components: a split into cores is work too, and losing it
+            // silently was the complaint.
+            const composed = allTokens().length;
             if (
-                components > 0 &&
+                hasComposedWork() &&
                 !window.confirm(
                     "This will discard the " +
-                        components +
-                        (components === 1 ? " component element" : " component elements") +
+                        plural(composed, "element", "elements") +
                         " you have composed, keeping only the flattened text. Continue?"
                 )
             ) {
@@ -1517,11 +1874,45 @@
             // On "change" rather than "input": the bank costs upstream requests, and
             // every keystroke of a Cantus ID would fire one against a partial ID.
             cantusIdInput.addEventListener("change", function () {
-                if (currentCluster) loadBank();
+                if (!currentCluster) return;
+                loadBank();
+                // The composer is holding the *previous* Cantus ID's base text, so leaving it
+                // alone silently is the one outcome that can't be right: the field and the
+                // elements would describe different chants, and unticking the checkbox later
+                // would then reseed without warning and take the work with it. With nothing
+                // composed yet there is nothing to lose, so just refetch; with work in
+                // progress, ask before discarding it.
+                if (!hasComposedWork()) {
+                    reseed("");
+                    return;
+                }
+                if (
+                    window.confirm(
+                        "The Cantus ID has changed. Reload the base text from Cantus Index for " +
+                            parentCantusId() +
+                            "? This discards the elements composed so far."
+                    )
+                ) {
+                    reseed("");
+                    return;
+                }
+                // Keeping the elements: they belong to the new parent now, so re-label them.
+                relabelCores();
             });
         }
         if (reloadButton) {
             reloadButton.addEventListener("click", reloadBaseText);
+        }
+
+        // The Clean up menu's two actions, in the order they are meant to be used: split the
+        // Cantus Index text, then drop the markers the split picked out of it. Deleting the
+        // trope text is not one of them — that is the cataloguer's judgement, made in the
+        // composer on the elements they choose.
+        if (autoSplitItem) {
+            autoSplitItem.addEventListener("click", autoSplitAll);
+        }
+        if (removeSeparatorsItem) {
+            removeSeparatorsItem.addEventListener("click", removeSeparators);
         }
 
         composer.addEventListener("input", onComposerInput);
@@ -1544,11 +1935,29 @@
             }
             const token = e.target.closest && e.target.closest(".cluster-token");
             if (token) {
+                // Shift extends from the last plainly-clicked box to this one, taking the whole
+                // run between them; a plain click drops any run and becomes the new anchor.
+                if (e.shiftKey && mergeAnchor && mergeAnchor !== token) {
+                    selectRangeTo(token);
+                    return;
+                }
+                clearRangeSelection();
+                mergeAnchor = token;
                 openMenu(token);
             } else {
+                clearRangeSelection();
+                mergeAnchor = null;
                 closeMenu();
                 refreshTypeahead(); // clicked in free space → reveal components
             }
+        });
+
+        // Shift-click means a range of elements here, not a range of text. Without this the
+        // browser also drags its own selection across the boxes, which then fights the caret
+        // bookkeeping the composer depends on.
+        composer.addEventListener("mousedown", function (e) {
+            if (!e.shiftKey || !e.target.closest) return;
+            if (e.target.closest(".cluster-token")) e.preventDefault();
         });
 
         // reveal the component list as soon as the field is entered
@@ -1580,10 +1989,18 @@
                     e.stopPropagation();
                     return;
                 }
-            } else if (isMenuOpen() && !isMenuHotkey(e.key) && !isModifierKey(e.key)) {
+            } else if (
+                (isMenuOpen() || selectedRange.length) &&
+                !isMenuHotkey(e.key) &&
+                !isModifierKey(e.key)
+            ) {
                 // The cataloguer moved on (typing, arrows): drop the menu so a later
-                // Backspace can't confirm a deletion they'd forgotten was pending.
+                // Backspace can't confirm a deletion they'd forgotten was pending — and drop
+                // the selected run with it. The two have to die together: leaving a run picked
+                // out after its menu had gone meant typing "am" into the field swallowed the
+                // "m" and merged the run instead.
                 closeMenu();
+                clearRangeSelection();
             }
             if (isTypeaheadOpen()) {
                 if (e.key === "ArrowDown") {
@@ -1623,30 +2040,59 @@
             if (e.key === "Enter") e.preventDefault();
         });
 
-        // hotkeys while a box's menu is open: 's' splits (core/proposed); 'x' deletes,
-        // and so do Backspace/Delete — with the box already picked out and its menu on
-        // screen the intent is unambiguous, so the delete keys shouldn't be inert here.
+        // Hotkeys for what is currently picked out: a selected run, or a box with its menu
+        // open. 's' splits (core/proposed), 'm'/'p' merge, 'x' deletes — and so do
+        // Backspace/Delete on a single box, where the menu on screen makes the intent
+        // unambiguous, so the delete keys shouldn't be inert.
         document.addEventListener("keydown", function (e) {
-            if (isMenuOpen()) {
-                if ((e.key === "s" || e.key === "S") && isSplittable(menuToken)) {
-                    e.preventDefault();
-                    enterSplitMode(menuToken);
-                    return;
-                }
-                if (
-                    e.key === "x" ||
-                    e.key === "X" ||
-                    e.key === "Backspace" ||
-                    e.key === "Delete"
-                ) {
-                    e.preventDefault();
-                    deleteToken(menuToken);
-                    return;
-                }
-            }
+            // Escape drops whatever is pending, from wherever the focus happens to be: a
+            // stale selection is exactly what shouldn't survive a keystroke meant to clear it.
             if (e.key === "Escape") {
                 if (splittingToken()) exitSplitMode();
-                else if (isMenuOpen()) closeMenu();
+                else {
+                    clearRangeSelection();
+                    closeMenu();
+                }
+                return;
+            }
+            // Two conditions on every key below, and both matter: something has to be picked
+            // out for the key to act on, and the composer has to be what holds the focus. One
+            // gate for all of them rather than a check per key — an "x" typed into the Feast
+            // field must never be able to delete an element, whichever key it is.
+            if (isTypingElsewhere(e.target)) return;
+            // A selected run describes several boxes, so only its own actions apply: the
+            // single-box hotkeys below would each act on the anchor alone. Backspace/Delete
+            // are left out on purpose — beside the caret they already mean "the element I am
+            // next to", and 'x' is the key the run's own menu shows.
+            if (selectedRange.length > 1) {
+                if (e.key === "m" || e.key === "M") {
+                    e.preventDefault();
+                    mergeTokens(selectedRange.slice());
+                } else if (e.key === "x" || e.key === "X") {
+                    e.preventDefault();
+                    deleteTokens(selectedRange.slice());
+                }
+                return;
+            }
+            if (!isMenuOpen()) return;
+            if ((e.key === "s" || e.key === "S") && canSplit(menuToken)) {
+                e.preventDefault();
+                enterSplitMode(menuToken);
+                return;
+            }
+            if (e.key === "m" || e.key === "M") {
+                e.preventDefault();
+                mergeWithNeighbour(menuToken, 1);
+                return;
+            }
+            if (e.key === "p" || e.key === "P") {
+                e.preventDefault();
+                mergeWithNeighbour(menuToken, -1);
+                return;
+            }
+            if (e.key === "x" || e.key === "X" || e.key === "Backspace" || e.key === "Delete") {
+                e.preventDefault();
+                deleteToken(menuToken);
             }
         });
 
@@ -1742,6 +2188,10 @@
         elementsField = document.getElementById("id_elements_json");
         undoButton = document.getElementById("cluster-undo");
         reloadButton = document.getElementById("cluster-reload");
+        cleanup = document.getElementById("cluster-cleanup");
+        cleanupButton = document.getElementById("cluster-cleanup-toggle");
+        autoSplitItem = document.getElementById("cluster-auto-split");
+        removeSeparatorsItem = document.getElementById("cluster-remove-separators");
         tray = document.getElementById("removed-cores-tray");
         bank = document.getElementById("cluster-bank");
         bankItems = document.getElementById("cluster-bank-items");

@@ -1,0 +1,288 @@
+{
+ "_comment": [
+  "Real Cantus Index chant texts, used by auto_split.test.js. Curated rather than",
+  "exhaustive: two or three per convention, plus every chant named in the rules'",
+  "header comment and the ground-truth cases. 'category' records which convention the",
+  "text was chosen to exercise, and is what the invariant failures point at.",
+  "Fetched from https://cantusindex.org/json-text/<term> and /json-cid/<id>. To resample",
+  "or extend, see tests/js/README.md."
+ ],
+ "texts": [
+  {
+   "cid": "mTHA133",
+   "genre": "Sa",
+   "fulltext": "Sanctus",
+   "category": "all_lower_no_split"
+  },
+  {
+   "cid": "mTHA134",
+   "genre": "Sa",
+   "fulltext": "Sanctus",
+   "category": "all_lower_no_split"
+  },
+  {
+   "cid": "mTHA135",
+   "genre": "Sa",
+   "fulltext": "Sanctus",
+   "category": "all_lower_no_split"
+  },
+  {
+   "cid": "h00009b",
+   "genre": "ALLV",
+   "fulltext": "Gloria et divitiae *",
+   "category": "asterisk_truncation"
+  },
+  {
+   "cid": "h01155a",
+   "genre": "ALLV",
+   "fulltext": "Gloria et divitiae *",
+   "category": "asterisk_truncation"
+  },
+  {
+   "cid": "h01349a",
+   "genre": "ALLV",
+   "fulltext": "Gloria et divitiae *",
+   "category": "asterisk_truncation"
+  },
+  {
+   "cid": "509502.Tp559",
+   "genre": "Tp",
+   "fulltext": "GLORIA ... VOLUNTATIS Odas pangimus tibi almus rex angelorum LAUDAMUS TE Qui formasti polum una solum fecisti BENEDICIMUS TE O rex gloriosae qui cuncta creasti ADORAMUS TE O mater dignissima Maria quae Deum protulisti GLORIFICAMUS TE Ex utero virginali Christum genuisti auctorem GRATIAS AGIMUS",
+   "category": "case_boundary_only"
+  },
+  {
+   "cid": "mBOS013 ",
+   "genre": "Gl",
+   "fulltext": "Gloria ad lib. II",
+   "category": "case_boundary_only"
+  },
+  {
+   "cid": "mBOS022 ",
+   "genre": "Gl",
+   "fulltext": "Gloria ad lib. III",
+   "category": "case_boundary_only"
+  },
+  {
+   "cid": "a01523.1",
+   "genre": "H",
+   "fulltext": "Omnipotentem semper adorant et benedicunt omne per aevum || Astra polorum cuncta chorique solque sororque lumina caeli || Omni || Sic quoque lymphae quaeque supernae ros pluviaeque spiritus omnis || Omnipotentem || Ignis et aestus cauma geluque frigus et ardor atque pruina || Omni || Nix glacies noxque diesque lux tenebraeque fulgura nubes || Omnipotentem || Arida montes germina colles flumina fontes pontus et undae || Omni || Omnia viva quae venit aequor quae vehit aer terraque nutrit || Omni || Cuncta hominum gens Israel ipse christicolaeque servuli quique || Sancti humilesque corde benigno tresque pusilli exsuperantes || Omnipotentem || Rite camini ignei flammas jussa tyranni tempore prompti || Omni || Sit genitori laus genitoque lausque beato flamine sacro || Omni",
+   "category": "double_pipe"
+  },
+  {
+   "cid": "006586za",
+   "genre": "V",
+   "fulltext": "Dominus de Sina venit et de Seir ortus est [--] cum eo sanctorum [--]",
+   "category": "editorial_brackets"
+  },
+  {
+   "cid": "203787",
+   "genre": "A",
+   "fulltext": "Pater horam visita vitae vespertinam noxe ne sitio abdita [ ... ]",
+   "category": "editorial_brackets"
+  },
+  {
+   "cid": "509505.Tp16",
+   "genre": "Ag",
+   "fulltext": "AGNUS DEI QUI TOLLIS PECCATA MUNDI MISERERE NOBIS vere deus vere et pa[?] fac delere nobis AGNUS DEI forma spei salus rei QUI TOLLIS PECCATA MUNDI DONA NOBIS caritatis praesta gratis summae tuae majestatis atque PACEM",
+   "category": "editorial_brackets"
+  },
+  {
+   "cid": "g01092.Tp07",
+   "genre": "Tp",
+   "fulltext": "Gratiarum distributor tu largissime cordium nostrorum intima inhabitando rege [ACCEND]E",
+   "category": "editorial_intraword"
+  },
+  {
+   "cid": "200660",
+   "genre": "A",
+   "fulltext": "Benedictus dominus qui non (...)",
+   "category": "editorial_omitted"
+  },
+  {
+   "cid": "600282a",
+   "genre": "V",
+   "fulltext": "Benedictus dominus qui (...)",
+   "category": "editorial_omitted"
+  },
+  {
+   "cid": "800050",
+   "genre": "W",
+   "fulltext": "Benedictus dominus qui facit (...)",
+   "category": "editorial_omitted"
+  },
+  {
+   "cid": "509502.Tp397",
+   "genre": "Tp",
+   "fulltext": "GLORIA ..VOLUNTATIS Quam Christus tradidit discipulis excolendam | LAUDAMUS TE | Qui nos merito lugentes laude tua dignatus es indignos | BENEDICIMUS TE | Qui nos maledicto plenos benedictos indulgens fecisti | ADORAMUS TE | Qui nos cultores idolorum tibi tribuis servire | GLORIFICAMUS TE | Qui abjectos majore gloria donasti | GRATIAS AGIMUS TIBI | Quibus gratiam immeritis concessisti | PROPTER ...AMEN",
+   "category": "elision_and_pipes"
+  },
+  {
+   "cid": "g05847",
+   "genre": "Sq",
+   "fulltext": "Ad honorem hodiernum convenite populi | Triumphale nos invitat gaudium apostoli | Sonent lingue clament corda divinis aspectibus | Holocausta medullata reddat noster gemitus | Iste sanctus Zebedeo est a patre genitus | Cum Joanne fratre suo ad piscandum deditus | Felix piscator quem cum vidit Jesus Christus intro maris spatia […]",
+   "category": "elision_ellipsis_char"
+  },
+  {
+   "cid": "h00004b",
+   "genre": "LDMTV",
+   "fulltext": "Laus omnibus sanctis ejus (…)",
+   "category": "elision_ellipsis_char"
+  },
+  {
+   "cid": "600296",
+   "genre": "R",
+   "fulltext": "Benedictus dei famulus magnum (...)",
+   "category": "elision_three_dots"
+  },
+  {
+   "cid": "601305a",
+   "genre": "V",
+   "fulltext": "Benedictus dei famulus (...)",
+   "category": "elision_three_dots"
+  },
+  {
+   "cid": "ah50283",
+   "genre": "Sq",
+   "fulltext": "Benedictus dominus deus israel qui erexit nobis cornu salutis (...)",
+   "category": "elision_three_dots"
+  },
+  {
+   "cid": "509505.Tp40",
+   "genre": "Tp",
+   "fulltext": "AGNUS .. MUNDI O Christe piissime factus nostri particeps MISERERE NOBIS | AGNUS Qui pro nostra salute pependisti in cruce MISERERE NOBIS Rex regum gaudium angelorum lux indeficiens pax perpetua hominumque redemptio vera DONA NOBIS PACEM",
+   "category": "elision_two_dots"
+  },
+  {
+   "cid": "601146a",
+   "genre": "V",
+   "fulltext": "Gloria et divitiae in domo (...)",
+   "category": "elision_two_dots"
+  },
+  {
+   "cid": "h00067b",
+   "genre": "ACCV",
+   "fulltext": "Gloria ... In secula seculorum amen",
+   "category": "elision_two_dots"
+  },
+  {
+   "cid": "ah47439",
+   "genre": "TpAg",
+   "fulltext": "AGNUS DEI QUI TOLLIS PECCATA MUNDI Rex aeternae gloriae qui das locum veniae miserere miserere MISERERE NOBIS | AGNUS DEI QUI TOLLIS PECCATA MUNDI Qui natus de virgine sub humana specie miserere miserere MISERERE NOBIS | AGNUS DEI QUI TOLLIS PECCATA MUNDI Pater potentissime pacem nobis tribue dona nobis dona nobis DONA NOBIS PACEM",
+   "category": "ground_truth_case_and_pipe"
+  },
+  {
+   "cid": "g04828",
+   "genre": "TpSa",
+   "fulltext": "SANCTUS Perpetuo numine cuncta regens SANCTUS Regna patris disponens jure parili SANCTUS Consimilis qui bona cuncta nutris DOMINUS DEUS SABAOTH PLENI SUNT CAELI ET TERRA GLORIA TUA HOSANNA IN EXCELSIS O deitas clemens servorum suscipe laudes BENEDICTUS QUI VENIT IN NOMINE DOMINI HOSANNA IN EXCELSIS",
+   "category": "ground_truth_case_only"
+  },
+  {
+   "cid": "509504.Tp29",
+   "genre": "Sa",
+   "fulltext": "Sanctus Invisibiliter penetravit rex | Sanctus Tu deus trinus in unitate permanebis | Sanctus O bone rex cunctae catervae polorum | Dominus deus sabaoth Qui caelum terramque gubernas domine | Pleni sunt caeli et terra gloria tua Te laudant cuncta perpetua regna | Hosanna in excelsis Hodie lux clara refulget domine | Benedictus qui venit in nomine domini | (F1) Hosanna cuncta procedens subveniens in aethera | (F2) Piis in alta pneuma subveniat inclita | (F3) Accedens turba procedens modulantis vocibus | (F4) Angelici throni nunc canunt dulciflua carmina | (F5) Nos quoque cuncta caterva modulemur in arva | (F6) Suppliciter deum poscamus hosanna in alta | (7) Cum choris angelorum socii concinamus dicentes | Hosanna in excelsis | Hosanna in excelsis",
+   "category": "label_digit"
+  },
+  {
+   "cid": "509504.Tp6",
+   "genre": "Sa",
+   "fulltext": "Sanctus | (A) Pater lumen aeternum | Sanctus | (B) Genitus ex deo deus | Sanctus dominus | (C) Spiritus majestate consimilis | Deus sabaoth pleni sunt caeli et terra gloria tua osanna in excelsis Benedictus qui venit in nomine domini Hosanna in excelsis | (D) Cujus in laude voces dabant pueri regem Christum conlaudantes in altissimis | Benedictus qui venit in nomine domini | (E) Gloria et victoria et salus aeterna sit deo nostro | (F) Trinus personaliter et unus essentialiter | (G) Qui caelum terramque regis et cuncta tueris | (H) Mundi salvator omnium pius atque redemptor |",
+   "category": "label_letter"
+  },
+  {
+   "cid": "509505.Tp9",
+   "genre": "Ag",
+   "fulltext": "(A) Miserere super nos omnium domine Exaudi preces quas fecisti clamantes te hodie | Agnus dei qui tollis peccala mundi miserere nobis | (B) Suscipe pie rex quod petimus a te domine ne derelinquas nos rex gloriae sed fac nos pervenire in sempiterna gloria Miserere nobis | (la) Agnus dei miserere nobis eia et eia | (lb) Haec festa praecelsa convenite omnes sacrum corpus percipere una voce proclamantes",
+   "category": "label_letter"
+  },
+  {
+   "cid": "509504.Tp2",
+   "genre": "Sa",
+   "fulltext": "Sanctus Deus fortis | Sanctus filius excelsus | Sanctus dominus spiritus sanctus qui regnas in trinitate | Deus sabaoth pleni sunt caeli et terra gloria tua hosanna in excelsis benedictus qui venit in nomine domini hosanna in excelsis | (D) Sanctus dominus Spiritus paraclitus ab utroque procedens | (E) Pleni sunt caeli et terra gloria tua hosanna in excelsis | Gloria et victoria et salus aeterna sit deo nostro in excelsis | (F) Benedictus dominus deus Israel Benedictus qui venit in nomine domini hosanna in excelsis | (G) Tu solus altissimus qui venisti redimere nos Benedictus qui venit in nomine domini | (H) Deus sabaoth Te laudat te adorat te glorificat omnis creatura tua Pleni sunt caeli et terra gloria tua | (J) Tu ergo salva nos domine Salva nos qui redemisti nos hosanna in excelsis | (K1) Tibi omnes angeli et archangeli | (K2) tibi omnis tua sancta proclamat ecclesia | (L1) Benedictus qui venit in nomine domini Tuum est domine regnum tua potestas | (L2) Benedictus qui venit in nomine domini tibi honor et imperium per cuncta saecula hosanna in excelsis",
+   "category": "label_letter_digit"
+  },
+  {
+   "cid": "509504.Tp23",
+   "genre": "Sa",
+   "fulltext": "(a) Sanctus deus omnipotens pater (b) Sanctus dei filius atque unigenitus (c) Sanctus quoque spiritus paraclitus voluntas amborum (d) Uni deo gloria Osanna in altissimis deo Omnes dicamus Sanctus sanctus sanctus Dominus deus sabaoth (A) Deus exercituum et militiarum rex O admirabilis clementia Pleni sunt caeli et terra gloria tua Osanna in excelsis (B) Benedictum dominum regem sanctum gloriae clamet omnis turba dei in excelsis eia Benedictus qui venit in nomine domini Osanna in excelsis",
+   "category": "label_lowercase"
+  },
+  {
+   "cid": "509504.Tp10",
+   "genre": "Tp",
+   "fulltext": "Omnes tua gratia quos a morte redemisti perpetua | Morte tua jus mortis cum principe proculcans vitae nos reparans | Deo patri dans carum te pro nobis pretium et vivam hostiam | Tecum nos resuscita tecum in caelis colloca et regni largire consortia | Te ergo deposcimus ut cum judex adveneris cunctorum discernere merita | Nos cum angelis et sanctis socia cum quibus tibi canamus | BENEDICTUS QUI VENIT IN NOMINE DOMINI | (A) Collaudemus dominum eia | (B) Gloria victoria et salus aeterna sit deo nostro | (C) Cui pueri laudes concorditer dicunt | HOSANNA IN EXCELSIS",
+   "category": "labels_after_pipes"
+  },
+  {
+   "cid": "509504.Tp38",
+   "genre": "Sa",
+   "fulltext": "Omnes una carminantes salva Christe te laudantes rex HOSANNA nobis manna Jesu praesta tis sacrata per haec festa IN EXCELSIS | O dulcedo caritatis Jesu verbum summi patris nunc HOSANNA proclamantes labe nantes emundantes tandem salva IN EXCELSIS",
+   "category": "lone_capital_word"
+  },
+  {
+   "cid": "509505.Tp39",
+   "genre": "Tp",
+   "fulltext": "AGNUS .. NOBIS O Christe piissime consanguinae naturae humanae verus Deus et homo MISERERE |  Qui pro nostra salute patri in cruce sacrificium obtulisti MIS",
+   "category": "lone_capital_word"
+  },
+  {
+   "cid": "g00239.Tp1",
+   "genre": "Tp",
+   "fulltext": "Angelo prenuntiante magnus hodie puer ex vetula matre procedens gaudium multis nascendo donavit, cum quo concinnite | DE VENTRE (MATRIS) MEE",
+   "category": "paren_uppercase_incipit"
+  },
+  {
+   "cid": "g00257.Tp36",
+   "genre": "Tp",
+   "fulltext": "(MISIT DOMINUS ANGELUM SUUM) | Est quia cunctorum clemens rectorque benignus | ET ERIPUIT",
+   "category": "paren_uppercase_incipit"
+  },
+  {
+   "cid": "g01288.Tp09",
+   "genre": "Tp",
+   "fulltext": "(INVENI DAVID SERVUM MEUM) | Egregium virtute virum pietate modestum | ET IN OLEO",
+   "category": "paren_uppercase_incipit"
+  },
+  {
+   "cid": "204367.Tp3",
+   "genre": "Tp",
+   "fulltext": "Virgo clemens virgo pia virgo dulcis o Maria exaudi preces omnium ad te pie clamantium | Virgo mater ecclesiae aeterne porta gloriae ora pro nobis omnibus qui tui memoriam agimus | Gloriosa dei mater cujus natus est et pater esto nobis refugium apud patrem et filium",
+   "category": "pipe_between_tropes_no_core"
+  },
+  {
+   "cid": "ah47196",
+   "genre": "Tp",
+   "fulltext": "Gloria .. voluntatis | Rex immense poli terraeque marisque profundi | Laudamus te | Omnes caelicolae benedicunt quem sine fine | Benedicimus te | Virtutes caeli quem semper rector adorant | Adoramus te | Glorificande Deus via lux pax gloria virtus | Glorificamus te | Humani generis factor fabricator et orbis | Gratias ... tuam | Et regum regem veneramur et omnipotentem | Domine Deus .. omnipotens | Sit tibi laus et honor mundi sator atque redemptor | Domine fili unigenite | Rex aeterne tuis per saecula parce redemptis | Jesu Christe ... patris | Cunctipotens domine nostrae reparatio vitae | Qui tollis..nostram | O decus angelicum patris sapientia Christe | Qui sedes ... miserere nobis | Sanctifica proprios petimus ...",
+   "category": "pipe_boundaries_no_case_signal"
+  },
+  {
+   "cid": "ah47343",
+   "genre": "Tp",
+   "fulltext": "HOSANNA | Carmina plebs sedula concinat in sede regnanti politica | Quem tremunt cuncta contio angelica Cherubin ac Seraphin necne ardentia | Trinum et unum ecclesia hunc jure colit catholica | Nostra qui sumpsit mortalia larga misertus clementia | Natus homo pertulit opprobria haerens ligno victima mundi tersit crimina obiens tartarea destruxit prorsus imperia | Morte victa die surgens tertia plura nempe contulit mundo vitae gaudia rediens stelligera suis concessit palatia | Hinc jubilemus illi omnes una | Consona voce clangentes neumata | Cui semper virtus et gloria IN EXCELSIS",
+   "category": "pipe_run_single_caps_head"
+  },
+  {
+   "cid": "509505.Tp32",
+   "genre": "Tp",
+   "fulltext": "AGNUS .. MUNDI Jesu summi fili patris vivi per Mariam misere MISERERE | AGNUS DEI Jesu ductor pie bonae viae per Mariam miserere MISERERE | AGNUS DEI Jesu tuis laudibus instantibus per Mariam dona nobis DONA NOBIS PACEM",
+   "category": "pipe_separator"
+  },
+  {
+   "cid": "509505.Tp45",
+   "genre": "Tp",
+   "fulltext": "AGNUS ..  MUNDI Omnipotens verbum patris deitate coaevum MISERERE NOBIS | AGNUS .. MUNDI Vera salus hominum firmissima spes miserorum MISERERE NOBIS | AGNUS .. MUNDI Virtus cuncta creans pax omnia jure serenans DONA NOBIS PACEM",
+   "category": "pipe_separator"
+  },
+  {
+   "cid": "007989",
+   "genre": "W",
+   "fulltext": "Collocavit me in obscuris R. Sicut mortuos saeculi",
+   "category": "plain_chant_nothing_to_split"
+  },
+  {
+   "cid": "AH47206.3",
+   "genre": "Tp",
+   "fulltext": "2 Caelicolas mundo que jungit federe digno Laudamus te | Benedicimus te | 4 Aula cui supera resonat benedictio tota  | Adoramus te Glorificamus te | 6 Glorificat totis quem semper viribus orbis | Gratias agimus .. pater omnipotens |7 Sancte pater, releva clemens peccamina nostra | Domine fili .. qui tollis peccata mundi 10 In crucis articulis patiendo vulnera mortis | Miserere nobis...ad dexteram patris | 12 Imperitare quadro te monstrans rex pie mundo Miserere nobis ... tu solus altissimus | 13 Climatibus quadris quibus omnis clauditur orbis | 14 Solus adoraris tibi gloria personet omnis Jesu Christe |",
+   "category": "strophe_number"
+  }
+ ]
+}
