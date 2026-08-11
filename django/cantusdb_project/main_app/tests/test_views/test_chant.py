@@ -407,6 +407,31 @@ class SourceEditChantsViewTest(ChantPermissionsTestCase):
         chant.refresh_from_db()
         self.assertEqual(chant.manuscript_full_text_std_spelling, "test")
 
+    def test_update_content_structure(self):
+        # content_structure was editable on chant-create but absent from
+        # chant-edit, so a value set at creation could never be seen or
+        # changed while proofreading (#1731).
+        source = make_fake_source()
+        chant = make_fake_chant(source=source, content_structure="old")
+        # The field is rendered on the edit form...
+        response = self.client.get(
+            reverse("source-edit-chants", args=[source.id]), {"pk": chant.id}
+        )
+        self.assertContains(response, 'name="content_structure"')
+        # ...and edits to it are saved.
+        self.client.post(
+            reverse("source-edit-chants", args=[source.id]),
+            {
+                "manuscript_full_text_std_spelling": chant.manuscript_full_text_std_spelling,
+                "pk": chant.id,
+                "folio": chant.folio,
+                "c_sequence": chant.c_sequence,
+                "content_structure": "new",
+            },
+        )
+        chant.refresh_from_db()
+        self.assertEqual(chant.content_structure, "new")
+
     def test_update_chant_returns_to_edited_chant_row(self):
         # When editing from the browse-chants list (ref=chant-list), the user is
         # returned to the edited chant's row via a URL fragment so they keep their
