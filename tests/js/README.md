@@ -50,6 +50,14 @@ To add a case, add the text to `fixtures/cantus_index_texts.json` with a `catego
 demonstrates a new convention — require that category in the `describe("the fixture")` block so a
 later edit cannot quietly drop it.
 
-The rules were originally derived and checked against a much larger sample (4,325 texts) that is
-too big and too incidental to commit. If you change a rule, it is worth re-sampling and sweeping
-that corpus locally before trusting the small fixture alone.
+## Sweeping a larger sample
+
+The rules were originally derived from about 4,325 Cantus Index texts — too many, and too
+incidental, to commit. If you change a rule it is worth rebuilding that sample locally and
+checking the invariants over all of it rather than trusting 46 texts.
+
+There is no script in the repo for this; it is a dozen lines. Fetch `/json-text/<term>` for a
+spread of common Latin incipit words (`sanctus`, `agnus`, `gloria`, `benedictus`, `kyrie`, …),
+keep each result's `cid`, `genre` and `fulltext`, then run every text through `splitText` and
+assert the same invariants the `describe("what the rules must never do…")` block asserts here.
+Be polite to the server: it is a public catalogue, so sample once and cache to a file.
