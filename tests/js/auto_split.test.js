@@ -3,11 +3,8 @@
  *
  * The rules under test live in
  * django/cantusdb_project/static/js/chant_create_auto_split.js and are pure functions over a
- * string, so they run here under Node with no browser and no DOM. Run them with:
- *
- *     node --test tests/js/
- *
- * Node's own test runner, no dependencies to install. See tests/js/README.md.
+ * string, so they run here under Node with no browser and no DOM — Node's own test runner, with
+ * no dependencies to install. See tests/js/README.md for the command.
  *
  * What these tests are for. The rules were derived from reading 4,325 Cantus Index texts, and
  * only three of Cantus Index's 355 trope parents catalogue their elements separately — so for
@@ -155,7 +152,7 @@ describe("ground truth: chants whose elements Cantus Index catalogues separately
         ]);
     });
 
-    it("makes every g04828 element core — the trope text included (#2165 §3.1)", () => {
+    it("makes every g04828 element core — the trope text included", () => {
         // The case convention does say which of these is the base chant and which is the trope,
         // and the tool deliberately throws that reading away: it only automates the cataloguer's
         // own splitting, and a hand split makes cores. Deleting the trope is their decision.
@@ -602,7 +599,7 @@ describe("what the rules must never do, over every text in the fixture", () => {
         }
     });
 
-    it("never hints 'component' — the rules find boundaries, they do not classify (#2165 §3.1)", () => {
+    it("never hints 'component' — the rules find boundaries, they do not classify", () => {
         for (const { label, text } of ALL) {
             for (const part of split(text)) {
                 assert.notEqual(part.hint, "component", `${label} classified an element`);
@@ -629,7 +626,7 @@ describe("what the rules must never do, over every text in the fixture", () => {
 // whether "Split automatically" is offered or greyed out.
 // ---------------------------------------------------------------------------------------------
 
-describe("the grey-out decision (#2165 §3.2)", () => {
+describe("the grey-out decision: is there more than one piece?", () => {
     it("finds nothing to split in a plain untroped chant (007989)", () => {
         assert.equal(split(byId("007989")).length, 1);
     });
