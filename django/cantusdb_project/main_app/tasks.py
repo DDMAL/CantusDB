@@ -221,24 +221,38 @@ def check_cantus_ids_genre_mismatch(chant_ids: Optional[List[int]] = None) -> di
             )
             executor.shutdown(cancel_futures=True)
 
-    # Build a Q filter for chants where their specific (cantus_id, genre) pair mismatches CI.
-    # Iterate over `pairs` directly (not a cid-keyed dict) so cantus_ids with more than one
-    # local genre are checked against CI individually rather than collapsing to a single genre.
-    mismatch_q = Q()
-    for cid, local_genre in pairs:
-        ci_genre = ci_genres.get(cid)
-        if ci_genre is not None and ci_genre != local_genre:
-            mismatch_q |= Q(cantus_id=cid, genre__name=local_genre)
+    # Determine mismatched (cantus_id, local_genre) pairs in Python. Iterate over
+    # `pairs` directly (not a cid-keyed dict) so cantus_ids with more than one local
+    # genre are checked against CI individually rather than collapsing to a single genre.
+    mismatched_pairs = {
+        (cid, local_genre)
+        for cid, local_genre in pairs
+        if ci_genres.get(cid) is not None and ci_genres[cid] != local_genre
+    }
 
-    if not mismatch_q:
+    if not mismatched_pairs:
         return {"published": [], "unpublished": []}
 
-    base_qs = (
-        qs.filter(mismatch_q).select_related("source", "genre").order_by("cantus_id")
+    # Narrow down with a single `cantus_id__in` lookup, then match the exact
+    # (cantus_id, genre) pair in Python. Building a Q object with one OR clause per
+    # mismatched pair (as before) creates a query with as many terms as there are
+    # mismatches, which can balloon into hundreds of thousands of nodes and OOM on
+    # a large dataset — a plain IN lookup stays a single cheap query regardless.
+    mismatched_cids = {cid for cid, _ in mismatched_pairs}
+    candidates = (
+        qs.filter(cantus_id__in=mismatched_cids)
+        .select_related("source", "genre")
+        .order_by("cantus_id")
     )
+    matches = [
+        chant
+        for chant in candidates.iterator(chunk_size=2000)
+        if (chant.cantus_id, getattr(chant.genre, "name", None)) in mismatched_pairs
+    ]
+
     return {
-        "published": list(base_qs.filter(source__published=True)),
-        "unpublished": list(base_qs.filter(source__published=False)),
+        "published": [c for c in matches if c.source.published],
+        "unpublished": [c for c in matches if not c.source.published],
     }
 
 
