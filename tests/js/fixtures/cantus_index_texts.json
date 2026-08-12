@@ -177,6 +177,18 @@
    "category": "ground_truth_case_only"
   },
   {
+   "cid": "g01349.tp14",
+   "genre": "TpIn",
+   "fulltext": "Hac in laude patris cuncti dicamus ovanter OS JUSTI Qui nosmet hodie facit esse de se jucundos ET LINGUA Qui nobis hodie semet concessit habere LOQUETUR Unde dies sit hic toto venerabilis orbe LEX DEI",
+   "category": "ground_truth_case_cued_base"
+  },
+  {
+   "cid": "g01349",
+   "genre": "In",
+   "fulltext": "Os justi meditabitur sapientiam et lingua ejus loquetur judicium lex dei ejus in corde ipsius",
+   "category": "base_chant_nothing_to_split"
+  },
+  {
    "cid": "509504.Tp29",
    "genre": "Sa",
    "fulltext": "Sanctus Invisibiliter penetravit rex | Sanctus Tu deus trinus in unitate permanebis | Sanctus O bone rex cunctae catervae polorum | Dominus deus sabaoth Qui caelum terramque gubernas domine | Pleni sunt caeli et terra gloria tua Te laudant cuncta perpetua regna | Hosanna in excelsis Hodie lux clara refulget domine | Benedictus qui venit in nomine domini | (F1) Hosanna cuncta procedens subveniens in aethera | (F2) Piis in alta pneuma subveniat inclita | (F3) Accedens turba procedens modulantis vocibus | (F4) Angelici throni nunc canunt dulciflua carmina | (F5) Nos quoque cuncta caterva modulemur in arva | (F6) Suppliciter deum poscamus hosanna in alta | (7) Cum choris angelorum socii concinamus dicentes | Hosanna in excelsis | Hosanna in excelsis",

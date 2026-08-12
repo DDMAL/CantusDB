@@ -32,6 +32,15 @@
  * the cataloguer splits that into cores and interleaves components. Components come
  * from a live, debounced Cantus Index text search (the ci-component-search
  * endpoint). CI does not pre-split text, so the base text arrives as one blob.
+ *
+ * For a troped chant the seed is not that chant's own text but the text of the BASE
+ * CHANT Cantus Index names for it (#2189) — its own text has the base chant cut down
+ * to cue words, so it is not something a split can repair. The endpoint decides this
+ * and reports which Cantus ID the text came from, but the composer does not show it:
+ * cataloguers work from the text in front of them and don't need the provenance.
+ * Note the ID in the FIELD stays the troped one throughout: the
+ * element bank probes it for components (g01349.tp14:01), which hang off the troped
+ * chant and not the base, so rewriting the field to the base ID would empty the bank.
  */
 (function () {
     "use strict";
@@ -39,7 +48,7 @@
     const MAX_UNDO = 50;
     const CI_MIN_QUERY = 3; // characters before we query Cantus Index (matches the Input Tool)
     const CI_DEBOUNCE_MS = 250; // wait for a typing pause before firing a request
-    const BASE_TEXT_URL = "/ci-base-text/"; // + cantus_id → { base_text }
+    const BASE_TEXT_URL = "/ci-base-text/"; // + cantus_id → { base_text, cantus_id }
     // Cantus Index's public chant page, for the menu's "View on Cantus Index" link.
     // cantusindex.org (not the uwaterloo host) is what serves /id/ today.
     const CI_ID_URL = "https://cantusindex.org/id/";
@@ -481,7 +490,7 @@
                 setBankStatus(
                     bankElements.length
                         ? ""
-                        : "Cantus Index lists no elements for " + cid + "."
+                        : "No elements found in Cantus Index for " + cid
                 );
                 renderBank();
             });
@@ -634,9 +643,12 @@
             // fall back to text already in the field, or arbitrary typed text would be
             // relabelled as a core of this ID. Typing the base text in is only the path
             // when there's no ID to fetch by.
-            const text = cid ? (base || "").trim() : preTyped;
+            const text = cid ? (base.text || "").trim() : preTyped;
             if (text) {
                 seedCore(text);
+                // For a troped chant the text is the base chant's rather than this Cantus
+                // ID's (#2189). The composer used to say so here; cataloguers don't need
+                // to know which record the text came from, so it seeds silently.
                 setStatus("");
             } else if (cid) {
                 setStatus("No base text found in Cantus Index for Cantus ID " + cid + ".");
@@ -645,7 +657,7 @@
             }
         };
         if (!cid) {
-            done("");
+            done({ text: "", cantusId: "" });
             return;
         }
         fetchBaseText(cid).then(done);
@@ -658,7 +670,12 @@
         syncToTextarea();
     }
 
-    // GET the base chant's standard full text (one blob; CI doesn't pre-split it).
+    // GET the standard full text to seed the cores from (one blob; CI doesn't pre-split
+    // it), as { text, cantusId }. For a troped chant the endpoint answers with the *base*
+    // chant's text and reports which chant that was in `cantus_id`, so the ID need not be
+    // the one we asked for. Nothing displays it today — the seed is silent — but it is
+    // kept because it is the only signal that the text was redirected. Always resolves; a
+    // failure is empty text, which the caller treats as "CI has nothing for this ID".
     function fetchBaseText(cantusId) {
         return fetch(BASE_TEXT_URL + encodeURIComponent(cantusId), {
             headers: { "X-Requested-With": "XMLHttpRequest" },
@@ -667,10 +684,13 @@
                 return r.ok ? r.json() : null;
             })
             .then(function (data) {
-                return data ? data.base_text : "";
+                return {
+                    text: (data && data.base_text) || "",
+                    cantusId: (data && data.cantus_id) || "",
+                };
             })
             .catch(function () {
-                return "";
+                return { text: "", cantusId: "" };
             });
     }
 

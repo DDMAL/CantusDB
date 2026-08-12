@@ -20,8 +20,8 @@ These are not Django tests — `manage.py test` does not reach them — but they
 
 | Path | What |
 |---|---|
-| `auto_split.test.js` | the split rules — one test per convention, the two ground-truth chants asserted exactly, and the invariants the feature rests on |
-| `fixtures/cantus_index_texts.json` | 46 real Cantus Index chant texts, each labelled with the convention it exercises |
+| `auto_split.test.js` | the split rules — one test per convention, the three ground-truth chants asserted exactly, and the invariants the feature rests on |
+| `fixtures/cantus_index_texts.json` | 48 real Cantus Index chant texts, each labelled with the convention it exercises |
 
 The code under test is
 `django/cantusdb_project/static/js/chant_create_auto_split.js`. It is a browser script with no
@@ -42,9 +42,13 @@ Real chant texts fetched from Cantus Index:
 - `https://cantusindex.org/json-cid/<cantus id>` for one chant.
 
 It is curated, not exhaustive: two or three texts per convention, plus every chant named in the
-rules' header comment, plus the two chants (`g04828`, `ah47439`) whose elements Cantus Index
-catalogues separately as `<parent>:NN` and which are therefore the only ground truth available.
-The `category` field records why each text is in the file, and failing invariants print it.
+rules' header comment, plus the three chants (`g04828`, `ah47439`, `g01349.tp14`) whose elements
+Cantus Index catalogues separately as `<parent>:NN` and which are therefore the only ground truth
+available. The `category` field records why each text is in the file, and failing invariants
+print it.
+
+`g01349` is in the file for the opposite reason: it is the *base* chant the composer now seeds
+`g01349.tp14` from (#2189), and what it pins is that clean text yields nothing to split.
 
 To add a case, add the text to `fixtures/cantus_index_texts.json` with a `category`, and — if it
 demonstrates a new convention — require that category in the `describe("the fixture")` block so a
