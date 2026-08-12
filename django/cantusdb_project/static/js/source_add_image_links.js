@@ -64,6 +64,30 @@ function splitCSVRow(row, delimiter) {
     return fields;
 }
 
+function detectDelimiter(firstRow, imgLinkInputs) {
+    // Some locales (e.g. French) export semicolon-delimited CSVs, but both
+    // characters are legal inside a URL, so the delimiter can't be inferred
+    // from mere presence: a comma-delimited row whose link contains a
+    // semicolon would otherwise be split on the semicolon, swallowing the
+    // whole URL into the folio field.
+    const candidates = [',', ';'];
+    const firstFields = candidates.map(d => splitCSVRow(firstRow, d)[0].trim());
+    // A header row names the column outright.
+    const header = candidates.findIndex(
+        (_, i) => firstFields[i].toLowerCase() === 'folio'
+    );
+    if (header !== -1) return candidates[header];
+    // Otherwise, a first field naming a folio this source has is decisive.
+    const known = candidates.findIndex(
+        (_, i) => Object.prototype.hasOwnProperty.call(imgLinkInputs, firstFields[i])
+    );
+    if (known !== -1) return candidates[known];
+    // Failing both — the CSV may legitimately list folios the source lacks —
+    // prefer the delimiter giving the shorter first field. A folio is short;
+    // the losing split swallows the image URL, so it is much longer.
+    return firstFields[1].length < firstFields[0].length ? ';' : ',';
+}
+
 function parseAndPreviewImageLinkCSV(csv, imgLinkInputs) {
     // Parse the passed CSV file and display it in a table. 
     // Return two arrays: one with the folios and one with the image links
@@ -73,8 +97,7 @@ function parseAndPreviewImageLinkCSV(csv, imgLinkInputs) {
     // otherwise defeat both the delimiter and the header check below.
     const firstRowIndex = rows.findIndex(row => row.trim());
     const firstRow = firstRowIndex === -1 ? '' : rows[firstRowIndex];
-    // Auto-detect delimiter: some locales (e.g. French) use semicolons
-    const delimiter = firstRow.includes(';') ? ';' : ',';
+    const delimiter = detectDelimiter(firstRow, imgLinkInputs);
     // Check if a header row is present by looking at the first column name.
     // Sniffing the second column for a URL instead would swallow the first
     // row of a headerless CSV whenever its image link is blank.
