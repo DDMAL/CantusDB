@@ -334,9 +334,16 @@
         closeMenu(); // the rebuild below replaces every element node
         // Same reason: the selected run and the anchor would be left pointing at nodes that
         // are no longer in the document.
-        clearRangeSelection();
-        mergeAnchor = null;
+        clearSelection();
+        selectAnchor = null;
         composer.innerHTML = snapshot.html;
+        // A snapshot taken while boxes were picked out carries data-selected in its markup,
+        // so the restored boxes came back outlined with nothing able to clear them —
+        // clearSelection only knows about the nodes the snapshot replaced. The outline is
+        // transient UI state, never part of the composed structure.
+        composer.querySelectorAll("[data-selected]").forEach(function (token) {
+            delete token.dataset.selected;
+        });
         removedCores = snapshot.cores;
         renderTray();
         renderBank(); // undoing may have put an element back in, or taken one out
@@ -615,8 +622,8 @@
         undoStack = [];
         caretBeforeToken = null;
         closeMenu(); // the wipe below replaces every element node
-        clearRangeSelection();
-        mergeAnchor = null;
+        clearSelection();
+        selectAnchor = null;
         composer.innerHTML = "";
         composer.appendChild(document.createTextNode(" "));
         composer.contentEditable = "true"; // reset (seedBaseText locks it while fetching)
@@ -725,8 +732,8 @@
         activateSeq += 1; // cancel any in-flight base-text seed
         exitSplitMode();
         closeMenu();
-        clearRangeSelection();
-        mergeAnchor = null;
+        clearSelection();
+        selectAnchor = null;
         normalizeComposer(); // preserve composed elements back into the textarea
         closeTypeahead();
         composer.hidden = true;
@@ -1318,7 +1325,7 @@
             }
             token.remove();
         });
-        clearRangeSelection();
+        clearSelection();
         normalizeComposer();
         renderTray();
         if (hadComponent) renderBank(); // a bank element it held is on offer again
@@ -1404,17 +1411,35 @@
     //     so m,m,m glues a run without re-clicking;
     //   - shift-clicking a second box selects the whole run between the two and offers
     //     "Merge N elements", for a split that came out too fine to fix a pair at a time.
+    //
+    // ⌘/Ctrl-clicking picks boxes out one at a time instead, so a pick can have gaps in it.
+    // That one is for deletion only — see isMergeable.
 
-    let mergeAnchor = null; // the box a plain click last landed on: shift-click's origin
-    let selectedRange = []; // the run a shift-click has selected, in document order
+    let selectAnchor = null; // the box a plain click last landed on: a modified click's origin
+    let selectedTokens = []; // the boxes currently picked out, in document order
 
-    // A run is mergeable when it is at least two boxes, holds no separator, and is all of
-    // one kind. Separators are punctuation to be removed, not text to be folded into an
-    // element; and merging across kinds would turn core text into component text or the
-    // reverse, which is not an operation this tool performs. An approved component owns its
-    // Cantus ID for its whole text, so it is excluded for the same reason it can't be split.
+    // Whether the boxes are consecutive in the composer, in the order given. False as well
+    // for a box that has left the document, which keeps a stale pick from merging ghosts.
+    function isContiguous(tokens) {
+        const all = allTokens();
+        const first = all.indexOf(tokens[0]);
+        if (first < 0) return false;
+        return tokens.every(function (token, i) {
+            return all[first + i] === token;
+        });
+    }
+
+    // A pick is mergeable when it is at least two boxes, they are NEIGHBOURS, they hold no
+    // separator, and they are all of one kind. Adjacency is the condition a ⌘/Ctrl pick can
+    // break: folding boxes that aren't next to each other would reorder the chant, pulling
+    // text out of the sequence the manuscript has it in. Separators are punctuation to be
+    // removed, not text to be folded into an element; and merging across kinds would turn
+    // core text into component text or the reverse, which is not an operation this tool
+    // performs. An approved component owns its Cantus ID for its whole text, so it is
+    // excluded for the same reason it can't be split.
     function isMergeable(tokens) {
         if (tokens.length < 2) return false;
+        if (!isContiguous(tokens)) return false;
         const kind = tokens[0].dataset.kind;
         const proposed = isProposedToken(tokens[0]);
         return tokens.every(function (token) {
@@ -1451,7 +1476,7 @@
         tokens.slice(1).forEach(function (token) {
             token.remove();
         });
-        clearRangeSelection();
+        clearSelection();
         normalizeComposer();
         return merged;
     }
@@ -1475,49 +1500,93 @@
         if (merged) openMenu(merged);
     }
 
-    function clearRangeSelection() {
-        selectedRange.forEach(function (token) {
+    function clearSelection() {
+        selectedTokens.forEach(function (token) {
             delete token.dataset.selected;
         });
-        selectedRange = [];
+        selectedTokens = [];
     }
 
-    // Select the run between the anchor and the shift-clicked box, inclusive. Taking every
-    // box in the index span makes the run contiguous by construction.
-    function selectRangeTo(token) {
-        const tokens = allTokens();
-        const from = tokens.indexOf(mergeAnchor);
-        const to = tokens.indexOf(token);
-        if (from < 0 || to < 0 || from === to) return;
-        clearRangeSelection();
-        selectedRange = tokens.slice(Math.min(from, to), Math.max(from, to) + 1);
-        selectedRange.forEach(function (selected) {
+    // Pick these boxes out and offer what applies to several at once. Kept in document
+    // order, which is the order a merge would concatenate them in.
+    function setSelection(tokens) {
+        clearSelection();
+        selectedTokens = tokens;
+        selectedTokens.forEach(function (selected) {
             selected.dataset.selected = "true";
         });
-        openRangeMenu();
+        openSelectionMenu();
     }
 
-    // The selected run's menu: fold it into one element, or delete the lot. Merge is shown
-    // disabled rather than withheld when the run can't take it, so the reason is legible
-    // where the cataloguer is looking instead of nothing appearing to happen. Delete has no
-    // such condition — a run of anything can be deleted, and separators mixed in with trope
-    // text is the ordinary case after a split.
-    function openRangeMenu() {
-        if (selectedRange.length < 2) return;
+    // Shift-click: the run between the anchor and this box, inclusive. Taking every box in
+    // the index span makes the run contiguous by construction, so it can still merge.
+    function selectRangeTo(token) {
+        const tokens = allTokens();
+        const from = tokens.indexOf(selectAnchor);
+        const to = tokens.indexOf(token);
+        if (from < 0 || to < 0 || from === to) return;
+        setSelection(tokens.slice(Math.min(from, to), Math.max(from, to) + 1));
+    }
+
+    // ⌘/Ctrl-click: put this box into the pick, or take it back out. What it buys over the
+    // shift-clicked run is boxes that are NOT neighbours — in a troped chant like g04828 the
+    // trope's words alternate with the base chant's own, so what has to go is every other
+    // box, and clearing them one menu at a time is the tedium this removes. Only deletion
+    // applies to such a pick; isMergeable says why a merge across a gap is not an operation.
+    //
+    // Seeded from the box a plain click last landed on — the same origin shift-click extends
+    // from — so click, then ⌘-click, picks out the pair.
+    function toggleSelection(token) {
+        let picked = selectedTokens.slice();
+        if (!picked.length && selectAnchor && composer.contains(selectAnchor)) {
+            picked = [selectAnchor];
+        }
+        const at = picked.indexOf(token);
+        if (at >= 0) picked.splice(at, 1);
+        else picked.push(token);
+        if (picked.length < 2) {
+            // One box is not a pick of several, so land where a plain click on it lands: its
+            // own menu, and it as the anchor. ⌘-clicking a box you just added therefore
+            // undoes exactly that click.
+            const only = picked[0] || token;
+            clearSelection();
+            selectAnchor = only;
+            openMenu(only);
+            return;
+        }
+        const order = allTokens();
+        setSelection(
+            picked.sort(function (a, b) {
+                return order.indexOf(a) - order.indexOf(b);
+            })
+        );
+    }
+
+    // The pick's menu: fold it into one element, or delete the lot. Merge is offered only
+    // when the pick can actually take it, exactly as the single box's menu offers "Merge
+    // with previous/next" only towards a neighbour it is allowed with — the menu never shows
+    // an action that would refuse. A ⌘/Ctrl pick with a gap in it is the ordinary way to
+    // reach that, so a permanently greyed button would be the ordinary sight (12 Aug 2026
+    // feedback). Delete has no such condition: any set of boxes can be deleted, and
+    // separators mixed in with trope text is the ordinary case after a split.
+    function openSelectionMenu() {
+        if (selectedTokens.length < 2) return;
         closeMenu();
         closeTypeahead();
-        // positionMenu anchors on menuToken; the first box in the run is where it should sit.
-        menuToken = selectedRange[0];
+        // positionMenu anchors on menuToken; the first box in the pick is where it should sit.
+        menuToken = selectedTokens[0];
         tokenMenu.innerHTML = "";
-        const run = selectedRange.slice();
-        const merge = menuButton("Merge " + run.length + " elements", "m", false, function () {
-            mergeTokens(run);
-        });
-        merge.disabled = !isMergeable(run);
-        tokenMenu.appendChild(merge);
+        const picked = selectedTokens.slice();
+        if (isMergeable(picked)) {
+            tokenMenu.appendChild(
+                menuButton("Merge " + picked.length + " elements", "m", false, function () {
+                    mergeTokens(picked);
+                })
+            );
+        }
         tokenMenu.appendChild(
-            menuButton("Delete " + run.length + " elements", "x", true, function () {
-                deleteTokens(run);
+            menuButton("Delete " + picked.length + " elements", "x", true, function () {
+                deleteTokens(picked);
             })
         );
         tokenMenu.hidden = false;
@@ -1578,6 +1647,7 @@
         if (!plans.length) return;
         exitSplitMode();
         closeMenu();
+        clearSelection(); // the boxes below are about to be replaced, picked or not
         pushUndo();
         plans.forEach(function (plan) {
             const replacements = [];
@@ -1955,28 +2025,36 @@
             }
             const token = e.target.closest && e.target.closest(".cluster-token");
             if (token) {
-                // Shift extends from the last plainly-clicked box to this one, taking the whole
-                // run between them; a plain click drops any run and becomes the new anchor.
-                if (e.shiftKey && mergeAnchor && mergeAnchor !== token) {
+                // ⌘ (macOS) / Ctrl (Windows, Linux) puts this box into the pick or takes it
+                // out, wherever it sits; Shift extends from the last plainly-clicked box to
+                // this one, taking the whole run between them; a plain click drops the pick
+                // and becomes the new anchor. The modified clicks are checked first, so a
+                // modifier never falls through to the single-box menu.
+                if (e.metaKey || e.ctrlKey) {
+                    toggleSelection(token);
+                    return;
+                }
+                if (e.shiftKey && selectAnchor && selectAnchor !== token) {
                     selectRangeTo(token);
                     return;
                 }
-                clearRangeSelection();
-                mergeAnchor = token;
+                clearSelection();
+                selectAnchor = token;
                 openMenu(token);
             } else {
-                clearRangeSelection();
-                mergeAnchor = null;
+                clearSelection();
+                selectAnchor = null;
                 closeMenu();
                 refreshTypeahead(); // clicked in free space → reveal components
             }
         });
 
-        // Shift-click means a range of elements here, not a range of text. Without this the
-        // browser also drags its own selection across the boxes, which then fights the caret
-        // bookkeeping the composer depends on.
+        // A modified click means a set of elements here, not a range of text. Without this
+        // the browser also drags its own selection across the boxes — or drops a caret inside
+        // one — which then fights the caret bookkeeping the composer depends on.
         composer.addEventListener("mousedown", function (e) {
-            if (!e.shiftKey || !e.target.closest) return;
+            if (!e.target.closest) return;
+            if (!e.shiftKey && !e.metaKey && !e.ctrlKey) return;
             if (e.target.closest(".cluster-token")) e.preventDefault();
         });
 
@@ -2010,17 +2088,17 @@
                     return;
                 }
             } else if (
-                (isMenuOpen() || selectedRange.length) &&
+                (isMenuOpen() || selectedTokens.length) &&
                 !isMenuHotkey(e.key) &&
                 !isModifierKey(e.key)
             ) {
                 // The cataloguer moved on (typing, arrows): drop the menu so a later
                 // Backspace can't confirm a deletion they'd forgotten was pending — and drop
-                // the selected run with it. The two have to die together: leaving a run picked
-                // out after its menu had gone meant typing "am" into the field swallowed the
-                // "m" and merged the run instead.
+                // the picked boxes with it. The two have to die together: leaving boxes picked
+                // out after their menu had gone meant typing "am" into the field swallowed the
+                // "m" and merged them instead.
                 closeMenu();
-                clearRangeSelection();
+                clearSelection();
             }
             if (isTypeaheadOpen()) {
                 if (e.key === "ArrowDown") {
@@ -2060,7 +2138,7 @@
             if (e.key === "Enter") e.preventDefault();
         });
 
-        // Hotkeys for what is currently picked out: a selected run, or a box with its menu
+        // Hotkeys for what is currently picked out: several boxes, or one box with its menu
         // open. 's' splits (core/proposed), 'm'/'p' merge, 'x' deletes — and so do
         // Backspace/Delete on a single box, where the menu on screen makes the intent
         // unambiguous, so the delete keys shouldn't be inert.
@@ -2070,7 +2148,7 @@
             if (e.key === "Escape") {
                 if (splittingToken()) exitSplitMode();
                 else {
-                    clearRangeSelection();
+                    clearSelection();
                     closeMenu();
                 }
                 return;
@@ -2080,17 +2158,18 @@
             // gate for all of them rather than a check per key — an "x" typed into the Feast
             // field must never be able to delete an element, whichever key it is.
             if (isTypingElsewhere(e.target)) return;
-            // A selected run describes several boxes, so only its own actions apply: the
-            // single-box hotkeys below would each act on the anchor alone. Backspace/Delete
-            // are left out on purpose — beside the caret they already mean "the element I am
-            // next to", and 'x' is the key the run's own menu shows.
-            if (selectedRange.length > 1) {
+            // A pick of several boxes takes only its own actions: the single-box hotkeys below
+            // would each act on the anchor alone. 'm' is still read for a pick whose menu has
+            // no Merge on it; mergeTokens refuses it, which is the same silence the missing
+            // button promises. Backspace/Delete are left out on purpose — beside the caret
+            // they already mean "the element I am next to", and 'x' is the key the menu shows.
+            if (selectedTokens.length > 1) {
                 if (e.key === "m" || e.key === "M") {
                     e.preventDefault();
-                    mergeTokens(selectedRange.slice());
+                    mergeTokens(selectedTokens.slice());
                 } else if (e.key === "x" || e.key === "X") {
                     e.preventDefault();
-                    deleteTokens(selectedRange.slice());
+                    deleteTokens(selectedTokens.slice());
                 }
                 return;
             }
@@ -2144,20 +2223,22 @@
             });
         }
 
-        // clicking outside the composer/menu closes the menu; clicking anywhere
-        // outside the composer while splitting cancels split mode (Esc also does)
+        // clicking outside the composer/menu drops the pick and closes the menu; clicking
+        // anywhere outside the composer while splitting cancels split mode (Esc also does)
         document.addEventListener("mousedown", function (e) {
+            const inComposer = composer.contains(e.target);
+            const inMenu = tokenMenu.contains(e.target);
             // ...but not the token menu, whose own "Split" button enters split mode (its
             // mousedown bubbles here right after) — that click must not cancel it.
-            if (
-                splittingToken() &&
-                !composer.contains(e.target) &&
-                !tokenMenu.contains(e.target)
-            ) {
-                exitSplitMode();
-            }
+            if (splittingToken() && !inComposer && !inMenu) exitSplitMode();
+            if (inMenu) return; // the menu's own buttons have already acted on the pick
+            // A pick has to die when the cataloguer clicks away, and the composer's click
+            // handler only sees what lands inside the field. Without this the outlines stayed
+            // on the boxes after a click anywhere else on the page — and 'x' still deleted
+            // them, since the hotkeys only stand down while the focus is in another field.
+            if (!inComposer) clearSelection();
             if (!isMenuOpen()) return;
-            if (tokenMenu.contains(e.target) || (menuToken && menuToken.contains(e.target))) return;
+            if (menuToken && menuToken.contains(e.target)) return;
             closeMenu();
         });
 

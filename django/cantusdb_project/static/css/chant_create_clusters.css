@@ -117,10 +117,11 @@
     display: none;
 }
 
-/* A shift-clicked run waiting to be merged or deleted (#2165). An outline rather than a
- * background: the box keeps saying what it IS while it is picked, and outline is drawn
- * outside the border box so adding it shifts nothing — the same reason the token border is
- * kept at 1px in every state. */
+/* Boxes picked out to be merged or deleted together (#2165) — a shift-clicked run, or a
+ * ⌘/Ctrl-clicked set that need not be adjacent. An outline rather than a background: the box
+ * keeps saying what it IS while it is picked, and outline is drawn outside the border box so
+ * adding it shifts nothing — the same reason the token border is kept at 1px in every
+ * state. */
 .cluster-token[data-selected="true"] {
     outline: 2px solid #0d6efd;
     outline-offset: 1px;
