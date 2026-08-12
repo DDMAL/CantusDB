@@ -4,6 +4,7 @@ Cantus Index's (CI's) various APIs.
 """
 
 import json
+import re
 from typing import Optional, Union, Callable, TypedDict, Any
 
 import requests
@@ -137,6 +138,73 @@ def get_cantus_id_info(cantus_id: str) -> Optional[dict[Any, Any]]:
         return None
     info = json_response.get("info")
     return info if isinstance(info, dict) and info else None
+
+
+class BaseChantText(TypedDict):
+    """The text to seed a cluster's core from, and the Cantus ID it actually came from."""
+
+    cantus_id: str
+    text: Optional[str]
+
+
+# A Cantus ID is short alphanumerics with optional :/./- separators (g04828, g04828:01,
+# 909030). Applied to an ID read out of a *CI response* before that ID is put back into a
+# request path — the ids that arrive from the browser are checked by the views. Same
+# reasoning either way: nothing but an ID may reshape the request.
+CANTUS_ID_PATTERN: re.Pattern = re.compile(r"[A-Za-z0-9.:_-]+")
+
+
+def get_base_chant_text(cantus_id: str) -> BaseChantText:
+    """Return the standard full text to compose ``cantus_id``'s cores from (#2189).
+
+    For a troped chant, the text of the troped record is the base chant and the tropes
+    intermingled, *and the base chant's part of it is abbreviated to cue words*: for
+    ``g01349.tp14`` Cantus Index holds "... OS JUSTI ... ET LINGUA ... LOQUETUR ...",
+    where the base record ``g01349`` holds the whole of "Os justi meditabitur sapientiam
+    et lingua ejus loquetur judicium ...". The missing words are in no field of the troped
+    record, so no amount of splitting its text recovers them.
+
+    So when CI names a base chant, seed from that instead. The cataloguer then starts from
+    complete, clean text and inserts the trope components into it, rather than starting
+    from a mess and deleting out of it (Debra Lacoste on #2189, 5 Aug 2026) — and the cores
+    they end up with concatenate back to CI's own text for the base chant, which is what
+    makes them re-derivable rather than hand-typed.
+
+    CI names it outright, in the troped record's ``field_troped_chant_id``. We follow that
+    field and nothing else: deriving the base by stripping a ``.tpNN`` suffix off the ID
+    looks tempting and is wrong often enough to matter. Measured over the trope-genre
+    chants of a 4,325-text sample of CI:
+
+    - where both are available they agree (58/58 sampled), so the suffix buys no accuracy;
+    - the field reaches 43 of 60 sampled tropes whose ID has no strippable suffix at all
+      (``ah47439`` → ``509505``), which the suffix cannot reach even in principle;
+    - and the two sampled ``.tpNN`` chants with no field resolve, by suffix, to chants
+      whose text is unrelated to theirs (``g01280.Tp02`` "Dominus ascendit in thronum
+      patris sui" vs ``g01280`` "Sacerdotes dei benedicite dominum") — i.e. the suffix's
+      only unique contribution was wrong answers.
+
+    Following the field is one hop, not a walk: the chants it names carry no
+    ``field_troped_chant_id`` of their own (10/10 sampled), and it is set on troped records
+    only — no ordinary chant in a 70-chant sample carried it, so this changes nothing for
+    the untroped chants that are the bulk of cataloguing.
+
+    Returns the base chant's ID and text when there is one to seed from, and otherwise the
+    requested chant's own ID and text — which is the pre-#2189 behaviour, and what the
+    automatic split still exists for. ``text`` is None when CI has no text for either,
+    a normal outcome the composer handles by letting the cataloguer type the text in.
+    """
+    info: dict[Any, Any] = get_cantus_id_info(cantus_id) or {}
+    base_id: str = str(info.get("field_troped_chant_id") or "").strip()
+    if base_id and base_id != cantus_id and CANTUS_ID_PATTERN.fullmatch(base_id):
+        base_info: dict[Any, Any] = get_cantus_id_info(base_id) or {}
+        base_text: str = str(base_info.get("field_full_text") or "").strip()
+        # An empty base record is no use to seed from; fall through to the chant's own text
+        # rather than handing back a blank composer.
+        if base_text:
+            return {"cantus_id": base_id, "text": base_text}
+
+    own_text: str = str(info.get("field_full_text") or "").strip()
+    return {"cantus_id": cantus_id, "text": own_text or None}
 
 
 def get_cluster_elements(

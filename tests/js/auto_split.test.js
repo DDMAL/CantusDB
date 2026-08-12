@@ -159,6 +159,50 @@ describe("ground truth: chants whose elements Cantus Index catalogues separately
         assert.deepEqual(new Set(hintsOf(split(byId("g04828")))), new Set(["core"]));
     });
 
+    it("reproduces g01349.tp14 (a troped proper chant) as 8 elements", () => {
+        // The first *proper* chant — an Introit — we have ground truth for; the other two are
+        // troped ordinary chants, which is a distinction that matters to musicologists more
+        // than to the rules. Cantus Index catalogues four elements here, g01349.tp14:01…:04,
+        // and they are the four lower-case pieces below, reproduced word for word.
+        assert.deepEqual(textsOf(split(byId("g01349.tp14"))), [
+            "Hac in laude patris cuncti dicamus ovanter",
+            "OS JUSTI",
+            "Qui nosmet hodie facit esse de se jucundos",
+            "ET LINGUA",
+            "Qui nobis hodie semet concessit habere",
+            "LOQUETUR",
+            "Unde dies sit hic toto venerabilis orbe",
+            "LEX DEI",
+        ]);
+    });
+
+    it("cannot recover g01349.tp14's base chant, because its text is not in there", () => {
+        // The four capitalised pieces above are cues, not the base chant: g01349 reads "Os justi
+        // meditabitur sapientiam et lingua ejus loquetur judicium lex dei ejus in corde ipsius",
+        // and *meditabitur sapientiam*, *ejus*, *judicium* and *ejus in corde ipsius* appear
+        // nowhere in the troped record. No split can put back words that were never there —
+        // which is why the composer seeds from the base chant instead (#2189), and why this
+        // test asserts a limit of the rules rather than a capability of them.
+        const split_ = textsOf(split(byId("g01349.tp14"))).join(" ");
+        for (const missing of ["meditabitur", "judicium", "in corde ipsius"]) {
+            assert.ok(
+                byId("g01349").includes(missing),
+                `the base chant should contain ${missing}`
+            );
+            assert.ok(
+                !split_.includes(missing),
+                `${missing} is not in the troped record, so no split may produce it`
+            );
+        }
+    });
+
+    it("finds nothing to split in the base chant the composer seeds from (g01349)", () => {
+        // Seeded from the base, the composer opens on clean text with no boundary in it, so
+        // "Split automatically" greys itself out and the cataloguer divides it where the
+        // components go instead. Nothing to do is the correct answer here, not a failure.
+        assert.equal(split(byId("g01349")).length, 1);
+    });
+
     it("reproduces ah47439 (case convention plus | separators) as 11 elements", () => {
         assert.deepEqual(textsOf(split(byId("ah47439"))), [
             "AGNUS DEI QUI TOLLIS PECCATA MUNDI",
@@ -634,10 +678,11 @@ describe("the grey-out decision: is there more than one piece?", () => {
     it("finds something to split in each ground-truth chant", () => {
         assert.ok(split(byId("g04828")).length > 1);
         assert.ok(split(byId("ah47439")).length > 1);
+        assert.ok(split(byId("g01349.tp14")).length > 1);
     });
 
     it("finds nothing left to split in any piece of an already-split chant", () => {
-        for (const cid of ["g04828", "ah47439", "ah47196", "509504.Tp6"]) {
+        for (const cid of ["g04828", "ah47439", "g01349.tp14", "ah47196", "509504.Tp6"]) {
             for (const part of split(byId(cid))) {
                 assert.equal(
                     split(part.text).length,
@@ -753,6 +798,8 @@ describe("the fixture", () => {
         for (const required of [
             "ground_truth_case_only",
             "ground_truth_case_and_pipe",
+            "ground_truth_case_cued_base",
+            "base_chant_nothing_to_split",
             "case_boundary_only",
             "pipe_separator",
             "double_pipe",

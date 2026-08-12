@@ -33,7 +33,9 @@ from volpiano_display_utilities.cantus_text_syllabification import (
 from volpiano_display_utilities.text_volpiano_alignment import align_text_and_volpiano
 
 from cantusindex import (
+    BaseChantText,
     ClusterElement,
+    get_base_chant_text,
     get_cluster_elements,
     get_suggested_chants,
     get_suggested_fulltext,
@@ -1388,17 +1390,26 @@ class CIComponentSearchView(LoginRequiredMixin, View):
 
 class CIBaseTextView(LoginRequiredMixin, View):
     """
-    Read-only JSON proxy for a chant's standard full text from Cantus Index
-    (/json-cid/{cantus_id}), backing the Create Chant cluster composer (issues
-    #2128 / #2129). When a cataloguer starts composing a troped chant, the composer
-    seeds its single core element from this base text. Sibling to
-    ``CIComponentSearchView``: the browser can't reach cantusindex.org directly
-    (CORS), so we proxy it, and cache briefly since CI text is effectively static.
+    Read-only JSON proxy for the standard full text to compose a chant's cores from
+    (Cantus Index /json-cid/{cantus_id}), backing the Create Chant cluster composer
+    (issues #2128 / #2129 / #2189). Sibling to ``CIComponentSearchView``: the browser
+    can't reach cantusindex.org directly (CORS), so we proxy it, and cache briefly
+    since CI text is effectively static.
 
-    CI does not (yet) split a chant's text into elements, so the base text arrives as
-    one blob; the cataloguer splits it into cores by hand. An empty result is a normal
-    outcome (unknown ID, or CI has no text) — the composer then lets the cataloguer
-    type the base text in. Empty/failed fetches are not cached, so a retry re-hits CI.
+    For a troped chant this is not that chant's own text but its **base chant's** —
+    see ``get_base_chant_text`` for why, and for what CI is asked in order to find it.
+    The response therefore reports the Cantus ID the text came from alongside the text,
+    since it may not be the one that was asked for. Nothing displays it today — the
+    composer seeds silently — but it is the only signal that the text was redirected.
+    Note the request is still made by the *troped* ID: that is what the element bank
+    probes for components (``g01349.tp14:01``, which hang off the troped chant, not the
+    base), so the Cantus ID field must keep holding it.
+
+    CI does not (yet) split a chant's text into elements, so the text arrives as one
+    blob; the cataloguer splits it into cores, by hand or with the automatic split. An
+    empty result is a normal outcome (unknown ID, or CI has no text) — the composer then
+    lets the cataloguer type the text in. Empty/failed fetches are not cached, so a
+    retry re-hits CI.
     """
 
     CACHE_TTL: int = 60 * 60  # seconds; CI text data is effectively static
@@ -1408,19 +1419,26 @@ class CIBaseTextView(LoginRequiredMixin, View):
     ID_PATTERN = re.compile(r"[A-Za-z0-9.:_-]+")
 
     def get(self, request: HttpRequest, cantus_id: str) -> JsonResponse:
-        """Return the base chant's standard full text for ``cantus_id`` as JSON."""
+        """Return the text to seed ``cantus_id``'s cores from, and the ID it came from."""
         cid: str = cantus_id.strip()
         if not cid or not self.ID_PATTERN.fullmatch(cid):
-            return JsonResponse({"base_text": ""})
+            return JsonResponse({"base_text": "", "cantus_id": ""})
 
-        cache_key: str = f"ci-base-text:{cid}"
-        base_text: Optional[str] = cache.get(cache_key)
-        if base_text is None:
-            base_text = get_suggested_fulltext(cid)
-            if base_text:
-                cache.set(cache_key, base_text, self.CACHE_TTL)
+        # Keyed on the requested ID, and versioned because #2189 changed what is stored
+        # here from a bare string to the resolved {cantus_id, text} pair.
+        cache_key: str = f"ci-base-text:v2:{cid}"
+        resolved: Optional[BaseChantText] = cache.get(cache_key)
+        if resolved is None:
+            resolved = get_base_chant_text(cid)
+            if resolved["text"]:
+                cache.set(cache_key, resolved, self.CACHE_TTL)
 
-        return JsonResponse({"base_text": base_text or ""})
+        return JsonResponse(
+            {
+                "base_text": resolved["text"] or "",
+                "cantus_id": resolved["cantus_id"],
+            }
+        )
 
 
 class CIClusterElementsView(LoginRequiredMixin, View):

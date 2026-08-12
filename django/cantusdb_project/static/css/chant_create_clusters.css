@@ -276,7 +276,6 @@ kbd.token-menu-key {
 }
 .cluster-bank-status {
     color: #8a94a0;
-    font-style: italic;
 }
 .cluster-bank-status:empty {
     display: none;

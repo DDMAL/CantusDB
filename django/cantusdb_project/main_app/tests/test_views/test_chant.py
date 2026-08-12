@@ -4188,7 +4188,13 @@ class ChantViewHelpersTest(TestCase):
 
 
 class CIBaseTextViewTest(TestCase):
-    """The Cantus Index base-text proxy that seeds the cluster composer's first core."""
+    """The Cantus Index base-text proxy that seeds the cluster composer's first core.
+
+    The resolution of a troped chant to its base chant is ``get_base_chant_text``'s job
+    and is tested in test_functions.py; what matters here is that the view hands both
+    halves of its answer to the composer — the text, and the Cantus ID it came from,
+    which is not always the one that was asked for (#2189).
+    """
 
     def setUp(self) -> None:
         cache.clear()  # the view caches by Cantus ID; keep tests independent
@@ -4199,31 +4205,63 @@ class CIBaseTextViewTest(TestCase):
         response = self.client.get(reverse("ci-base-text", args=["g04828"]))
         self.assertEqual(response.status_code, 302)  # redirected to login
 
-    @patch("main_app.views.chant.get_suggested_fulltext")
-    def test_returns_base_text_for_cantus_id(self, mock_fulltext) -> None:
-        mock_fulltext.return_value = "Sanctus Sanctus Sanctus"
+    @patch("main_app.views.chant.get_base_chant_text")
+    def test_returns_base_text_for_cantus_id(self, mock_base_text) -> None:
+        mock_base_text.return_value = {
+            "cantus_id": "g04828",
+            "text": "Sanctus Sanctus Sanctus",
+        }
         response = self.client.get(reverse("ci-base-text", args=["g04828"]))
         self.assertEqual(response.status_code, 200)
-        self.assertEqual(response.json(), {"base_text": "Sanctus Sanctus Sanctus"})
+        self.assertEqual(
+            response.json(),
+            {"base_text": "Sanctus Sanctus Sanctus", "cantus_id": "g04828"},
+        )
 
-    @patch("main_app.views.chant.get_suggested_fulltext")
-    def test_returns_empty_when_ci_has_no_text(self, mock_fulltext) -> None:
+    @patch("main_app.views.chant.get_base_chant_text")
+    def test_reports_the_cantus_id_the_text_came_from(self, mock_base_text) -> None:
+        """A troped chant is seeded from its base chant, so the ID in the answer differs
+        from the one in the request — the composer tells the cataloguer as much."""
+        mock_base_text.return_value = {
+            "cantus_id": "g01349",
+            "text": "Os justi meditabitur sapientiam et lingua ejus loquetur judicium",
+        }
+        response = self.client.get(reverse("ci-base-text", args=["g01349.tp14"]))
+        self.assertEqual(response.json()["cantus_id"], "g01349")
+        mock_base_text.assert_called_once_with("g01349.tp14")
+
+    @patch("main_app.views.chant.get_base_chant_text")
+    def test_returns_empty_when_ci_has_no_text(self, mock_base_text) -> None:
         """An unknown ID or CI failure yields empty text, not an error, so the composer
         can fall back to manual entry."""
-        mock_fulltext.return_value = None
+        mock_base_text.return_value = {"cantus_id": "unknown", "text": None}
         response = self.client.get(reverse("ci-base-text", args=["unknown"]))
         self.assertEqual(response.status_code, 200)
-        self.assertEqual(response.json(), {"base_text": ""})
+        self.assertEqual(response.json(), {"base_text": "", "cantus_id": "unknown"})
 
-    @patch("main_app.views.chant.get_suggested_fulltext")
+    @patch("main_app.views.chant.get_base_chant_text")
+    def test_caches_a_hit_but_not_a_miss(self, mock_base_text) -> None:
+        """CI text is static enough to cache for an hour; an empty answer is not cached,
+        so a transient CI failure doesn't stick for the rest of the hour."""
+        mock_base_text.return_value = {"cantus_id": "g01349", "text": "Os justi"}
+        self.client.get(reverse("ci-base-text", args=["g01349.tp14"]))
+        self.client.get(reverse("ci-base-text", args=["g01349.tp14"]))
+        self.assertEqual(mock_base_text.call_count, 1)
+
+        mock_base_text.return_value = {"cantus_id": "g04828", "text": None}
+        self.client.get(reverse("ci-base-text", args=["g04828"]))
+        self.client.get(reverse("ci-base-text", args=["g04828"]))
+        self.assertEqual(mock_base_text.call_count, 3)
+
+    @patch("main_app.views.chant.get_base_chant_text")
     def test_rejects_malformed_cantus_id_without_hitting_ci(
-        self, mock_fulltext
+        self, mock_base_text
     ) -> None:
         """A Cantus ID with illegal characters can't reach the CI request path."""
         response = self.client.get(reverse("ci-base-text", args=["bad id?x=1"]))
         self.assertEqual(response.status_code, 200)
-        self.assertEqual(response.json(), {"base_text": ""})
-        mock_fulltext.assert_not_called()
+        self.assertEqual(response.json(), {"base_text": "", "cantus_id": ""})
+        mock_base_text.assert_not_called()
 
 
 class CIComponentSearchViewTest(TestCase):
