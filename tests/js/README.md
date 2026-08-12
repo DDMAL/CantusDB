@@ -30,9 +30,10 @@ The test evaluates that exact file against a stub `window` and reads the `ChantA
 off it, the same object the composer reads in the page.
 
 **Anything that touches the DOM is not covered.** The composer's own behaviour — merge, the
-shift-click range, delete, undo, the restore tray, the hotkey gating — has no automated coverage
-and is verified by hand in the browser. Covering it would need a DOM (jsdom) or a browser driver
-(Playwright), i.e. the repo's first front-end dependency, which nobody has signed off on.
+shift-click run and the ⌘/Ctrl-click pick, delete, undo, the restore tray, the hotkey gating —
+has no automated coverage and is verified by hand in the browser. Covering it would need a DOM
+(jsdom) or a browser driver (Playwright), i.e. the repo's first front-end dependency, which
+nobody has signed off on.
 
 ## The fixture
 
