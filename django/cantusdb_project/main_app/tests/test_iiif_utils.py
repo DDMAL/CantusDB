@@ -374,6 +374,28 @@ class FetchManifestTest(TestCase):
         with self.assertRaises(ManifestTooLargeError):
             fetch_manifest("https://example.com/m.json")
 
+    @patch("main_app.iiif_utils.time.monotonic")
+    @patch("main_app.iiif_utils.requests.get")
+    def test_slow_drip_hits_the_total_deadline(
+        self, mock_get: MagicMock, mock_monotonic: MagicMock
+    ) -> None:
+        # Each chunk arrives inside the read timeout, so requests never times
+        # out on its own; only the total deadline stops this.
+        mock_get.return_value = self._mock_response([b"x"] * 100)
+        # Start at 0, then jump past a 30s budget on the second check.
+        mock_monotonic.side_effect = [0, 1, 2, 31, 60, 90]
+        with self.assertRaises(requests.Timeout):
+            fetch_manifest("https://example.com/m.json", timeout=30)
+
+    @patch("main_app.iiif_utils.time.monotonic")
+    @patch("main_app.iiif_utils.requests.get")
+    def test_prompt_response_is_not_timed_out(
+        self, mock_get: MagicMock, mock_monotonic: MagicMock
+    ) -> None:
+        mock_get.return_value = self._mock_response([b'{"a": ', b"1}"])
+        mock_monotonic.side_effect = [0, 1, 2]
+        self.assertEqual(fetch_manifest("https://example.com/m.json"), {"a": 1})
+
 
 class MatchCanvasToFolioTest(TestCase):
     def test_exact_match(self) -> None:

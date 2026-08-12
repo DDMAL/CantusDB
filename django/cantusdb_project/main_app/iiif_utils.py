@@ -8,15 +8,14 @@ import csv
 import io
 import json
 import re
+import time
 from dataclasses import dataclass
 
 import requests
 
 # A manifest is JSON metadata, not image data: the largest one we've tested
-# (Einsiedeln 121, 621 canvases) is a few MB. `timeout` only bounds the gap
-# between bytes, not the total transfer, so without a ceiling a very large
-# or slowly-drip-fed response would occupy a worker and be read into memory
-# in full.
+# (Einsiedeln 121, 621 canvases) is a few MB. Without a ceiling, a very large
+# response would be read into memory in full.
 MAX_MANIFEST_BYTES = 50 * 1024 * 1024
 
 
@@ -39,16 +38,24 @@ def fetch_manifest(manifest_url: str, timeout: int = 30) -> dict:
 
     Args:
         manifest_url: URL to the IIIF manifest JSON.
-        timeout: Request timeout in seconds.
+        timeout: Budget in seconds, applied both to each socket operation and
+            to the download as a whole.
 
     Returns:
         Parsed manifest as a dictionary.
 
     Raises:
+        requests.Timeout: If the download outlasts `timeout`.
         requests.RequestException: If the fetch fails.
         ManifestTooLargeError: If the response exceeds MAX_MANIFEST_BYTES.
         ValueError: If the response is not valid JSON.
     """
+    # requests' `timeout` bounds the gap between socket reads, not the whole
+    # transfer, so a server trickling one chunk per interval satisfies it
+    # forever. Track the total separately. The check runs once per chunk, so
+    # it can overshoot by at most one read timeout — enough to make this fail
+    # with our own error rather than have gunicorn kill the worker.
+    deadline = time.monotonic() + timeout
     with requests.get(manifest_url, timeout=timeout, stream=True) as response:
         response.raise_for_status()
         # Trust Content-Length only to fail early; it's absent on chunked
@@ -62,6 +69,10 @@ def fetch_manifest(manifest_url: str, timeout: int = 30) -> dict:
             )
         content = bytearray()
         for chunk in response.iter_content(chunk_size=64 * 1024):
+            if time.monotonic() > deadline:
+                raise requests.Timeout(
+                    f"IIIF manifest download exceeded {timeout} seconds."
+                )
             content.extend(chunk)
             if len(content) > MAX_MANIFEST_BYTES:
                 raise ManifestTooLargeError(
