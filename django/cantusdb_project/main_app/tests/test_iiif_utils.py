@@ -2,13 +2,19 @@
 Tests for main_app.iiif_utils (IIIF manifest parsing and folio matching).
 """
 
+import csv
+import io
 from unittest.mock import patch, MagicMock
+
+import requests
 from django.test import TestCase
 from django.urls import reverse
 
 from main_app.iiif_utils import (
     CanvasInfo,
+    ManifestTooLargeError,
     extract_canvases,
+    fetch_manifest,
     generate_folio_image_mapping,
     mapping_to_csv,
     match_canvas_to_folio,
@@ -258,6 +264,116 @@ class ExtractCanvasesTest(TestCase):
         canvases = extract_canvases(manifest)
         self.assertEqual(canvases[0].image_url, "https://example.com/direct.jpg")
 
+    def test_malformed_manifests_yield_no_canvases(self) -> None:
+        # fetch_manifest guarantees valid JSON, not a conforming IIIF
+        # structure, and the view calls extract_canvases outside the
+        # try/except that guards the fetch. Anything raised here would be an
+        # unhandled 500 rather than the "no canvases found" message.
+        for manifest in (
+            [],
+            "a string",
+            None,
+            42,
+            {"sequences": {}},
+            {"sequences": [None]},
+            {"sequences": [{"canvases": None}]},
+            {"@context": "http://iiif.io/api/presentation/3/context.json", "items": {}},
+        ):
+            with self.subTest(manifest=manifest):
+                self.assertEqual(extract_canvases(manifest), [])
+
+    def test_null_values_inside_canvases(self) -> None:
+        # A manifest can carry explicit nulls where we expect objects.
+        manifest = {
+            "sequences": [
+                {
+                    "canvases": [
+                        None,
+                        {"label": "f. 1r", "images": None},
+                        {"label": "f. 1v", "images": [{"resource": None}]},
+                        {"label": "f. 2r", "images": [{"resource": {"service": None}}]},
+                    ]
+                }
+            ]
+        }
+        canvases = extract_canvases(manifest)
+        self.assertEqual(len(canvases), 4)
+        self.assertEqual([c.image_url for c in canvases], [None, None, None, None])
+        self.assertEqual(canvases[1].label, "f. 1r")
+
+    def test_v3_null_values_inside_canvases(self) -> None:
+        manifest = {
+            "@context": "http://iiif.io/api/presentation/3/context.json",
+            "items": [
+                {"label": {"en": ["Folio 1 recto"]}, "items": None},
+                {
+                    "label": {"en": ["Folio 1 verso"]},
+                    "items": [{"items": [{"body": None}]}],
+                },
+                {
+                    "label": {"en": ["Folio 2 recto"]},
+                    "items": [{"items": [{"body": {"service": None}}]}],
+                },
+            ],
+        }
+        canvases = extract_canvases(manifest)
+        self.assertEqual(len(canvases), 3)
+        self.assertEqual([c.image_url for c in canvases], [None, None, None])
+
+
+class FetchManifestTest(TestCase):
+    @staticmethod
+    def _mock_response(chunks: list[bytes], headers: dict | None = None) -> MagicMock:
+        response = MagicMock()
+        response.__enter__.return_value = response
+        response.__exit__.return_value = False
+        response.headers = headers or {}
+        response.iter_content.return_value = iter(chunks)
+        return response
+
+    @patch("main_app.iiif_utils.requests.get")
+    def test_parses_streamed_json(self, mock_get: MagicMock) -> None:
+        mock_get.return_value = self._mock_response([b'{"@id": "x", ', b'"a": 1}'])
+        self.assertEqual(
+            fetch_manifest("https://example.com/m.json"), {"@id": "x", "a": 1}
+        )
+        self.assertTrue(mock_get.call_args.kwargs["stream"])
+
+    @patch("main_app.iiif_utils.requests.get")
+    def test_invalid_json_raises_value_error(self, mock_get: MagicMock) -> None:
+        mock_get.return_value = self._mock_response([b"<html>not json</html>"])
+        with self.assertRaises(ValueError):
+            fetch_manifest("https://example.com/m.json")
+
+    @patch("main_app.iiif_utils.MAX_MANIFEST_BYTES", 32)
+    @patch("main_app.iiif_utils.requests.get")
+    def test_rejects_oversized_content_length(self, mock_get: MagicMock) -> None:
+        response = self._mock_response([b"{}"], headers={"Content-Length": "9999"})
+        mock_get.return_value = response
+        with self.assertRaises(ManifestTooLargeError):
+            fetch_manifest("https://example.com/m.json")
+        # Rejected before reading the body at all.
+        response.iter_content.assert_not_called()
+
+    @patch("main_app.iiif_utils.MAX_MANIFEST_BYTES", 32)
+    @patch("main_app.iiif_utils.requests.get")
+    def test_rejects_oversized_streamed_body(self, mock_get: MagicMock) -> None:
+        # No Content-Length header, as on a chunked response: the running
+        # total is what has to stop it.
+        mock_get.return_value = self._mock_response([b"x" * 16] * 4)
+        with self.assertRaises(ManifestTooLargeError):
+            fetch_manifest("https://example.com/m.json")
+
+    @patch("main_app.iiif_utils.MAX_MANIFEST_BYTES", 32)
+    @patch("main_app.iiif_utils.requests.get")
+    def test_understated_content_length_still_capped(self, mock_get: MagicMock) -> None:
+        # A hostile server can declare a small size and send a large body.
+        mock_get.return_value = self._mock_response(
+            [b"x" * 16] * 4, headers={"Content-Length": "2"}
+        )
+        with self.assertRaises(ManifestTooLargeError):
+            fetch_manifest("https://example.com/m.json")
+
 
 class MatchCanvasToFolioTest(TestCase):
     def test_exact_match(self) -> None:
@@ -370,23 +486,48 @@ class MappingToCSVTest(TestCase):
         self.assertIn("1r", lines[1])
         self.assertIn("https://img/1", lines[1])
 
-    def test_escapes_formula_injection_in_canvas_label(self) -> None:
-        # A canvas label from a remote manifest that starts with a formula
-        # trigger character must be neutralized so it can't execute when the
-        # CSV is opened in Excel/Sheets (CWE-1236).
+    def test_escapes_formula_injection_in_manifest_derived_columns(self) -> None:
+        # canvas_label and image_link are both read out of the remote
+        # manifest, so a value starting with a formula trigger character must
+        # be neutralized before it can execute in Excel/Sheets (CWE-1236).
+        for trigger in ("=", "+", "-", "@", "\t", "\r"):
+            for column in ("canvas_label", "image_link"):
+                with self.subTest(trigger=repr(trigger), column=column):
+                    mapping = [
+                        {
+                            "folio": "1r",
+                            "image_link": "https://img/1",
+                            "notes": "",
+                            "canvas_label": "f. 1r",
+                        }
+                    ]
+                    mapping[0][column] = f"{trigger}cmd|'/c calc'!A1"
+                    rows = list(csv.reader(io.StringIO(mapping_to_csv(mapping))))
+                    self.assertEqual(
+                        rows[1][
+                            ["folio", "image_link", "notes", "canvas_label"].index(
+                                column
+                            )
+                        ],
+                        f"'{trigger}cmd|'/c calc'!A1",
+                    )
+
+    def test_leaves_ordinary_values_untouched(self) -> None:
+        # A real http(s) URL never starts with a trigger character, so
+        # escaping the link column must not alter it.
         mapping = [
             {
                 "folio": "1r",
-                "image_link": "https://img/1",
+                "image_link": "https://img/1/full/max/0/default.jpg",
                 "notes": "",
-                "canvas_label": "=cmd|'/c calc'!A1",
+                "canvas_label": "f. 1r",
             }
         ]
-        csv_str = mapping_to_csv(mapping)
-        data_row = csv_str.strip().split("\n")[1]
-        self.assertIn("'=cmd", data_row)
-        # The untrusted-but-benign columns are left untouched.
-        self.assertIn("https://img/1", data_row)
+        rows = list(csv.reader(io.StringIO(mapping_to_csv(mapping))))
+        self.assertEqual(
+            rows[1],
+            ["1r", "https://img/1/full/max/0/default.jpg", "", "f. 1r"],
+        )
 
 
 class SourceIIIFMappingViewTest(CustomAccessTestMixin, TestCase):
@@ -443,9 +584,35 @@ class SourceIIIFMappingViewTest(CustomAccessTestMixin, TestCase):
     def test_manifest_fetch_failure_redirects_with_error(
         self, mock_fetch: MagicMock
     ) -> None:
-        import requests
-
         mock_fetch.side_effect = requests.RequestException("Connection failed")
+        response = self.client.get(
+            reverse("source-iiif-mapping", args=[self.source.id])
+        )
+        self.assertEqual(response.status_code, 302)
+
+    @patch("main_app.views.source.fetch_manifest")
+    def test_oversized_manifest_redirects_with_error(
+        self, mock_fetch: MagicMock
+    ) -> None:
+        # ManifestTooLargeError subclasses ValueError, so it has to be caught
+        # ahead of the "not valid JSON" branch to report the real reason.
+        mock_fetch.side_effect = ManifestTooLargeError("too big")
+        response = self.client.get(
+            reverse("source-iiif-mapping", args=[self.source.id])
+        )
+        self.assertEqual(response.status_code, 302)
+        self.assertEqual(
+            [str(m) for m in response.wsgi_request._messages],
+            ["IIIF manifest is too large to process."],
+        )
+
+    @patch("main_app.views.source.fetch_manifest")
+    def test_malformed_manifest_redirects_with_error(
+        self, mock_fetch: MagicMock
+    ) -> None:
+        # A JSON array parses fine but is not a IIIF manifest; this must not
+        # reach the view as an unhandled exception.
+        mock_fetch.return_value = []
         response = self.client.get(
             reverse("source-iiif-mapping", args=[self.source.id])
         )

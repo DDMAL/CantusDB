@@ -51,6 +51,7 @@ from main_app.models.source_url import SourceURL
 from main_app.permissions import CustomAccessMixin
 from main_app.mixins import JSONResponseMixin
 from main_app.iiif_utils import (
+    ManifestTooLargeError,
     fetch_manifest,
     extract_canvases,
     generate_folio_image_mapping,
@@ -896,6 +897,10 @@ class SourceIIIFMappingView(CustomAccessMixin, SingleObjectMixin, View):  # type
         except requests.RequestException:
             logger.exception("Failed to fetch IIIF manifest: %s", manifest_link.url)
             messages.error(request, "Failed to fetch IIIF manifest.")
+            return HttpResponseRedirect(redirect_url)
+        except ManifestTooLargeError:
+            logger.exception("IIIF manifest too large: %s", manifest_link.url)
+            messages.error(request, "IIIF manifest is too large to process.")
             return HttpResponseRedirect(redirect_url)
         except ValueError:
             logger.exception("Invalid JSON in IIIF manifest: %s", manifest_link.url)

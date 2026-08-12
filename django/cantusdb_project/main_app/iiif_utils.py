@@ -6,10 +6,22 @@ Supports both IIIF Presentation API 2.x and 3.0 manifests.
 
 import csv
 import io
+import json
 import re
 from dataclasses import dataclass
 
 import requests
+
+# A manifest is JSON metadata, not image data: the largest one we've tested
+# (Einsiedeln 121, 621 canvases) is a few MB. `timeout` only bounds the gap
+# between bytes, not the total transfer, so without a ceiling a very large
+# or slowly-drip-fed response would occupy a worker and be read into memory
+# in full.
+MAX_MANIFEST_BYTES = 50 * 1024 * 1024
+
+
+class ManifestTooLargeError(ValueError):
+    """Raised when a manifest exceeds MAX_MANIFEST_BYTES."""
 
 
 @dataclass
@@ -34,11 +46,28 @@ def fetch_manifest(manifest_url: str, timeout: int = 30) -> dict:
 
     Raises:
         requests.RequestException: If the fetch fails.
+        ManifestTooLargeError: If the response exceeds MAX_MANIFEST_BYTES.
         ValueError: If the response is not valid JSON.
     """
-    response = requests.get(manifest_url, timeout=timeout)
-    response.raise_for_status()
-    return response.json()
+    with requests.get(manifest_url, timeout=timeout, stream=True) as response:
+        response.raise_for_status()
+        # Trust Content-Length only to fail early; it's absent on chunked
+        # responses and a hostile server can understate it, so the running
+        # total below is what actually enforces the limit.
+        declared_length = response.headers.get("Content-Length", "")
+        if declared_length.isdigit() and int(declared_length) > MAX_MANIFEST_BYTES:
+            raise ManifestTooLargeError(
+                f"IIIF manifest declares {declared_length} bytes, "
+                f"over the {MAX_MANIFEST_BYTES} byte limit."
+            )
+        content = bytearray()
+        for chunk in response.iter_content(chunk_size=64 * 1024):
+            content.extend(chunk)
+            if len(content) > MAX_MANIFEST_BYTES:
+                raise ManifestTooLargeError(
+                    f"IIIF manifest exceeds the {MAX_MANIFEST_BYTES} byte limit."
+                )
+    return json.loads(content)
 
 
 def _get_label_text(label: object) -> str:
@@ -67,45 +96,56 @@ def _get_label_text(label: object) -> str:
     return str(label)
 
 
+def _as_dict(value: object) -> dict:
+    """Coerce a manifest value to a dict, so malformed entries read as empty."""
+    return value if isinstance(value, dict) else {}
+
+
+def _first_item(value: object) -> dict:
+    """Return the first element of a manifest list, as a dict."""
+    if isinstance(value, list) and value:
+        return _as_dict(value[0])
+    return {}
+
+
+def _as_url(value: object) -> str | None:
+    """Return value if it is a non-empty string, else None."""
+    return value if isinstance(value, str) and value else None
+
+
 def _extract_image_url_v2(canvas: dict) -> str | None:
     """Extract the best image URL from a IIIF 2.x canvas."""
-    images = canvas.get("images", [])
-    if not images:
-        return None
-    resource = images[0].get("resource", {})
+    resource = _as_dict(_first_item(canvas.get("images")).get("resource"))
     # Try to get the IIIF Image API service URL
-    service = resource.get("service", {})
+    service = resource.get("service")
     if isinstance(service, list):
-        service = service[0] if service else {}
-    service_id = service.get("@id", "")
+        service = _first_item(service)
+    service_id = _as_url(_as_dict(service).get("@id"))
     if service_id:
         # Construct a full image URL from the service
         return f"{service_id.rstrip('/')}/full/max/0/default.jpg"
     # Fall back to the resource @id (direct image URL)
-    return resource.get("@id") or None
+    return _as_url(resource.get("@id"))
 
 
 def _extract_image_url_v3(canvas: dict) -> str | None:
     """Extract the best image URL from a IIIF 3.0 canvas."""
-    items = canvas.get("items", [])
-    if not items:
-        return None
     # Navigate: canvas -> AnnotationPage -> Annotation -> body
-    annotation_page = items[0]
-    annotations = annotation_page.get("items", [])
-    if not annotations:
-        return None
-    body = annotations[0].get("body", {})
+    annotation_page = _first_item(canvas.get("items"))
+    body = _as_dict(_first_item(annotation_page.get("items")).get("body"))
     # Try service first
     services = body.get("service", [])
     if isinstance(services, dict):
         services = [services]
-    for service in services:
-        service_id = service.get("id", service.get("@id", ""))
-        if service_id:
-            return f"{service_id.rstrip('/')}/full/max/0/default.jpg"
+    if isinstance(services, list):
+        for service in services:
+            service_id = _as_url(_as_dict(service).get("id")) or _as_url(
+                _as_dict(service).get("@id")
+            )
+            if service_id:
+                return f"{service_id.rstrip('/')}/full/max/0/default.jpg"
     # Fall back to body id
-    return body.get("id") or None
+    return _as_url(body.get("id"))
 
 
 def extract_canvases(manifest: dict) -> list[CanvasInfo]:
@@ -120,7 +160,14 @@ def extract_canvases(manifest: dict) -> list[CanvasInfo]:
     Returns:
         List of CanvasInfo objects, one per canvas/page.
     """
-    canvases = []
+    canvases: list[CanvasInfo] = []
+
+    # The manifest comes from a remote server and need not be an object at
+    # all. The view calls this outside the try/except that guards
+    # fetch_manifest, so anything raised here is an unhandled 500; return
+    # empty instead and let the caller's "no canvases" path report it.
+    if not isinstance(manifest, dict):
+        return canvases
 
     # Detect API version
     context = manifest.get("@context", "")
@@ -128,24 +175,23 @@ def extract_canvases(manifest: dict) -> list[CanvasInfo]:
 
     if is_v3:
         canvas_list = manifest.get("items", [])
-        for i, canvas in enumerate(canvas_list):
-            label = _get_label_text(canvas.get("label", ""))
-            image_url = _extract_image_url_v3(canvas)
-            canvases.append(
-                CanvasInfo(label=label, image_url=image_url, canvas_index=i)
-            )
+        extract_image_url = _extract_image_url_v3
     else:
         # API 2.x
         sequences = manifest.get("sequences", [])
-        if not sequences:
+        if not isinstance(sequences, list) or not sequences:
             return canvases
-        canvas_list = sequences[0].get("canvases", [])
-        for i, canvas in enumerate(canvas_list):
-            label = _get_label_text(canvas.get("label", ""))
-            image_url = _extract_image_url_v2(canvas)
-            canvases.append(
-                CanvasInfo(label=label, image_url=image_url, canvas_index=i)
-            )
+        canvas_list = _as_dict(sequences[0]).get("canvases", [])
+        extract_image_url = _extract_image_url_v2
+
+    if not isinstance(canvas_list, list):
+        return canvases
+
+    for i, canvas in enumerate(canvas_list):
+        canvas = _as_dict(canvas)
+        label = _get_label_text(canvas.get("label", ""))
+        image_url = extract_image_url(canvas)
+        canvases.append(CanvasInfo(label=label, image_url=image_url, canvas_index=i))
 
     return canvases
 
@@ -325,8 +371,9 @@ def generate_folio_image_mapping(
 
 
 # Leading characters that spreadsheet apps (Excel, Sheets) interpret as the
-# start of a formula. Canvas labels come from a remote manifest, so a crafted
-# label could execute on open (CWE-1236); prefix such values with an apostrophe.
+# start of a formula. Canvas labels and image URLs both come from a remote
+# manifest, so a crafted value could execute on open (CWE-1236); prefix such
+# values with an apostrophe.
 _CSV_INJECTION_PREFIXES = ("=", "+", "-", "@", "\t", "\r")
 
 
@@ -351,12 +398,14 @@ def mapping_to_csv(mapping: list[dict[str, str]]) -> str:
     writer = csv.writer(output)
     writer.writerow(["folio", "image_link", "notes", "canvas_label"])
     for row in mapping:
-        # Only canvas_label is untrusted; folio/image_link/notes are our own
-        # data and prefixing a URL would corrupt it on re-import.
+        # image_link and canvas_label are both read out of the manifest;
+        # folio comes from our own chants and notes are literals. A real
+        # http(s) URL never starts with a trigger character, so escaping the
+        # link costs nothing on re-import.
         writer.writerow(
             [
                 row["folio"],
-                row["image_link"],
+                _escape_csv_field(row["image_link"]),
                 row["notes"],
                 _escape_csv_field(row["canvas_label"]),
             ]
