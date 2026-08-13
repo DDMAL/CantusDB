@@ -153,6 +153,11 @@ class BaseChantText(TypedDict):
 # reasoning either way: nothing but an ID may reshape the request.
 CANTUS_ID_PATTERN: re.Pattern = re.compile(r"[A-Za-z0-9.:_-]+")
 
+# CI's longest catalogued ids are well under this. The pattern bounds the character set
+# but not the length, so a validated id can still be arbitrarily long; this bound keeps it
+# short enough to drop straight into a cache key (memcached rejects keys over 250 bytes).
+MAX_CANTUS_ID_LENGTH: int = 64
+
 
 def get_base_chant_text(cantus_id: str) -> BaseChantText:
     """Return the standard full text to compose ``cantus_id``'s cores from (#2189).

@@ -79,7 +79,7 @@
 .token-cid {
     margin-left: 0.3rem;
     font-size: 0.72em;
-    color: #8a94a0;
+    color: #6c757d;
     white-space: nowrap;
 }
 /* proposed = a component not yet in Cantus Index. It is still a component, but it reads
@@ -289,7 +289,7 @@ kbd.token-menu-key {
     overflow-y: auto;
 }
 .cluster-bank-status {
-    color: #8a94a0;
+    color: #6c757d;
 }
 .cluster-bank-status:empty {
     display: none;
@@ -328,7 +328,7 @@ kbd.token-menu-key {
 .cluster-bank-cid {
     display: block;
     font-size: 0.72em;
-    color: #8a94a0;
+    color: #6c757d;
 }
 
 /* Restore tray for deleted core elements. It shares the bank's card — one elements
@@ -404,7 +404,7 @@ kbd.token-menu-key {
 /* the matched element's Cantus ID, so g04828:01 reads apart from a whole chant */
 .typeahead-cid {
     font-size: 0.72em;
-    color: #8a94a0;
+    color: #6c757d;
     white-space: nowrap;
 }
 /* prompt shown when nothing is typed yet (the pool is searched, not browsed) */
@@ -412,7 +412,7 @@ kbd.token-menu-key {
     padding: 0.25rem 0.6rem;
     font-size: 0.8rem;
     font-style: italic;
-    color: #8a94a0;
+    color: #6c757d;
 }
 /* Cantus Index unreachable → offline fallback: a warning, not a hard error */
 .typeahead-notice {

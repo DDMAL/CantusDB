@@ -34,6 +34,7 @@ from volpiano_display_utilities.text_volpiano_alignment import align_text_and_vo
 from cantusindex import (
     BaseChantText,
     CANTUS_ID_PATTERN,
+    MAX_CANTUS_ID_LENGTH,
     ClusterElement,
     get_base_chant_text,
     get_cluster_elements,
@@ -1427,8 +1428,13 @@ class CIBaseTextView(LoginRequiredMixin, View):
         """Return the text to seed ``cantus_id``'s cores from, and the ID it came from."""
         cid: str = cantus_id.strip()
         # CANTUS_ID_PATTERN rejects anything but a bare id, so a crafted value can't
-        # append a query or fragment to the CI request path.
-        if not cid or not CANTUS_ID_PATTERN.fullmatch(cid):
+        # append a query or fragment to the CI request path. The length bound keeps an
+        # over-long id out of the cache key below.
+        if (
+            not cid
+            or len(cid) > MAX_CANTUS_ID_LENGTH
+            or not CANTUS_ID_PATTERN.fullmatch(cid)
+        ):
             return JsonResponse({"base_text": "", "cantus_id": ""})
 
         # Keyed on the requested ID, and versioned because #2189 changed what is stored
@@ -1472,7 +1478,11 @@ class CIClusterElementsView(LoginRequiredMixin, View):
     def get(self, request: HttpRequest, cantus_id: str) -> JsonResponse:
         """Return the catalogued sub-elements of ``cantus_id`` as JSON."""
         cid: str = cantus_id.strip()
-        if not cid or not CANTUS_ID_PATTERN.fullmatch(cid):
+        if (
+            not cid
+            or len(cid) > MAX_CANTUS_ID_LENGTH
+            or not CANTUS_ID_PATTERN.fullmatch(cid)
+        ):
             return JsonResponse({"elements": []})
 
         cache_key: str = f"ci-cluster-elements:{cid}"

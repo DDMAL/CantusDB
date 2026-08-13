@@ -10,8 +10,8 @@ node --test "tests/js/**/*.test.js"
 ```
 
 Node's built-in test runner (`node:test` + `node:assert`), so there is **nothing to install** and
-no `package.json`. Node 18 or newer. (Quote the glob — passing the bare directory does not work
-on current Node.)
+no `package.json`. Node 21 or newer, since `node --test` only learned to expand glob patterns in
+21 (CI runs 22). (Quote the glob — passing the bare directory does not work on current Node.)
 
 These are not Django tests — `manage.py test` does not reach them — but they do run in CI, via
 `.github/workflows/js_tests.yml`.
@@ -59,7 +59,7 @@ later edit cannot quietly drop it.
 
 The rules were originally derived from about 4,325 Cantus Index texts — too many, and too
 incidental, to commit. If you change a rule it is worth rebuilding that sample locally and
-checking the invariants over all of it rather than trusting 46 texts.
+checking the invariants over all of it rather than trusting 48 texts.
 
 There is no script in the repo for this; it is a dozen lines. Fetch `/json-text/<term>` for a
 spread of common Latin incipit words (`sanctus`, `agnus`, `gloria`, `benedictus`, `kyrie`, …),
