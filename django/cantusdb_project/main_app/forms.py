@@ -304,8 +304,10 @@ class ChantCreateForm(forms.ModelForm):
             return []
         try:
             data = json.loads(raw)
-        except json.JSONDecodeError:
-            raise forms.ValidationError("Composed elements are not valid JSON.")
+        except json.JSONDecodeError as err:
+            raise forms.ValidationError(
+                "Composed elements are not valid JSON."
+            ) from err
         if not isinstance(data, list):
             raise forms.ValidationError("Composed elements must be a list.")
         if len(data) > self.MAX_ELEMENTS:
@@ -318,16 +320,27 @@ class ChantCreateForm(forms.ModelForm):
             if not isinstance(entry, dict):
                 raise forms.ValidationError("Each composed element must be an object.")
             kind = entry.get("kind")
-            text = (entry.get("text") or "").strip()
-            if kind not in valid_kinds:
+            # A crafted payload can send non-strings: an unhashable kind breaks the
+            # ``in`` test, and a non-str text breaks ``.strip()``. Guard both so bad
+            # input is a form error, not an unhandled 500.
+            if not isinstance(kind, str) or kind not in valid_kinds:
                 raise forms.ValidationError(f"Unknown element kind: {kind!r}.")
+            raw_text = entry.get("text")
+            raw_cantus_id = entry.get("cantus_id")
+            if not isinstance(raw_text, (str, type(None))) or not isinstance(
+                raw_cantus_id, (str, type(None))
+            ):
+                raise forms.ValidationError(
+                    "Composed element text and Cantus ID must be strings."
+                )
+            text = (raw_text or "").strip()
             if not text:
                 raise forms.ValidationError("Composed elements must have text.")
             elements.append(
                 {
                     "kind": kind,
                     "text": text,
-                    "cantus_id": (entry.get("cantus_id") or "").strip(),
+                    "cantus_id": (raw_cantus_id or "").strip(),
                     "proposed": bool(entry.get("proposed")),
                 }
             )

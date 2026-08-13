@@ -3663,6 +3663,17 @@ class ChantCreateViewTest(CustomAccessTestMixin, TestCase):
             ('{"not": "a list"}', "Composed elements must be a list."),
             ("[1]", "Each composed element must be an object."),
             ('[{"kind": "bogus", "text": "x"}]', "Unknown element kind: 'bogus'."),
+            # Non-string kind/text/cantus_id must fail cleanly, not 500 on .strip() or
+            # an unhashable set lookup.
+            ('[{"kind": [], "text": "x"}]', "Unknown element kind: []."),
+            (
+                '[{"kind": "core", "text": 5}]',
+                "Composed element text and Cantus ID must be strings.",
+            ),
+            (
+                '[{"kind": "core", "text": "x", "cantus_id": 5}]',
+                "Composed element text and Cantus ID must be strings.",
+            ),
             ('[{"kind": "core", "text": "   "}]', "Composed elements must have text."),
             (
                 json.dumps([{"kind": "core", "text": "x"}] * 201),
