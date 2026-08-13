@@ -1,5 +1,4 @@
 import hashlib
-import re
 import urllib.parse
 from collections import Counter, defaultdict
 from typing import Optional, Any, Iterator
@@ -34,6 +33,7 @@ from volpiano_display_utilities.text_volpiano_alignment import align_text_and_vo
 
 from cantusindex import (
     BaseChantText,
+    CANTUS_ID_PATTERN,
     ClusterElement,
     get_base_chant_text,
     get_cluster_elements,
@@ -1303,6 +1303,11 @@ class CIComponentSearchView(LoginRequiredMixin, View):
     cluster (28 Jul 2026 demo feedback) — a whole antiphon or responsory is never a
     component element, and leaving them in buried the usable matches. Filtering here
     rather than in the browser keeps the cached payload small and the client dumb.
+
+    This and its two sibling proxies (``CIBaseTextView``, ``CIClusterElementsView``)
+    gate on ``LoginRequiredMixin`` alone — deliberately looser than the Create Chant
+    page's ``CustomAccessMixin`` — because they only re-serve Cantus Index's public
+    catalogue and hold no per-source data to guard.
     """
 
     MIN_QUERY_LENGTH: int = 3
@@ -1339,6 +1344,10 @@ class CIComponentSearchView(LoginRequiredMixin, View):
 
     def get(self, request: HttpRequest, search_term: str) -> JsonResponse:
         """Return Cantus Index text-search matches for ``search_term`` as JSON."""
+        # Unlike the ID views, `search_term` isn't pattern-guarded: it is a text query,
+        # not an id, and it only ever lands in CI's /json-text/ path segment — never in a
+        # host, a further sub-request, or anything reused to reshape a request — so the
+        # `str` URL converter (which already excludes "/") is guard enough.
         term: str = search_term.strip()
         if len(term) < self.MIN_QUERY_LENGTH:
             return JsonResponse({"results": [], "total": 0, "capped": False})
@@ -1413,15 +1422,13 @@ class CIBaseTextView(LoginRequiredMixin, View):
     """
 
     CACHE_TTL: int = 60 * 60  # seconds; CI text data is effectively static
-    # Cantus IDs are short alphanumerics with optional :/./- separators (g04828,
-    # g04828:01, 909030). Reject anything else so a crafted id can't append a query
-    # or fragment to the CI request path.
-    ID_PATTERN = re.compile(r"[A-Za-z0-9.:_-]+")
 
     def get(self, request: HttpRequest, cantus_id: str) -> JsonResponse:
         """Return the text to seed ``cantus_id``'s cores from, and the ID it came from."""
         cid: str = cantus_id.strip()
-        if not cid or not self.ID_PATTERN.fullmatch(cid):
+        # CANTUS_ID_PATTERN rejects anything but a bare id, so a crafted value can't
+        # append a query or fragment to the CI request path.
+        if not cid or not CANTUS_ID_PATTERN.fullmatch(cid):
             return JsonResponse({"base_text": "", "cantus_id": ""})
 
         # Keyed on the requested ID, and versioned because #2189 changed what is stored
@@ -1452,25 +1459,31 @@ class CIClusterElementsView(LoginRequiredMixin, View):
     for why CI leaves no cheaper option), so the result is cached for an hour —
     including the empty result, which is the common case. Most chants are not troped,
     and without caching those would re-probe CI on every activation.
+
+    An outage is *not* cached, though: ``get_cluster_elements`` returns None (rather than
+    an empty list) when it couldn't reach CI, so a blip during the first load of a troped
+    chant doesn't pin an empty bank for the whole hour — the next activation retries.
     """
 
     CACHE_TTL: int = (
         60 * 60
     )  # seconds; CI's catalogue of elements is effectively static
-    # Same guard as CIBaseTextView: keep a crafted id from reshaping the CI request path.
-    ID_PATTERN = re.compile(r"[A-Za-z0-9.:_-]+")
 
     def get(self, request: HttpRequest, cantus_id: str) -> JsonResponse:
         """Return the catalogued sub-elements of ``cantus_id`` as JSON."""
         cid: str = cantus_id.strip()
-        if not cid or not self.ID_PATTERN.fullmatch(cid):
+        if not cid or not CANTUS_ID_PATTERN.fullmatch(cid):
             return JsonResponse({"elements": []})
 
         cache_key: str = f"ci-cluster-elements:{cid}"
         elements: Optional[list[ClusterElement]] = cache.get(cache_key)
         if elements is None:
-            elements = get_cluster_elements(cid)
-            cache.set(cache_key, elements, self.CACHE_TTL)
+            fetched = get_cluster_elements(cid)
+            # None means CI was unreachable, which is indistinguishable at CI's API from
+            # a real "no elements" — cache the genuine empty list, never the outage.
+            elements = fetched if fetched is not None else []
+            if fetched is not None:
+                cache.set(cache_key, elements, self.CACHE_TTL)
 
         return JsonResponse({"elements": elements})
 
