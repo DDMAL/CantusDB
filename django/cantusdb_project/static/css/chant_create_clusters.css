@@ -9,6 +9,19 @@
     cursor: text;
 }
 
+/* #cluster-status normally carries a muted note (Bootstrap .text-muted, set in the
+ * template). setStatus swaps that for this when the seeded text came from a different
+ * record than the Cantus ID entered (a troped chant seeded from its base, #2189): an
+ * amber notice, keyed to the component tokens' gold, so the redirect can't pass unseen.
+ * Dark-yellow text (Bootstrap's warning-emphasis) keeps it readable on the tint. */
+.cluster-status--warning {
+    color: #664d03;
+    background-color: #fff8e6;
+    border-left: 3px solid #e6c266;
+    padding: 0.3rem 0.5rem;
+    border-radius: 0.2rem;
+}
+
 /* Inline element tokens: subtle, roughly the weight of the surrounding text.
  * Core and component elements are clearly different colours (feedback #2).
  * Long elements are allowed to wrap; only the Cantus ID stays on its line. */
