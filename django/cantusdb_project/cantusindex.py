@@ -211,7 +211,7 @@ def get_cluster_elements(
     cantus_id: str,
     max_elements: int = 40,
     max_consecutive_misses: int = 2,
-) -> list[ClusterElement]:
+) -> Optional[list[ClusterElement]]:
     """Collect the catalogued sub-elements of a troped chant, e.g. g04828:01…:04.
 
     Cantus Index has no endpoint that lists a chant's constituent elements, and none
@@ -225,6 +225,16 @@ def get_cluster_elements(
     the sequence) or ``max_elements`` probes, whichever comes first. Callers should
     cache the result: this costs one upstream request per probe.
 
+    Returns the elements in order, an empty list when Cantus Index is reachable but the
+    chant has no catalogued elements, or ``None`` when CI couldn't be reached to find
+    out. Empty and unreachable have to be told apart because a caller caches the answer:
+    caching an empty list is right, caching an outage hides a troped chant's whole bank
+    for as long as the cache lives. ``get_cantus_id_info`` collapses both to None (a
+    timeout and a genuine "no such element" both return it), so we read the transport
+    layer directly here — a None from ``get_json_from_ci_api`` is a failed request, not
+    an absent element — and abandon the walk rather than report a short or empty run CI
+    never actually confirmed.
+
     Known limitation: only the ``<parent>:NN`` form is discoverable this way. A
     sub-element using another suffix convention (``<parent>.Tp7``) can't be guessed at
     and won't appear — it stays reachable through the text search instead.
@@ -233,8 +243,13 @@ def get_cluster_elements(
     consecutive_misses: int = 0
     for number in range(1, max_elements + 1):
         sub_id: str = f"{cantus_id}:{number:02d}"
-        info: Optional[dict[Any, Any]] = get_cantus_id_info(sub_id)
-        if not info:
+        response: Union[dict[Any, Any], list[Any], None] = get_json_from_ci_api(
+            f"/json-cid/{sub_id}"
+        )
+        if response is None:
+            return None
+        info = response.get("info") if isinstance(response, dict) else None
+        if not (isinstance(info, dict) and info):
             consecutive_misses += 1
             if consecutive_misses >= max_consecutive_misses:
                 break

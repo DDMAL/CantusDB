@@ -4413,6 +4413,26 @@ class CIClusterElementsViewTest(TestCase):
         mock_elements.assert_called_once()
 
     @patch("main_app.views.chant.get_cluster_elements")
+    def test_does_not_cache_a_ci_outage(self, mock_elements) -> None:
+        """None means CI was unreachable, indistinguishable at CI's API from "no
+        elements" — so unlike a real empty list it must not be cached, or a blip during
+        a troped chant's first load would hide its whole bank for the hour. A retry
+        re-hits CI, and the elements appear once CI answers."""
+        mock_elements.return_value = None
+        response = self.client.get(reverse("ci-cluster-elements", args=["g04828"]))
+        self.assertEqual(response.json(), {"elements": []})
+
+        mock_elements.return_value = [
+            {"cantus_id": "g04828:01", "genre": "TpSa", "fulltext": "Perpetuo numine"}
+        ]
+        response = self.client.get(reverse("ci-cluster-elements", args=["g04828"]))
+        self.assertEqual(
+            [element["cantus_id"] for element in response.json()["elements"]],
+            ["g04828:01"],
+        )
+        self.assertEqual(mock_elements.call_count, 2)
+
+    @patch("main_app.views.chant.get_cluster_elements")
     def test_rejects_malformed_cantus_id_without_hitting_ci(
         self, mock_elements
     ) -> None:

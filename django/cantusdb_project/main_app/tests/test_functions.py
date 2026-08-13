@@ -755,8 +755,33 @@ class GetClusterElementsTest(TestCase):
         )
 
     def test_untroped_chant_yields_no_elements(self) -> None:
+        """CI reachable, chant has none: an empty list, which the caller may cache."""
         with patch("cantusindex.get_json_from_ci_api", self._fake_ci({})):
             self.assertEqual(get_cluster_elements("008349"), [])
+
+    def test_unreachable_ci_yields_none_not_an_empty_list(self) -> None:
+        """A transport failure is not a "no such element" 200. get_json_from_ci_api
+        returns None for both, so the walk reads it directly and reports None — distinct
+        from [], so the caller caches a real empty answer but not an outage."""
+        with patch("cantusindex.get_json_from_ci_api", return_value=None):
+            self.assertIsNone(get_cluster_elements("g04828"))
+
+    def test_a_failure_partway_abandons_the_run(self) -> None:
+        """A blip after some elements are found still leaves the count unknown, so the
+        partial run is discarded rather than reported as the whole of it."""
+        known = {
+            "g04828:01": {"field_genre": "TpSa", "field_full_text": "first"},
+            "g04828:02": {"field_genre": "TpSa", "field_full_text": "second"},
+        }
+
+        def flaky(path: str, *args, **kwargs):
+            cantus_id = path.rsplit("/", 1)[-1]
+            if cantus_id in known:
+                return {"info": known[cantus_id]}
+            return None  # CI drops on the first probe past the known elements
+
+        with patch("cantusindex.get_json_from_ci_api", flaky):
+            self.assertIsNone(get_cluster_elements("g04828"))
 
     def test_stops_probing_at_max_elements(self) -> None:
         """An unbroken run can't drive an unbounded number of upstream requests."""
