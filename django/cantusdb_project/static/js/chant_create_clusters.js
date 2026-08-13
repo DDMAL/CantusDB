@@ -7,9 +7,10 @@
  * is just the order in the field:
  *
  *   - core elements      — chunks of the base chant's own text. They display the
- *                          parent Cantus ID (read live from the Cantus ID field),
- *                          but never store it — the server resolves a core's ID
- *                          through the parent chant. Deletable, but deleting one is
+ *                          Cantus ID that text was seeded from — the base chant's for
+ *                          a troped chant, not the troped ID in the field (#2189) — but
+ *                          never store it: the server resolves a core's ID through the
+ *                          parent chant. Deletable, but deleting one is
  *                          a deliberate act (click the box, or Backspace beside it,
  *                          then red Delete): the removed core drops into a restore
  *                          tray and Undo reverts it. A core can also be SPLIT in two.
@@ -36,8 +37,9 @@
  * For a troped chant the seed is not that chant's own text but the text of the BASE
  * CHANT Cantus Index names for it (#2189) — its own text has the base chant cut down
  * to cue words, so it is not something a split can repair. The endpoint decides this
- * and reports which Cantus ID the text came from, but the composer does not show it:
- * cataloguers work from the text in front of them and don't need the provenance.
+ * and reports which Cantus ID the text came from, and the composer warns when the text
+ * arrived from a different record than the one entered (see seedBaseText), since the
+ * cataloguer is then composing over text they didn't type in.
  * Note the ID in the FIELD stays the troped one throughout: the
  * element bank probes it for components (g01349.tp14:01), which hang off the troped
  * chant and not the base, so rewriting the field to the base ID would empty the bank.
@@ -67,6 +69,11 @@
     // payload any more — the base text is fetched and the parent ID is read live.
     let currentCluster = null;
     let activateSeq = 0; // guards the async base-text seed against a fast off-toggle
+    // The Cantus ID the current base text was seeded from — the base chant's for a troped
+    // chant (which is not the ID in the field, #2189), the chant's own otherwise. Cores
+    // display this, not the field's troped ID, because it is where their text actually
+    // came from; "" when the text was typed in rather than fetched from Cantus Index.
+    let seededCantusId = "";
 
     // inline typeahead state
     let typeahead = null; // the floating <ul> (created once, appended to body)
@@ -146,15 +153,18 @@
         return token;
     }
 
-    // The parent Cantus ID, read live from the Cantus ID field. Cores display it but
-    // never store it (the server resolves a core's ID through the parent chant), so a
-    // later correction to the field just re-labels existing cores — no data at stake.
+    // The parent Cantus ID, read live from the Cantus ID field. This is the troped chant's
+    // ID: the base-text fetch keys on it and the element bank probes it for components, so
+    // the field must hold it. It is NOT what cores display — see seededCantusId.
     function parentCantusId() {
         return cantusIdInput ? cantusIdInput.value.trim() : "";
     }
 
+    // A core carries the ID its text was seeded from (seededCantusId) — the base chant for
+    // a troped chant. The server blanks it on save (a core resolves its ID through the
+    // parent chant), so it is display/linking only, with no data at stake.
     function makeCoreToken(text) {
-        return makeToken("core", text, parentCantusId());
+        return makeToken("core", text, seededCantusId);
     }
 
     function isToken(node) {
@@ -203,23 +213,6 @@
         return (
             allTokens().length > 1 || componentTokens().length > 0 || removedCores.length > 0
         );
-    }
-
-    // Re-label existing cores after the Cantus ID field changes. Cores display the parent's
-    // ID but never store it as their own identity, so this is presentation only — without it
-    // the boxes keep showing the ID of the chant they were seeded from, which is a display
-    // that has quietly stopped being true.
-    function relabelCores() {
-        const parent = parentCantusId();
-        allTokens()
-            .filter(isCoreToken)
-            .forEach(function (token) {
-                token.dataset.cantusId = parent;
-                const cid = token.querySelector(".token-cid");
-                // Separator boxes hide their ID in CSS, but keep the data consistent anyway.
-                if (cid) cid.textContent = parent;
-            });
-        syncToTextarea(); // cores carry the parent ID into elements_json
     }
 
     // Insert a token at a collapsed range. No padding spaces: elements sit directly
@@ -591,10 +584,16 @@
 
     // ---- activate / deactivate ------------------------------------------
 
-    function setStatus(msg) {
+    // The status line doubles as a warning banner: pass level "warning" to style it as
+    // one (used when the seeded text came from a different record than the Cantus ID
+    // entered). Any other level is the default muted, informational note.
+    function setStatus(msg, level) {
         if (!status) return;
         status.textContent = msg || "";
         status.hidden = !msg;
+        const warning = level === "warning";
+        status.classList.toggle("text-muted", !warning);
+        status.classList.toggle("cluster-status--warning", warning);
     }
 
     // Turn the composer on. The base text isn't known synchronously — it's fetched
@@ -621,6 +620,7 @@
         removedCores = [];
         undoStack = [];
         caretBeforeToken = null;
+        seededCantusId = ""; // set once the seed resolves; blank means nothing seeded yet
         closeMenu(); // the wipe below replaces every element node
         clearSelection();
         selectAnchor = null;
@@ -652,11 +652,27 @@
             // when there's no ID to fetch by.
             const text = cid ? (base.text || "").trim() : preTyped;
             if (text) {
+                // Record where the text came from before seeding: the cores read it for
+                // their label (base chant on a redirect, the entered ID otherwise, "" for
+                // manually typed text with no Cantus ID to fetch by).
+                seededCantusId = cid ? base.cantusId || cid : "";
                 seedCore(text);
-                // For a troped chant the text is the base chant's rather than this Cantus
-                // ID's (#2189). The composer used to say so here; cataloguers don't need
-                // to know which record the text came from, so it seeds silently.
-                setStatus("");
+                // For a troped chant CI seeds from the base chant, not the entered ID
+                // (#2189): the troped record abbreviates the base to cue words, so its
+                // full text lives under a different Cantus ID. Warn when that happened —
+                // the composer is now showing text from a record the cataloguer didn't
+                // enter, and `base.cantusId` is the only signal of it.
+                if (cid && base.cantusId && base.cantusId !== cid) {
+                    setStatus(
+                        "Full text retrieved from base chant " +
+                            base.cantusId +
+                            " instead of troped chant " +
+                            cid,
+                        "warning"
+                    );
+                } else {
+                    setStatus("");
+                }
             } else if (cid) {
                 setStatus("No base text found in Cantus Index for Cantus ID " + cid + ".");
             } else {
@@ -680,9 +696,9 @@
     // GET the standard full text to seed the cores from (one blob; CI doesn't pre-split
     // it), as { text, cantusId }. For a troped chant the endpoint answers with the *base*
     // chant's text and reports which chant that was in `cantus_id`, so the ID need not be
-    // the one we asked for. Nothing displays it today — the seed is silent — but it is
-    // kept because it is the only signal that the text was redirected. Always resolves; a
-    // failure is empty text, which the caller treats as "CI has nothing for this ID".
+    // the one we asked for; seedBaseText compares the two and warns when they differ.
+    // Always resolves; a failure is empty text, which the caller treats as "CI has
+    // nothing for this ID".
     function fetchBaseText(cantusId) {
         return fetch(BASE_TEXT_URL + encodeURIComponent(cantusId), {
             headers: { "X-Requested-With": "XMLHttpRequest" },
@@ -1121,10 +1137,11 @@
         return btn;
     }
 
-    // The element's Cantus ID for display/linking. A core has no ID of its own — it is
-    // the parent chant's, read live from the field — while a component carries its own.
+    // The element's Cantus ID for display/linking. Every token stores its own now: a
+    // component's own ID, and for a core the base chant its text was seeded from — so the
+    // "View on Cantus Index" link opens the record the text actually came from.
     function tokenCantusId(token) {
-        return isCoreToken(token) ? parentCantusId() : token.dataset.cantusId || "";
+        return token.dataset.cantusId || "";
     }
 
     // "View on Cantus Index" — a real anchor rather than a scripted window.open, so
@@ -1986,8 +2003,10 @@
                     reseed("");
                     return;
                 }
-                // Keeping the elements: they belong to the new parent now, so re-label them.
-                relabelCores();
+                // Keeping the elements without reseeding: their text is still the previous
+                // chant's, so the cores keep showing the ID it came from. Re-labelling them
+                // to the new troped ID would put the very ID on them that #2189 avoids — one
+                // whose own record doesn't hold this text.
             });
         }
         if (reloadButton) {
