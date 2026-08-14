@@ -7,6 +7,7 @@ from faker import Faker  # type: ignore[import-untyped]
 from django.contrib.auth import get_user_model
 from django.db.models import Max
 
+from main_app.century_dates import century_name_to_dates
 from main_app.models.century import Century
 from main_app.models.chant import Chant
 from main_app.models.feast import Feast
@@ -21,7 +22,6 @@ from main_app.models.sequence import Sequence
 from main_app.models.source import Source
 from users.models import User as UserAnnotation
 from users.models import Group, GroupMembership
-
 
 User = get_user_model()
 
@@ -147,9 +147,18 @@ def make_fake_volpiano(
 
 
 def make_fake_century(**kwargs: Any) -> Century:
-    """Generates a fake Century object."""
+    """Generates a fake Century object with auto-populated min_date and max_date."""
     if "name" not in kwargs:
         kwargs["name"] = faker.sentence(nb_words=3)
+
+    if "min_date" not in kwargs or "max_date" not in kwargs:
+        dates = century_name_to_dates(kwargs["name"])
+        if dates:
+            if "min_date" not in kwargs:
+                kwargs["min_date"] = dates[0]
+            if "max_date" not in kwargs:
+                kwargs["max_date"] = dates[1]
+
     century = Century.objects.create(**kwargs)
     return century
 
@@ -387,6 +396,7 @@ def make_fake_sequence(
     cantus_id: Optional[str] = None,
     siglum: Optional[str] = None,
     folio: Optional[str] = None,
+    indexing_notes: Optional[str] = None,
 ) -> Sequence:
     """Generates a fake Sequence object."""
     if source is None:
@@ -400,6 +410,8 @@ def make_fake_sequence(
     if folio is None:
         # two digits and one letter
         folio = faker.bothify("##?")
+    if indexing_notes is None:
+        indexing_notes = faker.sentence()
     sequence = Sequence(
         title=title,
         siglum=siglum,
@@ -409,7 +421,7 @@ def make_fake_sequence(
         genre=make_fake_genre(),
         rubrics=faker.sentence(),
         analecta_hymnica=make_random_string(6, "0123456789:"),
-        indexing_notes=faker.sentence(),
+        indexing_notes=indexing_notes,
         date=make_random_string(6, "1234567890abcdefghijklmnopqrstuvwxyz/-*"),
         ah_volume=str(random.randint(0, 60)),
         source=source,
@@ -549,6 +561,7 @@ def make_fake_source(**kwargs: Any) -> Source:
     source.melodies_entered_by.set([make_fake_user()])
     source.proofreaders.set([make_fake_user()])
     source.other_editors.set([make_fake_user()])
+    source.source_data_contributed_by.set([make_fake_user()])
     source.segment_m2m.set(segments)
 
     return source

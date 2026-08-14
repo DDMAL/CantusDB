@@ -4,7 +4,11 @@
 {% block title %}<title>Proofreading Overview | Cantus Database</title>{% endblock %}
 {% block heading %}
     <h3>{{ title }}</h3>
-    <p>Showing sources that contain chants requiring proofreading.</p>
+    {% if current_inactive_filter == "proofread_unpublished" %}
+        <p>Showing unpublished sources that have no chants left requiring proofreading.</p>
+    {% else %}
+        <p>Showing sources that contain chants requiring proofreading.</p>
+    {% endif %}
 {% endblock heading %}
 {% block list_filter_form %}
     <div class="row mb-3">
@@ -37,6 +41,8 @@
                         </option>
                         <option value="12"
                                 {% if current_inactive_filter == "12" %}selected{% endif %}>Inactive for 12 Months</option>
+                        <option value="proofread_unpublished"
+                                {% if current_inactive_filter == "proofread_unpublished" %}selected{% endif %}>Proofread but Unpublished</option>
                     </select>
                     <button class="btn btn-outline-secondary" type="submit">Filter</button>
                 </div>

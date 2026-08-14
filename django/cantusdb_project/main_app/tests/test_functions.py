@@ -1,10 +1,11 @@
 from typing import Union, Optional
 from unittest.mock import patch
 
-
+from django.core.exceptions import ValidationError
 from django.test import TestCase
 import requests
 from requests.exceptions import SSLError, Timeout, HTTPError
+from main_app.models.url_field import NormalizedURLField, NormalizedURLFormField
 from main_app.models import (
     Chant,
     Source,
@@ -164,6 +165,13 @@ def mock_requests_get(url: str, timeout: float) -> MockResponse:
                 status_code=200,
                 content=mock_cantusindex_data.mock_get_ci_text_search_123xyz_content,
                 text=mock_cantusindex_data.mock_get_ci_text_search_123xyz_text,
+                json=None,
+            )
+        if url.endswith("no_match"):
+            return MockResponse(
+                status_code=200,
+                content=mock_cantusindex_data.mock_get_ci_text_search_no_match_content,
+                text=mock_cantusindex_data.mock_get_ci_text_search_no_match_text,
                 json=None,
             )
         return MockResponse(
@@ -380,6 +388,34 @@ class CantusIndexFunctionsTest(TestCase):
                 ValueError, get_json_from_ci_api, "path/lacking/a/leading/slash"
             )
 
+        def raise_connection_error(*args, **kwargs):
+            raise requests.exceptions.ConnectionError
+
+        with patch("requests.get", raise_connection_error):
+            response_connection_error = get_json_from_ci_api(path="/json-cids")
+        with self.subTest(
+            test="Ensure returns None when requests.get raises a connection error"
+        ):
+            self.assertIsNone(response_connection_error)
+
+        malformed_json_response = MockResponse(
+            status_code=200,
+            text="this is not valid json",
+            json=None,
+            content=b"this is not valid json",
+        )
+
+        def json_raises_value_error():
+            raise ValueError("Expecting value")
+
+        malformed_json_response.json = json_raises_value_error
+        with patch("requests.get", lambda *args, **kwargs: malformed_json_response):
+            response_malformed_json = get_json_from_ci_api(path="/json-cids")
+        with self.subTest(
+            test="Ensure returns None when Cantus Index returns malformed JSON"
+        ):
+            self.assertIsNone(response_malformed_json)
+
     def test_get_suggested_fulltext(self) -> None:
         with self.subTest("Test CantusID with full text"):
             with patch("requests.get", mock_requests_get):
@@ -483,3 +519,93 @@ class CantusIndexFunctionsTest(TestCase):
                 results = get_ci_text_search("HTTPError")
             self.assertRaises(HTTPError)
             self.assertIsNone(results)
+
+
+class NormalizedURLFormFieldTest(TestCase):
+    def setUp(self):
+        self.field = NormalizedURLFormField(required=False)
+
+    def test_spaces_encoded(self):
+        result = self.field.clean("https://example.com/Folio 92r.jpg")
+        self.assertEqual(
+            result,
+            "https://example.com/Folio%2092r.jpg",
+        )
+
+    def test_already_encoded_unchanged(self):
+        url = "https://example.com/Folio%2092r.jpg"
+        self.assertEqual(self.field.clean(url), url)
+
+    def test_leading_trailing_whitespace_stripped(self):
+        result = self.field.clean("  https://example.com/image.jpg  ")
+        self.assertEqual(result, "https://example.com/image.jpg")
+
+    def test_spaces_in_query_string_encoded(self):
+        result = self.field.clean("https://example.com/search?q=some query")
+        self.assertEqual(result, "https://example.com/search?q=some%20query")
+
+    def test_invalid_url_rejected(self):
+        with self.assertRaises(ValidationError):
+            self.field.clean("not a url at all")
+
+    def test_empty_string_returns_empty(self):
+        self.assertEqual(self.field.clean(""), "")
+
+
+class NormalizedURLModelFieldTest(TestCase):
+    """Covers code paths that skip forms (admin, management commands, ORM)."""
+
+    def setUp(self):
+        self.field = NormalizedURLField(blank=True, null=True)
+
+    def test_to_python_encodes_spaces(self):
+        self.assertEqual(
+            self.field.to_python("https://example.com/Folio 92r.jpg"),
+            "https://example.com/Folio%2092r.jpg",
+        )
+
+    def test_get_prep_value_encodes_spaces(self):
+        # Exercised on direct .save() even without full_clean().
+        self.assertEqual(
+            self.field.get_prep_value("https://example.com/Folio 92r.jpg"),
+            "https://example.com/Folio%2092r.jpg",
+        )
+
+    def test_deconstruct_reports_as_plain_urlfield(self):
+        # Keeps makemigrations from generating a no-op migration.
+        _, path, _, _ = self.field.deconstruct()
+        self.assertEqual(path, "django.db.models.URLField")
+
+    def test_formfield_returns_normalizing_form_field(self):
+        self.assertIsInstance(self.field.formfield(), NormalizedURLFormField)
+
+
+class ImageLinkSpaceEncodingIntegrationTest(TestCase):
+    """End-to-end coverage: saving a model whose image_link
+    contains spaces must succeed and persist the URL with spaces encoded."""
+
+    def test_chant_with_spaced_image_link_saves(self) -> None:
+        # Mirrors the management-command path from #1868: a direct .save(),
+        # which BaseModel.save() routes through full_clean()/URLValidator.
+        chant = make_fake_chant()
+        chant.image_link = "https://example.com/Folio 92r.jpg"
+        chant.save()
+        chant.refresh_from_db()
+        self.assertEqual(chant.image_link, "https://example.com/Folio%2092r.jpg")
+
+    def test_source_with_spaced_image_link_saves(self) -> None:
+        source = make_fake_source()
+        source.image_link = "https://example.com/image gallery.jpg"
+        source.save()
+        source.refresh_from_db()
+        self.assertEqual(source.image_link, "https://example.com/image%20gallery.jpg")
+
+    def test_save_does_not_raise_on_spaces(self) -> None:
+        # Without the fix this raises ValidationError ("Enter a valid URL"),
+        # which is exactly the failure reported in #1868.
+        chant = make_fake_chant()
+        chant.image_link = "https://example.com/a b c.jpg"
+        try:
+            chant.save()
+        except ValidationError:
+            self.fail("Saving a chant with spaces in image_link should not raise.")

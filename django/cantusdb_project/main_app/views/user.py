@@ -83,6 +83,13 @@ class UserDetailView(CustomAccessMixin, DetailView):  # type: ignore
             .order_by("holding_institution__siglum")
         )
 
+        context["contributed_data_sources"] = (
+            base_source_set.filter(source_data_contributed_by=user)
+            .select_related("holding_institution")
+            .all()
+            .order_by("holding_institution__siglum")
+        )
+
         return context
 
 

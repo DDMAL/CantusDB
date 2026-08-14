@@ -242,8 +242,8 @@
                 {{ chant.manuscript_full_text }}
             </dd>
         {% endif %}
-        <!-- See #1635. Temporarily disable volpiano display for this source. -->
-        {% if chant.volpiano and chant.source.id != 680970 %}
+        <!-- Volpiano display for source 680970 (MS 73) was temporarily disabled in #1635; re-enabled in #1893. -->
+        {% if chant.volpiano %}
             <dt>Volpiano</dt>
             <dd>
                 <p class="font-volpiano-lg">{{ chant.volpiano }}</p>
@@ -255,8 +255,8 @@
                 {{ chant.indexing_notes }}
             </dd>
         {% endif %}
-        <!-- See #1635. Temporarily disable volpiano display for this source. -->
-        {% if chant.volpiano and chant.source.id != 680970 %}
+        <!-- Volpiano display for source 680970 (MS 73) was temporarily disabled in #1635; re-enabled in #1893. -->
+        {% if chant.volpiano %}
             <div class="row">
                 <div class="col">
                     <dt>Melody with text</dt>
@@ -318,6 +318,19 @@
            class="guillemet"
            onclick="loadMelodies('{{ chant.cantus_id }}'); return false;">Display the melodies connected with this chant</a>
         <div id="melodyDiv"></div>
+    {% endif %}
+    {% if attribution_created_by or attribution_last_updated_by %}
+        <p class="text-muted small mt-3 mb-0">
+            {% if attribution_created_by %}
+                Record contributed by:
+                {% if attribution_created_by.full_name %}<a href="{% url 'user-detail' attribution_created_by.id %}">{{ attribution_created_by.full_name }}</a>{% else %}<a href="{% url 'user-detail' attribution_created_by.id %}">User {{ attribution_created_by.id }}</a>{% endif %}{% if chant.date_created %}, {{ chant.date_created|date:"j F Y" }}{% endif %}
+                {% if attribution_last_updated_by %}<br />{% endif %}
+            {% endif %}
+            {% if attribution_last_updated_by %}
+                Last modified by:
+                {% if attribution_last_updated_by.full_name %}<a href="{% url 'user-detail' attribution_last_updated_by.id %}">{{ attribution_last_updated_by.full_name }}</a>{% else %}<a href="{% url 'user-detail' attribution_last_updated_by.id %}">User {{ attribution_last_updated_by.id }}</a>{% endif %}{% if chant.date_updated %}, {{ chant.date_updated|date:"j F Y" }}{% endif %}
+            {% endif %}
+        </p>
     {% endif %}
 {% endblock %}
 {% block lowersidebar %}
@@ -493,10 +506,8 @@
                             Cursus: <b>{{ source.cursus|default_if_none:"" }}</b>
                             <br />
                         {% endif %}
-                        {% if source.notation.exists %}
-                            <b>
-                                <a href="{% url 'notation-detail' source.notation.all.first.id %}">{{ source.notation.all.first.name }}</a>
-                            </b>
+                        {% if source_notation %}
+                            Notation{% if bower_segment %} (Bower){% endif %}: <b>{{ source_notation.name }}</b>
                             <br />
                         {% endif %}
                         {% if source.inventoried_by.exists %}
@@ -580,6 +591,23 @@
                                             <br />
                                         {% endif %}
                                         {{ editor.institution|default_if_none:"" }}
+                                    </li>
+                                {% endfor %}
+                            </ul>
+                        {% endif %}
+                        {% if source.source_data_contributed_by.exists %}
+                            Source metadata contributed by:
+                            <ul class="mb-0">
+                                {% for contributor in source.source_data_contributed_by.all %}
+                                    <li>
+                                        {% if contributor.full_name %}
+                                            <a href="{% url 'user-detail' contributor.id %}">{{ contributor.full_name }}</a>
+                                            <br />
+                                        {% else %}
+                                            <a href="{% url 'user-detail' contributor.id %}">User {{ contributor.id }}</a>
+                                            <br />
+                                        {% endif %}
+                                        {{ contributor.institution|default_if_none:"" }}
                                     </li>
                                 {% endfor %}
                             </ul>

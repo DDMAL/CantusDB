@@ -8,6 +8,7 @@ import random
 from typing import ClassVar, Dict
 import urllib.parse
 
+from django.conf import settings
 from django.test import TestCase
 from django.urls import reverse
 
@@ -15,7 +16,10 @@ from faker import Faker
 
 from main_app.tests.make_fakes import (
     make_fake_chant,
+    make_fake_sequence,
     make_fake_source,
+    make_fake_segment,
+    make_fake_user,
     make_fake_volpiano,
     make_fake_service,
     make_fake_genre,
@@ -27,8 +31,11 @@ from main_app.tests.make_fakes import (
 from main_app.tests.test_functions import mock_requests_get
 from main_app.tests.mixins import CustomAccessTestMixin
 from main_app.models import Chant, Source, Feast, Service
-from main_app.views.chant import get_feast_selector_options
-
+from main_app.views.chant import (
+    get_feast_selector_options,
+    ChantSearchView,
+    ChantSearchMSView,
+)
 
 # Create a Faker instance with locale set to Latin
 faker = Faker("la")
@@ -209,6 +216,106 @@ class ChantDetailViewTest(ChantPermissionsTestCase):
         self.assertEqual(resp_chant["id"], chant.id)
         self.assertEqual(resp_chant["manuscript_full_text"], chant.manuscript_full_text)
 
+    def test_notation_displayed_without_link(self) -> None:
+        # Regression for #1995: clicking the notation link 500'd, so it was disabled.
+        source = make_fake_source()
+        chant = make_fake_chant(source=source)
+        notation = source.notation.first()
+        response = self.client.get(reverse("chant-detail", args=[chant.id]))
+        self.assertEqual(response.status_code, 200)
+        html = response.content.decode("utf-8")
+        self.assertIn("Notation:", html)
+        self.assertIn(notation.name, html)
+        self.assertNotIn(reverse("notation-detail", args=[notation.id]), html)
+        self.assertNotIn("(Bower)", html)
+
+    def test_notation_bower_label(self) -> None:
+        bower_segment = make_fake_segment(
+            id=settings.BOWER_SEGMENT_ID, name="Bower Sequence Database"
+        )
+        source = make_fake_source(segment=[bower_segment])
+        chant = make_fake_chant(source=source)
+        notation = source.notation.first()
+        response = self.client.get(reverse("chant-detail", args=[chant.id]))
+        self.assertEqual(response.status_code, 200)
+        html = response.content.decode("utf-8")
+        self.assertIn("Notation (Bower):", html)
+        self.assertIn(notation.name, html)
+        self.assertNotIn(reverse("notation-detail", args=[notation.id]), html)
+
+
+class ChantAttributionFooterTest(CustomAccessTestMixin, TestCase):
+    """
+    Tests for the "Record contributed by" / "Last modified by" lines on the
+    chant detail page. These are visible to anyone, for any chant, as long
+    as the corresponding field is set. See issue #2056.
+    """
+
+    CREATED_BY_LABEL = "Record contributed by"
+    MODIFIED_BY_LABEL = "Last modified by"
+    CREATOR_NAME = "Linda Pearse"
+    EDITOR_NAME = "Debra Lacoste"
+
+    @classmethod
+    def setUpTestData(cls) -> None:
+        super().setUpTestData()
+        creator = make_fake_user()
+        creator.full_name = cls.CREATOR_NAME
+        creator.save()
+        editor = make_fake_user()
+        editor.full_name = cls.EDITOR_NAME
+        editor.save()
+        source = make_fake_source(published=True)
+        cls.chant_with_attribution = make_fake_chant(
+            source=source, created_by=creator, last_updated_by=editor
+        )
+        cls.chant_without_attribution = make_fake_chant(source=source)
+
+        admin = make_fake_user()
+        admin.full_name = "Cantus Database Administrator"
+        admin.save()
+        cls.chant_with_generic_admin = make_fake_chant(
+            source=source, created_by=admin, last_updated_by=admin
+        )
+
+    def assert_field_visibility(self, chant, user_keys, visible) -> None:
+        for user_key in user_keys:
+            with self.subTest(user=user_key):
+                self.client.logout()
+                if user_key != "anonymous user":
+                    self.client.force_login(self.users[user_key])
+                response = self.client.get(reverse("chant-detail", args=[chant.id]))
+                self.assertEqual(response.status_code, 200)
+                if visible:
+                    self.assertContains(response, self.CREATED_BY_LABEL)
+                    self.assertContains(response, self.CREATOR_NAME)
+                    self.assertContains(response, self.MODIFIED_BY_LABEL)
+                    self.assertContains(response, self.EDITOR_NAME)
+                else:
+                    self.assertNotContains(response, self.CREATED_BY_LABEL)
+                    self.assertNotContains(response, self.MODIFIED_BY_LABEL)
+
+    def test_field_visible_to_everyone(self) -> None:
+        self.assert_field_visibility(
+            self.chant_with_attribution,
+            ["superuser", "editor", "user", "global viewer", "anonymous user"],
+            visible=True,
+        )
+
+    def test_field_hidden_when_attribution_missing(self) -> None:
+        self.assert_field_visibility(
+            self.chant_without_attribution,
+            ["superuser", "anonymous user"],
+            visible=False,
+        )
+
+    def test_field_hidden_when_attributed_to_generic_admin(self) -> None:
+        self.assert_field_visibility(
+            self.chant_with_generic_admin,
+            ["superuser", "anonymous user"],
+            visible=False,
+        )
+
 
 class SourceEditChantsViewTest(ChantPermissionsTestCase):
     default_user = "superuser"
@@ -299,6 +406,75 @@ class SourceEditChantsViewTest(ChantPermissionsTestCase):
         self.assertRedirects(response, reverse("source-edit-chants", args=[source.id]))
         chant.refresh_from_db()
         self.assertEqual(chant.manuscript_full_text_std_spelling, "test")
+
+    def test_update_chant_returns_to_edited_chant_row(self):
+        # When editing from the browse-chants list (ref=chant-list), the user is
+        # returned to the edited chant's row via a URL fragment so they keep their
+        # place in the long list (#1433).
+        source = make_fake_source()
+        chant = make_fake_chant(
+            source=source, manuscript_full_text_std_spelling="initial"
+        )
+        referrer = reverse("browse-chants", args=[source.id])
+        response = self.client.post(
+            reverse("source-edit-chants", args=[source.id]) + "?ref=chant-list",
+            {
+                "manuscript_full_text_std_spelling": "test",
+                "pk": chant.id,
+                "folio": chant.folio,
+                "c_sequence": chant.c_sequence,
+                "referrer": referrer,
+            },
+        )
+        self.assertEqual(response.status_code, 302)
+        self.assertEqual(response.url, f"{referrer}#chant-{chant.id}")
+
+    def test_update_chant_ignores_off_site_referrer(self):
+        # `referrer` is a client-supplied form field, so an off-site value must
+        # never become the redirect target (open redirect).
+        source = make_fake_source()
+        chant = make_fake_chant(
+            source=source, manuscript_full_text_std_spelling="initial"
+        )
+        edit_url = reverse("source-edit-chants", args=[source.id])
+        response = self.client.post(
+            edit_url + "?ref=chant-list",
+            {
+                "manuscript_full_text_std_spelling": "test",
+                "pk": chant.id,
+                "folio": chant.folio,
+                "c_sequence": chant.c_sequence,
+                "referrer": "https://evil.example.com/phish",
+            },
+        )
+        self.assertEqual(response.status_code, 302)
+        self.assertNotIn("evil.example.com", response.url)
+        # Falls back to staying on the edit page.
+        self.assertEqual(response.url, f"{edit_url}?ref=chant-list")
+        # The edit itself still went through.
+        chant.refresh_from_db()
+        self.assertEqual(chant.manuscript_full_text_std_spelling, "test")
+
+    def test_update_chant_without_referrer_stays_on_edit_page(self):
+        # The Referer header is optional, so `referrer` can arrive empty. That
+        # must fall back to the edit page rather than redirect to nowhere.
+        source = make_fake_source()
+        chant = make_fake_chant(
+            source=source, manuscript_full_text_std_spelling="initial"
+        )
+        edit_url = reverse("source-edit-chants", args=[source.id])
+        response = self.client.post(
+            edit_url + "?ref=chant-list",
+            {
+                "manuscript_full_text_std_spelling": "test",
+                "pk": chant.id,
+                "folio": chant.folio,
+                "c_sequence": chant.c_sequence,
+                "referrer": "",
+            },
+        )
+        self.assertEqual(response.status_code, 302)
+        self.assertEqual(response.url, f"{edit_url}?ref=chant-list")
 
     def test_volpiano_signal(self):
         source = make_fake_source()
@@ -707,6 +883,22 @@ class ChantSearchViewTest(CustomAccessTestMixin, TestCase):
                 listed_chants,
             )
 
+    def test_segments_excludes_benedicamus_and_lists_cantus_first(self):
+        make_fake_segment(
+            name="Benedicamus Domino", id=settings.BENEDICAMUS_DOMINO_SEGMENT_ID
+        )
+        make_fake_segment(name="Zzz Cantus Database", id=settings.CANTUS_SEGMENT_ID)
+        make_fake_segment(name="Aaa Sequence Database")
+        response = self.client.get(reverse("chant-search"))
+        segments = list(response.context["segments"])
+        segment_ids = [segment["id"] for segment in segments]
+        segment_names = [segment["name"] for segment in segments]
+        self.assertNotIn(settings.BENEDICAMUS_DOMINO_SEGMENT_ID, segment_ids)
+        # "Cantus Database" is listed first (right after "Any"), despite
+        # sorting last alphabetically among the fake segment names used here.
+        self.assertEqual(segment_names[0], "Zzz Cantus Database")
+        self.assertEqual(segment_names[1], "Aaa Sequence Database")
+
     def test_search_by_service(self):
         source = make_fake_source(published=True)
         service = make_fake_service()
@@ -744,8 +936,18 @@ class ChantSearchViewTest(CustomAccessTestMixin, TestCase):
         source = make_fake_source(published=True)
         feast = make_fake_feast()
         chant = make_fake_chant(source=source, feast=feast)
-        search_term = get_random_search_term(feast.name)
-        response = self.client.get(reverse("chant-search"), {"feast": search_term})
+        response = self.client.get(reverse("chant-search"), {"feast": feast.id})
+        context_chant_id = response.context["chants"][0].id
+        self.assertEqual(chant.id, context_chant_id)
+
+    def test_search_by_liturgical_function(self):
+        source = make_fake_source(published=True)
+        chant = make_fake_chant(source=source, liturgical_function=Chant.PROCESSIONAL)
+        make_fake_chant(source=source, liturgical_function=Chant.HISTORIAE)
+        response = self.client.get(
+            reverse("chant-search"), {"liturgical_function": Chant.PROCESSIONAL}
+        )
+        self.assertEqual(len(response.context["chants"]), 1)
         context_chant_id = response.context["chants"][0].id
         self.assertEqual(chant.id, context_chant_id)
 
@@ -779,6 +981,7 @@ class ChantSearchViewTest(CustomAccessTestMixin, TestCase):
             manuscript_full_text_std_spelling=faker.sentence(),
         )
         # use the beginning part of the full text as the search term
+        random.seed(0)
         search_term = chant.manuscript_full_text_std_spelling[
             0 : random.randint(1, len(chant.manuscript_full_text_std_spelling))
         ]
@@ -800,6 +1003,91 @@ class ChantSearchViewTest(CustomAccessTestMixin, TestCase):
         )
         context_chant_id = response.context["chants"][0].id
         self.assertEqual(chant.id, context_chant_id)
+
+    def test_keyword_search_ends_with(self):
+        source = make_fake_source(published=True)
+        chant = make_fake_chant(
+            source=source,
+            manuscript_full_text_std_spelling=faker.sentence(),
+        )
+        # use the end of the full text as the search term
+        full_text = chant.manuscript_full_text_std_spelling
+        search_term = full_text[random.randint(0, len(full_text) - 1) :]
+        response = self.client.get(
+            reverse("chant-search"), {"keyword": search_term, "op": "ends_with"}
+        )
+        context_chant_id = response.context["chants"][0].id
+        self.assertEqual(chant.id, context_chant_id)
+
+    def test_indexing_notes_search_starts_with(self):
+        source = make_fake_source(published=True)
+        search_term = "quick"
+
+        # We have three chants to make sure the result is only chant 1 where quick is the first word
+        chant_1 = make_fake_chant(
+            source=source,
+            indexing_notes="quick brown fox jumps over the lazy dog",
+        )
+        make_fake_chant(
+            source=source,
+            indexing_notes="brown fox jumps over the lazy dog",
+        )
+        make_fake_chant(
+            source=source,
+            indexing_notes="lazy brown fox jumps quick over the dog",
+        )
+        response = self.client.get(
+            reverse("chant-search"),
+            {"indexing_notes": search_term, "indexing_notes_op": "starts_with"},
+        )
+        self.assertEqual(len(response.context["chants"]), 1)
+        context_chant_id = response.context["chants"][0].id
+        self.assertEqual(chant_1.id, context_chant_id)
+
+    def test_indexing_notes_search_contains(self):
+        source = make_fake_source(published=True)
+        search_term = "quick"
+        chant_1 = make_fake_chant(
+            source=source,
+            indexing_notes="Quick brown fox jumps over the lazy dog",
+        )
+        # Make a chant that won't be returned by the search term
+        make_fake_chant(
+            source=source,
+            indexing_notes="brown fox jumps over the lazy dog",
+        )
+        chant_3 = make_fake_chant(
+            source=source,
+            indexing_notes="lazy brown fox jumps quickly over the dog",
+        )
+        response = self.client.get(
+            reverse("chant-search"),
+            {"indexing_notes": search_term, "indexing_notes_op": "contains"},
+        )
+        first_context_chant_id = response.context["chants"][0].id
+        self.assertEqual(chant_1.id, first_context_chant_id)
+        second_context_chant_id = response.context["chants"][1].id
+        self.assertEqual(chant_3.id, second_context_chant_id)
+
+    def test_indexing_notes_search_matches_sequence(self):
+        source = make_fake_source(published=True)
+        search_term = "quick"
+        sequence = make_fake_sequence(
+            source=source,
+            indexing_notes="quick brown fox jumps over the lazy dog",
+        )
+        response = self.client.get(
+            reverse("chant-search"),
+            {"indexing_notes": search_term, "indexing_notes_op": "contains"},
+        )
+        self.assertEqual(len(response.context["chants"]), 1)
+        context_sequence_id = response.context["chants"][0].id
+        self.assertEqual(sequence.id, context_sequence_id)
+
+    def test_indexing_notes_search_box_renders_on_global_search(self):
+        response = self.client.get(reverse("chant-search"))
+        self.assertContains(response, 'name="indexing_notes"')
+        self.assertContains(response, 'name="indexing_notes_op"')
 
     def test_search_bar_search(self):
         # note to developers: if you are changing the behavior of search_bar
@@ -1732,7 +2020,7 @@ class ChantSearchViewTest(CustomAccessTestMixin, TestCase):
             "genre": genre.id,
             "cantus_id": cantus_id,
             "mode": mode,
-            "feast": feast.name,
+            "feast": feast.id,
             "position": position,
             "melodies": "true",
         }
@@ -2061,6 +2349,36 @@ class ChantSearchViewTest(CustomAccessTestMixin, TestCase):
             response, f'<a href="{image_link}" target="_blank">Image</a>', html=True
         )
 
+    def test_pagination(self):
+        paginate_by = ChantSearchView.paginate_by
+        full_pages = 2
+        source = make_fake_source(published=True)
+        for _ in range(paginate_by * full_pages):
+            make_fake_chant(source=source)
+
+        for page_num in range(1, full_pages + 1):
+            response = self.client.get(reverse("chant-search"), {"page": page_num})
+            self.assertEqual(response.status_code, 200)
+            self.assertTrue(response.context["is_paginated"])
+            self.assertEqual(len(response.context["chants"]), paginate_by)
+
+        random.seed(0)
+        overflow = random.randint(1, paginate_by - 1)
+        for _ in range(overflow):
+            make_fake_chant(source=source)
+
+        response = self.client.get(reverse("chant-search"), {"page": full_pages + 1})
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(len(response.context["chants"]), overflow)
+
+        response = self.client.get(reverse("chant-search"), {"page": "last"})
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(len(response.context["chants"]), overflow)
+
+        for invalid_page in [-1, 0, "lst", full_pages + 2]:
+            response = self.client.get(reverse("chant-search"), {"page": invalid_page})
+            self.assertEqual(response.status_code, 404)
+
 
 class ChantSearchMSViewTest(ChantPermissionsTestCase):
     def test_url_and_templates(self):
@@ -2151,10 +2469,21 @@ class ChantSearchMSViewTest(ChantPermissionsTestCase):
         source = make_fake_source()
         feast = make_fake_feast()
         chant = make_fake_chant(source=source, feast=feast)
-        search_term = get_random_search_term(feast.name)
         response = self.client.get(
-            reverse("chant-search-ms", args=[source.id]), {"feast": search_term}
+            reverse("chant-search-ms", args=[source.id]), {"feast": feast.id}
         )
+        context_chant_id = response.context["chants"][0].id
+        self.assertEqual(chant.id, context_chant_id)
+
+    def test_search_by_liturgical_function(self):
+        source = make_fake_source()
+        chant = make_fake_chant(source=source, liturgical_function=Chant.PROCESSIONAL)
+        make_fake_chant(source=source, liturgical_function=Chant.HISTORIAE)
+        response = self.client.get(
+            reverse("chant-search-ms", args=[source.id]),
+            {"liturgical_function": Chant.PROCESSIONAL},
+        )
+        self.assertEqual(len(response.context["chants"]), 1)
         context_chant_id = response.context["chants"][0].id
         self.assertEqual(chant.id, context_chant_id)
 
@@ -2234,6 +2563,31 @@ class ChantSearchMSViewTest(ChantPermissionsTestCase):
         self.assertEqual(chant_1.id, first_context_chant_id)
         second_context_chant_id = response.context["chants"][1].id
         self.assertEqual(chant_3.id, second_context_chant_id)
+
+    def test_keyword_search_ends_with(self):
+        source = make_fake_source()
+        search_term = "dog"
+
+        # We have three chants to make sure the result is only chant 1 where dog is the last word
+        chant_1 = make_fake_chant(
+            source=source,
+            manuscript_full_text_std_spelling="quick brown fox jumps over the lazy dog",
+        )
+        make_fake_chant(
+            source=source,
+            manuscript_full_text_std_spelling="quick brown fox jumps over the lazy",
+        )
+        make_fake_chant(
+            source=source,
+            manuscript_full_text_std_spelling="quick brown dog jumps over the lazy fox",
+        )
+        response = self.client.get(
+            reverse("chant-search-ms", args=[source.id]),
+            {"keyword": search_term, "op": "ends_with"},
+        )
+        self.assertEqual(len(response.context["chants"]), 1)
+        context_chant_id = response.context["chants"][0].id
+        self.assertEqual(chant_1.id, context_chant_id)
 
     def test_indexing_notes_search_starts_with(self):
         source = make_fake_source()
@@ -2800,7 +3154,7 @@ class ChantSearchMSViewTest(ChantPermissionsTestCase):
             "genre": genre.id,
             "cantus_id": cantus_id,
             "mode": mode,
-            "feast": feast.name,
+            "feast": feast.id,
             "position": position,
             "melodies": "true",
         }
@@ -3122,6 +3476,37 @@ class ChantSearchMSViewTest(ChantPermissionsTestCase):
         self.assertIn(image_link, html)
         self.assertIn(f'<a href="{image_link}" target="_blank">Image</a>', html)
 
+    def test_pagination(self):
+        paginate_by = ChantSearchMSView.paginate_by
+        full_pages = 2
+        source = make_fake_source(published=True)
+        for _ in range(paginate_by * full_pages):
+            make_fake_chant(source=source)
+
+        url = reverse("chant-search-ms", args=[source.id])
+        for page_num in range(1, full_pages + 1):
+            response = self.client.get(url, {"page": page_num})
+            self.assertEqual(response.status_code, 200)
+            self.assertTrue(response.context["is_paginated"])
+            self.assertEqual(len(response.context["chants"]), paginate_by)
+
+        random.seed(0)
+        overflow = random.randint(1, paginate_by - 1)
+        for _ in range(overflow):
+            make_fake_chant(source=source)
+
+        response = self.client.get(url, {"page": full_pages + 1})
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(len(response.context["chants"]), overflow)
+
+        response = self.client.get(url, {"page": "last"})
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(len(response.context["chants"]), overflow)
+
+        for invalid_page in [-1, 0, "lst", full_pages + 2]:
+            response = self.client.get(url, {"page": invalid_page})
+            self.assertEqual(response.status_code, 404)
+
 
 @patch("requests.get", mock_requests_get)
 class ChantCreateViewTest(CustomAccessTestMixin, TestCase):
@@ -3234,6 +3619,7 @@ class ChantCreateViewTest(CustomAccessTestMixin, TestCase):
         # post a chant with the same folio and seq
         url = reverse("chant-create", args=[source.id])
         fake_text = "this is also a fake but valid text"
+        random.seed(0)
         response = self.client.post(
             url,
             data={
@@ -3420,6 +3806,7 @@ class CISearchViewTest(TestCase):
         self.assertEqual(response.status_code, 200)
         context = response.context
         self.assertIn("results", context)
+        self.assertFalse(context["ci_error"])
 
         results_zip = context["results"]
 
@@ -3444,10 +3831,8 @@ class CISearchViewTest(TestCase):
 
         self.assertEqual(response.status_code, 200)
         context = response.context
-        self.assertIn("results", context)
-        self.assertEqual(
-            context["results"], [["No results", "No results", "No results"]]
-        )
+        self.assertTrue(context["ci_error"])
+        self.assertEqual(list(context["results"]), [])
 
     def test_server_error(self):
         with patch("requests.get", mock_requests_get):
@@ -3455,10 +3840,18 @@ class CISearchViewTest(TestCase):
 
         self.assertEqual(response.status_code, 200)
         context = response.context
-        self.assertIn("results", context)
-        self.assertEqual(
-            list(context["results"]), [["No results", "No results", "No results"]]
-        )
+        self.assertTrue(context["ci_error"])
+        self.assertEqual(list(context["results"]), [])
+
+    def test_valid_search_term_no_matches(self):
+        # CI returns [] for a valid term with no matches
+        with patch("requests.get", mock_requests_get):
+            response = self.client.get(reverse("ci-search", args=["no_match"]))
+
+        self.assertEqual(response.status_code, 200)
+        context = response.context
+        self.assertFalse(context["ci_error"])
+        self.assertEqual(list(context["results"]), [])
 
 
 class ChantDeleteViewTest(ChantPermissionsTestCase):

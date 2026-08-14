@@ -33,7 +33,7 @@ class SourceLinksInline(admin.TabularInline):
 
 @admin.register(Source)
 class SourceAdmin(BaseModelAdmin):
-    exclude = EXCLUDE + ("source_status", "segment")
+    exclude = EXCLUDE + ("source_status", "segment", "title", "siglum")
     autocomplete_fields = ("holding_institution", "provenance")
     inlines = (IdentifiersInline, SourceLinksInline)
 
@@ -48,15 +48,11 @@ class SourceAdmin(BaseModelAdmin):
         "name",
         "identifiers__identifier",
     )
-    readonly_fields = (
-        ("title", "siglum")
-        + READ_ONLY
-        + (
-            "number_of_chants",
-            "number_of_melodies",
-            "date_created",
-            "date_updated",
-        )
+    readonly_fields = READ_ONLY + (
+        "number_of_chants",
+        "number_of_melodies",
+        "date_created",
+        "date_updated",
     )
     # from the Django docs:
     # Adding a ManyToManyField to this list will instead use a nifty unobtrusive JavaScript “filter” interface
@@ -71,6 +67,7 @@ class SourceAdmin(BaseModelAdmin):
         "description_entered_by",
         "proofreaders",
         "other_editors",
+        "source_data_contributed_by",
     )
 
     list_display = (

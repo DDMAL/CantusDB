@@ -1,22 +1,14 @@
 {% extends "filterable_table_with_search_bar.html" %}
 {% load helper_tags %}
 {% block title %}<title>Browse Sources | Cantus Database</title>{% endblock %}
-{% block scripts %}<script src="/static/js/source_list.js"></script>{% endblock %}
+{% block scripts %}
+    <script src="/static/js/source_list.js"></script>
+    <link rel="stylesheet" href="/static/css/source_list.css" />
+{% endblock %}
 {% block heading %}<h3>Browse Sources</h3>{% endblock %}
 {% block list_filter_form %}
     <form method="get">
-        <div class="row">
-            <div class="col-lg-3">
-                <label for="segmentFilter" class="small form-label">Segment</label>
-                <select id="segmentFilter"
-                        name="segment"
-                        class="form-control form-select form-select-sm">
-                    <option value="">- Any -</option>
-                    <option value="4063">CANTUS Database</option>
-                    <option value="4064">Bower Sequence Database</option>
-                    <option value="4066">Canadian Chant Database</option>
-                </select>
-            </div>
+        <div class="row align-items-end">
             <div class="col-lg">
                 <label for="generalSearch" class="small form-label">
                     General search (siglum, city, description…)
@@ -27,6 +19,37 @@
                        placeholder="Enter any part of a word"
                        value="{{ request.GET.general }}"
                        id="generalSearch" />
+            </div>
+            <div class="col-lg-1">
+                <button type="submit" class="btn btn-dark btn-sm m-1" id="btn-submit">Apply</button>
+                <a href="/sources/?segment={{ request.GET.segment }}"
+                   class="btn btn-dark btn-sm m-1"
+                   id="btn-reset">Reset</a>
+            </div>
+        </div>
+        <div class="row">
+            <div class="col-12">
+                <a href="#advancedSourceSearchFilters"
+                   class="small"
+                   data-bs-toggle="collapse"
+                   role="button"
+                   aria-expanded="{% if advanced_search_active %}true{% else %}false{% endif %}"
+                   aria-controls="advancedSourceSearchFilters">Advanced search ▾</a>
+            </div>
+        </div>
+        <div class="collapse{% if advanced_search_active %} show{% endif %}"
+             id="advancedSourceSearchFilters">
+        <div class="row">
+            <div class="col-lg-3">
+                <label for="segmentFilter" class="small form-label">Segment</label>
+                <select id="segmentFilter"
+                        name="segment"
+                        class="form-control form-select form-select-sm">
+                    <option value="">- Any -</option>
+                    <option value="4063">Cantus Database</option>
+                    <option value="4064">Bower Sequence Database</option>
+                    <option value="4066">Canadian Chant Database</option>
+                </select>
             </div>
             <div class="col-lg">
                 <label for="indexingSearch" class="small form-label">
@@ -68,15 +91,39 @@
                         </select>
                     </div>
                     <div class="col-lg-6">
-                        <label for="centuryFilter" class="small form-label">Century</label>
-                        <select id="centuryFilter"
-                                name="century"
-                                class="form-control form-select form-select-sm">
-                            <option value="">- Any -</option>
-                            {% for century in centuries %}
-                                <option value="{{ century.id }}">{{ century.name }}</option>
-                            {% endfor %}
-                        </select>
+                        {% if date_range_min is not None and date_range_max is not None %}
+                        <div class="d-flex justify-content-between align-items-center">
+                            <label class="small form-label fw-bold mb-0">Year range (overlapping)</label>
+                            <button type="button"
+                                    id="rangeResetBtn"
+                                    class="btn btn-link btn-sm p-0 small text-danger">Clear</button>
+                        </div>
+                        <div class="range-slider">
+                            <div class="range-slider-track"></div>
+                            <div class="range-slider-fill" id="rangeSliderFill"></div>
+                            <input type="range"
+                                   id="dateStartFilter"
+                                   class="range-slider-input"
+                                   min="{{ date_range_min }}"
+                                   max="{{ date_range_max }}"
+                                   step="5"
+                                   value="{{ request.GET.dateStart|default:date_range_min }}" />
+                            <input type="range"
+                                   id="dateEndFilter"
+                                   class="range-slider-input"
+                                   min="{{ date_range_min }}"
+                                   max="{{ date_range_max }}"
+                                   step="5"
+                                   value="{{ request.GET.dateEnd|default:date_range_max }}" />
+                        </div>
+                        <div class="d-flex justify-content-between small mt-1">
+                            <span class="fw-bold">{{ date_range_min }}</span>
+                            <span class="fw-bold text-primary">
+                                <input type="number" id="rangeStartInput" name="dateStart" min="{{ date_range_min }}" max="{{ date_range_max }}" value="{{ request.GET.dateStart|default:date_range_min }}" style="width:3.5rem;border:none;background:transparent;font-weight:bold;color:inherit;text-align:right;" />–&nbsp;&nbsp;&nbsp;<input type="number" id="rangeEndInput" name="dateEnd" min="{{ date_range_min }}" max="{{ date_range_max }}" value="{{ request.GET.dateEnd|default:date_range_max }}" style="width:3.5rem;border:none;background:transparent;font-weight:bold;color:inherit;text-align:left;" />
+                            </span>
+                            <span class="fw-bold">{{ date_range_max }}</span>
+                        </div>
+                        {% endif %}
                     </div>
                     <div class="col-lg-6">
                         <label for="prodMethodFilter" class="small form-label">Manuscript/Print</label>
@@ -93,9 +140,9 @@
             </div>
             <div class="col-lg-4">
                 <label for="sourceCompletenessFilter" class="small form-label">
-                    Complete Source/Fragment
+                    Physical Status
                 </label>
-                <div class="input-group" id="sourceCompletenessFilter">
+                <div class="d-flex flex-wrap" id="sourceCompletenessFilter">
                     {% for source_completeness_value, source_completeness_label in source_completeness_choices %}
                         <div class="form-check form-check-inline">
                             <input type="checkbox"
@@ -111,13 +158,46 @@
                         </div>
                     {% endfor %}
                 </div>
+                <label for="inventoriedFilter" class="small form-label mt-1">
+                    Indexing Status
+                </label>
+                <div class="d-flex flex-wrap" id="inventoriedFilter">
+                    <div class="form-check form-check-inline">
+                        <input type="radio"
+                               class="form-check-input"
+                               id="inventoried-all"
+                               name="inventoried"
+                               value="all"
+                               {% if request.GET.inventoried != "inventoried" and request.GET.inventoried != "nonInventoried" %}checked{% endif %} />
+                        <label class="form-label form-check-label small" for="inventoried-all">
+                            All
+                        </label>
+                    </div>
+                    <div class="form-check form-check-inline">
+                        <input type="radio"
+                               class="form-check-input"
+                               id="inventoried-inventoried"
+                               name="inventoried"
+                               value="inventoried"
+                               {% if request.GET.inventoried == "inventoried" %}checked{% endif %} />
+                        <label class="form-label form-check-label small" for="inventoried-inventoried">
+                            Inventoried
+                        </label>
+                    </div>
+                    <div class="form-check form-check-inline">
+                        <input type="radio"
+                               class="form-check-input"
+                               id="inventoried-nonInventoried"
+                               name="inventoried"
+                               value="nonInventoried"
+                               {% if request.GET.inventoried == "nonInventoried" %}checked{% endif %} />
+                        <label class="form-label form-check-label small" for="inventoried-nonInventoried">
+                            Non-inventoried
+                        </label>
+                    </div>
+                </div>
             </div>
-            <div class="col-lg-1">
-                <button type="submit" class="btn btn-dark btn-sm m-1" id="btn-submit">Apply</button>
-                <a href="/sources/?segment={{ request.GET.segment }}"
-                   class="btn btn-dark btn-sm m-1"
-                   id="btn-reset">Reset</a>
-            </div>
+        </div>
         </div>
     </form>
 {% endblock %}
@@ -191,8 +271,8 @@
                         </td>
                         <td class="text-wrap" style="text-align:center">
                             <b>{{ source.number_of_chants|default_if_none:"0" }}</b>
-                            <!-- See #1635. Temporarily disable volpiano display for this source. -->
-                            {% if source.number_of_melodies and source.id !=  680970 %}
+                            <!-- Volpiano display for source 680970 (MS 73) was temporarily disabled in #1635; re-enabled in #1893. -->
+                            {% if source.number_of_melodies %}
                                 <br />
                                 / {{ source.number_of_melodies }}
                             {% endif %}
@@ -203,3 +283,4 @@
         </table>
     {% endif %}
 {% endblock %}
+

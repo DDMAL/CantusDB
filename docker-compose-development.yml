@@ -14,6 +14,7 @@ services:
       - ./django/cantusdb_project:/code/cantusdb_project
       - static_volume:/resources/static
       - media_volume:/resources/media
+      - private_media_volume:/resources/private_media
       - api_cache_volume:/resources/api_cache
     env_file: ./config/envs/dev_env
     restart: always
@@ -71,6 +72,7 @@ services:
     env_file: ./config/envs/dev_env
     volumes:
       - ./django/cantusdb_project:/code/cantusdb_project
+      - private_media_volume:/resources/private_media
     command: [ "celery", "-A", "cantusdb", "worker", "--loglevel=info", "--pool=solo", "--concurrency=1", "-E" ]
     ports:
       - 3003:3000
@@ -79,4 +81,5 @@ volumes:
   postgres_data:
   static_volume:
   media_volume:
+  private_media_volume:
   api_cache_volume:

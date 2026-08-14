@@ -17,7 +17,6 @@ from main_app.tests.make_fakes import (
 )
 from articles.tests.test_articles import make_fake_article
 
-
 faker = Faker("la")
 
 

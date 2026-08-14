@@ -11,6 +11,7 @@ https://docs.djangoproject.com/en/3.0/ref/settings/
 """
 
 import os
+from celery.schedules import crontab
 from django.contrib.messages import constants as messages
 
 # https://ordinarycoders.com/blog/article/django-messages-framework
@@ -27,6 +28,12 @@ BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 
 STATIC_ROOT = os.getenv("CANTUSDB_STATIC_ROOT")
 MEDIA_ROOT = os.getenv("CANTUSDB_MEDIA_ROOT")
+MEDIA_URL = "/media/"
+
+# Storage for files that must never be reachable through nginx's public
+# /media alias (e.g. data check reports). Served only via authenticated
+# Django views.
+PRIVATE_MEDIA_ROOT = os.getenv("CANTUSDB_PRIVATE_MEDIA_ROOT")
 
 # Quick-start development settings - unsuitable for production
 # See https://docs.djangoproject.com/en/3.0/howto/deployment/checklist/
@@ -39,8 +46,9 @@ PROJECT_ENVIRONMENT = os.getenv("PROJECT_ENVIRONMENT")
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = False  # this is switched to True below when PROJECT_ENVIRONMENT=="DEVELOPMENT"
 
-ALLOWED_HOSTS = [os.getenv("CANTUSDB_HOST")]
-CSRF_TRUSTED_ORIGINS = [f'https://{os.getenv("CANTUSDB_HOST")}']
+CANTUSDB_HOST = os.getenv("CANTUSDB_HOST")
+ALLOWED_HOSTS = [CANTUSDB_HOST]
+CSRF_TRUSTED_ORIGINS = [f"https://{CANTUSDB_HOST}"]
 if PROJECT_ENVIRONMENT == "DEVELOPMENT":
     DEBUG = True
 
@@ -65,6 +73,7 @@ INSTALLED_APPS = [
     "django_quill",  # to provide rich-text field for articles
     "reversion",  # django-reversion, for version history of objects in database
     "users",
+    "django_extensions",
 ]
 
 MIDDLEWARE = [
@@ -93,6 +102,7 @@ TEMPLATES = [
                 "django.contrib.auth.context_processors.auth",
                 "django.contrib.messages.context_processors.messages",
                 "main_app.context_processors.determine_project_environment",
+                "main_app.context_processors.site_banner",
             ],
         },
     },
@@ -214,15 +224,28 @@ DATA_UPLOAD_MAX_NUMBER_FIELDS = 1010
 
 CANTUS_SEGMENT_ID = 4063
 BOWER_SEGMENT_ID = 4064
+BENEDICAMUS_DOMINO_SEGMENT_ID = 4065
 CCDB_SEGMENT_ID = 4066
 CANTORALES_SEGMENT_ID = 4067
+
+# Records migrated from OldCantus are attributed to this generic account
+# rather than a named editor. Chants attributed only to this account don't
+# show a "Record contributed by" / "Last modified by" line on the chant
+# detail page until a real editor is recorded. See issue #2104.
+GENERIC_ADMIN_FULL_NAME = "cantus database administrator"
 
 # Celery configurations
 CELERY_BROKER_URL = "redis://redis:6379/0"
 CELERY_RESULT_BACKEND = "redis://redis:6379/0"
+CELERY_TIMEZONE = "America/New_York"
+CELERY_BEAT_SCHEDULE = {
+    "run-data-checks": {
+        "task": "cantusdb.run_data_checks",
+        "schedule": crontab(hour=9, minute=0),  # 9 AM Eastern
+    },
+}
 
 if DEBUG:
     INSTALLED_APPS.append("debug_toolbar")
-    INSTALLED_APPS.append("django_extensions")
     # debug toolbar must be inserted as early in the middleware as possible
     MIDDLEWARE.insert(0, "debug_toolbar.middleware.DebugToolbarMiddleware")

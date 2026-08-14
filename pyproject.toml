@@ -4,19 +4,21 @@ package-mode = false
 
 [tool.poetry.dependencies]
 python = "3.12.10"
-Django = "5.2.2"
+Django = "5.2.16"
 django-autocomplete-light = "3.9.4"
 django-extra-views = "0.13.0"
 django-quill-editor = "0.1.40"
 django-reversion = "5.1.0"
 gunicorn = "23.0.0"
-requests = "2.32.4"
-ujson = "5.9.0"
+requests = "2.33.0"
+ujson = "5.13.0"
 volpiano-display-utilities = { git = "https://github.com/DDMAL/volpiano-display-utilities.git", tag = "v1.3.2" }
 psycopg = {extras = ["binary"], version = "3.1.18"}
 cmarkgfm = "2024.11.20"
 celery = "5.5.1"
 redis = "5.2.1"
+django-extensions = "^3.2.3"
+ipython = "^8.0.0"
 
 [tool.poetry.group.dev]
 optional = true
@@ -25,17 +27,16 @@ optional = true
 django_debug_toolbar = "4.3.0"
 Faker = "4.1.0"
 coverage = "5.3.1"
-black = "^24.4.1"
+black = "^26.5.1"
 mypy = "^1.10.0"
 pylint = "^3.3.0"
 pylint-django = "^2.5.5"
 django-stubs = "^5.1.1"
-django-extensions = "^3.2.3"
-werkzeug = "^3.0.6"
+werkzeug = "^3.1.6"
 types-requests = "^2.32.0.20240712"
 djlint = "^1.36.3"
 beautifulsoup4 = "^4.12.3"
-lxml = "^5.3.0"
+lxml = "^6.1.0"
 debugpy = { git = "https://github.com/microsoft/debugpy", rev = "a2f80817a168e1ed6cc60b4f1c70fdb24e40bca5"}
 
 

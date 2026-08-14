@@ -36,6 +36,10 @@
                 {{ source.get_production_method_display }}
             </dd>
         {% endif %}
+        <dt>Physical Status</dt>
+        <dd>
+            {{ source.get_source_completeness_display }}
+        </dd>
         {% if source.summary %}
             <dt>Summary</dt>
             <dd>
@@ -72,10 +76,6 @@
                 {{ source.complete_inventory|yesno:"Full Inventory,Partial Inventory" }}
             </dd>
         {% endif %}
-        <dt>Complete Source/Fragment</dt>
-        <dd>
-            {{ source.get_source_completeness_display }}
-        </dd>
         {% if user.is_authenticated %}
             <dt>Source Status</dt>
             <dd>
@@ -85,7 +85,7 @@
         {% if source.fragmentarium_id is not None %}
             <dt>Fragmentarium ID</dt>
             <dd>
-                <a href="https://fragmentarium.ms/overview/{{ source.fragmentarium_id }}">{{ source.fragmentarium_id }}</a>
+                <a href="https://fragmentarium.ms/overview/{{ source.fragmentarium_id }}" target="_blank" rel="noopener noreferrer">{{ source.fragmentarium_id }}</a>
             </dd>
         {% endif %}
         {% if source.dact_id is not None %}
@@ -218,6 +218,10 @@
                 Provenance: <b><a href="{% url 'provenance-detail' source.provenance.id %}">{{ source.provenance.name }}</a></b>
                 <br />
             {% endif %}
+            {% if source.provenance_notes %}
+                Provenance notes: <b>{{ source.provenance_notes }}</b>
+                <br />
+            {% endif %}
             {% if source.date or source.century %}
                 Date:
                 {% join_absolute_url_links source.century.all 'name' '/' %}
@@ -231,11 +235,10 @@
                 Cursus: <b>{{ source.cursus|default_if_none:"" }}</b>
                 <br />
             {% endif %}
-            {% if source.notation.exists %}
-                Notation: <b><a href="{% url 'notation-detail' source.notation.all.first.id %}">
-                {{ source.notation.all.first.name }}
-            </a></b>
-        {% endif %}
+            {% if source_notation %}
+                Notation{% if bower_segment %} (Bower){% endif %}: <b>{{ source_notation.name }}</b>
+                <br />
+            {% endif %}
         {% if source.inventoried_by.exists %}
             Inventoried by:
             <ul class="mb-0">
@@ -317,6 +320,23 @@
                             <br />
                         {% endif %}
                         {{ editor.institution|default_if_none:"" }}
+                    </li>
+                {% endfor %}
+            </ul>
+        {% endif %}
+        {% if source.source_data_contributed_by.exists %}
+            Source metadata contributed by:
+            <ul class="mb-0">
+                {% for contributor in source.source_data_contributed_by.all %}
+                    <li>
+                        {% if contributor.full_name %}
+                            <a href="{% url 'user-detail' contributor.id %}">{{ contributor.full_name }}</a>
+                            <br />
+                        {% else %}
+                            <a href="{% url 'user-detail' contributor.id %}">User {{ contributor.id }}</a>
+                            <br />
+                        {% endif %}
+                        {{ contributor.institution|default_if_none:"" }}
                     </li>
                 {% endfor %}
             </ul>

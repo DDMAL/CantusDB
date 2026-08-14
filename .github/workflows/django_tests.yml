@@ -17,6 +17,7 @@ jobs:
                 envkey_PROJECT_ENVIRONMENT: PRODUCTION
                 envkey_CANTUSDB_STATIC_ROOT: /path/to/static
                 envkey_CANTUSDB_MEDIA_ROOT: /path/to/media
+                envkey_CANTUSDB_PRIVATE_MEDIA_ROOT: /path/to/private_media
                 envkey_CANTUSDB_HOST: somehost
                 envkey_CANTUSDB_SECRET_KEY: "hereisakey1234"
                 envkey_POSTGRES_PASSWORD: woahagreatpasswordabc

@@ -178,8 +178,8 @@ def get_ci_text_search(search_term: str) -> Optional[list[Optional[dict]]]:
     if not text_without_bom:
         return None
     text_search_results: list = json.loads(text_without_bom)
-    # if cantus index returns an empty table
-    if not text_search_results or not isinstance(text_search_results, list):
+    # Return None for any non-list response (malformed JSON, unexpected type, etc.); an empty list means CI found no matches
+    if not isinstance(text_search_results, list):
         return None
 
     return text_search_results
@@ -210,7 +210,7 @@ def get_json_from_ci_api(
     uri = f"{CANTUS_INDEX_DOMAIN}{path}"
     try:
         response: requests.Response = requests.get(uri, timeout=timeout)
-    except requests.exceptions.Timeout:
+    except requests.exceptions.RequestException:
         return None
 
     if not response.status_code == 200:
@@ -223,7 +223,10 @@ def get_json_from_ci_api(
         # there are no suggested chants
         return None
 
-    parsed_response = response.json()
+    try:
+        parsed_response = response.json()
+    except ValueError:
+        return None
 
     if not isinstance(parsed_response, (dict, list)):
         return None
