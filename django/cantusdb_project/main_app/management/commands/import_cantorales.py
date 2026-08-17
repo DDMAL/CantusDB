@@ -30,7 +30,6 @@ from main_app.models import (
 from main_app.models.source_url import SourceURL
 from users.models import User
 
-
 CSV_FILENAME = "cantorales_2024-05-01.csv"
 
 # CSV column indices
