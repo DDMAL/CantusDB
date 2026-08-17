@@ -7,13 +7,14 @@ from django.core.management import call_command
 from django.test import TestCase
 
 from main_app.management.commands.import_cantorales import parse_centuries
-from main_app.models import Institution, Source
+from main_app.models import Institution, Source, SourceURL
 from main_app.tests.make_fakes import (
     make_fake_century,
     make_fake_institution,
     make_fake_segment,
     make_fake_source,
 )
+from users.models import User
 
 
 class TestParseCenturies(TestCase):
@@ -292,6 +293,93 @@ class TestImportCantoralesCommand(TestCase):
         self.assertEqual(
             set(Institution.objects.values_list("pk", flat=True)),
             institutions_before,
+        )
+
+    def test_skipped_row_creates_no_contributor_user(self):
+        """A row skipped as a pre-existing duplicate must not leave a stub User
+        behind.
+
+        Contributor accounts used to be created for the whole CSV up front,
+        before any row had been checked, so a run that imported nothing still
+        created users. Creation is now deferred to the point where the row is
+        known to be importable, the same guarantee as for Institution.
+        """
+        institution = make_fake_institution(siglum="US-NYcu", country="United States")
+        make_fake_source(
+            holding_institution=institution,
+            shelfmark="Ms. 1",
+            segment_name="CANTUS Database",
+        )
+        users_before = set(User.objects.values_list("pk", flat=True))
+
+        with tempfile.NamedTemporaryFile(mode="w", suffix=".csv", delete=False) as f:
+            f.write(_make_csv())
+            csv_path = f.name
+
+        with patch(
+            "main_app.management.commands.import_cantorales.os.path.join",
+            return_value=csv_path,
+        ):
+            call_command("import_cantorales", stdout=io.StringIO())
+
+        self.assertEqual(set(User.objects.values_list("pk", flat=True)), users_before)
+        self.assertFalse(User.objects.filter(full_name="Jane Doe").exists())
+
+    def test_imported_row_creates_contributor_user(self):
+        """Deferring creation must not stop a genuinely imported row from
+        getting its contributor account."""
+        with tempfile.NamedTemporaryFile(mode="w", suffix=".csv", delete=False) as f:
+            f.write(_make_csv())
+            csv_path = f.name
+
+        with patch(
+            "main_app.management.commands.import_cantorales.os.path.join",
+            return_value=csv_path,
+        ):
+            call_command("import_cantorales", stdout=io.StringIO())
+
+        source = Source.objects.get(shelfmark="Ms. 1")
+        self.assertIn(
+            "Jane Doe",
+            source.source_data_contributed_by.values_list("full_name", flat=True),
+        )
+        # The CSV names Jane Doe as the sole contributor on this row, so her
+        # real email is used rather than a .invalid placeholder.
+        self.assertEqual(
+            User.objects.get(full_name="Jane Doe").email, "jane@example.com"
+        )
+
+    def test_images_stored_as_source_url_not_image_link(self):
+        """The Images column becomes a SourceURL of type External Images.
+
+        Source.image_link is being retired (#1818, #1839) and source_detail.html
+        renders only source_links, so writing image_link would leave the link
+        invisible on the page.
+        """
+        with tempfile.NamedTemporaryFile(mode="w", suffix=".csv", delete=False) as f:
+            f.write(_make_csv())
+            csv_path = f.name
+
+        with patch(
+            "main_app.management.commands.import_cantorales.os.path.join",
+            return_value=csv_path,
+        ):
+            call_command("import_cantorales", stdout=io.StringIO())
+
+        source = Source.objects.get(shelfmark="Ms. 1")
+        self.assertIsNone(source.image_link)
+        self.assertEqual(
+            SourceURL.objects.get(
+                source=source, url_type=SourceURL.URLTypes.EXTERNAL_IMAGES
+            ).url,
+            "http://example.com/img",
+        )
+        # The archive permalink still lands in its own SourceURL.
+        self.assertEqual(
+            SourceURL.objects.get(
+                source=source, url_type=SourceURL.URLTypes.HOST_INSTITUTION_RECORD
+            ).url,
+            "http://example.com/archive",
         )
 
     def test_rismless_row_not_blocked_by_unrelated_shelfmark(self):
