@@ -247,42 +247,58 @@ class Command(BaseCommand):
                     )
 
                 # --- Institution ---
+                # Look the institution up without creating it. Creation is
+                # deferred until the row is known to be importable, so a row
+                # that turns out to duplicate an existing source can never leave
+                # a stray Institution behind.
                 institution = None
+                institution_missing = False
                 if rism:
-                    try:
-                        institution = Institution.objects.get(siglum=rism)
-                    except Institution.DoesNotExist:
-                        city = row[COL_CITY].strip()
-                        archive_name = row[COL_ARCHIVE].strip() or "[No Name]"
-                        # Derive country from RISM prefix (US-xxx → US)
-                        country_code = rism.split("-")[0] if "-" in rism else ""
-                        country = {
-                            "US": "United States",
-                        }.get(country_code, country_code)
-                        institution = Institution.objects.create(
-                            siglum=rism,
-                            name=archive_name,
-                            city=city or None,
-                            country=country or "[No Country]",
-                        )
-                        institution_created_count += 1
-                        self.stdout.write(
-                            f"  Created institution: {institution} ({rism})"
-                        )
+                    institution = Institution.objects.filter(siglum=rism).first()
+                    institution_missing = institution is None
 
                 # --- Skip existing sources entirely (issue #2059) ---
                 # An earlier version of this import used update_or_create, which
                 # overwrote curated metadata and added unexpected editors on
                 # sources that already existed in CDB. We now refuse to modify
-                # any existing source: if one already matches
-                # (holding_institution, shelfmark) we skip the whole row
-                if Source.objects.filter(
-                    holding_institution=institution, shelfmark=shelfmark
-                ).exists():
+                # any existing source: if one already matches we skip the row.
+                #
+                # How we match depends on whether the row names an institution:
+                #
+                # * With a RISM siglum, (holding_institution, shelfmark)
+                #   identifies a source, so we check the whole database — the
+                #   sources we must not touch (HRC 145 and friends) are curated
+                #   sources living outside the Cantorales segment.
+                # * Without one, all we have is a shelfmark, which is not
+                #   evidence of identity by itself: unrelated institution-less
+                #   sources routinely share shelfmarks. Matching those across the
+                #   whole database would silently drop rows that should have been
+                #   imported, so we only dedupe against sources this import
+                #   created previously, which still keeps re-runs idempotent.
+                #
+                # An institution that doesn't exist yet has no sources, so that
+                # case needs no query at all.
+                if institution_missing:
+                    already_exists = False
+                elif institution is not None:
+                    already_exists = Source.objects.filter(
+                        holding_institution=institution, shelfmark=shelfmark
+                    ).exists()
+                else:
+                    already_exists = Source.objects.filter(
+                        holding_institution__isnull=True,
+                        shelfmark=shelfmark,
+                        segment_m2m=cantorales_segment,
+                    ).exists()
+
+                if already_exists:
                     skipped_existing_count += 1
+                    existing_label = (
+                        f"{institution} {shelfmark}" if institution else shelfmark
+                    )
                     self.stdout.write(
                         f"  Row {row_num}: SKIP — source already exists, leaving "
-                        f"it untouched: {institution} {shelfmark}"
+                        f"it untouched: {existing_label}"
                     )
                     continue
 
@@ -321,6 +337,27 @@ class Command(BaseCommand):
                 # RevisionMiddleware, so we wrap them explicitly to keep the
                 # import auditable (issue #2059 was about undetected changes). ---
                 with reversion.create_revision():
+                    # The row is definitely being imported now, so it's safe to
+                    # create the holding institution it referred to.
+                    if institution_missing:
+                        city = row[COL_CITY].strip()
+                        archive_name = row[COL_ARCHIVE].strip() or "[No Name]"
+                        # Derive country from RISM prefix (US-xxx → US)
+                        country_code = rism.split("-")[0] if "-" in rism else ""
+                        country = {
+                            "US": "United States",
+                        }.get(country_code, country_code)
+                        institution = Institution.objects.create(
+                            siglum=rism,
+                            name=archive_name,
+                            city=city or None,
+                            country=country or "[No Country]",
+                        )
+                        institution_created_count += 1
+                        self.stdout.write(
+                            f"  Created institution: {institution} ({rism})"
+                        )
+
                     source = Source.objects.create(
                         holding_institution=institution,
                         shelfmark=shelfmark,

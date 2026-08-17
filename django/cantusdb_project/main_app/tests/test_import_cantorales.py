@@ -7,7 +7,7 @@ from django.core.management import call_command
 from django.test import TestCase
 
 from main_app.management.commands.import_cantorales import parse_centuries
-from main_app.models import Source
+from main_app.models import Institution, Source
 from main_app.tests.make_fakes import (
     make_fake_century,
     make_fake_institution,
@@ -249,6 +249,100 @@ class TestImportCantoralesCommand(TestCase):
 
         with tempfile.NamedTemporaryFile(mode="w", suffix=".csv", delete=False) as f:
             f.write(_make_csv())
+            csv_path = f.name
+
+        with patch(
+            "main_app.management.commands.import_cantorales.os.path.join",
+            return_value=csv_path,
+        ):
+            call_command("import_cantorales", stdout=io.StringIO())
+            call_command("import_cantorales", stdout=io.StringIO())
+
+        self.assertEqual(Source.objects.filter(shelfmark="Ms. 1").count(), 1)
+
+    def test_skipped_row_creates_no_institution(self):
+        """A row skipped as a pre-existing duplicate must not leave a new
+        Institution behind.
+
+        With the match key as it stands the two branches are already mutually
+        exclusive — a freshly created institution has no sources, so it can
+        never match an existing one — but institution creation is deferred
+        until the row is known to be importable so the guarantee is structural
+        rather than incidental. This test locks that in against future changes
+        to the match key or to the set of skip conditions.
+        """
+        institution = make_fake_institution(siglum="US-NYcu", country="United States")
+        make_fake_source(
+            holding_institution=institution,
+            shelfmark="Ms. 1",
+            segment_name="CANTUS Database",
+        )
+        institutions_before = set(Institution.objects.values_list("pk", flat=True))
+
+        with tempfile.NamedTemporaryFile(mode="w", suffix=".csv", delete=False) as f:
+            f.write(_make_csv())
+            csv_path = f.name
+
+        with patch(
+            "main_app.management.commands.import_cantorales.os.path.join",
+            return_value=csv_path,
+        ):
+            call_command("import_cantorales", stdout=io.StringIO())
+
+        self.assertEqual(
+            set(Institution.objects.values_list("pk", flat=True)),
+            institutions_before,
+        )
+
+    def test_rismless_row_not_blocked_by_unrelated_shelfmark(self):
+        """A row without a RISM siglum must not be skipped merely because some
+        unrelated institution-less source happens to share its shelfmark.
+
+        Shelfmarks are not unique across institutions, so matching a RISM-less
+        row on shelfmark alone across the whole database silently dropped rows
+        that should have been imported. The check is now scoped to the
+        Cantorales segment for these rows.
+        """
+        unrelated = make_fake_source(
+            holding_institution=None,
+            shelfmark="Ms. 1",
+            description="Unrelated source that merely shares a shelfmark",
+            segment_name="CANTUS Database",
+        )
+
+        with tempfile.NamedTemporaryFile(mode="w", suffix=".csv", delete=False) as f:
+            f.write(_make_csv(rism=""))
+            csv_path = f.name
+
+        with patch(
+            "main_app.management.commands.import_cantorales.os.path.join",
+            return_value=csv_path,
+        ):
+            call_command("import_cantorales", stdout=io.StringIO())
+
+        # The CSV row was imported rather than skipped ...
+        imported = Source.objects.get(
+            shelfmark="Ms. 1", segment_m2m=settings.CANTORALES_SEGMENT_ID
+        )
+        self.assertIsNone(imported.holding_institution)
+        self.assertEqual(imported.provenance_notes, "Franciscan")
+
+        # ... and the unrelated source was left completely alone.
+        unrelated.refresh_from_db()
+        self.assertEqual(
+            unrelated.description, "Unrelated source that merely shares a shelfmark"
+        )
+        self.assertNotIn(
+            settings.CANTORALES_SEGMENT_ID,
+            unrelated.segment_m2m.values_list("pk", flat=True),
+        )
+
+    def test_rismless_row_is_idempotent(self):
+        """Re-running the import must not duplicate a RISM-less row: the
+        narrowed duplicate check still dedupes within the Cantorales segment.
+        """
+        with tempfile.NamedTemporaryFile(mode="w", suffix=".csv", delete=False) as f:
+            f.write(_make_csv(rism=""))
             csv_path = f.name
 
         with patch(
