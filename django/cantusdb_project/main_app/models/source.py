@@ -91,7 +91,7 @@ class Source(BaseModel):
     source_completeness = models.IntegerField(
         choices=SourceCompletenessChoices.choices,
         default=SourceCompletenessChoices.FULL_SOURCE,
-        verbose_name="Complete Source/Fragment",
+        verbose_name="Physical Status",
     )
 
     full_source = models.BooleanField(blank=True, null=True)
