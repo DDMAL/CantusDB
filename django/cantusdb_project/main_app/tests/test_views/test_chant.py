@@ -3675,6 +3675,14 @@ class ChantCreateViewTest(CustomAccessTestMixin, TestCase):
                 "Composed element text and Cantus ID must be strings.",
             ),
             ('[{"kind": "core", "text": "   "}]', "Composed elements must have text."),
+            # A cantus_id longer than the column would clear validation and then 500 on
+            # the row write, so it's rejected up front as a form error.
+            (
+                json.dumps(
+                    [{"kind": "component", "text": "x", "cantus_id": "g" * 256}]
+                ),
+                "A Cantus ID can be at most 255 characters.",
+            ),
             (
                 json.dumps([{"kind": "core", "text": "x"}] * 201),
                 "A cluster can have at most 200 elements.",
@@ -4319,11 +4327,14 @@ class CIComponentSearchViewTest(TestCase):
         )
 
     @patch("main_app.views.chant.get_ci_text_search")
-    def test_drops_results_without_a_cid_or_genre(self, mock_search) -> None:
+    def test_drops_results_without_a_cid_genre_or_text(self, mock_search) -> None:
         mock_search.return_value = [
             None,
             {"cid": "", "genre": "Tp", "fulltext": "no id"},
             {"cid": "001234", "genre": None, "fulltext": "no genre"},
+            # A text-less match can't be composed and would insert a blank component.
+            {"cid": "005678", "genre": "Tp", "fulltext": "   "},
+            {"cid": "005679", "genre": "Tp"},
             self._ci_result("g04828:01", "TpSa"),
         ]
         response = self.client.get(reverse("ci-component-search", args=["sanctus"]))

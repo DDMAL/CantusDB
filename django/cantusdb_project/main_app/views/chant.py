@@ -1378,6 +1378,7 @@ class CIComponentSearchView(LoginRequiredMixin, View):
                     for result in raw
                     if result
                     and result.get("cid")
+                    and (result.get("fulltext") or "").strip()
                     and self.is_component_genre(result.get("genre"))
                 ],
                 # Measured on CI's raw response, before genre filtering: the ceiling was
