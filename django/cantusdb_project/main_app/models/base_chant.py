@@ -1,4 +1,4 @@
-from typing import Any, Optional, Sequence
+from typing import Any, Collection, Iterable, Optional
 
 from django.db import models
 from django.contrib.auth import get_user_model
@@ -210,20 +210,45 @@ class BaseChant(BaseModel):
 
     other_fields_proofread = models.BooleanField(blank=False, null=False, default=False)
 
+    # The value of `manuscript_full_text_std_proofread` as last read from the
+    # database, so the incipit signal can tell when the standardized-spelling
+    # full text is *first* marked proofread and re-sync the incipit only then
+    # (issue #1803). `None` means "unknown": the instance was built in memory
+    # rather than loaded, or was loaded by a queryset that deferred the field.
+    # Consumers must treat `None` as "don't assume a transition".
+    _std_proofread_at_load: Optional[bool] = None
+
     @classmethod
     def from_db(
-        cls, db: Optional[str], field_names: Sequence[str], values: Sequence[Any]
+        cls, db: Optional[str], field_names: Collection[str], values: Collection[Any]
     ) -> "BaseChant":
         instance = super().from_db(db, field_names, values)
-        # Snapshot the proofread flag as loaded so the incipit signal can tell
-        # when the standardized-spelling full text is *first* marked proofread
-        # and re-sync the incipit only then (issue #1803). Guarded so a deferred
-        # queryset that excludes the field doesn't trigger an extra fetch.
+        # Guarded so a deferred queryset that excludes the field doesn't
+        # trigger an extra fetch; the snapshot stays `None` in that case.
         if "manuscript_full_text_std_proofread" in field_names:
             instance._std_proofread_at_load = (
                 instance.manuscript_full_text_std_proofread
             )
         return instance
+
+    def refresh_from_db(
+        self,
+        using: Optional[str] = None,
+        fields: Optional[Iterable[str]] = None,
+        from_queryset: Optional[models.QuerySet] = None,
+    ) -> None:
+        refreshed_fields: Optional[set] = None if fields is None else set(fields)
+        super().refresh_from_db(
+            using=using, fields=refreshed_fields, from_queryset=from_queryset
+        )
+        # Re-snapshot alongside `from_db`, so an instance refreshed after a save
+        # doesn't carry a stale (or missing) proofread state into its next save.
+        proofread_field: str = "manuscript_full_text_std_proofread"
+        refetched_proofread_flag: bool = (
+            refreshed_fields is None or proofread_field in refreshed_fields
+        ) and proofread_field not in self.get_deferred_fields()
+        if refetched_proofread_flag:
+            self._std_proofread_at_load = self.manuscript_full_text_std_proofread
 
     def get_ci_url(self) -> str:
         """Construct the url to the entry in Cantus Index correponding to the chant.

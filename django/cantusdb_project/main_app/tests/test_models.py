@@ -287,6 +287,47 @@ class ChantModelTest(TestCase):
         reloaded.refresh_from_db()
         self.assertEqual(reloaded.incipit, "Hand-curated incipit")
 
+    def test_incipit_resynced_only_once_across_consecutive_saves(self):
+        """The re-sync happens once, at the proofread transition. Saving the
+        same in-memory instance a second time, with no reload in between, does
+        not rewrite an incipit curated after the re-sync (issue #1803)."""
+        chant: Chant = make_fake_chant(
+            incipit="Hand-curated incipit",
+            manuscript_full_text_std_spelling="Automatic incipit would read quite differently",
+            manuscript_full_text_std_proofread=False,
+        )
+        reloaded: Chant = Chant.objects.get(id=chant.id)
+        reloaded.manuscript_full_text_std_proofread = True
+        reloaded.save()
+        self.assertEqual(
+            Chant.objects.get(id=chant.id).incipit,
+            "Automatic incipit would read quite",
+        )
+
+        reloaded.incipit = "Curated again after proofreading"
+        reloaded.save()
+        self.assertEqual(
+            Chant.objects.get(id=chant.id).incipit,
+            "Curated again after proofreading",
+        )
+
+    def test_incipit_protected_when_proofread_state_unknown(self):
+        """A chant loaded by a queryset that defers the proofread flag carries
+        no record of that flag's previous value, so it must not be mistaken for
+        a chant that was just proofread: its incipit is left alone (#1803)."""
+        chant: Chant = make_fake_chant(
+            incipit="Hand-curated incipit",
+            manuscript_full_text_std_spelling="Automatic incipit would read quite differently",
+            manuscript_full_text_std_proofread=True,
+        )
+        deferred: Chant = Chant.objects.defer("manuscript_full_text_std_proofread").get(
+            id=chant.id
+        )
+        deferred.marginalia = "edited"
+        deferred.save()
+        chant.refresh_from_db()
+        self.assertEqual(chant.incipit, "Hand-curated incipit")
+
 
 class FeastModelTest(TestCase):
     @classmethod

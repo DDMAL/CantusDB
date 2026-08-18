@@ -232,14 +232,25 @@ def update_chant_incipit_field(chant: Chant, created: bool) -> None:
     if not fulltext:
         return
     if chant.incipit:
-        proofread_at_load: bool = getattr(chant, "_std_proofread_at_load", False)
-        just_proofread: bool = (
-            bool(chant.manuscript_full_text_std_proofread) and not proofread_at_load
+        # A `None` snapshot means the previous value of the proofread flag is
+        # unknown - the chant was built in memory, or loaded by a queryset that
+        # deferred the field. We then can't tell a proofread transition from a
+        # chant that was already proofread, so we leave the curated incipit
+        # alone rather than risk clobbering it. Testing the snapshot first also
+        # keeps a deferred proofread flag from being fetched needlessly.
+        proofread_at_load: Optional[bool] = chant._std_proofread_at_load
+        just_proofread: bool = proofread_at_load is False and bool(
+            chant.manuscript_full_text_std_proofread
         )
         if created or not just_proofread:
             return
     new_incipit: str = generate_incipit(fulltext)
     Chant.objects.filter(id=chant.id).update(incipit=new_incipit)
+    # Bring the in-memory instance in step with the row we just wrote, so that
+    # saving it again neither writes the stale incipit back nor looks like a
+    # second proofread transition and overwrites a freshly curated incipit.
+    chant.incipit = new_incipit
+    chant._std_proofread_at_load = bool(chant.manuscript_full_text_std_proofread)
 
 
 def update_sequence_incipit_field(sequence: Sequence) -> None:
