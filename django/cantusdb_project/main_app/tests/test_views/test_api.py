@@ -3,17 +3,20 @@ Tests for views in views/api.py
 """
 
 import json
+import re
 from typing import Optional, Any
 import csv
 from collections.abc import ItemsView, KeysView
 from unittest.mock import patch, MagicMock
+from urllib.parse import unquote
 
-from django.test import TestCase
+from django.test import SimpleTestCase, TestCase
 from django.urls import reverse
-from django.http import JsonResponse
+from django.http import HttpResponse, JsonResponse
 
 from main_app.tests.make_fakes import (
     make_fake_chant,
+    make_fake_institution,
     make_fake_sequence,
     make_fake_source,
     make_fake_notation,
@@ -30,6 +33,7 @@ from main_app.tests.mock_cantusindex_data import (
 )
 from main_app.tests.mixins import CustomAccessTestMixin
 from main_app.tests.test_views.test_chant import ChantPermissionsTestCase
+from main_app.views.api import make_csv_download_filename
 
 
 class AjaxSearchBarTest(ChantPermissionsTestCase):
@@ -957,11 +961,106 @@ class JsonCidTest(TestCase):
         self.assertEqual(json_for_one_chant_3["full_text"], "standard spelling")
 
 
+def get_filename_from_response(response: HttpResponse) -> str:
+    """Return the filename ``Content-Disposition`` asks the browser to save as.
+
+    Handles both forms Django emits: a quoted ASCII ``filename`` and the
+    percent-encoded ``filename*`` it falls back to when the name is not ASCII.
+    """
+    disposition = response["Content-Disposition"]
+    if encoded_match := re.match(
+        r"attachment; filename\*=utf-8''(?P<name>.+)$", disposition, re.IGNORECASE
+    ):
+        return unquote(encoded_match["name"])
+    quoted_match = re.match(
+        r'attachment; filename="(?P<name>.*)"$', disposition, re.IGNORECASE
+    )
+    if quoted_match is None:
+        raise AssertionError(f"unexpected Content-Disposition: {disposition}")
+    return quoted_match["name"]
+
+
+class MakeCsvDownloadFilenameTest(SimpleTestCase):
+    """
+    Tests for the filename sanitizer used by the CSV export view. These call the
+    function directly; ``CsvExportTest`` covers getting the result into the
+    response header.
+    """
+
+    def test_sanitizes_path_separators(self):
+        self.assertEqual(
+            make_csv_download_filename(123, "A-Gu Ms. 12/1"),
+            "123-A-Gu Ms. 12-1.csv",
+        )
+
+    def test_sanitizes_characters_windows_disallows(self):
+        self.assertEqual(
+            make_csv_download_filename(123, 'A-Gu Ms. 12<>:"|?*1'),
+            "123-A-Gu Ms. 12-1.csv",
+        )
+
+    def test_truncates_long_headings(self):
+        # A shelfmark can be up to 255 characters. The heading is capped at 100,
+        # so "A-Gu " plus the first 95 M's survives.
+        filename = make_csv_download_filename(123, "A-Gu " + "M" * 255)
+
+        self.assertEqual(filename, "123-A-Gu " + "M" * 95 + ".csv")
+
+
 class CsvExportTest(CustomAccessTestMixin, TestCase):
     def test_url(self):
         source = make_fake_source(published=True)
         response_1 = self.client.get(reverse("csv-export", args=[source.id]))
         self.assertEqual(response_1.status_code, 200)
+
+    def test_download_filename(self):
+        institution = make_fake_institution(siglum="A-Gu")
+        source = make_fake_source(
+            published=True, holding_institution=institution, shelfmark="Ms. 211"
+        )
+        response = self.client.get(reverse("csv-export", args=[source.id]))
+
+        self.assertEqual(
+            get_filename_from_response(response), f"{source.id}-A-Gu Ms. 211.csv"
+        )
+
+    def test_download_filename_without_holding_institution(self):
+        source = make_fake_source(
+            published=True, holding_institution=None, shelfmark="Ms. 211"
+        )
+        response = self.client.get(reverse("csv-export", args=[source.id]))
+
+        self.assertEqual(
+            get_filename_from_response(response), f"{source.id}-Cantus Ms. 211.csv"
+        )
+
+    def test_download_filename_with_control_characters_in_shelfmark(self):
+        # A newline reaching the header value would make Django raise
+        # BadHeaderError, so this exercises the full request rather than the
+        # sanitizer alone.
+        institution = make_fake_institution(siglum="A-Gu")
+        source = make_fake_source(
+            published=True, holding_institution=institution, shelfmark="Ms.\n211"
+        )
+        response = self.client.get(reverse("csv-export", args=[source.id]))
+
+        self.assertEqual(
+            get_filename_from_response(response), f"{source.id}-A-Gu Ms.-211.csv"
+        )
+
+    def test_download_filename_keeps_non_ascii_characters(self):
+        institution = make_fake_institution(siglum="F-Pn")
+        source = make_fake_source(
+            published=True, holding_institution=institution, shelfmark="Ms. Réserve 1"
+        )
+        response = self.client.get(reverse("csv-export", args=[source.id]))
+
+        # Accented characters are legitimate in shelfmarks, so they are kept
+        # rather than stripped; Django percent-encodes them per RFC 5987.
+        self.assertEqual(
+            get_filename_from_response(response),
+            f"{source.id}-F-Pn Ms. Réserve 1.csv",
+        )
 
     def test_content(self):
         NUM_CHANTS = 5

@@ -3,6 +3,7 @@ Test views in views/source.py
 """
 
 import random
+import re
 
 from faker import Faker
 from typing import Dict
@@ -36,6 +37,33 @@ from users.models import User as UserAnnotation
 
 # Create a Faker instance with locale set to Latin
 faker = Faker("la")
+
+
+class CsvExportLinkTestMixin:
+    """
+    A mixin for pages that link to a source's CSV export.
+    """
+
+    def assertCsvExportLinkHasNoDownloadAttribute(
+        self, html: str, source_id: int
+    ) -> None:
+        """
+        Assert the page's CSV export link carries no ``download`` attribute.
+
+        ``csv_export`` names the downloaded file via ``Content-Disposition``; a
+        client-side ``download`` attribute on the link would override it.
+
+        :param html: The rendered HTML of the page containing the link.
+        :param source_id: The ID of the source the export link points to.
+        """
+        # Scope the assertion to the export anchor rather than the whole page.
+        csv_url = reverse("csv-export", args=[source_id])
+        match = re.search(rf'<a\b[^>]*href="{re.escape(csv_url)}"[^>]*>', html)
+        anchor_tag = match.group(0) if match else ""
+        self.assertTrue(anchor_tag, "CSV export link not found in the response")
+        # `\sdownload\b` matches the attribute with or without a value, but not
+        # attribute names that merely contain the word, e.g. `data-download-name`.
+        self.assertNotRegex(anchor_tag, r"\sdownload\b")
 
 
 class SourcePermissionsTestCase(CustomAccessTestMixin, TestCase):
@@ -159,7 +187,7 @@ class SourceCreateViewTest(TestCase):
         self.assertNotIn(settings.BENEDICAMUS_DOMINO_SEGMENT_ID, segment_ids)
 
 
-class SourceEditViewTest(CustomAccessTestMixin, TestCase):
+class SourceEditViewTest(CsvExportLinkTestMixin, CustomAccessTestMixin, TestCase):
     default_user = "editor"
     sources: Dict[str, Source]
 
@@ -224,6 +252,14 @@ class SourceEditViewTest(CustomAccessTestMixin, TestCase):
         self.assertEqual(response.status_code, 404)
         self.assertTemplateUsed(response, "404.html")
 
+    def test_csv_export_link_uses_response_filename(self) -> None:
+        source = self.sources["editor_assigned_source"]
+        response = self.client.get(reverse("source-edit", args=[source.id]))
+
+        self.assertCsvExportLinkHasNoDownloadAttribute(
+            response.content.decode("utf-8"), source.id
+        )
+
     def test_edit_source(self) -> None:
         source = self.sources["editor_assigned_source"]
         response = self.client.post(
@@ -256,7 +292,7 @@ class SourceEditViewTest(CustomAccessTestMixin, TestCase):
         self.assertNotIn(settings.BENEDICAMUS_DOMINO_SEGMENT_ID, segment_ids)
 
 
-class SourceDetailViewTest(SourcePermissionsTestCase):
+class SourceDetailViewTest(CsvExportLinkTestMixin, SourcePermissionsTestCase):
     view_name = "source-detail"
 
     def test_permissions(self) -> None:
@@ -268,6 +304,14 @@ class SourceDetailViewTest(SourcePermissionsTestCase):
         self.assertEqual(response.status_code, 200)
         self.assertTemplateUsed(response, "base.html")
         self.assertTemplateUsed(response, "source_detail.html")
+
+    def test_csv_export_link_uses_response_filename(self) -> None:
+        source = make_fake_source()
+        response = self.client.get(reverse("source-detail", args=[source.id]))
+
+        self.assertCsvExportLinkHasNoDownloadAttribute(
+            response.content.decode("utf-8"), source.id
+        )
 
     def test_context_chant_folios(self) -> None:
         # create a source and several chants in it
@@ -637,7 +681,7 @@ class SourceInventoryViewTest(HTMLContentsTestMixin, SourcePermissionsTestCase):
         self.assertTemplateUsed(response, "400.html")
 
 
-class SourceBrowseChantsViewTest(SourcePermissionsTestCase):
+class SourceBrowseChantsViewTest(CsvExportLinkTestMixin, SourcePermissionsTestCase):
     view_name = "browse-chants"
 
     def test_permissions(self) -> None:
@@ -670,6 +714,16 @@ class SourceBrowseChantsViewTest(SourcePermissionsTestCase):
         self.assertEqual(response.status_code, 200)
         self.assertTemplateUsed(response, "base.html")
         self.assertTemplateUsed(response, "browse_chants.html")
+
+    def test_csv_export_link_uses_response_filename(self):
+        cantus_segment = make_fake_segment(id=4063)
+        source = make_fake_source(segment=[cantus_segment])
+        make_fake_chant(source=source)
+        response = self.client.get(reverse("browse-chants", args=[source.id]))
+
+        self.assertCsvExportLinkHasNoDownloadAttribute(
+            response.content.decode("utf-8"), source.id
+        )
 
     def test_chant_rows_have_anchor_ids(self):
         # SourceEditChantsView.get_success_url redirects to `#chant-<pk>` after an
