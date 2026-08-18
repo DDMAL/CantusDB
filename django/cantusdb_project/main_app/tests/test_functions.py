@@ -742,6 +742,21 @@ class GetClusterElementsTest(TestCase):
             elements = get_cluster_elements("g04828")
         self.assertEqual(elements[0]["fulltext"], "Perpetuo numine cuncta regens")
 
+    def test_skips_a_catalogued_element_with_no_text(self) -> None:
+        """A sub-element CI holds without text can't be composed and would show as a
+        blank chip, so it's dropped — but it still counts toward the walk, so a later
+        numbered element is not treated as the end of the run."""
+        known = {
+            "g04828:01": {"field_genre": "TpSa", "field_full_text": "first"},
+            "g04828:02": {"field_genre": "TpSa", "field_full_text": "   "},
+            "g04828:03": {"field_genre": "TpSa", "field_full_text": "third"},
+        }
+        with patch("cantusindex.get_json_from_ci_api", self._fake_ci(known)):
+            elements = get_cluster_elements("g04828")
+        self.assertEqual(
+            [element["cantus_id"] for element in elements], ["g04828:01", "g04828:03"]
+        )
+
     def test_tolerates_a_single_gap_in_the_numbering(self) -> None:
         """One missing number is a hole in CI's catalogue, not the end of the run."""
         known = {

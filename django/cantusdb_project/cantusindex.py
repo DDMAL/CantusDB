@@ -122,7 +122,8 @@ class ClusterElement(TypedDict):
 
     cantus_id: str
     genre: Optional[str]
-    fulltext: Optional[str]
+    # Always non-empty: get_cluster_elements drops text-less sub-elements.
+    fulltext: str
 
 
 def get_cantus_id_info(cantus_id: str) -> Optional[dict[Any, Any]]:
@@ -260,12 +261,18 @@ def get_cluster_elements(
                 break
             continue
         consecutive_misses = 0
-        fulltext: Optional[str] = info.get("field_full_text")
+        raw_fulltext: Optional[str] = info.get("field_full_text")
+        fulltext: str = raw_fulltext.strip() if raw_fulltext else ""
+        # CI can hold a catalogued sub-element with no text. It exists in the numbering,
+        # so the walk continues past it, but a text-less element can't be composed and
+        # would surface as a blank, unsavable chip in the bank — leave it out.
+        if not fulltext:
+            continue
         elements.append(
             {
                 "cantus_id": sub_id,
                 "genre": info.get("field_genre"),
-                "fulltext": fulltext.strip() if fulltext else None,
+                "fulltext": fulltext,
             }
         )
     return elements

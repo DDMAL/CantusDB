@@ -315,6 +315,7 @@ class ChantCreateForm(forms.ModelForm):
                 f"A cluster can have at most {self.MAX_ELEMENTS} elements."
             )
         valid_kinds = {kind.value for kind in ChantElement.Kind}
+        max_cantus_id_length: int = ChantElement._meta.get_field("cantus_id").max_length
         elements: list[dict[str, Any]] = []
         for entry in data:
             if not isinstance(entry, dict):
@@ -336,11 +337,18 @@ class ChantCreateForm(forms.ModelForm):
             text = (raw_text or "").strip()
             if not text:
                 raise forms.ValidationError("Composed elements must have text.")
+            cantus_id = (raw_cantus_id or "").strip()
+            # The cantus_id column is capped at max_length; without this check an
+            # over-long id clears validation and then 500s when the row is written.
+            if len(cantus_id) > max_cantus_id_length:
+                raise forms.ValidationError(
+                    f"A Cantus ID can be at most {max_cantus_id_length} characters."
+                )
             elements.append(
                 {
                     "kind": kind,
                     "text": text,
-                    "cantus_id": (raw_cantus_id or "").strip(),
+                    "cantus_id": cantus_id,
                     "proposed": bool(entry.get("proposed")),
                 }
             )
