@@ -3995,3 +3995,27 @@ class ChantViewHelpersTest(TestCase):
                 (feasts[2].id, feasts[2].name, "00q2r, 00q3, X00q3"),
             ]
             self.assertEqual(feast_selector_options, expected_result)
+
+    def test_get_feast_selector_options_skips_null_and_empty_folios(self) -> None:
+        # Regression test for #2227: a chant with a feast assigned but a null or
+        # empty folio must not crash the feast selector. create_folio_ranges
+        # indexes into each folio string, so None/"" would previously raise.
+        source = make_fake_source()
+        feasts = self.feasts
+        # feasts[0]: valid folios alongside an empty-folio and a null-folio chant.
+        for folio in ["001r", "002r"]:
+            make_fake_chant(source=source, folio=folio, feast=feasts[0])
+        make_fake_chant(source=source, folio="", feast=feasts[0])
+        # make_fake_chant substitutes a random folio for None, so set it directly.
+        null_folio_chant = make_fake_chant(source=source, feast=feasts[0])
+        Chant.objects.filter(pk=null_folio_chant.pk).update(folio=None)
+        # feasts[1]: only a null-folio chant, so it should be omitted entirely.
+        feast_without_folios_chant = make_fake_chant(source=source, feast=feasts[1])
+        Chant.objects.filter(pk=feast_without_folios_chant.pk).update(folio=None)
+
+        feast_selector_options = get_feast_selector_options(source)
+
+        self.assertEqual(
+            feast_selector_options,
+            [(feasts[0].id, feasts[0].name, "001r, 002r")],
+        )
