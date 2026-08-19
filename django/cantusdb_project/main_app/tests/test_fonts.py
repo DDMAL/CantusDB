@@ -17,6 +17,21 @@ class SelfHostedFontTest(TestCase):
         response = self.client.get(reverse("article-list"))
         self.assertContains(response, "fonts/radio-canada.css")
 
+    def test_standalone_templates_link_the_local_font(self) -> None:
+        # article-list above covers the base.html path. These templates don't
+        # extend base.html, so each wires the font in by hand and a refactor
+        # could silently drop it; the admin gets the link via base_site.html.
+        base_dir = Path(settings.BASE_DIR)
+        standalone_templates = [
+            "main_app/templates/ci_search.html",
+            "main_app/templates/full_inventory.html",
+            "templates/admin/base_site.html",
+        ]
+        for relative_path in standalone_templates:
+            with self.subTest(template=relative_path):
+                source = (base_dir / relative_path).read_text(encoding="utf-8")
+                self.assertIn("fonts/radio-canada.css", source)
+
     def test_no_template_references_google_fonts(self) -> None:
         base_dir = Path(settings.BASE_DIR)
         templates = sorted(base_dir.glob("**/templates/**/*.html"))
