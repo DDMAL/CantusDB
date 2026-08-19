@@ -1,28 +1,66 @@
 <div class="markdown-field">
-    <ul class="nav nav-tabs markdown-field-tabs"
-        id="{{ widget.name }}-tabs"
-        role="tablist">
-        <li class="nav-item" role="presentation">
-            <button class="nav-link active edit-tab"
-                    id="{{ widget.name }}-edit-tab"
-                    data-bs-toggle="tab"
-                    data-bs-target="#{{ widget.name }}-edit"
-                    type="button"
-                    role="tab"
-                    aria-controls="{{ widget.name }}-edit"
-                    aria-selected="true">Edit</button>
-        </li>
-        <li class="nav-item" role="presentation">
-            <button class="nav-link preview-tab"
-                    id="{{ widget.name }}-preview-tab"
-                    data-bs-toggle="tab"
-                    data-bs-target="#{{ widget.name }}-preview"
-                    type="button"
-                    role="tab"
-                    aria-controls="{{ widget.name }}-preview"
-                    aria-selected="false">Preview</button>
-        </li>
-    </ul>
+    <div class="markdown-field-header">
+        <ul class="nav nav-tabs markdown-field-tabs"
+            id="{{ widget.name }}-tabs"
+            role="tablist">
+            <li class="nav-item" role="presentation">
+                <button class="nav-link active edit-tab"
+                        id="{{ widget.name }}-edit-tab"
+                        data-bs-toggle="tab"
+                        data-bs-target="#{{ widget.name }}-edit"
+                        type="button"
+                        role="tab"
+                        aria-controls="{{ widget.name }}-edit"
+                        aria-selected="true">Write</button>
+            </li>
+            <li class="nav-item" role="presentation">
+                <button class="nav-link preview-tab"
+                        id="{{ widget.name }}-preview-tab"
+                        data-bs-toggle="tab"
+                        data-bs-target="#{{ widget.name }}-preview"
+                        type="button"
+                        role="tab"
+                        aria-controls="{{ widget.name }}-preview"
+                        aria-selected="false">Preview</button>
+            </li>
+        </ul>
+        <div class="markdown-toolbar" role="toolbar" aria-label="Formatting tools">
+            <div class="markdown-toolbar-group">
+                <button type="button" class="markdown-toolbar-btn" data-md-action="heading"
+                        title="Add heading text" aria-label="Add heading text">
+                    <i class="bi bi-type-h1" aria-hidden="true"></i>
+                </button>
+                <button type="button" class="markdown-toolbar-btn" data-md-action="bold"
+                        title="Add bold text (Ctrl+B)" aria-label="Add bold text">
+                    <i class="bi bi-type-bold" aria-hidden="true"></i>
+                </button>
+                <button type="button" class="markdown-toolbar-btn" data-md-action="italic"
+                        title="Add italic text (Ctrl+I)" aria-label="Add italic text">
+                    <i class="bi bi-type-italic" aria-hidden="true"></i>
+                </button>
+            </div>
+            <div class="markdown-toolbar-group">
+                <button type="button" class="markdown-toolbar-btn" data-md-action="quote"
+                        title="Add a quote" aria-label="Add a quote">
+                    <i class="bi bi-quote" aria-hidden="true"></i>
+                </button>
+                <button type="button" class="markdown-toolbar-btn" data-md-action="link"
+                        title="Add a link (Ctrl+K)" aria-label="Add a link">
+                    <i class="bi bi-link-45deg" aria-hidden="true"></i>
+                </button>
+            </div>
+            <div class="markdown-toolbar-group">
+                <button type="button" class="markdown-toolbar-btn" data-md-action="unordered-list"
+                        title="Add a bulleted list" aria-label="Add a bulleted list">
+                    <i class="bi bi-list-ul" aria-hidden="true"></i>
+                </button>
+                <button type="button" class="markdown-toolbar-btn" data-md-action="ordered-list"
+                        title="Add a numbered list" aria-label="Add a numbered list">
+                    <i class="bi bi-list-ol" aria-hidden="true"></i>
+                </button>
+            </div>
+        </div>
+    </div>
     <div class="tab-content" id="{{ widget.name }}-content">
         <div class="tab-pane fade show active"
              id="{{ widget.name }}-edit"
