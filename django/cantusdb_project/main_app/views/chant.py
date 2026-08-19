@@ -241,7 +241,8 @@ def get_feast_selector_options(source: Source) -> list[tuple[int, str, str]]:
     )
     feasts_with_folio_range = []
     for feast_id, feast_name, folios in feasts_agg_folios:
-        # A feast whose chants all lack folios aggregates to an empty list.
+        # A feast whose chants all lack folios aggregates to None (array_agg
+        # returns NULL when the filter matches no rows).
         if not folios:
             continue
         feasts_with_folio_range.append(
