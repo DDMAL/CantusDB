@@ -1,6 +1,8 @@
 import operator
 from functools import reduce
 
+import reversion
+
 from django.contrib.postgres.search import SearchVector
 from django.db import models
 from django.db.models import Value
@@ -15,6 +17,7 @@ from main_app.models import Chant
 from main_app.models import Sequence
 from main_app.models import Feast
 from main_app.models import Source
+from main_app.models.base_chant import UNKNOWN_PROOFREAD_STATE
 
 
 @receiver(post_save, sender=Chant)
@@ -232,14 +235,17 @@ def update_chant_incipit_field(chant: Chant, created: bool) -> None:
     if not fulltext:
         return
     if chant.incipit:
-        # A `None` snapshot means the previous value of the proofread flag is
-        # unknown - the chant was built in memory, or loaded by a queryset that
-        # deferred the field. We then can't tell a proofread transition from a
-        # chant that was already proofread, so we leave the curated incipit
-        # alone rather than risk clobbering it. Testing the snapshot first also
-        # keeps a deferred proofread flag from being fetched needlessly.
-        proofread_at_load: Optional[bool] = chant._std_proofread_at_load
-        just_proofread: bool = proofread_at_load is False and bool(
+        # A loaded flag (True/False/None) is a *known* prior value, and a
+        # database NULL counts as "not proofread". UNKNOWN_PROOFREAD_STATE means
+        # the flag was never loaded - the chant was built in memory or the field
+        # was deferred - so we can't tell a proofread transition and leave the
+        # curated incipit alone. Testing the snapshot first also keeps a deferred
+        # proofread flag from being fetched needlessly.
+        proofread_at_load = chant._std_proofread_at_load
+        was_not_proofread: bool = (
+            proofread_at_load is not UNKNOWN_PROOFREAD_STATE and not proofread_at_load
+        )
+        just_proofread: bool = was_not_proofread and bool(
             chant.manuscript_full_text_std_proofread
         )
         if created or not just_proofread:
@@ -251,6 +257,12 @@ def update_chant_incipit_field(chant: Chant, created: bool) -> None:
     # second proofread transition and overwrites a freshly curated incipit.
     chant.incipit = new_incipit
     chant._std_proofread_at_load = bool(chant.manuscript_full_text_std_proofread)
+    # `.update()` bypasses save hooks, so the active revision would otherwise
+    # keep the pre-sync incipit. Re-record the instance (now carrying the
+    # regenerated incipit) rather than calling save() again, which would recurse
+    # back through this signal (issue #1803).
+    if reversion.is_active():
+        reversion.add_to_revision(chant)
 
 
 def update_sequence_incipit_field(sequence: Sequence) -> None:

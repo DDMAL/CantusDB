@@ -8,6 +8,20 @@ from main_app.models.url_field import NormalizedURLField
 from main_app.models import BaseModel
 
 
+class _UnknownProofreadState:
+    """Sentinel for a proofread flag that was never loaded — an in-memory
+    instance or a queryset that deferred the field — kept distinct from a
+    loaded database ``NULL`` so the incipit signal can tell a real
+    ``NULL``-to-``True`` proofread transition from an unknown prior value
+    (issue #1803)."""
+
+    def __repr__(self) -> str:
+        return "UNKNOWN_PROOFREAD_STATE"
+
+
+UNKNOWN_PROOFREAD_STATE = _UnknownProofreadState()
+
+
 class BaseChant(BaseModel):
     """
     the Chant and Sequence models inherit from BaseChant.
@@ -213,18 +227,22 @@ class BaseChant(BaseModel):
     # The value of `manuscript_full_text_std_proofread` as last read from the
     # database, so the incipit signal can tell when the standardized-spelling
     # full text is *first* marked proofread and re-sync the incipit only then
-    # (issue #1803). `None` means "unknown": the instance was built in memory
-    # rather than loaded, or was loaded by a queryset that deferred the field.
-    # Consumers must treat `None` as "don't assume a transition".
-    _std_proofread_at_load: Optional[bool] = None
+    # (issue #1803). A loaded value is one of `True`/`False`/`None`; a database
+    # `NULL` is a known "not proofread" state. `UNKNOWN_PROOFREAD_STATE` means
+    # the field was never loaded — the instance was built in memory, or the
+    # field was deferred — and the signal must not assume a transition then.
+    _std_proofread_at_load: "bool | None | _UnknownProofreadState" = (
+        UNKNOWN_PROOFREAD_STATE
+    )
 
     @classmethod
     def from_db(
         cls, db: Optional[str], field_names: Collection[str], values: Collection[Any]
     ) -> "BaseChant":
         instance = super().from_db(db, field_names, values)
-        # Guarded so a deferred queryset that excludes the field doesn't
-        # trigger an extra fetch; the snapshot stays `None` in that case.
+        # Guarded so a deferred queryset that excludes the field doesn't trigger
+        # an extra fetch; the snapshot stays `UNKNOWN_PROOFREAD_STATE` in that
+        # case. A loaded `None` is a genuine (known) NULL, not "unknown".
         if "manuscript_full_text_std_proofread" in field_names:
             instance._std_proofread_at_load = (
                 instance.manuscript_full_text_std_proofread

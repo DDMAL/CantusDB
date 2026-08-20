@@ -1,3 +1,6 @@
+import reversion
+from reversion.models import Version
+
 from django.forms import ValidationError
 from django.test import TestCase
 from django.urls import reverse
@@ -327,6 +330,42 @@ class ChantModelTest(TestCase):
         deferred.save()
         chant.refresh_from_db()
         self.assertEqual(chant.incipit, "Hand-curated incipit")
+
+    def test_incipit_resynced_when_null_proofread_flag_marked_proofread(self):
+        """A loaded NULL proofread flag is a known "not proofread" state,
+        distinct from an unknown deferred one: marking such a chant proofread
+        re-syncs its incipit just as a False-to-True transition does (#1803)."""
+        chant: Chant = make_fake_chant(
+            incipit="Hand-curated incipit",
+            manuscript_full_text_std_spelling="Automatic incipit would read quite differently",
+            manuscript_full_text_std_proofread=None,
+        )
+        # Reload so the instance snapshots the NULL flag as a known value.
+        reloaded: Chant = Chant.objects.get(id=chant.id)
+        reloaded.manuscript_full_text_std_proofread = True
+        reloaded.save()
+        reloaded.refresh_from_db()
+        self.assertEqual(reloaded.incipit, "Automatic incipit would read quite")
+
+    def test_generated_incipit_recorded_in_active_revision(self):
+        """When the proofread transition regenerates the incipit, the value
+        stored in the active django-reversion revision matches the regenerated
+        incipit rather than the pre-sync value (#1803)."""
+        chant: Chant = make_fake_chant(
+            incipit="Hand-curated incipit",
+            manuscript_full_text_std_spelling="Corrected fulltext after proofreading is complete",
+            manuscript_full_text_std_proofread=False,
+        )
+        reloaded: Chant = Chant.objects.get(id=chant.id)
+        reloaded.manuscript_full_text_std_proofread = True
+        with reversion.create_revision():
+            reloaded.save()
+        expected: str = "Corrected fulltext after proofreading is"
+        reloaded.refresh_from_db()
+        self.assertEqual(reloaded.incipit, expected)
+        version = Version.objects.get_for_object(reloaded).first()
+        self.assertIsNotNone(version, "expected a reversion Version for the chant")
+        self.assertEqual(version.field_dict["incipit"], expected)
 
 
 class FeastModelTest(TestCase):
