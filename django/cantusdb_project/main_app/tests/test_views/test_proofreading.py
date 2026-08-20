@@ -141,8 +141,9 @@ class ProofreadingOverviewViewTest(TestCase):
     def test_ordering(self):
         """
         Order on the Proofreading Overview should mirror Browse Sources for the
-        shared sort modes: by country (with NULL sigla coalesced to "") and by
-        institution siglum + shelfmark.
+        shared sort modes: by country (with NULL sigla — private collectors —
+        sorted after institutions within a country group) and by institution
+        siglum + shelfmark.
         """
         sources = []
         # A source from a private collector (NULL siglum).
@@ -183,6 +184,7 @@ class ProofreadingOverviewViewTest(TestCase):
                 sources,
                 key=lambda s: (
                     s.holding_institution.country,
+                    s.holding_institution.siglum is None,
                     s.holding_institution.siglum or "",
                     s.shelfmark,
                 ),
