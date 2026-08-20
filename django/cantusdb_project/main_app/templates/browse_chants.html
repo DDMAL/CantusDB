@@ -288,8 +288,11 @@
                        class="guillemet"
                        target="_blank">Image with Inventory (Cantus Ultimus)</a>
                 {% endif %}
-                {% if source.image_link %}
-                    <a href="{{ source.image_link }}" class="guillemet" target="_blank">View images on external site</a>
+                {% if source.external_images_url %}
+                    <a href="{{ source.external_images_url }}"
+                       class="guillemet"
+                       target="_blank"
+                       rel="noopener noreferrer">View images on external site</a>
                 {% endif %}
                 <a href="{% url "csv-export" source.id %}"
                    class="guillemet"

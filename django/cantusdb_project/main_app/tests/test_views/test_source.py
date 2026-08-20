@@ -9,12 +9,14 @@ from faker import Faker
 from typing import Dict
 
 from django.conf import settings
+from django.db import connection
 from django.test import TestCase
+from django.test.utils import CaptureQueriesContext
 from django.urls import reverse
 from django.core.exceptions import ObjectDoesNotExist
 from django.contrib.auth import get_user_model
 
-from main_app.models import Source, Chant, Differentia, SourceIdentifier
+from main_app.models import Source, Chant, Differentia, SourceIdentifier, SourceURL
 from main_app.tests.make_fakes import (
     make_fake_source,
     make_fake_segment,
@@ -437,6 +439,79 @@ class SourceDetailViewTest(CsvExportLinkTestMixin, SourcePermissionsTestCase):
         self.assertIn(notation.name, html)
         self.assertNotIn(reverse("notation-detail", args=[notation.id]), html)
 
+    def test_image_link_displayed_when_no_source_links(self) -> None:
+        source = make_fake_source(image_link="https://example.com/images")
+        response = self.client.get(reverse("source-detail", args=[source.id]))
+        html = str(response.content)
+        self.assertIn("https://example.com/images", html)
+        self.assertIn("View images on external site", html)
+
+    def test_image_link_hidden_when_external_images_source_link_exists(self) -> None:
+        source = make_fake_source(image_link="https://example.com/images")
+        SourceURL.objects.create(
+            source=source,
+            url="https://example.com/external",
+            url_type=SourceURL.URLTypes.EXTERNAL_IMAGES,
+        )
+        response = self.client.get(reverse("source-detail", args=[source.id]))
+        html = str(response.content)
+        # The SourceURL supersedes the legacy field: its link renders and the
+        # legacy image_link does not, so the gallery link appears exactly once.
+        self.assertIn("https://example.com/external", html)
+        self.assertNotIn("https://example.com/images", html)
+        self.assertEqual(html.count("View images on external site"), 1)
+
+    def test_image_link_displayed_when_only_non_image_source_link_exists(self) -> None:
+        source = make_fake_source(image_link="https://example.com/images")
+        SourceURL.objects.create(
+            source=source,
+            url="https://example.com/iiif/manifest.json",
+            url_type=SourceURL.URLTypes.IIIF_MANIFEST,
+        )
+        response = self.client.get(reverse("source-detail", args=[source.id]))
+        html = str(response.content)
+        self.assertIn("https://example.com/images", html)
+        self.assertIn("View images on external site", html)
+
+    def test_image_link_not_displayed_when_empty(self) -> None:
+        source = make_fake_source(image_link="")
+        response = self.client.get(reverse("source-detail", args=[source.id]))
+        html = str(response.content)
+        self.assertNotIn("View images on external site", html)
+        # The property is a template boolean; a blank image_link must not leak "" through.
+        self.assertIs(source.show_legacy_image_link, False)
+
+    def test_iiif_manifest_link_renders_viewer(self) -> None:
+        # Guards the template's url_type comparison: if it stops matching
+        # IIIF_MANIFEST, this link silently degrades to the generic {% else %}
+        # branch instead of the Universal Viewer.
+        source = make_fake_source(image_link="")
+        SourceURL.objects.create(
+            source=source,
+            url="https://example.com/iiif/manifest.json",
+            url_type=SourceURL.URLTypes.IIIF_MANIFEST,
+        )
+        response = self.client.get(reverse("source-detail", args=[source.id]))
+        html = response.content.decode("utf-8")
+        self.assertIn("viewer/uv.html", html)
+        self.assertIn("#?manifest=https://example.com/iiif/manifest.json", html)
+        self.assertIn("View Images on Cantus Database", html)
+        # The generic branch renders the url_type display name instead.
+        self.assertNotIn("IIIF Manifest</a>", html)
+
+    def test_non_iiif_source_link_renders_generic_label(self) -> None:
+        source = make_fake_source(image_link="")
+        SourceURL.objects.create(
+            source=source,
+            url="https://example.com/catalogue/record",
+            url_type=SourceURL.URLTypes.HOST_INSTITUTION_RECORD,
+        )
+        response = self.client.get(reverse("source-detail", args=[source.id]))
+        html = response.content.decode("utf-8")
+        self.assertIn("https://example.com/catalogue/record", html)
+        self.assertIn("Host Institution Record", html)
+        self.assertNotIn("viewer/uv.html", html)
+
 
 class SourceInventoryViewTest(HTMLContentsTestMixin, SourcePermissionsTestCase):
     view_name = "source-inventory"
@@ -736,6 +811,36 @@ class SourceBrowseChantsViewTest(CsvExportLinkTestMixin, SourcePermissionsTestCa
         self.assertEqual(response.status_code, 200)
         self.assertContains(response, f'id="chant-{chant.id}"')
 
+    def test_external_images_link_prefers_source_url(self):
+        # This page renders a single images link and does not render
+        # source_links, so it must follow the SourceURL that supersedes
+        # image_link rather than showing the stale legacy URL.
+        cantus_segment = make_fake_segment(id=4063)
+        source = make_fake_source(
+            segment=[cantus_segment], image_link="https://example.com/legacy-images"
+        )
+        make_fake_chant(source=source)
+        SourceURL.objects.create(
+            source=source,
+            url="https://example.com/source-url-images",
+            url_type=SourceURL.URLTypes.EXTERNAL_IMAGES,
+        )
+        response = self.client.get(reverse("browse-chants", args=[source.id]))
+        html = response.content.decode("utf-8")
+        self.assertIn("https://example.com/source-url-images", html)
+        self.assertNotIn("https://example.com/legacy-images", html)
+
+    def test_external_images_link_falls_back_to_legacy_field(self):
+        cantus_segment = make_fake_segment(id=4063)
+        source = make_fake_source(
+            segment=[cantus_segment], image_link="https://example.com/legacy-images"
+        )
+        make_fake_chant(source=source)
+        response = self.client.get(reverse("browse-chants", args=[source.id]))
+        html = response.content.decode("utf-8")
+        self.assertIn("https://example.com/legacy-images", html)
+        self.assertIn("View images on external site", html)
+
     def test_visibility_by_segment(self):
         cantus_segment = make_fake_segment(id=4063)
         cantus_source = make_fake_source(segment=[cantus_segment], published=True)
@@ -982,6 +1087,38 @@ class SourceListViewTest(CustomAccessTestMixin, TestCase):
         self.assertEqual(response.status_code, 200)
         self.assertTemplateUsed(response, "base.html")
         self.assertTemplateUsed(response, "source_lists/source_list.html")
+
+    def test_images_column_prefers_source_url(self):
+        source = make_fake_source(
+            published=True, image_link="https://example.com/legacy-images"
+        )
+        SourceURL.objects.create(
+            source=source,
+            url="https://example.com/source-url-images",
+            url_type=SourceURL.URLTypes.EXTERNAL_IMAGES,
+        )
+        response = self.client.get(reverse("source-list"))
+        html = response.content.decode("utf-8")
+        self.assertIn("https://example.com/source-url-images", html)
+        self.assertNotIn("https://example.com/legacy-images", html)
+
+    def test_images_column_does_not_query_per_source(self):
+        # The Images column calls Source.external_images_url on every row, so
+        # the list queryset prefetches source_links. Without it this page costs
+        # one extra query per source, up to paginate_by = 100.
+        for _ in range(5):
+            source = make_fake_source(published=True)
+            SourceURL.objects.create(
+                source=source,
+                url="https://example.com/source-url-images",
+                url_type=SourceURL.URLTypes.EXTERNAL_IMAGES,
+            )
+        with CaptureQueriesContext(connection) as ctx:
+            self.client.get(reverse("source-list"))
+        source_link_queries = [
+            q for q in ctx.captured_queries if "main_app_sourceurl" in q["sql"]
+        ]
+        self.assertEqual(len(source_link_queries), 1, source_link_queries)
 
     def test_provenances_and_date_range_in_context(self):
         """`provenances` are options in the selector; `date_range_min`/`date_range_max`

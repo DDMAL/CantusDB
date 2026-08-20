@@ -308,6 +308,7 @@ class SourceDetailView(CustomAccessMixin, JSONResponseMixin, DetailView):  # typ
                 "melodies_entered_by",
                 "other_editors",
                 "description_entered_by",
+                "source_links",
             )
             .all()
         )
@@ -698,7 +699,10 @@ class SourceListView(CustomAccessMixin, ListView):  # type: ignore[type-arg]
             .order_by(*order_by_args)
             .distinct()
             .prefetch_related(
-                Prefetch("century", queryset=Century.objects.all().order_by("id"))
+                Prefetch("century", queryset=Century.objects.all().order_by("id")),
+                # Read by Source.external_images_url for the sidebar/table image
+                # link; without it each source on the page costs a query.
+                "source_links",
             )
         )
 

@@ -177,8 +177,7 @@
                    target="_blank">Image with Inventory (Cantus Ultimus)</a>
             {% endif %}
             {% for link in source.source_links.all %}
-                {% if link.url_type == 1 %}
-                    {# IIIF Manifest #}
+                {% if link.url_type == link.URLTypes.IIIF_MANIFEST %}
                     <a href="{% static 'viewer/uv.html' %}#?manifest={{ link.url }}"
                        class="guillemet"
                        target="_blank">
@@ -188,12 +187,25 @@
                              style="height: 1em;
                                     vertical-align: middle" />
                     </a>
+                {% elif link.url_type == link.URLTypes.EXTERNAL_IMAGES %}
+                    {# Same label as the legacy image_link below, so a source's
+                       image gallery reads identically however it's recorded. #}
+                    <a href="{{ link.url }}"
+                       class="guillemet"
+                       target="_blank"
+                       rel="noopener noreferrer">View images on external site</a>
                 {% else %}
                     <a href="{{ link.url }}" class="guillemet" target="_blank">
                         {{ link.get_url_type_display }}
                     </a>
                 {% endif %}
             {% endfor %}
+            {% if source.show_legacy_image_link %}
+                <a href="{{ source.image_link }}"
+                   class="guillemet"
+                   target="_blank"
+                   rel="noopener noreferrer">View images on external site</a>
+            {% endif %}
             <a href="{% url "csv-export" source.id %}"
                class="guillemet"
                target="_blank">CSV export</a>
