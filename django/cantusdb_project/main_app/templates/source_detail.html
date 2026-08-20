@@ -13,7 +13,7 @@
             {% for message in messages %}{{ message }}{% endfor %}
         </div>
     {% endif %}
-    <h3 class="font-serif">{{ source.heading }}</h3>
+    <h3>{{ source.heading }}</h3>
     {% if user_can_edit_source %}
         <p>
             View | <a href="{% url 'source-edit' source.id %}">Edit</a>
@@ -143,7 +143,7 @@
 {% block lowersidebar %}
     <div class="card mb-3 w-100">
         <div class="card-header">
-            <h4 class="font-serif">{{ source.short_heading }}</h4>
+            <h4>{{ source.short_heading }}</h4>
         </div>
         <div class="card-body small">
             {% if has_chants %}
@@ -209,7 +209,7 @@
         </div>
     </div>
     <div class="card mb-3 w-100">
-        <div class="card-header font-serif">
+        <div class="card-header">
             <b>{{ source.short_heading }}</b>
         </div>
         <div class="card-body small">
@@ -372,7 +372,7 @@
 </div>
 {% if user_can_edit_chants %}
     <div class="card w-100">
-        <div class="card-header font-serif">
+        <div class="card-header">
             Source edit options
             <br />
             <b>{{ source.short_heading }}</b>
