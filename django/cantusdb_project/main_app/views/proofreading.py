@@ -296,12 +296,15 @@ class ProofreadView(CustomAccessMixin, ListView, MultipleObjectMixin):
 
         ordering_fields = [f"{sort_prefix}{field}" for field in primary_sort_fields]
 
-        # Fallback if somehow ordering_fields is empty (should not happen with default in .get)
+        # An unrecognized `order` yields no mapped fields; fall back to the same
+        # ordering as the default "country" branch. The `id` tiebreaker keeps it
+        # a total order so pagination stays consistent.
         if not ordering_fields:
             ordering_fields = [
                 f"{sort_prefix}holding_institution__country",
-                siglum_coalesced.desc() if sort_prefix else siglum_coalesced.asc(),
+                f"{sort_prefix}holding_institution__siglum",
                 f"{sort_prefix}shelfmark",
+                f"{sort_prefix}id",
             ]
 
         return queryset.order_by(*ordering_fields)

@@ -187,6 +187,7 @@ class ProofreadingOverviewViewTest(TestCase):
                     s.holding_institution.siglum is None,
                     s.holding_institution.siglum or "",
                     s.shelfmark,
+                    s.id,  # mirror the view's final `id` tiebreaker
                 ),
             )
             self.assertEqual(expected, list(response.context["sources"]))
@@ -211,6 +212,13 @@ class ProofreadingOverviewViewTest(TestCase):
                 ),
             )
             self.assertEqual(expected, list(response.context["sources"]))
+
+        with self.subTest("Unsupported order does not error"):
+            # An unrecognized order value hits the fallback ordering. Regression:
+            # that fallback once referenced a since-removed COALESCE expression
+            # and raised NameError -> HTTP 500.
+            response = self.client.get(self.url, {"order": "does_not_exist"})
+            self.assertEqual(response.status_code, 200)
 
     def test_pagination(self):
         paginate_by = ProofreadView.paginate_by
