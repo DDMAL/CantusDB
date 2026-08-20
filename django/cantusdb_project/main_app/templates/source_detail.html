@@ -13,7 +13,7 @@
             {% for message in messages %}{{ message }}{% endfor %}
         </div>
     {% endif %}
-    <h3 class="font-serif">{{ source.heading }}</h3>
+    <h3>{{ source.heading }}</h3>
     {% if user_can_edit_source %}
         <p>
             View | <a href="{% url 'source-edit' source.id %}">Edit</a>
@@ -143,7 +143,7 @@
 {% block lowersidebar %}
     <div class="card mb-3 w-100">
         <div class="card-header">
-            <h4 class="font-serif">{{ source.short_heading }}</h4>
+            <h4>{{ source.short_heading }}</h4>
         </div>
         <div class="card-body small">
             {% if has_chants %}
@@ -174,7 +174,7 @@
             {% if source.exists_on_cantus_ultimus %}
                 <a href="https://cantus.simssa.ca/manuscript/{{ source.id }}"
                    class="guillemet"
-                   target="_blank">View inventory with images</a>
+                   target="_blank">Image with Inventory (Cantus Ultimus)</a>
             {% endif %}
             {% for link in source.source_links.all %}
                 {% if link.url_type == 1 %}
@@ -182,11 +182,11 @@
                     <a href="{% static 'viewer/uv.html' %}#?manifest={{ link.url }}"
                        class="guillemet"
                        target="_blank">
+                        View in IIIF Viewer
                         <img src="{% static 'iiif.png' %}"
                              alt="IIIF icon"
                              style="height: 1em;
                                     vertical-align: middle" />
-                        View Images on Cantus Database
                     </a>
                 {% else %}
                     <a href="{{ link.url }}" class="guillemet" target="_blank">
@@ -196,8 +196,7 @@
             {% endfor %}
             <a href="{% url "csv-export" source.id %}"
                class="guillemet"
-               target="_blank"
-               download="{{ source.id }}.csv">CSV export</a>
+               target="_blank">CSV export</a>
             <a href="{% url "chant-search-ms" source.id %}"
                class="guillemet"
                target="_blank">Search chants in this source</a>
@@ -210,7 +209,7 @@
         </div>
     </div>
     <div class="card mb-3 w-100">
-        <div class="card-header font-serif">
+        <div class="card-header">
             <b>{{ source.short_heading }}</b>
         </div>
         <div class="card-body small">
@@ -373,7 +372,7 @@
 </div>
 {% if user_can_edit_chants %}
     <div class="card w-100">
-        <div class="card-header font-serif">
+        <div class="card-header">
             Source edit options
             <br />
             <b>{{ source.short_heading }}</b>

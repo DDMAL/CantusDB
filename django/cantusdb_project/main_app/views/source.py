@@ -7,7 +7,6 @@ from django.conf import settings
 from django.contrib import messages
 from django.contrib.auth.mixins import UserPassesTestMixin
 from django.db.models import Q, Prefetch, QuerySet, Value, Min, Max
-from django.db.models.functions import Coalesce
 from django.http import (
     HttpResponseRedirect,
     Http404,
@@ -666,19 +665,18 @@ class SourceListView(CustomAccessMixin, ListView):  # type: ignore[type-arg]
         sort_prefix = "-" if sort_desc else ""
 
         if order_param == "country":
-            # When ordering by country, we use COALESCE to replace NULL sigla with ""
-            # so that private collectors (who have no siglum) sort before institutions
-            # with sigla within the same country group. This matches Python's sort
-            # behaviour, which also treats private collectors as "" for ordering.
-            # Previously, the siglum field was used directly (i.e.,
-            # "holding_institution__siglum"), which caused PostgreSQL's NULLS LAST
-            # default to place private collectors after all institutions with sigla —
-            # the opposite of what the Python sort produces.
-            siglum_coalesced = Coalesce("holding_institution__siglum", Value(""))
+            # Order private collectors (whose siglum is NULL) after institutions
+            # with sigla within the same country group. PostgreSQL's native default
+            # already does this: NULLS LAST for ascending order, NULLS FIRST for
+            # descending order, which matches the Python sort used in tests
+            # (`(siglum is None, siglum or "")`) once the whole list is reversed
+            # for a descending sort. A final `id` tiebreaker keeps ordering
+            # deterministic when country/siglum/shelfmark are all equal.
             order_by_args = [
                 f"{sort_prefix}holding_institution__country",
-                siglum_coalesced.desc() if sort_desc else siglum_coalesced.asc(),
+                f"{sort_prefix}holding_institution__siglum",
                 f"{sort_prefix}shelfmark",
+                f"{sort_prefix}id",
             ]
         elif order_param == "city_institution":
             order_by_args = [
@@ -686,11 +684,13 @@ class SourceListView(CustomAccessMixin, ListView):  # type: ignore[type-arg]
                 f"{sort_prefix}holding_institution__name",
                 f"{sort_prefix}holding_institution__siglum",
                 f"{sort_prefix}shelfmark",
+                f"{sort_prefix}id",
             ]
         else:
             order_by_args = [
                 f"{sort_prefix}holding_institution__siglum",
                 f"{sort_prefix}shelfmark",
+                f"{sort_prefix}id",
             ]
 
         return (
