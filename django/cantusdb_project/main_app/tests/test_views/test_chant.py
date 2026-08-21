@@ -32,6 +32,7 @@ from main_app.tests.make_fakes import (
 from main_app.tests.test_functions import mock_requests_get
 from main_app.tests.mixins import CustomAccessTestMixin
 from main_app.models import Chant, Source, Feast, Service
+from main_app.forms import MAX_CHECKED_TEXT_LENGTH, find_chant_text_problems
 from main_app.views.chant import (
     get_feast_selector_options,
     ChantSearchView,
@@ -596,6 +597,9 @@ class SourceEditChantsViewTest(ChantPermissionsTestCase):
                 "001r",
             ),
             ("unmatched brackets", "this is a chant with [ unmatched brackets", "002r"),
+            # A line break silently joins the words on either side of it when
+            # the text is aligned with a melody, so it's worth warning about.
+            ("line break", "this is a chant\nsplit over two lines", "004r"),
         ]
         for description, invalid_text, folio in invalid_texts:
             with self.subTest(description):
@@ -621,6 +625,42 @@ class SourceEditChantsViewTest(ChantPermissionsTestCase):
                 # ...and a non-blocking warning was shown.
                 message_levels = [m.level for m in get_messages(response.wsgi_request)]
                 self.assertIn(message_constants.WARNING, message_levels)
+
+    def test_conforming_text_saves_without_warning(self) -> None:
+        """
+        The counterpart to ``test_invalid_text_warns_but_saves``: text that
+        follows the entry protocols must not warn, or the warning is noise.
+        This includes the asterisk that ends an incipit, which is allowed even
+        though the syllabifier itself treats it as a disallowed character (see
+        DDMAL/volpiano-display-utilities#17 and #1674).
+        """
+        source = make_fake_source()
+        valid_texts = [
+            ("plain text", "Plena sum", "001r"),
+            ("incipit asterisk", "Plena sum* ecce", "002r"),
+            ("matched brackets", "Plena sum [ecce] iam", "003r"),
+        ]
+        for description, valid_text, folio in valid_texts:
+            with self.subTest(description):
+                chant = make_fake_chant(
+                    source=source,
+                    folio=folio,
+                    manuscript_full_text_std_spelling="Plena sum",
+                )
+                response = self.client.post(
+                    reverse("source-edit-chants", args=[source.id]),
+                    {
+                        "manuscript_full_text_std_spelling": valid_text,
+                        "folio": chant.folio,
+                        "c_sequence": chant.c_sequence,
+                        "pk": chant.id,
+                    },
+                )
+                self.assertEqual(response.status_code, 302)
+                chant.refresh_from_db()
+                self.assertEqual(chant.manuscript_full_text_std_spelling, valid_text)
+                message_levels = [m.level for m in get_messages(response.wsgi_request)]
+                self.assertNotIn(message_constants.WARNING, message_levels)
 
     def test_invalid_text_confirmed_suppresses_warning(self) -> None:
         """
@@ -782,6 +822,72 @@ class ChantEditSyllabificationViewTest(ChantPermissionsTestCase):
         self.assertEqual(response.status_code, 302)  # 302 Found
         chant.refresh_from_db()
         self.assertEqual(chant.manuscript_syllabized_full_text, "lore-m i-psum")
+
+    def test_invalid_syllabification_warns_but_saves(self) -> None:
+        """
+        Editing a chant's syllabification so that it can no longer be
+        syllabified should not be blocked: the edit saves and the user is shown
+        a non-blocking warning naming the offending field (see #1681).
+        """
+        chant = make_fake_chant(manuscript_syllabized_full_text="lore-m i-psum")
+        response = self.client.post(
+            f"/edit-syllabification/{chant.id}",
+            {
+                "manuscript_full_text": "lorem ipsum",
+                "manuscript_syllabized_full_text": "lore-m i-psum!",
+            },
+        )
+        self.assertEqual(response.status_code, 302)
+        chant.refresh_from_db()
+        self.assertEqual(chant.manuscript_syllabized_full_text, "lore-m i-psum!")
+        warnings = [
+            str(m)
+            for m in get_messages(response.wsgi_request)
+            if m.level == message_constants.WARNING
+        ]
+        self.assertEqual(len(warnings), 1)
+        self.assertIn("Syllabized full text", warnings[0])
+
+    def test_invalid_syllabification_confirmed_suppresses_warning(self) -> None:
+        """
+        As on the create/edit pages, the "Save anyway" flow posts
+        ``confirm_invalid_text=1`` and the redundant server-side warning is
+        suppressed (see #1681).
+        """
+        chant = make_fake_chant(manuscript_syllabized_full_text="lore-m i-psum")
+        response = self.client.post(
+            f"/edit-syllabification/{chant.id}",
+            {
+                "manuscript_full_text": "lorem ipsum",
+                "manuscript_syllabized_full_text": "lore-m i-psum!",
+                "confirm_invalid_text": "1",
+            },
+        )
+        self.assertEqual(response.status_code, 302)
+        chant.refresh_from_db()
+        self.assertEqual(chant.manuscript_syllabized_full_text, "lore-m i-psum!")
+        message_levels = [m.level for m in get_messages(response.wsgi_request)]
+        self.assertNotIn(message_constants.WARNING, message_levels)
+
+    def test_valid_syllabification_saves_without_warning(self) -> None:
+        """
+        Syllabified text is checked as *pre-syllabified*, so its hyphens are
+        syllable boundaries rather than something to syllabify. A conforming
+        syllabification must not warn.
+        """
+        chant = make_fake_chant(manuscript_syllabized_full_text="lorem ipsum")
+        response = self.client.post(
+            f"/edit-syllabification/{chant.id}",
+            {
+                "manuscript_full_text": "lorem ipsum",
+                "manuscript_syllabized_full_text": "lo-re-m i-psum",
+            },
+        )
+        self.assertEqual(response.status_code, 302)
+        chant.refresh_from_db()
+        self.assertEqual(chant.manuscript_syllabized_full_text, "lo-re-m i-psum")
+        message_levels = [m.level for m in get_messages(response.wsgi_request)]
+        self.assertNotIn(message_constants.WARNING, message_levels)
 
 
 class ChantByCantusIDViewTest(ChantPermissionsTestCase):
@@ -3799,6 +3905,7 @@ class ChantCreateViewTest(CustomAccessTestMixin, TestCase):
         invalid_texts = [
             ("invalid characters", "this is a ch@nt t%xt with inv&lid ch!ra+ers"),
             ("unmatched brackets", "this is a chant with [ unmatched brackets"),
+            ("line break", "this is a chant\nsplit over two lines"),
         ]
         for c_sequence, (description, invalid_text) in enumerate(
             invalid_texts, start=1
@@ -3825,6 +3932,39 @@ class ChantCreateViewTest(CustomAccessTestMixin, TestCase):
                 # ...and a non-blocking warning was shown.
                 message_levels = [m.level for m in get_messages(response.wsgi_request)]
                 self.assertIn(message_constants.WARNING, message_levels)
+
+    def test_conforming_text_saves_without_warning(self) -> None:
+        """
+        The counterpart to ``test_invalid_text_warns_but_saves``: text that
+        follows the entry protocols must not warn, or the warning is noise.
+        This includes the asterisk that ends an incipit, which is allowed even
+        though the syllabifier itself treats it as a disallowed character (see
+        DDMAL/volpiano-display-utilities#17 and #1674).
+        """
+        valid_texts = [
+            ("plain text", "Plena sum"),
+            ("incipit asterisk", "Plena sum* ecce"),
+            ("matched brackets", "Plena sum [ecce] iam"),
+        ]
+        for c_sequence, (description, valid_text) in enumerate(valid_texts, start=1):
+            with self.subTest(description):
+                response = self.client.post(
+                    reverse("chant-create", args=[self.source.id]),
+                    {
+                        "manuscript_full_text_std_spelling": valid_text,
+                        "folio": "002r",
+                        "c_sequence": c_sequence,
+                    },
+                )
+                self.assertEqual(response.status_code, 302)
+                self.assertTrue(
+                    Chant.objects.filter(
+                        source=self.source,
+                        manuscript_full_text_std_spelling=valid_text,
+                    ).exists()
+                )
+                message_levels = [m.level for m in get_messages(response.wsgi_request)]
+                self.assertNotIn(message_constants.WARNING, message_levels)
 
 
 class ValidateChantTextViewTest(TestCase):
@@ -3889,6 +4029,88 @@ class ValidateChantTextViewTest(TestCase):
         self.assertEqual(problems[0]["kind"], "structural")
         # The offending word is quoted so its boundaries are clear.
         self.assertIn('"["', problems[0]["message"])
+
+    def test_incipit_asterisk_is_allowed(self) -> None:
+        """
+        The syllabifier's own character set rejects the asterisk, but CantusDB
+        allows it to mark the end of an incipit -- it governs neither
+        syllabification nor alignment, and the aligner strips it. Warning about
+        it would put a warning on a large share of existing chants (see
+        DDMAL/volpiano-display-utilities#17 and #1674).
+        """
+        response = self.client.post(
+            reverse("validate-chant-text"),
+            {"manuscript_full_text_std_spelling": "Plena sum* ecce"},
+        )
+        self.assertEqual(response.json()["problems"], [])
+
+    def test_line_break_is_named_and_marked(self) -> None:
+        """
+        A line break has no glyph, so listing it verbatim would name nothing
+        and marking it would highlight nothing. It is named in the message and
+        given a stand-in glyph in the marked echo instead.
+        """
+        response = self.client.post(
+            reverse("validate-chant-text"),
+            {"manuscript_full_text_std_spelling": "Plena\nsum"},
+        )
+        problems = response.json()["problems"]
+        self.assertEqual(len(problems), 1)
+        self.assertEqual(problems[0]["kind"], "invalid_characters")
+        self.assertIn("line break", problems[0]["message"])
+        self.assertIn("<mark>", problems[0]["marked_html"])
+
+    def test_both_problems_are_reported_for_one_field(self) -> None:
+        """
+        Disallowed characters used to short-circuit the check, hiding any
+        structural problem behind them. Both are reported now.
+        """
+        response = self.client.post(
+            reverse("validate-chant-text"),
+            {"manuscript_full_text_std_spelling": "a ch@nt with [ unmatched"},
+        )
+        problems = response.json()["problems"]
+        self.assertEqual(
+            [p["kind"] for p in problems], ["invalid_characters", "structural"]
+        )
+        self.assertTrue(
+            all(p["field"] == "manuscript_full_text_std_spelling" for p in problems)
+        )
+
+    def test_syllabized_field_is_checked_as_presyllabified(self) -> None:
+        """
+        The syllabified field holds text whose hyphens are already syllable
+        boundaries, so it is checked differently from the unsyllabified fields:
+        the same text can be a problem in one and not the other.
+        """
+        text = "lore-m [ i-psum"
+        response = self.client.post(
+            reverse("validate-chant-text"),
+            {
+                "manuscript_full_text": text,
+                "manuscript_syllabized_full_text": text,
+            },
+        )
+        problems = response.json()["problems"]
+        self.assertEqual(len(problems), 1)
+        self.assertEqual(problems[0]["field"], "manuscript_full_text")
+        self.assertEqual(problems[0]["kind"], "structural")
+
+    def test_text_past_the_length_cap_is_not_checked(self) -> None:
+        """
+        Only the first ``MAX_CHECKED_TEXT_LENGTH`` characters are checked, to
+        bound the work per request. The save path shares the cap (both go
+        through ``find_chant_text_problems``), so the two can't disagree about
+        whether an over-long text has a problem.
+        """
+        text = "Plena sum " * (MAX_CHECKED_TEXT_LENGTH // 10) + "ch@nt"
+        self.assertGreater(len(text), MAX_CHECKED_TEXT_LENGTH)
+        response = self.client.post(
+            reverse("validate-chant-text"),
+            {"manuscript_full_text_std_spelling": text},
+        )
+        self.assertEqual(response.json()["problems"], [])
+        self.assertEqual(find_chant_text_problems(text), [])
 
     def test_only_fields_present_are_checked(self) -> None:
         response = self.client.post(

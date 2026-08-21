@@ -39,7 +39,7 @@ from main_app.forms import (
     ChantEditSyllabificationForm,
     ChantSearchForm,
     CHANT_TEXT_FIELDS,
-    find_chant_text_problem,
+    find_chant_text_problems,
 )
 from main_app.models import (
     Chant,
@@ -54,10 +54,6 @@ from main_app.permissions import CustomAccessMixin
 
 from main_app.mixins import JSONResponseMixin
 from users.models import User
-
-# Cap the length of text we'll attempt to syllabify in the validation endpoint,
-# to bound the work done per request. Real chant texts are far shorter than this.
-MAX_VALIDATED_TEXT_LENGTH: int = 10000
 
 
 def add_unconfirmed_text_warnings(request: HttpRequest, form: Any) -> None:
@@ -93,14 +89,13 @@ class ValidateChantTextView(LoginRequiredMixin, View):  # type: ignore[type-arg]
         for field_name, spec in CHANT_TEXT_FIELDS.items():
             if field_name not in request.POST:
                 continue
-            value = request.POST.get(field_name, "")[:MAX_VALIDATED_TEXT_LENGTH]
-            problem = find_chant_text_problem(
-                value, text_presyllabified=spec["text_presyllabified"]
-            )
-            if problem:
-                problems.append(
-                    {"field": field_name, "label": spec["label"], **problem}
+            problems.extend(
+                {"field": field_name, "label": spec["label"], **problem}
+                for problem in find_chant_text_problems(
+                    request.POST[field_name],
+                    text_presyllabified=spec["text_presyllabified"],
                 )
+            )
         return JsonResponse({"problems": problems})
 
 

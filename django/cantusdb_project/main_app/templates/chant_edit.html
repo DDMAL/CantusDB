@@ -3,6 +3,7 @@
 {% block title %}<title>{{ source.heading }} | Cantus Database</title>{% endblock %}
 {% block scripts %}
     <script src="/static/js/chant_edit.js"></script>
+    <script src="{% static 'js/chant_text_validation.js' %}"></script>
     <script type="text/javascript"
             src="{% static 'admin/js/vendor/jquery/jquery.js' %}"></script>
     {{ form.media }}
