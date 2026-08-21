@@ -1,4 +1,27 @@
-MarkdownWidget = (function () {
+var MarkdownWidget = (function () {
+    // Apply a computed edit to the textarea. In the browser this routes through
+    // execCommand("insertText") so the change joins the native undo stack — a
+    // plain `textarea.value = ...` assignment wipes it, breaking Ctrl/Cmd+Z.
+    // execCommand is deprecated but remains the only reliable way to preserve
+    // native undo; we fall back to direct assignment when it's unavailable
+    // (older browsers, and the Node unit tests, which have no `document`).
+    function setValue(textarea, value, selectionStart, selectionEnd) {
+        if (textarea.value !== value) {
+            var applied = false;
+            if (typeof document !== "undefined" && document.execCommand) {
+                textarea.focus();
+                textarea.select();
+                applied = document.execCommand("insertText", false, value);
+            }
+            if (!applied) {
+                textarea.value = value;
+            }
+        }
+        textarea.selectionStart = selectionStart;
+        textarea.selectionEnd = selectionEnd;
+        textarea.focus();
+    }
+
     // True when `text` is already wrapped in `marker`. The single-'*' italic
     // marker deliberately does not match a '**' bold run.
     function isWrapped(text, marker) {
@@ -28,10 +51,12 @@ MarkdownWidget = (function () {
         // Selection already includes the markers, e.g. "**text**".
         if (isWrapped(selected, marker)) {
             var inner = selected.slice(len, -len);
-            textarea.value = value.substring(0, start) + inner + value.substring(end);
-            textarea.selectionStart = start;
-            textarea.selectionEnd = start + inner.length;
-            textarea.focus();
+            setValue(
+                textarea,
+                value.substring(0, start) + inner + value.substring(end),
+                start,
+                start + inner.length
+            );
             return;
         }
 
@@ -43,20 +68,22 @@ MarkdownWidget = (function () {
             value.substring(end, end + len) === marker &&
             !italicInBold
         ) {
-            textarea.value =
-                value.substring(0, start - len) + selected + value.substring(end + len);
-            textarea.selectionStart = start - len;
-            textarea.selectionEnd = end - len;
-            textarea.focus();
+            setValue(
+                textarea,
+                value.substring(0, start - len) + selected + value.substring(end + len),
+                start - len,
+                end - len
+            );
             return;
         }
 
         var text = selected || placeholder;
-        textarea.value =
-            value.substring(0, start) + marker + text + marker + value.substring(end);
-        textarea.selectionStart = start + len;
-        textarea.selectionEnd = start + len + text.length;
-        textarea.focus();
+        setValue(
+            textarea,
+            value.substring(0, start) + marker + text + marker + value.substring(end),
+            start + len,
+            start + len + text.length
+        );
     }
 
     // Turn the selection into a markdown link. The URL is left selected so the
@@ -68,11 +95,12 @@ MarkdownWidget = (function () {
         var text = value.substring(start, end) || "text";
         var before = "[" + text + "](";
         var url = "url";
-        textarea.value =
-            value.substring(0, start) + before + url + ")" + value.substring(end);
-        textarea.selectionStart = start + before.length;
-        textarea.selectionEnd = start + before.length + url.length;
-        textarea.focus();
+        setValue(
+            textarea,
+            value.substring(0, start) + before + url + ")" + value.substring(end),
+            start + before.length,
+            start + before.length + url.length
+        );
     }
 
     // Toggle a line-level marker (heading, quote, list) across every line the
@@ -97,11 +125,12 @@ MarkdownWidget = (function () {
                 return allMarked ? bare : marker(bare, i);
             })
             .join("\n");
-        textarea.value =
-            value.substring(0, blockStart) + result + value.substring(blockEnd);
-        textarea.selectionStart = blockStart;
-        textarea.selectionEnd = blockStart + result.length;
-        textarea.focus();
+        setValue(
+            textarea,
+            value.substring(0, blockStart) + result + value.substring(blockEnd),
+            blockStart,
+            blockStart + result.length
+        );
     }
 
     // Indent (or outdent, on Shift+Tab) every line the selection touches by one
@@ -137,11 +166,12 @@ MarkdownWidget = (function () {
                 totalDelta += delta;
                 return line;
             });
-        textarea.value =
-            value.substring(0, blockStart) + newLines.join("\n") + value.substring(blockEnd);
-        textarea.selectionStart = Math.max(blockStart, start + firstDelta);
-        textarea.selectionEnd = Math.max(blockStart, end + totalDelta);
-        textarea.focus();
+        setValue(
+            textarea,
+            value.substring(0, blockStart) + newLines.join("\n") + value.substring(blockEnd),
+            Math.max(blockStart, start + firstDelta),
+            Math.max(blockStart, end + totalDelta)
+        );
     }
 
     var actions = {
@@ -221,13 +251,20 @@ MarkdownWidget = (function () {
                 continue;
             }
             if (m[continuations[i].content].trim() === "") {
-                textarea.value = value.substring(0, lineStart) + value.substring(start);
-                textarea.selectionStart = textarea.selectionEnd = lineStart;
+                setValue(
+                    textarea,
+                    value.substring(0, lineStart) + value.substring(start),
+                    lineStart,
+                    lineStart
+                );
             } else {
                 var insert = "\n" + continuations[i].next(m);
-                textarea.value =
-                    value.substring(0, start) + insert + value.substring(start);
-                textarea.selectionStart = textarea.selectionEnd = start + insert.length;
+                setValue(
+                    textarea,
+                    value.substring(0, start) + insert + value.substring(start),
+                    start + insert.length,
+                    start + insert.length
+                );
             }
             return true;
         }
@@ -249,8 +286,12 @@ MarkdownWidget = (function () {
         e.preventDefault();
         var value = textarea.value;
         var link = "[" + value.substring(start, end) + "](" + pasted + ")";
-        textarea.value = value.substring(0, start) + link + value.substring(end);
-        textarea.selectionStart = textarea.selectionEnd = start + link.length;
+        setValue(
+            textarea,
+            value.substring(0, start) + link + value.substring(end),
+            start + link.length,
+            start + link.length
+        );
     }
 
     // Initialize each markdown widget on the page, wiring up the toolbar,
@@ -306,6 +347,22 @@ MarkdownWidget = (function () {
         }
     }
 
+    // Node (unit tests): export the pure helpers from inside the closure, where
+    // they're in scope. Harmless in the browser, where `module` is undefined.
+    if (typeof module !== "undefined" && module.exports) {
+        module.exports = {
+            isWrapped: isWrapped,
+            wrapInline: wrapInline,
+            insertLink: insertLink,
+            toggleLinePrefix: toggleLinePrefix,
+            indentLines: indentLines,
+            continueList: continueList,
+            handlePaste: handlePaste,
+            actions: actions,
+            continuations: continuations,
+        };
+    }
+
     return {
         init: function () {
             return init();
@@ -313,6 +370,8 @@ MarkdownWidget = (function () {
     };
 })();
 
-document.addEventListener("DOMContentLoaded", function () {
-    MarkdownWidget.init();
-});
+if (typeof document !== "undefined") {
+    document.addEventListener("DOMContentLoaded", function () {
+        MarkdownWidget.init();
+    });
+}
