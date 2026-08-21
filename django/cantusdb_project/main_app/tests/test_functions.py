@@ -22,6 +22,8 @@ from cantusindex import (
     get_json_from_ci_api,
     CANTUS_INDEX_DOMAIN,
     OLD_CANTUS_INDEX_DOMAIN,
+    get_base_chant_text,
+    get_cluster_elements,
     get_suggested_fulltext,
     get_merged_cantus_ids,
     get_ci_text_search,
@@ -519,6 +521,302 @@ class CantusIndexFunctionsTest(TestCase):
                 results = get_ci_text_search("HTTPError")
             self.assertRaises(HTTPError)
             self.assertIsNone(results)
+
+
+class GetBaseChantTextTest(TestCase):
+    """
+    Resolving the text to seed a cluster's cores from (#2189).
+
+    A troped chant's own text has the base chant abbreviated to cue words, so the composer
+    seeds from the base chant instead — and Cantus Index names that chant itself, in
+    ``field_troped_chant_id``. These tests pin that the field is what's followed, exactly
+    one hop, with the chant's own text as the fallback.
+    """
+
+    @staticmethod
+    def _fake_ci(known: dict) -> "callable":
+        """A get_json_from_ci_api stand-in serving only the Cantus IDs in ``known``."""
+
+        def fake(path: str, *args, **kwargs) -> dict:
+            cantus_id = path.rsplit("/", 1)[-1]
+            if cantus_id in known:
+                return {"info": known[cantus_id]}
+            return {"info": None, "databases": [], "chants": []}
+
+        return fake
+
+    # The real records, trimmed: g01349.tp14's text holds the base chant as the cues
+    # OS JUSTI / ET LINGUA, where g01349 holds the words those cues stand for.
+    TROPED_CHANT = {
+        "field_genre": "TpIn",
+        "field_full_text": (
+            "Hac in laude patris cuncti dicamus ovanter OS JUSTI "
+            "Qui nosmet hodie facit esse de se jucundos ET LINGUA"
+        ),
+        "field_troped_chant_id": "g01349",
+    }
+    BASE_CHANT = {
+        "field_genre": "In",
+        "field_full_text": (
+            "Os justi meditabitur sapientiam et lingua ejus loquetur judicium"
+        ),
+        "field_troped_chant_id": None,
+    }
+
+    def test_seeds_from_the_base_chant_cantus_index_names(self) -> None:
+        known = {"g01349.tp14": self.TROPED_CHANT, "g01349": self.BASE_CHANT}
+        with patch("cantusindex.get_json_from_ci_api", self._fake_ci(known)):
+            resolved = get_base_chant_text("g01349.tp14")
+        self.assertEqual(resolved["cantus_id"], "g01349")
+        self.assertEqual(resolved["text"], self.BASE_CHANT["field_full_text"])
+
+    def test_untroped_chant_keeps_its_own_text(self) -> None:
+        """The overwhelming majority of chants; nothing about them changed in #2189."""
+        known = {"008349": {"field_full_text": "Nocte surgentes vigilemus omnes"}}
+        with patch("cantusindex.get_json_from_ci_api", self._fake_ci(known)):
+            resolved = get_base_chant_text("008349")
+        self.assertEqual(
+            resolved, {"cantus_id": "008349", "text": "Nocte surgentes vigilemus omnes"}
+        )
+
+    def test_falls_back_to_own_text_when_the_named_base_has_none(self) -> None:
+        """CI names a base chant it holds no text for. Seeding from the troped chant's own
+        text is the pre-#2189 behaviour, and the automatic split still applies to it — an
+        empty composer would be strictly worse."""
+        known = {
+            "g01349.tp14": self.TROPED_CHANT,
+            "g01349": {"field_full_text": "  ", "field_troped_chant_id": None},
+        }
+        with patch("cantusindex.get_json_from_ci_api", self._fake_ci(known)):
+            resolved = get_base_chant_text("g01349.tp14")
+        self.assertEqual(resolved["cantus_id"], "g01349.tp14")
+        self.assertEqual(resolved["text"], self.TROPED_CHANT["field_full_text"])
+
+    def test_falls_back_when_the_named_base_is_not_in_cantus_index(self) -> None:
+        with patch(
+            "cantusindex.get_json_from_ci_api",
+            self._fake_ci({"g01349.tp14": self.TROPED_CHANT}),
+        ):
+            resolved = get_base_chant_text("g01349.tp14")
+        self.assertEqual(resolved["cantus_id"], "g01349.tp14")
+        self.assertEqual(resolved["text"], self.TROPED_CHANT["field_full_text"])
+
+    def test_does_not_follow_a_suffix_cantus_index_has_not_confirmed(self) -> None:
+        """The tempting shortcut — strip `.tpNN` and fetch that — is not what happens.
+        Measured over CI, a `.tpNN` chant with no `field_troped_chant_id` resolves by
+        suffix to a chant whose text is unrelated to its own (g01280.Tp02 vs g01280), so
+        the suffix is not evidence of anything and the chant keeps its own text."""
+        known = {
+            "g01280.Tp02": {
+                "field_full_text": "Dominus ascendit in thronum patris sui alleluia eia",
+                "field_troped_chant_id": None,
+            },
+            "g01280": {
+                "field_full_text": "Sacerdotes dei benedicite dominum sancti et humiles",
+                "field_troped_chant_id": None,
+            },
+        }
+        with patch("cantusindex.get_json_from_ci_api", self._fake_ci(known)):
+            resolved = get_base_chant_text("g01280.Tp02")
+        self.assertEqual(resolved["cantus_id"], "g01280.Tp02")
+        self.assertEqual(resolved["text"], known["g01280.Tp02"]["field_full_text"])
+
+    def test_follows_the_field_exactly_one_hop(self) -> None:
+        """No CI chant was found pointing at a chant that points on again, but a chain must
+        not turn into a walk (nor, if CI ever holds a cycle, into a loop)."""
+        known = {
+            "a": {"field_full_text": "text a", "field_troped_chant_id": "b"},
+            "b": {"field_full_text": "text b", "field_troped_chant_id": "c"},
+            "c": {"field_full_text": "text c", "field_troped_chant_id": None},
+        }
+        calls: list = []
+
+        def counting(path: str, *args, **kwargs) -> dict:
+            calls.append(path)
+            return self._fake_ci(known)(path)
+
+        with patch("cantusindex.get_json_from_ci_api", counting):
+            resolved = get_base_chant_text("a")
+        self.assertEqual(resolved, {"cantus_id": "b", "text": "text b"})
+        self.assertEqual(calls, ["/json-cid/a", "/json-cid/b"])
+
+    def test_self_reference_does_not_double_fetch(self) -> None:
+        known = {
+            "g01349": {"field_full_text": "Os justi", "field_troped_chant_id": "g01349"}
+        }
+        calls: list = []
+
+        def counting(path: str, *args, **kwargs) -> dict:
+            calls.append(path)
+            return self._fake_ci(known)(path)
+
+        with patch("cantusindex.get_json_from_ci_api", counting):
+            resolved = get_base_chant_text("g01349")
+        self.assertEqual(resolved, {"cantus_id": "g01349", "text": "Os justi"})
+        self.assertEqual(len(calls), 1)
+
+    def test_unknown_chant_has_no_text(self) -> None:
+        with patch("cantusindex.get_json_from_ci_api", self._fake_ci({})):
+            self.assertEqual(
+                get_base_chant_text("999999"), {"cantus_id": "999999", "text": None}
+            )
+
+    def test_a_base_id_that_is_not_a_cantus_id_is_not_requested(self) -> None:
+        """The base ID arrives in a CI *response* and is then put into a CI *request* path,
+        which the views' own guard on incoming IDs does not cover. Nothing that isn't
+        shaped like a Cantus ID gets that far."""
+        known = {
+            "g01349.tp14": {
+                "field_full_text": "Hac in laude patris OS JUSTI",
+                "field_troped_chant_id": "../json-text/anything?x=1",
+            }
+        }
+        calls: list = []
+
+        def counting(path: str, *args, **kwargs) -> dict:
+            calls.append(path)
+            return self._fake_ci(known)(path)
+
+        with patch("cantusindex.get_json_from_ci_api", counting):
+            resolved = get_base_chant_text("g01349.tp14")
+        self.assertEqual(calls, ["/json-cid/g01349.tp14"])
+        self.assertEqual(resolved["cantus_id"], "g01349.tp14")
+
+    def test_strips_whitespace_cantus_index_leaves_on_the_text(self) -> None:
+        """field_full_text carries trailing whitespace, and this text becomes a core
+        element's own text — the same reason get_cluster_elements strips it."""
+        known = {"008349": {"field_full_text": "  Nocte surgentes vigilemus  "}}
+        with patch("cantusindex.get_json_from_ci_api", self._fake_ci(known)):
+            self.assertEqual(
+                get_base_chant_text("008349")["text"], "Nocte surgentes vigilemus"
+            )
+
+
+class GetClusterElementsTest(TestCase):
+    """
+    Walking a troped chant's sub-elements (#2129).
+
+    Cantus Index exposes no endpoint listing a chant's elements, so they're found by
+    probing ``/json-cid/<parent>:NN`` in order. A Cantus ID CI doesn't hold still
+    answers 200, with ``{"info": null, ...}`` — that null is the "no such element"
+    signal these tests stand in for.
+    """
+
+    @staticmethod
+    def _fake_ci(known: dict) -> "callable":
+        """A get_json_from_ci_api stand-in serving only the Cantus IDs in ``known``."""
+
+        def fake(path: str, *args, **kwargs) -> dict:
+            cantus_id = path.rsplit("/", 1)[-1]
+            if cantus_id in known:
+                return {"info": known[cantus_id]}
+            return {"info": None, "databases": [], "chants": []}
+
+        return fake
+
+    def test_collects_contiguous_elements_then_stops(self) -> None:
+        known = {
+            f"g04828:{i:02d}": {
+                "field_genre": "TpSa",
+                "field_full_text": f"element {i}",
+            }
+            for i in range(1, 4)
+        }
+        with patch("cantusindex.get_json_from_ci_api", self._fake_ci(known)):
+            elements = get_cluster_elements("g04828")
+        self.assertEqual(
+            [element["cantus_id"] for element in elements],
+            ["g04828:01", "g04828:02", "g04828:03"],
+        )
+        self.assertEqual(elements[0]["genre"], "TpSa")
+
+    def test_strips_whitespace_from_fulltext(self) -> None:
+        """CI's field_full_text carries trailing whitespace; it becomes a token's text."""
+        known = {
+            "g04828:01": {
+                "field_genre": "TpSa",
+                "field_full_text": "Perpetuo numine cuncta regens ",
+            }
+        }
+        with patch("cantusindex.get_json_from_ci_api", self._fake_ci(known)):
+            elements = get_cluster_elements("g04828")
+        self.assertEqual(elements[0]["fulltext"], "Perpetuo numine cuncta regens")
+
+    def test_skips_a_catalogued_element_with_no_text(self) -> None:
+        """A sub-element CI holds without text can't be composed and would show as a
+        blank chip, so it's dropped — but it still counts toward the walk, so a later
+        numbered element is not treated as the end of the run."""
+        known = {
+            "g04828:01": {"field_genre": "TpSa", "field_full_text": "first"},
+            "g04828:02": {"field_genre": "TpSa", "field_full_text": "   "},
+            "g04828:03": {"field_genre": "TpSa", "field_full_text": "third"},
+        }
+        with patch("cantusindex.get_json_from_ci_api", self._fake_ci(known)):
+            elements = get_cluster_elements("g04828")
+        self.assertEqual(
+            [element["cantus_id"] for element in elements], ["g04828:01", "g04828:03"]
+        )
+
+    def test_tolerates_a_single_gap_in_the_numbering(self) -> None:
+        """One missing number is a hole in CI's catalogue, not the end of the run."""
+        known = {
+            "g04828:01": {"field_genre": "TpSa", "field_full_text": "first"},
+            "g04828:03": {"field_genre": "TpSa", "field_full_text": "third"},
+        }
+        with patch("cantusindex.get_json_from_ci_api", self._fake_ci(known)):
+            elements = get_cluster_elements("g04828")
+        self.assertEqual(
+            [element["cantus_id"] for element in elements], ["g04828:01", "g04828:03"]
+        )
+
+    def test_untroped_chant_yields_no_elements(self) -> None:
+        """CI reachable, chant has none: an empty list, which the caller may cache."""
+        with patch("cantusindex.get_json_from_ci_api", self._fake_ci({})):
+            self.assertEqual(get_cluster_elements("008349"), [])
+
+    def test_unreachable_ci_yields_none_not_an_empty_list(self) -> None:
+        """A transport failure is not a "no such element" 200. get_json_from_ci_api
+        returns None for both, so the walk reads it directly and reports None — distinct
+        from [], so the caller caches a real empty answer but not an outage."""
+        with patch("cantusindex.get_json_from_ci_api", return_value=None):
+            self.assertIsNone(get_cluster_elements("g04828"))
+
+    def test_a_failure_partway_abandons_the_run(self) -> None:
+        """A blip after some elements are found still leaves the count unknown, so the
+        partial run is discarded rather than reported as the whole of it."""
+        known = {
+            "g04828:01": {"field_genre": "TpSa", "field_full_text": "first"},
+            "g04828:02": {"field_genre": "TpSa", "field_full_text": "second"},
+        }
+
+        def flaky(path: str, *args, **kwargs):
+            cantus_id = path.rsplit("/", 1)[-1]
+            if cantus_id in known:
+                return {"info": known[cantus_id]}
+            return None  # CI drops on the first probe past the known elements
+
+        with patch("cantusindex.get_json_from_ci_api", flaky):
+            self.assertIsNone(get_cluster_elements("g04828"))
+
+    def test_stops_probing_at_max_elements(self) -> None:
+        """An unbroken run can't drive an unbounded number of upstream requests."""
+        known = {
+            f"g04828:{i:02d}": {
+                "field_genre": "TpSa",
+                "field_full_text": f"element {i}",
+            }
+            for i in range(1, 40)
+        }
+        calls: list = []
+
+        def counting(path: str, *args, **kwargs) -> dict:
+            calls.append(path)
+            return self._fake_ci(known)(path)
+
+        with patch("cantusindex.get_json_from_ci_api", counting):
+            elements = get_cluster_elements("g04828", max_elements=5)
+        self.assertEqual(len(elements), 5)
+        self.assertEqual(len(calls), 5)
 
 
 class NormalizedURLFormFieldTest(TestCase):

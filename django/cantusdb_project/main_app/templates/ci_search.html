@@ -76,7 +76,13 @@
                 var genreObj = genres.find(item => item.name === genre);
                 var genreID = genreObj ? genreObj.id : null;
 
-                opener.document.getElementById('id_cantus_id').value = cantus_id;
+                var openerCantusId = opener.document.getElementById('id_cantus_id');
+                openerCantusId.value = cantus_id;
+                // Let the opener's cluster composer react to the new Cantus ID (reload its
+                // element bank, reseed, warn before discarding composed elements); a plain
+                // .value assignment fires no event. Built with the opener's Event constructor
+                // so dispatching across the two windows is valid.
+                openerCantusId.dispatchEvent(new opener.Event('change', { bubbles: true }));
                 // Since we're using a django-autocomplete-light widget for the Genre selector,
                 // we need to follow a special process in selecting a value from the widget:
                 // Set the value, creating a new option if necessary            

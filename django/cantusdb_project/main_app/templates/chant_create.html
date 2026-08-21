@@ -6,6 +6,12 @@
     <script type="text/javascript"
             src="{% static 'admin/js/vendor/jquery/jquery.js' %}"></script>
     {{ form.media }}
+    <!-- Chant cluster prototype (#2128) -->
+    <link href="{% static 'css/chant_create_clusters.css' %}" rel="stylesheet" />
+    <!-- The automatic split's rules (#2165) go first: the composer reads them off
+         window.ChantAutoSplit, and deferred scripts run in document order. -->
+    <script src="{% static 'js/chant_create_auto_split.js' %}" defer></script>
+    <script src="{% static 'js/chant_create_clusters.js' %}" defer></script>
 {% endblock %}
 {% block uppersidebar %}
     <div class="search-bar mb-3">{% include "global_search_bar.html" %}</div>
@@ -187,7 +193,77 @@
                 <label for="{{ form.manuscript_full_text_std_spelling.id_for_label }}">
                     {{ form.manuscript_full_text_std_spelling.label_tag }}<span class="text-danger" title="This field is required">*</span>
                 </label>
+                <!-- Chant cluster composer (#2128/#2129): controls revealed by JS. -->
+                <div id="cluster-controls" class="d-flex flex-wrap align-items-center mb-1" hidden>
+                    <div class="form-check mb-0 me-2">
+                        <input class="form-check-input" type="checkbox" id="has-component-elements">
+                        <label class="form-check-label" for="has-component-elements">Has interleaved component elements</label>
+                    </div>
+                    <!-- The composer's instructions live behind this icon rather than in a
+                         standing paragraph (28 Jul 2026 demo feedback). button, not a bare
+                         icon, so it is reachable and dismissable by keyboard as well as hover. -->
+                    <button type="button"
+                            id="component-elements-hint"
+                            class="btn btn-link p-0 me-3 text-muted cluster-help"
+                            aria-label="How to compose elements"
+                            data-bs-toggle="tooltip"
+                            data-bs-placement="right"
+                            title="Click a core chunk to split it, or type to search Cantus Index for component elements to interleave. Shift-click a second chunk to take the whole run between them; Ctrl-click (⌘ on a Mac) picks out chunks that aren't next to each other, to delete together. Clean up can split the Cantus Index text for you where its conventions are clear enough to be certain."
+                            hidden>
+                        <i class="bi bi-question-circle" aria-hidden="true"></i>
+                    </button>
+                    <button type="button"
+                            id="cluster-reload"
+                            class="btn btn-outline-secondary btn-sm me-2"
+                            title="Fetch the base chant's text again from Cantus Index using the Cantus ID above"
+                            hidden
+                            disabled>
+                        Reload base text from Cantus Index
+                    </button>
+                    <button type="button" id="cluster-undo" class="btn btn-outline-secondary btn-sm" hidden disabled>
+                        Undo
+                    </button>
+                    <!-- Automating the split a cataloguer would otherwise do by hand on
+                         Cantus Index's intermingled text (#2165). Grouped in one menu rather
+                         than two buttons: the control row already carries the checkbox, the
+                         help icon, Reload and Undo, and these two belong together in the
+                         order they are listed. Each stays disabled until it would do
+                         something — Split until the text holds a boundary the rules are sure
+                         of, Remove separators until a split has found some. -->
+                    <div class="dropdown ms-2" id="cluster-cleanup" hidden>
+                        <button type="button"
+                                id="cluster-cleanup-toggle"
+                                class="btn btn-outline-secondary btn-sm dropdown-toggle"
+                                data-bs-toggle="dropdown"
+                                aria-expanded="false"
+                                title="Split the Cantus Index text into elements, then drop the separators it leaves behind">
+                            Clean up
+                        </button>
+                        <ul class="dropdown-menu" aria-labelledby="cluster-cleanup-toggle">
+                            <li>
+                                <button type="button" class="dropdown-item" id="cluster-auto-split" disabled>
+                                    Split automatically
+                                </button>
+                            </li>
+                            <li><hr class="dropdown-divider" /></li>
+                            <li>
+                                <button type="button" class="dropdown-item" id="cluster-remove-separators" disabled>
+                                    Remove separators
+                                </button>
+                            </li>
+                        </ul>
+                    </div>
+                </div>
+                <p id="cluster-status" class="text-muted small mb-1" hidden></p>
                 {{ form.manuscript_full_text_std_spelling }}
+                <!-- Element composer; JS hides the textarea above and shows this when cluster mode is on.
+                     Its element bank lives in the sidebar (see the lowersidebar block). -->
+                <div id="cluster-composer"
+                     class="form-control cluster-composer"
+                     contenteditable="true"
+                     hidden></div>
+                <!-- Composed elements are serialised here for the server (ChantCreateForm.elements_json). -->
+                {{ form.elements_json }}
                 <p class="text-muted">
                     {{ form.manuscript_full_text_std_spelling.help_text }}
                     For more information, consult <a href="/description/#Fulltext" target="_blank">Fields and Content Descriptions</a>.
@@ -301,4 +377,26 @@
             </script>
         </div>
     </div>
+    <!-- The one elements panel (#2129), revealed by JS in cluster mode. It stays in the
+         sidebar so the composer keeps the full width of the form, but JS drops it down to
+         sit level with the full text field (#2188) — the sidebar cards above are short, so
+         left alone it floats up near the Input Tool, far above the field it belongs to. It
+         holds both halves of the element inventory, so the cataloguer has a single place
+         to look:
+           - the component elements Cantus Index already holds for this chant's Cantus ID
+             (drag a chip into the composer, or click one to drop it at the cursor), and
+           - any core elements deleted from the text, offered back for restoring.
+         The heading names the Cantus ID being catalogued; JS fills it in from the field. -->
+    <!-- No mt-3 here: that utility carries !important, which would beat the inline margin
+         JS sets to drop the card. The base gap lives in the stylesheet instead (#cluster-bank). -->
+    <aside id="cluster-bank" class="card w-100" hidden>
+        <div class="card-header">
+            <h5 id="cluster-bank-heading">Component Elements</h5>
+        </div>
+        <div class="card-body small">
+            <p id="cluster-bank-status" class="cluster-bank-status mb-0"></p>
+            <div id="cluster-bank-items"></div>
+            <div id="removed-cores-tray" class="cluster-tray small" hidden></div>
+        </div>
+    </aside>
 {% endblock %}

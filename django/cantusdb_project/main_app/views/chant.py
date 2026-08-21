@@ -1,3 +1,4 @@
+import hashlib
 import urllib.parse
 from collections import Counter, defaultdict
 from typing import Optional, Any, Iterator
@@ -5,9 +6,12 @@ import string
 
 from django.conf import settings
 from django.contrib import messages
+from django.contrib.auth.mixins import LoginRequiredMixin
 from django.contrib.postgres.aggregates import ArrayAgg
+from django.core.cache import cache
+from django.db import transaction
 from django.db.models import Case, F, Q, QuerySet, When
-from django.http import Http404, HttpResponse
+from django.http import Http404, HttpRequest, HttpResponse, JsonResponse
 from django.shortcuts import get_object_or_404
 from django.urls import reverse
 from django.utils.http import url_has_allowed_host_and_scheme
@@ -18,6 +22,7 @@ from django.views.generic import (
     ListView,
     TemplateView,
     UpdateView,
+    View,
 )
 from volpiano_display_utilities.latin_word_syllabification import LatinError
 from volpiano_display_utilities.cantus_text_syllabification import (
@@ -27,6 +32,12 @@ from volpiano_display_utilities.cantus_text_syllabification import (
 from volpiano_display_utilities.text_volpiano_alignment import align_text_and_volpiano
 
 from cantusindex import (
+    BaseChantText,
+    CANTUS_ID_PATTERN,
+    MAX_CANTUS_ID_LENGTH,
+    ClusterElement,
+    get_base_chant_text,
+    get_cluster_elements,
     get_suggested_chants,
     get_suggested_fulltext,
     get_ci_text_search,
@@ -39,6 +50,7 @@ from main_app.forms import (
 )
 from main_app.models import (
     Chant,
+    ChantElement,
     Feast,
     Genre,
     Segment,
@@ -1182,11 +1194,37 @@ class ChantCreateView(CustomAccessMixin, CreateView):  # type: ignore[type-arg]
 
     def form_valid(self, form):
         """
-        Adds the "created_by" and "updated_by" fields to the chant.
+        Adds the "created_by" and "updated_by" fields to the chant, then persists any
+        composed cluster elements (troped chants) as ChantElement rows.
+
+        The chant and its elements are saved in one transaction so a failure partway
+        through element creation can't leave a chant with a half-built cluster.
         """
         form.instance.created_by = self.request.user
         form.instance.last_updated_by = self.request.user
-        return super().form_valid(form)
+        with transaction.atomic():
+            response = super().form_valid(form)  # saves the chant → self.object
+            self._create_elements(form.cleaned_data.get("elements_json") or [])
+        return response
+
+    def _create_elements(self, elements: list[dict[str, Any]]) -> None:
+        """Persist a newly-created troped chant's composed elements as ChantElement rows.
+
+        Per-instance ``save()`` (not ``bulk_create``) so django-reversion's post_save
+        signal captures each element under the request's revision. Core elements get a
+        blank ``cantus_id`` here regardless of what the client sent — the model invariant
+        is that a core resolves its ID through the parent chant.
+        """
+        for order, element in enumerate(elements):
+            is_core = element["kind"] == ChantElement.Kind.CORE
+            ChantElement(
+                chant=self.object,
+                order=order,
+                kind=element["kind"],
+                text=element["text"],
+                cantus_id=None if is_core else (element["cantus_id"] or None),
+                proposed=element["proposed"],
+            ).save()
 
 
 class ChantDeleteView(CustomAccessMixin, DeleteView):  # type: ignore[type-arg]
@@ -1247,6 +1285,218 @@ class CISearchView(TemplateView):
 
         context["results"] = list(zip(cantus_id, genre, full_text))
         return context
+
+
+class CIComponentSearchView(LoginRequiredMixin, View):
+    """
+    Read-only JSON proxy for Cantus Index's text search (/json-text), backing the
+    chant cluster prototype's inline component-element typeahead on the Create Chant
+    page (issues #2128 / #2129). The browser can't call cantusindex.org directly
+    (CORS), so we proxy it — the same mechanism as the "Input Tool" (CISearchView),
+    but returning JSON for a live, as-you-type dropdown instead of a rendered popup.
+
+    Results are cached briefly: CI's data changes rarely, so this spares repeat
+    lookups and shields the typeahead from CI latency/outages. The cache key is the
+    search term alone (not cluster-specific); ranking a cluster's own sub-IDs to the
+    top is left to the client, which knows the active cluster.
+
+    Matches are restricted to the genres that can actually be interleaved into a
+    cluster (28 Jul 2026 demo feedback) — a whole antiphon or responsory is never a
+    component element, and leaving them in buried the usable matches. Filtering here
+    rather than in the browser keeps the cached payload small and the client dumb.
+
+    This and its two sibling proxies (``CIBaseTextView``, ``CIClusterElementsView``)
+    gate on ``LoginRequiredMixin`` alone — deliberately looser than the Create Chant
+    page's ``CustomAccessMixin`` — because they only re-serve Cantus Index's public
+    catalogue and hold no per-source data to guard.
+    """
+
+    MIN_QUERY_LENGTH: int = 3
+    CACHE_TTL: int = 60 * 60  # seconds; CI text data is effectively static
+    # Trope elements, hymn verses and litany verses — the genres a component element
+    # can have. Tropes are the "Tp" family rather than a single code: a Sanctus trope's
+    # elements are catalogued under the troped-chant genre (g04828:01 is TpSa, not Tp),
+    # so match the whole prefix. "Psl" (prosula) is included because Cantus Index
+    # defines it as a type of trope.
+    #
+    # Open question from the demo, deliberately not settled here: whether to constrain
+    # on the genre CI reports (what this does) or on what the Cantus ID itself implies.
+    COMPONENT_GENRE_PREFIX: str = "Tp"
+    COMPONENT_GENRES: frozenset[str] = frozenset({"Psl", "HV", "LiV"})
+    # How many matches the dropdown renders. The response reports the unclipped total so
+    # the UI can say how many more there are instead of silently truncating.
+    MAX_RESULTS: int = 25
+    # Cantus Index's /json-text returns at most 100 matches for any term (verified
+    # 2026-08 against several broad queries). Hitting that ceiling means the match set
+    # was truncated upstream, before our genre filter ever saw it — so there may be
+    # component elements we never had the chance to offer. That is a different claim
+    # from "more matches than fit in the dropdown", and the UI words it differently.
+    CI_RESULT_CAP: int = 100
+
+    @classmethod
+    def is_component_genre(cls, genre: Optional[str]) -> bool:
+        """Whether a Cantus Index genre code can appear as a component element."""
+        if not genre:
+            return False
+        code: str = genre.strip()
+        return (
+            code.startswith(cls.COMPONENT_GENRE_PREFIX) or code in cls.COMPONENT_GENRES
+        )
+
+    def get(self, request: HttpRequest, search_term: str) -> JsonResponse:
+        """Return Cantus Index text-search matches for ``search_term`` as JSON."""
+        # Unlike the ID views, `search_term` isn't pattern-guarded: it is a text query,
+        # not an id, and it only ever lands in CI's /json-text/ path segment — never in a
+        # host, a further sub-request, or anything reused to reshape a request — so the
+        # `str` URL converter (which already excludes "/") is guard enough.
+        term: str = search_term.strip()
+        if len(term) < self.MIN_QUERY_LENGTH:
+            return JsonResponse({"results": [], "total": 0, "capped": False})
+
+        # Hash the term: free text may contain spaces/punctuation that are invalid
+        # in a memcached key. (md5 is a key digest here, not a security primitive.)
+        digest: str = hashlib.md5(
+            term.lower().encode("utf-8"), usedforsecurity=False
+        ).hexdigest()
+        cache_key: str = f"ci-component-search:{digest}"
+        cached: Optional[dict[str, Any]] = cache.get(cache_key)
+        if cached is None:
+            raw = get_ci_text_search(term.replace(" ", "+"))
+            if raw is None:
+                # None is a CI failure (timeout/non-200); flag it so the UI can show
+                # an error state rather than a misleading "no matches". Not cached.
+                return JsonResponse(
+                    {"results": [], "total": 0, "capped": False, "error": True}
+                )
+            cached = {
+                "results": [
+                    {
+                        "cid": result.get("cid"),
+                        "genre": result.get("genre"),
+                        "fulltext": result.get("fulltext"),
+                    }
+                    for result in raw
+                    if result
+                    and result.get("cid")
+                    and (result.get("fulltext") or "").strip()
+                    and self.is_component_genre(result.get("genre"))
+                ],
+                # Measured on CI's raw response, before genre filtering: the ceiling was
+                # hit upstream, so matches were lost regardless of how few survive here.
+                "capped": len(raw) >= self.CI_RESULT_CAP,
+            }
+            cache.set(cache_key, cached, self.CACHE_TTL)
+
+        results: list[dict[str, Optional[str]]] = cached["results"]
+        # `total` counts every match that survived filtering; `results` is the clipped
+        # page the dropdown renders; `capped` says CI truncated the set before we saw it.
+        return JsonResponse(
+            {
+                "results": results[: self.MAX_RESULTS],
+                "total": len(results),
+                "capped": cached["capped"],
+            }
+        )
+
+
+class CIBaseTextView(LoginRequiredMixin, View):
+    """
+    Read-only JSON proxy for the standard full text to compose a chant's cores from
+    (Cantus Index /json-cid/{cantus_id}), backing the Create Chant cluster composer
+    (issues #2128 / #2129 / #2189). Sibling to ``CIComponentSearchView``: the browser
+    can't reach cantusindex.org directly (CORS), so we proxy it, and cache briefly
+    since CI text is effectively static.
+
+    For a troped chant this is not that chant's own text but its **base chant's** —
+    see ``get_base_chant_text`` for why, and for what CI is asked in order to find it.
+    The response therefore reports the Cantus ID the text came from alongside the text,
+    since it may not be the one that was asked for. Nothing displays it today — the
+    composer seeds silently — but it is the only signal that the text was redirected.
+    Note the request is still made by the *troped* ID: that is what the element bank
+    probes for components (``g01349.tp14:01``, which hang off the troped chant, not the
+    base), so the Cantus ID field must keep holding it.
+
+    CI does not (yet) split a chant's text into elements, so the text arrives as one
+    blob; the cataloguer splits it into cores, by hand or with the automatic split. An
+    empty result is a normal outcome (unknown ID, or CI has no text) — the composer then
+    lets the cataloguer type the text in. Empty/failed fetches are not cached, so a
+    retry re-hits CI.
+    """
+
+    CACHE_TTL: int = 60 * 60  # seconds; CI text data is effectively static
+
+    def get(self, request: HttpRequest, cantus_id: str) -> JsonResponse:
+        """Return the text to seed ``cantus_id``'s cores from, and the ID it came from."""
+        cid: str = cantus_id.strip()
+        # CANTUS_ID_PATTERN rejects anything but a bare id, so a crafted value can't
+        # append a query or fragment to the CI request path. The length bound keeps an
+        # over-long id out of the cache key below.
+        if (
+            not cid
+            or len(cid) > MAX_CANTUS_ID_LENGTH
+            or not CANTUS_ID_PATTERN.fullmatch(cid)
+        ):
+            return JsonResponse({"base_text": "", "cantus_id": ""})
+
+        # Keyed on the requested ID, and versioned because #2189 changed what is stored
+        # here from a bare string to the resolved {cantus_id, text} pair.
+        cache_key: str = f"ci-base-text:v2:{cid}"
+        resolved: Optional[BaseChantText] = cache.get(cache_key)
+        if resolved is None:
+            resolved = get_base_chant_text(cid)
+            if resolved["text"]:
+                cache.set(cache_key, resolved, self.CACHE_TTL)
+
+        return JsonResponse(
+            {
+                "base_text": resolved["text"] or "",
+                "cantus_id": resolved["cantus_id"],
+            }
+        )
+
+
+class CIClusterElementsView(LoginRequiredMixin, View):
+    """
+    Read-only JSON list of the trope elements Cantus Index already holds for a Cantus
+    ID, backing the composer's element bank (28 Jul 2026 demo feedback on #2129): the
+    cataloguer drags a chant's own catalogued elements straight in rather than
+    text-searching for each one.
+
+    Assembling the list costs several upstream requests (see ``get_cluster_elements``
+    for why CI leaves no cheaper option), so the result is cached for an hour —
+    including the empty result, which is the common case. Most chants are not troped,
+    and without caching those would re-probe CI on every activation.
+
+    An outage is *not* cached, though: ``get_cluster_elements`` returns None (rather than
+    an empty list) when it couldn't reach CI, so a blip during the first load of a troped
+    chant doesn't pin an empty bank for the whole hour — the next activation retries.
+    """
+
+    CACHE_TTL: int = (
+        60 * 60
+    )  # seconds; CI's catalogue of elements is effectively static
+
+    def get(self, request: HttpRequest, cantus_id: str) -> JsonResponse:
+        """Return the catalogued sub-elements of ``cantus_id`` as JSON."""
+        cid: str = cantus_id.strip()
+        if (
+            not cid
+            or len(cid) > MAX_CANTUS_ID_LENGTH
+            or not CANTUS_ID_PATTERN.fullmatch(cid)
+        ):
+            return JsonResponse({"elements": []})
+
+        cache_key: str = f"ci-cluster-elements:{cid}"
+        elements: Optional[list[ClusterElement]] = cache.get(cache_key)
+        if elements is None:
+            fetched = get_cluster_elements(cid)
+            # None means CI was unreachable, which is indistinguishable at CI's API from
+            # a real "no elements" — cache the genuine empty list, never the outage.
+            elements = fetched if fetched is not None else []
+            if fetched is not None:
+                cache.set(cache_key, elements, self.CACHE_TTL)
+
+        return JsonResponse({"elements": elements})
 
 
 class SourceEditChantsView(CustomAccessMixin, UpdateView):  # type: ignore[type-arg]
