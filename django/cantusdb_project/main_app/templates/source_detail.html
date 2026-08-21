@@ -188,8 +188,8 @@
                                     vertical-align: middle" />
                     </a>
                 {% elif link.url_type == link.URLTypes.EXTERNAL_IMAGES %}
-                    {# Same label as the legacy image_link below, so a source's
-                       image gallery reads identically however it's recorded. #}
+                    {% comment %} Same label as the legacy image_link below, so a
+                    source's image gallery reads identically however it's recorded. {% endcomment %}
                     <a href="{{ link.url }}"
                        class="guillemet"
                        target="_blank"
