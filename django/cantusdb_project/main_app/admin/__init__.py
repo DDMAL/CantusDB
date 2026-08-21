@@ -1,5 +1,6 @@
 from main_app.admin.century import CenturyAdmin
 from main_app.admin.chant import ChantAdmin
+from main_app.admin.chant_element import ChantElementInline
 from main_app.admin.differentia import DifferentiaAdmin
 from main_app.admin.feast import FeastAdmin
 from main_app.admin.genre import GenreAdmin

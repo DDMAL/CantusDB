@@ -10,6 +10,7 @@ from django.db.models import Max
 from main_app.century_dates import century_name_to_dates
 from main_app.models.century import Century
 from main_app.models.chant import Chant
+from main_app.models.chant_element import ChantElement
 from main_app.models.feast import Feast
 from main_app.models.genre import Genre
 from main_app.models.institution import Institution
@@ -271,6 +272,32 @@ def make_fake_chant(**kwargs: Any) -> Chant:
     # upon chant save. By refreshing from db before returning, we ensure all the chant's fields
     # are up-to-date. For more information, refer to main_app/signals.py
     return chant
+
+
+def make_fake_chant_element(**kwargs: Any) -> ChantElement:
+    """
+    Generates a fake ChantElement object.
+
+    The following fields will, if not specified, be given a fake value:
+    - chant
+    - order (defaults to one past the chant's current highest)
+    - kind (defaults to a component element)
+    - text
+    - cantus_id (a sub-ID of the parent chant's, for components only — a core
+      element's Cantus ID is the parent's and is left blank on the element itself)
+    """
+    if kwargs.get("chant") is None:
+        kwargs["chant"] = make_fake_chant()
+    if kwargs.get("order") is None:
+        current_max_order = kwargs["chant"].elements.aggregate(Max("order"))[
+            "order__max"
+        ]
+        kwargs["order"] = (current_max_order or 0) + 1
+    kwargs["kind"] = kwargs.get("kind", ChantElement.Kind.COMPONENT)
+    kwargs["text"] = kwargs.get("text", faker.sentence())
+    if kwargs["kind"] == ChantElement.Kind.COMPONENT and "cantus_id" not in kwargs:
+        kwargs["cantus_id"] = f"{kwargs['chant'].cantus_id}:{random.randint(1, 99):02d}"
+    return ChantElement.objects.create(**kwargs)
 
 
 def make_fake_feast(**kwargs: Any) -> Feast:
