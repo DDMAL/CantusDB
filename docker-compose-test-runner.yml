@@ -18,7 +18,8 @@ services:
     env_file: ./config/envs/dev_env
     restart: always
     depends_on:
-      - postgres
+      postgres:
+        condition: service_healthy
     command: [ "gunicorn", "--bind", ":8000", "cantusdb.wsgi:application", "--workers", "5" ]
 
   nginx:
@@ -49,6 +50,13 @@ services:
       - postgres_data:/var/lib/postgresql/data/
     restart: always
     command: postgres -c 'config_file=/etc/postgresql/postgresql.conf'
+    healthcheck:
+      # $$ escapes compose interpolation so the vars resolve inside the container
+      test: [ "CMD-SHELL", "pg_isready -U $$POSTGRES_USER -d $$POSTGRES_DB" ]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+      start_period: 5s
 
   redis:
     build:
@@ -67,6 +75,9 @@ services:
     container_name: cantusdb-celery-worker-1
     env_file: ./config/envs/dev_env
     restart: always
+    depends_on:
+      postgres:
+        condition: service_healthy
     volumes:
       - ./django/cantusdb_project:/code/cantusdb_project
       - private_media_volume:/resources/private_media

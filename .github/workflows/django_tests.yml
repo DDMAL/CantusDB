@@ -26,5 +26,5 @@ jobs:
                 directory: config/envs
                 file_name: dev_env
             - run: docker compose -f docker-compose-test-runner.yml build
-            - run: docker compose -f docker-compose-test-runner.yml up -d
+            - run: docker compose -f docker-compose-test-runner.yml up -d --wait
             - run: docker compose -f docker-compose-test-runner.yml exec -T django python manage.py test main_app.tests users.tests articles
