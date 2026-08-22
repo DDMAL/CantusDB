@@ -188,8 +188,8 @@
                                     vertical-align: middle" />
                     </a>
                 {% elif link.url_type == link.URLTypes.EXTERNAL_IMAGES %}
-                    {# Same label as the legacy image_link below, so a source's
-                       image gallery reads identically however it's recorded. #}
+                    {% comment %} Same label as the legacy image_link below, so a
+                    source's image gallery reads identically however it's recorded. {% endcomment %}
                     <a href="{{ link.url }}"
                        class="guillemet"
                        target="_blank"
@@ -285,7 +285,7 @@
             </ul>
         {% endif %}
         {% if source.melodies_entered_by.exists %}
-            Melodies entered by:
+            Melodies transcribed by:
             <ul class="mb-0">
                 {% for editor in source.melodies_entered_by.all %}
                     <li>

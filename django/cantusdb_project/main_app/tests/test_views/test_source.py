@@ -461,6 +461,22 @@ class SourceDetailViewTest(CsvExportLinkTestMixin, SourcePermissionsTestCase):
         self.assertNotIn("https://example.com/images", html)
         self.assertEqual(html.count("View images on external site"), 1)
 
+    def test_external_images_branch_does_not_leak_template_comment(self) -> None:
+        # Regression test: the EXTERNAL_IMAGES branch's explanatory comment must
+        # use {% comment %}, not a multi-line {# #} — Django only strips {# #}
+        # on a single line, so a multi-line one renders verbatim to the user.
+        source = make_fake_source(image_link="")
+        SourceURL.objects.create(
+            source=source,
+            url="https://example.com/external",
+            url_type=SourceURL.URLTypes.EXTERNAL_IMAGES,
+        )
+        response = self.client.get(reverse("source-detail", args=[source.id]))
+        html = response.content.decode("utf-8")
+        self.assertIn("View images on external site", html)
+        self.assertNotIn("Same label as the legacy", html)
+        self.assertNotIn("{#", html)
+
     def test_image_link_displayed_when_only_non_image_source_link_exists(self) -> None:
         source = make_fake_source(image_link="https://example.com/images")
         SourceURL.objects.create(
@@ -495,7 +511,7 @@ class SourceDetailViewTest(CsvExportLinkTestMixin, SourcePermissionsTestCase):
         html = response.content.decode("utf-8")
         self.assertIn("viewer/uv.html", html)
         self.assertIn("#?manifest=https://example.com/iiif/manifest.json", html)
-        self.assertIn("View Images on Cantus Database", html)
+        self.assertIn("View in IIIF Viewer", html)
         # The generic branch renders the url_type display name instead.
         self.assertNotIn("IIIF Manifest</a>", html)
 
