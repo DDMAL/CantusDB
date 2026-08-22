@@ -1,18 +1,25 @@
 """
-One-off management command to import sources from the
-"cantorales_2024-05-01.csv" spreadsheet into CantusDB.
+Management command to import sources from the "cantorales_2024-05-01.csv"
+spreadsheet into CantusDB.
 
-Sources are tagged with the "Cantorales in the Americas" segment so they
-appear on /Cantorales/ but NOT on /sources/?segment=4063 (CANTUS Database).
+Sources are tagged with the Cantorales segment (settings.CANTORALES_SEGMENT_ID)
+so they appear on /Cantorales/ but NOT on /sources/?segment=4063 (CANTUS Database).
+
+The command only ever creates sources: a CSV row matching a source that already
+exists is logged and skipped, never updated (issue #2059). It is therefore safe
+to re-run, and a skipped row leaves nothing behind — no Source, no Institution,
+and no contributor User.
 """
 
 import csv
 import os
 import re
+from typing import Any, Optional
 
-from django.contrib.auth import get_user_model
+from django.conf import settings
 from django.core.management.base import BaseCommand
 from django.db import transaction
+import reversion  # type: ignore[import-untyped]
 
 from main_app.models import (
     Century,
@@ -21,9 +28,7 @@ from main_app.models import (
     Source,
 )
 from main_app.models.source_url import SourceURL
-
-User = get_user_model()
-
+from users.models import User
 
 CSV_FILENAME = "cantorales_2024-05-01.csv"
 
@@ -87,14 +92,14 @@ CHANT_TYPE_MAP = {
 }
 
 
-def ordinal(n):
+def ordinal(n: int) -> str:
     """Return e.g. '16th' for 16."""
     if 11 <= n % 100 <= 13:
         return f"{n:02d}th"
     return f"{n:02d}" + {1: "st", 2: "nd", 3: "rd"}.get(n % 10, "th")
 
 
-def parse_centuries(raw):
+def parse_centuries(raw: str) -> list[str]:
     """
     Parse century strings like '16', '16, 17', '15-17' into a list of
     Century names like ['16th century', '17th century'].
@@ -122,7 +127,7 @@ def parse_centuries(raw):
     return names
 
 
-def build_description(row):
+def build_description(row: list[str]) -> str:
     """Compile the free-text metadata columns into a description block."""
     parts = []
 
@@ -178,7 +183,7 @@ class Command(BaseCommand):
     help = "Import sources from the USA-1 Cantorales CSV into CantusDB."
 
     @transaction.atomic
-    def handle(self, *args, **options):
+    def handle(self, *args: Any, **options: Any) -> None:
         csv_path = os.path.join(
             os.path.dirname(os.path.abspath(__file__)),
             "..",
@@ -192,18 +197,30 @@ class Command(BaseCommand):
             self.stderr.write(f"CSV not found at {csv_path}")
             return
 
-        cantorales_segment = Segment.objects.get(name="Cantorales in the Americas")
+        cantorales_segment = Segment.objects.filter(
+            pk=settings.CANTORALES_SEGMENT_ID
+        ).first()
+        if cantorales_segment is None:
+            self.stderr.write(
+                f"Cantorales segment (pk={settings.CANTORALES_SEGMENT_ID}) "
+                "not found; aborting."
+            )
+            return
 
         # Pre-fetch century lookup
         century_by_name = {c.name: c for c in Century.objects.all()}
 
-        # Create stub User accounts for contributors (unusable passwords)
-        contributor_users = self._ensure_contributor_users(csv_path)
+        # Resolve the best email for each contributor name. This is a read-only
+        # pass over the whole CSV: the accounts themselves are created lazily,
+        # per row, once the row is known to be importable.
+        contributor_emails = self._read_contributor_emails(csv_path)
+        contributor_users: dict[str, User] = {}
 
         created_count = 0
-        updated_count = 0
+        skipped_existing_count = 0
         skipped_count = 0
         institution_created_count = 0
+        user_created_count = 0
 
         with open(csv_path, newline="", encoding="utf-8-sig") as f:
             reader = csv.reader(f)
@@ -237,11 +254,101 @@ class Command(BaseCommand):
                     )
 
                 # --- Institution ---
-                institution = None
-                if rism:
-                    try:
-                        institution = Institution.objects.get(siglum=rism)
-                    except Institution.DoesNotExist:
+                # Look the institution up without creating it. Creation is
+                # deferred until the row is known to be importable, so a row
+                # that turns out to duplicate an existing source can never leave
+                # a stray Institution behind.
+                institution = (
+                    Institution.objects.filter(siglum=rism).first() if rism else None
+                )
+
+                # --- Skip existing sources entirely (issue #2059) ---
+                # An earlier version of this import used update_or_create, which
+                # overwrote curated metadata and added unexpected editors on
+                # sources that already existed in CDB. We now refuse to modify
+                # any existing source: if one already matches we skip the row.
+                #
+                # How we match depends on whether the row names an institution:
+                #
+                # * With a RISM siglum, (holding_institution, shelfmark)
+                #   identifies a source, so we check the whole database — the
+                #   sources we must not touch (HRC 145 and friends) are curated
+                #   sources living outside the Cantorales segment.
+                # * Without one, all we have is a shelfmark, which is not
+                #   evidence of identity by itself: unrelated institution-less
+                #   sources routinely share shelfmarks. Matching those across the
+                #   whole database would silently drop rows that should have been
+                #   imported, so we only dedupe against sources this import
+                #   created previously, which still keeps re-runs idempotent.
+                #
+                # An institution that doesn't exist yet has no sources, so that
+                # case needs no query at all.
+                if rism and institution is None:
+                    already_exists = False
+                elif institution is not None:
+                    already_exists = Source.objects.filter(
+                        holding_institution=institution, shelfmark=shelfmark
+                    ).exists()
+                else:
+                    already_exists = Source.objects.filter(
+                        holding_institution__isnull=True,
+                        shelfmark=shelfmark,
+                        segment_m2m=cantorales_segment,
+                    ).exists()
+
+                if already_exists:
+                    skipped_existing_count += 1
+                    existing_label = (
+                        f"{institution} {shelfmark}" if institution else shelfmark
+                    )
+                    self.stdout.write(
+                        f"  Row {row_num}: SKIP — source already exists, leaving "
+                        f"it untouched: {existing_label}"
+                    )
+                    continue
+
+                # --- Source completeness ---
+                condition_raw = row[COL_CONDITION].strip()
+                completeness = CONDITION_MAP.get(
+                    condition_raw, Source.SourceCompletenessChoices.UNKNOWN
+                )
+
+                # --- Provenance notes (from Origins and History) ---
+                # The Origins column is free text (e.g. "Seville? Spain"), so
+                # it stays in provenance_notes; we don't derive a controlled
+                # Provenance taxonomy entry from it.
+                provenance_notes = row[COL_ORIGINS].strip() or None
+
+                # --- Description ---
+                description = build_description(row)
+
+                # --- Date ---
+                date = row[COL_DATE].strip() or None
+
+                # --- Image link ---
+                # Stored as a SourceURL, not Source.image_link: that field is
+                # being retired (#1818, #1839) and source_detail.html only
+                # renders source_links, so an image_link value would never
+                # reach the page.
+                image_link = row[COL_IMAGES].strip()
+
+                # --- Indexing date (from "Date data entered") ---
+                indexing_date = row[COL_DATE_ENTERED].strip() or None
+
+                # --- Indexing notes (from "Source of data entered") ---
+                source_of_data = row[COL_SOURCE_OF_DATA].strip()
+                indexing_notes = (
+                    f"Source of data: {source_of_data}" if source_of_data else None
+                )
+
+                # --- Create the new Source and everything attached to it in a
+                # single reversion revision. Management-command writes bypass
+                # RevisionMiddleware, so we wrap them explicitly to keep the
+                # import auditable (issue #2059 was about undetected changes). ---
+                with reversion.create_revision():
+                    # The row is definitely being imported now, so it's safe to
+                    # create the holding institution it referred to.
+                    if rism and institution is None:
                         city = row[COL_CITY].strip()
                         archive_name = row[COL_ARCHIVE].strip() or "[No Name]"
                         # Derive country from RISM prefix (US-xxx → US)
@@ -260,113 +367,103 @@ class Command(BaseCommand):
                             f"  Created institution: {institution} ({rism})"
                         )
 
-                # --- Source completeness ---
-                condition_raw = row[COL_CONDITION].strip()
-                completeness = CONDITION_MAP.get(
-                    condition_raw, Source.SourceCompletenessChoices.UNKNOWN
-                )
-
-                # --- Provenance notes (from Origins and History) ---
-                provenance_notes = row[COL_ORIGINS].strip() or None
-
-                # --- Description ---
-                description = build_description(row)
-
-                # --- Date ---
-                date = row[COL_DATE].strip() or None
-
-                # --- Image link ---
-                image_link = row[COL_IMAGES].strip() or None
-
-                # --- Indexing date (from "Date data entered") ---
-                indexing_date = row[COL_DATE_ENTERED].strip() or None
-
-                # --- Indexing notes (from "Source of data entered") ---
-                source_of_data = row[COL_SOURCE_OF_DATA].strip()
-                indexing_notes = (
-                    f"Source of data: {source_of_data}" if source_of_data else None
-                )
-
-                # --- Create or update the Source ---
-                source, was_created = Source.objects.update_or_create(
-                    holding_institution=institution,
-                    shelfmark=shelfmark,
-                    defaults={
-                        "source_completeness": completeness,
-                        "provenance_notes": provenance_notes,
-                        "date": date,
-                        "description": description or None,
-                        "image_link": image_link,
-                        "indexing_date": indexing_date,
-                        "indexing_notes": indexing_notes,
-                        "source_status": "Unpublished / No indexing activity",
-                        "published": True,
-                    },
-                )
-
-                if was_created:
-                    created_count += 1
-                else:
-                    updated_count += 1
-
-                # --- Segment (Cantorales) ---
-                source.segment_m2m.add(cantorales_segment)
-
-                # --- Centuries ---
-                century_names = parse_centuries(row[COL_CENTURY].strip())
-                for cname in century_names:
-                    century_obj = century_by_name.get(cname)
-                    if century_obj:
-                        source.century.add(century_obj)
-                    else:
-                        self.stdout.write(
-                            f"  Row {row_num}: century not found: {cname!r}"
-                        )
-
-                # --- Archive permalink → SourceURL ---
-                archive_link = row[COL_ARCHIVE_LINK].strip()
-                if archive_link:
-                    SourceURL.objects.get_or_create(
-                        source=source,
-                        url=archive_link,
-                        defaults={
-                            "url_type": SourceURL.URLTypes.HOST_INSTITUTION_RECORD,
-                        },
+                    source = Source.objects.create(
+                        holding_institution=institution,
+                        shelfmark=shelfmark,
+                        source_completeness=completeness,
+                        provenance_notes=provenance_notes,
+                        date=date,
+                        description=description or None,
+                        indexing_date=indexing_date,
+                        indexing_notes=indexing_notes,
+                        source_status="Unpublished / No indexing activity",
+                        published=True,
                     )
 
-                # --- Link contributor users ---
-                contributor_raw = row[COL_CONTRIBUTOR].strip()
-                if contributor_raw:
-                    for name in re.split(r",\s*", contributor_raw):
-                        name = name.strip()
-                        if name in contributor_users:
-                            source.source_data_contributed_by.add(
-                                contributor_users[name]
+                    # --- Segment (Cantorales) ---
+                    source.segment_m2m.add(cantorales_segment)
+
+                    # --- Centuries ---
+                    century_names = parse_centuries(row[COL_CENTURY].strip())
+                    for cname in century_names:
+                        century_obj = century_by_name.get(cname)
+                        if century_obj:
+                            source.century.add(century_obj)
+                        else:
+                            self.stdout.write(
+                                f"  Row {row_num}: century not found: {cname!r}"
                             )
 
-                verb = "Created" if was_created else "Updated"
-                self.stdout.write(f"  {verb} source: {source} (row {row_num})")
+                    # --- Archive permalink → SourceURL ---
+                    archive_link = row[COL_ARCHIVE_LINK].strip()
+                    if archive_link:
+                        SourceURL.objects.get_or_create(
+                            source=source,
+                            url=archive_link,
+                            defaults={
+                                "url_type": SourceURL.URLTypes.HOST_INSTITUTION_RECORD,
+                            },
+                        )
+
+                    # --- Images → SourceURL ---
+                    if image_link:
+                        SourceURL.objects.get_or_create(
+                            source=source,
+                            url=image_link,
+                            defaults={
+                                "url_type": SourceURL.URLTypes.EXTERNAL_IMAGES,
+                            },
+                        )
+
+                    # --- Link contributor users ---
+                    # Accounts are created here rather than up front so a
+                    # skipped row leaves no stub User behind, matching the
+                    # deferred Institution creation above.
+                    contributor_raw = row[COL_CONTRIBUTOR].strip()
+                    if contributor_raw:
+                        for name in re.split(r",\s*", contributor_raw):
+                            name = name.strip()
+                            if not name:
+                                continue
+                            user = contributor_users.get(name)
+                            if user is None:
+                                user, was_created = self._get_or_create_contributor(
+                                    name, contributor_emails.get(name)
+                                )
+                                contributor_users[name] = user
+                                user_created_count += was_created
+                            source.source_data_contributed_by.add(user)
+
+                    reversion.set_comment("import_cantorales: issue #2059")
+
+                created_count += 1
+                self.stdout.write(f"  Created source: {source} (row {row_num})")
 
         self.stdout.write("")
         self.stdout.write(
-            f"Done. Created {created_count}, updated {updated_count}, "
-            f"skipped {skipped_count}. "
-            f"New institutions: {institution_created_count}."
+            f"Done. Created {created_count}, "
+            f"skipped {skipped_existing_count} already-existing, "
+            f"skipped {skipped_count} invalid. "
+            f"New institutions: {institution_created_count}. "
+            f"New users: {user_created_count}."
         )
 
-    def _ensure_contributor_users(self, csv_path):
+    def _read_contributor_emails(self, csv_path: str) -> dict[str, str]:
         """
-        Create User accounts (unusable passwords) for each individual
-        contributor in the CSV.  Returns {full_name: User}.
+        Return {full_name: email} for contributors the CSV gives an email for.
 
         The CSV often lists multiple people in one contributor field
-        ("Victor Williams, Milton Gomez") with a single shared email.
-        When a person appears as the sole contributor on at least one
-        row we use that email; otherwise a .invalid placeholder is used.
+        ("Victor Williams, Milton Gomez") with a single shared email, which
+        tells us nothing about which address belongs to whom. Only a row where
+        someone is the *sole* contributor identifies their email, so that is
+        the only case recorded here; everyone else gets a .invalid placeholder
+        at creation time.
+
+        This pass reads the whole CSV but writes nothing: a name may appear on
+        several rows, and we need the sole-contributor row to resolve an email
+        even when a different row is the one being imported.
         """
-        # First pass: collect {name: set(emails)} and sole-row emails
-        name_emails = {}
-        sole_email = {}
+        sole_email: dict[str, str] = {}
         with open(csv_path, newline="", encoding="utf-8-sig") as f:
             reader = csv.reader(f)
             next(reader)
@@ -380,25 +477,28 @@ class Command(BaseCommand):
                 if not raw_names:
                     continue
                 names = [n.strip() for n in re.split(r",\s*", raw_names) if n.strip()]
-                for name in names:
-                    name_emails.setdefault(name, set()).add(email)
                 if len(names) == 1 and email:
                     sole_email.setdefault(names[0], email)
+        return sole_email
 
-        # Second pass: create or look up User for each name
-        users = {}
-        for full_name in name_emails:
-            user = User.objects.filter(full_name=full_name).first()
-            if not user:
-                email = sole_email.get(full_name)
-                if not email or User.objects.filter(email=email).exists():
-                    slug = full_name.lower().replace(" ", ".")
-                    email = f"{slug}@cantorales-contributor.invalid"
-                user = User.objects.create_user(
-                    email=email,
-                    full_name=full_name,
-                    password=None,  # unusable password
-                )
-                self.stdout.write(f"  Created user: {full_name} <{email}>")
-            users[full_name] = user
-        return users
+    def _get_or_create_contributor(
+        self, full_name: str, email: Optional[str]
+    ) -> tuple[User, bool]:
+        """
+        Look up the contributor by name, creating a stub account (unusable
+        password) if they have none. Returns (user, was_created).
+        """
+        user = User.objects.filter(full_name=full_name).first()
+        if user is not None:
+            return user, False
+
+        if not email or User.objects.filter(email=email).exists():
+            slug = full_name.lower().replace(" ", ".")
+            email = f"{slug}@cantorales-contributor.invalid"
+        user = User.objects.create_user(
+            email=email,
+            full_name=full_name,
+            password=None,  # unusable password
+        )
+        self.stdout.write(f"  Created user: {full_name} <{email}>")
+        return user, True
