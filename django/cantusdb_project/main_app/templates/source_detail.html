@@ -13,7 +13,7 @@
             {% for message in messages %}{{ message }}{% endfor %}
         </div>
     {% endif %}
-    <h3 class="font-serif">{{ source.heading }}</h3>
+    <h3>{{ source.heading }}</h3>
     {% if user_can_edit_source %}
         <p>
             View | <a href="{% url 'source-edit' source.id %}">Edit</a>
@@ -36,7 +36,7 @@
                 {{ source.get_production_method_display }}
             </dd>
         {% endif %}
-        <dt>Complete Source/Fragment</dt>
+        <dt>Physical Status</dt>
         <dd>
             {{ source.get_source_completeness_display }}
         </dd>
@@ -143,7 +143,7 @@
 {% block lowersidebar %}
     <div class="card mb-3 w-100">
         <div class="card-header">
-            <h4 class="font-serif">{{ source.short_heading }}</h4>
+            <h4>{{ source.short_heading }}</h4>
         </div>
         <div class="card-body small">
             {% if has_chants %}
@@ -174,30 +174,41 @@
             {% if source.exists_on_cantus_ultimus %}
                 <a href="https://cantus.simssa.ca/manuscript/{{ source.id }}"
                    class="guillemet"
-                   target="_blank">View inventory with images</a>
+                   target="_blank">Image with Inventory (Cantus Ultimus)</a>
             {% endif %}
             {% for link in source.source_links.all %}
-                {% if link.url_type == 1 %}
-                    {# IIIF Manifest #}
+                {% if link.url_type == link.URLTypes.IIIF_MANIFEST %}
                     <a href="{% static 'viewer/uv.html' %}#?manifest={{ link.url }}"
                        class="guillemet"
                        target="_blank">
+                        View in IIIF Viewer
                         <img src="{% static 'iiif.png' %}"
                              alt="IIIF icon"
                              style="height: 1em;
                                     vertical-align: middle" />
-                        View Images on Cantus Database
                     </a>
+                {% elif link.url_type == link.URLTypes.EXTERNAL_IMAGES %}
+                    {% comment %} Same label as the legacy image_link below, so a
+                    source's image gallery reads identically however it's recorded. {% endcomment %}
+                    <a href="{{ link.url }}"
+                       class="guillemet"
+                       target="_blank"
+                       rel="noopener noreferrer">View images on external site</a>
                 {% else %}
                     <a href="{{ link.url }}" class="guillemet" target="_blank">
                         {{ link.get_url_type_display }}
                     </a>
                 {% endif %}
             {% endfor %}
+            {% if source.show_legacy_image_link %}
+                <a href="{{ source.image_link }}"
+                   class="guillemet"
+                   target="_blank"
+                   rel="noopener noreferrer">View images on external site</a>
+            {% endif %}
             <a href="{% url "csv-export" source.id %}"
                class="guillemet"
-               target="_blank"
-               download="{{ source.id }}.csv">CSV export</a>
+               target="_blank">CSV export</a>
             <a href="{% url "chant-search-ms" source.id %}"
                class="guillemet"
                target="_blank">Search chants in this source</a>
@@ -210,7 +221,7 @@
         </div>
     </div>
     <div class="card mb-3 w-100">
-        <div class="card-header font-serif">
+        <div class="card-header">
             <b>{{ source.short_heading }}</b>
         </div>
         <div class="card-body small">
@@ -274,7 +285,7 @@
             </ul>
         {% endif %}
         {% if source.melodies_entered_by.exists %}
-            Melodies entered by:
+            Melodies transcribed by:
             <ul class="mb-0">
                 {% for editor in source.melodies_entered_by.all %}
                     <li>
@@ -373,7 +384,7 @@
 </div>
 {% if user_can_edit_chants %}
     <div class="card w-100">
-        <div class="card-header font-serif">
+        <div class="card-header">
             Source edit options
             <br />
             <b>{{ source.short_heading }}</b>

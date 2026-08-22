@@ -9,6 +9,7 @@ from main_app.models import (
     Service,
     Sequence,
     Source,
+    SourceURL,
 )
 from .make_fakes import (
     make_fake_century,
@@ -401,6 +402,69 @@ class SourceModelTest(TestCase):
         source = Source.objects.first()
         absolute_url = reverse("source-detail", args=[str(source.id)])
         self.assertEqual(source.get_absolute_url(), absolute_url)
+
+
+class SourceExternalImagesTest(TestCase):
+    """Tests for the two properties that reconcile the legacy `image_link`
+    field with `SourceURL(EXTERNAL_IMAGES)`, which supersedes it.
+    """
+
+    LEGACY = "https://example.com/legacy-images"
+    SOURCE_URL = "https://example.com/source-url-images"
+
+    def _make_source_url(self, source, url_type, url=SOURCE_URL):
+        return SourceURL.objects.create(source=source, url=url, url_type=url_type)
+
+    def test_legacy_field_used_when_no_source_links(self):
+        source = make_fake_source(image_link=self.LEGACY)
+        self.assertEqual(source.external_images_url, self.LEGACY)
+        self.assertIs(source.show_legacy_image_link, True)
+
+    def test_source_url_supersedes_legacy_field(self):
+        source = make_fake_source(image_link=self.LEGACY)
+        self._make_source_url(source, SourceURL.URLTypes.EXTERNAL_IMAGES)
+        # Pages rendering a single link follow the SourceURL...
+        self.assertEqual(source.external_images_url, self.SOURCE_URL)
+        # ...and pages that render source_links themselves drop the legacy one,
+        # rather than showing the same gallery twice.
+        self.assertIs(source.show_legacy_image_link, False)
+
+    def test_source_url_used_when_legacy_field_empty(self):
+        source = make_fake_source(image_link="")
+        self._make_source_url(source, SourceURL.URLTypes.EXTERNAL_IMAGES)
+        self.assertEqual(source.external_images_url, self.SOURCE_URL)
+        self.assertIs(source.show_legacy_image_link, False)
+
+    def test_other_url_types_do_not_supersede_legacy_field(self):
+        source = make_fake_source(image_link=self.LEGACY)
+        self._make_source_url(source, SourceURL.URLTypes.IIIF_MANIFEST)
+        self._make_source_url(source, SourceURL.URLTypes.HOST_INSTITUTION_RECORD)
+        self.assertEqual(source.external_images_url, self.LEGACY)
+        self.assertIs(source.show_legacy_image_link, True)
+
+    def test_no_images_anywhere(self):
+        source = make_fake_source(image_link="")
+        # Both properties are used as `{% if %}` conditions, so a blank
+        # image_link must not leak "" through as the URL.
+        self.assertIsNone(source.external_images_url)
+        self.assertIs(source.show_legacy_image_link, False)
+
+    def test_null_legacy_field(self):
+        # image_link is null=True, so None is reachable as well as "".
+        source = make_fake_source(image_link=None)
+        self.assertIsNone(source.external_images_url)
+        self.assertIs(source.show_legacy_image_link, False)
+
+    def test_reads_prefetch_cache_without_extra_queries(self):
+        # Both properties iterate source_links in Python rather than filtering
+        # in SQL precisely so a prefetching view pays no per-source query. A
+        # .filter() here would still pass every test above.
+        source = make_fake_source(image_link=self.LEGACY)
+        self._make_source_url(source, SourceURL.URLTypes.EXTERNAL_IMAGES)
+        prefetched = Source.objects.prefetch_related("source_links").get(id=source.id)
+        with self.assertNumQueries(0):
+            self.assertEqual(prefetched.external_images_url, self.SOURCE_URL)
+            self.assertIs(prefetched.show_legacy_image_link, False)
 
 
 class ChantSequenceSyncTest(TestCase):

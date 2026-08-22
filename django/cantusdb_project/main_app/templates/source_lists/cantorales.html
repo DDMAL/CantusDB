@@ -237,9 +237,9 @@
                             </div>
                             <div class="col-lg-4">
                                 <label for="sourceCompletenessFilter" class="small form-label">
-                                    Complete Source/Fragment
+                                    Physical Status
                                 </label>
-                                <div class="input-group" id="sourceCompletenessFilter">
+                                <div class="d-flex flex-wrap" id="sourceCompletenessFilter">
                                     {% for source_completeness_value, source_completeness_label in source_completeness_choices %}
                                         <div class="form-check form-check-inline">
                                             <input type="checkbox"
@@ -321,8 +321,10 @@
                                             {% endif %}
                                         </td>
                                         <td class="text-wrap" style="text-align:center">
-                                            {% if source.image_link %}
-                                                <a href="{{ source.image_link }}" target="_blank">Images</a>
+                                            {% if source.external_images_url %}
+                                                <a href="{{ source.external_images_url }}"
+                                                   target="_blank"
+                                                   rel="noopener noreferrer">Images</a>
                                             {% endif %}
                                         </td>
                                         <td class="text-wrap" style="text-align:center">

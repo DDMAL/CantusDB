@@ -275,19 +275,26 @@ def get_feast_selector_options(source: Source) -> list[tuple[int, str, str]]:
     chant_set_w_feasts: QuerySet[Chant, tuple[int, str]] = source.chant_set.exclude(
         feast=None
     ).values_list("feast_id", "feast__name")
-    feasts_agg_folios: Iterator[tuple[int, str, list[str]]] = (
-        chant_set_w_feasts.annotate(folios=ArrayAgg("folio", distinct=True))
+    # A chant may have a feast but no folio (folio is nullable/blank). Such
+    # values must be kept out of the aggregate: create_folio_ranges indexes
+    # into each folio string and would raise on None or "".
+    feasts_agg_folios: Iterator[tuple[int, str, Optional[list[str]]]] = (
+        chant_set_w_feasts.annotate(
+            folios=ArrayAgg(
+                "folio", distinct=True, filter=~Q(folio=None) & ~Q(folio="")
+            )
+        )
         .order_by("folios")
         .iterator()
     )
     feasts_with_folio_range = []
-    for feast_with_folio in feasts_agg_folios:
+    for feast_id, feast_name, folios in feasts_agg_folios:
+        # A feast whose chants all lack folios aggregates to None (array_agg
+        # returns NULL when the filter matches no rows).
+        if not folios:
+            continue
         feasts_with_folio_range.append(
-            (
-                feast_with_folio[0],
-                feast_with_folio[1],
-                create_folio_ranges(feast_with_folio[2]),
-            )
+            (feast_id, feast_name, create_folio_ranges(folios))
         )
     return feasts_with_folio_range
 

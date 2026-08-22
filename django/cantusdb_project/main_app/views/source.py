@@ -7,7 +7,6 @@ from django.conf import settings
 from django.contrib import messages
 from django.contrib.auth.mixins import UserPassesTestMixin
 from django.db.models import Q, Prefetch, QuerySet, Value, Min, Max
-from django.db.models.functions import Coalesce
 from django.http import (
     HttpResponseRedirect,
     Http404,
@@ -309,6 +308,7 @@ class SourceDetailView(CustomAccessMixin, JSONResponseMixin, DetailView):  # typ
                 "melodies_entered_by",
                 "other_editors",
                 "description_entered_by",
+                "source_links",
             )
             .all()
         )
@@ -458,11 +458,19 @@ class SourceListView(CustomAccessMixin, ListView):  # type: ignore[type-arg]
         # the URL and the field doesn't even appear in those templates.
         segment_active = not self.segment and bool(self.request.GET.get("segment"))
 
+        # The radio group always submits a value once touched; "all" is its
+        # default, so only a non-default value counts as active.
+        inventoried_active = self.request.GET.get("inventoried") in (
+            "inventoried",
+            "nonInventoried",
+        )
+
         context["advanced_search_active"] = (
             any(self.request.GET.get(field) for field in SOURCE_ADVANCED_SEARCH_FIELDS)
             or self.date_range_active
             or source_completeness_active
             or segment_active
+            or inventoried_active
         )
         return context
 
@@ -518,6 +526,11 @@ class SourceListView(CustomAccessMixin, ListView):  # type: ignore[type-arg]
             q_obj_filter &= Q(source_completeness__in=source_completeness)
         if production_method := self.request.GET.get("prodMethod"):
             q_obj_filter &= Q(production_method=production_method)
+        inventoried_filter = self.request.GET.get("inventoried")
+        if inventoried_filter == "nonInventoried":
+            q_obj_filter &= Q(number_of_chants__isnull=True) | Q(number_of_chants=0)
+        elif inventoried_filter == "inventoried":
+            q_obj_filter &= Q(number_of_chants__gt=0)
 
         if general_str := self.request.GET.get("general"):
             # Strip leading/trailing spaces and collapse internal whitespace
@@ -653,19 +666,18 @@ class SourceListView(CustomAccessMixin, ListView):  # type: ignore[type-arg]
         sort_prefix = "-" if sort_desc else ""
 
         if order_param == "country":
-            # When ordering by country, we use COALESCE to replace NULL sigla with ""
-            # so that private collectors (who have no siglum) sort before institutions
-            # with sigla within the same country group. This matches Python's sort
-            # behaviour, which also treats private collectors as "" for ordering.
-            # Previously, the siglum field was used directly (i.e.,
-            # "holding_institution__siglum"), which caused PostgreSQL's NULLS LAST
-            # default to place private collectors after all institutions with sigla —
-            # the opposite of what the Python sort produces.
-            siglum_coalesced = Coalesce("holding_institution__siglum", Value(""))
+            # Order private collectors (whose siglum is NULL) after institutions
+            # with sigla within the same country group. PostgreSQL's native default
+            # already does this: NULLS LAST for ascending order, NULLS FIRST for
+            # descending order, which matches the Python sort used in tests
+            # (`(siglum is None, siglum or "")`) once the whole list is reversed
+            # for a descending sort. A final `id` tiebreaker keeps ordering
+            # deterministic when country/siglum/shelfmark are all equal.
             order_by_args = [
                 f"{sort_prefix}holding_institution__country",
-                siglum_coalesced.desc() if sort_desc else siglum_coalesced.asc(),
+                f"{sort_prefix}holding_institution__siglum",
                 f"{sort_prefix}shelfmark",
+                f"{sort_prefix}id",
             ]
         elif order_param == "city_institution":
             order_by_args = [
@@ -673,11 +685,13 @@ class SourceListView(CustomAccessMixin, ListView):  # type: ignore[type-arg]
                 f"{sort_prefix}holding_institution__name",
                 f"{sort_prefix}holding_institution__siglum",
                 f"{sort_prefix}shelfmark",
+                f"{sort_prefix}id",
             ]
         else:
             order_by_args = [
                 f"{sort_prefix}holding_institution__siglum",
                 f"{sort_prefix}shelfmark",
+                f"{sort_prefix}id",
             ]
 
         return (
@@ -685,7 +699,10 @@ class SourceListView(CustomAccessMixin, ListView):  # type: ignore[type-arg]
             .order_by(*order_by_args)
             .distinct()
             .prefetch_related(
-                Prefetch("century", queryset=Century.objects.all().order_by("id"))
+                Prefetch("century", queryset=Century.objects.all().order_by("id")),
+                # Read by Source.external_images_url for the sidebar/table image
+                # link; without it each source on the page costs a query.
+                "source_links",
             )
         )
 

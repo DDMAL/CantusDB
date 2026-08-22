@@ -3,17 +3,20 @@ Test views in views/source.py
 """
 
 import random
+import re
 
 from faker import Faker
 from typing import Dict
 
 from django.conf import settings
+from django.db import connection
 from django.test import TestCase
+from django.test.utils import CaptureQueriesContext
 from django.urls import reverse
 from django.core.exceptions import ObjectDoesNotExist
 from django.contrib.auth import get_user_model
 
-from main_app.models import Source, Chant, Differentia, SourceIdentifier
+from main_app.models import Source, Chant, Differentia, SourceIdentifier, SourceURL
 from main_app.tests.make_fakes import (
     make_fake_source,
     make_fake_segment,
@@ -36,6 +39,33 @@ from users.models import User as UserAnnotation
 
 # Create a Faker instance with locale set to Latin
 faker = Faker("la")
+
+
+class CsvExportLinkTestMixin:
+    """
+    A mixin for pages that link to a source's CSV export.
+    """
+
+    def assertCsvExportLinkHasNoDownloadAttribute(
+        self, html: str, source_id: int
+    ) -> None:
+        """
+        Assert the page's CSV export link carries no ``download`` attribute.
+
+        ``csv_export`` names the downloaded file via ``Content-Disposition``; a
+        client-side ``download`` attribute on the link would override it.
+
+        :param html: The rendered HTML of the page containing the link.
+        :param source_id: The ID of the source the export link points to.
+        """
+        # Scope the assertion to the export anchor rather than the whole page.
+        csv_url = reverse("csv-export", args=[source_id])
+        match = re.search(rf'<a\b[^>]*href="{re.escape(csv_url)}"[^>]*>', html)
+        anchor_tag = match.group(0) if match else ""
+        self.assertTrue(anchor_tag, "CSV export link not found in the response")
+        # `\sdownload\b` matches the attribute with or without a value, but not
+        # attribute names that merely contain the word, e.g. `data-download-name`.
+        self.assertNotRegex(anchor_tag, r"\sdownload\b")
 
 
 class SourcePermissionsTestCase(CustomAccessTestMixin, TestCase):
@@ -159,7 +189,7 @@ class SourceCreateViewTest(TestCase):
         self.assertNotIn(settings.BENEDICAMUS_DOMINO_SEGMENT_ID, segment_ids)
 
 
-class SourceEditViewTest(CustomAccessTestMixin, TestCase):
+class SourceEditViewTest(CsvExportLinkTestMixin, CustomAccessTestMixin, TestCase):
     default_user = "editor"
     sources: Dict[str, Source]
 
@@ -224,6 +254,14 @@ class SourceEditViewTest(CustomAccessTestMixin, TestCase):
         self.assertEqual(response.status_code, 404)
         self.assertTemplateUsed(response, "404.html")
 
+    def test_csv_export_link_uses_response_filename(self) -> None:
+        source = self.sources["editor_assigned_source"]
+        response = self.client.get(reverse("source-edit", args=[source.id]))
+
+        self.assertCsvExportLinkHasNoDownloadAttribute(
+            response.content.decode("utf-8"), source.id
+        )
+
     def test_edit_source(self) -> None:
         source = self.sources["editor_assigned_source"]
         response = self.client.post(
@@ -256,7 +294,7 @@ class SourceEditViewTest(CustomAccessTestMixin, TestCase):
         self.assertNotIn(settings.BENEDICAMUS_DOMINO_SEGMENT_ID, segment_ids)
 
 
-class SourceDetailViewTest(SourcePermissionsTestCase):
+class SourceDetailViewTest(CsvExportLinkTestMixin, SourcePermissionsTestCase):
     view_name = "source-detail"
 
     def test_permissions(self) -> None:
@@ -268,6 +306,14 @@ class SourceDetailViewTest(SourcePermissionsTestCase):
         self.assertEqual(response.status_code, 200)
         self.assertTemplateUsed(response, "base.html")
         self.assertTemplateUsed(response, "source_detail.html")
+
+    def test_csv_export_link_uses_response_filename(self) -> None:
+        source = make_fake_source()
+        response = self.client.get(reverse("source-detail", args=[source.id]))
+
+        self.assertCsvExportLinkHasNoDownloadAttribute(
+            response.content.decode("utf-8"), source.id
+        )
 
     def test_context_chant_folios(self) -> None:
         # create a source and several chants in it
@@ -392,6 +438,95 @@ class SourceDetailViewTest(SourcePermissionsTestCase):
         self.assertIn("Notation (Bower):", html)
         self.assertIn(notation.name, html)
         self.assertNotIn(reverse("notation-detail", args=[notation.id]), html)
+
+    def test_image_link_displayed_when_no_source_links(self) -> None:
+        source = make_fake_source(image_link="https://example.com/images")
+        response = self.client.get(reverse("source-detail", args=[source.id]))
+        html = str(response.content)
+        self.assertIn("https://example.com/images", html)
+        self.assertIn("View images on external site", html)
+
+    def test_image_link_hidden_when_external_images_source_link_exists(self) -> None:
+        source = make_fake_source(image_link="https://example.com/images")
+        SourceURL.objects.create(
+            source=source,
+            url="https://example.com/external",
+            url_type=SourceURL.URLTypes.EXTERNAL_IMAGES,
+        )
+        response = self.client.get(reverse("source-detail", args=[source.id]))
+        html = str(response.content)
+        # The SourceURL supersedes the legacy field: its link renders and the
+        # legacy image_link does not, so the gallery link appears exactly once.
+        self.assertIn("https://example.com/external", html)
+        self.assertNotIn("https://example.com/images", html)
+        self.assertEqual(html.count("View images on external site"), 1)
+
+    def test_external_images_branch_does_not_leak_template_comment(self) -> None:
+        # Regression test: the EXTERNAL_IMAGES branch's explanatory comment must
+        # use {% comment %}, not a multi-line {# #} — Django only strips {# #}
+        # on a single line, so a multi-line one renders verbatim to the user.
+        source = make_fake_source(image_link="")
+        SourceURL.objects.create(
+            source=source,
+            url="https://example.com/external",
+            url_type=SourceURL.URLTypes.EXTERNAL_IMAGES,
+        )
+        response = self.client.get(reverse("source-detail", args=[source.id]))
+        html = response.content.decode("utf-8")
+        self.assertIn("View images on external site", html)
+        self.assertNotIn("Same label as the legacy", html)
+        self.assertNotIn("{#", html)
+
+    def test_image_link_displayed_when_only_non_image_source_link_exists(self) -> None:
+        source = make_fake_source(image_link="https://example.com/images")
+        SourceURL.objects.create(
+            source=source,
+            url="https://example.com/iiif/manifest.json",
+            url_type=SourceURL.URLTypes.IIIF_MANIFEST,
+        )
+        response = self.client.get(reverse("source-detail", args=[source.id]))
+        html = str(response.content)
+        self.assertIn("https://example.com/images", html)
+        self.assertIn("View images on external site", html)
+
+    def test_image_link_not_displayed_when_empty(self) -> None:
+        source = make_fake_source(image_link="")
+        response = self.client.get(reverse("source-detail", args=[source.id]))
+        html = str(response.content)
+        self.assertNotIn("View images on external site", html)
+        # The property is a template boolean; a blank image_link must not leak "" through.
+        self.assertIs(source.show_legacy_image_link, False)
+
+    def test_iiif_manifest_link_renders_viewer(self) -> None:
+        # Guards the template's url_type comparison: if it stops matching
+        # IIIF_MANIFEST, this link silently degrades to the generic {% else %}
+        # branch instead of the Universal Viewer.
+        source = make_fake_source(image_link="")
+        SourceURL.objects.create(
+            source=source,
+            url="https://example.com/iiif/manifest.json",
+            url_type=SourceURL.URLTypes.IIIF_MANIFEST,
+        )
+        response = self.client.get(reverse("source-detail", args=[source.id]))
+        html = response.content.decode("utf-8")
+        self.assertIn("viewer/uv.html", html)
+        self.assertIn("#?manifest=https://example.com/iiif/manifest.json", html)
+        self.assertIn("View in IIIF Viewer", html)
+        # The generic branch renders the url_type display name instead.
+        self.assertNotIn("IIIF Manifest</a>", html)
+
+    def test_non_iiif_source_link_renders_generic_label(self) -> None:
+        source = make_fake_source(image_link="")
+        SourceURL.objects.create(
+            source=source,
+            url="https://example.com/catalogue/record",
+            url_type=SourceURL.URLTypes.HOST_INSTITUTION_RECORD,
+        )
+        response = self.client.get(reverse("source-detail", args=[source.id]))
+        html = response.content.decode("utf-8")
+        self.assertIn("https://example.com/catalogue/record", html)
+        self.assertIn("Host Institution Record", html)
+        self.assertNotIn("viewer/uv.html", html)
 
 
 class SourceInventoryViewTest(HTMLContentsTestMixin, SourcePermissionsTestCase):
@@ -637,7 +772,7 @@ class SourceInventoryViewTest(HTMLContentsTestMixin, SourcePermissionsTestCase):
         self.assertTemplateUsed(response, "400.html")
 
 
-class SourceBrowseChantsViewTest(SourcePermissionsTestCase):
+class SourceBrowseChantsViewTest(CsvExportLinkTestMixin, SourcePermissionsTestCase):
     view_name = "browse-chants"
 
     def test_permissions(self) -> None:
@@ -671,6 +806,16 @@ class SourceBrowseChantsViewTest(SourcePermissionsTestCase):
         self.assertTemplateUsed(response, "base.html")
         self.assertTemplateUsed(response, "browse_chants.html")
 
+    def test_csv_export_link_uses_response_filename(self):
+        cantus_segment = make_fake_segment(id=4063)
+        source = make_fake_source(segment=[cantus_segment])
+        make_fake_chant(source=source)
+        response = self.client.get(reverse("browse-chants", args=[source.id]))
+
+        self.assertCsvExportLinkHasNoDownloadAttribute(
+            response.content.decode("utf-8"), source.id
+        )
+
     def test_chant_rows_have_anchor_ids(self):
         # SourceEditChantsView.get_success_url redirects to `#chant-<pk>` after an
         # edit, so each row must carry the matching anchor or the user lands at
@@ -681,6 +826,36 @@ class SourceBrowseChantsViewTest(SourcePermissionsTestCase):
         response = self.client.get(reverse("browse-chants", args=[source.id]))
         self.assertEqual(response.status_code, 200)
         self.assertContains(response, f'id="chant-{chant.id}"')
+
+    def test_external_images_link_prefers_source_url(self):
+        # This page renders a single images link and does not render
+        # source_links, so it must follow the SourceURL that supersedes
+        # image_link rather than showing the stale legacy URL.
+        cantus_segment = make_fake_segment(id=4063)
+        source = make_fake_source(
+            segment=[cantus_segment], image_link="https://example.com/legacy-images"
+        )
+        make_fake_chant(source=source)
+        SourceURL.objects.create(
+            source=source,
+            url="https://example.com/source-url-images",
+            url_type=SourceURL.URLTypes.EXTERNAL_IMAGES,
+        )
+        response = self.client.get(reverse("browse-chants", args=[source.id]))
+        html = response.content.decode("utf-8")
+        self.assertIn("https://example.com/source-url-images", html)
+        self.assertNotIn("https://example.com/legacy-images", html)
+
+    def test_external_images_link_falls_back_to_legacy_field(self):
+        cantus_segment = make_fake_segment(id=4063)
+        source = make_fake_source(
+            segment=[cantus_segment], image_link="https://example.com/legacy-images"
+        )
+        make_fake_chant(source=source)
+        response = self.client.get(reverse("browse-chants", args=[source.id]))
+        html = response.content.decode("utf-8")
+        self.assertIn("https://example.com/legacy-images", html)
+        self.assertIn("View images on external site", html)
 
     def test_visibility_by_segment(self):
         cantus_segment = make_fake_segment(id=4063)
@@ -928,6 +1103,38 @@ class SourceListViewTest(CustomAccessTestMixin, TestCase):
         self.assertEqual(response.status_code, 200)
         self.assertTemplateUsed(response, "base.html")
         self.assertTemplateUsed(response, "source_lists/source_list.html")
+
+    def test_images_column_prefers_source_url(self):
+        source = make_fake_source(
+            published=True, image_link="https://example.com/legacy-images"
+        )
+        SourceURL.objects.create(
+            source=source,
+            url="https://example.com/source-url-images",
+            url_type=SourceURL.URLTypes.EXTERNAL_IMAGES,
+        )
+        response = self.client.get(reverse("source-list"))
+        html = response.content.decode("utf-8")
+        self.assertIn("https://example.com/source-url-images", html)
+        self.assertNotIn("https://example.com/legacy-images", html)
+
+    def test_images_column_does_not_query_per_source(self):
+        # The Images column calls Source.external_images_url on every row, so
+        # the list queryset prefetches source_links. Without it this page costs
+        # one extra query per source, up to paginate_by = 100.
+        for _ in range(5):
+            source = make_fake_source(published=True)
+            SourceURL.objects.create(
+                source=source,
+                url="https://example.com/source-url-images",
+                url_type=SourceURL.URLTypes.EXTERNAL_IMAGES,
+            )
+        with CaptureQueriesContext(connection) as ctx:
+            self.client.get(reverse("source-list"))
+        source_link_queries = [
+            q for q in ctx.captured_queries if "main_app_sourceurl" in q["sql"]
+        ]
+        self.assertEqual(len(source_link_queries), 1, source_link_queries)
 
     def test_provenances_and_date_range_in_context(self):
         """`provenances` are options in the selector; `date_range_min`/`date_range_max`
@@ -1375,6 +1582,47 @@ class SourceListViewTest(CustomAccessTestMixin, TestCase):
             sources = response.context["sources"]
             self.assertNotIn(manuscript_source, sources)
             self.assertIn(print_source, sources)
+
+    def test_filter_by_inventoried(self) -> None:
+        inventoried_source = make_fake_source(number_of_chants=5, published=True)
+        zero_chants_source = make_fake_source(number_of_chants=0, published=True)
+        null_chants_source = make_fake_source(number_of_chants=None, published=True)
+
+        with self.subTest("No parameter: all sources shown"):
+            response = self.client.get(reverse("source-list"))
+            sources = response.context["sources"]
+            self.assertIn(inventoried_source, sources)
+            self.assertIn(zero_chants_source, sources)
+            self.assertIn(null_chants_source, sources)
+
+        with self.subTest("inventoried=all: all sources shown"):
+            response = self.client.get(reverse("source-list"), {"inventoried": "all"})
+            sources = response.context["sources"]
+            self.assertIn(inventoried_source, sources)
+            self.assertIn(zero_chants_source, sources)
+            self.assertIn(null_chants_source, sources)
+
+        with self.subTest(
+            "inventoried=inventoried: only sources with chants are shown"
+        ):
+            response = self.client.get(
+                reverse("source-list"), {"inventoried": "inventoried"}
+            )
+            sources = response.context["sources"]
+            self.assertIn(inventoried_source, sources)
+            self.assertNotIn(zero_chants_source, sources)
+            self.assertNotIn(null_chants_source, sources)
+
+        with self.subTest(
+            "inventoried=nonInventoried: sources with chants are excluded"
+        ):
+            response = self.client.get(
+                reverse("source-list"), {"inventoried": "nonInventoried"}
+            )
+            sources = response.context["sources"]
+            self.assertNotIn(inventoried_source, sources)
+            self.assertIn(zero_chants_source, sources)
+            self.assertIn(null_chants_source, sources)
 
     def test_search_by_title(self) -> None:
         """The "general search" field searches in `title`, `shelfmark`, `description`, and `summary`"""
