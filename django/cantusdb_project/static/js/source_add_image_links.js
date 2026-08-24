@@ -30,29 +30,98 @@ function getFormImgLinkInputs(form) {
 };
 
 
+function splitCSVRow(row, delimiter) {
+    // Split one CSV line into fields, respecting quoted fields (and doubled
+    // quotes within them). A plain `split` mis-handles IIIF image URLs, which
+    // routinely contain commas — e.g. `/full/500,/0/default.jpg` — and which
+    // Python's csv.writer therefore emits quoted.
+    // Known limitation: a quoted field containing a line break is not
+    // supported, since rows are split on newlines before reaching here.
+    const fields = [];
+    let field = '';
+    let inQuotes = false;
+    for (let i = 0; i < row.length; i++) {
+        const char = row[i];
+        if (inQuotes) {
+            if (char !== '"') {
+                field += char;
+            } else if (row[i + 1] === '"') {
+                field += '"';
+                i++;
+            } else {
+                inQuotes = false;
+            }
+        } else if (char === '"' && field === '') {
+            inQuotes = true;
+        } else if (char === delimiter) {
+            fields.push(field);
+            field = '';
+        } else {
+            field += char;
+        }
+    }
+    fields.push(field);
+    return fields;
+}
+
+function detectDelimiter(firstRow, imgLinkInputs) {
+    // Some locales (e.g. French) export semicolon-delimited CSVs, but both
+    // characters are legal inside a URL, so the delimiter can't be inferred
+    // from mere presence: a comma-delimited row whose link contains a
+    // semicolon would otherwise be split on the semicolon, swallowing the
+    // whole URL into the folio field.
+    const candidates = [',', ';'];
+    const firstFields = candidates.map(d => splitCSVRow(firstRow, d)[0].trim());
+    // A header row names the column outright.
+    const header = candidates.findIndex(
+        (_, i) => firstFields[i].toLowerCase() === 'folio'
+    );
+    if (header !== -1) return candidates[header];
+    // Otherwise, a first field naming a folio this source has is decisive.
+    const known = candidates.findIndex(
+        (_, i) => Object.prototype.hasOwnProperty.call(imgLinkInputs, firstFields[i])
+    );
+    if (known !== -1) return candidates[known];
+    // Failing both — the CSV may legitimately list folios the source lacks —
+    // prefer the delimiter giving the shorter first field. A folio is short;
+    // the losing split swallows the image URL, so it is much longer.
+    return firstFields[1].length < firstFields[0].length ? ';' : ',';
+}
+
 function parseAndPreviewImageLinkCSV(csv, imgLinkInputs) {
     // Parse the passed CSV file and display it in a table. 
     // Return two arrays: one with the folios and one with the image links
     // for use in testing functions.
     const rows = csv.split('\n');
-    const columns = rows[0].split(',');
-    // Check if a header row is present, by checking whether
-    // the second column is a URL
-    const start = columns[1].startsWith('http') ? 0 : 1;
+    // Work from the first row with content: a leading blank line would
+    // otherwise defeat both the delimiter and the header check below.
+    const firstRowIndex = rows.findIndex(row => row.trim());
+    const firstRow = firstRowIndex === -1 ? '' : rows[firstRowIndex];
+    const delimiter = detectDelimiter(firstRow, imgLinkInputs);
+    // Check if a header row is present by looking at the first column name.
+    // Sniffing the second column for a URL instead would swallow the first
+    // row of a headerless CSV whenever its image link is blank.
+    const firstColumn = firstRow.split(delimiter)[0].trim().toLowerCase();
+    let start;
+    if (firstRowIndex === -1) {
+        start = rows.length; // nothing but blank lines
+    } else {
+        start = firstColumn === 'folio' ? firstRowIndex + 1 : firstRowIndex;
+    }
     const tableBody = document.getElementById('csvPreviewBody');
-    // Clear the table and fill in the new data
-    // using this rough CSV parser. Note that since this
-    // function is meant to be used by just a few administrators,
-    // we aren't going to worry too much about parsing edge cases. 
-    // For example, note that we just parse at the first comma to split
-    // columns.
+    // Clear the table and fill in the new data. Only the first two columns
+    // are read; anything beyond them is ignored.
     tableBody.innerHTML = '';
     const parsedCSV = [];
     for (let i = start; i < rows.length; i++) {
-        const row = rows[i];
-        let [folio, imageLink] = row.split(',', 2);
-        folio = folio.trim();
-        imageLink = imageLink.trim();
+        const row = rows[i].trim();
+        if (!row) continue;
+        const fields = splitCSVRow(row, delimiter);
+        const folio = (fields[0] || '').trim();
+        if (!folio) continue;
+        // Any further columns (the generated IIIF CSV also carries `notes`
+        // and `canvas_label`) are for the administrator to read, not for us.
+        const imageLink = (fields[1] || '').trim();
         addPreviewTableRow(tableBody, folio, imageLink);
         const folioInput = imgLinkInputs[folio];
         if (folioInput) {
@@ -77,7 +146,7 @@ function getFoliosAtDuplicatedValues(array) {
         imageLinkCounts[imageLink] = (imageLinkCounts[imageLink] || 0) + 1;
     }
     const folioDuplicates = Object.keys(folioCounts).filter(folio => folioCounts[folio] > 1);
-    const imageLinkDuplicates = Object.keys(imageLinkCounts).filter(imageLink => imageLinkCounts[imageLink] > 1);
+    const imageLinkDuplicates = Object.keys(imageLinkCounts).filter(imageLink => imageLink !== '' && imageLinkCounts[imageLink] > 1);
     const folioWImageDuplicates = [];
     for (let i = 0; i < array.length; i++) {
         if (imageLinkDuplicates.includes(array[i].imageLink)) {
@@ -127,7 +196,7 @@ function csvLoadCallback(csv) {
     if (foliosWDupImageLinks.length === csvFolios.length) {
         displayCheckResults('imageLinkDuplication', [], "", "All image links identical");
     } else {
-        displayCheckResults('imageLinkDuplication', foliosWDupImageLinks, "Image links duplicated on the following subset of folios", "No image links duplicated");
+        displayCheckResults('imageLinkDuplication', foliosWDupImageLinks, "Image links duplicated on the following subset of folios");
     }
     document.getElementById('csvTestingDiv').hidden = false;
 }
