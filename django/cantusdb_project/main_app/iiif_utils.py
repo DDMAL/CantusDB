@@ -20,13 +20,11 @@ MAX_MANIFEST_BYTES = 50 * 1024 * 1024
 
 # Some IIIF hosts (e.g. IRHT/Biblissima's api.irht.cnrs.fr) sit behind an
 # anti-bot guard that serves HTTP 403 to the default python-requests
-# User-Agent. Sending a browser-like User-Agent gets the real manifest.
+# User-Agent. We identify honestly as CantusDB using the conventional
+# "Mozilla/5.0 (compatible; <bot>; +<url>)" bot format, which clears the
+# guard while telling the host who is fetching (and where to complain).
 _REQUEST_HEADERS = {
-    "User-Agent": (
-        "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) "
-        "AppleWebKit/537.36 (KHTML, like Gecko) "
-        "Chrome/120.0.0.0 Safari/537.36"
-    ),
+    "User-Agent": "Mozilla/5.0 (compatible; CantusDB; +https://cantusdatabase.org)",
     "Accept": "application/json, application/ld+json, */*",
 }
 
