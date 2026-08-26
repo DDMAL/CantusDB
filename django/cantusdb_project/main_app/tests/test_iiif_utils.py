@@ -613,6 +613,23 @@ class SourceIIIFMappingViewTest(CustomAccessTestMixin, TestCase):
         self.assertEqual(response.status_code, 302)
 
     @patch("main_app.views.source.fetch_manifest")
+    def test_error_message_rendered_on_redirect_target(
+        self, mock_fetch: MagicMock
+    ) -> None:
+        # Regression test for #2247: a mapping failure must surface in context
+        # on the Add Image Links page (the redirect target), styled as an error
+        # alert — not leak to a later page rendered as plain concatenated text.
+        mock_fetch.side_effect = requests.RequestException("Connection failed")
+        response = self.client.get(
+            reverse("source-iiif-mapping", args=[self.source.id]),
+            follow=True,
+        )
+        self.assertEqual(response.status_code, 200)
+        self.assertTemplateUsed(response, "source_add_image_links.html")
+        self.assertContains(response, "Failed to fetch IIIF manifest.")
+        self.assertContains(response, "alert-danger")
+
+    @patch("main_app.views.source.fetch_manifest")
     def test_oversized_manifest_redirects_with_error(
         self, mock_fetch: MagicMock
     ) -> None:
@@ -652,3 +669,16 @@ class SourceIIIFMappingViewTest(CustomAccessTestMixin, TestCase):
             reverse("source-iiif-mapping", args=[self.source.id])
         )
         self.assertEqual(response.status_code, 302)
+
+    @patch("main_app.views.source.fetch_manifest")
+    def test_error_message_renders_on_redirect_target(
+        self, mock_fetch: MagicMock
+    ) -> None:
+        # The redirect lands on source-add-image-links, which must render the
+        # message. If it doesn't, the message is never consumed and piles up,
+        # surfacing later en masse on another page (issue #2246).
+        mock_fetch.side_effect = requests.RequestException("Connection failed")
+        response = self.client.get(
+            reverse("source-iiif-mapping", args=[self.source.id]), follow=True
+        )
+        self.assertContains(response, "Failed to fetch IIIF manifest.")
