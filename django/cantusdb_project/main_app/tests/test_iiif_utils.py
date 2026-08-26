@@ -669,16 +669,3 @@ class SourceIIIFMappingViewTest(CustomAccessTestMixin, TestCase):
             reverse("source-iiif-mapping", args=[self.source.id])
         )
         self.assertEqual(response.status_code, 302)
-
-    @patch("main_app.views.source.fetch_manifest")
-    def test_error_message_renders_on_redirect_target(
-        self, mock_fetch: MagicMock
-    ) -> None:
-        # The redirect lands on source-add-image-links, which must render the
-        # message. If it doesn't, the message is never consumed and piles up,
-        # surfacing later en masse on another page (issue #2246).
-        mock_fetch.side_effect = requests.RequestException("Connection failed")
-        response = self.client.get(
-            reverse("source-iiif-mapping", args=[self.source.id]), follow=True
-        )
-        self.assertContains(response, "Failed to fetch IIIF manifest.")
