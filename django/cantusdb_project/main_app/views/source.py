@@ -772,6 +772,12 @@ class SourceDeleteView(CustomAccessMixin, DeleteView):  # type: ignore[type-arg]
         return self.user_is_editor and self.user_assigned_to_source(self.get_object())
 
 
+PROOFREADING_SUBMITTED_MESSAGE = (
+    "Source submitted for proofreading. You can still view it, but "
+    "editing is now locked until an editor picks it up."
+)
+
+
 class SourceEditView(CustomAccessMixin, UpdateView):  # type: ignore[type-arg]
     template_name = "source_edit.html"
     model = Source
@@ -810,6 +816,13 @@ class SourceEditView(CustomAccessMixin, UpdateView):  # type: ignore[type-arg]
     def form_valid(self, form):
         form.instance.last_updated_by = self.request.user
         form.save()
+        if "submit_for_proofreading" in self.request.POST:
+            # The button lives inside this form, so save the indexer's
+            # pending corrections before locking the source (issue #1962).
+            source = form.instance
+            source.submit_for_proofreading(self.request.user)
+            messages.success(self.request, PROOFREADING_SUBMITTED_MESSAGE)
+            return HttpResponseRedirect(reverse("source-detail", args=[source.id]))
         return HttpResponseRedirect(self.get_success_url())
 
 
@@ -834,15 +847,8 @@ class SourceSubmitForProofreadingView(CustomAccessMixin, SingleObjectMixin, View
 
     def post(self, request: HttpRequest, *args: Any, **kwargs: Any) -> HttpResponse:
         source = self.get_object()
-        source.source_status = Source.PROOFREAD_PENDING_STATUS
-        source.last_updated_by = request.user
-        source.save(update_fields=["source_status", "last_updated_by"])
-
-        messages.success(
-            request,
-            "Source submitted for proofreading. You can still view it, but "
-            "editing is now locked until an editor picks it up.",
-        )
+        source.submit_for_proofreading(request.user)
+        messages.success(request, PROOFREADING_SUBMITTED_MESSAGE)
         return HttpResponseRedirect(reverse("source-detail", args=[source.id]))
 
 
