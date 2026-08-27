@@ -333,8 +333,8 @@ class SourceSubmitForProofreadingViewTest(CustomAccessTestMixin, TestCase):
                 "source-submit-for-proofreading",
                 args=[self.sources["user_assigned_source"].id],
             ),
-            get_allowed_users=["superuser"],
-            post_allowed_users=["superuser"],
+            get_allowed_users=["user", "superuser"],
+            post_allowed_users=["user", "superuser"],
             test_name="User assigned source",
         )
         self.run_request_permissions_test(
