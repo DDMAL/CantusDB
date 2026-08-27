@@ -199,15 +199,13 @@ class SourceEditViewTest(CsvExportLinkTestMixin, CustomAccessTestMixin, TestCase
         cls.sources = {
             "unassigned_source": make_fake_source(),
             "user_assigned_source": make_fake_source(
-                current_editors=[cls.users["user"]],
-                source_status=Source.source_status_choices[0][0],
+                current_editors=[cls.users["user"]]
             ),
             "editor_assigned_source": make_fake_source(
                 current_editors=[cls.users["editor"]]
             ),
             "user_created_source": make_fake_source(
-                current_editors=[cls.users["user"]],
-                source_status=Source.source_status_choices[0][0],
+                current_editors=[cls.users["user"]]
             ),
         }
         cls.sources["user_created_source"].created_by = cls.users["user"]
@@ -312,7 +310,8 @@ class SourceSubmitForProofreadingViewTest(CustomAccessTestMixin, TestCase):
                 current_editors=[cls.users["editor"]]
             ),
             "user_created_source": make_fake_source(
-                current_editors=[cls.users["user"], cls.users["editor"]]
+                current_editors=[cls.users["user"], cls.users["editor"]],
+                published=False,
             ),
         }
         cls.sources["user_created_source"].created_by = cls.users["user"]
@@ -376,6 +375,87 @@ class SourceSubmitForProofreadingViewTest(CustomAccessTestMixin, TestCase):
         self.client.force_login(user=self.users["editor"])
         editor_edit_response = self.client.get(reverse("source-edit", args=[source.id]))
         self.assertEqual(editor_edit_response.status_code, 200)
+
+    def test_submit_records_submitting_user(self) -> None:
+        source = self.sources["user_created_source"]
+        self.client.force_login(user=self.users["user"])
+        self.client.post(reverse("source-submit-for-proofreading", args=[source.id]))
+        source.refresh_from_db()
+        self.assertEqual(source.last_updated_by, self.users["user"])
+
+    def test_submit_bumps_date_updated(self) -> None:
+        # "My sources" orders by `-date_updated`, so a submitted source has to
+        # float to the top of the queue it is meant to create.
+        source = self.sources["user_created_source"]
+        before = source.date_updated
+        self.client.force_login(user=self.users["user"])
+        self.client.post(reverse("source-submit-for-proofreading", args=[source.id]))
+        source.refresh_from_db()
+        self.assertGreater(source.date_updated, before)
+
+    def test_editor_can_submit(self) -> None:
+        source = self.sources["editor_assigned_source"]
+        self.client.force_login(user=self.users["editor"])
+        response = self.client.post(
+            reverse("source-submit-for-proofreading", args=[source.id])
+        )
+        self.assertRedirects(response, reverse("source-detail", args=[source.id]))
+        source.refresh_from_db()
+        self.assertEqual(source.source_status, Source.PROOFREAD_PENDING_STATUS)
+
+    def test_assigned_non_creator_can_submit(self) -> None:
+        # An indexer is routinely assigned to a source someone else created;
+        # #1962 asks for whoever is working on it to be able to hand it over.
+        source = self.sources["user_assigned_source"]
+        self.assertNotEqual(source.created_by, self.users["user"])
+        self.client.force_login(user=self.users["user"])
+        response = self.client.post(
+            reverse("source-submit-for-proofreading", args=[source.id])
+        )
+        self.assertRedirects(response, reverse("source-detail", args=[source.id]))
+        source.refresh_from_db()
+        self.assertEqual(source.source_status, Source.PROOFREAD_PENDING_STATUS)
+
+    def test_submitter_keeps_view_access_to_unpublished_source(self) -> None:
+        source = self.sources["user_created_source"]
+        self.assertFalse(source.published)
+        self.client.force_login(user=self.users["user"])
+        self.client.post(reverse("source-submit-for-proofreading", args=[source.id]))
+        self.assertEqual(
+            self.client.get(reverse("source-detail", args=[source.id])).status_code, 200
+        )
+        # ...and the source really is hidden from everyone else.
+        self.client.logout()
+        self.assertNotEqual(
+            self.client.get(reverse("source-detail", args=[source.id])).status_code, 200
+        )
+
+    def test_detail_page_hides_edit_link_once_locked(self) -> None:
+        source = self.sources["user_created_source"]
+        self.client.force_login(user=self.users["user"])
+        detail_url = reverse("source-detail", args=[source.id])
+        self.assertTrue(self.client.get(detail_url).context["user_can_edit_source"])
+        self.client.post(reverse("source-submit-for-proofreading", args=[source.id]))
+        self.assertFalse(self.client.get(detail_url).context["user_can_edit_source"])
+
+    def test_submitting_through_edit_form_saves_pending_edits(self) -> None:
+        # The button lives inside the edit form; submitting also locks the
+        # source, so corrections dropped here could never be redone.
+        source = self.sources["user_created_source"]
+        self.client.force_login(user=self.users["user"])
+        response = self.client.post(
+            reverse("source-edit", args=[source.id]),
+            {
+                "shelfmark": "edited-then-submitted",
+                "source_completeness": "1",
+                "production_method": "1",
+                "submit_for_proofreading": "1",
+            },
+        )
+        self.assertRedirects(response, reverse("source-detail", args=[source.id]))
+        source.refresh_from_db()
+        self.assertEqual(source.shelfmark, "edited-then-submitted")
+        self.assertEqual(source.source_status, Source.PROOFREAD_PENDING_STATUS)
 
 
 class SourceDetailViewTest(CsvExportLinkTestMixin, SourcePermissionsTestCase):
