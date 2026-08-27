@@ -438,6 +438,33 @@ class SourceSubmitForProofreadingViewTest(CustomAccessTestMixin, TestCase):
         self.client.post(reverse("source-submit-for-proofreading", args=[source.id]))
         self.assertFalse(self.client.get(detail_url).context["user_can_edit_source"])
 
+    def test_locked_source_cannot_be_resubmitted_by_non_editor(self) -> None:
+        # The submitter loses edit access on submit, so they must not be able
+        # to keep reposting and rewriting the source's audit fields.
+        source = self.sources["user_created_source"]
+        self.client.force_login(user=self.users["user"])
+        url = reverse("source-submit-for-proofreading", args=[source.id])
+        self.client.post(url)
+        source.refresh_from_db()
+        submitted_by, submitted_at = source.last_updated_by, source.date_updated
+
+        response = self.client.post(url)
+        self.assertEqual(response.status_code, 403)
+        source.refresh_from_db()
+        self.assertEqual(source.last_updated_by, submitted_by)
+        self.assertEqual(source.date_updated, submitted_at)
+
+    def test_editor_can_resubmit_locked_source(self) -> None:
+        source = self.sources["user_created_source"]
+        self.client.force_login(user=self.users["user"])
+        url = reverse("source-submit-for-proofreading", args=[source.id])
+        self.client.post(url)
+
+        self.client.force_login(user=self.users["editor"])
+        self.assertRedirects(
+            self.client.post(url), reverse("source-detail", args=[source.id])
+        )
+
     def test_submitting_through_edit_form_saves_pending_edits(self) -> None:
         # The button lives inside the edit form; submitting also locks the
         # source, so corrections dropped here could never be redone.

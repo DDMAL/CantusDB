@@ -843,7 +843,16 @@ class SourceSubmitForProofreadingView(CustomAccessMixin, SingleObjectMixin, View
     pk_url_kwarg = "source_id"
 
     def test_func(self) -> bool:
-        return self.user_assigned_to_source(self.get_object())
+        source = self.get_object()
+        if not self.user_assigned_to_source(source):
+            return False
+        if source.source_status == Source.PROOFREAD_PENDING_STATUS:
+            # Already submitted, and the submitter has lost edit access. Only
+            # editors may resubmit; otherwise a locked-out user could keep
+            # rewriting `last_updated_by`/`date_updated` and re-floating the
+            # source in the proofreading queue.
+            return self.user_is_editor
+        return True
 
     def post(self, request: HttpRequest, *args: Any, **kwargs: Any) -> HttpResponse:
         source = self.get_object()
