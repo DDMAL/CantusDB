@@ -815,22 +815,22 @@ class SourceEditView(CustomAccessMixin, UpdateView):  # type: ignore[type-arg]
 
 class SourceSubmitForProofreadingView(CustomAccessMixin, SingleObjectMixin, View):  # type: ignore[type-arg]
     """
-    Lets a source's editor mark it as ready for proofreading. Sets the
-    source's status accordingly, which locks it from further edits by
-    the assigned indexer/creator (though they can still view it) until
-    an editor picks it up for proofreading. See issue #1962.
+    Lets anyone working on a source mark it as ready for proofreading.
+    Sets the source's status accordingly, which locks it from further
+    edits by the assigned indexer/creator (though they can still view it)
+    until an editor picks it up for proofreading. See issue #1962.
+
+    Anyone assigned to the source may submit it, not only its creator:
+    #1962 asks for a way for whoever is working on a source to hand it
+    over, and an indexer is routinely assigned to a source someone else
+    created.
     """
 
     model = Source
     pk_url_kwarg = "source_id"
 
     def test_func(self) -> bool:
-        source = self.get_object()
-        if self.user_assigned_to_source(source) and (
-            self.user_is_editor or source.created_by == self.user
-        ):
-            return True
-        return False
+        return self.user_assigned_to_source(self.get_object())
 
     def post(self, request: HttpRequest, *args: Any, **kwargs: Any) -> HttpResponse:
         source = self.get_object()
