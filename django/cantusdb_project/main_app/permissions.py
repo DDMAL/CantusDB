@@ -164,6 +164,27 @@ class CustomAccessMixin(AccessMixin):
     def user_created_source(self, source: Source) -> bool:
         return source.created_by == self.user
 
+    def user_can_edit_source(self, source: Source) -> bool:
+        """
+        Returns True if the user may edit `source` itself (as opposed to
+        its chants).
+
+        Editing a source requires being assigned to it and being either an
+        editor or its creator. Once a source has been submitted for
+        proofreading it is additionally locked to everyone but editors, so
+        the submitter keeps view access while an editor makes corrections.
+        See issue #1962.
+
+        :param source: Source object to check edit access for.
+
+        :return: True if the user may edit the source, False otherwise.
+        """
+        if not self.user_assigned_to_source(source):
+            return False
+        if source.source_status == Source.PROOFREAD_PENDING_STATUS:
+            return self.user_is_editor
+        return self.user_is_editor or self.user_created_source(source)
+
     def check_user_assignment(self, source: Source) -> bool:
         """
         Runs a database query to check if the user is assigned to a source.

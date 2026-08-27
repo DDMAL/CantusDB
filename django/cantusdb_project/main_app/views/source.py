@@ -351,9 +351,7 @@ class SourceDetailView(CustomAccessMixin, JSONResponseMixin, DetailView):  # typ
 
         context["source_notation"] = source.notation.first()
         context["user_can_edit_chants"] = self.user_assigned_to_source(source)
-        context["user_can_edit_source"] = self.user_assigned_to_source(source) and (
-            self.user_is_editor or self.user_created_source(source)
-        )
+        context["user_can_edit_source"] = self.user_can_edit_source(source)
         return context
 
 
@@ -781,19 +779,7 @@ class SourceEditView(CustomAccessMixin, UpdateView):  # type: ignore[type-arg]
     pk_url_kwarg = "source_id"
 
     def test_func(self) -> bool:
-        source = self.get_object()
-        if source.source_status == Source.PROOFREAD_PENDING_STATUS and not (
-            self.user_is_editor
-        ):
-            # Once a source has been submitted for proofreading, only
-            # editors (not the assigned indexer/creator) may edit it
-            # further. See issue #1962.
-            return False
-        if self.user_assigned_to_source(source) and (
-            self.user_is_editor or source.created_by == self.user
-        ):
-            return True
-        return False
+        return self.user_can_edit_source(self.get_object())
 
     def get_context_data(self, **kwargs):
         source = self.object
