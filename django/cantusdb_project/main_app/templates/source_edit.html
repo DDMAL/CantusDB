@@ -204,10 +204,11 @@
             <div class="col-lg-auto d-flex">
                 <button type="submit" class="btn btn-dark btn-sm me-2" id="btn-submit">Save</button>
                 <button type="submit"
-                        formaction="{% url "source-submit-for-proofreading" source.id %}"
+                        name="submit_for_proofreading"
+                        value="1"
                         class="btn btn-success btn-sm"
                         id="btn-submit-for-proofreading"
-                        onclick="return confirm('This will mark the source as ready for proofreading and lock further editing. Continue?');">
+                        onclick="return confirm('This will save your changes, mark the source as ready for proofreading, and lock further editing. Continue?');">
                     Submit for Proofreading
                 </button>
             </div>
