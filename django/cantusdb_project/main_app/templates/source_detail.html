@@ -7,12 +7,13 @@
     <div class="search-bar mb-3">{% include "global_search_bar.html" %}</div>
 {% endblock %}
 {% block maincontent %}
-    <!--Display "submit success" message -->
-    {% if messages %}
-        <div class="alert alert-success alert-dismissible">
-            {% for message in messages %}{{ message }}{% endfor %}
+    <!--Display messages (one alert per message, styled by level) -->
+    {% for message in messages %}
+        <div class="alert {{ message.tags }} alert-dismissible" role="alert">
+            <a href="#" class="close" data-bs-dismiss="alert" aria-label="close">×</a>
+            {{ message }}
         </div>
-    {% endif %}
+    {% endfor %}
     <h3>{{ source.heading }}</h3>
     {% if user_can_edit_source %}
         <p>

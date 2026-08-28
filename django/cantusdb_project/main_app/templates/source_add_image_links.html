@@ -9,6 +9,13 @@
 {% endblock %}
 {% block content %}
     <div class="container bg-white rounded my-3">
+        <!--Display messages (e.g. IIIF mapping errors) -->
+        {% for message in messages %}
+            <div class="alert {{ message.tags }} alert-dismissible mt-3" role="alert">
+                <a href="#" class="close" data-bs-dismiss="alert" aria-label="close">×</a>
+                {{ message }}
+            </div>
+        {% endfor %}
         <div class="row mt-4">
             <div class="col">
                 <h4>
