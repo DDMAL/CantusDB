@@ -20,6 +20,15 @@ from bs4 import BeautifulSoup, NavigableString, Tag
 
 _UNWRAP_TAGS = {"font", "u", "sup", "center", "html", "body", "tbody", "thead"}
 
+# Embedded-media tags have no markdown equivalent, and unwrapping one would
+# discard the thing it points at. They are emitted as raw markup so that
+# `contains_html_tags` sees them in the output and the caller flags the field
+# for manual review. Most would also be caught by the void-element guard at the
+# end of `_render`, but not `<embed>`: lxml does not treat it as void, so it
+# swallows the following text as a child and renders non-empty. Listing them
+# explicitly keeps the behaviour independent of parser quirks.
+_FLAG_TAGS = {"embed", "object", "iframe", "video", "audio", "applet"}
+
 
 def _render_children(node) -> str:
     return "".join(_render(child) for child in node.children)
@@ -42,6 +51,9 @@ def _render(node) -> str:
 
     if name in _UNWRAP_TAGS:
         return _render_children(node)
+
+    if name in _FLAG_TAGS:
+        return str(node)
 
     if name in ("b", "strong"):
         inner = _render_children(node).strip()
@@ -103,6 +115,19 @@ def _render(node) -> str:
                     lines.append(stray)
         return f"\n\n{chr(10).join(lines)}\n\n" if lines else ""
 
+    if name == "img":
+        src = node.get("src") or ""
+        alt = (node.get("alt") or "").strip()
+        # No src: nothing to point at, so fall through to the void-element
+        # handling below and get the source flagged for manual review rather
+        # than emitting a broken image.
+        if src:
+            return f"![{alt}]({src})"
+        return str(node)
+
+    if name == "hr":
+        return "\n\n---\n\n"
+
     if name == "table":
         rows = node.find_all("tr")
         md_rows = []
@@ -119,8 +144,15 @@ def _render(node) -> str:
                 md_rows.append("| " + " | ".join(["---"] * len(cell_texts)) + " |")
         return f"\n\n{chr(10).join(md_rows)}\n\n" if md_rows else ""
 
-    # Unknown tag: unwrap, keeping its text content.
-    return _render_children(node)
+    # Unknown tag: unwrap, keeping its text content. A void element (no
+    # children, no text -- e.g. <input>, <embed>) would unwrap to nothing and
+    # vanish silently, so emit its raw markup instead: `contains_html_tags`
+    # then sees it in the output and the caller flags the field for manual
+    # review rather than writing a lossy conversion.
+    rendered = _render_children(node)
+    if not rendered and not node.find(True):
+        return str(node)
+    return rendered
 
 
 def html_to_markdown(value: str) -> str:

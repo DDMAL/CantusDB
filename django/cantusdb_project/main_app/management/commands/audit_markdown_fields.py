@@ -66,14 +66,15 @@ class Command(BaseCommand):
             n_published = sum(len(v) for v in published.values())
             n_unpublished = sum(len(v) for v in unpublished.values())
 
-            self.stdout.write(
-                self.style.SUCCESS(f"\n=== {field.upper()} ===")
-            )
+            self.stdout.write(self.style.SUCCESS(f"\n=== {field.upper()} ==="))
             self.stdout.write(
                 f"Published ({n_published}) | Unpublished ({n_unpublished})\n"
             )
 
-            for label, group in (("PUBLISHED", published), ("UNPUBLISHED", unpublished)):
+            for label, group in (
+                ("PUBLISHED", published),
+                ("UNPUBLISHED", unpublished),
+            ):
                 self.stdout.write(f"--- {label} ---")
                 self.stdout.write(
                     f"  contains raw HTML tags: {len(group['html'])}\n"
@@ -81,9 +82,7 @@ class Command(BaseCommand):
                     f"  blank: {len(group['blank'])}\n"
                 )
 
-                self.stdout.write(
-                    f"  -- WITH raw HTML tags ({len(group['html'])}) --"
-                )
+                self.stdout.write(f"  -- WITH raw HTML tags ({len(group['html'])}) --")
                 for source in group["html"]:
                     self.stdout.write(describe(source))
 

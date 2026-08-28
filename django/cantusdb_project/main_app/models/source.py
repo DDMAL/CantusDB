@@ -159,13 +159,14 @@ class Source(BaseModel):
     liturgical_occasions = models.TextField(blank=True, null=True)
     description = models.TextField(blank=True, null=True)
     selected_bibliography = models.TextField(blank=True, null=True)
-    # Staging fields for the legacy-HTML-to-markdown conversion (#1239). Populated by
-    # the `convert_html_to_markdown` management command; once a source's draft is
-    # reviewed and approved, its content gets promoted into `description` /
-    # `selected_bibliography` above and these two fields are dropped. Not exposed in
-    # any form or template.
-    description_markdown_draft = models.TextField(blank=True, null=True)
-    selected_bibliography_markdown_draft = models.TextField(blank=True, null=True)
+    # Backup of the pre-markdown raw HTML for the legacy-HTML-to-markdown conversion
+    # (#1239). Populated by the `convert_html_to_markdown` management command at the
+    # moment it overwrites `description` / `selected_bibliography` above with
+    # markdown; `convert_html_to_markdown --revert` restores from here. A non-null
+    # value means "this field has been converted", so the command relies on it to
+    # stay truthful. Not exposed in any form or template.
+    description_html_legacy = models.TextField(blank=True, null=True)
+    selected_bibliography_html_legacy = models.TextField(blank=True, null=True)
     image_link = NormalizedURLField(
         blank=True,
         null=True,
