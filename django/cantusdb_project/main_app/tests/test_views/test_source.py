@@ -307,6 +307,27 @@ class SourceDetailViewTest(CsvExportLinkTestMixin, SourcePermissionsTestCase):
         self.assertTemplateUsed(response, "base.html")
         self.assertTemplateUsed(response, "source_detail.html")
 
+    def test_add_image_links_entry_is_superuser_only(self) -> None:
+        """The edit-options card's "Add image links" entry is superuser-only.
+
+        ``SourceAddImageLinksView`` is gated on ``is_superuser``, but the card
+        it lives in is gated on the broader ``user_can_edit_chants``. An editor
+        who can edit chants must not see a link that would 403 them.
+        """
+        source = self.sources["editor_assigned_source"]
+        detail_url = reverse("source-detail", args=[source.id])
+        image_links_url = reverse("source-add-image-links", args=[source.id])
+        with self.subTest("Superuser sees the link"):
+            self.client.force_login(self.users["superuser"])
+            self.assertContains(self.client.get(detail_url), image_links_url)
+        with self.subTest("Editor with edit access does not see the link"):
+            self.client.force_login(self.users["editor"])
+            response = self.client.get(detail_url)
+            # The edit-options card renders for the editor...
+            self.assertContains(response, reverse("chant-create", args=[source.id]))
+            # ...but the superuser-only image-links entry is absent.
+            self.assertNotContains(response, image_links_url)
+
     def test_csv_export_link_uses_response_filename(self) -> None:
         source = make_fake_source()
         response = self.client.get(reverse("source-detail", args=[source.id]))

@@ -404,6 +404,11 @@
                         <a href="{% url "source-edit" source.id %}">Edit source</a>
                     </li>
                 {% endif %}
+                {% if user.is_superuser %}
+                    <li>
+                        <a href="{% url "source-add-image-links" source.id %}">Add image links</a>
+                    </li>
+                {% endif %}
             </ul>
         </div>
     </div>
