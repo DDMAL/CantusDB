@@ -104,10 +104,15 @@ def _render(node) -> str:
         for child in node.children:
             if isinstance(child, Tag) and child.name == "li":
                 text = _render_children(child).strip()
-                text = " ".join(text.split("\n"))
                 if text:
                     prefix = f"{index}. " if name == "ol" else "* "
-                    lines.append(prefix + text)
+                    # Indent continuation lines to the item's content column
+                    # instead of collapsing them onto one line. Collapsing threw
+                    # away the line break from a <br> and left its backslash
+                    # sitting in the visible text.
+                    item_lines = text.split("\n")
+                    lines.append(prefix + item_lines[0])
+                    lines.extend(" " * len(prefix) + line for line in item_lines[1:])
                     index += 1
             else:
                 stray = _render(child).strip()

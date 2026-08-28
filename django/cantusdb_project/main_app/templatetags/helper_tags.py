@@ -291,7 +291,13 @@ def join_absolute_url_links(
     )
 
 
-HTML_TAG_RE = re.compile(r"<\s*/?\s*[a-zA-Z][a-zA-Z0-9]*[^<>]*>")
+# A tag name must be followed by a tag boundary -- whitespace before attributes,
+# an optional self-closing slash, or the closing bracket. Accepting anything at
+# all after the name (the previous `[^<>]*`) also matched CommonMark autolinks
+# like <https://example.com> and <user@example.com>, which sent the whole field
+# down the legacy `safe|linebreaks` branch so the link never rendered. `:` and
+# `-` stay in the name for namespaced tags such as Word's <o:p>.
+HTML_TAG_RE = re.compile(r"<\s*/?\s*[A-Za-z][A-Za-z0-9:-]*(?:\s+[^<>]*)?/?\s*>")
 
 
 @register.filter

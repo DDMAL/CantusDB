@@ -77,6 +77,23 @@ class TestHtmlToMarkdown(TestCase):
             html_to_markdown("<ol><li>One</li><li>Two</li></ol>"), "1. One\n2. Two"
         )
 
+    def test_br_inside_list_item_keeps_the_hard_break(self):
+        # Continuation lines are indented to the item's content column so the
+        # break survives; collapsing them onto one line used to drop the break
+        # and leave the backslash visible in the rendered text.
+        markdown = html_to_markdown("<ul><li>Line one<br>Line two</li></ul>")
+        self.assertEqual(markdown, "* Line one\\\n  Line two")
+        html = render_markdown(markdown)
+        self.assertIn("<br", html)
+        self.assertNotIn("\\", html)
+
+    def test_br_inside_ordered_list_item_keeps_the_hard_break(self):
+        markdown = html_to_markdown("<ol><li>Line one<br>Line two</li></ol>")
+        self.assertEqual(markdown, "1. Line one\\\n   Line two")
+        html = render_markdown(markdown)
+        self.assertIn("<br", html)
+        self.assertNotIn("\\", html)
+
     def test_list_keeps_stray_children(self):
         # Invalid HTML, but present in the legacy data: content sitting directly
         # inside <ul> before any <li>. It must not be silently dropped.
@@ -157,6 +174,29 @@ class TestMarkdownTemplateFilters(TestCase):
         self.assertTrue(contains_html_tags("Text with a <br> in it"))
         self.assertFalse(contains_html_tags("**Markdown** only"))
         self.assertFalse(contains_html_tags(""))
+
+    def test_autolinks_are_not_treated_as_html(self):
+        # CommonMark autolinks are markdown, not raw HTML. Misreading them sent
+        # the whole field down the legacy `safe|linebreaks` branch, so the link
+        # never rendered.
+        self.assertFalse(contains_html_tags("<https://example.com>"))
+        self.assertFalse(contains_html_tags("<user@example.com>"))
+        self.assertFalse(contains_html_tags("See <https://example.com> for more"))
+        self.assertIn("<a href", render_markdown("<https://example.com>"))
+
+    def test_contains_html_tags_still_detects_real_tags(self):
+        for value in (
+            "<p>x</p>",
+            "<br>",
+            "<br />",
+            "</p>",
+            "<img src='x'/>",
+            "<a href='https://example.com'>y</a>",
+            "<o:p>word</o:p>",
+            "< p >",
+        ):
+            with self.subTest(value=value):
+                self.assertTrue(contains_html_tags(value))
 
     def test_render_markdown_drops_raw_html(self):
         # cmark runs in safe mode, so raw HTML blocks are dropped rather than
