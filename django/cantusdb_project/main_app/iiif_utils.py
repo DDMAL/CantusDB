@@ -18,6 +18,16 @@ import requests
 # response would be read into memory in full.
 MAX_MANIFEST_BYTES = 50 * 1024 * 1024
 
+# Some IIIF hosts (e.g. IRHT/Biblissima's api.irht.cnrs.fr) sit behind an
+# anti-bot guard that serves HTTP 403 to the default python-requests
+# User-Agent. We identify honestly as CantusDB using the conventional
+# "Mozilla/5.0 (compatible; <bot>; +<url>)" bot format, which clears the
+# guard while telling the host who is fetching (and where to complain).
+_REQUEST_HEADERS = {
+    "User-Agent": "Mozilla/5.0 (compatible; CantusDB; +https://cantusdatabase.org)",
+    "Accept": "application/json, application/ld+json, */*",
+}
+
 
 class ManifestTooLargeError(ValueError):
     """Raised when a manifest exceeds MAX_MANIFEST_BYTES."""
@@ -56,7 +66,9 @@ def fetch_manifest(manifest_url: str, timeout: int = 30) -> dict:
     # it can overshoot by at most one read timeout — enough to make this fail
     # with our own error rather than have gunicorn kill the worker.
     deadline = time.monotonic() + timeout
-    with requests.get(manifest_url, timeout=timeout, stream=True) as response:
+    with requests.get(
+        manifest_url, timeout=timeout, stream=True, headers=_REQUEST_HEADERS
+    ) as response:
         response.raise_for_status()
         # Trust Content-Length only to fail early; it's absent on chunked
         # responses and a hostile server can understate it, so the running

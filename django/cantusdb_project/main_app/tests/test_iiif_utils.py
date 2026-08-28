@@ -340,6 +340,16 @@ class FetchManifestTest(TestCase):
         self.assertTrue(mock_get.call_args.kwargs["stream"])
 
     @patch("main_app.iiif_utils.requests.get")
+    def test_sends_identifying_user_agent(self, mock_get: MagicMock) -> None:
+        # IRHT/Biblissima's anti-bot guard 403s the default python-requests
+        # User-Agent, so we send an identifying CantusDB one instead (#2246).
+        mock_get.return_value = self._mock_response([b"{}"])
+        fetch_manifest("https://example.com/m.json")
+        user_agent = mock_get.call_args.kwargs["headers"]["User-Agent"]
+        self.assertIn("CantusDB", user_agent)
+        self.assertNotIn("python-requests", user_agent)
+
+    @patch("main_app.iiif_utils.requests.get")
     def test_invalid_json_raises_value_error(self, mock_get: MagicMock) -> None:
         mock_get.return_value = self._mock_response([b"<html>not json</html>"])
         with self.assertRaises(ValueError):
