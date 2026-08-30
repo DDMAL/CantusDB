@@ -23,13 +23,13 @@ class TestHtmlToMarkdown(TestCase):
     def test_inline_emphasis(self):
         self.assertEqual(html_to_markdown("<p><b>Bold</b></p>"), "**Bold**")
         self.assertEqual(html_to_markdown("<p><strong>Bold</strong></p>"), "**Bold**")
-        self.assertEqual(html_to_markdown("<p><i>Ital</i></p>"), "_Ital_")
-        self.assertEqual(html_to_markdown("<p><em>Ital</em></p>"), "_Ital_")
+        self.assertEqual(html_to_markdown("<p><i>Ital</i></p>"), "*Ital*")
+        self.assertEqual(html_to_markdown("<p><em>Ital</em></p>"), "*Ital*")
 
     def test_italic_span(self):
         self.assertEqual(
             html_to_markdown('<p><span style="font-style: italic;">Ital</span></p>'),
-            "_Ital_",
+            "*Ital*",
         )
         # A span with any other styling is just unwrapped.
         self.assertEqual(
@@ -60,12 +60,78 @@ class TestHtmlToMarkdown(TestCase):
         self.assertEqual(html_to_markdown("<p>One</p><p>Two</p>"), "One\n\nTwo")
 
     def test_br_becomes_a_hard_break(self):
-        # A bare "\n" is a CommonMark *soft* break and would collapse these two
-        # lines into one run-on line when rendered. The converter emits a
-        # backslash-newline (a hard break) instead.
+        # `render_markdown` runs cmark with CMARK_OPT_HARDBREAKS, so a plain
+        # newline is already a hard break -- no backslash needed.
         markdown = html_to_markdown("<p>Line one<br>Line two</p>")
-        self.assertEqual(markdown, "Line one\\\nLine two")
+        self.assertEqual(markdown, "Line one\nLine two")
         self.assertIn("<br", render_markdown(markdown))
+
+    def test_trailing_br_leaves_no_visible_backslash(self):
+        # CommonMark can't end a block with a hard break, so the old
+        # backslash-newline form left a stray "\" on the page (#1219).
+        markdown = html_to_markdown("<p>Bibliography:<br></p>")
+        self.assertEqual(markdown, "Bibliography:")
+        self.assertNotIn("\\", render_markdown(markdown))
+
+    def test_repeated_trailing_br_before_a_table(self):
+        # The #1219 shape: <br>s padding the end of a block push the table down
+        # the page and leave a backslash behind.
+        markdown = html_to_markdown(
+            "<p>Contents:<br><br><br></p><table><tr><td>A</td></tr></table>"
+        )
+        self.assertTrue(markdown.startswith("Contents:\n\n|"), markdown)
+        self.assertNotIn("\\", render_markdown(markdown))
+
+    def test_br_between_blocks_is_not_a_stray_backslash(self):
+        markdown = html_to_markdown("<p>One</p>\n<br>\n<p>Two</p>")
+        self.assertEqual(markdown, "One\n\nTwo")
+
+    def test_emphasis_keeps_the_space_that_sat_inside_the_tag(self):
+        # `<em>Antiphonale </em>(1934)` used to be stripped to
+        # `_Antiphonale_(1934)`, losing the space (#1957).
+        self.assertEqual(
+            html_to_markdown("<p><em>Antiphonale </em>(1934)</p>"),
+            "*Antiphonale* (1934)",
+        )
+        self.assertEqual(html_to_markdown("<p><b>Note </b>added</p>"), "**Note** added")
+
+    def test_italics_survive_next_to_a_word(self):
+        # `<i>AH</i>but` has no space to move out, and `_` can't close inside a
+        # word -- it would render as literal underscores. `*` can.
+        markdown = html_to_markdown("<p><i>AH</i>but</p>")
+        self.assertEqual(markdown, "*AH*but")
+        self.assertIn("<em>AH</em>but", render_markdown(markdown))
+
+    def test_italic_span_next_to_a_word(self):
+        markdown = html_to_markdown(
+            '<p><span style="font-style: italic;">Kyrie </span>eleison</p>'
+        )
+        self.assertEqual(markdown, "*Kyrie* eleison")
+        self.assertNotIn("_", render_markdown(markdown))
+
+    def test_pretty_printed_indent_does_not_become_a_code_block(self):
+        # Legacy markup wraps lines as "<br />\r\n\t", and that tab would start
+        # the next markdown line at column four -- an indented code block.
+        markdown = html_to_markdown("<p>One<br />\r\n\tTwo</p>")
+        self.assertNotRegex(markdown, r"^[ \t]{4,}", "indent survived")
+        self.assertNotIn("<pre>", render_markdown(markdown))
+
+    def test_colspan_title_row_does_not_truncate_the_table(self):
+        # A spanning title cell would otherwise make the header one column wide,
+        # and GFM silently truncates every later row to the header's width.
+        markdown = html_to_markdown(
+            "<table>"
+            '<tr><td colspan="3">Title</td></tr>'
+            "<tr><td>a</td><td>b</td><td>c</td></tr>"
+            "</table>"
+        )
+        self.assertEqual(
+            markdown,
+            "| Title |  |  |\n| --- | --- | --- |\n| a | b | c |",
+        )
+        rendered = render_markdown(markdown)
+        for cell in ("Title", "a", "b", "c"):
+            self.assertIn(f">{cell}<", rendered)
 
     def test_unordered_list(self):
         self.assertEqual(
@@ -82,14 +148,14 @@ class TestHtmlToMarkdown(TestCase):
         # break survives; collapsing them onto one line used to drop the break
         # and leave the backslash visible in the rendered text.
         markdown = html_to_markdown("<ul><li>Line one<br>Line two</li></ul>")
-        self.assertEqual(markdown, "* Line one\\\n  Line two")
+        self.assertEqual(markdown, "* Line one\n  Line two")
         html = render_markdown(markdown)
         self.assertIn("<br", html)
         self.assertNotIn("\\", html)
 
     def test_br_inside_ordered_list_item_keeps_the_hard_break(self):
         markdown = html_to_markdown("<ol><li>Line one<br>Line two</li></ol>")
-        self.assertEqual(markdown, "1. Line one\\\n   Line two")
+        self.assertEqual(markdown, "1. Line one\n   Line two")
         html = render_markdown(markdown)
         self.assertIn("<br", html)
         self.assertNotIn("\\", html)
@@ -208,6 +274,34 @@ class TestMarkdownTemplateFilters(TestCase):
 
     def test_render_markdown_renders_markdown(self):
         self.assertIn("<strong>Bold</strong>", render_markdown("**Bold**"))
+
+    def test_single_newline_is_a_hard_break(self):
+        # Most legacy descriptions are line-per-fact with no blank line between
+        # them ("Material: Parchment", "Source type: Antiphonal", ...). Without
+        # CMARK_OPT_HARDBREAKS a lone newline is a CommonMark *soft* break and
+        # the whole field collapses into one run-on line.
+        rendered = render_markdown("Material: Parchment\nSource type: Antiphonal")
+        self.assertIn("<br", rendered)
+
+    def test_authored_backslash_hard_break_still_works(self):
+        # Existing content already uses the CommonMark backslash hard break;
+        # hardbreaks mode must not leave the backslash visible.
+        rendered = render_markdown("Line one\\\nLine two")
+        self.assertIn("<br", rendered)
+        self.assertNotIn("\\", rendered)
+
+    def test_blank_line_still_starts_a_new_paragraph(self):
+        rendered = render_markdown("Para one\n\nPara two")
+        self.assertIn("<p>Para one</p>", rendered)
+        self.assertIn("<p>Para two</p>", rendered)
+
+    def test_hardbreaks_do_not_break_block_structure(self):
+        self.assertIn("<li>", render_markdown("* one\n* two"))
+        self.assertIn("<td>", render_markdown("| a |\n| --- |\n| 1 |"))
+
+    def test_hardbreaks_mode_still_drops_raw_html(self):
+        # Turning on hardbreaks must not turn off cmark's safe mode.
+        self.assertNotIn("<script", render_markdown("<script>alert(1)</script>"))
 
 
 class TestConvertHtmlToMarkdownCommand(TestCase):
