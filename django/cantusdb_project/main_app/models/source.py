@@ -164,7 +164,8 @@ class Source(BaseModel):
     # moment it overwrites `description` / `selected_bibliography` above with
     # markdown; `convert_html_to_markdown --revert` restores from here. A non-null
     # value means "this field has been converted", so the command relies on it to
-    # stay truthful. Not exposed in any form or template.
+    # stay truthful. Excluded from SourceAdmin's form (see admin/source.py) and
+    # not rendered in any template.
     description_html_legacy = models.TextField(blank=True, null=True)
     selected_bibliography_html_legacy = models.TextField(blank=True, null=True)
     image_link = NormalizedURLField(

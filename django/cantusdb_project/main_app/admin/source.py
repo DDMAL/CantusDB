@@ -33,7 +33,18 @@ class SourceLinksInline(admin.TabularInline):
 
 @admin.register(Source)
 class SourceAdmin(BaseModelAdmin):
-    exclude = EXCLUDE + ("source_status", "segment", "title", "siglum")
+    # The *_html_legacy columns are the sole backup of the pre-markdown HTML and
+    # `convert_html_to_markdown` treats "not null" as "already converted", so a
+    # blank save from this form would both destroy the backup and corrupt that
+    # sentinel ('' is not None). Keep them out of the form entirely (#1239).
+    exclude = EXCLUDE + (
+        "source_status",
+        "segment",
+        "title",
+        "siglum",
+        "description_html_legacy",
+        "selected_bibliography_html_legacy",
+    )
     autocomplete_fields = ("holding_institution", "provenance")
     inlines = (IdentifiersInline, SourceLinksInline)
 
