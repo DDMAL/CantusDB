@@ -34,20 +34,59 @@ def _render_children(node) -> str:
     return "".join(_render(child) for child in node.children)
 
 
+def _split_edge_whitespace(text: str) -> tuple[str, str, str]:
+    """
+    Split `text` into (leading whitespace, content, trailing whitespace).
+
+    Emphasis handlers can't just `.strip()`: markdown only closes emphasis when
+    the marker is followed by punctuation or whitespace, so dropping a space
+    that sat inside the tag welds `<em>Antiphonale </em>(1934)` into
+    `_Antiphonale_(1934)` -- and `<span ...>Kyrie </span>eleison` into
+    `_Kyrie_eleison`, which renders as literal underscores (#1957). Keeping the
+    whitespace *outside* the markers preserves both the spacing and the
+    emphasis.
+
+    Where the legacy HTML has no space at all (`<i>AH</i>but`, which the old
+    page rendered just as tightly) there is nothing to move out, so italics use
+    `*` rather than `_`: CommonMark lets `*` close inside a word, while `_`
+    would be left visible as literal underscores.
+    """
+    stripped = text.strip()
+    if not stripped:
+        return "", "", ""
+    return (
+        text[: len(text) - len(text.lstrip())],
+        stripped,
+        text[len(text.rstrip()) :],
+    )
+
+
+def _emphasise(node, left: str, right: str) -> str:
+    lead, inner, trail = _split_edge_whitespace(_render_children(node))
+    return f"{lead}{left}{inner}{right}{trail}" if inner else ""
+
+
 def _render(node) -> str:
     if isinstance(node, NavigableString):
-        return str(node)
+        # Legacy markup is pretty-printed, so a `<br />` is followed by a real
+        # newline and a tab. Carried through verbatim that tab starts the next
+        # markdown line at column four, which CommonMark reads as an indented
+        # code block, and the newline doubles the one `<br>` already emitted,
+        # splitting the paragraph. A newline inside a text node is only
+        # whitespace in HTML, so collapse each such run to a single space.
+        return re.sub(r"[ \t]*(?:\r\n|\r|\n)[ \t]*", " ", str(node))
     if not isinstance(node, Tag):
         return ""
 
     name = node.name
 
     if name == "br":
-        # A single "\n" is a CommonMark *soft* break (rendered as just a
-        # space) -- that silently collapsed multi-line content like a list
-        # of date corrections onto one run-on line. Use a backslash-newline,
-        # a CommonMark *hard* break, to actually preserve the line break.
-        return "\\\n"
+        # A plain newline is enough: `render_markdown` runs cmark with
+        # CMARK_OPT_HARDBREAKS, so every newline is a hard break. The
+        # backslash-newline form CommonMark also accepts can't end a block --
+        # `<p>Bibliography:<br></p>` would leave the backslash visible -- and
+        # GFM's autolinker swallows one that follows a bare URL.
+        return "\n"
 
     if name in _UNWRAP_TAGS:
         return _render_children(node)
@@ -56,19 +95,15 @@ def _render(node) -> str:
         return str(node)
 
     if name in ("b", "strong"):
-        inner = _render_children(node).strip()
-        return f"**{inner}**" if inner else ""
+        return _emphasise(node, "**", "**")
 
     if name in ("i", "em"):
-        inner = _render_children(node).strip()
-        return f"_{inner}_" if inner else ""
+        return _emphasise(node, "*", "*")
 
     if name == "span":
-        inner = _render_children(node)
         if "italic" in (node.get("style") or ""):
-            stripped = inner.strip()
-            return f"_{stripped}_" if stripped else ""
-        return inner
+            return _emphasise(node, "*", "*")
+        return _render_children(node)
 
     if name == "a":
         href = node.get("href") or ""
@@ -134,20 +169,39 @@ def _render(node) -> str:
         return "\n\n---\n\n"
 
     if name == "table":
-        rows = node.find_all("tr")
+        # GFM sizes a table by its header row and silently truncates every later
+        # row to that width. Legacy tables often open with a spanning title cell
+        # (`<td colspan="5">`), which would make the header one column wide and
+        # throw away four fifths of the table. Expand each colspan into that many
+        # columns and pad every row to the widest one so no cell is dropped.
+        parsed_rows = []
+        for tr in node.find_all("tr"):
+            cells = []
+            for cell in tr.find_all(["td", "th"], recursive=False):
+                text = (
+                    _render_children(cell)
+                    .strip()
+                    .replace("\n", " ")
+                    .replace("|", "\\|")
+                )
+                try:
+                    span = max(1, int(cell.get("colspan") or 1))
+                except ValueError:
+                    span = 1
+                cells.append(text)
+                cells.extend("" for _ in range(span - 1))
+            if cells:
+                parsed_rows.append(cells)
+        if not parsed_rows:
+            return ""
+        width = max(len(cells) for cells in parsed_rows)
         md_rows = []
-        for i, tr in enumerate(rows):
-            cells = tr.find_all(["td", "th"], recursive=False)
-            cell_texts = [
-                _render_children(cell).strip().replace("\n", " ").replace("|", "\\|")
-                for cell in cells
-            ]
-            if not cell_texts:
-                continue
-            md_rows.append("| " + " | ".join(cell_texts) + " |")
+        for i, cells in enumerate(parsed_rows):
+            padded = cells + [""] * (width - len(cells))
+            md_rows.append("| " + " | ".join(padded) + " |")
             if i == 0:
-                md_rows.append("| " + " | ".join(["---"] * len(cell_texts)) + " |")
-        return f"\n\n{chr(10).join(md_rows)}\n\n" if md_rows else ""
+                md_rows.append("| " + " | ".join(["---"] * width) + " |")
+        return f"\n\n{chr(10).join(md_rows)}\n\n"
 
     # Unknown tag: unwrap, keeping its text content. A void element (no
     # children, no text -- e.g. <input>, <embed>) would unwrap to nothing and
