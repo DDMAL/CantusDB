@@ -305,19 +305,26 @@ def render_markdown(value: str) -> SafeString:
     """
     Renders markdown text as HTML.
     """
-    # CMARK_OPT_DEFAULT (i.e. not passing CMARK_OPT_UNSAFE) runs cmark in its "safe"
-    # mode: raw HTML blocks in the input are dropped (replaced with an HTML comment)
-    # rather than passed through, since this field is editable by many indexer
-    # accounts and we don't want to allow arbitrary raw HTML/script injection through
-    # it. Note this is a block-level operation: a description built entirely out of
-    # HTML blocks (<p>, <table>, <ul>...) with no plain text outside them -- as with
-    # legacy content from #1239 -- would have ALL of its visible text stripped, not
-    # just its formatting. Callers should use `contains_html_tags` to detect this and
-    # fall back to the legacy `linebreaks`-based rendering for such fields (see
+    # Not passing CMARK_OPT_UNSAFE runs cmark in its "safe" mode: raw HTML blocks in
+    # the input are dropped (replaced with an HTML comment) rather than passed
+    # through, since this field is editable by many indexer accounts and we don't
+    # want to allow arbitrary raw HTML/script injection through it. Note this is a
+    # block-level operation: a description built entirely out of HTML blocks (<p>,
+    # <table>, <ul>...) with no plain text outside them -- as with legacy content
+    # from #1239 -- would have ALL of its visible text stripped, not just its
+    # formatting. Callers should use `contains_html_tags` to detect this and fall
+    # back to the legacy `linebreaks`-based rendering for such fields (see
     # `source_detail.html`) until they're converted to markdown; see
     # `audit_markdown_fields` management command for tracking affected sources.
+    #
+    # CMARK_OPT_HARDBREAKS renders a single newline as <br>, matching the
+    # `linebreaks` filter these fields were authored against. Without it a lone
+    # newline is a CommonMark *soft* break -- rendered as a space -- which silently
+    # collapsed multi-line descriptions into one run-on paragraph. Existing content
+    # relies on this heavily: most descriptions are line-per-fact ("Material:
+    # Parchment", "Source type: Antiphonal", ...) with no blank lines between them.
     html: str = github_flavored_markdown_to_html(
-        value, options=cmarkgfmOptions.CMARK_OPT_DEFAULT
+        value, options=cmarkgfmOptions.CMARK_OPT_HARDBREAKS
     )
     return mark_safe(html)
 
