@@ -105,7 +105,9 @@ var MarkdownWidget = (function () {
 
     // Toggle a line-level marker (heading, quote, list) across every line the
     // selection touches. If all lines already have it, strip it; otherwise
-    // normalize and (re)apply so clicking twice never stacks markers.
+    // normalize and (re)apply so clicking twice never stacks markers. Each
+    // line's indentation is held aside so markers toggle without flattening or
+    // displacing the nesting level.
     function toggleLinePrefix(textarea, strip, marker) {
         var start = textarea.selectionStart;
         var end = textarea.selectionEnd;
@@ -115,14 +117,20 @@ var MarkdownWidget = (function () {
         if (blockEnd === -1) {
             blockEnd = value.length;
         }
-        var lines = value.substring(blockStart, blockEnd).split("\n");
+        var lines = value
+            .substring(blockStart, blockEnd)
+            .split("\n")
+            .map(function (line) {
+                var indent = line.match(/^\s*/)[0];
+                return { indent: indent, rest: line.substring(indent.length) };
+            });
         var allMarked = lines.every(function (line) {
-            return strip.test(line);
+            return strip.test(line.rest);
         });
         var result = lines
             .map(function (line, i) {
-                var bare = line.replace(strip, "");
-                return allMarked ? bare : marker(bare, i);
+                var bare = line.rest.replace(strip, "");
+                return line.indent + (allMarked ? bare : marker(bare, i));
             })
             .join("\n");
         setValue(
@@ -187,7 +195,7 @@ var MarkdownWidget = (function () {
             wrapInline(textarea, "*", "italic text");
         },
         quote: function (textarea) {
-            toggleLinePrefix(textarea, /^\s*>\s?/, function (line) {
+            toggleLinePrefix(textarea, /^>\s?/, function (line) {
                 return "> " + line;
             });
         },
@@ -195,12 +203,12 @@ var MarkdownWidget = (function () {
             insertLink(textarea);
         },
         "unordered-list": function (textarea) {
-            toggleLinePrefix(textarea, /^\s*[-*+]\s+/, function (line) {
+            toggleLinePrefix(textarea, /^[-*+]\s+/, function (line) {
                 return "- " + line;
             });
         },
         "ordered-list": function (textarea) {
-            toggleLinePrefix(textarea, /^\s*\d+[.)]\s+/, function (line, i) {
+            toggleLinePrefix(textarea, /^\d+[.)]\s+/, function (line, i) {
                 return i + 1 + ". " + line;
             });
         },
@@ -226,7 +234,7 @@ var MarkdownWidget = (function () {
             content: 5,
         },
         {
-            re: /^(\s*>\s?)(.*)$/,
+            re: /^((?:\s*>\s?)+)(.*)$/,
             next: function (m) {
                 return m[1];
             },

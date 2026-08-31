@@ -10,7 +10,7 @@
  * The widget exports its helpers under `typeof module !== "undefined"`, so no DOM
  * or browser is needed here — the functions operate on a plain textarea-like
  * object. Real browser behaviour (event wiring, Bootstrap tabs, marked preview)
- * is covered separately by the Playwright harness in .e2e/.
+ * is verified manually in the running app.
  */
 
 const { test } = require("node:test");
@@ -180,6 +180,56 @@ test("ordered list numbers lines sequentially and toggles off", () => {
     expectState(off, "a\nb", 0, 3);
 });
 
+test("list marker toggles off without eating the line's indentation", () => {
+    const el = ta("  - item", 0, 8);
+    md.actions["unordered-list"](el);
+    expectState(el, "  item", 0, 6);
+});
+
+test("list marker is inserted after the indentation, not before it", () => {
+    const el = ta("  item", 0, 6);
+    md.actions["unordered-list"](el);
+    expectState(el, "  - item", 0, 8);
+});
+
+test("nested list levels keep their own indentation through a toggle", () => {
+    const on = ta("- a\n  - b\n    - c", 0, 17);
+    md.actions["unordered-list"](on);
+    expectState(on, "a\n  b\n    c", 0, 11);
+
+    const off = ta("a\n  b\n    c", 0, 11);
+    md.actions["unordered-list"](off);
+    expectState(off, "- a\n  - b\n    - c", 0, 17);
+});
+
+test("quote marker toggles off an indented line without losing the indent", () => {
+    const el = ta("  > a", 0, 5);
+    md.actions.quote(el);
+    expectState(el, "  a", 0, 3);
+});
+
+test("quote marker is inserted after the indentation", () => {
+    const el = ta("  a", 0, 3);
+    md.actions.quote(el);
+    expectState(el, "  > a", 0, 5);
+});
+
+test("ordered list keeps indentation on both directions of the toggle", () => {
+    const on = ta("  a\n  b", 0, 7);
+    md.actions["ordered-list"](on);
+    expectState(on, "  1. a\n  2. b", 0, 13);
+
+    const off = ta("  1. a\n  2. b", 0, 13);
+    md.actions["ordered-list"](off);
+    expectState(off, "  a\n  b", 0, 7);
+});
+
+test("heading does not stack markers on an already-marked indented line", () => {
+    const el = ta("  # Title", 0, 9);
+    md.actions.heading(el);
+    expectState(el, "  Title", 0, 7);
+});
+
 test("line prefix only touches the lines the selection spans", () => {
     // Caret sits inside "bar"; "foo" and "baz" are untouched.
     const el = ta("foo\nbar\nbaz", 5, 5);
@@ -253,6 +303,24 @@ test("Enter continues a blockquote", () => {
     const el = ta("> quote");
     assert.equal(md.continueList(el), true);
     expectState(el, "> quote\n> ", 10, 10);
+});
+
+test("Enter keeps every level of a nested blockquote", () => {
+    const el = ta("> > text");
+    assert.equal(md.continueList(el), true);
+    expectState(el, "> > text\n> > ", 13, 13);
+});
+
+test("Enter keeps a nested blockquote's leading indentation", () => {
+    const el = ta("  > > text");
+    assert.equal(md.continueList(el), true);
+    expectState(el, "  > > text\n  > > ", 17, 17);
+});
+
+test("Enter on an empty nested blockquote clears the markers and exits", () => {
+    const el = ta("> > ");
+    assert.equal(md.continueList(el), true);
+    expectState(el, "", 0, 0);
 });
 
 test("Enter preserves indentation when continuing a nested list", () => {
