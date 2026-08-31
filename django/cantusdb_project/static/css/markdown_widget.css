@@ -1,19 +1,121 @@
-.markdown-field-tabs {
-    border-bottom: none;
+/* One cohesive bordered box: a header band (tabs + toolbar) above the
+   editing area, styled after GitHub's markdown input. */
+.markdown-field {
+    border: 1px solid var(--bs-border-color);
+    border-radius: 0.375rem;
+    background-color: var(--bs-body-bg);
+    overflow: hidden;
 }
 
-/* Aligns top-left border of markdown-field input with tab */
-.markdown-field textarea {
-    border-top-left-radius: 0;
+.markdown-field:focus-within {
+    border-color: #86b7fe;
+    box-shadow: 0 0 0 0.25rem rgba(var(--bs-primary-rgb, 13, 110, 253), 0.25);
+}
+
+.markdown-field-header {
+    display: flex;
+    align-items: flex-end;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: 0.25rem 0.5rem;
+    padding: 0.375rem 0.5rem 0;
+    background-color: var(--bs-tertiary-bg);
+    border-bottom: 1px solid var(--bs-border-color);
+}
+
+/* Write / Preview tabs sit on the header's bottom border and connect the
+   active tab to the editing area below it. */
+.markdown-field-tabs {
+    border-bottom: none;
+    gap: 0.25rem;
+    flex-wrap: nowrap;
+}
+
+.markdown-field-tabs .nav-link {
+    margin-bottom: -1px;
+    padding: 0.375rem 0.75rem;
+    border: 1px solid transparent;
+    border-radius: 0.375rem 0.375rem 0 0;
+    color: var(--bs-secondary-color);
+}
+
+.markdown-field-tabs .nav-link:hover {
+    color: var(--bs-body-color);
+    border-color: transparent;
+}
+
+.markdown-field-tabs .nav-link.active {
+    color: var(--bs-body-color);
+    background-color: var(--bs-body-bg);
+    border-color: var(--bs-border-color);
+    border-bottom-color: var(--bs-body-bg);
+}
+
+.markdown-toolbar {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding-bottom: 0.375rem;
+    flex-wrap: wrap;
+}
+
+.markdown-toolbar-group {
+    display: flex;
+    align-items: center;
+}
+
+.markdown-toolbar-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0.2rem 0.35rem;
+    border: none;
+    background: transparent;
+    border-radius: 0.25rem;
+    color: var(--bs-secondary-color);
+    line-height: 1;
+    cursor: pointer;
+}
+
+.markdown-toolbar-btn:hover {
+    color: var(--bs-body-color);
+    background-color: var(--bs-secondary-bg);
+}
+
+.markdown-toolbar-btn:focus-visible {
+    outline: 2px solid var(--bs-primary);
+    outline-offset: 1px;
+}
+
+/* The container supplies the border; inner controls stay flush and borderless. */
+.markdown-field .markdown-textarea {
+    border: none;
+    border-radius: 0;
     height: 250px;
+    resize: vertical;
+}
+
+.markdown-field .markdown-textarea:focus {
+    border: none;
+    box-shadow: none;
+    outline: none;
 }
 
 .markdown-preview,
 .markdown-preview:focus {
-    border-style: solid none none none;
-    border-color: var(--bs-border-color);
+    border: none;
     border-radius: 0;
     box-shadow: none;
+    min-height: 120px;
+}
+
+/* Give blockquotes a visible treatment in the preview; Bootstrap's reboot
+   strips their margin, so without this they read as plain paragraphs. */
+.markdown-preview blockquote {
+    margin: 0 0 1rem;
+    padding: 0 1rem;
+    border-left: 0.25rem solid var(--bs-border-color);
+    color: var(--bs-secondary-color);
 }
 
 .markdown-preview table {
@@ -28,4 +130,26 @@
 .markdown-preview table th {
     border: 1px solid #ddd;
     padding: 6px;
+}
+
+/* Footer hint mirroring GitHub's "Markdown is supported" caption under the box.
+   Rendered by the widget itself, so every MarkdownWidget field gets it. */
+.markdown-field-footer {
+    display: flex;
+    align-items: center;
+    gap: 0.25rem;
+    padding: 0.25rem 0.5rem;
+    border-top: 1px solid var(--bs-border-color);
+    background-color: var(--bs-tertiary-bg);
+    font-size: 0.8125rem;
+    color: var(--bs-secondary-color);
+}
+
+.markdown-field-footer a {
+    color: inherit;
+    text-decoration: underline;
+}
+
+.markdown-field-footer a:hover {
+    color: var(--bs-body-color);
 }

@@ -1,47 +1,385 @@
-MarkdownWidget = (function () {
-    // Initialize the markdown widget, attaching the necessary event listeners
-    // to the textarea and preview elements
+var MarkdownWidget = (function () {
+    // Apply a computed edit to the textarea. In the browser this routes through
+    // execCommand("insertText") so the change joins the native undo stack — a
+    // plain `textarea.value = ...` assignment wipes it, breaking Ctrl/Cmd+Z.
+    // execCommand is deprecated but remains the only reliable way to preserve
+    // native undo; we fall back to direct assignment when it's unavailable
+    // (older browsers, and the Node unit tests, which have no `document`).
+    function setValue(textarea, value, selectionStart, selectionEnd) {
+        if (textarea.value !== value) {
+            var applied = false;
+            if (typeof document !== "undefined" && document.execCommand) {
+                textarea.focus();
+                textarea.select();
+                applied = document.execCommand("insertText", false, value);
+            }
+            if (!applied) {
+                textarea.value = value;
+            }
+        }
+        textarea.selectionStart = selectionStart;
+        textarea.selectionEnd = selectionEnd;
+        textarea.focus();
+    }
+
+    // True when `text` is already wrapped in `marker`. The single-'*' italic
+    // marker deliberately does not match a '**' bold run.
+    function isWrapped(text, marker) {
+        var len = marker.length;
+        if (text.length < len * 2) {
+            return false;
+        }
+        if (text.slice(0, len) !== marker || text.slice(-len) !== marker) {
+            return false;
+        }
+        if (marker === "*" && (text[1] === "*" || text[text.length - 2] === "*")) {
+            return false;
+        }
+        return true;
+    }
+
+    // Wrap the selection in an inline marker, or unwrap it if already wrapped
+    // (toggle), matching GitHub's bold/italic buttons. With no selection, insert
+    // the placeholder and select it so the user can type over it.
+    function wrapInline(textarea, marker, placeholder) {
+        var start = textarea.selectionStart;
+        var end = textarea.selectionEnd;
+        var value = textarea.value;
+        var selected = value.substring(start, end);
+        var len = marker.length;
+
+        // Selection already includes the markers, e.g. "**text**".
+        if (isWrapped(selected, marker)) {
+            var inner = selected.slice(len, -len);
+            setValue(
+                textarea,
+                value.substring(0, start) + inner + value.substring(end),
+                start,
+                start + inner.length
+            );
+            return;
+        }
+
+        // Markers sit just outside the selection, e.g. **[text]**.
+        var italicInBold =
+            marker === "*" && (value[start - 2] === "*" || value[end + 1] === "*");
+        if (
+            value.substring(start - len, start) === marker &&
+            value.substring(end, end + len) === marker &&
+            !italicInBold
+        ) {
+            setValue(
+                textarea,
+                value.substring(0, start - len) + selected + value.substring(end + len),
+                start - len,
+                end - len
+            );
+            return;
+        }
+
+        var text = selected || placeholder;
+        setValue(
+            textarea,
+            value.substring(0, start) + marker + text + marker + value.substring(end),
+            start + len,
+            start + len + text.length
+        );
+    }
+
+    // Turn the selection into a markdown link. The URL is left selected so the
+    // user can paste over it immediately.
+    function insertLink(textarea) {
+        var start = textarea.selectionStart;
+        var end = textarea.selectionEnd;
+        var value = textarea.value;
+        var text = value.substring(start, end) || "text";
+        var before = "[" + text + "](";
+        var url = "url";
+        setValue(
+            textarea,
+            value.substring(0, start) + before + url + ")" + value.substring(end),
+            start + before.length,
+            start + before.length + url.length
+        );
+    }
+
+    // Toggle a line-level marker (heading, quote, list) across every line the
+    // selection touches. If all lines already have it, strip it; otherwise
+    // normalize and (re)apply so clicking twice never stacks markers. Each
+    // line's indentation is held aside so markers toggle without flattening or
+    // displacing the nesting level.
+    function toggleLinePrefix(textarea, strip, marker) {
+        var start = textarea.selectionStart;
+        var end = textarea.selectionEnd;
+        var value = textarea.value;
+        var blockStart = value.lastIndexOf("\n", start - 1) + 1;
+        var blockEnd = value.indexOf("\n", end);
+        if (blockEnd === -1) {
+            blockEnd = value.length;
+        }
+        var lines = value
+            .substring(blockStart, blockEnd)
+            .split("\n")
+            .map(function (line) {
+                var indent = line.match(/^\s*/)[0];
+                return { indent: indent, rest: line.substring(indent.length) };
+            });
+        var allMarked = lines.every(function (line) {
+            return strip.test(line.rest);
+        });
+        var result = lines
+            .map(function (line, i) {
+                var bare = line.rest.replace(strip, "");
+                return line.indent + (allMarked ? bare : marker(bare, i));
+            })
+            .join("\n");
+        setValue(
+            textarea,
+            value.substring(0, blockStart) + result + value.substring(blockEnd),
+            blockStart,
+            blockStart + result.length
+        );
+    }
+
+    // Indent (or outdent, on Shift+Tab) every line the selection touches by one
+    // level of two spaces, so Tab nests list items like GitHub.
+    function indentLines(textarea, outdent) {
+        var indent = "  ";
+        var start = textarea.selectionStart;
+        var end = textarea.selectionEnd;
+        var value = textarea.value;
+        var blockStart = value.lastIndexOf("\n", start - 1) + 1;
+        var blockEnd = value.indexOf("\n", end);
+        if (blockEnd === -1) {
+            blockEnd = value.length;
+        }
+        var firstDelta = 0; // change before the caret on the first line
+        var totalDelta = 0; // change before the selection end
+        var newLines = value
+            .substring(blockStart, blockEnd)
+            .split("\n")
+            .map(function (line, i) {
+                var delta;
+                if (outdent) {
+                    var removed = (line.match(/^(\t| {1,2})/) || [""])[0].length;
+                    line = line.slice(removed);
+                    delta = -removed;
+                } else {
+                    line = indent + line;
+                    delta = indent.length;
+                }
+                if (i === 0) {
+                    firstDelta = delta;
+                }
+                totalDelta += delta;
+                return line;
+            });
+        setValue(
+            textarea,
+            value.substring(0, blockStart) + newLines.join("\n") + value.substring(blockEnd),
+            Math.max(blockStart, start + firstDelta),
+            Math.max(blockStart, end + totalDelta)
+        );
+    }
+
+    var actions = {
+        heading: function (textarea) {
+            toggleLinePrefix(textarea, /^#{1,6}\s+/, function (line) {
+                return "# " + line;
+            });
+        },
+        bold: function (textarea) {
+            wrapInline(textarea, "**", "bold text");
+        },
+        italic: function (textarea) {
+            wrapInline(textarea, "*", "italic text");
+        },
+        quote: function (textarea) {
+            toggleLinePrefix(textarea, /^>\s?/, function (line) {
+                return "> " + line;
+            });
+        },
+        link: function (textarea) {
+            insertLink(textarea);
+        },
+        "unordered-list": function (textarea) {
+            toggleLinePrefix(textarea, /^[-*+]\s+/, function (line) {
+                return "- " + line;
+            });
+        },
+        "ordered-list": function (textarea) {
+            toggleLinePrefix(textarea, /^\d+[.)]\s+/, function (line, i) {
+                return i + 1 + ". " + line;
+            });
+        },
+    };
+
+    // Ctrl/Cmd shortcuts that mirror GitHub's markdown input.
+    var shortcuts = { b: "bold", i: "italic", k: "link" };
+
+    // Continuation markers for pressing Enter inside a list or blockquote.
+    var continuations = [
+        {
+            re: /^(\s*)([-*+])(\s+)(.*)$/,
+            next: function (m) {
+                return m[1] + m[2] + m[3];
+            },
+            content: 4,
+        },
+        {
+            re: /^(\s*)(\d+)([.)])(\s+)(.*)$/,
+            next: function (m) {
+                return m[1] + (parseInt(m[2], 10) + 1) + m[3] + m[4];
+            },
+            content: 5,
+        },
+        {
+            re: /^((?:\s*>\s?)+)(.*)$/,
+            next: function (m) {
+                return m[1];
+            },
+            content: 2,
+        },
+    ];
+
+    // On Enter, continue the current list/quote with the next marker. Pressing
+    // Enter on an empty item removes the marker and exits the list, matching
+    // GitHub. Returns true when handled so the caller suppresses the newline.
+    function continueList(textarea) {
+        var start = textarea.selectionStart;
+        if (start !== textarea.selectionEnd) {
+            return false;
+        }
+        var value = textarea.value;
+        var lineStart = value.lastIndexOf("\n", start - 1) + 1;
+        var line = value.substring(lineStart, start);
+        for (var i = 0; i < continuations.length; i++) {
+            var m = line.match(continuations[i].re);
+            if (!m) {
+                continue;
+            }
+            if (m[continuations[i].content].trim() === "") {
+                setValue(
+                    textarea,
+                    value.substring(0, lineStart) + value.substring(start),
+                    lineStart,
+                    lineStart
+                );
+            } else {
+                var insert = "\n" + continuations[i].next(m);
+                setValue(
+                    textarea,
+                    value.substring(0, start) + insert + value.substring(start),
+                    start + insert.length,
+                    start + insert.length
+                );
+            }
+            return true;
+        }
+        return false;
+    }
+
+    // When a URL is pasted over selected text, wrap it as a markdown link
+    // instead of replacing the selection, matching GitHub.
+    function handlePaste(textarea, e) {
+        var start = textarea.selectionStart;
+        var end = textarea.selectionEnd;
+        if (start === end) {
+            return;
+        }
+        var pasted = (e.clipboardData || window.clipboardData).getData("text").trim();
+        if (!/^https?:\/\/\S+$/.test(pasted)) {
+            return;
+        }
+        e.preventDefault();
+        var value = textarea.value;
+        var link = "[" + value.substring(start, end) + "](" + pasted + ")";
+        setValue(
+            textarea,
+            value.substring(0, start) + link + value.substring(end),
+            start + link.length,
+            start + link.length
+        );
+    }
+
+    // Initialize each markdown widget on the page, wiring up the toolbar,
+    // keyboard shortcuts, list continuation, and preview rendering.
     function init() {
-        var markdownFields = document.getElementsByClassName('markdown-field');
+        var markdownFields = document.getElementsByClassName("markdown-field");
         for (var i = 0; i < markdownFields.length; i++) {
-            let field = markdownFields[i]
-            let textarea = field.getElementsByClassName('markdown-textarea')[0];
-            let preview = field.getElementsByClassName('markdown-preview')[0];
-            let previewTab = field.getElementsByClassName('preview-tab')[0];
-            previewTab.addEventListener("show.bs.tab", function (event) {
-                var markdownText = textarea.value;
-                var parsed = marked.parse(markdownText);
-                preview.innerHTML = parsed;
-                // Set height of preview to match height of textarea
+            // let (not var) so each field's listeners close over its own elements.
+            let field = markdownFields[i];
+            let textarea = field.getElementsByClassName("markdown-textarea")[0];
+            let preview = field.getElementsByClassName("markdown-preview")[0];
+            let previewTab = field.getElementsByClassName("preview-tab")[0];
+            let editTab = field.getElementsByClassName("edit-tab")[0];
+            let toolbar = field.getElementsByClassName("markdown-toolbar")[0];
+
+            let buttons = toolbar.getElementsByClassName("markdown-toolbar-btn");
+            for (var j = 0; j < buttons.length; j++) {
+                buttons[j].addEventListener("click", function () {
+                    var action = actions[this.getAttribute("data-md-action")];
+                    if (action) {
+                        action(textarea);
+                    }
+                });
+            }
+
+            // The toolbar only makes sense while editing; hide it on Preview.
+            previewTab.addEventListener("show.bs.tab", function () {
+                preview.innerHTML = marked.parse(textarea.value);
                 preview.style.height = textarea.clientHeight + "px";
+                toolbar.style.visibility = "hidden";
+            });
+            editTab.addEventListener("show.bs.tab", function () {
+                toolbar.style.visibility = "visible";
             });
 
-            textarea.addEventListener('keydown', function (e) {
-                if (e.key == 'Tab') {
+            textarea.addEventListener("paste", function (e) {
+                handlePaste(this, e);
+            });
+
+            textarea.addEventListener("keydown", function (e) {
+                if (e.key === "Tab") {
                     e.preventDefault();
-                    var start = this.selectionStart;
-                    var end = this.selectionEnd;
-
-                    // set textarea value to: text before caret + tab + text after caret
-                    this.value = this.value.substring(0, start) +
-                        "\t" + this.value.substring(end);
-
-                    // put caret at right position again
-                    this.selectionStart =
-                        this.selectionEnd = start + 1;
+                    indentLines(this, e.shiftKey);
+                } else if (e.key === "Enter" && !e.shiftKey) {
+                    if (continueList(this)) {
+                        e.preventDefault();
+                    }
+                } else if ((e.ctrlKey || e.metaKey) && shortcuts[e.key.toLowerCase()]) {
+                    e.preventDefault();
+                    actions[shortcuts[e.key.toLowerCase()]](this);
                 }
             });
         }
     }
 
+    // Node (unit tests): export the pure helpers from inside the closure, where
+    // they're in scope. Harmless in the browser, where `module` is undefined.
+    if (typeof module !== "undefined" && module.exports) {
+        module.exports = {
+            isWrapped: isWrapped,
+            wrapInline: wrapInline,
+            insertLink: insertLink,
+            toggleLinePrefix: toggleLinePrefix,
+            indentLines: indentLines,
+            continueList: continueList,
+            handlePaste: handlePaste,
+            actions: actions,
+            continuations: continuations,
+        };
+    }
+
     return {
         init: function () {
             return init();
-        }
+        },
     };
 })();
 
-document.addEventListener("DOMContentLoaded", function () {
-    MarkdownWidget.init();
-});
-
+if (typeof document !== "undefined") {
+    document.addEventListener("DOMContentLoaded", function () {
+        MarkdownWidget.init();
+    });
+}
