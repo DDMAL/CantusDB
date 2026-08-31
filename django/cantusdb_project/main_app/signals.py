@@ -17,16 +17,18 @@ from main_app.models import Chant
 from main_app.models import Sequence
 from main_app.models import Feast
 from main_app.models import Source
-from main_app.models.base_chant import UNKNOWN_PROOFREAD_STATE
 
 
 @receiver(post_save, sender=Chant)
-def on_chant_save(instance, created, **kwargs) -> None:
+def on_chant_save(instance, **kwargs) -> None:
     update_source_chant_count(instance)
     update_source_melody_count(instance)
 
+    # The incipit is regenerated before the search vector is rebuilt, because
+    # the vector indexes the incipit: building it first would leave the stored
+    # vector holding text the row no longer contains (issue #1803).
+    update_chant_incipit_field(instance)
     update_chant_search_vector(instance)
-    update_chant_incipit_field(instance, created)
     update_volpiano_fields(instance)
 
 
@@ -211,22 +213,22 @@ def update_prefix_field(instance) -> None:
         instance.__class__.objects.filter(pk=pk).update(prefix="")
 
 
-def update_chant_incipit_field(chant: Chant, created: bool) -> None:
+def update_chant_incipit_field(chant: Chant) -> None:
     """Update the incipit field of the specified Chant to be the first
     several words of the chant's standardized-spelling fulltext
 
-    A curated incipit is protected from being clobbered by an unproofread
-    full text (issue #1803): a chant with no incipit yet always has one
-    generated, but an existing incipit is only overwritten at the moment its
-    standardized-spelling full text is first marked proofread. It is left
-    untouched on every other save, so hand-curated and imported incipits
-    survive later edits.
+    A curated incipit is protected from an unproofread full text (issue
+    #1803): while the standardized-spelling full text is still unproofread,
+    an existing incipit is left alone, so adding a rough full text to a
+    hand-entered incipit no longer clobbers it. A chant with no incipit yet
+    always gets one, and once the full text is proofread the incipit tracks
+    it again - which is also the only way a wrong incipit can be corrected,
+    since `incipit` is read-only in the admin and absent from both chant
+    forms.
 
     Args:
         chant (Chant): The chant from the database whose `incipit` field
         is to be updated
-        created (bool): Whether this save created the chant, as passed by the
-        post_save signal
     """
     fulltext: Optional[str] = chant.manuscript_full_text_std_spelling
     # many chants in the database have only an incipit - we should only update
@@ -234,34 +236,28 @@ def update_chant_incipit_field(chant: Chant, created: bool) -> None:
     # get saved without a fulltext somehow
     if not fulltext:
         return
-    if chant.incipit:
-        # A loaded flag (True/False/None) is a *known* prior value, and a
-        # database NULL counts as "not proofread". UNKNOWN_PROOFREAD_STATE means
-        # the flag was never loaded - the chant was built in memory or the field
-        # was deferred - so we can't tell a proofread transition and leave the
-        # curated incipit alone. Testing the snapshot first also keeps a deferred
-        # proofread flag from being fetched needlessly.
-        proofread_at_load = chant._std_proofread_at_load
-        was_not_proofread: bool = (
-            proofread_at_load is not UNKNOWN_PROOFREAD_STATE and not proofread_at_load
-        )
-        just_proofread: bool = was_not_proofread and bool(
-            chant.manuscript_full_text_std_proofread
-        )
-        if created or not just_proofread:
-            return
+    # A NULL proofread flag counts as unproofread. On a chant loaded by a
+    # deferred queryset this costs one extra query to fetch the flag, which is
+    # the correct trade: guessing would either freeze or clobber the incipit.
+    if chant.incipit and not chant.manuscript_full_text_std_proofread:
+        return
     new_incipit: str = generate_incipit(fulltext)
     Chant.objects.filter(id=chant.id).update(incipit=new_incipit)
-    # Bring the in-memory instance in step with the row we just wrote, so that
-    # saving it again neither writes the stale incipit back nor looks like a
-    # second proofread transition and overwrites a freshly curated incipit.
+    # Bring the in-memory instance in step with the row we just wrote, so the
+    # search vector built next indexes the incipit the row actually holds.
     chant.incipit = new_incipit
-    chant._std_proofread_at_load = bool(chant.manuscript_full_text_std_proofread)
     # `.update()` bypasses save hooks, so the active revision would otherwise
     # keep the pre-sync incipit. Re-record the instance (now carrying the
-    # regenerated incipit) rather than calling save() again, which would recurse
-    # back through this signal (issue #1803).
-    if reversion.is_active():
+    # regenerated incipit) rather than calling save() again, which would
+    # recurse back through this signal. The guards mirror django-reversion's
+    # own post_save receiver: an unregistered model would raise
+    # RegistrationError, and a revision opened with `manage_manually=True` has
+    # deliberately opted out of automatic versioning.
+    if (
+        reversion.is_registered(Chant)
+        and reversion.is_active()
+        and not reversion.is_manage_manually()
+    ):
         reversion.add_to_revision(chant)
 
 

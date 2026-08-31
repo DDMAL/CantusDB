@@ -1,25 +1,9 @@
-from typing import Any, Collection, Iterable, Optional
-
 from django.db import models
 from django.contrib.auth import get_user_model
 from django.contrib.postgres.search import SearchVectorField
 
 from main_app.models.url_field import NormalizedURLField
 from main_app.models import BaseModel
-
-
-class _UnknownProofreadState:
-    """Sentinel for a proofread flag that was never loaded — an in-memory
-    instance or a queryset that deferred the field — kept distinct from a
-    loaded database ``NULL`` so the incipit signal can tell a real
-    ``NULL``-to-``True`` proofread transition from an unknown prior value
-    (issue #1803)."""
-
-    def __repr__(self) -> str:
-        return "UNKNOWN_PROOFREAD_STATE"
-
-
-UNKNOWN_PROOFREAD_STATE = _UnknownProofreadState()
 
 
 class BaseChant(BaseModel):
@@ -223,50 +207,6 @@ class BaseChant(BaseModel):
     later_addition = models.CharField(blank=True, null=True, max_length=255)
 
     other_fields_proofread = models.BooleanField(blank=False, null=False, default=False)
-
-    # The value of `manuscript_full_text_std_proofread` as last read from the
-    # database, so the incipit signal can tell when the standardized-spelling
-    # full text is *first* marked proofread and re-sync the incipit only then
-    # (issue #1803). A loaded value is one of `True`/`False`/`None`; a database
-    # `NULL` is a known "not proofread" state. `UNKNOWN_PROOFREAD_STATE` means
-    # the field was never loaded — the instance was built in memory, or the
-    # field was deferred — and the signal must not assume a transition then.
-    _std_proofread_at_load: "bool | None | _UnknownProofreadState" = (
-        UNKNOWN_PROOFREAD_STATE
-    )
-
-    @classmethod
-    def from_db(
-        cls, db: Optional[str], field_names: Collection[str], values: Collection[Any]
-    ) -> "BaseChant":
-        instance = super().from_db(db, field_names, values)
-        # Guarded so a deferred queryset that excludes the field doesn't trigger
-        # an extra fetch; the snapshot stays `UNKNOWN_PROOFREAD_STATE` in that
-        # case. A loaded `None` is a genuine (known) NULL, not "unknown".
-        if "manuscript_full_text_std_proofread" in field_names:
-            instance._std_proofread_at_load = (
-                instance.manuscript_full_text_std_proofread
-            )
-        return instance
-
-    def refresh_from_db(
-        self,
-        using: Optional[str] = None,
-        fields: Optional[Iterable[str]] = None,
-        from_queryset: Optional[models.QuerySet] = None,
-    ) -> None:
-        refreshed_fields: Optional[set] = None if fields is None else set(fields)
-        super().refresh_from_db(
-            using=using, fields=refreshed_fields, from_queryset=from_queryset
-        )
-        # Re-snapshot alongside `from_db`, so an instance refreshed after a save
-        # doesn't carry a stale (or missing) proofread state into its next save.
-        proofread_field: str = "manuscript_full_text_std_proofread"
-        refetched_proofread_flag: bool = (
-            refreshed_fields is None or proofread_field in refreshed_fields
-        ) and proofread_field not in self.get_deferred_fields()
-        if refetched_proofread_flag:
-            self._std_proofread_at_load = self.manuscript_full_text_std_proofread
 
     def get_ci_url(self) -> str:
         """Construct the url to the entry in Cantus Index correponding to the chant.
