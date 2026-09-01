@@ -254,17 +254,32 @@ class Source(BaseModel):
             for link in self.source_links.all()  # type: ignore[attr-defined]
         )
 
-    @property
-    def short_heading(self) -> str:
+    @staticmethod
+    def compose_short_heading(institution_siglum: str | None, shelfmark: str) -> str:
+        """Build a source's short heading from its component values.
+
+        Kept separate from the `short_heading` property so that bulk exports,
+        which read the underlying columns with `QuerySet.values()` rather than
+        instantiating Source objects, produce identical strings.
+
+        `feast_source_query` in `main_app/views/feast.py` and the
+        `computed_siglum` annotation in `SequenceListView`
+        (`main_app/views/sequence.py`) reimplement this fallback in SQL/ORM;
+        keep the three in sync.
+        """
         title = []
-        if holdinst := self.holding_institution:
-            if holdinst.siglum and holdinst.siglum != "XX-NN":
-                title.append(f"{holdinst.siglum}")
-            else:
-                title.append("Cantus")
+        if institution_siglum and institution_siglum != "XX-NN":
+            title.append(institution_siglum)
         else:
             title.append("Cantus")
 
-        title.append(self.shelfmark)
+        title.append(shelfmark)
 
         return " ".join(title)
+
+    @property
+    def short_heading(self) -> str:
+        holdinst = self.holding_institution
+        return self.compose_short_heading(
+            holdinst.siglum if holdinst else None, self.shelfmark
+        )

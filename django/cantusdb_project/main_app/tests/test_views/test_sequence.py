@@ -14,8 +14,8 @@ from main_app.models import Sequence
 from main_app.tests.make_fakes import (
     make_fake_sequence,
     make_fake_source,
+    make_fake_institution,
     get_random_search_term,
-    make_random_string,
 )
 from main_app.tests.mixins import CustomAccessTestMixin
 
@@ -87,16 +87,49 @@ class SequenceListViewTest(SequencePermissionsTestCase):
         self.assertIn(sequence, response.context["sequences"])
 
     def test_search_shelfmark(self):
-        # create a published sequence source and some sequence in it
+        # The "siglum" search box matches the source's current composed heading
+        # (institution siglum + shelfmark), which is what the list displays.
         source = make_fake_source(
             published=True,
             shelfmark="a sequence source",
         )
-        sequence = make_fake_sequence(siglum=make_random_string(6), source=source)
-        search_term = get_random_search_term(sequence.siglum)
-        # request the page, search for the siglum
+        sequence = make_fake_sequence(source=source)
+        search_term = get_random_search_term(source.shelfmark)
+        # request the page, search for part of the shelfmark
         response = self.client.get(reverse("sequence-list"), {"siglum": search_term})
         # the sequence should be present in the results
+        self.assertIn(sequence, response.context["sequences"])
+
+    def test_search_uses_composed_siglum_not_legacy_column(self):
+        # `Sequence.siglum` is a frozen legacy column; searching should match the
+        # source's current institution siglum + shelfmark, never that stale
+        # value (#2025).
+        institution = make_fake_institution(siglum="gb-ob")
+        source = make_fake_source(
+            published=True,
+            shelfmark="Laud Misc. 299",
+            holding_institution=institution,
+        )
+        sequence = make_fake_sequence(siglum="ZZ-stale 000", source=source)
+
+        with self.subTest("matches the current institution siglum"):
+            response = self.client.get(reverse("sequence-list"), {"siglum": "gb-ob"})
+            self.assertIn(sequence, response.context["sequences"])
+
+        with self.subTest("does not match the frozen legacy column"):
+            response = self.client.get(reverse("sequence-list"), {"siglum": "ZZ-stale"})
+            self.assertNotIn(sequence, response.context["sequences"])
+
+    def test_search_matches_cantus_fallback(self):
+        # A source with no usable institution siglum displays (and is searched)
+        # as "Cantus <shelfmark>", mirroring `Source.compose_short_heading`.
+        source = make_fake_source(
+            published=True,
+            shelfmark="MS 123",
+            holding_institution=make_fake_institution(is_private_collector=True),
+        )
+        sequence = make_fake_sequence(source=source)
+        response = self.client.get(reverse("sequence-list"), {"siglum": "Cantus"})
         self.assertIn(sequence, response.context["sequences"])
 
     def test_search_cantus_id(self):
@@ -165,6 +198,54 @@ class SequenceDetailViewTest(SequencePermissionsTestCase):
         response = self.client.get(reverse("sequence-detail", args=[sequence.id]))
         concordances = response.context["concordances"]
         self.assertIn(sequence_with_same_cantus_id, concordances)
+
+    def test_concordances_ordering(self):
+        # Concordances are ordered by the source's current siglum + shelfmark,
+        # not the frozen `Sequence.siglum` column (#2025). Created out of order
+        # to prove the ordering isn't just insertion order.
+        cantus_id = "900000"
+        first = make_fake_sequence(
+            cantus_id=cantus_id,
+            source=make_fake_source(
+                published=True,
+                shelfmark="MS 1",
+                holding_institution=make_fake_institution(siglum="A-Wn"),
+            ),
+        )
+        third = make_fake_sequence(
+            cantus_id=cantus_id,
+            source=make_fake_source(
+                published=True,
+                shelfmark="MS 1",
+                holding_institution=make_fake_institution(siglum="B-Br"),
+            ),
+        )
+        second = make_fake_sequence(
+            cantus_id=cantus_id,
+            source=make_fake_source(
+                published=True,
+                shelfmark="MS 2",
+                holding_institution=make_fake_institution(siglum="A-Wn"),
+            ),
+        )
+        response = self.client.get(reverse("sequence-detail", args=[first.id]))
+        concordances = list(response.context["concordances"])
+        self.assertEqual(concordances, [first, second, third])
+
+    def test_detail_displays_composed_siglum(self):
+        # The "Siglum" field shows the source's current composed heading, not the
+        # frozen `Sequence.siglum` column (#2025).
+        institution = make_fake_institution(siglum="gb-ob")
+        source = make_fake_source(
+            published=True,
+            shelfmark="Laud Misc. 299",
+            holding_institution=institution,
+        )
+        sequence = make_fake_sequence(siglum="ZZ-stale 000", source=source)
+        response = self.client.get(reverse("sequence-detail", args=[sequence.id]))
+        html = response.content.decode()
+        self.assertIn("gb-ob Laud Misc. 299", html)
+        self.assertNotIn("ZZ-stale 000", html)
 
     def test_sequence_without_cantus_id(self):
         sequence = make_fake_sequence()

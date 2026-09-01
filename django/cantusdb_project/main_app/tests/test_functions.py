@@ -13,6 +13,7 @@ from main_app.models import (
 from main_app.tests import mock_cantusindex_data
 from main_app.tests.make_fakes import (
     make_fake_chant,
+    make_fake_institution,
     make_fake_source,
 )
 from main_app.management.commands import update_cached_concordances
@@ -259,7 +260,7 @@ class UpdateCachedConcordancesCommandTest(TestCase):
         single_concordance: dict = concordances[0]
 
         expected_items: tuple = (
-            ("siglum", chant.source.siglum),
+            ("siglum", chant.source.short_heading),
             ("srclink", f"https://cantusdatabase.org/source/{chant.source.id}/"),
             ("chantlink", f"https://cantusdatabase.org/chant/{chant.id}/"),
             ("folio", chant.folio),
@@ -281,6 +282,28 @@ class UpdateCachedConcordancesCommandTest(TestCase):
             observed_value: Union[str, int, None] = single_concordance[key]
             with self.subTest(key=key):
                 self.assertEqual(observed_value, value)
+
+    def test_siglum_is_composed_not_read_from_legacy_column(self):
+        """The exported siglum must be built from the holding institution's RISM
+        siglum and the source's shelfmark, not from the stale `Source.siglum`
+        column, which is no longer maintained. See #2025.
+        """
+        institution = make_fake_institution(siglum="V-CVbav")
+        source: Source = make_fake_source(
+            holding_institution=institution,
+            shelfmark="San Pietro B.79",
+            published=True,
+        )
+        # Simulate the out-of-date legacy value that this export used to emit.
+        source.siglum = "V-CVbav B.79"
+        source.save()
+        make_fake_chant(source=source)
+
+        single_concordance: dict = update_cached_concordances.get_concordances()[0]
+
+        self.assertEqual(single_concordance["siglum"], "V-CVbav San Pietro B.79")
+        self.assertNotEqual(single_concordance["siglum"], source.siglum)
+        self.assertEqual(single_concordance["siglum"], source.short_heading)
 
 
 class IncipitSignalTest(TestCase):
