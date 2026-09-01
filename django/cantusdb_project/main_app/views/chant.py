@@ -5,9 +5,10 @@ import string
 
 from django.conf import settings
 from django.contrib import messages
+from django.contrib.auth.mixins import LoginRequiredMixin
 from django.contrib.postgres.aggregates import ArrayAgg
 from django.db.models import Case, F, Q, QuerySet, When
-from django.http import Http404, HttpResponse
+from django.http import Http404, HttpRequest, HttpResponse, JsonResponse
 from django.shortcuts import get_object_or_404
 from django.urls import reverse
 from django.utils.http import url_has_allowed_host_and_scheme
@@ -18,6 +19,7 @@ from django.views.generic import (
     ListView,
     TemplateView,
     UpdateView,
+    View,
 )
 from volpiano_display_utilities.latin_word_syllabification import LatinError
 from volpiano_display_utilities.cantus_text_syllabification import (
@@ -36,6 +38,8 @@ from main_app.forms import (
     ChantEditForm,
     ChantEditSyllabificationForm,
     ChantSearchForm,
+    CHANT_TEXT_FIELDS,
+    find_chant_text_problems,
 )
 from main_app.models import (
     Chant,
@@ -50,6 +54,50 @@ from main_app.permissions import CustomAccessMixin
 
 from main_app.mixins import JSONResponseMixin
 from users.models import User
+
+
+def add_unconfirmed_text_warnings(request: HttpRequest, form: Any) -> None:
+    """
+    After a chant form saves, surface a non-blocking warning message for each
+    invalid-text problem the form found (see #1681), *unless* the user already
+    acknowledged them (the client-side "Save anyway" flow posts
+    ``confirm_invalid_text=1``). This is primarily the fallback for when the
+    JavaScript confirmation dialog isn't available.
+    """
+    if request.POST.get("confirm_invalid_text") == "1":
+        return
+    for problem in getattr(form, "text_problems", []):
+        messages.warning(
+            request,
+            f'The {problem["label"]} {problem["message"]} '
+            "The chant was saved, but you may want to review this field.",
+        )
+
+
+class ValidateChantTextView(LoginRequiredMixin, View):  # type: ignore[type-arg]
+    """
+    A small JSON endpoint used by the chant create/edit forms to check whether
+    the entered text fields can be syllabified, *without* saving anything. The
+    client posts the text field values and receives back a list of problems
+    (each with the field name, a label, a message and an HTML rendering of the
+    text with the offending characters marked). This powers the "Save anyway?"
+    confirmation dialog (see #1681).
+    """
+
+    def post(self, request: HttpRequest) -> JsonResponse:
+        problems: list[dict[str, str]] = []
+        for field_name, spec in CHANT_TEXT_FIELDS.items():
+            if field_name not in request.POST:
+                continue
+            problems.extend(
+                {"field": field_name, "label": spec["label"], **problem}
+                for problem in find_chant_text_problems(
+                    request.POST[field_name],
+                    text_presyllabified=spec["text_presyllabified"],
+                )
+            )
+        return JsonResponse({"problems": problems})
+
 
 ADVANCED_SEARCH_FIELDS: tuple[str, ...] = (
     # GET params belonging to the collapsible "Advanced search" section of
@@ -1193,6 +1241,7 @@ class ChantCreateView(CustomAccessMixin, CreateView):  # type: ignore[type-arg]
         """
         form.instance.created_by = self.request.user
         form.instance.last_updated_by = self.request.user
+        add_unconfirmed_text_warnings(self.request, form)
         return super().form_valid(form)
 
 
@@ -1452,6 +1501,7 @@ class SourceEditChantsView(CustomAccessMixin, UpdateView):  # type: ignore[type-
         if not user_can_proofread_chant:
             chant.proofread_by.set(proofreaders)
         messages.success(self.request, "Chant updated successfully!")
+        add_unconfirmed_text_warnings(self.request, form)
         return return_response
 
     def form_invalid(self, form):
@@ -1551,6 +1601,7 @@ class ChantEditSyllabificationView(CustomAccessMixin, UpdateView):  # type: igno
             self.request,
             "Syllabification updated successfully!",
         )
+        add_unconfirmed_text_warnings(self.request, form)
         return super().form_valid(form)
 
     def get_success_url(self):

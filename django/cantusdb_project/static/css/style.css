@@ -207,3 +207,30 @@ a.display-link {
 .markdown-field-display p {
 	text-indent: 2em;
 }
+
+/* Nonstandard chant text warning (see chant_text_warning.html) */
+
+.chant-text-warning-field {
+	border-color: #ffc107 !important;
+	box-shadow: 0 0 0 0.15rem rgba(255, 193, 7, 0.4) !important;
+}
+
+.chant-text-warning-echo {
+	color: #997404;
+}
+
+.chant-text-warning-marked {
+	font-family: monospace;
+	white-space: pre-wrap;
+	overflow-wrap: anywhere;
+	max-height: 10rem;
+	overflow-y: auto;
+	margin-top: 0.25rem;
+	padding: 0.25rem 0.5rem;
+	background-color: rgba(0, 0, 0, 0.04);
+	border-radius: 0.25rem;
+}
+
+.chant-text-warning-marked mark {
+	padding: 0 0.1em;
+}

@@ -1,0 +1,36 @@
+{% comment %}
+    "Save anyway?" confirmation dialog for invalid chant text (see #1681).
+    Include this once on a chant create/edit form's page, and load
+    js/chant_text_validation.js from that page's scripts block: the script
+    populates this modal from the `validate-chant-text` endpoint before
+    allowing the save. Its styling lives in css/style.css.
+{% endcomment %}
+<div class="modal fade"
+     id="chant-text-warning-modal"
+     tabindex="-1"
+     aria-labelledby="chant-text-warning-modal-label"
+     aria-hidden="true"
+     data-validate-url="{% url 'validate-chant-text' %}">
+    <div class="modal-dialog modal-lg modal-dialog-scrollable modal-fullscreen-sm-down">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="chant-text-warning-modal-label">
+                    Warning: Nonstandard text
+                </h5>
+                <button type="button"
+                        class="btn-close"
+                        data-bs-dismiss="modal"
+                        aria-label="Close"></button>
+            </div>
+            <div class="modal-body" id="chant-text-warning-modal-body"></div>
+            <div class="modal-footer">
+                <button type="button"
+                        class="btn btn-outline-secondary"
+                        data-bs-dismiss="modal">Go back &amp; fix</button>
+                <button type="button"
+                        class="btn btn-dark"
+                        id="chant-text-warning-save-anyway">Save anyway</button>
+            </div>
+        </div>
+    </div>
+</div>
