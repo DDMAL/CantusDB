@@ -3,6 +3,7 @@
 {% block title %}<title>Create Chant | Cantus Database</title>{% endblock %}
 {% block scripts %}
     <script src="/static/js/chant_create.js"></script>
+    <script src="/static/js/chant_range.js"></script>
     <script type="text/javascript"
             src="{% static 'admin/js/vendor/jquery/jquery.js' %}"></script>
     {{ form.media }}
@@ -137,11 +138,16 @@
             </div>
         </div>
         <div class="row small">
-            <div class="col-lg-2">
-                <label for="{{ form.chant_range.id_for_label }}">Range:</label>
-                {{ form.chant_range }}
-                <p class="text-muted">{{ form.chant_range.help_text }}</p>
-            </div>
+            {% if user_can_proofread_chant %}
+                <div class="col-lg-2">
+                    <label for="{{ form.chant_range.id_for_label }}">Range:</label>
+                    {{ form.chant_range }}
+                    <p class="text-muted">{{ form.chant_range.help_text }}</p>
+                    <small id="chantRangeDerivedNote" class="text-muted" hidden>
+                        Derived automatically from the volpiano.
+                    </small>
+                </div>
+            {% endif %}
             <div class="col-lg-2">
                 <label for="{{ form.melody_id.id_for_label }}">Melody ID:</label>
                 {{ form.melody_id }}
