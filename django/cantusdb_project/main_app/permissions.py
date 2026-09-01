@@ -164,6 +164,21 @@ class CustomAccessMixin(AccessMixin):
     def user_created_source(self, source: Source) -> bool:
         return source.created_by == self.user
 
+    @staticmethod
+    def source_locked_for_proofreading(source: Source) -> bool:
+        """
+        Returns True if `source` has been submitted for proofreading and is
+        therefore locked to everyone but editors. See issue #1962.
+
+        The single place this condition is expressed: every caller below
+        goes through it, so a new kind of edit cannot silently miss the lock.
+
+        :param source: Source object to check.
+
+        :return: True if the source is awaiting proofreading.
+        """
+        return source.source_status == Source.PROOFREAD_PENDING_STATUS
+
     def user_can_edit_source(self, source: Source) -> bool:
         """
         Returns True if the user may edit `source` itself (as opposed to
@@ -181,9 +196,31 @@ class CustomAccessMixin(AccessMixin):
         """
         if not self.user_assigned_to_source(source):
             return False
-        if source.source_status == Source.PROOFREAD_PENDING_STATUS:
+        if self.source_locked_for_proofreading(source):
             return self.user_is_editor
         return self.user_is_editor or self.user_created_source(source)
+
+    def user_can_edit_chants(self, source: Source) -> bool:
+        """
+        Returns True if the user may edit `source`'s chants and sequences
+        (as opposed to the source record itself).
+
+        Editing a source's contents requires only being assigned to it —
+        an indexer is routinely assigned to a source someone else created.
+        Once the source has been submitted for proofreading it is locked to
+        everyone but editors: without this, an indexer told that "editing is
+        now locked" could still add, retext and delete every chant in the
+        source while an editor proofreads it. See issue #1962.
+
+        :param source: Source object to check chant-edit access for.
+
+        :return: True if the user may edit the source's chants.
+        """
+        if not self.user_assigned_to_source(source):
+            return False
+        if self.source_locked_for_proofreading(source):
+            return self.user_is_editor
+        return True
 
     def check_user_assignment(self, source: Source) -> bool:
         """
