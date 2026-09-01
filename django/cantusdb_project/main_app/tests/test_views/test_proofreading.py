@@ -141,8 +141,9 @@ class ProofreadingOverviewViewTest(TestCase):
     def test_ordering(self):
         """
         Order on the Proofreading Overview should mirror Browse Sources for the
-        shared sort modes: by country (with NULL sigla coalesced to "") and by
-        institution siglum + shelfmark.
+        shared sort modes: by country (with NULL sigla — private collectors —
+        sorted after institutions within a country group) and by institution
+        siglum + shelfmark.
         """
         sources = []
         # A source from a private collector (NULL siglum).
@@ -183,8 +184,10 @@ class ProofreadingOverviewViewTest(TestCase):
                 sources,
                 key=lambda s: (
                     s.holding_institution.country,
+                    s.holding_institution.siglum is None,
                     s.holding_institution.siglum or "",
                     s.shelfmark,
+                    s.id,  # mirror the view's final `id` tiebreaker
                 ),
             )
             self.assertEqual(expected, list(response.context["sources"]))
@@ -209,6 +212,13 @@ class ProofreadingOverviewViewTest(TestCase):
                 ),
             )
             self.assertEqual(expected, list(response.context["sources"]))
+
+        with self.subTest("Unsupported order does not error"):
+            # An unrecognized order value hits the fallback ordering. Regression:
+            # that fallback once referenced a since-removed COALESCE expression
+            # and raised NameError -> HTTP 500.
+            response = self.client.get(self.url, {"order": "does_not_exist"})
+            self.assertEqual(response.status_code, 200)
 
     def test_pagination(self):
         paginate_by = ProofreadView.paginate_by
