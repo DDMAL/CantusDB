@@ -1950,42 +1950,6 @@ class SourceListViewTest(CustomAccessTestMixin, TestCase):
             self.assertEqual(
                 list(reversed(expected_source_order)), list(response_sources_reverse)
             )
-        with self.subTest("Order by num_chants"):
-            src_many = make_fake_source(number_of_chants=100)
-            src_few = make_fake_source(number_of_chants=5)
-            src_null = make_fake_source(number_of_chants=None)
-
-            # ASC: few → many → NULL (nulls always last)
-            response = self.client.get(
-                reverse("source-list"), {"order": "num_chants", "sort": "asc"}
-            )
-            result = list(response.context["sources"])
-            pos_few = next(i for i, s in enumerate(result) if s.id == src_few.id)
-            pos_many = next(i for i, s in enumerate(result) if s.id == src_many.id)
-            pos_null = next(i for i, s in enumerate(result) if s.id == src_null.id)
-            self.assertLess(
-                pos_few, pos_many, "sort=asc: src_few should precede src_many"
-            )
-            self.assertLess(pos_many, pos_null, "sort=asc: NULL chants should be last")
-
-            # DESC: many → few → NULL (nulls always last)
-            response_desc = self.client.get(
-                reverse("source-list"), {"order": "num_chants", "sort": "desc"}
-            )
-            result_desc = list(response_desc.context["sources"])
-            pos_few_d = next(i for i, s in enumerate(result_desc) if s.id == src_few.id)
-            pos_many_d = next(
-                i for i, s in enumerate(result_desc) if s.id == src_many.id
-            )
-            pos_null_d = next(
-                i for i, s in enumerate(result_desc) if s.id == src_null.id
-            )
-            self.assertLess(
-                pos_many_d, pos_few_d, "sort=desc: src_many should precede src_few"
-            )
-            self.assertLess(
-                pos_few_d, pos_null_d, "sort=desc: NULL chants should be last"
-            )
 
     def test_ordering_by_has_image(self) -> None:
         """
@@ -2051,6 +2015,69 @@ class SourceListViewTest(CustomAccessTestMixin, TestCase):
                     f"sort={sort_param}: sources with and without an image "
                     f"gallery are interleaved",
                 )
+
+    def test_ordering_by_num_chants(self) -> None:
+        """
+        The Chants / Melodies column sorts by chant count, and the first
+        (ascending) click brings the sources with no indexed chants to the top
+        (#2012).
+
+        `number_of_chants` is NULL rather than 0 for a source that has never
+        held a chant, since it is only written when a chant or sequence is
+        saved or deleted. The column renders those as "0", so the sort treats
+        them as 0 too — sorting NULLs last in both directions would leave them
+        unreachable.
+        """
+        src_many = make_fake_source(number_of_chants=100)
+        src_few = make_fake_source(number_of_chants=5)
+        src_zero = make_fake_source(number_of_chants=0)
+        src_null = make_fake_source(number_of_chants=None)
+
+        def positions(sort_param: str) -> dict[int, int]:
+            response = self.client.get(
+                reverse("source-list"), {"order": "num_chants", "sort": sort_param}
+            )
+            result = list(response.context["sources"])
+            self.assertEqual(len(result), 4)
+            return {source.id: index for index, source in enumerate(result)}
+
+        with self.subTest(sort="asc"):
+            pos = positions("asc")
+            # A NULL count sorts with the literal 0 it is displayed as, ahead
+            # of every source that has chants.
+            self.assertLess(pos[src_null.id], pos[src_few.id])
+            self.assertLess(pos[src_zero.id], pos[src_few.id])
+            self.assertLess(pos[src_few.id], pos[src_many.id])
+
+        with self.subTest(sort="desc"):
+            pos = positions("desc")
+            self.assertLess(pos[src_many.id], pos[src_few.id])
+            self.assertLess(pos[src_few.id], pos[src_null.id])
+            self.assertLess(pos[src_few.id], pos[src_zero.id])
+
+    def test_ordering_by_num_chants_breaks_ties_by_siglum(self) -> None:
+        """
+        Chant counts tie constantly, so equal counts fall back to the same
+        siglum/shelfmark tiebreakers the other orderings use. The tiebreakers
+        do not flip with the sort direction, so ties stay alphabetical in both.
+        """
+        src_b = make_fake_source(
+            number_of_chants=7,
+            holding_institution=make_fake_institution(siglum="BB-Bb"),
+        )
+        src_a = make_fake_source(
+            number_of_chants=7,
+            holding_institution=make_fake_institution(siglum="AA-Aa"),
+        )
+
+        for sort_param in ["asc", "desc"]:
+            with self.subTest(sort=sort_param):
+                response = self.client.get(
+                    reverse("source-list"),
+                    {"order": "num_chants", "sort": sort_param},
+                )
+                result = list(response.context["sources"])
+                self.assertEqual([src_a, src_b], result)
 
     def test_pagination(self):
         paginate_by = SourceListView.paginate_by

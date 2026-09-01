@@ -22,6 +22,7 @@ from django.db.models import (
     Value,
     When,
 )
+from django.db.models.functions import Coalesce
 from django.http import (
     HttpResponseRedirect,
     Http404,
@@ -754,10 +755,24 @@ class SourceListView(CustomAccessMixin, ListView):  # type: ignore[type-arg]
                 f"{sort_prefix}id",
             ]
         elif order_param == "num_chants":
-            if sort_desc:
-                order_by_args = [F("number_of_chants").desc(nulls_last=True), "id"]
-            else:
-                order_by_args = [F("number_of_chants").asc(nulls_last=True), "id"]
+            # number_of_chants is written only by
+            # main_app.signals.update_source_chant_count, on chant/sequence save
+            # and delete, so a source that has never held a chant keeps NULL
+            # rather than 0 — and the column renders those as "0" anyway, via
+            # default_if_none. Coalescing to 0 sorts them as the zeros they
+            # display as, so the first (ascending) click brings sources with no
+            # indexed chants to the top, which is what #2012 asks for. Sorting
+            # NULLs last in both directions made them unreachable instead.
+            chant_count = Coalesce("number_of_chants", Value(0))
+            order_by_args = [
+                chant_count.desc() if sort_desc else chant_count.asc(),
+                # Chant counts tie constantly, so without the same tiebreakers
+                # the has_image branch uses, the rest of the page comes back in
+                # database order.
+                "holding_institution__siglum",
+                "shelfmark",
+                "id",
+            ]
         else:
             order_by_args = [
                 f"{sort_prefix}holding_institution__siglum",
