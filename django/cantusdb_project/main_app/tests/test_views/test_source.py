@@ -1951,6 +1951,134 @@ class SourceListViewTest(CustomAccessTestMixin, TestCase):
                 list(reversed(expected_source_order)), list(response_sources_reverse)
             )
 
+    def test_ordering_by_has_image(self) -> None:
+        """
+        The Image Link column sorts on whether a source has an external image
+        gallery, grouping the sources that show an "Images" link ahead of those
+        that do not on the first (ascending) click.
+
+        The column renders `Source.external_images_url`, which reads an
+        EXTERNAL_IMAGES SourceURL first and only falls back to the legacy
+        `image_link` field, so the assertions below read the same property
+        rather than `image_link`: a sort that looked at `image_link` alone
+        would group every SourceURL-backed gallery with the imageless sources.
+        """
+        with_images = []
+        without_images = []
+
+        # Legacy field only.
+        with_images.append(make_fake_source(image_link="https://example.com/legacy"))
+        # SourceURL only — the case a sort on `image_link` alone gets wrong.
+        src_source_url_only = make_fake_source(image_link=None)
+        SourceURL.objects.create(
+            source=src_source_url_only,
+            url="https://example.com/source-url-images",
+            url_type=SourceURL.URLTypes.EXTERNAL_IMAGES,
+        )
+        with_images.append(src_source_url_only)
+        # SourceURL superseding an empty legacy field.
+        src_both = make_fake_source(image_link="")
+        SourceURL.objects.create(
+            source=src_both,
+            url="https://example.com/supersedes-empty",
+            url_type=SourceURL.URLTypes.EXTERNAL_IMAGES,
+        )
+        with_images.append(src_both)
+
+        without_images.append(make_fake_source(image_link=None))
+        without_images.append(make_fake_source(image_link=""))
+        # A SourceURL of some other type is not an image gallery.
+        src_manifest_only = make_fake_source(image_link=None)
+        SourceURL.objects.create(
+            source=src_manifest_only,
+            url="https://example.com/manifest.json",
+            url_type=SourceURL.URLTypes.IIIF_MANIFEST,
+        )
+        without_images.append(src_manifest_only)
+
+        for sort_param, expect_images_first in [("asc", True), ("desc", False)]:
+            with self.subTest(sort=sort_param):
+                response = self.client.get(
+                    reverse("source-list"),
+                    {"order": "has_image", "sort": sort_param},
+                )
+                result = list(response.context["sources"])
+                result_ids = {source.id for source in result}
+                for source in with_images + without_images:
+                    self.assertIn(source.id, result_ids)
+
+                # Assert on the rendered property, not the sort key.
+                groups = [bool(source.external_images_url) for source in result]
+                self.assertEqual(
+                    groups,
+                    sorted(groups, reverse=expect_images_first),
+                    f"sort={sort_param}: sources with and without an image "
+                    f"gallery are interleaved",
+                )
+
+    def test_ordering_by_num_chants(self) -> None:
+        """
+        The Chants / Melodies column sorts by chant count, and the first
+        (ascending) click brings the sources with no indexed chants to the top
+        (#2012).
+
+        `number_of_chants` is NULL rather than 0 for a source that has never
+        held a chant, since it is only written when a chant or sequence is
+        saved or deleted. The column renders those as "0", so the sort treats
+        them as 0 too — sorting NULLs last in both directions would leave them
+        unreachable.
+        """
+        src_many = make_fake_source(number_of_chants=100)
+        src_few = make_fake_source(number_of_chants=5)
+        src_zero = make_fake_source(number_of_chants=0)
+        src_null = make_fake_source(number_of_chants=None)
+
+        def positions(sort_param: str) -> dict[int, int]:
+            response = self.client.get(
+                reverse("source-list"), {"order": "num_chants", "sort": sort_param}
+            )
+            result = list(response.context["sources"])
+            self.assertEqual(len(result), 4)
+            return {source.id: index for index, source in enumerate(result)}
+
+        with self.subTest(sort="asc"):
+            pos = positions("asc")
+            # A NULL count sorts with the literal 0 it is displayed as, ahead
+            # of every source that has chants.
+            self.assertLess(pos[src_null.id], pos[src_few.id])
+            self.assertLess(pos[src_zero.id], pos[src_few.id])
+            self.assertLess(pos[src_few.id], pos[src_many.id])
+
+        with self.subTest(sort="desc"):
+            pos = positions("desc")
+            self.assertLess(pos[src_many.id], pos[src_few.id])
+            self.assertLess(pos[src_few.id], pos[src_null.id])
+            self.assertLess(pos[src_few.id], pos[src_zero.id])
+
+    def test_ordering_by_num_chants_breaks_ties_by_siglum(self) -> None:
+        """
+        Chant counts tie constantly, so equal counts fall back to the same
+        siglum/shelfmark tiebreakers the other orderings use. The tiebreakers
+        do not flip with the sort direction, so ties stay alphabetical in both.
+        """
+        src_b = make_fake_source(
+            number_of_chants=7,
+            holding_institution=make_fake_institution(siglum="BB-Bb"),
+        )
+        src_a = make_fake_source(
+            number_of_chants=7,
+            holding_institution=make_fake_institution(siglum="AA-Aa"),
+        )
+
+        for sort_param in ["asc", "desc"]:
+            with self.subTest(sort=sort_param):
+                response = self.client.get(
+                    reverse("source-list"),
+                    {"order": "num_chants", "sort": sort_param},
+                )
+                result = list(response.context["sources"])
+                self.assertEqual([src_a, src_b], result)
+
     def test_pagination(self):
         paginate_by = SourceListView.paginate_by
         full_pages = 2

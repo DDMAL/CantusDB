@@ -8,7 +8,21 @@ import requests
 from django.conf import settings
 from django.contrib import messages
 from django.contrib.auth.mixins import UserPassesTestMixin
-from django.db.models import Q, Prefetch, QuerySet, Value, Min, Max
+from django.db.models import (
+    BooleanField,
+    Case,
+    Exists,
+    F,
+    Max,
+    Min,
+    OuterRef,
+    Prefetch,
+    Q,
+    QuerySet,
+    Value,
+    When,
+)
+from django.db.models.functions import Coalesce
 from django.http import (
     HttpResponseRedirect,
     Http404,
@@ -678,7 +692,47 @@ class SourceListView(CustomAccessMixin, ListView):  # type: ignore[type-arg]
         sort_desc = self.request.GET.get("sort") == "desc"
         sort_prefix = "-" if sort_desc else ""
 
-        if order_param == "country":
+        if order_param == "has_image":
+            # Mirror Source.external_images_url, which is what this column
+            # renders: an EXTERNAL_IMAGES SourceURL counts as a gallery and
+            # supersedes the legacy image_link field, which is only the
+            # fallback. Sorting on image_link alone sent every SourceURL-backed
+            # gallery into the no-image group.
+            #
+            # Annotate so the expression appears in the SELECT list — required by
+            # PostgreSQL when combining ORDER BY expressions with DISTINCT. The
+            # Case/When wrapper also keeps the result a real boolean:
+            # `image_link__gt=""` is NULL when image_link is NULL, and
+            # `NULL OR FALSE` is NULL, so a bare Q/Exists combination would leave
+            # NULL rows for PostgreSQL to sort first on the .desc() first click,
+            # inverting the ordering.
+            queryset = queryset.annotate(
+                _has_image_sort=Case(
+                    When(
+                        Q(image_link__isnull=False, image_link__gt="")
+                        | Exists(
+                            SourceURL.objects.filter(
+                                source=OuterRef("pk"),
+                                url_type=SourceURL.URLTypes.EXTERNAL_IMAGES,
+                            )
+                        ),
+                        then=Value(True),
+                    ),
+                    default=Value(False),
+                    output_field=BooleanField(),
+                )
+            )
+            # Flip: first click (asc) → images on top; second click (desc) → no-images on top.
+            has_image_order = (
+                F("_has_image_sort").asc() if sort_desc else F("_has_image_sort").desc()
+            )
+            order_by_args = [
+                has_image_order,
+                "holding_institution__siglum",
+                "shelfmark",
+                "id",
+            ]
+        elif order_param == "country":
             # Order private collectors (whose siglum is NULL) after institutions
             # with sigla within the same country group. PostgreSQL's native default
             # already does this: NULLS LAST for ascending order, NULLS FIRST for
@@ -699,6 +753,25 @@ class SourceListView(CustomAccessMixin, ListView):  # type: ignore[type-arg]
                 f"{sort_prefix}holding_institution__siglum",
                 f"{sort_prefix}shelfmark",
                 f"{sort_prefix}id",
+            ]
+        elif order_param == "num_chants":
+            # number_of_chants is written only by
+            # main_app.signals.update_source_chant_count, on chant/sequence save
+            # and delete, so a source that has never held a chant keeps NULL
+            # rather than 0 — and the column renders those as "0" anyway, via
+            # default_if_none. Coalescing to 0 sorts them as the zeros they
+            # display as, so the first (ascending) click brings sources with no
+            # indexed chants to the top, which is what #2012 asks for. Sorting
+            # NULLs last in both directions made them unreachable instead.
+            chant_count = Coalesce("number_of_chants", Value(0))
+            order_by_args = [
+                chant_count.desc() if sort_desc else chant_count.asc(),
+                # Chant counts tie constantly, so without the same tiebreakers
+                # the has_image branch uses, the rest of the page comes back in
+                # database order.
+                "holding_institution__siglum",
+                "shelfmark",
+                "id",
             ]
         else:
             order_by_args = [
