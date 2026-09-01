@@ -823,6 +823,16 @@ class SourceEditView(CustomAccessMixin, UpdateView):  # type: ignore[type-arg]
         return context
 
     def form_valid(self, form):
+        # `source_status` is not editable on this form, but ModelForm.save()
+        # issues a full-row UPDATE, so the value loaded when the form opened
+        # would revert a lock applied while it sat open. Re-read it: refuse the
+        # stale edit if the source was submitted for proofreading in the
+        # meantime, and otherwise carry the current status into the save rather
+        # than the one this request started with. See issue #1962.
+        fresh = Source.objects.only("source_status").get(pk=form.instance.pk)
+        if self.source_locked_for_proofreading(fresh) and not self.user_is_editor:
+            return self.handle_no_permission()
+        form.instance.source_status = fresh.source_status
         form.instance.last_updated_by = self.request.user
         form.save()
         if "submit_for_proofreading" in self.request.POST:
