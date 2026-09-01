@@ -354,6 +354,12 @@ class SourceDetailView(CustomAccessMixin, JSONResponseMixin, DetailView):  # typ
         context["source_notation"] = source.notation.first()
         context["user_can_edit_chants"] = self.user_can_edit_chants(source)
         context["user_can_edit_source"] = self.user_can_edit_source(source)
+        # The edit page also carries a submit button, but it is reachable only
+        # by a source's editors and creator; an assigned indexer who did not
+        # create the source hands it over from here (issue #1962).
+        context["user_can_submit_for_proofreading"] = (
+            self.user_can_submit_source_for_proofreading(source)
+        )
         return context
 
 
@@ -846,16 +852,7 @@ class SourceSubmitForProofreadingView(CustomAccessMixin, SingleObjectMixin, View
     pk_url_kwarg = "source_id"
 
     def test_func(self) -> bool:
-        source = self.get_object()
-        if not self.user_assigned_to_source(source):
-            return False
-        if source.source_status == Source.PROOFREAD_PENDING_STATUS:
-            # Already submitted, and the submitter has lost edit access. Only
-            # editors may resubmit; otherwise a locked-out user could keep
-            # rewriting `last_updated_by`/`date_updated` and re-floating the
-            # source in the proofreading queue.
-            return self.user_is_editor
-        return True
+        return self.user_can_submit_source_for_proofreading(self.get_object())
 
     def post(self, request: HttpRequest, *args: Any, **kwargs: Any) -> HttpResponse:
         source = self.get_object()
