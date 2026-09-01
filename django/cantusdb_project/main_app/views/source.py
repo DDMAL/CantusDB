@@ -11,9 +11,11 @@ from django.contrib.auth.mixins import UserPassesTestMixin
 from django.db.models import (
     BooleanField,
     Case,
+    Exists,
     F,
     Max,
     Min,
+    OuterRef,
     Prefetch,
     Q,
     QuerySet,
@@ -690,13 +692,29 @@ class SourceListView(CustomAccessMixin, ListView):  # type: ignore[type-arg]
         sort_prefix = "-" if sort_desc else ""
 
         if order_param == "has_image":
+            # Mirror Source.external_images_url, which is what this column
+            # renders: an EXTERNAL_IMAGES SourceURL counts as a gallery and
+            # supersedes the legacy image_link field, which is only the
+            # fallback. Sorting on image_link alone sent every SourceURL-backed
+            # gallery into the no-image group.
+            #
             # Annotate so the expression appears in the SELECT list — required by
-            # PostgreSQL when combining ORDER BY expressions with DISTINCT.
+            # PostgreSQL when combining ORDER BY expressions with DISTINCT. The
+            # Case/When wrapper also keeps the result a real boolean:
+            # `image_link__gt=""` is NULL when image_link is NULL, and
+            # `NULL OR FALSE` is NULL, so a bare Q/Exists combination would leave
+            # NULL rows for PostgreSQL to sort first on the .desc() first click,
+            # inverting the ordering.
             queryset = queryset.annotate(
                 _has_image_sort=Case(
                     When(
-                        image_link__isnull=False,
-                        image_link__gt="",
+                        Q(image_link__isnull=False, image_link__gt="")
+                        | Exists(
+                            SourceURL.objects.filter(
+                                source=OuterRef("pk"),
+                                url_type=SourceURL.URLTypes.EXTERNAL_IMAGES,
+                            )
+                        ),
                         then=Value(True),
                     ),
                     default=Value(False),

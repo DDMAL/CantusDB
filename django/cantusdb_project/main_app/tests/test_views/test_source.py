@@ -1950,46 +1950,6 @@ class SourceListViewTest(CustomAccessTestMixin, TestCase):
             self.assertEqual(
                 list(reversed(expected_source_order)), list(response_sources_reverse)
             )
-        with self.subTest("Order by has_image"):
-            src_with_img = make_fake_source(image_link="https://example.com/img.jpg")
-            src_no_img = make_fake_source(image_link=None)
-            src_empty_img = make_fake_source(image_link="")
-
-            for sort_param, expect_images_first in [("asc", True), ("desc", False)]:
-                response = self.client.get(
-                    reverse("source-list"),
-                    {"order": "has_image", "sort": sort_param},
-                )
-                result = list(response.context["sources"])
-                result_ids = {s.id for s in result}
-                self.assertIn(src_with_img.id, result_ids)
-                self.assertIn(src_no_img.id, result_ids)
-                self.assertIn(src_empty_img.id, result_ids)
-
-                if expect_images_first:
-                    # Once we see a source without an image every subsequent
-                    # source must also lack one.
-                    seen_no_image = False
-                    for s in result:
-                        if not s.image_link:
-                            seen_no_image = True
-                        elif seen_no_image:
-                            self.fail(
-                                f"sort={sort_param}: source with image_link "
-                                f"appeared after source without one"
-                            )
-                else:
-                    # Once we see a source with an image every subsequent
-                    # source must also have one.
-                    seen_with_image = False
-                    for s in result:
-                        if s.image_link:
-                            seen_with_image = True
-                        elif seen_with_image:
-                            self.fail(
-                                f"sort={sort_param}: source without image_link "
-                                f"appeared after source with one"
-                            )
         with self.subTest("Order by num_chants"):
             src_many = make_fake_source(number_of_chants=100)
             src_few = make_fake_source(number_of_chants=5)
@@ -2026,6 +1986,71 @@ class SourceListViewTest(CustomAccessTestMixin, TestCase):
             self.assertLess(
                 pos_few_d, pos_null_d, "sort=desc: NULL chants should be last"
             )
+
+    def test_ordering_by_has_image(self) -> None:
+        """
+        The Image Link column sorts on whether a source has an external image
+        gallery, grouping the sources that show an "Images" link ahead of those
+        that do not on the first (ascending) click.
+
+        The column renders `Source.external_images_url`, which reads an
+        EXTERNAL_IMAGES SourceURL first and only falls back to the legacy
+        `image_link` field, so the assertions below read the same property
+        rather than `image_link`: a sort that looked at `image_link` alone
+        would group every SourceURL-backed gallery with the imageless sources.
+        """
+        with_images = []
+        without_images = []
+
+        # Legacy field only.
+        with_images.append(make_fake_source(image_link="https://example.com/legacy"))
+        # SourceURL only — the case a sort on `image_link` alone gets wrong.
+        src_source_url_only = make_fake_source(image_link=None)
+        SourceURL.objects.create(
+            source=src_source_url_only,
+            url="https://example.com/source-url-images",
+            url_type=SourceURL.URLTypes.EXTERNAL_IMAGES,
+        )
+        with_images.append(src_source_url_only)
+        # SourceURL superseding an empty legacy field.
+        src_both = make_fake_source(image_link="")
+        SourceURL.objects.create(
+            source=src_both,
+            url="https://example.com/supersedes-empty",
+            url_type=SourceURL.URLTypes.EXTERNAL_IMAGES,
+        )
+        with_images.append(src_both)
+
+        without_images.append(make_fake_source(image_link=None))
+        without_images.append(make_fake_source(image_link=""))
+        # A SourceURL of some other type is not an image gallery.
+        src_manifest_only = make_fake_source(image_link=None)
+        SourceURL.objects.create(
+            source=src_manifest_only,
+            url="https://example.com/manifest.json",
+            url_type=SourceURL.URLTypes.IIIF_MANIFEST,
+        )
+        without_images.append(src_manifest_only)
+
+        for sort_param, expect_images_first in [("asc", True), ("desc", False)]:
+            with self.subTest(sort=sort_param):
+                response = self.client.get(
+                    reverse("source-list"),
+                    {"order": "has_image", "sort": sort_param},
+                )
+                result = list(response.context["sources"])
+                result_ids = {source.id for source in result}
+                for source in with_images + without_images:
+                    self.assertIn(source.id, result_ids)
+
+                # Assert on the rendered property, not the sort key.
+                groups = [bool(source.external_images_url) for source in result]
+                self.assertEqual(
+                    groups,
+                    sorted(groups, reverse=expect_images_first),
+                    f"sort={sort_param}: sources with and without an image "
+                    f"gallery are interleaved",
+                )
 
     def test_pagination(self):
         paginate_by = SourceListView.paginate_by
