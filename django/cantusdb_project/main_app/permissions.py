@@ -222,6 +222,23 @@ class CustomAccessMixin(AccessMixin):
             return self.user_is_editor
         return True
 
+    def user_can_submit_source_for_proofreading(self, source: Source) -> bool:
+        """
+        Returns True if the user may hand `source` over for proofreading.
+
+        The rule deliberately matches chant-edit access: whoever is still
+        working on a source's contents may hand it over, which includes an
+        indexer assigned to a source someone else created (#1962), and
+        excludes a submitter who has already been locked out — otherwise
+        they could keep rewriting the source's audit fields and re-floating
+        it in the proofreading queue.
+
+        :param source: Source object to check submit access for.
+
+        :return: True if the user may submit the source for proofreading.
+        """
+        return self.user_can_edit_chants(source)
+
     def check_user_assignment(self, source: Source) -> bool:
         """
         Runs a database query to check if the user is assigned to a source.

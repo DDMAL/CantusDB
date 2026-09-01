@@ -532,6 +532,47 @@ class SourceSubmitForProofreadingViewTest(CustomAccessTestMixin, TestCase):
         self.client.force_login(user=self.users["editor"])
         self.assertEqual(self.client.get(edit_url).status_code, 200)
 
+    def test_assigned_non_creator_can_reach_the_submit_button(self) -> None:
+        # The edit page's button is behind assigned-and-(editor-or-creator),
+        # so an assigned indexer who did not create the source cannot open the
+        # page holding it. The rule is "any assigned user may submit", so the
+        # button has to live somewhere they can actually get to.
+        source = self.sources["user_assigned_source"]
+        self.assertNotEqual(source.created_by, self.users["user"])
+        self.client.force_login(user=self.users["user"])
+
+        self.assertEqual(
+            self.client.get(reverse("source-edit", args=[source.id])).status_code, 403
+        )
+        detail = self.client.get(reverse("source-detail", args=[source.id]))
+        self.assertEqual(detail.status_code, 200)
+        self.assertTrue(detail.context["user_can_submit_for_proofreading"])
+        self.assertContains(
+            detail, reverse("source-submit-for-proofreading", args=[source.id])
+        )
+        # `{# #}` only comments out a single line; a multi-line one renders as
+        # page text, which this template has leaked before (see #2238).
+        self.assertNotContains(detail, "{#")
+
+    def test_detail_page_hides_submit_button_once_locked(self) -> None:
+        source = self.sources["user_created_source"]
+        self.client.force_login(user=self.users["user"])
+        detail_url = reverse("source-detail", args=[source.id])
+        submit_url = reverse("source-submit-for-proofreading", args=[source.id])
+        self.assertTrue(
+            self.client.get(detail_url).context["user_can_submit_for_proofreading"]
+        )
+        self.client.post(submit_url)
+        response = self.client.get(detail_url)
+        self.assertFalse(response.context["user_can_submit_for_proofreading"])
+        self.assertNotContains(response, submit_url)
+
+    def test_detail_page_hides_submit_button_from_unassigned_user(self) -> None:
+        source = self.sources["unassigned_source"]
+        self.client.force_login(user=self.users["user"])
+        detail = self.client.get(reverse("source-detail", args=[source.id]))
+        self.assertFalse(detail.context["user_can_submit_for_proofreading"])
+
     def test_submitting_through_edit_form_saves_pending_edits(self) -> None:
         # The button lives inside the edit form; submitting also locks the
         # source, so corrections dropped here could never be redone.
