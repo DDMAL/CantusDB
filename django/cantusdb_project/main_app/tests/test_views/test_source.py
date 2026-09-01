@@ -4,6 +4,7 @@ Test views in views/source.py
 
 import random
 import re
+from unittest import mock
 
 from faker import Faker
 from typing import Dict
@@ -16,6 +17,7 @@ from django.urls import reverse
 from django.core.exceptions import ObjectDoesNotExist
 from django.contrib.auth import get_user_model
 
+from main_app.forms import SourceEditForm
 from main_app.models import Source, Chant, Differentia, SourceIdentifier, SourceURL
 from main_app.tests.make_fakes import (
     make_fake_source,
@@ -572,6 +574,70 @@ class SourceSubmitForProofreadingViewTest(CustomAccessTestMixin, TestCase):
         self.client.force_login(user=self.users["user"])
         detail = self.client.get(reverse("source-detail", args=[source.id]))
         self.assertFalse(detail.context["user_can_submit_for_proofreading"])
+
+    def test_edit_form_cannot_revert_a_lock_set_while_it_was_open(self) -> None:
+        """
+        `source_status` is not on the edit form, but ModelForm.save() writes
+        every field, so an edit posted from a form that opened before the
+        source was submitted would otherwise revert the lock.
+
+        The lock has to land between the view's authorization check and the
+        save to reproduce this, so the form's own `is_valid()` stands in for
+        the concurrent request — by the time it runs, `test_func` has already
+        passed.
+        """
+        source = self.sources["user_created_source"]
+        editor = self.users["editor"]
+        real_is_valid = SourceEditForm.is_valid
+
+        def submit_then_validate(form):
+            Source.objects.get(pk=form.instance.pk).submit_for_proofreading(editor)
+            return real_is_valid(form)
+
+        self.client.force_login(user=self.users["user"])
+        with mock.patch.object(SourceEditForm, "is_valid", submit_then_validate):
+            response = self.client.post(
+                reverse("source-edit", args=[source.id]),
+                {
+                    "shelfmark": "edited-from-a-stale-form",
+                    "source_completeness": "1",
+                    "production_method": "1",
+                },
+            )
+
+        self.assertEqual(response.status_code, 403)
+        source.refresh_from_db()
+        self.assertEqual(source.source_status, Source.PROOFREAD_PENDING_STATUS)
+        self.assertNotEqual(source.shelfmark, "edited-from-a-stale-form")
+        self.assertEqual(source.last_updated_by, editor)
+
+    def test_editor_edit_survives_a_lock_set_while_the_form_was_open(self) -> None:
+        # An editor is the one who proofreads a submitted source, so their edit
+        # goes through — but it must not carry the pre-lock status back in.
+        source = self.sources["user_created_source"]
+        real_is_valid = SourceEditForm.is_valid
+
+        def submit_then_validate(form):
+            Source.objects.get(pk=form.instance.pk).submit_for_proofreading(
+                self.users["user"]
+            )
+            return real_is_valid(form)
+
+        self.client.force_login(user=self.users["editor"])
+        with mock.patch.object(SourceEditForm, "is_valid", submit_then_validate):
+            response = self.client.post(
+                reverse("source-edit", args=[source.id]),
+                {
+                    "shelfmark": "proofreader-correction",
+                    "source_completeness": "1",
+                    "production_method": "1",
+                },
+            )
+
+        self.assertEqual(response.status_code, 302)
+        source.refresh_from_db()
+        self.assertEqual(source.shelfmark, "proofreader-correction")
+        self.assertEqual(source.source_status, Source.PROOFREAD_PENDING_STATUS)
 
     def test_submitting_through_edit_form_saves_pending_edits(self) -> None:
         # The button lives inside the edit form; submitting also locks the
