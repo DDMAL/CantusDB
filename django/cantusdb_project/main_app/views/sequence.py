@@ -38,9 +38,7 @@ class SequenceDetailView(CustomAccessMixin, DetailView):  # type: ignore[type-ar
             .order_by("siglum")
         )
 
-        context["user_can_edit_sequence"] = self.user_assigned_to_source(
-            sequence.source
-        )
+        context["user_can_edit_sequence"] = self.user_can_edit_chants(sequence.source)
         return context
 
 
@@ -99,4 +97,4 @@ class SequenceEditView(CustomAccessMixin, UpdateView):  # type: ignore[type-arg]
     def test_func(self) -> bool:
         sequence = self.get_object()
         source = sequence.source
-        return self.user_assigned_to_source(source)
+        return self.user_can_edit_chants(source)

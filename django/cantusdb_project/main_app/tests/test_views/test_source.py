@@ -465,6 +465,73 @@ class SourceSubmitForProofreadingViewTest(CustomAccessTestMixin, TestCase):
             self.client.post(url), reverse("source-detail", args=[source.id])
         )
 
+    def test_submit_locks_chant_editing(self) -> None:
+        # #1962 asks for the submitter's edit access to be removed. Chant
+        # entry is the bulk of what an indexer does, so a lock that covered
+        # only the source record would leave them able to add, retext and
+        # delete every chant after being told editing was locked.
+        source = self.sources["user_created_source"]
+        chant = make_fake_chant(source=source)
+        self.client.force_login(user=self.users["user"])
+        self.client.post(reverse("source-submit-for-proofreading", args=[source.id]))
+
+        locked_urls = {
+            "chant-create": reverse("chant-create", args=[source.id]),
+            "source-edit-chants": reverse("source-edit-chants", args=[source.pk]),
+            "chant-delete": reverse("chant-delete", args=[chant.id]),
+            "source-edit-syllabification": reverse(
+                "source-edit-syllabification", args=[chant.id]
+            ),
+        }
+        for name, url in locked_urls.items():
+            with self.subTest(f"creator locked out of {name}"):
+                self.assertEqual(self.client.get(url).status_code, 403)
+        with self.subTest("creator locked out of the bulk chant edit"):
+            # A GET here is the readable Browse Chants page; only the POST
+            # that saves the bulk-edit formset is an edit.
+            self.assertEqual(
+                self.client.post(
+                    reverse("browse-chants", args=[source.id])
+                ).status_code,
+                403,
+            )
+
+        # an editor picking the source up for proofreading keeps chant access
+        self.client.force_login(user=self.users["editor"])
+        for name, url in locked_urls.items():
+            with self.subTest(f"editor still reaches {name}"):
+                self.assertEqual(self.client.get(url).status_code, 200)
+
+    def test_submit_hides_chant_edit_links_on_detail_page(self) -> None:
+        source = self.sources["user_created_source"]
+        make_fake_chant(source=source)
+        self.client.force_login(user=self.users["user"])
+        detail_url = reverse("source-detail", args=[source.id])
+        self.assertTrue(self.client.get(detail_url).context["user_can_edit_chants"])
+        self.client.post(reverse("source-submit-for-proofreading", args=[source.id]))
+        response = self.client.get(detail_url)
+        self.assertFalse(response.context["user_can_edit_chants"])
+        self.assertNotContains(response, reverse("chant-create", args=[source.id]))
+
+    def test_submit_locks_sequence_editing(self) -> None:
+        # Bower-segment sources hold sequences rather than chants, and the
+        # same lock has to reach them.
+        sequence = make_fake_sequence()
+        source = sequence.source
+        source.current_editors.set([self.users["user"], self.users["editor"]])
+        source.created_by = self.users["user"]
+        source.published = False
+        source.save()
+        edit_url = reverse("sequence-edit", args=[sequence.id])
+
+        self.client.force_login(user=self.users["user"])
+        self.assertEqual(self.client.get(edit_url).status_code, 200)
+        self.client.post(reverse("source-submit-for-proofreading", args=[source.id]))
+        self.assertEqual(self.client.get(edit_url).status_code, 403)
+
+        self.client.force_login(user=self.users["editor"])
+        self.assertEqual(self.client.get(edit_url).status_code, 200)
+
     def test_submitting_through_edit_form_saves_pending_edits(self) -> None:
         # The button lives inside the edit form; submitting also locks the
         # source, so corrections dropped here could never be redone.

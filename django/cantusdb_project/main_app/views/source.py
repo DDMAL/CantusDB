@@ -115,7 +115,9 @@ class SourceBrowseChantsView(CustomAccessMixin, ListView):  # type: ignore[type-
         source_id = self.kwargs.get(self.pk_url_kwarg)
         self.source = get_object_or_404(Source, id=source_id)
         if self.request.method == "POST":
-            return self.user_assigned_to_source(self.source)
+            # POST here bulk-edits the source's chants, so it follows the
+            # same lock as every other chant edit (issue #1962).
+            return self.user_can_edit_chants(self.source)
         return (
             self.source.published
             or self.user_is_global_viewer
@@ -236,7 +238,7 @@ class SourceBrowseChantsView(CustomAccessMixin, ListView):  # type: ignore[type-
             sources = sources.filter(published=True)
         context["sources"] = sources
 
-        context["user_can_edit_chant"] = self.user_assigned_to_source(source)
+        context["user_can_edit_chant"] = self.user_can_edit_chants(source)
         context["user_can_proofread_source"] = (
             self.user_assigned_to_source(source) and self.user_is_editor
         )
@@ -350,7 +352,7 @@ class SourceDetailView(CustomAccessMixin, JSONResponseMixin, DetailView):  # typ
             context["has_chants"] = chants.exists()
 
         context["source_notation"] = source.notation.first()
-        context["user_can_edit_chants"] = self.user_assigned_to_source(source)
+        context["user_can_edit_chants"] = self.user_can_edit_chants(source)
         context["user_can_edit_source"] = self.user_can_edit_source(source)
         return context
 
@@ -773,8 +775,9 @@ class SourceDeleteView(CustomAccessMixin, DeleteView):  # type: ignore[type-arg]
 
 
 PROOFREADING_SUBMITTED_MESSAGE = (
-    "Source submitted for proofreading. You can still view it, but "
-    "editing is now locked until an editor picks it up."
+    "Source submitted for proofreading. You can still view it, but the "
+    "source and its chants are now locked for editing until an editor "
+    "picks it up."
 )
 
 
