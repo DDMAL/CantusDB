@@ -115,7 +115,9 @@ class SourceBrowseChantsView(CustomAccessMixin, ListView):  # type: ignore[type-
         source_id = self.kwargs.get(self.pk_url_kwarg)
         self.source = get_object_or_404(Source, id=source_id)
         if self.request.method == "POST":
-            return self.user_assigned_to_source(self.source)
+            # POST here bulk-edits the source's chants, so it follows the
+            # same lock as every other chant edit (issue #1962).
+            return self.user_can_edit_chants(self.source)
         return (
             self.source.published
             or self.user_is_global_viewer
@@ -236,7 +238,7 @@ class SourceBrowseChantsView(CustomAccessMixin, ListView):  # type: ignore[type-
             sources = sources.filter(published=True)
         context["sources"] = sources
 
-        context["user_can_edit_chant"] = self.user_assigned_to_source(source)
+        context["user_can_edit_chant"] = self.user_can_edit_chants(source)
         context["user_can_proofread_source"] = (
             self.user_assigned_to_source(source) and self.user_is_editor
         )
@@ -350,9 +352,13 @@ class SourceDetailView(CustomAccessMixin, JSONResponseMixin, DetailView):  # typ
             context["has_chants"] = chants.exists()
 
         context["source_notation"] = source.notation.first()
-        context["user_can_edit_chants"] = self.user_assigned_to_source(source)
-        context["user_can_edit_source"] = self.user_assigned_to_source(source) and (
-            self.user_is_editor or self.user_created_source(source)
+        context["user_can_edit_chants"] = self.user_can_edit_chants(source)
+        context["user_can_edit_source"] = self.user_can_edit_source(source)
+        # The edit page also carries a submit button, but it is reachable only
+        # by a source's editors and creator; an assigned indexer who did not
+        # create the source hands it over from here (issue #1962).
+        context["user_can_submit_for_proofreading"] = (
+            self.user_can_submit_source_for_proofreading(source)
         )
         return context
 
@@ -774,6 +780,13 @@ class SourceDeleteView(CustomAccessMixin, DeleteView):  # type: ignore[type-arg]
         return self.user_is_editor and self.user_assigned_to_source(self.get_object())
 
 
+PROOFREADING_SUBMITTED_MESSAGE = (
+    "Source submitted for proofreading. You can still view it, but the "
+    "source and its chants are now locked for editing until an editor "
+    "picks it up."
+)
+
+
 class SourceEditView(CustomAccessMixin, UpdateView):  # type: ignore[type-arg]
     template_name = "source_edit.html"
     model = Source
@@ -781,12 +794,7 @@ class SourceEditView(CustomAccessMixin, UpdateView):  # type: ignore[type-arg]
     pk_url_kwarg = "source_id"
 
     def test_func(self) -> bool:
-        source = self.get_object()
-        if self.user_assigned_to_source(source) and (
-            self.user_is_editor or source.created_by == self.user
-        ):
-            return True
-        return False
+        return self.user_can_edit_source(self.get_object())
 
     def get_context_data(self, **kwargs):
         source = self.object
@@ -815,9 +823,52 @@ class SourceEditView(CustomAccessMixin, UpdateView):  # type: ignore[type-arg]
         return context
 
     def form_valid(self, form):
+        # `source_status` is not editable on this form, but ModelForm.save()
+        # issues a full-row UPDATE, so the value loaded when the form opened
+        # would revert a lock applied while it sat open. Re-read it: refuse the
+        # stale edit if the source was submitted for proofreading in the
+        # meantime, and otherwise carry the current status into the save rather
+        # than the one this request started with. See issue #1962.
+        fresh = Source.objects.only("source_status").get(pk=form.instance.pk)
+        if self.source_locked_for_proofreading(fresh) and not self.user_is_editor:
+            return self.handle_no_permission()
+        form.instance.source_status = fresh.source_status
         form.instance.last_updated_by = self.request.user
         form.save()
+        if "submit_for_proofreading" in self.request.POST:
+            # The button lives inside this form, so save the indexer's
+            # pending corrections before locking the source (issue #1962).
+            source = form.instance
+            source.submit_for_proofreading(self.request.user)
+            messages.success(self.request, PROOFREADING_SUBMITTED_MESSAGE)
+            return HttpResponseRedirect(reverse("source-detail", args=[source.id]))
         return HttpResponseRedirect(self.get_success_url())
+
+
+class SourceSubmitForProofreadingView(CustomAccessMixin, SingleObjectMixin, View):  # type: ignore[type-arg]
+    """
+    Lets anyone working on a source mark it as ready for proofreading.
+    Sets the source's status accordingly, which locks it from further
+    edits by the assigned indexer/creator (though they can still view it)
+    until an editor picks it up for proofreading. See issue #1962.
+
+    Anyone assigned to the source may submit it, not only its creator:
+    #1962 asks for a way for whoever is working on a source to hand it
+    over, and an indexer is routinely assigned to a source someone else
+    created.
+    """
+
+    model = Source
+    pk_url_kwarg = "source_id"
+
+    def test_func(self) -> bool:
+        return self.user_can_submit_source_for_proofreading(self.get_object())
+
+    def post(self, request: HttpRequest, *args: Any, **kwargs: Any) -> HttpResponse:
+        source = self.get_object()
+        source.submit_for_proofreading(request.user)
+        messages.success(request, PROOFREADING_SUBMITTED_MESSAGE)
+        return HttpResponseRedirect(reverse("source-detail", args=[source.id]))
 
 
 class SourceInventoryView(CustomAccessMixin, ListView):  # type: ignore[type-arg]

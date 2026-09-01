@@ -4,6 +4,7 @@ Test views in views/source.py
 
 import random
 import re
+from unittest import mock
 
 from faker import Faker
 from typing import Dict
@@ -16,6 +17,7 @@ from django.urls import reverse
 from django.core.exceptions import ObjectDoesNotExist
 from django.contrib.auth import get_user_model
 
+from main_app.forms import SourceEditForm
 from main_app.models import Source, Chant, Differentia, SourceIdentifier, SourceURL
 from main_app.tests.make_fakes import (
     make_fake_source,
@@ -292,6 +294,369 @@ class SourceEditViewTest(CsvExportLinkTestMixin, CustomAccessTestMixin, TestCase
             .queryset.values_list("id", flat=True)
         )
         self.assertNotIn(settings.BENEDICAMUS_DOMINO_SEGMENT_ID, segment_ids)
+
+
+class SourceSubmitForProofreadingViewTest(CustomAccessTestMixin, TestCase):
+    default_user = "editor"
+    sources: Dict[str, Source]
+
+    @classmethod
+    def setUpTestData(cls) -> None:
+        super().setUpTestData()
+        cls.sources = {
+            "unassigned_source": make_fake_source(),
+            "user_assigned_source": make_fake_source(
+                current_editors=[cls.users["user"]]
+            ),
+            "editor_assigned_source": make_fake_source(
+                current_editors=[cls.users["editor"]]
+            ),
+            "user_created_source": make_fake_source(
+                current_editors=[cls.users["user"], cls.users["editor"]],
+                published=False,
+            ),
+        }
+        cls.sources["user_created_source"].created_by = cls.users["user"]
+        cls.sources["user_created_source"].save()
+
+    def test_permissions(self) -> None:
+        self.run_request_permissions_test(
+            url=reverse(
+                "source-submit-for-proofreading",
+                args=[self.sources["unassigned_source"].id],
+            ),
+            get_allowed_users=["superuser"],
+            post_allowed_users=["superuser"],
+            test_name="Unassigned source",
+        )
+        self.run_request_permissions_test(
+            url=reverse(
+                "source-submit-for-proofreading",
+                args=[self.sources["user_assigned_source"].id],
+            ),
+            get_allowed_users=["user", "superuser"],
+            post_allowed_users=["user", "superuser"],
+            test_name="User assigned source",
+        )
+        self.run_request_permissions_test(
+            url=reverse(
+                "source-submit-for-proofreading",
+                args=[self.sources["editor_assigned_source"].id],
+            ),
+            get_allowed_users=["editor", "superuser"],
+            post_allowed_users=["editor", "superuser"],
+            test_name="Editor assigned source",
+        )
+        self.run_request_permissions_test(
+            url=reverse(
+                "source-submit-for-proofreading",
+                args=[self.sources["user_created_source"].id],
+            ),
+            get_allowed_users=["user", "editor", "superuser"],
+            post_allowed_users=["user", "editor", "superuser"],
+            test_name="User created source",
+        )
+
+    def test_submit_locks_editing_for_creator(self) -> None:
+        source = self.sources["user_created_source"]
+        self.client.force_login(user=self.users["user"])
+        response = self.client.post(
+            reverse("source-submit-for-proofreading", args=[source.id])
+        )
+        self.assertRedirects(response, reverse("source-detail", args=[source.id]))
+        source.refresh_from_db()
+        self.assertEqual(source.source_status, Source.PROOFREAD_PENDING_STATUS)
+
+        # the creator can no longer edit the source, but can still view it
+        edit_response = self.client.get(reverse("source-edit", args=[source.id]))
+        self.assertEqual(edit_response.status_code, 403)
+        detail_response = self.client.get(reverse("source-detail", args=[source.id]))
+        self.assertEqual(detail_response.status_code, 200)
+
+        # an editor assigned to the source can still edit it to proofread
+        self.client.force_login(user=self.users["editor"])
+        editor_edit_response = self.client.get(reverse("source-edit", args=[source.id]))
+        self.assertEqual(editor_edit_response.status_code, 200)
+
+    def test_submit_records_submitting_user(self) -> None:
+        source = self.sources["user_created_source"]
+        self.client.force_login(user=self.users["user"])
+        self.client.post(reverse("source-submit-for-proofreading", args=[source.id]))
+        source.refresh_from_db()
+        self.assertEqual(source.last_updated_by, self.users["user"])
+
+    def test_submit_bumps_date_updated(self) -> None:
+        # "My sources" orders by `-date_updated`, so a submitted source has to
+        # float to the top of the queue it is meant to create.
+        source = self.sources["user_created_source"]
+        before = source.date_updated
+        self.client.force_login(user=self.users["user"])
+        self.client.post(reverse("source-submit-for-proofreading", args=[source.id]))
+        source.refresh_from_db()
+        self.assertGreater(source.date_updated, before)
+
+    def test_editor_can_submit(self) -> None:
+        source = self.sources["editor_assigned_source"]
+        self.client.force_login(user=self.users["editor"])
+        response = self.client.post(
+            reverse("source-submit-for-proofreading", args=[source.id])
+        )
+        self.assertRedirects(response, reverse("source-detail", args=[source.id]))
+        source.refresh_from_db()
+        self.assertEqual(source.source_status, Source.PROOFREAD_PENDING_STATUS)
+
+    def test_assigned_non_creator_can_submit(self) -> None:
+        # An indexer is routinely assigned to a source someone else created;
+        # #1962 asks for whoever is working on it to be able to hand it over.
+        source = self.sources["user_assigned_source"]
+        self.assertNotEqual(source.created_by, self.users["user"])
+        self.client.force_login(user=self.users["user"])
+        response = self.client.post(
+            reverse("source-submit-for-proofreading", args=[source.id])
+        )
+        self.assertRedirects(response, reverse("source-detail", args=[source.id]))
+        source.refresh_from_db()
+        self.assertEqual(source.source_status, Source.PROOFREAD_PENDING_STATUS)
+
+    def test_submitter_keeps_view_access_to_unpublished_source(self) -> None:
+        source = self.sources["user_created_source"]
+        self.assertFalse(source.published)
+        self.client.force_login(user=self.users["user"])
+        self.client.post(reverse("source-submit-for-proofreading", args=[source.id]))
+        self.assertEqual(
+            self.client.get(reverse("source-detail", args=[source.id])).status_code, 200
+        )
+        # ...and the source really is hidden from everyone else.
+        self.client.logout()
+        self.assertNotEqual(
+            self.client.get(reverse("source-detail", args=[source.id])).status_code, 200
+        )
+
+    def test_detail_page_hides_edit_link_once_locked(self) -> None:
+        source = self.sources["user_created_source"]
+        self.client.force_login(user=self.users["user"])
+        detail_url = reverse("source-detail", args=[source.id])
+        self.assertTrue(self.client.get(detail_url).context["user_can_edit_source"])
+        self.client.post(reverse("source-submit-for-proofreading", args=[source.id]))
+        self.assertFalse(self.client.get(detail_url).context["user_can_edit_source"])
+
+    def test_locked_source_cannot_be_resubmitted_by_non_editor(self) -> None:
+        # The submitter loses edit access on submit, so they must not be able
+        # to keep reposting and rewriting the source's audit fields.
+        source = self.sources["user_created_source"]
+        self.client.force_login(user=self.users["user"])
+        url = reverse("source-submit-for-proofreading", args=[source.id])
+        self.client.post(url)
+        source.refresh_from_db()
+        submitted_by, submitted_at = source.last_updated_by, source.date_updated
+
+        response = self.client.post(url)
+        self.assertEqual(response.status_code, 403)
+        source.refresh_from_db()
+        self.assertEqual(source.last_updated_by, submitted_by)
+        self.assertEqual(source.date_updated, submitted_at)
+
+    def test_editor_can_resubmit_locked_source(self) -> None:
+        source = self.sources["user_created_source"]
+        self.client.force_login(user=self.users["user"])
+        url = reverse("source-submit-for-proofreading", args=[source.id])
+        self.client.post(url)
+
+        self.client.force_login(user=self.users["editor"])
+        self.assertRedirects(
+            self.client.post(url), reverse("source-detail", args=[source.id])
+        )
+
+    def test_submit_locks_chant_editing(self) -> None:
+        # #1962 asks for the submitter's edit access to be removed. Chant
+        # entry is the bulk of what an indexer does, so a lock that covered
+        # only the source record would leave them able to add, retext and
+        # delete every chant after being told editing was locked.
+        source = self.sources["user_created_source"]
+        chant = make_fake_chant(source=source)
+        self.client.force_login(user=self.users["user"])
+        self.client.post(reverse("source-submit-for-proofreading", args=[source.id]))
+
+        locked_urls = {
+            "chant-create": reverse("chant-create", args=[source.id]),
+            "source-edit-chants": reverse("source-edit-chants", args=[source.pk]),
+            "chant-delete": reverse("chant-delete", args=[chant.id]),
+            "source-edit-syllabification": reverse(
+                "source-edit-syllabification", args=[chant.id]
+            ),
+        }
+        for name, url in locked_urls.items():
+            with self.subTest(f"creator locked out of {name}"):
+                self.assertEqual(self.client.get(url).status_code, 403)
+        with self.subTest("creator locked out of the bulk chant edit"):
+            # A GET here is the readable Browse Chants page; only the POST
+            # that saves the bulk-edit formset is an edit.
+            self.assertEqual(
+                self.client.post(
+                    reverse("browse-chants", args=[source.id])
+                ).status_code,
+                403,
+            )
+
+        # an editor picking the source up for proofreading keeps chant access
+        self.client.force_login(user=self.users["editor"])
+        for name, url in locked_urls.items():
+            with self.subTest(f"editor still reaches {name}"):
+                self.assertEqual(self.client.get(url).status_code, 200)
+
+    def test_submit_hides_chant_edit_links_on_detail_page(self) -> None:
+        source = self.sources["user_created_source"]
+        make_fake_chant(source=source)
+        self.client.force_login(user=self.users["user"])
+        detail_url = reverse("source-detail", args=[source.id])
+        self.assertTrue(self.client.get(detail_url).context["user_can_edit_chants"])
+        self.client.post(reverse("source-submit-for-proofreading", args=[source.id]))
+        response = self.client.get(detail_url)
+        self.assertFalse(response.context["user_can_edit_chants"])
+        self.assertNotContains(response, reverse("chant-create", args=[source.id]))
+
+    def test_submit_locks_sequence_editing(self) -> None:
+        # Bower-segment sources hold sequences rather than chants, and the
+        # same lock has to reach them.
+        sequence = make_fake_sequence()
+        source = sequence.source
+        source.current_editors.set([self.users["user"], self.users["editor"]])
+        source.created_by = self.users["user"]
+        source.published = False
+        source.save()
+        edit_url = reverse("sequence-edit", args=[sequence.id])
+
+        self.client.force_login(user=self.users["user"])
+        self.assertEqual(self.client.get(edit_url).status_code, 200)
+        self.client.post(reverse("source-submit-for-proofreading", args=[source.id]))
+        self.assertEqual(self.client.get(edit_url).status_code, 403)
+
+        self.client.force_login(user=self.users["editor"])
+        self.assertEqual(self.client.get(edit_url).status_code, 200)
+
+    def test_assigned_non_creator_can_reach_the_submit_button(self) -> None:
+        # The edit page's button is behind assigned-and-(editor-or-creator),
+        # so an assigned indexer who did not create the source cannot open the
+        # page holding it. The rule is "any assigned user may submit", so the
+        # button has to live somewhere they can actually get to.
+        source = self.sources["user_assigned_source"]
+        self.assertNotEqual(source.created_by, self.users["user"])
+        self.client.force_login(user=self.users["user"])
+
+        self.assertEqual(
+            self.client.get(reverse("source-edit", args=[source.id])).status_code, 403
+        )
+        detail = self.client.get(reverse("source-detail", args=[source.id]))
+        self.assertEqual(detail.status_code, 200)
+        self.assertTrue(detail.context["user_can_submit_for_proofreading"])
+        self.assertContains(
+            detail, reverse("source-submit-for-proofreading", args=[source.id])
+        )
+        # `{# #}` only comments out a single line; a multi-line one renders as
+        # page text, which this template has leaked before (see #2238).
+        self.assertNotContains(detail, "{#")
+
+    def test_detail_page_hides_submit_button_once_locked(self) -> None:
+        source = self.sources["user_created_source"]
+        self.client.force_login(user=self.users["user"])
+        detail_url = reverse("source-detail", args=[source.id])
+        submit_url = reverse("source-submit-for-proofreading", args=[source.id])
+        self.assertTrue(
+            self.client.get(detail_url).context["user_can_submit_for_proofreading"]
+        )
+        self.client.post(submit_url)
+        response = self.client.get(detail_url)
+        self.assertFalse(response.context["user_can_submit_for_proofreading"])
+        self.assertNotContains(response, submit_url)
+
+    def test_detail_page_hides_submit_button_from_unassigned_user(self) -> None:
+        source = self.sources["unassigned_source"]
+        self.client.force_login(user=self.users["user"])
+        detail = self.client.get(reverse("source-detail", args=[source.id]))
+        self.assertFalse(detail.context["user_can_submit_for_proofreading"])
+
+    def test_edit_form_cannot_revert_a_lock_set_while_it_was_open(self) -> None:
+        """
+        `source_status` is not on the edit form, but ModelForm.save() writes
+        every field, so an edit posted from a form that opened before the
+        source was submitted would otherwise revert the lock.
+
+        The lock has to land between the view's authorization check and the
+        save to reproduce this, so the form's own `is_valid()` stands in for
+        the concurrent request — by the time it runs, `test_func` has already
+        passed.
+        """
+        source = self.sources["user_created_source"]
+        editor = self.users["editor"]
+        real_is_valid = SourceEditForm.is_valid
+
+        def submit_then_validate(form):
+            Source.objects.get(pk=form.instance.pk).submit_for_proofreading(editor)
+            return real_is_valid(form)
+
+        self.client.force_login(user=self.users["user"])
+        with mock.patch.object(SourceEditForm, "is_valid", submit_then_validate):
+            response = self.client.post(
+                reverse("source-edit", args=[source.id]),
+                {
+                    "shelfmark": "edited-from-a-stale-form",
+                    "source_completeness": "1",
+                    "production_method": "1",
+                },
+            )
+
+        self.assertEqual(response.status_code, 403)
+        source.refresh_from_db()
+        self.assertEqual(source.source_status, Source.PROOFREAD_PENDING_STATUS)
+        self.assertNotEqual(source.shelfmark, "edited-from-a-stale-form")
+        self.assertEqual(source.last_updated_by, editor)
+
+    def test_editor_edit_survives_a_lock_set_while_the_form_was_open(self) -> None:
+        # An editor is the one who proofreads a submitted source, so their edit
+        # goes through — but it must not carry the pre-lock status back in.
+        source = self.sources["user_created_source"]
+        real_is_valid = SourceEditForm.is_valid
+
+        def submit_then_validate(form):
+            Source.objects.get(pk=form.instance.pk).submit_for_proofreading(
+                self.users["user"]
+            )
+            return real_is_valid(form)
+
+        self.client.force_login(user=self.users["editor"])
+        with mock.patch.object(SourceEditForm, "is_valid", submit_then_validate):
+            response = self.client.post(
+                reverse("source-edit", args=[source.id]),
+                {
+                    "shelfmark": "proofreader-correction",
+                    "source_completeness": "1",
+                    "production_method": "1",
+                },
+            )
+
+        self.assertEqual(response.status_code, 302)
+        source.refresh_from_db()
+        self.assertEqual(source.shelfmark, "proofreader-correction")
+        self.assertEqual(source.source_status, Source.PROOFREAD_PENDING_STATUS)
+
+    def test_submitting_through_edit_form_saves_pending_edits(self) -> None:
+        # The button lives inside the edit form; submitting also locks the
+        # source, so corrections dropped here could never be redone.
+        source = self.sources["user_created_source"]
+        self.client.force_login(user=self.users["user"])
+        response = self.client.post(
+            reverse("source-edit", args=[source.id]),
+            {
+                "shelfmark": "edited-then-submitted",
+                "source_completeness": "1",
+                "production_method": "1",
+                "submit_for_proofreading": "1",
+            },
+        )
+        self.assertRedirects(response, reverse("source-detail", args=[source.id]))
+        source.refresh_from_db()
+        self.assertEqual(source.shelfmark, "edited-then-submitted")
+        self.assertEqual(source.source_status, Source.PROOFREAD_PENDING_STATUS)
 
 
 class SourceDetailViewTest(CsvExportLinkTestMixin, SourcePermissionsTestCase):

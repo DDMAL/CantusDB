@@ -10,6 +10,7 @@ from main_app.models.source_url import SourceURL
 
 class Source(BaseModel):
     cursus_choices = [("Monastic", "Monastic"), ("Secular", "Secular")]
+    PROOFREAD_PENDING_STATUS = "Unpublished / Proofread pending"
     source_status_choices = [
         (
             "Editing process (not all the fields have been proofread)",
@@ -19,7 +20,7 @@ class Source(BaseModel):
         ("Published / Proofread pending", "Published / Proofread pending"),
         ("Unpublished / Editing process", "Unpublished / Editing process"),
         ("Unpublished / Indexing process", "Unpublished / Indexing process"),
-        ("Unpublished / Proofread pending", "Unpublished / Proofread pending"),
+        (PROOFREAD_PENDING_STATUS, PROOFREAD_PENDING_STATUS),
         ("Unpublished / Proofreading process", "Unpublished / Proofreading process"),
         ("Unpublished / No indexing activity", "Unpublished / No indexing activity"),
     ]
@@ -192,6 +193,21 @@ class Source(BaseModel):
     # main_app.signals.update_source_melody_count every time a chant or sequence is saved or deleted
     number_of_chants = models.IntegerField(blank=True, null=True)
     number_of_melodies = models.IntegerField(blank=True, null=True)
+
+    def submit_for_proofreading(self, user) -> None:
+        """
+        Mark this source as ready for proofreading, which locks it from
+        further edits by everyone but editors. See issue #1962.
+
+        `date_updated` is listed explicitly because Django only refreshes
+        `auto_now` fields that appear in `update_fields`, and "My sources"
+        orders by `-date_updated`.
+
+        :param user: the user submitting the source.
+        """
+        self.source_status = self.PROOFREAD_PENDING_STATUS
+        self.last_updated_by = user
+        self.save(update_fields=["source_status", "last_updated_by", "date_updated"])
 
     def __str__(self) -> str:
         return self.heading
