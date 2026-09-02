@@ -323,6 +323,9 @@ def render_markdown(value: str) -> SafeString:
     # collapsed multi-line descriptions into one run-on paragraph. Existing content
     # relies on this heavily: most descriptions are line-per-fact ("Material:
     # Parchment", "Source type: Antiphonal", ...) with no blank lines between them.
+    # The MarkdownWidget preview tab renders the same text client-side with
+    # marked.js, which needs `breaks: true` to agree with this -- see
+    # `static/js/markdown_widget.js`. Both must stay on together.
     html: str = github_flavored_markdown_to_html(
         value, options=cmarkgfmOptions.CMARK_OPT_HARDBREAKS
     )
