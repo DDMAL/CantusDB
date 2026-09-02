@@ -10,7 +10,13 @@ MarkdownWidget = (function () {
             let previewTab = field.getElementsByClassName('preview-tab')[0];
             previewTab.addEventListener("show.bs.tab", function (event) {
                 var markdownText = textarea.value;
-                var parsed = marked.parse(markdownText);
+                // `breaks: true` makes marked render a single newline as <br>,
+                // matching CMARK_OPT_HARDBREAKS in `render_markdown`
+                // (main_app/templatetags/helper_tags.py) which renders the saved
+                // page. Without it marked defaults to `breaks: false`, so a
+                // line-per-fact description previews as one run-on paragraph and
+                // then saves as separate lines. Keep the two in step.
+                var parsed = marked.parse(markdownText, { breaks: true });
                 preview.innerHTML = parsed;
                 // Set height of preview to match height of textarea
                 preview.style.height = textarea.clientHeight + "px";
