@@ -26,30 +26,30 @@ MESSAGE_TAGS = {
 # Build paths inside the project like this: os.path.join(BASE_DIR, ...)
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 
-STATIC_ROOT = os.getenv("CANTUSDB_STATIC_ROOT")
-MEDIA_ROOT = os.getenv("CANTUSDB_MEDIA_ROOT")
-MEDIA_URL = "/media/"
-
-# Storage for files that must never be reachable through nginx's public
-# /media alias (e.g. data check reports). Served only via authenticated
-# Django views.
-PRIVATE_MEDIA_ROOT = os.getenv("CANTUSDB_PRIVATE_MEDIA_ROOT")
+# STATIC_ROOT = os.getenv("CANTUSDB_STATIC_ROOT")
+STATIC_ROOT = "/opt/srv/dev.cantusdatabase.offline/www/static"
+# MEDIA_ROOT = os.getenv("CANTUSDB_MEDIA_ROOT")
+MEDIA_ROOT = "/opt/srv/dev.cantusdatabase.offline/www/media"
 
 # Quick-start development settings - unsuitable for production
 # See https://docs.djangoproject.com/en/3.0/howto/deployment/checklist/
 
 # SECURITY WARNING: keep the secret key used in production secret!
-SECRET_KEY = os.getenv("CANTUSDB_SECRET_KEY")
+# SECRET_KEY = os.getenv("CANTUSDB_SECRET_KEY")
+SECRET_KEY = "abc123456789arstarstnmairstemairstnmaitmnai"
 
-PROJECT_ENVIRONMENT = os.getenv("PROJECT_ENVIRONMENT")
+# PROJECT_ENVIRONMENT = os.getenv("PROJECT_ENVIRONMENT")
+PROJECT_ENVIRONMENT = "DEVELOPMENT"
 
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = False  # this is switched to True below when PROJECT_ENVIRONMENT=="DEVELOPMENT"
 
-CANTUSDB_HOST = os.getenv("CANTUSDB_HOST")
-ALLOWED_HOSTS = [CANTUSDB_HOST]
-CSRF_TRUSTED_ORIGINS = [f"https://{CANTUSDB_HOST}"]
+# ALLOWED_HOSTS = [os.getenv("CANTUSDB_HOST")]
+ALLOWED_HOSTS = ["dev.cantusdatabase.offline", "localhost"]
+# CSRF_TRUSTED_ORIGINS = [f"https://{os.getenv('CANTUSDB_HOST')}"]
+CSRF_TRUSTED_ORIGINS = ["http://localhost:8000", "http://dev.cantusdatabase.offline"]
 if PROJECT_ENVIRONMENT == "DEVELOPMENT":
+    SECURE_CROSS_ORIGIN_OPENER_POLICY = None
     DEBUG = True
 
 # Application definition
@@ -119,11 +119,16 @@ WSGI_APPLICATION = "cantusdb.wsgi.application"
 DATABASES = {
     "default": {
         "ENGINE": "django.db.backends.postgresql",
-        "NAME": os.getenv("POSTGRES_DB"),
-        "USER": os.getenv("POSTGRES_USER"),
-        "HOST": os.getenv("POSTGRES_HOST"),
-        "PORT": os.getenv("POSTGRES_PORT"),
-        "PASSWORD": os.getenv("POSTGRES_PASSWORD"),
+        # "NAME": os.getenv("POSTGRES_DB"),
+        "NAME": "cantusdb",
+        # "USER": os.getenv("POSTGRES_USER"),
+        "USER": "ahankins",
+        # "HOST": os.getenv("POSTGRES_HOST"),
+        "HOST": "127.0.0.1",
+        # "PORT": os.getenv("POSTGRES_PORT"),
+        "PORT": 5432,
+        # "PASSWORD": os.getenv("POSTGRES_PASSWORD"),
+        "PASSWORD": "",
     }
 }
 
@@ -189,7 +194,9 @@ EMAIL_USE_TLS = True
 DEFAULT_FROM_EMAIL = "noreply@cantusdatabase.simssa.ca"
 
 # Session app settings
-SESSION_COOKIE_SECURE = True
+# In local HTTP development, secure cookies are not sent by the browser.
+# Keep secure cookies enabled outside DEBUG environments.
+SESSION_COOKIE_SECURE = not DEBUG
 
 # automatically disable all panels which user can then manually enable
 DEBUG_TOOLBAR_CONFIG = {

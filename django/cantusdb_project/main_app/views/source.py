@@ -1,64 +1,64 @@
 import logging
-import re
 from datetime import date
 from functools import cached_property
-from typing import Any, Optional, Union
+from typing import Any
 
 import requests
 from django.conf import settings
 from django.contrib import messages
 from django.contrib.auth.mixins import UserPassesTestMixin
-from django.db.models import Q, Prefetch, QuerySet, Value, Min, Max
+from django.db.models import Max, Min, Prefetch, Q, QuerySet, Value
 from django.http import (
-    HttpResponseRedirect,
     Http404,
-    HttpResponse,
     HttpRequest,
+    HttpResponse,
+    HttpResponseRedirect,
     JsonResponse,
 )
 from django.shortcuts import get_object_or_404
 from django.urls import reverse
 from django.views.generic import (
-    DetailView,
-    ListView,
     CreateView,
-    UpdateView,
     DeleteView,
+    DetailView,
     FormView,
+    ListView,
+    UpdateView,
     View,
 )
 from django.views.generic.detail import SingleObjectMixin
 
 from main_app.forms import (
+    BrowseChantsBulkEditFormset,
+    ImageLinkForm,
+    SourceBrowseChantsProofreadForm,
     SourceCreateForm,
     SourceEditForm,
-    SourceBrowseChantsProofreadForm,
-    ImageLinkForm,
-    BrowseChantsBulkEditFormset,
 )
+from main_app.iiif_utils import (
+    ManifestTooLargeError,
+    extract_canvases,
+    fetch_manifest,
+    generate_folio_image_mapping,
+    mapping_to_csv,
+)
+from main_app.mixins import JSONResponseMixin
 from main_app.models import (
     Century,
     Chant,
     Feast,
     Genre,
+    Institution,
     Provenance,
     Segment,
-    Source,
-    Institution,
     Sequence,
+    Source,
 )
 from main_app.models.source_url import SourceURL
 from main_app.permissions import CustomAccessMixin
-from main_app.mixins import JSONResponseMixin
-from main_app.iiif_utils import (
-    ManifestTooLargeError,
-    fetch_manifest,
-    extract_canvases,
-    generate_folio_image_mapping,
-    mapping_to_csv,
-)
-from main_app.views.chant import get_feast_selector_options
+from main_app.source_search import source_search_query
 from main_app.tasks import save_browse_chants_formset
+from main_app.views.chant import get_feast_selector_options
 
 logger = logging.getLogger(__name__)
 
@@ -361,7 +361,7 @@ class SourceListView(CustomAccessMixin, ListView):  # type: ignore[type-arg]
     model = Source
     paginate_by = 100
     context_object_name = "sources"
-    segment: Optional[Segment] = None
+    segment: Segment | None = None
     test_req = False
 
     def get_template_names(self) -> list[str]:
@@ -372,7 +372,7 @@ class SourceListView(CustomAccessMixin, ListView):  # type: ignore[type-arg]
         return ["source_lists/source_list.html"]
 
     @cached_property
-    def date_range_bounds(self) -> tuple[Optional[int], Optional[int]]:
+    def date_range_bounds(self) -> tuple[int | None, int | None]:
         """
         Year-range slider bounds. Endpoints are rounded out to the nearest
         multiple of 5 so the slider's step="5" reaches both. The upper bound
@@ -398,14 +398,14 @@ class SourceListView(CustomAccessMixin, ListView):  # type: ignore[type-arg]
         return date_range_min, date_range_max
 
     @cached_property
-    def requested_date_range(self) -> tuple[Optional[int], Optional[int]]:
+    def requested_date_range(self) -> tuple[int | None, int | None]:
         """
         The dateStart/dateEnd query parameters parsed to ints. A missing or
         non-numeric value becomes None rather than raising, so a mangled
         querystring can't break the source list.
         """
 
-        def parse(param: str) -> Optional[int]:
+        def parse(param: str) -> int | None:
             raw = self.request.GET.get(param)
             if not raw:
                 return None
@@ -545,134 +545,11 @@ class SourceListView(CustomAccessMixin, ListView):  # type: ignore[type-arg]
         elif inventoried_filter == "inventoried":
             q_obj_filter &= Q(number_of_chants__gt=0)
 
-        if general_str := self.request.GET.get("general"):
-            # Strip leading/trailing spaces and collapse internal whitespace
-            general_str = " ".join(general_str.split())
-
-            # Use regex to extract quoted and unquoted terms
-            quoted_terms = re.findall(
-                r'"(.*?)"', general_str
-            )  # Extract terms in quotes
-            unquoted_terms = re.findall(
-                r"\b[\w,-.:]+\b", re.sub(r'"(.*?)"', "", general_str)
-            )
-
-            # We need a Q Object for each field we're gonna look into
-            shelfmark_q = Q()
-            siglum_q = Q()
-            holding_institution_q = Q()
-            holding_institution_city_q = Q()
-            description_q = Q()
-            name_q = Q()
-            summary_q = Q()
-            provenance_q = Q()
-            fragmentarium_id_q = Q()
-            dact_id_q = Q()
-            identifiers_q = Q()
-
-            # Add unquoted terms to the Q object with partial matching (icontains)
-            for term in unquoted_terms:
-                holding_institution_q |= Q(
-                    holding_institution__name__unaccent__icontains=term
-                )
-                holding_institution_city_q |= Q(
-                    holding_institution__city__unaccent__icontains=term
-                )
-                shelfmark_q |= Q(shelfmark__unaccent__icontains=term)
-                siglum_q |= Q(holding_institution__siglum__unaccent__icontains=term)
-                description_q |= Q(description__unaccent__icontains=term)
-                summary_q |= Q(summary__unaccent__icontains=term)
-                name_q |= Q(name__unaccent__icontains=term)
-                provenance_q |= Q(provenance__name__unaccent__icontains=term)
-                fragmentarium_id_q |= Q(fragmentarium_id__icontains=term)
-                dact_id_q |= Q(dact_id__icontains=term)
-                identifiers_q |= Q(identifiers__identifier__unaccent__icontains=term)
-
-            # Add quoted terms to the Q object with exact matching (iexact)
-            for term in quoted_terms:
-                holding_institution_q |= Q(
-                    holding_institution__name__unaccent__icontains=term
-                )
-                holding_institution_city_q |= Q(
-                    holding_institution__city__unaccent__icontains=term
-                )
-                shelfmark_q |= Q(shelfmark__unaccent__icontains=term)
-                siglum_q |= Q(holding_institution__siglum__unaccent__icontains=term)
-                description_q |= Q(description__unaccent__icontains=term)
-                summary_q |= Q(summary__unaccent__icontains=term)
-                name_q |= Q(name__unaccent__icontains=term)
-                provenance_q |= Q(provenance__name__unaccent__icontains=term)
-                fragmentarium_id_q |= Q(fragmentarium_id__icontains=term)
-                dact_id_q |= Q(dact_id__icontains=term)
-                identifiers_q |= Q(identifiers__identifier__unaccent__icontains=term)
-
-            # Combine all Q objects with OR
-            general_search_q = (
-                shelfmark_q
-                | siglum_q
-                | description_q
-                | summary_q
-                | holding_institution_q
-                | holding_institution_city_q
-                | name_q
-                | provenance_q
-                | fragmentarium_id_q
-                | dact_id_q
-                | identifiers_q
-            )
-
-            # Apply the general search Q object to the filter
-            q_obj_filter &= general_search_q
-
-        # For the indexing notes search we follow the same procedure as above but with
-        # different fields
-        if indexing_str := self.request.GET.get("indexing"):
-            # Make list of terms split on spaces
-            indexing_search_terms = indexing_str.strip(" ").split(" ")
-            # We need a Q Object for each field we're gonna look into
-            inventoried_by_q = Q()
-            full_text_entered_by_q = Q()
-            melodies_entered_by_q = Q()
-            description_entered_by_q = Q()
-            proofreaders_q = Q()
-            other_editors_q = Q()
-            source_data_contributed_by_q = Q()
-            indexing_notes_q = Q()
-            # For each term, add it to the Q object of each field with an OR operation.
-            # We split the terms so that the words can be separated in the actual
-            # field, allowing for a more flexible search, and a field needs
-            # to match only one of the terms
-            for term in indexing_search_terms:
-                inventoried_by_q |= Q(inventoried_by__full_name__icontains=term)
-                full_text_entered_by_q |= Q(
-                    full_text_entered_by__full_name__icontains=term
-                )
-                melodies_entered_by_q |= Q(
-                    melodies_entered_by__full_name__icontains=term
-                )
-                description_entered_by_q |= Q(
-                    description_entered_by__full_name__icontains=term
-                )
-                proofreaders_q |= Q(proofreaders__full_name__icontains=term)
-                other_editors_q |= Q(other_editors__full_name__icontains=term)
-                source_data_contributed_by_q |= Q(
-                    source_data_contributed_by__full_name__icontains=term
-                )
-                indexing_notes_q |= Q(indexing_notes__icontains=term)
-            # All the Q objects are put together with OR.
-            # The end result is that at least one term has to match in at least one
-            # field
-            indexing_search_q = (
-                inventoried_by_q
-                | full_text_entered_by_q
-                | melodies_entered_by_q
-                | description_entered_by_q
-                | proofreaders_q
-                | other_editors_q
-                | source_data_contributed_by_q
-                | indexing_notes_q
-            )
-            q_obj_filter &= indexing_search_q
+        # Keep a whitespace-only query equivalent to an empty query, as it was
+        # before full-text search replaced the per-field predicates.
+        general_str = " ".join(self.request.GET.get("general", "").split())
+        if general_str:
+            q_obj_filter &= Q(search_vector=source_search_query(general_str))
 
         order_param = self.request.GET.get("order")
         sort_desc = self.request.GET.get("sort") == "desc"
@@ -782,11 +659,10 @@ class SourceEditView(CustomAccessMixin, UpdateView):  # type: ignore[type-arg]
 
     def test_func(self) -> bool:
         source = self.get_object()
-        if self.user_assigned_to_source(source) and (
-            self.user_is_editor or source.created_by == self.user
-        ):
-            return True
-        return False
+        return bool(
+            self.user_assigned_to_source(source)
+            and (self.user_is_editor or source.created_by == self.user)
+        )
 
     def get_context_data(self, **kwargs):
         source = self.object
@@ -835,7 +711,7 @@ class SourceInventoryView(CustomAccessMixin, ListView):  # type: ignore[type-arg
             or self.user_assigned_to_source(self.source)
         )
 
-    def get_queryset(self) -> Union[QuerySet[Chant], QuerySet[Sequence]]:
+    def get_queryset(self) -> QuerySet[Chant] | QuerySet[Sequence]:
         if self.source.segment_m2m.filter(id=settings.BOWER_SEGMENT_ID).exists():
             queryset = (
                 self.source.sequence_set.annotate(record_type=Value("sequence"))
@@ -884,12 +760,12 @@ class SourceAddImageLinksView(CustomAccessMixin, SingleObjectMixin, FormView):  
         self.object = self.get_object()
         return super().post(request, *args, **kwargs)
 
-    def get_initial(self) -> dict[str, Any]:
+    def get_initial(self) -> dict[str | None, str]:
         """
         Set the initial data required by the ImageLinkForm
         on GET requests.
         """
-        folios: QuerySet[Chant, Optional[str]] = (
+        folios: QuerySet[Chant, str | None] = (
             self.object.chant_set.values_list("folio", flat=True)
             .distinct()
             .order_by("folio")

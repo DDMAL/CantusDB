@@ -8,16 +8,12 @@ from django.db.models import Q, Model
 from django.contrib.admin.widgets import (
     FilteredSelectMultiple,
 )
-from django.core.exceptions import ValidationError
 from django.forms.widgets import CheckboxSelectMultiple, HiddenInput
 from dal import autocomplete  # type: ignore[import-untyped]
-from volpiano_display_utilities.cantus_text_syllabification import syllabify_text
-from volpiano_display_utilities.latin_word_syllabification import LatinError
 from .models import (
     Chant,
     Service,
     Genre,
-    Institution,
     Notation,
     Feast,
     Source,
@@ -1147,7 +1143,6 @@ class BrowseChantsBulkEditForm(forms.ModelForm):
 
 
 class BaseBrowseChantsBulkEditFormset(forms.BaseModelFormSet):
-
     def __init__(self, *args: Any, **kwargs: Any) -> None:
         """
         Override the formset initialization to do a single

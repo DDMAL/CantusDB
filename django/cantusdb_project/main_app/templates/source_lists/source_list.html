@@ -51,17 +51,6 @@
                     <option value="4066">Canadian Chant Database</option>
                 </select>
             </div>
-            <div class="col-lg">
-                <label for="indexingSearch" class="small form-label">
-                    Indexing notes and contributors
-                </label>
-                <input type="text"
-                       class="form-control form-control-sm"
-                       name="indexing"
-                       placeholder="Enter any part of a word/name"
-                       value="{{ request.GET.indexing }}"
-                       id="indexingSearch" />
-            </div>
         </div>
         <div class="row align-items-center">
             <div class="col-lg-6">
@@ -285,4 +274,3 @@
         </table>
     {% endif %}
 {% endblock %}
-

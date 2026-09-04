@@ -3,8 +3,8 @@ from functools import reduce
 
 from django.contrib.postgres.search import SearchVector
 from django.db import models
-from django.db.models import Value
-from django.db.models.signals import post_save, post_delete
+from django.db.models import Q, Value
+from django.db.models.signals import m2m_changed, post_delete, post_save
 from django.dispatch import receiver
 
 from typing import Optional
@@ -14,7 +14,15 @@ import re
 from main_app.models import Chant
 from main_app.models import Sequence
 from main_app.models import Feast
-from main_app.models import Source
+from main_app.models import Century, Institution, Notation, Provenance, Segment, Source
+from main_app.models.source_identifier import SourceIdentifier
+from main_app.source_search import (
+    CONTRIBUTOR_RELATIONS,
+    M2M_SEARCH_RELATIONS,
+    rebuild_source_search_vectors,
+    update_source_search_vector,
+)
+from users.models import User
 
 
 @receiver(post_save, sender=Chant)
@@ -31,6 +39,70 @@ def on_chant_save(instance, **kwargs) -> None:
 def on_chant_delete(instance, **kwargs) -> None:
     update_source_chant_count(instance)
     update_source_melody_count(instance)
+
+
+@receiver(post_save, sender=Source)
+def on_source_save(instance, **kwargs) -> None:
+    """Keep the stored public-metadata search document current."""
+    update_source_search_vector(instance.pk)
+
+
+@receiver(post_save, sender=SourceIdentifier)
+@receiver(post_delete, sender=SourceIdentifier)
+def on_source_identifier_change(instance, **kwargs) -> None:
+    update_source_search_vector(instance.source_id)
+
+
+def _rebuild_sources(queryset) -> None:
+    rebuild_source_search_vectors(queryset.values_list("pk", flat=True).distinct())
+
+
+@receiver(post_save, sender=Institution)
+def on_institution_save(instance, **kwargs) -> None:
+    _rebuild_sources(Source.objects.filter(holding_institution=instance))
+
+
+@receiver(post_save, sender=Provenance)
+def on_provenance_save(instance, **kwargs) -> None:
+    _rebuild_sources(Source.objects.filter(provenance=instance))
+
+
+@receiver(post_save, sender=Century)
+def on_century_save(instance, **kwargs) -> None:
+    _rebuild_sources(Source.objects.filter(century=instance))
+
+
+@receiver(post_save, sender=Notation)
+def on_notation_save(instance, **kwargs) -> None:
+    _rebuild_sources(Source.objects.filter(notation=instance))
+
+
+@receiver(post_save, sender=Segment)
+def on_segment_save(instance, **kwargs) -> None:
+    _rebuild_sources(
+        Source.objects.filter(Q(segment=instance) | Q(segment_m2m=instance))
+    )
+
+
+@receiver(post_save, sender=User)
+def on_contributor_save(instance, **kwargs) -> None:
+    contributor_filter = Q()
+    for relation in CONTRIBUTOR_RELATIONS:
+        contributor_filter |= Q(**{relation: instance})
+    _rebuild_sources(Source.objects.filter(contributor_filter))
+
+
+def _on_source_search_relation_change(instance, action, **kwargs) -> None:
+    if action in {"post_add", "post_remove", "post_clear"}:
+        update_source_search_vector(instance.pk)
+
+
+for _relation in M2M_SEARCH_RELATIONS:
+    m2m_changed.connect(
+        _on_source_search_relation_change,
+        sender=getattr(Source, _relation).through,
+        dispatch_uid=f"source_search_{_relation}",
+    )
 
 
 @receiver(post_save, sender=Sequence)

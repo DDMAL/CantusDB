@@ -245,19 +245,6 @@
                         </div>
                         <div class="collapse{% if advanced_search_active %} show{% endif %}"
                              id="advancedSourceSearchFilters">
-                        <div class="row mt-2">
-                            <div class="col-lg">
-                                <label for="indexingSearch" class="small form-label">
-                                    Indexing notes and contributors
-                                </label>
-                                <input type="text"
-                                       class="form-control form-control-sm"
-                                       name="indexing"
-                                       placeholder="Enter any part of a word/name"
-                                       value="{{ request.GET.indexing }}"
-                                       id="indexingSearch" />
-                            </div>
-                        </div>
                         <div class="row align-items-center">
                             <div class="col-lg-6">
                                 <div class="row">
@@ -439,4 +426,3 @@
         </div>
     </div>
 {% endblock footer_logos_row %}
-
