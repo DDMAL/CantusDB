@@ -9,6 +9,7 @@ from faker import Faker
 from typing import Dict
 
 from django.conf import settings
+from django.core.management import call_command
 from django.db import connection
 from django.test import TestCase
 from django.test.utils import CaptureQueriesContext
@@ -1646,20 +1647,18 @@ class SourceListViewTest(CustomAccessTestMixin, TestCase):
             self.assertIn(null_chants_source, sources)
 
     def test_search_by_title(self) -> None:
-        """The "general search" field searches in `title`, `shelfmark`, `description`, and `summary`"""
+        """The general field searches title with token and phrase queries."""
         source = make_fake_source(
-            shelfmark=faker.sentence(),
+            shelfmark="shelfmark-unique-title",
+            title="Unique title phrase",
             published=True,
         )
-        search_term = get_random_search_term(source.shelfmark)
 
-        # Partial matching
-        response = self.client.get(reverse("source-list"), {"general": search_term})
+        response = self.client.get(reverse("source-list"), {"general": "Unique"})
         self.assertIn(source, response.context["sources"])
 
-        # Exact matching
         response = self.client.get(
-            reverse("source-list"), {"general": f'"{source.shelfmark}"'}
+            reverse("source-list"), {"general": '"Unique title phrase"'}
         )
         self.assertIn(source, response.context["sources"])
 
@@ -1678,10 +1677,7 @@ class SourceListViewTest(CustomAccessTestMixin, TestCase):
         source = make_fake_source(
             published=True, shelfmark="title", holding_institution=hinst
         )
-        search_term = get_random_search_term(source.shelfmark)
-
-        # Partial matching
-        response = self.client.get(reverse("source-list"), {"general": search_term})
+        response = self.client.get(reverse("source-list"), {"general": "title"})
         self.assertIn(source, response.context["sources"])
 
         # Exact matching
@@ -1706,9 +1702,7 @@ class SourceListViewTest(CustomAccessTestMixin, TestCase):
             published=True,
             shelfmark="title",
         )
-        search_term = get_random_search_term(source.description)
-
-        # Partial matching
+        search_term = source.description.split()[0]
         response = self.client.get(reverse("source-list"), {"general": search_term})
         self.assertIn(source, response.context["sources"])
 
@@ -1734,9 +1728,7 @@ class SourceListViewTest(CustomAccessTestMixin, TestCase):
             published=True,
             shelfmark="title",
         )
-        search_term = get_random_search_term(source.summary)
-
-        # Partial matching
+        search_term = source.summary.split()[0]
         response = self.client.get(reverse("source-list"), {"general": search_term})
         self.assertIn(source, response.context["sources"])
 
@@ -1757,21 +1749,18 @@ class SourceListViewTest(CustomAccessTestMixin, TestCase):
         self.assertIn(source, response.context["sources"])
 
     def test_search_by_indexing_notes(self) -> None:
-        """The "indexing notes" field searches in `indexing_notes` and indexer/editor related fields"""
+        """General search includes indexing notes."""
         source = make_fake_source(
             indexing_notes=faker.sentence(),
             published=True,
             shelfmark="title",
         )
-        search_term = get_random_search_term(source.indexing_notes)
-
-        # Partial matching
-        response = self.client.get(reverse("source-list"), {"indexing": search_term})
+        search_term = source.indexing_notes.split()[0]
+        response = self.client.get(reverse("source-list"), {"general": search_term})
         self.assertIn(source, response.context["sources"])
 
-        # Exact matching
         response = self.client.get(
-            reverse("source-list"), {"indexing": f'"{source.indexing_notes}"'}
+            reverse("source-list"), {"general": f'"{source.indexing_notes}"'}
         )
         self.assertIn(source, response.context["sources"])
 
@@ -1781,7 +1770,7 @@ class SourceListViewTest(CustomAccessTestMixin, TestCase):
         source.indexing_notes = accented_indexing_notes
         source.save()
         response = self.client.get(
-            reverse("source-list"), {"indexing": f'"{source.indexing_notes}"'}
+            reverse("source-list"), {"general": f'"{source.indexing_notes}"'}
         )
         self.assertIn(source, response.context["sources"])
 
@@ -1789,9 +1778,7 @@ class SourceListViewTest(CustomAccessTestMixin, TestCase):
         source = make_fake_source(
             name=faker.sentence(), published=True, shelfmark="title"
         )
-        search_term = get_random_search_term(source.name)
-
-        # Partial matching
+        search_term = source.name.split()[0]
         response = self.client.get(reverse("source-list"), {"general": search_term})
         self.assertIn(source, response.context["sources"])
 
@@ -1833,6 +1820,136 @@ class SourceListViewTest(CustomAccessTestMixin, TestCase):
             with self.subTest(term=term):
                 response = self.client.get(reverse("source-list"), {"general": term})
                 self.assertIn(source, response.context["sources"])
+
+    def test_identifier_reassignment_refreshes_both_source_search_vectors(self) -> None:
+        old_source = make_fake_source(
+            published=True,
+            shelfmark="Old Identifier Source",
+        )
+        new_source = make_fake_source(
+            published=True,
+            shelfmark="New Identifier Source",
+        )
+        identifier = SourceIdentifier.objects.create(
+            source=old_source,
+            identifier="Reassignment Marker",
+            type=SourceIdentifier.OTHER,
+        )
+
+        response = self.client.get(
+            reverse("source-list"), {"general": "Reassignment Marker"}
+        )
+        self.assertIn(old_source, response.context["sources"])
+        self.assertNotIn(new_source, response.context["sources"])
+
+        identifier.source = new_source
+        identifier.save()
+
+        response = self.client.get(
+            reverse("source-list"), {"general": "Reassignment Marker"}
+        )
+        self.assertNotIn(old_source, response.context["sources"])
+        self.assertIn(new_source, response.context["sources"])
+
+    def test_general_search_includes_public_related_metadata(self) -> None:
+        institution = make_fake_institution(
+            name="Archive Metadata Marker", city="Searchville"
+        )
+        provenance = make_fake_provenance()
+        provenance.name = "Provenance Metadata Marker"
+        provenance.save()
+        source = make_fake_source(
+            published=True,
+            shelfmark="Source Metadata Marker",
+            holding_institution=institution,
+            provenance=provenance,
+            indexing_notes="Indexing Metadata Marker",
+        )
+        contributor = make_fake_user()
+        contributor.full_name = "Contributor Metadata Marker"
+        contributor.save()
+        source.inventoried_by.set([contributor])
+        SourceIdentifier.objects.create(
+            source=source,
+            identifier="Identifier Metadata Marker",
+            note="Identifier Note Marker",
+            type=SourceIdentifier.OTHER,
+        )
+
+        for query in [
+            "Archive",
+            "Searchville",
+            "Provenance",
+            "Indexing",
+            "Contributor",
+            "Identifier",
+            '"Note Marker"',
+        ]:
+            with self.subTest(query=query):
+                response = self.client.get(reverse("source-list"), {"general": query})
+                self.assertIn(source, response.context["sources"])
+
+    def test_general_search_supports_websearch_operators(self) -> None:
+        matching_source = make_fake_source(
+            published=True,
+            shelfmark="Alpha Beta Gamma",
+            description="Nothing disqualifying",
+        )
+        excluded_source = make_fake_source(
+            published=True,
+            shelfmark="Alpha Beta Delta",
+            description="Forbidden term",
+        )
+
+        response = self.client.get(
+            reverse("source-list"), {"general": '"Alpha Beta" -Forbidden'}
+        )
+        self.assertIn(matching_source, response.context["sources"])
+        self.assertNotIn(excluded_source, response.context["sources"])
+
+        response = self.client.get(
+            reverse("source-list"), {"general": "Gamma OR Delta"}
+        )
+        self.assertIn(matching_source, response.context["sources"])
+        self.assertIn(excluded_source, response.context["sources"])
+
+    def test_general_search_vector_refreshes_when_related_metadata_changes(
+        self,
+    ) -> None:
+        institution = make_fake_institution(name="Before Institution Name")
+        source = make_fake_source(
+            published=True,
+            shelfmark="Refresh Vector Source",
+            holding_institution=institution,
+        )
+        institution.name = "After Institution Name"
+        institution.save()
+
+        response = self.client.get(
+            reverse("source-list"), {"general": '"After Institution"'}
+        )
+        self.assertIn(source, response.context["sources"])
+
+    def test_rebuild_source_search_vectors_command_backfills_missing_vectors(
+        self,
+    ) -> None:
+        source = make_fake_source(
+            published=True,
+            shelfmark="Command Rebuild Marker",
+        )
+        Source.objects.filter(pk=source.pk).update(search_vector=None)
+
+        response = self.client.get(
+            reverse("source-list"), {"general": "Command Rebuild Marker"}
+        )
+        self.assertNotIn(source, response.context["sources"])
+
+        call_command("rebuild_source_search_vectors")
+
+        response = self.client.get(
+            reverse("source-list"), {"general": "Command Rebuild Marker"}
+        )
+        self.assertIn(source, response.context["sources"])
 
     def test_ordering(self) -> None:
         """

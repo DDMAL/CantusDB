@@ -2,6 +2,8 @@ from typing import Any, Optional
 
 from django.db import models
 from django.contrib.auth import get_user_model
+from django.contrib.postgres.indexes import GinIndex
+from django.contrib.postgres.search import SearchVectorField
 
 from main_app.models.url_field import NormalizedURLField
 from main_app.models import BaseModel, Segment
@@ -9,6 +11,9 @@ from main_app.models.source_url import SourceURL
 
 
 class Source(BaseModel):
+    class Meta:
+        indexes = [GinIndex(fields=["search_vector"], name="source_search_vector_gin")]
+
     cursus_choices = [("Monastic", "Monastic"), ("Secular", "Secular")]
     source_status_choices = [
         (
@@ -192,6 +197,11 @@ class Source(BaseModel):
     # main_app.signals.update_source_melody_count every time a chant or sequence is saved or deleted
     number_of_chants = models.IntegerField(blank=True, null=True)
     number_of_melodies = models.IntegerField(blank=True, null=True)
+
+    # Populated by main_app.source_search. Keeping this on Source, rather than
+    # constructing a vector in each request, lets one indexed document include
+    # the public metadata held by related models and many-to-many relations.
+    search_vector = SearchVectorField(null=True, editable=False)
 
     def __str__(self) -> str:
         return self.heading
