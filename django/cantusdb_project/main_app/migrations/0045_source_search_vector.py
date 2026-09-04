@@ -5,14 +5,6 @@ import django.contrib.postgres.search
 from django.db import migrations
 
 
-def rebuild_source_search_vectors(apps, schema_editor):
-    # Import after AddField has run. The application helper also owns ongoing
-    # maintenance, so the initial document has exactly the same contents.
-    from main_app.source_search import rebuild_source_search_vectors as rebuild
-
-    rebuild()
-
-
 class Migration(migrations.Migration):
     dependencies = [
         ("main_app", "0044_alter_source_source_completeness"),
@@ -26,7 +18,6 @@ class Migration(migrations.Migration):
                 editable=False, null=True
             ),
         ),
-        migrations.RunPython(rebuild_source_search_vectors, migrations.RunPython.noop),
         migrations.AddIndex(
             model_name="source",
             index=django.contrib.postgres.indexes.GinIndex(
