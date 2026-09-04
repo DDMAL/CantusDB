@@ -4,7 +4,7 @@ from functools import reduce
 from django.contrib.postgres.search import SearchVector
 from django.db import models
 from django.db.models import Q, Value
-from django.db.models.signals import m2m_changed, post_delete, post_save
+from django.db.models.signals import m2m_changed, post_delete, post_save, pre_save
 from django.dispatch import receiver
 
 from typing import Optional
@@ -50,7 +50,22 @@ def on_source_save(instance, **kwargs) -> None:
 @receiver(post_save, sender=SourceIdentifier)
 @receiver(post_delete, sender=SourceIdentifier)
 def on_source_identifier_change(instance, **kwargs) -> None:
-    update_source_search_vector(instance.source_id)
+    source_ids = {instance.source_id}
+    if previous_source_id := getattr(instance, "_previous_source_id", None):
+        source_ids.add(previous_source_id)
+    for source_id in source_ids:
+        update_source_search_vector(source_id)
+
+
+@receiver(pre_save, sender=SourceIdentifier)
+def remember_source_identifier_previous_source(instance, **kwargs) -> None:
+    """Remember the old Source so identifier reassignment refreshes both vectors."""
+    if instance.pk:
+        instance._previous_source_id = (
+            SourceIdentifier.objects.filter(pk=instance.pk)
+            .values_list("source_id", flat=True)
+            .first()
+        )
 
 
 def _rebuild_sources(queryset) -> None:

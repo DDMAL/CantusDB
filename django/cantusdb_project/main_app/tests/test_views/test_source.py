@@ -1821,6 +1821,36 @@ class SourceListViewTest(CustomAccessTestMixin, TestCase):
                 response = self.client.get(reverse("source-list"), {"general": term})
                 self.assertIn(source, response.context["sources"])
 
+    def test_identifier_reassignment_refreshes_both_source_search_vectors(self) -> None:
+        old_source = make_fake_source(
+            published=True,
+            shelfmark="Old Identifier Source",
+        )
+        new_source = make_fake_source(
+            published=True,
+            shelfmark="New Identifier Source",
+        )
+        identifier = SourceIdentifier.objects.create(
+            source=old_source,
+            identifier="Reassignment Marker",
+            type=SourceIdentifier.OTHER,
+        )
+
+        response = self.client.get(
+            reverse("source-list"), {"general": "Reassignment Marker"}
+        )
+        self.assertIn(old_source, response.context["sources"])
+        self.assertNotIn(new_source, response.context["sources"])
+
+        identifier.source = new_source
+        identifier.save()
+
+        response = self.client.get(
+            reverse("source-list"), {"general": "Reassignment Marker"}
+        )
+        self.assertNotIn(old_source, response.context["sources"])
+        self.assertIn(new_source, response.context["sources"])
+
     def test_general_search_includes_public_related_metadata(self) -> None:
         institution = make_fake_institution(
             name="Archive Metadata Marker", city="Searchville"
