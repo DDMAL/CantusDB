@@ -39,6 +39,14 @@ class ChantElement(BaseModel):
 
     class Meta:
         ordering = ["order"]
+        # Ordering is by `order` alone, so two elements sharing a position on the same
+        # chant would have an undefined order between them. Make the position unique per
+        # chant so the ordering is a guarantee, not just a convention the create view keeps.
+        constraints = [
+            models.UniqueConstraint(
+                fields=["chant", "order"], name="unique_chant_element_order"
+            )
+        ]
 
     def __str__(self) -> str:
         return f"{self.get_kind_display()} {self.order}: {self.text[:50]}"
