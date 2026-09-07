@@ -3,11 +3,12 @@
 {% block title %}<title>Browse Sources | Cantus Database</title>{% endblock %}
 {% block scripts %}
     <script src="/static/js/source_list.js"></script>
+    <script src="/static/js/filter_form_autosubmit.js"></script>
     <link rel="stylesheet" href="/static/css/source_list.css" />
 {% endblock %}
 {% block heading %}<h3>Browse Sources</h3>{% endblock %}
 {% block list_filter_form %}
-    <form method="get">
+    <form method="get" data-instant-filter>
         <div class="row align-items-end">
             <div class="col-lg">
                 <label for="generalSearch" class="small form-label">
