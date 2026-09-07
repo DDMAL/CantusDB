@@ -215,7 +215,10 @@ def get_base_chant_text(cantus_id: str) -> BaseChantText:
 
 def get_cluster_elements(
     cantus_id: str,
-    max_elements: int = 40,
+    # Each probe is an outbound CI request, so this ceiling is also the amplification
+    # factor of the cluster-elements proxy. Real clusters run well under a dozen
+    # sub-elements, so 16 clears the longest we expect while capping the fan-out.
+    max_elements: int = 16,
     max_consecutive_misses: int = 2,
 ) -> Optional[list[ClusterElement]]:
     """Collect the catalogued sub-elements of a troped chant, e.g. g04828:01…:04.
