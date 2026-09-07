@@ -159,44 +159,37 @@
                         </div>
                     {% endfor %}
                 </div>
-                <label for="inventoriedFilter" class="small form-label mt-1">
-                    Indexing Status
-                </label>
-                <div class="d-flex flex-wrap" id="inventoriedFilter">
-                    <div class="form-check form-check-inline">
+                <fieldset class="mt-1">
+                    <legend class="small form-label mb-0">Indexing Status</legend>
+                    <div class="d-flex flex-wrap">
+                        <label for="inventoried-all" class="small me-1 form-check-label">
+                            All
+                        </label>
                         <input type="radio"
-                               class="form-check-input"
                                id="inventoried-all"
                                name="inventoried"
                                value="all"
                                {% if request.GET.inventoried != "inventoried" and request.GET.inventoried != "nonInventoried" %}checked{% endif %} />
-                        <label class="form-label form-check-label small" for="inventoried-all">
-                            All
+                        <label for="inventoried-inventoried"
+                               class="small ms-3 me-1 form-check-label">
+                            Inventoried
                         </label>
-                    </div>
-                    <div class="form-check form-check-inline">
                         <input type="radio"
-                               class="form-check-input"
                                id="inventoried-inventoried"
                                name="inventoried"
                                value="inventoried"
                                {% if request.GET.inventoried == "inventoried" %}checked{% endif %} />
-                        <label class="form-label form-check-label small" for="inventoried-inventoried">
-                            Inventoried
+                        <label for="inventoried-nonInventoried"
+                               class="small ms-3 me-1 form-check-label">
+                            Non-inventoried
                         </label>
-                    </div>
-                    <div class="form-check form-check-inline">
                         <input type="radio"
-                               class="form-check-input"
                                id="inventoried-nonInventoried"
                                name="inventoried"
                                value="nonInventoried"
                                {% if request.GET.inventoried == "nonInventoried" %}checked{% endif %} />
-                        <label class="form-label form-check-label small" for="inventoried-nonInventoried">
-                            Non-inventoried
-                        </label>
                     </div>
-                </div>
+                </fieldset>
             </div>
         </div>
         </div>
