@@ -1,7 +1,7 @@
 # JavaScript tests
 
-Tests for the front-end logic that is worth testing on its own — currently the automatic split of
-Cantus Index text on the Create Chant page (#2165).
+Tests for the front-end logic that is worth testing on its own — the automatic split of Cantus
+Index text on the Create Chant page and the cluster composer's submit-time guards (#2165).
 
 ## Running them
 
@@ -21,19 +21,22 @@ These are not Django tests — `manage.py test` does not reach them — but they
 | Path | What |
 |---|---|
 | `auto_split.test.js` | the split rules — one test per convention, the three ground-truth chants asserted exactly, and the invariants the feature rests on |
+| `cluster_submit.test.js` | the composer's submit-time guards — empty composer and leftover auto-split separators are both blocked, with the right message and precedence |
 | `fixtures/cantus_index_texts.json` | 48 real Cantus Index chant texts, each labelled with the convention it exercises |
 
-The code under test is
-`django/cantusdb_project/static/js/chant_create_auto_split.js`. It is a browser script with no
-DOM access at all — pure functions over a string — which is why it can be loaded and run here.
-The test evaluates that exact file against a stub `window` and reads the `ChantAutoSplit` object
-off it, the same object the composer reads in the page.
+Both suites load the exact file that ships and read a plain object off a stub `window` — the same
+object the page reads. `chant_create_auto_split.js` is pure functions over a string, so it loads
+directly. `chant_create_clusters.js` is the composer itself; it guards its `DOMContentLoaded`
+hook on `document`, so with no document present the wiring never runs and only its pure
+`ChantClusterComposer.submissionError` is exercised.
 
-**Anything that touches the DOM is not covered.** The composer's own behaviour — merge, the
-shift-click run and the ⌘/Ctrl-click pick, delete, undo, the restore tray, the hotkey gating —
-has no automated coverage and is verified by hand in the browser. Covering it would need a DOM
-(jsdom) or a browser driver (Playwright), i.e. the repo's first front-end dependency, which
-nobody has signed off on.
+**The DOM interaction itself is not covered.** The composer's behaviour — merge, the shift-click
+run and the ⌘/Ctrl-click pick, delete, undo, the restore tray, the hotkey gating, and the submit
+handler that reads the token counts and shows the message — has no automated coverage and is
+verified by hand in the browser. `cluster_submit.test.js` pins the *decision* the submit handler
+makes, not the DOM plumbing around it. Covering that plumbing would need a DOM (jsdom) or a
+browser driver (Playwright), i.e. the repo's first front-end dependency, which nobody has signed
+off on.
 
 ## The fixture
 

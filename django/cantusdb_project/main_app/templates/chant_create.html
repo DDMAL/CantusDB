@@ -261,6 +261,9 @@
                 <div id="cluster-composer"
                      class="form-control cluster-composer"
                      contenteditable="true"
+                     data-base-text-url="{% url 'ci-base-text' cantus_id='__CANTUS_ID__' %}"
+                     data-cluster-elements-url="{% url 'ci-cluster-elements' cantus_id='__CANTUS_ID__' %}"
+                     data-ci-id-url="https://cantusindex.org/id/"
                      hidden></div>
                 <!-- Composed elements are serialised here for the server (ChantCreateForm.elements_json). -->
                 {{ form.elements_json }}

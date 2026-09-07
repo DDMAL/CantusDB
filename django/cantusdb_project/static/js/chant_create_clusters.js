@@ -50,17 +50,29 @@
     const MAX_UNDO = 50;
     const CI_MIN_QUERY = 3; // characters before we query Cantus Index (matches the Input Tool)
     const CI_DEBOUNCE_MS = 250; // wait for a typing pause before firing a request
-    const BASE_TEXT_URL = "/ci-base-text/"; // + cantus_id → { base_text, cantus_id }
+    // Endpoints and external links come from the template (chant_create.html) so they
+    // live in one place. The two internal routes go through {% url %}, so a renamed
+    // route fails at template render instead of breaking the page silently; the Cantus
+    // Index link is a plain literal there, just centralised. The placeholder is filled
+    // in per request; the values below are only a fallback for when the data attributes
+    // are absent. init() reads the real ones off #cluster-composer.
+    const CANTUS_ID_PLACEHOLDER = "__CANTUS_ID__";
+    let baseTextUrlTemplate = "/ci-base-text/" + CANTUS_ID_PLACEHOLDER; // → { base_text, cantus_id }
+    let clusterElementsUrlTemplate = "/ci-cluster-elements/" + CANTUS_ID_PLACEHOLDER; // → { elements }
     // Cantus Index's public chant page, for the menu's "View on Cantus Index" link.
     // cantusindex.org (not the uwaterloo host) is what serves /id/ today.
-    const CI_ID_URL = "https://cantusindex.org/id/";
-    const CLUSTER_ELEMENTS_URL = "/ci-cluster-elements/"; // + cantus_id → { elements }
+    let ciIdUrl = "https://cantusindex.org/id/";
+
+    function ciEndpoint(template, cantusId) {
+        return template.replace(CANTUS_ID_PLACEHOLDER, encodeURIComponent(cantusId));
+    }
     // Dropdown sizing, in px. MAX matches the stylesheet's max-height (~10 results);
     // MIN is the smallest list worth showing rather than flipping to the other side.
     const TYPEAHEAD_MAX_HEIGHT = 448; // 28rem
     const TYPEAHEAD_MIN_HEIGHT = 120;
 
     let textarea, composer, cantusIdInput, hasComponentCheckbox, hint, status, undoButton, reloadButton, tray;
+    let textareaWasRequired = false; // the field's `required` state, dropped while composing (see init)
     // The Clean up menu (#2165): the automatic split, then the removal it enables.
     let cleanup, cleanupButton, autoSplitItem, removeSeparatorsItem;
     let bank, bankItems, bankStatus, bankHeading; // the elements card in the sidebar
@@ -475,7 +487,7 @@
             return;
         }
         setBankStatus("Loading elements from Cantus Index…");
-        fetch(CLUSTER_ELEMENTS_URL + encodeURIComponent(cid), {
+        fetch(ciEndpoint(clusterElementsUrlTemplate, cid), {
             headers: { "X-Requested-With": "XMLHttpRequest" },
         })
             .then(function (r) {
@@ -602,6 +614,7 @@
     function activateFromCantusId() {
         currentCluster = {}; // active sentinel; parent ID + components are read live
         textarea.style.display = "none";
+        if (textareaWasRequired) textarea.required = false; // enforced by the submit handler while composing
         composer.hidden = false;
         hint.hidden = !hasComponentCheckbox.checked;
         if (undoButton) undoButton.hidden = false;
@@ -700,7 +713,7 @@
     // Always resolves; a failure is empty text, which the caller treats as "CI has
     // nothing for this ID".
     function fetchBaseText(cantusId) {
-        return fetch(BASE_TEXT_URL + encodeURIComponent(cantusId), {
+        return fetch(ciEndpoint(baseTextUrlTemplate, cantusId), {
             headers: { "X-Requested-With": "XMLHttpRequest" },
         })
             .then(function (r) {
@@ -754,6 +767,7 @@
         closeTypeahead();
         composer.hidden = true;
         textarea.style.display = "";
+        if (textareaWasRequired) textarea.required = true; // visible again → restore native validation
         currentCluster = null;
         removedCores = [];
         undoStack = [];
@@ -1172,7 +1186,7 @@
         const cantusId = tokenCantusId(token);
         if (cantusId) {
             tokenMenu.appendChild(
-                menuLink("View on Cantus Index", CI_ID_URL + encodeURIComponent(cantusId))
+                menuLink("View on Cantus Index", ciIdUrl + encodeURIComponent(cantusId))
             );
         }
 
@@ -1719,6 +1733,29 @@
         if (removeSeparatorsItem) {
             removeSeparatorsItem.disabled = !currentCluster || separatorTokens().length === 0;
         }
+    }
+
+    // ---- submit-time validation -----------------------------------------
+
+    // Why a composed cluster can't be saved yet, as { reason, message } — reason "" means
+    // it can. Kept pure over the two facts the submit handler reads off the composer (how
+    // many element tokens there are, and whether any auto-split separators remain) so the
+    // rules can be pinned by tests without a browser (tests/js/cluster_submit.test.js).
+    // An empty composer is checked first: it would blank the required full-text field,
+    // whose native validation is dropped while composing. Leftover separators would
+    // otherwise be saved as elements, burying their bare pipes in the full text.
+    function clusterSubmissionError(tokenCount, hasSeparators) {
+        if (!tokenCount) {
+            return { reason: "empty", message: "Add at least one element before saving." };
+        }
+        if (hasSeparators) {
+            return {
+                reason: "separators",
+                message:
+                    "Remove the split separators before saving (Clean up ▸ Remove separators).",
+            };
+        }
+        return { reason: "", message: "" };
     }
 
     // ---- drag to reorder ------------------------------------------------
@@ -2282,10 +2319,23 @@
         // guarantee the submitted value is the composed elements, not stray text
         const form = composer.closest("form");
         if (form) {
-            form.addEventListener("submit", function () {
-                if (currentCluster) {
-                    exitSplitMode();
-                    normalizeComposer();
+            form.addEventListener("submit", function (event) {
+                if (!currentCluster) return;
+                exitSplitMode();
+                normalizeComposer();
+                // See clusterSubmissionError: an empty composer would blank the required
+                // full-text field (its native validation is off while composing), and
+                // leftover auto-split separators would be saved as elements. Block either
+                // with a visible message rather than failing silently or storing junk.
+                // (Saving a genuinely empty cluster is a separate question for a later PR.)
+                const check = clusterSubmissionError(
+                    allTokens().length,
+                    separatorTokens().length > 0
+                );
+                if (check.reason) {
+                    event.preventDefault();
+                    setStatus(check.message, "warning");
+                    if (check.reason === "empty") composer.focus();
                 }
             });
             // The field's position shifts whenever the form reflows — a project's extra
@@ -2320,6 +2370,20 @@
         const controls = document.getElementById("cluster-controls");
         if (!textarea || !composer || !controls || !hasComponentCheckbox || !hint) return;
 
+        // Endpoints/links from the template (see the top-of-file note). Fall back to the
+        // module defaults when an attribute is absent.
+        if (composer.dataset.baseTextUrl) baseTextUrlTemplate = composer.dataset.baseTextUrl;
+        if (composer.dataset.clusterElementsUrl)
+            clusterElementsUrlTemplate = composer.dataset.clusterElementsUrl;
+        if (composer.dataset.ciIdUrl) ciIdUrl = composer.dataset.ciIdUrl;
+
+        // The full-text field is required, but the composer hides it. A hidden required
+        // field the browser tries to focus on a failed submit blocks the submit silently,
+        // so we drop the attribute while composing and enforce it ourselves (see the
+        // submit handler and activate/deactivate). Remember whether it was required so
+        // deactivation can restore it.
+        textareaWasRequired = textarea.required;
+
         // The instructions are a hover/focus tooltip on the help icon now. Bootstrap's
         // tooltips are opt-in, so upgrade the icon's title into one; without Bootstrap the
         // plain title attribute still shows the same text as a native tooltip.
@@ -2348,5 +2412,13 @@
         wire();
     }
 
-    document.addEventListener("DOMContentLoaded", init);
+    // Exposed for tests only (tests/js/cluster_submit.test.js), mirroring how
+    // chant_create_auto_split.js hangs its rules on window; the page never reads it.
+    window.ChantClusterComposer = { submissionError: clusterSubmissionError };
+
+    // Guarded so the file can be loaded under Node's test runner (no document there);
+    // in the browser this wires the composer up on load as before.
+    if (typeof document !== "undefined") {
+        document.addEventListener("DOMContentLoaded", init);
+    }
 })();
