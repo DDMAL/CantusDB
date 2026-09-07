@@ -19,12 +19,15 @@ window.addEventListener("load", function () {
     if (urlParams.has("sourceCompleteness")) {
         const sourceCompletenessValues = urlParams.getAll("sourceCompleteness");
         // We start out with all checkboxes checked, so we uncheck the ones not
-        // in the URL
-        for (let i = 1; i <= 4; i++) {
-            if (!sourceCompletenessValues.includes(i.toString())) {
-                document.getElementById(`sourceCompleteness-${i}`).checked = false;
-            }
-        }
+        // in the URL. Read the boxes out of the DOM rather than counting up to
+        // a fixed number: Source.SourceCompletenessChoices has five values, so
+        // the old 1..4 loop always left "Unknown" (5) checked, and any choice
+        // added later would have been missed the same way.
+        document
+            .querySelectorAll('input[name="sourceCompleteness"]')
+            .forEach(function (checkbox) {
+                checkbox.checked = sourceCompletenessValues.includes(checkbox.value);
+            });
     }
     if (urlParams.has("prodMethod")) {
         prodMethodFilter.value = urlParams.get("prodMethod");
