@@ -252,12 +252,25 @@ class ClusterComposerFormMixin:
                 raise forms.ValidationError(
                     f"A Cantus ID can be at most {max_cantus_id_length} characters."
                 )
+            # Enforce the ChantElement contract rather than coercing whatever was sent:
+            # ``bool("false")`` is True, and only a component that has no Cantus ID yet
+            # can be proposed (a core resolves its ID through the parent; a catalogued
+            # component already has one).
+            proposed = entry.get("proposed", False)
+            if not isinstance(proposed, bool):
+                raise forms.ValidationError(
+                    "Composed element 'proposed' must be a boolean."
+                )
+            if proposed and (kind == ChantElement.Kind.CORE or cantus_id):
+                raise forms.ValidationError(
+                    "Only components without a Cantus ID can be proposed."
+                )
             elements.append(
                 {
                     "kind": kind,
                     "text": text,
                     "cantus_id": cantus_id,
-                    "proposed": bool(entry.get("proposed")),
+                    "proposed": proposed,
                 }
             )
         return elements

@@ -5,6 +5,7 @@ Cantus Index's (CI's) various APIs.
 
 import json
 import re
+import time
 from typing import Optional, Union, Callable, TypedDict, Any
 
 import requests
@@ -220,6 +221,10 @@ def get_cluster_elements(
     # sub-elements, so 16 clears the longest we expect while capping the fan-out.
     max_elements: int = 16,
     max_consecutive_misses: int = 2,
+    # A wall-clock budget for the whole walk, not per request: requests' timeout only
+    # bounds read inactivity, so 16 slow probes could otherwise outlast Gunicorn's 30s
+    # worker timeout and get the worker killed mid-response. Kept well under 30s.
+    deadline_seconds: float = 20.0,
 ) -> Optional[list[ClusterElement]]:
     """Collect the catalogued sub-elements of a troped chant, e.g. g04828:01…:04.
 
@@ -250,10 +255,17 @@ def get_cluster_elements(
     """
     elements: list[ClusterElement] = []
     consecutive_misses: int = 0
+    deadline: float = time.monotonic() + deadline_seconds
     for number in range(1, max_elements + 1):
+        remaining: float = deadline - time.monotonic()
+        if remaining <= 0:
+            # Ran out of wall-clock budget mid-walk. Treat it like an outage rather than
+            # returning a short run CI never confirmed — None isn't cached, so the next
+            # activation retries instead of pinning a truncated bank.
+            return None
         sub_id: str = f"{cantus_id}:{number:02d}"
         response: Union[dict[Any, Any], list[Any], None] = get_json_from_ci_api(
-            f"/json-cid/{sub_id}"
+            f"/json-cid/{sub_id}", timeout=min(DEFAULT_TIMEOUT, remaining)
         )
         if response is None:
             return None
@@ -264,8 +276,11 @@ def get_cluster_elements(
                 break
             continue
         consecutive_misses = 0
-        raw_fulltext: Optional[str] = info.get("field_full_text")
-        fulltext: str = raw_fulltext.strip() if raw_fulltext else ""
+        raw_fulltext: Any = info.get("field_full_text")
+        # CI usually sends a string, but a truthy non-string (a number, a list) would
+        # sail past a bare truthiness check and then blow up on .strip(); treat anything
+        # that isn't a string as no text.
+        fulltext: str = raw_fulltext.strip() if isinstance(raw_fulltext, str) else ""
         # CI can hold a catalogued sub-element with no text. It exists in the numbering,
         # so the walk continues past it, but a text-less element can't be composed and
         # would surface as a blank, unsavable chip in the bank — leave it out.
