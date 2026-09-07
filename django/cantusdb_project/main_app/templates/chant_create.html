@@ -267,6 +267,8 @@
                      hidden></div>
                 <!-- Composed elements are serialised here for the server (ChantCreateForm.elements_json). -->
                 {{ form.elements_json }}
+                <!-- The base Cantus ID the cores were seeded from, written by the composer JS (#2189). -->
+                {{ form.base_cantus_id }}
                 <p class="text-muted">
                     {{ form.manuscript_full_text_std_spelling.help_text }}
                     For more information, consult <a href="/description/#Fulltext" target="_blank">Fields and Content Descriptions</a>.

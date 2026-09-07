@@ -28,6 +28,7 @@ from main_app.tests.make_fakes import (
     make_fake_genre,
     make_fake_feast,
     make_fake_institution,
+    make_groups,
     make_random_string,
     get_random_search_term,
 )
@@ -679,6 +680,169 @@ class SourceEditChantsViewTest(ChantPermissionsTestCase):
             chant_wo_fulltext.refresh_from_db()
             self.assertEqual(chant_wo_fulltext.mode, "2")
             self.assertEqual(chant_wo_fulltext.manuscript_full_text, "")
+
+    def _make_troped_chant(self, source: Source) -> Chant:
+        """A saved troped chant: two elements (one core, one component) and a base ID."""
+        chant = make_fake_chant(
+            source=source,
+            folio="001r",
+            cantus_id="g04828.tp01",
+            manuscript_full_text_std_spelling="Sanctus Trope",
+        )
+        chant.base_cantus_id = "g04828"
+        chant.save()
+        ChantElement.objects.create(
+            chant=chant, order=0, kind="core", text="Sanctus", cantus_id=None
+        )
+        ChantElement.objects.create(
+            chant=chant, order=1, kind="component", text="Trope", cantus_id="g04828:01"
+        )
+        return chant
+
+    def _edit_post(self, source: Source, chant: Chant, **extra):
+        data = {
+            "manuscript_full_text_std_spelling": "Sanctus Trope",
+            "pk": chant.id,
+            "folio": chant.folio,
+            "c_sequence": chant.c_sequence,
+            "cantus_id": "g04828.tp01",
+            **extra,
+        }
+        return self.client.post(reverse("source-edit-chants", args=[source.id]), data)
+
+    def test_edit_get_preloads_elements_json(self) -> None:
+        """The edit page serialises the chant's saved elements into the composer's hidden
+        field, so the composer hydrates from them instead of reseeding Cantus Index."""
+        source = make_fake_source()
+        chant = self._make_troped_chant(source)
+        with patch("requests.get", mock_requests_get):
+            response = self.client.get(
+                reverse("source-edit-chants", args=[source.id]), {"pk": chant.id}
+            )
+        self.assertEqual(response.status_code, 200)
+        preloaded = json.loads(response.context["form"].initial["elements_json"])
+        self.assertEqual([e["kind"] for e in preloaded], ["core", "component"])
+        self.assertEqual([e["text"] for e in preloaded], ["Sanctus", "Trope"])
+
+    def test_edit_replaces_composed_elements(self) -> None:
+        """Re-saving a troped chant replaces its elements with the submitted set, in order."""
+        source = make_fake_source()
+        chant = self._make_troped_chant(source)
+        new_elements = [
+            {
+                "kind": "core",
+                "text": "Sanctus Deus",
+                "cantus_id": "g04828",
+                "proposed": False,
+            },
+            {
+                "kind": "component",
+                "text": "Nova",
+                "cantus_id": "g04828:02",
+                "proposed": False,
+            },
+            {
+                "kind": "core",
+                "text": "Sabaoth",
+                "cantus_id": "g04828",
+                "proposed": False,
+            },
+        ]
+        response = self._edit_post(
+            source,
+            chant,
+            manuscript_full_text_std_spelling="Sanctus Deus Nova Sabaoth",
+            base_cantus_id="g04828",
+            elements_json=json.dumps(new_elements),
+        )
+        self.assertEqual(response.status_code, 302)
+        saved = list(chant.elements.all())  # Meta.ordering = ["order"]
+        self.assertEqual([e.kind for e in saved], ["core", "component", "core"])
+        self.assertEqual([e.text for e in saved], ["Sanctus Deus", "Nova", "Sabaoth"])
+        self.assertEqual([e.order for e in saved], [0, 1, 2])
+        # Cores never store a Cantus ID; they resolve through the chant's base ID.
+        self.assertTrue(all(e.cantus_id is None for e in saved if e.kind == "core"))
+
+    def test_edit_adds_cluster_to_plain_chant(self) -> None:
+        """A plain chant can be turned into a cluster: elements and the base ID are saved."""
+        source = make_fake_source()
+        chant = make_fake_chant(
+            source=source,
+            folio="001r",
+            cantus_id="g04828.tp01",
+            manuscript_full_text_std_spelling="Sanctus",
+        )
+        self.assertFalse(chant.elements.exists())
+        elements = [
+            {
+                "kind": "core",
+                "text": "Sanctus",
+                "cantus_id": "g04828",
+                "proposed": False,
+            },
+            {
+                "kind": "component",
+                "text": "Trope",
+                "cantus_id": "g04828:01",
+                "proposed": False,
+            },
+        ]
+        self._edit_post(
+            source,
+            chant,
+            base_cantus_id="g04828",
+            elements_json=json.dumps(elements),
+        )
+        chant.refresh_from_db()
+        self.assertEqual(chant.base_cantus_id, "g04828")
+        self.assertEqual(chant.elements.count(), 2)
+        self.assertEqual(chant.elements.get(kind="core").resolved_cantus_id, "g04828")
+
+    def test_edit_removing_cluster_deletes_elements_and_base_id(self) -> None:
+        """Saving a troped chant with no composed elements clears its elements and base ID."""
+        source = make_fake_source()
+        chant = self._make_troped_chant(source)
+        self.assertTrue(chant.elements.exists())
+        # No elements_json / base_cantus_id in the POST: the chant is no longer a cluster.
+        self._edit_post(source, chant)
+        chant.refresh_from_db()
+        self.assertFalse(chant.elements.exists())
+        self.assertIsNone(chant.base_cantus_id)
+
+    def test_edited_elements_are_versioned(self) -> None:
+        """Re-saved elements land in the chant's django-reversion history."""
+        source = make_fake_source()
+        chant = make_fake_chant(
+            source=source,
+            folio="001r",
+            cantus_id="g04828.tp01",
+            manuscript_full_text_std_spelling="Sanctus",
+        )
+        elements = [
+            {
+                "kind": "core",
+                "text": "Sanctus",
+                "cantus_id": "g04828",
+                "proposed": False,
+            }
+        ]
+        self._edit_post(
+            source,
+            chant,
+            base_cantus_id="g04828",
+            elements_json=json.dumps(elements),
+        )
+        element = chant.elements.get()
+        chant_versions = Version.objects.get_for_object(chant)
+        self.assertTrue(chant_versions.exists())
+        revision = chant_versions[0].revision
+        self.assertTrue(
+            revision.version_set.filter(
+                content_type__model="chantelement",
+                object_id=str(element.pk),
+            ).exists(),
+            "re-saved element should be captured in the chant's revision",
+        )
 
 
 class ChantEditSyllabificationViewTest(ChantPermissionsTestCase):
@@ -3622,6 +3786,61 @@ class ChantCreateViewTest(CustomAccessTestMixin, TestCase):
         self.assertFalse(created[1].proposed)
         self.assertTrue(created[3].proposed)
         self.assertIsNone(created[3].cantus_id)
+        # A proposed component resolves to no ID at all — it must not borrow the base
+        # chant's ID (it is a different chant), which would mislink it on the detail page.
+        self.assertIsNone(created[3].resolved_cantus_id)
+
+    def test_create_chant_persists_base_cantus_id(self) -> None:
+        """The seeded base Cantus ID is stored on the chant, and cores resolve through it
+        rather than the entered troped ID (#2189)."""
+        source = self.source
+        elements = [
+            {
+                "kind": "core",
+                "text": "Os justi",
+                "cantus_id": "g01349",
+                "proposed": False,
+            },
+            {
+                "kind": "component",
+                "text": "Trope",
+                "cantus_id": "g01349.tp14:01",
+                "proposed": False,
+            },
+        ]
+        self.client.post(
+            reverse("chant-create", args=[source.id]),
+            {
+                "manuscript_full_text_std_spelling": "Os justi Trope",
+                "folio": "005r",
+                "c_sequence": "1",
+                "cantus_id": "g01349.tp14",
+                "base_cantus_id": "g01349",
+                "elements_json": json.dumps(elements),
+            },
+        )
+        chant = Chant.objects.get(source=source)
+        self.assertEqual(chant.base_cantus_id, "g01349")
+        core = chant.elements.get(kind="core")
+        self.assertIsNone(core.cantus_id)
+        # Resolves through base_cantus_id, not the chant's own troped Cantus ID.
+        self.assertEqual(core.resolved_cantus_id, "g01349")
+
+    def test_base_cantus_id_dropped_without_elements(self) -> None:
+        """A base Cantus ID submitted without composed elements isn't stored — it belongs
+        on a chant only when that chant is a seeded cluster."""
+        source = self.source
+        self.client.post(
+            reverse("chant-create", args=[source.id]),
+            {
+                "manuscript_full_text_std_spelling": "plain",
+                "folio": "006r",
+                "c_sequence": "1",
+                "base_cantus_id": "g01349",
+            },
+        )
+        chant = Chant.objects.get(source=source)
+        self.assertIsNone(chant.base_cantus_id)
 
     def test_create_chant_without_elements_creates_none(self) -> None:
         """A normal (non-troped) chant creation persists no ChantElement rows."""
@@ -4206,6 +4425,12 @@ class ChantViewHelpersTest(TestCase):
             self.assertEqual(feast_selector_options, expected_result)
 
 
+def make_composer_user():
+    """A user the composer proxy gate lets through (an editor). The gate now admits
+    only editors and assigned cataloguers, so the proxy tests log in as one."""
+    return make_fake_user(groups=[(make_groups()["editor"], None)])
+
+
 class CIBaseTextViewTest(TestCase):
     """The Cantus Index base-text proxy that seeds the cluster composer's first core.
 
@@ -4217,7 +4442,7 @@ class CIBaseTextViewTest(TestCase):
 
     def setUp(self) -> None:
         cache.clear()  # the view caches by Cantus ID; keep tests independent
-        self.client.force_login(make_fake_user())  # endpoint is login-gated
+        self.client.force_login(make_composer_user())  # gated to editors/cataloguers
 
     def test_requires_login(self) -> None:
         self.client.logout()
@@ -4288,7 +4513,7 @@ class CIComponentSearchViewTest(TestCase):
 
     def setUp(self) -> None:
         cache.clear()  # the view caches by search term; keep tests independent
-        self.client.force_login(make_fake_user())  # endpoint is login-gated
+        self.client.force_login(make_composer_user())  # gated to editors/cataloguers
 
     @staticmethod
     def _ci_result(cid: str, genre: str) -> Dict[str, str]:
@@ -4393,7 +4618,7 @@ class CIClusterElementsViewTest(TestCase):
 
     def setUp(self) -> None:
         cache.clear()  # the view caches by Cantus ID; keep tests independent
-        self.client.force_login(make_fake_user())  # endpoint is login-gated
+        self.client.force_login(make_composer_user())  # gated to editors/cataloguers
 
     def test_requires_login(self) -> None:
         self.client.logout()
@@ -4462,3 +4687,55 @@ class CIClusterElementsViewTest(TestCase):
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response.json(), {"elements": []})
         mock_elements.assert_not_called()
+
+
+class ComposerProxyAccessTest(TestCase):
+    """The composer's three Cantus Index proxies share one gate
+    (``ComposerProxyAccessMixin``): editors and assigned cataloguers only. The data is
+    Cantus Index's public catalogue, so this is anti-abuse, not privacy — each proxy
+    fires an outbound CI request any logged-in user could otherwise trigger at will.
+
+    The requests below are deliberately gate-friendly (too-short term, malformed IDs):
+    an admitted request returns 200 without touching Cantus Index, so each test
+    exercises the gate alone.
+    """
+
+    # (url name, args) — one no-op request per proxy that short-circuits before any CI call.
+    PROXY_REQUESTS = [
+        ("ci-component-search", ["sa"]),  # below MIN_QUERY_LENGTH
+        ("ci-base-text", ["bad id?x=1"]),  # malformed Cantus ID
+        ("ci-cluster-elements", ["bad id?x=1"]),  # malformed Cantus ID
+    ]
+
+    def setUp(self) -> None:
+        cache.clear()
+
+    def _urls(self) -> list:
+        return [reverse(name, args=args) for name, args in self.PROXY_REQUESTS]
+
+    def test_anonymous_is_redirected_to_login(self) -> None:
+        for url in self._urls():
+            with self.subTest(url=url):
+                self.assertEqual(self.client.get(url).status_code, 302)
+
+    def test_logged_in_without_group_or_source_is_forbidden(self) -> None:
+        self.client.force_login(make_fake_user())
+        for url in self._urls():
+            with self.subTest(url=url):
+                self.assertEqual(self.client.get(url).status_code, 403)
+
+    def test_editor_is_admitted(self) -> None:
+        self.client.force_login(make_composer_user())
+        for url in self._urls():
+            with self.subTest(url=url):
+                self.assertEqual(self.client.get(url).status_code, 200)
+
+    def test_assigned_cataloguer_without_group_is_admitted(self) -> None:
+        """No group, but assigned to a source — the user composes chants there, so the
+        gate admits them alongside editors."""
+        user = make_fake_user()
+        make_fake_source(current_editors=[user])
+        self.client.force_login(user)
+        for url in self._urls():
+            with self.subTest(url=url):
+                self.assertEqual(self.client.get(url).status_code, 200)

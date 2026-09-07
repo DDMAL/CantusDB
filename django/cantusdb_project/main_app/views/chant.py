@@ -1,4 +1,5 @@
 import hashlib
+import json
 import urllib.parse
 from collections import Counter, defaultdict
 from typing import Optional, Any, Iterator
@@ -6,7 +7,6 @@ import string
 
 from django.conf import settings
 from django.contrib import messages
-from django.contrib.auth.mixins import LoginRequiredMixin
 from django.contrib.postgres.aggregates import ArrayAgg
 from django.core.cache import cache
 from django.db import transaction
@@ -58,7 +58,7 @@ from main_app.models import (
     Sequence,
     Service,
 )
-from main_app.permissions import CustomAccessMixin
+from main_app.permissions import CustomAccessMixin, ComposerProxyAccessMixin
 
 from main_app.mixins import JSONResponseMixin
 from users.models import User
@@ -359,7 +359,7 @@ class ChantDetailView(CustomAccessMixin, JSONResponseMixin, DetailView):  # type
             "project",
             "created_by",
             "last_updated_by",
-        ).prefetch_related("source__segment_m2m", "source__notation")
+        ).prefetch_related("source__segment_m2m", "source__notation", "elements")
 
     @staticmethod
     def _attributable_user(user: Optional[User]) -> Optional[User]:
@@ -394,6 +394,14 @@ class ChantDetailView(CustomAccessMixin, JSONResponseMixin, DetailView):  # type
             and source.segment_m2m.filter(id=settings.BOWER_SEGMENT_ID).exists()
         )
         context["source_notation"] = source.notation.first() if source else None
+
+        # A troped chant composed on the Create Chant page carries an ordered breakdown of
+        # its text into core and component ChantElements; show it read-only when present.
+        # Reuse the loaded chant on each element so resolved_cantus_id costs no extra query.
+        elements = list(chant.elements.all())
+        for element in elements:
+            element.chant = chant
+        context["chant_elements"] = elements
 
         language = chant.text_language
         if language and language.pk == 2:
@@ -1074,6 +1082,51 @@ class ChantSearchMSView(CustomAccessMixin, ListView):  # type: ignore[type-arg]
         return queryset
 
 
+def serialize_chant_elements(chant: Chant) -> str:
+    """Serialise a chant's saved ChantElements to the JSON the composer hydrates from and
+    ``clean_elements_json`` parses. Cores carry a blank ``cantus_id`` in the DB; the
+    composer re-derives their displayed ID from the chant's base Cantus ID."""
+    return json.dumps(
+        [
+            {
+                "kind": element.kind,
+                "text": element.text,
+                "cantus_id": element.cantus_id or "",
+                "proposed": element.proposed,
+            }
+            for element in chant.elements.all()
+        ]
+    )
+
+
+def replace_chant_elements(
+    chant: Chant, elements: list[dict[str, Any]], user: User
+) -> None:
+    """(Re)create ``chant``'s ChantElement rows from composer output, in order.
+
+    Delete-then-recreate in the caller's transaction: idempotent for a freshly-created
+    chant (nothing to delete) and the simplest correct re-save for an edit — Postgres
+    checks the ``(chant, order)`` unique constraint at statement end, so reordered rows
+    don't collide. Per-instance ``save()`` (not ``bulk_create``) so django-reversion's
+    post_save signal captures each element. Core elements get a blank ``cantus_id``
+    regardless of what the client sent — the model invariant is that a core resolves its
+    ID through the parent chant.
+    """
+    chant.elements.all().delete()
+    for order, element in enumerate(elements):
+        is_core = element["kind"] == ChantElement.Kind.CORE
+        ChantElement(
+            chant=chant,
+            order=order,
+            kind=element["kind"],
+            text=element["text"],
+            cantus_id=None if is_core else (element["cantus_id"] or None),
+            proposed=element["proposed"],
+            created_by=user,
+            last_updated_by=user,
+        ).save()
+
+
 class ChantCreateView(CustomAccessMixin, CreateView):  # type: ignore[type-arg]
     """Create chants in a certain manuscript, accessed with `chant-create/<int:source_pk>`.
 
@@ -1204,27 +1257,12 @@ class ChantCreateView(CustomAccessMixin, CreateView):  # type: ignore[type-arg]
         form.instance.last_updated_by = self.request.user
         with transaction.atomic():
             response = super().form_valid(form)  # saves the chant → self.object
-            self._create_elements(form.cleaned_data.get("elements_json") or [])
+            replace_chant_elements(
+                self.object,
+                form.cleaned_data.get("elements_json") or [],
+                self.request.user,
+            )
         return response
-
-    def _create_elements(self, elements: list[dict[str, Any]]) -> None:
-        """Persist a newly-created troped chant's composed elements as ChantElement rows.
-
-        Per-instance ``save()`` (not ``bulk_create``) so django-reversion's post_save
-        signal captures each element under the request's revision. Core elements get a
-        blank ``cantus_id`` here regardless of what the client sent — the model invariant
-        is that a core resolves its ID through the parent chant.
-        """
-        for order, element in enumerate(elements):
-            is_core = element["kind"] == ChantElement.Kind.CORE
-            ChantElement(
-                chant=self.object,
-                order=order,
-                kind=element["kind"],
-                text=element["text"],
-                cantus_id=None if is_core else (element["cantus_id"] or None),
-                proposed=element["proposed"],
-            ).save()
 
 
 class ChantDeleteView(CustomAccessMixin, DeleteView):  # type: ignore[type-arg]
@@ -1287,7 +1325,7 @@ class CISearchView(TemplateView):
         return context
 
 
-class CIComponentSearchView(LoginRequiredMixin, View):
+class CIComponentSearchView(ComposerProxyAccessMixin, View):
     """
     Read-only JSON proxy for Cantus Index's text search (/json-text), backing the
     chant cluster prototype's inline component-element typeahead on the Create Chant
@@ -1306,9 +1344,10 @@ class CIComponentSearchView(LoginRequiredMixin, View):
     rather than in the browser keeps the cached payload small and the client dumb.
 
     This and its two sibling proxies (``CIBaseTextView``, ``CIClusterElementsView``)
-    gate on ``LoginRequiredMixin`` alone — deliberately looser than the Create Chant
-    page's ``CustomAccessMixin`` — because they only re-serve Cantus Index's public
-    catalogue and hold no per-source data to guard.
+    gate on ``ComposerProxyAccessMixin`` — editors and assigned cataloguers only.
+    Not a privacy measure (the data is Cantus Index's public catalogue) but
+    anti-abuse: each proxy makes an outbound CI request, so leaving them open to
+    every logged-in user turns the site into a request amplifier.
     """
 
     MIN_QUERY_LENGTH: int = 3
@@ -1399,7 +1438,7 @@ class CIComponentSearchView(LoginRequiredMixin, View):
         )
 
 
-class CIBaseTextView(LoginRequiredMixin, View):
+class CIBaseTextView(ComposerProxyAccessMixin, View):
     """
     Read-only JSON proxy for the standard full text to compose a chant's cores from
     (Cantus Index /json-cid/{cantus_id}), backing the Create Chant cluster composer
@@ -1455,7 +1494,7 @@ class CIBaseTextView(LoginRequiredMixin, View):
         )
 
 
-class CIClusterElementsView(LoginRequiredMixin, View):
+class CIClusterElementsView(ComposerProxyAccessMixin, View):
     """
     Read-only JSON list of the trope elements Cantus Index already holds for a Cantus
     ID, backing the composer's element bank (28 Jul 2026 demo feedback on #2129): the
@@ -1648,6 +1687,15 @@ class SourceEditChantsView(CustomAccessMixin, UpdateView):  # type: ignore[type-
             kwargs["data"]["source"] = self.source.id
         return kwargs
 
+    def get_initial(self) -> dict[str, Any]:
+        """Preload the composer's hidden elements field from the chant's saved elements so
+        the edit page hydrates the composer from them instead of reseeding Cantus Index.
+        """
+        initial = super().get_initial()
+        if self.object:
+            initial["elements_json"] = serialize_chant_elements(self.object)
+        return initial
+
     def form_valid(self, form):
         user: User = self.request.user
         chant: Chant = form.instance
@@ -1688,12 +1736,19 @@ class SourceEditChantsView(CustomAccessMixin, UpdateView):  # type: ignore[type-
                 chant.other_fields_proofread = False
 
         chant.last_updated_by = user
-        return_response: HttpResponse = super().form_valid(form)
+        with transaction.atomic():
+            return_response: HttpResponse = super().form_valid(form)
 
-        # The many-to-many `proofread_by` field is reset when the
-        # parent class's `form_valid` method calls `save()` on the model instance.
-        if not user_can_proofread_chant:
-            chant.proofread_by.set(proofreaders)
+            # The many-to-many `proofread_by` field is reset when the
+            # parent class's `form_valid` method calls `save()` on the model instance.
+            if not user_can_proofread_chant:
+                chant.proofread_by.set(proofreaders)
+            # Rebuild the composed elements to match the submitted composer state (empty
+            # when the chant is no longer a cluster). Same transaction as the chant save so
+            # a failure can't leave a half-rebuilt cluster.
+            replace_chant_elements(
+                chant, form.cleaned_data.get("elements_json") or [], user
+            )
         messages.success(self.request, "Chant updated successfully!")
         return return_response
 

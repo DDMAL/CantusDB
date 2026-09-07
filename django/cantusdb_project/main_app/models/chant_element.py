@@ -53,5 +53,16 @@ class ChantElement(BaseModel):
 
     @property
     def resolved_cantus_id(self) -> Optional[str]:
-        """The element's own Cantus ID, falling back to the parent chant's for cores."""
-        return self.cantus_id or self.chant.cantus_id
+        """The element's own Cantus ID, or the ID it resolves through.
+
+        A core carries no ID of its own; it resolves to the chant's base Cantus ID (the CI
+        record its text was seeded from), falling back to the chant's own Cantus ID. A
+        component keeps whatever ID it was catalogued under, or None while it is only
+        proposed — Cantus Index assigns a sub-ID once it catalogues the trope, and until
+        then the component must not borrow the base chant's ID (it is a different chant).
+        """
+        if self.cantus_id:
+            return self.cantus_id
+        if self.kind == self.Kind.CORE:
+            return self.chant.base_cantus_id or self.chant.cantus_id
+        return None

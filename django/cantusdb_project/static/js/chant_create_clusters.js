@@ -77,6 +77,7 @@
     let cleanup, cleanupButton, autoSplitItem, removeSeparatorsItem;
     let bank, bankItems, bankStatus, bankHeading; // the elements card in the sidebar
     let elementsField; // hidden input carrying the composed elements as JSON to the server
+    let baseCantusIdField; // hidden input carrying the seeded base Cantus ID to the server (#2189)
     // Truthy while the composer is active (cluster mode on); null when off. No preset
     // payload any more — the base text is fetched and the parent ID is read live.
     let currentCluster = null;
@@ -273,6 +274,13 @@
     // textarea. Empty when cluster mode is off, so un-ticking the box saves no
     // elements — the flattened text alone remains.
     function syncToElementsField() {
+        // The base Cantus ID rides alongside the elements: written when composing, blanked
+        // when cluster mode is off, so a non-cluster save carries none (mirrors the form's
+        // apply_composed_elements). Guarded separately — the field may be absent on pages
+        // that render the composer without it.
+        if (baseCantusIdField) {
+            baseCantusIdField.value = currentCluster ? seededCantusId : "";
+        }
         if (!elementsField) return;
         if (!currentCluster) {
             elementsField.value = "";
@@ -624,6 +632,70 @@
         updateCleanupMenu();
         // manual base text is the fallback only when there's no Cantus ID to fetch by
         reseed(textarea.value.trim());
+    }
+
+    // On the edit page (and on a create page re-rendered after a validation error) the
+    // composer starts from already-saved/submitted elements rather than a fresh Cantus
+    // Index seed: the hidden elements field is pre-populated. If it holds a non-empty
+    // cluster, tick the checkbox and build the composer from those elements — bypassing
+    // seedBaseText, whose CI fetch would overwrite them. A no-op otherwise (plain create).
+    function hydrateFromSavedElements() {
+        if (!elementsField || !elementsField.value.trim()) return;
+        let saved;
+        try {
+            saved = JSON.parse(elementsField.value);
+        } catch (e) {
+            return;
+        }
+        if (!Array.isArray(saved) || saved.length === 0) return;
+        hasComponentCheckbox.checked = true;
+        activateFromSavedElements(saved);
+    }
+
+    // Turn the composer on and rebuild it from saved elements, in order. Unlike
+    // activateFromCantusId this never fetches: the cores' text and the base Cantus ID
+    // they display both come from what was saved, so re-labelling or reseeding is exactly
+    // what we must not do (it would relabel cores with the troped ID that #2189 avoids).
+    function activateFromSavedElements(elements) {
+        currentCluster = {};
+        textarea.style.display = "none";
+        if (textareaWasRequired) textarea.required = false;
+        composer.hidden = false;
+        hint.hidden = !hasComponentCheckbox.checked;
+        if (undoButton) undoButton.hidden = false;
+        if (reloadButton) reloadButton.hidden = false;
+        if (cleanup) cleanup.hidden = false;
+        updateReloadButton();
+        activateSeq += 1; // no in-flight seed to guard, but keep the counter consistent
+        removedCores = [];
+        undoStack = [];
+        caretBeforeToken = null;
+        // Cores display the saved base chant, read from the hidden field, not a CI fetch.
+        seededCantusId =
+            (baseCantusIdField && baseCantusIdField.value.trim()) || "";
+        composer.innerHTML = "";
+        elements.forEach(function (element) {
+            // Cores read seededCantusId for their label (via makeCoreToken); components
+            // carry their own saved Cantus ID and proposed flag.
+            const token =
+                element.kind === "core"
+                    ? makeCoreToken(element.text)
+                    : makeToken(
+                          "component",
+                          element.text,
+                          element.cantus_id || "",
+                          element.proposed === true
+                      );
+            composer.appendChild(token);
+        });
+        composer.appendChild(document.createTextNode(" "));
+        composer.contentEditable = "true";
+        normalizeComposer();
+        renderTray();
+        updateUndoButton();
+        updateCleanupMenu();
+        syncToTextarea();
+        loadBank(); // the bank follows the Cantus ID
     }
 
     // Reset the composer and (re)seed the base text. Runs on activation and on an
@@ -2356,6 +2428,7 @@
         hint = document.getElementById("component-elements-hint");
         status = document.getElementById("cluster-status");
         elementsField = document.getElementById("id_elements_json");
+        baseCantusIdField = document.getElementById("id_base_cantus_id");
         undoButton = document.getElementById("cluster-undo");
         reloadButton = document.getElementById("cluster-reload");
         cleanup = document.getElementById("cluster-cleanup");
@@ -2410,6 +2483,9 @@
 
         controls.hidden = false; // reveal now that JS is running (progressive enhancement)
         wire();
+        // If the page arrived with saved/submitted elements (edit page, or a create page
+        // re-rendered after a validation error), rebuild the composer from them.
+        hydrateFromSavedElements();
     }
 
     // Exposed for tests only (tests/js/cluster_submit.test.js), mirroring how

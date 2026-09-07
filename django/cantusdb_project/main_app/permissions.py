@@ -5,7 +5,7 @@ from datetime import date
 
 
 from django.contrib.auth.models import AnonymousUser
-from django.contrib.auth.mixins import AccessMixin
+from django.contrib.auth.mixins import AccessMixin, UserPassesTestMixin
 from django.core.exceptions import ImproperlyConfigured
 from django.http import HttpRequest, HttpResponse
 from django.db.models import Q, QuerySet
@@ -241,6 +241,32 @@ class CustomAccessMixin(AccessMixin):
         """
         published_sources = Source.objects.filter(published=True)
         return published_sources | self.user_assigned_sources
+
+
+class ComposerProxyAccessMixin(UserPassesTestMixin):
+    """
+    Gate for the chant composer's Cantus Index proxy views
+    (``CIComponentSearchView``, ``CIBaseTextView``, ``CIClusterElementsView``).
+
+    These re-serve Cantus Index's public catalogue, so this is not a privacy
+    control — it is anti-abuse. Each proxy makes an outbound CI request on a URL
+    any logged-in user can hit directly, and the cluster-elements proxy fans a
+    single call out into many CI probes, so an unrestricted endpoint lets a
+    script use the site as an amplifier. Restricting to editors and assigned
+    cataloguers — the users who actually compose chants — closes that vector
+    without a rate-limiting dependency.
+
+    An anonymous request is redirected to log in; an authenticated user who
+    passes neither test gets a 403 (AccessMixin's default handling).
+    """
+
+    def test_func(self) -> bool:
+        user = self.request.user
+        if not user.is_authenticated:
+            return False
+        if user.is_superuser or user_group_valid("editor", get_user_groups(user)):
+            return True
+        return get_user_assigned_sources(user).exists()
 
 
 def get_sources_visible_to_user(view_function):

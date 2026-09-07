@@ -177,119 +177,27 @@ class FormsetOptimizedModelChoiceField(forms.ModelChoiceField):
         self.choices = choices
 
 
-class ChantCreateForm(forms.ModelForm):
-    class Meta:
-        model = Chant
-        # specify either 'fields' or 'excludes' so that django knows which fields to use
-        fields = [
-            "marginalia",
-            "folio",
-            "c_sequence",
-            "service",
-            "genre",
-            "position",
-            "cantus_id",
-            "feast",
-            "mode",
-            "differentia",
-            "diff_db",
-            "finalis",
-            "extra",
-            "chant_range",
-            "manuscript_full_text_std_spelling",
-            "manuscript_full_text",
-            "volpiano",
-            "image_link",
-            "melody_id",
-            "content_structure",
-            "indexing_notes",
-            "addendum",
-            "project",
-            "liturgical_function",
-            "polyphony",
-            "cm_melody_id",
-            "incipit_of_refrain",
-            "later_addition",
-            "rubrics",
-            "source",
-            "text_language",
-        ]
-        # the widgets dictionary is ignored for a model field with a non-empty
-        # choices attribute. In this case, you must override the form field to
-        # use a different widget. this goes for all foreignkey and required fields
-        # here, which are written explicitly below to override form field
-        widgets = {
-            "marginalia": TextInputWidget(),
-            # folio: defined below (required)
-            # c_sequence: defined below (required)
-            "service": autocomplete.ModelSelect2(url="service-autocomplete"),
-            "genre": autocomplete.ModelSelect2(url="genre-autocomplete"),
-            "position": TextInputWidget(),
-            "cantus_id": TextInputWidget(),
-            "feast": autocomplete.ModelSelect2(url="feast-autocomplete"),
-            "mode": TextInputWidget(),
-            "differentia": TextInputWidget(),
-            "diff_db": autocomplete.ModelSelect2(url="differentia-autocomplete"),
-            "finalis": TextInputWidget(),
-            "extra": TextInputWidget(),
-            "chant_range": VolpianoInputWidget(),
-            # manuscript_full_text_std_spelling: defined below (required & special field)
-            # "manuscript_full_text": defined below (special field)
-            "volpiano": VolpianoAreaWidget(),
-            "image_link": TextInputWidget(),
-            "melody_id": TextInputWidget(),
-            "content_structure": TextInputWidget(),
-            "indexing_notes": TextAreaWidget(),
-            "addendum": TextInputWidget(),
-            "polyphony": SelectWidget(),
-            "liturgical_function": SelectWidget(),
-            "cm_melody_id": TextInputWidget(),
-            "incipit_of_refrain": TextInputWidget(),
-            "later_addition": TextInputWidget(),
-            "rubrics": TextInputWidget(),
-            "text_language": SelectWidget(),
-        }
+class ClusterComposerFormMixin:
+    """Shared cluster-composer handling for the chant create and edit forms.
 
-    folio = forms.CharField(
-        required=True,
-        widget=TextInputWidget,
-        help_text="Binding order",
-    )
+    Both build a troped chant's text from ordered ``ChantElement``s the composer JS
+    serialises into the ``elements_json`` hidden field. Parsing and validating that
+    payload, and deriving the flattened std-spelling text from it, live here so the two
+    forms can't drift apart. ``base_cantus_id`` is a model field, so each form lists it in
+    its own ``Meta.fields`` (a mixin can't extend a subclass's Meta) with a hidden widget;
+    the shared logic here only normalises it.
+    """
 
-    c_sequence = forms.IntegerField(
-        required=True,
-        widget=TextInputWidget,
-        help_text="Each folio starts with '1'.",
-    )
-
-    manuscript_full_text_std_spelling = CantusDBLatinField(
-        widget=TextAreaWidget,
-        help_text=Chant._meta.get_field("manuscript_full_text_std_spelling").help_text,
-        label="Full text as in Source (standardized spelling)",
-        required=True,
-    )
-
-    manuscript_full_text = CantusDBLatinField(
-        widget=TextAreaWidget,
-        label="Full text as in Source (source spelling)",
-        help_text=Chant._meta.get_field("manuscript_full_text").help_text,
-        required=False,
-    )
-
-    project = SelectWidgetNameModelChoiceField(
-        queryset=Project.objects.all().order_by("id"),
-        initial=None,
-        required=False,
-        help_text="Select the project (if any) that the chant belongs to.",
-    )
-
-    # Non-model field: the cluster composer serialises its element tokens here as JSON
-    # so ChantCreateView can persist ChantElement rows. clean() derives the std-spelling
-    # full text from these when present, so the two representations can't diverge.
-    elements_json = forms.CharField(required=False, widget=HiddenInput)
     # A real troped cluster has a few dozen elements at most; cap it so a crafted or
     # runaway payload can't drive an unbounded row-creation loop.
     MAX_ELEMENTS = 200
+
+    # Each concrete form must declare the hidden ``elements_json`` field in its own body:
+    #   elements_json = forms.CharField(required=False, widget=HiddenInput)
+    # Django's form metaclass only collects declared fields from Form bases, so a field
+    # set on this plain mixin would be silently dropped. The composer serialises its
+    # element tokens into it as JSON; ``clean_elements_json`` parses it and
+    # ``apply_composed_elements`` derives the std-spelling text so the two can't diverge.
 
     def clean_elements_json(self) -> list[dict[str, Any]]:
         """Parse and shape-validate the composer's serialised elements.
@@ -354,6 +262,140 @@ class ChantCreateForm(forms.ModelForm):
             )
         return elements
 
+    def apply_composed_elements(self) -> None:
+        """Reconcile composed elements with the plain fields; call from ``clean()``.
+
+        When elements are present the std-spelling full text IS their text in order, so
+        derive it rather than trust the separately-submitted textarea — reproducing
+        exactly what the composer JS writes, so the flattened text and the structured
+        elements can never diverge. When absent, blank ``base_cantus_id`` so it is set on
+        a chant iff that chant is a seeded cluster.
+        """
+        elements = self.cleaned_data.get("elements_json")
+        if elements:
+            self.cleaned_data["manuscript_full_text_std_spelling"] = " ".join(
+                " ".join(element["text"].split()) for element in elements
+            )
+        # base_cantus_id belongs on a seeded cluster only. Store NULL (not "") when there
+        # are no elements, or when a cluster was typed in with no Cantus Index base to seed
+        # from, so the column is canonically null rather than a mix of null and empty.
+        if "base_cantus_id" in self.cleaned_data:
+            base = (self.cleaned_data["base_cantus_id"] or "").strip()
+            self.cleaned_data["base_cantus_id"] = base if (base and elements) else None
+
+
+class ChantCreateForm(ClusterComposerFormMixin, forms.ModelForm):
+    class Meta:
+        model = Chant
+        # specify either 'fields' or 'excludes' so that django knows which fields to use
+        fields = [
+            "marginalia",
+            "folio",
+            "c_sequence",
+            "service",
+            "genre",
+            "position",
+            "cantus_id",
+            "base_cantus_id",
+            "feast",
+            "mode",
+            "differentia",
+            "diff_db",
+            "finalis",
+            "extra",
+            "chant_range",
+            "manuscript_full_text_std_spelling",
+            "manuscript_full_text",
+            "volpiano",
+            "image_link",
+            "melody_id",
+            "content_structure",
+            "indexing_notes",
+            "addendum",
+            "project",
+            "liturgical_function",
+            "polyphony",
+            "cm_melody_id",
+            "incipit_of_refrain",
+            "later_addition",
+            "rubrics",
+            "source",
+            "text_language",
+        ]
+        # the widgets dictionary is ignored for a model field with a non-empty
+        # choices attribute. In this case, you must override the form field to
+        # use a different widget. this goes for all foreignkey and required fields
+        # here, which are written explicitly below to override form field
+        widgets = {
+            "marginalia": TextInputWidget(),
+            # folio: defined below (required)
+            # c_sequence: defined below (required)
+            "service": autocomplete.ModelSelect2(url="service-autocomplete"),
+            "genre": autocomplete.ModelSelect2(url="genre-autocomplete"),
+            "position": TextInputWidget(),
+            "cantus_id": TextInputWidget(),
+            # Hidden: the composer JS writes the seeded base Cantus ID; no manual entry.
+            "base_cantus_id": HiddenInput(),
+            "feast": autocomplete.ModelSelect2(url="feast-autocomplete"),
+            "mode": TextInputWidget(),
+            "differentia": TextInputWidget(),
+            "diff_db": autocomplete.ModelSelect2(url="differentia-autocomplete"),
+            "finalis": TextInputWidget(),
+            "extra": TextInputWidget(),
+            "chant_range": VolpianoInputWidget(),
+            # manuscript_full_text_std_spelling: defined below (required & special field)
+            # "manuscript_full_text": defined below (special field)
+            "volpiano": VolpianoAreaWidget(),
+            "image_link": TextInputWidget(),
+            "melody_id": TextInputWidget(),
+            "content_structure": TextInputWidget(),
+            "indexing_notes": TextAreaWidget(),
+            "addendum": TextInputWidget(),
+            "polyphony": SelectWidget(),
+            "liturgical_function": SelectWidget(),
+            "cm_melody_id": TextInputWidget(),
+            "incipit_of_refrain": TextInputWidget(),
+            "later_addition": TextInputWidget(),
+            "rubrics": TextInputWidget(),
+            "text_language": SelectWidget(),
+        }
+
+    folio = forms.CharField(
+        required=True,
+        widget=TextInputWidget,
+        help_text="Binding order",
+    )
+
+    c_sequence = forms.IntegerField(
+        required=True,
+        widget=TextInputWidget,
+        help_text="Each folio starts with '1'.",
+    )
+
+    manuscript_full_text_std_spelling = CantusDBLatinField(
+        widget=TextAreaWidget,
+        help_text=Chant._meta.get_field("manuscript_full_text_std_spelling").help_text,
+        label="Full text as in Source (standardized spelling)",
+        required=True,
+    )
+
+    manuscript_full_text = CantusDBLatinField(
+        widget=TextAreaWidget,
+        label="Full text as in Source (source spelling)",
+        help_text=Chant._meta.get_field("manuscript_full_text").help_text,
+        required=False,
+    )
+
+    project = SelectWidgetNameModelChoiceField(
+        queryset=Project.objects.all().order_by("id"),
+        initial=None,
+        required=False,
+        help_text="Select the project (if any) that the chant belongs to.",
+    )
+
+    # See ClusterComposerFormMixin: the field must be declared on the concrete form.
+    elements_json = forms.CharField(required=False, widget=HiddenInput)
+
     def clean(self) -> dict[str, Any]:
         """
         Provide custom clean method that ensures the created chant does
@@ -370,15 +412,7 @@ class ChantCreateForm(forms.ModelForm):
                 "Chant with the same sequence and folio already exists in this source.",
                 code="duplicate-folio-sequence",
             )
-        # When a cluster is composed, the standardized full text IS the elements' text in
-        # order. Derive it from the elements rather than trusting the separately-submitted
-        # textarea, so the flattened text and the structured elements can never diverge
-        # (this reproduces exactly what the composer's JS writes into the field).
-        elements = self.cleaned_data.get("elements_json")
-        if elements:
-            self.cleaned_data["manuscript_full_text_std_spelling"] = " ".join(
-                " ".join(element["text"].split()) for element in elements
-            )
+        self.apply_composed_elements()
         return self.cleaned_data
 
 
@@ -483,7 +517,7 @@ class SourceCreateForm(forms.ModelForm):
         )
 
 
-class ChantEditForm(forms.ModelForm):
+class ChantEditForm(ClusterComposerFormMixin, forms.ModelForm):
     class Meta:
         model = Chant
         fields = [
@@ -498,6 +532,7 @@ class ChantEditForm(forms.ModelForm):
             "genre",
             "position",
             "cantus_id",
+            "base_cantus_id",
             "melody_id",
             "mode",
             "finalis",
@@ -535,6 +570,8 @@ class ChantEditForm(forms.ModelForm):
             "genre": autocomplete.ModelSelect2(url="genre-autocomplete"),
             "position": TextInputWidget(),
             "cantus_id": TextInputWidget(),
+            # Hidden: the composer JS writes the seeded base Cantus ID; no manual entry.
+            "base_cantus_id": HiddenInput(),
             "melody_id": TextInputWidget(),
             "mode": TextInputWidget(),
             "finalis": TextInputWidget(),
@@ -593,6 +630,9 @@ class ChantEditForm(forms.ModelForm):
         required=False,
     )
 
+    # See ClusterComposerFormMixin: the field must be declared on the concrete form.
+    elements_json = forms.CharField(required=False, widget=HiddenInput)
+
     def clean_manuscript_full_text_std_spelling(self) -> Optional[str]:
         """
         Provide a custom validation function for the
@@ -630,6 +670,7 @@ class ChantEditForm(forms.ModelForm):
                 "A chant with this folio and sequence already exists.",
                 code="duplicate-folio-sequence",
             )
+        self.apply_composed_elements()
         return self.cleaned_data
 
 
