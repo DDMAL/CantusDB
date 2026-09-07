@@ -21,22 +21,30 @@ These are not Django tests — `manage.py test` does not reach them — but they
 | Path | What |
 |---|---|
 | `auto_split.test.js` | the split rules — one test per convention, the three ground-truth chants asserted exactly, and the invariants the feature rests on |
+| `composer_logic.test.js` | the composer's pure decisions — CI result ranking, typeahead row building, merge eligibility, the split boundary, the persisted-element payload, the flattened text, and the drop-target geometry |
 | `cluster_submit.test.js` | the composer's submit-time guards — empty composer and leftover auto-split separators are both blocked, with the right message and precedence |
 | `fixtures/cantus_index_texts.json` | 48 real Cantus Index chant texts, each labelled with the convention it exercises |
 
-Both suites load the exact file that ships and read a plain object off a stub `window` — the same
-object the page reads. `chant_create_auto_split.js` is pure functions over a string, so it loads
-directly. `chant_create_clusters.js` is the composer itself; it guards its `DOMContentLoaded`
-hook on `document`, so with no document present the wiring never runs and only its pure
-`ChantClusterComposer.submissionError` is exercised.
+All three suites load the exact file that ships and read a plain object off a stub `window` — the
+same object the page reads. `chant_create_auto_split.js` is pure functions over a string, so it
+loads directly. `chant_create_clusters.js` is the composer itself; it guards its
+`DOMContentLoaded` hook on `document`, so with no document present the wiring never runs and its
+pure API (`window.ChantClusterComposer`) is left to read off.
 
-**The DOM interaction itself is not covered.** The composer's behaviour — merge, the shift-click
-run and the ⌘/Ctrl-click pick, delete, undo, the restore tray, the hotkey gating, and the submit
-handler that reads the token counts and shows the message — has no automated coverage and is
-verified by hand in the browser. `cluster_submit.test.js` pins the *decision* the submit handler
-makes, not the DOM plumbing around it. Covering that plumbing would need a DOM (jsdom) or a
-browser driver (Playwright), i.e. the repo's first front-end dependency, which nobody has signed
-off on.
+That pure API is the composer's decision layer, pulled out from the DOM plumbing that calls it so
+it can be pinned here: `rankResults` / `rowsFromResults` / `ciErrorRows` / `messageRowText` /
+`isNavigable` (the typeahead), `mergeKindMatches` (which runs may merge), `splitWords` /
+`canSplitText` (the split), `serializeElements` / `joinElementTexts` (what the server receives and
+the flattened field), `nearestPoint` (the drag drop-target), and `submissionError` (the submit
+guard). The wrappers that call these are thin by construction — a `tokenDescriptor` snapshot in,
+a DOM edit out — so pinning the core pins most of what can go wrong.
+
+**The DOM plumbing itself is still not covered here.** The parts that only exist as DOM — drag and
+drop, the caret bookkeeping, the floating menus, the shift-click run and the ⌘/Ctrl-click pick,
+undo, the restore tray, the hotkey gating — are verified by hand in the browser and by the
+local-only Playwright harness (`.e2e/`, gitignored). Covering them *in CI* would need a DOM (jsdom)
+or a browser driver, i.e. the repo's first front-end dependency, which nobody has signed off on;
+the pure layer above is the coverage that fits within Node's built-in runner and no dependency.
 
 ## The fixture
 

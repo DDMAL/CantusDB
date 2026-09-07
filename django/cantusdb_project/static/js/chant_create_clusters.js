@@ -192,6 +192,19 @@
         return !!(node && node.dataset && node.dataset.proposed === "true");
     }
 
+    // A plain-object snapshot of a token's data, so the pure logic below (merge eligibility,
+    // serialisation, the flattened text) can run over tokens without touching the DOM — which
+    // is also what lets it be pinned under Node.
+    function tokenDescriptor(token) {
+        return {
+            kind: token.dataset.kind,
+            text: token.dataset.text,
+            cantusId: token.dataset.cantusId || "",
+            proposed: isProposedToken(token),
+            autoKind: token.dataset.autoKind,
+        };
+    }
+
     // Core chunks and not-yet-catalogued proposed components can be split into two
     // of the same kind. An approved component carries a real Cantus ID for its whole
     // text, so it is delete-only — splitting it would break that identity.
@@ -199,15 +212,35 @@
         return isCoreToken(node) || isProposedToken(node);
     }
 
+    // A text's words, whitespace-collapsed and empties dropped. The one place the composer
+    // turns an element's text into words — the split UI, its guards, and performSplit all read
+    // it — so "one word" means the same thing everywhere.
+    function wordsOf(text) {
+        return String(text).trim().split(/\s+/).filter(Boolean);
+    }
+
+    // Whether a text has a boundary to split at (more than one word) — the divisibility half
+    // of canSplit, kept pure so it can be pinned without a DOM.
+    function canSplitText(text) {
+        return wordsOf(text).length > 1;
+    }
+
+    // Divide a text's words at a boundary index into two joined halves. The pure core of
+    // performSplit; an empty half (index 0 or past the end) is the caller's to reject.
+    function splitWords(text, wordIndex) {
+        const words = wordsOf(text);
+        return {
+            left: words.slice(0, wordIndex).join(" "),
+            right: words.slice(wordIndex).join(" "),
+        };
+    }
+
     // Splittable in principle AND actually divisible. A one-word element has no boundary to
     // split at, and enterSplitMode already declines it — which left the menu offering a Split
     // that quietly did nothing. Automatic splitting produces plenty of one-word elements
     // ("SANCTUS", "|"), so that dead item is now common enough to be worth withholding.
     function canSplit(node) {
-        return (
-            isSplittable(node) &&
-            String(node.dataset.text).trim().split(/\s+/).filter(Boolean).length > 1
-        );
+        return isSplittable(node) && canSplitText(node.dataset.text);
     }
 
     function allTokens() {
@@ -255,13 +288,35 @@
 
     // ---- sync to the real form field ------------------------------------
 
+    // Join element texts into one flowing line: single spaces between, internal runs
+    // collapsed, trimmed. Both the flattened textarea value and a merged element's text are
+    // this same operation, so they can't drift. Pure over {text} descriptors.
+    function joinElementTexts(descriptors) {
+        return descriptors
+            .map(function (d) {
+                return d.text;
+            })
+            .join(" ")
+            .replace(/\s+/g, " ")
+            .trim();
+    }
+
+    // Serialise element descriptors into the JSON shape the server persists as ChantElement
+    // rows. Pure so the payload contract can be pinned without a DOM.
+    function serializeElements(descriptors) {
+        return descriptors.map(function (d) {
+            return {
+                kind: d.kind,
+                text: d.text,
+                cantus_id: d.cantusId || "",
+                proposed: !!d.proposed,
+            };
+        });
+    }
+
     // Only element tokens are submitted; free text is a transient search query.
     function syncToTextarea() {
-        const parts = [];
-        composer.querySelectorAll(".cluster-token").forEach(function (token) {
-            parts.push(token.dataset.text);
-        });
-        textarea.value = parts.join(" ").replace(/\s+/g, " ").trim();
+        textarea.value = joinElementTexts(allTokens().map(tokenDescriptor));
         syncToElementsField();
         // Every path that changes the elements ends here — normalizeComposer, the seed,
         // undo, deactivation — so this is the one place the Clean up menu's enabled states
@@ -286,16 +341,9 @@
             elementsField.value = "";
             return;
         }
-        const elements = [];
-        composer.querySelectorAll(".cluster-token").forEach(function (token) {
-            elements.push({
-                kind: token.dataset.kind,
-                text: token.dataset.text,
-                cantus_id: token.dataset.cantusId || "",
-                proposed: token.dataset.proposed === "true",
-            });
-        });
-        elementsField.value = JSON.stringify(elements);
+        elementsField.value = JSON.stringify(
+            serializeElements(allTokens().map(tokenDescriptor))
+        );
     }
 
     // Drop any stray free text, leaving nothing but the tokens, so the field shows exactly
@@ -880,11 +928,11 @@
 
     // Float this cluster's own sub-elements (Cantus IDs like "<parent>:NN" or
     // "<parent>.Tp7") to the top, keeping CI's order within each group — search all
-    // of Cantus Index, but surface the obvious in-cluster ones first. The parent is
-    // read live from the Cantus ID field; with no ID yet, leave CI's order untouched.
-    function rankResults(results) {
-        const parent = parentCantusId();
-        if (!currentCluster || !parent) return results;
+    // of Cantus Index, but surface the obvious in-cluster ones first. The parent is the
+    // chant's Cantus ID (the caller reads it live off the field); with no parent, leave
+    // CI's order untouched. Pure so the ranking can be pinned without a DOM.
+    function rankResults(results, parent) {
+        if (!parent) return results;
         const own = [];
         const rest = [];
         results.forEach(function (r) {
@@ -902,9 +950,9 @@
     // fulltext carries trailing whitespace, so trim it before it becomes a token.
     // `payload` is the proxy's {results, total}: results is the page to render, total the
     // number of matches before clipping, so the shortfall can be reported to the user.
-    function rowsFromResults(payload, query) {
+    function rowsFromResults(payload, query, parent) {
         const results = payload.results || [];
-        const rows = rankResults(results).map(function (r) {
+        const rows = rankResults(results, parent).map(function (r) {
             return {
                 kind: "match",
                 element: { text: (r.fulltext || "").trim(), cantusId: r.cid || "" },
@@ -1155,7 +1203,9 @@
                 if (seq !== ciSeq || outcome.aborted || !isTypeaheadOpen()) return;
                 const ctx = currentQueryContext();
                 if (!ctx || ctx.query.trim().toLowerCase() !== query.toLowerCase()) return;
-                const rows = outcome.error ? ciErrorRows(query) : rowsFromResults(outcome.payload, query);
+                const rows = outcome.error
+                    ? ciErrorRows(query)
+                    : rowsFromResults(outcome.payload, query, parentCantusId());
                 openTypeahead(rows, ctx);
             });
         }, CI_DEBOUNCE_MS);
@@ -1185,7 +1235,7 @@
         }
         const cached = ciCache.get(query.toLowerCase());
         if (cached) {
-            openTypeahead(rowsFromResults(cached, query), context);
+            openTypeahead(rowsFromResults(cached, query, parentCantusId()), context);
             return;
         }
         openTypeahead([{ kind: "loading" }, { kind: "propose", text: query }], context);
@@ -1442,7 +1492,7 @@
         if (!isSplittable(token)) return;
         exitSplitMode();
         closeMenu();
-        const words = token.dataset.text.split(/\s+/).filter(Boolean);
+        const words = wordsOf(token.dataset.text);
         if (words.length < 2) return; // nothing to split
         token.classList.add("cluster-token--splitting");
         token.draggable = false;
@@ -1484,9 +1534,7 @@
     }
 
     function performSplit(token, wordIndex) {
-        const words = token.dataset.text.split(/\s+/).filter(Boolean);
-        const left = words.slice(0, wordIndex).join(" ");
-        const right = words.slice(wordIndex).join(" ");
+        const { left, right } = splitWords(token.dataset.text, wordIndex);
         if (!left || !right) return;
         // Restore the token's normal display before snapshotting, so undoing the split
         // returns to the intact element — not the split-mode markup it was showing.
@@ -1540,19 +1588,31 @@
     // core text into component text or the reverse, which is not an operation this tool
     // performs. An approved component owns its Cantus ID for its whole text, so it is
     // excluded for the same reason it can't be split.
-    function isMergeable(tokens) {
-        if (tokens.length < 2) return false;
-        if (!isContiguous(tokens)) return false;
-        const kind = tokens[0].dataset.kind;
-        const proposed = isProposedToken(tokens[0]);
-        return tokens.every(function (token) {
+    // The descriptor-only half of the rule: at least two elements, none a separator, all one
+    // kind, all with the same proposed flag, and each either a core or a proposed component
+    // (an approved component owns its Cantus ID for its whole text, so it can't be folded).
+    // Contiguity is the DOM's concern and stays in isMergeable; this is pure so the
+    // eligibility rule can be pinned without a DOM.
+    function mergeKindMatches(descriptors) {
+        if (descriptors.length < 2) return false;
+        const kind = descriptors[0].kind;
+        const proposed = !!descriptors[0].proposed;
+        return descriptors.every(function (d) {
             return (
-                token.dataset.autoKind !== "separator" &&
-                token.dataset.kind === kind &&
-                isProposedToken(token) === proposed &&
-                (isCoreToken(token) || proposed)
+                d.autoKind !== "separator" &&
+                d.kind === kind &&
+                !!d.proposed === proposed &&
+                (d.kind === "core" || !!d.proposed)
             );
         });
+    }
+
+    function isMergeable(tokens) {
+        return (
+            tokens.length >= 2 &&
+            isContiguous(tokens) &&
+            mergeKindMatches(tokens.map(tokenDescriptor))
+        );
     }
 
     // Fuse a run into one element. Returns the new element, or null if the run can't merge.
@@ -1561,13 +1621,7 @@
         exitSplitMode();
         closeMenu(); // the boxes below are about to be replaced
         pushUndo();
-        const text = tokens
-            .map(function (token) {
-                return token.dataset.text;
-            })
-            .join(" ")
-            .replace(/\s+/g, " ")
-            .trim();
+        const text = joinElementTexts(tokens.map(tokenDescriptor));
         // Same kind in, same kind out — as performSplit does in the other direction.
         const merged = isCoreToken(tokens[0])
             ? makeCoreToken(text)
@@ -1907,14 +1961,14 @@
         return points;
     }
 
-    // The gap nearest the pointer. Vertical distance dominates, so a drop never jumps to
-    // another line just because a gap there is closer in raw pixels; within a line it's
-    // the nearest gap horizontally. Every pointer position resolves to some gap, so the
-    // bar can't blink out over a spot that is in fact droppable.
-    function nearestInsertionPoint(x, y) {
+    // The gap nearest the pointer among candidate points. Vertical distance dominates (the
+    // ×10000 weight), so a drop never jumps to another line just because a gap there is closer
+    // in raw pixels; within a line it's the nearest gap horizontally. Pure over the points, so
+    // the scoring can be pinned without laying out a DOM.
+    function nearestPoint(points, x, y) {
         let best = null;
         let bestScore = Infinity;
-        insertionPoints().forEach(function (point) {
+        points.forEach(function (point) {
             // 0 while the pointer is level with this line, else the distance off it
             const dy = Math.max(0, point.top - y, y - (point.top + point.height));
             const score = dy * 10000 + Math.abs(point.x - x);
@@ -1924,6 +1978,12 @@
             }
         });
         return best;
+    }
+
+    // The gap nearest the pointer. Every pointer position resolves to some gap, so the bar
+    // can't blink out over a spot that is in fact droppable.
+    function nearestInsertionPoint(x, y) {
+        return nearestPoint(insertionPoints(), x, y);
     }
 
     function showDropIndicator(point) {
@@ -2488,9 +2548,27 @@
         hydrateFromSavedElements();
     }
 
-    // Exposed for tests only (tests/js/cluster_submit.test.js), mirroring how
-    // chant_create_auto_split.js hangs its rules on window; the page never reads it.
-    window.ChantClusterComposer = { submissionError: clusterSubmissionError };
+    // Exposed for tests only (tests/js/composer_logic.test.js, tests/js/cluster_submit.test.js),
+    // mirroring how chant_create_auto_split.js hangs its rules on window; the page never reads
+    // it. These are the composer's pure decisions — everything settleable without a DOM —
+    // pulled out so they can be pinned under Node. The DOM plumbing around them (drag, caret,
+    // the menus) is verified by hand and by the local Playwright harness.
+    window.ChantClusterComposer = {
+        submissionError: clusterSubmissionError,
+        plural: plural,
+        ciEndpoint: ciEndpoint,
+        rankResults: rankResults,
+        rowsFromResults: rowsFromResults,
+        ciErrorRows: ciErrorRows,
+        messageRowText: messageRowText,
+        isNavigable: isNavigable,
+        canSplitText: canSplitText,
+        splitWords: splitWords,
+        mergeKindMatches: mergeKindMatches,
+        joinElementTexts: joinElementTexts,
+        serializeElements: serializeElements,
+        nearestPoint: nearestPoint,
+    };
 
     // Guarded so the file can be loaded under Node's test runner (no document there);
     // in the browser this wires the composer up on load as before.
