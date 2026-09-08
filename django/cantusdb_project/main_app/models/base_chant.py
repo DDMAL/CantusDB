@@ -54,6 +54,14 @@ class BaseChant(BaseModel):
     cantus_id = models.CharField(
         blank=True, null=True, max_length=255, db_index=True, verbose_name="cantus ID"
     )
+    # The Cantus Index base chant a troped chant's cores were seeded from (#2189): its
+    # cores concatenate back to this ID's full text. Kept on the chant, not repeated on
+    # each core, so an element-level count of a Cantus ID doesn't double-count the base.
+    # Only troped chants composed on the Create Chant page set it; lives here (not on
+    # Chant) because Chant and Sequence must share columns for their search union.
+    base_cantus_id = models.CharField(
+        blank=True, null=True, max_length=255, verbose_name="base Cantus ID"
+    )
     image_link = NormalizedURLField(blank=True, null=True)
     json_info = models.JSONField(null=True, blank=True)
     marginalia = models.CharField(max_length=63, null=True, blank=True)

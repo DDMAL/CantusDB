@@ -6,6 +6,12 @@
     <script type="text/javascript"
             src="{% static 'admin/js/vendor/jquery/jquery.js' %}"></script>
     {{ form.media }}
+    <!-- Chant cluster composer (#2128/#2129), reused on the edit page (#2165 follow-up). -->
+    <link href="{% static 'css/chant_create_clusters.css' %}" rel="stylesheet" />
+    <!-- The automatic split's rules go first: the composer reads them off
+         window.ChantAutoSplit, and deferred scripts run in document order. -->
+    <script src="{% static 'js/chant_create_auto_split.js' %}" defer></script>
+    <script src="{% static 'js/chant_create_clusters.js' %}" defer></script>
 {% endblock %}
 {% block uppersidebar %}
     <div class="search-bar mb-3">{% include "global_search_bar.html" %}</div>
@@ -192,7 +198,74 @@
                     <label for="{{ form.manuscript_full_text_std_spelling.id_for_label }}">
                         Full text as in Source (standardized spelling):<span class="text-danger" title="This field is required">*</span>
                     </label>
+                    <!-- Chant cluster composer (#2128/#2129): controls revealed by JS. On the
+                         edit page the composer hydrates from the chant's saved elements
+                         (serialised into elements_json below) rather than reseeding CI. -->
+                    <div id="cluster-controls" class="d-flex flex-wrap align-items-center mb-1" hidden>
+                        <div class="form-check mb-0 me-2">
+                            <input class="form-check-input" type="checkbox" id="has-component-elements">
+                            <label class="form-check-label" for="has-component-elements">Has interleaved component elements</label>
+                        </div>
+                        <button type="button"
+                                id="component-elements-hint"
+                                class="btn btn-link p-0 me-3 text-muted cluster-help"
+                                aria-label="How to compose elements"
+                                data-bs-toggle="tooltip"
+                                data-bs-placement="right"
+                                title="Click a core chunk to split it, or type to search Cantus Index for component elements to interleave. Shift-click a second chunk to take the whole run between them; Ctrl-click (⌘ on a Mac) picks out chunks that aren't next to each other, to delete together. Clean up can split the Cantus Index text for you where its conventions are clear enough to be certain."
+                                hidden>
+                            <i class="bi bi-question-circle" aria-hidden="true"></i>
+                        </button>
+                        <button type="button"
+                                id="cluster-reload"
+                                class="btn btn-outline-secondary btn-sm me-2"
+                                title="Fetch the base chant's text again from Cantus Index using the Cantus ID above"
+                                hidden
+                                disabled>
+                            Reload base text from Cantus Index
+                        </button>
+                        <button type="button" id="cluster-undo" class="btn btn-outline-secondary btn-sm" hidden disabled>
+                            Undo
+                        </button>
+                        <div class="dropdown ms-2" id="cluster-cleanup" hidden>
+                            <button type="button"
+                                    id="cluster-cleanup-toggle"
+                                    class="btn btn-outline-secondary btn-sm dropdown-toggle"
+                                    data-bs-toggle="dropdown"
+                                    aria-expanded="false"
+                                    title="Split the Cantus Index text into elements, then drop the separators it leaves behind">
+                                Clean up
+                            </button>
+                            <ul class="dropdown-menu" aria-labelledby="cluster-cleanup-toggle">
+                                <li>
+                                    <button type="button" class="dropdown-item" id="cluster-auto-split" disabled>
+                                        Split automatically
+                                    </button>
+                                </li>
+                                <li><hr class="dropdown-divider" /></li>
+                                <li>
+                                    <button type="button" class="dropdown-item" id="cluster-remove-separators" disabled>
+                                        Remove separators
+                                    </button>
+                                </li>
+                            </ul>
+                        </div>
+                    </div>
+                    <p id="cluster-status" class="text-muted small mb-1" hidden></p>
                     {{ form.manuscript_full_text_std_spelling }}
+                    <!-- Element composer; JS hides the textarea above and shows this when cluster mode is on.
+                         Its element bank lives in the sidebar (see the lowersidebar block). -->
+                    <div id="cluster-composer"
+                         class="form-control cluster-composer"
+                         contenteditable="true"
+                         data-base-text-url="{% url 'ci-base-text' cantus_id='__CANTUS_ID__' %}"
+                         data-cluster-elements-url="{% url 'ci-cluster-elements' cantus_id='__CANTUS_ID__' %}"
+                         data-ci-id-url="https://cantusindex.org/id/"
+                         hidden></div>
+                    <!-- Composed elements are serialised here for the server (ChantEditForm.elements_json). -->
+                    {{ form.elements_json }}
+                    <!-- The base Cantus ID the cores were seeded from, written by the composer JS (#2189). -->
+                    {{ form.base_cantus_id }}
                 </div>
             </div>
             {% if user_can_proofread_chant %}
@@ -483,4 +556,17 @@
             {% endif %}
         </div>
     </div>
+    <!-- The composer's element bank (#2129), revealed by JS in cluster mode. Mirrors the
+         Create Chant page: component elements Cantus Index holds for this Cantus ID, plus
+         any cores deleted from the text offered back for restoring. JS fills the heading. -->
+    <aside id="cluster-bank" class="card w-100" hidden>
+        <div class="card-header">
+            <h5 id="cluster-bank-heading">Component Elements</h5>
+        </div>
+        <div class="card-body small">
+            <p id="cluster-bank-status" class="cluster-bank-status mb-0"></p>
+            <div id="cluster-bank-items"></div>
+            <div id="removed-cores-tray" class="cluster-tray small" hidden></div>
+        </div>
+    </aside>
 {% endblock %}

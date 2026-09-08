@@ -242,6 +242,22 @@
                 {{ chant.manuscript_full_text }}
             </dd>
         {% endif %}
+        {% if chant_elements %}
+            <dt>Element breakdown</dt>
+            <dd>
+                <ol class="mb-0 ps-3">
+                    {% for element in chant_elements %}
+                        <li>
+                            <span class="badge {% if element.kind == 'core' %}bg-secondary{% else %}bg-info{% endif %}">{{ element.get_kind_display }}</span>
+                            {{ element.text }}
+                            {% if element.resolved_cantus_id %}
+                                &mdash; <a href="https://cantusindex.org/id/{{ element.resolved_cantus_id }}" target="_blank" rel="noopener">{{ element.resolved_cantus_id }}</a>
+                            {% endif %}
+                        </li>
+                    {% endfor %}
+                </ol>
+            </dd>
+        {% endif %}
         <!-- Volpiano display for source 680970 (MS 73) was temporarily disabled in #1635; re-enabled in #1893. -->
         {% if chant.volpiano %}
             <dt>Volpiano</dt>

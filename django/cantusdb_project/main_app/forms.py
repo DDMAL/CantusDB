@@ -1,3 +1,4 @@
+import json
 from typing import Optional, Any, Dict
 
 from django import forms
@@ -15,6 +16,7 @@ from volpiano_display_utilities.cantus_text_syllabification import syllabify_tex
 from volpiano_display_utilities.latin_word_syllabification import LatinError
 from .models import (
     Chant,
+    ChantElement,
     Service,
     Genre,
     Institution,
@@ -175,7 +177,127 @@ class FormsetOptimizedModelChoiceField(forms.ModelChoiceField):
         self.choices = choices
 
 
-class ChantCreateForm(forms.ModelForm):
+class ClusterComposerFormMixin:
+    """Shared cluster-composer handling for the chant create and edit forms.
+
+    Both build a troped chant's text from ordered ``ChantElement``s the composer JS
+    serialises into the ``elements_json`` hidden field. Parsing and validating that
+    payload, and deriving the flattened std-spelling text from it, live here so the two
+    forms can't drift apart. ``base_cantus_id`` is a model field, so each form lists it in
+    its own ``Meta.fields`` (a mixin can't extend a subclass's Meta) with a hidden widget;
+    the shared logic here only normalises it.
+    """
+
+    # A real troped cluster has a few dozen elements at most; cap it so a crafted or
+    # runaway payload can't drive an unbounded row-creation loop.
+    MAX_ELEMENTS = 200
+
+    # Each concrete form must declare the hidden ``elements_json`` field in its own body:
+    #   elements_json = forms.CharField(required=False, widget=HiddenInput)
+    # Django's form metaclass only collects declared fields from Form bases, so a field
+    # set on this plain mixin would be silently dropped. The composer serialises its
+    # element tokens into it as JSON; ``clean_elements_json`` parses it and
+    # ``apply_composed_elements`` derives the std-spelling text so the two can't diverge.
+
+    def clean_elements_json(self) -> list[dict[str, Any]]:
+        """Parse and shape-validate the composer's serialised elements.
+
+        Returns a list of ``{kind, text, cantus_id, proposed}`` dicts (empty when the
+        chant isn't a cluster). Malformed input is rejected rather than silently
+        dropped. Cores keep whatever ``cantus_id`` the client sent; the view blanks it
+        on save, since the model invariant is that cores resolve their ID via the parent.
+        """
+        raw: str = (self.cleaned_data.get("elements_json") or "").strip()
+        if not raw:
+            return []
+        try:
+            data = json.loads(raw)
+        except json.JSONDecodeError as err:
+            raise forms.ValidationError(
+                "Composed elements are not valid JSON."
+            ) from err
+        if not isinstance(data, list):
+            raise forms.ValidationError("Composed elements must be a list.")
+        if len(data) > self.MAX_ELEMENTS:
+            raise forms.ValidationError(
+                f"A cluster can have at most {self.MAX_ELEMENTS} elements."
+            )
+        valid_kinds = {kind.value for kind in ChantElement.Kind}
+        max_cantus_id_length: int = ChantElement._meta.get_field("cantus_id").max_length
+        elements: list[dict[str, Any]] = []
+        for entry in data:
+            if not isinstance(entry, dict):
+                raise forms.ValidationError("Each composed element must be an object.")
+            kind = entry.get("kind")
+            # A crafted payload can send non-strings: an unhashable kind breaks the
+            # ``in`` test, and a non-str text breaks ``.strip()``. Guard both so bad
+            # input is a form error, not an unhandled 500.
+            if not isinstance(kind, str) or kind not in valid_kinds:
+                raise forms.ValidationError(f"Unknown element kind: {kind!r}.")
+            raw_text = entry.get("text")
+            raw_cantus_id = entry.get("cantus_id")
+            if not isinstance(raw_text, (str, type(None))) or not isinstance(
+                raw_cantus_id, (str, type(None))
+            ):
+                raise forms.ValidationError(
+                    "Composed element text and Cantus ID must be strings."
+                )
+            text = (raw_text or "").strip()
+            if not text:
+                raise forms.ValidationError("Composed elements must have text.")
+            cantus_id = (raw_cantus_id or "").strip()
+            # The cantus_id column is capped at max_length; without this check an
+            # over-long id clears validation and then 500s when the row is written.
+            if len(cantus_id) > max_cantus_id_length:
+                raise forms.ValidationError(
+                    f"A Cantus ID can be at most {max_cantus_id_length} characters."
+                )
+            # Enforce the ChantElement contract rather than coercing whatever was sent:
+            # ``bool("false")`` is True, and only a component that has no Cantus ID yet
+            # can be proposed (a core resolves its ID through the parent; a catalogued
+            # component already has one).
+            proposed = entry.get("proposed", False)
+            if not isinstance(proposed, bool):
+                raise forms.ValidationError(
+                    "Composed element 'proposed' must be a boolean."
+                )
+            if proposed and (kind == ChantElement.Kind.CORE or cantus_id):
+                raise forms.ValidationError(
+                    "Only components without a Cantus ID can be proposed."
+                )
+            elements.append(
+                {
+                    "kind": kind,
+                    "text": text,
+                    "cantus_id": cantus_id,
+                    "proposed": proposed,
+                }
+            )
+        return elements
+
+    def apply_composed_elements(self) -> None:
+        """Reconcile composed elements with the plain fields; call from ``clean()``.
+
+        When elements are present the std-spelling full text IS their text in order, so
+        derive it rather than trust the separately-submitted textarea — reproducing
+        exactly what the composer JS writes, so the flattened text and the structured
+        elements can never diverge. When absent, blank ``base_cantus_id`` so it is set on
+        a chant iff that chant is a seeded cluster.
+        """
+        elements = self.cleaned_data.get("elements_json")
+        if elements:
+            self.cleaned_data["manuscript_full_text_std_spelling"] = " ".join(
+                " ".join(element["text"].split()) for element in elements
+            )
+        # base_cantus_id belongs on a seeded cluster only. Store NULL (not "") when there
+        # are no elements, or when a cluster was typed in with no Cantus Index base to seed
+        # from, so the column is canonically null rather than a mix of null and empty.
+        if "base_cantus_id" in self.cleaned_data:
+            base = (self.cleaned_data["base_cantus_id"] or "").strip()
+            self.cleaned_data["base_cantus_id"] = base if (base and elements) else None
+
+
+class ChantCreateForm(ClusterComposerFormMixin, forms.ModelForm):
     class Meta:
         model = Chant
         # specify either 'fields' or 'excludes' so that django knows which fields to use
@@ -187,6 +309,7 @@ class ChantCreateForm(forms.ModelForm):
             "genre",
             "position",
             "cantus_id",
+            "base_cantus_id",
             "feast",
             "mode",
             "differentia",
@@ -224,6 +347,8 @@ class ChantCreateForm(forms.ModelForm):
             "genre": autocomplete.ModelSelect2(url="genre-autocomplete"),
             "position": TextInputWidget(),
             "cantus_id": TextInputWidget(),
+            # Hidden: the composer JS writes the seeded base Cantus ID; no manual entry.
+            "base_cantus_id": HiddenInput(),
             "feast": autocomplete.ModelSelect2(url="feast-autocomplete"),
             "mode": TextInputWidget(),
             "differentia": TextInputWidget(),
@@ -281,6 +406,9 @@ class ChantCreateForm(forms.ModelForm):
         help_text="Select the project (if any) that the chant belongs to.",
     )
 
+    # See ClusterComposerFormMixin: the field must be declared on the concrete form.
+    elements_json = forms.CharField(required=False, widget=HiddenInput)
+
     def clean(self) -> dict[str, Any]:
         """
         Provide custom clean method that ensures the created chant does
@@ -297,6 +425,7 @@ class ChantCreateForm(forms.ModelForm):
                 "Chant with the same sequence and folio already exists in this source.",
                 code="duplicate-folio-sequence",
             )
+        self.apply_composed_elements()
         return self.cleaned_data
 
 
@@ -401,7 +530,7 @@ class SourceCreateForm(forms.ModelForm):
         )
 
 
-class ChantEditForm(forms.ModelForm):
+class ChantEditForm(ClusterComposerFormMixin, forms.ModelForm):
     class Meta:
         model = Chant
         fields = [
@@ -416,6 +545,7 @@ class ChantEditForm(forms.ModelForm):
             "genre",
             "position",
             "cantus_id",
+            "base_cantus_id",
             "melody_id",
             "mode",
             "finalis",
@@ -453,6 +583,8 @@ class ChantEditForm(forms.ModelForm):
             "genre": autocomplete.ModelSelect2(url="genre-autocomplete"),
             "position": TextInputWidget(),
             "cantus_id": TextInputWidget(),
+            # Hidden: the composer JS writes the seeded base Cantus ID; no manual entry.
+            "base_cantus_id": HiddenInput(),
             "melody_id": TextInputWidget(),
             "mode": TextInputWidget(),
             "finalis": TextInputWidget(),
@@ -511,6 +643,9 @@ class ChantEditForm(forms.ModelForm):
         required=False,
     )
 
+    # See ClusterComposerFormMixin: the field must be declared on the concrete form.
+    elements_json = forms.CharField(required=False, widget=HiddenInput)
+
     def clean_manuscript_full_text_std_spelling(self) -> Optional[str]:
         """
         Provide a custom validation function for the
@@ -548,6 +683,7 @@ class ChantEditForm(forms.ModelForm):
                 "A chant with this folio and sequence already exists.",
                 code="duplicate-folio-sequence",
             )
+        self.apply_composed_elements()
         return self.cleaned_data
 
 

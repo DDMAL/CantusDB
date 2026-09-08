@@ -24,8 +24,14 @@ window.addEventListener("load", function () {
 })
 
 function autoFillSuggestedChant(genreName, genreID, cantusID, fullText) {
-    document.getElementById('id_cantus_id').value = cantusID;
+    const cantusIdField = document.getElementById('id_cantus_id');
+    cantusIdField.value = cantusID;
     document.getElementById('id_manuscript_full_text_std_spelling').value = fullText;
+    // The cluster composer (chant_create_clusters.js) listens for a native "change" on this
+    // field to reload its element bank, reseed the base text, and warn before discarding any
+    // composed elements. A plain .value assignment fires no such event, so without this the
+    // composer would silently keep the previous chant's elements under the new Cantus ID.
+    cantusIdField.dispatchEvent(new Event('change', { bubbles: true }));
 
     // in case suggestion.genre_id was None, don't try to change the #id_genre selector
     if (genreID === null) {

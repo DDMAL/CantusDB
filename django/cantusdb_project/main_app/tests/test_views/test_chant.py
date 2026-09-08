@@ -4,15 +4,18 @@ Test views in views/chant.py
 
 from unittest.mock import patch
 from unittest import skip
+import json
 import random
 from typing import ClassVar, Dict
 import urllib.parse
 
 from django.conf import settings
+from django.core.cache import cache
 from django.test import TestCase
 from django.urls import reverse
 
 from faker import Faker
+from reversion.models import Version
 
 from main_app.tests.make_fakes import (
     make_fake_chant,
@@ -25,16 +28,18 @@ from main_app.tests.make_fakes import (
     make_fake_genre,
     make_fake_feast,
     make_fake_institution,
+    make_groups,
     make_random_string,
     get_random_search_term,
 )
 from main_app.tests.test_functions import mock_requests_get
 from main_app.tests.mixins import CustomAccessTestMixin
-from main_app.models import Chant, Source, Feast, Service
+from main_app.models import Chant, ChantElement, Source, Feast, Service
 from main_app.views.chant import (
     get_feast_selector_options,
     ChantSearchView,
     ChantSearchMSView,
+    CIComponentSearchView,
 )
 
 # Create a Faker instance with locale set to Latin
@@ -675,6 +680,169 @@ class SourceEditChantsViewTest(ChantPermissionsTestCase):
             chant_wo_fulltext.refresh_from_db()
             self.assertEqual(chant_wo_fulltext.mode, "2")
             self.assertEqual(chant_wo_fulltext.manuscript_full_text, "")
+
+    def _make_troped_chant(self, source: Source) -> Chant:
+        """A saved troped chant: two elements (one core, one component) and a base ID."""
+        chant = make_fake_chant(
+            source=source,
+            folio="001r",
+            cantus_id="g04828.tp01",
+            manuscript_full_text_std_spelling="Sanctus Trope",
+        )
+        chant.base_cantus_id = "g04828"
+        chant.save()
+        ChantElement.objects.create(
+            chant=chant, order=0, kind="core", text="Sanctus", cantus_id=None
+        )
+        ChantElement.objects.create(
+            chant=chant, order=1, kind="component", text="Trope", cantus_id="g04828:01"
+        )
+        return chant
+
+    def _edit_post(self, source: Source, chant: Chant, **extra):
+        data = {
+            "manuscript_full_text_std_spelling": "Sanctus Trope",
+            "pk": chant.id,
+            "folio": chant.folio,
+            "c_sequence": chant.c_sequence,
+            "cantus_id": "g04828.tp01",
+            **extra,
+        }
+        return self.client.post(reverse("source-edit-chants", args=[source.id]), data)
+
+    def test_edit_get_preloads_elements_json(self) -> None:
+        """The edit page serialises the chant's saved elements into the composer's hidden
+        field, so the composer hydrates from them instead of reseeding Cantus Index."""
+        source = make_fake_source()
+        chant = self._make_troped_chant(source)
+        with patch("requests.get", mock_requests_get):
+            response = self.client.get(
+                reverse("source-edit-chants", args=[source.id]), {"pk": chant.id}
+            )
+        self.assertEqual(response.status_code, 200)
+        preloaded = json.loads(response.context["form"].initial["elements_json"])
+        self.assertEqual([e["kind"] for e in preloaded], ["core", "component"])
+        self.assertEqual([e["text"] for e in preloaded], ["Sanctus", "Trope"])
+
+    def test_edit_replaces_composed_elements(self) -> None:
+        """Re-saving a troped chant replaces its elements with the submitted set, in order."""
+        source = make_fake_source()
+        chant = self._make_troped_chant(source)
+        new_elements = [
+            {
+                "kind": "core",
+                "text": "Sanctus Deus",
+                "cantus_id": "g04828",
+                "proposed": False,
+            },
+            {
+                "kind": "component",
+                "text": "Nova",
+                "cantus_id": "g04828:02",
+                "proposed": False,
+            },
+            {
+                "kind": "core",
+                "text": "Sabaoth",
+                "cantus_id": "g04828",
+                "proposed": False,
+            },
+        ]
+        response = self._edit_post(
+            source,
+            chant,
+            manuscript_full_text_std_spelling="Sanctus Deus Nova Sabaoth",
+            base_cantus_id="g04828",
+            elements_json=json.dumps(new_elements),
+        )
+        self.assertEqual(response.status_code, 302)
+        saved = list(chant.elements.all())  # Meta.ordering = ["order"]
+        self.assertEqual([e.kind for e in saved], ["core", "component", "core"])
+        self.assertEqual([e.text for e in saved], ["Sanctus Deus", "Nova", "Sabaoth"])
+        self.assertEqual([e.order for e in saved], [0, 1, 2])
+        # Cores never store a Cantus ID; they resolve through the chant's base ID.
+        self.assertTrue(all(e.cantus_id is None for e in saved if e.kind == "core"))
+
+    def test_edit_adds_cluster_to_plain_chant(self) -> None:
+        """A plain chant can be turned into a cluster: elements and the base ID are saved."""
+        source = make_fake_source()
+        chant = make_fake_chant(
+            source=source,
+            folio="001r",
+            cantus_id="g04828.tp01",
+            manuscript_full_text_std_spelling="Sanctus",
+        )
+        self.assertFalse(chant.elements.exists())
+        elements = [
+            {
+                "kind": "core",
+                "text": "Sanctus",
+                "cantus_id": "g04828",
+                "proposed": False,
+            },
+            {
+                "kind": "component",
+                "text": "Trope",
+                "cantus_id": "g04828:01",
+                "proposed": False,
+            },
+        ]
+        self._edit_post(
+            source,
+            chant,
+            base_cantus_id="g04828",
+            elements_json=json.dumps(elements),
+        )
+        chant.refresh_from_db()
+        self.assertEqual(chant.base_cantus_id, "g04828")
+        self.assertEqual(chant.elements.count(), 2)
+        self.assertEqual(chant.elements.get(kind="core").resolved_cantus_id, "g04828")
+
+    def test_edit_removing_cluster_deletes_elements_and_base_id(self) -> None:
+        """Saving a troped chant with no composed elements clears its elements and base ID."""
+        source = make_fake_source()
+        chant = self._make_troped_chant(source)
+        self.assertTrue(chant.elements.exists())
+        # No elements_json / base_cantus_id in the POST: the chant is no longer a cluster.
+        self._edit_post(source, chant)
+        chant.refresh_from_db()
+        self.assertFalse(chant.elements.exists())
+        self.assertIsNone(chant.base_cantus_id)
+
+    def test_edited_elements_are_versioned(self) -> None:
+        """Re-saved elements land in the chant's django-reversion history."""
+        source = make_fake_source()
+        chant = make_fake_chant(
+            source=source,
+            folio="001r",
+            cantus_id="g04828.tp01",
+            manuscript_full_text_std_spelling="Sanctus",
+        )
+        elements = [
+            {
+                "kind": "core",
+                "text": "Sanctus",
+                "cantus_id": "g04828",
+                "proposed": False,
+            }
+        ]
+        self._edit_post(
+            source,
+            chant,
+            base_cantus_id="g04828",
+            elements_json=json.dumps(elements),
+        )
+        element = chant.elements.get()
+        chant_versions = Version.objects.get_for_object(chant)
+        self.assertTrue(chant_versions.exists())
+        revision = chant_versions[0].revision
+        self.assertTrue(
+            revision.version_set.filter(
+                content_type__model="chantelement",
+                object_id=str(element.pk),
+            ).exists(),
+            "re-saved element should be captured in the chant's revision",
+        )
 
 
 class ChantEditSyllabificationViewTest(ChantPermissionsTestCase):
@@ -3560,6 +3728,266 @@ class ChantCreateViewTest(CustomAccessTestMixin, TestCase):
         chant = Chant.objects.get(source=source)
         self.assertEqual(chant.manuscript_full_text_std_spelling, "initial")
 
+    def test_create_chant_persists_composed_elements(self) -> None:
+        """A troped chant's composed elements are saved as ordered ChantElement rows."""
+        source = self.source
+        elements = [
+            {
+                "kind": "core",
+                "text": "Sanctus",
+                "cantus_id": "g04828",
+                "proposed": False,
+            },
+            {
+                "kind": "component",
+                "text": "Perpetuo numine",
+                "cantus_id": "g04828:01",
+                "proposed": False,
+            },
+            {
+                "kind": "core",
+                "text": "Dominus Deus",
+                "cantus_id": "g04828",
+                "proposed": False,
+            },
+            {
+                "kind": "component",
+                "text": "Novum tropus",
+                "cantus_id": "",
+                "proposed": True,
+            },
+        ]
+        response = self.client.post(
+            reverse("chant-create", args=[source.id]),
+            {
+                "manuscript_full_text_std_spelling": "Sanctus Perpetuo numine Dominus Deus Novum tropus",
+                "folio": "001r",
+                "c_sequence": "1",
+                "cantus_id": "g04828",
+                "elements_json": json.dumps(elements),
+            },
+        )
+        self.assertEqual(response.status_code, 302)
+        chant = Chant.objects.get(source=source)
+
+        created = list(chant.elements.all())  # Meta.ordering = ["order"]
+        self.assertEqual([e.order for e in created], [0, 1, 2, 3])
+        self.assertEqual(
+            [e.kind for e in created],
+            ["core", "component", "core", "component"],
+        )
+        # Cores never store a Cantus ID, even though the client sent the parent's; they
+        # resolve it through the chant instead.
+        first_core = created[0]
+        self.assertIsNone(first_core.cantus_id)
+        self.assertEqual(first_core.resolved_cantus_id, "g04828")
+        # Components keep their own IDs; a proposed one has none until CI catalogues it.
+        self.assertEqual(created[1].cantus_id, "g04828:01")
+        self.assertFalse(created[1].proposed)
+        self.assertTrue(created[3].proposed)
+        self.assertIsNone(created[3].cantus_id)
+        # A proposed component resolves to no ID at all — it must not borrow the base
+        # chant's ID (it is a different chant), which would mislink it on the detail page.
+        self.assertIsNone(created[3].resolved_cantus_id)
+
+    def test_create_chant_persists_base_cantus_id(self) -> None:
+        """The seeded base Cantus ID is stored on the chant, and cores resolve through it
+        rather than the entered troped ID (#2189)."""
+        source = self.source
+        elements = [
+            {
+                "kind": "core",
+                "text": "Os justi",
+                "cantus_id": "g01349",
+                "proposed": False,
+            },
+            {
+                "kind": "component",
+                "text": "Trope",
+                "cantus_id": "g01349.tp14:01",
+                "proposed": False,
+            },
+        ]
+        self.client.post(
+            reverse("chant-create", args=[source.id]),
+            {
+                "manuscript_full_text_std_spelling": "Os justi Trope",
+                "folio": "005r",
+                "c_sequence": "1",
+                "cantus_id": "g01349.tp14",
+                "base_cantus_id": "g01349",
+                "elements_json": json.dumps(elements),
+            },
+        )
+        chant = Chant.objects.get(source=source)
+        self.assertEqual(chant.base_cantus_id, "g01349")
+        core = chant.elements.get(kind="core")
+        self.assertIsNone(core.cantus_id)
+        # Resolves through base_cantus_id, not the chant's own troped Cantus ID.
+        self.assertEqual(core.resolved_cantus_id, "g01349")
+
+    def test_base_cantus_id_dropped_without_elements(self) -> None:
+        """A base Cantus ID submitted without composed elements isn't stored — it belongs
+        on a chant only when that chant is a seeded cluster."""
+        source = self.source
+        self.client.post(
+            reverse("chant-create", args=[source.id]),
+            {
+                "manuscript_full_text_std_spelling": "plain",
+                "folio": "006r",
+                "c_sequence": "1",
+                "base_cantus_id": "g01349",
+            },
+        )
+        chant = Chant.objects.get(source=source)
+        self.assertIsNone(chant.base_cantus_id)
+
+    def test_create_chant_without_elements_creates_none(self) -> None:
+        """A normal (non-troped) chant creation persists no ChantElement rows."""
+        source = self.source
+        self.client.post(
+            reverse("chant-create", args=[source.id]),
+            {
+                "manuscript_full_text_std_spelling": "plain chant text",
+                "folio": "002r",
+                "c_sequence": "1",
+            },
+        )
+        chant = Chant.objects.get(source=source)
+        self.assertFalse(chant.elements.exists())
+
+    def test_malformed_elements_json_is_rejected(self) -> None:
+        """Invalid element JSON fails validation instead of silently dropping elements."""
+        source = self.source
+        response = self.client.post(
+            reverse("chant-create", args=[source.id]),
+            {
+                "manuscript_full_text_std_spelling": "text",
+                "folio": "003r",
+                "c_sequence": "1",
+                "elements_json": "not json",
+            },
+        )
+        self.assertFormError(
+            response.context["form"],
+            "elements_json",
+            "Composed elements are not valid JSON.",
+        )
+        self.assertFalse(Chant.objects.filter(source=source).exists())
+
+    def test_elements_json_shape_validation(self) -> None:
+        """Each malformed-elements shape is rejected with its own message; no chant saved."""
+        source = self.source
+        cases = [
+            ('{"not": "a list"}', "Composed elements must be a list."),
+            ("[1]", "Each composed element must be an object."),
+            ('[{"kind": "bogus", "text": "x"}]', "Unknown element kind: 'bogus'."),
+            # Non-string kind/text/cantus_id must fail cleanly, not 500 on .strip() or
+            # an unhashable set lookup.
+            ('[{"kind": [], "text": "x"}]', "Unknown element kind: []."),
+            (
+                '[{"kind": "core", "text": 5}]',
+                "Composed element text and Cantus ID must be strings.",
+            ),
+            (
+                '[{"kind": "core", "text": "x", "cantus_id": 5}]',
+                "Composed element text and Cantus ID must be strings.",
+            ),
+            ('[{"kind": "core", "text": "   "}]', "Composed elements must have text."),
+            # A cantus_id longer than the column would clear validation and then 500 on
+            # the row write, so it's rejected up front as a form error.
+            (
+                json.dumps(
+                    [{"kind": "component", "text": "x", "cantus_id": "g" * 256}]
+                ),
+                "A Cantus ID can be at most 255 characters.",
+            ),
+            (
+                json.dumps([{"kind": "core", "text": "x"}] * 201),
+                "A cluster can have at most 200 elements.",
+            ),
+        ]
+        for raw, message in cases:
+            with self.subTest(case=message):
+                response = self.client.post(
+                    reverse("chant-create", args=[source.id]),
+                    {
+                        "manuscript_full_text_std_spelling": "text",
+                        "folio": "091r",
+                        "c_sequence": "1",
+                        "elements_json": raw,
+                    },
+                )
+                self.assertFormError(response.context["form"], "elements_json", message)
+        self.assertFalse(Chant.objects.filter(source=source).exists())
+
+    def test_full_text_is_derived_from_elements(self) -> None:
+        """The stored full text is rebuilt from the elements, so a divergent textarea
+        value submitted alongside them can't take effect."""
+        source = self.source
+        elements = [
+            {
+                "kind": "core",
+                "text": "Sanctus",
+                "cantus_id": "g04828",
+                "proposed": False,
+            },
+            {
+                "kind": "component",
+                "text": "Perpetuo numine",
+                "cantus_id": "g04828:01",
+                "proposed": False,
+            },
+        ]
+        self.client.post(
+            reverse("chant-create", args=[source.id]),
+            {
+                "manuscript_full_text_std_spelling": "a divergent value",
+                "folio": "005r",
+                "c_sequence": "1",
+                "cantus_id": "g04828",
+                "elements_json": json.dumps(elements),
+            },
+        )
+        chant = Chant.objects.get(source=source)
+        self.assertEqual(
+            chant.manuscript_full_text_std_spelling, "Sanctus Perpetuo numine"
+        )
+
+    def test_created_elements_are_versioned(self) -> None:
+        """Composed elements land in the chant's django-reversion history on creation."""
+        source = self.source
+        elements = [
+            {
+                "kind": "core",
+                "text": "Sanctus",
+                "cantus_id": "g04828",
+                "proposed": False,
+            }
+        ]
+        self.client.post(
+            reverse("chant-create", args=[source.id]),
+            {
+                "manuscript_full_text_std_spelling": "Sanctus",
+                "folio": "004r",
+                "c_sequence": "1",
+                "cantus_id": "g04828",
+                "elements_json": json.dumps(elements),
+            },
+        )
+        chant = Chant.objects.get(source=source)
+        element = chant.elements.get()
+        chant_versions = Version.objects.get_for_object(chant)
+        self.assertTrue(chant_versions.exists())
+        revision = chant_versions[0].revision
+        self.assertTrue(
+            revision.version_set.filter(
+                content_type__model="chantelement",
+                object_id=str(element.pk),
+            ).exists(),
+            "created element should be captured in the chant's revision",
+        )
+
     def test_view_url_path(self) -> None:
         source = self.source
         response = self.client.get(f"/chant-create/{source.id}")
@@ -3995,3 +4423,319 @@ class ChantViewHelpersTest(TestCase):
                 (feasts[2].id, feasts[2].name, "00q2r, 00q3, X00q3"),
             ]
             self.assertEqual(feast_selector_options, expected_result)
+
+
+def make_composer_user():
+    """A user the composer proxy gate lets through (an editor). The gate now admits
+    only editors and assigned cataloguers, so the proxy tests log in as one."""
+    return make_fake_user(groups=[(make_groups()["editor"], None)])
+
+
+class CIBaseTextViewTest(TestCase):
+    """The Cantus Index base-text proxy that seeds the cluster composer's first core.
+
+    The resolution of a troped chant to its base chant is ``get_base_chant_text``'s job
+    and is tested in test_functions.py; what matters here is that the view hands both
+    halves of its answer to the composer — the text, and the Cantus ID it came from,
+    which is not always the one that was asked for (#2189).
+    """
+
+    def setUp(self) -> None:
+        cache.clear()  # the view caches by Cantus ID; keep tests independent
+        self.client.force_login(make_composer_user())  # gated to editors/cataloguers
+
+    def test_requires_login(self) -> None:
+        self.client.logout()
+        response = self.client.get(reverse("ci-base-text", args=["g04828"]))
+        self.assertEqual(response.status_code, 302)  # redirected to login
+
+    @patch("main_app.views.chant.get_base_chant_text")
+    def test_returns_base_text_for_cantus_id(self, mock_base_text) -> None:
+        mock_base_text.return_value = {
+            "cantus_id": "g04828",
+            "text": "Sanctus Sanctus Sanctus",
+        }
+        response = self.client.get(reverse("ci-base-text", args=["g04828"]))
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(
+            response.json(),
+            {"base_text": "Sanctus Sanctus Sanctus", "cantus_id": "g04828"},
+        )
+
+    @patch("main_app.views.chant.get_base_chant_text")
+    def test_reports_the_cantus_id_the_text_came_from(self, mock_base_text) -> None:
+        """A troped chant is seeded from its base chant, so the ID in the answer differs
+        from the one in the request — the composer tells the cataloguer as much."""
+        mock_base_text.return_value = {
+            "cantus_id": "g01349",
+            "text": "Os justi meditabitur sapientiam et lingua ejus loquetur judicium",
+        }
+        response = self.client.get(reverse("ci-base-text", args=["g01349.tp14"]))
+        self.assertEqual(response.json()["cantus_id"], "g01349")
+        mock_base_text.assert_called_once_with("g01349.tp14")
+
+    @patch("main_app.views.chant.get_base_chant_text")
+    def test_returns_empty_when_ci_has_no_text(self, mock_base_text) -> None:
+        """An unknown ID or CI failure yields empty text, not an error, so the composer
+        can fall back to manual entry."""
+        mock_base_text.return_value = {"cantus_id": "unknown", "text": None}
+        response = self.client.get(reverse("ci-base-text", args=["unknown"]))
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.json(), {"base_text": "", "cantus_id": "unknown"})
+
+    @patch("main_app.views.chant.get_base_chant_text")
+    def test_caches_a_hit_but_not_a_miss(self, mock_base_text) -> None:
+        """CI text is static enough to cache for an hour; an empty answer is not cached,
+        so a transient CI failure doesn't stick for the rest of the hour."""
+        mock_base_text.return_value = {"cantus_id": "g01349", "text": "Os justi"}
+        self.client.get(reverse("ci-base-text", args=["g01349.tp14"]))
+        self.client.get(reverse("ci-base-text", args=["g01349.tp14"]))
+        self.assertEqual(mock_base_text.call_count, 1)
+
+        mock_base_text.return_value = {"cantus_id": "g04828", "text": None}
+        self.client.get(reverse("ci-base-text", args=["g04828"]))
+        self.client.get(reverse("ci-base-text", args=["g04828"]))
+        self.assertEqual(mock_base_text.call_count, 3)
+
+    @patch("main_app.views.chant.get_base_chant_text")
+    def test_rejects_malformed_cantus_id_without_hitting_ci(
+        self, mock_base_text
+    ) -> None:
+        """A Cantus ID with illegal characters can't reach the CI request path."""
+        response = self.client.get(reverse("ci-base-text", args=["bad id?x=1"]))
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.json(), {"base_text": "", "cantus_id": ""})
+        mock_base_text.assert_not_called()
+
+
+class CIComponentSearchViewTest(TestCase):
+    """The Cantus Index text-search proxy behind the composer's component typeahead."""
+
+    def setUp(self) -> None:
+        cache.clear()  # the view caches by search term; keep tests independent
+        self.client.force_login(make_composer_user())  # gated to editors/cataloguers
+
+    @staticmethod
+    def _ci_result(cid: str, genre: str) -> Dict[str, str]:
+        return {"cid": cid, "genre": genre, "fulltext": f"text for {cid}"}
+
+    def test_requires_login(self) -> None:
+        self.client.logout()
+        response = self.client.get(reverse("ci-component-search", args=["sanctus"]))
+        self.assertEqual(response.status_code, 302)  # redirected to login
+
+    @patch("main_app.views.chant.get_ci_text_search")
+    def test_short_query_does_not_reach_ci(self, mock_search) -> None:
+        response = self.client.get(reverse("ci-component-search", args=["sa"]))
+        self.assertEqual(response.json(), {"results": [], "total": 0, "capped": False})
+        mock_search.assert_not_called()
+
+    @patch("main_app.views.chant.get_ci_text_search")
+    def test_keeps_only_component_genres(self, mock_search) -> None:
+        """Only genres that can be interleaved survive: the Tp* family (a Sanctus
+        trope's elements are catalogued as TpSa, not Tp), prosulae, hymn verses and
+        litany verses. Whole antiphons/responsories are never component elements."""
+        mock_search.return_value = [
+            self._ci_result("g04828:01", "TpSa"),  # trope element
+            self._ci_result("001234", "Tp"),  # trope
+            self._ci_result("008411c", "HV"),  # hymn verse
+            self._ci_result("007000", "LiV"),  # litany verse
+            self._ci_result("009000", "Psl"),  # prosula (a type of trope)
+            self._ci_result("001774", "A"),  # antiphon — excluded
+            self._ci_result("006928", "R"),  # responsory — excluded
+            self._ci_result("008349", "H"),  # whole hymn — excluded
+        ]
+        response = self.client.get(reverse("ci-component-search", args=["sanctus"]))
+        returned = [result["cid"] for result in response.json()["results"]]
+        self.assertEqual(
+            returned, ["g04828:01", "001234", "008411c", "007000", "009000"]
+        )
+
+    @patch("main_app.views.chant.get_ci_text_search")
+    def test_drops_results_without_a_cid_genre_or_text(self, mock_search) -> None:
+        mock_search.return_value = [
+            None,
+            {"cid": "", "genre": "Tp", "fulltext": "no id"},
+            {"cid": "001234", "genre": None, "fulltext": "no genre"},
+            # A text-less match can't be composed and would insert a blank component.
+            {"cid": "005678", "genre": "Tp", "fulltext": "   "},
+            {"cid": "005679", "genre": "Tp"},
+            self._ci_result("g04828:01", "TpSa"),
+        ]
+        response = self.client.get(reverse("ci-component-search", args=["sanctus"]))
+        self.assertEqual(
+            [result["cid"] for result in response.json()["results"]], ["g04828:01"]
+        )
+
+    @patch("main_app.views.chant.get_ci_text_search")
+    def test_reports_total_beyond_the_returned_page(self, mock_search) -> None:
+        """The dropdown shows a page but says how many matches there are, so a clipped
+        list can't read as "these are all of them"."""
+        over_limit = CIComponentSearchView.MAX_RESULTS + 7
+        mock_search.return_value = [
+            self._ci_result(f"g04828:{i:02d}", "TpSa") for i in range(over_limit)
+        ]
+        response = self.client.get(reverse("ci-component-search", args=["sanctus"]))
+        payload = response.json()
+        self.assertEqual(len(payload["results"]), CIComponentSearchView.MAX_RESULTS)
+        self.assertEqual(payload["total"], over_limit)
+        # Well under CI's ceiling, so the exact total is trustworthy.
+        self.assertFalse(payload["capped"])
+
+    @patch("main_app.views.chant.get_ci_text_search")
+    def test_flags_ci_result_ceiling(self, mock_search) -> None:
+        """CI returns at most 100 matches per term. Hitting that means matches were lost
+        upstream, before the genre filter ran, so the surviving count understates the
+        truth and the UI must say "100+" rather than name a number."""
+        mock_search.return_value = [
+            self._ci_result(f"00{i:04d}", "A")  # all filtered out by genre
+            for i in range(CIComponentSearchView.CI_RESULT_CAP - 1)
+        ] + [self._ci_result("g04828:01", "TpSa")]
+        payload = self.client.get(
+            reverse("ci-component-search", args=["sanctus"])
+        ).json()
+        self.assertTrue(payload["capped"])
+        # Only one match survives filtering, but the ceiling was still hit upstream.
+        self.assertEqual(payload["total"], 1)
+
+    @patch("main_app.views.chant.get_ci_text_search")
+    def test_flags_ci_failure_without_caching_it(self, mock_search) -> None:
+        """A CI outage is an error state, not "no matches" — and a retry must re-hit CI."""
+        mock_search.return_value = None
+        response = self.client.get(reverse("ci-component-search", args=["sanctus"]))
+        self.assertEqual(
+            response.json(),
+            {"results": [], "total": 0, "capped": False, "error": True},
+        )
+
+        mock_search.return_value = [self._ci_result("g04828:01", "TpSa")]
+        response = self.client.get(reverse("ci-component-search", args=["sanctus"]))
+        self.assertEqual(len(response.json()["results"]), 1)
+
+
+class CIClusterElementsViewTest(TestCase):
+    """The element-bank proxy: the trope elements CI already holds for a Cantus ID."""
+
+    def setUp(self) -> None:
+        cache.clear()  # the view caches by Cantus ID; keep tests independent
+        self.client.force_login(make_composer_user())  # gated to editors/cataloguers
+
+    def test_requires_login(self) -> None:
+        self.client.logout()
+        response = self.client.get(reverse("ci-cluster-elements", args=["g04828"]))
+        self.assertEqual(response.status_code, 302)  # redirected to login
+
+    @patch("main_app.views.chant.get_cluster_elements")
+    def test_returns_elements_for_cantus_id(self, mock_elements) -> None:
+        mock_elements.return_value = [
+            {
+                "cantus_id": "g04828:01",
+                "genre": "TpSa",
+                "fulltext": "Perpetuo numine cuncta regens",
+            }
+        ]
+        response = self.client.get(reverse("ci-cluster-elements", args=["g04828"]))
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(
+            response.json(),
+            {
+                "elements": [
+                    {
+                        "cantus_id": "g04828:01",
+                        "genre": "TpSa",
+                        "fulltext": "Perpetuo numine cuncta regens",
+                    }
+                ]
+            },
+        )
+
+    @patch("main_app.views.chant.get_cluster_elements")
+    def test_caches_the_empty_result(self, mock_elements) -> None:
+        """Most chants aren't troped. Without caching the empty answer, every activation
+        of the composer would re-probe Cantus Index for elements that don't exist."""
+        mock_elements.return_value = []
+        for _ in range(2):
+            response = self.client.get(reverse("ci-cluster-elements", args=["008349"]))
+            self.assertEqual(response.json(), {"elements": []})
+        mock_elements.assert_called_once()
+
+    @patch("main_app.views.chant.get_cluster_elements")
+    def test_does_not_cache_a_ci_outage(self, mock_elements) -> None:
+        """None means CI was unreachable, indistinguishable at CI's API from "no
+        elements" — so unlike a real empty list it must not be cached, or a blip during
+        a troped chant's first load would hide its whole bank for the hour. A retry
+        re-hits CI, and the elements appear once CI answers."""
+        mock_elements.return_value = None
+        response = self.client.get(reverse("ci-cluster-elements", args=["g04828"]))
+        self.assertEqual(response.json(), {"elements": []})
+
+        mock_elements.return_value = [
+            {"cantus_id": "g04828:01", "genre": "TpSa", "fulltext": "Perpetuo numine"}
+        ]
+        response = self.client.get(reverse("ci-cluster-elements", args=["g04828"]))
+        self.assertEqual(
+            [element["cantus_id"] for element in response.json()["elements"]],
+            ["g04828:01"],
+        )
+        self.assertEqual(mock_elements.call_count, 2)
+
+    @patch("main_app.views.chant.get_cluster_elements")
+    def test_rejects_malformed_cantus_id_without_hitting_ci(
+        self, mock_elements
+    ) -> None:
+        response = self.client.get(reverse("ci-cluster-elements", args=["bad id?x=1"]))
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.json(), {"elements": []})
+        mock_elements.assert_not_called()
+
+
+class ComposerProxyAccessTest(TestCase):
+    """The composer's three Cantus Index proxies share one gate
+    (``ComposerProxyAccessMixin``): editors and assigned cataloguers only. The data is
+    Cantus Index's public catalogue, so this is anti-abuse, not privacy — each proxy
+    fires an outbound CI request any logged-in user could otherwise trigger at will.
+
+    The requests below are deliberately gate-friendly (too-short term, malformed IDs):
+    an admitted request returns 200 without touching Cantus Index, so each test
+    exercises the gate alone.
+    """
+
+    # (url name, args) — one no-op request per proxy that short-circuits before any CI call.
+    PROXY_REQUESTS = [
+        ("ci-component-search", ["sa"]),  # below MIN_QUERY_LENGTH
+        ("ci-base-text", ["bad id?x=1"]),  # malformed Cantus ID
+        ("ci-cluster-elements", ["bad id?x=1"]),  # malformed Cantus ID
+    ]
+
+    def setUp(self) -> None:
+        cache.clear()
+
+    def _urls(self) -> list:
+        return [reverse(name, args=args) for name, args in self.PROXY_REQUESTS]
+
+    def test_anonymous_is_redirected_to_login(self) -> None:
+        for url in self._urls():
+            with self.subTest(url=url):
+                self.assertEqual(self.client.get(url).status_code, 302)
+
+    def test_logged_in_without_group_or_source_is_forbidden(self) -> None:
+        self.client.force_login(make_fake_user())
+        for url in self._urls():
+            with self.subTest(url=url):
+                self.assertEqual(self.client.get(url).status_code, 403)
+
+    def test_editor_is_admitted(self) -> None:
+        self.client.force_login(make_composer_user())
+        for url in self._urls():
+            with self.subTest(url=url):
+                self.assertEqual(self.client.get(url).status_code, 200)
+
+    def test_assigned_cataloguer_without_group_is_admitted(self) -> None:
+        """No group, but assigned to a source — the user composes chants there, so the
+        gate admits them alongside editors."""
+        user = make_fake_user()
+        make_fake_source(current_editors=[user])
+        self.client.force_login(user)
+        for url in self._urls():
+            with self.subTest(url=url):
+                self.assertEqual(self.client.get(url).status_code, 200)

@@ -1,0 +1,440 @@
+/* Chant cluster prototype (issues #2128 / #2129) — styling for the element
+ * composer on the Create Chant page. Kept close to the plain text field. */
+
+.cluster-composer {
+    min-height: 5rem;
+    height: auto;
+    white-space: pre-wrap;
+    line-height: 2.2;
+    cursor: text;
+}
+
+/* #cluster-status normally carries a muted note (Bootstrap .text-muted, set in the
+ * template). setStatus swaps that for this when the seeded text came from a different
+ * record than the Cantus ID entered (a troped chant seeded from its base, #2189): an
+ * amber notice, keyed to the component tokens' gold, so the redirect can't pass unseen.
+ * Dark-yellow text (Bootstrap's warning-emphasis) keeps it readable on the tint. */
+.cluster-status--warning {
+    color: #664d03;
+    background-color: #fff8e6;
+    border-left: 3px solid #e6c266;
+    padding: 0.3rem 0.5rem;
+    border-radius: 0.2rem;
+}
+
+/* Inline element tokens: subtle, roughly the weight of the surrounding text.
+ * Core and component elements are clearly different colours (feedback #2).
+ * Long elements are allowed to wrap; only the Cantus ID stays on its line. */
+.cluster-token {
+    padding: 0.05rem 0.35rem;
+    /* This margin is the ENTIRE visible gap between two adjacent elements — there is no
+     * separator character any more (see normalizeComposer), because a real space was
+     * something the cataloguer could put a caret inside and delete. 0.3rem a side gives
+     * ~9.6px, which is what the gap needs to be to click into comfortably.
+     *
+     * Do not read the 0.3rem as a revert: it used to be 0.3rem PLUS a 4.2px space glyph,
+     * totalling ~13.8px, which read as extra whitespace between elements. Same margin,
+     * no space, so the gap now lands where it should. */
+    margin: 0 0.3rem;
+    /* The border IS the visible edge, so what you see is what you can click. It used to be
+     * transparent, with an inset box-shadow drawing the outline at the padding-box edge
+     * instead — but hit-testing uses the border box, so an element was clickable 1px
+     * outside its own visible outline. Two neighbours each stealing 1px left the gap
+     * between them ~2px narrower than it looked and off-centre with it, which is why
+     * clicks between elements kept landing on an element (3 Aug 2026 feedback). Kept 1px
+     * in every state so a proposed token's dashed border adds no layout shift. */
+    border: 1px solid transparent;
+    border-radius: 3px;
+    cursor: pointer;
+    user-select: none;
+}
+/* core = the base chant's own text: cool slate/grey */
+.cluster-token--core {
+    background: #e7ebf0;
+    border-color: #c4ccd6;
+}
+.cluster-token--core:hover {
+    border-color: #8a97a8;
+}
+/* component = troped / added: warm amber, distinct from the core grey */
+.cluster-token--component {
+    background: #fdeecf;
+    border-color: #e6c266;
+}
+.cluster-token--component:hover {
+    border-color: #c99a1f;
+}
+.cluster-token.dragging {
+    opacity: 0.45;
+}
+/* blue insertion bar marking where a dragged token will land */
+.cluster-drop-indicator {
+    position: fixed;
+    z-index: 1095;
+    width: 2px;
+    background: #0d6efd;
+    border-radius: 1px;
+    pointer-events: none;
+}
+.token-cid {
+    margin-left: 0.3rem;
+    font-size: 0.72em;
+    color: #6c757d;
+    white-space: nowrap;
+}
+/* proposed = a component not yet in Cantus Index. It is still a component, but it reads
+ * red rather than amber (28 Jul 2026 demo feedback) so the elements awaiting a real
+ * Cantus ID stand out at a glance from the approved ones. The dashed border keeps
+ * marking it as provisional, and the word "proposed" stands in for the missing ID —
+ * also red, so the whole box reads as one state. Captured locally only — there is no CI
+ * write API, so nothing is submitted upstream; a later edit fills the real ID once CI
+ * has it. */
+.cluster-token--component[data-proposed="true"] {
+    background: #fdecec;
+    border-color: #dc3545;
+    border-style: dashed;
+}
+.cluster-token--component[data-proposed="true"]:hover {
+    background: #fbdcdc;
+    border-color: #b02a37;
+}
+.cluster-token[data-proposed="true"] .token-cid {
+    color: #b02a37;
+}
+.cluster-token[data-proposed="true"] .token-cid::after {
+    content: "proposed";
+}
+
+/* Automatic split (#2165). Everything the split produces is a core element — it does by
+ * machine exactly what the cataloguer would have done by hand — so the only thing
+ * data-auto-kind marks is which boxes are the "|"-type separators the split cut the text
+ * at. It drives "Remove separators" and this styling, and nothing else. Placed after the
+ * core/component rules above so it wins on both order and specificity (one class + one
+ * attribute beats one class).
+ *
+ * A separator is markup the cataloguer is expected to drop, so it reads as markup rather
+ * than as text, and shows no Cantus ID: labelling a bare "|" with the parent chant's
+ * Cantus ID would be nonsense. */
+.cluster-token[data-auto-kind="separator"] {
+    background: #f1f3f5;
+    border-color: #ced4da;
+    color: #6c757d;
+    font-family: var(--bs-font-monospace, monospace);
+    padding-left: 0.25rem;
+    padding-right: 0.25rem;
+}
+.cluster-token[data-auto-kind="separator"]:hover {
+    border-color: #adb5bd;
+}
+.cluster-token[data-auto-kind="separator"] .token-cid {
+    display: none;
+}
+
+/* Boxes picked out to be merged or deleted together (#2165) — a shift-clicked run, or a
+ * ⌘/Ctrl-clicked set that need not be adjacent. An outline rather than a background: the box
+ * keeps saying what it IS while it is picked, and outline is drawn outside the border box so
+ * adding it shifts nothing — the same reason the token border is kept at 1px in every
+ * state. */
+.cluster-token[data-selected="true"] {
+    outline: 2px solid #0d6efd;
+    outline-offset: 1px;
+}
+
+/* split mode: the core's words with clickable boundaries between them.
+ * inline-flex + align-items:stretch makes every boundary the exact same height
+ * and vertically aligned, so the hairlines line up cleanly across the chunk. */
+.cluster-token--splitting {
+    display: inline-flex;
+    flex-wrap: wrap;
+    align-items: stretch;
+    cursor: default;
+    vertical-align: middle;
+}
+.split-word {
+    display: inline-flex;
+    align-items: center;
+    padding: 0 0.15rem;
+}
+.split-point {
+    position: relative;
+    align-self: stretch; /* full height of the flex line */
+    width: 0.7rem;
+    cursor: pointer;
+}
+.split-point::before {
+    content: "";
+    position: absolute;
+    left: 50%;
+    top: 0.15em;
+    bottom: 0.15em;
+    width: 2px;
+    transform: translateX(-50%);
+    background: #c99a1f;
+    border-radius: 1px;
+    opacity: 0.5;
+    transition: opacity 0.1s ease, width 0.1s ease, background 0.1s ease;
+}
+.split-point:hover::before {
+    opacity: 1;
+    width: 3px;
+    background: #dc3545;
+}
+
+/* floating action menu shown when a box is clicked */
+.token-menu {
+    position: absolute;
+    z-index: 1090;
+    display: flex;
+    gap: 0.25rem;
+    padding: 0.2rem;
+    background: #fff;
+    border: 1px solid #ced4da;
+    border-radius: 4px;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+}
+.token-menu-btn {
+    padding: 0.1rem 0.5rem;
+    font-size: 0.8rem;
+    line-height: 1.4;
+    background: #f1f3f5;
+    border: 1px solid #ced4da;
+    border-radius: 3px;
+    cursor: pointer;
+}
+.token-menu-btn:hover {
+    background: #e9ecef;
+}
+/* "View on Cantus Index" is an anchor, not a button, so it needs the link decoration
+ * stripped and flex alignment to sit level with its button siblings. */
+.token-menu-btn--link,
+.token-menu-btn--link:hover {
+    display: inline-flex;
+    align-items: center;
+    color: #212529;
+    text-decoration: none;
+}
+.token-menu-btn--danger {
+    color: #fff;
+    background: #dc3545;
+    border-color: #dc3545;
+}
+.token-menu-btn--danger:hover {
+    background: #bb2d3b;
+    border-color: #b02a37;
+}
+/* Physical-keycap treatment for the shortcut hint: white cap, thin border and a
+ * hard (blur-less) bottom shadow — the long-standing convention for showing keys
+ * (cf. MDN's <kbd>, dylanatsmith.com/wrote/styling-the-kbd-element). min-width +
+ * centering keeps a single character optically centered. */
+kbd.token-menu-key {
+    display: inline-block;
+    min-width: 1.1em;
+    margin-left: 0.45rem;
+    padding: 1px 5px;
+    font-family: inherit; /* sans-serif, matches the button label */
+    font-size: 0.78em;
+    line-height: 1;
+    text-align: center;
+    color: #343a40;
+    background: #fff;
+    border: 1px solid #adb5bd;
+    border-radius: 4px;
+    box-shadow: 0 2px 0 rgba(0, 0, 0, 0.12);
+    position: relative;
+    top: -1px;
+}
+
+/* Help icon carrying the composer's instructions (28 Jul 2026 demo feedback). btn-link
+ * brings an underline and link colouring that read as a hyperlink; strip both so it
+ * reads as a quiet affordance sitting beside the checkbox label. */
+/* Scoped by id so it outranks the #cluster-controls .btn sizing rule below, which would
+ * otherwise shrink the icon along with the Reload/Undo buttons. */
+#cluster-controls .cluster-help {
+    font-size: 1rem;
+    line-height: 1;
+    text-decoration: none;
+    vertical-align: middle;
+    border: 0;
+}
+#cluster-controls .cluster-help:hover,
+#cluster-controls .cluster-help:focus {
+    color: #495057 !important;
+    text-decoration: none;
+}
+
+/* Reload / Undo sit inline with the activation checkbox. Bootstrap's btn-sm still
+ * renders them taller and heavier than the checkbox label, which looked bulky next to
+ * it (#2129 review); shrink them so they read as quiet secondary actions in the same
+ * visual register as the label rather than towering over it. */
+#cluster-controls .btn {
+    padding: 0.1rem 0.45rem;
+    font-size: 0.8rem;
+    line-height: 1.5;
+}
+
+/* The element bank is a sidebar card, dropped down by JS to sit level with the full text
+ * field (#2188), so the composer keeps the full width of the form. The drop is an inline
+ * margin-top JS measures and sets; this rule is the base gap it starts from (the value the
+ * old mt-3 gave), and the one left in place when the bank stacks under the form below lg.
+ * It is a plain rule, not a utility class, because Bootstrap's mt-3 is !important and would
+ * beat the inline value, pinning the card up near the Input Tool. */
+#cluster-bank {
+    margin-top: 1rem;
+}
+/* Only the chip list scrolls — the card header, the status line and the restore tray below
+ * it all stay put, so a restore chip cannot be scrolled out of reach behind a long list of
+ * component elements. */
+#cluster-bank-items {
+    max-height: 22rem;
+    overflow-y: auto;
+}
+.cluster-bank-status {
+    color: #6c757d;
+}
+.cluster-bank-status:empty {
+    display: none;
+}
+/* A bank chip is a component element not yet placed: same warm amber as a placed
+ * component, but dashed and dimmer so the bank doesn't read as part of the text. */
+.cluster-bank-item {
+    display: block;
+    width: 100%;
+    margin-bottom: 0.3rem;
+    padding: 0.2rem 0.4rem;
+    text-align: left;
+    background: #fdeecf;
+    border: 1px dashed #e6c266;
+    border-radius: 3px;
+    cursor: grab;
+}
+.cluster-bank-item:hover {
+    background: #fbe3b0;
+    border-style: solid;
+}
+.cluster-bank-item:active {
+    cursor: grabbing;
+}
+.cluster-bank-item.dragging {
+    opacity: 0.45;
+}
+/* Already placed in the composer — kept visible for context but not re-draggable, so
+ * the same element can't be interleaved twice by accident. */
+.cluster-bank-item[disabled] {
+    background: #f1f3f5;
+    border-color: #ced4da;
+    color: #adb5bd;
+    cursor: default;
+}
+.cluster-bank-cid {
+    display: block;
+    font-size: 0.72em;
+    color: #6c757d;
+}
+
+/* Restore tray for deleted core elements. It shares the bank's card — one elements
+ * panel rather than two — so it reads as a ruled-off section at the foot of it instead
+ * of a row beneath the composer. */
+.cluster-tray {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: flex-start;
+    gap: 0.35rem;
+    margin-top: 0.5rem;
+    padding-top: 0.5rem;
+    border-top: 1px solid #dee2e6;
+}
+.tray-label {
+    flex: 1 0 100%; /* the sidebar is narrow: label on its own line above the chips */
+    color: #6c757d;
+}
+.tray-chip {
+    padding: 0.05rem 0.4rem;
+    font-size: 0.8rem;
+    /* A core's text is long and wraps in the narrow sidebar; a button centres its text by
+     * default, which read as ragged beside the left-aligned component chips above. */
+    text-align: left;
+    color: #495057;
+    background: #e7ebf0;
+    border: 1px dashed #adb5bd;
+    border-radius: 3px;
+    cursor: pointer;
+}
+.tray-chip:hover {
+    background: #d7dde3;
+    border-style: solid;
+}
+
+/* inline typeahead dropdown for finding component elements while typing */
+.element-typeahead {
+    position: absolute;
+    z-index: 1080;
+    margin: 0.1rem 0 0;
+    /* No bottom padding: the sticky "propose" row pins to the scrollport's bottom edge,
+     * which sits *above* any bottom padding — results scrolled visibly through that
+     * strip underneath it. The row itself supplies the spacing instead. */
+    padding: 0.2rem 0 0;
+    list-style: none;
+    max-width: 34rem;
+    /* Roughly ten results before scrolling. positionTypeahead() shrinks this to fit the
+     * viewport, so a caret near the bottom of the screen gets a shorter list, not one
+     * running off-screen. */
+    max-height: 28rem;
+    overflow-y: auto;
+    background: #fff;
+    border: 1px solid #e6c266;
+    border-radius: 4px;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+}
+.typeahead-item {
+    display: flex;
+    align-items: baseline;
+    gap: 0.5rem;
+    padding: 0.25rem 0.6rem;
+    cursor: pointer;
+    font-size: 0.85rem;
+}
+.typeahead-item.active,
+.typeahead-item:hover {
+    background: #fdeecf;
+}
+.typeahead-label {
+    flex: 1;
+}
+/* the matched element's Cantus ID, so g04828:01 reads apart from a whole chant */
+.typeahead-cid {
+    font-size: 0.72em;
+    color: #6c757d;
+    white-space: nowrap;
+}
+/* prompt shown when nothing is typed yet (the pool is searched, not browsed) */
+.typeahead-hint {
+    padding: 0.25rem 0.6rem;
+    font-size: 0.8rem;
+    font-style: italic;
+    color: #6c757d;
+}
+/* Cantus Index unreachable → offline fallback: a warning, not a hard error */
+.typeahead-notice {
+    color: #9a6b00;
+}
+/* "N more matches" footer: the list is clipped, so say so rather than let the last
+ * visible row imply it is the last match (28 Jul 2026 demo feedback). */
+.typeahead-more {
+    border-top: 1px solid #eee;
+    font-style: normal;
+}
+/* The "propose a new component" action row. The result list scrolls now that many more
+ * matches are shown, so pin this to the bottom of the dropdown — otherwise the action
+ * scrolls out of reach exactly when a search returns too much to page through. */
+.typeahead-propose {
+    position: sticky;
+    bottom: 0;
+    color: #0f7b4f;
+    background: #fff;
+    border-top: 1px solid #eee;
+}
+.typeahead-propose.active,
+.typeahead-propose:hover {
+    background: #e6f4ea;
+}
