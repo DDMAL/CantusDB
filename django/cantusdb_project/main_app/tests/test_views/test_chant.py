@@ -3966,6 +3966,33 @@ class ChantCreateViewTest(CustomAccessTestMixin, TestCase):
                 message_levels = [m.level for m in get_messages(response.wsgi_request)]
                 self.assertNotIn(message_constants.WARNING, message_levels)
 
+    def test_invalid_text_confirmed_suppresses_warning(self) -> None:
+        """
+        The create page has the same "Save anyway" flow as the edit pages: once
+        the user has acknowledged the warning (which posts
+        ``confirm_invalid_text=1``), the chant is created without repeating the
+        warning as a message (see #1681).
+        """
+        invalid_text = "this is a ch@nt"
+        response = self.client.post(
+            reverse("chant-create", args=[self.source.id]),
+            {
+                "manuscript_full_text_std_spelling": invalid_text,
+                "folio": "003r",
+                "c_sequence": 1,
+                "confirm_invalid_text": "1",
+            },
+        )
+        self.assertEqual(response.status_code, 302)
+        self.assertTrue(
+            Chant.objects.filter(
+                source=self.source,
+                manuscript_full_text_std_spelling=invalid_text,
+            ).exists()
+        )
+        message_levels = [m.level for m in get_messages(response.wsgi_request)]
+        self.assertNotIn(message_constants.WARNING, message_levels)
+
 
 class ValidateChantTextViewTest(TestCase):
     """

@@ -13,8 +13,9 @@
  * that field's echo rather than leaving a stale marking on screen; submitting
  * again re-runs the check.
  *
- * If the endpoint is unreachable or JavaScript is unavailable, saving is never
- * blocked: the server still saves and surfaces a non-blocking warning message.
+ * If the endpoint is unreachable, stalls, or JavaScript is unavailable, saving
+ * is never blocked: the server still saves and surfaces a non-blocking warning
+ * message.
  */
 (function () {
     "use strict";
@@ -27,6 +28,44 @@
         "manuscript_full_text",
         "manuscript_syllabized_full_text",
     ];
+
+    // How long to wait for the check before giving up on it. The check is a
+    // convenience, not a gate: while it runs, the save buttons are disabled, so
+    // a request that never settles would leave the user unable to save at all
+    // -- the very thing #1681 asks us not to do.
+    var VALIDATION_TIMEOUT_MS = 5000;
+
+    /*
+     * Settle as ``request`` does, or reject once the deadline passes, whichever
+     * happens first; ``abort`` cancels the underlying request on the deadline.
+     *
+     * ``request`` must cover reading the response as well as making it: `fetch`
+     * resolves as soon as the headers arrive, so a deadline that stopped there
+     * would leave a stalled *body* to hang forever with the save buttons still
+     * disabled.
+     *
+     * A result that arrives after the deadline is ignored, because the returned
+     * promise has already rejected: the caller has moved on and must not act on
+     * the late result a second time.
+     */
+    function withDeadline(request, abort) {
+        return new Promise(function (resolve, reject) {
+            var timer = setTimeout(function () {
+                abort();
+                reject(new Error("chant text validation timed out"));
+            }, VALIDATION_TIMEOUT_MS);
+            request.then(
+                function (value) {
+                    clearTimeout(timer);
+                    resolve(value);
+                },
+                function (error) {
+                    clearTimeout(timer);
+                    reject(error);
+                }
+            );
+        });
+    }
 
     function init() {
         var modalEl = document.getElementById("chant-text-warning-modal");
@@ -56,6 +95,16 @@
         var pendingSubmitter = null;
         var bypassValidation = false;
         var checkInFlight = false;
+        // The field values the last check was given, in the encoded form
+        // ``collectBody()`` produces. A response only describes the text it was
+        // sent, and the fields stay editable while it is in flight, so anything
+        // that acts on the result -- the modal, the echoes, and above all the
+        // acknowledgement -- first compares this with what the fields say now.
+        // Comparing the values themselves rather than watching for edits also
+        // catches the page's own helpers (the Cantus Index suggestion buttons,
+        // for instance), which assign to `.value` without firing an input
+        // event.
+        var checkedBody = null;
 
         function csrfToken() {
             var input = form.querySelector('[name="csrfmiddlewaretoken"]');
@@ -219,24 +268,39 @@
             checkInFlight = true;
             setSubmitDisabled(true);
             pendingSubmitter = event.submitter || null;
-            fetch(validateUrl, {
+            var controller =
+                typeof AbortController === "undefined"
+                    ? null
+                    : new AbortController();
+            checkedBody = collectBody();
+            var request = fetch(validateUrl, {
                 method: "POST",
                 headers: {
                     "X-CSRFToken": csrfToken(),
                     "X-Requested-With": "XMLHttpRequest",
                     "Content-Type": "application/x-www-form-urlencoded",
                 },
-                body: collectBody(),
+                body: checkedBody,
+                signal: controller ? controller.signal : undefined,
+            }).then(function (response) {
+                if (!response.ok) {
+                    throw new Error("validation request failed");
+                }
+                return response.json();
+            });
+            withDeadline(request, function () {
+                if (controller) {
+                    controller.abort();
+                }
             })
-                .then(function (response) {
-                    if (!response.ok) {
-                        throw new Error("validation request failed");
-                    }
-                    return response.json();
-                })
                 .then(function (data) {
                     var problems = (data && data.problems) || [];
-                    if (!problems.length) {
+                    // Nothing to warn about, or the text moved on while the
+                    // check was running and these problems no longer describe
+                    // it. Either way, save without the acknowledgement flag:
+                    // the server checks what it actually receives, so anything
+                    // the user hasn't seen still reaches them as a warning.
+                    if (!problems.length || collectBody() !== checkedBody) {
                         clearMarks();
                         submitForm(false);
                         return;
@@ -248,10 +312,10 @@
                     bsModal.show();
                 })
                 .catch(function () {
-                    // Never block saving if validation can't be reached. Submit
-                    // without the acknowledgement flag, so the server's own
-                    // non-blocking warning still reaches the user -- they never
-                    // saw a dialog to acknowledge.
+                    // Never block saving when the check can't be reached or
+                    // takes too long. Submit without the acknowledgement flag,
+                    // so the server's own non-blocking warning still reaches the
+                    // user -- they never saw a dialog to acknowledge.
                     submitForm(false);
                 });
         });
@@ -259,7 +323,15 @@
         if (saveAnywayBtn) {
             saveAnywayBtn.addEventListener("click", function () {
                 bsModal.hide();
-                submitForm(true);
+                // The fields are still editable behind the dialog. Acknowledge
+                // only the warning the user was actually shown: if the text has
+                // changed since, drop the markings and save unacknowledged, so
+                // the server warns about the text it receives.
+                var acknowledged = collectBody() === checkedBody;
+                if (!acknowledged) {
+                    clearMarks();
+                }
+                submitForm(acknowledged);
             });
         }
 
