@@ -4,7 +4,12 @@ from django.test import TestCase
 from django.urls import reverse
 
 from main_app.tests.mixins import CustomAccessTestMixin
-from main_app.tests.make_fakes import make_fake_user, make_fake_source
+from main_app.tests.make_fakes import (
+    make_fake_user,
+    make_fake_source,
+    make_fake_chant,
+    make_groups,
+)
 from main_app.views.user import IndexerListView, UserSourceListView
 from users.models import User as UserType
 
@@ -138,3 +143,43 @@ class UserSourceListViewTest(TestCase):
         for invalid_page in [-1, 0, "lst", full_pages + 2]:
             response = self.client.get(reverse("my-sources"), {"page": invalid_page})
             self.assertEqual(response.status_code, 404)
+
+    def test_submitted_source_offers_no_chant_editing_links(self) -> None:
+        # Submitting locks the source's chants (issue #1962) and bumps
+        # `date_updated`, which floats it to the top of this page — so the
+        # links it offers must not be ones that now 403.
+        user = make_fake_user()
+        source = make_fake_source(published=False, current_editors=[user])
+        source.created_by = user
+        source.save()
+        make_fake_chant(source=source)
+        self.client.force_login(user)
+
+        edit_chants_url = reverse("source-edit-chants", args=[source.pk])
+        before = self.client.get(reverse("my-sources"))
+        self.assertContains(before, edit_chants_url)
+
+        source.submit_for_proofreading(user)
+
+        after = self.client.get(reverse("my-sources"))
+        self.assertNotContains(after, edit_chants_url)
+        self.assertNotContains(after, reverse("chant-create", args=[source.pk]))
+        self.assertContains(after, "Submitted for proofreading")
+        # The links are hidden because they would be refused.
+        self.assertEqual(self.client.get(edit_chants_url).status_code, 403)
+
+    def test_editor_keeps_chant_editing_links_on_submitted_source(self) -> None:
+        # An editor is the one who proofreads a submitted source, so the lock
+        # must not take their links away.
+        groups = make_groups()
+        editor = make_fake_user(groups=[(groups["editor"], None)])
+        source = make_fake_source(published=False, current_editors=[editor])
+        source.created_by = editor
+        source.save()
+        make_fake_chant(source=source)
+        source.submit_for_proofreading(editor)
+
+        self.client.force_login(editor)
+        response = self.client.get(reverse("my-sources"))
+        self.assertContains(response, reverse("source-edit-chants", args=[source.pk]))
+        self.assertNotContains(response, "Submitted for proofreading")
