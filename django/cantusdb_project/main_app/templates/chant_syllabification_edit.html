@@ -1,5 +1,9 @@
 {% extends "base.html" %}
+{% load static %}
 {% block title %}<title>Edit Syllabification | Cantus Database</title>{% endblock %}
+{% block scripts %}
+    <script src="{% static 'js/chant_text_validation.js' %}"></script>
+{% endblock %}
 {% block content %}
     <div class="container">
         <div class="row">
@@ -69,6 +73,7 @@
                         </div>
                     </div>
                 </form>
+                {% include "chant_text_warning.html" %}
             </div>
         </div>
     </div>
