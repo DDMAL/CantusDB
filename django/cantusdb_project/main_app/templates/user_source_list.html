@@ -23,7 +23,15 @@
                             <b>{{ source.short_heading }}</b>
                         </a>
                     </td>
-                    {% if source.chant_set.exists %}
+                    {% if source.locked_for_proofreading and not user_is_editor %}
+                        {# editing is locked until an editor picks it up, so don't offer links that 403 #}
+                        <td class="h-25"
+                            style="width: 30%;
+                                   text-align:center"
+                            colspan="2">
+                            <span class="text-muted">Submitted for proofreading</span>
+                        </td>
+                    {% elif source.chant_set.exists %}
                         <td class="h-25" style="width: 30%; text-align:center">
                             <a href="{% url "source-edit-chants" source.pk %}">Edit chants</a>
                         </td>
@@ -58,12 +66,18 @@
                                 <b> {{ my_source.heading }}</b>
                             </a>
                             <br />
-                            <a href="{% url "chant-create" my_source.pk %}"
-                               style="display: inline-block;
-                                      margin-top:5px">+ Add new chant</a>
-                            <br />
-                            {% if my_source.chant_set.exists %}
-                                <a href="{% url "source-edit-chants" my_source.pk %}">> Edit chants</a>
+                            {% if my_source.locked_for_proofreading and not user_is_editor %}
+                                <span class="text-muted"
+                                      style="display: inline-block;
+                                             margin-top:5px">Submitted for proofreading</span>
+                            {% else %}
+                                <a href="{% url "chant-create" my_source.pk %}"
+                                   style="display: inline-block;
+                                          margin-top:5px">+ Add new chant</a>
+                                <br />
+                                {% if my_source.chant_set.exists %}
+                                    <a href="{% url "source-edit-chants" my_source.pk %}">> Edit chants</a>
+                                {% endif %}
                             {% endif %}
                         </small>
                     </li>
