@@ -1,3 +1,18 @@
+// Reads the CSV the administrator selects on the Add Image Links page, shows
+// it, checks it, and writes it into the form.
+//
+// The form carries one hidden field holding the rows of the selected file, as
+// a JSON list of [folio, image link] pairs. A field per folio would send more
+// fields than Django accepts in one request for a source the size of Tours 149
+// (1044 folios), and rebuilding the single field on every selection is what
+// keeps a replaced file from leaving its predecessor's links behind.
+
+function getSourceFolios() {
+    // The page lists the source's folios once, as JSON.
+    const element = document.getElementById('sourceFolios');
+    return element ? JSON.parse(element.textContent) : [];
+}
+
 function addPreviewTableRow(tableBody, folio, imageLink) {
     // Add a row to the preview table with the folio and image link.
     const tr = document.createElement('tr');
@@ -15,20 +30,6 @@ function addPreviewTableRow(tableBody, folio, imageLink) {
     tr.appendChild(tdLink);
     tableBody.appendChild(tr);
 };
-
-function getFormImgLinkInputs(form) {
-    // Get all the input elements in the form that have the 
-    // 'img-link-input' class and return them as a map of the form
-    // {folio: inputElement}.
-    const imgLinkInputs = form.getElementsByClassName('img-link-input');
-    const imgLinkMap = {};
-    for (let i = 0; i < imgLinkInputs.length; i++) {
-        const folio = imgLinkInputs[i].name;
-        imgLinkMap[folio] = imgLinkInputs[i];
-    }
-    return imgLinkMap;
-};
-
 
 function splitCSVRow(row, delimiter) {
     // Split one CSV line into fields, respecting quoted fields (and doubled
@@ -64,7 +65,7 @@ function splitCSVRow(row, delimiter) {
     return fields;
 }
 
-function detectDelimiter(firstRow, imgLinkInputs) {
+function detectDelimiter(firstRow, sourceFolios) {
     // Some locales (e.g. French) export semicolon-delimited CSVs, but both
     // characters are legal inside a URL, so the delimiter can't be inferred
     // from mere presence: a comma-delimited row whose link contains a
@@ -78,9 +79,7 @@ function detectDelimiter(firstRow, imgLinkInputs) {
     );
     if (header !== -1) return candidates[header];
     // Otherwise, a first field naming a folio this source has is decisive.
-    const known = candidates.findIndex(
-        (_, i) => Object.prototype.hasOwnProperty.call(imgLinkInputs, firstFields[i])
-    );
+    const known = candidates.findIndex((_, i) => sourceFolios.has(firstFields[i]));
     if (known !== -1) return candidates[known];
     // Failing both — the CSV may legitimately list folios the source lacks —
     // prefer the delimiter giving the shorter first field. A folio is short;
@@ -88,30 +87,25 @@ function detectDelimiter(firstRow, imgLinkInputs) {
     return firstFields[1].length < firstFields[0].length ? ';' : ',';
 }
 
-function parseAndPreviewImageLinkCSV(csv, imgLinkInputs) {
-    // Parse the passed CSV file and display it in a table. 
-    // Return two arrays: one with the folios and one with the image links
-    // for use in testing functions.
+function parseImageLinkCSV(csv, sourceFolios) {
+    // Parse the CSV file into the rows it lists, in file order, as objects
+    // with folio and imageLink keys.
     const rows = csv.split('\n');
     // Work from the first row with content: a leading blank line would
     // otherwise defeat both the delimiter and the header check below.
     const firstRowIndex = rows.findIndex(row => row.trim());
     const firstRow = firstRowIndex === -1 ? '' : rows[firstRowIndex];
-    const delimiter = detectDelimiter(firstRow, imgLinkInputs);
+    const delimiter = detectDelimiter(firstRow, sourceFolios);
     // Check if a header row is present by looking at the first column name.
     // Sniffing the second column for a URL instead would swallow the first
     // row of a headerless CSV whenever its image link is blank.
-    const firstColumn = firstRow.split(delimiter)[0].trim().toLowerCase();
+    const firstColumn = splitCSVRow(firstRow, delimiter)[0].trim().toLowerCase();
     let start;
     if (firstRowIndex === -1) {
         start = rows.length; // nothing but blank lines
     } else {
         start = firstColumn === 'folio' ? firstRowIndex + 1 : firstRowIndex;
     }
-    const tableBody = document.getElementById('csvPreviewBody');
-    // Clear the table and fill in the new data. Only the first two columns
-    // are read; anything beyond them is ignored.
-    tableBody.innerHTML = '';
     const parsedCSV = [];
     for (let i = start; i < rows.length; i++) {
         const row = rows[i].trim();
@@ -122,38 +116,74 @@ function parseAndPreviewImageLinkCSV(csv, imgLinkInputs) {
         // Any further columns (the generated IIIF CSV also carries `notes`
         // and `canvas_label`) are for the administrator to read, not for us.
         const imageLink = (fields[1] || '').trim();
-        addPreviewTableRow(tableBody, folio, imageLink);
-        const folioInput = imgLinkInputs[folio];
-        if (folioInput) {
-            folioInput.value = imageLink;
-        }
         parsedCSV.push({ "folio": folio, "imageLink": imageLink });
     }
-    document.getElementById("csvPreviewDiv").hidden = false;
     return parsedCSV;
 }
 
-function getFoliosAtDuplicatedValues(array) {
-    // Given an array of objects with imageLink and folio keys,
-    // parsed from the CSV file, return an array of folios that have
-    // been duplicated and an array of folios that have duplicated image links.
+function displayPreview(parsedCSV) {
+    // Show the rows just parsed, replacing whatever the last file left.
+    const tableBody = document.getElementById('csvPreviewBody');
+    tableBody.innerHTML = '';
+    parsedCSV.forEach(row => addPreviewTableRow(tableBody, row.folio, row.imageLink));
+    document.getElementById("csvPreviewDiv").hidden = false;
+}
+
+function setImageLinkFormData(parsedCSV) {
+    // Rebuild the whole field from the rows just parsed. Selecting another
+    // file therefore replaces the submission rather than adding to it, so the
+    // links that get saved are the ones the preview shows.
+    document.getElementById('imgLinkData').value = JSON.stringify(
+        parsedCSV.map(row => [row.folio, row.imageLink])
+    );
+}
+
+function getDuplicatedFolios(parsedCSV) {
+    // Return the folios the file lists more than once, sorted. The importer
+    // applies the last row for such a folio.
     const folioCounts = {};
-    const imageLinkCounts = {};
-    for (let i = 0; i < array.length; i++) {
-        const folio = array[i].folio;
-        const imageLink = array[i].imageLink;
-        folioCounts[folio] = (folioCounts[folio] || 0) + 1;
-        imageLinkCounts[imageLink] = (imageLinkCounts[imageLink] || 0) + 1;
+    parsedCSV.forEach(row => {
+        folioCounts[row.folio] = (folioCounts[row.folio] || 0) + 1;
+    });
+    return Object.keys(folioCounts).filter(folio => folioCounts[folio] > 1).sort();
+}
+
+function groupFoliosBySharedImageLink(parsedCSV) {
+    // Group the folios that share an image link, one array of folios per link.
+    const foliosByLink = new Map();
+    parsedCSV.forEach(({ folio, imageLink }) => {
+        if (!imageLink) return;
+        if (!foliosByLink.has(imageLink)) foliosByLink.set(imageLink, []);
+        foliosByLink.get(imageLink).push(folio);
+    });
+    return Array.from(foliosByLink.values()).filter(folios => folios.length > 1);
+}
+
+function checkSharedImageLinks(parsedCSV) {
+    // Describe how the file shares image links between folios. One photograph
+    // showing two facing folios gives each of them the same link, so pairs are
+    // ordinary; a link on three or more folios usually means rows have slipped.
+    const linkedRows = parsedCSV.filter(row => row.imageLink);
+    const shared = groupFoliosBySharedImageLink(parsedCSV);
+    if (shared.length === 0) {
+        return { folios: [], success: 'Every folio has its own image link' };
     }
-    const folioDuplicates = Object.keys(folioCounts).filter(folio => folioCounts[folio] > 1);
-    const imageLinkDuplicates = Object.keys(imageLinkCounts).filter(imageLink => imageLink !== '' && imageLinkCounts[imageLink] > 1);
-    const folioWImageDuplicates = [];
-    for (let i = 0; i < array.length; i++) {
-        if (imageLinkDuplicates.includes(array[i].imageLink)) {
-            folioWImageDuplicates.push(array[i].folio);
-        }
+    if (shared.length === 1 && shared[0].length === linkedRows.length) {
+        return { folios: [], success: 'All folios share one image link' };
     }
-    return [folioDuplicates.sort(), folioWImageDuplicates.sort()];
+    const crowded = shared.filter(folios => folios.length > 2);
+    if (crowded.length === 0) {
+        const pairs = shared.length;
+        return {
+            folios: [],
+            success: `${pairs} image link${pairs === 1 ? '' : 's'} shared by two `
+                + 'folios each, as photographs of facing folios are',
+        };
+    }
+    return {
+        folios: crowded.flat().sort(),
+        error: 'The following folios share an image link with two or more others',
+    };
 }
 
 function displayCheckResults(checkName, failingFolios, error_message, success_message = '') {
@@ -168,49 +198,90 @@ function displayCheckResults(checkName, failingFolios, error_message, success_me
     }
 };
 
-function csvLoadCallback(csv) {
-    // Callback function for when a CSV file is loaded.
-    // Parse the CSV file and display it in the table,
-    // then run checks for completeness and uniqueness.
-    const imgLinkInputs = getFormImgLinkInputs(document.getElementById('imgLinkForm'));
-    const sourceFolios = Object.keys(imgLinkInputs);
-    const parsedCSV = parseAndPreviewImageLinkCSV(csv, imgLinkInputs);
-    const [dupFolios, foliosWDupImageLinks] = getFoliosAtDuplicatedValues(parsedCSV);
+function displayCSVChecks(parsedCSV, sourceFolios) {
     // Display duplicated folios, if they exist.
-    displayCheckResults('folioDuplication', dupFolios, "The following folios are duplicated in the CSV");
+    displayCheckResults('folioDuplication', getDuplicatedFolios(parsedCSV),
+        "The following folios are duplicated in the CSV");
     // Check whether there are any folios in the source that are not in the CSV
     // Display these folios with missing Links in the preview table.
-    const csvFolios = parsedCSV.map(x => x.folio);
-    const missingLinks = sourceFolios.filter(folio => !csvFolios.includes(folio));
-    displayCheckResults('folioCompleteness', missingLinks, "Image links missing for the following folios");
+    const csvFolios = new Set(parsedCSV.map(row => row.folio));
+    const missingLinks = Array.from(sourceFolios).filter(folio => !csvFolios.has(folio));
+    displayCheckResults('folioCompleteness', missingLinks,
+        "Image links missing for the following folios");
     // Check whether there are any folios in the CSV that are not in the source
     // Display these folios as extra folios in the preview table.
-    const extraFolios = csvFolios.filter(folio => !sourceFolios.includes(folio));
-    displayCheckResults('extraFolios', extraFolios.sort(), "The following folios do not exist in the source");
-    // We expect one of two cases for the value of image links:
-    // 1. All image links are identical
-    // 2. All image links are unique
-    // Note that a mapping might be valid that does not conform to these cases
-    // (for example, if every image link shows two facing folios). In that case, the
-    // check will fail and we rely on the administrator to check the data.
-    if (foliosWDupImageLinks.length === csvFolios.length) {
-        displayCheckResults('imageLinkDuplication', [], "", "All image links identical");
-    } else {
-        displayCheckResults('imageLinkDuplication', foliosWDupImageLinks, "Image links duplicated on the following subset of folios");
-    }
+    const extraFolios = Array.from(csvFolios).filter(folio => !sourceFolios.has(folio));
+    displayCheckResults('extraFolios', extraFolios.sort(),
+        "The following folios do not exist in the source");
+    const sharedLinks = checkSharedImageLinks(parsedCSV);
+    displayCheckResults('imageLinkDuplication', sharedLinks.folios,
+        sharedLinks.error || '', sharedLinks.success || '');
     document.getElementById('csvTestingDiv').hidden = false;
 }
 
-document.addEventListener('DOMContentLoaded', function () {
-    // Add listener to the file input field to parse and display the CSV file
-    document.getElementById('imgLinksCSV').addEventListener('change', function (e) {
-        const file = e.target.files[0];
+function csvLoadCallback(csv) {
+    // Callback function for when a CSV file is loaded.
+    // Parse the CSV file, display it in the table, put it in the form,
+    // then run checks for completeness and uniqueness.
+    const sourceFolios = new Set(getSourceFolios());
+    const parsedCSV = parseImageLinkCSV(csv, sourceFolios);
+    displayPreview(parsedCSV);
+    setImageLinkFormData(parsedCSV);
+    displayCSVChecks(parsedCSV, sourceFolios);
+    return parsedCSV;
+}
+
+function initializeCSVImport() {
+    const input = document.getElementById('imgLinksCSV');
+    const submit = document.getElementById('imgLinkFormSubmitBtn');
+    const error = document.getElementById('csvReadError');
+    let selection = 0;
+    // A returned form may hold an invalid previous submission. Require a file
+    // selection so the user always sees the rows they are about to save.
+    document.getElementById('imgLinkData').value = '';
+    submit.disabled = true;
+    input.addEventListener('change', function (event) {
+        const currentSelection = ++selection;
+        submit.disabled = true;
+        document.getElementById('imgLinkData').value = '';
+        document.getElementById('csvPreviewBody').innerHTML = '';
+        document.getElementById('csvPreviewDiv').hidden = true;
+        document.getElementById('csvTestingDiv').hidden = true;
+        error.hidden = true;
+        const file = event.target.files[0];
+        if (!file) return;
         const reader = new FileReader();
-        reader.onload = function (e) {
-            const csv = e.target.result;
-            csvLoadCallback(csv);
+        reader.onload = function (event) {
+            if (currentSelection !== selection) return;
+            const rows = csvLoadCallback(event.target.result);
+            submit.disabled = rows.length === 0;
+            if (!rows.length) {
+                error.textContent = 'The file contains no folio rows. Select another CSV file.';
+                error.hidden = false;
+            }
+        };
+        reader.onerror = function () {
+            if (currentSelection !== selection) return;
+            error.textContent = 'The file could not be read. Select the CSV file again.';
+            error.hidden = false;
         };
         reader.readAsText(file);
     });
 }
-);
+
+if (typeof document !== 'undefined') {
+    document.addEventListener('DOMContentLoaded', initializeCSVImport);
+}
+
+// Exported for the Node tests; the browser loads this file as a plain script.
+if (typeof module !== 'undefined' && module.exports) {
+    module.exports = {
+        initializeCSVImport,
+        checkSharedImageLinks,
+        csvLoadCallback,
+        detectDelimiter,
+        getDuplicatedFolios,
+        parseImageLinkCSV,
+        splitCSVRow,
+    };
+}

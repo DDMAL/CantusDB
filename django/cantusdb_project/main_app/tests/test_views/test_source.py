@@ -2,20 +2,24 @@
 Test views in views/source.py
 """
 
+import json
 import random
 import re
 
 from faker import Faker
-from typing import Dict
+from typing import Dict, Optional
 
 from django.conf import settings
+from django.contrib.messages import get_messages
 from django.db import connection
+from django.http import HttpResponse
 from django.test import TestCase
 from django.test.utils import CaptureQueriesContext
 from django.urls import reverse
 from django.core.exceptions import ObjectDoesNotExist
 from django.contrib.auth import get_user_model
 
+from main_app.forms import MAX_IMAGE_LINK_ROWS
 from main_app.models import Source, Chant, Differentia, SourceIdentifier, SourceURL
 from main_app.tests.make_fakes import (
     make_fake_source,
@@ -2010,6 +2014,21 @@ class SourceAddImageLinksViewTest(CustomAccessTestMixin, TestCase):
             test_name="Any source",
         )
 
+    @staticmethod
+    def image_link_data(rows: list[list[str]]) -> dict[str, str]:
+        """
+        Build the POST data the page sends: the previewed rows as one field.
+        """
+        return {"image_links": json.dumps(rows)}
+
+    def post_image_links(
+        self, rows: list[list[str]], source: Optional[Source] = None
+    ) -> HttpResponse:
+        return self.client.post(
+            reverse("source-add-image-links", args=[(source or self.source).id]),
+            self.image_link_data(rows),
+        )
+
     def test_form(self) -> None:
         with self.subTest("Test form fields"):
             response = self.client.get(
@@ -2018,17 +2037,20 @@ class SourceAddImageLinksViewTest(CustomAccessTestMixin, TestCase):
             self.assertEqual(response.status_code, 200)
             self.assertTemplateUsed(response, "source_add_image_links.html")
             form = response.context["form"]
+            self.assertListEqual(list(form.fields.keys()), ["image_links"])
+            # The page lists the folios for its CSV preview to read, rather
+            # than carrying one form field per folio.
             self.assertListEqual(
-                list(form.fields.keys()), ["001r", "001v", "003", "004A", "004B"]
+                response.context["source_folios"],
+                ["001r", "001v", "003", "004A", "004B"],
             )
         with self.subTest("Test form submission"):
-            response = self.client.post(
-                reverse("source-add-image-links", args=[self.source.id]),
-                {
-                    "001r": "https://example.com/001r",
-                    "001v": "https://example.com/001v",
-                    "004A": "https://example.com/004A",
-                },
+            response = self.post_image_links(
+                [
+                    ["001r", "https://example.com/001r"],
+                    ["001v", "https://example.com/001v"],
+                    ["004A", "https://example.com/004A"],
+                ]
             )
             self.assertRedirects(
                 response,
@@ -2050,6 +2072,206 @@ class SourceAddImageLinksViewTest(CustomAccessTestMixin, TestCase):
             chants_004B = Chant.objects.filter(source=self.source, folio="004B").all()
             self.assertEqual(len(chants_004B), 1)
             self.assertEqual(chants_004B[0].image_link, "https://i-already-exist.com/2")
+
+    def test_blank_links_keep_the_stored_value(self) -> None:
+        response = self.post_image_links(
+            [
+                ["001r", "https://example.com/001r"],
+                ["004B", ""],
+            ]
+        )
+        self.assertEqual(response.status_code, 302)
+        chant_004B = Chant.objects.get(source=self.source, folio="004B")
+        self.assertEqual(chant_004B.image_link, "https://i-already-exist.com/2")
+
+    def test_two_folios_can_share_one_image(self) -> None:
+        """A photograph of an opening gives both its folios the same link."""
+        shared = "https://example.com/opening-1v-2r.jpg"
+        response = self.post_image_links([["001r", shared], ["001v", shared]])
+        self.assertEqual(response.status_code, 302)
+        for folio in ("001r", "001v"):
+            for chant in Chant.objects.filter(source=self.source, folio=folio):
+                self.assertEqual(chant.image_link, shared)
+
+    def test_a_folio_listed_twice_keeps_the_last_row(self) -> None:
+        self.post_image_links(
+            [
+                ["001r", "https://example.com/first"],
+                ["001r", "https://example.com/second"],
+            ]
+        )
+        chant = Chant.objects.get(source=self.source, folio="001r")
+        self.assertEqual(chant.image_link, "https://example.com/second")
+
+    def test_final_blank_overrides_an_earlier_link_without_clearing_the_database(
+        self,
+    ) -> None:
+        response = self.post_image_links(
+            [["004B", "https://example.com/earlier"], ["004B", ""]]
+        )
+        self.assertEqual(response.status_code, 302)
+        self.assertEqual(
+            Chant.objects.get(source=self.source, folio="004B").image_link,
+            "https://i-already-exist.com/2",
+        )
+
+    def test_only_the_final_link_for_a_folio_is_validated(self) -> None:
+        response = self.post_image_links(
+            [["001r", "invalid earlier value"], ["001r", "https://example.com/final"]]
+        )
+        self.assertEqual(response.status_code, 302)
+        self.assertEqual(
+            Chant.objects.get(source=self.source, folio="001r").image_link,
+            "https://example.com/final",
+        )
+
+    def test_folios_of_other_sources_are_left_alone(self) -> None:
+        """
+        A row naming a folio this source does not have is reported and skipped.
+
+        Another source's chant on a folio of the same name must not be touched.
+        """
+        other_source = make_fake_source(published=True)
+        other_chant = make_fake_chant(
+            source=other_source,
+            folio="900r",
+            image_link="https://untouched.example.com",
+        )
+        response = self.post_image_links(
+            [
+                ["001r", "https://example.com/001r"],
+                ["900r", "https://example.com/900r"],
+            ],
+        )
+        self.assertEqual(response.status_code, 302)
+        other_chant.refresh_from_db()
+        self.assertEqual(other_chant.image_link, "https://untouched.example.com")
+        messages = [str(message) for message in get_messages(response.wsgi_request)]
+        self.assertIn(
+            "Image links saved for 1 folio. Skipped 1 row naming folios "
+            "this source does not have.",
+            messages,
+        )
+
+    def test_invalid_submissions_are_rejected_with_a_visible_error(self) -> None:
+        stored = Chant.objects.get(source=self.source, folio="004B").image_link
+        too_long = "https://example.com/" + "a" * 200
+        cases: dict[str, tuple[dict[str, str], str]] = {
+            "no file selected": ({}, "Select a CSV file"),
+            "empty list": (
+                self.image_link_data([]),
+                "Select a CSV file",
+            ),
+            "not JSON": (
+                {"image_links": "001r,https://example.com/001r"},
+                "could not be read",
+            ),
+            "not a list of pairs": (
+                {"image_links": json.dumps({"001r": "https://example.com/001r"})},
+                "could not be read",
+            ),
+            "row of the wrong length": (
+                {"image_links": json.dumps([["001r"]])},
+                "could not be read",
+            ),
+            "row that is not text": (
+                {"image_links": json.dumps([[1, 2]])},
+                "could not be read",
+            ),
+            "not a URL": (
+                self.image_link_data([["001r", "not a url"]]),
+                "Fix the image links for these folios: 001r",
+            ),
+            # Chant.image_link is a 200-character column, so a longer link
+            # would fail in the database rather than in the form.
+            "URL too long for the column": (
+                self.image_link_data([["001r", too_long]]),
+                "Fix the image links for these folios: 001r",
+            ),
+            "no folio of this source": (
+                self.image_link_data([["999v", "https://example.com/999v"]]),
+                "None of the folios in the file belong to this source",
+            ),
+            "more rows than an import allows": (
+                self.image_link_data(
+                    [["001r", "https://example.com/001r"]] * (MAX_IMAGE_LINK_ROWS + 1)
+                ),
+                f"at most {MAX_IMAGE_LINK_ROWS} can be imported",
+            ),
+        }
+        for name, (data, expected_error) in cases.items():
+            with self.subTest(name):
+                response = self.client.post(
+                    reverse("source-add-image-links", args=[self.source.id]), data
+                )
+                self.assertEqual(response.status_code, 200)
+                self.assertContains(response, expected_error)
+                self.assertEqual(
+                    Chant.objects.get(source=self.source, folio="004B").image_link,
+                    stored,
+                )
+                self.assertIsNone(
+                    Chant.objects.get(source=self.source, folio="003").image_link
+                )
+
+
+class SourceAddImageLinksLargeSourceTest(CustomAccessTestMixin, TestCase):
+    """
+    Importing a mapping for a source with more folios than a request has fields.
+
+    Tours 149 (source 123640) has 1044 folios. One form field per folio put the
+    request over ``DATA_UPLOAD_MAX_NUMBER_FIELDS`` — 1010 — and Django rejected
+    the whole submission with HTTP 400 before form validation.
+    """
+
+    source: Source
+    folios: list[str]
+    default_user = "superuser"
+
+    @classmethod
+    def setUpTestData(cls) -> None:
+        super().setUpTestData()
+        cls.source = make_fake_source(published=True)
+        cls.folios = [
+            f"{leaf:03d}{side}" for leaf in range(1, 551) for side in ("r", "v")
+        ]
+        Chant.objects.bulk_create(
+            Chant(source=cls.source, folio=folio, c_sequence=1) for folio in cls.folios
+        )
+
+    def test_a_folio_per_field_would_exceed_the_request_limit(self) -> None:
+        """
+        Sending one field per folio still fails, which is why the page does not.
+
+        Django counts the fields while parsing the request body, so the whole
+        submission is rejected before form validation.
+        """
+        self.assertGreater(len(self.folios), settings.DATA_UPLOAD_MAX_NUMBER_FIELDS)
+        response = self.client.post(
+            reverse("source-add-image-links", args=[self.source.id]),
+            {folio: f"https://example.com/{folio}.jpg" for folio in self.folios},
+        )
+        self.assertEqual(response.status_code, 400)
+
+    def test_the_whole_mapping_is_imported(self) -> None:
+        rows = [[folio, f"https://example.com/{folio}.jpg"] for folio in self.folios]
+        response = self.client.post(
+            reverse("source-add-image-links", args=[self.source.id]),
+            {"image_links": json.dumps(rows)},
+        )
+        self.assertRedirects(
+            response,
+            reverse("source-detail", args=[self.source.id]),
+            status_code=302,
+            target_status_code=200,
+        )
+        saved = dict(
+            Chant.objects.filter(source=self.source).values_list("folio", "image_link")
+        )
+        self.assertEqual(len(saved), len(self.folios))
+        self.assertEqual(saved["001r"], "https://example.com/001r.jpg")
+        self.assertEqual(saved["550v"], "https://example.com/550v.jpg")
+        self.assertNotIn(None, saved.values())
 
 
 class SourceDeleteViewTest(CustomAccessTestMixin, TestCase):
