@@ -68,6 +68,7 @@ ADVANCED_SEARCH_FIELDS: tuple[str, ...] = (
     # never touched it. Including it here would keep this section expanded on
     # every search.
     "indexing_notes",
+    "differentia_id",
 )
 
 CHANT_SEARCH_TEMPLATE_VALUES: tuple[str, ...] = (
@@ -514,6 +515,7 @@ class ChantSearchView(CustomAccessMixin, ListView):  # type: ignore[type-arg]
         ``feast``: Filters by Feast of Chant
         ``liturgical_function``: Filters by liturgical function of Chant
         ``segment``: Filters by Segment of the Chant's Source
+        ``differentia_id``: Filters by the Differentia ID (Differentiae Database) of Chant
         ``keyword``: Searches text of Chant for keywords
         ``op``: Operation to take with keyword search. Options are "contains", "starts_with", and "ends_with"
         ``indexing_notes``: Searches indexing notes of Chant/Sequence for text
@@ -549,10 +551,20 @@ class ChantSearchView(CustomAccessMixin, ListView):  # type: ignore[type-arg]
             self.request.GET.get(field) for field in ADVANCED_SEARCH_FIELDS
         )
         feast_param = self.request.GET.get("feast")
+        differentia_id_param = self.request.GET.get("differentia_id")
         context["search_form"] = ChantSearchForm(
-            initial=(
-                {"feast": feast_param} if feast_param and feast_param.isdigit() else {}
-            )
+            initial={
+                **(
+                    {"feast": feast_param}
+                    if feast_param and feast_param.isdigit()
+                    else {}
+                ),
+                **(
+                    {"differentia_id": differentia_id_param}
+                    if differentia_id_param and differentia_id_param.isdigit()
+                    else {}
+                ),
+            }
         )
         context["query_empty"] = False if self.request.GET else True
         context["order"] = self.request.GET.get("order")
@@ -613,6 +625,9 @@ class ChantSearchView(CustomAccessMixin, ListView):  # type: ignore[type-arg]
         search_indexing_notes: Optional[str] = self.request.GET.get("indexing_notes")
         if search_indexing_notes:
             search_parameters.append(f"indexing_notes={search_indexing_notes}")
+        search_differentia_id: Optional[str] = self.request.GET.get("differentia_id")
+        if search_differentia_id:
+            search_parameters.append(f"differentia_id={search_differentia_id}")
 
         url_with_search_params: str = current_url + "?"
         if search_parameters:
@@ -705,6 +720,10 @@ class ChantSearchView(CustomAccessMixin, ListView):  # type: ignore[type-arg]
 
             if liturgical_function := self.request.GET.get("liturgical_function"):
                 q_obj_filter &= Q(liturgical_function=liturgical_function)
+
+            if differentia_id := self.request.GET.get("differentia_id"):
+                if differentia_id.isdigit():
+                    q_obj_filter &= Q(diff_db_id=differentia_id)
 
             # Filter the QuerySet with Q object
             chant_set = Chant.objects.filter(q_obj_filter).select_related(
@@ -837,7 +856,7 @@ class MelodySearchView(TemplateView):
 class ChantSearchMSView(CustomAccessMixin, ListView):  # type: ignore[type-arg]
     """
     Searches chants/sequences in a certain manuscript, accessed with
-    ``chant-search-ms/<int:source_pk>``
+    ``searchms/<int:source_pk>/``
 
     This view uses the same template as ``ChantSearchView``
 
@@ -848,10 +867,12 @@ class ChantSearchMSView(CustomAccessMixin, ListView):  # type: ignore[type-arg]
         ``genre``: Filters by Genre of Chant
         ``cantus_id``: Filters by the Cantus ID field of Chant
         ``mode``: Filters by mode of Chant
+        ``position``: Filters by position of chant
         ``melodies``: Filters Chant by whether or not it contains a melody in
                       Volpiano form. Valid values are "true" or "false".
         ``feast``: Filters by Feast of Chant
         ``liturgical_function``: Filters by liturgical function of Chant
+        ``differentia_id``: Filters by the Differentia ID (Differentiae Database) of Chant
         ``keyword``: Searches text of Chant for keywords
         ``op``: Operation to take with keyword search. Options are "contains", "starts_with", and "ends_with"
         ``indexing_notes``: Searches indexing notes of Chant/Sequence for text
@@ -886,10 +907,20 @@ class ChantSearchMSView(CustomAccessMixin, ListView):  # type: ignore[type-arg]
             self.request.GET.get(field) for field in ADVANCED_SEARCH_FIELDS
         )
         feast_param = self.request.GET.get("feast")
+        differentia_id_param = self.request.GET.get("differentia_id")
         context["search_form"] = ChantSearchForm(
-            initial=(
-                {"feast": feast_param} if feast_param and feast_param.isdigit() else {}
-            )
+            initial={
+                **(
+                    {"feast": feast_param}
+                    if feast_param and feast_param.isdigit()
+                    else {}
+                ),
+                **(
+                    {"differentia_id": differentia_id_param}
+                    if differentia_id_param and differentia_id_param.isdigit()
+                    else {}
+                ),
+            }
         )
         context["order"] = self.request.GET.get("order")
         context["sort"] = self.request.GET.get("sort")
@@ -936,6 +967,9 @@ class ChantSearchMSView(CustomAccessMixin, ListView):  # type: ignore[type-arg]
         search_indexing_notes = self.request.GET.get("indexing_notes")
         if search_indexing_notes:
             search_parameters.append(f"indexing_notes={search_indexing_notes}")
+        search_differentia_id = self.request.GET.get("differentia_id")
+        if search_differentia_id:
+            search_parameters.append(f"differentia_id={search_differentia_id}")
 
         if search_parameters:
             joined_search_parameters = "&".join(search_parameters)
@@ -967,6 +1001,9 @@ class ChantSearchMSView(CustomAccessMixin, ListView):  # type: ignore[type-arg]
         if mode := self.request.GET.get("mode"):
             q_obj_filter &= Q(mode=mode)
 
+        if position := self.request.GET.get("position"):
+            q_obj_filter &= Q(position=position)
+
         if melodies := self.request.GET.get("melodies"):
             if melodies == "true":
                 q_obj_filter &= Q(volpiano__isnull=False)
@@ -978,6 +1015,10 @@ class ChantSearchMSView(CustomAccessMixin, ListView):  # type: ignore[type-arg]
 
         if liturgical_function := self.request.GET.get("liturgical_function"):
             q_obj_filter &= Q(liturgical_function=liturgical_function)
+
+        if differentia_id := self.request.GET.get("differentia_id"):
+            if differentia_id.isdigit():
+                q_obj_filter &= Q(diff_db_id=differentia_id)
 
         order_value = self.request.GET.get("order")
         sort_get_param: Optional[str] = self.request.GET.get("sort")
