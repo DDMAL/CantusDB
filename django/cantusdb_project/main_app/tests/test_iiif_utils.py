@@ -18,6 +18,7 @@ from main_app.iiif_utils import (
     generate_folio_image_mapping,
     mapping_to_csv,
     match_canvas_to_folio,
+    match_canvas_to_folios,
     _get_label_text,
     _normalize_folio,
     _extract_folio_components,
@@ -435,6 +436,89 @@ class MatchCanvasToFolioTest(TestCase):
         self.assertIsNone(match_canvas_to_folio("001r", []))
 
 
+class MatchCanvasToFoliosTest(TestCase):
+    """
+    Matching the folios of a canvas that photographs an opening.
+
+    Labels follow Tours 149's manifest (source 123640), where 587 of 607
+    canvases name two folios: "f. 001v - 002r".
+    """
+
+    folios = ["001r", "001v", "002r", "002v", "003r"]
+
+    def test_both_folios_of_an_opening_match(self) -> None:
+        self.assertEqual(
+            match_canvas_to_folios("f. 001v - 002r", self.folios), ["001v", "002r"]
+        )
+
+    def test_spread_label_variants(self) -> None:
+        for label in (
+            "f. 1v - 2r",
+            "fol. 001v - 002r",
+            "f. 001v – 002r",  # en dash
+            "f. 001v — 002r",  # em dash
+            "001v - 002r",
+            "Folio 1 verso - 2 recto",
+        ):
+            with self.subTest(label=label):
+                self.assertEqual(
+                    match_canvas_to_folios(label, self.folios), ["001v", "002r"]
+                )
+
+    def test_a_folio_facing_a_flyleaf_matches_alone(self) -> None:
+        """Tours 149 opens with "garde verso - f. 001r": a flyleaf, then 001r."""
+        self.assertEqual(
+            match_canvas_to_folios("garde verso - f. 001r", self.folios), ["001r"]
+        )
+        self.assertEqual(
+            match_canvas_to_folios("f. 003r - garde recto", self.folios), ["003r"]
+        )
+
+    def test_inserted_leaf_aliases_are_not_guessed(self) -> None:
+        folios = ["297v", "298r", "298v", "298x", "299r"]
+        self.assertEqual(
+            match_canvas_to_folios("f. 298 bis verso - 299r", folios), ["299r"]
+        )
+        self.assertEqual(
+            match_canvas_to_folios("f. 297v - 298 bis recto", folios), ["297v"]
+        )
+        self.assertEqual(match_canvas_to_folios("298x", folios), ["298x"])
+
+    def test_spreads_with_only_one_indexed_folio(self) -> None:
+        self.assertEqual(match_canvas_to_folios("f. 001v - 002r", ["002r"]), ["002r"])
+        self.assertEqual(match_canvas_to_folios("f. 001v - 002r", ["001v"]), ["001v"])
+
+    def test_ranges_and_unrelated_labels_do_not_match_their_right_end(self) -> None:
+        for label in ("f. 1v - 10r", "Detail 2r - 010r", "Plate - 010r"):
+            with self.subTest(label=label):
+                self.assertEqual(match_canvas_to_folios(label, ["010r"]), [])
+
+    def test_a_single_folio_label_still_matches_one_folio(self) -> None:
+        self.assertEqual(match_canvas_to_folios("f. 002r", self.folios), ["002r"])
+        self.assertEqual(match_canvas_to_folios("001r", self.folios), ["001r"])
+
+    def test_labels_that_name_no_folio(self) -> None:
+        for label in ("Detail 2r", "plat supérieur", "garde verso - garde recto", ""):
+            with self.subTest(label=label):
+                self.assertEqual(match_canvas_to_folios(label, self.folios), [])
+
+    def test_a_range_is_not_treated_as_an_opening(self) -> None:
+        """
+        A label spanning several leaves is not a photograph of both its ends,
+        so only the folio the label starts with matches, as before.
+        """
+        folios = ["001r", "001v", "002r", "010r", "010v"]
+        self.assertEqual(match_canvas_to_folios("f. 1r - 10v", folios), ["001r"])
+        self.assertEqual(match_canvas_to_folios("f. 1v - 10r", folios), ["001v"])
+
+    def test_a_folio_identifier_containing_a_dash_is_not_split(self) -> None:
+        folios = ["12 - 13", "014r"]
+        self.assertEqual(match_canvas_to_folios("12 - 13", folios), ["12 - 13"])
+
+    def test_no_folios(self) -> None:
+        self.assertEqual(match_canvas_to_folios("f. 001v - 002r", []), [])
+
+
 class GenerateFolioImageMappingTest(TestCase):
     def test_full_match(self) -> None:
         canvases = [
@@ -490,6 +574,53 @@ class GenerateFolioImageMappingTest(TestCase):
         mapping = generate_folio_image_mapping(canvases, [])
         self.assertEqual(len(mapping), 1)
         self.assertEqual(mapping[0]["notes"], "No matching folio in source")
+
+    def test_an_opening_produces_a_row_for_each_of_its_folios(self) -> None:
+        canvases = [
+            CanvasInfo(
+                label="f. 001v - 002r", image_url="https://img/2", canvas_index=0
+            ),
+            CanvasInfo(
+                label="f. 002v - 003r", image_url="https://img/3", canvas_index=1
+            ),
+        ]
+        folios = ["001v", "002r", "002v", "003r"]
+        mapping = generate_folio_image_mapping(canvases, folios)
+        self.assertEqual(
+            [(row["folio"], row["image_link"]) for row in mapping],
+            [
+                ("001v", "https://img/2"),
+                ("002r", "https://img/2"),
+                ("002v", "https://img/3"),
+                ("003r", "https://img/3"),
+            ],
+        )
+        self.assertEqual({row["notes"] for row in mapping}, {""})
+        self.assertEqual(mapping[0]["canvas_label"], "f. 001v - 002r")
+
+    def test_a_folio_photographed_twice_is_flagged(self) -> None:
+        """
+        Tours 149 photographs folio 001r twice, once with a ruler beside it.
+        Both rows are kept, and the note says which row the import applies.
+        """
+        canvases = [
+            CanvasInfo(
+                label="garde verso - f. 001r",
+                image_url="https://img/7",
+                canvas_index=0,
+            ),
+            CanvasInfo(
+                label="garde verso - f. 001r avec réglet",
+                image_url="https://img/8",
+                canvas_index=1,
+            ),
+        ]
+        mapping = generate_folio_image_mapping(canvases, ["001r"])
+        self.assertEqual([row["folio"] for row in mapping], ["001r", "001r"])
+        for row in mapping:
+            self.assertEqual(
+                row["notes"], "Folio matched by more than one canvas; the last row wins"
+            )
 
 
 class MappingToCSVTest(TestCase):

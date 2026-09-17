@@ -941,6 +941,7 @@ class SourceAddImageLinksView(CustomAccessMixin, SingleObjectMixin, FormView):  
     context_object_name = "source"
     form_class = ImageLinkForm
     object: Source
+    source_folios: list[str]
     http_method_names = ["get", "post"]
 
     def test_func(self) -> bool:
@@ -951,26 +952,37 @@ class SourceAddImageLinksView(CustomAccessMixin, SingleObjectMixin, FormView):  
 
     def get(self, request: HttpRequest, *args: Any, **kwargs: Any) -> HttpResponse:
         self.object = self.get_object()
+        self.source_folios = self.get_source_folios()
         return super().get(request, *args, **kwargs)
 
     def post(self, request: HttpRequest, *args: Any, **kwargs: Any) -> HttpResponse:
         self.object = self.get_object()
+        # Read the folios afresh rather than trusting the posted ones, so an
+        # import can only reach folios this source actually has.
+        self.source_folios = self.get_source_folios()
         return super().post(request, *args, **kwargs)
 
-    def get_initial(self) -> dict[str, Any]:
+    def get_source_folios(self) -> list[str]:
         """
-        Set the initial data required by the ImageLinkForm
-        on GET requests.
+        List the distinct folios of this source's chants, in folio order.
         """
         folios: QuerySet[Chant, Optional[str]] = (
             self.object.chant_set.values_list("folio", flat=True)
             .distinct()
             .order_by("folio")
         )
-        return {folio: "" for folio in folios if folio}
+        return [folio for folio in folios if folio]
+
+    def get_form_kwargs(self) -> dict[str, Any]:
+        kwargs = super().get_form_kwargs()
+        kwargs["source_folios"] = self.source_folios
+        return kwargs
 
     def get_context_data(self, **kwargs: Any) -> dict[str, Any]:
         context = super().get_context_data(**kwargs)
+        # The page lists the folios once, as JSON, for the CSV preview and its
+        # checks to read.
+        context["source_folios"] = self.source_folios
         # Check if this source has a IIIF manifest
         has_iiif = self.object.source_links.filter(
             url_type=SourceURL.URLTypes.IIIF_MANIFEST
@@ -982,8 +994,15 @@ class SourceAddImageLinksView(CustomAccessMixin, SingleObjectMixin, FormView):  
         """
         Save the image links to the database.
         """
-        form.save(self.object)
-        messages.success(self.request, "Image links saved successfully!")
+        saved = form.save(self.object)
+        message = f"Image links saved for {saved} folio{'' if saved == 1 else 's'}."
+        if form.ignored_folios:
+            skipped = len(form.ignored_folios)
+            message += (
+                f" Skipped {skipped} row{'' if skipped == 1 else 's'} "
+                "naming folios this source does not have."
+            )
+        messages.success(self.request, message)
         return HttpResponseRedirect(self.get_success_url())
 
 
