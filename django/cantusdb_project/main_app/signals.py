@@ -80,7 +80,14 @@ def update_source_chant_count(instance) -> None:
         source = None
     if source is not None:
         source.number_of_chants = source.chant_set.count() + source.sequence_set.count()
-        source.save()
+        # `source` is the copy cached on the chant or sequence being saved, so a
+        # plain save() — a full-row UPDATE — would write back every value that
+        # copy was loaded with, including a `source_status` another request has
+        # changed since. That silently reverts a proofreading lock applied while
+        # a chant edit was in flight (issue #1962), so write only the column
+        # recalculated here. `date_updated` is listed explicitly because Django
+        # only refreshes `auto_now` fields that appear in `update_fields`.
+        source.save(update_fields=["number_of_chants", "date_updated"])
 
 
 def update_source_melody_count(instance) -> None:
@@ -100,7 +107,8 @@ def update_source_melody_count(instance) -> None:
             .exclude(volpiano__exact="")
             .count()
         )
-        source.save()
+        # Narrowed for the same reason as in update_source_chant_count() above.
+        source.save(update_fields=["number_of_melodies", "date_updated"])
 
 
 def update_volpiano_fields(instance) -> None:
