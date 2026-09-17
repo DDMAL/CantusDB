@@ -116,8 +116,10 @@ from main_app.views.autocomplete import (
     HoldingAutocomplete,
 )
 from main_app.views.auth import change_password
+from main_app.views.markdown import markdown_preview
 
 urlpatterns = [
+    path("markdown/preview/", markdown_preview, name="markdown-preview"),
     path(
         "contact/",
         contact,
