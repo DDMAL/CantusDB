@@ -15,6 +15,7 @@ ujson = "5.13.0"
 volpiano-display-utilities = { git = "https://github.com/DDMAL/volpiano-display-utilities.git", tag = "v1.3.2" }
 psycopg = {extras = ["binary"], version = "3.1.18"}
 cmarkgfm = "2024.11.20"
+nh3 = "0.3.7"
 celery = "5.5.1"
 redis = "5.2.1"
 django-extensions = "^3.2.3"

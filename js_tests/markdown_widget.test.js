@@ -96,19 +96,97 @@ test("italic wraps with a single asterisk", () => {
 });
 
 test("italic does not strip a bold run's markers (selection includes **)", () => {
-    // isWrapped("**hello**", "*") is false, so italic adds a layer rather than
+    // A run of two asterisks is bold only, so italic adds a third rather than
     // mistaking the bold markers for its own.
     const el = ta("**hello**", 0, 9);
     md.actions.italic(el);
-    expectState(el, "***hello***", 1, 10);
+    expectState(el, "***hello***", 3, 8);
 });
 
 test("italic inside a bold run adds italic markers, not strips the bold ones", () => {
-    // "hello" selected inside **...**: the italic-in-bold guard prevents the
-    // adjacent ** from being treated as italic markers to remove.
+    // "hello" selected inside **...**: the adjacent run is two asterisks, so
+    // italic adds its own instead of removing bold's.
     const el = ta("**hello**", 2, 7);
     md.actions.italic(el);
     expectState(el, "***hello***", 3, 8);
+});
+
+test("italic toggles off text that is bold and italic, keeping the bold", () => {
+    // Pouya on PR #2226: "***both***" gave "****both****" instead of "**both**".
+    const el = ta("***both***", 3, 7);
+    md.actions.italic(el);
+    expectState(el, "**both**", 2, 6);
+});
+
+test("bold toggles off text that is bold and italic, keeping the italic", () => {
+    // The mirror of the case above; both buttons must behave the same way.
+    const el = ta("***both***", 3, 7);
+    md.actions.bold(el);
+    expectState(el, "*both*", 1, 5);
+});
+
+test("bold on italic text adds bold rather than replacing the italic", () => {
+    const el = ta("*hello*", 1, 6);
+    md.actions.bold(el);
+    expectState(el, "***hello***", 3, 8);
+});
+
+test("italic toggles off its own single marker", () => {
+    const el = ta("*hello*", 1, 6);
+    md.actions.italic(el);
+    expectState(el, "hello", 0, 5);
+});
+
+test("italic on part of bold text preserves the surrounding bold markers", () => {
+    const el = ta("**first second**", 2, 7);
+    md.actions.italic(el);
+    expectState(el, "***first* second**", 3, 8);
+    md.actions.italic(el);
+    expectState(el, "**first second**", 2, 7);
+});
+
+test("removing nested bold preserves the outer italic closing marker", () => {
+    const el = ta("*outer **inner***", 9, 14);
+    md.actions.bold(el);
+    expectState(el, "*outer inner*", 7, 12);
+});
+
+test("adding bold inside nested italic preserves the outer bold span", () => {
+    const el = ta("**outer *inner***", 9, 14);
+    md.actions.bold(el);
+    expectState(el, "**outer ***inner*****", 11, 16);
+});
+
+test("removing nested italic preserves the outer bold closing markers", () => {
+    const el = ta("**outer *inner***", 9, 14);
+    md.actions.italic(el);
+    expectState(el, "**outer inner**", 8, 13);
+});
+
+test("bold keeps whitespace at the edges of the selection outside the markers", () => {
+    // Markers that do not sit flush against the text render literally, so a
+    // selection that happens to include the surrounding spaces still works.
+    const el = ta("a hello b", 1, 8);
+    md.actions.bold(el);
+    expectState(el, "a **hello** b", 4, 9);
+});
+
+test("italic keeps a trailing newline in the selection outside the markers", () => {
+    const el = ta("word\n", 0, 5);
+    md.actions.italic(el);
+    expectState(el, "*word*\n", 1, 5);
+});
+
+test("bold unwraps a selection that includes the markers and the edge spaces", () => {
+    const el = ta("a **hello** b", 1, 12);
+    md.actions.bold(el);
+    expectState(el, "a hello b", 2, 7);
+});
+
+test("bold on a whitespace-only selection inserts the placeholder", () => {
+    const el = ta("a   b", 1, 4);
+    md.actions.bold(el);
+    expectState(el, "a**bold text**   b", 3, 12);
 });
 
 // --------------------------------------------------------------------------
@@ -234,7 +312,47 @@ test("line prefix only touches the lines the selection spans", () => {
     // Caret sits inside "bar"; "foo" and "baz" are untouched.
     const el = ta("foo\nbar\nbaz", 5, 5);
     md.actions["unordered-list"](el);
-    expectState(el, "foo\n- bar\nbaz", 4, 9);
+    expectState(el, "foo\n- bar\nbaz", 7, 7);
+});
+
+// Pouya on PR #2226: clicking a line button with only a caret selected the whole
+// line, so the user's next keystroke replaced it. The caret now stays collapsed
+// and keeps its place in the text.
+
+test("heading with only a caret leaves the caret collapsed after the marker", () => {
+    const el = ta("Title", 0, 0);
+    md.actions.heading(el);
+    expectState(el, "# Title", 2, 2);
+});
+
+test("a collapsed caret keeps its place in the text when a marker is added", () => {
+    const el = ta("Title", 3, 3);
+    md.actions.heading(el);
+    expectState(el, "# Title", 5, 5);
+});
+
+test("a collapsed caret keeps its place in the text when a marker is removed", () => {
+    const el = ta("# Title", 5, 5);
+    md.actions.heading(el);
+    expectState(el, "Title", 3, 3);
+});
+
+test("a collapsed caret inside a stripped marker never lands before the line", () => {
+    const el = ta("a\n> b", 3, 3);
+    md.actions.quote(el);
+    expectState(el, "a\nb", 2, 2);
+});
+
+test("a caret on an indented line stays put through a list toggle", () => {
+    const el = ta("  item", 6, 6);
+    md.actions["unordered-list"](el);
+    expectState(el, "  - item", 8, 8);
+});
+
+test("a selection still covers the whole transformed block", () => {
+    const el = ta("a\nb", 0, 3);
+    md.actions.quote(el);
+    expectState(el, "> a\n> b", 0, 7);
 });
 
 // --------------------------------------------------------------------------
@@ -387,4 +505,50 @@ test("pasting with no selection is left to the browser (no link wrapping)", () =
     md.handlePaste(el, e);
     assert.equal(e.defaultPrevented, false);
     expectState(el, "text", 4, 4);
+});
+
+// --------------------------------------------------------------------------
+// Escape releases Tab  (tabRelease)
+// --------------------------------------------------------------------------
+//
+// Pouya on PR #2226: Tab indents and Shift+Tab outdents, so neither direction
+// moved focus and a keyboard user could not leave the textarea (WCAG 2.1.2).
+
+test("Tab indents while Escape has not been pressed", () => {
+    assert.deepEqual(md.tabRelease(false, "Tab"), {
+        released: false,
+        movesFocus: false,
+    });
+});
+
+test("Escape lets the next Tab move focus", () => {
+    const afterEscape = md.tabRelease(false, "Escape");
+    assert.deepEqual(afterEscape, { released: true, movesFocus: false });
+    assert.deepEqual(md.tabRelease(afterEscape.released, "Tab"), {
+        released: false,
+        movesFocus: true,
+    });
+});
+
+test("Escape lets Shift+Tab move focus, despite the Shift keydown first", () => {
+    // Shift+Tab arrives as two keydowns: "Shift", then "Tab".
+    let released = md.tabRelease(false, "Escape").released;
+    released = md.tabRelease(released, "Shift").released;
+    assert.deepEqual(md.tabRelease(released, "Tab"), {
+        released: false,
+        movesFocus: true,
+    });
+});
+
+test("Escape releases Tab once, not for every Tab after it", () => {
+    const released = md.tabRelease(false, "Escape").released;
+    const first = md.tabRelease(released, "Tab");
+    assert.equal(first.movesFocus, true);
+    assert.equal(md.tabRelease(first.released, "Tab").movesFocus, false);
+});
+
+test("typing after Escape puts Tab back to indenting", () => {
+    let released = md.tabRelease(false, "Escape").released;
+    released = md.tabRelease(released, "a").released;
+    assert.equal(md.tabRelease(released, "Tab").movesFocus, false);
 });

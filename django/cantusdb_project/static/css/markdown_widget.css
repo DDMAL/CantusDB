@@ -136,6 +136,7 @@
    Rendered by the widget itself, so every MarkdownWidget field gets it. */
 .markdown-field-footer {
     display: flex;
+    flex-wrap: wrap;
     align-items: center;
     gap: 0.25rem;
     padding: 0.25rem 0.5rem;
@@ -152,4 +153,9 @@
 
 .markdown-field-footer a:hover {
     color: var(--bs-body-color);
+}
+
+/* Keyboard hint sits at the far end of the footer, away from the Markdown link. */
+.markdown-field-footer-hint {
+    margin-left: auto;
 }

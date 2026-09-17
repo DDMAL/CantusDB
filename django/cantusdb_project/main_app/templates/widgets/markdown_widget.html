@@ -1,4 +1,4 @@
-<div class="markdown-field">
+<div class="markdown-field" data-preview-url="{% url 'markdown-preview' %}">
     <div class="markdown-field-header">
         <ul class="nav nav-tabs markdown-field-tabs"
             id="{{ widget.name }}-tabs"
@@ -76,6 +76,7 @@
              id="{{ widget.name }}-preview"
              role="tabpanel"
              aria-labelledby="{{ widget.name }}-preview-tab"
+             aria-live="polite"
              tabindex="0"></div>
     </div>
     <div class="markdown-field-footer" id="{{ widget.name }}-md-help">
@@ -83,5 +84,7 @@
         <span><a href="https://www.markdownguide.org/basic-syntax/"
                  target="_blank"
                  rel="noopener">Markdown</a> supported</span>
+        {# Tab indents inside the box, so name the way back out (WCAG 2.1.2). #}
+        <span class="markdown-field-footer-hint">Tab indents; press Esc then Tab to leave the field</span>
     </div>
 </div>

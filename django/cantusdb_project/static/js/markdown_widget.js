@@ -22,67 +22,76 @@ var MarkdownWidget = (function () {
         textarea.focus();
     }
 
-    // True when `text` is already wrapped in `marker`. The single-'*' italic
-    // marker deliberately does not match a '**' bold run.
-    function isWrapped(text, marker) {
-        var len = marker.length;
-        if (text.length < len * 2) {
-            return false;
-        }
-        if (text.slice(0, len) !== marker || text.slice(-len) !== marker) {
-            return false;
-        }
-        if (marker === "*" && (text[1] === "*" || text[text.length - 2] === "*")) {
-            return false;
-        }
-        return true;
-    }
-
-    // Wrap the selection in an inline marker, or unwrap it if already wrapped
-    // (toggle), matching GitHub's bold/italic buttons. With no selection, insert
+    // Toggle an emphasis marker around the selection, matching GitHub's
+    // bold/italic buttons. Both buttons share one run of asterisks on each side
+    // of the text — one asterisk is italic, two are bold, three are both — so
+    // each button measures the whole run and then adds or removes only its own
+    // asterisks, leaving the other button's alone. With nothing to mark, insert
     // the placeholder and select it so the user can type over it.
     function wrapInline(textarea, marker, placeholder) {
         var start = textarea.selectionStart;
         var end = textarea.selectionEnd;
         var value = textarea.value;
+        var width = marker.length; // 1 for italic, 2 for bold
+
+        // Markdown only applies a marker that sits flush against its text, so
+        // keep whitespace at the edges of the selection outside the markers, as
+        // GitHub does. A selection of nothing but whitespace has no text to
+        // mark, so treat it as no selection at all.
         var selected = value.substring(start, end);
-        var len = marker.length;
+        var lead = /^\s*/.exec(selected)[0].length;
+        if (lead === selected.length) {
+            end = start;
+        } else {
+            start += lead;
+            end -= /\s*$/.exec(selected)[0].length;
+        }
 
-        // Selection already includes the markers, e.g. "**text**".
-        if (isWrapped(selected, marker)) {
-            var inner = selected.slice(len, -len);
+        // Asterisks the user happened to select belong to the run rather than
+        // to the text being marked, so step over those too.
+        selected = value.substring(start, end);
+        var leadStars = /^\**/.exec(selected)[0].length;
+        start += leadStars;
+        if (leadStars < selected.length) {
+            end -= /\**$/.exec(selected)[0].length;
+        } else {
+            end = start; // the selection was nothing but asterisks
+        }
+
+        var text = value.substring(start, end);
+        if (text === "") {
             setValue(
                 textarea,
-                value.substring(0, start) + inner + value.substring(end),
-                start,
-                start + inner.length
+                value.substring(0, start) +
+                    marker +
+                    placeholder +
+                    marker +
+                    value.substring(end),
+                start + width,
+                start + width + placeholder.length
             );
             return;
         }
 
-        // Markers sit just outside the selection, e.g. **[text]**.
-        var italicInBold =
-            marker === "*" && (value[start - 2] === "*" || value[end + 1] === "*");
-        if (
-            value.substring(start - len, start) === marker &&
-            value.substring(end, end + len) === marker &&
-            !italicInBold
-        ) {
-            setValue(
-                textarea,
-                value.substring(0, start - len) + selected + value.substring(end + len),
-                start - len,
-                end - len
-            );
-            return;
-        }
-
-        var text = selected || placeholder;
+        // start/end now bracket the text exactly, so each side's run of
+        // asterisks is whatever sits immediately beyond it.
+        var before = /\**$/.exec(value.substring(0, start))[0].length;
+        var after = /^\**/.exec(value.substring(end))[0].length;
+        var run = Math.min(before, after);
+        // An odd run carries italic; two or more carry bold.
+        var applied = width === 1 ? run % 2 === 1 : run >= 2;
+        var stars = "*".repeat(applied ? run - width : run + width);
+        // Only consume the paired run. Extra asterisks on either side can
+        // belong to formatting around a larger span of text.
         setValue(
             textarea,
-            value.substring(0, start) + marker + text + marker + value.substring(end),
-            start + len,
-            start + len + text.length
+            value.substring(0, start - run) +
+                stars +
+                text +
+                stars +
+                value.substring(end + run),
+            start - run + stars.length,
+            start - run + stars.length + text.length
         );
     }
 
@@ -117,13 +126,11 @@ var MarkdownWidget = (function () {
         if (blockEnd === -1) {
             blockEnd = value.length;
         }
-        var lines = value
-            .substring(blockStart, blockEnd)
-            .split("\n")
-            .map(function (line) {
-                var indent = line.match(/^\s*/)[0];
-                return { indent: indent, rest: line.substring(indent.length) };
-            });
+        var block = value.substring(blockStart, blockEnd);
+        var lines = block.split("\n").map(function (line) {
+            var indent = line.match(/^\s*/)[0];
+            return { indent: indent, rest: line.substring(indent.length) };
+        });
         var allMarked = lines.every(function (line) {
             return strip.test(line.rest);
         });
@@ -133,12 +140,22 @@ var MarkdownWidget = (function () {
                 return line.indent + (allMarked ? bare : marker(bare, i));
             })
             .join("\n");
-        setValue(
-            textarea,
-            value.substring(0, blockStart) + result + value.substring(blockEnd),
-            blockStart,
-            blockStart + result.length
-        );
+        var newValue =
+            value.substring(0, blockStart) + result + value.substring(blockEnd);
+        if (start === end) {
+            // A caret that arrived collapsed stays collapsed and keeps its place
+            // in the text, as GitHub's buttons do. Selecting the whole line
+            // instead would make the user's next keystroke replace it. With no
+            // selection the block is just the caret's own line, so that line's
+            // change in length is the offset to apply.
+            var caret = Math.min(
+                blockStart + result.length,
+                Math.max(blockStart, start + result.length - block.length)
+            );
+            setValue(textarea, newValue, caret, caret);
+            return;
+        }
+        setValue(textarea, newValue, blockStart, blockStart + result.length);
     }
 
     // Indent (or outdent, on Shift+Tab) every line the selection touches by one
@@ -216,6 +233,28 @@ var MarkdownWidget = (function () {
 
     // Ctrl/Cmd shortcuts that mirror GitHub's markdown input.
     var shortcuts = { b: "bold", i: "italic", k: "link" };
+
+    // Keys that only ever accompany another keystroke.
+    var MODIFIER_KEYS = { Shift: true, Control: true, Meta: true, Alt: true };
+
+    // Tab indents inside the textarea, so on its own it never moves focus and a
+    // keyboard user cannot leave the field — a WCAG 2.1.2 keyboard trap. Escape
+    // hands Tab back to the browser for one keypress, the way GitHub does.
+    //
+    // `released` is whether Escape has already been pressed and `key` is the key
+    // just pressed. The returned `released` carries forward; `movesFocus` says
+    // the browser should handle this Tab itself. Bare modifiers leave the state
+    // alone because Shift+Tab reports the Shift press first; any other key means
+    // the user went back to editing, so Tab indents again.
+    function tabRelease(released, key) {
+        if (key === "Escape") {
+            return { released: true, movesFocus: false };
+        }
+        if (key === "Tab") {
+            return { released: false, movesFocus: released };
+        }
+        return { released: released && !!MODIFIER_KEYS[key], movesFocus: false };
+    }
 
     // Continuation markers for pressing Enter inside a list or blockquote.
     var continuations = [
@@ -302,6 +341,26 @@ var MarkdownWidget = (function () {
         );
     }
 
+    // The server uses the same sanitizer and renderer as saved source pages.
+    async function requestPreview(text, url, csrfToken, signal) {
+        var response = await fetch(url, {
+            method: "POST",
+            mode: "same-origin",
+            credentials: "same-origin",
+            headers: { "X-CSRFToken": csrfToken },
+            body: new URLSearchParams({ text: text }),
+            signal: signal,
+        });
+        if (!response.ok) {
+            throw new Error("Preview request failed");
+        }
+        var result = await response.json();
+        if (typeof result.html !== "string") {
+            throw new Error("Invalid preview response");
+        }
+        return result.html;
+    }
+
     // Initialize each markdown widget on the page, wiring up the toolbar,
     // keyboard shortcuts, list continuation, and preview rendering.
     function init() {
@@ -325,13 +384,43 @@ var MarkdownWidget = (function () {
                 });
             }
 
-            // The toolbar only makes sense while editing; hide it on Preview.
-            previewTab.addEventListener("show.bs.tab", function () {
-                preview.innerHTML = marked.parse(textarea.value);
+            let previewRequest = null;
+            // An earlier response must not overwrite a newer preview. Abort
+            // requests when returning to Write, and check their identity too.
+            previewTab.addEventListener("show.bs.tab", async function () {
+                if (previewRequest) previewRequest.abort();
+                const request = new AbortController();
+                previewRequest = request;
+                preview.textContent = "Loading preview…";
+                preview.setAttribute("aria-busy", "true");
                 preview.style.height = textarea.clientHeight + "px";
                 toolbar.style.visibility = "hidden";
+                try {
+                    const token = textarea.form.querySelector(
+                        '[name="csrfmiddlewaretoken"]'
+                    ).value;
+                    const html = await requestPreview(
+                        textarea.value,
+                        field.getAttribute("data-preview-url"),
+                        token,
+                        request.signal
+                    );
+                    if (previewRequest === request && !request.signal.aborted) {
+                        preview.innerHTML = html;
+                    }
+                } catch (error) {
+                    if (previewRequest === request && !request.signal.aborted) {
+                        preview.textContent =
+                            "Preview could not be loaded. Your text is unchanged. Try Preview again.";
+                    }
+                } finally {
+                    if (previewRequest === request) {
+                        preview.removeAttribute("aria-busy");
+                    }
+                }
             });
             editTab.addEventListener("show.bs.tab", function () {
+                if (previewRequest) previewRequest.abort();
                 toolbar.style.visibility = "visible";
             });
 
@@ -339,7 +428,19 @@ var MarkdownWidget = (function () {
                 handlePaste(this, e);
             });
 
+            // Escape releases Tab for one keypress so the field is escapable.
+            // Leaving the field re-arms Tab for indenting.
+            let tabReleased = false;
+            textarea.addEventListener("blur", function () {
+                tabReleased = false;
+            });
+
             textarea.addEventListener("keydown", function (e) {
+                let tab = tabRelease(tabReleased, e.key);
+                tabReleased = tab.released;
+                if (tab.movesFocus || e.key === "Escape") {
+                    return; // the browser moves focus; Escape does nothing else
+                }
                 if (e.key === "Tab") {
                     e.preventDefault();
                     indentLines(this, e.shiftKey);
@@ -359,13 +460,14 @@ var MarkdownWidget = (function () {
     // they're in scope. Harmless in the browser, where `module` is undefined.
     if (typeof module !== "undefined" && module.exports) {
         module.exports = {
-            isWrapped: isWrapped,
+            requestPreview: requestPreview,
             wrapInline: wrapInline,
             insertLink: insertLink,
             toggleLinePrefix: toggleLinePrefix,
             indentLines: indentLines,
             continueList: continueList,
             handlePaste: handlePaste,
+            tabRelease: tabRelease,
             actions: actions,
             continuations: continuations,
         };
