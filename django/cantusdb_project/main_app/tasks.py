@@ -487,6 +487,14 @@ def _format_check_csv(result: dict, check_key: Optional[str] = None) -> str:
 
 @shared_task(name="cantusdb.run_data_checks")
 def run_data_checks() -> None:
+    if not settings.DATA_CHECKS_ENABLED:
+        logger.info(
+            "Data checks disabled in this environment "
+            "(PROJECT_ENVIRONMENT=%s); skipping.",
+            settings.PROJECT_ENVIRONMENT,
+        )
+        return
+
     config = DataCheckConfig.objects.order_by("-id").first()
     if config is None:
         return
