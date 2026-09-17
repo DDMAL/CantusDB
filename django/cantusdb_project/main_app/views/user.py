@@ -5,14 +5,18 @@ from django.contrib.auth import get_user_model
 from django.contrib.auth.mixins import LoginRequiredMixin
 from django.contrib.auth.views import LogoutView
 from django.core.paginator import Paginator
-from django.db.models import Q, QuerySet
+from django.db.models import BooleanField, Case, Q, QuerySet, Value, When
 from django.db.models.aggregates import Count
 from django.views.generic import DetailView
 from django.views.generic import ListView
 from extra_views import SearchableListMixin
 
 from main_app.models import Source
-from main_app.permissions import CustomAccessMixin
+from main_app.permissions import (
+    CustomAccessMixin,
+    get_user_groups,
+    user_group_valid,
+)
 from users.models import User as UserType
 
 
@@ -98,8 +102,29 @@ class UserSourceListView(LoginRequiredMixin, ListView):  # type: ignore [type-ar
     template_name = "user_source_list.html"
     paginate_by = 3
 
+    @staticmethod
+    def annotate_proofreading_lock(queryset: QuerySet[Source]) -> QuerySet[Source]:
+        """
+        Flag each source that has been submitted for proofreading.
+
+        This page offers chant-editing links, and a submitted source refuses
+        them for everyone but editors (issue #1962). Annotating keeps the
+        status string out of the template and costs no extra query.
+
+        :param queryset: Sources to annotate.
+
+        :return: The queryset with a `locked_for_proofreading` boolean.
+        """
+        return queryset.annotate(
+            locked_for_proofreading=Case(
+                When(source_status=Source.PROOFREAD_PENDING_STATUS, then=Value(True)),
+                default=Value(False),
+                output_field=BooleanField(),
+            )
+        )
+
     def get_queryset(self) -> QuerySet[Source]:
-        return (
+        return self.annotate_proofreading_lock(
             Source.objects.filter(
                 Q(current_editors=self.request.user) | Q(created_by=self.request.user)
             )
@@ -111,7 +136,7 @@ class UserSourceListView(LoginRequiredMixin, ListView):  # type: ignore [type-ar
     def get_context_data(self, **kwargs: Any) -> Dict[str, Any]:
         context = super().get_context_data(**kwargs)
         user: UserType = self.request.user
-        user_created_sources = (
+        user_created_sources = self.annotate_proofreading_lock(
             Source.objects.filter(created_by=user)
             .order_by("-date_created")
             .select_related("holding_institution")
@@ -122,6 +147,12 @@ class UserSourceListView(LoginRequiredMixin, ListView):  # type: ignore [type-ar
         user_created_page_obj = user_created_paginator.get_page(user_created_page_num)
 
         context["user_created_sources_page_obj"] = user_created_page_obj
+        # Editors proofread submitted sources, so the lock never hides their
+        # links. Mirrors CustomAccessMixin.user_is_editor, which this view
+        # cannot reach without the whole access mixin.
+        context["user_is_editor"] = user.is_superuser or user_group_valid(
+            "editor", get_user_groups(user)
+        )
         return context
 
 
