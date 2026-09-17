@@ -8,6 +8,7 @@ import requests
 from django.conf import settings
 from django.contrib import messages
 from django.contrib.auth.mixins import UserPassesTestMixin
+from django.db import transaction
 from django.db.models import (
     BooleanField,
     Case,
@@ -895,26 +896,66 @@ class SourceEditView(CustomAccessMixin, UpdateView):  # type: ignore[type-arg]
             context["bower_segment"] = False
         return context
 
+    @staticmethod
+    def save_form_fields_only(form) -> None:
+        """
+        Save `form`'s instance, writing only the columns the form edits.
+
+        `ModelForm.save()` issues a full-row UPDATE carrying every value the
+        instance was loaded with, including columns the form never showed. On
+        a form that sat open while another request changed one of those
+        columns — `source_status`, when the source is submitted for
+        proofreading — that UPDATE writes the stale value back. Naming the
+        form's own fields in `update_fields` keeps the edit out of columns it
+        doesn't own. `date_updated` is listed explicitly because Django only
+        refreshes `auto_now` fields that appear in `update_fields`.
+
+        :param form: A bound, valid `SourceEditForm` to save.
+        """
+        form_field_names = set(form.fields)
+        # Many-to-many fields are saved separately by `save_m2m()` and are
+        # rejected in `update_fields`, so take the concrete columns only.
+        update_fields = {
+            field.name
+            for field in Source._meta.concrete_fields
+            if field.name in form_field_names or field.attname in form_field_names
+        }
+        update_fields.update(("last_updated_by", "date_updated"))
+        source = form.save(commit=False)
+        source.save(update_fields=sorted(update_fields))
+        form.save_m2m()
+
     def form_valid(self, form):
-        # `source_status` is not editable on this form, but ModelForm.save()
-        # issues a full-row UPDATE, so the value loaded when the form opened
-        # would revert a lock applied while it sat open. Re-read it: refuse the
-        # stale edit if the source was submitted for proofreading in the
-        # meantime, and otherwise carry the current status into the save rather
-        # than the one this request started with. See issue #1962.
-        fresh = Source.objects.only("source_status").get(pk=form.instance.pk)
-        if self.source_locked_for_proofreading(fresh) and not self.user_is_editor:
-            return self.handle_no_permission()
-        form.instance.source_status = fresh.source_status
-        form.instance.last_updated_by = self.request.user
-        form.save()
-        if "submit_for_proofreading" in self.request.POST:
-            # The button lives inside this form, so save the indexer's
-            # pending corrections before locking the source (issue #1962).
-            source = form.instance
-            source.submit_for_proofreading(self.request.user)
+        # `source_status` is not editable on this form, but a save from a form
+        # that opened before the source was submitted must not revert the lock.
+        # Two things keep it from doing so (see issue #1962):
+        #
+        # - the status is re-read under a row lock held until the save
+        #   commits, so a submission racing this request either lands first —
+        #   and the stale edit is refused — or waits its turn behind it;
+        # - the save is narrowed to the form's own columns, so `source_status`
+        #   is never in the UPDATE at all and a submission that commits just
+        #   after the re-read still stands.
+        submitting = "submit_for_proofreading" in self.request.POST
+        with transaction.atomic():
+            fresh = (
+                Source.objects.select_for_update()
+                .only("source_status")
+                .get(pk=form.instance.pk)
+            )
+            if self.source_locked_for_proofreading(fresh) and not self.user_is_editor:
+                return self.handle_no_permission()
+            form.instance.last_updated_by = self.request.user
+            self.save_form_fields_only(form)
+            if submitting:
+                # The button lives inside this form, so save the indexer's
+                # pending corrections before locking the source (issue #1962).
+                form.instance.submit_for_proofreading(self.request.user)
+        if submitting:
             messages.success(self.request, PROOFREADING_SUBMITTED_MESSAGE)
-            return HttpResponseRedirect(reverse("source-detail", args=[source.id]))
+            return HttpResponseRedirect(
+                reverse("source-detail", args=[form.instance.id])
+            )
         return HttpResponseRedirect(self.get_success_url())
 
 

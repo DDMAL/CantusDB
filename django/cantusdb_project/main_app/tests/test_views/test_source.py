@@ -639,6 +639,68 @@ class SourceSubmitForProofreadingViewTest(CustomAccessTestMixin, TestCase):
         self.assertEqual(source.shelfmark, "proofreader-correction")
         self.assertEqual(source.source_status, Source.PROOFREAD_PENDING_STATUS)
 
+    def test_edit_save_cannot_revert_a_lock_set_after_the_status_re_read(self) -> None:
+        """
+        Re-reading `source_status` closes the window before the read, but a
+        submission can still commit between the read and the write. The write
+        must not carry the pre-lock status back into the row.
+
+        Reproducing the real interleaving needs a second connection, so the
+        form's own `save()` stands in for the concurrent request: by the time
+        it runs, `test_func` and the re-read have both gone by.
+        """
+        source = self.sources["user_created_source"]
+        editor = self.users["editor"]
+        real_save = SourceEditForm.save
+
+        def submit_then_save(form, *args, **kwargs):
+            Source.objects.get(pk=form.instance.pk).submit_for_proofreading(editor)
+            return real_save(form, *args, **kwargs)
+
+        self.client.force_login(user=self.users["user"])
+        with mock.patch.object(SourceEditForm, "save", submit_then_save):
+            response = self.client.post(
+                reverse("source-edit", args=[source.id]),
+                {
+                    "shelfmark": "edited-alongside-a-submission",
+                    "source_completeness": "1",
+                    "production_method": "1",
+                },
+            )
+
+        self.assertEqual(response.status_code, 302)
+        source.refresh_from_db()
+        # Serialized for real, the edit would commit first and the submission
+        # land on top of it, which is the state asserted here: the edit keeps
+        # its shelfmark and the lock stands.
+        self.assertEqual(source.source_status, Source.PROOFREAD_PENDING_STATUS)
+        self.assertEqual(source.shelfmark, "edited-alongside-a-submission")
+
+    def test_edit_save_leaves_columns_the_form_does_not_edit_alone(self) -> None:
+        # The edit form shows none of a source's status or count columns, so
+        # its save must not write them (issue #1962).
+        source = self.sources["user_created_source"]
+        Source.objects.filter(pk=source.pk).update(number_of_chants=7)
+        self.client.force_login(user=self.users["editor"])
+        with CaptureQueriesContext(connection) as queries:
+            self.client.post(
+                reverse("source-edit", args=[source.id]),
+                {
+                    "shelfmark": "narrow-update",
+                    "source_completeness": "1",
+                    "production_method": "1",
+                },
+            )
+        source_updates = [
+            query["sql"]
+            for query in queries.captured_queries
+            if query["sql"].startswith('UPDATE "main_app_source"')
+        ]
+        self.assertTrue(source_updates, "no UPDATE on the source was issued")
+        for sql in source_updates:
+            self.assertNotIn("source_status", sql)
+            self.assertNotIn("number_of_chants", sql)
+
     def test_submitting_through_edit_form_saves_pending_edits(self) -> None:
         # The button lives inside the edit form; submitting also locks the
         # source, so corrections dropped here could never be redone.
