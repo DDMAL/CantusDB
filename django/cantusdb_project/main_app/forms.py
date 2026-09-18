@@ -1128,6 +1128,11 @@ class ImageLinkForm(forms.Form):
             if not image_link:
                 continue
             try:
+                if any(char in image_link for char in "\ufffd\r\n\t"):
+                    raise ValidationError(
+                        "The link contains unreadable characters or line breaks. "
+                        "Correct the link and export the file as UTF-8 CSV."
+                    )
                 image_links[folio] = link_field.clean(image_link)
             except ValidationError as error:
                 invalid_links.append(f"{folio} ({' '.join(error.messages)})")

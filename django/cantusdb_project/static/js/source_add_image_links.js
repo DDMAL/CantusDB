@@ -31,92 +31,118 @@ function addPreviewTableRow(tableBody, folio, imageLink) {
     tableBody.appendChild(tr);
 };
 
-function splitCSVRow(row, delimiter) {
-    // Split one CSV line into fields, respecting quoted fields (and doubled
-    // quotes within them). A plain `split` mis-handles IIIF image URLs, which
-    // routinely contain commas — e.g. `/full/500,/0/default.jpg` — and which
-    // Python's csv.writer therefore emits quoted.
-    // Known limitation: a quoted field containing a line break is not
-    // supported, since rows are split on newlines before reaching here.
-    const fields = [];
+function* readCSVRecords(csv, delimiter, startLine = 1) {
+    // A quoted field may span physical lines. Keep those lines in the field
+    // so a manifest label cannot become an extra folio/image-link record.
+    let fields = [];
     let field = '';
-    let inQuotes = false;
-    for (let i = 0; i < row.length; i++) {
-        const char = row[i];
-        if (inQuotes) {
-            if (char !== '"') {
-                field += char;
-            } else if (row[i + 1] === '"') {
+    let state = 'unquoted';
+    let line = startLine;
+    let recordLine = startLine;
+    for (let i = 0; i < csv.length; i++) {
+        const char = csv[i];
+        if (state === 'quoted' && char === '"') {
+            if (csv[i + 1] === '"') {
                 field += '"';
                 i++;
             } else {
-                inQuotes = false;
+                state = 'closed';
             }
-        } else if (char === '"' && field === '') {
-            inQuotes = true;
+        } else if (char === '\r' || char === '\n') {
+            const newline = char === '\r' && csv[i + 1] === '\n' ? '\r\n' : char;
+            if (newline.length === 2) i++;
+            if (state === 'quoted') {
+                field += newline;
+            } else {
+                fields.push(field);
+                if (fields.length > 1 || fields[0].trim()) {
+                    yield { fields, line: recordLine };
+                }
+                fields = [];
+                field = '';
+                state = 'unquoted';
+                recordLine = line + 1;
+            }
+            line++;
+        } else if (state === 'quoted') {
+            field += char;
         } else if (char === delimiter) {
             fields.push(field);
             field = '';
+            state = 'unquoted';
+        } else if (state === 'closed') {
+            if (char !== ' ' && char !== '\t') {
+                throw new Error(`CSV line ${line}: unexpected text after a closing quote.`);
+            }
+        } else if (char === '"') {
+            if (field.trim()) {
+                throw new Error(`CSV line ${line}: quotes must surround the whole field.`);
+            }
+            field = '';
+            state = 'quoted';
         } else {
             field += char;
         }
     }
+    if (state === 'quoted') {
+        throw new Error(`CSV line ${recordLine}: a quoted field is missing its closing quote.`);
+    }
     fields.push(field);
-    return fields;
+    if (fields.length > 1 || fields[0].trim()) yield { fields, line: recordLine };
 }
 
-function detectDelimiter(firstRow, sourceFolios) {
-    // Some locales (e.g. French) export semicolon-delimited CSVs, but both
-    // characters are legal inside a URL, so the delimiter can't be inferred
-    // from mere presence: a comma-delimited row whose link contains a
-    // semicolon would otherwise be split on the semicolon, swallowing the
-    // whole URL into the folio field.
-    const candidates = [',', ';'];
-    const firstFields = candidates.map(d => splitCSVRow(firstRow, d)[0].trim());
-    // A header row names the column outright.
-    const header = candidates.findIndex(
-        (_, i) => firstFields[i].toLowerCase() === 'folio'
-    );
-    if (header !== -1) return candidates[header];
-    // Otherwise, a first field naming a folio this source has is decisive.
-    const known = candidates.findIndex((_, i) => sourceFolios.has(firstFields[i]));
-    if (known !== -1) return candidates[known];
-    // Failing both — the CSV may legitimately list folios the source lacks —
-    // prefer the delimiter giving the shorter first field. A folio is short;
-    // the losing split swallows the image URL, so it is much longer.
-    return firstFields[1].length < firstFields[0].length ? ';' : ',';
+function detectDelimiter(csv, sourceFolios) {
+    // Read only the first record for each candidate. A delimiter in a URL
+    // must not outweigh a header or a known folio in the first column.
+    const candidates = [];
+    let parseError;
+    for (const delimiter of [',', ';']) {
+        try {
+            const record = readCSVRecords(csv, delimiter).next().value;
+            candidates.push({ delimiter, first: record ? record.fields[0].trim() : '' });
+        } catch (error) {
+            parseError = error;
+        }
+    }
+    if (!candidates.length) throw parseError;
+    const header = candidates.find(candidate => candidate.first.toLowerCase() === 'folio');
+    const known = candidates.find(candidate => sourceFolios.has(candidate.first));
+    // Otherwise the incorrect delimiter usually swallows the URL into the
+    // first field, making it longer than the folio under the correct split.
+    return (header || known || candidates.sort((a, b) => a.first.length - b.first.length)[0]).delimiter;
 }
 
 function parseImageLinkCSV(csv, sourceFolios) {
-    // Parse the CSV file into the rows it lists, in file order, as objects
-    // with folio and imageLink keys.
-    const rows = csv.split('\n');
-    // Work from the first row with content: a leading blank line would
-    // otherwise defeat both the delimiter and the header check below.
-    const firstRowIndex = rows.findIndex(row => row.trim());
-    const firstRow = firstRowIndex === -1 ? '' : rows[firstRowIndex];
-    const delimiter = detectDelimiter(firstRow, sourceFolios);
-    // Check if a header row is present by looking at the first column name.
-    // Sniffing the second column for a URL instead would swallow the first
-    // row of a headerless CSV whenever its image link is blank.
-    const firstColumn = splitCSVRow(firstRow, delimiter)[0].trim().toLowerCase();
-    let start;
-    if (firstRowIndex === -1) {
-        start = rows.length; // nothing but blank lines
-    } else {
-        start = firstColumn === 'folio' ? firstRowIndex + 1 : firstRowIndex;
+    if (/[\uFFFD\0]/.test(csv)) {
+        throw new Error('The file contains unreadable characters. Export it as UTF-8 CSV and select it again.');
     }
+    csv = csv.replace(/^\uFEFF/, '');
+    // Excel can precede the header with a delimiter declaration.
+    const declaration = csv.match(/^sep=([,;])(?:\r\n|\r|\n)/i);
+    if (declaration) csv = csv.slice(declaration[0].length);
+    const delimiter = declaration ? declaration[1] : detectDelimiter(csv, sourceFolios);
     const parsedCSV = [];
-    for (let i = start; i < rows.length; i++) {
-        const row = rows[i].trim();
-        if (!row) continue;
-        const fields = splitCSVRow(row, delimiter);
-        const folio = (fields[0] || '').trim();
+    let columns;
+    for (const { fields, line } of readCSVRecords(csv, delimiter, declaration ? 2 : 1)) {
+        if (columns === undefined) {
+            const hasHeader = fields[0].trim().toLowerCase() === 'folio';
+            columns = hasHeader ? fields.length : 2;
+            if (columns < 2) {
+                throw new Error('The CSV needs folio and image-link columns separated by commas or semicolons.');
+            }
+            if (hasHeader) continue;
+        }
+        if (fields.length !== columns) {
+            throw new Error(`CSV line ${line}: expected ${columns} columns, found ${fields.length}. `
+                + 'Quote links containing delimiters and keep the header when importing extra columns.');
+        }
+        const folio = fields[0].trim();
+        const imageLink = fields[1].trim();
+        if (/[\r\n\t]/.test(folio + imageLink)) {
+            throw new Error(`CSV line ${line}: folios and image links cannot contain tabs or line breaks.`);
+        }
         if (!folio) continue;
-        // Any further columns (the generated IIIF CSV also carries `notes`
-        // and `canvas_label`) are for the administrator to read, not for us.
-        const imageLink = (fields[1] || '').trim();
-        parsedCSV.push({ "folio": folio, "imageLink": imageLink });
+        parsedCSV.push({ folio, imageLink });
     }
     return parsedCSV;
 }
@@ -236,27 +262,36 @@ function initializeCSVImport() {
     const submit = document.getElementById('imgLinkFormSubmitBtn');
     const error = document.getElementById('csvReadError');
     let selection = 0;
-    // A returned form may hold an invalid previous submission. Require a file
-    // selection so the user always sees the rows they are about to save.
-    document.getElementById('imgLinkData').value = '';
-    submit.disabled = true;
-    input.addEventListener('change', function (event) {
-        const currentSelection = ++selection;
+    function clearImport() {
         submit.disabled = true;
         document.getElementById('imgLinkData').value = '';
         document.getElementById('csvPreviewBody').innerHTML = '';
         document.getElementById('csvPreviewDiv').hidden = true;
         document.getElementById('csvTestingDiv').hidden = true;
         error.hidden = true;
+        error.textContent = '';
+    }
+    // A returned form may hold an invalid previous submission. Require a file
+    // selection so the user always sees the rows they are about to save.
+    clearImport();
+    input.addEventListener('change', function (event) {
+        const currentSelection = ++selection;
+        clearImport();
         const file = event.target.files[0];
         if (!file) return;
         const reader = new FileReader();
         reader.onload = function (event) {
             if (currentSelection !== selection) return;
-            const rows = csvLoadCallback(event.target.result);
-            submit.disabled = rows.length === 0;
-            if (!rows.length) {
-                error.textContent = 'The file contains no folio rows. Select another CSV file.';
+            try {
+                const rows = csvLoadCallback(event.target.result);
+                submit.disabled = rows.length === 0;
+                if (!rows.length) {
+                    error.textContent = 'The file contains no folio rows. Select another CSV file.';
+                    error.hidden = false;
+                }
+            } catch (cause) {
+                clearImport();
+                error.textContent = cause.message;
                 error.hidden = false;
             }
         };
@@ -282,6 +317,5 @@ if (typeof module !== 'undefined' && module.exports) {
         detectDelimiter,
         getDuplicatedFolios,
         parseImageLinkCSV,
-        splitCSVRow,
     };
 }

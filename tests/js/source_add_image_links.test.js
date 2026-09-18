@@ -303,3 +303,218 @@ test('an empty replacement file cannot submit the previous links', () => {
     assert.equal(dom.element('imgLinkFormSubmitBtn').disabled, true);
     assert.equal(dom.element('csvReadError').hidden, false);
 });
+
+for (const delimiter of [',', ';']) {
+    for (const [endingName, ending] of [['LF', '\n'], ['CRLF', '\r\n'], ['CR', '\r']]) {
+        for (const header of [null, ['folio', 'image_link'], ['"FoLiO"', '"image_link"']]) {
+            const headerName = header === null ? 'no header' : header[0];
+            test(`${JSON.stringify(delimiter)} CSV, ${endingName}, ${headerName} preserves every row`, () => {
+                const folios = ['001r', '001v', 'prexi2', '298x'];
+                const dom = installDOM(folios);
+                const link = 'https://example.com/iiif/full/500,/0/default.jpg?view=a;b';
+                const rows = [
+                    ['001r', `"${link}"`],
+                    ['001v', ''],
+                    ['prexi2', 'https://example.com/café.jpg'],
+                    ['298x', 'https://example.com/Folio%2092r.jpg'],
+                ];
+                if (header) rows.unshift(header);
+                csvLoadCallback(rows.map(row => row.join(delimiter)).join(ending) + ending);
+
+                assert.deepEqual(dom.submittedLinks(), [
+                    ['001r', link],
+                    ['001v', ''],
+                    ['prexi2', 'https://example.com/café.jpg'],
+                    ['298x', 'https://example.com/Folio%2092r.jpg'],
+                ]);
+                assert.deepEqual(dom.previewedFolios(), folios);
+                assert.equal(dom.check('extraFolios').state, 'ok');
+            });
+        }
+    }
+}
+
+test('blank lines and surrounding whitespace do not become folio rows', () => {
+    const dom = installDOM(['001r', '001v']);
+    csvLoadCallback('\r\n\nfolio,image_link\r\n 001r , https://example.com/r \r\n\n001v,\n');
+
+    assert.deepEqual(dom.submittedLinks(), [['001r', 'https://example.com/r'], ['001v', '']]);
+    assert.deepEqual(dom.previewedFolios(), ['001r', '001v']);
+});
+
+test('a headerless first row with a blank link is preserved', () => {
+    const dom = installDOM(['001r', '001v']);
+    csvLoadCallback('001r,\n001v,https://example.com/v');
+
+    assert.deepEqual(dom.submittedLinks(), [['001r', ''], ['001v', 'https://example.com/v']]);
+});
+
+test('doubled quotes are unescaped and quoted extra columns do not change links', () => {
+    const dom = installDOM(['001r']);
+    csvLoadCallback('folio,image_link,notes,canvas_label\n'
+        + '001r,"https://example.com/?q=""detail""","check, please","f. ""1r"""');
+
+    assert.deepEqual(dom.submittedLinks(), [['001r', 'https://example.com/?q="detail"']]);
+    assert.deepEqual(dom.previewedLinks(), ['https://example.com/?q="detail"']);
+});
+
+test('a final blank duplicate is submitted after its earlier nonblank value', () => {
+    const dom = installDOM(['001r']);
+    csvLoadCallback('folio,image_link\n001r,https://example.com/earlier\n001r,');
+
+    assert.deepEqual(dom.submittedLinks(), [['001r', 'https://example.com/earlier'], ['001r', '']]);
+    assert.deepEqual(dom.previewedLinks(), ['https://example.com/earlier', '']);
+    assert.equal(dom.check('folioDuplication').state, 'warning');
+});
+
+test('a quoted multiline label cannot introduce a second link for another folio', () => {
+    const dom = installDOM(['001r', '001v']);
+    csvLoadCallback([
+        'folio,image_link,notes,canvas_label',
+        '001v,https://example.com/intended,,f. 1v',
+        '001r,https://example.com/r,,"f. 1r',
+        '001v,https://example.com/caption',
+        'end"',
+    ].join('\r\n'));
+
+    assert.deepEqual(dom.submittedLinks(), [
+        ['001v', 'https://example.com/intended'],
+        ['001r', 'https://example.com/r'],
+    ]);
+    assert.deepEqual(dom.previewedFolios(), ['001v', '001r']);
+    assert.equal(dom.check('folioDuplication').state, 'ok');
+    assert.equal(dom.check('extraFolios').state, 'ok');
+});
+
+const malformedCSVs = [
+    ['unclosed URL quote', 'folio,image_link\n001r,"https://example.com/truncated'],
+    ['characters after a closing quote', 'folio,image_link\n001r,"https://example.com/a"suffix'],
+    ['extra column under a two-column header',
+        'folio,image_link\n001r,https://example.com/iiif/full/500,/0/default.jpg'],
+    ['missing link column', 'folio,image_link\n001r'],
+    ['mixed delimiters', 'folio,image_link\n001r;https://example.com/r'],
+    ['tab delimiters', 'folio\timage_link\n001r\thttps://example.com/r'],
+    ['unquoted extra columns without a header', '001r,https://example.com/r,note,label'],
+    ['a quote inside an unquoted field', 'folio,image_link\n001r,https://example.com/a"b'],
+    ['a line break inside a URL', 'folio,image_link\n001r,"https://example.com/a\nb"'],
+    ['binary or incorrectly decoded text', 'folio,image_link\n001r,https://example.com/a\0b'],
+    // FileReader uses replacement characters for undecodable bytes. This
+    // exercises the resulting text, not FileReader's byte decoding itself.
+    ['undecodable URL characters', 'folio,image_link\n001r,https://example.com/caf\uFFFD.jpg'],
+];
+
+for (const [description, csv] of malformedCSVs) {
+    test(`a replacement file with ${description} cannot submit any links`, () => {
+        const dom = installDOM(['001r']);
+        let reader;
+        global.FileReader = class {
+            constructor() { reader = this; }
+            readAsText() { }
+        };
+        initializeCSVImport();
+        const select = dom.element('imgLinksCSV').listeners.change;
+        select({ target: { files: ['valid.csv'] } });
+        reader.onload({ target: { result: '001r,https://example.com/previous' } });
+        assert.equal(dom.element('imgLinkFormSubmitBtn').disabled, false);
+
+        select({ target: { files: ['malformed.csv'] } });
+        assert.doesNotThrow(() => reader.onload({ target: { result: csv } }));
+        assert.deepEqual({
+            links: dom.submittedLinks(),
+            disabled: dom.element('imgLinkFormSubmitBtn').disabled,
+            errorVisible: !dom.element('csvReadError').hidden,
+            errorHasText: dom.element('csvReadError').textContent.length > 0,
+            previewHidden: dom.element('csvPreviewDiv').hidden,
+        }, {
+            links: [],
+            disabled: true,
+            errorVisible: true,
+            errorHasText: true,
+            previewHidden: true,
+        });
+    });
+}
+
+test('a superseded file-read error cannot invalidate a newer successful selection', () => {
+    const dom = installDOM(['001r']);
+    const readers = [];
+    global.FileReader = class {
+        constructor() { readers.push(this); }
+        readAsText() { }
+    };
+    initializeCSVImport();
+    const select = dom.element('imgLinksCSV').listeners.change;
+    select({ target: { files: ['old.csv'] } });
+    select({ target: { files: ['current.csv'] } });
+    readers[1].onload({ target: { result: '001r,https://example.com/current' } });
+    readers[0].onerror();
+
+    assert.deepEqual(dom.submittedLinks(), [['001r', 'https://example.com/current']]);
+    assert.equal(dom.element('imgLinkFormSubmitBtn').disabled, false);
+    assert.equal(dom.element('csvReadError').hidden, true);
+});
+
+test('Excel delimiter declarations and quoted headers are understood', () => {
+    const dom = installDOM(['001r']);
+    csvLoadCallback('\uFEFFsep=;\r\n"folio";"image_link"\r\n001r;"https://example.com/a;b,c"');
+
+    assert.deepEqual(dom.submittedLinks(), [['001r', 'https://example.com/a;b,c']]);
+    assert.equal(dom.check('extraFolios').state, 'ok');
+});
+
+test('an error reports the physical line after a multiline label', () => {
+    const dom = installDOM(['001r', '001v']);
+    let reader;
+    global.FileReader = class {
+        constructor() { reader = this; }
+        readAsText() { }
+    };
+    initializeCSVImport();
+    dom.element('imgLinksCSV').listeners.change({ target: { files: ['bad.csv'] } });
+    reader.onload({ target: { result: [
+        'folio,image_link,notes,canvas_label',
+        '001r,https://example.com/r,,"first',
+        'second"',
+        '001v,https://example.com/v',
+    ].join('\r\n') } });
+
+    assert.match(dom.element('csvReadError').textContent, /line 4/);
+    assert.deepEqual(dom.submittedLinks(), []);
+    assert.equal(dom.element('imgLinkFormSubmitBtn').disabled, true);
+});
+
+test('error line numbers include an Excel delimiter declaration', () => {
+    const dom = installDOM(['001r']);
+    let reader;
+    global.FileReader = class {
+        constructor() { reader = this; }
+        readAsText() { }
+    };
+    initializeCSVImport();
+    dom.element('imgLinksCSV').listeners.change({ target: { files: ['bad.csv'] } });
+    reader.onload({ target: { result: 'sep=;\r\nfolio;image_link\r\n001r' } });
+
+    assert.match(dom.element('csvReadError').textContent, /line 3/);
+    assert.deepEqual(dom.submittedLinks(), []);
+    assert.equal(dom.element('imgLinkFormSubmitBtn').disabled, true);
+});
+
+test('selecting a corrected file clears the previous parse error', () => {
+    const dom = installDOM(['001r']);
+    let reader;
+    global.FileReader = class {
+        constructor() { reader = this; }
+        readAsText() { }
+    };
+    initializeCSVImport();
+    const select = dom.element('imgLinksCSV').listeners.change;
+    select({ target: { files: ['bad.csv'] } });
+    reader.onload({ target: { result: '001r,"https://example.com/r' } });
+    assert.equal(dom.element('csvReadError').hidden, false);
+
+    select({ target: { files: ['corrected.csv'] } });
+    reader.onload({ target: { result: '001r,"https://example.com/r"' } });
+    assert.deepEqual(dom.submittedLinks(), [['001r', 'https://example.com/r']]);
+    assert.equal(dom.element('csvReadError').hidden, true);
+    assert.equal(dom.element('imgLinkFormSubmitBtn').disabled, false);
+});

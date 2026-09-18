@@ -4,7 +4,7 @@
     <title>Add Image Links to Source: {{ source.short_heading }}</title>
 {% endblock %}
 {% block scripts %}
-    <script src="{% static 'js/source_add_image_links.js' %}"></script>
+    <script src="{% static 'js/source_add_image_links.js' %}?v=2"></script>
     <link rel="stylesheet" href="{% static 'css/source_add_image_links.css' %}" />
 {% endblock %}
 {% block content %}
@@ -26,6 +26,13 @@
                     contain two columns. The first column should be the folio on which the chant appears, matching the values
                     of the "folio" field in the source inventory. The second column should be a url to an image of the chant,
                     including the scheme (e.g., "https://") and domain. An optional header may be included.
+                </p>
+                <p class="small">
+                    Export the file as UTF-8 CSV, using commas or semicolons between columns.
+                    Keep the header when importing extra columns such as notes or canvas labels.
+                    Every row must have the same number of columns as the header; without a header,
+                    use exactly two columns. Put quotation marks around fields containing commas,
+                    semicolons or line breaks. Invalid CSV files must be corrected before saving.
                 </p>
                 <p class="small">
                     The following checks will be performed on the csv file before it is uploaded:
