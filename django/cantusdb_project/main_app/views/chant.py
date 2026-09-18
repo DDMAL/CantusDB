@@ -379,7 +379,7 @@ class ChantDetailView(CustomAccessMixin, JSONResponseMixin, DetailView):  # type
         chant = context["chant"]
         source = chant.source
 
-        context["user_can_edit_chant"] = self.user_assigned_to_source(source)
+        context["user_can_edit_chant"] = self.user_can_edit_chants(source)
         context["attribution_created_by"] = self._attributable_user(chant.created_by)
         context["attribution_last_updated_by"] = self._attributable_user(
             chant.last_updated_by
@@ -1086,7 +1086,7 @@ class ChantCreateView(CustomAccessMixin, CreateView):  # type: ignore[type-arg]
     def test_func(self) -> bool:
         source_id = self.kwargs.get(self.pk_url_kwarg)
         self.source = get_object_or_404(Source, id=source_id)
-        return self.user_assigned_to_source(self.source)
+        return self.user_can_edit_chants(self.source)
 
     def get_success_url(self):
         """
@@ -1212,7 +1212,7 @@ class ChantDeleteView(CustomAccessMixin, DeleteView):  # type: ignore[type-arg]
         chant_id = self.kwargs.get(self.pk_url_kwarg)
         chant = get_object_or_404(Chant, id=chant_id)
         source = chant.source
-        return self.user_assigned_to_source(source)
+        return self.user_can_edit_chants(source)
 
     def get_success_url(self):
         return reverse("source-edit-chants", args=[self.object.source.id])
@@ -1267,7 +1267,7 @@ class SourceEditChantsView(CustomAccessMixin, UpdateView):  # type: ignore[type-
     def test_func(self) -> bool:
         source_id = self.kwargs.get(self.pk_url_kwarg)
         self.source = get_object_or_404(Source, id=source_id)
-        return self.user_assigned_to_source(self.source)
+        return self.user_can_edit_chants(self.source)
 
     def get_queryset(self) -> QuerySet[Chant]:
         """
@@ -1505,7 +1505,7 @@ class ChantEditSyllabificationView(CustomAccessMixin, UpdateView):  # type: igno
     def test_func(self) -> bool:
         chant = self.get_object()
         source = chant.source
-        return self.user_assigned_to_source(source)
+        return self.user_can_edit_chants(source)
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)

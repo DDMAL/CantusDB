@@ -525,7 +525,14 @@ def make_fake_source(**kwargs: Any) -> Source:
         "source_completeness", Source.SourceCompletenessChoices.FULL_SOURCE
     )
     cursus_choices = [x[0] for x in Source.cursus_choices]
-    source_status_choices = [x[0] for x in Source.source_status_choices]
+    # The proofread-pending status locks a source from editing (issue #1962),
+    # so drawing it at random would make any test whose non-editor creator
+    # opens `source-edit` fail intermittently.
+    source_status_choices = [
+        x[0]
+        for x in Source.source_status_choices
+        if x[0] != Source.PROOFREAD_PENDING_STATUS
+    ]
     kwargs["cursus"] = kwargs.get("cursus", random.choice(cursus_choices))
     kwargs["source_status"] = kwargs.get(
         "source_status", random.choice(source_status_choices)
