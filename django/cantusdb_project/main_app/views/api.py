@@ -271,6 +271,18 @@ def ajax_melody_search(
 
     chants = chants.select_related("source__holding_institution")
 
+    # The heading each result displays under, composed from the source's current
+    # holding institution and shelfmark. `Chant.siglum` holds a frozen legacy
+    # copy of it, so the siglum filter below and the column the results render
+    # both read this instead (#2025). The component values stay in the response
+    # beside it, so a browser still running the previous `melody_search.js` from
+    # its cache keeps rendering a heading.
+    chants = chants.annotate(
+        computed_siglum=Source.short_heading_expression(
+            "source__holding_institution__siglum", "source__shelfmark"
+        )
+    )
+
     # if "search exact matches + transpositions"
     if transpose == "true":
         # calculate intervals
@@ -312,7 +324,7 @@ def ajax_melody_search(
     if source:
         chants = chants.filter(source__id=source)
     elif siglum:
-        chants = chants.filter(siglum__icontains=siglum)
+        chants = chants.filter(computed_siglum__icontains=siglum)
 
     if text:
         chants = chants.filter(manuscript_full_text_std_spelling__icontains=text)
@@ -325,6 +337,7 @@ def ajax_melody_search(
     # Source 680970 (MS 73) was excluded from melody search in #1635; re-enabled in #1893.
     result_values = chants.order_by("id").values(
         "id",
+        "computed_siglum",
         "source__holding_institution__siglum",
         "source__shelfmark",
         "folio",

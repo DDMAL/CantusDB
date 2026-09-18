@@ -1,14 +1,21 @@
 from typing import Dict, Any
 
 from django.views.generic import DetailView, ListView, UpdateView
-from django.db.models import Q, QuerySet, Value
-from django.db.models.functions import Coalesce, Concat, NullIf
+from django.db.models import Q, QuerySet
 from django.contrib import messages
 from django.http import HttpResponse
 
 from main_app.forms import SequenceEditForm
-from main_app.models import Sequence
+from main_app.models import Sequence, Source
 from main_app.permissions import CustomAccessMixin
+
+# The heading each sequence displays under: the holding institution's siglum (or
+# "Cantus" when it is missing, empty, or the "XX-NN" placeholder) followed by the
+# source's shelfmark. `Sequence.siglum` holds a frozen legacy copy of this, so
+# searching and sorting compose the current value instead (#2025).
+COMPUTED_SIGLUM = Source.short_heading_expression(
+    "source__holding_institution__siglum", "source__shelfmark"
+)
 
 
 class SequenceDetailView(CustomAccessMixin, DetailView):  # type: ignore[type-arg]
@@ -35,12 +42,8 @@ class SequenceDetailView(CustomAccessMixin, DetailView):  # type: ignore[type-ar
         context["concordances"] = (
             Sequence.objects.select_related("source__holding_institution")
             .filter(cantus_id=sequence.cantus_id)
-            .order_by(
-                "source__holding_institution__siglum",
-                "source__shelfmark",
-                "folio",
-                "s_sequence",
-            )
+            .annotate(computed_siglum=COMPUTED_SIGLUM)
+            .order_by("computed_siglum", "folio", "s_sequence")
         )
 
         context["user_can_edit_sequence"] = self.user_assigned_to_source(
@@ -67,6 +70,8 @@ class SequenceListView(CustomAccessMixin, ListView):  # type: ignore[type-arg]
                 "source__holding_institution"
             ).filter(source__in=self.published_and_assigned_sources)
 
+        queryset = queryset.annotate(computed_siglum=COMPUTED_SIGLUM)
+
         q_obj_filter = Q()
 
         if self.request.GET.get("incipit"):
@@ -74,35 +79,13 @@ class SequenceListView(CustomAccessMixin, ListView):  # type: ignore[type-arg]
             q_obj_filter &= Q(incipit__icontains=incipit)
         if self.request.GET.get("siglum"):
             siglum = self.request.GET.get("siglum")
-            # `Sequence.siglum` is a frozen legacy column; match the source's
-            # current composed heading (institution siglum + shelfmark) instead,
-            # which is what the list actually displays (#2025). This mirrors the
-            # fallback in `Source.compose_short_heading` (and the SQL in
-            # `feast_source_query`): a missing, empty, or placeholder ("XX-NN")
-            # institution siglum displays as "Cantus". Keep the three in sync.
-            queryset = queryset.annotate(
-                computed_siglum=Concat(
-                    Coalesce(
-                        NullIf(
-                            NullIf("source__holding_institution__siglum", Value("")),
-                            Value("XX-NN"),
-                        ),
-                        Value("Cantus"),
-                    ),
-                    Value(" "),
-                    Coalesce("source__shelfmark", Value("")),
-                )
-            )
             q_obj_filter &= Q(computed_siglum__icontains=siglum)
         if self.request.GET.get("cantus_id"):
             cantus_id = self.request.GET.get("cantus_id")
             q_obj_filter &= Q(cantus_id__icontains=cantus_id)
 
         return queryset.filter(q_obj_filter).order_by(
-            "source__holding_institution__siglum",
-            "source__shelfmark",
-            "folio",
-            "s_sequence",
+            "computed_siglum", "folio", "s_sequence"
         )
 
 
