@@ -1,3 +1,29 @@
+// Reads the CSV the administrator selects on the Add Image Links page, shows
+// it, checks it, and writes it into the form.
+//
+// The form carries one hidden field holding the rows of the selected file, as
+// a JSON list of [folio, image link] pairs. A field per folio would send more
+// fields than Django accepts in one request for a source the size of Tours 149
+// (1044 folios), and rebuilding the single field on every selection is what
+// keeps a replaced file from leaving its predecessor's links behind.
+
+function getSourceFolios() {
+    // The page lists the source's folios once, as JSON.
+    const element = document.getElementById('sourceFolios');
+    return element ? JSON.parse(element.textContent) : [];
+}
+
+function isPreviewableImageLink(imageLink) {
+    // Preview values have not passed server validation. Only web URLs may
+    // become clickable links; invalid or other schemes remain plain text.
+    try {
+        const url = new URL(imageLink);
+        return url.protocol === 'http:' || url.protocol === 'https:';
+    } catch {
+        return false;
+    }
+}
+
 function addPreviewTableRow(tableBody, folio, imageLink) {
     // Add a row to the preview table with the folio and image link.
     const tr = document.createElement('tr');
@@ -6,154 +32,203 @@ function addPreviewTableRow(tableBody, folio, imageLink) {
     tdFolio.classList.add('img-link-preview-cell');
     tr.appendChild(tdFolio);
     const tdLink = document.createElement('td');
-    const a = document.createElement('a');
-    a.href = imageLink;
-    a.textContent = imageLink;
-    a.target = '_blank';
-    tdLink.appendChild(a);
+    if (isPreviewableImageLink(imageLink)) {
+        const a = document.createElement('a');
+        a.href = imageLink;
+        a.textContent = imageLink;
+        a.target = '_blank';
+        a.rel = 'noopener noreferrer';
+        tdLink.appendChild(a);
+    } else {
+        tdLink.textContent = imageLink;
+    }
     tdLink.classList.add('img-link-preview-cell');
     tr.appendChild(tdLink);
     tableBody.appendChild(tr);
 };
 
-function getFormImgLinkInputs(form) {
-    // Get all the input elements in the form that have the 
-    // 'img-link-input' class and return them as a map of the form
-    // {folio: inputElement}.
-    const imgLinkInputs = form.getElementsByClassName('img-link-input');
-    const imgLinkMap = {};
-    for (let i = 0; i < imgLinkInputs.length; i++) {
-        const folio = imgLinkInputs[i].name;
-        imgLinkMap[folio] = imgLinkInputs[i];
-    }
-    return imgLinkMap;
-};
-
-
-function splitCSVRow(row, delimiter) {
-    // Split one CSV line into fields, respecting quoted fields (and doubled
-    // quotes within them). A plain `split` mis-handles IIIF image URLs, which
-    // routinely contain commas — e.g. `/full/500,/0/default.jpg` — and which
-    // Python's csv.writer therefore emits quoted.
-    // Known limitation: a quoted field containing a line break is not
-    // supported, since rows are split on newlines before reaching here.
-    const fields = [];
+function* readCSVRecords(csv, delimiter, startLine = 1) {
+    // A quoted field may span physical lines. Keep those lines in the field
+    // so a manifest label cannot become an extra folio/image-link record.
+    let fields = [];
     let field = '';
-    let inQuotes = false;
-    for (let i = 0; i < row.length; i++) {
-        const char = row[i];
-        if (inQuotes) {
-            if (char !== '"') {
-                field += char;
-            } else if (row[i + 1] === '"') {
+    let state = 'unquoted';
+    let line = startLine;
+    let recordLine = startLine;
+    for (let i = 0; i < csv.length; i++) {
+        const char = csv[i];
+        if (state === 'quoted' && char === '"') {
+            if (csv[i + 1] === '"') {
                 field += '"';
                 i++;
             } else {
-                inQuotes = false;
+                state = 'closed';
             }
-        } else if (char === '"' && field === '') {
-            inQuotes = true;
+        } else if (char === '\r' || char === '\n') {
+            const newline = char === '\r' && csv[i + 1] === '\n' ? '\r\n' : char;
+            if (newline.length === 2) i++;
+            if (state === 'quoted') {
+                field += newline;
+            } else {
+                fields.push(field);
+                if (fields.length > 1 || fields[0].trim()) {
+                    yield { fields, line: recordLine };
+                }
+                fields = [];
+                field = '';
+                state = 'unquoted';
+                recordLine = line + 1;
+            }
+            line++;
+        } else if (state === 'quoted') {
+            field += char;
         } else if (char === delimiter) {
             fields.push(field);
             field = '';
+            state = 'unquoted';
+        } else if (state === 'closed') {
+            if (char !== ' ' && char !== '\t') {
+                throw new Error(`CSV line ${line}: unexpected text after a closing quote.`);
+            }
+        } else if (char === '"') {
+            if (field.trim()) {
+                throw new Error(`CSV line ${line}: quotes must surround the whole field.`);
+            }
+            field = '';
+            state = 'quoted';
         } else {
             field += char;
         }
     }
+    if (state === 'quoted') {
+        throw new Error(`CSV line ${recordLine}: a quoted field is missing its closing quote.`);
+    }
     fields.push(field);
-    return fields;
+    if (fields.length > 1 || fields[0].trim()) yield { fields, line: recordLine };
 }
 
-function detectDelimiter(firstRow, imgLinkInputs) {
-    // Some locales (e.g. French) export semicolon-delimited CSVs, but both
-    // characters are legal inside a URL, so the delimiter can't be inferred
-    // from mere presence: a comma-delimited row whose link contains a
-    // semicolon would otherwise be split on the semicolon, swallowing the
-    // whole URL into the folio field.
-    const candidates = [',', ';'];
-    const firstFields = candidates.map(d => splitCSVRow(firstRow, d)[0].trim());
-    // A header row names the column outright.
-    const header = candidates.findIndex(
-        (_, i) => firstFields[i].toLowerCase() === 'folio'
-    );
-    if (header !== -1) return candidates[header];
-    // Otherwise, a first field naming a folio this source has is decisive.
-    const known = candidates.findIndex(
-        (_, i) => Object.prototype.hasOwnProperty.call(imgLinkInputs, firstFields[i])
-    );
-    if (known !== -1) return candidates[known];
-    // Failing both — the CSV may legitimately list folios the source lacks —
-    // prefer the delimiter giving the shorter first field. A folio is short;
-    // the losing split swallows the image URL, so it is much longer.
-    return firstFields[1].length < firstFields[0].length ? ';' : ',';
-}
-
-function parseAndPreviewImageLinkCSV(csv, imgLinkInputs) {
-    // Parse the passed CSV file and display it in a table. 
-    // Return two arrays: one with the folios and one with the image links
-    // for use in testing functions.
-    const rows = csv.split('\n');
-    // Work from the first row with content: a leading blank line would
-    // otherwise defeat both the delimiter and the header check below.
-    const firstRowIndex = rows.findIndex(row => row.trim());
-    const firstRow = firstRowIndex === -1 ? '' : rows[firstRowIndex];
-    const delimiter = detectDelimiter(firstRow, imgLinkInputs);
-    // Check if a header row is present by looking at the first column name.
-    // Sniffing the second column for a URL instead would swallow the first
-    // row of a headerless CSV whenever its image link is blank.
-    const firstColumn = firstRow.split(delimiter)[0].trim().toLowerCase();
-    let start;
-    if (firstRowIndex === -1) {
-        start = rows.length; // nothing but blank lines
-    } else {
-        start = firstColumn === 'folio' ? firstRowIndex + 1 : firstRowIndex;
-    }
-    const tableBody = document.getElementById('csvPreviewBody');
-    // Clear the table and fill in the new data. Only the first two columns
-    // are read; anything beyond them is ignored.
-    tableBody.innerHTML = '';
-    const parsedCSV = [];
-    for (let i = start; i < rows.length; i++) {
-        const row = rows[i].trim();
-        if (!row) continue;
-        const fields = splitCSVRow(row, delimiter);
-        const folio = (fields[0] || '').trim();
-        if (!folio) continue;
-        // Any further columns (the generated IIIF CSV also carries `notes`
-        // and `canvas_label`) are for the administrator to read, not for us.
-        const imageLink = (fields[1] || '').trim();
-        addPreviewTableRow(tableBody, folio, imageLink);
-        const folioInput = imgLinkInputs[folio];
-        if (folioInput) {
-            folioInput.value = imageLink;
+function detectDelimiter(csv, sourceFolios) {
+    // Read only the first record for each candidate. A delimiter in a URL
+    // must not outweigh a header or a known folio in the first column.
+    const candidates = [];
+    let parseError;
+    for (const delimiter of [',', ';']) {
+        try {
+            const record = readCSVRecords(csv, delimiter).next().value;
+            candidates.push({ delimiter, first: record ? record.fields[0].trim() : '' });
+        } catch (error) {
+            parseError = error;
         }
-        parsedCSV.push({ "folio": folio, "imageLink": imageLink });
     }
-    document.getElementById("csvPreviewDiv").hidden = false;
+    if (!candidates.length) throw parseError;
+    const header = candidates.find(candidate => candidate.first.toLowerCase() === 'folio');
+    const known = candidates.find(candidate => sourceFolios.has(candidate.first));
+    // Otherwise the incorrect delimiter usually swallows the URL into the
+    // first field, making it longer than the folio under the correct split.
+    return (header || known || candidates.sort((a, b) => a.first.length - b.first.length)[0]).delimiter;
+}
+
+function parseImageLinkCSV(csv, sourceFolios) {
+    if (/[\uFFFD\0]/.test(csv)) {
+        throw new Error('The file contains unreadable characters. Export it as UTF-8 CSV and select it again.');
+    }
+    csv = csv.replace(/^\uFEFF/, '');
+    // Excel can precede the header with a delimiter declaration.
+    const declaration = csv.match(/^sep=([,;])(?:\r\n|\r|\n)/i);
+    if (declaration) csv = csv.slice(declaration[0].length);
+    const delimiter = declaration ? declaration[1] : detectDelimiter(csv, sourceFolios);
+    const parsedCSV = [];
+    let columns;
+    for (const { fields, line } of readCSVRecords(csv, delimiter, declaration ? 2 : 1)) {
+        if (columns === undefined) {
+            const hasHeader = fields[0].trim().toLowerCase() === 'folio';
+            columns = hasHeader ? fields.length : 2;
+            if (columns < 2) {
+                throw new Error('The CSV needs folio and image-link columns separated by commas or semicolons.');
+            }
+            if (hasHeader) continue;
+        }
+        if (fields.length !== columns) {
+            throw new Error(`CSV line ${line}: expected ${columns} columns, found ${fields.length}. `
+                + 'Quote links containing delimiters and keep the header when importing extra columns.');
+        }
+        const folio = fields[0].trim();
+        const imageLink = fields[1].trim();
+        if (/[\r\n\t]/.test(folio + imageLink)) {
+            throw new Error(`CSV line ${line}: folios and image links cannot contain tabs or line breaks.`);
+        }
+        if (!folio) continue;
+        parsedCSV.push({ folio, imageLink });
+    }
     return parsedCSV;
 }
 
-function getFoliosAtDuplicatedValues(array) {
-    // Given an array of objects with imageLink and folio keys,
-    // parsed from the CSV file, return an array of folios that have
-    // been duplicated and an array of folios that have duplicated image links.
+function displayPreview(parsedCSV) {
+    // Show the rows just parsed, replacing whatever the last file left.
+    const tableBody = document.getElementById('csvPreviewBody');
+    tableBody.innerHTML = '';
+    parsedCSV.forEach(row => addPreviewTableRow(tableBody, row.folio, row.imageLink));
+    document.getElementById("csvPreviewDiv").hidden = false;
+}
+
+function setImageLinkFormData(parsedCSV) {
+    // Rebuild the whole field from the rows just parsed. Selecting another
+    // file therefore replaces the submission rather than adding to it, so the
+    // links that get saved are the ones the preview shows.
+    document.getElementById('imgLinkData').value = JSON.stringify(
+        parsedCSV.map(row => [row.folio, row.imageLink])
+    );
+}
+
+function getDuplicatedFolios(parsedCSV) {
+    // Return the folios the file lists more than once, sorted. The importer
+    // applies the last row for such a folio.
     const folioCounts = {};
-    const imageLinkCounts = {};
-    for (let i = 0; i < array.length; i++) {
-        const folio = array[i].folio;
-        const imageLink = array[i].imageLink;
-        folioCounts[folio] = (folioCounts[folio] || 0) + 1;
-        imageLinkCounts[imageLink] = (imageLinkCounts[imageLink] || 0) + 1;
+    parsedCSV.forEach(row => {
+        folioCounts[row.folio] = (folioCounts[row.folio] || 0) + 1;
+    });
+    return Object.keys(folioCounts).filter(folio => folioCounts[folio] > 1).sort();
+}
+
+function groupFoliosBySharedImageLink(parsedCSV) {
+    // Group the folios that share an image link, one array of folios per link.
+    const foliosByLink = new Map();
+    parsedCSV.forEach(({ folio, imageLink }) => {
+        if (!imageLink) return;
+        if (!foliosByLink.has(imageLink)) foliosByLink.set(imageLink, []);
+        foliosByLink.get(imageLink).push(folio);
+    });
+    return Array.from(foliosByLink.values()).filter(folios => folios.length > 1);
+}
+
+function checkSharedImageLinks(parsedCSV) {
+    // Describe how the file shares image links between folios. One photograph
+    // showing two facing folios gives each of them the same link, so pairs are
+    // ordinary; a link on three or more folios usually means rows have slipped.
+    // Earlier rows for a repeated folio are superseded, including when its
+    // final row has a blank link. Count only the links that will be applied.
+    const finalRows = new Map(parsedCSV.map(row => [row.folio, row]));
+    const linkedRows = Array.from(finalRows.values()).filter(row => row.imageLink);
+    const shared = groupFoliosBySharedImageLink(linkedRows);
+    if (shared.length === 0) {
+        return { folios: [], success: 'Every folio has its own image link' };
     }
-    const folioDuplicates = Object.keys(folioCounts).filter(folio => folioCounts[folio] > 1);
-    const imageLinkDuplicates = Object.keys(imageLinkCounts).filter(imageLink => imageLink !== '' && imageLinkCounts[imageLink] > 1);
-    const folioWImageDuplicates = [];
-    for (let i = 0; i < array.length; i++) {
-        if (imageLinkDuplicates.includes(array[i].imageLink)) {
-            folioWImageDuplicates.push(array[i].folio);
-        }
+    if (shared.length === 1 && shared[0].length === linkedRows.length) {
+        return { folios: [], success: 'All folios share one image link' };
     }
-    return [folioDuplicates.sort(), folioWImageDuplicates.sort()];
+    const crowded = shared.filter(folios => folios.length > 2);
+    if (crowded.length === 0) {
+        const pairs = shared.length;
+        return {
+            folios: [],
+            success: `${pairs} image link${pairs === 1 ? '' : 's'} shared by two `
+                + 'folios each, as photographs of facing folios are',
+        };
+    }
+    return {
+        folios: crowded.flat().sort(),
+        error: 'The following folios share an image link with two or more others',
+    };
 }
 
 function displayCheckResults(checkName, failingFolios, error_message, success_message = '') {
@@ -168,49 +243,98 @@ function displayCheckResults(checkName, failingFolios, error_message, success_me
     }
 };
 
-function csvLoadCallback(csv) {
-    // Callback function for when a CSV file is loaded.
-    // Parse the CSV file and display it in the table,
-    // then run checks for completeness and uniqueness.
-    const imgLinkInputs = getFormImgLinkInputs(document.getElementById('imgLinkForm'));
-    const sourceFolios = Object.keys(imgLinkInputs);
-    const parsedCSV = parseAndPreviewImageLinkCSV(csv, imgLinkInputs);
-    const [dupFolios, foliosWDupImageLinks] = getFoliosAtDuplicatedValues(parsedCSV);
+function displayCSVChecks(parsedCSV, sourceFolios) {
     // Display duplicated folios, if they exist.
-    displayCheckResults('folioDuplication', dupFolios, "The following folios are duplicated in the CSV");
+    displayCheckResults('folioDuplication', getDuplicatedFolios(parsedCSV),
+        "The following folios are duplicated in the CSV");
     // Check whether there are any folios in the source that are not in the CSV
     // Display these folios with missing Links in the preview table.
-    const csvFolios = parsedCSV.map(x => x.folio);
-    const missingLinks = sourceFolios.filter(folio => !csvFolios.includes(folio));
-    displayCheckResults('folioCompleteness', missingLinks, "Image links missing for the following folios");
+    const csvFolios = new Set(parsedCSV.map(row => row.folio));
+    const missingLinks = Array.from(sourceFolios).filter(folio => !csvFolios.has(folio));
+    displayCheckResults('folioCompleteness', missingLinks,
+        "Image links missing for the following folios");
     // Check whether there are any folios in the CSV that are not in the source
     // Display these folios as extra folios in the preview table.
-    const extraFolios = csvFolios.filter(folio => !sourceFolios.includes(folio));
-    displayCheckResults('extraFolios', extraFolios.sort(), "The following folios do not exist in the source");
-    // We expect one of two cases for the value of image links:
-    // 1. All image links are identical
-    // 2. All image links are unique
-    // Note that a mapping might be valid that does not conform to these cases
-    // (for example, if every image link shows two facing folios). In that case, the
-    // check will fail and we rely on the administrator to check the data.
-    if (foliosWDupImageLinks.length === csvFolios.length) {
-        displayCheckResults('imageLinkDuplication', [], "", "All image links identical");
-    } else {
-        displayCheckResults('imageLinkDuplication', foliosWDupImageLinks, "Image links duplicated on the following subset of folios");
-    }
+    const extraFolios = Array.from(csvFolios).filter(folio => !sourceFolios.has(folio));
+    displayCheckResults('extraFolios', extraFolios.sort(),
+        "The following folios do not exist in the source");
+    const sharedLinks = checkSharedImageLinks(parsedCSV);
+    displayCheckResults('imageLinkDuplication', sharedLinks.folios,
+        sharedLinks.error || '', sharedLinks.success || '');
     document.getElementById('csvTestingDiv').hidden = false;
 }
 
-document.addEventListener('DOMContentLoaded', function () {
-    // Add listener to the file input field to parse and display the CSV file
-    document.getElementById('imgLinksCSV').addEventListener('change', function (e) {
-        const file = e.target.files[0];
+function csvLoadCallback(csv) {
+    // Callback function for when a CSV file is loaded.
+    // Parse the CSV file, display it in the table, put it in the form,
+    // then run checks for completeness and uniqueness.
+    const sourceFolios = new Set(getSourceFolios());
+    const parsedCSV = parseImageLinkCSV(csv, sourceFolios);
+    displayPreview(parsedCSV);
+    setImageLinkFormData(parsedCSV);
+    displayCSVChecks(parsedCSV, sourceFolios);
+    return parsedCSV;
+}
+
+function initializeCSVImport() {
+    const input = document.getElementById('imgLinksCSV');
+    const submit = document.getElementById('imgLinkFormSubmitBtn');
+    const error = document.getElementById('csvReadError');
+    let selection = 0;
+    function clearImport() {
+        submit.disabled = true;
+        document.getElementById('imgLinkData').value = '';
+        document.getElementById('csvPreviewBody').innerHTML = '';
+        document.getElementById('csvPreviewDiv').hidden = true;
+        document.getElementById('csvTestingDiv').hidden = true;
+        error.hidden = true;
+        error.textContent = '';
+    }
+    // A returned form may hold an invalid previous submission. Require a file
+    // selection so the user always sees the rows they are about to save.
+    clearImport();
+    input.addEventListener('change', function (event) {
+        const currentSelection = ++selection;
+        clearImport();
+        const file = event.target.files[0];
+        if (!file) return;
         const reader = new FileReader();
-        reader.onload = function (e) {
-            const csv = e.target.result;
-            csvLoadCallback(csv);
+        reader.onload = function (event) {
+            if (currentSelection !== selection) return;
+            try {
+                const rows = csvLoadCallback(event.target.result);
+                submit.disabled = rows.length === 0;
+                if (!rows.length) {
+                    error.textContent = 'The file contains no folio rows. Select another CSV file.';
+                    error.hidden = false;
+                }
+            } catch (cause) {
+                clearImport();
+                error.textContent = cause.message;
+                error.hidden = false;
+            }
+        };
+        reader.onerror = function () {
+            if (currentSelection !== selection) return;
+            error.textContent = 'The file could not be read. Select the CSV file again.';
+            error.hidden = false;
         };
         reader.readAsText(file);
     });
 }
-);
+
+if (typeof document !== 'undefined') {
+    document.addEventListener('DOMContentLoaded', initializeCSVImport);
+}
+
+// Exported for the Node tests; the browser loads this file as a plain script.
+if (typeof module !== 'undefined' && module.exports) {
+    module.exports = {
+        initializeCSVImport,
+        checkSharedImageLinks,
+        csvLoadCallback,
+        detectDelimiter,
+        getDuplicatedFolios,
+        parseImageLinkCSV,
+    };
+}
