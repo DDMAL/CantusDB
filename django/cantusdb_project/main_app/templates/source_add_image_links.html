@@ -4,6 +4,7 @@
     <title>Add Image Links to Source: {{ source.short_heading }}</title>
 {% endblock %}
 {% block scripts %}
+    {# Bump this version when changing the import script so cached copies stay compatible with the form. #}
     <script src="{% static 'js/source_add_image_links.js' %}?v=2"></script>
     <link rel="stylesheet" href="{% static 'css/source_add_image_links.css' %}" />
 {% endblock %}

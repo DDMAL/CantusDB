@@ -995,7 +995,13 @@ class SourceAddImageLinksView(CustomAccessMixin, SingleObjectMixin, FormView):  
         Save the image links to the database.
         """
         saved = form.save(self.object)
-        message = f"Image links saved for {saved} folio{'' if saved == 1 else 's'}."
+        if saved:
+            message = f"Image links saved for {saved} folio{'' if saved == 1 else 's'}."
+        else:
+            message = (
+                "No image links were changed. The matching folios have blank links "
+                "in the CSV, so their existing links were kept."
+            )
         if form.ignored_folios:
             skipped = len(form.ignored_folios)
             message += (
