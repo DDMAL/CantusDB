@@ -5,6 +5,7 @@ Test views in views/source.py
 import json
 import random
 import re
+from unittest.mock import patch
 
 from faker import Faker
 from typing import Dict, Optional
@@ -12,6 +13,7 @@ from typing import Dict, Optional
 from django.conf import settings
 from django.contrib.messages import get_messages
 from django.db import connection
+from django.db.models import QuerySet
 from django.http import HttpResponse
 from django.test import TestCase
 from django.test.utils import CaptureQueriesContext
@@ -2244,14 +2246,16 @@ class SourceAddImageLinksViewTest(CustomAccessTestMixin, TestCase):
         )
 
     def test_only_the_final_link_for_a_folio_is_validated(self) -> None:
-        response = self.post_image_links(
-            [["001r", "invalid earlier value"], ["001r", "https://example.com/final"]]
-        )
-        self.assertEqual(response.status_code, 302)
-        self.assertEqual(
-            Chant.objects.get(source=self.source, folio="001r").image_link,
-            "https://example.com/final",
-        )
+        for earlier in ("invalid earlier value", "javascript:alert(1)"):
+            with self.subTest(earlier=earlier):
+                response = self.post_image_links(
+                    [["001r", earlier], ["001r", "https://example.com/final"]]
+                )
+                self.assertEqual(response.status_code, 302)
+                self.assertEqual(
+                    Chant.objects.get(source=self.source, folio="001r").image_link,
+                    "https://example.com/final",
+                )
 
     def test_folios_of_other_sources_are_left_alone(self) -> None:
         """
@@ -2372,6 +2376,28 @@ class SourceAddImageLinksViewTest(CustomAccessTestMixin, TestCase):
                     before,
                 )
 
+    def test_failure_during_import_rolls_back_earlier_folios(self) -> None:
+        """A later failure must not leave part of an image-link import applied."""
+        before = dict(self.source.chant_set.values_list("pk", "image_link"))
+        original_update = QuerySet.update
+
+        def fail_on_second_link(queryset: QuerySet, **kwargs: str) -> int:
+            if kwargs.get("image_link") == "https://example.com/fail":
+                raise RuntimeError("simulated import failure")
+            return original_update(queryset, **kwargs)
+
+        with patch.object(QuerySet, "update", fail_on_second_link):
+            with self.assertRaisesRegex(RuntimeError, "simulated import failure"):
+                self.post_image_links(
+                    [
+                        ["001r", "https://example.com/first"],
+                        ["004B", "https://example.com/fail"],
+                    ]
+                )
+        self.assertEqual(
+            dict(self.source.chant_set.values_list("pk", "image_link")), before
+        )
+
     def test_another_source_with_the_same_folio_is_not_changed(self) -> None:
         other_chant = make_fake_chant(
             source=make_fake_source(published=True),
@@ -2408,6 +2434,8 @@ class SourceAddImageLinksViewTest(CustomAccessTestMixin, TestCase):
         prefix = "https://example.com/"
         cases = (
             ("http://example.com/r", "http://example.com/r"),
+            ("ftp://example.com/r", "ftp://example.com/r"),
+            ("ftps://example.com/r", "ftps://example.com/r"),
             ("https://münich.example/é.jpg", "https://münich.example/é.jpg"),
             ("https://[2001:db8::1]/r", "https://[2001:db8::1]/r"),
             (f"  {prefix}a b.jpg  ", f"{prefix}a%20b.jpg"),

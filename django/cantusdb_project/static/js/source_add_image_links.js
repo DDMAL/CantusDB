@@ -13,6 +13,17 @@ function getSourceFolios() {
     return element ? JSON.parse(element.textContent) : [];
 }
 
+function isPreviewableImageLink(imageLink) {
+    // Preview values have not passed server validation. Only web URLs may
+    // become clickable links; invalid or other schemes remain plain text.
+    try {
+        const url = new URL(imageLink);
+        return url.protocol === 'http:' || url.protocol === 'https:';
+    } catch {
+        return false;
+    }
+}
+
 function addPreviewTableRow(tableBody, folio, imageLink) {
     // Add a row to the preview table with the folio and image link.
     const tr = document.createElement('tr');
@@ -21,11 +32,16 @@ function addPreviewTableRow(tableBody, folio, imageLink) {
     tdFolio.classList.add('img-link-preview-cell');
     tr.appendChild(tdFolio);
     const tdLink = document.createElement('td');
-    const a = document.createElement('a');
-    a.href = imageLink;
-    a.textContent = imageLink;
-    a.target = '_blank';
-    tdLink.appendChild(a);
+    if (isPreviewableImageLink(imageLink)) {
+        const a = document.createElement('a');
+        a.href = imageLink;
+        a.textContent = imageLink;
+        a.target = '_blank';
+        a.rel = 'noopener noreferrer';
+        tdLink.appendChild(a);
+    } else {
+        tdLink.textContent = imageLink;
+    }
     tdLink.classList.add('img-link-preview-cell');
     tr.appendChild(tdLink);
     tableBody.appendChild(tr);
@@ -189,8 +205,11 @@ function checkSharedImageLinks(parsedCSV) {
     // Describe how the file shares image links between folios. One photograph
     // showing two facing folios gives each of them the same link, so pairs are
     // ordinary; a link on three or more folios usually means rows have slipped.
-    const linkedRows = parsedCSV.filter(row => row.imageLink);
-    const shared = groupFoliosBySharedImageLink(parsedCSV);
+    // Earlier rows for a repeated folio are superseded, including when its
+    // final row has a blank link. Count only the links that will be applied.
+    const finalRows = new Map(parsedCSV.map(row => [row.folio, row]));
+    const linkedRows = Array.from(finalRows.values()).filter(row => row.imageLink);
+    const shared = groupFoliosBySharedImageLink(linkedRows);
     if (shared.length === 0) {
         return { folios: [], success: 'Every folio has its own image link' };
     }

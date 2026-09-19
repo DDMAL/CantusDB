@@ -83,7 +83,7 @@ function installDOM(sourceFolios) {
             (row) => row.children[0].textContent
         ),
         previewedLinks: () => element('csvPreviewBody').children.map(
-            (row) => row.children[1].children[0].textContent
+            (row) => row.children[1].children[0]?.textContent ?? row.children[1].textContent
         ),
         check: (name) => ({
             state: element(`${name}Icon`).className.includes('check-circle') ? 'ok' : 'warning',
@@ -517,4 +517,133 @@ test('selecting a corrected file clears the previous parse error', () => {
     assert.deepEqual(dom.submittedLinks(), [['001r', 'https://example.com/r']]);
     assert.equal(dom.element('csvReadError').hidden, true);
     assert.equal(dom.element('imgLinkFormSubmitBtn').disabled, false);
+});
+
+test('preview links are active only for valid HTTP and HTTPS URLs', () => {
+    const links = [
+        'https://example.com/café.jpg',
+        'HTTP://example.com/Folio 92r.jpg',
+        'javascript:alert(1)',
+        'JaVaScRiPt:alert(1)',
+        'data:text/html,<script>alert(1)</script>',
+        'vbscript:msgbox(1)',
+        'file:///tmp/image.jpg',
+        '//example.com/image.jpg',
+        '/relative/image.jpg',
+        'https://',
+        'ftp://example.com/image.jpg',
+        'ftps://example.com/image.jpg',
+        '',
+    ];
+    const folios = links.map((_, i) => `${i + 1}r`);
+    const dom = installDOM(folios);
+    csvLoadCallback(links.map((link, i) => `${folios[i]},"${link}"`).join('\n'));
+
+    assert.deepEqual(dom.previewedLinks(), links);
+    const cells = dom.element('csvPreviewBody').children.map(row => row.children[1]);
+    for (const [i, cell] of cells.entries()) {
+        if (i < 2) {
+            assert.equal(cell.children[0].tagName, 'a');
+            assert.equal(cell.children[0].href, links[i]);
+        } else {
+            assert.deepEqual(cell.children, [], links[i]);
+            assert.equal(cell.textContent, links[i]);
+        }
+    }
+    assert.equal(cells[0].children[0].rel, 'noopener noreferrer');
+    // URL normalization and final-row validation remain the server's job.
+    assert.deepEqual(dom.submittedLinks(), links.map((link, i) => [folios[i], link]));
+});
+
+test('an unsafe superseded URL stays inert without blocking its corrected final row', () => {
+    const dom = installDOM(['001r']);
+    let reader;
+    global.FileReader = class {
+        constructor() { reader = this; }
+        readAsText() { }
+    };
+    initializeCSVImport();
+    dom.element('imgLinksCSV').listeners.change({ target: { files: ['corrected.csv'] } });
+    reader.onload({ target: { result: '001r,javascript:alert(1)\n001r,https://example.com/final' } });
+
+    assert.deepEqual(dom.element('csvPreviewBody').children[0].children[1].children, []);
+    assert.equal(dom.element('imgLinkFormSubmitBtn').disabled, false);
+    assert.deepEqual(dom.submittedLinks(), [
+        ['001r', 'javascript:alert(1)'],
+        ['001r', 'https://example.com/final'],
+    ]);
+});
+
+test('a replaced duplicate no longer contributes to a shared-image warning', () => {
+    const dom = installDOM(['001r', '001v', '002r', '002v']);
+    const shared = 'https://example.com/shared';
+    csvLoadCallback([
+        `001r,${shared}`,
+        `001v,${shared}`,
+        `002r,${shared}`,
+        '002v,https://example.com/other',
+        '001r,https://example.com/replacement',
+    ].join('\n'));
+
+    assert.equal(dom.check('imageLinkDuplication').state, 'ok');
+    assert.match(dom.check('imageLinkDuplication').text, /1 image link shared by two folios/);
+    assert.equal(dom.check('folioDuplication').state, 'warning');
+    assert.equal(dom.submittedLinks().length, 5);
+});
+
+test('repeated rows for one folio cannot create an apparent three-folio image', () => {
+    const dom = installDOM(['001r', '001v', '002r']);
+    csvLoadCallback([
+        '001r,https://example.com/shared',
+        '001r,https://example.com/shared',
+        '001v,https://example.com/shared',
+        '002r,https://example.com/other',
+    ].join('\n'));
+
+    assert.equal(dom.check('imageLinkDuplication').state, 'ok');
+    assert.match(dom.check('imageLinkDuplication').text, /shared by two folios/);
+    assert.equal(dom.check('folioDuplication').state, 'warning');
+});
+
+test('a final blank row removes its earlier link from the shared-link check', () => {
+    const dom = installDOM(['001r', '001v', '002r', '002v']);
+    csvLoadCallback([
+        '001r,https://example.com/shared',
+        '001v,https://example.com/shared',
+        '002r,https://example.com/shared',
+        '002v,https://example.com/other',
+        '001r,',
+    ].join('\n'));
+
+    assert.equal(dom.check('imageLinkDuplication').state, 'ok');
+    assert.match(dom.check('imageLinkDuplication').text, /shared by two folios/);
+    assert.deepEqual(dom.submittedLinks().at(-1), ['001r', '']);
+});
+
+test('a final duplicate can create a genuine three-folio warning', () => {
+    const dom = installDOM(['001r', '001v', '002r', '002v']);
+    csvLoadCallback([
+        '001r,https://example.com/first',
+        '001v,https://example.com/shared',
+        '002r,https://example.com/shared',
+        '002v,https://example.com/other',
+        '001r,https://example.com/shared',
+    ].join('\n'));
+
+    assert.equal(dom.check('imageLinkDuplication').state, 'warning');
+    assert.match(dom.check('imageLinkDuplication').text, /001r, 001v, 002r/);
+    assert.doesNotMatch(dom.check('imageLinkDuplication').text, /002v/);
+});
+
+test('one final link for every folio still gets the whole-source explanation', () => {
+    const dom = installDOM(['001r', '001v', '002r']);
+    csvLoadCallback([
+        '001r,https://example.com/first',
+        '001v,https://example.com/shared',
+        '002r,https://example.com/shared',
+        '001r,https://example.com/shared',
+    ].join('\n'));
+
+    assert.equal(dom.check('imageLinkDuplication').state, 'ok');
+    assert.equal(dom.check('imageLinkDuplication').text, 'All folios share one image link');
 });

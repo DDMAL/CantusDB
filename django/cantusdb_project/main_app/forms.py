@@ -4,6 +4,7 @@ from django import forms
 from django.conf import settings
 from django.contrib.auth.forms import ReadOnlyPasswordHashField
 from django.contrib.auth import get_user_model
+from django.db import transaction
 from django.db.models import Q, Model
 from django.contrib.admin.widgets import (
     FilteredSelectMultiple,
@@ -1161,8 +1162,9 @@ class ImageLinkForm(forms.Form):
             The number of folios whose chants were given an image link.
         """
         image_links: dict[str, str] = self.cleaned_data["image_links"]
-        for folio, image_link in image_links.items():
-            source.chant_set.filter(folio=folio).update(image_link=image_link)
+        with transaction.atomic():
+            for folio, image_link in image_links.items():
+                source.chant_set.filter(folio=folio).update(image_link=image_link)
         return len(image_links)
 
 
