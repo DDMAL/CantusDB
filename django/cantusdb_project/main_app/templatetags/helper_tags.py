@@ -123,7 +123,6 @@ def segment_id(key: str) -> int:
     Used in:
         main_app/templates/source_lists/source_list.html
         main_app/templates/source_lists/canadian_chant_db.html
-        main_app/templates/source_lists/ccdb_browse.html
         templates/header/navbar_links.html
     """
     try:

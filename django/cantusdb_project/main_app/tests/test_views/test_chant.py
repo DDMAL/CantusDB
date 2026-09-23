@@ -16,6 +16,7 @@ from faker import Faker
 
 from main_app.tests.make_fakes import (
     make_fake_chant,
+    make_fake_sequence,
     make_fake_source,
     make_fake_segment,
     make_fake_user,
@@ -882,6 +883,22 @@ class ChantSearchViewTest(CustomAccessTestMixin, TestCase):
                 listed_chants,
             )
 
+    def test_segments_excludes_benedicamus_and_lists_cantus_first(self):
+        make_fake_segment(
+            name="Benedicamus Domino", id=settings.BENEDICAMUS_DOMINO_SEGMENT_ID
+        )
+        make_fake_segment(name="Zzz Cantus Database", id=settings.CANTUS_SEGMENT_ID)
+        make_fake_segment(name="Aaa Sequence Database")
+        response = self.client.get(reverse("chant-search"))
+        segments = list(response.context["segments"])
+        segment_ids = [segment["id"] for segment in segments]
+        segment_names = [segment["name"] for segment in segments]
+        self.assertNotIn(settings.BENEDICAMUS_DOMINO_SEGMENT_ID, segment_ids)
+        # "Cantus Database" is listed first (right after "Any"), despite
+        # sorting last alphabetically among the fake segment names used here.
+        self.assertEqual(segment_names[0], "Zzz Cantus Database")
+        self.assertEqual(segment_names[1], "Aaa Sequence Database")
+
     def test_search_by_service(self):
         source = make_fake_source(published=True)
         service = make_fake_service()
@@ -1001,6 +1018,76 @@ class ChantSearchViewTest(CustomAccessTestMixin, TestCase):
         )
         context_chant_id = response.context["chants"][0].id
         self.assertEqual(chant.id, context_chant_id)
+
+    def test_indexing_notes_search_starts_with(self):
+        source = make_fake_source(published=True)
+        search_term = "quick"
+
+        # We have three chants to make sure the result is only chant 1 where quick is the first word
+        chant_1 = make_fake_chant(
+            source=source,
+            indexing_notes="quick brown fox jumps over the lazy dog",
+        )
+        make_fake_chant(
+            source=source,
+            indexing_notes="brown fox jumps over the lazy dog",
+        )
+        make_fake_chant(
+            source=source,
+            indexing_notes="lazy brown fox jumps quick over the dog",
+        )
+        response = self.client.get(
+            reverse("chant-search"),
+            {"indexing_notes": search_term, "indexing_notes_op": "starts_with"},
+        )
+        self.assertEqual(len(response.context["chants"]), 1)
+        context_chant_id = response.context["chants"][0].id
+        self.assertEqual(chant_1.id, context_chant_id)
+
+    def test_indexing_notes_search_contains(self):
+        source = make_fake_source(published=True)
+        search_term = "quick"
+        chant_1 = make_fake_chant(
+            source=source,
+            indexing_notes="Quick brown fox jumps over the lazy dog",
+        )
+        # Make a chant that won't be returned by the search term
+        make_fake_chant(
+            source=source,
+            indexing_notes="brown fox jumps over the lazy dog",
+        )
+        chant_3 = make_fake_chant(
+            source=source,
+            indexing_notes="lazy brown fox jumps quickly over the dog",
+        )
+        response = self.client.get(
+            reverse("chant-search"),
+            {"indexing_notes": search_term, "indexing_notes_op": "contains"},
+        )
+        first_context_chant_id = response.context["chants"][0].id
+        self.assertEqual(chant_1.id, first_context_chant_id)
+        second_context_chant_id = response.context["chants"][1].id
+        self.assertEqual(chant_3.id, second_context_chant_id)
+
+    def test_indexing_notes_search_matches_sequence(self):
+        source = make_fake_source(published=True)
+        search_term = "quick"
+        sequence = make_fake_sequence(
+            source=source,
+            indexing_notes="quick brown fox jumps over the lazy dog",
+        )
+        response = self.client.get(
+            reverse("chant-search"),
+            {"indexing_notes": search_term, "indexing_notes_op": "contains"},
+        )
+        self.assertEqual(len(response.context["chants"]), 1)
+        context_sequence_id = response.context["chants"][0].id
+        self.assertEqual(sequence.id, context_sequence_id)
+
+    def test_indexing_notes_search_box_renders_on_global_search(self):
+        response = self.client.get(reverse("chant-search"))
+        self.assertContains(response, 'name="indexing_notes"')
+        self.assertContains(response, 'name="indexing_notes_op"')
 
     def test_search_bar_search(self):
         # note to developers: if you are changing the behavior of search_bar
@@ -3908,3 +3995,27 @@ class ChantViewHelpersTest(TestCase):
                 (feasts[2].id, feasts[2].name, "00q2r, 00q3, X00q3"),
             ]
             self.assertEqual(feast_selector_options, expected_result)
+
+    def test_get_feast_selector_options_skips_null_and_empty_folios(self) -> None:
+        # Regression test for #2227: a chant with a feast assigned but a null or
+        # empty folio must not crash the feast selector. create_folio_ranges
+        # indexes into each folio string, so None/"" would previously raise.
+        source = make_fake_source()
+        feasts = self.feasts
+        # feasts[0]: valid folios alongside an empty-folio and a null-folio chant.
+        for folio in ["001r", "002r"]:
+            make_fake_chant(source=source, folio=folio, feast=feasts[0])
+        make_fake_chant(source=source, folio="", feast=feasts[0])
+        # make_fake_chant substitutes a random folio for None, so set it directly.
+        null_folio_chant = make_fake_chant(source=source, feast=feasts[0])
+        Chant.objects.filter(pk=null_folio_chant.pk).update(folio=None)
+        # feasts[1]: only a null-folio chant, so it should be omitted entirely.
+        feast_without_folios_chant = make_fake_chant(source=source, feast=feasts[1])
+        Chant.objects.filter(pk=feast_without_folios_chant.pk).update(folio=None)
+
+        feast_selector_options = get_feast_selector_options(source)
+
+        self.assertEqual(
+            feast_selector_options,
+            [(feasts[0].id, feasts[0].name, "001r, 002r")],
+        )

@@ -87,6 +87,7 @@ from main_app.views.source import (
     SourceDeleteView,
     SourceInventoryView,
     SourceAddImageLinksView,
+    SourceIIIFMappingView,
     CcdbBrowseView,
 )
 from main_app.views.ccdb import (
@@ -406,6 +407,11 @@ urlpatterns = [
         "source/<int:source_id>/add-image-links",
         SourceAddImageLinksView.as_view(),
         name="source-add-image-links",
+    ),
+    path(
+        "source/<int:source_id>/iiif-mapping",
+        SourceIIIFMappingView.as_view(),
+        name="source-iiif-mapping",
     ),
     path(
         "proofread-overview/",

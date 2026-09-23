@@ -28,6 +28,12 @@ BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 
 STATIC_ROOT = os.getenv("CANTUSDB_STATIC_ROOT")
 MEDIA_ROOT = os.getenv("CANTUSDB_MEDIA_ROOT")
+MEDIA_URL = "/media/"
+
+# Storage for files that must never be reachable through nginx's public
+# /media alias (e.g. data check reports). Served only via authenticated
+# Django views.
+PRIVATE_MEDIA_ROOT = os.getenv("CANTUSDB_PRIVATE_MEDIA_ROOT")
 
 # Quick-start development settings - unsuitable for production
 # See https://docs.djangoproject.com/en/3.0/howto/deployment/checklist/
@@ -40,8 +46,9 @@ PROJECT_ENVIRONMENT = os.getenv("PROJECT_ENVIRONMENT")
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = False  # this is switched to True below when PROJECT_ENVIRONMENT=="DEVELOPMENT"
 
-ALLOWED_HOSTS = [os.getenv("CANTUSDB_HOST")]
-CSRF_TRUSTED_ORIGINS = [f'https://{os.getenv("CANTUSDB_HOST")}']
+CANTUSDB_HOST = os.getenv("CANTUSDB_HOST")
+ALLOWED_HOSTS = [CANTUSDB_HOST]
+CSRF_TRUSTED_ORIGINS = [f"https://{CANTUSDB_HOST}"]
 if PROJECT_ENVIRONMENT == "DEVELOPMENT":
     DEBUG = True
 
@@ -217,6 +224,7 @@ DATA_UPLOAD_MAX_NUMBER_FIELDS = 1010
 
 CANTUS_SEGMENT_ID = 4063
 BOWER_SEGMENT_ID = 4064
+BENEDICAMUS_DOMINO_SEGMENT_ID = 4065
 CCDB_SEGMENT_ID = 4066
 CANTORALES_SEGMENT_ID = 4067
 
@@ -230,6 +238,21 @@ GENERIC_ADMIN_FULL_NAME = "cantus database administrator"
 CELERY_BROKER_URL = "redis://redis:6379/0"
 CELERY_RESULT_BACKEND = "redis://redis:6379/0"
 CELERY_TIMEZONE = "America/New_York"
+
+# Data checks sweep the whole corpus, hit the Cantus Index API once per
+# distinct cantus_id, and email real staff recipients, so they only run in
+# production by default. Staging's database is periodically restored from
+# production, and DataCheckConfig and its recipients come along with it, so
+# without this gate staging sends duplicate reports and doubles the load on
+# Cantus Index. Set DATA_CHECKS_ENABLED=true to run them elsewhere on purpose.
+DATA_CHECKS_ENABLED = (
+    os.getenv(
+        "DATA_CHECKS_ENABLED",
+        "true" if PROJECT_ENVIRONMENT == "PRODUCTION" else "false",
+    ).lower()
+    == "true"
+)
+
 CELERY_BEAT_SCHEDULE = {
     "run-data-checks": {
         "task": "cantusdb.run_data_checks",

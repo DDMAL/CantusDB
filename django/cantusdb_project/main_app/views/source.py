@@ -1,11 +1,27 @@
+import logging
 import re
 from datetime import date
+from functools import cached_property
 from typing import Any, Optional, Union
 
+import requests
 from django.conf import settings
 from django.contrib import messages
 from django.contrib.auth.mixins import UserPassesTestMixin
-from django.db.models import Q, Prefetch, QuerySet, Value, Min, Max
+from django.db.models import (
+    BooleanField,
+    Case,
+    Exists,
+    F,
+    Max,
+    Min,
+    OuterRef,
+    Prefetch,
+    Q,
+    QuerySet,
+    Value,
+    When,
+)
 from django.db.models.functions import Coalesce
 from django.http import (
     HttpResponseRedirect,
@@ -23,6 +39,7 @@ from django.views.generic import (
     UpdateView,
     DeleteView,
     FormView,
+    View,
 )
 from django.views.generic.detail import SingleObjectMixin
 
@@ -44,15 +61,25 @@ from main_app.models import (
     Institution,
     Sequence,
 )
+from main_app.models.source_url import SourceURL
 from main_app.permissions import CustomAccessMixin
 from main_app.mixins import JSONResponseMixin
+from main_app.iiif_utils import (
+    ManifestTooLargeError,
+    fetch_manifest,
+    extract_canvases,
+    generate_folio_image_mapping,
+    mapping_to_csv,
+)
 from main_app.views.chant import get_feast_selector_options
 from main_app.tasks import save_browse_chants_formset
 
+logger = logging.getLogger(__name__)
+
 SOURCE_ADVANCED_SEARCH_FIELDS: tuple[str, ...] = (
     # GET params belonging to the collapsible "Advanced search" section of
-    # source_list.html / canadian_chant_db.html / cantorales.html; used to
-    # auto-expand it when any of them are set. These are all "plain" fields
+    # source_list.html / canadian_chant_db.html / cantorales.html / ccdb_browse.html;
+    # used to auto-expand it when any of them are set. These are all "plain" fields
     # with no value unless the user actually filled them in.
     #
     # "segment", "dateStart"/"dateEnd", and "sourceCompleteness" are handled
@@ -308,6 +335,7 @@ class SourceDetailView(CustomAccessMixin, JSONResponseMixin, DetailView):  # typ
                 "melodies_entered_by",
                 "other_editors",
                 "description_entered_by",
+                "source_links",
             )
             .all()
         )
@@ -357,6 +385,76 @@ class SourceListView(CustomAccessMixin, ListView):  # type: ignore[type-arg]
             return ["source_lists/cantorales.html"]
         return ["source_lists/source_list.html"]
 
+    @cached_property
+    def date_range_bounds(self) -> tuple[Optional[int], Optional[int]]:
+        """
+        Year-range slider bounds. Endpoints are rounded out to the nearest
+        multiple of 5 so the slider's step="5" reaches both. The upper bound
+        is clipped to the current multiple of 5 so future-dated centuries
+        (e.g. a "21st century" stub ending in 2099) do not stretch the
+        slider past today.
+        """
+        current_year_rounded = (date.today().year // 5) * 5
+        century_dates = Century.objects.filter(
+            min_date__isnull=False, max_date__isnull=False
+        ).aggregate(
+            min_year=Min("min_date"),
+            max_year=Max("max_date"),
+        )
+        min_year = century_dates["min_year"]
+        max_year = century_dates["max_year"]
+        date_range_min = (min_year // 5) * 5 if min_year is not None else None
+        date_range_max = (
+            min(-(-max_year // 5) * 5, current_year_rounded)
+            if max_year is not None
+            else None
+        )
+        return date_range_min, date_range_max
+
+    @cached_property
+    def requested_date_range(self) -> tuple[Optional[int], Optional[int]]:
+        """
+        The dateStart/dateEnd query parameters parsed to ints. A missing or
+        non-numeric value becomes None rather than raising, so a mangled
+        querystring can't break the source list.
+        """
+
+        def parse(param: str) -> Optional[int]:
+            raw = self.request.GET.get(param)
+            if not raw:
+                return None
+            try:
+                return int(raw)
+            except (TypeError, ValueError):
+                return None
+
+        return parse("dateStart"), parse("dateEnd")
+
+    @cached_property
+    def date_range_active(self) -> bool:
+        """
+        True only when the requested range actually narrows the full range of
+        dated sources (a bound sits strictly inside the outer bounds). When
+        the slider is untouched the form still submits the outer bounds, so
+        comparing against them keeps us from applying a century filter the
+        user never asked for -- which would silently drop every source that
+        has no century assigned. The numeric comparison also shrugs off
+        differently-formatted or hand-edited querystrings.
+        """
+        date_range_min, date_range_max = self.date_range_bounds
+        requested_start, requested_end = self.requested_date_range
+        narrows_start = (
+            requested_start is not None
+            and date_range_min is not None
+            and requested_start > date_range_min
+        )
+        narrows_end = (
+            requested_end is not None
+            and date_range_max is not None
+            and requested_end < date_range_max
+        )
+        return narrows_start or narrows_end
+
     def get_context_data(self, **kwargs: Any) -> dict[str, Any]:
         context = super().get_context_data(**kwargs)
         context["countries"] = (
@@ -367,40 +465,11 @@ class SourceListView(CustomAccessMixin, ListView):  # type: ignore[type-arg]
         context["provenances"] = (
             Provenance.objects.all().order_by("name").values("id", "name")
         )
-        # Year-range slider bounds. Endpoints are rounded out to the nearest
-        # decade so the slider's step="10" reaches both. The upper bound is
-        # clipped to the current decade so future-dated centuries (e.g. a
-        # "21st century" stub ending in 2099) do not stretch the slider past
-        # today.
-        current_decade = (date.today().year // 5) * 5
-        century_dates = Century.objects.filter(
-            min_date__isnull=False, max_date__isnull=False
-        ).aggregate(
-            min_year=Min("min_date"),
-            max_year=Max("max_date"),
-        )
-        min_year = century_dates["min_year"]
-        max_year = century_dates["max_year"]
-        context["date_range_min"] = (
-            (min_year // 5) * 5 if min_year is not None else None
-        )
-        context["date_range_max"] = (
-            min(-(-max_year // 5) * 5, current_decade) if max_year is not None else None
-        )
+        context["date_range_min"], context["date_range_max"] = self.date_range_bounds
 
         context["production_method_choices"] = Source.ProductionMethodChoices.choices
         context["source_completeness_choices"] = (
             Source.SourceCompletenessChoices.choices
-        )
-
-        date_start_param = self.request.GET.get("dateStart")
-        date_end_param = self.request.GET.get("dateEnd")
-        date_range_active = (
-            date_start_param is not None
-            and date_start_param != str(context["date_range_min"])
-        ) or (
-            date_end_param is not None
-            and date_end_param != str(context["date_range_max"])
         )
 
         selected_completeness = set(self.request.GET.getlist("sourceCompleteness"))
@@ -416,11 +485,19 @@ class SourceListView(CustomAccessMixin, ListView):  # type: ignore[type-arg]
         # the URL and the field doesn't even appear in those templates.
         segment_active = not self.segment and bool(self.request.GET.get("segment"))
 
+        # The radio group always submits a value once touched; "all" is its
+        # default, so only a non-default value counts as active.
+        inventoried_active = self.request.GET.get("inventoried") in (
+            "inventoried",
+            "nonInventoried",
+        )
+
         context["advanced_search_active"] = (
             any(self.request.GET.get(field) for field in SOURCE_ADVANCED_SEARCH_FIELDS)
-            or date_range_active
+            or self.date_range_active
             or source_completeness_active
             or segment_active
+            or inventoried_active
         )
         return context
 
@@ -448,32 +525,25 @@ class SourceListView(CustomAccessMixin, ListView):  # type: ignore[type-arg]
         if country_name := self.request.GET.get("country"):
             q_obj_filter &= Q(holding_institution__country__icontains=country_name)
 
-        # Handle direct date range filtering
-        # This allows filtering by explicit date ranges (e.g., 1400-1500)
-        date_start = self.request.GET.get("dateStart")
-        date_end = self.request.GET.get("dateEnd")
-        if date_start or date_end:
-            try:
-                date_start_int = int(date_start) if date_start else None
-                date_end_int = int(date_end) if date_end else None
-
-                # Find all centuries that overlap with the selected date range
-                # This provides the same behavior as century selection
-                if date_start_int is not None and date_end_int is not None:
-                    # Both dates specified: find centuries that overlap the range
-                    q_obj_filter &= Q(
-                        century__min_date__lte=date_end_int,
-                        century__max_date__gte=date_start_int,
-                    )
-                elif date_start_int is not None:
-                    # Only start date: find centuries that haven't ended
-                    q_obj_filter &= Q(century__max_date__gte=date_start_int)
-                elif date_end_int is not None:
-                    # Only end date: find centuries that have started
-                    q_obj_filter &= Q(century__min_date__lte=date_end_int)
-            except (ValueError, TypeError):
-                # Invalid date format, skip filtering
-                pass
+        # Handle direct date range filtering (e.g., 1400-1500) by keeping only
+        # sources with a century that overlaps the range. This is skipped when
+        # the range still spans the full extent of dated sources -- see
+        # date_range_active -- so leaving the slider untouched does not drop
+        # sources that simply have no century assigned.
+        if self.date_range_active:
+            date_start_int, date_end_int = self.requested_date_range
+            if date_start_int is not None and date_end_int is not None:
+                # Both dates specified: find centuries that overlap the range
+                q_obj_filter &= Q(
+                    century__min_date__lte=date_end_int,
+                    century__max_date__gte=date_start_int,
+                )
+            elif date_start_int is not None:
+                # Only start date: find centuries that haven't ended
+                q_obj_filter &= Q(century__max_date__gte=date_start_int)
+            elif date_end_int is not None:
+                # Only end date: find centuries that have started
+                q_obj_filter &= Q(century__min_date__lte=date_end_int)
 
         if provenance_id := self.request.GET.get("provenance"):
             q_obj_filter &= Q(provenance__id=int(provenance_id))
@@ -483,6 +553,11 @@ class SourceListView(CustomAccessMixin, ListView):  # type: ignore[type-arg]
             q_obj_filter &= Q(source_completeness__in=source_completeness)
         if production_method := self.request.GET.get("prodMethod"):
             q_obj_filter &= Q(production_method=production_method)
+        inventoried_filter = self.request.GET.get("inventoried")
+        if inventoried_filter == "nonInventoried":
+            q_obj_filter &= Q(number_of_chants__isnull=True) | Q(number_of_chants=0)
+        elif inventoried_filter == "inventoried":
+            q_obj_filter &= Q(number_of_chants__gt=0)
 
         if general_str := self.request.GET.get("general"):
             # Strip leading/trailing spaces and collapse internal whitespace
@@ -617,20 +692,59 @@ class SourceListView(CustomAccessMixin, ListView):  # type: ignore[type-arg]
         sort_desc = self.request.GET.get("sort") == "desc"
         sort_prefix = "-" if sort_desc else ""
 
-        if order_param == "country":
-            # When ordering by country, we use COALESCE to replace NULL sigla with ""
-            # so that private collectors (who have no siglum) sort before institutions
-            # with sigla within the same country group. This matches Python's sort
-            # behaviour, which also treats private collectors as "" for ordering.
-            # Previously, the siglum field was used directly (i.e.,
-            # "holding_institution__siglum"), which caused PostgreSQL's NULLS LAST
-            # default to place private collectors after all institutions with sigla —
-            # the opposite of what the Python sort produces.
-            siglum_coalesced = Coalesce("holding_institution__siglum", Value(""))
+        if order_param == "has_image":
+            # Mirror Source.external_images_url, which is what this column
+            # renders: an EXTERNAL_IMAGES SourceURL counts as a gallery and
+            # supersedes the legacy image_link field, which is only the
+            # fallback. Sorting on image_link alone sent every SourceURL-backed
+            # gallery into the no-image group.
+            #
+            # Annotate so the expression appears in the SELECT list — required by
+            # PostgreSQL when combining ORDER BY expressions with DISTINCT. The
+            # Case/When wrapper also keeps the result a real boolean:
+            # `image_link__gt=""` is NULL when image_link is NULL, and
+            # `NULL OR FALSE` is NULL, so a bare Q/Exists combination would leave
+            # NULL rows for PostgreSQL to sort first on the .desc() first click,
+            # inverting the ordering.
+            queryset = queryset.annotate(
+                _has_image_sort=Case(
+                    When(
+                        Q(image_link__isnull=False, image_link__gt="")
+                        | Exists(
+                            SourceURL.objects.filter(
+                                source=OuterRef("pk"),
+                                url_type=SourceURL.URLTypes.EXTERNAL_IMAGES,
+                            )
+                        ),
+                        then=Value(True),
+                    ),
+                    default=Value(False),
+                    output_field=BooleanField(),
+                )
+            )
+            # Flip: first click (asc) → images on top; second click (desc) → no-images on top.
+            has_image_order = (
+                F("_has_image_sort").asc() if sort_desc else F("_has_image_sort").desc()
+            )
+            order_by_args = [
+                has_image_order,
+                "holding_institution__siglum",
+                "shelfmark",
+                "id",
+            ]
+        elif order_param == "country":
+            # Order private collectors (whose siglum is NULL) after institutions
+            # with sigla within the same country group. PostgreSQL's native default
+            # already does this: NULLS LAST for ascending order, NULLS FIRST for
+            # descending order, which matches the Python sort used in tests
+            # (`(siglum is None, siglum or "")`) once the whole list is reversed
+            # for a descending sort. A final `id` tiebreaker keeps ordering
+            # deterministic when country/siglum/shelfmark are all equal.
             order_by_args = [
                 f"{sort_prefix}holding_institution__country",
-                siglum_coalesced.desc() if sort_desc else siglum_coalesced.asc(),
+                f"{sort_prefix}holding_institution__siglum",
                 f"{sort_prefix}shelfmark",
+                f"{sort_prefix}id",
             ]
         elif order_param == "city_institution":
             order_by_args = [
@@ -638,11 +752,32 @@ class SourceListView(CustomAccessMixin, ListView):  # type: ignore[type-arg]
                 f"{sort_prefix}holding_institution__name",
                 f"{sort_prefix}holding_institution__siglum",
                 f"{sort_prefix}shelfmark",
+                f"{sort_prefix}id",
+            ]
+        elif order_param == "num_chants":
+            # number_of_chants is written only by
+            # main_app.signals.update_source_chant_count, on chant/sequence save
+            # and delete, so a source that has never held a chant keeps NULL
+            # rather than 0 — and the column renders those as "0" anyway, via
+            # default_if_none. Coalescing to 0 sorts them as the zeros they
+            # display as, so the first (ascending) click brings sources with no
+            # indexed chants to the top, which is what #2012 asks for. Sorting
+            # NULLs last in both directions made them unreachable instead.
+            chant_count = Coalesce("number_of_chants", Value(0))
+            order_by_args = [
+                chant_count.desc() if sort_desc else chant_count.asc(),
+                # Chant counts tie constantly, so without the same tiebreakers
+                # the has_image branch uses, the rest of the page comes back in
+                # database order.
+                "holding_institution__siglum",
+                "shelfmark",
+                "id",
             ]
         else:
             order_by_args = [
                 f"{sort_prefix}holding_institution__siglum",
                 f"{sort_prefix}shelfmark",
+                f"{sort_prefix}id",
             ]
 
         return (
@@ -650,7 +785,10 @@ class SourceListView(CustomAccessMixin, ListView):  # type: ignore[type-arg]
             .order_by(*order_by_args)
             .distinct()
             .prefetch_related(
-                Prefetch("century", queryset=Century.objects.all().order_by("id"))
+                Prefetch("century", queryset=Century.objects.all().order_by("id")),
+                # Read by Source.external_images_url for the sidebar/table image
+                # link; without it each source on the page costs a query.
+                "source_links",
             )
         )
 
@@ -831,9 +969,91 @@ class SourceAddImageLinksView(CustomAccessMixin, SingleObjectMixin, FormView):  
         )
         return {folio: "" for folio in folios if folio}
 
+    def get_context_data(self, **kwargs: Any) -> dict[str, Any]:
+        context = super().get_context_data(**kwargs)
+        # Check if this source has a IIIF manifest
+        has_iiif = self.object.source_links.filter(
+            url_type=SourceURL.URLTypes.IIIF_MANIFEST
+        ).exists()
+        context["has_iiif_manifest"] = has_iiif
+        return context
+
     def form_valid(self, form: ImageLinkForm) -> HttpResponseRedirect:
         """
         Save the image links to the database.
         """
         form.save(self.object)
+        messages.success(self.request, "Image links saved successfully!")
         return HttpResponseRedirect(self.get_success_url())
+
+
+class SourceIIIFMappingView(CustomAccessMixin, SingleObjectMixin, View):  # type: ignore
+    """
+    View to generate a folio-to-image CSV mapping from a source's IIIF manifest.
+
+    Fetches the IIIF manifest, parses canvases, matches them to folios
+    in the source, and returns a downloadable CSV file.
+    """
+
+    pk_url_kwarg = "source_id"
+    queryset = Source.objects.select_related("holding_institution")
+    object: Source
+    http_method_names = ["get"]
+
+    def test_func(self) -> bool:
+        return self.user.is_superuser
+
+    def get(self, request: HttpRequest, *args: Any, **kwargs: Any) -> HttpResponse:
+        self.object = self.get_object()
+        redirect_url = reverse("source-add-image-links", args=[self.object.id])
+
+        # Get the IIIF manifest URL for this source
+        manifest_link = self.object.source_links.filter(
+            url_type=SourceURL.URLTypes.IIIF_MANIFEST
+        ).first()
+
+        if not manifest_link:
+            messages.error(request, "No IIIF manifest found for this source.")
+            return HttpResponseRedirect(redirect_url)
+
+        # Fetch and parse the manifest
+        try:
+            manifest = fetch_manifest(manifest_link.url)
+        except requests.RequestException:
+            logger.exception("Failed to fetch IIIF manifest: %s", manifest_link.url)
+            messages.error(request, "Failed to fetch IIIF manifest.")
+            return HttpResponseRedirect(redirect_url)
+        except ManifestTooLargeError:
+            logger.exception("IIIF manifest too large: %s", manifest_link.url)
+            messages.error(request, "IIIF manifest is too large to process.")
+            return HttpResponseRedirect(redirect_url)
+        except ValueError:
+            logger.exception("Invalid JSON in IIIF manifest: %s", manifest_link.url)
+            messages.error(request, "IIIF manifest is not valid JSON.")
+            return HttpResponseRedirect(redirect_url)
+
+        # Extract canvases from the manifest
+        canvases = extract_canvases(manifest)
+        if not canvases:
+            messages.error(request, "No canvases found in the IIIF manifest.")
+            return HttpResponseRedirect(redirect_url)
+
+        # Get source folios
+        source_folios = list(
+            self.object.chant_set.values_list("folio", flat=True)
+            .distinct()
+            .order_by("folio")
+        )
+        source_folios = [f for f in source_folios if f]
+
+        # Generate the mapping and CSV
+        mapping = generate_folio_image_mapping(canvases, source_folios)
+        csv_content = mapping_to_csv(mapping)
+
+        # Return as a downloadable CSV
+        response = HttpResponse(csv_content, content_type="text/csv")
+        source_id = self.object.id
+        response["Content-Disposition"] = (
+            f'attachment; filename="source_{source_id}_iiif_mapping.csv"'
+        )
+        return response

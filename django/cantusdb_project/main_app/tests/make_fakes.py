@@ -396,6 +396,7 @@ def make_fake_sequence(
     cantus_id: Optional[str] = None,
     siglum: Optional[str] = None,
     folio: Optional[str] = None,
+    indexing_notes: Optional[str] = None,
 ) -> Sequence:
     """Generates a fake Sequence object."""
     if source is None:
@@ -409,6 +410,8 @@ def make_fake_sequence(
     if folio is None:
         # two digits and one letter
         folio = faker.bothify("##?")
+    if indexing_notes is None:
+        indexing_notes = faker.sentence()
     sequence = Sequence(
         title=title,
         siglum=siglum,
@@ -418,7 +421,7 @@ def make_fake_sequence(
         genre=make_fake_genre(),
         rubrics=faker.sentence(),
         analecta_hymnica=make_random_string(6, "0123456789:"),
-        indexing_notes=faker.sentence(),
+        indexing_notes=indexing_notes,
         date=make_random_string(6, "1234567890abcdefghijklmnopqrstuvwxyz/-*"),
         ah_volume=str(random.randint(0, 60)),
         source=source,

@@ -6,7 +6,7 @@ import string
 from django.conf import settings
 from django.contrib import messages
 from django.contrib.postgres.aggregates import ArrayAgg
-from django.db.models import F, Q, QuerySet
+from django.db.models import Case, F, Q, QuerySet, When
 from django.http import Http404, HttpResponse
 from django.shortcuts import get_object_or_404
 from django.urls import reverse
@@ -63,7 +63,10 @@ ADVANCED_SEARCH_FIELDS: tuple[str, ...] = (
     "feast",
     "liturgical_function",
     "segment",
-    "indexing_notes_op",
+    # "indexing_notes_op" is intentionally excluded: its <select> has no blank
+    # option, so browsers always submit a value ("contains") even when the user
+    # never touched it. Including it here would keep this section expanded on
+    # every search.
     "indexing_notes",
 )
 
@@ -224,19 +227,26 @@ def get_feast_selector_options(source: Source) -> list[tuple[int, str, str]]:
     chant_set_w_feasts: QuerySet[Chant, tuple[int, str]] = source.chant_set.exclude(
         feast=None
     ).values_list("feast_id", "feast__name")
-    feasts_agg_folios: Iterator[tuple[int, str, list[str]]] = (
-        chant_set_w_feasts.annotate(folios=ArrayAgg("folio", distinct=True))
+    # A chant may have a feast but no folio (folio is nullable/blank). Such
+    # values must be kept out of the aggregate: create_folio_ranges indexes
+    # into each folio string and would raise on None or "".
+    feasts_agg_folios: Iterator[tuple[int, str, Optional[list[str]]]] = (
+        chant_set_w_feasts.annotate(
+            folios=ArrayAgg(
+                "folio", distinct=True, filter=~Q(folio=None) & ~Q(folio="")
+            )
+        )
         .order_by("folios")
         .iterator()
     )
     feasts_with_folio_range = []
-    for feast_with_folio in feasts_agg_folios:
+    for feast_id, feast_name, folios in feasts_agg_folios:
+        # A feast whose chants all lack folios aggregates to None (array_agg
+        # returns NULL when the filter matches no rows).
+        if not folios:
+            continue
         feasts_with_folio_range.append(
-            (
-                feast_with_folio[0],
-                feast_with_folio[1],
-                create_folio_ranges(feast_with_folio[2]),
-            )
+            (feast_id, feast_name, create_folio_ranges(folios))
         )
     return feasts_with_folio_range
 
@@ -506,6 +516,8 @@ class ChantSearchView(CustomAccessMixin, ListView):  # type: ignore[type-arg]
         ``segment``: Filters by Segment of the Chant's Source
         ``keyword``: Searches text of Chant for keywords
         ``op``: Operation to take with keyword search. Options are "contains", "starts_with", and "ends_with"
+        ``indexing_notes``: Searches indexing notes of Chant/Sequence for text
+        ``indexing_notes_op``: Operation to take with indexing notes search. Options are "contains" and "starts_with"
     """
 
     paginate_by = 100
@@ -521,8 +533,17 @@ class ChantSearchView(CustomAccessMixin, ListView):  # type: ignore[type-arg]
             Service.objects.all().order_by("name").values("id", "name")
         )
         context["liturgical_functions"] = Chant.LITURGICAL_FUNCTION_CHOICES
-        context["segments"] = (
-            Segment.objects.all().order_by("name").values("id", "name")
+        # "Benedicamus Domino" is a chant-level project designation, not a
+        # source segment, so it's excluded here (see #2131). "Cantus Database"
+        # is listed first (after "Any", added in the template), the rest
+        # alphabetically.
+        context["segments"] = list(
+            Segment.objects.exclude(id=settings.BENEDICAMUS_DOMINO_SEGMENT_ID)
+            .order_by(
+                Case(When(id=settings.CANTUS_SEGMENT_ID, then=0), default=1),
+                "name",
+            )
+            .values("id", "name")
         )
         context["advanced_search_active"] = any(
             self.request.GET.get(field) for field in ADVANCED_SEARCH_FIELDS
@@ -584,6 +605,14 @@ class ChantSearchView(CustomAccessMixin, ListView):  # type: ignore[type-arg]
         search_segment: Optional[str] = self.request.GET.get("segment")
         if search_segment:
             search_parameters.append(f"segment={search_segment}")
+        search_indexing_notes_op: Optional[str] = self.request.GET.get(
+            "indexing_notes_op"
+        )
+        if search_indexing_notes_op:
+            search_parameters.append(f"indexing_notes_op={search_indexing_notes_op}")
+        search_indexing_notes: Optional[str] = self.request.GET.get("indexing_notes")
+        if search_indexing_notes:
+            search_parameters.append(f"indexing_notes={search_indexing_notes}")
 
         url_with_search_params: str = current_url + "?"
         if search_parameters:
@@ -722,6 +751,16 @@ class ChantSearchView(CustomAccessMixin, ListView):  # type: ignore[type-arg]
                 chant_set = chant_set.filter(keyword_filter)
                 sequence_set = sequence_set.filter(keyword_filter)
 
+            if notes := self.request.GET.get("indexing_notes"):
+                operation = self.request.GET.get("indexing_notes_op")
+                # the operation parameter can be "contains" or "starts_with"
+                if operation == "contains":
+                    indexing_notes_filter = Q(indexing_notes__icontains=notes)
+                else:
+                    indexing_notes_filter = Q(indexing_notes__istartswith=notes)
+                chant_set = chant_set.filter(indexing_notes_filter)
+                sequence_set = sequence_set.filter(indexing_notes_filter)
+
             # Fetch only the values necessary for rendering the template
             chant_set = chant_set.only(*ONLY_FIELDS)
             sequence_set = sequence_set.only(*ONLY_FIELDS)
@@ -815,6 +854,8 @@ class ChantSearchMSView(CustomAccessMixin, ListView):  # type: ignore[type-arg]
         ``liturgical_function``: Filters by liturgical function of Chant
         ``keyword``: Searches text of Chant for keywords
         ``op``: Operation to take with keyword search. Options are "contains", "starts_with", and "ends_with"
+        ``indexing_notes``: Searches indexing notes of Chant/Sequence for text
+        ``indexing_notes_op``: Operation to take with indexing notes search. Options are "contains" and "starts_with"
     """
 
     paginate_by = 100

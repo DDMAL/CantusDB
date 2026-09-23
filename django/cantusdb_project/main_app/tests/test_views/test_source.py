@@ -3,17 +3,20 @@ Test views in views/source.py
 """
 
 import random
+import re
 
 from faker import Faker
 from typing import Dict
 
 from django.conf import settings
+from django.db import connection
 from django.test import TestCase
+from django.test.utils import CaptureQueriesContext
 from django.urls import reverse
 from django.core.exceptions import ObjectDoesNotExist
 from django.contrib.auth import get_user_model
 
-from main_app.models import Source, Chant, Differentia, SourceIdentifier
+from main_app.models import Source, Chant, Differentia, SourceIdentifier, SourceURL
 from main_app.tests.make_fakes import (
     make_fake_source,
     make_fake_segment,
@@ -36,6 +39,33 @@ from users.models import User as UserAnnotation
 
 # Create a Faker instance with locale set to Latin
 faker = Faker("la")
+
+
+class CsvExportLinkTestMixin:
+    """
+    A mixin for pages that link to a source's CSV export.
+    """
+
+    def assertCsvExportLinkHasNoDownloadAttribute(
+        self, html: str, source_id: int
+    ) -> None:
+        """
+        Assert the page's CSV export link carries no ``download`` attribute.
+
+        ``csv_export`` names the downloaded file via ``Content-Disposition``; a
+        client-side ``download`` attribute on the link would override it.
+
+        :param html: The rendered HTML of the page containing the link.
+        :param source_id: The ID of the source the export link points to.
+        """
+        # Scope the assertion to the export anchor rather than the whole page.
+        csv_url = reverse("csv-export", args=[source_id])
+        match = re.search(rf'<a\b[^>]*href="{re.escape(csv_url)}"[^>]*>', html)
+        anchor_tag = match.group(0) if match else ""
+        self.assertTrue(anchor_tag, "CSV export link not found in the response")
+        # `\sdownload\b` matches the attribute with or without a value, but not
+        # attribute names that merely contain the word, e.g. `data-download-name`.
+        self.assertNotRegex(anchor_tag, r"\sdownload\b")
 
 
 class SourcePermissionsTestCase(CustomAccessTestMixin, TestCase):
@@ -144,8 +174,22 @@ class SourceCreateViewTest(TestCase):
         source = Source.objects.first()
         self.assertEqual(source.shelfmark, "test-shelfmark")
 
+    def test_segment_m2m_excludes_benedicamus_domino(self) -> None:
+        # "Benedicamus Domino" is a chant-level project designation, not a
+        # source segment, so it should not be offered here (see #2131).
+        make_fake_segment(
+            name="Benedicamus Domino", id=settings.BENEDICAMUS_DOMINO_SEGMENT_ID
+        )
+        response = self.client.get(reverse("source-create"))
+        segment_ids = (
+            response.context["form"]
+            .fields["segment_m2m"]
+            .queryset.values_list("id", flat=True)
+        )
+        self.assertNotIn(settings.BENEDICAMUS_DOMINO_SEGMENT_ID, segment_ids)
 
-class SourceEditViewTest(CustomAccessTestMixin, TestCase):
+
+class SourceEditViewTest(CsvExportLinkTestMixin, CustomAccessTestMixin, TestCase):
     default_user = "editor"
     sources: Dict[str, Source]
 
@@ -210,6 +254,14 @@ class SourceEditViewTest(CustomAccessTestMixin, TestCase):
         self.assertEqual(response.status_code, 404)
         self.assertTemplateUsed(response, "404.html")
 
+    def test_csv_export_link_uses_response_filename(self) -> None:
+        source = self.sources["editor_assigned_source"]
+        response = self.client.get(reverse("source-edit", args=[source.id]))
+
+        self.assertCsvExportLinkHasNoDownloadAttribute(
+            response.content.decode("utf-8"), source.id
+        )
+
     def test_edit_source(self) -> None:
         source = self.sources["editor_assigned_source"]
         response = self.client.post(
@@ -226,8 +278,23 @@ class SourceEditViewTest(CustomAccessTestMixin, TestCase):
         source.refresh_from_db()
         self.assertEqual(source.shelfmark, "test-shelfmark")
 
+    def test_segment_m2m_excludes_benedicamus_domino(self) -> None:
+        # "Benedicamus Domino" is a chant-level project designation, not a
+        # source segment, so it should not be offered here (see #2131).
+        make_fake_segment(
+            name="Benedicamus Domino", id=settings.BENEDICAMUS_DOMINO_SEGMENT_ID
+        )
+        source = self.sources["editor_assigned_source"]
+        response = self.client.get(reverse("source-edit", args=[source.id]))
+        segment_ids = (
+            response.context["form"]
+            .fields["segment_m2m"]
+            .queryset.values_list("id", flat=True)
+        )
+        self.assertNotIn(settings.BENEDICAMUS_DOMINO_SEGMENT_ID, segment_ids)
 
-class SourceDetailViewTest(SourcePermissionsTestCase):
+
+class SourceDetailViewTest(CsvExportLinkTestMixin, SourcePermissionsTestCase):
     view_name = "source-detail"
 
     def test_permissions(self) -> None:
@@ -239,6 +306,35 @@ class SourceDetailViewTest(SourcePermissionsTestCase):
         self.assertEqual(response.status_code, 200)
         self.assertTemplateUsed(response, "base.html")
         self.assertTemplateUsed(response, "source_detail.html")
+
+    def test_add_image_links_entry_is_superuser_only(self) -> None:
+        """The edit-options card's "Add image links" entry is superuser-only.
+
+        ``SourceAddImageLinksView`` is gated on ``is_superuser``, but the card
+        it lives in is gated on the broader ``user_can_edit_chants``. An editor
+        who can edit chants must not see a link that would 403 them.
+        """
+        source = self.sources["editor_assigned_source"]
+        detail_url = reverse("source-detail", args=[source.id])
+        image_links_url = reverse("source-add-image-links", args=[source.id])
+        with self.subTest("Superuser sees the link"):
+            self.client.force_login(self.users["superuser"])
+            self.assertContains(self.client.get(detail_url), image_links_url)
+        with self.subTest("Editor with edit access does not see the link"):
+            self.client.force_login(self.users["editor"])
+            response = self.client.get(detail_url)
+            # The edit-options card renders for the editor...
+            self.assertContains(response, reverse("chant-create", args=[source.id]))
+            # ...but the superuser-only image-links entry is absent.
+            self.assertNotContains(response, image_links_url)
+
+    def test_csv_export_link_uses_response_filename(self) -> None:
+        source = make_fake_source()
+        response = self.client.get(reverse("source-detail", args=[source.id]))
+
+        self.assertCsvExportLinkHasNoDownloadAttribute(
+            response.content.decode("utf-8"), source.id
+        )
 
     def test_context_chant_folios(self) -> None:
         # create a source and several chants in it
@@ -369,6 +465,95 @@ class SourceDetailViewTest(SourcePermissionsTestCase):
         self.assertIn("Notation (Bower):", html)
         self.assertIn(notation.name, html)
         self.assertNotIn(reverse("notation-detail", args=[notation.id]), html)
+
+    def test_image_link_displayed_when_no_source_links(self) -> None:
+        source = make_fake_source(image_link="https://example.com/images")
+        response = self.client.get(reverse("source-detail", args=[source.id]))
+        html = str(response.content)
+        self.assertIn("https://example.com/images", html)
+        self.assertIn("View images on external site", html)
+
+    def test_image_link_hidden_when_external_images_source_link_exists(self) -> None:
+        source = make_fake_source(image_link="https://example.com/images")
+        SourceURL.objects.create(
+            source=source,
+            url="https://example.com/external",
+            url_type=SourceURL.URLTypes.EXTERNAL_IMAGES,
+        )
+        response = self.client.get(reverse("source-detail", args=[source.id]))
+        html = str(response.content)
+        # The SourceURL supersedes the legacy field: its link renders and the
+        # legacy image_link does not, so the gallery link appears exactly once.
+        self.assertIn("https://example.com/external", html)
+        self.assertNotIn("https://example.com/images", html)
+        self.assertEqual(html.count("View images on external site"), 1)
+
+    def test_external_images_branch_does_not_leak_template_comment(self) -> None:
+        # Regression test: the EXTERNAL_IMAGES branch's explanatory comment must
+        # use {% comment %}, not a multi-line {# #} — Django only strips {# #}
+        # on a single line, so a multi-line one renders verbatim to the user.
+        source = make_fake_source(image_link="")
+        SourceURL.objects.create(
+            source=source,
+            url="https://example.com/external",
+            url_type=SourceURL.URLTypes.EXTERNAL_IMAGES,
+        )
+        response = self.client.get(reverse("source-detail", args=[source.id]))
+        html = response.content.decode("utf-8")
+        self.assertIn("View images on external site", html)
+        self.assertNotIn("Same label as the legacy", html)
+        self.assertNotIn("{#", html)
+
+    def test_image_link_displayed_when_only_non_image_source_link_exists(self) -> None:
+        source = make_fake_source(image_link="https://example.com/images")
+        SourceURL.objects.create(
+            source=source,
+            url="https://example.com/iiif/manifest.json",
+            url_type=SourceURL.URLTypes.IIIF_MANIFEST,
+        )
+        response = self.client.get(reverse("source-detail", args=[source.id]))
+        html = str(response.content)
+        self.assertIn("https://example.com/images", html)
+        self.assertIn("View images on external site", html)
+
+    def test_image_link_not_displayed_when_empty(self) -> None:
+        source = make_fake_source(image_link="")
+        response = self.client.get(reverse("source-detail", args=[source.id]))
+        html = str(response.content)
+        self.assertNotIn("View images on external site", html)
+        # The property is a template boolean; a blank image_link must not leak "" through.
+        self.assertIs(source.show_legacy_image_link, False)
+
+    def test_iiif_manifest_link_renders_viewer(self) -> None:
+        # Guards the template's url_type comparison: if it stops matching
+        # IIIF_MANIFEST, this link silently degrades to the generic {% else %}
+        # branch instead of the Universal Viewer.
+        source = make_fake_source(image_link="")
+        SourceURL.objects.create(
+            source=source,
+            url="https://example.com/iiif/manifest.json",
+            url_type=SourceURL.URLTypes.IIIF_MANIFEST,
+        )
+        response = self.client.get(reverse("source-detail", args=[source.id]))
+        html = response.content.decode("utf-8")
+        self.assertIn("viewer/uv.html", html)
+        self.assertIn("#?manifest=https://example.com/iiif/manifest.json", html)
+        self.assertIn("View in IIIF Viewer", html)
+        # The generic branch renders the url_type display name instead.
+        self.assertNotIn("IIIF Manifest</a>", html)
+
+    def test_non_iiif_source_link_renders_generic_label(self) -> None:
+        source = make_fake_source(image_link="")
+        SourceURL.objects.create(
+            source=source,
+            url="https://example.com/catalogue/record",
+            url_type=SourceURL.URLTypes.HOST_INSTITUTION_RECORD,
+        )
+        response = self.client.get(reverse("source-detail", args=[source.id]))
+        html = response.content.decode("utf-8")
+        self.assertIn("https://example.com/catalogue/record", html)
+        self.assertIn("Host Institution Record", html)
+        self.assertNotIn("viewer/uv.html", html)
 
 
 class SourceInventoryViewTest(HTMLContentsTestMixin, SourcePermissionsTestCase):
@@ -622,7 +807,7 @@ class SourceInventoryViewTest(HTMLContentsTestMixin, SourcePermissionsTestCase):
         self.assertTemplateUsed(response, "400.html")
 
 
-class SourceBrowseChantsViewTest(SourcePermissionsTestCase):
+class SourceBrowseChantsViewTest(CsvExportLinkTestMixin, SourcePermissionsTestCase):
     view_name = "browse-chants"
 
     def test_permissions(self) -> None:
@@ -656,6 +841,16 @@ class SourceBrowseChantsViewTest(SourcePermissionsTestCase):
         self.assertTemplateUsed(response, "base.html")
         self.assertTemplateUsed(response, "browse_chants.html")
 
+    def test_csv_export_link_uses_response_filename(self):
+        cantus_segment = make_fake_segment(id=settings.CANTUS_SEGMENT_ID)
+        source = make_fake_source(segment=[cantus_segment])
+        make_fake_chant(source=source)
+        response = self.client.get(reverse("browse-chants", args=[source.id]))
+
+        self.assertCsvExportLinkHasNoDownloadAttribute(
+            response.content.decode("utf-8"), source.id
+        )
+
     def test_chant_rows_have_anchor_ids(self):
         # SourceEditChantsView.get_success_url redirects to `#chant-<pk>` after an
         # edit, so each row must carry the matching anchor or the user lands at
@@ -666,6 +861,36 @@ class SourceBrowseChantsViewTest(SourcePermissionsTestCase):
         response = self.client.get(reverse("browse-chants", args=[source.id]))
         self.assertEqual(response.status_code, 200)
         self.assertContains(response, f'id="chant-{chant.id}"')
+
+    def test_external_images_link_prefers_source_url(self):
+        # This page renders a single images link and does not render
+        # source_links, so it must follow the SourceURL that supersedes
+        # image_link rather than showing the stale legacy URL.
+        cantus_segment = make_fake_segment(id=settings.CANTUS_SEGMENT_ID)
+        source = make_fake_source(
+            segment=[cantus_segment], image_link="https://example.com/legacy-images"
+        )
+        make_fake_chant(source=source)
+        SourceURL.objects.create(
+            source=source,
+            url="https://example.com/source-url-images",
+            url_type=SourceURL.URLTypes.EXTERNAL_IMAGES,
+        )
+        response = self.client.get(reverse("browse-chants", args=[source.id]))
+        html = response.content.decode("utf-8")
+        self.assertIn("https://example.com/source-url-images", html)
+        self.assertNotIn("https://example.com/legacy-images", html)
+
+    def test_external_images_link_falls_back_to_legacy_field(self):
+        cantus_segment = make_fake_segment(id=settings.CANTUS_SEGMENT_ID)
+        source = make_fake_source(
+            segment=[cantus_segment], image_link="https://example.com/legacy-images"
+        )
+        make_fake_chant(source=source)
+        response = self.client.get(reverse("browse-chants", args=[source.id]))
+        html = response.content.decode("utf-8")
+        self.assertIn("https://example.com/legacy-images", html)
+        self.assertIn("View images on external site", html)
 
     def test_visibility_by_segment(self):
         cantus_segment = make_fake_segment(id=settings.CANTUS_SEGMENT_ID)
@@ -914,6 +1139,38 @@ class SourceListViewTest(CustomAccessTestMixin, TestCase):
         self.assertTemplateUsed(response, "base.html")
         self.assertTemplateUsed(response, "source_lists/source_list.html")
 
+    def test_images_column_prefers_source_url(self):
+        source = make_fake_source(
+            published=True, image_link="https://example.com/legacy-images"
+        )
+        SourceURL.objects.create(
+            source=source,
+            url="https://example.com/source-url-images",
+            url_type=SourceURL.URLTypes.EXTERNAL_IMAGES,
+        )
+        response = self.client.get(reverse("source-list"))
+        html = response.content.decode("utf-8")
+        self.assertIn("https://example.com/source-url-images", html)
+        self.assertNotIn("https://example.com/legacy-images", html)
+
+    def test_images_column_does_not_query_per_source(self):
+        # The Images column calls Source.external_images_url on every row, so
+        # the list queryset prefetches source_links. Without it this page costs
+        # one extra query per source, up to paginate_by = 100.
+        for _ in range(5):
+            source = make_fake_source(published=True)
+            SourceURL.objects.create(
+                source=source,
+                url="https://example.com/source-url-images",
+                url_type=SourceURL.URLTypes.EXTERNAL_IMAGES,
+            )
+        with CaptureQueriesContext(connection) as ctx:
+            self.client.get(reverse("source-list"))
+        source_link_queries = [
+            q for q in ctx.captured_queries if "main_app_sourceurl" in q["sql"]
+        ]
+        self.assertEqual(len(source_link_queries), 1, source_link_queries)
+
     def test_provenances_and_date_range_in_context(self):
         """`provenances` are options in the selector; `date_range_min`/`date_range_max`
         bound the year-range slider."""
@@ -1112,6 +1369,134 @@ class SourceListViewTest(CustomAccessTestMixin, TestCase):
         self.assertIn(tenth_century_source, sources)
         self.assertNotIn(fifteenth_century_source, sources)
 
+    def test_date_range_does_not_hide_sources_without_century(self) -> None:
+        """A source with no century assigned must not disappear from the list
+        just because the date-range form was submitted at its default (full)
+        span -- it should only be filtered out when the range is actually
+        narrowed. Regression test for undated sources vanishing from search.
+        """
+        # Dated centuries establish the outer slider bounds: 800-1499, which
+        # the view rounds/clips to a default range of 800-1500.
+        make_fake_century(name="09th century")
+        tenth_century = make_fake_century(name="10th century")
+        make_fake_century(name="15th century")
+
+        undated_source = make_fake_source(published=True, shelfmark="no century")
+        undated_source.century.set([])
+        tenth_century_source = make_fake_source(published=True, shelfmark="10th")
+        tenth_century_source.century.set([tenth_century])
+
+        with self.subTest("No date params: undated source is shown"):
+            response = self.client.get(reverse("source-list"))
+            self.assertIn(undated_source, response.context["sources"])
+
+        with self.subTest("Default full-range params: undated source is shown"):
+            response = self.client.get(
+                reverse("source-list"), {"dateStart": 800, "dateEnd": 1500}
+            )
+            self.assertIn(undated_source, response.context["sources"])
+
+        with self.subTest("Range beyond the bounds: undated source is shown"):
+            response = self.client.get(
+                reverse("source-list"), {"dateStart": 600, "dateEnd": 3000}
+            )
+            self.assertIn(undated_source, response.context["sources"])
+
+        with self.subTest("Genuine narrowing: undated source is filtered out"):
+            response = self.client.get(
+                reverse("source-list"), {"dateStart": 900, "dateEnd": 999}
+            )
+            sources = response.context["sources"]
+            self.assertNotIn(undated_source, sources)
+            self.assertIn(tenth_century_source, sources)
+
+    def test_ccdb_browse_date_range_does_not_hide_sources_without_century(
+        self,
+    ) -> None:
+        """`CcdbBrowseView` reuses `SourceListView`'s date-range filtering
+        unchanged, so it must exhibit the same undated-source regression
+        fix as the plain source list: shown at the default (full) range,
+        filtered out only once the range is genuinely narrowed.
+        """
+        ccdb_segment = make_fake_segment(id=settings.CCDB_SEGMENT_ID)
+        make_fake_century(name="09th century")
+        tenth_century = make_fake_century(name="10th century")
+        make_fake_century(name="15th century")
+
+        undated_source = make_fake_source(
+            segment=[ccdb_segment], published=True, shelfmark="no century"
+        )
+        undated_source.century.set([])
+        tenth_century_source = make_fake_source(
+            segment=[ccdb_segment], published=True, shelfmark="10th"
+        )
+        tenth_century_source.century.set([tenth_century])
+
+        with self.subTest("No date params: undated source is shown"):
+            response = self.client.get(reverse("ccdb-browse"))
+            self.assertIn(undated_source, response.context["sources"])
+
+        with self.subTest("Default full-range params: undated source is shown"):
+            response = self.client.get(
+                reverse("ccdb-browse"), {"dateStart": 800, "dateEnd": 1500}
+            )
+            self.assertIn(undated_source, response.context["sources"])
+
+        with self.subTest("Genuine narrowing: undated source is filtered out"):
+            response = self.client.get(
+                reverse("ccdb-browse"), {"dateStart": 900, "dateEnd": 999}
+            )
+            sources = response.context["sources"]
+            self.assertNotIn(undated_source, sources)
+            self.assertIn(tenth_century_source, sources)
+
+    def test_search_by_identifier_does_not_hide_undated_source(self) -> None:
+        """Regression test for an undated source (e.g. Otto Ege MS 22)
+        disappearing from an identifier search. The source list form submits
+        the date-range slider's default (full) bounds alongside any search
+        term, so a general/identifier search must not be affected by that.
+        """
+        make_fake_century(name="09th century")
+        make_fake_century(name="15th century")
+
+        undated_source = make_fake_source(published=True, shelfmark="Otto Ege MS 22")
+        undated_source.century.set([])
+        SourceIdentifier.objects.create(
+            source=undated_source,
+            identifier="Ege-22",
+            type=SourceIdentifier.OTHER,
+        )
+
+        response = self.client.get(
+            reverse("source-list"),
+            {"general": "Ege-22", "dateStart": 800, "dateEnd": 1500},
+        )
+        self.assertIn(undated_source, response.context["sources"])
+
+    def test_advanced_search_active_reflects_date_range_narrowing(self) -> None:
+        """`advanced_search_active` controls whether the advanced-search
+        panel opens by default; it must not flip on just because the
+        date-range slider submits its default (full) bounds.
+        """
+        make_fake_century(name="09th century")
+        make_fake_century(name="15th century")
+
+        with self.subTest("No params: advanced search not active"):
+            response = self.client.get(reverse("source-list"))
+            self.assertFalse(response.context["advanced_search_active"])
+
+        with self.subTest("Default full-range params: advanced search not active"):
+            response = self.client.get(
+                reverse("source-list"), {"dateStart": 800, "dateEnd": 1500}
+            )
+            self.assertFalse(response.context["advanced_search_active"])
+
+        with self.subTest("Narrowed range: advanced search active"):
+            response = self.client.get(
+                reverse("source-list"), {"dateStart": 900, "dateEnd": 999}
+            )
+            self.assertTrue(response.context["advanced_search_active"])
+
     def test_filter_by_full_source(self) -> None:
         full_source = make_fake_source(
             source_completeness=Source.SourceCompletenessChoices.FULL_SOURCE,
@@ -1232,6 +1617,47 @@ class SourceListViewTest(CustomAccessTestMixin, TestCase):
             sources = response.context["sources"]
             self.assertNotIn(manuscript_source, sources)
             self.assertIn(print_source, sources)
+
+    def test_filter_by_inventoried(self) -> None:
+        inventoried_source = make_fake_source(number_of_chants=5, published=True)
+        zero_chants_source = make_fake_source(number_of_chants=0, published=True)
+        null_chants_source = make_fake_source(number_of_chants=None, published=True)
+
+        with self.subTest("No parameter: all sources shown"):
+            response = self.client.get(reverse("source-list"))
+            sources = response.context["sources"]
+            self.assertIn(inventoried_source, sources)
+            self.assertIn(zero_chants_source, sources)
+            self.assertIn(null_chants_source, sources)
+
+        with self.subTest("inventoried=all: all sources shown"):
+            response = self.client.get(reverse("source-list"), {"inventoried": "all"})
+            sources = response.context["sources"]
+            self.assertIn(inventoried_source, sources)
+            self.assertIn(zero_chants_source, sources)
+            self.assertIn(null_chants_source, sources)
+
+        with self.subTest(
+            "inventoried=inventoried: only sources with chants are shown"
+        ):
+            response = self.client.get(
+                reverse("source-list"), {"inventoried": "inventoried"}
+            )
+            sources = response.context["sources"]
+            self.assertIn(inventoried_source, sources)
+            self.assertNotIn(zero_chants_source, sources)
+            self.assertNotIn(null_chants_source, sources)
+
+        with self.subTest(
+            "inventoried=nonInventoried: sources with chants are excluded"
+        ):
+            response = self.client.get(
+                reverse("source-list"), {"inventoried": "nonInventoried"}
+            )
+            sources = response.context["sources"]
+            self.assertNotIn(inventoried_source, sources)
+            self.assertIn(zero_chants_source, sources)
+            self.assertIn(null_chants_source, sources)
 
     def test_search_by_title(self) -> None:
         """The "general search" field searches in `title`, `shelfmark`, `description`, and `summary`"""
@@ -1538,6 +1964,134 @@ class SourceListViewTest(CustomAccessTestMixin, TestCase):
             self.assertEqual(
                 list(reversed(expected_source_order)), list(response_sources_reverse)
             )
+
+    def test_ordering_by_has_image(self) -> None:
+        """
+        The Image Link column sorts on whether a source has an external image
+        gallery, grouping the sources that show an "Images" link ahead of those
+        that do not on the first (ascending) click.
+
+        The column renders `Source.external_images_url`, which reads an
+        EXTERNAL_IMAGES SourceURL first and only falls back to the legacy
+        `image_link` field, so the assertions below read the same property
+        rather than `image_link`: a sort that looked at `image_link` alone
+        would group every SourceURL-backed gallery with the imageless sources.
+        """
+        with_images = []
+        without_images = []
+
+        # Legacy field only.
+        with_images.append(make_fake_source(image_link="https://example.com/legacy"))
+        # SourceURL only — the case a sort on `image_link` alone gets wrong.
+        src_source_url_only = make_fake_source(image_link=None)
+        SourceURL.objects.create(
+            source=src_source_url_only,
+            url="https://example.com/source-url-images",
+            url_type=SourceURL.URLTypes.EXTERNAL_IMAGES,
+        )
+        with_images.append(src_source_url_only)
+        # SourceURL superseding an empty legacy field.
+        src_both = make_fake_source(image_link="")
+        SourceURL.objects.create(
+            source=src_both,
+            url="https://example.com/supersedes-empty",
+            url_type=SourceURL.URLTypes.EXTERNAL_IMAGES,
+        )
+        with_images.append(src_both)
+
+        without_images.append(make_fake_source(image_link=None))
+        without_images.append(make_fake_source(image_link=""))
+        # A SourceURL of some other type is not an image gallery.
+        src_manifest_only = make_fake_source(image_link=None)
+        SourceURL.objects.create(
+            source=src_manifest_only,
+            url="https://example.com/manifest.json",
+            url_type=SourceURL.URLTypes.IIIF_MANIFEST,
+        )
+        without_images.append(src_manifest_only)
+
+        for sort_param, expect_images_first in [("asc", True), ("desc", False)]:
+            with self.subTest(sort=sort_param):
+                response = self.client.get(
+                    reverse("source-list"),
+                    {"order": "has_image", "sort": sort_param},
+                )
+                result = list(response.context["sources"])
+                result_ids = {source.id for source in result}
+                for source in with_images + without_images:
+                    self.assertIn(source.id, result_ids)
+
+                # Assert on the rendered property, not the sort key.
+                groups = [bool(source.external_images_url) for source in result]
+                self.assertEqual(
+                    groups,
+                    sorted(groups, reverse=expect_images_first),
+                    f"sort={sort_param}: sources with and without an image "
+                    f"gallery are interleaved",
+                )
+
+    def test_ordering_by_num_chants(self) -> None:
+        """
+        The Chants / Melodies column sorts by chant count, and the first
+        (ascending) click brings the sources with no indexed chants to the top
+        (#2012).
+
+        `number_of_chants` is NULL rather than 0 for a source that has never
+        held a chant, since it is only written when a chant or sequence is
+        saved or deleted. The column renders those as "0", so the sort treats
+        them as 0 too — sorting NULLs last in both directions would leave them
+        unreachable.
+        """
+        src_many = make_fake_source(number_of_chants=100)
+        src_few = make_fake_source(number_of_chants=5)
+        src_zero = make_fake_source(number_of_chants=0)
+        src_null = make_fake_source(number_of_chants=None)
+
+        def positions(sort_param: str) -> dict[int, int]:
+            response = self.client.get(
+                reverse("source-list"), {"order": "num_chants", "sort": sort_param}
+            )
+            result = list(response.context["sources"])
+            self.assertEqual(len(result), 4)
+            return {source.id: index for index, source in enumerate(result)}
+
+        with self.subTest(sort="asc"):
+            pos = positions("asc")
+            # A NULL count sorts with the literal 0 it is displayed as, ahead
+            # of every source that has chants.
+            self.assertLess(pos[src_null.id], pos[src_few.id])
+            self.assertLess(pos[src_zero.id], pos[src_few.id])
+            self.assertLess(pos[src_few.id], pos[src_many.id])
+
+        with self.subTest(sort="desc"):
+            pos = positions("desc")
+            self.assertLess(pos[src_many.id], pos[src_few.id])
+            self.assertLess(pos[src_few.id], pos[src_null.id])
+            self.assertLess(pos[src_few.id], pos[src_zero.id])
+
+    def test_ordering_by_num_chants_breaks_ties_by_siglum(self) -> None:
+        """
+        Chant counts tie constantly, so equal counts fall back to the same
+        siglum/shelfmark tiebreakers the other orderings use. The tiebreakers
+        do not flip with the sort direction, so ties stay alphabetical in both.
+        """
+        src_b = make_fake_source(
+            number_of_chants=7,
+            holding_institution=make_fake_institution(siglum="BB-Bb"),
+        )
+        src_a = make_fake_source(
+            number_of_chants=7,
+            holding_institution=make_fake_institution(siglum="AA-Aa"),
+        )
+
+        for sort_param in ["asc", "desc"]:
+            with self.subTest(sort=sort_param):
+                response = self.client.get(
+                    reverse("source-list"),
+                    {"order": "num_chants", "sort": sort_param},
+                )
+                result = list(response.context["sources"])
+                self.assertEqual([src_a, src_b], result)
 
     def test_pagination(self):
         paginate_by = SourceListView.paginate_by

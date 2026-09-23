@@ -1,4 +1,5 @@
 import csv
+import re
 from typing import Optional, Union, Any, Dict
 from django.conf import settings
 from django.contrib.auth import get_user_model
@@ -9,6 +10,7 @@ from django.http.response import JsonResponse
 from django.http import HttpResponse, HttpResponseNotFound, Http404, HttpRequest
 from django.urls.base import reverse
 from django.shortcuts import get_object_or_404
+from django.utils.http import content_disposition_header
 from django.views.decorators.http import require_GET
 from celery.result import AsyncResult
 import requests
@@ -25,6 +27,43 @@ from main_app.models import (
 from main_app.permissions import get_sources_visible_to_user
 from next_chants import next_chants
 from cantusindex import get_json_from_ci_api
+
+# Characters Windows disallows in filenames (`< > : " / \ | ? *`), plus control
+# characters, which browsers strip and which Django rejects outright in a header
+# value if they include a newline.
+UNSAFE_FILENAME_CHARS = re.compile(r'[<>:"/\\|?*\x00-\x1f\x7f]')
+
+# Cap on the descriptive part of a download filename, in characters: a shelfmark
+# can be up to 255 characters, which makes for an unwieldy filename. This keeps
+# names to a manageable length; it is not a guarantee about the 255-byte limit
+# filesystems impose, which 100 non-ASCII characters could still exceed.
+MAX_FILENAME_STEM_LENGTH = 100
+
+
+def make_csv_download_filename(source_id: int, heading: str) -> str:
+    """
+    Build the download filename for a source's CSV export.
+
+    Shelfmarks are free text, so a heading like "A-Gu Ms. 12/1" would otherwise
+    produce a filename the operating system rejects. Unsafe characters become
+    hyphens, runs of hyphens collapse into one, stray hyphens and spaces are
+    trimmed from the ends, and the heading is capped at
+    ``MAX_FILENAME_STEM_LENGTH`` characters.
+
+    ``django.utils.text.get_valid_filename`` is deliberately not used here: it
+    replaces spaces with underscores, which would obscure the heading.
+
+    Args:
+        source_id (int): The ID of the source being exported
+        heading (str): The source's human-readable identifier, e.g. "A-Gu Ms. 211"
+
+    Returns:
+        str: A filename safe to hand to a browser, e.g. "123-A-Gu Ms. 211.csv"
+    """
+    stem = UNSAFE_FILENAME_CHARS.sub("-", heading)
+    stem = re.sub(r"-{2,}", "-", stem)
+    stem = stem.strip(" -")[:MAX_FILENAME_STEM_LENGTH].rstrip(" -")
+    return f"{source_id}-{stem}.csv"
 
 
 @get_sources_visible_to_user
@@ -112,6 +151,14 @@ def csv_export(
         )
 
     response = HttpResponse(content_type="text/csv")
+    filename = make_csv_download_filename(source_id, source.short_heading)
+    # `content_disposition_header` is typed as returning `str | None`, but only
+    # returns None when the response is neither an attachment nor named, and
+    # `make_csv_download_filename` never returns an empty name.
+    disposition: str = content_disposition_header(  # type: ignore[assignment]
+        as_attachment=True, filename=filename
+    )
+    response["Content-Disposition"] = disposition
 
     writer = csv.writer(response)
     writer.writerow(

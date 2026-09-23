@@ -1,3 +1,11 @@
+:root {
+	/* Radio Canada distinguishes "1" from uppercase "I" — needed for sigla like D-WI1.
+	   Overriding --bs-font-sans-serif rather than --bs-body-font-family: Bootstrap derives
+	   the latter from the former, and components that reset their own font (tooltips,
+	   popovers) read --bs-font-sans-serif directly. */
+	--bs-font-sans-serif: "Radio Canada", sans-serif;
+}
+
 body {
 	background-image: url("../background.jpg");
 }
@@ -7,7 +15,6 @@ body {
 	max-width: 600px;
 	background-color: white;
 	padding: 20px;
-	font-family: "Segoe UI", Roboto, "Helvetica Neue", Arial, "Noto Sans", "Liberation Sans", sans-serif;
 	text-align: center;
 }
 
@@ -147,10 +154,6 @@ a.close-success:hover {
 
 .card-folio-select {
 	width: 38%;
-}
-
-.font-serif {
-	font-family: "Radio Canada";
 }
 
 .font-volpiano {

@@ -1,5 +1,8 @@
+import csv
+import io
 import logging
 import time
+import zipfile
 
 from concurrent.futures import (
     ThreadPoolExecutor,
@@ -8,8 +11,11 @@ from concurrent.futures import (
 )
 from datetime import timedelta
 from typing import List, Dict, Any, Optional
+from urllib.parse import quote
 
 from celery import shared_task, Task
+from django.conf import settings
+from django.core.files.base import ContentFile
 from django.core.mail import EmailMessage
 from django.db.models import Count, Q
 from django.utils import timezone
@@ -17,11 +23,23 @@ from django.utils import timezone
 from cantusindex import get_json_from_ci_api
 from main_app.models import Chant, Sequence
 from main_app.models.data_check_config import DataCheckConfig
+from main_app.models.data_check_report import DataCheckReport
 from main_app.forms import BrowseChantsBulkEditFormset
 
 CI_WORKERS = 10
 CI_REQUEST_DELAY = 0.2  # seconds between requests per worker, so we don't hammer CI
-CI_BATCH_TIMEOUT = 1500  # overall seconds allotted to fetch CI genres for one check run
+CI_BATCH_TIMEOUT = 4500  # overall seconds allotted to fetch CI genres for one check run
+
+
+def _site_base_url() -> str:
+    """
+    The scheme+host to build report links against. Sourced from
+    `CANTUSDB_HOST` (already used for ALLOWED_HOSTS/CSRF_TRUSTED_ORIGINS) so
+    links point at whichever environment (production/staging) actually ran
+    the check, instead of always pointing at production.
+    """
+    return f"https://{settings.CANTUSDB_HOST}"
+
 
 logger = logging.getLogger(__name__)
 
@@ -203,24 +221,38 @@ def check_cantus_ids_genre_mismatch(chant_ids: Optional[List[int]] = None) -> di
             )
             executor.shutdown(cancel_futures=True)
 
-    # Build a Q filter for chants where their specific (cantus_id, genre) pair mismatches CI.
-    # Iterate over `pairs` directly (not a cid-keyed dict) so cantus_ids with more than one
-    # local genre are checked against CI individually rather than collapsing to a single genre.
-    mismatch_q = Q()
-    for cid, local_genre in pairs:
-        ci_genre = ci_genres.get(cid)
-        if ci_genre is not None and ci_genre != local_genre:
-            mismatch_q |= Q(cantus_id=cid, genre__name=local_genre)
+    # Determine mismatched (cantus_id, local_genre) pairs in Python. Iterate over
+    # `pairs` directly (not a cid-keyed dict) so cantus_ids with more than one local
+    # genre are checked against CI individually rather than collapsing to a single genre.
+    mismatched_pairs = {
+        (cid, local_genre)
+        for cid, local_genre in pairs
+        if ci_genres.get(cid) is not None and ci_genres[cid] != local_genre
+    }
 
-    if not mismatch_q:
+    if not mismatched_pairs:
         return {"published": [], "unpublished": []}
 
-    base_qs = (
-        qs.filter(mismatch_q).select_related("source", "genre").order_by("cantus_id")
+    # Narrow down with a single `cantus_id__in` lookup, then match the exact
+    # (cantus_id, genre) pair in Python. Building a Q object with one OR clause per
+    # mismatched pair (as before) creates a query with as many terms as there are
+    # mismatches, which can balloon into hundreds of thousands of nodes and OOM on
+    # a large dataset — a plain IN lookup stays a single cheap query regardless.
+    mismatched_cids = {cid for cid, _ in mismatched_pairs}
+    candidates = (
+        qs.filter(cantus_id__in=mismatched_cids)
+        .select_related("source", "genre")
+        .order_by("cantus_id")
     )
+    matches = [
+        chant
+        for chant in candidates.iterator(chunk_size=2000)
+        if (chant.cantus_id, getattr(chant.genre, "name", None)) in mismatched_pairs
+    ]
+
     return {
-        "published": list(base_qs.filter(source__published=True)),
-        "unpublished": list(base_qs.filter(source__published=False)),
+        "published": [c for c in matches if c.source.published],
+        "unpublished": [c for c in matches if not c.source.published],
     }
 
 
@@ -338,48 +370,131 @@ CHECK_LABELS = {
 }
 
 
-def _format_check_attachment(label: str, result: dict) -> str:
-    lines = [label, "=" * len(label), ""]
+_FORMULA_TRIGGER_CHARS = ("=", "+", "-", "@", "\t", "\r")
+
+
+def _csv_safe(value: Any) -> str:
+    """
+    Neutralize values that spreadsheet apps (Excel, Sheets, Numbers) could
+    interpret as formulas when the CSV is opened, per OWASP CSV injection
+    guidance. Contributor-editable fields (siglum, folio, genre, etc.) are
+    free text and could start with a formula-trigger character.
+    """
+    text = "" if value is None else str(value)
+    if text.startswith(_FORMULA_TRIGGER_CHARS):
+        return f"'{text}"
+    return text
+
+
+def _format_check_csv(result: dict, check_key: Optional[str] = None) -> str:
+    """
+    CSV formatter for a single check's result: one row per item, with a
+    `published` column (1/0) instead of separate published/unpublished
+    sections. Handles both chant-style results (Chant model instances) and
+    the duplicate_folio_sequence check's group dicts.
+    """
+    output = io.StringIO()
+    writer = csv.writer(output)
 
     if "error" in result:
-        lines.append(f"ERROR: {result['error']}")
-        return "\n".join(lines)
+        writer.writerow(["error"])
+        writer.writerow([result["error"]])
+        return output.getvalue()
 
-    for section in ("published", "unpublished"):
-        items = result.get(section) or []
-        lines.append(f"--- {section.capitalize()} ({len(items)}) ---")
-        if not items:
-            lines.append("No issues found.")
-        else:
+    sample = next(
+        iter(result.get("published") or result.get("unpublished") or []), None
+    )
+    is_group_check = (
+        check_key == "duplicate_folio_sequence"
+        if check_key is not None
+        else isinstance(sample, dict)
+    )
+
+    if is_group_check:
+        writer.writerow(
+            ["link", "source_id", "folio", "sequence", "count", "ids", "published"]
+        )
+        for published, items in (
+            (1, result.get("published") or []),
+            (0, result.get("unpublished") or []),
+        ):
             for item in items:
-                if isinstance(item, dict):
-                    # duplicate folio/sequence results are dicts
-                    id_label = "chant_ids" if "chant_ids" in item else "sequence_ids"
-                    lines.append(
-                        f"  source_id={item.get('source_id')}  "
-                        f"folio={item.get('folio')}  "
-                        f"sequence={item.get('c_sequence', item.get('s_sequence'))}  "
-                        f"count={item.get('count')}  "
-                        f"{id_label}={item[id_label]}"
-                    )
+                id_label = "chant_ids" if "chant_ids" in item else "sequence_ids"
+                source_id = item.get("source_id")
+                folio = item.get("folio")
+                if id_label == "sequence_ids":
+                    # Sequence-only sources (e.g. the Bower segment) have no
+                    # chants, so SourceBrowseChantsView 404s; link to the
+                    # source page instead, which does list sequences.
+                    link_url = f"{_site_base_url()}/source/{source_id}/"
                 else:
-                    # Chant model instances
-                    lines.append(
-                        f"  source_id={item.source_id}  "
-                        f"chant_id={item.id}  "
-                        f"source={getattr(item.source, 'siglum', item.source_id)}  "
-                        f"folio={item.folio}  "
-                        f"cantus_id={item.cantus_id}  "
-                        f"genre={getattr(item.genre, 'name', '')}  "
-                        f"mode={item.mode}"
-                    )
-        lines.append("")
+                    # Folio is free text; URL-quote it so it can't break out
+                    # of the HYPERLINK formula's quoted URL argument.
+                    link_url = f"{_site_base_url()}/source/{source_id}/chants/?folio={quote(str(folio), safe='')}"
+                writer.writerow(
+                    [
+                        f'=HYPERLINK("{link_url}","{source_id}")',
+                        _csv_safe(source_id),
+                        _csv_safe(folio),
+                        _csv_safe(item.get("c_sequence", item.get("s_sequence"))),
+                        _csv_safe(item.get("count")),
+                        _csv_safe(",".join(str(i) for i in item[id_label])),
+                        published,
+                    ]
+                )
+    else:
+        show_position_service = check_key == "position_service_mismatch"
+        writer.writerow(
+            [
+                "link",
+                "source_id",
+                "chant_id",
+                "source",
+                "folio",
+                "cantus_id",
+                "genre",
+                *(["position", "service"] if show_position_service else ["mode"]),
+                "published",
+            ]
+        )
+        for published, items in (
+            (1, result.get("published") or []),
+            (0, result.get("unpublished") or []),
+        ):
+            for item in items:
+                link_url = f"{_site_base_url()}/chant/{item.id}/"
+                row = [
+                    f'=HYPERLINK("{link_url}","{item.id}")',
+                    _csv_safe(item.source_id),
+                    _csv_safe(item.id),
+                    _csv_safe(getattr(item.source, "siglum", item.source_id)),
+                    _csv_safe(item.folio),
+                    _csv_safe(item.cantus_id),
+                    _csv_safe(getattr(item.genre, "name", "")),
+                ]
+                if show_position_service:
+                    row += [
+                        _csv_safe(item.position),
+                        _csv_safe(getattr(item.service, "name", "")),
+                    ]
+                else:
+                    row.append(_csv_safe(item.mode))
+                row.append(published)
+                writer.writerow(row)
 
-    return "\n".join(lines)
+    return output.getvalue()
 
 
 @shared_task(name="cantusdb.run_data_checks")
 def run_data_checks() -> None:
+    if not settings.DATA_CHECKS_ENABLED:
+        logger.info(
+            "Data checks disabled in this environment "
+            "(PROJECT_ENVIRONMENT=%s); skipping.",
+            settings.PROJECT_ENVIRONMENT,
+        )
+        return
+
     config = DataCheckConfig.objects.order_by("-id").first()
     if config is None:
         return
@@ -441,10 +556,21 @@ def run_data_checks() -> None:
         to=recipients,
     )
 
-    for key, label in CHECK_LABELS.items():
-        content = _format_check_attachment(label, results[key])
-        filename = f"{key}_{date_str}.txt"
-        email.attach(filename, content, "text/plain")
+    zip_buffer = io.BytesIO()
+    with zipfile.ZipFile(zip_buffer, "w", zipfile.ZIP_DEFLATED) as zip_file:
+        for key in CHECK_LABELS:
+            zip_file.writestr(
+                f"{key}.csv", _format_check_csv(results[key], check_key=key)
+            )
+    zip_filename = f"data_check_report_{date_str}.zip"
+    email.attach(zip_filename, zip_buffer.getvalue(), "application/zip")
+
+    try:
+        DataCheckReport.objects.create(
+            file=ContentFile(zip_buffer.getvalue(), name=zip_filename)
+        )
+    except Exception:
+        logger.error("Failed to persist data check report.", exc_info=True)
 
     try:
         email.send()
