@@ -1,13 +1,14 @@
 """Segment-dependent pages and commands must follow the configured IDs."""
 
 import csv
+from importlib import reload
 from io import StringIO
 
 from django.conf import settings
 from django.contrib.auth.models import AnonymousUser
 from django.core.management import call_command
 from django.test import RequestFactory, TestCase, override_settings
-from django.urls import resolve, reverse
+from django.urls import clear_url_caches, resolve, reverse
 
 from main_app.management.commands.update_proofread_status import EXCLUDE
 from main_app.models import Segment
@@ -71,32 +72,50 @@ class SegmentSettingsTest(TestCase):
                     )
 
     def test_scoped_routes_use_settings(self) -> None:
-        # URL kwargs are evaluated at startup; also run this test with alternate
-        # settings installed before Django imports the URL configuration.
-        for route, segment_id, template_name in (
-            (
-                "canadian-chant-db-source-list",
-                settings.CCDB_SEGMENT_ID,
-                "canadian_chant_db.html",
-            ),
-            ("ccdb-browse", settings.CCDB_SEGMENT_ID, "ccdb_browse.html"),
-            (
-                "cantorales-source-list",
-                settings.CANTORALES_SEGMENT_ID,
-                "cantorales.html",
-            ),
-        ):
-            with self.subTest(route=route):
-                segment, _ = Segment.objects.get_or_create(
-                    id=segment_id, defaults={"name": f"Segment {segment_id}"}
-                )
-                source = make_fake_source(published=True, segment=[segment])
-                url = reverse(route)
-                self.assertEqual(resolve(url).kwargs["segment_id"], segment_id)
-                response = self.client.get(url)
-                self.assertEqual(response.status_code, 200)
-                self.assertTemplateUsed(response, f"source_lists/{template_name}")
-                self.assertIn(source, response.context["sources"])
+        from cantusdb import urls as project_urls
+        from main_app import urls
+
+        try:
+            with self.settings(
+                CCDB_SEGMENT_ID=9066,
+                CANTORALES_SEGMENT_ID=9067,
+            ):
+                # Rebuild startup kwargs with alternate IDs and refresh the
+                # project resolver so it includes the new app URL patterns.
+                reload(urls)
+                reload(project_urls)
+                clear_url_caches()
+                for route, segment_id, template_name in (
+                    (
+                        "canadian-chant-db-source-list",
+                        settings.CCDB_SEGMENT_ID,
+                        "canadian_chant_db.html",
+                    ),
+                    ("ccdb-browse", settings.CCDB_SEGMENT_ID, "ccdb_browse.html"),
+                    (
+                        "cantorales-source-list",
+                        settings.CANTORALES_SEGMENT_ID,
+                        "cantorales.html",
+                    ),
+                ):
+                    with self.subTest(route=route):
+                        segment, _ = Segment.objects.get_or_create(
+                            id=segment_id, defaults={"name": f"Segment {segment_id}"}
+                        )
+                        source = make_fake_source(published=True, segment=[segment])
+                        url = reverse(route)
+                        self.assertEqual(resolve(url).kwargs["segment_id"], segment_id)
+                        response = self.client.get(url)
+                        self.assertEqual(response.status_code, 200)
+                        self.assertTemplateUsed(
+                            response, f"source_lists/{template_name}"
+                        )
+                        self.assertIn(source, response.context["sources"])
+        finally:
+            # Restore startup kwargs after settings revert, even on failure.
+            reload(urls)
+            reload(project_urls)
+            clear_url_caches()
 
     @override_settings(BOWER_SEGMENT_ID=9064)
     def test_source_search_and_csv_select_sequences_using_settings(self) -> None:
