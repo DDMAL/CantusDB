@@ -249,6 +249,12 @@
                 <p class="font-volpiano-lg">{{ chant.volpiano }}</p>
             </dd>
         {% endif %}
+        {% if chant.content_structure %}
+            <dt>Content structure</dt>
+            <dd>
+                {{ chant.content_structure }}
+            </dd>
+        {% endif %}
         {% if chant.indexing_notes %}
             <dt>Indexing Notes</dt>
             <dd>

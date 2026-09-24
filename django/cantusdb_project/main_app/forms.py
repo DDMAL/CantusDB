@@ -402,6 +402,15 @@ class SourceCreateForm(forms.ModelForm):
 
 
 class ChantEditForm(forms.ModelForm):
+    def __init__(self, *args: Any, **kwargs: Any) -> None:
+        super().__init__(*args, **kwargs)
+        field_name = self.add_prefix("content_structure")
+        if self.is_bound and field_name not in self.data:
+            # A form opened before this field was added must preserve its value.
+            # Fill it before validation so changed_data also treats it as unchanged.
+            self.data = self.data.copy()
+            self.data[field_name] = self.initial.get("content_structure")
+
     class Meta:
         model = Chant
         fields = [
@@ -423,6 +432,7 @@ class ChantEditForm(forms.ModelForm):
             "diff_db",
             "extra",
             "image_link",
+            "content_structure",
             "indexing_notes",
             "addendum",
             "chant_range",
@@ -460,6 +470,7 @@ class ChantEditForm(forms.ModelForm):
             "diff_db": autocomplete.ModelSelect2(url="differentia-autocomplete"),
             "extra": TextInputWidget(),
             "image_link": TextInputWidget(),
+            "content_structure": TextInputWidget(),
             "indexing_notes": TextAreaWidget(),
             "addendum": TextInputWidget(),
             "chant_range": VolpianoAreaWidget(),

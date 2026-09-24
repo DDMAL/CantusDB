@@ -302,6 +302,13 @@
                 </div>
             {% endif %}
             <div class="row small mb-2">
+                <div class="col-lg-8">
+                    {{ form.content_structure.label_tag }}
+                    {{ form.content_structure }}
+                    <p class="text-muted">{{ form.content_structure.help_text }}</p>
+                </div>
+            </div>
+            <div class="row small mb-2">
                 <div class="col-lg-12">
                     {{ form.indexing_notes.label_tag }}
                     {{ form.indexing_notes }}
