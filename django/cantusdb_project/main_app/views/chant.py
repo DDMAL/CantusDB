@@ -1455,7 +1455,7 @@ class SourceEditChantsView(CustomAccessMixin, UpdateView):  # type: ignore[type-
         but the original manuscript_full_text_std_spelling field value.
         """
         if form.has_error("manuscript_full_text_std_spelling", "txt-req-prev-existing"):
-            data = self.request.POST.copy()
+            data = form.data.copy()
             data["manuscript_full_text_std_spelling"] = form[
                 "manuscript_full_text_std_spelling"
             ].initial

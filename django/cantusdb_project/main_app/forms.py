@@ -402,6 +402,15 @@ class SourceCreateForm(forms.ModelForm):
 
 
 class ChantEditForm(forms.ModelForm):
+    def __init__(self, *args: Any, **kwargs: Any) -> None:
+        super().__init__(*args, **kwargs)
+        field_name = self.add_prefix("content_structure")
+        if self.is_bound and field_name not in self.data:
+            # A form opened before this field was added must preserve its value.
+            # Fill it before validation so changed_data also treats it as unchanged.
+            self.data = self.data.copy()
+            self.data[field_name] = self.initial.get("content_structure")
+
     class Meta:
         model = Chant
         fields = [

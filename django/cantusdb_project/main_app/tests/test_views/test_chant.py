@@ -11,6 +11,7 @@ import urllib.parse
 from django.conf import settings
 from django.test import TestCase
 from django.urls import reverse
+from django.utils.html import escape
 
 from faker import Faker
 
@@ -77,6 +78,23 @@ class ChantPermissionsTestCase(CustomAccessTestMixin, TestCase):
 
 
 class ChantDetailViewTest(ChantPermissionsTestCase):
+
+    def test_content_structure(self) -> None:
+        source = make_fake_source(published=True)
+        for value in ["alternate 18r", "0", "<b>18r</b>"]:
+            with self.subTest(value=value):
+                chant = make_fake_chant(source=source, content_structure=value)
+                response = self.client.get(reverse("chant-detail", args=[chant.id]))
+                self.assertContains(response, "<dt>Content structure</dt>", html=True)
+                self.assertContains(response, f"<dd>{escape(value)}</dd>", html=True)
+
+    def test_empty_content_structure_is_hidden(self) -> None:
+        source = make_fake_source(published=True)
+        for value in [None, ""]:
+            with self.subTest(value=value):
+                chant = make_fake_chant(source=source, content_structure=value)
+                response = self.client.get(reverse("chant-detail", args=[chant.id]))
+                self.assertNotContains(response, "Content structure")
 
     def test_url_and_templates(self) -> None:
         chant = make_fake_chant()
@@ -407,30 +425,104 @@ class SourceEditChantsViewTest(ChantPermissionsTestCase):
         chant.refresh_from_db()
         self.assertEqual(chant.manuscript_full_text_std_spelling, "test")
 
-    def test_update_content_structure(self):
-        # content_structure was editable on chant-create but absent from
-        # chant-edit, so a value set at creation could never be seen or
-        # changed while proofreading (#1731).
+    def test_update_content_structure(self) -> None:
+        for role in ["user", "editor"]:
+            with self.subTest(role=role):
+                user = self.users[role]
+                self.client.force_login(user)
+                source = make_fake_source(current_editors=[user])
+                chant = make_fake_chant(
+                    source=source, content_structure="alternate 18r"
+                )
+                url = reverse("source-edit-chants", args=[source.id])
+                response = self.client.get(url, {"pk": chant.id})
+                self.assertContains(response, 'name="content_structure"')
+                self.assertContains(response, 'value="alternate 18r"')
+
+                for value in ["alternate 19v", "", "alternate 20r"]:
+                    with self.subTest(value=value):
+                        response = self.client.post(
+                            url,
+                            {
+                                "manuscript_full_text_std_spelling": chant.manuscript_full_text_std_spelling,
+                                "pk": chant.id,
+                                "folio": chant.folio,
+                                "c_sequence": chant.c_sequence,
+                                "content_structure": value,
+                            },
+                        )
+                        self.assertEqual(response.status_code, 302)
+                        chant.refresh_from_db()
+                        self.assertEqual(chant.content_structure or "", value)
+                        response = self.client.get(url, {"pk": chant.id})
+                        self.assertContains(response, 'name="content_structure"')
+                        if value:
+                            self.assertContains(response, f'value="{value}"')
+                        else:
+                            self.assertNotContains(response, "alternate 19v")
+
+    def test_omitted_content_structure_preserves_value_and_proofreading(self) -> None:
+        user = self.users["user"]
+        self.client.force_login(user)
+        source = make_fake_source(current_editors=[user])
+        for value in ["alternate 18r", "0", None, ""]:
+            with self.subTest(value=value):
+                chant = make_fake_chant(
+                    source=source,
+                    content_structure=value,
+                    other_fields_proofread=True,
+                )
+                url = reverse("source-edit-chants", args=[source.id])
+                response = self.client.get(url, {"pk": chant.id})
+                # Submit the unchanged form as rendered before this field was added.
+                data = {
+                    field.name: field.value() if field.value() is not None else ""
+                    for field in response.context["form"]
+                    if field.name != "content_structure"
+                }
+                data["pk"] = chant.id
+                response = self.client.post(url, data)
+                self.assertEqual(response.status_code, 302)
+                chant.refresh_from_db()
+                self.assertEqual(chant.content_structure or "", value or "")
+                self.assertTrue(chant.other_fields_proofread)
+
+                # An explicit blank still clears the value and requires proofreading.
+                data["content_structure"] = ""
+                response = self.client.post(url, data)
+                self.assertEqual(response.status_code, 302)
+                chant.refresh_from_db()
+                self.assertIsNone(chant.content_structure)
+                self.assertEqual(chant.other_fields_proofread, not bool(value))
+
+    def test_omitted_content_structure_survives_invalid_form(self) -> None:
         source = make_fake_source()
-        chant = make_fake_chant(source=source, content_structure="old")
-        # The field is rendered on the edit form...
-        response = self.client.get(
-            reverse("source-edit-chants", args=[source.id]), {"pk": chant.id}
-        )
-        self.assertContains(response, 'name="content_structure"')
-        # ...and edits to it are saved.
-        self.client.post(
-            reverse("source-edit-chants", args=[source.id]),
+        chant = make_fake_chant(source=source, content_structure="alternate 18r")
+        url = reverse("source-edit-chants", args=[source.id])
+        response = self.client.post(
+            url,
             {
-                "manuscript_full_text_std_spelling": chant.manuscript_full_text_std_spelling,
                 "pk": chant.id,
                 "folio": chant.folio,
                 "c_sequence": chant.c_sequence,
-                "content_structure": "new",
+                "manuscript_full_text_std_spelling": "",
             },
         )
+        self.assertFormError(
+            response.context["form"],
+            "manuscript_full_text_std_spelling",
+            "This field cannot be blank for this chant.",
+        )
+        self.assertEqual(
+            response.context["form"]["content_structure"].value(), "alternate 18r"
+        )
+        self.assertContains(response, 'value="alternate 18r"')
         chant.refresh_from_db()
-        self.assertEqual(chant.content_structure, "new")
+        self.assertEqual(chant.content_structure, "alternate 18r")
+        response = self.client.post(url, response.context["form"].data)
+        self.assertEqual(response.status_code, 302)
+        chant.refresh_from_db()
+        self.assertEqual(chant.content_structure, "alternate 18r")
 
     def test_update_chant_returns_to_edited_chant_row(self):
         # When editing from the browse-chants list (ref=chant-list), the user is
@@ -3569,6 +3661,7 @@ class ChantCreateViewTest(CustomAccessTestMixin, TestCase):
         self.assertEqual(response_1.status_code, 200)
         self.assertTemplateUsed(response_1, "chant_create.html")
         self.assertTemplateUsed(response_1, "base.html")
+        self.assertContains(response_1, 'name="content_structure"')
 
     def test_create_chant(self) -> None:
         source = self.source
@@ -3578,12 +3671,14 @@ class ChantCreateViewTest(CustomAccessTestMixin, TestCase):
                 "manuscript_full_text_std_spelling": "initial",
                 "folio": "001r",
                 "c_sequence": "1",
+                "content_structure": "alternate 18r",
             },
         )
         self.assertEqual(response.status_code, 302)
         self.assertRedirects(response, reverse("chant-create", args=[source.id]))
         chant = Chant.objects.get(source=source)
         self.assertEqual(chant.manuscript_full_text_std_spelling, "initial")
+        self.assertEqual(chant.content_structure, "alternate 18r")
 
     def test_view_url_path(self) -> None:
         source = self.source
