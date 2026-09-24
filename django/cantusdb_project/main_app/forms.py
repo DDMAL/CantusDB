@@ -197,7 +197,9 @@ def find_chant_text_problems(
     """
     if not value:
         return []
-    value = value[:MAX_CHECKED_TEXT_LENGTH]
+    # Multipart form submissions encode a textarea newline as CRLF. Report
+    # that as one line break, just as for the validation endpoint's LF input.
+    value = value[:MAX_CHECKED_TEXT_LENGTH].replace("\r\n", "\n")
     problems: list[dict[str, str]] = []
     invalid_chars, marked_html = _find_invalid_characters(value)
     if invalid_chars:
@@ -1256,7 +1258,7 @@ class ImageLinkForm(forms.Form):
                 source.chant_set.filter(folio=folio).update(image_link=image_link)
 
 
-class BrowseChantsBulkEditForm(forms.ModelForm):
+class BrowseChantsBulkEditForm(ChantTextWarningsMixin, forms.ModelForm):
     class Meta:
         model = Chant
         fields = [
@@ -1291,6 +1293,7 @@ class BrowseChantsBulkEditForm(forms.ModelForm):
     manuscript_full_text_std_spelling = CantusDBLatinField(
         widget=TextAreaWidget,
         required=True,
+        label="Full text (standard spelling)",
     )
 
     feast = forms.ChoiceField(
