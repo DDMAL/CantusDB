@@ -26,6 +26,7 @@ from .models import (
     Provenance,
     Century,
     Sequence,
+    Differentia,
 )
 from .models.url_field import NormalizedURLFormField
 from .widgets import (
@@ -652,6 +653,12 @@ class ChantSearchForm(forms.Form):
         queryset=Feast.objects.all(),
         required=False,
         widget=autocomplete.ModelSelect2(url="feast-autocomplete"),
+    )
+    differentia_id = forms.ModelChoiceField(
+        queryset=Differentia.objects.all(),
+        required=False,
+        label="Differentia ID",
+        widget=autocomplete.ModelSelect2(url="differentia-autocomplete"),
     )
 
 
