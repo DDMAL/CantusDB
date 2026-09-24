@@ -23,6 +23,9 @@
     {% endfor %}
     <!--Container for formset errors (if any) -- populated by JS -->
     <div id="formsetErrorAlert" class="alert alert-danger d-none"></div>
+    <div id="formsetTextWarningAlert"
+         class="alert alert-warning d-none"
+         role="status"></div>
     <h3>Browse Chants</h3>
     <span class="small">Displaying {{ page_obj.start_index }}-{{ page_obj.end_index }} of <b>{{ page_obj.paginator.count }}</b> chants.</span>
     <form method="get">

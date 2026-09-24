@@ -585,8 +585,14 @@ def save_browse_chants_formset(
     self.update_state(state="PROCESSING")
     chants = Chant.objects.filter(id__in=chant_ids)
     formset = BrowseChantsBulkEditFormset(data=data, queryset=chants)
+    text_warnings: list[dict[str, Any]] = []
     if formset.is_valid():
         formset.save()
+        text_warnings = [
+            {"form_num": form_num, **problem}
+            for form_num, form in enumerate(formset.forms)
+            for problem in form.text_problems
+        ]
     non_form_errors = formset.non_form_errors().get_json_data(escape_html=True)
     form_errors = []
     for form_num, errors in enumerate(formset.errors):
@@ -602,4 +608,5 @@ def save_browse_chants_formset(
         "non_form_errors": non_form_errors,
         "form_errors": form_errors,
         "error_count": formset.total_error_count(),
+        "text_warnings": text_warnings,
     }
