@@ -4,7 +4,8 @@
     <title>Add Image Links to Source: {{ source.short_heading }}</title>
 {% endblock %}
 {% block scripts %}
-    <script src="{% static 'js/source_add_image_links.js' %}"></script>
+    {# Bump this version when changing the import script so cached copies stay compatible with the form. #}
+    <script src="{% static 'js/source_add_image_links.js' %}?v=3"></script>
     <link rel="stylesheet" href="{% static 'css/source_add_image_links.css' %}" />
 {% endblock %}
 {% block content %}
@@ -28,6 +29,13 @@
                     including the scheme (e.g., "https://") and domain. An optional header may be included.
                 </p>
                 <p class="small">
+                    Export the file as UTF-8 CSV, using commas or semicolons between columns.
+                    Keep the header when importing extra columns such as notes or canvas labels.
+                    Every row must have the same number of columns as the header; without a header,
+                    use exactly two columns. Put quotation marks around fields containing commas,
+                    semicolons or line breaks. Invalid CSV files must be corrected before saving.
+                </p>
+                <p class="small">
                     The following checks will be performed on the csv file before it is uploaded:
                 </p>
                 <ol class="small">
@@ -40,16 +48,17 @@
                         folio does not have two image links defined).
                     </li>
                     <li>
-                        A check that either no image links are duplicated (every folio has a
-                        unique image link) or every image link is the same (image links to
-                        individual folios are not available).
+                        A check on image links shared by several folios. Two folios sharing one
+                        link is what a photograph of two facing folios looks like, so that is
+                        reported without a warning; a link shared by three or more folios is
+                        flagged for review unless all provided links are the same.
                     </li>
                 </ol>
                 <p class="small">
                     Note: Files that fail these checks may still be uploaded but are provided as a simple
                     validation for the user. For example, if a folio appears multiple times in the csv,
-                    the image link appearing last in the csv will be used. Sometimes, a mapping that fails
-                    these checks might be correct, such as when images show two facing folios.
+                    the image link appearing last in the csv will be used. A folio the csv leaves out,
+                    or leaves blank, keeps the image link it already has.
                 </p>
             </div>
         </div>
@@ -73,9 +82,17 @@
             </div>
             <hr />
         {% endif %}
+        {% if form.errors %}
+            <div class="alert alert-danger" role="alert">
+                {% for error in form.image_links.errors %}<div>{{ error }}</div>{% endfor %}
+                {% for error in form.non_field_errors %}<div>{{ error }}</div>{% endfor %}
+            </div>
+        {% endif %}
         <label for="imgLinksCSV" class="form-label">
             Select CSV file containing image links
         </label>
+        {# The folios are listed once, as JSON, for the CSV preview and its checks to read. #}
+        {{ source_folios|json_script:"sourceFolios" }}
         <div class="row mb-4">
             <div class="col-4">
                 <input class="form-control form-control-sm"
@@ -84,16 +101,18 @@
                        accept=".csv" />
                 <form id="imgLinkForm" method="post">
                     {% csrf_token %}
-                    {{ form }}
+                    {{ form.image_links }}
                 </form>
             </div>
             <div class="col">
                 <button id="imgLinkFormSubmitBtn"
                         class="btn btn-sm btn-primary"
                         form="imgLinkForm"
-                        type="submit">Save Image Links</button>
+                        type="submit"
+                        disabled>Save Image Links</button>
             </div>
         </div>
+        <div id="csvReadError" class="alert alert-danger" role="alert" hidden></div>
         <div id="csvTestingDiv" class="row" hidden>
             <div class="col-auto">
                 <h6>Validation</h6>
