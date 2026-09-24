@@ -30,6 +30,7 @@ from main_app.tests.make_fakes import (
 )
 from main_app.tests.test_functions import mock_requests_get
 from main_app.tests.mixins import CustomAccessTestMixin
+from main_app.forms import ChantEditSyllabificationForm
 from main_app.models import Chant, Source, Feast, Service
 from main_app.views.chant import (
     get_feast_selector_options,
@@ -747,6 +748,45 @@ class ChantEditSyllabificationViewTest(ChantPermissionsTestCase):
             },
         )
         self.assertEqual(response.status_code, 302)  # 302 Found
+        chant.refresh_from_db()
+        self.assertEqual(chant.manuscript_syllabized_full_text, "lore-m i-psum")
+
+    def test_save_cannot_revert_a_lock_set_while_the_editor_was_open(self) -> None:
+        """
+        Saving a chant recalculates its source's chant and melody counts, and
+        it recalculates them on the copy of the source loaded when the request
+        was authorized. A full-row write there carries that copy's
+        `source_status` back into the row, undoing a proofreading lock applied
+        while the syllabification edit was in flight (issue #1962).
+
+        The lock has to land after the request loads the source, so the form's
+        own `is_valid()` stands in for the concurrent submission.
+        """
+        chant = self.chants["user_assigned_chant"]
+        source = chant.source
+        real_is_valid = ChantEditSyllabificationForm.is_valid
+
+        def submit_then_validate(form):
+            Source.objects.get(pk=source.pk).submit_for_proofreading(
+                self.users["editor"]
+            )
+            return real_is_valid(form)
+
+        self.client.force_login(self.users["user"])
+        with patch.object(
+            ChantEditSyllabificationForm, "is_valid", submit_then_validate
+        ):
+            response = self.client.post(
+                reverse("source-edit-syllabification", args=[chant.id]),
+                {
+                    "manuscript_full_text": "lorem ipsum",
+                    "manuscript_syllabized_full_text": "lore-m i-psum",
+                },
+            )
+
+        self.assertEqual(response.status_code, 302)
+        source.refresh_from_db()
+        self.assertEqual(source.source_status, Source.PROOFREAD_PENDING_STATUS)
         chant.refresh_from_db()
         self.assertEqual(chant.manuscript_syllabized_full_text, "lore-m i-psum")
 
