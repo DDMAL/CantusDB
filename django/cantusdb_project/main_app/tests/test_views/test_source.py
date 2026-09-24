@@ -353,7 +353,9 @@ class SourceDetailViewTest(CsvExportLinkTestMixin, SourcePermissionsTestCase):
 
     def test_context_sequence_folios(self) -> None:
         # create a sequence source and several sequences in it
-        bower_segment = make_fake_segment(id=4064, name="Bower Sequence Database")
+        bower_segment = make_fake_segment(
+            id=settings.BOWER_SEGMENT_ID, name="Bower Sequence Database"
+        )
         source = make_fake_source(
             shelfmark="a sequence source", published=True, segment=[bower_segment]
         )
@@ -374,7 +376,11 @@ class SourceDetailViewTest(CsvExportLinkTestMixin, SourcePermissionsTestCase):
     def test_context_sequences(self) -> None:
         # create a sequence source and several sequences in it
         source = make_fake_source(
-            segment=[make_fake_segment(id=4064, name="Bower Sequence Database")],
+            segment=[
+                make_fake_segment(
+                    id=settings.BOWER_SEGMENT_ID, name="Bower Sequence Database"
+                )
+            ],
             shelfmark="a sequence source",
             published=True,
         )
@@ -387,7 +393,7 @@ class SourceDetailViewTest(CsvExportLinkTestMixin, SourcePermissionsTestCase):
         self.assertEqual(response.context["sequences"].query.order_by, ("s_sequence",))
 
     def test_chant_list_link(self) -> None:
-        cantus_segment = make_fake_segment(id=4063)
+        cantus_segment = make_fake_segment(id=settings.CANTUS_SEGMENT_ID)
         cantus_source = make_fake_source(segment=[cantus_segment])
         # Add a chant so the source has content and link should appear
         make_fake_chant(source=cantus_source)
@@ -580,7 +586,11 @@ class SourceInventoryViewTest(HTMLContentsTestMixin, SourcePermissionsTestCase):
 
     def test_sequence_source_queryset(self):
         seq_source = make_fake_source(
-            segment=[make_fake_segment(id=4064, name="Clavis Sequentiarium")],
+            segment=[
+                make_fake_segment(
+                    id=settings.BOWER_SEGMENT_ID, name="Clavis Sequentiarium"
+                )
+            ],
             shelfmark="a sequence source",
             published=True,
         )
@@ -628,7 +638,9 @@ class SourceInventoryViewTest(HTMLContentsTestMixin, SourcePermissionsTestCase):
         self.assertIn(c_sequence, html)
 
     def test_sequence_column_for_sequence_source(self):
-        bower_segment = make_fake_segment(id=4064, name="Bower Sequence Database")
+        bower_segment = make_fake_segment(
+            id=settings.BOWER_SEGMENT_ID, name="Bower Sequence Database"
+        )
         source = make_fake_source(published=True, segment=[bower_segment])
         sequence = make_fake_sequence(source=source)
         s_sequence = sequence.s_sequence
@@ -703,7 +715,9 @@ class SourceInventoryViewTest(HTMLContentsTestMixin, SourcePermissionsTestCase):
         self.assertIn(expected_html_substring, html)
 
     def test_incipit_column_for_sequence_source(self):
-        bower_segment = make_fake_segment(id=4064, name="Bower Sequence Database")
+        bower_segment = make_fake_segment(
+            id=settings.BOWER_SEGMENT_ID, name="Bower Sequence Database"
+        )
         source = make_fake_source(published=True, segment=[bower_segment])
         sequence = make_fake_sequence(source=source)
         incipit = sequence.incipit
@@ -774,7 +788,7 @@ class SourceInventoryViewTest(HTMLContentsTestMixin, SourcePermissionsTestCase):
         self.assertParsedContains(response, expected_html_substring)
 
     def test_redirect_with_source_parameter(self):
-        cantus_segment = make_fake_segment(id=4063)
+        cantus_segment = make_fake_segment(id=settings.CANTUS_SEGMENT_ID)
         source = make_fake_source(segment=[cantus_segment])
         source_id = source.id
         make_fake_chant(source=source)
@@ -819,7 +833,7 @@ class SourceBrowseChantsViewTest(CsvExportLinkTestMixin, SourcePermissionsTestCa
         )
 
     def test_url_and_templates(self):
-        cantus_segment = make_fake_segment(id=4063)
+        cantus_segment = make_fake_segment(id=settings.CANTUS_SEGMENT_ID)
         source = make_fake_source(segment=[cantus_segment])
         make_fake_chant(source=source)
         response = self.client.get(reverse("browse-chants", args=[source.id]))
@@ -828,7 +842,7 @@ class SourceBrowseChantsViewTest(CsvExportLinkTestMixin, SourcePermissionsTestCa
         self.assertTemplateUsed(response, "browse_chants.html")
 
     def test_csv_export_link_uses_response_filename(self):
-        cantus_segment = make_fake_segment(id=4063)
+        cantus_segment = make_fake_segment(id=settings.CANTUS_SEGMENT_ID)
         source = make_fake_source(segment=[cantus_segment])
         make_fake_chant(source=source)
         response = self.client.get(reverse("browse-chants", args=[source.id]))
@@ -841,7 +855,7 @@ class SourceBrowseChantsViewTest(CsvExportLinkTestMixin, SourcePermissionsTestCa
         # SourceEditChantsView.get_success_url redirects to `#chant-<pk>` after an
         # edit, so each row must carry the matching anchor or the user lands at
         # the top of the list instead of on the chant they edited (#1433).
-        cantus_segment = make_fake_segment(id=4063)
+        cantus_segment = make_fake_segment(id=settings.CANTUS_SEGMENT_ID)
         source = make_fake_source(segment=[cantus_segment])
         chant = make_fake_chant(source=source)
         response = self.client.get(reverse("browse-chants", args=[source.id]))
@@ -852,7 +866,7 @@ class SourceBrowseChantsViewTest(CsvExportLinkTestMixin, SourcePermissionsTestCa
         # This page renders a single images link and does not render
         # source_links, so it must follow the SourceURL that supersedes
         # image_link rather than showing the stale legacy URL.
-        cantus_segment = make_fake_segment(id=4063)
+        cantus_segment = make_fake_segment(id=settings.CANTUS_SEGMENT_ID)
         source = make_fake_source(
             segment=[cantus_segment], image_link="https://example.com/legacy-images"
         )
@@ -868,7 +882,7 @@ class SourceBrowseChantsViewTest(CsvExportLinkTestMixin, SourcePermissionsTestCa
         self.assertNotIn("https://example.com/legacy-images", html)
 
     def test_external_images_link_falls_back_to_legacy_field(self):
-        cantus_segment = make_fake_segment(id=4063)
+        cantus_segment = make_fake_segment(id=settings.CANTUS_SEGMENT_ID)
         source = make_fake_source(
             segment=[cantus_segment], image_link="https://example.com/legacy-images"
         )
@@ -879,7 +893,7 @@ class SourceBrowseChantsViewTest(CsvExportLinkTestMixin, SourcePermissionsTestCa
         self.assertIn("View images on external site", html)
 
     def test_visibility_by_segment(self):
-        cantus_segment = make_fake_segment(id=4063)
+        cantus_segment = make_fake_segment(id=settings.CANTUS_SEGMENT_ID)
         cantus_source = make_fake_source(segment=[cantus_segment], published=True)
         # Add a chant so the source has content
         make_fake_chant(source=cantus_source)
@@ -887,14 +901,14 @@ class SourceBrowseChantsViewTest(CsvExportLinkTestMixin, SourcePermissionsTestCa
         self.assertEqual(response_1.status_code, 200)
 
         # Sources without chants should return 404
-        bower_segment = make_fake_segment(id=4064)
+        bower_segment = make_fake_segment(id=settings.BOWER_SEGMENT_ID)
         bower_source = make_fake_source(segment=[bower_segment], published=True)
         response_1 = self.client.get(reverse("browse-chants", args=[bower_source.id]))
         self.assertEqual(response_1.status_code, 404)
 
     def test_non_cantus_segment_source_appears_in_dropdown(self):
         # A source outside the CantusDatabase segment must appear in the sources dropdown so it can be marked as selected.
-        make_fake_segment(id=4063)
+        make_fake_segment(id=settings.CANTUS_SEGMENT_ID)
         other_segment = make_fake_segment(id=9999)
         non_cantus_source = make_fake_source(segment=[other_segment], published=True)
         make_fake_chant(source=non_cantus_source)
@@ -907,13 +921,13 @@ class SourceBrowseChantsViewTest(CsvExportLinkTestMixin, SourcePermissionsTestCa
 
     def test_no_chants_returns_404(self):
         # Test that sources without chants return 404
-        cantus_segment = make_fake_segment(id=4063)
+        cantus_segment = make_fake_segment(id=settings.CANTUS_SEGMENT_ID)
         source_no_chants = make_fake_source(segment=[cantus_segment], published=True)
         response = self.client.get(reverse("browse-chants", args=[source_no_chants.id]))
         self.assertEqual(response.status_code, 404)
 
     def test_filter_by_source(self):
-        cantus_segment = make_fake_segment(id=4063)
+        cantus_segment = make_fake_segment(id=settings.CANTUS_SEGMENT_ID)
         source = make_fake_source(segment=[cantus_segment])
         another_source = make_fake_source(segment=[cantus_segment])
         chant_in_source = make_fake_chant(source=source)
@@ -924,7 +938,7 @@ class SourceBrowseChantsViewTest(CsvExportLinkTestMixin, SourcePermissionsTestCa
         self.assertNotIn(chant_in_another_source, chants)
 
     def test_filter_by_feast(self):
-        cantus_segment = make_fake_segment(id=4063)
+        cantus_segment = make_fake_segment(id=settings.CANTUS_SEGMENT_ID)
         source = make_fake_source(segment=[cantus_segment])
         feast = make_fake_feast()
         another_feast = make_fake_feast()
@@ -938,7 +952,7 @@ class SourceBrowseChantsViewTest(CsvExportLinkTestMixin, SourcePermissionsTestCa
         self.assertNotIn(chant_in_another_feast, chants)
 
     def test_filter_by_genre(self):
-        cantus_segment = make_fake_segment(id=4063)
+        cantus_segment = make_fake_segment(id=settings.CANTUS_SEGMENT_ID)
         source = make_fake_source(segment=[cantus_segment])
         genre = make_fake_genre()
         another_genre = make_fake_genre()
@@ -952,7 +966,7 @@ class SourceBrowseChantsViewTest(CsvExportLinkTestMixin, SourcePermissionsTestCa
         self.assertNotIn(chant_in_another_genre, chants)
 
     def test_filter_by_folio(self):
-        cantus_segment = make_fake_segment(id=4063)
+        cantus_segment = make_fake_segment(id=settings.CANTUS_SEGMENT_ID)
         source = make_fake_source(segment=[cantus_segment])
         chant_on_folio = make_fake_chant(source=source, folio="001r")
         chant_on_another_folio = make_fake_chant(source=source, folio="002r")
@@ -964,7 +978,7 @@ class SourceBrowseChantsViewTest(CsvExportLinkTestMixin, SourcePermissionsTestCa
         self.assertNotIn(chant_on_another_folio, chants)
 
     def test_search_full_text(self):
-        cantus_segment = make_fake_segment(id=4063)
+        cantus_segment = make_fake_segment(id=settings.CANTUS_SEGMENT_ID)
         source = make_fake_source(segment=[cantus_segment])
         chant = make_fake_chant(source=source, manuscript_full_text=faker.sentence())
         search_term = get_random_search_term(chant.manuscript_full_text)
@@ -974,7 +988,7 @@ class SourceBrowseChantsViewTest(CsvExportLinkTestMixin, SourcePermissionsTestCa
         self.assertIn(chant, response.context["chants"])
 
     def test_search_incipit(self):
-        cantus_segment = make_fake_segment(id=4063)
+        cantus_segment = make_fake_segment(id=settings.CANTUS_SEGMENT_ID)
         source = make_fake_source(segment=[cantus_segment])
         chant = make_fake_chant(
             source=source,
@@ -987,7 +1001,7 @@ class SourceBrowseChantsViewTest(CsvExportLinkTestMixin, SourcePermissionsTestCa
         self.assertIn(chant, response.context["chants"])
 
     def test_search_full_text_std_spelling(self):
-        cantus_segment = make_fake_segment(id=4063)
+        cantus_segment = make_fake_segment(id=settings.CANTUS_SEGMENT_ID)
         source = make_fake_source(segment=[cantus_segment])
         chant = make_fake_chant(
             source=source,
@@ -1000,7 +1014,7 @@ class SourceBrowseChantsViewTest(CsvExportLinkTestMixin, SourcePermissionsTestCa
         self.assertIn(chant, response.context["chants"])
 
     def test_search_proofread(self):
-        cantus_segment = make_fake_segment(id=4063)
+        cantus_segment = make_fake_segment(id=settings.CANTUS_SEGMENT_ID)
         source = make_fake_source(segment=[cantus_segment])
         chant_std_proofread = make_fake_chant(
             source=source,
@@ -1076,14 +1090,14 @@ class SourceBrowseChantsViewTest(CsvExportLinkTestMixin, SourcePermissionsTestCa
         self.assertNotIn(chant_volpiano_proofread, response.context["chants"])
 
     def test_context_source(self):
-        cantus_segment = make_fake_segment(id=4063)
+        cantus_segment = make_fake_segment(id=settings.CANTUS_SEGMENT_ID)
         source = make_fake_source(segment=[cantus_segment])
         make_fake_chant(source=source)
         response = self.client.get(reverse("browse-chants", args=[source.id]))
         self.assertEqual(source, response.context["source"])
 
     def test_context_folios(self):
-        cantus_segment = make_fake_segment(id=4063)
+        cantus_segment = make_fake_segment(id=settings.CANTUS_SEGMENT_ID)
         source = make_fake_source(segment=[cantus_segment])
         make_fake_chant(source=source, folio="001r")
         make_fake_chant(source=source, folio="001r")
@@ -1097,7 +1111,7 @@ class SourceBrowseChantsViewTest(CsvExportLinkTestMixin, SourcePermissionsTestCa
         self.assertEqual(list(folios), ["001r", "001v", "002r", "002v"])
 
     def test_redirect_with_source_parameter(self):
-        cantus_segment = make_fake_segment(id=4063)
+        cantus_segment = make_fake_segment(id=settings.CANTUS_SEGMENT_ID)
         source = make_fake_source(segment=[cantus_segment])
         make_fake_chant(source=source)
         source_id = source.id

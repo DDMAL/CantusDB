@@ -3,7 +3,8 @@ Management command to import sources from the "cantorales_2024-05-01.csv"
 spreadsheet into CantusDB.
 
 Sources are tagged with the Cantorales segment (settings.CANTORALES_SEGMENT_ID)
-so they appear on /Cantorales/ but NOT on /sources/?segment=4063 (CANTUS Database).
+so they appear on /Cantorales/ but NOT on the main Cantus Database source list
+(/sources/?segment=<CANTUS_SEGMENT_ID>).
 
 The command only ever creates sources: a CSV row matching a source that already
 exists is logged and skipped, never updated (issue #2059). It is therefore safe
