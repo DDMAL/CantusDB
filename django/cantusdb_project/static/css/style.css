@@ -204,6 +204,14 @@ a.display-link {
 	background-color: #c4c4c4;
 }
 
+/* Paragraphs are separated by vertical space rather than a first-line indent
+   (#1972). Using both is redundant, and the indent made it impossible to
+   left-justify the first line. */
 .markdown-field-display p {
-	text-indent: 2em;
+	margin-bottom: 1.25em;
+}
+
+/* No trailing gap before the next <dt> in the source detail list. */
+.markdown-field-display p:last-child {
+	margin-bottom: 0;
 }
