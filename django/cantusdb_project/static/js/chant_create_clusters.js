@@ -1929,16 +1929,24 @@
     // margin the token carries. Elements carry none today — the separator space alone
     // spaces them — so the bar sits flush to the edge; the term is kept so it stays
     // evenly placed rather than hugging the token if a margin is ever reintroduced.
-    function insertionPoints() {
-        const tokens = allTokens().filter(function (t) {
-            return t !== dragToken;
-        });
+    function insertionPoints(tokens) {
         const points = [];
         tokens.forEach(function (token, i) {
             const rect = firstClientRect(token);
             const prev = i > 0 ? lastClientRect(tokens[i - 1]) : null;
             const afterPrevOnThisLine =
                 prev && Math.abs(prev.top - rect.top) < 1 && prev.right <= rect.left;
+            // A gap at a line break has two visible positions: after the previous
+            // element and before this one. Both must insert before the same token;
+            // otherwise a drop at the end of the previous line picks an earlier gap.
+            if (prev && Math.abs(prev.top - rect.top) >= 1) {
+                points.push({
+                    token: token,
+                    x: prev.right + styleWidth(tokens[i - 1], "marginRight"),
+                    top: prev.top,
+                    height: prev.height,
+                });
+            }
             points.push({
                 token: token,
                 x: afterPrevOnThisLine
@@ -1983,7 +1991,10 @@
     // The gap nearest the pointer. Every pointer position resolves to some gap, so the bar
     // can't blink out over a spot that is in fact droppable.
     function nearestInsertionPoint(x, y) {
-        return nearestPoint(insertionPoints(), x, y);
+        const tokens = allTokens().filter(function (t) {
+            return t !== dragToken;
+        });
+        return nearestPoint(insertionPoints(tokens), x, y);
     }
 
     function showDropIndicator(point) {
@@ -2551,7 +2562,8 @@
     // Exposed for tests only (tests/js/composer_logic.test.js, tests/js/cluster_submit.test.js),
     // mirroring how chant_create_auto_split.js hangs its rules on window; the page never reads
     // it. These are the composer's pure decisions — everything settleable without a DOM —
-    // pulled out so they can be pinned under Node. The DOM plumbing around them (drag, caret,
+    // pulled out so they can be pinned under Node. insertionPoints also reads token geometry;
+    // its tests supply fixture rectangles. The DOM plumbing around them (drag, caret,
     // the menus) is verified by hand and by the local Playwright harness.
     window.ChantClusterComposer = {
         submissionError: clusterSubmissionError,
@@ -2568,6 +2580,7 @@
         joinElementTexts: joinElementTexts,
         serializeElements: serializeElements,
         nearestPoint: nearestPoint,
+        insertionPoints: insertionPoints,
     };
 
     // Guarded so the file can be loaded under Node's test runner (no document there);

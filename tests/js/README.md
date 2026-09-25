@@ -22,14 +22,19 @@ These are not Django tests — `manage.py test` does not reach them — but they
 |---|---|
 | `auto_split.test.js` | the split rules — one test per convention, the three ground-truth chants asserted exactly, and the invariants the feature rests on |
 | `composer_logic.test.js` | the composer's pure decisions — CI result ranking, typeahead row building, merge eligibility, the split boundary, the persisted-element payload, the flattened text, and the drop-target geometry |
+| `composer_drop.test.js` | drop targets generated from token rectangles, including both sides of a line break and elements spanning multiple lines |
 | `cluster_submit.test.js` | the composer's submit-time guards — empty composer and leftover auto-split separators are both blocked, with the right message and precedence |
 | `fixtures/cantus_index_texts.json` | 48 real Cantus Index chant texts, each labelled with the convention it exercises |
 
-All three suites load the exact file that ships and read a plain object off a stub `window` — the
+All four suites load the exact file that ships and read a plain object off a stub `window` — the
 same object the page reads. `chant_create_auto_split.js` is pure functions over a string, so it
 loads directly. `chant_create_clusters.js` is the composer itself; it guards its
 `DOMContentLoaded` hook on `document`, so with no document present the wiring never runs and its
 pure API (`window.ChantClusterComposer`) is left to read off.
+
+`composer_drop.test.js` supplies token rectangles and computed margins to `insertionPoints`,
+then checks where a dropped element would appear. These geometry fixtures do not run browser
+layout; the local browser harness checks actual wrapping and drag events.
 
 That pure API is the composer's decision layer, pulled out from the DOM plumbing that calls it so
 it can be pinned here: `rankResults` / `rowsFromResults` / `ciErrorRows` / `messageRowText` /
