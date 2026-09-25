@@ -1,3 +1,11 @@
+:root {
+	/* Radio Canada distinguishes "1" from uppercase "I" — needed for sigla like D-WI1.
+	   Overriding --bs-font-sans-serif rather than --bs-body-font-family: Bootstrap derives
+	   the latter from the former, and components that reset their own font (tooltips,
+	   popovers) read --bs-font-sans-serif directly. */
+	--bs-font-sans-serif: "Radio Canada", sans-serif;
+}
+
 body {
 	background-image: url("../background.jpg");
 }
@@ -7,7 +15,6 @@ body {
 	max-width: 600px;
 	background-color: white;
 	padding: 20px;
-	font-family: "Segoe UI", Roboto, "Helvetica Neue", Arial, "Noto Sans", "Liberation Sans", sans-serif;
 	text-align: center;
 }
 
@@ -149,10 +156,6 @@ a.close-success:hover {
 	width: 38%;
 }
 
-.font-serif {
-	font-family: "Radio Canada";
-}
-
 .font-volpiano {
 	font-family: "volpiano";
 	font-size: 28px;
@@ -203,4 +206,34 @@ a.display-link {
 
 .markdown-field-display p {
 	text-indent: 2em;
+}
+
+/* Nonstandard chant text warning (see chant_text_warning.html) */
+
+.chant-text-warning-field {
+	border-color: #ffc107 !important;
+	box-shadow: 0 0 0 0.15rem rgba(255, 193, 7, 0.4) !important;
+}
+
+/* The echo renders at the Bootstrap `small` size, so this needs the 4.5:1
+   contrast WCAG AA asks of small text: #856404 gives about 5.5:1 on white,
+   where the #997404 it replaces gave about 4.3:1. */
+.chant-text-warning-echo {
+	color: #856404;
+}
+
+.chant-text-warning-marked {
+	font-family: monospace;
+	white-space: pre-wrap;
+	overflow-wrap: anywhere;
+	max-height: 10rem;
+	overflow-y: auto;
+	margin-top: 0.25rem;
+	padding: 0.25rem 0.5rem;
+	background-color: rgba(0, 0, 0, 0.04);
+	border-radius: 0.25rem;
+}
+
+.chant-text-warning-marked mark {
+	padding: 0 0.1em;
 }

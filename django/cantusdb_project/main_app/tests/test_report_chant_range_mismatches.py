@@ -98,3 +98,22 @@ class TestReportChantRangeMismatches(TestCase):
         after = dict(Chant.objects.values_list("id", "chant_range"))
         self.assertEqual(before, after)
         self.assertEqual(Chant.objects.count(), count_before)
+
+    def test_default_output_uses_the_command_stdout(self) -> None:
+        self._make_mismatched_chant("1---c--g---4", "1-a-b-4")
+        output, errors = StringIO(), StringIO()
+        call_command("report_chant_range_mismatches", stdout=output, stderr=errors)
+        rows = list(csv.reader(StringIO(output.getvalue())))
+        self.assertEqual(len(rows), 2)
+        self.assertEqual(rows[1][4:], ["1-a-b-4", "1-c-g-4", "pitch"])
+        self.assertIn("Found 1 mismatched records", errors.getvalue())
+
+    def test_report_distinguishes_whitespace_and_clef_changes(self) -> None:
+        whitespace = self._make_mismatched_chant("1---c--g---4", " 1-c-g-4\t")
+        clef = self._make_mismatched_chant("2---c--g---4", "1-c-g-4")
+        rows = {row[1]: row for row in self._run_report()[1:]}
+        self.assertEqual(rows[str(whitespace.pk)][6], "formatting")
+        self.assertEqual(rows[str(clef.pk)][4:], ["1-c-g-4", "2-c-g-4", "pitch"])
+        call_command("populate_chant_ranges", "--overwrite", stdout=StringIO())
+        clef.refresh_from_db()
+        self.assertEqual(clef.chant_range, "2-c-g-4")

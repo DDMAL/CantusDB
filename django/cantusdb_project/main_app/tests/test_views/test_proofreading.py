@@ -1,5 +1,6 @@
 import random
 
+from django.conf import settings
 from django.test import TestCase
 from django.urls import reverse
 from django.contrib.auth import get_user_model
@@ -17,8 +18,10 @@ class ProofreadingOverviewViewTest(TestCase):
     @classmethod
     def setUpTestData(cls):
         Group.objects.create(name="editor")
-        cls.cantus_segment = make_fake_segment(id=4063)
-        cls.other_segment = make_fake_segment(id=4064, name="Other Segment")
+        cls.cantus_segment = make_fake_segment(id=settings.CANTUS_SEGMENT_ID)
+        cls.other_segment = make_fake_segment(
+            id=settings.BOWER_SEGMENT_ID, name="Other Segment"
+        )
         cls.project_manager_user = get_user_model().objects.create_superuser(
             "pm@example.com", "password"
         )
@@ -104,6 +107,35 @@ class ProofreadingOverviewViewTest(TestCase):
 
         response = self.client.get(self.url, {"q": "NonExistent"})
         self.assertEqual(len(response.context["sources"]), 0)
+
+    def test_proofread_unpublished_filter(self):
+        fully_proofread_kwargs = dict(
+            volpiano_proofread=True,
+            manuscript_full_text_proofread=True,
+            manuscript_full_text_std_proofread=True,
+            other_fields_proofread=True,
+        )
+
+        proofread_unpublished_source = make_fake_source(
+            published=False, segment=[self.cantus_segment]
+        )
+        make_fake_chant(source=proofread_unpublished_source, **fully_proofread_kwargs)
+
+        needs_proofread_unpublished_source = make_fake_source(
+            published=False, segment=[self.cantus_segment]
+        )
+        make_fake_chant(source=needs_proofread_unpublished_source)
+
+        proofread_published_source = make_fake_source(
+            published=True, segment=[self.cantus_segment]
+        )
+        make_fake_chant(source=proofread_published_source, **fully_proofread_kwargs)
+
+        response = self.client.get(self.url, {"inactive": "proofread_unpublished"})
+        sources = list(response.context["sources"])
+        self.assertIn(proofread_unpublished_source, sources)
+        self.assertNotIn(needs_proofread_unpublished_source, sources)
+        self.assertNotIn(proofread_published_source, sources)
 
     def test_sortable_headers(self):
         response = self.client.get(self.url, {"order": "country"})

@@ -17,6 +17,8 @@ from main_app.models.project import Project
 from main_app.models.source_url import SourceURL
 from main_app.models.language import Language
 from main_app.models.site_banner import SiteBanner
+from main_app.models.data_check_config import DataCheckConfig
+from main_app.models.data_check_report import DataCheckReport
 
 __all__ = [
     "BaseModel",
@@ -38,4 +40,6 @@ __all__ = [
     "SourceURL",
     "Language",
     "SiteBanner",
+    "DataCheckConfig",
+    "DataCheckReport",
 ]

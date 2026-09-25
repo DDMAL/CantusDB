@@ -1,4 +1,5 @@
 <!DOCTYPE html>
+{% load static %}
 <html lang="en">
     <head>
         <!-- Bootstrap CSS -->
@@ -6,7 +7,13 @@
               rel="stylesheet"
               integrity="sha384-QWTKZyjpPEjISv5WaRU9OFeRpok6YctnYmDr5pNlyT2bRjXh0JMhjY6hW+ALEwIH"
               crossorigin="anonymous" />
+        <link href="{% static 'fonts/radio-canada.css' %}" rel="stylesheet" />
         <style>
+            /* This page doesn't load style.css, so set the font here too. */
+            :root {
+                --bs-font-sans-serif: "Radio Canada", sans-serif;
+            }
+
             a {
                 color: #922;
                 text-decoration: none;

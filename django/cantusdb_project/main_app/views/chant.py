@@ -5,11 +5,13 @@ import string
 
 from django.conf import settings
 from django.contrib import messages
+from django.contrib.auth.mixins import LoginRequiredMixin
 from django.contrib.postgres.aggregates import ArrayAgg
-from django.db.models import F, Q, QuerySet
-from django.http import Http404, HttpResponse
+from django.db.models import Case, F, Q, QuerySet, When
+from django.http import Http404, HttpRequest, HttpResponse, JsonResponse
 from django.shortcuts import get_object_or_404
 from django.urls import reverse
+from django.utils.http import url_has_allowed_host_and_scheme
 from django.views.generic import (
     CreateView,
     DeleteView,
@@ -17,6 +19,7 @@ from django.views.generic import (
     ListView,
     TemplateView,
     UpdateView,
+    View,
 )
 from volpiano_display_utilities.latin_word_syllabification import LatinError
 from volpiano_display_utilities.cantus_text_syllabification import (
@@ -35,19 +38,85 @@ from main_app.forms import (
     ChantEditForm,
     ChantEditSyllabificationForm,
     ChantSearchForm,
+    CHANT_TEXT_FIELDS,
+    find_chant_text_problems,
 )
 from main_app.models import (
     Chant,
     Feast,
     Genre,
+    Segment,
     Source,
     Sequence,
     Service,
 )
-from main_app.permissions import CustomAccessMixin, user_can_view_record_creator
+from main_app.permissions import CustomAccessMixin
 
 from main_app.mixins import JSONResponseMixin
 from users.models import User
+
+
+def add_unconfirmed_text_warnings(request: HttpRequest, form: Any) -> None:
+    """
+    After a chant form saves, surface a non-blocking warning message for each
+    invalid-text problem the form found (see #1681), *unless* the user already
+    acknowledged them (the client-side "Save anyway" flow posts
+    ``confirm_invalid_text=1``). This is primarily the fallback for when the
+    JavaScript confirmation dialog isn't available.
+    """
+    if request.POST.get("confirm_invalid_text") == "1":
+        return
+    for problem in getattr(form, "text_problems", []):
+        messages.warning(
+            request,
+            f'The {problem["label"]} {problem["message"]} '
+            "The chant was saved, but you may want to review this field.",
+        )
+
+
+class ValidateChantTextView(LoginRequiredMixin, View):  # type: ignore[type-arg]
+    """
+    A small JSON endpoint used by the chant create/edit forms to check whether
+    the entered text fields can be syllabified, *without* saving anything. The
+    client posts the text field values and receives back a list of problems
+    (each with the field name, a label, a message and an HTML rendering of the
+    text with the offending characters marked). This powers the "Save anyway?"
+    confirmation dialog (see #1681).
+    """
+
+    def post(self, request: HttpRequest) -> JsonResponse:
+        problems: list[dict[str, str]] = []
+        for field_name, spec in CHANT_TEXT_FIELDS.items():
+            if field_name not in request.POST:
+                continue
+            problems.extend(
+                {"field": field_name, "label": spec["label"], **problem}
+                for problem in find_chant_text_problems(
+                    request.POST[field_name],
+                    text_presyllabified=spec["text_presyllabified"],
+                )
+            )
+        return JsonResponse({"problems": problems})
+
+
+ADVANCED_SEARCH_FIELDS: tuple[str, ...] = (
+    # GET params belonging to the collapsible "Advanced search" section of
+    # chant_search.html; used to auto-expand it when any of them are set.
+    "service",
+    "genre",
+    "cantus_id",
+    "mode",
+    "position",
+    "melodies",
+    "feast",
+    "liturgical_function",
+    "segment",
+    # "indexing_notes_op" is intentionally excluded: its <select> has no blank
+    # option, so browsers always submit a value ("contains") even when the user
+    # never touched it. Including it here would keep this section expanded on
+    # every search.
+    "indexing_notes",
+)
 
 CHANT_SEARCH_TEMPLATE_VALUES: tuple[str, ...] = (
     # for views that use chant_search.html, this allows them to
@@ -206,19 +275,26 @@ def get_feast_selector_options(source: Source) -> list[tuple[int, str, str]]:
     chant_set_w_feasts: QuerySet[Chant, tuple[int, str]] = source.chant_set.exclude(
         feast=None
     ).values_list("feast_id", "feast__name")
-    feasts_agg_folios: Iterator[tuple[int, str, list[str]]] = (
-        chant_set_w_feasts.annotate(folios=ArrayAgg("folio", distinct=True))
+    # A chant may have a feast but no folio (folio is nullable/blank). Such
+    # values must be kept out of the aggregate: create_folio_ranges indexes
+    # into each folio string and would raise on None or "".
+    feasts_agg_folios: Iterator[tuple[int, str, Optional[list[str]]]] = (
+        chant_set_w_feasts.annotate(
+            folios=ArrayAgg(
+                "folio", distinct=True, filter=~Q(folio=None) & ~Q(folio="")
+            )
+        )
         .order_by("folios")
         .iterator()
     )
     feasts_with_folio_range = []
-    for feast_with_folio in feasts_agg_folios:
+    for feast_id, feast_name, folios in feasts_agg_folios:
+        # A feast whose chants all lack folios aggregates to None (array_agg
+        # returns NULL when the filter matches no rows).
+        if not folios:
+            continue
         feasts_with_folio_range.append(
-            (
-                feast_with_folio[0],
-                feast_with_folio[1],
-                create_folio_ranges(feast_with_folio[2]),
-            )
+            (feast_id, feast_name, create_folio_ranges(folios))
         )
     return feasts_with_folio_range
 
@@ -325,7 +401,26 @@ class ChantDetailView(CustomAccessMixin, JSONResponseMixin, DetailView):  # type
             "feast",
             "project",
             "created_by",
+            "last_updated_by",
         ).prefetch_related("source__segment_m2m", "source__notation")
+
+    @staticmethod
+    def _attributable_user(user: Optional[User]) -> Optional[User]:
+        """Returns ``user``, or ``None`` if it's the generic admin account.
+
+        Records migrated from OldCantus are attributed to a generic "Cantus
+        Database Administrator" account (settings.GENERIC_ADMIN_FULL_NAME)
+        rather than a named editor. Per Debra's feedback on #2104, this
+        placeholder shouldn't be shown in the public attribution footer until
+        a real editor is recorded.
+        """
+        if (
+            user
+            and (user.full_name or "").strip().lower()
+            == settings.GENERIC_ADMIN_FULL_NAME
+        ):
+            return None
+        return user
 
     def get_context_data(self, **kwargs: Any) -> dict[str, Any]:
         context = super().get_context_data(**kwargs)
@@ -333,19 +428,15 @@ class ChantDetailView(CustomAccessMixin, JSONResponseMixin, DetailView):  # type
         source = chant.source
 
         context["user_can_edit_chant"] = self.user_assigned_to_source(source)
+        context["attribution_created_by"] = self._attributable_user(chant.created_by)
+        context["attribution_last_updated_by"] = self._attributable_user(
+            chant.last_updated_by
+        )
         context["bower_segment"] = (
             source is not None
             and source.segment_m2m.filter(id=settings.BOWER_SEGMENT_ID).exists()
         )
         context["source_notation"] = source.notation.first() if source else None
-        # The "Chant record created by" field is only shown for chants in the
-        # Kaiatonsera master sources, and only to the people in the class (plus
-        # editors/superusers). See issue #2077.
-        context["user_can_view_record_creator"] = user_can_view_record_creator(
-            source.id if source else None,
-            self.user_is_editor,
-            self.user_groups,
-        )
 
         language = chant.text_language
         if language and language.pk == 2:
@@ -469,8 +560,12 @@ class ChantSearchView(CustomAccessMixin, ListView):  # type: ignore[type-arg]
         ``melodies``: Filters Chant by whether or not it contains a melody in
                       Volpiano form. Valid values are "true" or "false".
         ``feast``: Filters by Feast of Chant
+        ``liturgical_function``: Filters by liturgical function of Chant
+        ``segment``: Filters by Segment of the Chant's Source
         ``keyword``: Searches text of Chant for keywords
         ``op``: Operation to take with keyword search. Options are "contains", "starts_with", and "ends_with"
+        ``indexing_notes``: Searches indexing notes of Chant/Sequence for text
+        ``indexing_notes_op``: Operation to take with indexing notes search. Options are "contains" and "starts_with"
     """
 
     paginate_by = 100
@@ -484,6 +579,22 @@ class ChantSearchView(CustomAccessMixin, ListView):  # type: ignore[type-arg]
         context["genres"] = Genre.objects.all().order_by("name").values("id", "name")
         context["services"] = (
             Service.objects.all().order_by("name").values("id", "name")
+        )
+        context["liturgical_functions"] = Chant.LITURGICAL_FUNCTION_CHOICES
+        # "Benedicamus Domino" is a chant-level project designation, not a
+        # source segment, so it's excluded here (see #2131). "Cantus Database"
+        # is listed first (after "Any", added in the template), the rest
+        # alphabetically.
+        context["segments"] = list(
+            Segment.objects.exclude(id=settings.BENEDICAMUS_DOMINO_SEGMENT_ID)
+            .order_by(
+                Case(When(id=settings.CANTUS_SEGMENT_ID, then=0), default=1),
+                "name",
+            )
+            .values("id", "name")
+        )
+        context["advanced_search_active"] = any(
+            self.request.GET.get(field) for field in ADVANCED_SEARCH_FIELDS
         )
         feast_param = self.request.GET.get("feast")
         context["search_form"] = ChantSearchForm(
@@ -529,12 +640,27 @@ class ChantSearchView(CustomAccessMixin, ListView):  # type: ignore[type-arg]
         search_melodies: Optional[str] = self.request.GET.get("melodies")
         if search_melodies:
             search_parameters.append(f"melodies={search_melodies}")
+        search_liturgical_function: Optional[str] = self.request.GET.get(
+            "liturgical_function"
+        )
+        if search_liturgical_function:
+            search_parameters.append(
+                f"liturgical_function={search_liturgical_function}"
+            )
         search_bar: Optional[str] = self.request.GET.get("search_bar")
         if search_bar:
             search_parameters.append(f"search_bar={search_bar}")
         search_segment: Optional[str] = self.request.GET.get("segment")
         if search_segment:
             search_parameters.append(f"segment={search_segment}")
+        search_indexing_notes_op: Optional[str] = self.request.GET.get(
+            "indexing_notes_op"
+        )
+        if search_indexing_notes_op:
+            search_parameters.append(f"indexing_notes_op={search_indexing_notes_op}")
+        search_indexing_notes: Optional[str] = self.request.GET.get("indexing_notes")
+        if search_indexing_notes:
+            search_parameters.append(f"indexing_notes={search_indexing_notes}")
 
         url_with_search_params: str = current_url + "?"
         if search_parameters:
@@ -625,6 +751,9 @@ class ChantSearchView(CustomAccessMixin, ListView):  # type: ignore[type-arg]
                 if feast_id.isdigit():
                     q_obj_filter &= Q(feast_id=feast_id)
 
+            if liturgical_function := self.request.GET.get("liturgical_function"):
+                q_obj_filter &= Q(liturgical_function=liturgical_function)
+
             # Filter the QuerySet with Q object
             chant_set = Chant.objects.filter(q_obj_filter).select_related(
                 "source__holding_institution", "feast", "service", "genre"
@@ -669,6 +798,16 @@ class ChantSearchView(CustomAccessMixin, ListView):  # type: ignore[type-arg]
                 )
                 chant_set = chant_set.filter(keyword_filter)
                 sequence_set = sequence_set.filter(keyword_filter)
+
+            if notes := self.request.GET.get("indexing_notes"):
+                operation = self.request.GET.get("indexing_notes_op")
+                # the operation parameter can be "contains" or "starts_with"
+                if operation == "contains":
+                    indexing_notes_filter = Q(indexing_notes__icontains=notes)
+                else:
+                    indexing_notes_filter = Q(indexing_notes__istartswith=notes)
+                chant_set = chant_set.filter(indexing_notes_filter)
+                sequence_set = sequence_set.filter(indexing_notes_filter)
 
             # Fetch only the values necessary for rendering the template
             chant_set = chant_set.only(*ONLY_FIELDS)
@@ -760,8 +899,11 @@ class ChantSearchMSView(CustomAccessMixin, ListView):  # type: ignore[type-arg]
         ``melodies``: Filters Chant by whether or not it contains a melody in
                       Volpiano form. Valid values are "true" or "false".
         ``feast``: Filters by Feast of Chant
+        ``liturgical_function``: Filters by liturgical function of Chant
         ``keyword``: Searches text of Chant for keywords
         ``op``: Operation to take with keyword search. Options are "contains", "starts_with", and "ends_with"
+        ``indexing_notes``: Searches indexing notes of Chant/Sequence for text
+        ``indexing_notes_op``: Operation to take with indexing notes search. Options are "contains" and "starts_with"
     """
 
     paginate_by = 100
@@ -786,6 +928,10 @@ class ChantSearchMSView(CustomAccessMixin, ListView):  # type: ignore[type-arg]
         context["genres"] = Genre.objects.all().order_by("name").values("id", "name")
         context["services"] = (
             Service.objects.all().order_by("name").values("id", "name")
+        )
+        context["liturgical_functions"] = Chant.LITURGICAL_FUNCTION_CHOICES
+        context["advanced_search_active"] = any(
+            self.request.GET.get(field) for field in ADVANCED_SEARCH_FIELDS
         )
         feast_param = self.request.GET.get("feast")
         context["search_form"] = ChantSearchForm(
@@ -827,6 +973,11 @@ class ChantSearchMSView(CustomAccessMixin, ListView):  # type: ignore[type-arg]
         search_melodies = self.request.GET.get("melodies")
         if search_melodies:
             search_parameters.append(f"melodies={search_melodies}")
+        search_liturgical_function = self.request.GET.get("liturgical_function")
+        if search_liturgical_function:
+            search_parameters.append(
+                f"liturgical_function={search_liturgical_function}"
+            )
         search_indexing_notes_op = self.request.GET.get("indexing_notes_op")
         if search_indexing_notes_op:
             search_parameters.append(f"indexing_notes_op={search_indexing_notes_op}")
@@ -873,6 +1024,9 @@ class ChantSearchMSView(CustomAccessMixin, ListView):  # type: ignore[type-arg]
             if feast_id.isdigit():
                 q_obj_filter &= Q(feast_id=feast_id)
 
+        if liturgical_function := self.request.GET.get("liturgical_function"):
+            q_obj_filter &= Q(liturgical_function=liturgical_function)
+
         order_value = self.request.GET.get("order")
         sort_get_param: Optional[str] = self.request.GET.get("sort")
 
@@ -913,7 +1067,8 @@ class ChantSearchMSView(CustomAccessMixin, ListView):  # type: ignore[type-arg]
         source = Source.objects.get(id=source_id)
         queryset = (
             source.sequence_set
-            if 4064 in source.segment_m2m.values_list("id", flat=True)
+            if settings.BOWER_SEGMENT_ID
+            in source.segment_m2m.values_list("id", flat=True)
             else source.chant_set
         )
 
@@ -1093,6 +1248,7 @@ class ChantCreateView(CustomAccessMixin, CreateView):  # type: ignore[type-arg]
         """
         form.instance.created_by = self.request.user
         form.instance.last_updated_by = self.request.user
+        add_unconfirmed_text_warnings(self.request, form)
         if not (self.user_is_editor and self.user_assigned_to_source(self.source)):
             # The template hides chant_range from non-proofreaders; dropping it
             # here too means the gate can't be bypassed by crafting a request.
@@ -1357,6 +1513,7 @@ class SourceEditChantsView(CustomAccessMixin, UpdateView):  # type: ignore[type-
         if not user_can_proofread_chant:
             chant.proofread_by.set(proofreaders)
         messages.success(self.request, "Chant updated successfully!")
+        add_unconfirmed_text_warnings(self.request, form)
         return return_response
 
     def form_invalid(self, form):
@@ -1375,12 +1532,23 @@ class SourceEditChantsView(CustomAccessMixin, UpdateView):  # type: ignore[type-
             return super().form_invalid(form)
         return super().form_invalid(form)
 
-    def get_success_url(self):
+    def get_success_url(self) -> str:
         # Take user back to the referring page
         # `ref` url parameter is used to indicate referring page
         next_url = self.request.GET.get("ref")
-        if next_url:
-            return self.request.POST.get("referrer")
+        # `referrer` is a client-supplied form field, so it can't be trusted as a
+        # redirect target unless it points back at this site. This also rejects a
+        # missing or empty referrer, which would otherwise redirect to nowhere.
+        referrer = self.request.POST.get("referrer")
+        referrer_is_safe = url_has_allowed_host_and_scheme(
+            referrer,
+            allowed_hosts={self.request.get_host()},
+            require_https=self.request.is_secure(),
+        )
+        if next_url and referrer_is_safe:
+            # Return to the edited chant's row so the user keeps their place in
+            # the (often very long) chant list rather than landing at the top (#1433).
+            return f"{referrer}#chant-{self.object.pk}"
         # ref not found, stay on the same page after save
         return self.request.get_full_path()
 
@@ -1445,6 +1613,7 @@ class ChantEditSyllabificationView(CustomAccessMixin, UpdateView):  # type: igno
             self.request,
             "Syllabification updated successfully!",
         )
+        add_unconfirmed_text_warnings(self.request, form)
         return super().form_valid(form)
 
     def get_success_url(self):

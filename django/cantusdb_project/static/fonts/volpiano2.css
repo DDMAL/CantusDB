@@ -1,10 +1,10 @@
 /* Webfont: Volpiano2 */@font-face {
     font-family: 'Volpiano2';
-    src: url('Volpiano2.eot'); /* IE9 Compat Modes */
-    src: url('Volpiano2.eot?#iefix') format('embedded-opentype'), /* IE6-IE8 */
-         url('Volpiano2.woff') format('woff'), /* Modern Browsers */
-         url('Volpiano2.ttf') format('truetype'), /* Safari, Android, iOS */
-         url('Volpiano2.svg#Volpiano2') format('svg'); /* Legacy iOS */
+    src: url('volpiano2.eot'); /* IE9 Compat Modes */
+    src: url('volpiano2.eot?#iefix') format('embedded-opentype'), /* IE6-IE8 */
+         url('volpiano2.woff') format('woff'), /* Modern Browsers */
+         url('volpiano2.ttf') format('truetype'), /* Safari, Android, iOS */
+         url('volpiano2.svg#Volpiano2') format('svg'); /* Legacy iOS */
     font-style: normal;
     font-weight: normal;
     text-rendering: optimizeLegibility;

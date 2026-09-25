@@ -8,6 +8,8 @@ window.addEventListener("load", function () {
     const opFilter = document.getElementById("opFilter");
     const serviceFilter = document.getElementById("serviceFilter");
     const genreFilter = document.getElementById("genreFilter");
+    const functionFilter = document.getElementById("functionFilter");
+    const segmentFilter = document.getElementById("segmentFilter");
     const melodiesFilter = document.getElementById("melodiesFilter");
     const keywordField = document.getElementById("keywordSearch");
     const cantusIDField = document.getElementById("cantus_id");
@@ -22,6 +24,12 @@ window.addEventListener("load", function () {
     }
     if (urlParams.has("genre")) {
         genreFilter.value = urlParams.get("genre");
+    }
+    if (functionFilter && urlParams.has("liturgical_function")) {
+        functionFilter.value = urlParams.get("liturgical_function");
+    }
+    if (segmentFilter && urlParams.has("segment")) {
+        segmentFilter.value = urlParams.get("segment");
     }
     if (urlParams.has("melodies")) {
         melodiesFilter.value = urlParams.get("melodies");

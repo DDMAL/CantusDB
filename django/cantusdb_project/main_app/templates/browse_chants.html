@@ -23,6 +23,9 @@
     {% endfor %}
     <!--Container for formset errors (if any) -- populated by JS -->
     <div id="formsetErrorAlert" class="alert alert-danger d-none"></div>
+    <div id="formsetTextWarningAlert"
+         class="alert alert-warning d-none"
+         role="status"></div>
     <h3>Browse Chants</h3>
     <span class="small">Displaying {{ page_obj.start_index }}-{{ page_obj.end_index }} of <b>{{ page_obj.paginator.count }}</b> chants.</span>
     <form method="get">
@@ -143,7 +146,7 @@
                 </thead>
                 <tbody>
                     {% for chant in chants %}
-                        <tr>
+                        <tr id="chant-{{ chant.id }}">
                             <td class="text-wrap text-center">
                                 <b>{{ chant.folio|default:"" }}</b>
                             </td>
@@ -286,10 +289,13 @@
                 {% if source.exists_on_cantus_ultimus %}
                     <a href="https://cantus.simssa.ca/manuscript/{{ source.id }}"
                        class="guillemet"
-                       target="_blank">View inventory with images</a>
+                       target="_blank">Image with Inventory (Cantus Ultimus)</a>
                 {% endif %}
-                {% if source.image_link %}
-                    <a href="{{ source.image_link }}" class="guillemet" target="_blank">View images on external site</a>
+                {% if source.external_images_url %}
+                    <a href="{{ source.external_images_url }}"
+                       class="guillemet"
+                       target="_blank"
+                       rel="noopener noreferrer">View images on external site</a>
                 {% endif %}
                 <a href="{% url "csv-export" source.id %}"
                    class="guillemet"

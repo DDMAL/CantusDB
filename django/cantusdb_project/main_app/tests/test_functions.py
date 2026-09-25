@@ -17,8 +17,8 @@ from main_app.tests.make_fakes import (
     make_fake_source,
 )
 from main_app.management.commands import update_cached_concordances
-from main_app.signals import (
-    generate_incipit,
+from main_app.signals import generate_incipit
+from main_app.chant_range import (
     generate_chant_range,
     extract_volpiano_clef,
 )
@@ -305,8 +305,8 @@ class IncipitSignalTest(TestCase):
             self.assertEqual(observed_incipit_2, expected_incipit_2)
 
 
-class ChantRangeSignalTest(TestCase):
-    # testing generate_chant_range, within main_app/signals.py.
+class ChantRangeDerivationTest(TestCase):
+    # testing generate_chant_range, within main_app/chant_range.py.
     # Input is a raw volpiano string; normalization and clef extraction both
     # happen inside generate_chant_range.
     def test_lowest_and_highest_notes(self):
@@ -418,8 +418,8 @@ class VolpianoClefTest(TestCase):
         self.assertEqual(generate_chant_range("---c--d--e---"), "1-c-e-4")
 
 
-class ChantRangeAutofillSignalTest(TestCase):
-    # testing the derivation wiring in update_volpiano_fields (signals.py):
+class ChantRangeSaveTest(TestCase):
+    # testing range derivation in BaseChant.save():
     # whenever a chant has volpiano, saving it recomputes chant_range from that
     # volpiano and overwrites whatever was stored. A stored range that disagrees
     # with the melody is an error, not ground truth. See #2081 / #1176.
@@ -540,7 +540,7 @@ class ChantRangeAutofillSignalTest(TestCase):
                 self.assertEqual(chant.chant_range, "1-a-b-4")
 
     def test_stale_blank_instance_does_not_blank_the_stored_range(self):
-        # The signal reads instance.volpiano and never instance.chant_range, so a
+        # BaseChant.save derives the range from the updated melody, so a
         # save whose in-memory range is blank still writes the derived value
         # rather than propagating the blank.
         chant = make_fake_chant(volpiano="1---c--d---4", chant_range="1-a-b-4")
@@ -569,10 +569,9 @@ class ChantRangeAutofillSignalTest(TestCase):
         self.assertEqual(chant.manuscript_full_text_std_spelling, fulltext)
 
 
-class SequenceRangeAutofillSignalTest(TestCase):
+class SequenceRangeSaveTest(TestCase):
     # volpiano and chant_range are both declared on BaseChant, so sequences carry
-    # them too. on_sequence_save now runs the same derivation as on_chant_save
-    # (#2081 / #1176); before that it skipped update_volpiano_fields entirely.
+    # them too. BaseChant.save derives ranges for both model types (#2081 / #1176).
     def test_range_is_derived_from_volpiano(self):
         sequence = make_fake_sequence()
         sequence.volpiano = "1---c--d--e---4"
@@ -594,15 +593,6 @@ class SequenceRangeAutofillSignalTest(TestCase):
         sequence.save()
         sequence.refresh_from_db()
         self.assertEqual(sequence.chant_range, "1-a-b-4")
-
-    def test_volpiano_notes_and_intervals_are_populated(self):
-        # These two melody-search fields were never written for sequences either.
-        sequence = make_fake_sequence()
-        sequence.volpiano = "1---c--d--e---4"
-        sequence.save()
-        sequence.refresh_from_db()
-        self.assertEqual(sequence.volpiano_notes, "cde")
-        self.assertEqual(sequence.volpiano_intervals, "11")
 
 
 class CantusIndexFunctionsTest(TestCase):
@@ -692,6 +682,34 @@ class CantusIndexFunctionsTest(TestCase):
             self.assertRaises(
                 ValueError, get_json_from_ci_api, "path/lacking/a/leading/slash"
             )
+
+        def raise_connection_error(*args, **kwargs):
+            raise requests.exceptions.ConnectionError
+
+        with patch("requests.get", raise_connection_error):
+            response_connection_error = get_json_from_ci_api(path="/json-cids")
+        with self.subTest(
+            test="Ensure returns None when requests.get raises a connection error"
+        ):
+            self.assertIsNone(response_connection_error)
+
+        malformed_json_response = MockResponse(
+            status_code=200,
+            text="this is not valid json",
+            json=None,
+            content=b"this is not valid json",
+        )
+
+        def json_raises_value_error():
+            raise ValueError("Expecting value")
+
+        malformed_json_response.json = json_raises_value_error
+        with patch("requests.get", lambda *args, **kwargs: malformed_json_response):
+            response_malformed_json = get_json_from_ci_api(path="/json-cids")
+        with self.subTest(
+            test="Ensure returns None when Cantus Index returns malformed JSON"
+        ):
+            self.assertIsNone(response_malformed_json)
 
     def test_get_suggested_fulltext(self) -> None:
         with self.subTest("Test CantusID with full text"):

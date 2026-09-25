@@ -213,6 +213,11 @@ class ProofreadView(CustomAccessMixin, ListView, MultipleObjectMixin):
             )
         )
 
+        if inactive_filter == "proofread_unpublished":
+            queryset = queryset.filter(
+                published=False, total_chants_needing_proofread=0
+            )
+
         # Sorting
         order_param = self.request.GET.get("order", "country")
         sort_param = self.request.GET.get("sort", "asc")

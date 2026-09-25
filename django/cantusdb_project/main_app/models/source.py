@@ -1,10 +1,11 @@
-from typing import Any
+from typing import Any, Optional
 
 from django.db import models
 from django.contrib.auth import get_user_model
 
 from main_app.models.url_field import NormalizedURLField
 from main_app.models import BaseModel, Segment
+from main_app.models.source_url import SourceURL
 
 
 class Source(BaseModel):
@@ -91,7 +92,7 @@ class Source(BaseModel):
     source_completeness = models.IntegerField(
         choices=SourceCompletenessChoices.choices,
         default=SourceCompletenessChoices.FULL_SOURCE,
-        verbose_name="Complete Source/Fragment",
+        verbose_name="Physical Status",
     )
 
     full_source = models.BooleanField(blank=True, null=True)
@@ -211,6 +212,47 @@ class Source(BaseModel):
             title.append(f'("{self.name}")')
 
         return " ".join(title)
+
+    # Both properties below are transitional: once the legacy image_link column
+    # is dropped (#1839, after populate_source_urls runs), external_images_url
+    # collapses to a plain source_links lookup and show_legacy_image_link is
+    # always False. Simplify or remove them then.
+    @property
+    def external_images_url(self) -> Optional[str]:
+        """The URL of this source's external image gallery, or None.
+
+        A source's image gallery can be recorded two ways: the legacy
+        ``image_link`` field, or a ``SourceURL`` with url_type
+        ``EXTERNAL_IMAGES``, which supersedes it. This returns whichever
+        applies, so a page that renders a single "images" link renders one
+        link no matter which mechanism a given source uses.
+
+        Pages that render ``source_links`` themselves should use
+        `show_legacy_image_link` instead, or the SourceURL will appear twice.
+
+        Iterates source_links in Python rather than filtering in SQL so that
+        this reads a ``prefetch_related("source_links")`` cache when the view
+        provides one; a ``.filter()`` would cost a query per source.
+        """
+        # source_links is SourceURL's related_name; mypy cannot see reverse
+        # relations without django-stubs, which this project does not install.
+        for link in self.source_links.all():  # type: ignore[attr-defined]
+            if link.url_type == SourceURL.URLTypes.EXTERNAL_IMAGES:
+                return link.url
+        return self.image_link or None
+
+    @property
+    def show_legacy_image_link(self) -> bool:
+        """Whether to render the legacy ``image_link`` field as its own link.
+
+        True only when the field is set and no ``EXTERNAL_IMAGES``
+        ``SourceURL`` supersedes it. For pages that already render
+        ``source_links``; see `external_images_url` for the rest.
+        """
+        return bool(self.image_link) and not any(
+            link.url_type == SourceURL.URLTypes.EXTERNAL_IMAGES
+            for link in self.source_links.all()  # type: ignore[attr-defined]
+        )
 
     @property
     def short_heading(self) -> str:

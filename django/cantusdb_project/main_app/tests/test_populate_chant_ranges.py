@@ -198,3 +198,11 @@ class TestPopulateChantRangesSequences(TestCase):
         call_command("populate_chant_ranges", "--overwrite", stdout=StringIO())
         sequence.refresh_from_db()
         self.assertEqual(sequence.chant_range, "1-c-e-4")
+
+    def test_whitespace_only_ranges_are_filled_by_default(self) -> None:
+        for stored in (" ", "\t\n"):
+            with self.subTest(stored=stored):
+                sequence = self._make_legacy_sequence("2---d--h---4", stored)
+                call_command("populate_chant_ranges", stdout=StringIO())
+                sequence.refresh_from_db()
+                self.assertEqual(sequence.chant_range, "2-d-h-4")

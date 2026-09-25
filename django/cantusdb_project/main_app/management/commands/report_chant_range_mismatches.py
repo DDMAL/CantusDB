@@ -1,5 +1,4 @@
 import csv
-import sys
 from collections import Counter
 from contextlib import contextmanager
 from typing import Any, Iterator, Optional, TextIO, Union
@@ -8,7 +7,7 @@ from django.core.management.base import BaseCommand, CommandParser
 from django.db.models import Q
 
 from main_app.models import Chant, Sequence
-from main_app.signals import generate_chant_range
+from main_app.chant_range import generate_chant_range
 
 CSV_HEADER = [
     "model",
@@ -40,15 +39,17 @@ def classify_difference(stored: str, derived: str) -> str:
     """
     if stored.lower() == derived.lower():
         return "case"
-    if stored.lower().replace("-", "") == derived.lower().replace("-", ""):
+    if "".join(stored.lower().split()).replace("-", "") == derived.lower().replace(
+        "-", ""
+    ):
         return "formatting"
     return "pitch"
 
 
 @contextmanager
-def open_output(path: Optional[str]) -> Iterator[TextIO]:
+def open_output(path: Optional[str], stdout: TextIO) -> Iterator[TextIO]:
     if path is None:
-        yield sys.stdout
+        yield stdout
         return
     with open(path, "w", newline="", encoding="utf-8") as file:
         yield file
@@ -75,7 +76,7 @@ class Command(BaseCommand):
         output_path: Optional[str] = options["output"]
 
         counts: Counter[str] = Counter()
-        with open_output(output_path) as output:
+        with open_output(output_path, self.stdout) as output:
             writer = csv.writer(output)
             writer.writerow(CSV_HEADER)
             for label, model in TARGET_MODELS:

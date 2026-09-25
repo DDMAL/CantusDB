@@ -1,7 +1,10 @@
+from typing import Iterable, Optional
+
 from django.db import models
 from django.contrib.auth import get_user_model
 from django.contrib.postgres.search import SearchVectorField
 
+from main_app.chant_range import generate_chant_range
 from main_app.models.url_field import NormalizedURLField
 from main_app.models import BaseModel
 
@@ -18,6 +21,39 @@ class BaseChant(BaseModel):
 
     class Meta:
         abstract = True
+
+    def save(
+        self,
+        force_insert: bool = False,
+        force_update: bool = False,
+        using: Optional[str] = None,
+        update_fields: Optional[Iterable[str]] = None,
+    ) -> None:
+        """Store the derived range with the melody, including in revision history."""
+        fields = set(update_fields) if update_fields is not None else None
+        if fields is None or fields.intersection({"volpiano", "chant_range"}):
+            volpiano = self.volpiano
+            if fields is not None and "volpiano" not in fields and self.pk:
+                # A partial range update must describe the persisted melody,
+                # rather than a melody changed only on this Python instance.
+                volpiano = (
+                    type(self)
+                    .objects.using(using or self._state.db)
+                    .values_list("volpiano", flat=True)
+                    .get(pk=self.pk)
+                )
+            # Match TextField coercion, normally performed by full_clean below.
+            derived = generate_chant_range(str(volpiano or ""))
+            if derived:
+                self.chant_range = derived
+                if fields is not None:
+                    fields.add("chant_range")
+        super().save(
+            force_insert=force_insert,
+            force_update=force_update,
+            using=using,
+            update_fields=fields,
+        )
 
     # The "visible_status" field corresponds to the "status" field on old Cantus
     visible_status = models.CharField(max_length=1, blank=True, null=True)
