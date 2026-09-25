@@ -4,6 +4,7 @@ from django.db import models
 from django.contrib.auth import get_user_model
 
 from main_app.models.url_field import NormalizedURLField
+from main_app.models.text_field import NormalizedTextField
 from main_app.models import BaseModel, Segment
 from main_app.models.source_url import SourceURL
 
@@ -155,10 +156,10 @@ class Source(BaseModel):
         blank=True, null=True, choices=source_status_choices, max_length=255
     )
     complete_inventory = models.BooleanField(blank=True, null=True)
-    summary = models.TextField(blank=True, null=True)
+    summary = NormalizedTextField(trim=False, blank=True)
     liturgical_occasions = models.TextField(blank=True, null=True)
-    description = models.TextField(blank=True, null=True)
-    selected_bibliography = models.TextField(blank=True, null=True)
+    description = NormalizedTextField(trim=False, blank=True)
+    selected_bibliography = NormalizedTextField(trim=False, blank=True)
     image_link = NormalizedURLField(
         blank=True,
         null=True,

@@ -85,7 +85,7 @@ def ajax_melody_list(
         .select_related(
             "source", "source__holding_institution", "feast", "genre", "service"
         )
-        .exclude(volpiano=None)
+        .filter(volpiano__gt="")
         .order_by("id")
     )
 
@@ -101,7 +101,7 @@ def ajax_melody_list(
             "position": chant.position or "",
             "feast__name": chant.feast.name if chant.feast else "",
             "cantus_id": chant.cantus_id or "",
-            # Query above filters out chants with volpiano=None
+            # The query above includes only populated melodies.
             "volpiano": chant.volpiano,  # type: ignore[dict-item]
             "mode": chant.mode or "",
             "manuscript_full_text_std_spelling": chant.manuscript_full_text_std_spelling
@@ -267,7 +267,9 @@ def ajax_melody_search(
     mode = request.GET.get("mode")
     source = request.GET.get("source")
 
-    chants = Chant.objects.filter(source_id__in=sources_visible_to_user)
+    chants = Chant.objects.filter(
+        source_id__in=sources_visible_to_user, volpiano__gt=""
+    )
 
     chants = chants.select_related("source__holding_institution")
 
@@ -406,7 +408,7 @@ def json_melody_export(request: HttpRequest, cantus_id: str) -> JsonResponse:
     chants in published sources, and contains slightly different chant text fields.
     """
     chants: QuerySet[Chant] = Chant.objects.filter(
-        cantus_id=cantus_id, volpiano__isnull=False, source__published=True
+        cantus_id=cantus_id, volpiano__gt="", source__published=True
     ).select_related("source")
 
     chants_export: list[dict[str, Optional[Union[str, int]]]] = []
