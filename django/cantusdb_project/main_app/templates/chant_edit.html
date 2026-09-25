@@ -144,6 +144,11 @@
                     <div class="col-lg-2">
                         {{ form.chant_range.label_tag }}
                         {{ form.chant_range }}
+                        <small id="chantRangeDerivedNote"
+                               class="text-muted"
+                               {% if not form.chant_range.field.disabled %}hidden{% endif %}>
+                            Derived automatically from the volpiano.
+                        </small>
                     </div>
                 {% endif %}
             </div>
