@@ -1,6 +1,6 @@
 {% comment %}
     This template is used to render the inline formset for the GroupMembership
-    model in the GroupAdmin. It is a modified version of the Django admin's
+    model in the UserAdmin and GroupAdmin. It is a modified version of the Django admin's
     inline formset template that removes some of the inline's headers so 
     it is visually in the same fieldset as the rest of the permissions fields.
 {% endcomment %}
@@ -14,6 +14,44 @@
         {{ inline_admin_formset.formset.management_form }}
         <fieldset class="module {{ inline_admin_formset.classes }}"
                   aria-labelledby="{{ inline_admin_formset.formset.prefix }}-heading">
+            {% if opts.model_name == "user" %}
+                <h2 id="{{ inline_admin_formset.formset.prefix }}-heading">User roles and source access</h2>
+                <div class="description">
+                    <p>
+                        Assign sources under <strong>Sources assigned to User</strong> below to let a user
+                        view unpublished sources and add, edit or delete their chants.
+                        No group membership is needed for this work.
+                    </p>
+                    <ul>
+                        <li>
+                            <strong>Editor:</strong> Can proofread chants and edit or delete assigned sources.
+                            Assign sources below; joining this group alone does not grant access to every source.
+                        </li>
+                        <li>
+                            <strong>Global viewer:</strong> Can view all sources and their chants, including
+                            unpublished material. This group does not grant editing permission.
+                        </li>
+                        <li>
+                            <strong>Superuser status and staff status:</strong> Select both for site administrators
+                            who manage users and taxonomies and have full access to sources.
+                            CantusDB requires these two boxes to match.
+                        </li>
+                        <li>
+                            <strong>Is indexer:</strong> Makes the user's profile publicly accessible.
+                            It does not grant editing permission or control inclusion in the List of contributors,
+                            which lists users credited with inventorying at least one published source.
+                        </li>
+                        <li>
+                            <strong>Contributor and project manager:</strong> Retired groups;
+                            do not use them to grant access.
+                        </li>
+                    </ul>
+                    <p>
+                        <strong>Expiration:</strong> Applies to both editor and global viewer memberships.
+                        Leave blank for no expiry; a dated membership remains valid through that date.
+                    </p>
+                </div>
+            {% endif %}
             {{ inline_admin_formset.formset.non_form_errors }}
             <table>
                 <thead>
