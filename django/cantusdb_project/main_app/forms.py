@@ -687,15 +687,12 @@ class ChantEditForm(ChantTextWarningsMixin, forms.ModelForm):
         manuscript_full_text_std_spelling field to ensure that
         if it initially contained text, it cannot be made blank.
         """
-        if (
-            self["manuscript_full_text_std_spelling"].initial
-            and not self["manuscript_full_text_std_spelling"].data
-        ):
+        entered_text: str = self.cleaned_data["manuscript_full_text_std_spelling"]
+        if self["manuscript_full_text_std_spelling"].initial and not entered_text:
             raise forms.ValidationError(
                 "This field cannot be blank for this chant.",
                 code="txt-req-prev-existing",
             )
-        entered_text: str = self["manuscript_full_text_std_spelling"].data
         return entered_text
 
     def clean(self) -> dict[str, Any]:

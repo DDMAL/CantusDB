@@ -745,7 +745,9 @@ class ChantSearchView(CustomAccessMixin, ListView):  # type: ignore[type-arg]
 
             if melodies := self.request.GET.get("melodies"):
                 if melodies == "true":
-                    q_obj_filter &= Q(volpiano__isnull=False)
+                    q_obj_filter &= Q(volpiano__gt="")
+                elif melodies == "false":
+                    q_obj_filter &= Q(volpiano="") | Q(volpiano__isnull=True)
 
             if feast_id := self.request.GET.get("feast"):
                 if feast_id.isdigit():
@@ -1017,9 +1019,9 @@ class ChantSearchMSView(CustomAccessMixin, ListView):  # type: ignore[type-arg]
 
         if melodies := self.request.GET.get("melodies"):
             if melodies == "true":
-                q_obj_filter &= Q(volpiano__isnull=False)
+                q_obj_filter &= Q(volpiano__gt="")
             if melodies == "false":
-                q_obj_filter &= Q(volpiano__isnull=True)
+                q_obj_filter &= Q(volpiano="") | Q(volpiano__isnull=True)
         if feast_id := self.request.GET.get("feast"):
             if feast_id.isdigit():
                 q_obj_filter &= Q(feast_id=feast_id)

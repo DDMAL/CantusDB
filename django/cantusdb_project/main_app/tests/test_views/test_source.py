@@ -2188,7 +2188,7 @@ class SourceAddImageLinksViewTest(CustomAccessTestMixin, TestCase):
                 self.assertEqual(chant.image_link, "https://example.com/001v")
             chants_003 = Chant.objects.filter(source=self.source, folio="003").all()
             self.assertEqual(len(chants_003), 1)
-            self.assertIsNone(chants_003[0].image_link)
+            self.assertEqual(chants_003[0].image_link, "")
             chants_004B = Chant.objects.filter(source=self.source, folio="004B").all()
             self.assertEqual(len(chants_004B), 1)
             self.assertEqual(chants_004B[0].image_link, "https://i-already-exist.com/2")
