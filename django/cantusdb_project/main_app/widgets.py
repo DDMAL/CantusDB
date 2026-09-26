@@ -42,8 +42,5 @@ class MarkdownWidget(TextAreaWidget):
     template_name = "widgets/markdown_widget.html"
 
     class Media:
-        js = [
-            "https://cdn.jsdelivr.net/npm/marked/marked.min.js",
-            "js/markdown_widget.js",
-        ]
+        js = ["js/markdown_widget.js"]
         css = {"all": ["css/markdown_widget.css"]}

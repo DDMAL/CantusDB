@@ -9,10 +9,10 @@ from django.template.defaultfilters import stringfilter
 from django.utils.safestring import mark_safe, SafeString
 from django.http import HttpRequest, QueryDict
 from django.utils.html import format_html_join
-from cmarkgfm import github_flavored_markdown_to_html
 
 from articles.models import Article
 from main_app.models import Source, BaseModel
+from main_app.markdown import render_markdown
 from users.models import User
 
 register = template.Library()
@@ -323,12 +323,4 @@ def join_absolute_url_links(
     )
 
 
-@register.filter
-def render_markdown(value: str) -> SafeString:
-    """
-    Renders markdown text as HTML.
-    """
-    html: str = github_flavored_markdown_to_html(value)
-    # Generated html is marked safe b/c cmark is run in safe mode in
-    # github_flavored_markdown_to_html
-    return mark_safe(html)
+register.filter("render_markdown", render_markdown)

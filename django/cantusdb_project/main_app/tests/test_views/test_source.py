@@ -262,6 +262,15 @@ class SourceEditViewTest(CsvExportLinkTestMixin, CustomAccessTestMixin, TestCase
             response.content.decode("utf-8"), source.id
         )
 
+    def test_markdown_widget_uses_server_preview(self) -> None:
+        source = self.sources["editor_assigned_source"]
+        html = self.client.get(
+            reverse("source-edit", args=[source.id])
+        ).content.decode()
+        self.assertIn(f'data-preview-url="{reverse("markdown-preview")}"', html)
+        self.assertIn("js/markdown_widget.js", html)
+        self.assertNotIn("npm/marked", html)
+
     def test_edit_source(self) -> None:
         source = self.sources["editor_assigned_source"]
         response = self.client.post(
@@ -426,6 +435,60 @@ class SourceDetailViewTest(CsvExportLinkTestMixin, SourcePermissionsTestCase):
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response["Content-Type"], "application/json")
         self.assertEqual(response.json()["source"]["id"], source.id)
+
+    def test_description_and_bibliography_render_markdown(self) -> None:
+        """The source page renders the markdown the widget's Preview shows.
+
+        The description and selected bibliography are edited through
+        ``MarkdownWidget``, so markdown typed with its toolbar has to render
+        here too. Before this, the page printed ``**bold**`` literally while
+        Preview showed it in bold.
+        """
+        source = make_fake_source(
+            description="**bold** description\nsecond line",
+            selected_bibliography="A *cited* work",
+        )
+        html = self.client.get(
+            reverse("source-detail", args=[source.id])
+        ).content.decode("utf-8")
+        self.assertIn("<strong>bold</strong> description", html)
+        self.assertIn("<em>cited</em>", html)
+        # A single newline stays a line break, as it did under `linebreaks`.
+        self.assertIn("<strong>bold</strong> description<br>\nsecond line", html)
+        self.assertNotIn("**bold**", html)
+
+    def test_description_keeps_html_written_before_the_markdown_widget(self) -> None:
+        """Sanitizing imported HTML keeps ordinary formatting and citation text."""
+        source = make_fake_source(
+            description="<p>A <i>legacy</i> paragraph</p>",
+            selected_bibliography="<ul>\r\n<li>Author. 2018. <i>Title.</i></li>\r\n</ul>",
+        )
+        html = self.client.get(
+            reverse("source-detail", args=[source.id])
+        ).content.decode("utf-8")
+        self.assertIn("A <i>legacy</i> paragraph", html)
+        self.assertIn("<li>Author. 2018. <i>Title.</i></li>", html)
+        self.assertNotIn("raw HTML omitted", html)
+
+    def test_description_preserves_authored_folio_numbers(self) -> None:
+        source = make_fake_source(
+            description="1. First leaf\n4. Fourth leaf\n9. Ninth leaf"
+        )
+        html = self.client.get(
+            reverse("source-detail", args=[source.id])
+        ).content.decode()
+        for number, text in [(1, "First"), (4, "Fourth"), (9, "Ninth")]:
+            self.assertIn(f'<li value="{number}">{text} leaf</li>', html)
+        self.assertNotIn("data-sourcepos", html)
+
+    def test_description_neutralizes_script_tags(self) -> None:
+        """Saved script markup cannot create an executable script element."""
+        source = make_fake_source(description="<script>alert(1)</script>")
+        html = self.client.get(
+            reverse("source-detail", args=[source.id])
+        ).content.decode("utf-8")
+        self.assertIn("&lt;script&gt;alert(1)&lt;/script&gt;", html)
+        self.assertNotIn("<script>alert(1)</script>", html)
 
     def test_provenance_notes_displayed(self) -> None:
         notes = "test_provenance_notes_value"
