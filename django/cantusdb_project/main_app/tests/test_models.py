@@ -1,3 +1,7 @@
+import reversion
+from reversion.models import Version
+
+from django.contrib.postgres.search import SearchQuery
 from django.forms import ValidationError
 from django.test import TestCase
 from django.urls import reverse
@@ -232,16 +236,144 @@ class ChantModelTest(TestCase):
         self.assertEqual(chant1.get_next_chant(), lacuna)
         self.assertEqual(lacuna.get_next_chant(), chant3)
 
-    def test_incipit_signal(self):
-        """Test whether a chant's incipit is updated to reflect its fulltext upon save"""
-        chant: Chant = make_fake_chant()
-        full_text: str = "Incipit should be five words sheep headphones bongoes"
-        expected_incipit: str = "Incipit should be five words"
-        chant.manuscript_full_text_std_spelling = full_text
+    def test_incipit_generated_from_fulltext(self):
+        """A chant with no existing incipit has one generated from its
+        standardized-spelling fulltext upon save."""
+        chant: Chant = make_fake_chant(
+            manuscript_full_text_std_spelling="Incipit should be five words sheep headphones bongoes"
+        )
+        self.assertEqual(chant.incipit, "Incipit should be five words")
+
+    def test_incipit_protected_when_not_proofread(self):
+        """A hand-curated incipit that differs from its standardized-spelling
+        fulltext is not overwritten while the fulltext is unproofread, even when
+        the fulltext changes (issue #1803)."""
+        chant: Chant = make_fake_chant(
+            incipit="Hand-curated incipit",
+            manuscript_full_text_std_spelling="Automatic incipit would read quite differently",
+            manuscript_full_text_std_proofread=False,
+        )
+        chant.manuscript_full_text_std_spelling = (
+            "Completely different replacement fulltext now"
+        )
         chant.save()
         chant.refresh_from_db()
-        observed_incipit: str = chant.incipit
-        self.assertEqual(observed_incipit, expected_incipit)
+        self.assertEqual(chant.incipit, "Hand-curated incipit")
+
+    def test_incipit_protected_when_proofread_flag_is_null(self):
+        """A NULL proofread flag counts as unproofread, so it protects a
+        curated incipit exactly as a False flag does (issue #1803)."""
+        chant: Chant = make_fake_chant(
+            incipit="Hand-curated incipit",
+            manuscript_full_text_std_spelling="Automatic incipit would read quite differently",
+            manuscript_full_text_std_proofread=None,
+        )
+        chant.manuscript_full_text_std_spelling = (
+            "Completely different replacement fulltext now"
+        )
+        chant.save()
+        chant.refresh_from_db()
+        self.assertEqual(chant.incipit, "Hand-curated incipit")
+
+    def test_incipit_resynced_when_fulltext_marked_proofread(self):
+        """When the standardized-spelling fulltext is marked proofread, the
+        incipit re-syncs to it (issue #1803)."""
+        chant: Chant = make_fake_chant(
+            incipit="Hand-curated incipit",
+            manuscript_full_text_std_spelling="Corrected fulltext after proofreading is complete",
+            manuscript_full_text_std_proofread=False,
+        )
+        chant.manuscript_full_text_std_proofread = True
+        chant.save()
+        chant.refresh_from_db()
+        self.assertEqual(chant.incipit, "Corrected fulltext after proofreading is")
+
+    def test_incipit_tracks_fulltext_once_proofread(self):
+        """The incipit keeps tracking a proofread fulltext on later saves.
+        `incipit` is read-only in the admin and absent from both chant forms,
+        so re-deriving it from the proofread fulltext is the only way a wrong
+        incipit can be corrected (issue #1803)."""
+        chant: Chant = make_fake_chant(
+            manuscript_full_text_std_spelling="Original fulltext before the correction was made",
+            manuscript_full_text_std_proofread=True,
+        )
+        chant.manuscript_full_text_std_spelling = (
+            "Corrected fulltext after proofreading is complete"
+        )
+        chant.save()
+        chant.refresh_from_db()
+        self.assertEqual(chant.incipit, "Corrected fulltext after proofreading is")
+
+        # A wrong incipit already stored in the database is repaired by an
+        # ordinary save, which is what `touch_all_chants` relies on.
+        Chant.objects.filter(id=chant.id).update(incipit="Wrong stored incipit")
+        Chant.objects.get(id=chant.id).save()
+        chant.refresh_from_db()
+        self.assertEqual(chant.incipit, "Corrected fulltext after proofreading is")
+
+    def test_search_vector_indexes_regenerated_incipit(self):
+        """The search vector is rebuilt after the incipit is regenerated, so it
+        indexes the incipit the row actually holds rather than the one it held
+        before the save (issue #1803)."""
+        chant: Chant = make_fake_chant(
+            incipit="Hand-curated zamzummim incipit",
+            manuscript_full_text_std_spelling="Automatic incipit would read quite differently",
+            manuscript_full_text_std_proofread=False,
+        )
+        stale_incipit_indexed = Chant.objects.filter(
+            id=chant.id, search_vector=SearchQuery("zamzummim")
+        )
+        self.assertTrue(
+            stale_incipit_indexed.exists(),
+            "expected the protected incipit to be indexed while unproofread",
+        )
+
+        chant.manuscript_full_text_std_proofread = True
+        chant.save()
+        chant.refresh_from_db()
+        self.assertEqual(chant.incipit, "Automatic incipit would read quite")
+        self.assertFalse(
+            stale_incipit_indexed.exists(),
+            "search vector still indexes the incipit the row no longer holds",
+        )
+
+    def test_generated_incipit_recorded_in_active_revision(self):
+        """When a save regenerates the incipit, the value stored in the active
+        django-reversion revision matches the regenerated incipit rather than
+        the pre-sync value (issue #1803)."""
+        chant: Chant = make_fake_chant(
+            incipit="Hand-curated incipit",
+            manuscript_full_text_std_spelling="Corrected fulltext after proofreading is complete",
+            manuscript_full_text_std_proofread=False,
+        )
+        chant.manuscript_full_text_std_proofread = True
+        with reversion.create_revision():
+            chant.save()
+        expected: str = "Corrected fulltext after proofreading is"
+        chant.refresh_from_db()
+        self.assertEqual(chant.incipit, expected)
+        version = Version.objects.get_for_object(chant).first()
+        self.assertIsNotNone(version, "expected a reversion Version for the chant")
+        self.assertEqual(version.field_dict["incipit"], expected)
+
+    def test_generated_incipit_not_added_to_manually_managed_revision(self):
+        """A revision opened with `manage_manually=True` has opted out of
+        automatic versioning, so regenerating the incipit must not add a version
+        to it (issue #1803)."""
+        chant: Chant = make_fake_chant(
+            incipit="Hand-curated incipit",
+            manuscript_full_text_std_spelling="Corrected fulltext after proofreading is complete",
+            manuscript_full_text_std_proofread=False,
+        )
+        chant.manuscript_full_text_std_proofread = True
+        with reversion.create_revision(manage_manually=True):
+            chant.save()
+        chant.refresh_from_db()
+        self.assertEqual(chant.incipit, "Corrected fulltext after proofreading is")
+        self.assertFalse(
+            Version.objects.get_for_object(chant).exists(),
+            "manually managed revision should not have been given a version",
+        )
 
 
 class FeastModelTest(TestCase):
