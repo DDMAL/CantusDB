@@ -5,7 +5,7 @@ from datetime import datetime
 from django.db.models.query import QuerySet
 from django.core.management.base import BaseCommand
 from django.urls import reverse
-from main_app.models import Chant
+from main_app.models import Chant, Source
 
 # Usage: `python manage.py update_cached_concordances`
 # or `python manage.py update_cached_concordances -d "/path/to/directory/in/which/to/save/concordances"`
@@ -67,7 +67,11 @@ def get_concordances() -> list[dict]:
     ).values(
         "id",
         "source_id",
-        "source__siglum",
+        # `Source.siglum` is a legacy, no-longer-maintained column. The current
+        # siglum is composed of the holding institution's RISM siglum and the
+        # source's shelfmark, as in `Source.short_heading`. See #2025.
+        "source__holding_institution__siglum",
+        "source__shelfmark",
         "folio",
         "c_sequence",
         "incipit",
@@ -94,7 +98,7 @@ def make_chant_dict(chant: dict) -> dict:
     Args:
         chant (dict): A dictionary representing a chant from the database,
             from a QuerySet.values() call, with several non-standardized
-            keys from database traversals (e.g., `source__siglum`)
+            keys from database traversals (e.g., `source__shelfmark`)
 
     Returns:
         dict: A dictionary representing a chant, with several values standardized
@@ -105,7 +109,10 @@ def make_chant_dict(chant: dict) -> dict:
     chant_id: int = chant["id"]
     chant_uri: str = f"{CANTUSDB_DOMAIN}{reverse('chant-detail', args=[chant_id])}"
     processed_chant: dict = {
-        "siglum": chant["source__siglum"],
+        "siglum": Source.compose_short_heading(
+            chant["source__holding_institution__siglum"],
+            chant["source__shelfmark"],
+        ),
         "srclink": source_uri,
         "chantlink": chant_uri,
         "folio": chant["folio"],
