@@ -287,6 +287,7 @@
                                             <div class="range-slider-fill" id="rangeSliderFill"></div>
                                             <input type="range"
                                                    id="dateStartFilter"
+                                                   aria-label="Start year"
                                                    class="range-slider-input"
                                                    min="{{ date_range_min }}"
                                                    max="{{ date_range_max }}"
@@ -294,6 +295,7 @@
                                                    value="{{ request.GET.dateStart|default:date_range_min }}" />
                                             <input type="range"
                                                    id="dateEndFilter"
+                                                   aria-label="End year"
                                                    class="range-slider-input"
                                                    min="{{ date_range_min }}"
                                                    max="{{ date_range_max }}"
@@ -303,7 +305,7 @@
                                         <div class="d-flex justify-content-between small mt-1">
                                             <span class="fw-bold">{{ date_range_min }}</span>
                                             <span class="fw-bold text-primary">
-                                                <input type="number" id="rangeStartInput" name="dateStart" min="{{ date_range_min }}" max="{{ date_range_max }}" value="{{ request.GET.dateStart|default:date_range_min }}" style="width:3.5rem;border:none;background:transparent;font-weight:bold;color:inherit;text-align:right;" />–&nbsp;&nbsp;&nbsp;<input type="number" id="rangeEndInput" name="dateEnd" min="{{ date_range_min }}" max="{{ date_range_max }}" value="{{ request.GET.dateEnd|default:date_range_max }}" style="width:3.5rem;border:none;background:transparent;font-weight:bold;color:inherit;text-align:left;" />
+                                                <input type="number" id="rangeStartInput" aria-label="Start year" name="dateStart" min="{{ date_range_min }}" max="{{ date_range_max }}" value="{{ request.GET.dateStart|default:date_range_min }}" style="width:3.5rem;border:none;background:transparent;font-weight:bold;color:inherit;text-align:right;" />–&nbsp;&nbsp;&nbsp;<input type="number" id="rangeEndInput" aria-label="End year" name="dateEnd" min="{{ date_range_min }}" max="{{ date_range_max }}" value="{{ request.GET.dateEnd|default:date_range_max }}" style="width:3.5rem;border:none;background:transparent;font-weight:bold;color:inherit;text-align:left;" />
                                             </span>
                                             <span class="fw-bold">{{ date_range_max }}</span>
                                         </div>
