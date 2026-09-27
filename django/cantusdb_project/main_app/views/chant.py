@@ -606,68 +606,9 @@ class ChantSearchView(CustomAccessMixin, ListView):  # type: ignore[type-arg]
         context["order"] = self.request.GET.get("order")
         context["sort"] = self.request.GET.get("sort")
 
-        # build a url containing all the search parameters, excluding ordering parameters.
-        # this way, when someone clicks on a column heading, we can append the ordering parameters
-        # while retaining the search parameters
-        current_url: str = self.request.path
-        search_parameters: list[str] = []
-
-        search_op: Optional[str] = self.request.GET.get("op")
-        if search_op:
-            search_parameters.append(f"op={search_op}")
         search_keyword: Optional[str] = self.request.GET.get("keyword")
         if search_keyword:
-            search_parameters.append(f"keyword={search_keyword}")
             context["keyword"] = search_keyword
-        search_service: Optional[str] = self.request.GET.get("service")
-        if search_service:
-            search_parameters.append(f"service={search_service}")
-        search_genre: Optional[str] = self.request.GET.get("genre")
-        if search_genre:
-            search_parameters.append(f"genre={search_genre}")
-        search_cantus_id: Optional[str] = self.request.GET.get("cantus_id")
-        if search_cantus_id:
-            search_parameters.append(f"cantus_id={search_cantus_id}")
-        search_mode: Optional[str] = self.request.GET.get("mode")
-        if search_mode:
-            search_parameters.append(f"mode={search_mode}")
-        search_feast: Optional[str] = self.request.GET.get("feast")
-        if search_feast:
-            search_parameters.append(f"feast={search_feast}")
-        search_position: Optional[str] = self.request.GET.get("position")
-        if search_position:
-            search_parameters.append(f"position={search_position}")
-        search_melodies: Optional[str] = self.request.GET.get("melodies")
-        if search_melodies:
-            search_parameters.append(f"melodies={search_melodies}")
-        search_liturgical_function: Optional[str] = self.request.GET.get(
-            "liturgical_function"
-        )
-        if search_liturgical_function:
-            search_parameters.append(
-                f"liturgical_function={search_liturgical_function}"
-            )
-        search_bar: Optional[str] = self.request.GET.get("search_bar")
-        if search_bar:
-            search_parameters.append(f"search_bar={search_bar}")
-        search_segment: Optional[str] = self.request.GET.get("segment")
-        if search_segment:
-            search_parameters.append(f"segment={search_segment}")
-        search_indexing_notes_op: Optional[str] = self.request.GET.get(
-            "indexing_notes_op"
-        )
-        if search_indexing_notes_op:
-            search_parameters.append(f"indexing_notes_op={search_indexing_notes_op}")
-        search_indexing_notes: Optional[str] = self.request.GET.get("indexing_notes")
-        if search_indexing_notes:
-            search_parameters.append(f"indexing_notes={search_indexing_notes}")
-
-        url_with_search_params: str = current_url + "?"
-        if search_parameters:
-            joined_search_parameters: str = "&".join(search_parameters)
-            url_with_search_params += joined_search_parameters
-
-        context["url_with_search_params"] = url_with_search_params
 
         return context
 
@@ -941,57 +882,7 @@ class ChantSearchMSView(CustomAccessMixin, ListView):  # type: ignore[type-arg]
         )
         context["order"] = self.request.GET.get("order")
         context["sort"] = self.request.GET.get("sort")
-        # This is searching in a specific source, pass the source into context
 
-        current_url = self.request.path
-        search_parameters = []
-
-        search_op = self.request.GET.get("op")
-        if search_op:
-            search_parameters.append(f"op={search_op}")
-        search_keyword = self.request.GET.get("keyword")
-        if search_keyword:
-            search_parameters.append(f"keyword={search_keyword}")
-        search_service = self.request.GET.get("service")
-        if search_service:
-            search_parameters.append(f"service={search_service}")
-        search_genre = self.request.GET.get("genre")
-        if search_genre:
-            search_parameters.append(f"genre={search_genre}")
-        search_cantus_id = self.request.GET.get("cantus_id")
-        if search_cantus_id:
-            search_parameters.append(f"cantus_id={search_cantus_id}")
-        search_mode = self.request.GET.get("mode")
-        if search_mode:
-            search_parameters.append(f"mode={search_mode}")
-        search_feast = self.request.GET.get("feast")
-        if search_feast:
-            search_parameters.append(f"feast={search_feast}")
-        search_position = self.request.GET.get("position")
-        if search_position:
-            search_parameters.append(f"position={search_position}")
-        search_melodies = self.request.GET.get("melodies")
-        if search_melodies:
-            search_parameters.append(f"melodies={search_melodies}")
-        search_liturgical_function = self.request.GET.get("liturgical_function")
-        if search_liturgical_function:
-            search_parameters.append(
-                f"liturgical_function={search_liturgical_function}"
-            )
-        search_indexing_notes_op = self.request.GET.get("indexing_notes_op")
-        if search_indexing_notes_op:
-            search_parameters.append(f"indexing_notes_op={search_indexing_notes_op}")
-        search_indexing_notes = self.request.GET.get("indexing_notes")
-        if search_indexing_notes:
-            search_parameters.append(f"indexing_notes={search_indexing_notes}")
-
-        if search_parameters:
-            joined_search_parameters = "&".join(search_parameters)
-            url_with_search_params = current_url + "?" + joined_search_parameters
-        else:
-            url_with_search_params = current_url + "?"
-
-        context["url_with_search_params"] = url_with_search_params
         return context
 
     def get_queryset(self) -> QuerySet[Chant]:
