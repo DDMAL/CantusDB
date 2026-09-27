@@ -50,6 +50,15 @@ derived melody fields when trimming a melody, clears them when no melody remains
 and refreshes the existing Chant-only source melody counts. Trimming surrounding
 whitespace does not change the words in the full-text search vectors.
 
+Bulk updates in a migration run outside the request middleware and do not emit
+the save signals that normally record revisions. Avoiding those signals protects
+incipits and editorial dates. Recording revisions is a separate choice: explicit
+before-and-after snapshots could preserve cleanup history without saving each
+application model. The current implementation avoids that additional snapshot
+storage and processing, relying on the database backup for exact recovery.
+Agree on this audit-history tradeoff before running the cleanup; this migration
+does not leave a per-record explanation of its changes in the revision history.
+
 Reversing to migration 0044 restores nullable columns but deliberately leaves
 normalized data in place. Original NULL values and removed whitespace cannot be
 reconstructed from the cleaned values. Exact recovery requires the database
