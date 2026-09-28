@@ -7,6 +7,7 @@
 <script src="{% static 'admin/js/vendor/jquery/jquery.js' %}"></script>
 {{ search_form.media }}
 <script src="/static/js/chant_search.js"></script>
+<script src="/static/js/filter_form_autosubmit.js"></script>
 {% endblock %}
 {% block heading %}<h3>Search Chants</h3>{% endblock %}
 {% block results_count %}
@@ -26,13 +27,14 @@
         </a>
     </p>
 {% endif %}
-<form method="get">
+<form method="get" data-instant-filter>
     <div class="row align-items-end">
         <div class="form-group col-sm-3 col-12">
             <label for="keywordSearch" class="small">Keyword search</label>
             <select class="form-control form-select form-select-sm"
                     id="opFilter"
-                    name="op">
+                    name="op"
+                    data-autosubmit-requires="#keywordSearch">
                 <option selected value="contains">Contains</option>
                 <option value="starts_with">Starts with</option>
                 <option value="ends_with">Ends with</option>
@@ -148,7 +150,8 @@
                 <label for="indexingNotesSearch" class="small">Indexing notes search</label>
                 <select class="form-control form-select form-select-sm"
                         id="indexingNotesOp"
-                        name="indexing_notes_op">
+                        name="indexing_notes_op"
+                        data-autosubmit-requires="#indexingNotesSearch">
                     <option selected value="contains">Contains</option>
                     <option value="starts_with">Starts with</option>
                 </select>
