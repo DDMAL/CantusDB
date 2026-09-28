@@ -14,6 +14,7 @@ from django.test import TestCase
 from django.urls import reverse
 
 from faker import Faker
+from bs4 import BeautifulSoup
 
 from main_app.tests.make_fakes import (
     make_fake_chant,
@@ -244,6 +245,44 @@ class ChantDetailViewTest(ChantPermissionsTestCase):
         self.assertIn("Notation (Bower):", html)
         self.assertIn(notation.name, html)
         self.assertNotIn(reverse("notation-detail", args=[notation.id]), html)
+
+
+class MelodyWithTextRenderingTest(TestCase):
+    def test_missing_music_wraps_without_changing_text_or_melody(self) -> None:
+        user = make_fake_user()
+        source = make_fake_source(current_editors=[user])
+        text = "Oremus. {Fidelium deus omnium conditor et redemptor} Amen"
+        chant = make_fake_chant(
+            source=source,
+            folio="001r",
+            manuscript_full_text=text,
+            manuscript_full_text_std_spelling=text,
+            manuscript_syllabized_full_text=None,
+            volpiano="1---k--jk--k---6------6---k--k---4",
+        )
+        self.client.force_login(user)
+        urls = [
+            reverse("chant-detail", args=[chant.pk]),
+            reverse("source-edit-chants", args=[source.pk]) + f"?pk={chant.pk}",
+            reverse("source-edit-syllabification", args=[chant.pk]),
+        ]
+        for url in urls:
+            with self.subTest(url=url):
+                response = self.client.get(url)
+                self.assertEqual(response.status_code, 200)
+                alignment = response.context["syllabized_text_with_melody"]
+                soup = BeautifulSoup(response.content, "html.parser")
+                syllables = soup.select("pre")
+                texts = [syllable.get_text() for syllable in syllables]
+                melodies = [
+                    syllable.parent.find_previous_sibling("div").get_text()
+                    for syllable in syllables
+                ]
+                self.assertIn("{Fidelium ", texts)
+                self.assertIn("deus ", texts)
+                self.assertIn("redemptor}", texts)
+                self.assertEqual("".join(texts), "".join(t for t, _ in alignment))
+                self.assertEqual("".join(melodies), "".join(m for _, m in alignment))
 
 
 class ChantAttributionFooterTest(CustomAccessTestMixin, TestCase):
