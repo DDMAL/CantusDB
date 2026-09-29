@@ -65,17 +65,17 @@ PROOFREAD_CHOICES = [
 
 
 class NameModelChoiceField(forms.ModelChoiceField):
-    """
-    A custom ModelChoiceField that overrides the label_from_instance method
-    to display the object's name attribute instead of str(object).
-    This field is specifically designed for handling genre and service objects.
-    Rather than displaying the name along with its description, sometimes we
-    only want the shorthand notation for the genre and service objects.
-    (Eg. [AV] Antiphon verse --> AV)
-    """
+    """Display an object's name instead of its internal string representation."""
 
     def label_from_instance(self, obj):
         return obj.name
+
+
+class GenreServiceChoiceField(forms.ModelChoiceField):
+    """Use the same Genre/Service label for selected values and autocomplete."""
+
+    def label_from_instance(self, obj: Genre | Service) -> str:
+        return obj.dropdown_label
 
 
 class SelectWidgetNameModelChoiceField(NameModelChoiceField):
@@ -417,6 +417,10 @@ class ChantCreateForm(ChantTextWarningsMixin, forms.ModelForm):
             "rubrics": TextInputWidget(),
             "text_language": SelectWidget(),
         }
+        field_classes = {
+            "genre": GenreServiceChoiceField,
+            "service": GenreServiceChoiceField,
+        }
 
     folio = forms.CharField(
         required=True,
@@ -647,6 +651,10 @@ class ChantEditForm(ChantTextWarningsMixin, forms.ModelForm):
             "later_addition": TextInputWidget(),
             "rubrics": TextInputWidget(),
             "text_language": SelectWidget(),
+        }
+        field_classes = {
+            "genre": GenreServiceChoiceField,
+            "service": GenreServiceChoiceField,
         }
 
     manuscript_full_text_std_spelling = CantusDBLatinField(
@@ -894,9 +902,7 @@ class SequenceEditForm(forms.ModelForm):
             "image_link": TextInputWidget(),
         }
 
-    # We use NameModelChoiceField here so the dropdown list of genres displays the name
-    # instead of [name] + description
-    genre = NameModelChoiceField(
+    genre = GenreServiceChoiceField(
         queryset=Genre.objects.all().order_by("name"), required=False
     )
     genre.widget.attrs.update({"class": "form-control custom-select custom-select-sm"})
@@ -994,15 +1000,11 @@ class AdminChantForm(forms.ModelForm):
         label="Sequence",
     )
 
-    # We use NameModelChoiceField here so the dropdown list of service/mass displays the name
-    # instead of [name] + description
-    service = NameModelChoiceField(
+    service = GenreServiceChoiceField(
         queryset=Service.objects.all().order_by("name"),
         required=False,
     )
-    # We use NameModelChoiceField here so the dropdown list of genres displays the name
-    # instead of [name] + description
-    genre = NameModelChoiceField(
+    genre = GenreServiceChoiceField(
         queryset=Genre.objects.all().order_by("name"), required=False
     )
 
@@ -1082,15 +1084,11 @@ class AdminSequenceForm(forms.ModelForm):
             "chant_range": VolpianoAreaWidget(),
         }
 
-    # We use NameModelChoiceField here so the dropdown list of service/mass displays the name
-    # instead of [name] + description
-    service = NameModelChoiceField(
+    service = GenreServiceChoiceField(
         queryset=Service.objects.all().order_by("name"),
         required=False,
     )
-    # We use NameModelChoiceField here so the dropdown list of genres displays the name
-    # instead of [name] + description
-    genre = NameModelChoiceField(
+    genre = GenreServiceChoiceField(
         queryset=Genre.objects.all().order_by("name"), required=False
     )
 
@@ -1347,8 +1345,10 @@ class BaseBrowseChantsBulkEditFormset(forms.BaseModelFormSet):
         genres = Genre.objects.all().in_bulk()
         form_kwargs["field_choices"] = {
             "feast": [(feast.id, feast.name) for feast in feasts.values()],
-            "service": [(service.id, service.name) for service in services.values()],
-            "genre": [(genre.id, genre.name) for genre in genres.values()],
+            "service": [
+                (service.id, service.dropdown_label) for service in services.values()
+            ],
+            "genre": [(genre.id, genre.dropdown_label) for genre in genres.values()],
         }
         form_kwargs["field_objects"] = {
             "feast": feasts,
