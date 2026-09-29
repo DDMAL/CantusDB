@@ -128,6 +128,82 @@ class SaveBrowseChantsFormsetTest(TestCase):
             chant.refresh_from_db()
             self.assertNotEqual(chant.folio, "")
 
+    def test_nonstandard_text_saves_with_warnings_for_each_row(self) -> None:
+        data = self.initial_form_data.copy()
+        texts = ["Gloria ! Deo [", "Kyrie\r\neleison"]
+        for index, text in enumerate(texts):
+            data[f"chant_set-{index}-manuscript_full_text_std_spelling"] = text
+        result = save_browse_chants_formset.apply(args=(data, self.chant_ids)).get()
+
+        self.assertEqual(result["error_count"], 0)
+        self.assertEqual(result["form_errors"], [])
+        self.assertEqual(result["non_form_errors"], [])
+        for index, text in enumerate(texts):
+            chant = Chant.objects.get(pk=data[f"chant_set-{index}-id"])
+            self.assertEqual(chant.manuscript_full_text_std_spelling, text)
+        warnings = result["text_warnings"]
+        self.assertEqual(
+            [(warning["form_num"], warning["kind"]) for warning in warnings],
+            [(0, "invalid_characters"), (0, "structural"), (1, "invalid_characters")],
+        )
+        self.assertTrue(
+            all(w["field"] == "manuscript_full_text_std_spelling" for w in warnings)
+        )
+        self.assertIn("<mark>!</mark>", warnings[0]["marked_html"])
+        self.assertEqual(warnings[2]["message"].count("line break"), 1)
+        self.assertEqual(warnings[2]["marked_html"].count("&#9166;"), 1)
+
+    def test_valid_text_and_incipit_asterisk_save_without_warnings(self) -> None:
+        data = self.initial_form_data.copy()
+        for index, text in enumerate(["Gloria in excelsis deo", "Kyrie eleison*"]):
+            data[f"chant_set-{index}-manuscript_full_text_std_spelling"] = text
+        result = save_browse_chants_formset.apply(args=(data, self.chant_ids)).get()
+
+        self.assertEqual(result["error_count"], 0)
+        self.assertEqual(result["text_warnings"], [])
+        for index in range(2):
+            chant = Chant.objects.get(pk=data[f"chant_set-{index}-id"])
+            self.assertEqual(
+                chant.manuscript_full_text_std_spelling,
+                data[f"chant_set-{index}-manuscript_full_text_std_spelling"],
+            )
+
+    def test_invalid_formset_does_not_report_saved_text_warnings(self) -> None:
+        data = self.initial_form_data.copy()
+        data["chant_set-0-manuscript_full_text_std_spelling"] = "Gloria ! Deo"
+        data["chant_set-1-folio"] = ""
+        before = list(
+            Chant.objects.filter(id__in=self.chant_ids)
+            .order_by("id")
+            .values_list("manuscript_full_text_std_spelling", flat=True)
+        )
+        result = save_browse_chants_formset.apply(args=(data, self.chant_ids)).get()
+
+        self.assertGreater(result["error_count"], 0)
+        self.assertEqual(result["text_warnings"], [])
+        self.assertEqual(
+            list(
+                Chant.objects.filter(id__in=self.chant_ids)
+                .order_by("id")
+                .values_list("manuscript_full_text_std_spelling", flat=True)
+            ),
+            before,
+        )
+
+    def test_warning_escapes_chant_markup(self) -> None:
+        data = self.initial_form_data.copy()
+        data["chant_set-0-manuscript_full_text_std_spelling"] = (
+            "<script>alert(1)</script>"
+        )
+        result = save_browse_chants_formset.apply(args=(data, self.chant_ids)).get()
+
+        self.assertEqual(result["error_count"], 0)
+        warnings = [w for w in result["text_warnings"] if w["form_num"] == 0]
+        self.assertTrue(warnings)
+        for warning in warnings:
+            self.assertNotIn("<script>", warning["marked_html"])
+            self.assertIn("&lt;", warning["marked_html"])
+
 
 class CheckCantusIdsNotInCiTest(TestCase):
     @patch("main_app.tasks.get_json_from_ci_api")

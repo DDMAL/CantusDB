@@ -1,5 +1,6 @@
 import random
 
+from django.conf import settings
 from django.test import TestCase
 from django.urls import reverse
 from django.contrib.auth import get_user_model
@@ -17,8 +18,10 @@ class ProofreadingOverviewViewTest(TestCase):
     @classmethod
     def setUpTestData(cls):
         Group.objects.create(name="editor")
-        cls.cantus_segment = make_fake_segment(id=4063)
-        cls.other_segment = make_fake_segment(id=4064, name="Other Segment")
+        cls.cantus_segment = make_fake_segment(id=settings.CANTUS_SEGMENT_ID)
+        cls.other_segment = make_fake_segment(
+            id=settings.BOWER_SEGMENT_ID, name="Other Segment"
+        )
         cls.project_manager_user = get_user_model().objects.create_superuser(
             "pm@example.com", "password"
         )

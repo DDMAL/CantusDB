@@ -161,7 +161,61 @@ window.addEventListener("load", function () {
         }
     };
 
+    let bulkSaveInFlight = false;
+    let bulkChangesSaved = false;
+    const warningEchoes = new Map();
+
+    function clearTextWarnings() {
+        const alert = document.getElementById("formsetTextWarningAlert");
+        alert.replaceChildren();
+        alert.classList.add("d-none");
+        warningEchoes.forEach((echo, field) => {
+            echo.remove();
+            field.classList.remove("chant-text-warning-field");
+        });
+        warningEchoes.clear();
+    }
+
+    function showTextWarnings(warnings, form, submittedData) {
+        const alert = document.getElementById("formsetTextWarningAlert");
+        const heading = document.createElement("p");
+        heading.textContent = "Changes saved. Nonstandard text was found in the submitted chants. You can correct it below or choose Stop Editing.";
+        const list = document.createElement("ul");
+        warnings.forEach(warning => {
+            const item = document.createElement("li");
+            item.textContent = `Chant ${warning.form_num + 1}, ${warning.label}: ${warning.message}`;
+            list.appendChild(item);
+            const name = `chant_set-${warning.form_num}-${warning.field}`;
+            const field = form.elements.namedItem(name);
+            // The result describes the submitted text. A user may have kept
+            // editing while the task ran; don't mark those newer values.
+            if (!field || field.value !== submittedData.get(name)) return;
+            let echo = warningEchoes.get(field);
+            if (!echo) {
+                echo = document.createElement("div");
+                echo.className = "chant-text-warning-echo small";
+                field.insertAdjacentElement("afterend", echo);
+                field.classList.add("chant-text-warning-field");
+                warningEchoes.set(field, echo);
+            }
+            const marked = document.createElement("div");
+            marked.className = "chant-text-warning-marked";
+            // Only the server's escaped text with <mark> tags is HTML.
+            marked.innerHTML = warning.marked_html;
+            echo.appendChild(marked);
+        });
+        alert.appendChild(heading);
+        alert.appendChild(list);
+        alert.classList.remove("d-none");
+        alert.scrollIntoView({ block: "nearest" });
+    }
+
     function toggleBulkEditForm(bulkChantEditForm, chantDisplayTable, bulkChantEditSubmit, bulkChantEditToggle) {
+        if (bulkSaveInFlight) return;
+        if (bulkChangesSaved) {
+            window.location.reload();
+            return;
+        }
         bulkChantEditForm.classList.toggle("d-none");
         chantDisplayTable.classList.toggle("d-none");
         bulkChantEditSubmit.classList.toggle("d-none");
@@ -169,10 +223,66 @@ window.addEventListener("load", function () {
     }
 
     function submitBulkEditForm(bulkChantEditForm, bulkEditLoading) {
+        if (bulkSaveInFlight) return;
         const editFormData = new FormData(bulkChantEditForm);
+        const submit = document.getElementById("bulkChantEditSubmit");
+        const toggle = document.getElementById("bulkChantEditToggle");
+        bulkSaveInFlight = true;
+        submit.disabled = true;
+        toggle.disabled = true;
+        clearErrors();
+        clearTextWarnings();
+        bulkEditLoading.classList.remove("d-none");
+
+        function finish() {
+            bulkSaveInFlight = false;
+            submit.disabled = false;
+            toggle.disabled = false;
+            bulkEditLoading.classList.add("d-none");
+        }
+
+        function poll(taskID) {
+            fetch(`/task-status/?taskID=${encodeURIComponent(taskID)}`)
+                .then(response => {
+                    if (response.status !== 200) throw new Error("Task status unavailable");
+                    return response.json();
+                })
+                .then(data => {
+                    if (data.status === "SUCCESS") {
+                        finish();
+                        const result = data.result;
+                        if (result.error_count === 0) {
+                            bulkChangesSaved = true;
+                            // Older workers may finish a task without this field.
+                            const warnings = result.text_warnings || [];
+                            if (warnings.length) {
+                                showTextWarnings(warnings, bulkChantEditForm, editFormData);
+                            } else {
+                                window.location.reload();
+                            }
+                        } else {
+                            result.non_form_errors.forEach(error => addError(error.message));
+                            result.form_errors.forEach(error => {
+                                addError(`Error on chant ${error[0] + 1}, ${error[1]}: ${error[2]}`);
+                            });
+                        }
+                    } else if (data.status === "FAILURE") {
+                        finish();
+                        addError("Form submission failed. Please try again.");
+                    } else {
+                        // Wait for this response before scheduling another poll:
+                        // the endpoint consumes a completed task's result once.
+                        setTimeout(() => poll(taskID), 3000);
+                    }
+                })
+                .catch(() => {
+                    finish();
+                    addError("Unable to check whether changes were saved. Reload the page to check before trying again.");
+                });
+        }
+
         fetch(document.URL, { method: "POST", body: editFormData })
             .then(response => {
-                clearErrors();
                 if (response.status === 200) {
                     return response.json();
                 } else {
@@ -180,36 +290,12 @@ window.addEventListener("load", function () {
                 }
             })
             .then(data => {
-                const taskID = data["taskID"];
-                bulkEditLoading.classList.remove("d-none");
-                const interval = setInterval(() => {
-                    fetch(`/task-status/?taskID=${taskID}`)
-                        .then(response => {
-                            if (response.status === 200) {
-                                return response.json();
-                            }
-                        })
-                        .then(data => {
-                            if (data.status === "SUCCESS") {
-                                clearInterval(interval);
-                                bulkEditLoading.classList.add("d-none");
-                                const result = data.result;
-                                if (result.error_count === 0) {
-                                    window.location.reload();
-                                } else {
-                                    result.non_form_errors.forEach(error => addError(error));
-                                    result.form_errors.forEach(error => {
-                                        addError(`Error on chant ${error[0] + 1}, ${error[1]}: ${error[2]}`);
-                                    });
-                                }
-                            } else if (data.status === "FAILURE") {
-                                clearInterval(interval);
-                                addError("Form submission failed. Please try again.");
-                                bulkEditLoading.classList.add("d-none");
-                            }
-                        });
-                }, 3000);
-            }, (e) => { addError(e.message) });
+                setTimeout(() => poll(data.taskID), 3000);
+            })
+            .catch(e => {
+                finish();
+                addError(e.message);
+            });
     }
 
     const userCanEditChants = document.getElementById("data-user-can-edit-chants").textContent === "true";
@@ -220,6 +306,14 @@ window.addEventListener("load", function () {
         const bulkChantEditSubmit = document.getElementById("bulkChantEditSubmit");
         const bulkEditLoading = document.getElementById("bulkEditLoading");
 
+        bulkChantEditForm.addEventListener("input", event => {
+            const echo = warningEchoes.get(event.target);
+            if (echo) {
+                echo.remove();
+                event.target.classList.remove("chant-text-warning-field");
+                warningEchoes.delete(event.target);
+            }
+        });
         bulkChantEditToggle.addEventListener("click", () => toggleBulkEditForm(bulkChantEditForm, chantDisplayTable, bulkChantEditSubmit, bulkChantEditToggle));
         bulkChantEditSubmit.addEventListener("click", () => submitBulkEditForm(bulkChantEditForm, bulkEditLoading));
     }
