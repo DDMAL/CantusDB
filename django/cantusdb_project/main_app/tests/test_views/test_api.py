@@ -16,6 +16,7 @@ from django.urls import reverse
 from django.http import HttpResponse, JsonResponse
 
 from main_app.tests.make_fakes import (
+    make_cantus_fallback_institutions,
     make_fake_chant,
     make_fake_institution,
     make_fake_sequence,
@@ -320,6 +321,130 @@ class AjaxMelodyViewTest(ChantPermissionsTestCase):
                 self.assertIn(key, observed_keys)
             with self.subTest(value=key):
                 self.assertEqual(value, concordance[key])
+
+
+class AjaxMelodySearchViewTest(TestCase):
+    """The melody search box matches the heading the results display under: the
+    source's current institution siglum and shelfmark, never the frozen
+    `Chant.siglum` column. See #2025.
+    """
+
+    # "1---" is a clef, "---" a barline: `generate_volpiano_notes` strips both,
+    # leaving the distinctive note string the search below draws.
+    VOLPIANO = "1---defgab"
+    NOTES = "defgab"
+
+    def search(self, **params: str) -> list[dict]:
+        response = self.client.get(
+            reverse("ajax-melody-search"),
+            {"notes": self.NOTES, "anywhere": "false", "transpose": "false", **params},
+        )
+        return json.loads(response.content)["results"]
+
+    def test_siglum_search_matches_current_heading(self) -> None:
+        source = make_fake_source(
+            published=True,
+            shelfmark="San Pietro B.79",
+            holding_institution=make_fake_institution(siglum="V-CVbav"),
+        )
+        chant = make_fake_chant(source=source, volpiano=self.VOLPIANO)
+        # The stale value the search used to match on.
+        Chant.objects.filter(id=chant.id).update(siglum="V-CVbav B.79")
+
+        with self.subTest("finds the chant by its current heading"):
+            results = self.search(siglum="V-CVbav San Pietro")
+            self.assertEqual([result["id"] for result in results], [chant.id])
+
+        with self.subTest("no longer matches the frozen legacy column"):
+            results = self.search(siglum="V-CVbav B.79")
+            self.assertNotIn(chant.id, [result["id"] for result in results])
+
+    def test_siglum_search_matches_cantus_fallback(self) -> None:
+        # Each way a source can lack a usable institution siglum reaches the
+        # same "Cantus <shelfmark>" heading, and searching that heading has to
+        # find the chant in every one of them.
+        institutions = make_cantus_fallback_institutions()
+        chants = {
+            description: make_fake_chant(
+                source=make_fake_source(
+                    published=True,
+                    shelfmark=f"MS {number}",
+                    holding_institution=institution,
+                ),
+                volpiano=self.VOLPIANO,
+            )
+            for number, (description, institution) in enumerate(
+                institutions.items(), start=1
+            )
+        }
+
+        for number, (description, chant) in enumerate(chants.items(), start=1):
+            with self.subTest(institution=description):
+                heading = f"Cantus MS {number}"
+                self.assertEqual(chant.source.short_heading, heading)
+
+                results = self.search(siglum=heading)
+
+                self.assertEqual([result["id"] for result in results], [chant.id])
+                self.assertEqual(results[0]["computed_siglum"], heading)
+
+    def test_result_carries_the_same_heading_it_is_searched_by(self) -> None:
+        # The search box and the result column have to agree, so the endpoint
+        # returns the composed heading alongside the component columns it is
+        # built from, which stay in the response for older cached scripts.
+        chant = make_fake_chant(
+            source=make_fake_source(
+                published=True,
+                shelfmark="Laud Misc. 299",
+                holding_institution=make_fake_institution(siglum="GB-Ob"),
+            ),
+            volpiano=self.VOLPIANO,
+        )
+
+        results = self.search(siglum=chant.source.short_heading)
+
+        self.assertEqual(len(results), 1)
+        self.assertEqual(results[0]["computed_siglum"], "GB-Ob Laud Misc. 299")
+        self.assertEqual(results[0]["source__holding_institution__siglum"], "GB-Ob")
+        self.assertEqual(results[0]["source__shelfmark"], "Laud Misc. 299")
+
+    def test_source_search_ignores_the_siglum_box(self) -> None:
+        # Searching within one source passes its id, and the id has always won
+        # over whatever the (read-only) siglum box holds.
+        searched = make_fake_chant(
+            source=make_fake_source(
+                published=True,
+                shelfmark="Laud Misc. 299",
+                holding_institution=make_fake_institution(siglum="GB-Ob"),
+            ),
+            volpiano=self.VOLPIANO,
+        )
+        other = make_fake_chant(
+            source=make_fake_source(
+                published=True,
+                shelfmark="MS 1",
+                holding_institution=make_fake_institution(siglum="D-Bs"),
+            ),
+            volpiano=self.VOLPIANO,
+        )
+
+        results = self.search(source=str(searched.source.id), siglum="D-Bs MS 1")
+
+        returned_ids = [result["id"] for result in results]
+        self.assertEqual(returned_ids, [searched.id])
+        self.assertNotIn(other.id, returned_ids)
+
+    def test_unpublished_sources_stay_hidden_from_siglum_search(self) -> None:
+        source = make_fake_source(
+            published=False,
+            shelfmark="MS 1",
+            holding_institution=make_fake_institution(siglum="D-Bs"),
+        )
+        make_fake_chant(source=source, volpiano=self.VOLPIANO)
+
+        results = self.search(siglum="D-Bs MS 1")
+
+        self.assertEqual(results, [])
 
 
 class JsonMelodyExportTest(TestCase):

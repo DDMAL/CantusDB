@@ -56,8 +56,12 @@ ORDER BY ccount desc;"""
 # This SQL query will return five columns: the source ID, shelfmark, the holding
 # institution siglum and name, and count of the number of chants in that source
 # that match a given feast.
-feast_source_query: str = """SELECT DISTINCT ss.id AS source_id, ss.shelfmark, 
-                COALESCE(hs.siglum, 'Cantus') as siglum, 
+# The siglum expression reimplements the institution-siglum fallback of
+# `Source.compose_short_heading` in SQL: a missing, empty, or placeholder
+# ("XX-NN") institution siglum displays as "Cantus". The shelfmark is appended
+# to it in the template (feast_detail.html). Keep the two in sync.
+feast_source_query: str = """SELECT DISTINCT ss.id AS source_id, ss.shelfmark,
+                COALESCE(NULLIF(NULLIF(hs.siglum, ''), 'XX-NN'), 'Cantus') as siglum,
                 hs.name AS institution_name, 
                 (SELECT COUNT(cs2.id) 
                  FROM main_app_chant AS cs2 

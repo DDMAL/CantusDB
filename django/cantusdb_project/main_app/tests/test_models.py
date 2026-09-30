@@ -16,6 +16,7 @@ from .make_fakes import (
     make_fake_chant,
     make_fake_feast,
     make_fake_genre,
+    make_fake_institution,
     make_fake_service,
     make_fake_sequence,
     make_fake_source,
@@ -402,6 +403,47 @@ class SourceModelTest(TestCase):
         source = Source.objects.first()
         absolute_url = reverse("source-detail", args=[str(source.id)])
         self.assertEqual(source.get_absolute_url(), absolute_url)
+
+    def test_compose_short_heading(self):
+        for description, institution_siglum, expected in (
+            ("institution siglum", "V-CVbav", "V-CVbav San Pietro B.79"),
+            ("no siglum", None, "Cantus San Pietro B.79"),
+            ("empty siglum", "", "Cantus San Pietro B.79"),
+            ("placeholder siglum", "XX-NN", "Cantus San Pietro B.79"),
+        ):
+            with self.subTest(institution_siglum=description):
+                self.assertEqual(
+                    Source.compose_short_heading(institution_siglum, "San Pietro B.79"),
+                    expected,
+                )
+
+    def test_short_heading(self):
+        """`short_heading` must agree with `compose_short_heading`, which bulk
+        exports call directly on column values. See #2025.
+        """
+        for description, institution, expected in (
+            (
+                "institution siglum",
+                make_fake_institution(siglum="V-CVbav"),
+                "V-CVbav San Pietro B.79",
+            ),
+            (
+                "private collector",
+                make_fake_institution(is_private_collector=True),
+                "Cantus San Pietro B.79",
+            ),
+            (
+                "placeholder siglum",
+                make_fake_institution(siglum="XX-NN"),
+                "Cantus San Pietro B.79",
+            ),
+            ("no holding institution", None, "Cantus San Pietro B.79"),
+        ):
+            with self.subTest(institution=description):
+                source = make_fake_source(
+                    holding_institution=institution, shelfmark="San Pietro B.79"
+                )
+                self.assertEqual(source.short_heading, expected)
 
 
 class SourceExternalImagesTest(TestCase):

@@ -230,11 +230,8 @@ function melodySearch() {
             data.results.map(chant => {
                 const newRow = table.insertRow(table.rows.length);
 
-                const siglum = chant.source__holding_institution__siglum ?? "";
-                const shelfmark = chant.source__shelfmark ?? "";
-
                 newRow.innerHTML += `<td style="width:20%">
-                                            <b>${siglum} ${shelfmark}</b>
+                                            <b>${chant.computed_siglum}</b>
                                             <br>
                                             fol. <b>${chant.folio}</b>
                                             <br>
