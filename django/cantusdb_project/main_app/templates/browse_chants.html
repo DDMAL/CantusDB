@@ -159,7 +159,7 @@
                                     <br />
                                     <!-- Volpiano display for source 680970 (MS 73) was temporarily disabled in #1635; re-enabled in #1893. -->
                                     {% if chant.volpiano %}
-                                        <span style="font-family: volpiano; font-size:25px">{{ chant.volpiano|default:"" }}</span>
+                                        <span style="font-family: volpiano; font-size:25px; overflow-wrap: anywhere">{{ chant.volpiano|default:"" }}</span>
                                     {% endif %}
                                 </p>
                             </td>
