@@ -1,5 +1,5 @@
 {% extends "base_page_with_side_cards.html" %}
-{% load static %}
+{% load static helper_tags %}
 {% block title %}<title>{{ source.heading }} | Cantus Database</title>{% endblock %}
 {% block scripts %}
     <script src="/static/js/chant_edit.js"></script>
@@ -258,16 +258,16 @@
                         {% if chant.manuscript_syllabized_full_text %}
                             <p>Syllabification is based on saved syllabized text.</p>
                         {% endif %}
-                        <dd>
+                        <dd class="d-flex flex-wrap align-items-start">
                             {% if syllabized_text_with_melody %}
-                                {% for syl_text, syl_mel in syllabized_text_with_melody %}
-                                    <span style="float: left">
+                                {% for syl_text, syl_mel in syllabized_text_with_melody|split_missing_music %}
+                                    <div>
                                         <div style="font-family: volpiano; font-size: 36px">{{ syl_mel }}</div>
                                         <!-- "mt" is margin at the top, so that the lowest note in volpiano don't overlap with text -->
                                         <div class="mt-2" style="font-size: 12px; ">
                                             <pre>{{ syl_text }}</pre>
                                         </div>
-                                    </span>
+                                    </div>
                                 {% endfor %}
                             {% else %}
                                 <p>Error aligning text and melody. Please check text for invalid characters.</p>
