@@ -59,7 +59,7 @@ class StubElement {
 
 const CHECKS = ['folioDuplication', 'folioCompleteness', 'extraFolios', 'imageLinkDuplication'];
 
-function installDOM(sourceFolios) {
+function installDOM(sourceFolios, limits = { maxRows: 5000, maxRequestBytes: 1048576 }) {
     const elements = new Map();
     const element = (id) => {
         if (!elements.has(id)) elements.set(id, new StubElement('div'));
@@ -71,6 +71,19 @@ function installDOM(sourceFolios) {
         element(`${name}Instances`);
     });
     element('sourceFolios').textContent = JSON.stringify(sourceFolios);
+    element('imageLinkImportLimits').textContent = JSON.stringify(limits);
+    element('blankImageLinks');
+    element('imgLinkForm');
+    // Match the two successful controls in the real, URL-encoded POST form.
+    global.FormData = class extends Map {
+        constructor(form) {
+            assert.equal(form, element('imgLinkForm'));
+            super([
+                ['csrfmiddlewaretoken', 'a'.repeat(64)],
+                ['image_links', element('imgLinkData').value],
+            ]);
+        }
+    };
     global.document = {
         getElementById: (id) => (elements.has(id) ? elements.get(id) : null),
         createElement: (tagName) => new StubElement(tagName),
@@ -157,7 +170,7 @@ test('one image for the whole source still reads as one shared link', () => {
 
     const result = dom.check('imageLinkDuplication');
     assert.equal(result.state, 'ok');
-    assert.equal(result.text, 'All folios share one image link');
+    assert.equal(result.text, 'All provided image links are the same');
 });
 
 test('an image link shared by three folios is flagged', () => {
@@ -184,7 +197,7 @@ test('unique image links pass the shared-link check', () => {
 
     assert.deepEqual(dom.check('imageLinkDuplication'), {
         state: 'ok',
-        text: 'Every folio has its own image link',
+        text: 'No provided image links are shared between folios',
     });
 });
 
@@ -255,7 +268,7 @@ test('checkSharedImageLinks ignores rows with no image link', () => {
         { folio: '001v', imageLink: '' },
         { folio: '002r', imageLink: 'https://example.com/2r.jpg' },
     ]);
-    assert.deepEqual(result, { folios: [], success: 'Every folio has its own image link' });
+    assert.deepEqual(result, { folios: [], success: 'No provided image links are shared between folios' });
 });
 
 
@@ -645,5 +658,122 @@ test('one final link for every folio still gets the whole-source explanation', (
     ].join('\n'));
 
     assert.equal(dom.check('imageLinkDuplication').state, 'ok');
-    assert.equal(dom.check('imageLinkDuplication').text, 'All folios share one image link');
+    assert.equal(dom.check('imageLinkDuplication').text, 'All provided image links are the same');
+});
+
+function selectCSV(dom, csv) {
+    let reader;
+    global.FileReader = class {
+        constructor() { reader = this; }
+        readAsText() { }
+    };
+    dom.element('imgLinksCSV').listeners.change({ target: { files: ['mapping.csv'] } });
+    reader.onload({ target: { result: csv } });
+}
+
+test('the page-provided row limit rejects a replacement before preview or submission', () => {
+    const dom = installDOM(['001r'], { maxRows: 2, maxRequestBytes: 2621440 });
+    initializeCSVImport();
+    selectCSV(dom, '001r,https://example.com/first\n001r,https://example.com/final');
+    assert.equal(dom.element('imgLinkFormSubmitBtn').disabled, false);
+    assert.equal(dom.submittedLinks().length, 2);
+
+    selectCSV(dom, '001r,https://example.com/a\n001r,\nunknown,https://example.com/b');
+    assert.equal(dom.element('csvReadError').textContent,
+        'The file holds 3 rows; at most 2 can be imported at once.');
+    assert.equal(dom.element('csvReadError').hidden, false);
+    assert.equal(dom.element('imgLinkFormSubmitBtn').disabled, true);
+    assert.deepEqual(dom.submittedLinks(), []);
+    assert.deepEqual(dom.previewedFolios(), []);
+    assert.equal(dom.element('csvPreviewDiv').hidden, true);
+
+    selectCSV(dom, 'folio,image_link\n001r,https://example.com/corrected');
+    assert.equal(dom.element('csvReadError').hidden, true);
+    assert.equal(dom.element('imgLinkFormSubmitBtn').disabled, false);
+});
+
+test('5000 rows with 200-character URLs may exceed the encoded request limit', () => {
+    const dom = installDOM(['001r'], { maxRows: 5000, maxRequestBytes: 2621440 });
+    initializeCSVImport();
+    const prefix = 'https://example.com/';
+    const ordinary = prefix + 'a'.repeat(200 - prefix.length);
+    const expanded = prefix + '/'.repeat(200 - prefix.length);
+    selectCSV(dom, Array(5000).fill(`001r,${ordinary}`).join('\n'));
+    assert.equal(dom.element('imgLinkFormSubmitBtn').disabled, false);
+    assert.equal(dom.submittedLinks().length, 5000);
+
+    selectCSV(dom, Array(5000).fill(`001r,${expanded}`).join('\n'));
+    assert.equal(dom.element('imgLinkFormSubmitBtn').disabled, true);
+    assert.equal(dom.element('csvReadError').hidden, false);
+    assert.match(dom.element('csvReadError').textContent, /too large.*Split/);
+    assert.deepEqual(dom.submittedLinks(), []);
+});
+
+test('the proxy request limit rejects files that would fit within Django\'s limit', () => {
+    const dom = installDOM(['001r']);
+    initializeCSVImport();
+    selectCSV(dom, Array(5000).fill('001r,https://example.com/a').join('\n'));
+    assert.equal(dom.element('imgLinkFormSubmitBtn').disabled, false);
+    const prefix = 'https://example.com/';
+    const link = prefix + 'a'.repeat(200 - prefix.length);
+    selectCSV(dom, Array(5000).fill(`001r,${link}`).join('\n'));
+    assert.equal(dom.element('imgLinkFormSubmitBtn').disabled, true);
+    assert.match(dom.element('csvReadError').textContent, /too large.*Split/);
+    assert.deepEqual(dom.submittedLinks(), []);
+});
+
+test('the request-size check includes URL encoding, Unicode, and the CSRF field', () => {
+    const csv = '001r,https://example.com/café.jpg';
+    const payload = JSON.stringify([['001r', 'https://example.com/café.jpg']]);
+    const size = new URLSearchParams({
+        csrfmiddlewaretoken: 'a'.repeat(64), image_links: payload,
+    }).toString().length;
+    for (const maxRequestBytes of [size - 1, size, null]) {
+        const dom = installDOM(['001r'], { maxRows: 5000, maxRequestBytes });
+        initializeCSVImport();
+        selectCSV(dom, csv);
+        assert.equal(dom.element('imgLinkFormSubmitBtn').disabled, maxRequestBytes === size - 1);
+    }
+});
+
+test('blank-link information describes the final matching folios and clears on replacement', () => {
+    const dom = installDOM(['001r', '001v', '002r', '002v']);
+    initializeCSVImport();
+    selectCSV(dom, [
+        'folio,image_link',
+        '001r,https://example.com/superseded',
+        '001r,',
+        '001r,',
+        '001v,',
+        '001v,https://example.com/final',
+        '002r,',
+        'unknown,',
+    ].join('\n'));
+    assert.equal(dom.element('blankImageLinks').hidden, false);
+    assert.equal(dom.element('blankImageLinks').textContent,
+        '2 folios have no image link in their final CSV row; existing links will be kept.');
+    assert.equal(dom.check('imageLinkDuplication').text,
+        'No provided image links are shared between folios');
+    assert.match(dom.check('folioCompleteness').text, /002v/);
+    assert.equal(dom.element('imgLinkFormSubmitBtn').disabled, false);
+
+    selectCSV(dom, '001r,');
+    assert.equal(dom.check('imageLinkDuplication').text, 'No image links were provided');
+    assert.equal(dom.element('blankImageLinks').textContent,
+        '1 folio has no image link in its final CSV row; existing links will be kept.');
+    selectCSV(dom, '001r,https://example.com/replacement');
+    assert.equal(dom.element('blankImageLinks').hidden, true);
+    selectCSV(dom, '001r,');
+    selectCSV(dom, '001r,"unclosed');
+    assert.equal(dom.element('blankImageLinks').hidden, true);
+    assert.equal(dom.element('blankImageLinks').textContent, '');
+});
+
+test('a malformed first comma record reports its missing quote', () => {
+    const dom = installDOM(['001r']);
+    initializeCSVImport();
+    selectCSV(dom, '001r,"https://example.com/unclosed');
+    assert.equal(dom.element('csvReadError').textContent,
+        'CSV line 1: a quoted field is missing its closing quote.');
+    assert.equal(dom.element('imgLinkFormSubmitBtn').disabled, true);
 });

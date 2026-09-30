@@ -48,6 +48,7 @@ from main_app.forms import (
     SourceEditForm,
     SourceBrowseChantsProofreadForm,
     ImageLinkForm,
+    MAX_IMAGE_LINK_ROWS,
     BrowseChantsBulkEditFormset,
 )
 from main_app.models import (
@@ -983,6 +984,15 @@ class SourceAddImageLinksView(CustomAccessMixin, SingleObjectMixin, FormView):  
         # The page lists the folios once, as JSON, for the CSV preview and its
         # checks to read.
         context["source_folios"] = self.source_folios
+        # Keep imports below nginx's default 1 MiB body limit as well as any
+        # smaller Django limit, so the preview can explain how to split them.
+        request_limit = 1024 * 1024
+        if settings.DATA_UPLOAD_MAX_MEMORY_SIZE is not None:
+            request_limit = min(request_limit, settings.DATA_UPLOAD_MAX_MEMORY_SIZE)
+        context["image_link_import_limits"] = {
+            "maxRows": MAX_IMAGE_LINK_ROWS,
+            "maxRequestBytes": request_limit,
+        }
         # Check if this source has a IIIF manifest
         has_iiif = self.object.source_links.filter(
             url_type=SourceURL.URLTypes.IIIF_MANIFEST

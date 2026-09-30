@@ -117,7 +117,7 @@ function detectDelimiter(csv, sourceFolios) {
             const record = readCSVRecords(csv, delimiter).next().value;
             candidates.push({ delimiter, first: record ? record.fields[0].trim() : '' });
         } catch (error) {
-            parseError = error;
+            parseError ??= error;
         }
     }
     if (!candidates.length) throw parseError;
@@ -206,15 +206,18 @@ function checkSharedImageLinks(parsedCSV) {
     // showing two facing folios gives each of them the same link, so pairs are
     // ordinary; a link on three or more folios usually means rows have slipped.
     // Earlier rows for a repeated folio are superseded, including when its
-    // final row has a blank link. Count only the links that will be applied.
+    // final row has a blank link. Count only the final CSV links.
     const finalRows = new Map(parsedCSV.map(row => [row.folio, row]));
     const linkedRows = Array.from(finalRows.values()).filter(row => row.imageLink);
+    if (linkedRows.length === 0) {
+        return { folios: [], success: 'No image links were provided' };
+    }
     const shared = groupFoliosBySharedImageLink(linkedRows);
     if (shared.length === 0) {
-        return { folios: [], success: 'Every folio has its own image link' };
+        return { folios: [], success: 'No provided image links are shared between folios' };
     }
     if (shared.length === 1 && shared[0].length === linkedRows.length) {
-        return { folios: [], success: 'All folios share one image link' };
+        return { folios: [], success: 'All provided image links are the same' };
     }
     const crowded = shared.filter(folios => folios.length > 2);
     if (crowded.length === 0) {
@@ -252,7 +255,19 @@ function displayCSVChecks(parsedCSV, sourceFolios) {
     const csvFolios = new Set(parsedCSV.map(row => row.folio));
     const missingLinks = Array.from(sourceFolios).filter(folio => !csvFolios.has(folio));
     displayCheckResults('folioCompleteness', missingLinks,
-        "Image links missing for the following folios");
+        "The CSV omits the following folios");
+    // Only the last row for a matching folio determines whether its stored
+    // links will be kept. Superseded and unknown folios do not count.
+    const finalRows = new Map(parsedCSV.map(row => [row.folio, row]));
+    const blankCount = Array.from(finalRows.values()).filter(
+        row => sourceFolios.has(row.folio) && !row.imageLink
+    ).length;
+    const blankInfo = document.getElementById('blankImageLinks');
+    blankInfo.hidden = blankCount === 0;
+    blankInfo.textContent = blankCount
+        ? `${blankCount} ${blankCount === 1 ? 'folio has' : 'folios have'} no image link `
+            + `in ${blankCount === 1 ? 'its' : 'their'} final CSV row; existing links will be kept.`
+        : '';
     // Check whether there are any folios in the CSV that are not in the source
     // Display these folios as extra folios in the preview table.
     const extraFolios = Array.from(csvFolios).filter(folio => !sourceFolios.has(folio));
@@ -270,8 +285,19 @@ function csvLoadCallback(csv) {
     // then run checks for completeness and uniqueness.
     const sourceFolios = new Set(getSourceFolios());
     const parsedCSV = parseImageLinkCSV(csv, sourceFolios);
-    displayPreview(parsedCSV);
+    const limits = JSON.parse(document.getElementById('imageLinkImportLimits').textContent);
+    if (parsedCSV.length > limits.maxRows) {
+        throw new Error(`The file holds ${parsedCSV.length} rows; at most `
+            + `${limits.maxRows} can be imported at once.`);
+    }
     setImageLinkFormData(parsedCSV);
+    // The browser URL-encodes the JSON and CSRF token when posting this form.
+    // Reserved characters can push even 5000 valid rows over the request limit.
+    const encodedForm = new URLSearchParams(new FormData(document.getElementById('imgLinkForm')));
+    if (limits.maxRequestBytes !== null && encodedForm.toString().length > limits.maxRequestBytes) {
+        throw new Error('The file is too large to import at once. Split it into smaller CSV files.');
+    }
+    displayPreview(parsedCSV);
     displayCSVChecks(parsedCSV, sourceFolios);
     return parsedCSV;
 }
@@ -287,6 +313,8 @@ function initializeCSVImport() {
         document.getElementById('csvPreviewBody').innerHTML = '';
         document.getElementById('csvPreviewDiv').hidden = true;
         document.getElementById('csvTestingDiv').hidden = true;
+        document.getElementById('blankImageLinks').hidden = true;
+        document.getElementById('blankImageLinks').textContent = '';
         error.hidden = true;
         error.textContent = '';
     }

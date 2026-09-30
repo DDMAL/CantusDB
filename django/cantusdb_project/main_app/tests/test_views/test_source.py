@@ -6,6 +6,7 @@ import json
 import random
 import re
 from unittest.mock import patch
+from urllib.parse import urlencode
 
 from faker import Faker
 from typing import Dict, Optional
@@ -15,7 +16,7 @@ from django.contrib.messages import get_messages
 from django.db import connection
 from django.db.models import QuerySet
 from django.http import HttpResponse
-from django.test import TestCase
+from django.test import TestCase, override_settings
 from django.test.utils import CaptureQueriesContext
 from django.urls import reverse
 from django.core.exceptions import ObjectDoesNotExist
@@ -2227,6 +2228,63 @@ class SourceAddImageLinksViewTest(CustomAccessTestMixin, TestCase):
         self.assertEqual(response.status_code, 302)
         chant_004B = Chant.objects.get(source=self.source, folio="004B")
         self.assertEqual(chant_004B.image_link, "https://i-already-exist.com/2")
+
+    def test_preview_receives_the_server_import_limits(self) -> None:
+        for byte_limit, expected_limit in (
+            (8192, 8192),
+            (2621440, 1048576),
+            (None, 1048576),
+        ):
+            with self.subTest(byte_limit=byte_limit), self.settings(
+                DATA_UPLOAD_MAX_MEMORY_SIZE=byte_limit
+            ):
+                response = self.client.get(
+                    reverse("source-add-image-links", args=[self.source.id])
+                )
+                match = re.search(
+                    r'<script id="imageLinkImportLimits" type="application/json">(.*?)</script>',
+                    response.content.decode(),
+                )
+                self.assertIsNotNone(match)
+                self.assertEqual(
+                    json.loads(match.group(1)),
+                    {"maxRows": MAX_IMAGE_LINK_ROWS, "maxRequestBytes": expected_limit},
+                )
+
+    @override_settings(DATA_UPLOAD_MAX_MEMORY_SIZE=2621440)
+    def test_urlencoded_request_size_can_bind_before_the_row_limit(self) -> None:
+        """Reserved URL characters expand in the browser's form encoding."""
+        prefix = "https://example.com/"
+        for suffix, expected_status in (("a", 302), ("/", 400)):
+            with self.subTest(suffix=suffix):
+                link = prefix + suffix * (200 - len(prefix))
+                rows = [["001r", link]] * MAX_IMAGE_LINK_ROWS
+                payload = urlencode(
+                    {
+                        "csrfmiddlewaretoken": "a" * 64,
+                        "image_links": json.dumps(rows, separators=(",", ":")),
+                    }
+                )
+                self.assertEqual(
+                    len(payload) > settings.DATA_UPLOAD_MAX_MEMORY_SIZE,
+                    expected_status == 400,
+                )
+                before = dict(self.source.chant_set.values_list("pk", "image_link"))
+                response = self.client.post(
+                    reverse("source-add-image-links", args=[self.source.id]),
+                    payload,
+                    content_type="application/x-www-form-urlencoded",
+                )
+                self.assertEqual(response.status_code, expected_status)
+                if expected_status == 302:
+                    self.assertEqual(
+                        self.source.chant_set.get(folio="001r").image_link, link
+                    )
+                else:
+                    self.assertEqual(
+                        dict(self.source.chant_set.values_list("pk", "image_link")),
+                        before,
+                    )
 
     def test_two_folios_can_share_one_image(self) -> None:
         """A photograph of an opening gives both its folios the same link."""
