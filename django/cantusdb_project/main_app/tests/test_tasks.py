@@ -470,6 +470,10 @@ class TempMediaRootMixin:
         super().tearDownClass()
 
 
+# Data checks are gated off outside production; the dev/test stack runs with
+# PROJECT_ENVIRONMENT=DEVELOPMENT, so pin the flag on rather than letting the
+# ambient environment decide whether these tests exercise anything.
+@override_settings(DATA_CHECKS_ENABLED=True)
 class RunDataChecksTest(TempMediaRootMixin, TestCase):
 
     def _patch_checks(self):
@@ -503,6 +507,24 @@ class RunDataChecksTest(TempMediaRootMixin, TestCase):
 
         mocks["check_blank_mode"].assert_not_called()
         self.assertEqual(len(mail.outbox), 0)
+        config.refresh_from_db()
+        self.assertIsNone(config.last_run)
+
+    @override_settings(DATA_CHECKS_ENABLED=False)
+    def test_skips_everything_when_disabled(self) -> None:
+        """Outside production the task is a no-op: no checks run, no mail is
+        sent, no report is stored, and `last_run` is left untouched."""
+        config = DataCheckConfig.objects.create(
+            frequency=DataCheckConfig.Frequency.DAILY
+        )
+        config.recipients.add(make_fake_user(is_superuser=True))
+
+        mocks = self._patch_checks()
+        run_data_checks.apply().get()
+
+        mocks["check_blank_mode"].assert_not_called()
+        self.assertEqual(len(mail.outbox), 0)
+        self.assertEqual(DataCheckReport.objects.count(), 0)
         config.refresh_from_db()
         self.assertIsNone(config.last_run)
 
