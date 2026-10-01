@@ -87,7 +87,7 @@
                                     class="form-control form-select form-select-sm ccdb-search-input">
                                 <option value="">- Any -</option>
                                 {% for service in services %}
-                                    <option value="{{ service.id }}" {% if request.GET.service == service.id|stringformat:"s" %}selected{% endif %}>{{ service.name }}</option>
+                                    <option value="{{ service.id }}" {% if request.GET.service == service.id|stringformat:"s" %}selected{% endif %}>{{ service.dropdown_label }}</option>
                                 {% endfor %}
                             </select>
                         </div>
@@ -98,7 +98,7 @@
                                     class="form-control form-select form-select-sm ccdb-search-input">
                                 <option value="">- Any -</option>
                                 {% for genre in genres %}
-                                    <option value="{{ genre.id }}" {% if request.GET.genre == genre.id|stringformat:"s" %}selected{% endif %}>{{ genre.name }}</option>
+                                    <option value="{{ genre.id }}" {% if request.GET.genre == genre.id|stringformat:"s" %}selected{% endif %}>{{ genre.dropdown_label }}</option>
                                 {% endfor %}
                             </select>
                         </div>

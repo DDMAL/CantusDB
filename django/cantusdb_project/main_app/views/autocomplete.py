@@ -62,8 +62,8 @@ class FeastAutocomplete(autocomplete.Select2QuerySetView):
 
 
 class ServiceAutocomplete(autocomplete.Select2QuerySetView):
-    def get_result_label(self, result):
-        return f"{result.name} - {result.description}"
+    def get_result_label(self, result: Service) -> str:
+        return result.dropdown_label
 
     def get_queryset(self):
         if not self.request.user.is_authenticated:
@@ -77,8 +77,8 @@ class ServiceAutocomplete(autocomplete.Select2QuerySetView):
 
 
 class GenreAutocomplete(autocomplete.Select2QuerySetView):
-    def get_result_label(self, result):
-        return f"{result.name} - {result.description}"
+    def get_result_label(self, result: Genre) -> str:
+        return result.dropdown_label
 
     def get_queryset(self):
         if not self.request.user.is_authenticated:
