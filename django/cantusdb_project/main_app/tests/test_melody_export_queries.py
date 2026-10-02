@@ -17,7 +17,10 @@ class MelodyExportQueriesTest(TestCase):
             source.holding_institution = institution
             source.save()
             for _ in range(3):
-                chant = make_fake_chant(source=source, cantus_id="export-test")
+                # unproofread melodies are hidden from the public (#2289)
+                chant = make_fake_chant(
+                    source=source, cantus_id="export-test", volpiano_proofread=True
+                )
                 expected[chant.id] = source.short_heading
         make_fake_chant(
             source=make_fake_source(published=False), cantus_id="export-test"
