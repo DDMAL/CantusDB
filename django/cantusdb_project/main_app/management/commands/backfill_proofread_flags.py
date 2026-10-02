@@ -41,10 +41,20 @@ class Command(BaseCommand):
             action="store_true",
             help="Report what would change without writing anything.",
         )
+        parser.add_argument(
+            "--exclude",
+            nargs="+",
+            type=int,
+            default=[],
+            metavar="SOURCE_ID",
+            help="IDs of published sources whose content has not been proofread.",
+        )
 
     def handle(self, *args, **options):
         dry_run = options["dry_run"]
-        chants = Chant.objects.filter(source__published=True)
+        chants = Chant.objects.filter(source__published=True).exclude(
+            source_id__in=options["exclude"]
+        )
 
         self.report(chants)
 
