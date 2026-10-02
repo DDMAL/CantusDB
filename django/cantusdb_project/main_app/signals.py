@@ -95,6 +95,8 @@ def update_source_melody_count(instance) -> None:
     except Source.DoesNotExist:
         source = None
     if source is not None:
+        # Counts every melody, including ones hidden from anonymous users until
+        # proofread (#1100). A public-only count is deferred until it is needed.
         source.number_of_melodies = (
             source.chant_set.exclude(volpiano__isnull=True)
             .exclude(volpiano__exact="")
