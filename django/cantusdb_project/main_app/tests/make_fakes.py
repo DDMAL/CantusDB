@@ -163,6 +163,15 @@ def make_fake_century(**kwargs: Any) -> Century:
     return century
 
 
+# Pass to make_fake_chant (`make_fake_chant(**PROOFREAD, ...)`) for a chant whose
+# volpiano and full texts are visible to anonymous users (#1100).
+PROOFREAD = {
+    "volpiano_proofread": True,
+    "manuscript_full_text_proofread": True,
+    "manuscript_full_text_std_proofread": True,
+}
+
+
 def make_fake_chant(**kwargs: Any) -> Chant:
     """
     Generates a fake Chant object. Kwargs can be used to specify the value of fields.
