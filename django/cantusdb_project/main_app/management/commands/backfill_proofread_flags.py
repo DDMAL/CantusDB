@@ -2,7 +2,7 @@ from django.core.management.base import BaseCommand
 from django.db import transaction
 from django.db.models import Count, Q, QuerySet
 
-from main_app.models import Chant
+from main_app.models import Chant, Sequence
 
 # (report label, proofread flag, field whose content the flag vouches for)
 PROOFREAD_FIELDS = [
@@ -17,7 +17,7 @@ PROOFREAD_FIELDS = [
 
 
 def unproofread_with_content(flag: str, field: str) -> Q:
-    """Chants that have content in `field` but whose `flag` is not ticked."""
+    """Chants or sequences that have content in `field` but whose `flag` is not ticked."""
     return (
         Q(**{f"{field}__isnull": False})
         & ~Q(**{field: ""})
@@ -27,8 +27,8 @@ def unproofread_with_content(flag: str, field: str) -> Q:
 
 class Command(BaseCommand):
     help = (
-        "Mark the volpiano, MS full text and MS standardized spelling of chants in "
-        "published sources as proofread. This content is already public and was "
+        "Mark the volpiano, MS full text and MS standardized spelling of chants and "
+        "sequences in published sources as proofread. This content is already public and was "
         "checked before the proofread checkboxes existed, so ticking them keeps it "
         "public once unproofread fields are hidden (#1100). Only fields that have "
         "content are ticked, so anything added later still starts unproofread. "
@@ -52,30 +52,36 @@ class Command(BaseCommand):
 
     def handle(self, *args, **options):
         dry_run = options["dry_run"]
-        chants = Chant.objects.filter(source__published=True).exclude(
-            source_id__in=options["exclude"]
-        )
+        querysets = [
+            model.objects.filter(source__published=True).exclude(
+                source_id__in=options["exclude"]
+            )
+            for model in (Chant, Sequence)
+        ]
 
-        self.report(chants)
+        for queryset in querysets:
+            self.report(queryset)
 
         if dry_run:
             self.stdout.write(self.style.WARNING("Dry run: nothing was written."))
             return
 
         with transaction.atomic():
-            for _, flag, field in PROOFREAD_FIELDS:
-                updated = chants.filter(unproofread_with_content(flag, field)).update(
-                    **{flag: True}
-                )
-                self.stdout.write(
-                    self.style.SUCCESS(f"Set {flag} on {updated} chants.")
-                )
+            for queryset in querysets:
+                name = queryset.model.get_verbose_name_plural()
+                for _, flag, field in PROOFREAD_FIELDS:
+                    updated = queryset.filter(
+                        unproofread_with_content(flag, field)
+                    ).update(**{flag: True})
+                    self.stdout.write(
+                        self.style.SUCCESS(f"Set {flag} on {updated} {name}.")
+                    )
 
-    def report(self, chants: QuerySet[Chant]) -> None:
-        """Print, per source, how many chants each flag would be ticked on."""
+    def report(self, queryset: QuerySet[Chant] | QuerySet[Sequence]) -> None:
+        """Print, per source, how many records each flag would be ticked on."""
         labels = [label for label, _, _ in PROOFREAD_FIELDS]
         rows = (
-            chants.values("source_id")
+            queryset.values("source_id")
             .annotate(
                 **{
                     label: Count("id", filter=unproofread_with_content(flag, field))
@@ -85,6 +91,7 @@ class Command(BaseCommand):
             .order_by("source_id")
         )
         totals = dict.fromkeys(labels, 0)
+        self.stdout.write(queryset.model.get_verbose_name_plural().capitalize())
         self.stdout.write("\t".join(["source_id", *labels]))
         for row in rows:
             if not any(row[label] for label in labels):

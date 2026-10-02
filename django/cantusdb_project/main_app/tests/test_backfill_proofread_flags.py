@@ -3,7 +3,11 @@ from io import StringIO
 from django.core.management import call_command
 from django.test import TestCase
 
-from main_app.tests.make_fakes import make_fake_chant, make_fake_source
+from main_app.tests.make_fakes import (
+    make_fake_chant,
+    make_fake_sequence,
+    make_fake_source,
+)
 
 FLAGS = [
     "volpiano_proofread",
@@ -19,15 +23,24 @@ def run_backfill(*args: str) -> str:
 
 
 class TestBackfillProofreadFlags(TestCase):
-    def assert_flags(self, chant, expected) -> None:
-        chant.refresh_from_db()
+    def assert_flags(self, record, expected) -> None:
+        record.refresh_from_db()
         for flag in FLAGS:
-            self.assertEqual(getattr(chant, flag), expected, flag)
+            self.assertEqual(getattr(record, flag), expected, flag)
 
     def test_ticks_fields_with_content_in_published_sources(self):
         chant = make_fake_chant(source=make_fake_source(published=True))
         run_backfill()
         self.assert_flags(chant, True)
+
+    def test_ticks_sequences_in_published_sources(self):
+        sequence = make_fake_sequence(source=make_fake_source(published=True))
+        sequence.volpiano = "1---g---h---3"
+        sequence.manuscript_full_text = "Ave maris stella"
+        sequence.manuscript_full_text_std_spelling = "Ave maris stella"
+        sequence.save()
+        run_backfill()
+        self.assert_flags(sequence, True)
 
     def test_ticks_flags_that_were_never_set(self):
         chant = make_fake_chant(
