@@ -26,7 +26,13 @@ class NormalizedURLField(models.URLField):
     """
 
     def to_python(self, value: Any) -> Optional[str]:
-        return super().to_python(_normalize(value))
+        normalized = super().to_python(_normalize(value))
+        return "" if normalized is None and not self.null else normalized
+
+    def pre_save(self, model_instance: models.Model, add: bool) -> Optional[str]:
+        value = self.to_python(super().pre_save(model_instance, add))
+        setattr(model_instance, self.attname, value)
+        return value
 
     def get_prep_value(self, value: Any) -> Optional[str]:
         return super().get_prep_value(_normalize(value))
