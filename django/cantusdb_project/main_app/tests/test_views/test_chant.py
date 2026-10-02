@@ -1447,6 +1447,7 @@ class ChantSearchViewTest(CustomAccessTestMixin, TestCase):
     def test_keyword_search_starts_with(self):
         source = make_fake_source(published=True)
         chant = make_fake_chant(
+            **PROOFREAD,  # unproofread text is hidden from the public search
             source=source,
             manuscript_full_text_std_spelling=faker.sentence(),
         )
