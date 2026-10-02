@@ -208,7 +208,7 @@ class ChantDetailViewTest(ChantPermissionsTestCase):
         self.assertEqual(response.status_code, 200)
 
     def test_json_response(self) -> None:
-        chant = make_fake_chant()
+        chant = make_fake_chant(manuscript_full_text_proofread=True)
         response = self.client.get(
             reverse("chant-detail", args=[chant.id]), HTTP_ACCEPT="application/json"
         )

@@ -53,6 +53,7 @@ from main_app.models import (
 from main_app.permissions import CustomAccessMixin
 
 from main_app.mixins import JSONResponseMixin
+from main_app.proofread_visibility import hide_unproofread_from
 from users.models import User
 
 
@@ -403,6 +404,13 @@ class ChantDetailView(CustomAccessMixin, JSONResponseMixin, DetailView):  # type
             "created_by",
             "last_updated_by",
         ).prefetch_related("source__segment_m2m", "source__notation")
+
+    def get_object(self, queryset: Optional[QuerySet[Chant]] = None) -> Chant:
+        # Hidden before anything reads the chant, so the page, its JSON and the
+        # melody-with-text preview all leave out the same fields.
+        chant: Chant = super().get_object(queryset)
+        hide_unproofread_from(self.request.user, [chant])
+        return chant
 
     @staticmethod
     def _attributable_user(user: Optional[User]) -> Optional[User]:

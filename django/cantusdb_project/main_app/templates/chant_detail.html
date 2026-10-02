@@ -231,20 +231,33 @@
             </div>
         {% endif %}
         {% if chant.manuscript_full_text_std_spelling %}
-            <dt>Full text as in Source (standardized spelling)</dt>
+            <dt>
+                Full text as in Source (standardized spelling)
+                {% if not chant.manuscript_full_text_std_proofread %}
+                    <small class="text-muted fw-normal">(not proofread)</small>
+                {% endif %}
+            </dt>
             <dd>
                 {{ chant.manuscript_full_text_std_spelling }}
             </dd>
         {% endif %}
         {% if chant.manuscript_full_text %}
-            <dt>Full text as in Source (source spelling)</dt>
+            <dt>
+                Full text as in Source (source spelling)
+                {% if not chant.manuscript_full_text_proofread %}
+                    <small class="text-muted fw-normal">(not proofread)</small>
+                {% endif %}
+            </dt>
             <dd>
                 {{ chant.manuscript_full_text }}
             </dd>
         {% endif %}
         <!-- Volpiano display for source 680970 (MS 73) was temporarily disabled in #1635; re-enabled in #1893. -->
         {% if chant.volpiano %}
-            <dt>Volpiano</dt>
+            <dt>
+                Volpiano
+                {% if not chant.volpiano_proofread %}<small class="text-muted fw-normal">(not proofread)</small>{% endif %}
+            </dt>
             <dd>
                 <p class="font-volpiano-lg">{{ chant.volpiano }}</p>
             </dd>
