@@ -19,6 +19,7 @@ from faker import Faker
 from bs4 import BeautifulSoup
 
 from main_app.tests.make_fakes import (
+    PROOFREAD,
     make_fake_chant,
     make_fake_sequence,
     make_fake_source,
@@ -1467,11 +1468,12 @@ class ChantSearchViewTest(CustomAccessTestMixin, TestCase):
     def test_filter_by_melody(self):
         source = make_fake_source(published=True)
         chant_with_melody = make_fake_chant(
+            **PROOFREAD,
             source=source,
             volpiano=make_fake_volpiano(),
         )
         # Create a chant without a melody
-        make_fake_chant(source=source, volpiano=None)
+        make_fake_chant(**PROOFREAD, source=source, volpiano=None)
         response = self.client.get(reverse("chant-search"), {"melodies": "true"})
         # only chants with melodies should be in the result
         self.assertEqual(len(response.context["chants"]), 1)
@@ -1498,6 +1500,7 @@ class ChantSearchViewTest(CustomAccessTestMixin, TestCase):
     def test_keyword_search_contains(self):
         source = make_fake_source(published=True)
         chant = make_fake_chant(
+            **PROOFREAD,
             source=source,
             manuscript_full_text="hoc tantum possum dicere",
         )
@@ -1511,6 +1514,7 @@ class ChantSearchViewTest(CustomAccessTestMixin, TestCase):
     def test_keyword_search_ends_with(self):
         source = make_fake_source(published=True)
         chant = make_fake_chant(
+            **PROOFREAD,
             source=source,
             manuscript_full_text_std_spelling=faker.sentence(),
         )
@@ -1656,19 +1660,22 @@ class ChantSearchViewTest(CustomAccessTestMixin, TestCase):
         # updating (among other things, this script populates the search fields on
         # the Chant Search page if a user arrives via the Global Search Bar)
         chant_with_incipit_only = make_fake_chant(
-            manuscript_full_text="The first three*", cantus_id="987654"
+            **PROOFREAD, manuscript_full_text="The first three*", cantus_id="987654"
         )
         chant_with_full_text = make_fake_chant(
+            **PROOFREAD,
             manuscript_full_text="The entire text is present for this one",
             cantus_id="098765",
         )
         chant_with_ascending_cantus_id = make_fake_chant(
+            **PROOFREAD,
             manuscript_full_text="Full text contains, but does not start with 'the'",
             cantus_id="123456",
         )
         # Create a chant starting with a number that won't be found by either
         # search term
         make_fake_chant(
+            **PROOFREAD,
             manuscript_full_text=(
                 "1 is a number. How unusual, to find an arabic numeral in a chant!"
             ),
@@ -2249,10 +2256,12 @@ class ChantSearchViewTest(CustomAccessTestMixin, TestCase):
 
     def test_order_by_ms_fulltext(self):
         chant_1 = make_fake_chant(
+            **PROOFREAD,
             manuscript_full_text="this is a chant with a MS spelling fylltexte",
             manuscript_full_text_std_spelling="this is a chant with a MS spelling fulltext",
         )
         chant_2 = make_fake_chant(
+            **PROOFREAD,
             manuscript_full_text_std_spelling="this will become a chant without a MS spelling fulltext",
         )
         chant_2.manuscript_full_text = ""
@@ -2551,6 +2560,7 @@ class ChantSearchViewTest(CustomAccessTestMixin, TestCase):
         position = make_random_string(1)
         indexing_notes = "edited & revised"
         make_fake_chant(
+            **PROOFREAD,
             manuscript_full_text_std_spelling=fulltext,
             service=service,
             genre=genre,
@@ -2835,6 +2845,7 @@ class ChantSearchViewTest(CustomAccessTestMixin, TestCase):
         ms_fulltext = "manuscript full text"
         search_term = "full"
         chant = make_fake_chant(
+            **PROOFREAD,
             source=source,
             manuscript_full_text_std_spelling=std_fulltext,
             manuscript_full_text=ms_fulltext,
@@ -2869,6 +2880,7 @@ class ChantSearchViewTest(CustomAccessTestMixin, TestCase):
         search_term = "full"
         volpiano = "1---h--j---k--h---m---m---l"
         chant = make_fake_chant(
+            **PROOFREAD,
             source=source,
             manuscript_full_text_std_spelling=full_text,
             volpiano=volpiano,
@@ -3172,11 +3184,12 @@ class ChantSearchMSViewTest(ChantPermissionsTestCase):
     def test_filter_by_melody(self):
         source = make_fake_source()
         chant_with_melody = make_fake_chant(
+            **PROOFREAD,
             source=source,
             volpiano=make_fake_volpiano,
         )
         # Create a chant without melody that won't be in the result
-        make_fake_chant(source=source, volpiano=None)
+        make_fake_chant(**PROOFREAD, source=source, volpiano=None)
         response = self.client.get(
             reverse("chant-search-ms", args=[source.id]), {"melodies": "true"}
         )
@@ -3241,14 +3254,17 @@ class ChantSearchMSViewTest(ChantPermissionsTestCase):
 
         # We have three chants to make sure the result is only chant 1 where dog is the last word
         chant_1 = make_fake_chant(
+            **PROOFREAD,
             source=source,
             manuscript_full_text_std_spelling="quick brown fox jumps over the lazy dog",
         )
         make_fake_chant(
+            **PROOFREAD,
             source=source,
             manuscript_full_text_std_spelling="quick brown fox jumps over the lazy",
         )
         make_fake_chant(
+            **PROOFREAD,
             source=source,
             manuscript_full_text_std_spelling="quick brown dog jumps over the lazy fox",
         )
@@ -3317,12 +3333,14 @@ class ChantSearchMSViewTest(ChantPermissionsTestCase):
         source = make_fake_source()
 
         make_fake_chant(
+            **PROOFREAD,
             source=source,
             manuscript_full_text=includes_search_term,  # <== includes_search_term
             manuscript_full_text_std_spelling=doesnt_include_search_term,
         )
 
         make_fake_chant(
+            **PROOFREAD,
             source=source,
             manuscript_full_text=doesnt_include_search_term,
             manuscript_full_text_std_spelling=includes_search_term,  # <==
@@ -3331,6 +3349,7 @@ class ChantSearchMSViewTest(ChantPermissionsTestCase):
         # some chants inherited from OldCantus have an incipit but no full-text -
         # we need to ensure these chants appear in the results
         chant_incipit = make_fake_chant(
+            **PROOFREAD,
             source=source,
         )
         Chant.objects.filter(id=chant_incipit.id).update(
@@ -3341,6 +3360,7 @@ class ChantSearchMSViewTest(ChantPermissionsTestCase):
 
         # This chant contains no search terms
         make_fake_chant(
+            **PROOFREAD,
             source=source,
             manuscript_full_text=doesnt_include_search_term,
             manuscript_full_text_std_spelling=doesnt_include_search_term,
@@ -3797,6 +3817,7 @@ class ChantSearchMSViewTest(ChantPermissionsTestCase):
         position = make_random_string(1)
         indexing_notes = "edited & revised"
         make_fake_chant(
+            **PROOFREAD,
             service=service,
             genre=genre,
             cantus_id=cantus_id,
@@ -4067,6 +4088,7 @@ class ChantSearchMSViewTest(ChantPermissionsTestCase):
         ms_fulltext = "manuscript full text"
         search_term = "full"
         chant = make_fake_chant(
+            **PROOFREAD,
             source=source,
             manuscript_full_text_std_spelling=std_fulltext,
             manuscript_full_text=ms_fulltext,
@@ -4103,6 +4125,7 @@ class ChantSearchMSViewTest(ChantPermissionsTestCase):
         search_term = "full"
         volpiano = "1---defg-e-cd"
         chant = make_fake_chant(
+            **PROOFREAD,
             source=source,
             manuscript_full_text_std_spelling=full_text,
             volpiano=volpiano,
