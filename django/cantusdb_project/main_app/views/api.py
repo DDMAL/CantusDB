@@ -5,6 +5,7 @@ from django.conf import settings
 from django.contrib.auth import get_user_model
 from django.contrib.flatpages.models import FlatPage
 from django.core.exceptions import PermissionDenied
+from django.db.models import Q
 from django.db.models.query import QuerySet
 from django.http.response import JsonResponse
 from django.http import HttpResponse, HttpResponseNotFound, Http404, HttpRequest
@@ -25,6 +26,12 @@ from main_app.models import (
     Source,
 )
 from main_app.permissions import get_sources_visible_to_user
+from main_app.proofread_visibility import (
+    hide_unproofread_from,
+    hide_unproofread_values,
+    sees_unproofread,
+    visible_q,
+)
 from next_chants import next_chants
 from cantusindex import get_json_from_ci_api
 
@@ -89,10 +96,14 @@ def ajax_melody_list(
         .order_by("id")
     )
 
-    chants = chants.filter(source__in=sources_visible_to_user)
+    chants = chants.filter(source__in=sources_visible_to_user).filter(
+        visible_q("volpiano", request.user)
+    )
+    chant_list = list(chants)
+    hide_unproofread_from(request.user, chant_list)
 
     concordances: list[dict[str, str]] = []
-    for chant in chants:
+    for chant in chant_list:
         concordance: dict[str, str] = {
             "siglum": chant.source.short_heading,
             "folio": chant.folio or "",
@@ -149,6 +160,8 @@ def csv_export(
         entries = source.chant_set.order_by("id").select_related(
             "feast", "service", "genre"
         )
+    entries = list(entries)
+    hide_unproofread_from(request.user, entries)
 
     response = HttpResponse(content_type="text/csv")
     filename = make_csv_download_filename(source_id, source.short_heading)
@@ -267,7 +280,9 @@ def ajax_melody_search(
     mode = request.GET.get("mode")
     source = request.GET.get("source")
 
-    chants = Chant.objects.filter(source_id__in=sources_visible_to_user)
+    chants = Chant.objects.filter(source_id__in=sources_visible_to_user).filter(
+        visible_q("volpiano", request.user)
+    )
 
     chants = chants.select_related("source__holding_institution")
 
@@ -327,7 +342,10 @@ def ajax_melody_search(
         chants = chants.filter(computed_siglum__icontains=siglum)
 
     if text:
-        chants = chants.filter(manuscript_full_text_std_spelling__icontains=text)
+        chants = chants.filter(
+            Q(manuscript_full_text_std_spelling__icontains=text)
+            & visible_q("manuscript_full_text_std_spelling", request.user)
+        )
     if genre_name:
         chants = chants.filter(genre__name__icontains=genre_name)
     if feast_name:
@@ -418,12 +436,18 @@ def json_melody_export(request: HttpRequest, cantus_id: str) -> JsonResponse:
     it returns absolute URLs for the chant and source detail pages), only returns
     chants in published sources, and contains slightly different chant text fields.
     """
-    chants: QuerySet[Chant] = Chant.objects.filter(
-        cantus_id=cantus_id, volpiano__isnull=False, source__published=True
-    ).select_related("source")
+    chants: QuerySet[Chant] = (
+        Chant.objects.filter(
+            cantus_id=cantus_id, volpiano__isnull=False, source__published=True
+        )
+        .filter(visible_q("volpiano", request.user))
+        .select_related("source")
+    )
+    chant_list = list(chants)
+    hide_unproofread_from(request.user, chant_list)
 
     chants_export: list[dict[str, Optional[Union[str, int]]]] = []
-    for chant in chants:
+    for chant in chant_list:
         chant_values = {
             "mid": chant.melody_id,
             "nid": chant.id,
@@ -525,7 +549,9 @@ def json_cid_export(request: HttpRequest, cantus_id: str) -> JsonResponse:
         .filter(cantus_id=cantus_id)
         .filter(source__published=True)
     )
-    chant_dicts = [{"chant": build_json_cid_dictionary(c, request)} for c in chants]
+    chant_list = list(chants)
+    hide_unproofread_from(request.user, chant_list)
+    chant_dicts = [{"chant": build_json_cid_dictionary(c, request)} for c in chant_list]
     response = {"chants": chant_dicts}
     return JsonResponse(response)
 
@@ -660,6 +686,8 @@ def json_node_export(request: HttpRequest, id: int) -> HttpResponse:
             continue
 
         vals = dict(*this_rec_qs.values())
+        if rec_type in (Chant, Sequence) and not sees_unproofread(request.user):
+            hide_unproofread_values(vals)
         return JsonResponse(vals)
 
     return HttpResponseNotFound()

@@ -53,7 +53,7 @@ class ChantPermissionsTestCase(CustomAccessTestMixin, TestCase):
         fake_cantus_id = faker.numerify("######")
         published_source = make_fake_source(published=True)
         published_chant = make_fake_chant(
-            source=published_source, cantus_id=fake_cantus_id
+            **PROOFREAD, source=published_source, cantus_id=fake_cantus_id
         )
         editor_assigned_source = make_fake_source(
             published=False, current_editors=[cls.users["editor"]]
