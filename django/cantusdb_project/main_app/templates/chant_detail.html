@@ -349,6 +349,11 @@
             {% if source %}
                 <div class="card-body">
                     <small>
+                        {% if user_can_edit_chant %}
+                            <div class="mb-2">
+                                <a href="{% url 'chant-create' source.id %}">Add new chant</a>
+                            </div>
+                        {% endif %}
                         <!--a small selector of all folios of this source-->
                         <select name="folios"
                                 id="folioSelect"
