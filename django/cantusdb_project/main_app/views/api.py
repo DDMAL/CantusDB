@@ -688,6 +688,12 @@ def json_node_export(request: HttpRequest, id: int) -> HttpResponse:
         vals = dict(*this_rec_qs.values())
         if rec_type in (Chant, Sequence) and not sees_unproofread(request.user):
             hide_unproofread_values(vals)
+            # The search vector indexes the words of both full texts.
+            if not (
+                vals["manuscript_full_text_proofread"]
+                and vals["manuscript_full_text_std_proofread"]
+            ):
+                vals["search_vector"] = None
         return JsonResponse(vals)
 
     return HttpResponseNotFound()
