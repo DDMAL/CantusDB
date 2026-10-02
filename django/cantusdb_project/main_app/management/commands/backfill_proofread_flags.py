@@ -101,4 +101,6 @@ class Command(BaseCommand):
             )
             for label in labels:
                 totals[label] += row[label]
-        self.stdout.write("\t".join(["Total", *(str(totals[l]) for l in labels)]))
+        self.stdout.write(
+            "\t".join(["Total", *(str(totals[label]) for label in labels)])
+        )
