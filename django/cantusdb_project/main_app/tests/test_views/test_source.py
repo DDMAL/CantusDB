@@ -1014,6 +1014,7 @@ class SourceBrowseChantsViewTest(CsvExportLinkTestMixin, SourcePermissionsTestCa
         cantus_segment = make_fake_segment(id=settings.CANTUS_SEGMENT_ID)
         source = make_fake_source(segment=[cantus_segment])
         chant = make_fake_chant(
+            **PROOFREAD,
             source=source,
             manuscript_full_text_std_spelling=faker.sentence(),
         )
