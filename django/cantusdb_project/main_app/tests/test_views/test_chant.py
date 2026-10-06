@@ -3879,6 +3879,21 @@ class ChantCreateViewTest(CustomAccessTestMixin, TestCase):
         response = self.client.get(reverse("chant-create", args=[source.id]))
         self.assertEqual(response.context["form"].initial["c_sequence"], 8)
 
+    def test_initial_sequence_without_folio(self) -> None:
+        # a latest chant without a folio pre-fills "001r", so collisions
+        # should be checked against chants on "001r"
+        source: Source = self.source
+        make_fake_chant(source=source, folio="001r", c_sequence=1)
+        make_fake_chant(source=source, folio="001r", c_sequence=2)
+        chant_without_folio = make_fake_chant(source=source, c_sequence=1)
+        # make_fake_chant fills in a random folio when none is given
+        Chant.objects.filter(pk=chant_without_folio.pk).update(
+            folio=None, date_updated=timezone.now() + timedelta(minutes=1)
+        )
+        response = self.client.get(reverse("chant-create", args=[source.id]))
+        self.assertEqual(response.context["form"].initial["folio"], "001r")
+        self.assertEqual(response.context["form"].initial["c_sequence"], 3)
+
     def test_suggested_chant_buttons(self) -> None:
         source: Source = self.source
         response_empty_source = self.client.get(

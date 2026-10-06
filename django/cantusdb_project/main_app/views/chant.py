@@ -1181,7 +1181,7 @@ class ChantCreateView(CustomAccessMixin, CreateView):  # type: ignore[type-arg]
         # if chants have been renumbered, latest_seq + 1 may already be taken
         # on this folio; in that case, suggest the next number after the
         # highest sequence on the folio instead
-        folio_chants = self.source.chant_set.filter(folio=latest_chant.folio)
+        folio_chants = self.source.chant_set.filter(folio=latest_folio)
         if folio_chants.filter(c_sequence=next_seq).exists():
             max_seq = folio_chants.aggregate(Max("c_sequence"))["c_sequence__max"]
             next_seq = max_seq + 1
