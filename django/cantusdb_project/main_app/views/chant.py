@@ -7,7 +7,7 @@ from django.conf import settings
 from django.contrib import messages
 from django.contrib.auth.mixins import LoginRequiredMixin
 from django.contrib.postgres.aggregates import ArrayAgg
-from django.db.models import Case, F, Q, QuerySet, When
+from django.db.models import Case, F, Max, Q, QuerySet, When
 from django.http import Http404, HttpRequest, HttpResponse, JsonResponse
 from django.shortcuts import get_object_or_404
 from django.urls import reverse
@@ -1177,12 +1177,20 @@ class ChantCreateView(CustomAccessMixin, CreateView):  # type: ignore[type-arg]
         latest_seq = (
             latest_chant.c_sequence if latest_chant.c_sequence is not None else 0
         )
+        next_seq = latest_seq + 1
+        # if chants have been renumbered, latest_seq + 1 may already be taken
+        # on this folio; in that case, suggest the next number after the
+        # highest sequence on the folio instead
+        folio_chants = self.source.chant_set.filter(folio=latest_chant.folio)
+        if folio_chants.filter(c_sequence=next_seq).exists():
+            max_seq = folio_chants.aggregate(Max("c_sequence"))["c_sequence__max"]
+            next_seq = max_seq + 1
         latest_image = latest_chant.image_link if latest_chant.image_link else ""
         return {
             "folio": latest_folio,
             "feast": latest_feast,
             "service": latest_service,
-            "c_sequence": latest_seq + 1,
+            "c_sequence": next_seq,
             "image_link": latest_image,
         }
 
