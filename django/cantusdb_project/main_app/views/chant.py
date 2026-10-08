@@ -1570,6 +1570,13 @@ class ChantEditSyllabificationView(CustomAccessMixin, UpdateView):  # type: igno
         return initial
 
     def form_valid(self, form):
+        if form.fields["manuscript_full_text"].disabled:
+            messages.error(
+                self.request,
+                "This text has been proofread and is locked. A proofreader can "
+                "untick its proofread box on the chant edit page to unlock it.",
+            )
+            return self.form_invalid(form)
         form.instance.last_updated_by = self.request.user
         messages.success(
             self.request,

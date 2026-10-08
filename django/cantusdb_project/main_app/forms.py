@@ -943,6 +943,12 @@ class ChantEditSyllabificationForm(ChantTextWarningsMixin, forms.ModelForm):
         widget=TextAreaWidget, label="Syllabized full text"
     )
 
+    def __init__(self, *args: Any, **kwargs: Any) -> None:
+        super().__init__(*args, **kwargs)
+        # There is no proofread box on this page, so a proofreader unlocks the
+        # text by unticking it on the chant edit page.
+        lock_proofread_fields(self)
+
 
 # The chant text fields the ``validate-chant-text`` endpoint checks, mapped to
 # the label and syllabification setting to use for each. The endpoint sees only
