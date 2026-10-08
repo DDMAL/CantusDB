@@ -353,3 +353,47 @@ class ChantEditLockTest(ProofreadLockTestCase):
         self.post_edit("user", chant, volpiano="1---a---3")
         chant.refresh_from_db()
         self.assertEqual(chant.volpiano, "1---a---3")
+
+
+class ChantEditPageTest(ProofreadLockTestCase):
+    def get_edit_page(self, user: str, chant: Chant):
+        self.client.force_login(self.users[user])
+        return self.client.get(
+            reverse("source-edit-chants", args=[self.source.id]), {"pk": chant.id}
+        )
+
+    def test_indexer_sees_proofread_status(self) -> None:
+        # the boxes are shown read-only to indexers (#2175)
+        chant = self.make_chant(volpiano_proofread=True)
+        response = self.get_edit_page("user", chant)
+        form = response.context["form"]
+        for flag in FLAGS:
+            with self.subTest(flag=flag):
+                self.assertTrue(form.fields[flag].disabled)
+                self.assertContains(response, f'name="{flag}"')
+        self.assertTrue(form.fields["volpiano"].disabled)
+        self.assertFalse(form.fields["manuscript_full_text"].disabled)
+        self.assertContains(response, "Ask a proofreader")
+
+    def test_proofreader_can_tick_boxes(self) -> None:
+        chant = self.make_chant(volpiano_proofread=True)
+        response = self.get_edit_page("editor", chant)
+        form = response.context["form"]
+        for flag in FLAGS:
+            with self.subTest(flag=flag):
+                self.assertFalse(form.fields[flag].disabled)
+        self.assertTrue(form.fields["volpiano"].disabled)
+        self.assertContains(response, "Untick the box to change them")
+        # the page's script unlocks the fields when their box is unticked
+        locks = response.context["proofread_locks"]
+        self.assertIn("id_volpiano", locks["id_volpiano_proofread"])
+        self.assertIn("id_chant_range", locks["id_volpiano_proofread"])
+        self.assertIn("id_cantus_id", locks["id_other_fields_proofread"])
+        self.assertNotIn("id_indexing_notes", locks["id_other_fields_proofread"])
+
+    def test_no_lock_notice_without_proofread_fields(self) -> None:
+        chant = self.make_chant()
+        for user in ("user", "editor"):
+            with self.subTest(user=user):
+                response = self.get_edit_page(user, chant)
+                self.assertNotContains(response, "are locked")
