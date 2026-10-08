@@ -1263,7 +1263,10 @@ class ChantDeleteView(CustomAccessMixin, DeleteView):  # type: ignore[type-arg]
         chant_id = self.kwargs.get(self.pk_url_kwarg)
         chant = get_object_or_404(Chant, id=chant_id)
         source = chant.source
-        return self.user_assigned_to_source(source)
+        if not self.user_assigned_to_source(source):
+            return False
+        # a chant with proofread fields can only be deleted by a proofreader
+        return not has_proofread_fields(chant) or self.user_is_editor
 
     def get_success_url(self):
         return reverse("source-edit-chants", args=[self.object.source.id])
@@ -1433,6 +1436,9 @@ class SourceEditChantsView(CustomAccessMixin, UpdateView):  # type: ignore[type-
 
         context["user_can_proofread_chant"] = self.user_can_proofread_chant
         context["chant_has_proofread_fields"] = has_proofread_fields(chant)
+        context["user_can_delete_chant"] = self.user_can_proofread_chant or not (
+            context["chant_has_proofread_fields"]
+        )
         form = context["form"]
         # for each proofread box, the ids of the inputs it locks, so the page
         # can lock and unlock them as a proofreader ticks the box

@@ -527,3 +527,38 @@ class BulkEditLockTest(ProofreadLockTestCase):
         )
         self.assertTrue(form.fields["mode"].disabled)
         self.assertFalse(form.fields["manuscript_full_text_std_spelling"].disabled)
+
+
+class ChantDeleteLockTest(ProofreadLockTestCase):
+    def test_indexer_cannot_delete_proofread_chant(self) -> None:
+        chant = self.make_chant(manuscript_full_text_proofread=True)
+        self.client.force_login(self.users["user"])
+        url = reverse("chant-delete", args=[chant.id])
+        self.assertEqual(self.client.get(url).status_code, 403)
+        self.assertEqual(self.client.post(url).status_code, 403)
+        self.assertTrue(Chant.objects.filter(pk=chant.pk).exists())
+
+        edit_page = self.client.get(
+            reverse("source-edit-chants", args=[self.source.id]), {"pk": chant.id}
+        )
+        self.assertNotContains(edit_page, 'id="btn-delete"')
+
+    def test_indexer_can_delete_unproofread_chant(self) -> None:
+        chant = self.make_chant()
+        self.client.force_login(self.users["user"])
+        edit_page = self.client.get(
+            reverse("source-edit-chants", args=[self.source.id]), {"pk": chant.id}
+        )
+        self.assertContains(edit_page, 'id="btn-delete"')
+        self.client.post(reverse("chant-delete", args=[chant.id]))
+        self.assertFalse(Chant.objects.filter(pk=chant.pk).exists())
+
+    def test_proofreader_can_delete_proofread_chant(self) -> None:
+        chant = self.make_chant(manuscript_full_text_proofread=True)
+        self.client.force_login(self.users["editor"])
+        edit_page = self.client.get(
+            reverse("source-edit-chants", args=[self.source.id]), {"pk": chant.id}
+        )
+        self.assertContains(edit_page, 'id="btn-delete"')
+        self.client.post(reverse("chant-delete", args=[chant.id]))
+        self.assertFalse(Chant.objects.filter(pk=chant.pk).exists())
