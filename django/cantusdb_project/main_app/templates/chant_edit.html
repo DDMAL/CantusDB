@@ -37,16 +37,24 @@
             {% csrf_token %}
             <input type="hidden" name="referrer" value="{{ request.META.HTTP_REFERER }}" />
             <input type="hidden" name="pk" value="{{ chant.id }}" />
-            {% if user_can_proofread_chant %}
-                <div class="row small mb-2">
-                    <div class="col-lg-12">
-                        <label for="{{ form.manuscript_full_text_std_spelling.id_for_label }}">
-                            Proofread (excluding text and volpiano):
-                        </label>
-                        {{ form.other_fields_proofread }}
-                    </div>
-                </div>
+            {{ proofread_locks|json_script:"proofread-locks" }}
+            {% if chant_has_proofread_fields and not user_can_proofread_chant %}
+                <p class="small text-muted mb-2">
+                    Fields whose proofread box is ticked are locked. Ask a proofreader if one of them needs changing.
+                </p>
+            {% elif chant_has_proofread_fields %}
+                <p class="small text-muted mb-2">
+                    Fields whose proofread box is ticked are locked. Untick the box to change them.
+                </p>
             {% endif %}
+            <div class="row small mb-2">
+                <div class="col-lg-12">
+                    <label for="{{ form.other_fields_proofread.id_for_label }}">
+                        Proofread (excluding text and volpiano):
+                    </label>
+                    {{ form.other_fields_proofread }}
+                </div>
+            </div>
             <div class="row small mb-2">
                 <div class="col-lg-2">
                     {{ form.marginalia.label_tag }}
@@ -196,16 +204,14 @@
                     {{ form.manuscript_full_text_std_spelling }}
                 </div>
             </div>
-            {% if user_can_proofread_chant %}
-                <div class="row small mb-2">
-                    <div class="col-lg-12">
-                        <label for="{{ form.manuscript_full_text_std_spelling.id_for_label }}">
-                            Full text as in Source (standardized spelling) proofread:
-                        </label>
-                        {{ form.manuscript_full_text_std_proofread }}
-                    </div>
+            <div class="row small mb-2">
+                <div class="col-lg-12">
+                    <label for="{{ form.manuscript_full_text_std_proofread.id_for_label }}">
+                        Full text as in Source (standardized spelling) proofread:
+                    </label>
+                    {{ form.manuscript_full_text_std_proofread }}
                 </div>
-            {% endif %}
+            </div>
             <div class="row small mb-2">
                 <div class="col-lg-4">
                     <button type="button" class="btn btn-dark btn-sm" id="copyFullTextBelow">
@@ -227,30 +233,26 @@
                     {{ form.manuscript_full_text }}
                 </div>
             </div>
-            {% if user_can_proofread_chant %}
-                <div class="row small mb-2">
-                    <div class="col-lg-12">
-                        <label for="{{ form.manuscript_full_text_std_spelling.id_for_label }}">
-                            Full text as in Source (source spelling) proofread:
-                        </label>
-                        {{ form.manuscript_full_text_proofread }}
-                    </div>
+            <div class="row small mb-2">
+                <div class="col-lg-12">
+                    <label for="{{ form.manuscript_full_text_proofread.id_for_label }}">
+                        Full text as in Source (source spelling) proofread:
+                    </label>
+                    {{ form.manuscript_full_text_proofread }}
                 </div>
-            {% endif %}
+            </div>
             <div class="row small mb-2">
                 <div class="col-lg-12">
                     <label for="{{ form.volpiano.id_for_label }}">Volpiano:</label>
                     {{ form.volpiano }}
                 </div>
             </div>
-            {% if user_can_proofread_chant %}
-                <div class="row small mb-2">
-                    <div class="col-lg-12">
-                        <label for="{{ form.volpiano.id_for_label }}">Volpiano proofread:</label>
-                        {{ form.volpiano_proofread }}
-                    </div>
+            <div class="row small mb-2">
+                <div class="col-lg-12">
+                    <label for="{{ form.volpiano_proofread.id_for_label }}">Volpiano proofread:</label>
+                    {{ form.volpiano_proofread }}
                 </div>
-            {% endif %}
+            </div>
             {% if chant.volpiano %}
                 <div class="row small mb-2">
                     <div class="col-lg-12">

@@ -51,6 +51,7 @@ from main_app.models import (
     Service,
 )
 from main_app.permissions import CustomAccessMixin
+from main_app.proofread_locks import has_proofread_fields
 
 from main_app.mixins import JSONResponseMixin
 from users.models import User
@@ -1431,6 +1432,14 @@ class SourceEditChantsView(CustomAccessMixin, UpdateView):  # type: ignore[type-
             context["syllabized_text_with_melody"] = text_and_mel
 
         context["user_can_proofread_chant"] = self.user_can_proofread_chant
+        context["chant_has_proofread_fields"] = has_proofread_fields(chant)
+        form = context["form"]
+        # for each proofread box, the ids of the inputs it locks, so the page
+        # can lock and unlock them as a proofreader ticks the box
+        context["proofread_locks"] = {
+            form[flag].auto_id: [form[name].auto_id for name in names]
+            for flag, names in form.proofread_locks.items()
+        }
         # in case the chant has no manuscript_full_text_std_spelling, we check Cantus Index
         # for the expected text for chants with the same Cantus ID, and pass it to the context
         # to suggest it to the user

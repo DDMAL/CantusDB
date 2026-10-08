@@ -26,7 +26,36 @@ window.addEventListener("load", function () {
 
     function copyText() {
         const standardText = document.getElementById('id_manuscript_full_text_std_spelling').value;
-        document.getElementById('id_manuscript_full_text').value = standardText;
+        const fullTextField = document.getElementById('id_manuscript_full_text');
+        if (!fullTextField.disabled) { // locked once proofread
+            fullTextField.value = standardText;
+        }
+    }
+
+    // A ticked proofread box locks the fields it covers. The server enforces
+    // the lock; this mirrors it as a proofreader ticks and unticks the boxes.
+    const proofreadLocksData = document.getElementById("proofread-locks");
+    const proofreadLocks = proofreadLocksData ? JSON.parse(proofreadLocksData.textContent) : {};
+    for (const [checkboxId, fieldIds] of Object.entries(proofreadLocks || {})) {
+        const checkbox = document.getElementById(checkboxId);
+        if (!checkbox || checkbox.disabled) {
+            continue; // not a proofreader: the locks can't change
+        }
+        // Only fields locked when the page loaded can be unlocked and relocked.
+        // A field that is unlocked now stays editable until the chant is saved:
+        // disabling it would stop the browser from submitting its value.
+        const lockedFields = fieldIds
+            .map((fieldId) => document.getElementById(fieldId))
+            .filter((field) => field && field.disabled);
+        const savedValues = new Map(lockedFields.map((field) => [field, field.value]));
+        checkbox.addEventListener("change", function () {
+            for (const field of lockedFields) {
+                // Ticking the box again relocks the fields, but not one the
+                // proofreader has just edited: untick, edit, tick saves the
+                // edit as proofread (#170).
+                field.disabled = checkbox.checked && field.value === savedValues.get(field);
+            }
+        });
     }
 
     // if the feast on the right is reset, reset every selector but keep the source unchanged
