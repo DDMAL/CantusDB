@@ -562,3 +562,24 @@ class ChantDeleteLockTest(ProofreadLockTestCase):
         self.assertContains(edit_page, 'id="btn-delete"')
         self.client.post(reverse("chant-delete", args=[chant.id]))
         self.assertFalse(Chant.objects.filter(pk=chant.pk).exists())
+
+
+class BrowseChantsProofreadStatusTest(ProofreadLockTestCase):
+    def setUp(self) -> None:
+        make_fake_segment(id=settings.CANTUS_SEGMENT_ID)
+        self.make_chant()
+
+    def test_chant_editors_see_proofread_filter(self) -> None:
+        # #2175: editors can find what still needs proofreading
+        for user in ("user", "editor"):
+            with self.subTest(user=user):
+                self.client.force_login(self.users[user])
+                response = self.client.get(
+                    reverse("browse-chants", args=[self.source.id])
+                )
+                self.assertContains(response, "Proofread Status")
+
+    def test_public_does_not_see_proofread_filter(self) -> None:
+        response = self.client.get(reverse("browse-chants", args=[self.source.id]))
+        self.assertEqual(response.status_code, 200)
+        self.assertNotContains(response, "Proofread Status")
