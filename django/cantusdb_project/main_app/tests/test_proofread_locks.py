@@ -5,18 +5,24 @@ while its proofread box is ticked, and only proofreaders can untick it.
 
 from typing import Any, ClassVar
 
+from django.conf import settings
 from django import forms
 from django.test import SimpleTestCase, TestCase
 from django.urls import reverse
 
-from main_app.forms import ChantEditForm
+from main_app.forms import BrowseChantsBulkEditFormset, ChantEditForm
 from main_app.models import Chant, Source
 from main_app.proofread_locks import (
     has_proofread_fields,
     lock_flag_for,
     lock_proofread_fields,
 )
-from main_app.tests.make_fakes import make_fake_chant, make_fake_source
+from main_app.tasks import save_browse_chants_formset
+from main_app.tests.make_fakes import (
+    make_fake_chant,
+    make_fake_segment,
+    make_fake_source,
+)
 from main_app.tests.mixins import CustomAccessTestMixin
 
 FLAGS = (
@@ -445,3 +451,79 @@ class SyllabificationLockTest(ProofreadLockTestCase):
         )
         chant.refresh_from_db()
         self.assertEqual(chant.manuscript_syllabized_full_text, "chan-ged")
+
+
+class BulkEditLockTest(ProofreadLockTestCase):
+    def test_bulk_edit_respects_locks(self) -> None:
+        locked = self.make_chant(
+            manuscript_full_text_std_proofread=True, other_fields_proofread=True
+        )
+        unlocked = self.make_chant()
+        queryset = Chant.objects.filter(pk__in=[locked.pk, unlocked.pk]).order_by("pk")
+        formset = BrowseChantsBulkEditFormset(queryset=queryset)
+        data = {
+            f"chant_set-{key}": str(value)
+            for key, value in formset.management_form.initial.items()
+        }
+        for i, form in enumerate(formset.forms):
+            data.update(
+                {
+                    f"chant_set-{i}-{key}": value
+                    for key, value in form.initial.items()
+                    if value is not None
+                }
+            )
+            # fake chants are never created with mode 0
+            data[f"chant_set-{i}-mode"] = "0"
+            data[f"chant_set-{i}-manuscript_full_text_std_spelling"] = "changed"
+        res = save_browse_chants_formset.apply(
+            args=(data, list(queryset.values_list("id", flat=True)))
+        ).get()
+        self.assertEqual(res["error_count"], 0)
+        locked.refresh_from_db()
+        unlocked.refresh_from_db()
+        self.assertNotEqual(locked.mode, "0")
+        self.assertEqual(
+            locked.manuscript_full_text_std_spelling, "ave maria gratia plena"
+        )
+        self.assertEqual(unlocked.mode, "0")
+        self.assertEqual(unlocked.manuscript_full_text_std_spelling, "changed")
+
+    def test_empty_locked_field_does_not_block_saving(self) -> None:
+        locked = self.make_chant(other_fields_proofread=True)
+        Chant.objects.filter(pk=locked.pk).update(folio="")
+        unlocked = self.make_chant()
+        queryset = Chant.objects.filter(pk__in=[locked.pk, unlocked.pk]).order_by("pk")
+        formset = BrowseChantsBulkEditFormset(queryset=queryset)
+        data = {
+            f"chant_set-{key}": str(value)
+            for key, value in formset.management_form.initial.items()
+        }
+        for i, form in enumerate(formset.forms):
+            data.update(
+                {
+                    f"chant_set-{i}-{key}": value
+                    for key, value in form.initial.items()
+                    if value is not None
+                }
+            )
+        data["chant_set-1-mode"] = "0"
+        res = save_browse_chants_formset.apply(
+            args=(data, list(queryset.values_list("id", flat=True)))
+        ).get()
+        self.assertEqual(res["error_count"], 0)
+        unlocked.refresh_from_db()
+        self.assertEqual(unlocked.mode, "0")
+
+    def test_locked_inputs_are_disabled(self) -> None:
+        make_fake_segment(id=settings.CANTUS_SEGMENT_ID)
+        locked = self.make_chant(other_fields_proofread=True)
+        self.client.force_login(self.users["editor"])
+        response = self.client.get(reverse("browse-chants", args=[self.source.id]))
+        form = next(
+            form
+            for form in response.context["bulk_edit_formset"].forms
+            if form.instance.pk == locked.pk
+        )
+        self.assertTrue(form.fields["mode"].disabled)
+        self.assertFalse(form.fields["manuscript_full_text_std_spelling"].disabled)

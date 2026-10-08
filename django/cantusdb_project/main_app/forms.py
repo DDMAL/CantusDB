@@ -1430,6 +1430,9 @@ class BrowseChantsBulkEditForm(ChantTextWarningsMixin, forms.ModelForm):
         field_choices = kwargs.pop("field_choices")
         self.field_objects: Dict[str, Dict[int, Model]] = kwargs.pop("field_objects")
         super().__init__(*args, **kwargs)
+        # There are no proofread boxes here, so a proofreader unlocks fields by
+        # unticking them on the chant edit page.
+        lock_proofread_fields(self)
         self.fields["feast"].choices = field_choices["feast"]
         self.fields["service"].choices = field_choices["service"]
         self.fields["genre"].choices = field_choices["genre"]
