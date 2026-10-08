@@ -1430,9 +1430,7 @@ class SourceEditChantsView(CustomAccessMixin, UpdateView):  # type: ignore[type-
                 text_and_mel = None
             context["syllabized_text_with_melody"] = text_and_mel
 
-        context["user_can_proofread_chant"] = (
-            self.user_is_editor and self.user_assigned_to_source(self.source)
-        )
+        context["user_can_proofread_chant"] = self.user_can_proofread_chant
         # in case the chant has no manuscript_full_text_std_spelling, we check Cantus Index
         # for the expected text for chants with the same Cantus ID, and pass it to the context
         # to suggest it to the user
@@ -1453,54 +1451,20 @@ class SourceEditChantsView(CustomAccessMixin, UpdateView):  # type: ignore[type-
         if "data" in kwargs:
             kwargs["data"] = kwargs["data"].copy()
             kwargs["data"]["source"] = self.source.id
+        # Non-proofreaders get the proofreading controls read-only, and nobody
+        # can change a field while its proofread box is ticked (#170, #2260).
+        kwargs["user_can_proofread"] = self.user_can_proofread_chant
         return kwargs
+
+    @property
+    def user_can_proofread_chant(self) -> bool:
+        return self.user_is_editor and self.user_assigned_to_source(self.source)
 
     def form_valid(self, form):
         user: User = self.request.user
         chant: Chant = form.instance
-
-        user_can_proofread_chant = self.user_is_editor and self.user_assigned_to_source(
-            chant.source
-        )
-
-        if not user_can_proofread_chant:
-            # Preserve the original values for proofreader-specific fields
-            original_chant: Chant = self.get_object()
-            chant.chant_range = original_chant.chant_range
-            chant.volpiano_proofread = original_chant.volpiano_proofread
-            chant.manuscript_full_text_std_proofread = (
-                original_chant.manuscript_full_text_std_proofread
-            )
-            chant.manuscript_full_text_proofread = (
-                original_chant.manuscript_full_text_proofread
-            )
-            chant.other_fields_proofread = original_chant.other_fields_proofread
-            proofreaders: list[Optional[User]] = list(original_chant.proofread_by.all())
-
-            # Handle proofreader checkboxes
-            if "volpiano" in form.changed_data:
-                chant.volpiano_proofread = False
-            if "manuscript_full_text_std_spelling" in form.changed_data:
-                chant.manuscript_full_text_std_proofread = False
-            if "manuscript_full_text" in form.changed_data:
-                chant.manuscript_full_text_proofread = False
-
-            # Check if any other fields have changed
-            excluded_fields = {
-                "volpiano",
-                "manuscript_full_text_std_spelling",
-                "manuscript_full_text",
-            }
-            if any(field not in excluded_fields for field in form.changed_data):
-                chant.other_fields_proofread = False
-
         chant.last_updated_by = user
         return_response: HttpResponse = super().form_valid(form)
-
-        # The many-to-many `proofread_by` field is reset when the
-        # parent class's `form_valid` method calls `save()` on the model instance.
-        if not user_can_proofread_chant:
-            chant.proofread_by.set(proofreaders)
         messages.success(self.request, "Chant updated successfully!")
         add_unconfirmed_text_warnings(self.request, form)
         return return_response

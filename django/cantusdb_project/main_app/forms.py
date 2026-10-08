@@ -35,6 +35,7 @@ from .models import (
     Sequence,
 )
 from .models.url_field import NormalizedURLFormField
+from .proofread_locks import PROOFREAD_FLAGS, lock_proofread_fields
 from .widgets import (
     TextInputWidget,
     VolpianoInputWidget,
@@ -289,7 +290,8 @@ class ChantTextWarningsMixin:
         data = cleaned_data if cleaned_data is not None else self.cleaned_data
         self.text_problems: list[dict[str, str]] = []
         for field_name, field in self.fields.items():
-            if not isinstance(field, ChantTextField):
+            if not isinstance(field, ChantTextField) or field.disabled:
+                # a disabled (locked) field can't have been edited
                 continue
             label = str(field.label) if field.label else pretty_name(field_name)
             self.text_problems.extend(
@@ -682,12 +684,26 @@ class ChantEditForm(ChantTextWarningsMixin, forms.ModelForm):
         required=False,
     )
 
+    def __init__(self, *args: Any, user_can_proofread: bool = False, **kwargs: Any):
+        super().__init__(*args, **kwargs)
+        if not user_can_proofread:
+            # Only proofreaders can tick the proofread boxes, choose who
+            # proofread the chant, or set its range. Others see them read-only.
+            for name in (*PROOFREAD_FLAGS, "proofread_by", "chant_range"):
+                self.fields[name].disabled = True
+        self.proofread_locks = lock_proofread_fields(
+            self, can_unlock=user_can_proofread
+        )
+
     def clean_manuscript_full_text_std_spelling(self) -> Optional[str]:
         """
         Provide a custom validation function for the
         manuscript_full_text_std_spelling field to ensure that
         if it initially contained text, it cannot be made blank.
         """
+        if self.fields["manuscript_full_text_std_spelling"].disabled:
+            # locked: the browser doesn't submit it, so keep the saved text
+            return self.cleaned_data["manuscript_full_text_std_spelling"]
         if (
             self["manuscript_full_text_std_spelling"].initial
             and not self["manuscript_full_text_std_spelling"].data
