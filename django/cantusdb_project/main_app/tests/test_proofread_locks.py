@@ -397,3 +397,51 @@ class ChantEditPageTest(ProofreadLockTestCase):
             with self.subTest(user=user):
                 response = self.get_edit_page(user, chant)
                 self.assertNotContains(response, "are locked")
+
+
+class SyllabificationLockTest(ProofreadLockTestCase):
+    def test_locked_text_cannot_be_resyllabified(self) -> None:
+        chant = self.make_chant(manuscript_full_text_proofread=True)
+        for user in ("user", "editor"):
+            with self.subTest(user=user):
+                self.client.force_login(self.users[user])
+                response = self.client.post(
+                    reverse("source-edit-syllabification", args=[chant.id]),
+                    {
+                        "manuscript_full_text": "changed",
+                        "manuscript_syllabized_full_text": "chan-ged",
+                    },
+                )
+                self.assertEqual(response.status_code, 200)
+                self.assertContains(response, "is locked")
+                chant.refresh_from_db()
+                self.assertEqual(chant.manuscript_full_text, "Ave maria gracia plena")
+                self.assertIsNone(chant.manuscript_syllabized_full_text)
+
+    def test_page_shows_lock(self) -> None:
+        chant = self.make_chant(manuscript_full_text_proofread=True)
+        self.client.force_login(self.users["user"])
+        response = self.client.get(
+            reverse("source-edit-syllabification", args=[chant.id])
+        )
+        self.assertContains(response, "is locked")
+        self.assertTrue(
+            response.context["form"].fields["manuscript_full_text"].disabled
+        )
+
+    def test_unlocked_text_can_be_resyllabified(self) -> None:
+        chant = self.make_chant()
+        self.client.force_login(self.users["user"])
+        response = self.client.get(
+            reverse("source-edit-syllabification", args=[chant.id])
+        )
+        self.assertNotContains(response, "is locked")
+        self.client.post(
+            reverse("source-edit-syllabification", args=[chant.id]),
+            {
+                "manuscript_full_text": "changed",
+                "manuscript_syllabized_full_text": "chan-ged",
+            },
+        )
+        chant.refresh_from_db()
+        self.assertEqual(chant.manuscript_syllabized_full_text, "chan-ged")
