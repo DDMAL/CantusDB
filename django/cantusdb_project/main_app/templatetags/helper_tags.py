@@ -1,4 +1,5 @@
 import calendar
+import re
 from typing import Union, Optional, Any
 
 from django.conf import settings
@@ -16,6 +17,41 @@ from main_app.models import Source, BaseModel
 from users.models import User
 
 register = template.Library()
+
+
+@register.filter
+def split_missing_music(
+    alignment: Optional[list[tuple[str, str]]],
+) -> list[tuple[str, str]]:
+    """Allow unnotated text to wrap between words without changing its staff.
+
+    The alignment library returns a missing-music passage as one text/staff
+    pair. Split only its empty staff (bounded by Volpiano's ``6`` markers),
+    leaving notes and other aligned sections intact.
+    """
+    pieces = []
+    for text, melody in alignment or []:
+        missing_music = re.fullmatch(r"6(-+)6([-7]*)", melody)
+        # The library gives passages of up to ten characters a fixed six-dash
+        # staff. Dividing that short staff can leave gaps between the words.
+        if not missing_music or len(text) <= 10:
+            pieces.append((text, melody))
+            continue
+
+        staff, ending = missing_music.groups()
+        staff_start = 0
+        for word in re.finditer(r"\S+\s*|\s+", text):
+            # Preserve every staff character and distribute the existing
+            # spacing in proportion to each word's share of the text.
+            staff_end = len(staff) * word.end() // len(text)
+            word_melody = staff[staff_start:staff_end]
+            if word.start() == 0:
+                word_melody = "6" + word_melody
+            if word.end() == len(text):
+                word_melody += "6" + ending
+            pieces.append((word.group(), word_melody))
+            staff_start = staff_end
+    return pieces
 
 
 @register.simple_tag(takes_context=False)
