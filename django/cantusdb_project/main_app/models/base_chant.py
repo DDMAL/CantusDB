@@ -3,6 +3,7 @@ from django.contrib.auth import get_user_model
 from django.contrib.postgres.search import SearchVectorField
 
 from main_app.models.url_field import NormalizedURLField
+from main_app.models.text_field import NormalizedTextField
 from main_app.models import BaseModel
 
 
@@ -40,7 +41,7 @@ class BaseChant(BaseModel):
     genre = models.ForeignKey("Genre", blank=True, null=True, on_delete=models.PROTECT)
     rubrics = models.CharField(blank=True, null=True, max_length=255)
     analecta_hymnica = models.CharField(blank=True, null=True, max_length=255)
-    indexing_notes = models.TextField(blank=True, null=True)
+    indexing_notes = NormalizedTextField(trim=False, blank=True)
     date = models.CharField(blank=True, null=True, max_length=255)
     col1 = models.CharField(blank=True, null=True, max_length=255)
     col2 = models.CharField(blank=True, null=True, max_length=255)
@@ -54,7 +55,7 @@ class BaseChant(BaseModel):
     cantus_id = models.CharField(
         blank=True, null=True, max_length=255, db_index=True, verbose_name="cantus ID"
     )
-    image_link = NormalizedURLField(blank=True, null=True)
+    image_link = NormalizedURLField(blank=True)
     json_info = models.JSONField(null=True, blank=True)
     marginalia = models.CharField(max_length=63, null=True, blank=True)
     service = models.ForeignKey(
@@ -105,37 +106,35 @@ class BaseChant(BaseModel):
         max_length=255,
     )
     addendum = models.CharField(blank=True, null=True, max_length=255)
-    manuscript_full_text_std_spelling = models.TextField(
+    manuscript_full_text_std_spelling = NormalizedTextField(
         help_text="Manuscript full text with standardized spelling. Enter the words "
         "according to the manuscript but normalize their spellings following "
         "Classical Latin forms. Use upper-case letters for proper nouns, "
         'the first word of each chant, and the first word after "Alleluia" for '
         "Mass Alleluias. Punctuation is omitted.",
-        null=True,
         blank=True,
     )
     manuscript_full_text_std_proofread = models.BooleanField(blank=True, null=True)
-    manuscript_full_text = models.TextField(
+    manuscript_full_text = NormalizedTextField(
         help_text="Enter the wording, word order and spellings as found in the manuscript"
         ", with abbreviations resolved to standard words. Use upper-case letters as found"
         " in the source. Retain “Xpistum” (Christum), “Ihc” (Jesus) and other instances of "
         "Greek characters with their closest approximations of Latin letters. Some punctuation"
         " signs and vertical dividing lines | are employed in this field. Repetenda and psalm "
         "cues can also be recorded here.",
-        null=True,
         blank=True,
     )
     manuscript_full_text_proofread = models.BooleanField(blank=True, null=True)
-    manuscript_syllabized_full_text = models.TextField(null=True, blank=True)
-    volpiano = models.TextField(null=True, blank=True)
+    manuscript_syllabized_full_text = NormalizedTextField(blank=True)
+    volpiano = NormalizedTextField(blank=True)
     volpiano_proofread = models.BooleanField(blank=True, null=True)
     # The "volpiano_notes" and "volpiano_intervals" field are added in new Cantus to aid melody search.
     # "volpiano_notes" is extracted from the "volpiano" field, by eliminating all non-note characters
     # and removing consecutive repeated notes.
     # "volpiano_intervals" is extracted from the "volpiano_notes" field.
     # It records the intervals between any two adjacent volpiano notes.
-    volpiano_notes = models.TextField(null=True, blank=True)
-    volpiano_intervals = models.TextField(null=True, blank=True)
+    volpiano_notes = NormalizedTextField(blank=True)
+    volpiano_intervals = NormalizedTextField(blank=True)
 
     text_language = models.ForeignKey(
         "language", on_delete=models.PROTECT, null=True, blank=True
