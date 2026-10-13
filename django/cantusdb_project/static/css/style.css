@@ -125,6 +125,23 @@ a.close-success:hover {
 	width: 100% !important;
 }
 
+/* Shorten only the closed Genre/Service controls; option labels stay complete.
+   The suffix selectors also cover prefixed bulk-edit fields. */
+select:is([name="genre"], [name="service"], [name$="-genre"], [name$="-service"]) {
+	min-width: 0;
+	max-width: 100%;
+	overflow: hidden;
+	text-overflow: ellipsis;
+	white-space: nowrap;
+}
+
+/* Select2 already ellipsizes its selected text. Let its container shrink to the
+   column width instead of overflowing with DAL's default minimum width. */
+select:is([name="genre"], [name="service"], [name$="-genre"], [name$="-service"]) + .select2-container {
+	min-width: 0 !important;
+	max-width: 100%;
+}
+
 /* this class is used for displaying results under the global search bar */
 .list-group-item-action:hover {
 	color: black;

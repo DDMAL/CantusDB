@@ -575,11 +575,8 @@ class ChantSearchView(CustomAccessMixin, ListView):  # type: ignore[type-arg]
 
     def get_context_data(self, **kwargs) -> dict:
         context = super().get_context_data(**kwargs)
-        # Add to context a QuerySet of dicts with id and name of each Genre
-        context["genres"] = Genre.objects.all().order_by("name").values("id", "name")
-        context["services"] = (
-            Service.objects.all().order_by("name").values("id", "name")
-        )
+        context["genres"] = Genre.objects.all().order_by("name")
+        context["services"] = Service.objects.all().order_by("name")
         context["liturgical_functions"] = Chant.LITURGICAL_FUNCTION_CHOICES
         # "Benedicamus Domino" is a chant-level project designation, not a
         # source segment, so it's excluded here (see #2131). "Cantus Database"
@@ -924,11 +921,8 @@ class ChantSearchMSView(CustomAccessMixin, ListView):  # type: ignore[type-arg]
         context = super().get_context_data(**kwargs)
 
         context["source"] = self.source
-        # Add to context a QuerySet of dicts with id and name of each Genre
-        context["genres"] = Genre.objects.all().order_by("name").values("id", "name")
-        context["services"] = (
-            Service.objects.all().order_by("name").values("id", "name")
-        )
+        context["genres"] = Genre.objects.all().order_by("name")
+        context["services"] = Service.objects.all().order_by("name")
         context["liturgical_functions"] = Chant.LITURGICAL_FUNCTION_CHOICES
         context["advanced_search_active"] = any(
             self.request.GET.get(field) for field in ADVANCED_SEARCH_FIELDS
@@ -1278,9 +1272,10 @@ class CISearchView(TemplateView):
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
-        context["genres"] = list(
-            Genre.objects.all().order_by("name").values("id", "name")
-        )
+        context["genres"] = [
+            {"id": genre.id, "name": genre.name, "label": genre.dropdown_label}
+            for genre in Genre.objects.all().order_by("name")
+        ]
         search_term: str = kwargs["search_term"]
         search_term: str = search_term.replace(" ", "+")  # for multiple keywords
 

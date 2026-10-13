@@ -54,6 +54,7 @@
                 </tbody>
             </table>
         {% endif %}
+        {{ genres|json_script:"genre-options" }}
         <script>
             document.addEventListener('DOMContentLoaded', function() {
                 // This function will be called when the page is loaded
@@ -72,7 +73,7 @@
                 var full_text = document.getElementById(rowId).cells[3].innerText;
 
                 // get the option value corresponding to the genre name
-                var genres = {{ genres | safe }}; // genres contains "id" and "name" of all Genre objects in the database
+                var genres = JSON.parse(document.getElementById('genre-options').textContent);
                 var genreObj = genres.find(item => item.name === genre);
                 var genreID = genreObj ? genreObj.id : null;
 
@@ -85,7 +86,7 @@
                         opener.$('#id_genre').val(genreID).trigger('change');
                     } else {
                         // Create a new DOM Option and pre-select it by default
-                        var newOption = new Option(genre, genreID, true, true);
+                        var newOption = new Option(genreObj.label, genreID, true, true);
                         opener.$('#id_genre').append(newOption).trigger('change');
                     }
                 }
