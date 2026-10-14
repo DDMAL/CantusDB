@@ -53,6 +53,7 @@ from main_app.models import (
 from main_app.permissions import CustomAccessMixin
 
 from main_app.mixins import JSONResponseMixin
+from main_app.proofread_visibility import hide_unproofread_from, visible_q
 from users.models import User
 
 
@@ -171,6 +172,9 @@ ONLY_FIELDS = (
     "volpiano",
     "feast__name",
     "feast__description",
+    "volpiano_proofread",
+    "manuscript_full_text_proofread",
+    "manuscript_full_text_std_proofread",
 )
 
 
@@ -404,6 +408,13 @@ class ChantDetailView(CustomAccessMixin, JSONResponseMixin, DetailView):  # type
             "last_updated_by",
         ).prefetch_related("source__segment_m2m", "source__notation")
 
+    def get_object(self, queryset: Optional[QuerySet[Chant]] = None) -> Chant:
+        # Hidden before anything reads the chant, so the page, its JSON and the
+        # melody-with-text preview all leave out the same fields.
+        chant: Chant = super().get_object(queryset)
+        hide_unproofread_from(self.request.user, [chant])
+        return chant
+
     @staticmethod
     def _attributable_user(user: Optional[User]) -> Optional[User]:
         """Returns ``user``, or ``None`` if it's the generic admin account.
@@ -540,6 +551,7 @@ class ChantByCantusIDView(CustomAccessMixin, ListView):  # type: ignore[type-arg
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
         context["cantus_id"] = self.cantus_id
+        hide_unproofread_from(self.request.user, context["chants"])
         return context
 
 
@@ -668,6 +680,7 @@ class ChantSearchView(CustomAccessMixin, ListView):  # type: ignore[type-arg]
             url_with_search_params += joined_search_parameters
 
         context["url_with_search_params"] = url_with_search_params
+        hide_unproofread_from(self.request.user, context["chants"])
 
         return context
 
@@ -700,10 +713,12 @@ class ChantSearchView(CustomAccessMixin, ListView):  # type: ignore[type-arg]
             else:
                 # if search bar is doing incipit search
                 search_term = search_bar
-                ms_spelling_filter = Q(manuscript_full_text__istartswith=search_term)
+                ms_spelling_filter = Q(
+                    manuscript_full_text__istartswith=search_term
+                ) & visible_q("manuscript_full_text", self.request.user)
                 std_spelling_filter = Q(
                     manuscript_full_text_std_spelling__istartswith=search_term
-                )
+                ) & visible_q("manuscript_full_text_std_spelling", self.request.user)
                 incipit_filter = Q(incipit__istartswith=search_term)
                 search_term_filter = (
                     ms_spelling_filter | std_spelling_filter | incipit_filter
@@ -745,7 +760,9 @@ class ChantSearchView(CustomAccessMixin, ListView):  # type: ignore[type-arg]
 
             if melodies := self.request.GET.get("melodies"):
                 if melodies == "true":
-                    q_obj_filter &= Q(volpiano__isnull=False)
+                    q_obj_filter &= Q(volpiano__isnull=False) & visible_q(
+                        "volpiano", self.request.user
+                    )
 
             if feast_id := self.request.GET.get("feast"):
                 if feast_id.isdigit():
@@ -793,6 +810,12 @@ class ChantSearchView(CustomAccessMixin, ListView):  # type: ignore[type-arg]
                         manuscript_full_text_std_spelling__istartswith=keyword
                     )
                     incipit_filter = Q(incipit__istartswith=keyword)
+                ms_spelling_filter &= visible_q(
+                    "manuscript_full_text", self.request.user
+                )
+                std_spelling_filter &= visible_q(
+                    "manuscript_full_text_std_spelling", self.request.user
+                )
                 keyword_filter = (
                     ms_spelling_filter | std_spelling_filter | incipit_filter
                 )
@@ -992,6 +1015,7 @@ class ChantSearchMSView(CustomAccessMixin, ListView):  # type: ignore[type-arg]
             url_with_search_params = current_url + "?"
 
         context["url_with_search_params"] = url_with_search_params
+        hide_unproofread_from(self.request.user, context["chants"])
         return context
 
     def get_queryset(self) -> QuerySet[Chant]:
@@ -1016,10 +1040,15 @@ class ChantSearchMSView(CustomAccessMixin, ListView):  # type: ignore[type-arg]
             q_obj_filter &= Q(mode=mode)
 
         if melodies := self.request.GET.get("melodies"):
+            # A melody hidden from the user counts as no melody, so every chant
+            # lands in exactly one of the two lists.
+            has_melody = Q(volpiano__isnull=False) & visible_q(
+                "volpiano", self.request.user
+            )
             if melodies == "true":
-                q_obj_filter &= Q(volpiano__isnull=False)
+                q_obj_filter &= has_melody
             if melodies == "false":
-                q_obj_filter &= Q(volpiano__isnull=True)
+                q_obj_filter &= ~has_melody
         if feast_id := self.request.GET.get("feast"):
             if feast_id.isdigit():
                 q_obj_filter &= Q(feast_id=feast_id)
@@ -1100,6 +1129,10 @@ class ChantSearchMSView(CustomAccessMixin, ListView):  # type: ignore[type-arg]
                     manuscript_full_text_std_spelling__istartswith=keyword
                 )
                 incipit_filter = Q(incipit__istartswith=keyword)
+            ms_spelling_filter &= visible_q("manuscript_full_text", self.request.user)
+            std_spelling_filter &= visible_q(
+                "manuscript_full_text_std_spelling", self.request.user
+            )
 
             keyword_filter = ms_spelling_filter | std_spelling_filter | incipit_filter
             queryset = queryset.filter(keyword_filter)
