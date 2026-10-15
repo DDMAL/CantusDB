@@ -660,6 +660,10 @@ def json_node_export(request: HttpRequest, id: int) -> HttpResponse:
             continue
 
         vals = dict(*this_rec_qs.values())
+        if rec_type == Source:
+            # Keep the existing JSON field while source forms move gallery URLs
+            # to SourceURL. Use the same gallery link as the source pages.
+            vals["image_link"] = this_rec_qs.get().external_images_url
         return JsonResponse(vals)
 
     return HttpResponseNotFound()
