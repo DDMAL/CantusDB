@@ -662,6 +662,53 @@ class SourceEditChantsViewTest(ChantPermissionsTestCase):
                 message_levels = [m.level for m in get_messages(response.wsgi_request)]
                 self.assertNotIn(message_constants.WARNING, message_levels)
 
+    def test_spelling_warning_rules_do_not_block_saving(self) -> None:
+        source = make_fake_source()
+        chant = make_fake_chant(
+            source=source, folio="010r", manuscript_full_text_std_spelling="Plena sum"
+        )
+        cases = (
+            ("Plena {sum}", "Plena [sum]", False, 2),
+            ("Plena [sum]", "Plena {sum}. ecce*", False, 0),
+            ("Plena {sum}", "Plena [sum]", True, 0),
+        )
+        for sequence, (standard, source_text, confirmed, warning_count) in enumerate(
+            cases, start=1
+        ):
+            with self.subTest(
+                standard=standard, source_text=source_text, confirmed=confirmed
+            ):
+                data = {
+                    "manuscript_full_text_std_spelling": standard,
+                    "manuscript_full_text": source_text,
+                    "folio": "010r",
+                    "c_sequence": sequence,
+                }
+                if confirmed:
+                    data["confirm_invalid_text"] = "1"
+                data["pk"] = chant.pk
+                response = self.client.post(
+                    reverse("source-edit-chants", args=[source.id]), data, follow=True
+                )
+                chant.refresh_from_db()
+                self.assertEqual(response.status_code, 200)
+                self.assertTrue(response.redirect_chain)
+                self.assertEqual(chant.manuscript_full_text_std_spelling, standard)
+                self.assertEqual(chant.manuscript_full_text, source_text)
+                warnings = [
+                    str(m)
+                    for m in get_messages(response.wsgi_request)
+                    if m.level == message_constants.WARNING
+                ]
+                self.assertEqual(len(warnings), warning_count)
+                if warning_count:
+                    self.assertTrue(
+                        any("standardized spelling" in message for message in warnings)
+                    )
+                    self.assertTrue(
+                        any("source spelling" in message for message in warnings)
+                    )
+
     def test_invalid_text_confirmed_suppresses_warning(self) -> None:
         """
         When the user has acknowledged the invalid text via the "Save anyway"
@@ -868,6 +915,37 @@ class ChantEditSyllabificationViewTest(ChantPermissionsTestCase):
         self.assertEqual(chant.manuscript_syllabized_full_text, "lore-m i-psum!")
         message_levels = [m.level for m in get_messages(response.wsgi_request)]
         self.assertNotIn(message_constants.WARNING, message_levels)
+
+    def test_source_spelling_rules_on_syllabification_save(self) -> None:
+        chant = make_fake_chant(manuscript_syllabized_full_text="Ple-na sum")
+        for text, confirmed, warning_count in (
+            ("Plena [sum]", False, 1),
+            ("Plena {sum}. ecce*", False, 0),
+            ("Plena [sum]", True, 0),
+        ):
+            with self.subTest(text=text, confirmed=confirmed):
+                response = self.client.post(
+                    reverse("source-edit-syllabification", args=[chant.pk]),
+                    {
+                        "manuscript_full_text": text,
+                        "manuscript_syllabized_full_text": "Ple-na sum",
+                        "confirm_invalid_text": "1" if confirmed else "",
+                    },
+                    follow=True,
+                )
+                self.assertEqual(response.status_code, 200)
+                self.assertTrue(response.redirect_chain)
+                chant.refresh_from_db()
+                self.assertEqual(chant.manuscript_full_text, text)
+                self.assertEqual(chant.manuscript_syllabized_full_text, "Ple-na sum")
+                warnings = [
+                    str(m)
+                    for m in get_messages(response.wsgi_request)
+                    if m.level == message_constants.WARNING
+                ]
+                self.assertEqual(len(warnings), warning_count)
+                if warning_count:
+                    self.assertIn("source spelling", warnings[0])
 
     def test_valid_syllabification_saves_without_warning(self) -> None:
         """
@@ -3966,6 +4044,51 @@ class ChantCreateViewTest(CustomAccessTestMixin, TestCase):
                 message_levels = [m.level for m in get_messages(response.wsgi_request)]
                 self.assertNotIn(message_constants.WARNING, message_levels)
 
+    def test_spelling_warning_rules_do_not_block_saving(self) -> None:
+        source = self.source
+        cases = (
+            ("Plena {sum}", "Plena [sum]", False, 2),
+            ("Plena [sum]", "Plena {sum}. ecce*", False, 0),
+            ("Plena {sum}", "Plena [sum]", True, 0),
+        )
+        for sequence, (standard, source_text, confirmed, warning_count) in enumerate(
+            cases, start=1
+        ):
+            with self.subTest(
+                standard=standard, source_text=source_text, confirmed=confirmed
+            ):
+                data = {
+                    "manuscript_full_text_std_spelling": standard,
+                    "manuscript_full_text": source_text,
+                    "folio": "010r",
+                    "c_sequence": sequence,
+                }
+                if confirmed:
+                    data["confirm_invalid_text"] = "1"
+                response = self.client.post(
+                    reverse("chant-create", args=[source.id]), data, follow=True
+                )
+                chant = Chant.objects.get(
+                    source=source, folio="010r", c_sequence=sequence
+                )
+                self.assertEqual(response.status_code, 200)
+                self.assertTrue(response.redirect_chain)
+                self.assertEqual(chant.manuscript_full_text_std_spelling, standard)
+                self.assertEqual(chant.manuscript_full_text, source_text)
+                warnings = [
+                    str(m)
+                    for m in get_messages(response.wsgi_request)
+                    if m.level == message_constants.WARNING
+                ]
+                self.assertEqual(len(warnings), warning_count)
+                if warning_count:
+                    self.assertTrue(
+                        any("standardized spelling" in message for message in warnings)
+                    )
+                    self.assertTrue(
+                        any("source spelling" in message for message in warnings)
+                    )
+
     def test_invalid_text_confirmed_suppresses_warning(self) -> None:
         """
         The create page has the same "Save anyway" flow as the edit pages: once
@@ -4033,6 +4156,90 @@ class ValidateChantTextViewTest(TestCase):
         # The offending character is wrapped in <mark> so the UI can show
         # exactly where the problem is.
         self.assertIn("<mark>@</mark>", problem["marked_html"])
+
+    def test_spelling_brackets_are_marked(self) -> None:
+        for field, text, marked in (
+            (
+                "manuscript_full_text",
+                "Plena [sum]",
+                "Plena <mark>[</mark>sum<mark>]</mark>",
+            ),
+            (
+                "manuscript_full_text_std_spelling",
+                "Plena {sum}",
+                "Plena <mark>{</mark>sum<mark>}</mark>",
+            ),
+        ):
+            with self.subTest(field=field):
+                response = self.client.post(
+                    reverse("validate-chant-text"), {field: text}
+                )
+                problems = response.json()["problems"]
+                self.assertEqual(len(problems), 1)
+                self.assertEqual(problems[0]["field"], field)
+                self.assertEqual(problems[0]["kind"], "invalid_characters")
+                self.assertEqual(problems[0]["marked_html"], marked)
+                for char in text:
+                    if char in "[]{}":
+                        self.assertIn(f'"{char}"', problems[0]["message"])
+
+    def test_spelling_protocol_characters_are_allowed(self) -> None:
+        for field, text in (
+            ("manuscript_full_text", "Plena {sum}. ecce*"),
+            ("manuscript_full_text_std_spelling", "Plena [sum] ecce*"),
+            ("manuscript_full_text", ""),
+            ("manuscript_full_text_std_spelling", ""),
+            ("manuscript_syllabized_full_text", "Ple-na [sum] {ec-ce}"),
+        ):
+            with self.subTest(field=field, text=text):
+                response = self.client.post(
+                    reverse("validate-chant-text"), {field: text}
+                )
+                self.assertEqual(response.json()["problems"], [])
+
+    def test_period_is_still_flagged_in_standard_spelling(self) -> None:
+        response = self.client.post(
+            reverse("validate-chant-text"),
+            {"manuscript_full_text_std_spelling": "Plena sum."},
+        )
+        problems = response.json()["problems"]
+        self.assertEqual(len(problems), 1)
+        self.assertEqual(problems[0]["marked_html"], "Plena sum<mark>.</mark>")
+
+    def test_source_period_does_not_hide_other_problems(self) -> None:
+        response = self.client.post(
+            reverse("validate-chant-text"),
+            {"manuscript_full_text": "Plena. [sum] @ <script>"},
+        )
+        problem = response.json()["problems"][0]
+        self.assertEqual(problem["kind"], "invalid_characters")
+        self.assertEqual(
+            problem["marked_html"],
+            "Plena. <mark>[</mark>sum<mark>]</mark> <mark>@</mark> "
+            "<mark>&lt;</mark>script<mark>&gt;</mark>",
+        )
+        self.assertNotIn("<script>", problem["marked_html"])
+        self.assertNotIn('"."', problem["message"])
+
+    def test_spelling_rules_keep_structural_warnings(self) -> None:
+        for field, text, marked in (
+            ("manuscript_full_text", "Plena. [ sum", "<mark>[</mark>"),
+            (
+                "manuscript_full_text_std_spelling",
+                "Plena [ ecce {sum}",
+                "<mark>{</mark>",
+            ),
+        ):
+            with self.subTest(field=field):
+                response = self.client.post(
+                    reverse("validate-chant-text"), {field: text}
+                )
+                problems = response.json()["problems"]
+                self.assertEqual(
+                    [p["kind"] for p in problems], ["invalid_characters", "structural"]
+                )
+                self.assertIn(marked, problems[0]["marked_html"])
+                self.assertIn('"["', problems[1]["message"])
 
     def test_marked_html_escapes_input(self) -> None:
         response = self.client.post(
@@ -4114,13 +4321,13 @@ class ValidateChantTextViewTest(TestCase):
         response = self.client.post(
             reverse("validate-chant-text"),
             {
-                "manuscript_full_text": text,
+                "manuscript_full_text_std_spelling": text,
                 "manuscript_syllabized_full_text": text,
             },
         )
         problems = response.json()["problems"]
         self.assertEqual(len(problems), 1)
-        self.assertEqual(problems[0]["field"], "manuscript_full_text")
+        self.assertEqual(problems[0]["field"], "manuscript_full_text_std_spelling")
         self.assertEqual(problems[0]["kind"], "structural")
 
     def test_text_past_the_length_cap_is_not_checked(self) -> None:
