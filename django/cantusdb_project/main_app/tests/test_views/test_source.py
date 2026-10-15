@@ -167,6 +167,8 @@ class SourceCreateViewTest(TestCase):
             reverse("source-create"),
             {
                 "shelfmark": "test-shelfmark",  # shelfmark is a required field
+                "image_links-TOTAL_FORMS": "1",
+                "image_links-INITIAL_FORMS": "0",
                 "source_completeness": "1",  # required field
                 "production_method": "1",  # required field
             },
@@ -275,6 +277,8 @@ class SourceEditViewTest(CsvExportLinkTestMixin, CustomAccessTestMixin, TestCase
             reverse("source-edit", args=[source.id]),
             {
                 "shelfmark": "test-shelfmark",  # shelfmark is a required field,
+                "image_links-TOTAL_FORMS": "1",
+                "image_links-INITIAL_FORMS": "0",
                 "source_completeness": "1",  # required field
                 "production_method": "1",  # required field
             },
