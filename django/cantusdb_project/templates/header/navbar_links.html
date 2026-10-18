@@ -1,4 +1,5 @@
 {% load static %}
+{% load helper_tags %}
 <a class="navbar-brand" href="/">
     <img class="img-fluid"
          src="{% static "cantus-logo.png" %}"
@@ -56,11 +57,11 @@
            aria-haspopup="true"
            aria-expanded="false">SOURCES</a>
         <div class="dropdown-menu" aria-labelledby="navbarDropdownLinkSources">
-            <a class="dropdown-item" href="{% url 'source-list' %}?segment=4063">Cantus DB: Sources with Inventories</a>
+            <a class="dropdown-item" href="{% url 'source-list' %}?segment={% segment_id 'cantus' %}">Cantus DB: Sources with Inventories</a>
             <a class="dropdown-item"
                href="{% url 'canadian-chant-db-source-list' %}">Canadian Chant Database</a>
             <a class="dropdown-item" href="{% url 'cantorales-source-list' %}">Cantorales in the Americas and Beyond</a>
-            <a class="dropdown-item" href="{% url 'source-list' %}?segment=4064">Sequence Database (Clavis Sequentiarum by Calvin Bower)</a>
+            <a class="dropdown-item" href="{% url 'source-list' %}?segment={% segment_id 'bower' %}">Sequence Database (Clavis Sequentiarum by Calvin Bower)</a>
             <a class="dropdown-item" href="{% url 'source-list' %}">All Sources</a>
         </div>
     </li>

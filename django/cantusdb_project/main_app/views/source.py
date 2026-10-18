@@ -1,12 +1,28 @@
+import logging
 import re
 from datetime import date
 from functools import cached_property
 from typing import Any, Optional, Union
 
+import requests
 from django.conf import settings
 from django.contrib import messages
 from django.contrib.auth.mixins import UserPassesTestMixin
-from django.db.models import Q, Prefetch, QuerySet, Value, Min, Max
+from django.db.models import (
+    BooleanField,
+    Case,
+    Exists,
+    F,
+    Max,
+    Min,
+    OuterRef,
+    Prefetch,
+    Q,
+    QuerySet,
+    Value,
+    When,
+)
+from django.db.models.functions import Coalesce
 from django.http import (
     HttpResponseRedirect,
     Http404,
@@ -23,6 +39,7 @@ from django.views.generic import (
     UpdateView,
     DeleteView,
     FormView,
+    View,
 )
 from django.views.generic.detail import SingleObjectMixin
 
@@ -31,6 +48,7 @@ from main_app.forms import (
     SourceEditForm,
     SourceBrowseChantsProofreadForm,
     ImageLinkForm,
+    MAX_IMAGE_LINK_ROWS,
     BrowseChantsBulkEditFormset,
 )
 from main_app.models import (
@@ -44,10 +62,20 @@ from main_app.models import (
     Institution,
     Sequence,
 )
+from main_app.models.source_url import SourceURL
 from main_app.permissions import CustomAccessMixin
 from main_app.mixins import JSONResponseMixin
+from main_app.iiif_utils import (
+    ManifestTooLargeError,
+    fetch_manifest,
+    extract_canvases,
+    generate_folio_image_mapping,
+    mapping_to_csv,
+)
 from main_app.views.chant import get_feast_selector_options
 from main_app.tasks import save_browse_chants_formset
+
+logger = logging.getLogger(__name__)
 
 SOURCE_ADVANCED_SEARCH_FIELDS: tuple[str, ...] = (
     # GET params belonging to the collapsible "Advanced search" section of
@@ -352,9 +380,9 @@ class SourceListView(CustomAccessMixin, ListView):  # type: ignore[type-arg]
     test_req = False
 
     def get_template_names(self) -> list[str]:
-        if self.segment and self.segment.id == 4066:
+        if self.segment and self.segment.id == settings.CCDB_SEGMENT_ID:
             return ["source_lists/canadian_chant_db.html"]
-        elif self.segment and self.segment.id == 4067:
+        elif self.segment and self.segment.id == settings.CANTORALES_SEGMENT_ID:
             return ["source_lists/cantorales.html"]
         return ["source_lists/source_list.html"]
 
@@ -665,7 +693,47 @@ class SourceListView(CustomAccessMixin, ListView):  # type: ignore[type-arg]
         sort_desc = self.request.GET.get("sort") == "desc"
         sort_prefix = "-" if sort_desc else ""
 
-        if order_param == "country":
+        if order_param == "has_image":
+            # Mirror Source.external_images_url, which is what this column
+            # renders: an EXTERNAL_IMAGES SourceURL counts as a gallery and
+            # supersedes the legacy image_link field, which is only the
+            # fallback. Sorting on image_link alone sent every SourceURL-backed
+            # gallery into the no-image group.
+            #
+            # Annotate so the expression appears in the SELECT list — required by
+            # PostgreSQL when combining ORDER BY expressions with DISTINCT. The
+            # Case/When wrapper also keeps the result a real boolean:
+            # `image_link__gt=""` is NULL when image_link is NULL, and
+            # `NULL OR FALSE` is NULL, so a bare Q/Exists combination would leave
+            # NULL rows for PostgreSQL to sort first on the .desc() first click,
+            # inverting the ordering.
+            queryset = queryset.annotate(
+                _has_image_sort=Case(
+                    When(
+                        Q(image_link__isnull=False, image_link__gt="")
+                        | Exists(
+                            SourceURL.objects.filter(
+                                source=OuterRef("pk"),
+                                url_type=SourceURL.URLTypes.EXTERNAL_IMAGES,
+                            )
+                        ),
+                        then=Value(True),
+                    ),
+                    default=Value(False),
+                    output_field=BooleanField(),
+                )
+            )
+            # Flip: first click (asc) → images on top; second click (desc) → no-images on top.
+            has_image_order = (
+                F("_has_image_sort").asc() if sort_desc else F("_has_image_sort").desc()
+            )
+            order_by_args = [
+                has_image_order,
+                "holding_institution__siglum",
+                "shelfmark",
+                "id",
+            ]
+        elif order_param == "country":
             # Order private collectors (whose siglum is NULL) after institutions
             # with sigla within the same country group. PostgreSQL's native default
             # already does this: NULLS LAST for ascending order, NULLS FIRST for
@@ -686,6 +754,25 @@ class SourceListView(CustomAccessMixin, ListView):  # type: ignore[type-arg]
                 f"{sort_prefix}holding_institution__siglum",
                 f"{sort_prefix}shelfmark",
                 f"{sort_prefix}id",
+            ]
+        elif order_param == "num_chants":
+            # number_of_chants is written only by
+            # main_app.signals.update_source_chant_count, on chant/sequence save
+            # and delete, so a source that has never held a chant keeps NULL
+            # rather than 0 — and the column renders those as "0" anyway, via
+            # default_if_none. Coalescing to 0 sorts them as the zeros they
+            # display as, so the first (ascending) click brings sources with no
+            # indexed chants to the top, which is what #2012 asks for. Sorting
+            # NULLs last in both directions made them unreachable instead.
+            chant_count = Coalesce("number_of_chants", Value(0))
+            order_by_args = [
+                chant_count.desc() if sort_desc else chant_count.asc(),
+                # Chant counts tie constantly, so without the same tiebreakers
+                # the has_image branch uses, the rest of the page comes back in
+                # database order.
+                "holding_institution__siglum",
+                "shelfmark",
+                "id",
             ]
         else:
             order_by_args = [
@@ -855,6 +942,7 @@ class SourceAddImageLinksView(CustomAccessMixin, SingleObjectMixin, FormView):  
     context_object_name = "source"
     form_class = ImageLinkForm
     object: Source
+    source_folios: list[str]
     http_method_names = ["get", "post"]
 
     def test_func(self) -> bool:
@@ -865,27 +953,142 @@ class SourceAddImageLinksView(CustomAccessMixin, SingleObjectMixin, FormView):  
 
     def get(self, request: HttpRequest, *args: Any, **kwargs: Any) -> HttpResponse:
         self.object = self.get_object()
+        self.source_folios = self.get_source_folios()
         return super().get(request, *args, **kwargs)
 
     def post(self, request: HttpRequest, *args: Any, **kwargs: Any) -> HttpResponse:
         self.object = self.get_object()
+        # Read the folios afresh rather than trusting the posted ones, so an
+        # import can only reach folios this source actually has.
+        self.source_folios = self.get_source_folios()
         return super().post(request, *args, **kwargs)
 
-    def get_initial(self) -> dict[str, Any]:
+    def get_source_folios(self) -> list[str]:
         """
-        Set the initial data required by the ImageLinkForm
-        on GET requests.
+        List the distinct folios of this source's chants, in folio order.
         """
         folios: QuerySet[Chant, Optional[str]] = (
             self.object.chant_set.values_list("folio", flat=True)
             .distinct()
             .order_by("folio")
         )
-        return {folio: "" for folio in folios if folio}
+        return [folio for folio in folios if folio]
+
+    def get_form_kwargs(self) -> dict[str, Any]:
+        kwargs = super().get_form_kwargs()
+        kwargs["source_folios"] = self.source_folios
+        return kwargs
+
+    def get_context_data(self, **kwargs: Any) -> dict[str, Any]:
+        context = super().get_context_data(**kwargs)
+        # The page lists the folios once, as JSON, for the CSV preview and its
+        # checks to read.
+        context["source_folios"] = self.source_folios
+        # Keep imports below nginx's default 1 MiB body limit as well as any
+        # smaller Django limit, so the preview can explain how to split them.
+        request_limit = 1024 * 1024
+        if settings.DATA_UPLOAD_MAX_MEMORY_SIZE is not None:
+            request_limit = min(request_limit, settings.DATA_UPLOAD_MAX_MEMORY_SIZE)
+        context["image_link_import_limits"] = {
+            "maxRows": MAX_IMAGE_LINK_ROWS,
+            "maxRequestBytes": request_limit,
+        }
+        # Check if this source has a IIIF manifest
+        has_iiif = self.object.source_links.filter(
+            url_type=SourceURL.URLTypes.IIIF_MANIFEST
+        ).exists()
+        context["has_iiif_manifest"] = has_iiif
+        return context
 
     def form_valid(self, form: ImageLinkForm) -> HttpResponseRedirect:
         """
         Save the image links to the database.
         """
-        form.save(self.object)
+        saved = form.save(self.object)
+        if saved:
+            message = f"Image links saved for {saved} folio{'' if saved == 1 else 's'}."
+        else:
+            message = (
+                "No image links were changed. The matching folios have blank links "
+                "in the CSV, so their existing links were kept."
+            )
+        if form.ignored_folios:
+            skipped = len(form.ignored_folios)
+            message += (
+                f" Skipped {skipped} row{'' if skipped == 1 else 's'} "
+                "naming folios this source does not have."
+            )
+        messages.success(self.request, message)
         return HttpResponseRedirect(self.get_success_url())
+
+
+class SourceIIIFMappingView(CustomAccessMixin, SingleObjectMixin, View):  # type: ignore
+    """
+    View to generate a folio-to-image CSV mapping from a source's IIIF manifest.
+
+    Fetches the IIIF manifest, parses canvases, matches them to folios
+    in the source, and returns a downloadable CSV file.
+    """
+
+    pk_url_kwarg = "source_id"
+    queryset = Source.objects.select_related("holding_institution")
+    object: Source
+    http_method_names = ["get"]
+
+    def test_func(self) -> bool:
+        return self.user.is_superuser
+
+    def get(self, request: HttpRequest, *args: Any, **kwargs: Any) -> HttpResponse:
+        self.object = self.get_object()
+        redirect_url = reverse("source-add-image-links", args=[self.object.id])
+
+        # Get the IIIF manifest URL for this source
+        manifest_link = self.object.source_links.filter(
+            url_type=SourceURL.URLTypes.IIIF_MANIFEST
+        ).first()
+
+        if not manifest_link:
+            messages.error(request, "No IIIF manifest found for this source.")
+            return HttpResponseRedirect(redirect_url)
+
+        # Fetch and parse the manifest
+        try:
+            manifest = fetch_manifest(manifest_link.url)
+        except requests.RequestException:
+            logger.exception("Failed to fetch IIIF manifest: %s", manifest_link.url)
+            messages.error(request, "Failed to fetch IIIF manifest.")
+            return HttpResponseRedirect(redirect_url)
+        except ManifestTooLargeError:
+            logger.exception("IIIF manifest too large: %s", manifest_link.url)
+            messages.error(request, "IIIF manifest is too large to process.")
+            return HttpResponseRedirect(redirect_url)
+        except ValueError:
+            logger.exception("Invalid JSON in IIIF manifest: %s", manifest_link.url)
+            messages.error(request, "IIIF manifest is not valid JSON.")
+            return HttpResponseRedirect(redirect_url)
+
+        # Extract canvases from the manifest
+        canvases = extract_canvases(manifest)
+        if not canvases:
+            messages.error(request, "No canvases found in the IIIF manifest.")
+            return HttpResponseRedirect(redirect_url)
+
+        # Get source folios
+        source_folios = list(
+            self.object.chant_set.values_list("folio", flat=True)
+            .distinct()
+            .order_by("folio")
+        )
+        source_folios = [f for f in source_folios if f]
+
+        # Generate the mapping and CSV
+        mapping = generate_folio_image_mapping(canvases, source_folios)
+        csv_content = mapping_to_csv(mapping)
+
+        # Return as a downloadable CSV
+        response = HttpResponse(csv_content, content_type="text/csv")
+        source_id = self.object.id
+        response["Content-Disposition"] = (
+            f'attachment; filename="source_{source_id}_iiif_mapping.csv"'
+        )
+        return response

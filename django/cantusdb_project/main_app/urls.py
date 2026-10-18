@@ -54,6 +54,7 @@ from main_app.views.chant import (
     CISearchView,
     MelodySearchView,
     SourceEditChantsView,
+    ValidateChantTextView,
 )
 from main_app.views.feast import (
     FeastDetailView,
@@ -87,6 +88,7 @@ from main_app.views.source import (
     SourceDeleteView,
     SourceInventoryView,
     SourceAddImageLinksView,
+    SourceIIIFMappingView,
     CcdbBrowseView,
 )
 from main_app.views.ccdb import (
@@ -226,6 +228,11 @@ urlpatterns = [
         name="source-edit-syllabification",
     ),
     path(
+        "validate-chant-text/",
+        ValidateChantTextView.as_view(),
+        name="validate-chant-text",
+    ),
+    path(
         "chants/",
         redirect_chants,
         name="redirect-chants",
@@ -343,7 +350,7 @@ urlpatterns = [
         "Cantorales/",
         SourceListView.as_view(),
         name="cantorales-source-list",
-        kwargs={"segment_id": 4067},
+        kwargs={"segment_id": settings.CANTORALES_SEGMENT_ID},
     ),
     # sequence
     path(
@@ -406,6 +413,11 @@ urlpatterns = [
         "source/<int:source_id>/add-image-links",
         SourceAddImageLinksView.as_view(),
         name="source-add-image-links",
+    ),
+    path(
+        "source/<int:source_id>/iiif-mapping",
+        SourceIIIFMappingView.as_view(),
+        name="source-iiif-mapping",
     ),
     path(
         "proofread-overview/",
