@@ -13,6 +13,7 @@ const path = require('node:path');
 
 const {
     initializeCSVImport,
+    initializeManifestUpload,
     checkSharedImageLinks,
     csvLoadCallback,
 } = require(path.join(
@@ -104,6 +105,38 @@ function installDOM(sourceFolios, limits = { maxRows: 5000, maxRequestBytes: 104
         }),
     };
 }
+
+test('manifest uploads over the limit are blocked and a smaller replacement can submit', () => {
+    const dom = installDOM([]);
+    const form = dom.element('iiifManifestUploadForm');
+    const input = dom.element('iiifManifestFile');
+    const error = dom.element('manifestUploadError');
+    input.dataset = { maxBytes: '100' };
+    input.setCustomValidity = message => { input.validationMessage = message; };
+    error.textContent = 'The saved manifest is too large to upload.';
+    initializeManifestUpload();
+
+    input.files = [{ size: 101 }];
+    input.listeners.change();
+    assert.equal(error.hidden, false);
+    assert.equal(input.validationMessage, error.textContent);
+    let prevented = false;
+    form.listeners.submit({ preventDefault: () => { prevented = true; } });
+    assert.equal(prevented, true);
+
+    for (const files of [[{ size: 100 }], []]) {
+        input.files = files;
+        input.listeners.change();
+        assert.equal(error.hidden, true);
+        assert.equal(input.validationMessage, '');
+        form.listeners.submit({ preventDefault: () => assert.fail('Valid size was blocked') });
+    }
+});
+
+test('manifest upload initialization tolerates a source with no manifest form', () => {
+    installDOM([]);
+    initializeManifestUpload();
+});
 
 test('selecting a replacement CSV replaces the links the form will submit', () => {
     const dom = installDOM(['001r', '001v']);

@@ -4,13 +4,16 @@ Tests for main_app.iiif_utils (IIIF manifest parsing and folio matching).
 
 import csv
 import io
+import json
 from unittest.mock import patch, MagicMock
 
 import requests
-from django.test import TestCase
+from django.core.files.uploadedfile import SimpleUploadedFile
+from django.test import Client, TestCase
 from django.urls import reverse
 
 from main_app.iiif_utils import (
+    MAX_MANIFEST_UPLOAD_BYTES,
     CanvasInfo,
     ManifestTooLargeError,
     extract_canvases,
@@ -341,14 +344,19 @@ class FetchManifestTest(TestCase):
         self.assertTrue(mock_get.call_args.kwargs["stream"])
 
     @patch("main_app.iiif_utils.requests.get")
-    def test_sends_identifying_user_agent(self, mock_get: MagicMock) -> None:
-        # IRHT/Biblissima's anti-bot guard 403s the default python-requests
-        # User-Agent, so we send an identifying CantusDB one instead (#2246).
+    def test_sends_manifest_request_headers(self, mock_get: MagicMock) -> None:
+        # Protect the outgoing request headers; this does not establish that
+        # any particular remote host will accept the request.
         mock_get.return_value = self._mock_response([b"{}"])
         fetch_manifest("https://example.com/m.json")
-        user_agent = mock_get.call_args.kwargs["headers"]["User-Agent"]
-        self.assertIn("CantusDB", user_agent)
-        self.assertNotIn("python-requests", user_agent)
+        self.assertIn("headers", mock_get.call_args.kwargs)
+        self.assertEqual(
+            mock_get.call_args.kwargs["headers"],
+            {
+                "User-Agent": "Mozilla/5.0 (compatible; CantusDB; +https://cantusdatabase.org)",
+                "Accept": "application/json, application/ld+json, */*",
+            },
+        )
 
     @patch("main_app.iiif_utils.requests.get")
     def test_invalid_json_raises_value_error(self, mock_get: MagicMock) -> None:
@@ -713,7 +721,7 @@ class SourceIIIFMappingViewTest(CustomAccessTestMixin, TestCase):
         self.run_request_permissions_test(
             reverse("source-iiif-mapping", args=[self.source.id]),
             get_allowed_users=["superuser"],
-            post_allowed_users=[],
+            post_allowed_users=["superuser"],
             test_name="IIIF mapping",
         )
 
@@ -734,6 +742,169 @@ class SourceIIIFMappingViewTest(CustomAccessTestMixin, TestCase):
         self.assertIn("folio", content)
         self.assertIn("image_link", content)
         self.assertIn("notes", content)
+
+    @patch("main_app.views.source.fetch_manifest")
+    def test_upload_generates_csv_after_remote_host_refuses_download(
+        self, mock_fetch: MagicMock
+    ) -> None:
+        mock_fetch.side_effect = requests.HTTPError("403 Forbidden")
+        url = reverse("source-iiif-mapping", args=[self.source.id])
+        response = self.client.get(url, follow=True)
+        self.assertContains(response, "Generate from a saved manifest")
+        self.assertContains(response, 'enctype="multipart/form-data"')
+        self.assertContains(response, f'href="{self.manifest_url.url}"')
+        original_links = list(self.source.chant_set.values_list("id", "image_link"))
+
+        response = self.client.post(
+            url,
+            {
+                "manifest": SimpleUploadedFile(
+                    "manifest.json", json.dumps(SAMPLE_MANIFEST_V2).encode()
+                )
+            },
+        )
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response["Content-Type"], "text/csv")
+        self.assertEqual(
+            response["Content-Disposition"],
+            f'attachment; filename="source_{self.source.id}_iiif_mapping.csv"',
+        )
+        rows = list(csv.DictReader(io.StringIO(response.content.decode())))
+        self.assertEqual(
+            [(row["folio"], row["image_link"]) for row in rows],
+            [
+                (folio, f"https://example.com/image/{index}/full/max/0/default.jpg")
+                for index, folio in enumerate(["001r", "001v", "002r"], 1)
+            ],
+        )
+        self.assertEqual(mock_fetch.call_count, 1)
+        self.assertEqual(
+            list(self.source.chant_set.values_list("id", "image_link")),
+            original_links,
+        )
+
+    def test_upload_accepts_v3_manifest_with_utf8_bom(self) -> None:
+        response = self.client.post(
+            reverse("source-iiif-mapping", args=[self.source.id]),
+            {
+                "manifest": SimpleUploadedFile(
+                    "manifest.json", json.dumps(SAMPLE_MANIFEST_V3).encode("utf-8-sig")
+                )
+            },
+        )
+        self.assertEqual(response.status_code, 200)
+        rows = list(csv.DictReader(io.StringIO(response.content.decode())))
+        self.assertEqual(
+            [(row["folio"], row["image_link"]) for row in rows],
+            [
+                ("001r", "https://example.com/v3/image/1/full/max/0/default.jpg"),
+                ("001v", "https://example.com/v3/image/2/full/max/0/default.jpg"),
+                ("002r", ""),
+            ],
+        )
+
+    def test_upload_errors_render_on_add_image_links_page(self) -> None:
+        for content, message in (
+            (None, "Select a saved IIIF manifest JSON file."),
+            (b"", "The uploaded IIIF manifest is not valid JSON."),
+            (
+                b"<html>Access denied</html>",
+                "The uploaded IIIF manifest is not valid JSON.",
+            ),
+            (b"\xff", "The uploaded IIIF manifest is not valid JSON."),
+            (b"[" * 2000, "The uploaded IIIF manifest is not valid JSON."),
+            (b"[]", "No canvases found in the IIIF manifest."),
+            (b"null", "No canvases found in the IIIF manifest."),
+            (b'{"sequences": []}', "No canvases found in the IIIF manifest."),
+        ):
+            with self.subTest(content=content[:30] if content is not None else None):
+                data = (
+                    {}
+                    if content is None
+                    else {"manifest": SimpleUploadedFile("manifest.json", content)}
+                )
+                response = self.client.post(
+                    reverse("source-iiif-mapping", args=[self.source.id]),
+                    data,
+                    follow=True,
+                )
+                self.assertRedirects(
+                    response, reverse("source-add-image-links", args=[self.source.id])
+                )
+                self.assertContains(response, message)
+                self.assertContains(response, "alert-danger")
+
+    def test_upload_rejects_valid_manifest_over_size_limit(self) -> None:
+        content = (
+            json.dumps(SAMPLE_MANIFEST_V2).encode().ljust(MAX_MANIFEST_UPLOAD_BYTES + 1)
+        )
+        response = self.client.post(
+            reverse("source-iiif-mapping", args=[self.source.id]),
+            {"manifest": SimpleUploadedFile("manifest.json", content)},
+        )
+        self.assertRedirects(
+            response, reverse("source-add-image-links", args=[self.source.id])
+        )
+        self.assertEqual(
+            [str(message) for message in response.wsgi_request._messages],
+            [
+                "The saved manifest is too large to upload. "
+                f"The limit is {MAX_MANIFEST_UPLOAD_BYTES // 1024} KiB."
+            ],
+        )
+
+    def test_upload_accepts_file_at_size_limit(self) -> None:
+        content = (
+            json.dumps(SAMPLE_MANIFEST_V2).encode().ljust(MAX_MANIFEST_UPLOAD_BYTES)
+        )
+        response = self.client.post(
+            reverse("source-iiif-mapping", args=[self.source.id]),
+            {"manifest": SimpleUploadedFile("manifest.json", content)},
+        )
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(
+            response, "https://example.com/image/1/full/max/0/default.jpg"
+        )
+
+    @patch("main_app.views.source.extract_canvases")
+    def test_upload_is_denied_to_non_superusers(self, mock_extract: MagicMock) -> None:
+        self.source.current_editors.add(self.users["user"])
+        for role in [
+            "anonymous user",
+            "user",
+            "editor",
+            "global viewer",
+            "expired global viewer",
+        ]:
+            with self.subTest(role=role):
+                self.client.logout()
+                if role != "anonymous user":
+                    self.client.force_login(self.users[role])
+                response = self.client.post(
+                    reverse("source-iiif-mapping", args=[self.source.id]),
+                    {
+                        "manifest": SimpleUploadedFile(
+                            "manifest.json", json.dumps(SAMPLE_MANIFEST_V2).encode()
+                        )
+                    },
+                )
+                self.assertEqual(
+                    response.status_code, 302 if role == "anonymous user" else 403
+                )
+        mock_extract.assert_not_called()
+
+    def test_upload_requires_csrf_token(self) -> None:
+        client = Client(enforce_csrf_checks=True)
+        client.force_login(self.users["superuser"])
+        response = client.post(
+            reverse("source-iiif-mapping", args=[self.source.id]),
+            {
+                "manifest": SimpleUploadedFile(
+                    "manifest.json", json.dumps(SAMPLE_MANIFEST_V2).encode()
+                )
+            },
+        )
+        self.assertEqual(response.status_code, 403)
 
     def test_no_manifest_redirects_with_error(self) -> None:
         source_no_manifest = make_fake_source(published=True)
