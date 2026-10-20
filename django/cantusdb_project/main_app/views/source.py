@@ -65,6 +65,7 @@ from main_app.models import (
 from main_app.models.source_url import SourceURL
 from main_app.permissions import CustomAccessMixin
 from main_app.mixins import JSONResponseMixin
+from main_app.proofread_visibility import hide_unproofread_from, visible_q
 from main_app.iiif_utils import (
     ManifestTooLargeError,
     fetch_manifest,
@@ -176,10 +177,17 @@ class SourceBrowseChantsView(CustomAccessMixin, ListView):  # type: ignore[type-
             chants = chants.filter(folio=folio)
         if search_text:
             search_text = search_text.replace("+", " ").strip(" ")
+            user = self.request.user
             chants = chants.filter(
-                Q(manuscript_full_text_std_spelling__icontains=search_text)
+                (
+                    Q(manuscript_full_text_std_spelling__icontains=search_text)
+                    & visible_q("manuscript_full_text_std_spelling", user)
+                )
                 | Q(incipit__icontains=search_text)
-                | Q(manuscript_full_text__icontains=search_text)
+                | (
+                    Q(manuscript_full_text__icontains=search_text)
+                    & visible_q("manuscript_full_text", user)
+                )
             )
         # Apply proofreading filters if they are set
         if manuscript_full_text_std_proofread:
@@ -285,6 +293,7 @@ class SourceBrowseChantsView(CustomAccessMixin, ListView):  # type: ignore[type-
 
         # the options for the feast selector on the right, same as the source detail page
         context["feasts_with_folios"] = get_feast_selector_options(source)
+        hide_unproofread_from(self.request.user, context["chants"])
         context["proofread_filter_form"] = SourceBrowseChantsProofreadForm(
             self.request.GET or None
         )
