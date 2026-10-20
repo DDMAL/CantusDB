@@ -222,7 +222,25 @@ function melodySearch() {
 
         xhttp.open("GET", url);
         xhttp.onload = function () {
-            const data = JSON.parse(this.response);
+            if (this !== lastXhttp) {
+                return;
+            }
+            document.getElementById("searchingPrompt").style.display = "none";
+            if (this.status === 429) {
+                showSearchError("Search is busy. Please wait a few seconds, then try again.");
+                return;
+            }
+            if (this.status < 200 || this.status >= 300) {
+                showSearchError("The search could not finish. Please try again.");
+                return;
+            }
+            let data;
+            try {
+                data = JSON.parse(this.response);
+            } catch {
+                showSearchError("The search could not finish. Please try again.");
+                return;
+            }
             resultsDiv.innerHTML = `Search results <b>(${data.result_count} melodies)</b>`;
             resultsDiv.innerHTML += `<table id="resultsTable" class="table table-bordered table-sm small" style="table-layout: fixed; width: 100%;"><tbody></tbody></table>`;
 
@@ -249,14 +267,26 @@ function melodySearch() {
             document.getElementById("searchingPrompt").style.display = "none";
         }
         xhttp.onerror = function () {
-            // handle errors
-            document.getElementById("resultsDiv").innerHTML = "ajax error";
+            if (this === lastXhttp) {
+                showSearchError("The search could not finish. Check your connection and try again.");
+            }
         }
         xhttp.send();
         // update the pointer to the last xhttp request
         lastXhttp = xhttp;
         // display the "updating results" prompt after sending the ajax request
         document.getElementById("searchingPrompt").style.display = "inline";
+    }
+
+    function showSearchError(message) {
+        document.getElementById("searchingPrompt").style.display = "none";
+        resultsDiv.textContent = message + " ";
+        const retry = document.createElement("button");
+        retry.type = "button";
+        retry.className = "btn btn-secondary btn-sm";
+        retry.textContent = "Try again";
+        retry.addEventListener("click", search);
+        resultsDiv.appendChild(retry);
     }
 
     function deleteOneNote() {
