@@ -280,13 +280,18 @@ function melodySearch() {
 
     function showSearchError(message) {
         document.getElementById("searchingPrompt").style.display = "none";
-        resultsDiv.textContent = message + " ";
+        resultsDiv.textContent = "";
+        const warning = document.createElement("div");
+        warning.className = "alert alert-warning mt-3";
+        warning.role = "alert";
+        warning.textContent = message + " ";
         const retry = document.createElement("button");
         retry.type = "button";
         retry.className = "btn btn-secondary btn-sm";
         retry.textContent = "Try again";
         retry.addEventListener("click", search);
-        resultsDiv.appendChild(retry);
+        warning.appendChild(retry);
+        resultsDiv.appendChild(warning);
     }
 
     function deleteOneNote() {

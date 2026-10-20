@@ -14,7 +14,7 @@ function element() {
         value: "", style: {}, children: [], listeners: {}, parentElement: { addEventListener() {} },
         get innerHTML() { return content; },
         set innerHTML(value) { content = value; this.children = []; },
-        get textContent() { return content; },
+        get textContent() { return content + this.children.map(child => child.textContent).join(""); },
         set textContent(value) { content = value; this.children = []; },
         getBoundingClientRect() { return { left: 0, right: 500, top: 0, bottom: 150 }; },
         addEventListener(type, callback) { this.listeners[type] = callback; },
@@ -67,7 +67,7 @@ test("a busy melody search shows a message, stops loading and retries only on a 
     assert.match(h.result.textContent, /Search is busy/);
     assert.equal(h.prompt, "none");
     assert.equal(h.requests.length, 1);
-    const retry = h.result.children[0];
+    const retry = h.result.children[0].children[0];
     assert.equal(retry.textContent, "Try again");
     retry.fire("click");
     assert.equal(h.requests.length, 2);
@@ -88,7 +88,7 @@ test("server, malformed and network responses stop loading and offer a manual re
         if (failure === "network") h.requests[0].onerror();
         assert.match(h.result.textContent, /could not finish/);
         assert.equal(h.prompt, "none");
-        assert.equal(h.result.children[0].textContent, "Try again");
+        assert.equal(h.result.children[0].children[0].textContent, "Try again");
         assert.equal(h.requests.length, 1);
     }
 });

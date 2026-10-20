@@ -1,16 +1,25 @@
 """Cancel abandoned searches on the production Linux/Gunicorn stack."""
 
+from __future__ import annotations
+
 import logging
 import re
 import select
 import socket
 import threading
+import time
 from collections.abc import Callable
-from typing import Any
+from typing import TYPE_CHECKING, Any
 
+import psycopg
+from django.core.exceptions import ImproperlyConfigured, MiddlewareNotUsed
 from django.db import OperationalError, connection
 from django.http import HttpRequest, HttpResponse
 from psycopg.errors import QueryCanceled
+from psycopg.pq import PollingStatus
+
+if TYPE_CHECKING:
+    from psycopg.pq import PGcancelConn
 
 logger = logging.getLogger(__name__)
 
@@ -21,6 +30,45 @@ SEARCH_PATH = re.compile(
     r"|ajax/(?:melody-search|search-bar))(?:/|$)"
 )
 POLL_INTERVAL = 0.05
+CANCEL_TIMEOUT = 1.0
+
+
+def require_search_cancellation_support() -> None:
+    """Fail the deployment prerequisite check on an unsupported driver."""
+    capabilities = getattr(psycopg, "capabilities", None)
+    if capabilities is None or not capabilities.has_cancel_safe():
+        raise ImproperlyConfigured(
+            "Search cancellation requires Psycopg with libpq 17 or newer. "
+            "Rebuild the application image with the locked dependencies."
+        )
+
+
+def _send_cancel(
+    cancel: PGcancelConn, stopped: threading.Event, deadline: float
+) -> None:
+    """Poll cancellation without blocking beyond the disconnect deadline."""
+    if time.monotonic() >= deadline:
+        raise TimeoutError("Search cancellation deadline expired")
+    cancel.start()
+    while not stopped.is_set():
+        remaining = deadline - time.monotonic()
+        if remaining <= 0:
+            raise TimeoutError("Search cancellation deadline expired")
+        status = cancel.poll()
+        if status == PollingStatus.OK:
+            return
+        if status == PollingStatus.FAILED:
+            raise psycopg.OperationalError(
+                cancel.error_message.decode(errors="replace")
+            )
+        poller = select.poll()
+        poller.register(
+            cancel.socket,
+            select.POLLOUT if status == PollingStatus.WRITING else select.POLLIN,
+        )
+        # The socket can change between libpq polls. Short waits also let a
+        # completed query stop its sender without waiting for the deadline.
+        poller.poll(min(POLL_INTERVAL, remaining) * 1000)
 
 
 class SearchDisconnected(BaseException):
@@ -63,30 +111,44 @@ class SearchCancellation:
         # Capture libpq's cancellation handle on the request thread. It targets
         # this connection using its backend secret, not an untrusted process ID.
         # libpq explicitly allows a separate thread to use this handle.
-        cancel = context["connection"].connection.pgconn.get_cancel()
+        cancel = context["connection"].connection.pgconn.cancel_conn()
         stopped = threading.Event()
 
         def watch() -> None:
-            warned = False
-            while not stopped.wait(POLL_INTERVAL):
-                if not self.client_left():
-                    continue
-                try:
-                    cancel.cancel()
-                except Exception:
-                    if not warned:
-                        logger.warning(
-                            "Could not cancel a disconnected search query",
-                            exc_info=True,
-                        )
-                        warned = True
-                # A disconnect may precede the query reaching PostgreSQL. Keep
-                # trying until execute() finishes, rather than lose that cancel.
+            try:
+                warned = False
+                deadline = None
+                while not stopped.wait(POLL_INTERVAL):
+                    if not self.client_left():
+                        continue
+                    if deadline is None:
+                        deadline = time.monotonic() + CANCEL_TIMEOUT
+                    try:
+                        _send_cancel(cancel, stopped, deadline)
+                    except Exception as error:
+                        if not warned:
+                            logger.warning(
+                                "Could not cancel a disconnected search query",
+                                exc_info=True,
+                            )
+                            warned = True
+                        if isinstance(error, TimeoutError):
+                            return
+                    finally:
+                        cancel.reset()
+                    # A disconnect may precede the query reaching PostgreSQL. Keep
+                    # trying within the same deadline until execute() finishes.
+            finally:
+                cancel.finish()
 
         watcher = threading.Thread(
             target=watch, name="search-query-cancellation", daemon=True
         )
-        watcher.start()
+        try:
+            watcher.start()
+        except Exception:
+            cancel.finish()
+            raise
         try:
             try:
                 result = execute(sql, params, many, context)
@@ -98,7 +160,8 @@ class SearchCancellation:
                 raise
         finally:
             stopped.set()
-            # Do not let a late cancellation reach another query/request.
+            # The watcher owns and frees its handle, even if this thread is
+            # interrupted while joining. Wait before allowing another query.
             watcher.join()
         if self.disconnected.is_set():
             raise SearchDisconnected
@@ -114,6 +177,14 @@ class CancelDisconnectedSearchMiddleware:
     """
 
     def __init__(self, get_response: Callable[[HttpRequest], HttpResponse]) -> None:
+        try:
+            require_search_cancellation_support()
+        except ImproperlyConfigured as error:
+            # Deploy updates the bind-mounted source before rebuilding images.
+            # Keep replacement workers serving until the new driver is running;
+            # the Nginx prerequisite check still rejects this temporary state.
+            logger.warning("Search cancellation is disabled: %s", error)
+            raise MiddlewareNotUsed from error
         self.get_response = get_response
 
     def __call__(self, request: HttpRequest) -> HttpResponse:

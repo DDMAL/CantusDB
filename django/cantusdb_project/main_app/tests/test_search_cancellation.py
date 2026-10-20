@@ -1,7 +1,10 @@
 """Exercise cancellation against PostgreSQL, not a mocked query executor."""
 
+import multiprocessing
 import select
 import socket
+import socketserver
+import struct
 import threading
 import time
 from queue import Queue
@@ -13,13 +16,19 @@ from unittest.mock import patch
 
 import psycopg
 from django.contrib.auth import get_user_model
+from django.core.exceptions import ImproperlyConfigured
 from django.db import OperationalError, connection, transaction
 from django.db.models.expressions import RawSQL
 from django.http import Http404, HttpRequest, JsonResponse
 from django.test import TransactionTestCase, override_settings
 from django.urls import path
 
-from main_app.middleware import SearchCancellation, SearchDisconnected
+from main_app.middleware import (
+    CANCEL_TIMEOUT,
+    SearchCancellation,
+    SearchDisconnected,
+    require_search_cancellation_support,
+)
 from main_app.models import Chant, Sequence
 from main_app.tests.make_fakes import (
     make_fake_chant,
@@ -44,6 +53,16 @@ def missing_search(request: HttpRequest) -> JsonResponse:
     raise Http404
 
 
+def transport_search(request: HttpRequest) -> JsonResponse:
+    with connection.cursor() as cursor:
+        started.put(connection.connection.info.backend_pid)
+        cursor.execute(
+            "SELECT 42, pg_sleep(%s) /* cancellation_test */",
+            [float(request.GET["delay"])],
+        )
+        return JsonResponse({"value": cursor.fetchone()[0]})
+
+
 urlpatterns = [
     path("chant-search/", search_view),
     path("CanadianChantDB/chant-search/", search_view),
@@ -54,7 +73,67 @@ urlpatterns = [
     path("id/001234", search_view),
     path("chant/123/", search_view),
     path("chant-search/missing", missing_search),
+    path("chant-search/transport", transport_search),
 ]
+
+
+def stalled_cancel_proxy(
+    target: tuple[str, int],
+    pipe: Any,
+    inherited_sockets: tuple[socket.socket, socket.socket],
+) -> None:
+    """Forward real SQL but hold cancellation open until its sender gives up.
+
+    A separate process lets the test fail even if a blocking driver call holds
+    Python's interpreter lock. No PostgreSQL credentials or secrets are logged.
+    """
+    # A forked copy of the browser socket would hide the parent's disconnect.
+    for inherited in inherited_sockets:
+        inherited.close()
+
+    class Handler(socketserver.BaseRequestHandler):
+        def read_exact(self, count: int) -> bytes:
+            data = b""
+            while len(data) < count:
+                chunk = self.request.recv(count - len(data))
+                if not chunk:
+                    break
+                data += chunk
+            return data
+
+        def handle(self) -> None:
+            self.request.settimeout(3)
+            header = self.read_exact(8)
+            if len(header) != 8:
+                return
+            if struct.unpack("!II", header) == (16, 80877102):
+                self.read_exact(8)  # Consume the backend PID and secret.
+                received = time.monotonic()
+                try:
+                    closed = self.request.recv(1) == b""
+                except socket.timeout:
+                    closed = False
+                pipe.send((closed, received, time.monotonic()))
+                return
+            with socket.create_connection(target, timeout=3) as upstream:
+                upstream.sendall(header)
+                peers = {self.request: upstream, upstream: self.request}
+                while True:
+                    readable, _, _ = select.select(list(peers), [], [], 3)
+                    if not readable:
+                        return
+                    for source in readable:
+                        data = source.recv(65536)
+                        if not data:
+                            return
+                        peers[source].sendall(data)
+
+    class Server(socketserver.ThreadingTCPServer):
+        daemon_threads = True
+
+    with Server(("127.0.0.1", 0), Handler) as server:
+        pipe.send(server.server_address[1])
+        server.serve_forever()
 
 
 @skipUnless(hasattr(select, "POLLRDHUP"), "Cancellation requires Linux poll")
@@ -211,7 +290,7 @@ class SearchCancellationTests(TransactionTestCase):
 
         def fail_after_disconnect(*_args: Any) -> Any:
             self.client_socket.close()
-            self.assertTrue(cancellation.client_left())
+            cancellation.disconnected.set()
             raise failure from psycopg.OperationalError("database connection lost")
 
         with connection.execute_wrapper(cancellation.execute):
@@ -315,54 +394,124 @@ class SearchCancellationTests(TransactionTestCase):
             cursor.execute("SELECT 42")
             self.assertEqual(cursor.fetchone(), (42,))
 
-    def test_query_cannot_return_while_a_late_cancel_is_still_in_flight(self) -> None:
-        cancellation = SearchCancellation(self.server)
-        cancel_started = threading.Event()
-        release_cancel = threading.Event()
-        query_finished = threading.Event()
-        returned = threading.Event()
-        errors: list[BaseException] = []
+    def run_stalled_cancel(self, query_seconds: float) -> float:
+        context = multiprocessing.get_context("fork")
+        parent, child = context.Pipe()
+        target = (self.db_params["host"], int(self.db_params.get("port") or 5432))
+        proxy = context.Process(
+            target=stalled_cancel_proxy,
+            args=(target, child, (self.server, self.client_socket)),
+        )
+        proxy.start()
+        try:
+            self.assertTrue(parent.poll(3), "Cancellation proxy did not start")
+            params = dict(
+                self.db_params,
+                host="127.0.0.1",
+                port=parent.recv(),
+                sslmode="disable",
+                gssencmode="disable",
+            )
+            connection.close()
+            observer = self.disconnect_during_query()
+            before = time.monotonic()
+            with patch.object(connection, "get_connection_params", return_value=params):
+                response = self.client.get(
+                    f"/chant-search/transport?delay={query_seconds}",
+                    **{"gunicorn.socket": self.server},
+                )
+            returned = time.monotonic()
+            observer.join()
+            self.assertEqual(self.observer_errors, [])
+            self.assertEqual(response.status_code, 499)
+            self.assertLess(returned - before, query_seconds + 0.75)
+            self.assertTrue(parent.poll(2), "Cancellation socket was not closed")
+            closed, received_at, closed_at = parent.recv()
+            self.assertTrue(closed, "Proxy had to release a stuck cancellation sender")
+            self.assertLessEqual(closed_at, returned + 0.1)
+            self.assertIsNone(connection.connection)
+            self.assertFalse(
+                any(
+                    t.name == "search-query-cancellation" for t in threading.enumerate()
+                )
+            )
+            self.assertEqual(self.client.get("/chant-search/").json(), {"value": 42})
+            return closed_at - received_at
+        finally:
+            connection.close()
+            proxy.terminate()
+            proxy.join(3)
+            parent.close()
+            child.close()
 
-        def delayed_cancel() -> None:
-            cancel_started.set()
-            release_cancel.wait(3)
+    def test_finished_sql_does_not_wait_for_stalled_cancellation(self) -> None:
+        with self.assertNoLogs("main_app.middleware", level="WARNING"):
+            cancel_seconds = self.run_stalled_cancel(0.25)
+        self.assertLess(cancel_seconds, 0.75)
 
-        def finish_query(*_args: Any) -> None:
-            self.client_socket.close()
-            if not cancel_started.wait(2):
-                raise AssertionError("Watcher never sent cancellation")
-            query_finished.set()
+    def test_stalled_cancellation_expires_while_sql_is_still_running(self) -> None:
+        with self.assertLogs("main_app.middleware", level="WARNING") as log:
+            cancel_seconds = self.run_stalled_cancel(CANCEL_TIMEOUT + 0.5)
+        self.assertLess(cancel_seconds, CANCEL_TIMEOUT + 0.25)
+        self.assertEqual(len(log.records), 1)
+        self.assertIsInstance(log.records[0].exc_info[1], TimeoutError)
 
+    def test_connected_search_can_run_longer_than_cancellation_deadline(self) -> None:
+        response = self.client.get(
+            f"/chant-search/transport?delay={CANCEL_TIMEOUT + 0.1}",
+            **{"gunicorn.socket": self.server},
+        )
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.json(), {"value": 42})
+
+    def test_deployment_check_rejects_unsupported_cancellation(self) -> None:
+        with patch(
+            "main_app.middleware.psycopg.capabilities.has_cancel_safe",
+            return_value=False,
+        ):
+            with self.assertRaisesMessage(ImproperlyConfigured, "libpq 17 or newer"):
+                require_search_cancellation_support()
+
+    def test_old_driver_keeps_serving_during_image_rebuild(self) -> None:
+        # Psycopg 3.1 has no capabilities object. Worker boot must still succeed
+        # when the new source is mounted into the old image during deployment.
+        with patch("main_app.middleware.psycopg.capabilities", None):
+            with patch.object(
+                SearchCancellation,
+                "execute",
+                side_effect=AssertionError("Unsupported cancellation must not run"),
+            ):
+                with self.assertLogs("main_app.middleware", level="WARNING") as log:
+                    response = self.client.get(
+                        "/chant-search/", **{"gunicorn.socket": self.server}
+                    )
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.json(), {"value": 42})
+        self.assertIn("Search cancellation is disabled", log.output[0])
+
+    def test_thread_start_failure_releases_handle_without_executing_sql(self) -> None:
+        connection.ensure_connection()
+        cancel = connection.connection.pgconn.cancel_conn()
         context = {
             "connection": SimpleNamespace(
                 connection=SimpleNamespace(
-                    pgconn=SimpleNamespace(
-                        get_cancel=lambda: SimpleNamespace(cancel=delayed_cancel)
-                    )
+                    pgconn=SimpleNamespace(cancel_conn=lambda: cancel)
                 )
             )
         }
-
-        def run_query() -> None:
-            try:
-                cancellation.execute(finish_query, "SELECT 1", None, False, context)
-            except SearchDisconnected:
-                pass
-            except BaseException as error:
-                errors.append(error)
-            finally:
-                returned.set()
-
-        query = threading.Thread(target=run_query)
-        query.start()
-        try:
-            self.assertTrue(query_finished.wait(2))
-            self.assertFalse(
-                returned.wait(0.1),
-                "The request must wait for its cancellation sender before returning",
-            )
-        finally:
-            release_cancel.set()
-            query.join(3)
-        self.assertFalse(query.is_alive())
-        self.assertEqual(errors, [])
+        executed = []
+        with patch(
+            "main_app.middleware.threading.Thread.start",
+            side_effect=RuntimeError("cannot start new thread"),
+        ):
+            with self.assertRaisesRegex(RuntimeError, "cannot start new thread"):
+                SearchCancellation(self.server).execute(
+                    lambda *args: executed.append(True),
+                    "SELECT 1",
+                    None,
+                    False,
+                    context,
+                )
+        self.assertEqual(executed, [])
+        with self.assertRaises(psycopg.OperationalError):
+            cancel.start()
