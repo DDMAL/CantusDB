@@ -402,7 +402,7 @@ class ChantDetailView(CustomAccessMixin, JSONResponseMixin, DetailView):  # type
             "project",
             "created_by",
             "last_updated_by",
-        ).prefetch_related("source__segment_m2m", "source__notation")
+        ).prefetch_related("source__segment_m2m")
 
     @staticmethod
     def _attributable_user(user: Optional[User]) -> Optional[User]:
