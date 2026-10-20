@@ -436,8 +436,6 @@ class ChantDetailView(CustomAccessMixin, JSONResponseMixin, DetailView):  # type
             source is not None
             and source.segment_m2m.filter(id=settings.BOWER_SEGMENT_ID).exists()
         )
-        context["source_notation"] = source.notation.first() if source else None
-
         language = chant.text_language
         if language and language.pk == 2:
             language_str = "kanienkeha"
