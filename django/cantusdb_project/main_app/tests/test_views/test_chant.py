@@ -165,6 +165,36 @@ class ChantDetailViewTest(ChantPermissionsTestCase):
             test_name="Unassigned chant",
         )
 
+    def test_chant_create_link_visibility(self) -> None:
+        cases = [
+            ("user", "user_assigned_chant", True),
+            ("editor", "editor_assigned_chant", True),
+            ("superuser", "unassigned_chant", True),
+            ("anonymous user", "published_chant", False),
+            ("user", "published_chant", False),
+            ("editor", "published_chant", False),
+            ("global viewer", "published_chant", False),
+        ]
+        for user_key, chant_key, visible in cases:
+            with self.subTest(user=user_key, chant=chant_key):
+                self.client.logout()
+                if user_key != "anonymous user":
+                    self.client.force_login(self.users[user_key])
+                chant = self.chants[chant_key]
+                create_url = reverse("chant-create", args=[chant.source_id])
+                response = self.client.get(reverse("chant-detail", args=[chant.id]))
+
+                if visible:
+                    self.assertContains(
+                        response,
+                        f'<a href="{create_url}">Add new chant</a>',
+                        count=1,
+                        html=True,
+                    )
+                else:
+                    self.assertNotContains(response, "Add new chant")
+                    self.assertNotContains(response, f'href="{create_url}"')
+
     def test_chant_edit_link(self) -> None:
         source = make_fake_source()
         chant = make_fake_chant(source=source, folio="001r")
