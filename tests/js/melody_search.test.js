@@ -93,6 +93,47 @@ test("server, malformed and network responses stop loading and offer a manual re
     }
 });
 
+for (const [name, response] of [
+    ["null", "null"],
+    ["array", "[]"],
+    ["string", '"unexpected"'],
+    ["boolean", "true"],
+    ["number", "17"],
+    ["empty object", "{}"],
+    ["missing count", '{"results":[]}'],
+    ["missing results", '{"result_count":0}'],
+    ["null count", '{"result_count":null,"results":[]}'],
+    ["string count", '{"result_count":"0","results":[]}'],
+    ["negative count", '{"result_count":-1,"results":[]}'],
+    ["fractional count", '{"result_count":0.5,"results":[]}'],
+    ["infinite count", '{"result_count":1e309,"results":[]}'],
+    ["null results", '{"result_count":0,"results":null}'],
+    ["object results", '{"result_count":0,"results":{}}'],
+    ["string results", '{"result_count":0,"results":""}'],
+]) {
+    test(`a successful response with ${name} shows a warning and can be retried`, () => {
+        const h = harness();
+        h.note(85);
+        h.requests[0].respond(200, response);
+        assert.match(h.result.textContent, /could not finish/);
+        assert.equal(h.prompt, "none");
+        assert.equal(h.rows.length, 0);
+        assert.equal(h.requests.length, 1);
+        const warning = h.result.children[0];
+        assert.match(warning.className, /\balert-warning\b/);
+        assert.equal(warning.role, "alert");
+        const retry = warning.children[0];
+        assert.equal(retry.textContent, "Try again");
+        retry.fire("click");
+        assert.equal(h.requests.length, 2);
+        assert.equal(h.requests[1].url.href, h.requests[0].url.href);
+        h.requests[1].respond(200, '{"result_count":0,"results":[]}');
+        assert.match(h.result.innerHTML, /0 melodies/);
+        assert.equal(h.result.children.length, 0);
+        assert.equal(h.prompt, "none");
+    });
+}
+
 test("new notes immediately abort the old request and keep the newest search in control", () => {
     const h = harness();
     h.note(85);

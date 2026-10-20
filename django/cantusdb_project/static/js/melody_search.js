@@ -241,6 +241,16 @@ function melodySearch() {
                 showSearchError("The search could not finish. Please try again.");
                 return;
             }
+            if (
+                data === null ||
+                typeof data !== "object" ||
+                !Number.isInteger(data.result_count) ||
+                data.result_count < 0 ||
+                !Array.isArray(data.results)
+            ) {
+                showSearchError("The search could not finish. Please try again.");
+                return;
+            }
             resultsDiv.innerHTML = `Search results <b>(${data.result_count} melodies)</b>`;
             resultsDiv.innerHTML += `<table id="resultsTable" class="table table-bordered table-sm small" style="table-layout: fixed; width: 100%;"><tbody></tbody></table>`;
 
