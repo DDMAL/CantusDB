@@ -1,4 +1,5 @@
 {% extends "base_page_with_side_cards.html" %}
+{% load helper_tags %}
 {% block title %}<title>{{ chant.incipit }} | Cantus Database</title>{% endblock %}
 {% block scripts %}
     <script src="/static/js/chant_detail.js"></script>
@@ -265,15 +266,15 @@
                             <small>Syllabification is based on saved syllabized text.</small>
                         </p>
                     {% endif %}
-                    <dd>
-                        {% for syl_text, syl_mel in syllabized_text_with_melody %}
-                            <span class="float-start">
+                    <dd class="d-flex flex-wrap align-items-start">
+                        {% for syl_text, syl_mel in syllabized_text_with_melody|split_missing_music %}
+                            <div>
                                 <div class="font-volpiano-lg">{{ syl_mel }}</div>
                                 <!-- "mt" is margin at the top, so that the lowest note in volpiano don't overlap with text -->
                                 <div class="mt-2 fs-text-with-melody">
                                     <pre>{{ syl_text }}</pre>
                                 </div>
-                            </span>
+                            </div>
                         {% endfor %}
                     </dd>
                 </div>
