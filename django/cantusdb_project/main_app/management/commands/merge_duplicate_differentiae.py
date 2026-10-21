@@ -17,6 +17,10 @@ normalization, since differentia_id is otherwise case-sensitive.
 
 The merge is destructive, so each group's pre-merge state is written to its own
 revision before anything changes -- see _snapshot_pre_merge.
+
+Each group is re-read and locked inside its transaction before the merge is
+planned, so an edit made after the initial scan is merged rather than lost, and
+no chant can be linked to a duplicate between the snapshot and the delete.
 """
 
 import argparse
@@ -27,7 +31,7 @@ import reversion  # type: ignore[import-untyped]
 from django.core.management.base import BaseCommand
 from django.db import transaction
 
-from main_app.models import Differentia
+from main_app.models import Chant, Differentia
 
 CASE_TYPO_ALIASES = {"T31A": "T31a"}
 
@@ -65,19 +69,34 @@ class Command(BaseCommand):
             return
 
         for key, members in groups.items():
-            canonical = self._pick_canonical(key, members)
-            duplicates = [d for d in members if d.pk != canonical.pk]
-            updates, conflicts = self._plan_field_updates(canonical, duplicates)
-            self._print_group(canonical, duplicates, updates, conflicts)
-
-            if not dry_run:
-                with transaction.atomic():
-                    self._snapshot_pre_merge(canonical, duplicates)
-                    with reversion.create_revision():
-                        reversion.set_comment(
-                            "merge_duplicate_differentiae: issue #1776"
+            if dry_run:
+                self._plan_group(key, members)
+                continue
+            with transaction.atomic():
+                # Lock the rows in pk order and plan from their current values.
+                # Locking them also blocks new chant links to the duplicates
+                # until this transaction commits.
+                members = list(
+                    Differentia.objects.select_for_update()
+                    .filter(pk__in=[d.pk for d in members])
+                    .order_by("pk")
+                )
+                if len(members) < 2:
+                    self.stdout.write(
+                        self.style.WARNING(
+                            f"\nSkipped {key!r}: changed since the scan, "
+                            "no longer duplicated."
                         )
-                        self._merge_group(canonical, duplicates, updates)
+                    )
+                    continue
+                canonical, duplicates, updates = self._plan_group(key, members)
+                chants = list(
+                    Chant.objects.select_for_update().filter(diff_db__in=duplicates)
+                )
+                self._snapshot_pre_merge(canonical, duplicates, chants)
+                with reversion.create_revision():
+                    reversion.set_comment("merge_duplicate_differentiae: issue #1776")
+                    self._merge_group(canonical, duplicates, updates, chants)
 
         if dry_run:
             self.stdout.write(
@@ -93,6 +112,15 @@ class Command(BaseCommand):
         for differentia in Differentia.objects.all():
             by_key[normalize(differentia.differentia_id)].append(differentia)
         return {key: members for key, members in by_key.items() if len(members) > 1}
+
+    def _plan_group(
+        self, key: str, members: list[Differentia]
+    ) -> tuple[Differentia, list[Differentia], dict[str, str]]:
+        canonical = self._pick_canonical(key, members)
+        duplicates = [d for d in members if d.pk != canonical.pk]
+        updates, conflicts = self._plan_field_updates(canonical, duplicates)
+        self._print_group(canonical, duplicates, updates, conflicts)
+        return canonical, duplicates, updates
 
     def _pick_canonical(self, key: str, members: list[Differentia]) -> Differentia:
         exact_matches = [d for d in members if d.differentia_id == key]
@@ -157,7 +185,10 @@ class Command(BaseCommand):
             self.stdout.write(self.style.WARNING(f"  Conflict: {conflict}"))
 
     def _snapshot_pre_merge(
-        self, canonical: Differentia, duplicates: list[Differentia]
+        self,
+        canonical: Differentia,
+        duplicates: list[Differentia],
+        chants: list[Chant],
     ) -> None:
         """Record the pre-merge state in a revision of its own.
 
@@ -176,21 +207,22 @@ class Command(BaseCommand):
             reversion.add_to_revision(canonical)
             for dup in duplicates:
                 reversion.add_to_revision(dup)
-                for chant in dup.chant_set.all():
-                    reversion.add_to_revision(chant)
+            for chant in chants:
+                reversion.add_to_revision(chant)
 
     def _merge_group(
         self,
         canonical: Differentia,
         duplicates: list[Differentia],
         updates: dict[str, str],
+        chants: list[Chant],
     ) -> None:
         if updates:
             for field, value in updates.items():
                 setattr(canonical, field, value)
             canonical.save(update_fields=list(updates))
+        for chant in chants:
+            chant.diff_db = canonical
+            chant.save(update_fields=["diff_db"])
         for dup in duplicates:
-            for chant in dup.chant_set.all():
-                chant.diff_db = canonical
-                chant.save(update_fields=["diff_db"])
             dup.delete()
