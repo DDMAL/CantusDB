@@ -6,6 +6,8 @@ Cancellation applies to GET and HEAD requests under `/chant-search/`, `/Canadian
 
 Each running query has a short-lived watcher that checks for a disconnect every 50 ms. The watcher uses that database connection's libpq cancellation handle, which includes its backend secret. After detecting a disconnect, it polls the nonblocking cancellation connection with a shared one-second deadline, including retries if the query has not yet reached PostgreSQL. If SQL finishes first, the watcher stops without waiting for cancellation to be acknowledged. The request waits for the watcher to stop and release its handle before continuing; a disconnected request's database connection is then closed so a late cancellation cannot affect a subsequent request. Expected cancellation produces status 499 instead of an application error.
 
+Django logs that response once at INFO through `main_app.middleware`, which has a console handler enabled in production; it does not also emit a 499 warning. Other request warnings and errors retain their normal logging. A successful cancellation dispatch does not prove that PostgreSQL stopped the query, so retries continue within the deadline. Reaching that deadline after a successful dispatch is logged at INFO; failures to send cancellation remain warnings.
+
 ## Deployment requirements
 
 - Linux, Gunicorn and the locked Psycopg 3.3.6 binary package with libpq 17 or newer. Gunicorn supplies `gunicorn.socket`; Linux supplies `POLLRDHUP`. The Nginx prerequisite check rejects a driver without nonblocking cancellation support.

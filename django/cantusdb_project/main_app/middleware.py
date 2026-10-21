@@ -15,6 +15,7 @@ import psycopg
 from django.core.exceptions import ImproperlyConfigured, MiddlewareNotUsed
 from django.db import OperationalError, connection
 from django.http import HttpRequest, HttpResponse
+from django.utils.log import log_response
 from psycopg.errors import QueryCanceled
 from psycopg.pq import PollingStatus
 
@@ -45,8 +46,8 @@ def require_search_cancellation_support() -> None:
 
 def _send_cancel(
     cancel: PGcancelConn, stopped: threading.Event, deadline: float
-) -> None:
-    """Poll cancellation without blocking beyond the disconnect deadline."""
+) -> bool:
+    """Return whether cancellation was dispatched before stopping or timing out."""
     if time.monotonic() >= deadline:
         raise TimeoutError("Search cancellation deadline expired")
     cancel.start()
@@ -56,7 +57,7 @@ def _send_cancel(
             raise TimeoutError("Search cancellation deadline expired")
         status = cancel.poll()
         if status == PollingStatus.OK:
-            return
+            return True
         if status == PollingStatus.FAILED:
             raise psycopg.OperationalError(
                 cancel.error_message.decode(errors="replace")
@@ -69,6 +70,7 @@ def _send_cancel(
         # The socket can change between libpq polls. Short waits also let a
         # completed query stop its sender without waiting for the deadline.
         poller.poll(min(POLL_INTERVAL, remaining) * 1000)
+    return False
 
 
 class SearchDisconnected(BaseException):
@@ -117,6 +119,7 @@ class SearchCancellation:
         def watch() -> None:
             try:
                 warned = False
+                dispatched = False
                 deadline = None
                 while not stopped.wait(POLL_INTERVAL):
                     if not self.client_left():
@@ -124,11 +127,19 @@ class SearchCancellation:
                     if deadline is None:
                         deadline = time.monotonic() + CANCEL_TIMEOUT
                     try:
-                        _send_cancel(cancel, stopped, deadline)
+                        dispatched = (
+                            _send_cancel(cancel, stopped, deadline) or dispatched
+                        )
                     except Exception as error:
+                        if isinstance(error, TimeoutError) and dispatched:
+                            logger.info(
+                                "Search cancellation retry deadline reached after "
+                                "dispatch; query execution has not finished"
+                            )
+                            return
                         if not warned:
                             logger.warning(
-                                "Could not cancel a disconnected search query",
+                                "Could not send cancellation for a disconnected search query",
                                 exc_info=True,
                             )
                             warned = True
@@ -136,8 +147,9 @@ class SearchCancellation:
                             return
                     finally:
                         cancel.reset()
-                    # A disconnect may precede the query reaching PostgreSQL. Keep
-                    # trying within the same deadline until execute() finishes.
+                    # Successful dispatch does not confirm that SQL was cancelled:
+                    # it may not have reached PostgreSQL yet. Keep trying within
+                    # the same deadline until execute() finishes.
             finally:
                 cancel.finish()
 
@@ -206,11 +218,21 @@ class CancelDisconnectedSearchMiddleware:
             except SearchDisconnected:
                 # The browser is already gone. Do not render an error template,
                 # run its context queries, or send a server-error email.
-                return HttpResponse(status=499)
+                response = HttpResponse(status=499)
+                # Django otherwise logs every 4xx as a warning. Its helper also
+                # marks this response as logged so BaseHandler will not repeat it.
+                log_response(
+                    "Client disconnected from search: %s",
+                    request.path,
+                    response=response,
+                    request=request,
+                    logger=logger,
+                    level="info",
+                )
+                return response
         finally:
             if cancellation.disconnected.is_set():
                 # Even a successfully dispatched cancel can arrive after its
                 # query finishes. Retire this connection before another request
                 # can use it, including when persistent connections are enabled.
                 connection.close()
-                logger.info("Cancelled database work for a disconnected search")

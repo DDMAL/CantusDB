@@ -1,5 +1,7 @@
 """Exercise cancellation against PostgreSQL, not a mocked query executor."""
 
+import io
+import logging
 import multiprocessing
 import select
 import socket
@@ -15,11 +17,12 @@ from unittest import skipUnless
 from unittest.mock import patch
 
 import psycopg
+from psycopg.errors import QueryCanceled
 from django.contrib.auth import get_user_model
 from django.core.exceptions import ImproperlyConfigured
 from django.db import OperationalError, connection, transaction
 from django.db.models.expressions import RawSQL
-from django.http import Http404, HttpRequest, JsonResponse
+from django.http import Http404, HttpRequest, HttpResponse, JsonResponse
 from django.test import TransactionTestCase, override_settings
 from django.urls import path
 
@@ -27,6 +30,7 @@ from main_app.middleware import (
     CANCEL_TIMEOUT,
     SearchCancellation,
     SearchDisconnected,
+    _send_cancel,
     require_search_cancellation_support,
 )
 from main_app.models import Chant, Sequence
@@ -53,6 +57,10 @@ def missing_search(request: HttpRequest) -> JsonResponse:
     raise Http404
 
 
+def error_response(request: HttpRequest, status: int) -> HttpResponse:
+    return HttpResponse(status=status)
+
+
 def transport_search(request: HttpRequest) -> JsonResponse:
     with connection.cursor() as cursor:
         started.put(connection.connection.info.backend_pid)
@@ -73,6 +81,7 @@ urlpatterns = [
     path("id/001234", search_view),
     path("chant/123/", search_view),
     path("chant-search/missing", missing_search),
+    path("chant-search/error/<int:status>", error_response),
     path("chant-search/transport", transport_search),
 ]
 
@@ -223,6 +232,42 @@ class SearchCancellationTests(TransactionTestCase):
         response = self.client.get("/chant-search/", **{"gunicorn.socket": self.server})
         self.assertEqual(response.status_code, 499)
 
+    @override_settings(DEBUG=False)
+    def test_disconnect_logs_once_at_info_with_production_logging(self) -> None:
+        self.client_socket.close()
+        logger = logging.getLogger("main_app.middleware")
+        self.assertTrue(logger.isEnabledFor(logging.INFO))
+        output = io.StringIO()
+        # Exercise the configured console handler, without assertLogs changing
+        # the logger's level and masking missing production configuration.
+        with patch.object(logger.handlers[0], "stream", output):
+            with self.assertNoLogs("django.request", level="WARNING"):
+                response = self.client.get(
+                    "/chant-search/?private-search=text",
+                    **{"gunicorn.socket": self.server},
+                )
+        self.assertEqual(response.status_code, 499)
+        self.assertEqual(
+            output.getvalue().splitlines(),
+            ["Client disconnected from search: /chant-search/"],
+        )
+
+    @override_settings(DEBUG=False)
+    def test_other_request_warnings_and_errors_are_still_logged(self) -> None:
+        for route, status, level in (
+            ("/chant-search/error/404", 404, "WARNING"),
+            ("/chant-search/error/500", 500, "ERROR"),
+        ):
+            with self.subTest(status=status):
+                with self.assertLogs("django.request", level=level) as log:
+                    response = self.client.get(
+                        route, **{"gunicorn.socket": self.server}
+                    )
+                self.assertEqual(response.status_code, status)
+                self.assertEqual(len(log.records), 1)
+                self.assertEqual(log.records[0].levelname, level)
+                self.assertEqual(log.records[0].status_code, status)
+
     def test_disconnect_during_flatpage_fallback_is_not_a_server_error(self) -> None:
         self.client_socket.close()
         response = self.client.get(
@@ -343,8 +388,16 @@ class SearchCancellationTests(TransactionTestCase):
 
     def test_cancel_before_query_is_sent_is_retried(self) -> None:
         cancellation = SearchCancellation(self.server)
-        # Hold execute() briefly after the watcher starts. Its first cancel will
-        # hit an idle connection; a later cancel must stop the subsequent SQL.
+        # Wait for a real cancel to reach the idle backend before sending SQL.
+        # A later cancel must still stop the subsequent query.
+        first_dispatch = threading.Event()
+
+        def announce_dispatch(*args: Any) -> bool:
+            dispatched = _send_cancel(*args)
+            if dispatched:
+                first_dispatch.set()
+            return dispatched
+
         original_client_left = cancellation.client_left
         first_check = True
 
@@ -363,10 +416,12 @@ class SearchCancellationTests(TransactionTestCase):
             many: bool,
             context: dict[str, Any],
         ) -> Any:
-            time.sleep(0.2)
+            self.assertTrue(first_dispatch.wait(3), "First cancel was not dispatched")
             return execute(sql, params, many, context)
 
-        with patch.object(cancellation, "client_left", disconnect_after_initial_check):
+        with patch.object(
+            cancellation, "client_left", disconnect_after_initial_check
+        ), patch("main_app.middleware._send_cancel", side_effect=announce_dispatch):
             start = time.monotonic()
             with connection.execute_wrapper(cancellation.execute):
                 with connection.execute_wrapper(delayed_execute):
@@ -374,6 +429,48 @@ class SearchCancellationTests(TransactionTestCase):
                         with connection.cursor() as cursor:
                             cursor.execute("SELECT pg_sleep(10)")
             self.assertLess(time.monotonic() - start, 3)
+        connection.close()
+
+    def test_successful_dispatch_does_not_become_a_failure_at_retry_deadline(
+        self,
+    ) -> None:
+        cancellation = SearchCancellation(self.server)
+        observer = self.disconnect_during_query()
+
+        def delay_cancelled_result(
+            execute: Callable[..., Any],
+            sql: str,
+            params: Any,
+            many: bool,
+            context: dict[str, Any],
+        ) -> Any:
+            started.put(connection.connection.info.backend_pid)
+            try:
+                return execute(sql, params, many, context)
+            except OperationalError as error:
+                if not isinstance(error.__cause__, QueryCanceled):
+                    raise
+                # PostgreSQL has cancelled the real query, but the request
+                # thread has not yet returned from execute().
+                time.sleep(CANCEL_TIMEOUT + 0.2)
+                raise
+
+        with self.assertLogs("main_app.middleware", level="INFO") as log:
+            with connection.execute_wrapper(cancellation.execute):
+                with connection.execute_wrapper(delay_cancelled_result):
+                    with self.assertRaises(SearchDisconnected):
+                        with connection.cursor() as cursor:
+                            cursor.execute(
+                                "SELECT pg_sleep(10) /* cancellation_test */"
+                            )
+        observer.join()
+        self.assertEqual(self.observer_errors, [])
+        self.assertEqual(len(log.records), 1)
+        self.assertEqual(log.records[0].levelname, "INFO")
+        self.assertIn("retry deadline reached after dispatch", log.output[0])
+        self.assertFalse(
+            any(t.name == "search-query-cancellation" for t in threading.enumerate())
+        )
         connection.close()
 
     def test_transaction_cleanup_is_allowed_after_cancellation(self) -> None:
