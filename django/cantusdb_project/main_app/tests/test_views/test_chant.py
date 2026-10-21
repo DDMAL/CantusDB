@@ -1013,6 +1013,24 @@ class ChantByCantusIDViewTest(ChantPermissionsTestCase):
 
 
 class ChantSearchViewTest(CustomAccessTestMixin, TestCase):
+    def test_cantusindex_search_link(self) -> None:
+        for url_name in ("chant-search", "ccdb-chant-search"):
+            for params in ({"keyword": "alleluia"}, {"keyword": ""}, {}):
+                with self.subTest(url_name=url_name, params=params):
+                    response = self.client.get(reverse(url_name), params)
+                    if params.get("keyword"):
+                        self.assertContains(
+                            response,
+                            '<a href="https://cantusindex.org/search?t=alleluia" '
+                            'title="Search alleluia on CantusIndex.org" '
+                            'target="_blank">Search <b>alleluia</b> on CantusIndex.org</a>',
+                            html=True,
+                        )
+                    else:
+                        self.assertNotContains(
+                            response, "https://cantusindex.org/search?t="
+                        )
+
     def test_view_url_path(self):
         response = self.client.get("/chant-search/")
         self.assertEqual(response.status_code, 200)
@@ -2196,6 +2214,7 @@ class ChantSearchViewTest(CustomAccessTestMixin, TestCase):
 
         # additional properties for which there are search fields
         position = make_random_string(1)
+        indexing_notes = "edited & revised"
         make_fake_chant(
             manuscript_full_text_std_spelling=fulltext,
             service=service,
@@ -2207,6 +2226,7 @@ class ChantSearchViewTest(CustomAccessTestMixin, TestCase):
             source=source,
             feast=feast,
             position=position,
+            indexing_notes=indexing_notes,
         )
         search_term = "so it be"
 
@@ -2231,6 +2251,8 @@ class ChantSearchViewTest(CustomAccessTestMixin, TestCase):
             "feast": feast.id,
             "position": position,
             "melodies": "true",
+            "indexing_notes": indexing_notes,
+            "indexing_notes_op": "starts_with",
         }
 
         response_2 = self.client.get(
@@ -3332,6 +3354,7 @@ class ChantSearchMSViewTest(ChantPermissionsTestCase):
         # additional properties for which there are search fields
         feast = make_fake_feast()
         position = make_random_string(1)
+        indexing_notes = "edited & revised"
         make_fake_chant(
             service=service,
             genre=genre,
@@ -3343,6 +3366,7 @@ class ChantSearchMSViewTest(ChantPermissionsTestCase):
             source=source,
             feast=feast,
             position=position,
+            indexing_notes=indexing_notes,
         )
         response_1 = self.client.get(
             reverse("chant-search-ms", args=[source.id]),
@@ -3365,6 +3389,8 @@ class ChantSearchMSViewTest(ChantPermissionsTestCase):
             "feast": feast.id,
             "position": position,
             "melodies": "true",
+            "indexing_notes": indexing_notes,
+            "indexing_notes_op": "starts_with",
         }
         response_2 = self.client.get(
             reverse("chant-search-ms", args=[source.id]),
