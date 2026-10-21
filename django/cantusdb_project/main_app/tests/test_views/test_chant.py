@@ -670,6 +670,7 @@ class SourceEditChantsViewTest(ChantPermissionsTestCase):
         cases = (
             ("Plena {sum}", "Plena [sum]", False, 2),
             ("Plena [sum]", "Plena {sum}. ecce*", False, 0),
+            ("Ora pro nobis. Ut digni.", "", False, 0),
             ("Plena {sum}", "Plena [sum]", True, 0),
         )
         for sequence, (standard, source_text, confirmed, warning_count) in enumerate(
@@ -4049,6 +4050,7 @@ class ChantCreateViewTest(CustomAccessTestMixin, TestCase):
         cases = (
             ("Plena {sum}", "Plena [sum]", False, 2),
             ("Plena [sum]", "Plena {sum}. ecce*", False, 0),
+            ("Ora pro nobis. Ut digni.", "", False, 0),
             ("Plena {sum}", "Plena [sum]", True, 0),
         )
         for sequence, (standard, source_text, confirmed, warning_count) in enumerate(
@@ -4186,7 +4188,7 @@ class ValidateChantTextViewTest(TestCase):
     def test_spelling_protocol_characters_are_allowed(self) -> None:
         for field, text in (
             ("manuscript_full_text", "Plena {sum}. ecce*"),
-            ("manuscript_full_text_std_spelling", "Plena [sum] ecce*"),
+            ("manuscript_full_text_std_spelling", "Plena [sum]. ecce*"),
             ("manuscript_full_text", ""),
             ("manuscript_full_text_std_spelling", ""),
             ("manuscript_syllabized_full_text", "Ple-na [sum] {ec-ce}"),
@@ -4197,36 +4199,42 @@ class ValidateChantTextViewTest(TestCase):
                 )
                 self.assertEqual(response.json()["problems"], [])
 
-    def test_period_is_still_flagged_in_standard_spelling(self) -> None:
+    def test_period_is_allowed_in_standard_spelling(self) -> None:
         response = self.client.post(
             reverse("validate-chant-text"),
             {"manuscript_full_text_std_spelling": "Plena sum."},
         )
-        problems = response.json()["problems"]
-        self.assertEqual(len(problems), 1)
-        self.assertEqual(problems[0]["marked_html"], "Plena sum<mark>.</mark>")
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.json()["problems"], [])
 
-    def test_source_period_does_not_hide_other_problems(self) -> None:
-        response = self.client.post(
-            reverse("validate-chant-text"),
-            {"manuscript_full_text": "Plena. [sum] @ <script>"},
-        )
-        problem = response.json()["problems"][0]
-        self.assertEqual(problem["kind"], "invalid_characters")
-        self.assertEqual(
-            problem["marked_html"],
-            "Plena. <mark>[</mark>sum<mark>]</mark> <mark>@</mark> "
-            "<mark>&lt;</mark>script<mark>&gt;</mark>",
-        )
-        self.assertNotIn("<script>", problem["marked_html"])
-        self.assertNotIn('"."', problem["message"])
+    def test_period_does_not_hide_other_problems(self) -> None:
+        for field, opening, closing in (
+            ("manuscript_full_text", "[", "]"),
+            ("manuscript_full_text_std_spelling", "{", "}"),
+        ):
+            with self.subTest(field=field):
+                response = self.client.post(
+                    reverse("validate-chant-text"),
+                    {field: f"Plena. {opening}sum{closing} @ <script>"},
+                )
+                problems = response.json()["problems"]
+                self.assertEqual(len(problems), 1)
+                problem = problems[0]
+                self.assertEqual(problem["kind"], "invalid_characters")
+                self.assertEqual(
+                    problem["marked_html"],
+                    f"Plena. <mark>{opening}</mark>sum<mark>{closing}</mark> "
+                    "<mark>@</mark> <mark>&lt;</mark>script<mark>&gt;</mark>",
+                )
+                self.assertNotIn("<script>", problem["marked_html"])
+                self.assertNotIn('"."', problem["message"])
 
     def test_spelling_rules_keep_structural_warnings(self) -> None:
         for field, text, marked in (
             ("manuscript_full_text", "Plena. [ sum", "<mark>[</mark>"),
             (
                 "manuscript_full_text_std_spelling",
-                "Plena [ ecce {sum}",
+                "Plena. [ ecce {sum}",
                 "<mark>{</mark>",
             ),
         ):

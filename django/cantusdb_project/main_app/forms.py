@@ -272,9 +272,10 @@ class ChantTextField(forms.CharField):
 
 
 class CantusDBLatinField(ChantTextField):
-    """Unsyllabified text in standardized spelling, where curly brackets warn."""
+    """Standardized spelling allows periods and square brackets, but not curly ones."""
 
     disallowed_chars = frozenset("{}")
+    tolerated_chars = TOLERATED_CHARS | frozenset(".")
 
 
 class CantusDBSourceLatinField(ChantTextField):
