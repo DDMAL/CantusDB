@@ -162,6 +162,14 @@
                        value="{{ request.GET.indexing_notes }}" />
             </div>
         </div>
+        <div class="row align-items-end">
+            <div class="form-group col-lg-6 col-sm-12 col-12">
+                <label for="{{ search_form.differentia_id.id_for_label }}" class="small">
+                    Differentia ID (<a href="https://differentiaedatabase.ca/" target="_blank" rel="noopener noreferrer">Differentiae Database</a>)
+                </label>
+                {{ search_form.differentia_id }}
+            </div>
+        </div>
     </div>
     <div class="row align-items-end pt-2">
         <div class="form-group col-lg">
