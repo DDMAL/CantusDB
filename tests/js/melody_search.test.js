@@ -110,6 +110,12 @@ for (const [name, response] of [
     ["null results", '{"result_count":0,"results":null}'],
     ["object results", '{"result_count":0,"results":{}}'],
     ["string results", '{"result_count":0,"results":""}'],
+    ["null result entry", '{"result_count":1,"results":[null]}'],
+    ["null after a valid result", JSON.stringify({
+        result_count: 2,
+        results: [{ computed_siglum: "CD", folio: "1r", genre__name: null, mode: null,
+            chant_link: "/chant/123/", incipit: "Alleluia", volpiano: "1---g-f---4", feast__name: null }, null],
+    })],
 ]) {
     test(`a successful response with ${name} shows a warning and can be retried`, () => {
         const h = harness();

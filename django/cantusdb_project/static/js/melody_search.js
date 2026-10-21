@@ -246,7 +246,8 @@ function melodySearch() {
                 typeof data !== "object" ||
                 !Number.isInteger(data.result_count) ||
                 data.result_count < 0 ||
-                !Array.isArray(data.results)
+                !Array.isArray(data.results) ||
+                data.results.some(chant => chant === null)
             ) {
                 showSearchError("The search could not finish. Please try again.");
                 return;
