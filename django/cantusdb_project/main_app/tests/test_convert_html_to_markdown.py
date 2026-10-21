@@ -1,10 +1,12 @@
 from io import StringIO
+from unittest import mock
 
 from django.core.management import call_command
 from django.core.management.base import CommandError
 from django.test import TestCase
 
 from main_app.html_to_markdown import html_to_markdown
+from main_app.management.commands.convert_html_to_markdown import Command
 from main_app.models import Source
 from main_app.templatetags.helper_tags import contains_html_tags, render_markdown
 from main_app.tests.make_fakes import make_fake_source
@@ -412,8 +414,42 @@ class TestConvertHtmlToMarkdownCommand(TestCase):
         with self.assertRaises(CommandError):
             convert("--revert", "--force")
 
+    def edit_after_loading(self, **edits):
+        """Make the command load its sources, then apply an editor's ``edits``."""
+        get_queryset = Command.get_queryset
+
+        def load_then_edit(command, source_ids):
+            sources = list(get_queryset(command, source_ids))
+            Source.objects.filter(id=self.source.id).update(**edits)
+            return sources
+
+        return mock.patch.object(Command, "get_queryset", load_then_edit)
+
+    def test_apply_leaves_a_skipped_field_alone(self):
+        Source.objects.filter(id=self.source.id).update(
+            selected_bibliography="Plain bibliography"
+        )
+        with self.edit_after_loading(selected_bibliography="Corrected bibliography"):
+            convert("--apply")
+
+        source = self.refresh()
+        self.assertEqual(source.description, self.markdown)
+        self.assertEqual(source.selected_bibliography, "Corrected bibliography")
+        self.assertIsNone(source.selected_bibliography_html_legacy)
+
+    def test_apply_skips_a_field_edited_after_loading(self):
+        with self.edit_after_loading(description="<p>Corrected</p>"):
+            output = convert("--apply")
+
+        source = self.refresh()
+        self.assertEqual(source.description, "<p>Corrected</p>")
+        self.assertIsNone(source.description_html_legacy)
+        self.assertEqual(source.selected_bibliography, self.html)
+        self.assertIn("Skipped 1 sources edited while this command ran", output)
+        self.assertIn("Converted fields on 0 sources.", output)
+
     def test_conversion_does_not_bump_date_updated(self):
-        # bulk_update skips save(), so auto_now does not fire -- a bulk data
+        # update() skips save(), so auto_now does not fire -- a bulk data
         # conversion should not surface as an editorial edit.
         before = self.refresh().date_updated
         convert("--apply")

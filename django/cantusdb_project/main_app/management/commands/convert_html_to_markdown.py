@@ -17,15 +17,20 @@ restoring the legacy column back into the live field.
 
 Two things worth knowing about how this writes:
 
-- It uses `bulk_update`, which does not call `save()`, so `date_updated`
-  (`auto_now`) is not bumped. A bulk data conversion should not surface as an
-  editorial edit in "recently updated" listings.
-- `bulk_update` fires no signals, and management commands run outside
+- Each source is written with a queryset `update()` limited to the fields
+  this run changes, and only while those fields still hold the values the
+  command read. A source edited after the command loaded it is skipped and
+  reported, so the edit is not overwritten. All writes share one transaction.
+- `update()` does not call `save()`, so `date_updated` (`auto_now`) is not
+  bumped. A bulk data conversion should not surface as an editorial edit in
+  "recently updated" listings.
+- `update()` fires no signals, and management commands run outside
   `RevisionMiddleware`, so django-reversion records nothing for this change.
   The `*_html_legacy` column is the sole backup.
 """
 
 from django.core.management.base import BaseCommand, CommandError
+from django.db import transaction
 
 from main_app.html_to_markdown import html_to_markdown
 from main_app.models import Source
@@ -40,6 +45,22 @@ def describe(source):
         f"  id={source.id}  siglum={source.siglum or '-'}  "
         f"shelfmark={source.shelfmark or '-'}  title={source.title or '-'}"
     )
+
+
+def write_changes(pending):
+    """
+    Apply each source's changes in one transaction. ``pending`` holds
+    ``(source, changes)`` pairs, where ``changes`` maps each field to write to its
+    new value. A source is updated only if those fields still hold the values the
+    command loaded; the sources that changed in the meantime are returned.
+    """
+    changed_since_loaded = []
+    with transaction.atomic():
+        for source, changes in pending:
+            loaded = {field: getattr(source, field) for field in changes}
+            if not Source.objects.filter(pk=source.pk, **loaded).update(**changes):
+                changed_since_loaded.append(source)
+    return changed_since_loaded
 
 
 class Command(BaseCommand):
@@ -116,9 +137,9 @@ class Command(BaseCommand):
         converted = {field: [] for field in FIELDS}
         needs_review = {field: [] for field in FIELDS}
 
-        to_save = []
+        pending = []
         for source in sources:
-            touched = False
+            changes = {}
             for field in FIELDS:
                 legacy_field = field + LEGACY_SUFFIX
                 value = getattr(source, field)
@@ -147,21 +168,14 @@ class Command(BaseCommand):
                     continue
 
                 converted[field].append(source)
-                if apply_changes:
-                    if backup is None:
-                        setattr(source, legacy_field, value)
-                    setattr(source, field, markdown)
-                    touched = True
+                if backup is None:
+                    changes[legacy_field] = value
+                changes[field] = markdown
 
-            if touched:
-                to_save.append(source)
+            if changes:
+                pending.append((source, changes))
 
-        if apply_changes and to_save:
-            Source.objects.bulk_update(
-                to_save,
-                FIELDS + [f + LEGACY_SUFFIX for f in FIELDS],
-                batch_size=200,
-            )
+        changed_since_loaded = write_changes(pending) if apply_changes else []
 
         for field in FIELDS:
             self.stdout.write(self.style.SUCCESS(f"\n=== {field.upper()} ==="))
@@ -183,8 +197,10 @@ class Command(BaseCommand):
                 self.stdout.write("")
 
         if apply_changes:
+            self.report_changed_since_loaded(changed_since_loaded)
+            written = len(pending) - len(changed_since_loaded)
             self.stdout.write(
-                self.style.SUCCESS(f"\nConverted fields on {len(to_save)} sources.")
+                self.style.SUCCESS(f"\nConverted fields on {written} sources.")
             )
         else:
             self.stdout.write(
@@ -199,9 +215,9 @@ class Command(BaseCommand):
 
         reverted = {field: [] for field in FIELDS}
 
-        to_save = []
+        pending = []
         for source in sources:
-            touched = False
+            changes = {}
             for field in FIELDS:
                 legacy_field = field + LEGACY_SUFFIX
                 backup = getattr(source, legacy_field)
@@ -209,20 +225,13 @@ class Command(BaseCommand):
                     continue
 
                 reverted[field].append(source)
-                if apply_changes:
-                    setattr(source, field, backup)
-                    setattr(source, legacy_field, None)
-                    touched = True
+                changes[field] = backup
+                changes[legacy_field] = None
 
-            if touched:
-                to_save.append(source)
+            if changes:
+                pending.append((source, changes))
 
-        if apply_changes and to_save:
-            Source.objects.bulk_update(
-                to_save,
-                FIELDS + [f + LEGACY_SUFFIX for f in FIELDS],
-                batch_size=200,
-            )
+        changed_since_loaded = write_changes(pending) if apply_changes else []
 
         for field in FIELDS:
             self.stdout.write(
@@ -233,10 +242,10 @@ class Command(BaseCommand):
             )
 
         if apply_changes:
+            self.report_changed_since_loaded(changed_since_loaded)
+            written = len(pending) - len(changed_since_loaded)
             self.stdout.write(
-                self.style.SUCCESS(
-                    f"\nRestored original HTML on {len(to_save)} sources."
-                )
+                self.style.SUCCESS(f"\nRestored original HTML on {written} sources.")
             )
         else:
             self.stdout.write(
@@ -244,3 +253,15 @@ class Command(BaseCommand):
                     "\nDry run only -- no changes written. Pass --apply to revert."
                 )
             )
+
+    def report_changed_since_loaded(self, sources):
+        if not sources:
+            return
+        self.stdout.write(
+            self.style.WARNING(
+                f"\nSkipped {len(sources)} sources edited while this command ran "
+                "(nothing written). Run it again to include them:"
+            )
+        )
+        for source in sources:
+            self.stdout.write(describe(source))
