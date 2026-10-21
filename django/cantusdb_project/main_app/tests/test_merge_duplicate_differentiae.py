@@ -6,11 +6,13 @@ and repoints affected chants.
 """
 
 import io
+from unittest import mock
 
 from django.core.management import call_command
 from django.test import TestCase
 from reversion.models import Version
 
+from main_app.management.commands.merge_duplicate_differentiae import Command
 from main_app.models import Chant, Differentia
 from main_app.tests.make_fakes import make_fake_chant
 
@@ -135,6 +137,45 @@ class MergeDuplicateDifferentiaeInformationTest(TestCase):
         self.assertEqual(canonical.mode, "1")
         self.assertEqual(canonical.melodic_transcription, "1--k-k-l-j")
         self.assertFalse(Differentia.objects.filter(pk=duplicate.pk).exists())
+
+    def _edit_after_scan(self, edit):
+        """Make the command scan for duplicates, then run ``edit``."""
+        build_groups = Command._build_groups
+
+        def scan_then_edit(command):
+            groups = build_groups(command)
+            edit()
+            return groups
+
+        return mock.patch.object(Command, "_build_groups", scan_then_edit)
+
+    def test_edits_made_after_the_scan_are_merged(self) -> None:
+        canonical = Differentia.objects.create(differentia_id="118a")
+        duplicate = Differentia.objects.create(differentia_id="118a ")
+        late_chant = make_fake_chant()
+
+        def edit() -> None:
+            Differentia.objects.filter(pk=duplicate.pk).update(mode="1")
+            Chant.objects.filter(pk=late_chant.pk).update(diff_db=duplicate)
+
+        with self._edit_after_scan(edit):
+            self._run()
+
+        canonical.refresh_from_db()
+        late_chant.refresh_from_db()
+        self.assertEqual(canonical.mode, "1")
+        self.assertEqual(late_chant.diff_db_id, canonical.pk)
+        self.assertFalse(Differentia.objects.filter(pk=duplicate.pk).exists())
+
+    def test_group_resolved_after_the_scan_is_skipped(self) -> None:
+        Differentia.objects.create(differentia_id="118a")
+        duplicate = Differentia.objects.create(differentia_id="118a ")
+
+        with self._edit_after_scan(duplicate.delete):
+            output = self._run()
+
+        self.assertIn("no longer duplicated", output)
+        self.assertEqual(Differentia.objects.filter(differentia_id="118a").count(), 1)
 
     def test_blank_duplicate_values_do_not_clear_canonical_values(self) -> None:
         canonical = Differentia.objects.create(
