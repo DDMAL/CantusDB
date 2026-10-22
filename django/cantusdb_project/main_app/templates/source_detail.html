@@ -411,6 +411,19 @@
                     </li>
                 {% endif %}
             </ul>
+            {% if user_can_submit_for_proofreading %}
+                {# assigned non-creators can't open the edit page, so they submit here #}
+                <form method="post"
+                      action="{% url "source-submit-for-proofreading" source.id %}">
+                    {% csrf_token %}
+                    <button type="submit"
+                            class="btn btn-success btn-sm"
+                            id="btn-submit-for-proofreading"
+                            onclick="return confirm('This will mark the source as ready for proofreading and lock the source and its chants from further editing. Continue?');">
+                        Submit for Proofreading
+                    </button>
+                </form>
+            {% endif %}
         </div>
     </div>
 {% endif %}

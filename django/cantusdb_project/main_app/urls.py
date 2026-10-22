@@ -89,6 +89,7 @@ from main_app.views.source import (
     SourceInventoryView,
     SourceAddImageLinksView,
     SourceIIIFMappingView,
+    SourceSubmitForProofreadingView,
     CcdbBrowseView,
 )
 from main_app.views.ccdb import (
@@ -408,6 +409,11 @@ urlpatterns = [
         "source/<int:pk>/delete",
         SourceDeleteView.as_view(),
         name="source-delete",
+    ),
+    path(
+        "source/<int:source_id>/submit-for-proofreading",
+        SourceSubmitForProofreadingView.as_view(),
+        name="source-submit-for-proofreading",
     ),
     path(
         "source/<int:source_id>/add-image-links",
