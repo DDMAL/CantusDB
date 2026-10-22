@@ -61,20 +61,88 @@ def _split_edge_whitespace(text: str) -> tuple[str, str, str]:
     )
 
 
+# Tags that start a new line, so text inside them never runs into a
+# neighbouring emphasis marker.
+_LINE_BREAKING_TAGS = {
+    "br",
+    "hr",
+    "p",
+    "div",
+    "li",
+    "ul",
+    "ol",
+    "table",
+    "tr",
+    "td",
+    "th",
+    "blockquote",
+    "h1",
+    "h2",
+    "h3",
+    "h4",
+    "h5",
+    "h6",
+}
+
+
+def _adjacent_text(node, direction: str) -> str:
+    """The text running into `node` from its previous or next sibling."""
+    sibling = getattr(node, f"{direction}_sibling")
+    if isinstance(sibling, NavigableString):
+        return str(sibling)
+    if isinstance(sibling, Tag) and sibling.name not in _LINE_BREAKING_TAGS:
+        return sibling.get_text()
+    return ""
+
+
 def _emphasise(node, left: str, right: str) -> str:
-    lead, inner, trail = _split_edge_whitespace(_render_children(node))
-    return f"{lead}{left}{inner}{right}{trail}" if inner else ""
+    rendered = _render_children(node)
+    lead, inner, trail = _split_edge_whitespace(rendered)
+    if not inner:
+        # `71-88.<em>&nbsp;</em>Kalamazoo`: the tag holds only the space, so
+        # keep the space rather than welding the words together.
+        return rendered
+    # CommonMark won't close emphasis that ends in punctuation when a letter
+    # follows directly (`<i>ca.</i>1000` would show as `*ca.*1000`), nor open
+    # emphasis that starts with punctuation right after a letter. Only then,
+    # move that edge punctuation outside the markers; the words are unchanged.
+    if not trail and re.match(r"\w", _adjacent_text(node, "next")[:1]):
+        match = re.fullmatch(r"(.*?\w)([^\w*\\]+)", inner, re.S)
+        if match:
+            inner, trail = match.group(1), match.group(2)
+    if not lead and re.match(r"\w", _adjacent_text(node, "previous")[-1:]):
+        match = re.fullmatch(r"([^\w*\\]+)(\w.*)", inner, re.S)
+        if match:
+            lead, inner = match.group(1), match.group(2)
+    return f"{lead}{left}{inner}{right}{trail}"
+
+
+def _render_text(node: NavigableString) -> str:
+    """
+    Keep the line structure the old page showed. `source_detail.html` used to
+    render these fields through `linebreaks`, so a blank line in the stored
+    text was a paragraph break and a single newline a line break -- many
+    legacy values are plain text with only a few inline tags. A newline next
+    to a `<br>` is only the pretty-printing around it, since the `<br>` is the
+    break, so it is dropped rather than doubling the break.
+    """
+    text = re.sub(r"\r\n?", "\n", str(node))
+    if isinstance(node.previous_sibling, Tag) and node.previous_sibling.name == "br":
+        text = re.sub(r"^[ \t]*\n[ \t]*", "", text)
+    if isinstance(node.next_sibling, Tag) and node.next_sibling.name == "br":
+        text = re.sub(r"[ \t]*\n[ \t]*$", "", text)
+    # Pretty-printed markup indents its lines; carried through, a leading tab
+    # would start an indented code block.
+    text = re.sub(r"[ \t]*\n[ \t]*", "\n", text)
+    text = re.sub(r"\n{2,}", "\n\n", text)
+    # Asterisks in the legacy text are literal (`[*]1`, a `*` legend entry);
+    # unescaped, markdown reads them as emphasis or list bullets.
+    return text.replace("*", "\\*")
 
 
 def _render(node) -> str:
     if isinstance(node, NavigableString):
-        # Legacy markup is pretty-printed, so a `<br />` is followed by a real
-        # newline and a tab. Carried through verbatim that tab starts the next
-        # markdown line at column four, which CommonMark reads as an indented
-        # code block, and the newline doubles the one `<br>` already emitted,
-        # splitting the paragraph. A newline inside a text node is only
-        # whitespace in HTML, so collapse each such run to a single space.
-        return re.sub(r"[ \t]*(?:\r\n|\r|\n)[ \t]*", " ", str(node))
+        return _render_text(node)
     if not isinstance(node, Tag):
         return ""
 
@@ -114,7 +182,9 @@ def _render(node) -> str:
 
     if name and re.fullmatch(r"h[1-6]", name):
         level = int(name[1])
-        inner = _render_children(node).strip()
+        # A heading is one line in markdown, so a line break inside it is
+        # flattened to a space rather than ending the heading early.
+        inner = re.sub(r"\s*\n\s*", " ", _render_children(node)).strip()
         return f"\n\n{'#' * level} {inner}\n\n" if inner else ""
 
     if name in ("p", "div"):
