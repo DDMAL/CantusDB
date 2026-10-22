@@ -140,6 +140,13 @@ def _render_text(node: NavigableString) -> str:
     return text.replace("*", "\\*")
 
 
+def _is_spanning(cell: Tag) -> bool:
+    try:
+        return int(cell.get("colspan") or 1) > 1
+    except ValueError:
+        return False
+
+
 def _render(node) -> str:
     if isinstance(node, NavigableString):
         return _render_text(node)
@@ -245,9 +252,21 @@ def _render(node) -> str:
         # throw away four fifths of the table. Expand each colspan into that many
         # columns and pad every row to the widest one so no cell is dropped.
         parsed_rows = []
+        titles = []
         for tr in node.find_all("tr"):
+            row_cells = tr.find_all(["td", "th"], recursive=False)
+            # A title row (one cell spanning the table, often holding an <h3>)
+            # opening the table would become its header, padded with empty
+            # header cells and pushing the real header down into the body.
+            # Markdown cells can't span or hold headings, so put the title
+            # above the table and let the next row be the header.
+            if not parsed_rows and len(row_cells) == 1 and _is_spanning(row_cells[0]):
+                title = _render_children(row_cells[0]).strip()
+                if title:
+                    titles.append(title)
+                continue
             cells = []
-            for cell in tr.find_all(["td", "th"], recursive=False):
+            for cell in row_cells:
                 text = (
                     _render_children(cell)
                     .strip()
@@ -262,8 +281,9 @@ def _render(node) -> str:
                 cells.extend("" for _ in range(span - 1))
             if cells:
                 parsed_rows.append(cells)
+        heading = "".join(f"\n\n{title}\n\n" for title in titles)
         if not parsed_rows:
-            return ""
+            return heading
         width = max(len(cells) for cells in parsed_rows)
         md_rows = []
         for i, cells in enumerate(parsed_rows):
@@ -271,7 +291,7 @@ def _render(node) -> str:
             md_rows.append("| " + " | ".join(padded) + " |")
             if i == 0:
                 md_rows.append("| " + " | ".join(["---"] * width) + " |")
-        return f"\n\n{chr(10).join(md_rows)}\n\n"
+        return f"{heading}\n\n{chr(10).join(md_rows)}\n\n"
 
     # Unknown tag: unwrap, keeping its text content. A void element (no
     # children, no text -- e.g. <input>, <embed>) would unwrap to nothing and

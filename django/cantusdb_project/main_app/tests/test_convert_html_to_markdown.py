@@ -157,22 +157,36 @@ class TestHtmlToMarkdown(TestCase):
             html_to_markdown("71-88.<em>&nbsp;</em>Kalamazoo"), "71-88.\xa0Kalamazoo"
         )
 
-    def test_colspan_title_row_does_not_truncate_the_table(self):
-        # A spanning title cell would otherwise make the header one column wide,
-        # and GFM silently truncates every later row to the header's width.
+    def test_colspan_title_row_goes_above_the_table(self):
+        # A spanning title row would otherwise become the header, padded with
+        # empty cells, and push the real header row into the body.
         markdown = html_to_markdown(
             "<table>"
-            '<tr><td colspan="3">Title</td></tr>'
+            '<tr><td colspan="3"><center><h3>Title</h3></center></td></tr>'
+            "<tr><td>Folio</td><td>#</td><td>Genre</td></tr>"
             "<tr><td>a</td><td>b</td><td>c</td></tr>"
             "</table>"
         )
         self.assertEqual(
             markdown,
-            "| Title |  |  |\n| --- | --- | --- |\n| a | b | c |",
+            "### Title\n\n| Folio | # | Genre |\n| --- | --- | --- |\n| a | b | c |",
         )
         rendered = render_markdown(markdown)
-        for cell in ("Title", "a", "b", "c"):
-            self.assertIn(f">{cell}<", rendered)
+        self.assertIn("<h3>Title</h3>", rendered)
+        self.assertIn("<th>Folio</th>", rendered)
+
+    def test_colspan_in_later_rows_does_not_truncate_the_table(self):
+        # GFM silently truncates every row to the header's width, so a spanning
+        # cell elsewhere is padded out to keep the columns lined up.
+        markdown = html_to_markdown(
+            "<table>"
+            "<tr><td>a</td><td>b</td><td>c</td></tr>"
+            '<tr><td colspan="2">wide</td><td>d</td></tr>'
+            "</table>"
+        )
+        self.assertEqual(
+            markdown, "| a | b | c |\n| --- | --- | --- |\n| wide |  | d |"
+        )
 
     def test_unordered_list(self):
         self.assertEqual(
