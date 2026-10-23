@@ -87,7 +87,9 @@ def check_cantus_ids_not_in_ci(chant_ids: Optional[List[int]] = None) -> dict:
 
     invalid_ids = {cid for cid in local_ids if cid not in ci_ids}
 
-    base_qs = qs.filter(cantus_id__in=invalid_ids).select_related("source", "genre")
+    base_qs = qs.filter(cantus_id__in=invalid_ids).select_related(
+        "source__holding_institution", "genre"
+    )
     return {
         "published": list(base_qs.filter(source__published=True).order_by("cantus_id")),
         "unpublished": list(
@@ -241,7 +243,7 @@ def check_cantus_ids_genre_mismatch(chant_ids: Optional[List[int]] = None) -> di
     mismatched_cids = {cid for cid, _ in mismatched_pairs}
     candidates = (
         qs.filter(cantus_id__in=mismatched_cids)
-        .select_related("source", "genre")
+        .select_related("source__holding_institution", "genre")
         .order_by("cantus_id")
     )
     matches = [
@@ -272,7 +274,7 @@ def check_position_service_mismatch(chant_ids: Optional[List[int]] = None) -> di
     invalid = qs.filter(
         Q(position="M") & (Q(service__isnull=True) | ~Q(service__name__in=["V", "V2"]))
         | Q(position="B") & (Q(service__isnull=True) | ~Q(service__name="L"))
-    ).select_related("source", "service")
+    ).select_related("source__holding_institution", "genre", "service")
 
     return {
         "published": list(
@@ -294,7 +296,7 @@ def check_blank_cantus_id(chant_ids: Optional[List[int]] = None) -> dict:
         else Chant.objects.all()
     )
     invalid = qs.filter(Q(cantus_id__isnull=True) | Q(cantus_id="")).select_related(
-        "source", "genre"
+        "source__holding_institution", "genre"
     )
     return {
         "published": list(invalid.filter(source__published=True).order_by("source_id")),
@@ -314,7 +316,7 @@ def check_blank_mode(chant_ids: Optional[List[int]] = None) -> dict:
         else Chant.objects.all()
     )
     invalid = qs.filter(Q(mode__isnull=True) | Q(mode="")).select_related(
-        "source", "genre"
+        "source__holding_institution", "genre"
     )
     return {
         "published": list(invalid.filter(source__published=True).order_by("source_id")),
@@ -337,7 +339,7 @@ def check_blank_invitatory_differentia(chant_ids: Optional[List[int]] = None) ->
     invalid = (
         qs.filter(genre__name__in=["I", "IP"])
         .filter(Q(differentia__isnull=True) | Q(differentia=""))
-        .select_related("source", "genre")
+        .select_related("source__holding_institution", "genre")
     )
     return {
         "published": list(
@@ -467,7 +469,9 @@ def _format_check_csv(result: dict, check_key: Optional[str] = None) -> str:
                     f'=HYPERLINK("{link_url}","{item.id}")',
                     _csv_safe(item.source_id),
                     _csv_safe(item.id),
-                    _csv_safe(getattr(item.source, "siglum", item.source_id)),
+                    # Current composed heading (institution siglum + shelfmark),
+                    # not the frozen `siglum` column (#2025).
+                    _csv_safe(item.source.short_heading),
                     _csv_safe(item.folio),
                     _csv_safe(item.cantus_id),
                     _csv_safe(getattr(item.genre, "name", "")),
@@ -487,6 +491,14 @@ def _format_check_csv(result: dict, check_key: Optional[str] = None) -> str:
 
 @shared_task(name="cantusdb.run_data_checks")
 def run_data_checks() -> None:
+    if not settings.DATA_CHECKS_ENABLED:
+        logger.info(
+            "Data checks disabled in this environment "
+            "(PROJECT_ENVIRONMENT=%s); skipping.",
+            settings.PROJECT_ENVIRONMENT,
+        )
+        return
+
     config = DataCheckConfig.objects.order_by("-id").first()
     if config is None:
         return
@@ -577,8 +589,14 @@ def save_browse_chants_formset(
     self.update_state(state="PROCESSING")
     chants = Chant.objects.filter(id__in=chant_ids)
     formset = BrowseChantsBulkEditFormset(data=data, queryset=chants)
+    text_warnings: list[dict[str, Any]] = []
     if formset.is_valid():
         formset.save()
+        text_warnings = [
+            {"form_num": form_num, **problem}
+            for form_num, form in enumerate(formset.forms)
+            for problem in form.text_problems
+        ]
     non_form_errors = formset.non_form_errors().get_json_data(escape_html=True)
     form_errors = []
     for form_num, errors in enumerate(formset.errors):
@@ -594,4 +612,5 @@ def save_browse_chants_formset(
         "non_form_errors": non_form_errors,
         "form_errors": form_errors,
         "error_count": formset.total_error_count(),
+        "text_warnings": text_warnings,
     }

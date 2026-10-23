@@ -23,6 +23,9 @@
     {% endfor %}
     <!--Container for formset errors (if any) -- populated by JS -->
     <div id="formsetErrorAlert" class="alert alert-danger d-none"></div>
+    <div id="formsetTextWarningAlert"
+         class="alert alert-warning d-none"
+         role="status"></div>
     <h3>Browse Chants</h3>
     <span class="small">Displaying {{ page_obj.start_index }}-{{ page_obj.end_index }} of <b>{{ page_obj.paginator.count }}</b> chants.</span>
     <form method="get">
@@ -156,7 +159,7 @@
                                     <br />
                                     <!-- Volpiano display for source 680970 (MS 73) was temporarily disabled in #1635; re-enabled in #1893. -->
                                     {% if chant.volpiano %}
-                                        <span style="font-family: volpiano; font-size:25px">{{ chant.volpiano|default:"" }}</span>
+                                        <span style="font-family: volpiano; font-size:25px; overflow-wrap: anywhere">{{ chant.volpiano|default:"" }}</span>
                                     {% endif %}
                                 </p>
                             </td>

@@ -9,8 +9,9 @@
  *
  * The widget exports its helpers under `typeof module !== "undefined"`, so no DOM
  * or browser is needed here — the functions operate on a plain textarea-like
- * object. Real browser behaviour (event wiring, Bootstrap tabs, marked preview)
- * is verified manually in the running app.
+ * object. markdown_preview.test.js separately exercises preview requests and
+ * event handlers with a simulated DOM. Django tests cover the shared renderer
+ * and preview endpoint. Bootstrap tabs, focus and native undo need browser checks.
  */
 
 const { test } = require("node:test");

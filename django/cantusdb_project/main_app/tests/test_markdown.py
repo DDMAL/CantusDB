@@ -15,6 +15,57 @@ class Elements(HTMLParser):
 
 
 class MarkdownRenderingTest(SimpleTestCase):
+    def test_legacy_html_keeps_authored_line_breaks(self) -> None:
+        cases = [
+            (
+                "<p>Material: Parchment\nSource type: Antiphonal</p>",
+                "Parchment<br>\nSource",
+            ),
+            ("<div>First\nSecond</div>", "First<br>\nSecond"),
+            ("<center>First\nSecond</center>", "First<br>\nSecond"),
+            ("<ul>First\nSecond<li>Item</li></ul>", "First<br>\nSecond"),
+            ("<table><tr><td>First\nSecond</td></tr></table>", "First<br>\nSecond"),
+            ("<p>First <i>title</i>\n<i>Second</i></p>", "</i><br>\n<i>Second"),
+            ("> <p>First\n> Second</p>", "First<br>\nSecond"),
+        ]
+        for value, expected in cases:
+            with self.subTest(value=value):
+                self.assertIn(expected, render_markdown(value))
+
+    def test_line_break_preservation_does_not_double_markdown_breaks(self) -> None:
+        html = render_markdown("First *title*\nSecond\n\n<p>Legacy\ntext</p>")
+        self.assertIn("<em>title</em><br>\nSecond", html)
+        self.assertIn("Legacy<br>\ntext", html)
+        self.assertEqual(html.count("<br>"), 2)
+
+    def test_line_break_preservation_keeps_code_and_entities(self) -> None:
+        html = render_markdown("<div><pre>First\nSecond</pre>&lt;safe&gt;</div>")
+        self.assertIn("<pre>First\nSecond</pre>", html)
+        self.assertIn("&lt;safe&gt;", html)
+        self.assertNotIn("<br", html)
+
+    def test_unclosed_legacy_block_does_not_double_later_markdown_breaks(self) -> None:
+        html = render_markdown(
+            "<p>Material: Parchment\n\nWritten in the 12th century\n200 folios"
+        )
+        self.assertIn("Written in the 12th century<br>\n200 folios", html)
+        self.assertNotIn("<br><br>", html)
+        self.assertEqual(html.count("<br>"), 2)
+        self.assertNotIn("</p><br>", html)
+
+    def test_legacy_ampersands_keep_their_authored_text(self) -> None:
+        html = render_markdown("<p>Antiphonale &c. by R&D Press &amp; Co.</p>")
+        self.assertIn("Antiphonale &amp;c. by R&amp;D Press &amp; Co.", html)
+        self.assertNotIn("&amp;c;", html)
+
+    def test_malformed_legacy_declaration_still_renders_and_is_sanitized(self) -> None:
+        html = render_markdown(
+            '<div>Before<![foo]>After<img src="x" onerror="alert(1)"></div>'
+        )
+        self.assertIn("Before", html)
+        self.assertIn("After", html)
+        self.assertNotIn("onerror", html)
+
     def test_authored_numbers_in_nested_and_quoted_lists(self) -> None:
         cases = [
             ("1. First\n4. Fourth\n9. Ninth", [1, 4, 9]),

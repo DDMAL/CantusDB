@@ -5,9 +5,10 @@ import string
 
 from django.conf import settings
 from django.contrib import messages
+from django.contrib.auth.mixins import LoginRequiredMixin
 from django.contrib.postgres.aggregates import ArrayAgg
 from django.db.models import Case, F, Q, QuerySet, When
-from django.http import Http404, HttpResponse
+from django.http import Http404, HttpRequest, HttpResponse, JsonResponse
 from django.shortcuts import get_object_or_404
 from django.urls import reverse
 from django.utils.http import url_has_allowed_host_and_scheme
@@ -18,6 +19,7 @@ from django.views.generic import (
     ListView,
     TemplateView,
     UpdateView,
+    View,
 )
 from volpiano_display_utilities.latin_word_syllabification import LatinError
 from volpiano_display_utilities.cantus_text_syllabification import (
@@ -36,6 +38,8 @@ from main_app.forms import (
     ChantEditForm,
     ChantEditSyllabificationForm,
     ChantSearchForm,
+    CHANT_TEXT_FIELDS,
+    find_chant_text_problems,
 )
 from main_app.models import (
     Chant,
@@ -50,6 +54,50 @@ from main_app.permissions import CustomAccessMixin
 
 from main_app.mixins import JSONResponseMixin
 from users.models import User
+
+
+def add_unconfirmed_text_warnings(request: HttpRequest, form: Any) -> None:
+    """
+    After a chant form saves, surface a non-blocking warning message for each
+    invalid-text problem the form found (see #1681), *unless* the user already
+    acknowledged them (the client-side "Save anyway" flow posts
+    ``confirm_invalid_text=1``). This is primarily the fallback for when the
+    JavaScript confirmation dialog isn't available.
+    """
+    if request.POST.get("confirm_invalid_text") == "1":
+        return
+    for problem in getattr(form, "text_problems", []):
+        messages.warning(
+            request,
+            f'The {problem["label"]} {problem["message"]} '
+            "The chant was saved, but you may want to review this field.",
+        )
+
+
+class ValidateChantTextView(LoginRequiredMixin, View):  # type: ignore[type-arg]
+    """
+    A small JSON endpoint used by the chant create/edit forms to check whether
+    the entered text fields can be syllabified, *without* saving anything. The
+    client posts the text field values and receives back a list of problems
+    (each with the field name, a label, a message and an HTML rendering of the
+    text with the offending characters marked). This powers the "Save anyway?"
+    confirmation dialog (see #1681).
+    """
+
+    def post(self, request: HttpRequest) -> JsonResponse:
+        problems: list[dict[str, str]] = []
+        for field_name, spec in CHANT_TEXT_FIELDS.items():
+            if field_name not in request.POST:
+                continue
+            problems.extend(
+                {"field": field_name, "label": spec["label"], **problem}
+                for problem in find_chant_text_problems(
+                    request.POST[field_name],
+                    text_presyllabified=spec["text_presyllabified"],
+                )
+            )
+        return JsonResponse({"problems": problems})
+
 
 ADVANCED_SEARCH_FIELDS: tuple[str, ...] = (
     # GET params belonging to the collapsible "Advanced search" section of
@@ -558,68 +606,9 @@ class ChantSearchView(CustomAccessMixin, ListView):  # type: ignore[type-arg]
         context["order"] = self.request.GET.get("order")
         context["sort"] = self.request.GET.get("sort")
 
-        # build a url containing all the search parameters, excluding ordering parameters.
-        # this way, when someone clicks on a column heading, we can append the ordering parameters
-        # while retaining the search parameters
-        current_url: str = self.request.path
-        search_parameters: list[str] = []
-
-        search_op: Optional[str] = self.request.GET.get("op")
-        if search_op:
-            search_parameters.append(f"op={search_op}")
         search_keyword: Optional[str] = self.request.GET.get("keyword")
         if search_keyword:
-            search_parameters.append(f"keyword={search_keyword}")
             context["keyword"] = search_keyword
-        search_service: Optional[str] = self.request.GET.get("service")
-        if search_service:
-            search_parameters.append(f"service={search_service}")
-        search_genre: Optional[str] = self.request.GET.get("genre")
-        if search_genre:
-            search_parameters.append(f"genre={search_genre}")
-        search_cantus_id: Optional[str] = self.request.GET.get("cantus_id")
-        if search_cantus_id:
-            search_parameters.append(f"cantus_id={search_cantus_id}")
-        search_mode: Optional[str] = self.request.GET.get("mode")
-        if search_mode:
-            search_parameters.append(f"mode={search_mode}")
-        search_feast: Optional[str] = self.request.GET.get("feast")
-        if search_feast:
-            search_parameters.append(f"feast={search_feast}")
-        search_position: Optional[str] = self.request.GET.get("position")
-        if search_position:
-            search_parameters.append(f"position={search_position}")
-        search_melodies: Optional[str] = self.request.GET.get("melodies")
-        if search_melodies:
-            search_parameters.append(f"melodies={search_melodies}")
-        search_liturgical_function: Optional[str] = self.request.GET.get(
-            "liturgical_function"
-        )
-        if search_liturgical_function:
-            search_parameters.append(
-                f"liturgical_function={search_liturgical_function}"
-            )
-        search_bar: Optional[str] = self.request.GET.get("search_bar")
-        if search_bar:
-            search_parameters.append(f"search_bar={search_bar}")
-        search_segment: Optional[str] = self.request.GET.get("segment")
-        if search_segment:
-            search_parameters.append(f"segment={search_segment}")
-        search_indexing_notes_op: Optional[str] = self.request.GET.get(
-            "indexing_notes_op"
-        )
-        if search_indexing_notes_op:
-            search_parameters.append(f"indexing_notes_op={search_indexing_notes_op}")
-        search_indexing_notes: Optional[str] = self.request.GET.get("indexing_notes")
-        if search_indexing_notes:
-            search_parameters.append(f"indexing_notes={search_indexing_notes}")
-
-        url_with_search_params: str = current_url + "?"
-        if search_parameters:
-            joined_search_parameters: str = "&".join(search_parameters)
-            url_with_search_params += joined_search_parameters
-
-        context["url_with_search_params"] = url_with_search_params
 
         return context
 
@@ -893,57 +882,7 @@ class ChantSearchMSView(CustomAccessMixin, ListView):  # type: ignore[type-arg]
         )
         context["order"] = self.request.GET.get("order")
         context["sort"] = self.request.GET.get("sort")
-        # This is searching in a specific source, pass the source into context
 
-        current_url = self.request.path
-        search_parameters = []
-
-        search_op = self.request.GET.get("op")
-        if search_op:
-            search_parameters.append(f"op={search_op}")
-        search_keyword = self.request.GET.get("keyword")
-        if search_keyword:
-            search_parameters.append(f"keyword={search_keyword}")
-        search_service = self.request.GET.get("service")
-        if search_service:
-            search_parameters.append(f"service={search_service}")
-        search_genre = self.request.GET.get("genre")
-        if search_genre:
-            search_parameters.append(f"genre={search_genre}")
-        search_cantus_id = self.request.GET.get("cantus_id")
-        if search_cantus_id:
-            search_parameters.append(f"cantus_id={search_cantus_id}")
-        search_mode = self.request.GET.get("mode")
-        if search_mode:
-            search_parameters.append(f"mode={search_mode}")
-        search_feast = self.request.GET.get("feast")
-        if search_feast:
-            search_parameters.append(f"feast={search_feast}")
-        search_position = self.request.GET.get("position")
-        if search_position:
-            search_parameters.append(f"position={search_position}")
-        search_melodies = self.request.GET.get("melodies")
-        if search_melodies:
-            search_parameters.append(f"melodies={search_melodies}")
-        search_liturgical_function = self.request.GET.get("liturgical_function")
-        if search_liturgical_function:
-            search_parameters.append(
-                f"liturgical_function={search_liturgical_function}"
-            )
-        search_indexing_notes_op = self.request.GET.get("indexing_notes_op")
-        if search_indexing_notes_op:
-            search_parameters.append(f"indexing_notes_op={search_indexing_notes_op}")
-        search_indexing_notes = self.request.GET.get("indexing_notes")
-        if search_indexing_notes:
-            search_parameters.append(f"indexing_notes={search_indexing_notes}")
-
-        if search_parameters:
-            joined_search_parameters = "&".join(search_parameters)
-            url_with_search_params = current_url + "?" + joined_search_parameters
-        else:
-            url_with_search_params = current_url + "?"
-
-        context["url_with_search_params"] = url_with_search_params
         return context
 
     def get_queryset(self) -> QuerySet[Chant]:
@@ -1019,7 +958,8 @@ class ChantSearchMSView(CustomAccessMixin, ListView):  # type: ignore[type-arg]
         source = Source.objects.get(id=source_id)
         queryset = (
             source.sequence_set
-            if 4064 in source.segment_m2m.values_list("id", flat=True)
+            if settings.BOWER_SEGMENT_ID
+            in source.segment_m2m.values_list("id", flat=True)
             else source.chant_set
         )
 
@@ -1193,6 +1133,7 @@ class ChantCreateView(CustomAccessMixin, CreateView):  # type: ignore[type-arg]
         """
         form.instance.created_by = self.request.user
         form.instance.last_updated_by = self.request.user
+        add_unconfirmed_text_warnings(self.request, form)
         return super().form_valid(form)
 
 
@@ -1452,6 +1393,7 @@ class SourceEditChantsView(CustomAccessMixin, UpdateView):  # type: ignore[type-
         if not user_can_proofread_chant:
             chant.proofread_by.set(proofreaders)
         messages.success(self.request, "Chant updated successfully!")
+        add_unconfirmed_text_warnings(self.request, form)
         return return_response
 
     def form_invalid(self, form):
@@ -1551,6 +1493,7 @@ class ChantEditSyllabificationView(CustomAccessMixin, UpdateView):  # type: igno
             self.request,
             "Syllabification updated successfully!",
         )
+        add_unconfirmed_text_warnings(self.request, form)
         return super().form_valid(form)
 
     def get_success_url(self):

@@ -78,6 +78,7 @@ INSTALLED_APPS = [
 
 MIDDLEWARE = [
     "django.middleware.security.SecurityMiddleware",
+    "main_app.middleware.CancelDisconnectedSearchMiddleware",
     "django.contrib.sessions.middleware.SessionMiddleware",
     "django.middleware.common.CommonMiddleware",
     "django.middleware.csrf.CsrfViewMiddleware",
@@ -238,6 +239,21 @@ GENERIC_ADMIN_FULL_NAME = "cantus database administrator"
 CELERY_BROKER_URL = "redis://redis:6379/0"
 CELERY_RESULT_BACKEND = "redis://redis:6379/0"
 CELERY_TIMEZONE = "America/New_York"
+
+# Data checks sweep the whole corpus, hit the Cantus Index API once per
+# distinct cantus_id, and email real staff recipients, so they only run in
+# production by default. Staging's database is periodically restored from
+# production, and DataCheckConfig and its recipients come along with it, so
+# without this gate staging sends duplicate reports and doubles the load on
+# Cantus Index. Set DATA_CHECKS_ENABLED=true to run them elsewhere on purpose.
+DATA_CHECKS_ENABLED = (
+    os.getenv(
+        "DATA_CHECKS_ENABLED",
+        "true" if PROJECT_ENVIRONMENT == "PRODUCTION" else "false",
+    ).lower()
+    == "true"
+)
+
 CELERY_BEAT_SCHEDULE = {
     "run-data-checks": {
         "task": "cantusdb.run_data_checks",
@@ -249,3 +265,18 @@ if DEBUG:
     INSTALLED_APPS.append("debug_toolbar")
     # debug toolbar must be inserted as early in the middleware as possible
     MIDDLEWARE.insert(0, "debug_toolbar.middleware.DebugToolbarMiddleware")
+
+# Expected search disconnects are useful operational information. Keep their
+# logger visible in production without changing other application log levels.
+LOGGING = {
+    "version": 1,
+    "disable_existing_loggers": False,
+    "handlers": {"search_cancellation_console": {"class": "logging.StreamHandler"}},
+    "loggers": {
+        "main_app.middleware": {
+            "handlers": ["search_cancellation_console"],
+            "level": "INFO",
+            "propagate": False,
+        },
+    },
+}
