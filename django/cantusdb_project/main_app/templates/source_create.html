@@ -5,6 +5,7 @@
     <script type="text/javascript"
             src="{% static 'admin/js/vendor/jquery/jquery.js' %}"></script>
     {{ form.media }}
+    <script src="{% static 'js/source_image_links.js' %}" defer></script>
 {% endblock %}
 {% block content %}
     <div class="container">
@@ -18,7 +19,7 @@
                     </div>
                 {% endif %}
                 <!--Display form error message -->
-                {% if form.errors %}
+                {% if form.errors or image_link_formset.total_error_count %}
                     <div class="alert alert-danger alert-dismissible">
                         <a href="#" class="close" data-bs-dismiss="alert" aria-label="close">×</a>
                         {% for error in form.non_field_errors %}
@@ -31,6 +32,9 @@
                                 {{ field.label }}: {{ field.errors|striptags }}
                             {% endif %}
                         {% endfor %}
+                        {% if image_link_formset.total_error_count %}
+                            <a href="#source-image-links">Check the image gallery links below.</a>
+                        {% endif %}
                     </div>
                 {% endif %}
                 <form method="post">
@@ -179,11 +183,11 @@
                         </div>
                     </div>
                     <div class="row mb-2 small">
-                        <div class="col-lg-6">
-                            {{ form.image_link.label_tag }}
-                            {{ form.image_link }}
-                            <p class="text-muted m-0">{{ form.image_link.help_text }}</p>
+                        <div class="col-lg-12">
+                            {% include "source_image_links_formset.html" %}
                         </div>
+                    </div>
+                    <div class="row mb-2 small">
                         <div class="col-lg-2">
                             <label for="{{ form.fragmentarium_id.id_for_label }}">Fragmentarium ID:</label>
                             {{ form.fragmentarium_id }}
