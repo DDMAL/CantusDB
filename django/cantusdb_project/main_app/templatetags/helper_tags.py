@@ -5,7 +5,7 @@ from typing import Union, Optional, Any
 from django.conf import settings
 from django import template
 from django.core.paginator import Paginator, Page
-from django.db.models import Q
+from django.db.models import Exists, OuterRef, Q
 from django.template.defaultfilters import stringfilter
 from django.utils.safestring import mark_safe, SafeString
 from django.http import HttpRequest, QueryDict
@@ -14,7 +14,7 @@ from cmarkgfm import github_flavored_markdown_to_html
 from cmarkgfm.cmark import Options as cmarkgfmOptions
 
 from articles.models import Article
-from main_app.models import Source, BaseModel
+from main_app.models import Chant, Source, BaseModel
 from users.models import User
 
 register = template.Library()
@@ -240,6 +240,7 @@ def get_user_source_pagination(context: dict[str, Any]) -> Page[Source]:
             Q(current_editors=context["user"]) | Q(created_by=context["user"])
         )
         .select_related("holding_institution")
+        .annotate(has_chants=Exists(Chant.objects.filter(source_id=OuterRef("pk"))))
         .order_by("-date_updated")
         .distinct()
         .only(
@@ -250,6 +251,7 @@ def get_user_source_pagination(context: dict[str, Any]) -> Page[Source]:
             "holding_institution__name",
             "holding_institution__is_private_collector",
             "shelfmark",
+            "name",
         )
     )
     paginator = Paginator(user_created_sources, 6)
@@ -267,6 +269,7 @@ def get_user_created_source_pagination(context: dict[str, Any]) -> Page[Source]:
     user_created_sources = (
         Source.objects.filter(created_by=context["user"])
         .select_related("holding_institution")
+        .annotate(has_chants=Exists(Chant.objects.filter(source_id=OuterRef("pk"))))
         .order_by("-date_created")
         .distinct()
         .only(
@@ -277,6 +280,7 @@ def get_user_created_source_pagination(context: dict[str, Any]) -> Page[Source]:
             "holding_institution__name",
             "holding_institution__is_private_collector",
             "shelfmark",
+            "name",
         )
     )
     paginator = Paginator(user_created_sources, 6)

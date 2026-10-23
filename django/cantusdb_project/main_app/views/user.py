@@ -5,13 +5,13 @@ from django.contrib.auth import get_user_model
 from django.contrib.auth.mixins import LoginRequiredMixin
 from django.contrib.auth.views import LogoutView
 from django.core.paginator import Paginator
-from django.db.models import Q, QuerySet
+from django.db.models import Exists, OuterRef, Q, QuerySet
 from django.db.models.aggregates import Count
 from django.views.generic import DetailView
 from django.views.generic import ListView
 from extra_views import SearchableListMixin
 
-from main_app.models import Source
+from main_app.models import Chant, Source
 from main_app.permissions import CustomAccessMixin
 from users.models import User as UserType
 
@@ -103,6 +103,7 @@ class UserSourceListView(LoginRequiredMixin, ListView):  # type: ignore [type-ar
             Source.objects.filter(
                 Q(current_editors=self.request.user) | Q(created_by=self.request.user)
             )
+            .annotate(has_chants=Exists(Chant.objects.filter(source_id=OuterRef("pk"))))
             .order_by("-date_updated")
             .select_related("holding_institution")
             .distinct()
@@ -113,6 +114,7 @@ class UserSourceListView(LoginRequiredMixin, ListView):  # type: ignore [type-ar
         user: UserType = self.request.user
         user_created_sources = (
             Source.objects.filter(created_by=user)
+            .annotate(has_chants=Exists(Chant.objects.filter(source_id=OuterRef("pk"))))
             .order_by("-date_created")
             .select_related("holding_institution")
             .distinct()
