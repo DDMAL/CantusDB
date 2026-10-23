@@ -402,7 +402,7 @@ class ChantDetailView(CustomAccessMixin, JSONResponseMixin, DetailView):  # type
             "project",
             "created_by",
             "last_updated_by",
-        ).prefetch_related("source__segment_m2m", "source__notation")
+        ).prefetch_related("source__segment_m2m")
 
     @staticmethod
     def _attributable_user(user: Optional[User]) -> Optional[User]:
@@ -436,8 +436,6 @@ class ChantDetailView(CustomAccessMixin, JSONResponseMixin, DetailView):  # type
             source is not None
             and source.segment_m2m.filter(id=settings.BOWER_SEGMENT_ID).exists()
         )
-        context["source_notation"] = source.notation.first() if source else None
-
         language = chant.text_language
         if language and language.pk == 2:
             language_str = "kanienkeha"
