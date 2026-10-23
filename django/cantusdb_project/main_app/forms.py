@@ -146,10 +146,14 @@ def _mark_char(char: str) -> str:
     return f"<mark>{html.escape(char)}</mark>"
 
 
-def _find_invalid_characters(value: str) -> tuple[list[str], str]:
+def _find_invalid_characters(
+    value: str,
+    disallowed_chars: frozenset[str],
+    tolerated_chars: frozenset[str],
+) -> tuple[list[str], str]:
     """
     Locate every character in ``value`` that isn't allowed in a chant text
-    (per ``INVALID_CHAR_REGEX``, less ``TOLERATED_CHARS``). Return a tuple of
+    (per the syllabifier and the field's spelling rules). Return a tuple of
     ``(invalid_chars, marked)`` where ``invalid_chars`` is the list of offending
     characters (in order of appearance, with duplicates) and ``marked`` is an
     HTML-escaped copy of ``value`` with each offending character wrapped in a
@@ -157,26 +161,27 @@ def _find_invalid_characters(value: str) -> tuple[list[str], str]:
     """
     invalid_chars: list[str] = []
     parts: list[str] = []
-    last = 0
-    for match in INVALID_CHAR_REGEX.finditer(value):
-        char = match.group()
-        if char in TOLERATED_CHARS:
-            continue
-        parts.append(html.escape(value[last : match.start()]))
-        invalid_chars.append(char)
-        parts.append(_mark_char(char))
-        last = match.end()
-    parts.append(html.escape(value[last:]))
+    for char in value:
+        if char in disallowed_chars or (
+            char not in tolerated_chars and INVALID_CHAR_REGEX.fullmatch(char)
+        ):
+            invalid_chars.append(char)
+            parts.append(_mark_char(char))
+        else:
+            parts.append(html.escape(char))
     return invalid_chars, "".join(parts)
 
 
 def find_chant_text_problems(
-    value: Optional[str], text_presyllabified: bool = False
+    value: Optional[str],
+    text_presyllabified: bool = False,
+    *,
+    disallowed_chars: frozenset[str] = frozenset(),
+    tolerated_chars: frozenset[str] = TOLERATED_CHARS,
 ) -> list[dict[str, str]]:
     """
-    Check whether ``value`` (the contents of a chant text field) can be
-    syllabified, and describe anything standing in the way. Each problem is a
-    dict::
+    Check ``value`` against the field's spelling rules and check whether it can
+    be syllabified. Each problem is a dict::
 
         {"kind": ..., "message": ..., "marked_html": ...}
 
@@ -186,10 +191,10 @@ def find_chant_text_problems(
     is the escaped text with nothing marked. An empty or unproblematic value
     yields an empty list.
 
-    A text can have more than one problem, so both checks always run: the
-    disallowed characters the first check reports are stripped before
-    syllabifying, rather than short-circuiting the second check -- which used to
-    leave bracket problems hidden behind them.
+    A text can have more than one problem, so both checks always run. The
+    syllabifier removes characters it cannot handle before checking structure.
+    Brackets remain available to that check even when the spelling rules flag
+    them, so character warnings do not hide structural problems.
 
     This backs a *non-blocking* warning: texts that don't conform to the entry
     protocols can still be saved (see #1681). Previously (see #1653) these
@@ -202,7 +207,9 @@ def find_chant_text_problems(
     # that as one line break, just as for the validation endpoint's LF input.
     value = value[:MAX_CHECKED_TEXT_LENGTH].replace("\r\n", "\n")
     problems: list[dict[str, str]] = []
-    invalid_chars, marked_html = _find_invalid_characters(value)
+    invalid_chars, marked_html = _find_invalid_characters(
+        value, disallowed_chars, tolerated_chars
+    )
     if invalid_chars:
         # Preserve order but drop duplicates for a readable message.
         shown = ", ".join(_describe_char(char) for char in dict.fromkeys(invalid_chars))
@@ -214,9 +221,9 @@ def find_chant_text_problems(
             }
         )
     try:
-        # ``clean_text`` drops the disallowed characters -- already reported
-        # above, if there were any -- so that they can't mask a structural
-        # problem underneath.
+        # ``clean_text`` removes characters the syllabifier cannot handle.
+        # Keep brackets, even when the spelling rules flag them above, so this
+        # separate check can still report structural problems.
         syllabify_text(value, clean_text=True, text_presyllabified=text_presyllabified)
     except LatinError as err:
         # volpiano-display-utilities phrases this as
@@ -255,15 +262,27 @@ class ChantTextField(forms.CharField):
     Base class for the chant text fields whose contents are checked for
     syllabification problems. ``ChantTextWarningsMixin`` finds these fields on
     a form by type, so any form declaring one gets the non-blocking warning
-    without further wiring. Subclasses set ``text_presyllabified`` to say how
-    the contents should be read.
+    without further wiring. Subclasses set the spelling rules and whether
+    the contents have already been syllabified.
     """
 
     text_presyllabified: bool = False
+    disallowed_chars: frozenset[str] = frozenset()
+    tolerated_chars: frozenset[str] = TOLERATED_CHARS
 
 
 class CantusDBLatinField(ChantTextField):
-    """A chant text field holding unsyllabified text (source/standardized spelling)."""
+    """Standardized spelling allows periods and square brackets, but not curly ones."""
+
+    disallowed_chars = frozenset("{}")
+    tolerated_chars = TOLERATED_CHARS | frozenset(".")
+
+
+class CantusDBSourceLatinField(ChantTextField):
+    """Source spelling allows periods and curly brackets, but not square ones."""
+
+    disallowed_chars = frozenset("[]")
+    tolerated_chars = TOLERATED_CHARS | frozenset(".")
 
 
 class CantusDBSyllabifiedLatinField(ChantTextField):
@@ -297,6 +316,8 @@ class ChantTextWarningsMixin:
                 for problem in find_chant_text_problems(
                     data.get(field_name),
                     text_presyllabified=field.text_presyllabified,
+                    disallowed_chars=field.disallowed_chars,
+                    tolerated_chars=field.tolerated_chars,
                 )
             )
         return cleaned_data
@@ -438,7 +459,7 @@ class ChantCreateForm(ChantTextWarningsMixin, forms.ModelForm):
         required=True,
     )
 
-    manuscript_full_text = CantusDBLatinField(
+    manuscript_full_text = CantusDBSourceLatinField(
         widget=TextAreaWidget,
         label="Full text as in Source (source spelling)",
         help_text=Chant._meta.get_field("manuscript_full_text").help_text,
@@ -657,7 +678,7 @@ class ChantEditForm(ChantTextWarningsMixin, forms.ModelForm):
         required=False,
     )
 
-    manuscript_full_text = CantusDBLatinField(
+    manuscript_full_text = CantusDBSourceLatinField(
         widget=TextAreaWidget,
         label="Full text as in Source (source spelling)",
         help_text=Chant._meta.get_field("manuscript_full_text").help_text,
@@ -919,7 +940,7 @@ class ChantEditSyllabificationForm(ChantTextWarningsMixin, forms.ModelForm):
             "manuscript_syllabized_full_text",
         ]
 
-    manuscript_full_text = CantusDBLatinField(
+    manuscript_full_text = CantusDBSourceLatinField(
         widget=TextAreaWidget, label="Full text as in Source (source spelling)"
     )
 
@@ -929,14 +950,17 @@ class ChantEditSyllabificationForm(ChantTextWarningsMixin, forms.ModelForm):
 
 
 # The chant text fields the ``validate-chant-text`` endpoint checks, mapped to
-# the label and syllabification setting to use for each. The endpoint sees only
-# POST data, so unlike ``ChantTextWarningsMixin`` it can't find the fields on a
-# form by type -- this derives the same information from the forms that declare
-# them, so the two still agree. ``chant_text_validation.js`` mirrors these names.
+# the label, spelling rules and syllabification setting to use for each. The
+# endpoint sees only POST data, so unlike ``ChantTextWarningsMixin`` it can't
+# find the fields on a form by type -- this derives the same information from
+# the forms that declare them, so the two still agree.
+# ``chant_text_validation.js`` mirrors these names.
 CHANT_TEXT_FIELDS: dict[str, dict[str, Any]] = {
     name: {
         "label": str(field.label) if field.label else pretty_name(name),
         "text_presyllabified": field.text_presyllabified,
+        "disallowed_chars": field.disallowed_chars,
+        "tolerated_chars": field.tolerated_chars,
     }
     for form_class in (ChantCreateForm, ChantEditForm, ChantEditSyllabificationForm)
     for name, field in form_class.base_fields.items()
