@@ -15,6 +15,23 @@ class Elements(HTMLParser):
 
 
 class MarkdownRenderingTest(SimpleTestCase):
+    def test_pasted_link_destinations_keep_parentheses(self) -> None:
+        for url in [
+            "https://example.com/a)b",
+            "https://example.com/a(b",
+            "https://example.com/a(b)c",
+            "http://example.com/a)%3Cb%3E",
+        ]:
+            with self.subTest(url=url):
+                html = render_markdown(f"see [here](<{url}>) now")
+                links = [
+                    attrs["href"]
+                    for tag, attrs in Elements(html).elements
+                    if tag == "a"
+                ]
+                self.assertEqual(links, [url])
+                self.assertIn(">here</a> now", html)
+
     def test_legacy_html_keeps_authored_line_breaks(self) -> None:
         cases = [
             (

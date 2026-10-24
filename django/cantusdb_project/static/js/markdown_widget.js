@@ -332,12 +332,28 @@ var MarkdownWidget = (function () {
         }
         e.preventDefault();
         var value = textarea.value;
-        var link = "[" + value.substring(start, end) + "](" + pasted + ")";
+        // Angle brackets keep parentheses inside the destination, even when
+        // they are unbalanced. Literal angle brackets must then be encoded.
+        var destination = /[()]/.test(pasted)
+            ? "<" + pasted.replace(/[<>]/g, encodeURIComponent) + ">"
+            : pasted;
+        var before = value.substring(0, start);
+        var after = value.substring(end);
+        var replacement;
+        // The Link button selects its URL placeholder for pasting. Replacing
+        // a whole existing destination must not wrap it in a nested link.
+        if (before.endsWith("](") && after.startsWith(")")) {
+            replacement = destination;
+        } else if (before.endsWith("](<") && after.startsWith(">)")) {
+            replacement = pasted.replace(/[<>]/g, encodeURIComponent);
+        } else {
+            replacement = "[" + value.substring(start, end) + "](" + destination + ")";
+        }
         setValue(
             textarea,
-            value.substring(0, start) + link + value.substring(end),
-            start + link.length,
-            start + link.length
+            before + replacement + after,
+            start + replacement.length,
+            start + replacement.length
         );
     }
 
@@ -436,6 +452,11 @@ var MarkdownWidget = (function () {
             });
 
             textarea.addEventListener("keydown", function (e) {
+                // Some browsers clear isComposing before the final IME keydown.
+                // keyCode 229 still identifies that composition event.
+                if (e.isComposing || e.keyCode === 229) {
+                    return; // Let the input method handle composition keys.
+                }
                 let tab = tabRelease(tabReleased, e.key);
                 tabReleased = tab.released;
                 if (tab.movesFocus || e.key === "Escape") {

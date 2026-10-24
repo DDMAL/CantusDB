@@ -484,6 +484,52 @@ test("pasting a URL trims surrounding whitespace", () => {
     assert.equal(el.value, "[here](https://example.com)");
 });
 
+test("pasting URLs with parentheses keeps the complete link destination", () => {
+    for (const [url, destination] of [
+        ["https://example.com/a)b", "https://example.com/a)b"],
+        ["https://example.com/a(b", "https://example.com/a(b"],
+        ["https://example.com/a(b)c", "https://example.com/a(b)c"],
+        ["http://example.com/a)<b>", "http://example.com/a)%3Cb%3E"],
+    ]) {
+        const el = ta("see here now", 4, 8);
+        const e = pasteEvent(url);
+        md.handlePaste(el, e);
+        const link = "[here](<" + destination + ">)";
+        assert.equal(e.defaultPrevented, true);
+        expectState(el, "see " + link + " now", 4 + link.length, 4 + link.length);
+    }
+});
+
+test("pasting into the Link button's URL placeholder fills the destination", () => {
+    for (const [url, destination] of [
+        ["https://example.com", "https://example.com"],
+        ["https://example.com/a)b", "<https://example.com/a)b>"],
+    ]) {
+        const el = ta("see here now", 4, 8);
+        md.insertLink(el);
+        md.handlePaste(el, pasteEvent(url));
+        const expected = "see [here](" + destination + ") now";
+        expectState(el, expected, expected.length - 5, expected.length - 5);
+    }
+});
+
+test("pasting over an existing link destination replaces only that destination", () => {
+    for (const value of [
+        "see [here](https://old.example) now",
+        "see [here](<https://old.example>) now",
+    ]) {
+        const start = value.indexOf("https://old.example");
+        const el = ta(value, start, start + "https://old.example".length);
+        const e = pasteEvent("http://example.com/a)<b>");
+        md.handlePaste(el, e);
+        const expected = "see [here](<http://example.com/a)%3Cb%3E>) now";
+        assert.equal(e.defaultPrevented, true);
+        // Inside an existing <...> destination the caret stays before its >.
+        const caret = expected.length - (value.includes("(<") ? 6 : 5);
+        expectState(el, expected, caret, caret);
+    }
+});
+
 test("pasting non-URL text is left to the browser's default handling", () => {
     const el = ta("here", 0, 4);
     const e = pasteEvent("not a url");

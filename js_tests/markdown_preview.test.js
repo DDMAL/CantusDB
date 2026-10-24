@@ -4,7 +4,7 @@ const fs = require("node:fs");
 const vm = require("node:vm");
 const path = require("node:path");
 
-// Drive the widget's actual listeners while controlling when HTTP replies arrive.
+// Drive the widget's actual preview and keyboard listeners in a simulated DOM.
 function harness() {
     function element() {
         return {
@@ -16,6 +16,7 @@ function harness() {
     }
     const textarea = Object.assign(element(), {
         value: "**unsaved**", clientHeight: 100,
+        selectionStart: 0, selectionEnd: 0, focus() {},
         form: { querySelector: () => ({ value: "form-csrf-token" }) },
     });
     const preview = element(), previewTab = element(), editTab = element();
@@ -47,6 +48,14 @@ function harness() {
         textarea, preview, toolbar, requests,
         show: () => previewTab.listeners["show.bs.tab"](),
         write: () => editTab.listeners["show.bs.tab"](),
+        keydown(key, options = {}) {
+            const event = {
+                key, defaultPrevented: false, ...options,
+                preventDefault() { this.defaultPrevented = true; },
+            };
+            textarea.listeners.keydown.call(textarea, event);
+            return event;
+        },
     };
 }
 
@@ -71,6 +80,56 @@ test("Preview posts unsaved text and the form CSRF token to the server", async (
     assert.equal(h.preview.innerHTML, "<p><strong>unsaved</strong></p>");
     assert.equal(h.preview.attrs["aria-busy"], undefined);
     assert.equal(h.textarea.value, "**unsaved**");
+});
+
+test("composition keys leave text, selection and browser handling unchanged", () => {
+    for (const [value, key, options] of [
+        ["- item", "Enter", {}],
+        ["> > quote", "Enter", {}],
+        ["- item", "Tab", {}],
+        ["  - item", "Tab", {shiftKey: true}],
+        ["word", "b", {ctrlKey: true}],
+        ["word", "i", {metaKey: true}],
+        ["word", "k", {ctrlKey: true}],
+    ]) {
+        const h = harness();
+        Object.assign(h.textarea, {
+            value, selectionStart: value.length, selectionEnd: value.length,
+        });
+        const event = h.keydown(key, {...options, isComposing: true});
+        assert.equal(event.defaultPrevented, false, key);
+        assert.equal(h.textarea.value, value);
+        assert.equal(h.textarea.selectionStart, value.length);
+        assert.equal(h.textarea.selectionEnd, value.length);
+    }
+});
+
+test("Enter continues lists again after composition ends", () => {
+    const h = harness();
+    Object.assign(h.textarea, {value: "- item", selectionStart: 6, selectionEnd: 6});
+    assert.equal(h.keydown("Enter", {isComposing: true}).defaultPrevented, false);
+    assert.equal(h.keydown("Enter", {isComposing: false}).defaultPrevented, true);
+    assert.equal(h.textarea.value, "- item\n- ");
+    assert.equal(h.textarea.selectionStart, 9);
+    assert.equal(h.textarea.selectionEnd, 9);
+});
+
+test("IME boundary Enter is ignored even after isComposing becomes false", () => {
+    const h = harness();
+    Object.assign(h.textarea, {value: "- item", selectionStart: 6, selectionEnd: 6});
+    const event = h.keydown("Enter", {isComposing: false, keyCode: 229});
+    assert.equal(event.defaultPrevented, false);
+    assert.equal(h.textarea.value, "- item");
+    assert.equal(h.textarea.selectionStart, 6);
+    assert.equal(h.textarea.selectionEnd, 6);
+});
+
+test("Escape during composition does not release Tab from indenting", () => {
+    const h = harness();
+    Object.assign(h.textarea, {value: "item", selectionStart: 4, selectionEnd: 4});
+    h.keydown("Escape", {isComposing: true});
+    assert.equal(h.keydown("Tab").defaultPrevented, true);
+    assert.equal(h.textarea.value, "  item");
 });
 
 test("a slow old response cannot overwrite the newer preview", async () => {
