@@ -1,7 +1,7 @@
 name: js-tests
 on:
     pull_request:
-        types: [opened, synchronize]
+        types: [opened, synchronize, reopened, ready_for_review]
 jobs:
     javascript-tests:
         permissions:
@@ -16,4 +16,4 @@ jobs:
                   node-version: 22
             # Node's built-in test runner; the project has no JS dependencies
             # and no package manifest, so there is nothing to install.
-            - run: node --test "tests/js/**/*.test.js"
+            - run: node --test "tests/js/**/*.test.js" js_tests/*.test.js
