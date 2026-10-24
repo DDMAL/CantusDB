@@ -266,13 +266,12 @@ class TestMarkdownTemplateFilters(TestCase):
             with self.subTest(value=value):
                 self.assertTrue(contains_html_tags(value))
 
-    def test_render_markdown_drops_raw_html(self):
-        # cmark runs in safe mode, so raw HTML blocks are dropped rather than
-        # passed through -- these fields are editable by many indexer accounts.
-        # Note this is block-level: a value built entirely of HTML blocks loses
-        # its *text* too, which is why source_detail.html falls back to the
-        # legacy rendering for values that still contain HTML.
-        self.assertNotIn("Legacy text", render_markdown("<p>Legacy text</p>"))
+    def test_render_markdown_preserves_safe_legacy_html(self) -> None:
+        # Unconverted fields remain readable through the same sanitized renderer
+        # used for Markdown and editor previews.
+        rendered = render_markdown('<p onclick="alert(1)">Legacy text</p>')
+        self.assertIn("<p>Legacy text</p>", rendered)
+        self.assertNotIn("onclick", rendered)
 
     def test_render_markdown_renders_markdown(self):
         self.assertIn("<strong>Bold</strong>", render_markdown("**Bold**"))
@@ -301,8 +300,8 @@ class TestMarkdownTemplateFilters(TestCase):
         self.assertIn("<li>", render_markdown("* one\n* two"))
         self.assertIn("<td>", render_markdown("| a |\n| --- |\n| 1 |"))
 
-    def test_hardbreaks_mode_still_drops_raw_html(self):
-        # Turning on hardbreaks must not turn off cmark's safe mode.
+    def test_hardbreaks_mode_still_blocks_scripts(self) -> None:
+        # Line-break preservation must not allow executable HTML.
         self.assertNotIn("<script", render_markdown("<script>alert(1)</script>"))
 
 
