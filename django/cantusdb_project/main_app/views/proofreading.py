@@ -11,7 +11,6 @@ from django.db.models import (
     When,
     Value,
 )
-from django.db.models.functions import Coalesce
 from django.views.generic import ListView
 from django.views.generic.list import MultipleObjectMixin
 from django.utils import timezone
@@ -223,15 +222,19 @@ class ProofreadView(CustomAccessMixin, ListView, MultipleObjectMixin):
         sort_param = self.request.GET.get("sort", "asc")
         sort_prefix = "-" if sort_param == "desc" else ""
 
-        # Mirror Browse Sources: coalesce NULL holding_institution__siglum to ""
-        # so private collectors sort consistently regardless of DB NULL ordering.
-        siglum_coalesced = Coalesce("holding_institution__siglum", Value(""))
-
         if order_param == "country":
+            # Mirror Browse Sources: order private collectors (whose siglum is
+            # NULL) after institutions with sigla within the same country group.
+            # PostgreSQL's native default already does this: NULLS LAST for
+            # ascending, NULLS FIRST for descending, which matches the Python
+            # sort used in tests (`(siglum is None, siglum or "")`) once the
+            # whole list is reversed for a descending sort. A final `id`
+            # tiebreaker keeps ordering deterministic.
             ordering_fields = [
                 f"{sort_prefix}holding_institution__country",
-                siglum_coalesced.desc() if sort_prefix else siglum_coalesced.asc(),
+                f"{sort_prefix}holding_institution__siglum",
                 f"{sort_prefix}shelfmark",
+                f"{sort_prefix}id",
             ]
             return queryset.order_by(*ordering_fields)
 
@@ -293,12 +296,15 @@ class ProofreadView(CustomAccessMixin, ListView, MultipleObjectMixin):
 
         ordering_fields = [f"{sort_prefix}{field}" for field in primary_sort_fields]
 
-        # Fallback if somehow ordering_fields is empty (should not happen with default in .get)
+        # An unrecognized `order` yields no mapped fields; fall back to the same
+        # ordering as the default "country" branch. The `id` tiebreaker keeps it
+        # a total order so pagination stays consistent.
         if not ordering_fields:
             ordering_fields = [
                 f"{sort_prefix}holding_institution__country",
-                siglum_coalesced.desc() if sort_prefix else siglum_coalesced.asc(),
+                f"{sort_prefix}holding_institution__siglum",
                 f"{sort_prefix}shelfmark",
+                f"{sort_prefix}id",
             ]
 
         return queryset.order_by(*ordering_fields)
