@@ -29,6 +29,7 @@ from main_app.tasks import (
 from main_app.tests.make_fakes import (
     make_fake_source,
     make_fake_chant,
+    make_fake_institution,
     make_fake_service,
     make_fake_genre,
     make_fake_user,
@@ -127,6 +128,82 @@ class SaveBrowseChantsFormsetTest(TestCase):
             chant = self.chants[0]
             chant.refresh_from_db()
             self.assertNotEqual(chant.folio, "")
+
+    def test_nonstandard_text_saves_with_warnings_for_each_row(self) -> None:
+        data = self.initial_form_data.copy()
+        texts = ["Gloria ! Deo [", "Kyrie\r\neleison"]
+        for index, text in enumerate(texts):
+            data[f"chant_set-{index}-manuscript_full_text_std_spelling"] = text
+        result = save_browse_chants_formset.apply(args=(data, self.chant_ids)).get()
+
+        self.assertEqual(result["error_count"], 0)
+        self.assertEqual(result["form_errors"], [])
+        self.assertEqual(result["non_form_errors"], [])
+        for index, text in enumerate(texts):
+            chant = Chant.objects.get(pk=data[f"chant_set-{index}-id"])
+            self.assertEqual(chant.manuscript_full_text_std_spelling, text)
+        warnings = result["text_warnings"]
+        self.assertEqual(
+            [(warning["form_num"], warning["kind"]) for warning in warnings],
+            [(0, "invalid_characters"), (0, "structural"), (1, "invalid_characters")],
+        )
+        self.assertTrue(
+            all(w["field"] == "manuscript_full_text_std_spelling" for w in warnings)
+        )
+        self.assertIn("<mark>!</mark>", warnings[0]["marked_html"])
+        self.assertEqual(warnings[2]["message"].count("line break"), 1)
+        self.assertEqual(warnings[2]["marked_html"].count("&#9166;"), 1)
+
+    def test_valid_text_and_incipit_asterisk_save_without_warnings(self) -> None:
+        data = self.initial_form_data.copy()
+        for index, text in enumerate(["Gloria in excelsis deo", "Kyrie eleison*"]):
+            data[f"chant_set-{index}-manuscript_full_text_std_spelling"] = text
+        result = save_browse_chants_formset.apply(args=(data, self.chant_ids)).get()
+
+        self.assertEqual(result["error_count"], 0)
+        self.assertEqual(result["text_warnings"], [])
+        for index in range(2):
+            chant = Chant.objects.get(pk=data[f"chant_set-{index}-id"])
+            self.assertEqual(
+                chant.manuscript_full_text_std_spelling,
+                data[f"chant_set-{index}-manuscript_full_text_std_spelling"],
+            )
+
+    def test_invalid_formset_does_not_report_saved_text_warnings(self) -> None:
+        data = self.initial_form_data.copy()
+        data["chant_set-0-manuscript_full_text_std_spelling"] = "Gloria ! Deo"
+        data["chant_set-1-folio"] = ""
+        before = list(
+            Chant.objects.filter(id__in=self.chant_ids)
+            .order_by("id")
+            .values_list("manuscript_full_text_std_spelling", flat=True)
+        )
+        result = save_browse_chants_formset.apply(args=(data, self.chant_ids)).get()
+
+        self.assertGreater(result["error_count"], 0)
+        self.assertEqual(result["text_warnings"], [])
+        self.assertEqual(
+            list(
+                Chant.objects.filter(id__in=self.chant_ids)
+                .order_by("id")
+                .values_list("manuscript_full_text_std_spelling", flat=True)
+            ),
+            before,
+        )
+
+    def test_warning_escapes_chant_markup(self) -> None:
+        data = self.initial_form_data.copy()
+        data["chant_set-0-manuscript_full_text_std_spelling"] = (
+            "<script>alert(1)</script>"
+        )
+        result = save_browse_chants_formset.apply(args=(data, self.chant_ids)).get()
+
+        self.assertEqual(result["error_count"], 0)
+        warnings = [w for w in result["text_warnings"] if w["form_num"] == 0]
+        self.assertTrue(warnings)
+        for warning in warnings:
+            self.assertNotIn("<script>", warning["marked_html"])
+            self.assertIn("&lt;", warning["marked_html"])
 
 
 class CheckCantusIdsNotInCiTest(TestCase):
@@ -347,14 +424,20 @@ class FormatCheckCsvTest(TestCase):
         self.assertEqual(unpub_row["published"], "0")
 
     def test_formula_injection_trigger_chars_are_neutralized(self) -> None:
-        source = make_fake_source(published=True, siglum="=cmd|'/c calc'!A1")
+        # The `source` column is now the composed short_heading (institution
+        # siglum + shelfmark, #2025), so a trigger char leading the institution
+        # siglum must still be neutralized. `cantus_id` is plain free text.
+        institution = make_fake_institution(siglum="=cmd|'/c calc'!A1")
+        source = make_fake_source(
+            published=True, holding_institution=institution, shelfmark="MS 1"
+        )
         chant = make_fake_chant(source=source, genre=None, cantus_id="=2+2")
 
         content = _format_check_csv({"published": [chant], "unpublished": []})
         rows = list(csv.DictReader(io.StringIO(content)))
         row = rows[0]
 
-        self.assertEqual(row["source"], "'=cmd|'/c calc'!A1")
+        self.assertEqual(row["source"], "'=cmd|'/c calc'!A1 MS 1")
         self.assertEqual(row["cantus_id"], "'=2+2")
 
     def test_duplicate_check_uses_group_header_even_with_no_rows(self) -> None:
@@ -422,6 +505,38 @@ class FormatCheckCsvTest(TestCase):
         )
         self.assertEqual(row["link"], expected_link)
         self.assertEqual(row["published"], "1")
+
+    def test_source_column_uses_composed_heading_not_legacy_siglum(self) -> None:
+        """The `source` column shows `Source.short_heading` (institution siglum
+        + shelfmark), not the frozen `Source.siglum` column. See #2025.
+        """
+        institution = make_fake_institution(siglum="V-CVbav")
+        source = make_fake_source(
+            published=True,
+            shelfmark="San Pietro B.79",
+            holding_institution=institution,
+        )
+        # The stale value the report used to print.
+        Source.objects.filter(id=source.id).update(siglum="V-CVbav B.79")
+        chant = make_fake_chant(source=source)
+
+        content = _format_check_csv({"published": [chant], "unpublished": []})
+        rows = list(csv.DictReader(io.StringIO(content)))
+
+        self.assertEqual(rows[0]["source"], "V-CVbav San Pietro B.79")
+        self.assertNotIn("V-CVbav B.79", content)
+
+    def test_source_column_falls_back_to_cantus_without_usable_siglum(self) -> None:
+        institution = make_fake_institution(is_private_collector=True)
+        source = make_fake_source(
+            published=True, shelfmark="MS 123", holding_institution=institution
+        )
+        chant = make_fake_chant(source=source)
+
+        content = _format_check_csv({"published": [chant], "unpublished": []})
+        rows = list(csv.DictReader(io.StringIO(content)))
+
+        self.assertEqual(rows[0]["source"], "Cantus MS 123")
 
 
 class PrivateMediaStorageTest(SimpleTestCase):
