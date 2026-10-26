@@ -316,8 +316,13 @@
 
     // Only element tokens are submitted; free text is a transient search query.
     function syncToTextarea() {
-        textarea.value = joinElementTexts(allTokens().map(tokenDescriptor));
+        const text = joinElementTexts(allTokens().map(tokenDescriptor));
+        const changed = textarea.value !== text;
+        textarea.value = text;
         syncToElementsField();
+        // Notify text warnings when token edits, undo or removal change the text.
+        // Assigning .value alone leaves the old warning echo on screen.
+        if (changed) textarea.dispatchEvent(new Event("input", { bubbles: true }));
         // Every path that changes the elements ends here — normalizeComposer, the seed,
         // undo, deactivation — so this is the one place the Clean up menu's enabled states
         // need refreshing from. Hooking normalizeComposer instead would miss undo.
@@ -2469,7 +2474,7 @@
                     setStatus(check.message, "warning");
                     if (check.reason === "empty") composer.focus();
                 }
-            });
+            }, true); // Prepare the composed text before the warning handler reads it.
             // The field's position shifts whenever the form reflows — a project's extra
             // fields toggling, the composer growing as elements are added, the window
             // resizing. Re-drop the bank to match on any of it. Observing the form (not the

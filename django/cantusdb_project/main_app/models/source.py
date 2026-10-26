@@ -1,10 +1,13 @@
-from typing import Any
+from typing import Any, Optional
 
 from django.db import models
+from django.db.models import Value
+from django.db.models.functions import Coalesce, Concat, NullIf
 from django.contrib.auth import get_user_model
 
 from main_app.models.url_field import NormalizedURLField
 from main_app.models import BaseModel, Segment
+from main_app.models.source_url import SourceURL
 
 
 class Source(BaseModel):
@@ -91,7 +94,7 @@ class Source(BaseModel):
     source_completeness = models.IntegerField(
         choices=SourceCompletenessChoices.choices,
         default=SourceCompletenessChoices.FULL_SOURCE,
-        verbose_name="Complete Source/Fragment",
+        verbose_name="Physical Status",
     )
 
     full_source = models.BooleanField(blank=True, null=True)
@@ -158,6 +161,15 @@ class Source(BaseModel):
     liturgical_occasions = models.TextField(blank=True, null=True)
     description = models.TextField(blank=True, null=True)
     selected_bibliography = models.TextField(blank=True, null=True)
+    # Backup of the pre-markdown raw HTML for the legacy-HTML-to-markdown conversion
+    # (#1239). Populated by the `convert_html_to_markdown` management command at the
+    # moment it overwrites `description` / `selected_bibliography` above with
+    # markdown; `convert_html_to_markdown --revert` restores from here. A non-null
+    # value means "this field has been converted", so the command relies on it to
+    # stay truthful. Excluded from SourceAdmin's form (see admin/source.py) and
+    # not rendered in any template.
+    description_html_legacy = models.TextField(blank=True, null=True)
+    selected_bibliography_html_legacy = models.TextField(blank=True, null=True)
     image_link = NormalizedURLField(
         blank=True,
         null=True,
@@ -212,17 +224,95 @@ class Source(BaseModel):
 
         return " ".join(title)
 
+    # Both properties below are transitional: once the legacy image_link column
+    # is dropped (#1839, after populate_source_urls runs), external_images_url
+    # collapses to a plain source_links lookup and show_legacy_image_link is
+    # always False. Simplify or remove them then.
     @property
-    def short_heading(self) -> str:
+    def external_images_url(self) -> Optional[str]:
+        """The URL of this source's external image gallery, or None.
+
+        A source's image gallery can be recorded two ways: the legacy
+        ``image_link`` field, or a ``SourceURL`` with url_type
+        ``EXTERNAL_IMAGES``, which supersedes it. This returns whichever
+        applies, so a page that renders a single "images" link renders one
+        link no matter which mechanism a given source uses.
+
+        Pages that render ``source_links`` themselves should use
+        `show_legacy_image_link` instead, or the SourceURL will appear twice.
+
+        Iterates source_links in Python rather than filtering in SQL so that
+        this reads a ``prefetch_related("source_links")`` cache when the view
+        provides one; a ``.filter()`` would cost a query per source.
+        """
+        # source_links is SourceURL's related_name; mypy cannot see reverse
+        # relations without django-stubs, which this project does not install.
+        for link in self.source_links.all():  # type: ignore[attr-defined]
+            if link.url_type == SourceURL.URLTypes.EXTERNAL_IMAGES:
+                return link.url
+        return self.image_link or None
+
+    @property
+    def show_legacy_image_link(self) -> bool:
+        """Whether to render the legacy ``image_link`` field as its own link.
+
+        True only when the field is set and no ``EXTERNAL_IMAGES``
+        ``SourceURL`` supersedes it. For pages that already render
+        ``source_links``; see `external_images_url` for the rest.
+        """
+        return bool(self.image_link) and not any(
+            link.url_type == SourceURL.URLTypes.EXTERNAL_IMAGES
+            for link in self.source_links.all()  # type: ignore[attr-defined]
+        )
+
+    @staticmethod
+    def compose_short_heading(institution_siglum: str | None, shelfmark: str) -> str:
+        """Build a source's short heading from its component values.
+
+        Kept separate from the `short_heading` property so that bulk exports,
+        which read the underlying columns with `QuerySet.values()` rather than
+        instantiating Source objects, produce identical strings.
+
+        `short_heading_expression` is the database form of the same rule, and
+        `feast_source_query` in `main_app/views/feast.py` spells it out again in
+        raw SQL; keep the three in sync.
+        """
         title = []
-        if holdinst := self.holding_institution:
-            if holdinst.siglum and holdinst.siglum != "XX-NN":
-                title.append(f"{holdinst.siglum}")
-            else:
-                title.append("Cantus")
+        if institution_siglum and institution_siglum != "XX-NN":
+            title.append(institution_siglum)
         else:
             title.append("Cantus")
 
-        title.append(self.shelfmark)
+        title.append(shelfmark)
 
         return " ".join(title)
+
+    @staticmethod
+    def short_heading_expression(
+        institution_siglum_field: str, shelfmark_field: str
+    ) -> Concat:
+        """Build the short heading in the database, as `compose_short_heading`
+        builds it in Python.
+
+        No column stores the heading, so a queryset that searches or sorts on
+        what the page displays has to compose it in SQL. The arguments are query
+        paths to the holding institution's siglum and the source's shelfmark,
+        relative to the model being queried, e.g.
+        `"source__holding_institution__siglum"` and `"source__shelfmark"` from
+        Chant or Sequence.
+        """
+        return Concat(
+            Coalesce(
+                NullIf(NullIf(institution_siglum_field, Value("")), Value("XX-NN")),
+                Value("Cantus"),
+            ),
+            Value(" "),
+            Coalesce(shelfmark_field, Value("")),
+        )
+
+    @property
+    def short_heading(self) -> str:
+        holdinst = self.holding_institution
+        return self.compose_short_heading(
+            holdinst.siglum if holdinst else None, self.shelfmark
+        )

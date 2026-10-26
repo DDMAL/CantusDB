@@ -3,17 +3,22 @@ Tests for views in views/api.py
 """
 
 import json
+import re
 from typing import Optional, Any
 import csv
 from collections.abc import ItemsView, KeysView
 from unittest.mock import patch, MagicMock
+from urllib.parse import unquote
 
-from django.test import TestCase
+from django.conf import settings
+from django.test import SimpleTestCase, TestCase
 from django.urls import reverse
-from django.http import JsonResponse
+from django.http import HttpResponse, JsonResponse
 
 from main_app.tests.make_fakes import (
+    make_cantus_fallback_institutions,
     make_fake_chant,
+    make_fake_institution,
     make_fake_sequence,
     make_fake_source,
     make_fake_notation,
@@ -30,6 +35,7 @@ from main_app.tests.mock_cantusindex_data import (
 )
 from main_app.tests.mixins import CustomAccessTestMixin
 from main_app.tests.test_views.test_chant import ChantPermissionsTestCase
+from main_app.views.api import make_csv_download_filename
 
 
 class AjaxSearchBarTest(ChantPermissionsTestCase):
@@ -317,6 +323,130 @@ class AjaxMelodyViewTest(ChantPermissionsTestCase):
                 self.assertEqual(value, concordance[key])
 
 
+class AjaxMelodySearchViewTest(TestCase):
+    """The melody search box matches the heading the results display under: the
+    source's current institution siglum and shelfmark, never the frozen
+    `Chant.siglum` column. See #2025.
+    """
+
+    # "1---" is a clef, "---" a barline: `generate_volpiano_notes` strips both,
+    # leaving the distinctive note string the search below draws.
+    VOLPIANO = "1---defgab"
+    NOTES = "defgab"
+
+    def search(self, **params: str) -> list[dict]:
+        response = self.client.get(
+            reverse("ajax-melody-search"),
+            {"notes": self.NOTES, "anywhere": "false", "transpose": "false", **params},
+        )
+        return json.loads(response.content)["results"]
+
+    def test_siglum_search_matches_current_heading(self) -> None:
+        source = make_fake_source(
+            published=True,
+            shelfmark="San Pietro B.79",
+            holding_institution=make_fake_institution(siglum="V-CVbav"),
+        )
+        chant = make_fake_chant(source=source, volpiano=self.VOLPIANO)
+        # The stale value the search used to match on.
+        Chant.objects.filter(id=chant.id).update(siglum="V-CVbav B.79")
+
+        with self.subTest("finds the chant by its current heading"):
+            results = self.search(siglum="V-CVbav San Pietro")
+            self.assertEqual([result["id"] for result in results], [chant.id])
+
+        with self.subTest("no longer matches the frozen legacy column"):
+            results = self.search(siglum="V-CVbav B.79")
+            self.assertNotIn(chant.id, [result["id"] for result in results])
+
+    def test_siglum_search_matches_cantus_fallback(self) -> None:
+        # Each way a source can lack a usable institution siglum reaches the
+        # same "Cantus <shelfmark>" heading, and searching that heading has to
+        # find the chant in every one of them.
+        institutions = make_cantus_fallback_institutions()
+        chants = {
+            description: make_fake_chant(
+                source=make_fake_source(
+                    published=True,
+                    shelfmark=f"MS {number}",
+                    holding_institution=institution,
+                ),
+                volpiano=self.VOLPIANO,
+            )
+            for number, (description, institution) in enumerate(
+                institutions.items(), start=1
+            )
+        }
+
+        for number, (description, chant) in enumerate(chants.items(), start=1):
+            with self.subTest(institution=description):
+                heading = f"Cantus MS {number}"
+                self.assertEqual(chant.source.short_heading, heading)
+
+                results = self.search(siglum=heading)
+
+                self.assertEqual([result["id"] for result in results], [chant.id])
+                self.assertEqual(results[0]["computed_siglum"], heading)
+
+    def test_result_carries_the_same_heading_it_is_searched_by(self) -> None:
+        # The search box and the result column have to agree, so the endpoint
+        # returns the composed heading alongside the component columns it is
+        # built from, which stay in the response for older cached scripts.
+        chant = make_fake_chant(
+            source=make_fake_source(
+                published=True,
+                shelfmark="Laud Misc. 299",
+                holding_institution=make_fake_institution(siglum="GB-Ob"),
+            ),
+            volpiano=self.VOLPIANO,
+        )
+
+        results = self.search(siglum=chant.source.short_heading)
+
+        self.assertEqual(len(results), 1)
+        self.assertEqual(results[0]["computed_siglum"], "GB-Ob Laud Misc. 299")
+        self.assertEqual(results[0]["source__holding_institution__siglum"], "GB-Ob")
+        self.assertEqual(results[0]["source__shelfmark"], "Laud Misc. 299")
+
+    def test_source_search_ignores_the_siglum_box(self) -> None:
+        # Searching within one source passes its id, and the id has always won
+        # over whatever the (read-only) siglum box holds.
+        searched = make_fake_chant(
+            source=make_fake_source(
+                published=True,
+                shelfmark="Laud Misc. 299",
+                holding_institution=make_fake_institution(siglum="GB-Ob"),
+            ),
+            volpiano=self.VOLPIANO,
+        )
+        other = make_fake_chant(
+            source=make_fake_source(
+                published=True,
+                shelfmark="MS 1",
+                holding_institution=make_fake_institution(siglum="D-Bs"),
+            ),
+            volpiano=self.VOLPIANO,
+        )
+
+        results = self.search(source=str(searched.source.id), siglum="D-Bs MS 1")
+
+        returned_ids = [result["id"] for result in results]
+        self.assertEqual(returned_ids, [searched.id])
+        self.assertNotIn(other.id, returned_ids)
+
+    def test_unpublished_sources_stay_hidden_from_siglum_search(self) -> None:
+        source = make_fake_source(
+            published=False,
+            shelfmark="MS 1",
+            holding_institution=make_fake_institution(siglum="D-Bs"),
+        )
+        make_fake_chant(source=source, volpiano=self.VOLPIANO)
+
+        results = self.search(siglum="D-Bs MS 1")
+
+        self.assertEqual(results, [])
+
+
 class JsonMelodyExportTest(TestCase):
     def test_json_melody_response(self):
         NUM_CHANTS = 10
@@ -566,8 +696,12 @@ class JsonSourcesExportTest(TestCase):
     def setUp(self):
         # the JsonSourcesExport View uses the CANTUS Segment's .source_set property,
         # so we need to make sure to set up a CANTUS segment with the right ID for each test.
-        self.cantus_segment = make_fake_segment(id=4063, name="Bower Sequence Database")
-        self.bower_segment = make_fake_segment(id=4064, name="CANTUS Database")
+        self.cantus_segment = make_fake_segment(
+            id=settings.CANTUS_SEGMENT_ID, name="Cantus Database"
+        )
+        self.bower_segment = make_fake_segment(
+            id=settings.BOWER_SEGMENT_ID, name="Bower Sequence Database"
+        )
 
     def test_json_sources_response(self):
         source = make_fake_source(published=True, segment=[self.cantus_segment])
@@ -957,11 +1091,106 @@ class JsonCidTest(TestCase):
         self.assertEqual(json_for_one_chant_3["full_text"], "standard spelling")
 
 
+def get_filename_from_response(response: HttpResponse) -> str:
+    """Return the filename ``Content-Disposition`` asks the browser to save as.
+
+    Handles both forms Django emits: a quoted ASCII ``filename`` and the
+    percent-encoded ``filename*`` it falls back to when the name is not ASCII.
+    """
+    disposition = response["Content-Disposition"]
+    if encoded_match := re.match(
+        r"attachment; filename\*=utf-8''(?P<name>.+)$", disposition, re.IGNORECASE
+    ):
+        return unquote(encoded_match["name"])
+    quoted_match = re.match(
+        r'attachment; filename="(?P<name>.*)"$', disposition, re.IGNORECASE
+    )
+    if quoted_match is None:
+        raise AssertionError(f"unexpected Content-Disposition: {disposition}")
+    return quoted_match["name"]
+
+
+class MakeCsvDownloadFilenameTest(SimpleTestCase):
+    """
+    Tests for the filename sanitizer used by the CSV export view. These call the
+    function directly; ``CsvExportTest`` covers getting the result into the
+    response header.
+    """
+
+    def test_sanitizes_path_separators(self):
+        self.assertEqual(
+            make_csv_download_filename(123, "A-Gu Ms. 12/1"),
+            "123-A-Gu Ms. 12-1.csv",
+        )
+
+    def test_sanitizes_characters_windows_disallows(self):
+        self.assertEqual(
+            make_csv_download_filename(123, 'A-Gu Ms. 12<>:"|?*1'),
+            "123-A-Gu Ms. 12-1.csv",
+        )
+
+    def test_truncates_long_headings(self):
+        # A shelfmark can be up to 255 characters. The heading is capped at 100,
+        # so "A-Gu " plus the first 95 M's survives.
+        filename = make_csv_download_filename(123, "A-Gu " + "M" * 255)
+
+        self.assertEqual(filename, "123-A-Gu " + "M" * 95 + ".csv")
+
+
 class CsvExportTest(CustomAccessTestMixin, TestCase):
     def test_url(self):
         source = make_fake_source(published=True)
         response_1 = self.client.get(reverse("csv-export", args=[source.id]))
         self.assertEqual(response_1.status_code, 200)
+
+    def test_download_filename(self):
+        institution = make_fake_institution(siglum="A-Gu")
+        source = make_fake_source(
+            published=True, holding_institution=institution, shelfmark="Ms. 211"
+        )
+        response = self.client.get(reverse("csv-export", args=[source.id]))
+
+        self.assertEqual(
+            get_filename_from_response(response), f"{source.id}-A-Gu Ms. 211.csv"
+        )
+
+    def test_download_filename_without_holding_institution(self):
+        source = make_fake_source(
+            published=True, holding_institution=None, shelfmark="Ms. 211"
+        )
+        response = self.client.get(reverse("csv-export", args=[source.id]))
+
+        self.assertEqual(
+            get_filename_from_response(response), f"{source.id}-Cantus Ms. 211.csv"
+        )
+
+    def test_download_filename_with_control_characters_in_shelfmark(self):
+        # A newline reaching the header value would make Django raise
+        # BadHeaderError, so this exercises the full request rather than the
+        # sanitizer alone.
+        institution = make_fake_institution(siglum="A-Gu")
+        source = make_fake_source(
+            published=True, holding_institution=institution, shelfmark="Ms.\n211"
+        )
+        response = self.client.get(reverse("csv-export", args=[source.id]))
+
+        self.assertEqual(
+            get_filename_from_response(response), f"{source.id}-A-Gu Ms.-211.csv"
+        )
+
+    def test_download_filename_keeps_non_ascii_characters(self):
+        institution = make_fake_institution(siglum="F-Pn")
+        source = make_fake_source(
+            published=True, holding_institution=institution, shelfmark="Ms. Réserve 1"
+        )
+        response = self.client.get(reverse("csv-export", args=[source.id]))
+
+        # Accented characters are legitimate in shelfmarks, so they are kept
+        # rather than stripped; Django percent-encodes them per RFC 5987.
+        self.assertEqual(
+            get_filename_from_response(response),
+            f"{source.id}-F-Pn Ms. Réserve 1.csv",
+        )
 
     def test_content(self):
         NUM_CHANTS = 5
@@ -1090,7 +1319,7 @@ class CsvExportTest(CustomAccessTestMixin, TestCase):
     def test_csv_export_on_source_with_sequences(self):
         NUM_SEQUENCES = 5
         bower_segment = make_fake_segment(name="Bower Sequence Database")
-        bower_segment.id = 4064
+        bower_segment.id = settings.BOWER_SEGMENT_ID
         bower_segment.save()
         source = make_fake_source(published=True)
         source.segment_m2m.add(bower_segment)

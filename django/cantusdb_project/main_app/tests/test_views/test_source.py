@@ -2,18 +2,28 @@
 Test views in views/source.py
 """
 
+import json
 import random
+import re
+from unittest.mock import patch
+from urllib.parse import urlencode
 
 from faker import Faker
-from typing import Dict
+from typing import Dict, Optional
 
 from django.conf import settings
-from django.test import TestCase
+from django.contrib.messages import get_messages
+from django.db import connection
+from django.db.models import QuerySet
+from django.http import HttpResponse
+from django.test import TestCase, override_settings
+from django.test.utils import CaptureQueriesContext
 from django.urls import reverse
 from django.core.exceptions import ObjectDoesNotExist
 from django.contrib.auth import get_user_model
 
-from main_app.models import Source, Chant, Differentia, SourceIdentifier
+from main_app.forms import MAX_IMAGE_LINK_ROWS
+from main_app.models import Source, Chant, Differentia, SourceIdentifier, SourceURL
 from main_app.tests.make_fakes import (
     make_fake_source,
     make_fake_segment,
@@ -36,6 +46,33 @@ from users.models import User as UserAnnotation
 
 # Create a Faker instance with locale set to Latin
 faker = Faker("la")
+
+
+class CsvExportLinkTestMixin:
+    """
+    A mixin for pages that link to a source's CSV export.
+    """
+
+    def assertCsvExportLinkHasNoDownloadAttribute(
+        self, html: str, source_id: int
+    ) -> None:
+        """
+        Assert the page's CSV export link carries no ``download`` attribute.
+
+        ``csv_export`` names the downloaded file via ``Content-Disposition``; a
+        client-side ``download`` attribute on the link would override it.
+
+        :param html: The rendered HTML of the page containing the link.
+        :param source_id: The ID of the source the export link points to.
+        """
+        # Scope the assertion to the export anchor rather than the whole page.
+        csv_url = reverse("csv-export", args=[source_id])
+        match = re.search(rf'<a\b[^>]*href="{re.escape(csv_url)}"[^>]*>', html)
+        anchor_tag = match.group(0) if match else ""
+        self.assertTrue(anchor_tag, "CSV export link not found in the response")
+        # `\sdownload\b` matches the attribute with or without a value, but not
+        # attribute names that merely contain the word, e.g. `data-download-name`.
+        self.assertNotRegex(anchor_tag, r"\sdownload\b")
 
 
 class SourcePermissionsTestCase(CustomAccessTestMixin, TestCase):
@@ -159,7 +196,7 @@ class SourceCreateViewTest(TestCase):
         self.assertNotIn(settings.BENEDICAMUS_DOMINO_SEGMENT_ID, segment_ids)
 
 
-class SourceEditViewTest(CustomAccessTestMixin, TestCase):
+class SourceEditViewTest(CsvExportLinkTestMixin, CustomAccessTestMixin, TestCase):
     default_user = "editor"
     sources: Dict[str, Source]
 
@@ -224,6 +261,24 @@ class SourceEditViewTest(CustomAccessTestMixin, TestCase):
         self.assertEqual(response.status_code, 404)
         self.assertTemplateUsed(response, "404.html")
 
+    def test_csv_export_link_uses_response_filename(self) -> None:
+        source = self.sources["editor_assigned_source"]
+        response = self.client.get(reverse("source-edit", args=[source.id]))
+
+        self.assertCsvExportLinkHasNoDownloadAttribute(
+            response.content.decode("utf-8"), source.id
+        )
+
+    def test_markdown_widget_uses_server_preview(self) -> None:
+        source = self.sources["editor_assigned_source"]
+        html = self.client.get(
+            reverse("source-edit", args=[source.id])
+        ).content.decode()
+        self.assertIn(f'data-preview-url="{reverse("markdown-preview")}"', html)
+        self.assertIn("js/markdown_widget.js?v=server-preview-1", html)
+        self.assertIn("css/markdown_widget.css?v=server-preview-1", html)
+        self.assertNotIn("npm/marked", html)
+
     def test_edit_source(self) -> None:
         source = self.sources["editor_assigned_source"]
         response = self.client.post(
@@ -256,7 +311,7 @@ class SourceEditViewTest(CustomAccessTestMixin, TestCase):
         self.assertNotIn(settings.BENEDICAMUS_DOMINO_SEGMENT_ID, segment_ids)
 
 
-class SourceDetailViewTest(SourcePermissionsTestCase):
+class SourceDetailViewTest(CsvExportLinkTestMixin, SourcePermissionsTestCase):
     view_name = "source-detail"
 
     def test_permissions(self) -> None:
@@ -268,6 +323,35 @@ class SourceDetailViewTest(SourcePermissionsTestCase):
         self.assertEqual(response.status_code, 200)
         self.assertTemplateUsed(response, "base.html")
         self.assertTemplateUsed(response, "source_detail.html")
+
+    def test_add_image_links_entry_is_superuser_only(self) -> None:
+        """The edit-options card's "Add image links" entry is superuser-only.
+
+        ``SourceAddImageLinksView`` is gated on ``is_superuser``, but the card
+        it lives in is gated on the broader ``user_can_edit_chants``. An editor
+        who can edit chants must not see a link that would 403 them.
+        """
+        source = self.sources["editor_assigned_source"]
+        detail_url = reverse("source-detail", args=[source.id])
+        image_links_url = reverse("source-add-image-links", args=[source.id])
+        with self.subTest("Superuser sees the link"):
+            self.client.force_login(self.users["superuser"])
+            self.assertContains(self.client.get(detail_url), image_links_url)
+        with self.subTest("Editor with edit access does not see the link"):
+            self.client.force_login(self.users["editor"])
+            response = self.client.get(detail_url)
+            # The edit-options card renders for the editor...
+            self.assertContains(response, reverse("chant-create", args=[source.id]))
+            # ...but the superuser-only image-links entry is absent.
+            self.assertNotContains(response, image_links_url)
+
+    def test_csv_export_link_uses_response_filename(self) -> None:
+        source = make_fake_source()
+        response = self.client.get(reverse("source-detail", args=[source.id]))
+
+        self.assertCsvExportLinkHasNoDownloadAttribute(
+            response.content.decode("utf-8"), source.id
+        )
 
     def test_context_chant_folios(self) -> None:
         # create a source and several chants in it
@@ -286,7 +370,9 @@ class SourceDetailViewTest(SourcePermissionsTestCase):
 
     def test_context_sequence_folios(self) -> None:
         # create a sequence source and several sequences in it
-        bower_segment = make_fake_segment(id=4064, name="Bower Sequence Database")
+        bower_segment = make_fake_segment(
+            id=settings.BOWER_SEGMENT_ID, name="Bower Sequence Database"
+        )
         source = make_fake_source(
             shelfmark="a sequence source", published=True, segment=[bower_segment]
         )
@@ -307,7 +393,11 @@ class SourceDetailViewTest(SourcePermissionsTestCase):
     def test_context_sequences(self) -> None:
         # create a sequence source and several sequences in it
         source = make_fake_source(
-            segment=[make_fake_segment(id=4064, name="Bower Sequence Database")],
+            segment=[
+                make_fake_segment(
+                    id=settings.BOWER_SEGMENT_ID, name="Bower Sequence Database"
+                )
+            ],
             shelfmark="a sequence source",
             published=True,
         )
@@ -320,7 +410,7 @@ class SourceDetailViewTest(SourcePermissionsTestCase):
         self.assertEqual(response.context["sequences"].query.order_by, ("s_sequence",))
 
     def test_chant_list_link(self) -> None:
-        cantus_segment = make_fake_segment(id=4063)
+        cantus_segment = make_fake_segment(id=settings.CANTUS_SEGMENT_ID)
         cantus_source = make_fake_source(segment=[cantus_segment])
         # Add a chant so the source has content and link should appear
         make_fake_chant(source=cantus_source)
@@ -353,6 +443,60 @@ class SourceDetailViewTest(SourcePermissionsTestCase):
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response["Content-Type"], "application/json")
         self.assertEqual(response.json()["source"]["id"], source.id)
+
+    def test_description_and_bibliography_render_markdown(self) -> None:
+        """The source page renders the markdown the widget's Preview shows.
+
+        The description and selected bibliography are edited through
+        ``MarkdownWidget``, so markdown typed with its toolbar has to render
+        here too. Before this, the page printed ``**bold**`` literally while
+        Preview showed it in bold.
+        """
+        source = make_fake_source(
+            description="**bold** description\nsecond line",
+            selected_bibliography="A *cited* work",
+        )
+        html = self.client.get(
+            reverse("source-detail", args=[source.id])
+        ).content.decode("utf-8")
+        self.assertIn("<strong>bold</strong> description", html)
+        self.assertIn("<em>cited</em>", html)
+        # A single newline stays a line break, as it did under `linebreaks`.
+        self.assertIn("<strong>bold</strong> description<br>\nsecond line", html)
+        self.assertNotIn("**bold**", html)
+
+    def test_description_keeps_html_written_before_the_markdown_widget(self) -> None:
+        """Sanitizing imported HTML keeps ordinary formatting and citation text."""
+        source = make_fake_source(
+            description="<p>A <i>legacy</i> paragraph</p>",
+            selected_bibliography="<ul>\r\n<li>Author. 2018. <i>Title.</i></li>\r\n</ul>",
+        )
+        html = self.client.get(
+            reverse("source-detail", args=[source.id])
+        ).content.decode("utf-8")
+        self.assertIn("A <i>legacy</i> paragraph", html)
+        self.assertIn("<li>Author. 2018. <i>Title.</i></li>", html)
+        self.assertNotIn("raw HTML omitted", html)
+
+    def test_description_preserves_authored_folio_numbers(self) -> None:
+        source = make_fake_source(
+            description="1. First leaf\n4. Fourth leaf\n9. Ninth leaf"
+        )
+        html = self.client.get(
+            reverse("source-detail", args=[source.id])
+        ).content.decode()
+        for number, text in [(1, "First"), (4, "Fourth"), (9, "Ninth")]:
+            self.assertIn(f'<li value="{number}">{text} leaf</li>', html)
+        self.assertNotIn("data-sourcepos", html)
+
+    def test_description_neutralizes_script_tags(self) -> None:
+        """Saved script markup cannot create an executable script element."""
+        source = make_fake_source(description="<script>alert(1)</script>")
+        html = self.client.get(
+            reverse("source-detail", args=[source.id])
+        ).content.decode("utf-8")
+        self.assertIn("&lt;script&gt;alert(1)&lt;/script&gt;", html)
+        self.assertNotIn("<script>alert(1)</script>", html)
 
     def test_provenance_notes_displayed(self) -> None:
         notes = "test_provenance_notes_value"
@@ -393,6 +537,95 @@ class SourceDetailViewTest(SourcePermissionsTestCase):
         self.assertIn(notation.name, html)
         self.assertNotIn(reverse("notation-detail", args=[notation.id]), html)
 
+    def test_image_link_displayed_when_no_source_links(self) -> None:
+        source = make_fake_source(image_link="https://example.com/images")
+        response = self.client.get(reverse("source-detail", args=[source.id]))
+        html = str(response.content)
+        self.assertIn("https://example.com/images", html)
+        self.assertIn("View images on external site", html)
+
+    def test_image_link_hidden_when_external_images_source_link_exists(self) -> None:
+        source = make_fake_source(image_link="https://example.com/images")
+        SourceURL.objects.create(
+            source=source,
+            url="https://example.com/external",
+            url_type=SourceURL.URLTypes.EXTERNAL_IMAGES,
+        )
+        response = self.client.get(reverse("source-detail", args=[source.id]))
+        html = str(response.content)
+        # The SourceURL supersedes the legacy field: its link renders and the
+        # legacy image_link does not, so the gallery link appears exactly once.
+        self.assertIn("https://example.com/external", html)
+        self.assertNotIn("https://example.com/images", html)
+        self.assertEqual(html.count("View images on external site"), 1)
+
+    def test_external_images_branch_does_not_leak_template_comment(self) -> None:
+        # Regression test: the EXTERNAL_IMAGES branch's explanatory comment must
+        # use {% comment %}, not a multi-line {# #} — Django only strips {# #}
+        # on a single line, so a multi-line one renders verbatim to the user.
+        source = make_fake_source(image_link="")
+        SourceURL.objects.create(
+            source=source,
+            url="https://example.com/external",
+            url_type=SourceURL.URLTypes.EXTERNAL_IMAGES,
+        )
+        response = self.client.get(reverse("source-detail", args=[source.id]))
+        html = response.content.decode("utf-8")
+        self.assertIn("View images on external site", html)
+        self.assertNotIn("Same label as the legacy", html)
+        self.assertNotIn("{#", html)
+
+    def test_image_link_displayed_when_only_non_image_source_link_exists(self) -> None:
+        source = make_fake_source(image_link="https://example.com/images")
+        SourceURL.objects.create(
+            source=source,
+            url="https://example.com/iiif/manifest.json",
+            url_type=SourceURL.URLTypes.IIIF_MANIFEST,
+        )
+        response = self.client.get(reverse("source-detail", args=[source.id]))
+        html = str(response.content)
+        self.assertIn("https://example.com/images", html)
+        self.assertIn("View images on external site", html)
+
+    def test_image_link_not_displayed_when_empty(self) -> None:
+        source = make_fake_source(image_link="")
+        response = self.client.get(reverse("source-detail", args=[source.id]))
+        html = str(response.content)
+        self.assertNotIn("View images on external site", html)
+        # The property is a template boolean; a blank image_link must not leak "" through.
+        self.assertIs(source.show_legacy_image_link, False)
+
+    def test_iiif_manifest_link_renders_viewer(self) -> None:
+        # Guards the template's url_type comparison: if it stops matching
+        # IIIF_MANIFEST, this link silently degrades to the generic {% else %}
+        # branch instead of the Universal Viewer.
+        source = make_fake_source(image_link="")
+        SourceURL.objects.create(
+            source=source,
+            url="https://example.com/iiif/manifest.json",
+            url_type=SourceURL.URLTypes.IIIF_MANIFEST,
+        )
+        response = self.client.get(reverse("source-detail", args=[source.id]))
+        html = response.content.decode("utf-8")
+        self.assertIn("viewer/uv.html", html)
+        self.assertIn("#?manifest=https://example.com/iiif/manifest.json", html)
+        self.assertIn("View in IIIF Viewer", html)
+        # The generic branch renders the url_type display name instead.
+        self.assertNotIn("IIIF Manifest</a>", html)
+
+    def test_non_iiif_source_link_renders_generic_label(self) -> None:
+        source = make_fake_source(image_link="")
+        SourceURL.objects.create(
+            source=source,
+            url="https://example.com/catalogue/record",
+            url_type=SourceURL.URLTypes.HOST_INSTITUTION_RECORD,
+        )
+        response = self.client.get(reverse("source-detail", args=[source.id]))
+        html = response.content.decode("utf-8")
+        self.assertIn("https://example.com/catalogue/record", html)
+        self.assertIn("Host Institution Record", html)
+        self.assertNotIn("viewer/uv.html", html)
+
 
 class SourceInventoryViewTest(HTMLContentsTestMixin, SourcePermissionsTestCase):
     view_name = "source-inventory"
@@ -424,7 +657,11 @@ class SourceInventoryViewTest(HTMLContentsTestMixin, SourcePermissionsTestCase):
 
     def test_sequence_source_queryset(self):
         seq_source = make_fake_source(
-            segment=[make_fake_segment(id=4064, name="Clavis Sequentiarium")],
+            segment=[
+                make_fake_segment(
+                    id=settings.BOWER_SEGMENT_ID, name="Clavis Sequentiarium"
+                )
+            ],
             shelfmark="a sequence source",
             published=True,
         )
@@ -472,7 +709,9 @@ class SourceInventoryViewTest(HTMLContentsTestMixin, SourcePermissionsTestCase):
         self.assertIn(c_sequence, html)
 
     def test_sequence_column_for_sequence_source(self):
-        bower_segment = make_fake_segment(id=4064, name="Bower Sequence Database")
+        bower_segment = make_fake_segment(
+            id=settings.BOWER_SEGMENT_ID, name="Bower Sequence Database"
+        )
         source = make_fake_source(published=True, segment=[bower_segment])
         sequence = make_fake_sequence(source=source)
         s_sequence = sequence.s_sequence
@@ -547,7 +786,9 @@ class SourceInventoryViewTest(HTMLContentsTestMixin, SourcePermissionsTestCase):
         self.assertIn(expected_html_substring, html)
 
     def test_incipit_column_for_sequence_source(self):
-        bower_segment = make_fake_segment(id=4064, name="Bower Sequence Database")
+        bower_segment = make_fake_segment(
+            id=settings.BOWER_SEGMENT_ID, name="Bower Sequence Database"
+        )
         source = make_fake_source(published=True, segment=[bower_segment])
         sequence = make_fake_sequence(source=source)
         incipit = sequence.incipit
@@ -618,7 +859,7 @@ class SourceInventoryViewTest(HTMLContentsTestMixin, SourcePermissionsTestCase):
         self.assertParsedContains(response, expected_html_substring)
 
     def test_redirect_with_source_parameter(self):
-        cantus_segment = make_fake_segment(id=4063)
+        cantus_segment = make_fake_segment(id=settings.CANTUS_SEGMENT_ID)
         source = make_fake_source(segment=[cantus_segment])
         source_id = source.id
         make_fake_chant(source=source)
@@ -637,7 +878,7 @@ class SourceInventoryViewTest(HTMLContentsTestMixin, SourcePermissionsTestCase):
         self.assertTemplateUsed(response, "400.html")
 
 
-class SourceBrowseChantsViewTest(SourcePermissionsTestCase):
+class SourceBrowseChantsViewTest(CsvExportLinkTestMixin, SourcePermissionsTestCase):
     view_name = "browse-chants"
 
     def test_permissions(self) -> None:
@@ -663,7 +904,7 @@ class SourceBrowseChantsViewTest(SourcePermissionsTestCase):
         )
 
     def test_url_and_templates(self):
-        cantus_segment = make_fake_segment(id=4063)
+        cantus_segment = make_fake_segment(id=settings.CANTUS_SEGMENT_ID)
         source = make_fake_source(segment=[cantus_segment])
         make_fake_chant(source=source)
         response = self.client.get(reverse("browse-chants", args=[source.id]))
@@ -671,19 +912,59 @@ class SourceBrowseChantsViewTest(SourcePermissionsTestCase):
         self.assertTemplateUsed(response, "base.html")
         self.assertTemplateUsed(response, "browse_chants.html")
 
+    def test_csv_export_link_uses_response_filename(self):
+        cantus_segment = make_fake_segment(id=settings.CANTUS_SEGMENT_ID)
+        source = make_fake_source(segment=[cantus_segment])
+        make_fake_chant(source=source)
+        response = self.client.get(reverse("browse-chants", args=[source.id]))
+
+        self.assertCsvExportLinkHasNoDownloadAttribute(
+            response.content.decode("utf-8"), source.id
+        )
+
     def test_chant_rows_have_anchor_ids(self):
         # SourceEditChantsView.get_success_url redirects to `#chant-<pk>` after an
         # edit, so each row must carry the matching anchor or the user lands at
         # the top of the list instead of on the chant they edited (#1433).
-        cantus_segment = make_fake_segment(id=4063)
+        cantus_segment = make_fake_segment(id=settings.CANTUS_SEGMENT_ID)
         source = make_fake_source(segment=[cantus_segment])
         chant = make_fake_chant(source=source)
         response = self.client.get(reverse("browse-chants", args=[source.id]))
         self.assertEqual(response.status_code, 200)
         self.assertContains(response, f'id="chant-{chant.id}"')
 
+    def test_external_images_link_prefers_source_url(self):
+        # This page renders a single images link and does not render
+        # source_links, so it must follow the SourceURL that supersedes
+        # image_link rather than showing the stale legacy URL.
+        cantus_segment = make_fake_segment(id=settings.CANTUS_SEGMENT_ID)
+        source = make_fake_source(
+            segment=[cantus_segment], image_link="https://example.com/legacy-images"
+        )
+        make_fake_chant(source=source)
+        SourceURL.objects.create(
+            source=source,
+            url="https://example.com/source-url-images",
+            url_type=SourceURL.URLTypes.EXTERNAL_IMAGES,
+        )
+        response = self.client.get(reverse("browse-chants", args=[source.id]))
+        html = response.content.decode("utf-8")
+        self.assertIn("https://example.com/source-url-images", html)
+        self.assertNotIn("https://example.com/legacy-images", html)
+
+    def test_external_images_link_falls_back_to_legacy_field(self):
+        cantus_segment = make_fake_segment(id=settings.CANTUS_SEGMENT_ID)
+        source = make_fake_source(
+            segment=[cantus_segment], image_link="https://example.com/legacy-images"
+        )
+        make_fake_chant(source=source)
+        response = self.client.get(reverse("browse-chants", args=[source.id]))
+        html = response.content.decode("utf-8")
+        self.assertIn("https://example.com/legacy-images", html)
+        self.assertIn("View images on external site", html)
+
     def test_visibility_by_segment(self):
-        cantus_segment = make_fake_segment(id=4063)
+        cantus_segment = make_fake_segment(id=settings.CANTUS_SEGMENT_ID)
         cantus_source = make_fake_source(segment=[cantus_segment], published=True)
         # Add a chant so the source has content
         make_fake_chant(source=cantus_source)
@@ -691,14 +972,14 @@ class SourceBrowseChantsViewTest(SourcePermissionsTestCase):
         self.assertEqual(response_1.status_code, 200)
 
         # Sources without chants should return 404
-        bower_segment = make_fake_segment(id=4064)
+        bower_segment = make_fake_segment(id=settings.BOWER_SEGMENT_ID)
         bower_source = make_fake_source(segment=[bower_segment], published=True)
         response_1 = self.client.get(reverse("browse-chants", args=[bower_source.id]))
         self.assertEqual(response_1.status_code, 404)
 
     def test_non_cantus_segment_source_appears_in_dropdown(self):
         # A source outside the CantusDatabase segment must appear in the sources dropdown so it can be marked as selected.
-        make_fake_segment(id=4063)
+        make_fake_segment(id=settings.CANTUS_SEGMENT_ID)
         other_segment = make_fake_segment(id=9999)
         non_cantus_source = make_fake_source(segment=[other_segment], published=True)
         make_fake_chant(source=non_cantus_source)
@@ -711,13 +992,13 @@ class SourceBrowseChantsViewTest(SourcePermissionsTestCase):
 
     def test_no_chants_returns_404(self):
         # Test that sources without chants return 404
-        cantus_segment = make_fake_segment(id=4063)
+        cantus_segment = make_fake_segment(id=settings.CANTUS_SEGMENT_ID)
         source_no_chants = make_fake_source(segment=[cantus_segment], published=True)
         response = self.client.get(reverse("browse-chants", args=[source_no_chants.id]))
         self.assertEqual(response.status_code, 404)
 
     def test_filter_by_source(self):
-        cantus_segment = make_fake_segment(id=4063)
+        cantus_segment = make_fake_segment(id=settings.CANTUS_SEGMENT_ID)
         source = make_fake_source(segment=[cantus_segment])
         another_source = make_fake_source(segment=[cantus_segment])
         chant_in_source = make_fake_chant(source=source)
@@ -728,7 +1009,7 @@ class SourceBrowseChantsViewTest(SourcePermissionsTestCase):
         self.assertNotIn(chant_in_another_source, chants)
 
     def test_filter_by_feast(self):
-        cantus_segment = make_fake_segment(id=4063)
+        cantus_segment = make_fake_segment(id=settings.CANTUS_SEGMENT_ID)
         source = make_fake_source(segment=[cantus_segment])
         feast = make_fake_feast()
         another_feast = make_fake_feast()
@@ -742,7 +1023,7 @@ class SourceBrowseChantsViewTest(SourcePermissionsTestCase):
         self.assertNotIn(chant_in_another_feast, chants)
 
     def test_filter_by_genre(self):
-        cantus_segment = make_fake_segment(id=4063)
+        cantus_segment = make_fake_segment(id=settings.CANTUS_SEGMENT_ID)
         source = make_fake_source(segment=[cantus_segment])
         genre = make_fake_genre()
         another_genre = make_fake_genre()
@@ -756,7 +1037,7 @@ class SourceBrowseChantsViewTest(SourcePermissionsTestCase):
         self.assertNotIn(chant_in_another_genre, chants)
 
     def test_filter_by_folio(self):
-        cantus_segment = make_fake_segment(id=4063)
+        cantus_segment = make_fake_segment(id=settings.CANTUS_SEGMENT_ID)
         source = make_fake_source(segment=[cantus_segment])
         chant_on_folio = make_fake_chant(source=source, folio="001r")
         chant_on_another_folio = make_fake_chant(source=source, folio="002r")
@@ -768,7 +1049,7 @@ class SourceBrowseChantsViewTest(SourcePermissionsTestCase):
         self.assertNotIn(chant_on_another_folio, chants)
 
     def test_search_full_text(self):
-        cantus_segment = make_fake_segment(id=4063)
+        cantus_segment = make_fake_segment(id=settings.CANTUS_SEGMENT_ID)
         source = make_fake_source(segment=[cantus_segment])
         chant = make_fake_chant(source=source, manuscript_full_text=faker.sentence())
         search_term = get_random_search_term(chant.manuscript_full_text)
@@ -778,7 +1059,7 @@ class SourceBrowseChantsViewTest(SourcePermissionsTestCase):
         self.assertIn(chant, response.context["chants"])
 
     def test_search_incipit(self):
-        cantus_segment = make_fake_segment(id=4063)
+        cantus_segment = make_fake_segment(id=settings.CANTUS_SEGMENT_ID)
         source = make_fake_source(segment=[cantus_segment])
         chant = make_fake_chant(
             source=source,
@@ -791,7 +1072,7 @@ class SourceBrowseChantsViewTest(SourcePermissionsTestCase):
         self.assertIn(chant, response.context["chants"])
 
     def test_search_full_text_std_spelling(self):
-        cantus_segment = make_fake_segment(id=4063)
+        cantus_segment = make_fake_segment(id=settings.CANTUS_SEGMENT_ID)
         source = make_fake_source(segment=[cantus_segment])
         chant = make_fake_chant(
             source=source,
@@ -804,7 +1085,7 @@ class SourceBrowseChantsViewTest(SourcePermissionsTestCase):
         self.assertIn(chant, response.context["chants"])
 
     def test_search_proofread(self):
-        cantus_segment = make_fake_segment(id=4063)
+        cantus_segment = make_fake_segment(id=settings.CANTUS_SEGMENT_ID)
         source = make_fake_source(segment=[cantus_segment])
         chant_std_proofread = make_fake_chant(
             source=source,
@@ -880,14 +1161,14 @@ class SourceBrowseChantsViewTest(SourcePermissionsTestCase):
         self.assertNotIn(chant_volpiano_proofread, response.context["chants"])
 
     def test_context_source(self):
-        cantus_segment = make_fake_segment(id=4063)
+        cantus_segment = make_fake_segment(id=settings.CANTUS_SEGMENT_ID)
         source = make_fake_source(segment=[cantus_segment])
         make_fake_chant(source=source)
         response = self.client.get(reverse("browse-chants", args=[source.id]))
         self.assertEqual(source, response.context["source"])
 
     def test_context_folios(self):
-        cantus_segment = make_fake_segment(id=4063)
+        cantus_segment = make_fake_segment(id=settings.CANTUS_SEGMENT_ID)
         source = make_fake_source(segment=[cantus_segment])
         make_fake_chant(source=source, folio="001r")
         make_fake_chant(source=source, folio="001r")
@@ -901,7 +1182,7 @@ class SourceBrowseChantsViewTest(SourcePermissionsTestCase):
         self.assertEqual(list(folios), ["001r", "001v", "002r", "002v"])
 
     def test_redirect_with_source_parameter(self):
-        cantus_segment = make_fake_segment(id=4063)
+        cantus_segment = make_fake_segment(id=settings.CANTUS_SEGMENT_ID)
         source = make_fake_source(segment=[cantus_segment])
         make_fake_chant(source=source)
         source_id = source.id
@@ -928,6 +1209,38 @@ class SourceListViewTest(CustomAccessTestMixin, TestCase):
         self.assertEqual(response.status_code, 200)
         self.assertTemplateUsed(response, "base.html")
         self.assertTemplateUsed(response, "source_lists/source_list.html")
+
+    def test_images_column_prefers_source_url(self):
+        source = make_fake_source(
+            published=True, image_link="https://example.com/legacy-images"
+        )
+        SourceURL.objects.create(
+            source=source,
+            url="https://example.com/source-url-images",
+            url_type=SourceURL.URLTypes.EXTERNAL_IMAGES,
+        )
+        response = self.client.get(reverse("source-list"))
+        html = response.content.decode("utf-8")
+        self.assertIn("https://example.com/source-url-images", html)
+        self.assertNotIn("https://example.com/legacy-images", html)
+
+    def test_images_column_does_not_query_per_source(self):
+        # The Images column calls Source.external_images_url on every row, so
+        # the list queryset prefetches source_links. Without it this page costs
+        # one extra query per source, up to paginate_by = 100.
+        for _ in range(5):
+            source = make_fake_source(published=True)
+            SourceURL.objects.create(
+                source=source,
+                url="https://example.com/source-url-images",
+                url_type=SourceURL.URLTypes.EXTERNAL_IMAGES,
+            )
+        with CaptureQueriesContext(connection) as ctx:
+            self.client.get(reverse("source-list"))
+        source_link_queries = [
+            q for q in ctx.captured_queries if "main_app_sourceurl" in q["sql"]
+        ]
+        self.assertEqual(len(source_link_queries), 1, source_link_queries)
 
     def test_provenances_and_date_range_in_context(self):
         """`provenances` are options in the selector; `date_range_min`/`date_range_max`
@@ -1723,6 +2036,134 @@ class SourceListViewTest(CustomAccessTestMixin, TestCase):
                 list(reversed(expected_source_order)), list(response_sources_reverse)
             )
 
+    def test_ordering_by_has_image(self) -> None:
+        """
+        The Image Link column sorts on whether a source has an external image
+        gallery, grouping the sources that show an "Images" link ahead of those
+        that do not on the first (ascending) click.
+
+        The column renders `Source.external_images_url`, which reads an
+        EXTERNAL_IMAGES SourceURL first and only falls back to the legacy
+        `image_link` field, so the assertions below read the same property
+        rather than `image_link`: a sort that looked at `image_link` alone
+        would group every SourceURL-backed gallery with the imageless sources.
+        """
+        with_images = []
+        without_images = []
+
+        # Legacy field only.
+        with_images.append(make_fake_source(image_link="https://example.com/legacy"))
+        # SourceURL only — the case a sort on `image_link` alone gets wrong.
+        src_source_url_only = make_fake_source(image_link=None)
+        SourceURL.objects.create(
+            source=src_source_url_only,
+            url="https://example.com/source-url-images",
+            url_type=SourceURL.URLTypes.EXTERNAL_IMAGES,
+        )
+        with_images.append(src_source_url_only)
+        # SourceURL superseding an empty legacy field.
+        src_both = make_fake_source(image_link="")
+        SourceURL.objects.create(
+            source=src_both,
+            url="https://example.com/supersedes-empty",
+            url_type=SourceURL.URLTypes.EXTERNAL_IMAGES,
+        )
+        with_images.append(src_both)
+
+        without_images.append(make_fake_source(image_link=None))
+        without_images.append(make_fake_source(image_link=""))
+        # A SourceURL of some other type is not an image gallery.
+        src_manifest_only = make_fake_source(image_link=None)
+        SourceURL.objects.create(
+            source=src_manifest_only,
+            url="https://example.com/manifest.json",
+            url_type=SourceURL.URLTypes.IIIF_MANIFEST,
+        )
+        without_images.append(src_manifest_only)
+
+        for sort_param, expect_images_first in [("asc", True), ("desc", False)]:
+            with self.subTest(sort=sort_param):
+                response = self.client.get(
+                    reverse("source-list"),
+                    {"order": "has_image", "sort": sort_param},
+                )
+                result = list(response.context["sources"])
+                result_ids = {source.id for source in result}
+                for source in with_images + without_images:
+                    self.assertIn(source.id, result_ids)
+
+                # Assert on the rendered property, not the sort key.
+                groups = [bool(source.external_images_url) for source in result]
+                self.assertEqual(
+                    groups,
+                    sorted(groups, reverse=expect_images_first),
+                    f"sort={sort_param}: sources with and without an image "
+                    f"gallery are interleaved",
+                )
+
+    def test_ordering_by_num_chants(self) -> None:
+        """
+        The Chants / Melodies column sorts by chant count, and the first
+        (ascending) click brings the sources with no indexed chants to the top
+        (#2012).
+
+        `number_of_chants` is NULL rather than 0 for a source that has never
+        held a chant, since it is only written when a chant or sequence is
+        saved or deleted. The column renders those as "0", so the sort treats
+        them as 0 too — sorting NULLs last in both directions would leave them
+        unreachable.
+        """
+        src_many = make_fake_source(number_of_chants=100)
+        src_few = make_fake_source(number_of_chants=5)
+        src_zero = make_fake_source(number_of_chants=0)
+        src_null = make_fake_source(number_of_chants=None)
+
+        def positions(sort_param: str) -> dict[int, int]:
+            response = self.client.get(
+                reverse("source-list"), {"order": "num_chants", "sort": sort_param}
+            )
+            result = list(response.context["sources"])
+            self.assertEqual(len(result), 4)
+            return {source.id: index for index, source in enumerate(result)}
+
+        with self.subTest(sort="asc"):
+            pos = positions("asc")
+            # A NULL count sorts with the literal 0 it is displayed as, ahead
+            # of every source that has chants.
+            self.assertLess(pos[src_null.id], pos[src_few.id])
+            self.assertLess(pos[src_zero.id], pos[src_few.id])
+            self.assertLess(pos[src_few.id], pos[src_many.id])
+
+        with self.subTest(sort="desc"):
+            pos = positions("desc")
+            self.assertLess(pos[src_many.id], pos[src_few.id])
+            self.assertLess(pos[src_few.id], pos[src_null.id])
+            self.assertLess(pos[src_few.id], pos[src_zero.id])
+
+    def test_ordering_by_num_chants_breaks_ties_by_siglum(self) -> None:
+        """
+        Chant counts tie constantly, so equal counts fall back to the same
+        siglum/shelfmark tiebreakers the other orderings use. The tiebreakers
+        do not flip with the sort direction, so ties stay alphabetical in both.
+        """
+        src_b = make_fake_source(
+            number_of_chants=7,
+            holding_institution=make_fake_institution(siglum="BB-Bb"),
+        )
+        src_a = make_fake_source(
+            number_of_chants=7,
+            holding_institution=make_fake_institution(siglum="AA-Aa"),
+        )
+
+        for sort_param in ["asc", "desc"]:
+            with self.subTest(sort=sort_param):
+                response = self.client.get(
+                    reverse("source-list"),
+                    {"order": "num_chants", "sort": sort_param},
+                )
+                result = list(response.context["sources"])
+                self.assertEqual([src_a, src_b], result)
+
     def test_pagination(self):
         paginate_by = SourceListView.paginate_by
         full_pages = 2
@@ -1782,6 +2223,21 @@ class SourceAddImageLinksViewTest(CustomAccessTestMixin, TestCase):
             test_name="Any source",
         )
 
+    @staticmethod
+    def image_link_data(rows: list[list[str]]) -> dict[str, str]:
+        """
+        Build the POST data the page sends: the previewed rows as one field.
+        """
+        return {"image_links": json.dumps(rows)}
+
+    def post_image_links(
+        self, rows: list[list[str]], source: Optional[Source] = None
+    ) -> HttpResponse:
+        return self.client.post(
+            reverse("source-add-image-links", args=[(source or self.source).id]),
+            self.image_link_data(rows),
+        )
+
     def test_form(self) -> None:
         with self.subTest("Test form fields"):
             response = self.client.get(
@@ -1790,17 +2246,20 @@ class SourceAddImageLinksViewTest(CustomAccessTestMixin, TestCase):
             self.assertEqual(response.status_code, 200)
             self.assertTemplateUsed(response, "source_add_image_links.html")
             form = response.context["form"]
+            self.assertListEqual(list(form.fields.keys()), ["image_links"])
+            # The page lists the folios for its CSV preview to read, rather
+            # than carrying one form field per folio.
             self.assertListEqual(
-                list(form.fields.keys()), ["001r", "001v", "003", "004A", "004B"]
+                response.context["source_folios"],
+                ["001r", "001v", "003", "004A", "004B"],
             )
         with self.subTest("Test form submission"):
-            response = self.client.post(
-                reverse("source-add-image-links", args=[self.source.id]),
-                {
-                    "001r": "https://example.com/001r",
-                    "001v": "https://example.com/001v",
-                    "004A": "https://example.com/004A",
-                },
+            response = self.post_image_links(
+                [
+                    ["001r", "https://example.com/001r"],
+                    ["001v", "https://example.com/001v"],
+                    ["004A", "https://example.com/004A"],
+                ]
             )
             self.assertRedirects(
                 response,
@@ -1822,6 +2281,421 @@ class SourceAddImageLinksViewTest(CustomAccessTestMixin, TestCase):
             chants_004B = Chant.objects.filter(source=self.source, folio="004B").all()
             self.assertEqual(len(chants_004B), 1)
             self.assertEqual(chants_004B[0].image_link, "https://i-already-exist.com/2")
+
+    def test_blank_links_keep_the_stored_value(self) -> None:
+        response = self.post_image_links(
+            [
+                ["001r", "https://example.com/001r"],
+                ["004B", ""],
+            ]
+        )
+        self.assertEqual(response.status_code, 302)
+        chant_004B = Chant.objects.get(source=self.source, folio="004B")
+        self.assertEqual(chant_004B.image_link, "https://i-already-exist.com/2")
+
+    def test_preview_receives_the_server_import_limits(self) -> None:
+        for byte_limit, expected_limit in (
+            (8192, 8192),
+            (2621440, 1048576),
+            (None, 1048576),
+        ):
+            with self.subTest(byte_limit=byte_limit), self.settings(
+                DATA_UPLOAD_MAX_MEMORY_SIZE=byte_limit
+            ):
+                response = self.client.get(
+                    reverse("source-add-image-links", args=[self.source.id])
+                )
+                match = re.search(
+                    r'<script id="imageLinkImportLimits" type="application/json">(.*?)</script>',
+                    response.content.decode(),
+                )
+                self.assertIsNotNone(match)
+                self.assertEqual(
+                    json.loads(match.group(1)),
+                    {"maxRows": MAX_IMAGE_LINK_ROWS, "maxRequestBytes": expected_limit},
+                )
+
+    @override_settings(DATA_UPLOAD_MAX_MEMORY_SIZE=2621440)
+    def test_urlencoded_request_size_can_bind_before_the_row_limit(self) -> None:
+        """Reserved URL characters expand in the browser's form encoding."""
+        prefix = "https://example.com/"
+        for suffix, expected_status in (("a", 302), ("/", 400)):
+            with self.subTest(suffix=suffix):
+                link = prefix + suffix * (200 - len(prefix))
+                rows = [["001r", link]] * MAX_IMAGE_LINK_ROWS
+                payload = urlencode(
+                    {
+                        "csrfmiddlewaretoken": "a" * 64,
+                        "image_links": json.dumps(rows, separators=(",", ":")),
+                    }
+                )
+                self.assertEqual(
+                    len(payload) > settings.DATA_UPLOAD_MAX_MEMORY_SIZE,
+                    expected_status == 400,
+                )
+                before = dict(self.source.chant_set.values_list("pk", "image_link"))
+                response = self.client.post(
+                    reverse("source-add-image-links", args=[self.source.id]),
+                    payload,
+                    content_type="application/x-www-form-urlencoded",
+                )
+                self.assertEqual(response.status_code, expected_status)
+                if expected_status == 302:
+                    self.assertEqual(
+                        self.source.chant_set.get(folio="001r").image_link, link
+                    )
+                else:
+                    self.assertEqual(
+                        dict(self.source.chant_set.values_list("pk", "image_link")),
+                        before,
+                    )
+
+    def test_two_folios_can_share_one_image(self) -> None:
+        """A photograph of an opening gives both its folios the same link."""
+        shared = "https://example.com/opening-1v-2r.jpg"
+        response = self.post_image_links([["001r", shared], ["001v", shared]])
+        self.assertEqual(response.status_code, 302)
+        for folio in ("001r", "001v"):
+            for chant in Chant.objects.filter(source=self.source, folio=folio):
+                self.assertEqual(chant.image_link, shared)
+
+    def test_a_folio_listed_twice_keeps_the_last_row(self) -> None:
+        self.post_image_links(
+            [
+                ["001r", "https://example.com/first"],
+                ["001r", "https://example.com/second"],
+            ]
+        )
+        chant = Chant.objects.get(source=self.source, folio="001r")
+        self.assertEqual(chant.image_link, "https://example.com/second")
+
+    def test_final_blank_overrides_an_earlier_link_without_clearing_the_database(
+        self,
+    ) -> None:
+        response = self.post_image_links(
+            [["004B", "https://example.com/earlier"], ["004B", ""]]
+        )
+        self.assertEqual(response.status_code, 302)
+        self.assertEqual(
+            Chant.objects.get(source=self.source, folio="004B").image_link,
+            "https://i-already-exist.com/2",
+        )
+
+    def test_only_the_final_link_for_a_folio_is_validated(self) -> None:
+        for earlier in ("invalid earlier value", "javascript:alert(1)"):
+            with self.subTest(earlier=earlier):
+                response = self.post_image_links(
+                    [["001r", earlier], ["001r", "https://example.com/final"]]
+                )
+                self.assertEqual(response.status_code, 302)
+                self.assertEqual(
+                    Chant.objects.get(source=self.source, folio="001r").image_link,
+                    "https://example.com/final",
+                )
+
+    def test_folios_of_other_sources_are_left_alone(self) -> None:
+        """
+        A row naming a folio this source does not have is reported and skipped.
+
+        Another source's chant on a folio of the same name must not be touched.
+        """
+        other_source = make_fake_source(published=True)
+        other_chant = make_fake_chant(
+            source=other_source,
+            folio="900r",
+            image_link="https://untouched.example.com",
+        )
+        response = self.post_image_links(
+            [
+                ["001r", "https://example.com/001r"],
+                ["900r", "https://example.com/900r"],
+            ],
+        )
+        self.assertEqual(response.status_code, 302)
+        other_chant.refresh_from_db()
+        self.assertEqual(other_chant.image_link, "https://untouched.example.com")
+        messages = [str(message) for message in get_messages(response.wsgi_request)]
+        self.assertIn(
+            "Image links saved for 1 folio. Skipped 1 row naming folios "
+            "this source does not have.",
+            messages,
+        )
+
+    def test_invalid_submissions_are_rejected_with_a_visible_error(self) -> None:
+        stored = Chant.objects.get(source=self.source, folio="004B").image_link
+        too_long = "https://example.com/" + "a" * 200
+        cases: dict[str, tuple[dict[str, str], str]] = {
+            "no file selected": ({}, "Select a CSV file"),
+            "empty list": (
+                self.image_link_data([]),
+                "Select a CSV file",
+            ),
+            "not JSON": (
+                {"image_links": "001r,https://example.com/001r"},
+                "could not be read",
+            ),
+            "not a list of pairs": (
+                {"image_links": json.dumps({"001r": "https://example.com/001r"})},
+                "could not be read",
+            ),
+            "row of the wrong length": (
+                {"image_links": json.dumps([["001r"]])},
+                "could not be read",
+            ),
+            "row that is not text": (
+                {"image_links": json.dumps([[1, 2]])},
+                "could not be read",
+            ),
+            "null row": ({"image_links": "[null]"}, "could not be read"),
+            "string row": ({"image_links": '["001r"]'}, "could not be read"),
+            "object row": (
+                {"image_links": '[{"folio": "001r"}]'},
+                "could not be read",
+            ),
+            "null URL": ({"image_links": '[["001r", null]]'}, "could not be read"),
+            "row with extra values": (
+                {"image_links": '[["001r", "https://example.com/r", "note"]]'},
+                "could not be read",
+            ),
+            "boolean JSON": ({"image_links": "true"}, "could not be read"),
+            "number JSON": ({"image_links": "42"}, "could not be read"),
+            "string JSON": ({"image_links": '"text"'}, "could not be read"),
+            "not a URL": (
+                self.image_link_data([["001r", "not a url"]]),
+                "Fix the image links for these folios: 001r",
+            ),
+            # Chant.image_link is a 200-character column, so a longer link
+            # would fail in the database rather than in the form.
+            "URL too long for the column": (
+                self.image_link_data([["001r", too_long]]),
+                "Fix the image links for these folios: 001r",
+            ),
+            "no folio of this source": (
+                self.image_link_data([["999v", "https://example.com/999v"]]),
+                "None of the folios in the file belong to this source",
+            ),
+            "more rows than an import allows": (
+                self.image_link_data(
+                    [["001r", "https://example.com/001r"]] * (MAX_IMAGE_LINK_ROWS + 1)
+                ),
+                f"at most {MAX_IMAGE_LINK_ROWS} can be imported",
+            ),
+        }
+        for name, (data, expected_error) in cases.items():
+            with self.subTest(name):
+                response = self.client.post(
+                    reverse("source-add-image-links", args=[self.source.id]), data
+                )
+                self.assertEqual(response.status_code, 200)
+                self.assertContains(response, expected_error)
+                self.assertEqual(
+                    Chant.objects.get(source=self.source, folio="004B").image_link,
+                    stored,
+                )
+                self.assertIsNone(
+                    Chant.objects.get(source=self.source, folio="003").image_link
+                )
+
+    def test_one_invalid_link_prevents_every_change_in_the_batch(self) -> None:
+        before = dict(self.source.chant_set.values_list("pk", "image_link"))
+        cases = (
+            [["001r", "https://example.com/new"], ["004B", "not a URL"]],
+            [["001r", "https://example.com/new"], ["001r", "not a URL"]],
+        )
+        for rows in cases:
+            with self.subTest(rows=rows):
+                response = self.post_image_links(rows)
+                self.assertEqual(response.status_code, 200)
+                self.assertContains(response, "Fix the image links for these folios")
+                self.assertEqual(
+                    dict(self.source.chant_set.values_list("pk", "image_link")),
+                    before,
+                )
+
+    def test_failure_during_import_rolls_back_earlier_folios(self) -> None:
+        """A later failure must not leave part of an image-link import applied."""
+        before = dict(self.source.chant_set.values_list("pk", "image_link"))
+        original_update = QuerySet.update
+
+        def fail_on_second_link(queryset: QuerySet, **kwargs: str) -> int:
+            if kwargs.get("image_link") == "https://example.com/fail":
+                raise RuntimeError("simulated import failure")
+            return original_update(queryset, **kwargs)
+
+        with patch.object(QuerySet, "update", fail_on_second_link):
+            with self.assertRaisesRegex(RuntimeError, "simulated import failure"):
+                self.post_image_links(
+                    [
+                        ["001r", "https://example.com/first"],
+                        ["004B", "https://example.com/fail"],
+                    ]
+                )
+        self.assertEqual(
+            dict(self.source.chant_set.values_list("pk", "image_link")), before
+        )
+
+    def test_another_source_with_the_same_folio_is_not_changed(self) -> None:
+        other_chant = make_fake_chant(
+            source=make_fake_source(published=True),
+            folio="001r",
+            image_link="https://example.com/untouched",
+        )
+        response = self.post_image_links([["001r", "https://example.com/new"]])
+        self.assertEqual(response.status_code, 302)
+        self.assertEqual(
+            self.source.chant_set.get(folio="001r").image_link,
+            "https://example.com/new",
+        )
+        other_chant.refresh_from_db()
+        self.assertEqual(other_chant.image_link, "https://example.com/untouched")
+
+    def test_import_preserves_nonstandard_folio_identifiers(self) -> None:
+        folios = ["prexi2", "298x", "001R"]
+        for folio in folios:
+            make_fake_chant(source=self.source, folio=folio, image_link=None)
+        rows = [[folio, f"https://example.com/{folio}"] for folio in folios]
+        response = self.post_image_links(rows)
+        self.assertEqual(response.status_code, 302)
+        self.assertEqual(
+            dict(
+                self.source.chant_set.filter(folio__in=folios).values_list(
+                    "folio", "image_link"
+                )
+            ),
+            dict(rows),
+        )
+        self.assertIsNone(self.source.chant_set.get(folio="001r").image_link)
+
+    def test_normalized_urls_fit_the_database_column(self) -> None:
+        prefix = "https://example.com/"
+        cases = (
+            ("http://example.com/r", "http://example.com/r"),
+            ("ftp://example.com/r", "ftp://example.com/r"),
+            ("ftps://example.com/r", "ftps://example.com/r"),
+            ("https://münich.example/é.jpg", "https://münich.example/é.jpg"),
+            ("https://[2001:db8::1]/r", "https://[2001:db8::1]/r"),
+            (f"  {prefix}a b.jpg  ", f"{prefix}a%20b.jpg"),
+            (f"{prefix}a%20b.jpg", f"{prefix}a%20b.jpg"),
+            (prefix + "a" * (200 - len(prefix)), prefix + "a" * (200 - len(prefix))),
+            (
+                prefix + "a" * (196 - len(prefix)) + " b",
+                prefix + "a" * (196 - len(prefix)) + "%20b",
+            ),
+        )
+        for submitted, expected in cases:
+            with self.subTest(url=submitted):
+                response = self.post_image_links([["001r", submitted]])
+                self.assertEqual(response.status_code, 302)
+                self.assertEqual(
+                    self.source.chant_set.get(folio="001r").image_link, expected
+                )
+
+    def test_invalid_url_boundaries_leave_existing_links_unchanged(self) -> None:
+        prefix = "https://example.com/"
+        before = dict(self.source.chant_set.values_list("pk", "image_link"))
+        for url in (
+            prefix + "a" * (201 - len(prefix)),
+            prefix + "a" * (198 - len(prefix)) + " b",
+            "javascript:alert(1)",
+            "data:text/html,hello",
+            "file:///tmp/image.jpg",
+            prefix + "a\x00b",
+            prefix + "caf\ufffd.jpg",
+            prefix + "a\nb",
+            prefix + "a\rb",
+            prefix + "a\tb",
+        ):
+            with self.subTest(url=url):
+                response = self.post_image_links([["004B", url]])
+                self.assertEqual(response.status_code, 200)
+                self.assertContains(response, "Fix the image links for these folios")
+                self.assertEqual(
+                    dict(self.source.chant_set.values_list("pk", "image_link")),
+                    before,
+                )
+
+    def test_exactly_the_maximum_number_of_rows_can_be_imported(self) -> None:
+        rows = [["001r", "https://example.com/earlier"]] * (MAX_IMAGE_LINK_ROWS - 1)
+        rows.append(["001r", "https://example.com/final"])
+        response = self.post_image_links(rows)
+        self.assertEqual(response.status_code, 302)
+        self.assertEqual(
+            self.source.chant_set.get(folio="001r").image_link,
+            "https://example.com/final",
+        )
+
+    def test_many_invalid_links_produce_a_bounded_visible_error(self) -> None:
+        folios = [f"{number:03d}r" for number in range(100, 112)]
+        for folio in folios:
+            make_fake_chant(source=self.source, folio=folio, image_link=None)
+        before = dict(self.source.chant_set.values_list("pk", "image_link"))
+        response = self.post_image_links([[folio, "not a URL"] for folio in folios])
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, "and 2 more")
+        error = " ".join(response.context["form"].errors["image_links"])
+        for folio in folios[:10]:
+            self.assertIn(folio, error)
+        for folio in folios[10:]:
+            self.assertNotIn(folio, error)
+        self.assertEqual(
+            dict(self.source.chant_set.values_list("pk", "image_link")), before
+        )
+
+
+class SourceAddImageLinksLargeSourceTest(CustomAccessTestMixin, TestCase):
+    """
+    Importing a mapping for a source with more folios than a request has fields.
+
+    Tours 149 (source 123640) has 1044 folios. One form field per folio put the
+    request over ``DATA_UPLOAD_MAX_NUMBER_FIELDS`` — 1010 — and Django rejected
+    the whole submission with HTTP 400 before form validation.
+    """
+
+    source: Source
+    folios: list[str]
+    default_user = "superuser"
+
+    @classmethod
+    def setUpTestData(cls) -> None:
+        super().setUpTestData()
+        cls.source = make_fake_source(published=True)
+        cls.folios = [
+            f"{leaf:03d}{side}" for leaf in range(1, 551) for side in ("r", "v")
+        ]
+        Chant.objects.bulk_create(
+            Chant(source=cls.source, folio=folio, c_sequence=1) for folio in cls.folios
+        )
+
+    def test_a_folio_per_field_would_exceed_the_request_limit(self) -> None:
+        """
+        Sending one field per folio still fails, which is why the page does not.
+
+        Django counts the fields while parsing the request body, so the whole
+        submission is rejected before form validation.
+        """
+        self.assertGreater(len(self.folios), settings.DATA_UPLOAD_MAX_NUMBER_FIELDS)
+        response = self.client.post(
+            reverse("source-add-image-links", args=[self.source.id]),
+            {folio: f"https://example.com/{folio}.jpg" for folio in self.folios},
+        )
+        self.assertEqual(response.status_code, 400)
+
+    def test_the_whole_mapping_is_imported(self) -> None:
+        rows = [[folio, f"https://example.com/{folio}.jpg"] for folio in self.folios]
+        response = self.client.post(
+            reverse("source-add-image-links", args=[self.source.id]),
+            {"image_links": json.dumps(rows)},
+        )
+        self.assertRedirects(
+            response,
+            reverse("source-detail", args=[self.source.id]),
+            status_code=302,
+            target_status_code=200,
+        )
+        saved = dict(
+            Chant.objects.filter(source=self.source).values_list("folio", "image_link")
+        )
+        self.assertEqual(saved, dict(rows))
 
 
 class SourceDeleteViewTest(CustomAccessTestMixin, TestCase):

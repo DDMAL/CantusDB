@@ -1,12 +1,12 @@
 # JavaScript tests
 
-Tests for the front-end logic that is worth testing on its own — the automatic split of Cantus
-Index text on the Create Chant page and the cluster composer's submit-time guards (#2165).
+Tests for front-end logic, including chant searches, text warnings, source image links,
+Markdown editing and the cluster composer.
 
 ## Running them
 
 ```bash
-node --test "tests/js/**/*.test.js"
+node --test "tests/js/**/*.test.js" js_tests/*.test.js
 ```
 
 Node's built-in test runner (`node:test` + `node:assert`), so there is **nothing to install** and
@@ -23,9 +23,15 @@ These are not Django tests — `manage.py test` does not reach them — but they
 | `auto_split.test.js` | the split rules — one test per convention, the three ground-truth chants asserted exactly, and the invariants the feature rests on |
 | `composer_logic.test.js` | the composer's pure decisions — CI result ranking, typeahead row building, merge eligibility, the split boundary, the persisted-element payload, the flattened text, and the drop-target geometry |
 | `cluster_submit.test.js` | the composer's submit-time guards — empty composer and leftover auto-split separators are both blocked, with the right message and precedence |
+| `chant_list.test.js` | chant search requests and cancellation |
+| `chant_text_validation.test.js` | text-warning dialogs, submission and inline warnings |
+| `melody_search.test.js` | melody search requests and cancellation |
+| `source_add_image_links.test.js` | image-link input and matching |
+| `../../js_tests/markdown_preview.test.js` | Markdown preview requests |
+| `../../js_tests/markdown_widget.test.js` | Markdown editor controls |
 | `fixtures/cantus_index_texts.json` | 48 real Cantus Index chant texts, each labelled with the convention it exercises |
 
-All three suites load the exact file that ships and read a plain object off a stub `window` — the
+The three composer suites load the exact file that ships and read a plain object off a stub `window` — the
 same object the page reads. `chant_create_auto_split.js` is pure functions over a string, so it
 loads directly. `chant_create_clusters.js` is the composer itself; it guards its
 `DOMContentLoaded` hook on `document`, so with no document present the wiring never runs and its
@@ -45,6 +51,13 @@ undo, the restore tray, the hotkey gating — are verified by hand in the browse
 local-only Playwright harness (`.e2e/`, gitignored). Covering them *in CI* would need a DOM (jsdom)
 or a browser driver, i.e. the repo's first front-end dependency, which nobody has signed off on;
 the pure layer above is the coverage that fits within Node's built-in runner and no dependency.
+
+When changing the composer or text-warning scripts, also check Create Chant and Edit Chant
+in a browser. The composer must handle submission during capture so it updates the text
+before the warning handler reads it. Check that a stale textarea cannot hide a warning,
+that Save anyway preserves the composed elements, and that an empty composer or remaining
+split separators block submission without opening the text-warning dialog. This event
+ordering is covered by the local browser checks, rather than the Node stubs.
 
 ## The fixture
 
