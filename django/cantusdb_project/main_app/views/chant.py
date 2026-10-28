@@ -7,7 +7,8 @@ from django.conf import settings
 from django.contrib import messages
 from django.contrib.auth.mixins import LoginRequiredMixin
 from django.contrib.postgres.aggregates import ArrayAgg
-from django.db.models import Case, F, Q, QuerySet, When
+from django.db.models import Case, F, Q, QuerySet, Value, When
+from django.db.models.functions import Coalesce, NullIf
 from django.http import Http404, HttpRequest, HttpResponse, JsonResponse
 from django.shortcuts import get_object_or_404
 from django.urls import reverse
@@ -148,6 +149,18 @@ CHANT_SEARCH_TEMPLATE_VALUES: tuple[str, ...] = (
     "genre__name",
 )
 
+
+def with_sort_incipit(queryset: QuerySet) -> QuerySet:
+    """
+    Add `sort_incipit`, the incipit a list shows: a sequence's standardized
+    incipit when it has one, otherwise its incipit (#2326). Annotate each side
+    before a chant/sequence union, since a union can't be annotated afterwards.
+    """
+    return queryset.annotate(
+        sort_incipit=Coalesce(NullIf("incipit_std_spelling", Value("")), "incipit")
+    )
+
+
 ONLY_FIELDS = (
     "id",
     "genre",
@@ -161,6 +174,7 @@ ONLY_FIELDS = (
     "source__name",
     "title",
     "incipit",
+    "incipit_std_spelling",
     "folio",
     "search_vector",
     "manuscript_full_text_std_spelling",
@@ -739,7 +753,9 @@ class ChantSearchView(CustomAccessMixin, ListView):  # type: ignore[type-arg]
                 chant_set = chant_set.filter(source__segment_m2m=segment_id)
                 sequence_set = sequence_set.filter(source__segment_m2m=segment_id)
 
-            queryset = chant_set.union(sequence_set, all=True)
+            queryset = with_sort_incipit(chant_set).union(
+                with_sort_incipit(sequence_set), all=True
+            )
         else:
             # The field names should be keys in the "GET" QueryDict if the search button has been
             # clicked, even if the user put nothing into the search form and hit "apply" immediately.
@@ -838,7 +854,9 @@ class ChantSearchView(CustomAccessMixin, ListView):  # type: ignore[type-arg]
                 sequence_set = sequence_set.filter(source__segment_m2m=segment_id)
 
             # once unioned, the queryset cannot be filtered/annotated anymore, so we put union to the last
-            queryset = chant_set.union(sequence_set, all=True)
+            queryset = with_sort_incipit(chant_set).union(
+                with_sort_incipit(sequence_set), all=True
+            )
 
         # Apply sorting
         order_get_param: Optional[str] = self.request.GET.get("order")
@@ -851,7 +869,7 @@ class ChantSearchView(CustomAccessMixin, ListView):  # type: ignore[type-arg]
             "has_fulltext": "manuscript_full_text",
             "has_melody": "volpiano",
             "has_image": "image_link",
-            "incipit": "incipit",
+            "incipit": "sort_incipit",
             "cantus_id": "cantus_id",
             "mode": "mode",
         }
@@ -1076,7 +1094,7 @@ class ChantSearchMSView(CustomAccessMixin, ListView):  # type: ignore[type-arg]
             "has_fulltext": "manuscript_full_text",
             "has_melody": "volpiano",
             "has_image": "image_link",
-            "incipit": "incipit",
+            "incipit": "sort_incipit",
             "cantus_id": "cantus_id",
             "mode": "mode",
         }
@@ -1153,7 +1171,7 @@ class ChantSearchMSView(CustomAccessMixin, ListView):  # type: ignore[type-arg]
         # ordering with the folio string gives wrong order
         # old cantus is also not strictly ordered by folio (there are outliers)
         # so we order by id for now, which is the order that the chants are entered into the DB
-        queryset = queryset.order_by(order_expression, "id")
+        queryset = with_sort_incipit(queryset).order_by(order_expression, "id")
         return queryset
 
 
