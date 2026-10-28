@@ -512,30 +512,23 @@ class SourceDetailViewTest(CsvExportLinkTestMixin, SourcePermissionsTestCase):
         html = response.content.decode("utf-8")
         self.assertNotIn("Provenance notes:", html)
 
-    def test_notation_displayed_without_link(self) -> None:
-        # Regression for #1995: clicking the notation link 500'd, so it was disabled.
+    def test_notation_not_displayed(self) -> None:
+        # The notation field is hidden from the sidebar for now (#2307).
         source = make_fake_source()
-        notation = source.notation.first()
         response = self.client.get(reverse("source-detail", args=[source.id]))
         self.assertEqual(response.status_code, 200)
         html = response.content.decode("utf-8")
-        self.assertIn("Notation:", html)
-        self.assertIn(notation.name, html)
-        self.assertNotIn(reverse("notation-detail", args=[notation.id]), html)
-        self.assertNotIn("(Bower)", html)
+        self.assertNotIn("Notation:", html)
 
-    def test_notation_bower_label(self) -> None:
+    def test_notation_not_displayed_bower(self) -> None:
         bower_segment = make_fake_segment(
             id=settings.BOWER_SEGMENT_ID, name="Bower Sequence Database"
         )
         source = make_fake_source(segment=[bower_segment])
-        notation = source.notation.first()
         response = self.client.get(reverse("source-detail", args=[source.id]))
         self.assertEqual(response.status_code, 200)
         html = response.content.decode("utf-8")
-        self.assertIn("Notation (Bower):", html)
-        self.assertIn(notation.name, html)
-        self.assertNotIn(reverse("notation-detail", args=[notation.id]), html)
+        self.assertNotIn("Notation (Bower):", html)
 
     def test_image_link_displayed_when_no_source_links(self) -> None:
         source = make_fake_source(image_link="https://example.com/images")

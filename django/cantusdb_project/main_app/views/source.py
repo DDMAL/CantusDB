@@ -364,7 +364,6 @@ class SourceDetailView(CustomAccessMixin, JSONResponseMixin, DetailView):  # typ
             context["bower_segment"] = False
             context["has_chants"] = chants.exists()
 
-        context["source_notation"] = source.notation.first()
         context["user_can_edit_chants"] = self.user_assigned_to_source(source)
         context["user_can_edit_source"] = self.user_assigned_to_source(source) and (
             self.user_is_editor or self.user_created_source(source)
