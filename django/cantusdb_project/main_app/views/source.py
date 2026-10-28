@@ -914,7 +914,7 @@ class SourceInventoryView(CustomAccessMixin, ListView):  # type: ignore[type-arg
             queryset = (
                 self.source.sequence_set.annotate(record_type=Value("sequence"))
                 .order_by("s_sequence")
-                .select_related("genre")
+                .select_related("feast", "service", "genre", "diff_db")
             )
         else:
             queryset = (

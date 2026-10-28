@@ -15,6 +15,7 @@ ujson = "5.13.0"
 volpiano-display-utilities = { git = "https://github.com/DDMAL/volpiano-display-utilities.git", tag = "v1.3.2" }
 psycopg = {extras = ["binary"], version = "3.3.6"}
 cmarkgfm = "2024.11.20"
+nh3 = "0.3.7"
 celery = "5.5.1"
 redis = "5.2.1"
 django-extensions = "^3.2.3"
@@ -29,7 +30,7 @@ optional = true
 django_debug_toolbar = "4.3.0"
 Faker = "4.1.0"
 coverage = "5.3.1"
-black = "^26.5.1"
+black = "^26.10.1"
 mypy = "^1.10.0"
 pylint = "^3.3.0"
 pylint-django = "^2.5.5"

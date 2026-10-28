@@ -74,7 +74,11 @@ def content_overview(request):
 
     objects = []
     if selected_model:
-        objects = selected_model.objects.all().order_by("-date_updated")
+        objects = selected_model.objects.select_related(
+            "created_by", "last_updated_by"
+        ).order_by("-date_updated")
+        if selected_model is Source:
+            objects = objects.select_related("holding_institution")
 
     paginator = Paginator(objects, 100)
     page_number = request.GET.get("page")

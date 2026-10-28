@@ -9,8 +9,8 @@ command's guards exist to keep that column truthful: it is written exactly once,
 at the moment the live field is overwritten.
 
 Fields whose conversion leaves residual HTML are reported for manual review and
-left untouched rather than half-converted; `source_detail.html` keeps rendering
-those with the legacy `linebreaks` path via the `contains_html_tags` fallback.
+left untouched rather than half-converted. The shared Markdown renderer keeps
+permitted legacy HTML visible and sanitizes it for source pages and previews.
 
 Dry-run by default -- pass --apply to write. `--revert` undoes a conversion by
 restoring the legacy column back into the live field.

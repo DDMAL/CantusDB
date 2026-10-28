@@ -144,10 +144,12 @@ def csv_export(
 
     # The Bower/sequence DB segment holds sources with sequences instead of chants
     if settings.BOWER_SEGMENT_ID in source.segment_m2m.values_list("id", flat=True):
-        entries = source.sequence_set.order_by("id")
+        entries = source.sequence_set.order_by("id").select_related(
+            "feast", "service", "genre", "diff_db"
+        )
     else:
         entries = source.chant_set.order_by("id").select_related(
-            "feast", "service", "genre"
+            "feast", "service", "genre", "diff_db"
         )
 
     response = HttpResponse(content_type="text/csv")
@@ -420,7 +422,7 @@ def json_melody_export(request: HttpRequest, cantus_id: str) -> JsonResponse:
     """
     chants: QuerySet[Chant] = Chant.objects.filter(
         cantus_id=cantus_id, volpiano__isnull=False, source__published=True
-    ).select_related("source")
+    ).select_related("source__holding_institution")
 
     chants_export: list[dict[str, Optional[Union[str, int]]]] = []
     for chant in chants:
