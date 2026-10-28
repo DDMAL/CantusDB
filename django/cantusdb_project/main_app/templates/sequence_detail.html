@@ -46,6 +46,12 @@
                 {% endif %}
             </div>
         </div>
+        {% if sequence.incipit_std_spelling %}
+            <dt>Incipit (standardized spelling)</dt>
+            <dd>
+                {{ sequence.incipit_std_spelling }}
+            </dd>
+        {% endif %}
         {% if sequence.incipit %}
             <dt>Incipit</dt>
             <dd>
