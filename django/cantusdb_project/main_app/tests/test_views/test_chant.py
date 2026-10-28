@@ -1335,6 +1335,17 @@ class ChantSearchViewTest(CustomAccessTestMixin, TestCase):
         self.assertContains(response, ">Alpha</a>")
         self.assertNotContains(response, ">Zeta</a>")
 
+    def test_keyword_search_matches_standardized_incipit(self):
+        source = make_fake_source(published=True)
+        sequence = make_fake_sequence(source=source)
+        Sequence.objects.filter(id=sequence.id).update(
+            incipit="Letabundus exultet", incipit_std_spelling="Laetabundus exsultet"
+        )
+        response = self.client.get(
+            reverse("chant-search"), {"keyword": "Laetabundus", "op": "starts_with"}
+        )
+        self.assertIn(sequence.id, [s.id for s in response.context["chants"]])
+
     def test_indexing_notes_search_box_renders_on_global_search(self):
         response = self.client.get(reverse("chant-search"))
         self.assertContains(response, 'name="indexing_notes"')

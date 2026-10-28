@@ -76,7 +76,9 @@ class SequenceListView(CustomAccessMixin, ListView):  # type: ignore[type-arg]
 
         if self.request.GET.get("incipit"):
             incipit = self.request.GET.get("incipit")
-            q_obj_filter &= Q(incipit__icontains=incipit)
+            q_obj_filter &= Q(incipit__icontains=incipit) | Q(
+                incipit_std_spelling__icontains=incipit
+            )
         if self.request.GET.get("siglum"):
             siglum = self.request.GET.get("siglum")
             q_obj_filter &= Q(computed_siglum__icontains=siglum)

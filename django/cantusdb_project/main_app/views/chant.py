@@ -659,7 +659,9 @@ class ChantSearchView(CustomAccessMixin, ListView):  # type: ignore[type-arg]
                 std_spelling_filter = Q(
                     manuscript_full_text_std_spelling__istartswith=search_term
                 )
-                incipit_filter = Q(incipit__istartswith=search_term)
+                incipit_filter = Q(incipit__istartswith=search_term) | Q(
+                    incipit_std_spelling__istartswith=search_term
+                )
                 search_term_filter = (
                     ms_spelling_filter | std_spelling_filter | incipit_filter
                 )
@@ -737,19 +739,25 @@ class ChantSearchView(CustomAccessMixin, ListView):  # type: ignore[type-arg]
                     std_spelling_filter = Q(
                         manuscript_full_text_std_spelling__icontains=keyword
                     )
-                    incipit_filter = Q(incipit__icontains=keyword)
+                    incipit_filter = Q(incipit__icontains=keyword) | Q(
+                        incipit_std_spelling__icontains=keyword
+                    )
                 elif operation and operation == "ends_with":
                     ms_spelling_filter = Q(manuscript_full_text__iendswith=keyword)
                     std_spelling_filter = Q(
                         manuscript_full_text_std_spelling__iendswith=keyword
                     )
-                    incipit_filter = Q(incipit__iendswith=keyword)
+                    incipit_filter = Q(incipit__iendswith=keyword) | Q(
+                        incipit_std_spelling__iendswith=keyword
+                    )
                 else:
                     ms_spelling_filter = Q(manuscript_full_text__istartswith=keyword)
                     std_spelling_filter = Q(
                         manuscript_full_text_std_spelling__istartswith=keyword
                     )
-                    incipit_filter = Q(incipit__istartswith=keyword)
+                    incipit_filter = Q(incipit__istartswith=keyword) | Q(
+                        incipit_std_spelling__istartswith=keyword
+                    )
                 keyword_filter = (
                     ms_spelling_filter | std_spelling_filter | incipit_filter
                 )
@@ -996,19 +1004,25 @@ class ChantSearchMSView(CustomAccessMixin, ListView):  # type: ignore[type-arg]
                 std_spelling_filter = Q(
                     manuscript_full_text_std_spelling__icontains=keyword
                 )
-                incipit_filter = Q(incipit__icontains=keyword)
+                incipit_filter = Q(incipit__icontains=keyword) | Q(
+                    incipit_std_spelling__icontains=keyword
+                )
             elif operation == "ends_with":
                 ms_spelling_filter = Q(manuscript_full_text__iendswith=keyword)
                 std_spelling_filter = Q(
                     manuscript_full_text_std_spelling__iendswith=keyword
                 )
-                incipit_filter = Q(incipit__iendswith=keyword)
+                incipit_filter = Q(incipit__iendswith=keyword) | Q(
+                    incipit_std_spelling__iendswith=keyword
+                )
             else:
                 ms_spelling_filter = Q(manuscript_full_text__istartswith=keyword)
                 std_spelling_filter = Q(
                     manuscript_full_text_std_spelling__istartswith=keyword
                 )
-                incipit_filter = Q(incipit__istartswith=keyword)
+                incipit_filter = Q(incipit__istartswith=keyword) | Q(
+                    incipit_std_spelling__istartswith=keyword
+                )
 
             keyword_filter = ms_spelling_filter | std_spelling_filter | incipit_filter
             queryset = queryset.filter(keyword_filter)
