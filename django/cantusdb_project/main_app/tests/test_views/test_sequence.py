@@ -151,6 +151,23 @@ class SequenceListViewTest(SequencePermissionsTestCase):
         # the sequence should be present in the results
         self.assertIn(sequence, response.context["sequences"])
 
+    def test_list_prefers_standardized_incipit(self):
+        sequence = make_fake_sequence(source=make_fake_source(published=True))
+        Sequence.objects.filter(id=sequence.id).update(
+            incipit="Letabundus exultet", incipit_std_spelling="Laetabundus exsultet"
+        )
+        response = self.client.get(reverse("sequence-list"))
+        self.assertContains(response, ">Laetabundus exsultet</a>")
+        self.assertNotContains(response, ">Letabundus exultet</a>")
+
+    def test_search_matches_standardized_incipit(self):
+        sequence = make_fake_sequence(source=make_fake_source(published=True))
+        Sequence.objects.filter(id=sequence.id).update(
+            incipit="Letabundus exultet", incipit_std_spelling="Laetabundus exsultet"
+        )
+        response = self.client.get(reverse("sequence-list"), {"incipit": "Laetab"})
+        self.assertIn(sequence, response.context["sequences"])
+
     def test_search_shelfmark(self):
         # The "siglum" search box matches the source's current composed heading
         # (institution siglum + shelfmark), which is what the list displays.
@@ -267,6 +284,22 @@ class SequenceDetailViewTest(SequencePermissionsTestCase):
         self.assertEqual(response.status_code, 200)
         self.assertTemplateUsed(response, "base.html")
         self.assertTemplateUsed(response, "sequence_detail.html")
+
+    def test_standardized_incipit_is_shown_above_the_incipit(self):
+        sequence = make_fake_sequence()
+        Sequence.objects.filter(id=sequence.id).update(
+            incipit="Laetabundus exsultet fidelis", incipit_std_spelling="Laetabundus"
+        )
+        response = self.client.get(reverse("sequence-detail", args=[sequence.id]))
+        page = response.content.decode()
+        standardized = page.index("<dt>Incipit (standardized spelling)</dt>")
+        self.assertLess(standardized, page.index("<dt>Incipit</dt>"))
+        self.assertIn("Laetabundus", page[standardized:])
+
+    def test_empty_standardized_incipit_is_not_shown(self):
+        sequence = make_fake_sequence()
+        response = self.client.get(reverse("sequence-detail", args=[sequence.id]))
+        self.assertNotContains(response, "Incipit (standardized spelling)")
 
     def test_concordances(self):
         sequence = make_fake_sequence()
@@ -424,6 +457,16 @@ class SequenceEditViewTest(SequencePermissionsTestCase):
         self.assertEqual(response.status_code, 302)
         sequence.refresh_from_db()
         self.assertEqual(sequence.title, "test")
+
+    def test_update_standardized_incipit(self):
+        sequence = make_fake_sequence()
+        response = self.client.post(
+            reverse("sequence-edit", args=[sequence.id]),
+            {"incipit_std_spelling": "Laetabundus", "source": sequence.source.id},
+        )
+        self.assertEqual(response.status_code, 302)
+        sequence.refresh_from_db()
+        self.assertEqual(sequence.incipit_std_spelling, "Laetabundus")
 
     def test_permissions(self) -> None:
         self.run_request_permissions_test(

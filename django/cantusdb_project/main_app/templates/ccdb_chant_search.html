@@ -227,7 +227,7 @@
                                                             {% if chant.search_vector %}
                                                                 <b><a href="{% url 'chant-detail' chant.id %}">{{ chant.incipit|default:"" }}</a></b>
                                                             {% else %}
-                                                                <b><a href="{% url 'sequence-detail' chant.id %}">{{ chant.incipit|default:"" }}</a></b>
+                                                                <b><a href="{% url 'sequence-detail' chant.id %}">{{ chant.incipit_std_spelling|default:chant.incipit|default:"" }}</a></b>
                                                             {% endif %}
                                                             <div>{{ chant.manuscript_full_text_std_spelling|default:""|truncatewords_html:100 }}</div>
                                                         </td>

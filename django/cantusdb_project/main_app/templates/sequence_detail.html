@@ -46,6 +46,12 @@
                 {% endif %}
             </div>
         </div>
+        {% if sequence.incipit_std_spelling %}
+            <dt>Incipit (standardized spelling)</dt>
+            <dd>
+                {{ sequence.incipit_std_spelling }}
+            </dd>
+        {% endif %}
         {% if sequence.incipit %}
             <dt>Incipit</dt>
             <dd>
@@ -159,7 +165,7 @@
                                 {% endif %}
                             </td>
                             <td class="text-wrap text-center">
-                                <a href="{% url 'sequence-detail' sequence.id %}">{{ sequence.incipit|default:"" }}</a>
+                                <a href="{% url 'sequence-detail' sequence.id %}">{{ sequence.incipit_std_spelling|default:sequence.incipit|default:"" }}</a>
                             </td>
                             <td class="text-wrap text-center">{{ sequence.rubrics|default:"" }}</td>
                             <td class="text-wrap text-center">{{ sequence.analecta_hymnica|default:"" }}</td>
