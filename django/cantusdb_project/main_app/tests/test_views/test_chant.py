@@ -1335,6 +1335,27 @@ class ChantSearchViewTest(CustomAccessTestMixin, TestCase):
         self.assertContains(response, ">Alpha</a>")
         self.assertNotContains(response, ">Zeta</a>")
 
+    def test_chants_sort_by_the_incipit_they_show(self):
+        source = make_fake_source(published=True)
+        with_standardized = make_fake_chant(source=source, indexing_notes="marker")
+        plain = make_fake_chant(source=source, indexing_notes="marker")
+        Chant.objects.filter(id=with_standardized.id).update(
+            incipit="Zeta", incipit_std_spelling="Alpha"
+        )
+        Chant.objects.filter(id=plain.id).update(incipit="Beta")
+        response = self.client.get(
+            reverse("chant-search"),
+            {
+                "indexing_notes": "marker",
+                "indexing_notes_op": "contains",
+                "order": "incipit",
+                "sort": "asc",
+            },
+        )
+        self.assertEqual(
+            [c.id for c in response.context["chants"]], [plain.id, with_standardized.id]
+        )
+
     def test_keyword_search_matches_standardized_incipit(self):
         source = make_fake_source(published=True)
         sequence = make_fake_sequence(source=source)

@@ -152,9 +152,12 @@ CHANT_SEARCH_TEMPLATE_VALUES: tuple[str, ...] = (
 def with_sort_incipit(queryset: QuerySet) -> QuerySet:
     """
     Add `sort_incipit`, the incipit a list shows: a sequence's standardized
-    incipit when it has one, otherwise its incipit (#2326). Annotate each side
-    before a chant/sequence union, since a union can't be annotated afterwards.
+    incipit when it has one, otherwise its incipit (#2326). Chant results only
+    ever show `incipit`, so chants sort by it alone. Annotate each side before a
+    chant/sequence union, since a union can't be annotated afterwards.
     """
+    if queryset.model is not Sequence:
+        return queryset.annotate(sort_incipit=F("incipit"))
     return queryset.annotate(
         sort_incipit=Coalesce(NullIf("incipit_std_spelling", Value("")), "incipit")
     )
