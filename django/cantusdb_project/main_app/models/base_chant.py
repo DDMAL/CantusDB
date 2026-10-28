@@ -26,6 +26,11 @@ class BaseChant(BaseModel):
     # and the old Cantus "incipit" field is used to populate the new Cantus "incipit" field.
     title = models.CharField(blank=True, null=True, max_length=255)
     incipit = models.CharField(blank=True, null=True, max_length=255)
+    # Used by Clavis Sequentiarum sequences, whose "incipit" keeps the spelling
+    # Calvin Bower supplied. When filled, it takes priority in lists (#2326).
+    incipit_std_spelling = models.CharField(
+        "Incipit (standardized spelling)", blank=True, null=True, max_length=255
+    )
     siglum = models.CharField(blank=True, null=True, max_length=255)
     folio = models.CharField(
         help_text="Binding order", blank=True, null=True, max_length=255, db_index=True
