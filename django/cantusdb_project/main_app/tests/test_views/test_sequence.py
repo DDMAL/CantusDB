@@ -151,6 +151,15 @@ class SequenceListViewTest(SequencePermissionsTestCase):
         # the sequence should be present in the results
         self.assertIn(sequence, response.context["sequences"])
 
+    def test_list_prefers_standardized_incipit(self):
+        sequence = make_fake_sequence(source=make_fake_source(published=True))
+        Sequence.objects.filter(id=sequence.id).update(
+            incipit="Letabundus exultet", incipit_std_spelling="Laetabundus exsultet"
+        )
+        response = self.client.get(reverse("sequence-list"))
+        self.assertContains(response, ">Laetabundus exsultet</a>")
+        self.assertNotContains(response, ">Letabundus exultet</a>")
+
     def test_search_shelfmark(self):
         # The "siglum" search box matches the source's current composed heading
         # (institution siglum + shelfmark), which is what the list displays.

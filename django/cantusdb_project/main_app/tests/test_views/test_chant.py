@@ -32,7 +32,7 @@ from main_app.tests.make_fakes import (
 )
 from main_app.tests.test_functions import mock_requests_get
 from main_app.tests.mixins import CustomAccessTestMixin
-from main_app.models import Chant, Source, Feast, Service
+from main_app.models import Chant, Source, Feast, Service, Sequence
 from main_app.forms import MAX_CHECKED_TEXT_LENGTH, find_chant_text_problems
 from main_app.views.chant import (
     get_feast_selector_options,
@@ -1309,6 +1309,31 @@ class ChantSearchViewTest(CustomAccessTestMixin, TestCase):
         self.assertEqual(len(response.context["chants"]), 1)
         context_sequence_id = response.context["chants"][0].id
         self.assertEqual(sequence.id, context_sequence_id)
+
+    def test_sequences_show_and_sort_by_standardized_incipit(self):
+        source = make_fake_source(published=True)
+        standardized = make_fake_sequence(source=source, indexing_notes="marker")
+        plain = make_fake_sequence(source=source, indexing_notes="marker")
+        Sequence.objects.filter(id=standardized.id).update(
+            incipit="Zeta", incipit_std_spelling="Alpha"
+        )
+        Sequence.objects.filter(id=plain.id).update(
+            incipit="Beta", incipit_std_spelling=None
+        )
+        response = self.client.get(
+            reverse("chant-search"),
+            {
+                "indexing_notes": "marker",
+                "indexing_notes_op": "contains",
+                "order": "incipit",
+                "sort": "asc",
+            },
+        )
+        self.assertEqual(
+            [s.id for s in response.context["chants"]], [standardized.id, plain.id]
+        )
+        self.assertContains(response, ">Alpha</a>")
+        self.assertNotContains(response, ">Zeta</a>")
 
     def test_indexing_notes_search_box_renders_on_global_search(self):
         response = self.client.get(reverse("chant-search"))
