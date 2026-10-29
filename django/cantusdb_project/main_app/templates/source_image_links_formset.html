@@ -1,0 +1,32 @@
+<fieldset id="source-image-links" data-image-links>
+    <legend class="fs-6">Image gallery links</legend>
+    <p class="text-muted">Links to external sites showing images of this source. Select Remove to delete a link when you save.</p>
+    {% if previous_image_link %}
+        <p class="alert alert-info">
+            Another image link was previously entered for this source:
+            <span class="text-break">{{ previous_image_link }}</span>
+            To replace an outdated link, paste this URL over that link below.
+        </p>
+    {% endif %}
+    {{ image_link_formset.management_form }}
+    {% if image_link_formset.non_form_errors %}
+        <div class="alert alert-danger" role="alert">{{ image_link_formset.non_form_errors }}</div>
+    {% endif %}
+    {% if unreadable_image_link_values %}
+        <div class="alert alert-info">
+            <p>These image links could not be saved. Copy any you want to keep before reloading:</p>
+            <ul class="mb-0">
+                {% for value in unreadable_image_link_values %}<li class="text-break">{{ value }}</li>{% endfor %}
+            </ul>
+        </div>
+    {% endif %}
+    <div data-image-link-rows>
+        {% for link_form in image_link_formset %}
+            {% include "source_image_link_row.html" %}
+        {% endfor %}
+    </div>
+    <template data-image-link-template>
+        {% include "source_image_link_row.html" with link_form=image_link_formset.empty_form %}
+    </template>
+    <button type="button" class="btn btn-outline-secondary btn-sm" data-add-image-link hidden>Add another image link</button>
+</fieldset>
