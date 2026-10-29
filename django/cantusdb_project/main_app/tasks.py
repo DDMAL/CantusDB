@@ -15,6 +15,7 @@ from urllib.parse import quote
 
 from celery import shared_task, Task
 from django.conf import settings
+from django.contrib.postgres.aggregates import ArrayAgg
 from django.core.files.base import ContentFile
 from django.core.mail import EmailMessage
 from django.db.models import Count, Q
@@ -122,36 +123,18 @@ def check_duplicate_folio_sequence(
         base_qs.exclude(folio__isnull=True)
         .exclude(c_sequence__isnull=True)
         .values("source_id", "source__published", "folio", "c_sequence")
-        .annotate(count=Count("id"))
+        .annotate(count=Count("id"), chant_ids=ArrayAgg("id", order_by="id"))
         .filter(count__gt=1)
         .order_by("source_id", "folio", "c_sequence")
     )
-    for group in chant_dups:
-        group["chant_ids"] = list(
-            base_qs.filter(
-                source_id=group["source_id"],
-                folio=group["folio"],
-                c_sequence=group["c_sequence"],
-            ).values_list("id", flat=True)
-        )
-
     seq_dups = list(
         seq_qs.exclude(folio__isnull=True)
         .exclude(s_sequence__isnull=True)
         .values("source_id", "source__published", "folio", "s_sequence")
-        .annotate(count=Count("id"))
+        .annotate(count=Count("id"), sequence_ids=ArrayAgg("id", order_by="id"))
         .filter(count__gt=1)
         .order_by("source_id", "folio", "s_sequence")
     )
-    for group in seq_dups:
-        group["sequence_ids"] = list(
-            seq_qs.filter(
-                source_id=group["source_id"],
-                folio=group["folio"],
-                s_sequence=group["s_sequence"],
-            ).values_list("id", flat=True)
-        )
-
     published = [g for g in chant_dups if g["source__published"]] + [
         g for g in seq_dups if g["source__published"]
     ]
