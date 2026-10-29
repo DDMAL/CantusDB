@@ -14,6 +14,7 @@ from django.test import TestCase
 from django.urls import reverse
 
 from faker import Faker
+from bs4 import BeautifulSoup
 
 from main_app.tests.make_fakes import (
     make_fake_chant,
@@ -165,6 +166,36 @@ class ChantDetailViewTest(ChantPermissionsTestCase):
             test_name="Unassigned chant",
         )
 
+    def test_chant_create_link_visibility(self) -> None:
+        cases = [
+            ("user", "user_assigned_chant", True),
+            ("editor", "editor_assigned_chant", True),
+            ("superuser", "unassigned_chant", True),
+            ("anonymous user", "published_chant", False),
+            ("user", "published_chant", False),
+            ("editor", "published_chant", False),
+            ("global viewer", "published_chant", False),
+        ]
+        for user_key, chant_key, visible in cases:
+            with self.subTest(user=user_key, chant=chant_key):
+                self.client.logout()
+                if user_key != "anonymous user":
+                    self.client.force_login(self.users[user_key])
+                chant = self.chants[chant_key]
+                create_url = reverse("chant-create", args=[chant.source_id])
+                response = self.client.get(reverse("chant-detail", args=[chant.id]))
+
+                if visible:
+                    self.assertContains(
+                        response,
+                        f'<a href="{create_url}">Add new chant</a>',
+                        count=1,
+                        html=True,
+                    )
+                else:
+                    self.assertNotContains(response, "Add new chant")
+                    self.assertNotContains(response, f'href="{create_url}"')
+
     def test_chant_edit_link(self) -> None:
         source = make_fake_source()
         chant = make_fake_chant(source=source, folio="001r")
@@ -244,6 +275,44 @@ class ChantDetailViewTest(ChantPermissionsTestCase):
         self.assertIn("Notation (Bower):", html)
         self.assertIn(notation.name, html)
         self.assertNotIn(reverse("notation-detail", args=[notation.id]), html)
+
+
+class MelodyWithTextRenderingTest(TestCase):
+    def test_missing_music_wraps_without_changing_text_or_melody(self) -> None:
+        user = make_fake_user()
+        source = make_fake_source(current_editors=[user])
+        text = "Oremus. {Fidelium deus omnium conditor et redemptor} Amen"
+        chant = make_fake_chant(
+            source=source,
+            folio="001r",
+            manuscript_full_text=text,
+            manuscript_full_text_std_spelling=text,
+            manuscript_syllabized_full_text=None,
+            volpiano="1---k--jk--k---6------6---k--k---4",
+        )
+        self.client.force_login(user)
+        urls = [
+            reverse("chant-detail", args=[chant.pk]),
+            reverse("source-edit-chants", args=[source.pk]) + f"?pk={chant.pk}",
+            reverse("source-edit-syllabification", args=[chant.pk]),
+        ]
+        for url in urls:
+            with self.subTest(url=url):
+                response = self.client.get(url)
+                self.assertEqual(response.status_code, 200)
+                alignment = response.context["syllabized_text_with_melody"]
+                soup = BeautifulSoup(response.content, "html.parser")
+                syllables = soup.select("pre")
+                texts = [syllable.get_text() for syllable in syllables]
+                melodies = [
+                    syllable.parent.find_previous_sibling("div").get_text()
+                    for syllable in syllables
+                ]
+                self.assertIn("{Fidelium ", texts)
+                self.assertIn("deus ", texts)
+                self.assertIn("redemptor}", texts)
+                self.assertEqual("".join(texts), "".join(t for t, _ in alignment))
+                self.assertEqual("".join(melodies), "".join(m for _, m in alignment))
 
 
 class ChantAttributionFooterTest(CustomAccessTestMixin, TestCase):
@@ -944,6 +1013,24 @@ class ChantByCantusIDViewTest(ChantPermissionsTestCase):
 
 
 class ChantSearchViewTest(CustomAccessTestMixin, TestCase):
+    def test_cantusindex_search_link(self) -> None:
+        for url_name in ("chant-search", "ccdb-chant-search"):
+            for params in ({"keyword": "alleluia"}, {"keyword": ""}, {}):
+                with self.subTest(url_name=url_name, params=params):
+                    response = self.client.get(reverse(url_name), params)
+                    if params.get("keyword"):
+                        self.assertContains(
+                            response,
+                            '<a href="https://cantusindex.org/search?t=alleluia" '
+                            'title="Search alleluia on CantusIndex.org" '
+                            'target="_blank">Search <b>alleluia</b> on CantusIndex.org</a>',
+                            html=True,
+                        )
+                    else:
+                        self.assertNotContains(
+                            response, "https://cantusindex.org/search?t="
+                        )
+
     def test_view_url_path(self):
         response = self.client.get("/chant-search/")
         self.assertEqual(response.status_code, 200)
@@ -2127,6 +2214,7 @@ class ChantSearchViewTest(CustomAccessTestMixin, TestCase):
 
         # additional properties for which there are search fields
         position = make_random_string(1)
+        indexing_notes = "edited & revised"
         make_fake_chant(
             manuscript_full_text_std_spelling=fulltext,
             service=service,
@@ -2138,6 +2226,7 @@ class ChantSearchViewTest(CustomAccessTestMixin, TestCase):
             source=source,
             feast=feast,
             position=position,
+            indexing_notes=indexing_notes,
         )
         search_term = "so it be"
 
@@ -2162,6 +2251,8 @@ class ChantSearchViewTest(CustomAccessTestMixin, TestCase):
             "feast": feast.id,
             "position": position,
             "melodies": "true",
+            "indexing_notes": indexing_notes,
+            "indexing_notes_op": "starts_with",
         }
 
         response_2 = self.client.get(
@@ -3263,6 +3354,7 @@ class ChantSearchMSViewTest(ChantPermissionsTestCase):
         # additional properties for which there are search fields
         feast = make_fake_feast()
         position = make_random_string(1)
+        indexing_notes = "edited & revised"
         make_fake_chant(
             service=service,
             genre=genre,
@@ -3274,6 +3366,7 @@ class ChantSearchMSViewTest(ChantPermissionsTestCase):
             source=source,
             feast=feast,
             position=position,
+            indexing_notes=indexing_notes,
         )
         response_1 = self.client.get(
             reverse("chant-search-ms", args=[source.id]),
@@ -3296,6 +3389,8 @@ class ChantSearchMSViewTest(ChantPermissionsTestCase):
             "feast": feast.id,
             "position": position,
             "melodies": "true",
+            "indexing_notes": indexing_notes,
+            "indexing_notes_op": "starts_with",
         }
         response_2 = self.client.get(
             reverse("chant-search-ms", args=[source.id]),

@@ -15,6 +15,7 @@ from urllib.parse import quote
 
 from celery import shared_task, Task
 from django.conf import settings
+from django.contrib.postgres.aggregates import ArrayAgg
 from django.core.files.base import ContentFile
 from django.core.mail import EmailMessage
 from django.db.models import Count, Q
@@ -87,7 +88,9 @@ def check_cantus_ids_not_in_ci(chant_ids: Optional[List[int]] = None) -> dict:
 
     invalid_ids = {cid for cid in local_ids if cid not in ci_ids}
 
-    base_qs = qs.filter(cantus_id__in=invalid_ids).select_related("source", "genre")
+    base_qs = qs.filter(cantus_id__in=invalid_ids).select_related(
+        "source__holding_institution", "genre"
+    )
     return {
         "published": list(base_qs.filter(source__published=True).order_by("cantus_id")),
         "unpublished": list(
@@ -120,36 +123,18 @@ def check_duplicate_folio_sequence(
         base_qs.exclude(folio__isnull=True)
         .exclude(c_sequence__isnull=True)
         .values("source_id", "source__published", "folio", "c_sequence")
-        .annotate(count=Count("id"))
+        .annotate(count=Count("id"), chant_ids=ArrayAgg("id", order_by="id"))
         .filter(count__gt=1)
         .order_by("source_id", "folio", "c_sequence")
     )
-    for group in chant_dups:
-        group["chant_ids"] = list(
-            base_qs.filter(
-                source_id=group["source_id"],
-                folio=group["folio"],
-                c_sequence=group["c_sequence"],
-            ).values_list("id", flat=True)
-        )
-
     seq_dups = list(
         seq_qs.exclude(folio__isnull=True)
         .exclude(s_sequence__isnull=True)
         .values("source_id", "source__published", "folio", "s_sequence")
-        .annotate(count=Count("id"))
+        .annotate(count=Count("id"), sequence_ids=ArrayAgg("id", order_by="id"))
         .filter(count__gt=1)
         .order_by("source_id", "folio", "s_sequence")
     )
-    for group in seq_dups:
-        group["sequence_ids"] = list(
-            seq_qs.filter(
-                source_id=group["source_id"],
-                folio=group["folio"],
-                s_sequence=group["s_sequence"],
-            ).values_list("id", flat=True)
-        )
-
     published = [g for g in chant_dups if g["source__published"]] + [
         g for g in seq_dups if g["source__published"]
     ]
@@ -241,7 +226,7 @@ def check_cantus_ids_genre_mismatch(chant_ids: Optional[List[int]] = None) -> di
     mismatched_cids = {cid for cid, _ in mismatched_pairs}
     candidates = (
         qs.filter(cantus_id__in=mismatched_cids)
-        .select_related("source", "genre")
+        .select_related("source__holding_institution", "genre")
         .order_by("cantus_id")
     )
     matches = [
@@ -272,7 +257,7 @@ def check_position_service_mismatch(chant_ids: Optional[List[int]] = None) -> di
     invalid = qs.filter(
         Q(position="M") & (Q(service__isnull=True) | ~Q(service__name__in=["V", "V2"]))
         | Q(position="B") & (Q(service__isnull=True) | ~Q(service__name="L"))
-    ).select_related("source", "service")
+    ).select_related("source__holding_institution", "genre", "service")
 
     return {
         "published": list(
@@ -294,7 +279,7 @@ def check_blank_cantus_id(chant_ids: Optional[List[int]] = None) -> dict:
         else Chant.objects.all()
     )
     invalid = qs.filter(Q(cantus_id__isnull=True) | Q(cantus_id="")).select_related(
-        "source", "genre"
+        "source__holding_institution", "genre"
     )
     return {
         "published": list(invalid.filter(source__published=True).order_by("source_id")),
@@ -314,7 +299,7 @@ def check_blank_mode(chant_ids: Optional[List[int]] = None) -> dict:
         else Chant.objects.all()
     )
     invalid = qs.filter(Q(mode__isnull=True) | Q(mode="")).select_related(
-        "source", "genre"
+        "source__holding_institution", "genre"
     )
     return {
         "published": list(invalid.filter(source__published=True).order_by("source_id")),
@@ -337,7 +322,7 @@ def check_blank_invitatory_differentia(chant_ids: Optional[List[int]] = None) ->
     invalid = (
         qs.filter(genre__name__in=["I", "IP"])
         .filter(Q(differentia__isnull=True) | Q(differentia=""))
-        .select_related("source", "genre")
+        .select_related("source__holding_institution", "genre")
     )
     return {
         "published": list(
@@ -467,7 +452,9 @@ def _format_check_csv(result: dict, check_key: Optional[str] = None) -> str:
                     f'=HYPERLINK("{link_url}","{item.id}")',
                     _csv_safe(item.source_id),
                     _csv_safe(item.id),
-                    _csv_safe(getattr(item.source, "siglum", item.source_id)),
+                    # Current composed heading (institution siglum + shelfmark),
+                    # not the frozen `siglum` column (#2025).
+                    _csv_safe(item.source.short_heading),
                     _csv_safe(item.folio),
                     _csv_safe(item.cantus_id),
                     _csv_safe(getattr(item.genre, "name", "")),

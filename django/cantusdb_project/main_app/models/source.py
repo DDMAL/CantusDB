@@ -1,6 +1,8 @@
 from typing import Any, Optional
 
 from django.db import models
+from django.db.models import Value
+from django.db.models.functions import Coalesce, Concat, NullIf
 from django.contrib.auth import get_user_model
 
 from main_app.models.url_field import NormalizedURLField
@@ -159,6 +161,15 @@ class Source(BaseModel):
     liturgical_occasions = models.TextField(blank=True, null=True)
     description = models.TextField(blank=True, null=True)
     selected_bibliography = models.TextField(blank=True, null=True)
+    # Backup of the pre-markdown raw HTML for the legacy-HTML-to-markdown conversion
+    # (#1239). Populated by the `convert_html_to_markdown` management command at the
+    # moment it overwrites `description` / `selected_bibliography` above with
+    # markdown; `convert_html_to_markdown --revert` restores from here. A non-null
+    # value means "this field has been converted", so the command relies on it to
+    # stay truthful. Excluded from SourceAdmin's form (see admin/source.py) and
+    # not rendered in any template.
+    description_html_legacy = models.TextField(blank=True, null=True)
+    selected_bibliography_html_legacy = models.TextField(blank=True, null=True)
     image_link = NormalizedURLField(
         blank=True,
         null=True,
@@ -254,17 +265,54 @@ class Source(BaseModel):
             for link in self.source_links.all()  # type: ignore[attr-defined]
         )
 
-    @property
-    def short_heading(self) -> str:
+    @staticmethod
+    def compose_short_heading(institution_siglum: str | None, shelfmark: str) -> str:
+        """Build a source's short heading from its component values.
+
+        Kept separate from the `short_heading` property so that bulk exports,
+        which read the underlying columns with `QuerySet.values()` rather than
+        instantiating Source objects, produce identical strings.
+
+        `short_heading_expression` is the database form of the same rule, and
+        `feast_source_query` in `main_app/views/feast.py` spells it out again in
+        raw SQL; keep the three in sync.
+        """
         title = []
-        if holdinst := self.holding_institution:
-            if holdinst.siglum and holdinst.siglum != "XX-NN":
-                title.append(f"{holdinst.siglum}")
-            else:
-                title.append("Cantus")
+        if institution_siglum and institution_siglum != "XX-NN":
+            title.append(institution_siglum)
         else:
             title.append("Cantus")
 
-        title.append(self.shelfmark)
+        title.append(shelfmark)
 
         return " ".join(title)
+
+    @staticmethod
+    def short_heading_expression(
+        institution_siglum_field: str, shelfmark_field: str
+    ) -> Concat:
+        """Build the short heading in the database, as `compose_short_heading`
+        builds it in Python.
+
+        No column stores the heading, so a queryset that searches or sorts on
+        what the page displays has to compose it in SQL. The arguments are query
+        paths to the holding institution's siglum and the source's shelfmark,
+        relative to the model being queried, e.g.
+        `"source__holding_institution__siglum"` and `"source__shelfmark"` from
+        Chant or Sequence.
+        """
+        return Concat(
+            Coalesce(
+                NullIf(NullIf(institution_siglum_field, Value("")), Value("XX-NN")),
+                Value("Cantus"),
+            ),
+            Value(" "),
+            Coalesce(shelfmark_field, Value("")),
+        )
+
+    @property
+    def short_heading(self) -> str:
+        holdinst = self.holding_institution
+        return self.compose_short_heading(
+            holdinst.siglum if holdinst else None, self.shelfmark
+        )
