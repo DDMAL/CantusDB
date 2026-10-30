@@ -275,7 +275,7 @@
                                style="width: 80px"
                                value="{{ suggestion.cantus_id }}"
                                title="{{ suggestion.cantus_id }}"
-                               onclick='autoFillSuggestedChant( "{{ suggestion.genre_name | escapejs }}", {{ suggestion.genre_id | default_if_none:"null" }}, "{{ suggestion.cantus_id | escapejs }}", "{{ suggestion.fulltext | escapejs }}" )' />
+                               onclick='autoFillSuggestedChant( "{{ suggestion.genre_label | escapejs }}", {{ suggestion.genre_id | default_if_none:"null" }}, "{{ suggestion.cantus_id | escapejs }}", "{{ suggestion.fulltext | escapejs }}" )' />
                         <strong>{{ suggestion.genre_name }}</strong> - <span title="{{ suggestion.fulltext }}">{{ suggestion.fulltext | truncatechars_html:25 }}</span> (<strong>{{ suggestion.occurrences }}x</strong>)
                         <br />
                     {% endfor %}
