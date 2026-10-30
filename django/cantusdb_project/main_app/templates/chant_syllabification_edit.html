@@ -26,6 +26,11 @@
                     </div>
                 {% endif %}
                 <h3>Edit Syllabification</h3>
+                {% if form.manuscript_full_text.field.disabled %}
+                    <p class="small text-muted">
+                        This text has been proofread and is locked. A proofreader can untick its proofread box on the chant edit page to unlock it.
+                    </p>
+                {% endif %}
                 <form method="post">
                     {% csrf_token %}
                     <div class="row mb-2">
@@ -71,7 +76,10 @@
                     {% endif %}
                     <div class="row">
                         <div class="col-lg-2">
-                            <button type="submit" class="btn btn-dark btn-sm" id="btn-submit">Save</button>
+                            <button type="submit"
+                                    class="btn btn-dark btn-sm"
+                                    id="btn-submit"
+                                    {% if form.manuscript_full_text.field.disabled %}disabled{% endif %}>Save</button>
                         </div>
                     </div>
                 </form>
