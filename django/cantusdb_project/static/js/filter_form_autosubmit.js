@@ -25,6 +25,10 @@
         return element.tagName === "INPUT" && element.type === "radio";
     }
 
+    function isSelect(element) {
+        return element.tagName === "SELECT";
+    }
+
     function shouldSubmit(form, control) {
         if (!control.matches || !control.matches(INSTANT_SELECTOR)) {
             return false;
@@ -44,9 +48,10 @@
         // could arrive, so ignore everything after the first submission. This
         // also covers dropdowns that fire change both natively and via jQuery.
         let submitted = false;
-        // Set while the arrow keys are walking a radio group (see below).
+        // Set while the arrow keys are walking a radio group or cycling a
+        // dropdown's value (see below).
         let arrowKeyNavigating = false;
-        let deferredRadio = null;
+        let deferredControl = null;
 
         function submitForm() {
             if (submitted) {
@@ -64,13 +69,15 @@
             if (submitted || !shouldSubmit(form, event.target)) {
                 return;
             }
-            // Arrow keys move through a radio group one option at a time,
-            // firing a change event at every stop. Submitting on each of those
-            // would make the group impossible to traverse with the keyboard,
-            // so wait for the choice to settle — the browser submits on Enter,
-            // and focus leaving the group is handled below.
-            if (arrowKeyNavigating && isRadio(event.target)) {
-                deferredRadio = event.target;
+            // Arrow keys move through a radio group one option at a time, and
+            // on Windows/Linux Chrome, they also change a closed dropdown's
+            // value one option at a time — firing a change event at every
+            // stop either way. Submitting on each of those would make the
+            // control impossible to traverse with the keyboard, so wait for
+            // the choice to settle — the browser submits on Enter, and focus
+            // leaving the control is handled below.
+            if (arrowKeyNavigating && (isRadio(event.target) || isSelect(event.target))) {
+                deferredControl = event.target;
                 return;
             }
             submitForm();
@@ -84,8 +91,8 @@
         });
 
         // A deferred choice is submitted once focus actually settles outside
-        // its radio group — not at the instant focus is reported as leaving.
-        // Clicking a sibling radio's label, for instance, blurs the
+        // its control's group — not at the instant focus is reported as
+        // leaving. Clicking a sibling radio's label, for instance, blurs the
         // previously-focused radio before the browser has decided which
         // control the label's click will check, so relatedTarget isn't known
         // yet here; acting on it immediately would submit the stale,
@@ -93,16 +100,16 @@
         // Waiting a frame lets that click — and the change event it
         // produces — land first.
         form.addEventListener("focusout", function () {
-            if (!deferredRadio) {
+            if (!deferredControl) {
                 return;
             }
-            const radio = deferredRadio;
+            const control = deferredControl;
             requestAnimationFrame(function () {
-                if (submitted || deferredRadio !== radio) {
+                if (submitted || deferredControl !== control) {
                     return;
                 }
                 const active = document.activeElement;
-                if (isRadio(active) && active.name === radio.name) {
+                if (isRadio(control) && isRadio(active) && active.name === control.name) {
                     return;
                 }
                 submitForm();
@@ -125,7 +132,7 @@
             if (event.persisted) {
                 submitted = false;
                 arrowKeyNavigating = false;
-                deferredRadio = null;
+                deferredControl = null;
             }
         });
     }
