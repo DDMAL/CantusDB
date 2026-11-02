@@ -114,26 +114,79 @@ class TestHtmlToMarkdown(TestCase):
     def test_pretty_printed_indent_does_not_become_a_code_block(self):
         # Legacy markup wraps lines as "<br />\r\n\t", and that tab would start
         # the next markdown line at column four -- an indented code block.
-        markdown = html_to_markdown("<p>One<br />\r\n\tTwo</p>")
-        self.assertNotRegex(markdown, r"^[ \t]{4,}", "indent survived")
+        markdown = html_to_markdown("<p>One<br />\r\n\tTwo <i>three</i></p>")
+        self.assertEqual(markdown, "One\nTwo *three*")
         self.assertNotIn("<pre>", render_markdown(markdown))
 
-    def test_colspan_title_row_does_not_truncate_the_table(self):
-        # A spanning title cell would otherwise make the header one column wide,
-        # and GFM silently truncates every later row to the header's width.
+    def test_blank_lines_in_legacy_text_stay_paragraphs(self):
+        # Many legacy values are plain text with a few inline tags, which the
+        # old page split into paragraphs and lines with `linebreaks`.
+        self.assertEqual(
+            html_to_markdown(
+                "<b>A rare manuscript</b>\r\n\r\nFirst paragraph.\r\n\r\n"
+                "Second paragraph,\r\nsecond line."
+            ),
+            "**A rare manuscript**\n\nFirst paragraph.\n\n"
+            "Second paragraph,\nsecond line.",
+        )
+
+    def test_newline_beside_a_br_does_not_double_the_break(self):
+        self.assertEqual(html_to_markdown("One\r\n<br />\r\nTwo"), "One\nTwo")
+
+    def test_literal_asterisks_stay_visible(self):
+        markdown = html_to_markdown(
+            "Quires are numbered [*]1, where [*] is the quire.<br />" "* no notation"
+        )
+        html = render_markdown(markdown)
+        self.assertIn("[*]1, where [*] is the quire.", html)
+        self.assertIn("* no notation", html)
+        self.assertNotIn("<em>", html)
+        self.assertNotIn("<li>", html)
+
+    def test_emphasis_ending_in_punctuation_before_a_word(self):
+        # `*ca.*1000` would not close, leaving both asterisks visible.
+        html = render_markdown(html_to_markdown("practices <i>ca.</i>1000 and"))
+        self.assertIn("<em>ca</em>.1000", html)
+        html = render_markdown(html_to_markdown("<em>Zeitung,</em>10 (2004)"))
+        self.assertIn("<em>Zeitung</em>,10", html)
+        # Punctuation before a space or the end stays inside the markers.
+        self.assertEqual(html_to_markdown("<b>Label:</b> text"), "**Label:** text")
+
+    def test_emphasis_holding_only_a_space_keeps_the_space(self):
+        self.assertEqual(
+            html_to_markdown("71-88.<em>&nbsp;</em>Kalamazoo"), "71-88.\xa0Kalamazoo"
+        )
+
+    def test_colspan_title_row_goes_above_the_table(self):
+        # A spanning title row would otherwise become the header, padded with
+        # empty cells, and push the real header row into the body.
         markdown = html_to_markdown(
             "<table>"
-            '<tr><td colspan="3">Title</td></tr>'
+            '<tr><td colspan="3"><center><h3>Title</h3></center></td></tr>'
+            "<tr><td>Folio</td><td>#</td><td>Genre</td></tr>"
             "<tr><td>a</td><td>b</td><td>c</td></tr>"
             "</table>"
         )
         self.assertEqual(
             markdown,
-            "| Title |  |  |\n| --- | --- | --- |\n| a | b | c |",
+            "### Title\n\n| Folio | # | Genre |\n| --- | --- | --- |\n| a | b | c |",
         )
         rendered = render_markdown(markdown)
-        for cell in ("Title", "a", "b", "c"):
-            self.assertIn(f">{cell}<", rendered)
+        self.assertIn("<h3>Title</h3>", rendered)
+        self.assertIn("<th>Folio</th>", rendered)
+
+    def test_colspan_in_later_rows_does_not_truncate_the_table(self):
+        # GFM silently truncates every row to the header's width, so a spanning
+        # cell elsewhere is padded out to keep the columns lined up.
+        markdown = html_to_markdown(
+            "<table>"
+            "<tr><td>a</td><td>b</td><td>c</td></tr>"
+            '<tr><td colspan="2">wide</td><td>d</td></tr>'
+            "</table>"
+        )
+        self.assertEqual(
+            markdown, "| a | b | c |\n| --- | --- | --- |\n| wide |  | d |"
+        )
 
     def test_unordered_list(self):
         self.assertEqual(
