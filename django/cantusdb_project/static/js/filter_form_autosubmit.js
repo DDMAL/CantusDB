@@ -83,17 +83,30 @@
             arrowKeyNavigating = false;
         });
 
-        form.addEventListener("focusout", function (event) {
-            const movingTo = event.relatedTarget;
-            if (
-                !deferredRadio ||
-                (movingTo &&
-                    isRadio(movingTo) &&
-                    movingTo.name === deferredRadio.name)
-            ) {
+        // A deferred choice is submitted once focus actually settles outside
+        // its radio group — not at the instant focus is reported as leaving.
+        // Clicking a sibling radio's label, for instance, blurs the
+        // previously-focused radio before the browser has decided which
+        // control the label's click will check, so relatedTarget isn't known
+        // yet here; acting on it immediately would submit the stale,
+        // pre-click selection instead of the one the user just picked.
+        // Waiting a frame lets that click — and the change event it
+        // produces — land first.
+        form.addEventListener("focusout", function () {
+            if (!deferredRadio) {
                 return;
             }
-            submitForm();
+            const radio = deferredRadio;
+            requestAnimationFrame(function () {
+                if (submitted || deferredRadio !== radio) {
+                    return;
+                }
+                const active = document.activeElement;
+                if (isRadio(active) && active.name === radio.name) {
+                    return;
+                }
+                submitForm();
+            });
         });
 
         form.addEventListener("change", handleChange);
