@@ -103,6 +103,18 @@
         if (window.jQuery) {
             window.jQuery(form).on("change", handleChange);
         }
+
+        // Chrome restores this page from the back/forward cache on History
+        // navigation without re-running "load", so without this, a page that
+        // already submitted once would keep its guard stuck on and ignore
+        // every filter change made after the user navigates Back to it.
+        window.addEventListener("pageshow", function (event) {
+            if (event.persisted) {
+                submitted = false;
+                arrowKeyNavigating = false;
+                deferredRadio = null;
+            }
+        });
     }
 
     // Deliberately on "load" rather than "DOMContentLoaded": widgets that
