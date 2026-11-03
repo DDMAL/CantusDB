@@ -39,12 +39,17 @@ class SequenceDetailView(CustomAccessMixin, DetailView):  # type: ignore[type-ar
     def get_context_data(self, **kwargs: Any) -> Dict[str, Any]:
         context = super().get_context_data(**kwargs)
         sequence = context["sequence"]
-        context["concordances"] = (
-            Sequence.objects.select_related("source__holding_institution")
-            .filter(cantus_id=sequence.cantus_id)
-            .annotate(computed_siglum=COMPUTED_SIGLUM)
-            .order_by("computed_siglum", "folio", "s_sequence")
-        )
+        concordances = Sequence.objects.select_related(
+            "source__holding_institution"
+        ).filter(cantus_id=sequence.cantus_id)
+        if not (self.user.is_superuser or self.user_is_global_viewer):
+            # only list sequences from sources the user can see (#2274)
+            concordances = concordances.filter(
+                source__in=self.published_and_assigned_sources
+            )
+        context["concordances"] = concordances.annotate(
+            computed_siglum=COMPUTED_SIGLUM
+        ).order_by("computed_siglum", "folio", "s_sequence")
 
         context["user_can_edit_sequence"] = self.user_assigned_to_source(
             sequence.source
