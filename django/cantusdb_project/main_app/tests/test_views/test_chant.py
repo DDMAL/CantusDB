@@ -6,12 +6,14 @@ from unittest.mock import patch
 import random
 from typing import ClassVar, Dict
 import urllib.parse
+from datetime import timedelta
 
 from django.conf import settings
 from django.contrib.messages import constants as message_constants
 from django.contrib.messages import get_messages
 from django.test import TestCase
 from django.urls import reverse
+from django.utils import timezone
 
 from faker import Faker
 from bs4 import BeautifulSoup
@@ -3946,6 +3948,46 @@ class ChantCreateViewTest(CustomAccessTestMixin, TestCase):
         observed_initial_image: int = response.context["form"].initial["image_link"]
         with self.subTest(subtest="test initial value of image_link field"):
             self.assertEqual(observed_initial_image, image_link)
+
+    def test_initial_sequence_after_renumbering(self) -> None:
+        # see https://github.com/DDMAL/CantusDB/issues/2272: after chants on a
+        # folio are renumbered, the most recently edited chant's sequence + 1
+        # may already be taken
+        source: Source = self.source
+        chants = [
+            make_fake_chant(source=source, folio="001v", c_sequence=seq)
+            for seq in range(1, 11)
+        ]
+        # renumber chant 8 -> 9, 9 -> 10, 10 -> 11, editing chant 8 last
+        for chant in reversed(chants[7:]):
+            chant.c_sequence += 1
+            chant.save()
+        response = self.client.get(reverse("chant-create", args=[source.id]))
+        self.assertEqual(response.context["form"].initial["folio"], "001v")
+        self.assertEqual(response.context["form"].initial["c_sequence"], 12)
+
+        # if latest_seq + 1 is free, it is still suggested
+        # (make chant 7 the most recently updated; 8 is now free)
+        Chant.objects.filter(pk=chants[6].pk).update(
+            date_updated=timezone.now() + timedelta(minutes=1)
+        )
+        response = self.client.get(reverse("chant-create", args=[source.id]))
+        self.assertEqual(response.context["form"].initial["c_sequence"], 8)
+
+    def test_initial_sequence_without_folio(self) -> None:
+        # a latest chant without a folio pre-fills "001r", so collisions
+        # should be checked against chants on "001r"
+        source: Source = self.source
+        make_fake_chant(source=source, folio="001r", c_sequence=1)
+        make_fake_chant(source=source, folio="001r", c_sequence=2)
+        chant_without_folio = make_fake_chant(source=source, c_sequence=1)
+        # make_fake_chant fills in a random folio when none is given
+        Chant.objects.filter(pk=chant_without_folio.pk).update(
+            folio=None, date_updated=timezone.now() + timedelta(minutes=1)
+        )
+        response = self.client.get(reverse("chant-create", args=[source.id]))
+        self.assertEqual(response.context["form"].initial["folio"], "001r")
+        self.assertEqual(response.context["form"].initial["c_sequence"], 3)
 
     def test_suggested_chant_buttons(self) -> None:
         source: Source = self.source
