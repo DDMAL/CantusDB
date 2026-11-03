@@ -154,6 +154,25 @@ class SaveBrowseChantsFormsetTest(TestCase):
         self.assertEqual(warnings[2]["message"].count("line break"), 1)
         self.assertEqual(warnings[2]["marked_html"].count("&#9166;"), 1)
 
+    def test_standard_spelling_brackets_warn_but_save(self) -> None:
+        data = self.initial_form_data.copy()
+        texts = ("Plena {sum}.", "Plena [sum].")
+        for index, text in enumerate(texts):
+            data[f"chant_set-{index}-manuscript_full_text_std_spelling"] = text
+        result = save_browse_chants_formset.apply(args=(data, self.chant_ids)).get()
+
+        self.assertEqual(result["error_count"], 0)
+        for index, text in enumerate(texts):
+            chant = Chant.objects.get(pk=data[f"chant_set-{index}-id"])
+            self.assertEqual(chant.manuscript_full_text_std_spelling, text)
+        warnings = result["text_warnings"]
+        self.assertEqual(len(warnings), 1)
+        self.assertEqual(warnings[0]["form_num"], 0)
+        self.assertEqual(warnings[0]["kind"], "invalid_characters")
+        self.assertEqual(
+            warnings[0]["marked_html"], "Plena <mark>{</mark>sum<mark>}</mark>."
+        )
+
     def test_valid_text_and_incipit_asterisk_save_without_warnings(self) -> None:
         data = self.initial_form_data.copy()
         for index, text in enumerate(["Gloria in excelsis deo", "Kyrie eleison*"]):
