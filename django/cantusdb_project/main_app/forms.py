@@ -28,6 +28,7 @@ from .models import (
     Notation,
     Feast,
     Source,
+    SourceURL,
     Segment,
     Project,
     Provenance,
@@ -504,7 +505,6 @@ class SourceCreateForm(forms.ModelForm):
             "liturgical_occasions",
             "description",
             "selected_bibliography",
-            "image_link",
             "fragmentarium_id",
             "dact_id",
             "indexing_notes",
@@ -527,7 +527,6 @@ class SourceCreateForm(forms.ModelForm):
             "liturgical_occasions": TextAreaWidget(),
             "description": MarkdownWidget(),
             "selected_bibliography": MarkdownWidget(),
-            "image_link": TextInputWidget(),
             "fragmentarium_id": TextInputWidget(),
             "dact_id": TextInputWidget(),
             "indexing_notes": TextAreaWidget(),
@@ -751,7 +750,6 @@ class SourceEditForm(forms.ModelForm):
             "liturgical_occasions",
             "description",
             "selected_bibliography",
-            "image_link",
             "fragmentarium_id",
             "dact_id",
             "indexing_notes",
@@ -780,7 +778,6 @@ class SourceEditForm(forms.ModelForm):
             "liturgical_occasions": TextAreaWidget(),
             "description": MarkdownWidget(),
             "selected_bibliography": MarkdownWidget(),
-            "image_link": TextInputWidget(),
             "fragmentarium_id": TextInputWidget(),
             "dact_id": TextInputWidget(),
             "indexing_notes": TextAreaWidget(),
@@ -824,6 +821,86 @@ class SourceEditForm(forms.ModelForm):
         self.fields["segment_m2m"].queryset = Segment.objects.exclude(
             id=settings.BENEDICAMUS_DOMINO_SEGMENT_ID
         )
+
+
+class SourceImageLinkForm(forms.ModelForm):
+    """Only gallery URLs are editable here; other link types stay in the admin."""
+
+    class Meta:
+        model = SourceURL
+        fields = ["url"]
+        labels = {"url": "Image gallery URL"}
+        widgets = {"url": TextInputWidget()}
+        field_classes = {"url": NormalizedURLFormField}
+
+    def __init__(self, *args: Any, **kwargs: Any) -> None:
+        super().__init__(*args, **kwargs)
+        self.instance.url_type = SourceURL.URLTypes.EXTERNAL_IMAGES
+
+
+class BaseSourceImageLinkFormSet(forms.BaseInlineFormSet):
+    default_error_messages = {
+        "missing_management_form": (
+            "The image gallery form could not be read. Your changes have not been "
+            "saved. Copy any edits you want to keep, then reload this page and try again."
+        ),
+    }
+
+    def __init__(self, *args: Any, **kwargs: Any) -> None:
+        kwargs["queryset"] = SourceURL.objects.filter(
+            url_type=SourceURL.URLTypes.EXTERNAL_IMAGES
+        ).order_by("pk")
+        super().__init__(*args, **kwargs)
+        self.existing_links = list(self.get_queryset())
+        # ModelForm validation mutates these instances, even for rows marked
+        # for deletion. Keep the stored values for the deletion audit trail.
+        self.original_link_details = {
+            link.pk: (link.url, link.url_description or "")
+            for link in self.existing_links
+        }
+        self.original_legacy_url = self.instance.image_link
+        self.legacy_url = self.original_legacy_url if not self.existing_links else None
+        # On POST compare extra rows with an empty form, so an unchanged legacy
+        # URL is created as a SourceURL when the source is first edited.
+        if not self.is_bound and self.legacy_url:
+            self.initial_extra = [{"url": self.legacy_url}]
+
+    def add_fields(self, form: forms.ModelForm, index: Optional[int]) -> None:
+        super().add_fields(form, index)
+        # The default hidden ID field accepts every SourceURL, including other
+        # sources and admin-only manifests. Validate against this source's rows.
+        form.fields["id"].queryset = self.get_queryset()
+
+    def clean(self) -> None:
+        super().clean()
+        if not self.management_form.is_valid():
+            # Keep the unreadable-form error instead of replacing it with a
+            # stale-row error when Django cannot construct the submitted rows.
+            return
+        expected_ids = {link.pk for link in self.existing_links}
+        submitted_ids = [form.cleaned_data.get("id") for form in self.initial_forms]
+        if (
+            len(submitted_ids) != len(expected_ids)
+            or {link.pk for link in submitted_ids if link is not None} != expected_ids
+            or any(self.data.get(f"{form.prefix}-id") for form in self.extra_forms)
+        ):
+            # Also check deleted forms: Django normally ignores their field
+            # errors. Reject stale/malformed formsets before changing the source.
+            raise ValidationError(
+                "The image links have changed or could not be identified. "
+                "Your changes have not been saved. Copy any edits you want to keep, "
+                "then reload this page and try again."
+            )
+
+
+SourceImageLinkFormSet = forms.inlineformset_factory(
+    Source,
+    SourceURL,
+    form=SourceImageLinkForm,
+    formset=BaseSourceImageLinkFormSet,
+    extra=1,
+    can_delete=True,
+)
 
 
 class ChantSearchForm(forms.Form):

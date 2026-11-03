@@ -5,9 +5,11 @@ from functools import cached_property
 from typing import Any, Optional, Union
 
 import requests
+import reversion
 from django.conf import settings
 from django.contrib import messages
 from django.contrib.auth.mixins import UserPassesTestMixin
+from django.db import transaction
 from django.db.models import (
     BooleanField,
     Case,
@@ -46,6 +48,7 @@ from django.views.generic.detail import SingleObjectMixin
 from main_app.forms import (
     SourceCreateForm,
     SourceEditForm,
+    SourceImageLinkFormSet,
     SourceBrowseChantsProofreadForm,
     ImageLinkForm,
     MAX_IMAGE_LINK_ROWS,
@@ -801,7 +804,88 @@ class CcdbBrowseView(SourceListView):
         return ["source_lists/ccdb_browse.html"]
 
 
-class SourceCreateView(UserPassesTestMixin, CreateView):  # type: ignore[type-arg]
+class SourceImageLinksMixin:
+    """Validate and save the source and its gallery links together."""
+
+    @cached_property
+    def image_link_formset(self) -> SourceImageLinkFormSet:
+        return SourceImageLinkFormSet(
+            data=self.request.POST if self.request.method == "POST" else None,
+            instance=self.object,
+            prefix="image_links",
+        )
+
+    def get_context_data(self, **kwargs: Any) -> dict[str, Any]:
+        context = super().get_context_data(**kwargs)
+        formset = self.image_link_formset
+        context["image_link_formset"] = formset
+        if formset.is_bound and not formset.management_form.is_valid():
+            # A page opened before deployment has the old image_link field;
+            # malformed management data can also hide submitted gallery rows.
+            # Show their text for recovery without trusting it as form data.
+            context["unreadable_image_link_values"] = [
+                value
+                for name, value in self.request.POST.items()
+                if value
+                and (
+                    name == "image_link"
+                    or (name.startswith("image_links-") and name.endswith("-url"))
+                )
+            ]
+        # Keep a previously entered, conflicting URL visible for the editor to
+        # recover. Do not automatically add an obsolete fallback to public links.
+        source = formset.instance
+        context["previous_image_link"] = (
+            source.image_link
+            if formset.existing_links
+            and source.image_link
+            and source.image_link
+            not in {url for url, _ in formset.original_link_details.values()}
+            else None
+        )
+        return context
+
+    def form_valid(self, form: SourceCreateForm | SourceEditForm) -> HttpResponse:
+        formset = self.image_link_formset
+        if not formset.is_valid():
+            return self.form_invalid(form)
+        with transaction.atomic():
+            audit_comments = []
+            # A cleared gallery must not reveal an old fallback. Leave untouched
+            # conflicting legacy values alone when only source metadata changes.
+            if formset.has_changed() or formset.legacy_url:
+                if formset.original_legacy_url:
+                    audit_comments.append(
+                        f"Legacy image gallery URL before this edit: {formset.original_legacy_url}"
+                    )
+                form.instance.image_link = None
+            response = super().form_valid(form)
+            formset.instance = self.object
+            links = formset.save(commit=False)
+            # Reversion excludes objects deleted before its outer revision
+            # finishes. Record their identifying values in the source history,
+            # including links imported before per-link history existed.
+            if formset.deleted_objects:
+                removed = "\n".join(
+                    f"#{link.pk}: {formset.original_link_details[link.pk][0]} "
+                    f"({formset.original_link_details[link.pk][1]})"
+                    for link in formset.deleted_objects
+                )
+                audit_comments.append(f"Removed external image links:\n{removed}")
+            if audit_comments:
+                reversion.set_comment("\n".join(audit_comments))
+            for link in formset.deleted_objects:
+                link.delete()
+            for link in links:
+                if link.pk is None:
+                    link.created_by = self.request.user
+                link.last_updated_by = self.request.user
+                link.save()
+            formset.save_m2m()
+        return response
+
+
+class SourceCreateView(SourceImageLinksMixin, UserPassesTestMixin, CreateView):  # type: ignore[type-arg]
     model = Source
     template_name = "source_create.html"
     form_class = SourceCreateForm
@@ -813,10 +897,13 @@ class SourceCreateView(UserPassesTestMixin, CreateView):  # type: ignore[type-ar
     def get_success_url(self):
         return reverse("source-detail", args=[self.object.id])
 
-    def form_valid(self, form):
+    @transaction.atomic
+    def form_valid(self, form: SourceCreateForm) -> HttpResponse:
+        if not self.image_link_formset.is_valid():
+            return self.form_invalid(form)
         form.instance.created_by = self.request.user
         form.instance.last_updated_by = self.request.user
-        self.object = form.save()
+        response = super().form_valid(form)
 
         # assign this source to the "current_editors"
         current_editors = self.object.current_editors.all()
@@ -829,7 +916,7 @@ class SourceCreateView(UserPassesTestMixin, CreateView):  # type: ignore[type-ar
             self.request,
             "Source created successfully!",
         )
-        return HttpResponseRedirect(self.get_success_url())
+        return response
 
 
 class SourceDeleteView(CustomAccessMixin, DeleteView):  # type: ignore[type-arg]
@@ -848,7 +935,7 @@ class SourceDeleteView(CustomAccessMixin, DeleteView):  # type: ignore[type-arg]
         return self.user_is_editor and self.user_assigned_to_source(self.get_object())
 
 
-class SourceEditView(CustomAccessMixin, UpdateView):  # type: ignore[type-arg]
+class SourceEditView(SourceImageLinksMixin, CustomAccessMixin, UpdateView):  # type: ignore[type-arg]
     template_name = "source_edit.html"
     model = Source
     form_class = SourceEditForm
@@ -888,10 +975,9 @@ class SourceEditView(CustomAccessMixin, UpdateView):  # type: ignore[type-arg]
             context["bower_segment"] = False
         return context
 
-    def form_valid(self, form):
+    def form_valid(self, form: SourceEditForm) -> HttpResponse:
         form.instance.last_updated_by = self.request.user
-        form.save()
-        return HttpResponseRedirect(self.get_success_url())
+        return super().form_valid(form)
 
 
 class SourceInventoryView(CustomAccessMixin, ListView):  # type: ignore[type-arg]
