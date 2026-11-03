@@ -1,3 +1,4 @@
+import json
 import logging
 import re
 from datetime import date
@@ -66,6 +67,7 @@ from main_app.models.source_url import SourceURL
 from main_app.permissions import CustomAccessMixin
 from main_app.mixins import JSONResponseMixin
 from main_app.iiif_utils import (
+    MAX_MANIFEST_UPLOAD_BYTES,
     ManifestTooLargeError,
     fetch_manifest,
     extract_canvases,
@@ -993,11 +995,13 @@ class SourceAddImageLinksView(CustomAccessMixin, SingleObjectMixin, FormView):  
             "maxRows": MAX_IMAGE_LINK_ROWS,
             "maxRequestBytes": request_limit,
         }
-        # Check if this source has a IIIF manifest
-        has_iiif = self.object.source_links.filter(
+        manifest_link = self.object.source_links.filter(
             url_type=SourceURL.URLTypes.IIIF_MANIFEST
-        ).exists()
-        context["has_iiif_manifest"] = has_iiif
+        ).first()
+        context["has_iiif_manifest"] = manifest_link is not None
+        context["iiif_manifest_link"] = manifest_link
+        context["max_manifest_upload_bytes"] = MAX_MANIFEST_UPLOAD_BYTES
+        context["max_manifest_upload_kib"] = MAX_MANIFEST_UPLOAD_BYTES // 1024
         return context
 
     def form_valid(self, form: ImageLinkForm) -> HttpResponseRedirect:
@@ -1026,14 +1030,14 @@ class SourceIIIFMappingView(CustomAccessMixin, SingleObjectMixin, View):  # type
     """
     View to generate a folio-to-image CSV mapping from a source's IIIF manifest.
 
-    Fetches the IIIF manifest, parses canvases, matches them to folios
+    Fetches or accepts an uploaded IIIF manifest, parses canvases, matches them to folios
     in the source, and returns a downloadable CSV file.
     """
 
     pk_url_kwarg = "source_id"
     queryset = Source.objects.select_related("holding_institution")
     object: Source
-    http_method_names = ["get"]
+    http_method_names = ["get", "post"]
 
     def test_func(self) -> bool:
         return self.user.is_superuser
@@ -1056,7 +1060,11 @@ class SourceIIIFMappingView(CustomAccessMixin, SingleObjectMixin, View):  # type
             manifest = fetch_manifest(manifest_link.url)
         except requests.RequestException:
             logger.exception("Failed to fetch IIIF manifest: %s", manifest_link.url)
-            messages.error(request, "Failed to fetch IIIF manifest.")
+            messages.error(
+                request,
+                "Failed to fetch IIIF manifest. If it opens in your browser, "
+                "save it as a JSON file and use Generate from a saved manifest below.",
+            )
             return HttpResponseRedirect(redirect_url)
         except ManifestTooLargeError:
             logger.exception("IIIF manifest too large: %s", manifest_link.url)
@@ -1067,11 +1075,41 @@ class SourceIIIFMappingView(CustomAccessMixin, SingleObjectMixin, View):  # type
             messages.error(request, "IIIF manifest is not valid JSON.")
             return HttpResponseRedirect(redirect_url)
 
-        # Extract canvases from the manifest
+        return self.render_mapping(manifest)
+
+    def post(self, request: HttpRequest, *args: Any, **kwargs: Any) -> HttpResponse:
+        self.object = self.get_object()
+        redirect_url = reverse("source-add-image-links", args=[self.object.id])
+        upload = request.FILES.get("manifest")
+        if upload is None:
+            messages.error(request, "Select a saved IIIF manifest JSON file.")
+            return HttpResponseRedirect(redirect_url)
+
+        # Do not store the file or fetch any URLs it contains. Generating a CSV
+        # is separate from the existing form that applies reviewed image links.
+        content = upload.read(MAX_MANIFEST_UPLOAD_BYTES + 1)
+        if len(content) > MAX_MANIFEST_UPLOAD_BYTES:
+            messages.error(
+                request,
+                "The saved manifest is too large to upload. "
+                f"The limit is {MAX_MANIFEST_UPLOAD_BYTES // 1024} KiB.",
+            )
+            return HttpResponseRedirect(redirect_url)
+        try:
+            manifest = json.loads(content)
+        except (ValueError, RecursionError):
+            messages.error(request, "The uploaded IIIF manifest is not valid JSON.")
+            return HttpResponseRedirect(redirect_url)
+        return self.render_mapping(manifest)
+
+    def render_mapping(self, manifest: dict) -> HttpResponse:
+        """Download the same CSV for a fetched or uploaded manifest."""
         canvases = extract_canvases(manifest)
         if not canvases:
-            messages.error(request, "No canvases found in the IIIF manifest.")
-            return HttpResponseRedirect(redirect_url)
+            messages.error(self.request, "No canvases found in the IIIF manifest.")
+            return HttpResponseRedirect(
+                reverse("source-add-image-links", args=[self.object.id])
+            )
 
         # Get source folios
         source_folios = list(
