@@ -30,7 +30,10 @@ class SegmentSettingsTest(TestCase):
         response = self.client.get(reverse("source-list"))
         for segment_id, label in (
             (settings.CANTUS_SEGMENT_ID, "Cantus Database"),
-            (settings.BOWER_SEGMENT_ID, "Bower Sequence Database"),
+            (
+                settings.BOWER_SEGMENT_ID,
+                "Sequence Database (Clavis Sequentiarum by Calvin Bower)",
+            ),
             (settings.CCDB_SEGMENT_ID, "Canadian Chant Database"),
         ):
             with self.subTest(segment=label):
