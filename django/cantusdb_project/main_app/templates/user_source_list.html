@@ -22,6 +22,11 @@
                         <a href="{% url "source-detail" source.pk %}">
                             <b>{{ source.short_heading }}</b>
                         </a>
+                        {% if source.locked_for_proofreading and user_is_editor %}
+                            {# editors keep their links, so flag the submission here instead #}
+                            <br />
+                            <small class="text-muted">Submitted for proofreading</small>
+                        {% endif %}
                     </td>
                     {% if source.locked_for_proofreading and not user_is_editor %}
                         {# editing is locked until an editor picks it up, so don't offer links that 403 #}
@@ -71,6 +76,12 @@
                                       style="display: inline-block;
                                              margin-top:5px">Submitted for proofreading</span>
                             {% else %}
+                                {% if my_source.locked_for_proofreading %}
+                                    <span class="text-muted"
+                                          style="display: inline-block;
+                                                 margin-top:5px">Submitted for proofreading</span>
+                                    <br />
+                                {% endif %}
                                 <a href="{% url "chant-create" my_source.pk %}"
                                    style="display: inline-block;
                                           margin-top:5px">+ Add new chant</a>

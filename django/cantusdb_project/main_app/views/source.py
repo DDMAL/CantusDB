@@ -299,9 +299,12 @@ class SourceBrowseChantsView(CustomAccessMixin, ListView):  # type: ignore[type-
 
     def post(self, request: HttpRequest, *args: Any, **kwargs: Any) -> HttpResponse:
         chant_ids = list(self.get_queryset().values_list("id", flat=True))
+        # The task re-checks the proofreading lock when it runs (issue #1962).
         task = save_browse_chants_formset.delay(
             data=request.POST,
             chant_ids=chant_ids,
+            source_id=self.source.id,
+            user_id=request.user.id,
         )
         return JsonResponse({"taskID": task.id})
 
@@ -946,6 +949,11 @@ class SourceEditView(CustomAccessMixin, UpdateView):  # type: ignore[type-arg]
             )
             if self.source_locked_for_proofreading(fresh) and not self.user_is_editor:
                 return self.handle_no_permission()
+            # The UPDATE leaves `source_status` alone, but django-reversion
+            # snapshots the whole in-memory instance, so carry the current
+            # status onto it: otherwise restoring this version would bring
+            # back the stale, unlocked status.
+            form.instance.source_status = fresh.source_status
             form.instance.last_updated_by = self.request.user
             self.save_form_fields_only(form)
             if submitting:

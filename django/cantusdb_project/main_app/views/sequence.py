@@ -94,6 +94,15 @@ class SequenceEditView(CustomAccessMixin, UpdateView):  # type: ignore[type-arg]
     pk_url_kwarg = "sequence_id"
 
     def form_valid(self, form: SequenceEditForm) -> HttpResponse:
+        # `test_func` checks the source the sequence is in now, but the form
+        # can also move it into another source, which must not let a sequence
+        # into a source locked for proofreading (issue #1962).
+        new_source = form.cleaned_data.get("source")
+        if new_source is not None and not self.user_can_edit_chants(new_source):
+            form.add_error(
+                "source", "You do not have permission to add sequences to this source."
+            )
+            return self.form_invalid(form)
         form.instance.last_updated_by = self.request.user
         messages.success(
             self.request,
