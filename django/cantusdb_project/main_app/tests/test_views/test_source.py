@@ -10,12 +10,15 @@ from unittest.mock import patch
 from urllib.parse import urlencode
 
 from faker import Faker
+import reversion  # type: ignore[import-untyped]
+from reversion.models import Version  # type: ignore[import-untyped]
 from typing import Dict, Optional
 
 from django.conf import settings
 from django.contrib.messages import get_messages
 from django.db import connection
 from django.db.models import QuerySet
+from django.forms.models import model_to_dict
 from django.http import HttpResponse
 from django.test import TestCase, override_settings
 from django.test.utils import CaptureQueriesContext
@@ -24,7 +27,14 @@ from django.core.exceptions import ObjectDoesNotExist
 from django.contrib.auth import get_user_model
 
 from main_app.forms import MAX_IMAGE_LINK_ROWS, SourceEditForm
-from main_app.models import Source, Chant, Differentia, SourceIdentifier, SourceURL
+from main_app.models import (
+    Chant,
+    Differentia,
+    Sequence,
+    Source,
+    SourceIdentifier,
+    SourceURL,
+)
 from main_app.tests.make_fakes import (
     make_fake_source,
     make_fake_segment,
@@ -655,6 +665,129 @@ class SourceSubmitForProofreadingViewTest(CustomAccessTestMixin, TestCase):
         self.assertEqual(source.shelfmark, "proofreader-correction")
         self.assertEqual(source.source_status, Source.PROOFREAD_PENDING_STATUS)
 
+    def test_editor_edit_records_the_lock_in_history(self) -> None:
+        # django-reversion snapshots the whole in-memory instance, so a form
+        # that opened before the lock must not record the pre-lock status:
+        # restoring that version would unlock the source.
+        source = self.sources["user_created_source"]
+        real_is_valid = SourceEditForm.is_valid
+
+        def submit_then_validate(form):
+            Source.objects.get(pk=form.instance.pk).submit_for_proofreading(
+                self.users["user"]
+            )
+            return real_is_valid(form)
+
+        self.client.force_login(user=self.users["editor"])
+        with mock.patch.object(SourceEditForm, "is_valid", submit_then_validate):
+            self.client.post(
+                reverse("source-edit", args=[source.id]),
+                {
+                    "shelfmark": "proofreader-correction",
+                    "source_completeness": "1",
+                    "production_method": "1",
+                },
+            )
+
+        latest = Version.objects.get_for_object(source).first()
+        self.assertEqual(latest.field_dict["shelfmark"], "proofreader-correction")
+        self.assertEqual(
+            latest.field_dict["source_status"], Source.PROOFREAD_PENDING_STATUS
+        )
+
+    def test_chant_save_records_the_lock_in_source_history(self) -> None:
+        # Saving a chant re-saves its cached source to update the chant
+        # count, and django-reversion snapshots that copy too.
+        source = self.sources["user_created_source"]
+        chant = make_fake_chant(source=source)
+        chant = Chant.objects.select_related("source").get(pk=chant.pk)
+        Source.objects.get(pk=source.pk).submit_for_proofreading(self.users["user"])
+
+        with reversion.create_revision():
+            chant.save()
+
+        latest = Version.objects.get_for_object(source).first()
+        self.assertEqual(
+            latest.field_dict["source_status"], Source.PROOFREAD_PENDING_STATUS
+        )
+
+    def test_sequence_save_records_the_lock_in_source_history(self) -> None:
+        # Saving a sequence re-saves its cached source too, and only the
+        # chant-count update runs on that path.
+        sequence = make_fake_sequence()
+        sequence = Sequence.objects.select_related("source").get(pk=sequence.pk)
+        Source.objects.get(pk=sequence.source.pk).submit_for_proofreading(
+            self.users["user"]
+        )
+
+        with reversion.create_revision():
+            sequence.save()
+
+        latest = Version.objects.get_for_object(sequence.source).first()
+        self.assertEqual(
+            latest.field_dict["source_status"], Source.PROOFREAD_PENDING_STATUS
+        )
+
+    def test_bulk_edit_passes_source_and_user_to_the_task(self) -> None:
+        # The task re-checks the lock when it runs, which it can only do if
+        # the view tells it whose edit it is and on which source.
+        source = self.sources["user_created_source"]
+        make_fake_chant(source=source)
+        self.client.force_login(user=self.users["user"])
+        with mock.patch(
+            "main_app.views.source.save_browse_chants_formset.delay"
+        ) as delay:
+            delay.return_value.id = "task-id"
+            self.client.post(reverse("browse-chants", args=[source.id]), {})
+        delay.assert_called_once()
+        self.assertEqual(delay.call_args.kwargs["source_id"], source.id)
+        self.assertEqual(delay.call_args.kwargs["user_id"], self.users["user"].id)
+
+    def test_sequence_cannot_be_moved_into_a_locked_source(self) -> None:
+        # The edit view checks the sequence's current source; the form can
+        # also move it into another one, which must respect the lock too.
+        sequence = make_fake_sequence()
+        unlocked = sequence.source
+        unlocked.current_editors.set([self.users["user"]])
+        locked = self.sources["user_created_source"]
+        locked.submit_for_proofreading(self.users["user"])
+        data = {
+            key: value
+            for key, value in model_to_dict(sequence).items()
+            if value is not None
+        }
+        data["source"] = locked.id
+
+        self.client.force_login(user=self.users["user"])
+        response = self.client.post(reverse("sequence-edit", args=[sequence.id]), data)
+
+        self.assertEqual(response.status_code, 200)
+        self.assertFormError(
+            response.context["form"],
+            "source",
+            "You do not have permission to add sequences to this source.",
+        )
+        sequence.refresh_from_db()
+        self.assertEqual(sequence.source, unlocked)
+
+    def test_sequence_can_still_be_moved_between_unlocked_sources(self) -> None:
+        sequence = make_fake_sequence()
+        sequence.source.current_editors.set([self.users["user"]])
+        target = make_fake_source(current_editors=[self.users["user"]])
+        data = {
+            key: value
+            for key, value in model_to_dict(sequence).items()
+            if value is not None
+        }
+        data["source"] = target.id
+
+        self.client.force_login(user=self.users["user"])
+        response = self.client.post(reverse("sequence-edit", args=[sequence.id]), data)
+
+        self.assertEqual(response.status_code, 302)
+        sequence.refresh_from_db()
+        self.assertEqual(sequence.source, target)
+
     def test_edit_save_cannot_revert_a_lock_set_after_the_status_re_read(self) -> None:
         """
         Re-reading `source_status` closes the window before the read, but a
@@ -735,6 +868,13 @@ class SourceSubmitForProofreadingViewTest(CustomAccessTestMixin, TestCase):
         source.refresh_from_db()
         self.assertEqual(source.shelfmark, "edited-then-submitted")
         self.assertEqual(source.source_status, Source.PROOFREAD_PENDING_STATUS)
+        # The form save and the submission both snapshot the source in the
+        # same revision; the version kept must record the lock.
+        latest = Version.objects.get_for_object(source).first()
+        self.assertEqual(latest.field_dict["shelfmark"], "edited-then-submitted")
+        self.assertEqual(
+            latest.field_dict["source_status"], Source.PROOFREAD_PENDING_STATUS
+        )
 
 
 class SourceDetailViewTest(CsvExportLinkTestMixin, SourcePermissionsTestCase):

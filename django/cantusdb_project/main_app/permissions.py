@@ -8,7 +8,7 @@ from django.contrib.auth.models import AnonymousUser
 from django.contrib.auth.mixins import AccessMixin
 from django.core.exceptions import ImproperlyConfigured
 from django.http import HttpRequest, HttpResponse
-from django.db.models import Q, QuerySet
+from django.db.models import BooleanField, Case, Q, QuerySet, Value, When
 
 from main_app.models import Source
 from users.models import User
@@ -66,6 +66,40 @@ def user_group_valid(group: str, user_groups: Dict[str, Optional[date]]) -> bool
     if expiration is not None and expiration < date.today():
         return False
     return True
+
+
+def user_is_editor(user: Union[User, AnonymousUser]) -> bool:
+    """
+    Returns True if the user is a superuser or holds a valid editor
+    membership. Mirrors `CustomAccessMixin.user_is_editor` for callers
+    outside a view, such as template tags.
+
+    :param user: User object to check.
+
+    :return: True if the user has editor privileges.
+    """
+    return user.is_superuser or user_group_valid("editor", get_user_groups(user))
+
+
+def annotate_proofreading_lock(queryset: QuerySet[Source]) -> QuerySet[Source]:
+    """
+    Flag each source that has been submitted for proofreading, with the same
+    rule as `CustomAccessMixin.source_locked_for_proofreading`.
+
+    Source lists that offer chant-editing links use it to hide links a
+    submitted source would refuse to anyone but an editor (issue #1962).
+
+    :param queryset: Sources to annotate.
+
+    :return: The queryset with a `locked_for_proofreading` boolean.
+    """
+    return queryset.annotate(
+        locked_for_proofreading=Case(
+            When(source_status=Source.PROOFREAD_PENDING_STATUS, then=Value(True)),
+            default=Value(False),
+            output_field=BooleanField(),
+        )
+    )
 
 
 class CustomAccessMixin(AccessMixin):

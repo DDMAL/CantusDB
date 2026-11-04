@@ -13,6 +13,10 @@ from django.utils.html import format_html_join
 
 from articles.models import Article
 from main_app.models import Chant, Source, BaseModel
+from main_app.permissions import (
+    annotate_proofreading_lock,
+    user_is_editor as user_has_editor_privileges,
+)
 from main_app.markdown import render_markdown
 from users.models import User
 
@@ -229,12 +233,22 @@ def split(value: str, key: str) -> list[str]:
 
 
 @register.simple_tag(takes_context=True)
+def user_is_editor(context: dict[str, Any]) -> bool:
+    """
+    Whether the current user has editor privileges. Source lists use it to
+    keep chant-editing links for editors on sources submitted for
+    proofreading, which are locked to everyone else (issue #1962).
+    """
+    return user_has_editor_privileges(context["user"])
+
+
+@register.simple_tag(takes_context=True)
 def get_user_source_pagination(context: dict[str, Any]) -> Page[Source]:
     """
     Gets the appropriate `Page` object for the user's sources,
     based on the current page number in the request's GET parameters.
     """
-    user_created_sources = (
+    user_created_sources = annotate_proofreading_lock(
         Source.objects.filter(
             Q(current_editors=context["user"]) | Q(created_by=context["user"])
         )
@@ -265,7 +279,7 @@ def get_user_created_source_pagination(context: dict[str, Any]) -> Page[Source]:
     Gets the appropriate `Page` object for the user's created sources,
     based on the current page number in the request's GET parameters.
     """
-    user_created_sources = (
+    user_created_sources = annotate_proofreading_lock(
         Source.objects.filter(created_by=context["user"])
         .select_related("holding_institution")
         .annotate(has_chants=Exists(Chant.objects.filter(source_id=OuterRef("pk"))))

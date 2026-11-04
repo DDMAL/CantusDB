@@ -33,6 +33,7 @@ from main_app.tests.make_fakes import (
     make_fake_service,
     make_fake_genre,
     make_fake_user,
+    make_groups,
 )
 from main_app.models import (
     Chant,
@@ -94,6 +95,44 @@ class SaveBrowseChantsFormsetTest(TestCase):
         chant.refresh_from_db()
         self.assertEqual(chant.mode, "0")
         self.assertEqual(res["error_count"], 0)
+
+    def test_queued_edit_refused_once_source_is_locked(self) -> None:
+        # The view authorises a bulk edit when it is queued, but the source
+        # can be submitted for proofreading before the task runs; applying the
+        # stale edit then would overwrite the proofreader's corrections.
+        indexer = make_fake_user()
+        Source.objects.filter(pk=self.source.pk).update(
+            source_status=Source.PROOFREAD_PENDING_STATUS
+        )
+        chant = self.chants[0]
+        original_mode = chant.mode
+        data = self.initial_form_data.copy()
+        data["chant_set-0-mode"] = "0"
+        res = save_browse_chants_formset.apply(
+            args=(data, self.chant_ids),
+            kwargs={"source_id": self.source.pk, "user_id": indexer.pk},
+        ).get()
+        self.assertEqual(res["error_count"], 1)
+        self.assertEqual(len(res["non_form_errors"]), 1)
+        chant.refresh_from_db()
+        self.assertEqual(chant.mode, original_mode)
+
+    def test_queued_edit_by_editor_applies_to_locked_source(self) -> None:
+        # Editors are the ones proofreading, so the lock doesn't stop them.
+        editor = make_fake_user(groups=[(make_groups()["editor"], None)])
+        Source.objects.filter(pk=self.source.pk).update(
+            source_status=Source.PROOFREAD_PENDING_STATUS
+        )
+        data = self.initial_form_data.copy()
+        data["chant_set-0-mode"] = "0"
+        res = save_browse_chants_formset.apply(
+            args=(data, self.chant_ids),
+            kwargs={"source_id": self.source.pk, "user_id": editor.pk},
+        ).get()
+        self.assertEqual(res["error_count"], 0)
+        chant = self.chants[0]
+        chant.refresh_from_db()
+        self.assertEqual(chant.mode, "0")
 
     def test_invalid_formset(self) -> None:
         with self.subTest("Incomplete formset data"):

@@ -87,6 +87,10 @@ def update_source_chant_count(instance) -> None:
         # a chant edit was in flight (issue #1962), so write only the column
         # recalculated here. `date_updated` is listed explicitly because Django
         # only refreshes `auto_now` fields that appear in `update_fields`.
+        # The status is re-read too, because django-reversion snapshots the
+        # whole in-memory copy, and restoring a snapshot carrying the stale
+        # status would undo the lock.
+        source.refresh_from_db(fields=["source_status"])
         source.save(update_fields=["number_of_chants", "date_updated"])
 
 
@@ -107,7 +111,9 @@ def update_source_melody_count(instance) -> None:
             .exclude(volpiano__exact="")
             .count()
         )
-        # Narrowed for the same reason as in update_source_chant_count() above.
+        # Narrowed for the same reason as in update_source_chant_count() above,
+        # which always runs first on the same cached `source` and has already
+        # re-read its status.
         source.save(update_fields=["number_of_melodies", "date_updated"])
 
 

@@ -170,7 +170,7 @@ class UserSourceListViewTest(TestCase):
 
     def test_editor_keeps_chant_editing_links_on_submitted_source(self) -> None:
         # An editor is the one who proofreads a submitted source, so the lock
-        # must not take their links away.
+        # must not take their links away, and they need to see it was submitted.
         groups = make_groups()
         editor = make_fake_user(groups=[(groups["editor"], None)])
         source = make_fake_source(published=False, current_editors=[editor])
@@ -182,4 +182,7 @@ class UserSourceListViewTest(TestCase):
         self.client.force_login(editor)
         response = self.client.get(reverse("my-sources"))
         self.assertContains(response, reverse("source-edit-chants", args=[source.pk]))
-        self.assertNotContains(response, "Submitted for proofreading")
+        self.assertContains(response, reverse("chant-create", args=[source.pk]))
+        # The source is in both lists (assigned and created), and each list
+        # flags it.
+        self.assertContains(response, "Submitted for proofreading", count=2)
