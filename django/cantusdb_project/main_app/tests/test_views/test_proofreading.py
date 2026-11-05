@@ -10,6 +10,7 @@ from main_app.tests.make_fakes import (
     make_fake_segment,
     make_fake_institution,
 )
+from main_app.models import Source
 from main_app.views.proofreading import ProofreadView
 from users.models import Group
 
@@ -136,6 +137,36 @@ class ProofreadingOverviewViewTest(TestCase):
         self.assertIn(proofread_unpublished_source, sources)
         self.assertNotIn(needs_proofread_unpublished_source, sources)
         self.assertNotIn(proofread_published_source, sources)
+
+    def test_submitted_for_proofreading_filter(self):
+        # Editors need a way to find sources an indexer has handed over
+        # (issue #1962).
+        submitted_source = make_fake_source(
+            published=False, segment=[self.cantus_segment]
+        )
+        make_fake_chant(source=submitted_source)
+        submitted_source.submit_for_proofreading(self.project_manager_user)
+
+        other_source = make_fake_source(published=False, segment=[self.cantus_segment])
+        make_fake_chant(source=other_source)
+        Source.objects.filter(pk=other_source.pk).update(
+            source_status="Unpublished / Indexing process"
+        )
+
+        response = self.client.get(self.url, {"inactive": "submitted"})
+        sources = list(response.context["sources"])
+        self.assertIn(submitted_source, sources)
+        self.assertNotIn(other_source, sources)
+        self.assertContains(response, "Submitted</span>")
+
+        # Without the filter both show, but only the submitted one is flagged.
+        response = self.client.get(self.url)
+        flagged = {
+            source.pk: source.locked_for_proofreading
+            for source in response.context["sources"]
+        }
+        self.assertTrue(flagged[submitted_source.pk])
+        self.assertFalse(flagged[other_source.pk])
 
     def test_sortable_headers(self):
         response = self.client.get(self.url, {"order": "country"})

@@ -17,7 +17,7 @@ from django.views.generic.list import MultipleObjectMixin
 from django.utils import timezone
 
 from main_app.models import Source
-from main_app.permissions import CustomAccessMixin
+from main_app.permissions import CustomAccessMixin, annotate_proofreading_lock
 
 
 class ProofreadView(CustomAccessMixin, ListView, MultipleObjectMixin):
@@ -56,6 +56,10 @@ class ProofreadView(CustomAccessMixin, ListView, MultipleObjectMixin):
 
         # Inactive Source Filtering
         inactive_filter = self.request.GET.get("inactive", None)
+        # Sources an indexer has handed over for proofreading (issue #1962)
+        if inactive_filter == "submitted":
+            queryset = queryset.filter(source_status=Source.PROOFREAD_PENDING_STATUS)
+        queryset = annotate_proofreading_lock(queryset)
         if inactive_filter:
             today = timezone.now()
             if inactive_filter == "3":

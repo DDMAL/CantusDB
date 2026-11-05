@@ -6,6 +6,8 @@
     <h3>{{ title }}</h3>
     {% if current_inactive_filter == "proofread_unpublished" %}
         <p>Showing unpublished sources that have no chants left requiring proofreading.</p>
+    {% elif current_inactive_filter == "submitted" %}
+        <p>Showing sources that have been submitted for proofreading.</p>
     {% else %}
         <p>Showing sources that contain chants requiring proofreading.</p>
     {% endif %}
@@ -41,6 +43,10 @@
                         </option>
                         <option value="12"
                                 {% if current_inactive_filter == "12" %}selected{% endif %}>Inactive for 12 Months</option>
+                        <option value="submitted"
+                                {% if current_inactive_filter == "submitted" %}selected{% endif %}>
+                            Submitted for Proofreading
+                        </option>
                         <option value="proofread_unpublished"
                                 {% if current_inactive_filter == "proofread_unpublished" %}selected{% endif %}>Proofread but Unpublished</option>
                     </select>
@@ -101,6 +107,10 @@
                                     <span class="badge bg-success">Published</span>
                                 {% else %}
                                     <span class="badge bg-warning text-dark">Unpublished</span>
+                                {% endif %}
+                                {% if source.locked_for_proofreading %}
+                                    <br />
+                                    <span class="badge bg-info text-dark">Submitted</span>
                                 {% endif %}
                             </td>
                             <td class="text-wrap" style="text-align:center">
