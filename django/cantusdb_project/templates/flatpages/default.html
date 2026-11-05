@@ -35,6 +35,7 @@
         <div class="card w-100">
             <div class="card-header">My Sources</div>
             {% get_user_source_pagination as user_sources_page_obj %}
+            {% user_is_editor as user_is_editor %}
             <div class="card-body">
                 <small><a href="{% url "source-create" %}"><b>+ Add new source</b></a></small>
                 <ul>
@@ -49,14 +50,23 @@
                                     <b> {{ my_source.heading }}</b>
                                 </a>
                                 <br />
-                                <a href="{% url "chant-create" my_source.pk %}"
-                                   style="display: inline-block;
-                                          margin-top:5px">&plus; Add new chant</a>
-                                <br />
-                                {% if my_source.has_chants %}
-                                    <a href="{% url "source-edit-chants" my_source.pk %}">
-                                        &bull; Full text &amp; volpiano editor
-                                    </a>
+                                {% if my_source.locked_for_proofreading %}
+                                    <span class="text-muted"
+                                          style="display: inline-block;
+                                                 margin-top:5px">Submitted for proofreading</span>
+                                    <br />
+                                {% endif %}
+                                {% if not my_source.locked_for_proofreading or user_is_editor %}
+                                    {# a submitted source is locked to everyone but editors (#1962), so don't offer links that 403 #}
+                                    <a href="{% url "chant-create" my_source.pk %}"
+                                       style="display: inline-block;
+                                              margin-top:5px">&plus; Add new chant</a>
+                                    <br />
+                                    {% if my_source.has_chants %}
+                                        <a href="{% url "source-edit-chants" my_source.pk %}">
+                                            &bull; Full text &amp; volpiano editor
+                                        </a>
+                                    {% endif %}
                                 {% endif %}
                             </small>
                         </li>
@@ -100,14 +110,23 @@
                                     <b> {{ my_source.heading }}</b>
                                 </a>
                                 <br />
-                                <a href="{% url "chant-create" my_source.pk %}"
-                                   style="display: inline-block;
-                                          margin-top:5px">&plus; Add new chant</a>
-                                <br />
-                                {% if my_source.has_chants %}
-                                    <a href="{% url "source-edit-chants" my_source.pk %}">
-                                        &bull; Full text &amp; volpiano editor
-                                    </a>
+                                {% if my_source.locked_for_proofreading %}
+                                    <span class="text-muted"
+                                          style="display: inline-block;
+                                                 margin-top:5px">Submitted for proofreading</span>
+                                    <br />
+                                {% endif %}
+                                {% if not my_source.locked_for_proofreading or user_is_editor %}
+                                    {# a submitted source is locked to everyone but editors (#1962), so don't offer links that 403 #}
+                                    <a href="{% url "chant-create" my_source.pk %}"
+                                       style="display: inline-block;
+                                              margin-top:5px">&plus; Add new chant</a>
+                                    <br />
+                                    {% if my_source.has_chants %}
+                                        <a href="{% url "source-edit-chants" my_source.pk %}">
+                                            &bull; Full text &amp; volpiano editor
+                                        </a>
+                                    {% endif %}
                                 {% endif %}
                             </small>
                         </li>
