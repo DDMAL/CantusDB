@@ -1,11 +1,12 @@
 import html
 import re
-from typing import Optional, Any, Dict
+from typing import Optional, Any, Dict, Iterable
 
 from django import forms
 from django.conf import settings
 from django.contrib.auth.forms import ReadOnlyPasswordHashField
 from django.contrib.auth import get_user_model
+from django.db import transaction
 from django.db.models import Q, Model
 from django.contrib.admin.widgets import (
     FilteredSelectMultiple,
@@ -125,17 +126,17 @@ class DerivedChantRangeMixin:
 
 
 class NameModelChoiceField(forms.ModelChoiceField):
-    """
-    A custom ModelChoiceField that overrides the label_from_instance method
-    to display the object's name attribute instead of str(object).
-    This field is specifically designed for handling genre and service objects.
-    Rather than displaying the name along with its description, sometimes we
-    only want the shorthand notation for the genre and service objects.
-    (Eg. [AV] Antiphon verse --> AV)
-    """
+    """Display an object's name instead of its internal string representation."""
 
     def label_from_instance(self, obj):
         return obj.name
+
+
+class GenreServiceChoiceField(forms.ModelChoiceField):
+    """Use the same Genre/Service label for selected values and autocomplete."""
+
+    def label_from_instance(self, obj: Genre | Service) -> str:
+        return obj.dropdown_label
 
 
 class SelectWidgetNameModelChoiceField(NameModelChoiceField):
@@ -477,6 +478,10 @@ class ChantCreateForm(ChantTextWarningsMixin, DerivedChantRangeMixin, forms.Mode
             "rubrics": TextInputWidget(),
             "text_language": SelectWidget(),
         }
+        field_classes = {
+            "genre": GenreServiceChoiceField,
+            "service": GenreServiceChoiceField,
+        }
 
     folio = forms.CharField(
         required=True,
@@ -707,6 +712,10 @@ class ChantEditForm(ChantTextWarningsMixin, DerivedChantRangeMixin, forms.ModelF
             "later_addition": TextInputWidget(),
             "rubrics": TextInputWidget(),
             "text_language": SelectWidget(),
+        }
+        field_classes = {
+            "genre": GenreServiceChoiceField,
+            "service": GenreServiceChoiceField,
         }
 
     manuscript_full_text_std_spelling = CantusDBLatinField(
@@ -954,9 +963,7 @@ class SequenceEditForm(forms.ModelForm):
             "image_link": TextInputWidget(),
         }
 
-    # We use NameModelChoiceField here so the dropdown list of genres displays the name
-    # instead of [name] + description
-    genre = NameModelChoiceField(
+    genre = GenreServiceChoiceField(
         queryset=Genre.objects.all().order_by("name"), required=False
     )
     genre.widget.attrs.update({"class": "form-control custom-select custom-select-sm"})
@@ -1054,15 +1061,11 @@ class AdminChantForm(DerivedChantRangeMixin, forms.ModelForm):
         label="Sequence",
     )
 
-    # We use NameModelChoiceField here so the dropdown list of service/mass displays the name
-    # instead of [name] + description
-    service = NameModelChoiceField(
+    service = GenreServiceChoiceField(
         queryset=Service.objects.all().order_by("name"),
         required=False,
     )
-    # We use NameModelChoiceField here so the dropdown list of genres displays the name
-    # instead of [name] + description
-    genre = NameModelChoiceField(
+    genre = GenreServiceChoiceField(
         queryset=Genre.objects.all().order_by("name"), required=False
     )
 
@@ -1142,15 +1145,11 @@ class AdminSequenceForm(DerivedChantRangeMixin, forms.ModelForm):
             "chant_range": VolpianoAreaWidget(),
         }
 
-    # We use NameModelChoiceField here so the dropdown list of service/mass displays the name
-    # instead of [name] + description
-    service = NameModelChoiceField(
+    service = GenreServiceChoiceField(
         queryset=Service.objects.all().order_by("name"),
         required=False,
     )
-    # We use NameModelChoiceField here so the dropdown list of genres displays the name
-    # instead of [name] + description
-    genre = NameModelChoiceField(
+    genre = GenreServiceChoiceField(
         queryset=Genre.objects.all().order_by("name"), required=False
     )
 
@@ -1285,37 +1284,132 @@ class AdminUserChangeForm(forms.ModelForm):
     )
 
 
+# Bound the work per import while allowing sources such as Tours 149, which
+# has 1044 folios. Larger files can be split into separate imports.
+MAX_IMAGE_LINK_ROWS = 5000
+
+# Listing every bad row would produce an unreadable error, so name a few.
+_MAX_REPORTED_INVALID_LINKS = 10
+
+
 class ImageLinkForm(forms.Form):
     """
-    Subclass of Django's Form class that creates the form we use for
-    adding image links to chants in a source.
+    Applies image links to the chants of a source, folio by folio.
 
-    Initialize the Form with a field for every folio in the source,
-    passed as the "initial" parameter, which is a dictionary with a key
-    for every folio and a blank value.
+    The page posts one JSON field holding the rows the preview table shows: a
+    list of [folio, image_link] pairs in the order the CSV listed them. A
+    hidden input per folio would instead send one field per folio, which
+    exceeds DATA_UPLOAD_MAX_NUMBER_FIELDS on a source the size of Tours 149 and
+    fails the request with HTTP 400 before form validation.
+
+    A folio the file omits, and a folio whose link is blank, keeps the image
+    link it already has. Folios that do not belong to this source are counted
+    in `ignored_folios` and never written.
     """
 
-    def __init__(self, *args: Any, **kwargs: Any) -> None:
-        super().__init__(*args, **kwargs)
-        initial = kwargs.get("initial")
-        if initial:
-            for folio in initial:
-                self.fields[folio] = NormalizedURLFormField(
-                    widget=HiddenInput(attrs={"class": "img-link-input"}),
-                    required=False,
-                )
+    image_links = forms.JSONField(
+        required=False,
+        widget=HiddenInput(attrs={"id": "imgLinkData"}),
+        error_messages={
+            "invalid": (
+                "The image links could not be read. "
+                "Select the CSV file again and resubmit."
+            )
+        },
+    )
 
-    def save(self, source: Source) -> None:
+    def __init__(
+        self, *args: Any, source_folios: Iterable[str] = (), **kwargs: Any
+    ) -> None:
+        super().__init__(*args, **kwargs)
+        self.source_folios: set[str] = set(source_folios)
+        self.ignored_folios: list[str] = []
+
+    def clean_image_links(self) -> dict[str, str]:
+        """
+        Turn the submitted rows into the {folio: image link} map to write.
+
+        Returns the links for this source's folios only, keeping the last row
+        for a folio the file lists more than once.
+        """
+        rows = self.cleaned_data.get("image_links")
+        unreadable = self.fields["image_links"].error_messages["invalid"]
+        if not rows:
+            raise ValidationError("Select a CSV file of image links before saving.")
+        if not isinstance(rows, list):
+            raise ValidationError(unreadable)
+        if len(rows) > MAX_IMAGE_LINK_ROWS:
+            raise ValidationError(
+                f"The file holds {len(rows)} rows; at most "
+                f"{MAX_IMAGE_LINK_ROWS} can be imported at once."
+            )
+
+        # Chant.image_link is a URL column of a fixed width, so a link that
+        # passes URL validation can still be too long for the database to
+        # store. Validate against the column the import writes to.
+        link_field = NormalizedURLFormField(
+            required=False,
+            max_length=Chant._meta.get_field("image_link").max_length,
+        )
+        final_links: dict[str, str] = {}
+        for row in rows:
+            if not (
+                isinstance(row, list)
+                and len(row) == 2
+                and all(isinstance(value, str) for value in row)
+            ):
+                raise ValidationError(unreadable)
+            folio, image_link = (value.strip() for value in row)
+            if folio not in self.source_folios:
+                self.ignored_folios.append(folio)
+                continue
+            final_links[folio] = image_link
+
+        image_links: dict[str, str] = {}
+        invalid_links: list[str] = []
+        # Resolve repeated folios before validating their final values. A
+        # final blank keeps the stored link, even after a nonblank earlier row.
+        for folio, image_link in final_links.items():
+            if not image_link:
+                continue
+            try:
+                if any(char in image_link for char in "\ufffd\r\n\t"):
+                    raise ValidationError(
+                        "The link contains unreadable characters or line breaks. "
+                        "Correct the link and export the file as UTF-8 CSV."
+                    )
+                image_links[folio] = link_field.clean(image_link)
+            except ValidationError as error:
+                invalid_links.append(f"{folio} ({' '.join(error.messages)})")
+
+        if invalid_links:
+            reported = ", ".join(invalid_links[:_MAX_REPORTED_INVALID_LINKS])
+            hidden = len(invalid_links) - _MAX_REPORTED_INVALID_LINKS
+            if hidden > 0:
+                reported += f", and {hidden} more"
+            raise ValidationError(f"Fix the image links for these folios: {reported}.")
+        if not final_links:
+            raise ValidationError(
+                "None of the folios in the file belong to this source, "
+                "so there is nothing to save."
+            )
+        return image_links
+
+    def save(self, source: Source) -> int:
         """
         Save the image links to the database.
 
         Args:
             source: The source to which the image links belong.
+
+        Returns:
+            The number of folios whose chants were given an image link.
         """
-        cleaned_data = self.cleaned_data
-        for folio, image_link in cleaned_data.items():
-            if image_link != "":
+        image_links: dict[str, str] = self.cleaned_data["image_links"]
+        with transaction.atomic():
+            for folio, image_link in image_links.items():
                 source.chant_set.filter(folio=folio).update(image_link=image_link)
+        return len(image_links)
 
 
 class BrowseChantsBulkEditForm(ChantTextWarningsMixin, forms.ModelForm):
@@ -1407,8 +1501,10 @@ class BaseBrowseChantsBulkEditFormset(forms.BaseModelFormSet):
         genres = Genre.objects.all().in_bulk()
         form_kwargs["field_choices"] = {
             "feast": [(feast.id, feast.name) for feast in feasts.values()],
-            "service": [(service.id, service.name) for service in services.values()],
-            "genre": [(genre.id, genre.name) for genre in genres.values()],
+            "service": [
+                (service.id, service.dropdown_label) for service in services.values()
+            ],
+            "genre": [(genre.id, genre.dropdown_label) for genre in genres.values()],
         }
         form_kwargs["field_objects"] = {
             "feast": feasts,

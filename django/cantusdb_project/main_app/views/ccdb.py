@@ -113,6 +113,7 @@ class CcdbChantSearchView(CcdbMixin, ChantSearchView):
                     | Q(holding_institution__city__unaccent__icontains=keyword)
                     | Q(name__unaccent__icontains=keyword)
                 )
+                .select_related("holding_institution", "provenance")
                 .distinct()
                 .order_by("holding_institution__siglum", "shelfmark")
             )

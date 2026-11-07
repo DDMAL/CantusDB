@@ -9,6 +9,7 @@ import io
 import json
 import re
 import time
+from collections import Counter
 from dataclasses import dataclass
 
 import requests
@@ -333,6 +334,79 @@ def match_canvas_to_folio(
     return None
 
 
+# One photograph often shows an opening: the verso of one leaf facing the recto
+# of the next. Manifests name both folios in the label, separated by a dash —
+# Tours 149 (source 123640) writes "f. 001v - 002r" for 587 of its 607 canvases.
+# The whitespace is required: a folio identifier may itself contain a dash, and
+# splitting on a bare dash would tear it in half.
+SPREAD_SEPARATOR = re.compile(r"\s+[-–—]\s+")
+
+
+# Restrict new spread matching to explicit recto/verso labels. An inserted
+# leaf such as "298 bis verso" must not be guessed to mean source folio "298x".
+OPENING_FOLIO = re.compile(
+    r"(\d{1,4})(?:\s+(bis|ter))?\s*(r(?:ecto)?|v(?:erso)?)(?:\s+avec réglet)?$"
+)
+FLYLEAF = re.compile(r"garde (?:recto|verso)$")
+
+
+def match_canvas_to_folios(
+    canvas_label: str,
+    source_folios: list[str],
+    *,
+    folio_lookups: tuple[dict[str, str], dict[tuple[str, str], str]] | None = None,
+) -> list[str]:
+    """Match both folios of an opening, preserving existing single-folio matching.
+
+    A spread must explicitly name adjacent verso/recto sides, or a numbered
+    folio beside a flyleaf. Ranges and unfamiliar labels retain the previous
+    single-folio matching behaviour. Source identifiers are returned unchanged.
+    """
+    if not canvas_label or not source_folios:
+        return []
+    if folio_lookups is None:
+        folio_lookups = _build_folio_lookups(source_folios)
+    normalized_to_original, components_to_original = folio_lookups
+    exact_match = normalized_to_original.get(_normalize_folio(canvas_label))
+    if exact_match:
+        return [exact_match]
+
+    sides = SPREAD_SEPARATOR.split(canvas_label.strip())
+    if len(sides) == 2:
+        normalized = [_normalize_folio(side) for side in sides]
+        parts = [OPENING_FOLIO.fullmatch(side) for side in normalized]
+        left, right = parts
+        opening = (
+            left is not None
+            and right is not None
+            and left[3].startswith("v")
+            and right[3].startswith("r")
+            and (
+                int(right[1]) - int(left[1]) == 1
+                or (right[1] == left[1] and right[2] != left[2])
+            )
+        )
+        beside_flyleaf = (left and FLYLEAF.fullmatch(normalized[1])) or (
+            right and FLYLEAF.fullmatch(normalized[0])
+        )
+        if opening or beside_flyleaf:
+            matched = []
+            for label, part in zip(normalized, parts):
+                if part is None:
+                    continue
+                folio = normalized_to_original.get(label)
+                if folio is None and part[2] is None:
+                    folio = components_to_original.get((str(int(part[1])), part[3][0]))
+                if folio and folio not in matched:
+                    matched.append(folio)
+            return matched
+
+    single_match = match_canvas_to_folio(
+        canvas_label, source_folios, folio_lookups=folio_lookups
+    )
+    return [single_match] if single_match else []
+
+
 def generate_folio_image_mapping(
     canvases: list[CanvasInfo],
     source_folios: list[str],
@@ -344,6 +418,9 @@ def generate_folio_image_mapping(
     - A matched canvas-to-folio pair
     - An unmatched canvas (folio column empty, with a note)
     - An unmatched folio (image_url column empty, with a note)
+
+    A canvas photographing an opening names two folios and so produces two
+    rows, one per folio, both pointing at that image.
 
     Args:
         canvases: List of CanvasInfo from the IIIF manifest.
@@ -357,26 +434,19 @@ def generate_folio_image_mapping(
     folio_lookups = _build_folio_lookups(source_folios)
 
     for canvas in canvases:
-        matched_folio = match_canvas_to_folio(
+        canvas_folios = match_canvas_to_folios(
             canvas.label, source_folios, folio_lookups=folio_lookups
         )
-        note = ""
-        folio = ""
-
-        if matched_folio:
-            folio = matched_folio
-            matched_folios.add(matched_folio)
-        else:
-            note = "No matching folio in source"
-
-        rows.append(
-            {
-                "folio": folio,
-                "image_link": canvas.image_url or "",
-                "notes": note,
-                "canvas_label": canvas.label,
-            }
-        )
+        matched_folios.update(canvas_folios)
+        for folio in canvas_folios or [""]:
+            rows.append(
+                {
+                    "folio": folio,
+                    "image_link": canvas.image_url or "",
+                    "notes": "" if folio else "No matching folio in source",
+                    "canvas_label": canvas.label,
+                }
+            )
 
     # Add rows for folios that weren't matched to any canvas
     for folio in source_folios:
@@ -390,7 +460,23 @@ def generate_folio_image_mapping(
                 }
             )
 
+    _note_repeated_folios(rows)
     return rows
+
+
+def _note_repeated_folios(rows: list[dict[str, str]]) -> None:
+    """
+    Flag folios that more than one canvas names, so a reviewer can choose.
+
+    A manuscript is sometimes photographed twice in the same place — Tours 149
+    shows folio 001r both on its own and with a ruler laid beside it. The
+    importer applies the last row for a folio, so the reviewer needs to see
+    which rows compete.
+    """
+    folio_counts = Counter(row["folio"] for row in rows if row["folio"])
+    for row in rows:
+        if folio_counts[row["folio"]] > 1 and not row["notes"]:
+            row["notes"] = "Folio matched by more than one canvas; the last row wins"
 
 
 # Leading characters that spreadsheet apps (Excel, Sheets) interpret as the

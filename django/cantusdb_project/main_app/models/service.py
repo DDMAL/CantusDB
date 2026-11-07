@@ -13,3 +13,10 @@ class Service(BaseModel):
     def display_name(self) -> str:
         """Alias for the __str()__ method, useful for templates."""
         return self.__str__()
+
+    @property
+    def dropdown_label(self) -> str:
+        """Show the abbreviation and full name without adding extra brackets."""
+        if self.description:
+            return f"{self.name} - {self.description}"
+        return self.name

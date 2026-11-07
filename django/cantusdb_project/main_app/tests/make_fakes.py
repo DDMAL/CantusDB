@@ -478,6 +478,28 @@ def make_fake_institution(
     return inst
 
 
+def make_cantus_fallback_institutions() -> Dict[str, Optional[Institution]]:
+    """Generate one holding institution for each way a source's siglum can be
+    unusable, keyed by a description of it.
+
+    `Source.short_heading` shows "Cantus" in place of all four, so these are the
+    cases a query composing the heading in SQL has to reproduce. The empty
+    siglum is written to the row after creation because `make_fake_institution`
+    replaces an empty one with a random siglum.
+    """
+    empty_siglum = make_fake_institution()
+    Institution.objects.filter(id=empty_siglum.id).update(siglum="")
+
+    return {
+        "no holding institution": None,
+        "null siglum (private collector)": make_fake_institution(
+            is_private_collector=True
+        ),
+        "empty siglum": empty_siglum,
+        "XX-NN placeholder siglum": make_fake_institution(siglum="XX-NN"),
+    }
+
+
 def make_fake_source(**kwargs: Any) -> Source:
     """
     Generates a fake Source object. Kwargs can be used to specify the value of fields.

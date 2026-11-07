@@ -66,7 +66,7 @@
                         class="form-control form-select form-select-sm">
                     <option value="">- Any -</option>
                     {% for service in services %}
-                        <option value="{{ service.id }}">{{ service.name }}</option>
+                        <option value="{{ service.id }}">{{ service.dropdown_label }}</option>
                     {% endfor %}
                 </select>
             </div>
@@ -77,7 +77,7 @@
                         class="form-control form-select form-select-sm">
                     <option value="">- Any -</option>
                     {% for genre in genres %}
-                        <option value="{{ genre.id }}">{{ genre.name }}</option>
+                        <option value="{{ genre.id }}">{{ genre.dropdown_label }}</option>
                     {% endfor %}
                 </select>
             </div>

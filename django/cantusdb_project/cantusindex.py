@@ -28,6 +28,7 @@ class SuggestedChant(TypedDict):
     occurrences: int
     fulltext: Optional[str]
     genre_name: Optional[str]
+    genre_label: Optional[str]
     genre_id: Optional[int]
 
 
@@ -53,6 +54,7 @@ def get_suggested_chants(
                 the given Cantus ID in existing manuscripts
             - "fulltext": the full text of the suggested Cantus ID
             - "genre_name": the genre of the suggested Cantus ID
+            - "genre_label": the dropdown label for the local genre, if found
             - "genre_id": the ID of the genre of the suggested Cantus ID
             If no suggestions are available, returns None.
     """
@@ -88,15 +90,19 @@ def get_suggested_chants(
             fulltext = None
             genre_name = None
         try:
-            genre_id = Genre.objects.get(name=genre_name).id
+            genre = Genre.objects.get(name=genre_name)
+            genre_id = genre.id
+            genre_label = genre.dropdown_label
         except Genre.DoesNotExist:
             genre_id = None
+            genre_label = genre_name
         suggested_chants.append(
             {
                 "cantus_id": sugg_cantus_id,
                 "occurrences": occurences,
                 "fulltext": fulltext,
                 "genre_name": genre_name,
+                "genre_label": genre_label,
                 "genre_id": genre_id,
             }
         )
