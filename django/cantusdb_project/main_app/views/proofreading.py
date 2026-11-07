@@ -222,22 +222,6 @@ class ProofreadView(CustomAccessMixin, ListView, MultipleObjectMixin):
         sort_param = self.request.GET.get("sort", "asc")
         sort_prefix = "-" if sort_param == "desc" else ""
 
-        if order_param == "country":
-            # Mirror Browse Sources: order private collectors (whose siglum is
-            # NULL) after institutions with sigla within the same country group.
-            # PostgreSQL's native default already does this: NULLS LAST for
-            # ascending, NULLS FIRST for descending, which matches the Python
-            # sort used in tests (`(siglum is None, siglum or "")`) once the
-            # whole list is reversed for a descending sort. A final `id`
-            # tiebreaker keeps ordering deterministic.
-            ordering_fields = [
-                f"{sort_prefix}holding_institution__country",
-                f"{sort_prefix}holding_institution__siglum",
-                f"{sort_prefix}shelfmark",
-                f"{sort_prefix}id",
-            ]
-            return queryset.order_by(*ordering_fields)
-
         # Updated sort_mapping to use annotated fields
         sort_mapping = {
             "city_institution": [
@@ -296,17 +280,17 @@ class ProofreadView(CustomAccessMixin, ListView, MultipleObjectMixin):
 
         ordering_fields = [f"{sort_prefix}{field}" for field in primary_sort_fields]
 
-        # An unrecognized `order` yields no mapped fields; fall back to the same
-        # ordering as the default "country" branch. The `id` tiebreaker keeps it
-        # a total order so pagination stays consistent.
+        # Country and unrecognized orders mirror Browse Sources. PostgreSQL
+        # puts NULL sigla (private collectors) last ascending, first descending.
         if not ordering_fields:
             ordering_fields = [
                 f"{sort_prefix}holding_institution__country",
                 f"{sort_prefix}holding_institution__siglum",
                 f"{sort_prefix}shelfmark",
-                f"{sort_prefix}id",
             ]
 
+        # Break ties in every sort mode so pagination stays consistent.
+        ordering_fields.append(f"{sort_prefix}id")
         return queryset.order_by(*ordering_fields)
 
     def get_context_data(self, **kwargs):
