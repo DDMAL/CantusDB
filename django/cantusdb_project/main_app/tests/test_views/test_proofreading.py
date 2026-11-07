@@ -233,7 +233,11 @@ class ProofreadingOverviewViewTest(TestCase):
 
     @patch.object(ProofreadView, "paginate_by", 2)
     def test_ordering_ties_across_pages(self):
-        """Every sort mode orders tied sources by ID across page boundaries."""
+        """Every sort mode orders tied sources by ID across page boundaries.
+
+        Tied rows already come back in ID order without a tiebreaker, so only
+        the descending cases fail if the `id` tiebreaker is dropped.
+        """
         inst = make_fake_institution()
         sources = []
         for _ in range(3):

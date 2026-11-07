@@ -224,6 +224,14 @@ class ProofreadView(CustomAccessMixin, ListView, MultipleObjectMixin):
 
         # Updated sort_mapping to use annotated fields
         sort_mapping = {
+            # Country (also the default for missing or unrecognized orders)
+            # mirrors Browse Sources' country sort. PostgreSQL puts NULL sigla
+            # (private collectors) last ascending, first descending.
+            "country": [
+                "holding_institution__country",
+                "holding_institution__siglum",
+                "shelfmark",
+            ],
             "city_institution": [
                 "holding_institution__city",
                 "holding_institution__name",
@@ -273,21 +281,12 @@ class ProofreadView(CustomAccessMixin, ListView, MultipleObjectMixin):
             ],
         }
 
-        primary_sort_fields = sort_mapping.get(order_param, [])
+        primary_sort_fields = sort_mapping.get(order_param, sort_mapping["country"])
 
         if not isinstance(primary_sort_fields, list):
             primary_sort_fields = [primary_sort_fields]
 
         ordering_fields = [f"{sort_prefix}{field}" for field in primary_sort_fields]
-
-        # Country and unrecognized orders mirror Browse Sources. PostgreSQL
-        # puts NULL sigla (private collectors) last ascending, first descending.
-        if not ordering_fields:
-            ordering_fields = [
-                f"{sort_prefix}holding_institution__country",
-                f"{sort_prefix}holding_institution__siglum",
-                f"{sort_prefix}shelfmark",
-            ]
 
         # Break ties in every sort mode so pagination stays consistent.
         ordering_fields.append(f"{sort_prefix}id")
