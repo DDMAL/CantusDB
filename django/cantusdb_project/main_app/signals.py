@@ -1,6 +1,8 @@
 import operator
 from functools import reduce
 
+import reversion
+
 from django.contrib.postgres.search import SearchVector
 from django.db import models
 from django.db.models import Value
@@ -22,8 +24,11 @@ def on_chant_save(instance, **kwargs) -> None:
     update_source_chant_count(instance)
     update_source_melody_count(instance)
 
-    update_chant_search_vector(instance)
+    # The incipit is regenerated before the search vector is rebuilt, because
+    # the vector indexes the incipit: building it first would leave the stored
+    # vector holding text the row no longer contains (issue #1803).
     update_chant_incipit_field(instance)
+    update_chant_search_vector(instance)
     update_volpiano_fields(instance)
 
 
@@ -212,16 +217,48 @@ def update_chant_incipit_field(chant: Chant) -> None:
     """Update the incipit field of the specified Chant to be the first
     several words of the chant's standardized-spelling fulltext
 
+    A curated incipit is protected from an unproofread full text (issue
+    #1803): while the standardized-spelling full text is still unproofread,
+    an existing incipit is left alone, so adding a rough full text to a
+    hand-entered incipit no longer clobbers it. A chant with no incipit yet
+    always gets one, and once the full text is proofread the incipit tracks
+    it again - which is also the only way a wrong incipit can be corrected,
+    since `incipit` is read-only in the admin and absent from both chant
+    forms.
+
     Args:
         chant (Chant): The chant from the database whose `incipit` field
         is to be updated
     """
     fulltext: Optional[str] = chant.manuscript_full_text_std_spelling
-    if fulltext:  # many chants in the database have only an incipit -
-        # we should only update the incipit if the chant has a fulltext,
-        # just in case a chant manages to get saved without a fulltext somehow
-        new_incipit: str = generate_incipit(fulltext)
-        Chant.objects.filter(id=chant.id).update(incipit=new_incipit)
+    # many chants in the database have only an incipit - we should only update
+    # the incipit if the chant has a fulltext, just in case a chant manages to
+    # get saved without a fulltext somehow
+    if not fulltext:
+        return
+    # A NULL proofread flag counts as unproofread. On a chant loaded by a
+    # deferred queryset this costs one extra query to fetch the flag, which is
+    # the correct trade: guessing would either freeze or clobber the incipit.
+    if chant.incipit and not chant.manuscript_full_text_std_proofread:
+        return
+    new_incipit: str = generate_incipit(fulltext)
+    Chant.objects.filter(id=chant.id).update(incipit=new_incipit)
+    # Bring the in-memory instance in step with the row we just wrote, so the
+    # search vector built next indexes the incipit the row actually holds.
+    chant.incipit = new_incipit
+    # `.update()` bypasses save hooks, so the active revision would otherwise
+    # keep the pre-sync incipit. Re-record the instance (now carrying the
+    # regenerated incipit) rather than calling save() again, which would
+    # recurse back through this signal. The guards mirror django-reversion's
+    # own post_save receiver: an unregistered model would raise
+    # RegistrationError, and a revision opened with `manage_manually=True` has
+    # deliberately opted out of automatic versioning.
+    if (
+        reversion.is_registered(Chant)
+        and reversion.is_active()
+        and not reversion.is_manage_manually()
+    ):
+        reversion.add_to_revision(chant)
 
 
 def update_sequence_incipit_field(sequence: Sequence) -> None:
