@@ -1,7 +1,12 @@
-from django.db import models
+from typing import Iterable, Optional
+
+import reversion
+
+from django.db import models, router, transaction
 from django.contrib.auth import get_user_model
 from django.contrib.postgres.search import SearchVectorField
 
+from main_app.chant_range import generate_chant_range
 from main_app.models.url_field import NormalizedURLField
 from main_app.models import BaseModel
 
@@ -18,6 +23,87 @@ class BaseChant(BaseModel):
 
     class Meta:
         abstract = True
+
+    def save(
+        self,
+        force_insert: bool = False,
+        force_update: bool = False,
+        using: Optional[str] = None,
+        update_fields: Optional[Iterable[str]] = None,
+    ) -> None:
+        """Store the derived range with the melody, including in revision history."""
+        fields = set(update_fields) if update_fields is not None else None
+        derived = ""
+        if fields is None or fields.intersection({"volpiano", "chant_range"}):
+            volpiano = self.volpiano
+            if fields is not None and "volpiano" not in fields and self.pk:
+                # A partial range update must describe the persisted melody,
+                # rather than a melody changed only on this Python instance.
+                volpiano = (
+                    type(self)
+                    .objects.using(using or self._state.db)
+                    .values_list("volpiano", flat=True)
+                    .get(pk=self.pk)
+                )
+            # Match TextField coercion, normally performed by full_clean below.
+            derived = generate_chant_range(str(volpiano or ""))
+            if derived:
+                self.chant_range = derived
+                if fields is not None:
+                    fields.add("chant_range")
+        save_kwargs = dict(
+            force_insert=force_insert,
+            force_update=force_update,
+            using=using,
+            update_fields=fields,
+        )
+        if derived and self.pk is not None and not force_insert:
+            # Even an unrelated save can replace a legacy range that has never
+            # had a revision. Keep the original and the saved row atomically,
+            # including when a request or command already opened a revision.
+            from main_app.range_revisions import record_range_baseline
+
+            active_revision = reversion.is_active()
+            database = using or router.db_for_write(type(self), instance=self)
+            save_kwargs["using"] = database
+            records = type(self).objects.using(database)
+            with transaction.atomic(using=database):
+                previous = (
+                    records.select_for_update()
+                    .only("pk", "chant_range")
+                    .filter(pk=self.pk)
+                    .first()
+                )
+                changed = previous is not None and previous.chant_range != derived
+                if changed:
+                    # Only load large text columns and relations when a range
+                    # actually changes and a complete snapshot is needed.
+                    previous = records.get(pk=self.pk)
+                    if active_revision:
+                        record_range_baseline(previous, database)
+                    else:
+                        with reversion.create_revision(
+                            manage_manually=True, using=database
+                        ):
+                            reversion.set_comment(
+                                "Before save that recalculates chant range"
+                            )
+                            reversion.add_to_revision(previous, model_db=database)
+                super().save(**save_kwargs)
+                if changed and not active_revision:
+                    with reversion.create_revision(
+                        manage_manually=True, using=database
+                    ):
+                        reversion.set_comment(
+                            "Saved record including recalculated chant range"
+                        )
+                        # Read the actual saved row, including partial updates
+                        # and changes made by post_save signals.
+                        reversion.add_to_revision(
+                            records.get(pk=self.pk), model_db=database
+                        )
+            return
+        super().save(**save_kwargs)
 
     # The "visible_status" field corresponds to the "status" field on old Cantus
     visible_status = models.CharField(max_length=1, blank=True, null=True)
