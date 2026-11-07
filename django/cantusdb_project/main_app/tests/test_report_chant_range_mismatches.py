@@ -11,6 +11,30 @@ from main_app.tests.make_fakes import make_fake_chant, make_fake_sequence
 
 
 class TestReportChantRangeMismatches(TestCase):
+    def test_formula_cells_are_escaped_without_changing_database_values(self):
+        values = (
+            "=1+1",
+            "+1+1",
+            "-1+1",
+            "@SUM(1)",
+            " \t=1+1",
+            "\ttext",
+            "\rtext",
+            "\ntext",
+        )
+        records = []
+        for value in values:
+            chant = self._make_mismatched_chant("1---c--g---4", value)
+            Chant.objects.filter(pk=chant.pk).update(folio=value)
+            records.append(chant)
+        rows = {row[1]: row for row in self._run_report()[1:]}
+        for record, value in zip(records, values):
+            with self.subTest(value=value):
+                self.assertEqual(rows[str(record.pk)][3:5], ["'" + value, "'" + value])
+                record.refresh_from_db()
+                self.assertEqual(record.folio, value)
+                self.assertEqual(record.chant_range, value)
+
     def _run_report(self) -> list[list[str]]:
         """Run the report to a temp CSV and return its rows (including header)."""
         fd, path = tempfile.mkstemp(suffix=".csv")

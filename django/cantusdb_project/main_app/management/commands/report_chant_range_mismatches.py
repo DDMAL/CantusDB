@@ -20,12 +20,23 @@ CSV_HEADER = [
 ]
 
 # The models this report covers, paired with the label written to the CSV. Kept
-# in step with populate_chant_ranges so this report can serve as that command's
-# backup before an --overwrite run.
+# in step with populate_chant_ranges for review before an --overwrite run.
+# The command's before/after revisions retain exact values for recovery;
+# spreadsheet-safe CSV cells can contain an added leading apostrophe.
 TARGET_MODELS: list[tuple[str, Union[type[Chant], type[Sequence]]]] = [
     ("chant", Chant),
     ("sequence", Sequence),
 ]
+
+
+def spreadsheet_text(value: Optional[str]) -> str:
+    """Keep user-entered cells from being interpreted as spreadsheet formulas."""
+    value = value or ""
+    if value.startswith(("\t", "\r", "\n")) or value.lstrip().startswith(
+        ("=", "+", "-", "@")
+    ):
+        return "'" + value
+    return value
 
 
 def classify_difference(stored: str, derived: str) -> str:
@@ -61,7 +72,8 @@ class Command(BaseCommand):
         "disagrees with the range derived from their volpiano. Each row is tagged "
         "with a difference_type (case / formatting / pitch) so proofreaders can "
         "filter; 'pitch' rows are the genuine ambitus disagreements. Mutates "
-        "nothing (see #2081 / #1176)."
+        "nothing (see #2081 / #1176). Potential spreadsheet formulas are prefixed "
+        "with an apostrophe in the CSV; database values are unchanged."
     )
 
     def add_arguments(self, parser: CommandParser) -> None:
@@ -105,8 +117,8 @@ class Command(BaseCommand):
                                 # doesn't model the implicit "<fk>_id" attribute,
                                 # hence the ignore.
                                 record.source_id,  # type: ignore[union-attr]
-                                record.folio,
-                                record.chant_range,
+                                spreadsheet_text(record.folio),
+                                spreadsheet_text(record.chant_range),
                                 derived,
                                 difference_type,
                             ]
