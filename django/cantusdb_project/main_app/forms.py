@@ -93,11 +93,27 @@ class DerivedChantRangeMixin:
             " With Volpiano, the range is calculated automatically when saved."
             " Clear Volpiano to enter a range by hand."
         )
-        if self.instance.volpiano and (volpiano or "").strip():
+        range_key = self.add_prefix("chant_range")
+        stored_range = self.initial.get("chant_range") or ""
+        preserved_range = self.instance.pk and (
+            range_key not in self.data or self.data.get(range_key) == stored_range
+        )
+        omitted_range = (
+            self.is_bound and self.instance.pk and range_key not in self.data
+        )
+        if omitted_range or (
+            (self.instance.volpiano or preserved_range) and (volpiano or "").strip()
+        ):
             # The melody already decides the range, so the field is closed for
             # editing. Django ignores data posted for a disabled field and falls
             # back to the stored value, which makes this a real guarantee rather
             # than a cosmetic one.
+            # This also covers adding a melody to a manual range: JS omits the
+            # disabled input, while without JS an unchanged value is submitted.
+            # Preserve that value if the new melody has no derivable range.
+            # Without JS, clearing the melody also submits no range because
+            # the rendered input stays disabled. Preserve it until the next
+            # page load, when the now-manual field becomes editable.
             self.fields["chant_range"].disabled = True  # type: ignore[attr-defined]
 
     def clean(self) -> dict[str, Any]:

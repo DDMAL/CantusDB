@@ -651,11 +651,9 @@ class SourceEditChantsViewTest(ChantPermissionsTestCase):
         chant.refresh_from_db()
         self.assertIs(chant.manuscript_full_text_std_proofread, True)
 
-    def test_non_proofreader_cannot_edit_chant_range(self):
-        # chant_range remains a proofreader-only field: the template hides it
-        # from non-proofreaders and form_valid reverts it, so a posted value is
-        # discarded. Non-proofreaders get correct ranges derived from the
-        # volpiano instead of by hand. See #2081 / #1176.
+    def test_non_proofreader_can_edit_manual_chant_range(self):
+        # Source editors can correct manual ranges without gaining permission
+        # to proofread. Changing a range marks other fields for review (#2081).
         self.client.logout()
         self.client.force_login(self.users["user"])
         source = make_fake_source(published=False, current_editors=[self.users["user"]])
@@ -666,10 +664,11 @@ class SourceEditChantsViewTest(ChantPermissionsTestCase):
             volpiano=None,
             chant_range="1-c-d-4",
             manuscript_full_text_std_spelling="lorem ipsum",
+            other_fields_proofread=True,
         )
         url = reverse("source-edit-chants", args=[source.id])
         response = self.client.get(url, {"pk": chant.pk})
-        self.assertNotContains(response, 'id="id_chant_range"')
+        self.assertContains(response, 'id="id_chant_range"')
         response = self.client.post(
             reverse("source-edit-chants", args=[source.id]),
             {
@@ -683,12 +682,12 @@ class SourceEditChantsViewTest(ChantPermissionsTestCase):
         )
         self.assertRedirects(response, url)
         chant.refresh_from_db()
-        self.assertEqual(chant.chant_range, "1-c-d-4")
+        self.assertEqual(chant.chant_range, "1-e-f-4")
+        self.assertIs(chant.other_fields_proofread, False)
 
     def test_non_proofreader_edit_still_triggers_chant_range_autofill(self):
-        # The permission gate preserves the stored blank, then BaseChant.save
-        # derives the range from the volpiano. This is how a non-proofreader's
-        # chant ends up with a range despite not being able to edit the field.
+        # Automatic derivation applies to all editors, including those without
+        # permission to proofread a chant.
         self.client.logout()
         self.client.force_login(self.users["user"])
         source = make_fake_source(published=False, current_editors=[self.users["user"]])
@@ -3957,16 +3956,12 @@ class ChantCreateViewTest(CustomAccessTestMixin, TestCase):
         chant = Chant.objects.get(source=source)
         self.assertEqual(chant.manuscript_full_text_std_spelling, "initial")
 
-    def test_non_proofreader_does_not_see_the_range_field(self) -> None:
-        # chant_range was proofreader-only on chant-edit but open to anyone on
-        # chant-create; the two now match. This class's default user is assigned
-        # to the source but is not an editor, so is not a proofreader. See #2081.
+    def test_non_proofreader_sees_the_range_field(self) -> None:
+        # Creation and editing both allow source editors to enter manual ranges.
         response = self.client.get(reverse("chant-create", args=[self.source.id]))
-        self.assertNotContains(response, 'id="id_chant_range"')
+        self.assertContains(response, 'id="id_chant_range"')
 
-    def test_non_proofreader_posted_range_is_dropped(self) -> None:
-        # The template hides the field; form_valid drops it as well, so hiding it
-        # can't be worked around by crafting a request.
+    def test_non_proofreader_can_create_manual_range(self) -> None:
         response = self.client.post(
             reverse("chant-create", args=[self.source.id]),
             {
@@ -3976,9 +3971,9 @@ class ChantCreateViewTest(CustomAccessTestMixin, TestCase):
                 "chant_range": "1-e-f-4",
             },
         )
-        self.assertEqual(response.status_code, 302)
+        self.assertRedirects(response, reverse("chant-create", args=[self.source.id]))
         chant = Chant.objects.get(source=self.source)
-        self.assertIsNone(chant.chant_range)
+        self.assertEqual(chant.chant_range, "1-e-f-4")
 
     def test_view_url_path(self) -> None:
         source = self.source

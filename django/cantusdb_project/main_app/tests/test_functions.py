@@ -430,8 +430,8 @@ class VolpianoClefTest(TestCase):
         self.assertIsNone(extract_volpiano_clef("1---c--d---2---e--f---4"))
 
     def test_clef_change_yields_no_range(self):
-        # Better to derive nothing than a confidently wrong ambitus. A human
-        # can enter the range for these by hand.
+        # Better to derive nothing than a confidently wrong ambitus. Preserve
+        # any stored range; manual entry requires clearing the melody first.
         self.assertEqual(generate_chant_range("1---c--d---2---e--f---4"), "")
 
     def test_range_carries_the_f_clef_through(self):
