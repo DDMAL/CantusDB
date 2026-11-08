@@ -169,6 +169,27 @@ class ProofreadingOverviewViewTest(TestCase):
         self.assertTrue(flagged[submitted_source.pk])
         self.assertFalse(flagged[other_source.pk])
 
+    def test_submitted_filter_includes_sources_outside_the_overview_scope(self):
+        # The overview normally lists only Cantus sources with chants, but any
+        # source can be submitted, so the filter must not drop the others.
+        bower_source = make_fake_source(published=False, segment=[self.other_segment])
+        bower_source.submit_for_proofreading(self.project_manager_user)
+        empty_source = make_fake_source(published=False, segment=[self.cantus_segment])
+        Source.objects.filter(pk=empty_source.pk).update(number_of_chants=0)
+        empty_source.submit_for_proofreading(self.project_manager_user)
+
+        response = self.client.get(self.url, {"inactive": "submitted"})
+        self.assertEqual(response.status_code, 200)
+        sources = list(response.context["sources"])
+        self.assertIn(bower_source, sources)
+        self.assertIn(empty_source, sources)
+
+        # The default view keeps its Cantus-only, has-chants scope.
+        response = self.client.get(self.url)
+        sources = list(response.context["sources"])
+        self.assertNotIn(bower_source, sources)
+        self.assertNotIn(empty_source, sources)
+
     def test_sortable_headers(self):
         response = self.client.get(self.url, {"order": "country"})
         self.assertEqual(response.status_code, 200)

@@ -31,9 +31,20 @@ class ProofreadView(CustomAccessMixin, ListView, MultipleObjectMixin):
     def get_queryset(self):
         user = self.request.user
 
-        queryset = Source.objects.filter(
-            Q(segment_m2m__id=settings.CANTUS_SEGMENT_ID) & Q(number_of_chants__gt=0)
-        ).select_related("holding_institution")
+        inactive_filter = self.request.GET.get("inactive", None)
+        if inactive_filter == "submitted":
+            # Any source can be submitted for proofreading (issue #1962),
+            # including Bower sources and sources without chants, so the
+            # Cantus-only, has-chants scope below would hide some handoffs.
+            queryset = Source.objects.filter(
+                source_status=Source.PROOFREAD_PENDING_STATUS
+            )
+        else:
+            queryset = Source.objects.filter(
+                Q(segment_m2m__id=settings.CANTUS_SEGMENT_ID)
+                & Q(number_of_chants__gt=0)
+            )
+        queryset = queryset.select_related("holding_institution")
 
         if not user.is_superuser:
             queryset = queryset.filter(
@@ -54,10 +65,6 @@ class ProofreadView(CustomAccessMixin, ListView, MultipleObjectMixin):
             queryset = queryset.filter(search_filter)
 
         # Inactive Source Filtering
-        inactive_filter = self.request.GET.get("inactive", None)
-        # Sources an indexer has handed over for proofreading (issue #1962)
-        if inactive_filter == "submitted":
-            queryset = queryset.filter(source_status=Source.PROOFREAD_PENDING_STATUS)
         queryset = annotate_proofreading_lock(queryset)
         if inactive_filter:
             today = timezone.now()
