@@ -159,6 +159,10 @@ class ProofreadingOverviewViewTest(TestCase):
         self.assertIn(submitted_source, sources)
         self.assertNotIn(other_source, sources)
         self.assertContains(response, "Submitted</span>")
+        self.assertContains(
+            response, reverse("browse-chants", args=[submitted_source.pk])
+        )
+        self.assertNotContains(response, ">No chants</span>")
 
         # Without the filter both show, but only the submitted one is flagged.
         response = self.client.get(self.url)
@@ -183,6 +187,10 @@ class ProofreadingOverviewViewTest(TestCase):
         sources = list(response.context["sources"])
         self.assertIn(bower_source, sources)
         self.assertIn(empty_source, sources)
+        # Browse Chants is a 404 for a source without chants, so no link to it.
+        for source in (bower_source, empty_source):
+            self.assertNotContains(response, reverse("browse-chants", args=[source.pk]))
+        self.assertContains(response, ">No chants</span>", count=2)
 
         # The default view keeps its Cantus-only, has-chants scope.
         response = self.client.get(self.url)

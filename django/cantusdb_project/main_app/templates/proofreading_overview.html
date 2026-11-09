@@ -189,10 +189,14 @@
                                 {% endif %}
                             </td>
                             <td class="text-wrap" style="text-align:center">
-                                <a href="{% url 'browse-chants' source.pk %}"
-                                   class="btn btn-sm btn-outline-primary">
-                                    View Chants
-                                </a>
+                                {% if source.has_chants %}
+                                    <a href="{% url 'browse-chants' source.pk %}"
+                                       class="btn btn-sm btn-outline-primary">
+                                        View Chants
+                                    </a>
+                                {% else %}
+                                    <span class="text-muted">No chants</span>
+                                {% endif %}
                             </td>
                         </tr>
                     {% endfor %}

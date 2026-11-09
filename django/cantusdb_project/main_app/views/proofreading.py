@@ -10,12 +10,14 @@ from django.db.models import (
     Case,
     When,
     Value,
+    Exists,
+    OuterRef,
 )
 from django.views.generic import ListView
 from django.views.generic.list import MultipleObjectMixin
 from django.utils import timezone
 
-from main_app.models import Source
+from main_app.models import Chant, Source
 from main_app.permissions import CustomAccessMixin, annotate_proofreading_lock
 
 
@@ -66,6 +68,11 @@ class ProofreadView(CustomAccessMixin, ListView, MultipleObjectMixin):
 
         # Inactive Source Filtering
         queryset = annotate_proofreading_lock(queryset)
+        # The Submitted filter can list sources without chants, whose Browse
+        # Chants page is a 404, so the template hides the link for them.
+        queryset = queryset.annotate(
+            has_chants=Exists(Chant.objects.filter(source=OuterRef("pk")))
+        )
         if inactive_filter:
             today = timezone.now()
             if inactive_filter == "3":
