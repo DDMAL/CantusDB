@@ -267,10 +267,17 @@ class CustomAccessMixin(AccessMixin):
         they could keep rewriting the source's audit fields and re-floating
         it in the proofreading queue.
 
+        A published source is not submitted, since that would overwrite its
+        status (e.g. "Published / Complete") with an unpublished one, and a
+        source already awaiting proofreading cannot be submitted again, even
+        by an editor: that would only rewrite its audit fields.
+
         :param source: Source object to check submit access for.
 
         :return: True if the user may submit the source for proofreading.
         """
+        if source.published or self.source_locked_for_proofreading(source):
+            return False
         return self.user_can_edit_chants(source)
 
     def check_user_assignment(self, source: Source) -> bool:

@@ -329,13 +329,15 @@ class SourceSubmitForProofreadingViewTest(CustomAccessTestMixin, TestCase):
     @classmethod
     def setUpTestData(cls) -> None:
         super().setUpTestData()
+        # Only unpublished sources can be submitted, so pin `published`
+        # rather than leaving it to make_fake_source's random choice.
         cls.sources = {
-            "unassigned_source": make_fake_source(),
+            "unassigned_source": make_fake_source(published=False),
             "user_assigned_source": make_fake_source(
-                current_editors=[cls.users["user"]]
+                current_editors=[cls.users["user"]], published=False
             ),
             "editor_assigned_source": make_fake_source(
-                current_editors=[cls.users["editor"]]
+                current_editors=[cls.users["editor"]], published=False
             ),
             "user_created_source": make_fake_source(
                 current_editors=[cls.users["user"], cls.users["editor"]],
@@ -482,16 +484,69 @@ class SourceSubmitForProofreadingViewTest(CustomAccessTestMixin, TestCase):
         self.assertEqual(source.last_updated_by, submitted_by)
         self.assertEqual(source.date_updated, submitted_at)
 
-    def test_editor_can_resubmit_locked_source(self) -> None:
+    def test_editor_cannot_resubmit_locked_source(self) -> None:
+        # Resubmitting would only rewrite the audit fields, so it is refused
+        # for editors too, and neither page offers the button.
         source = self.sources["user_created_source"]
         self.client.force_login(user=self.users["user"])
         url = reverse("source-submit-for-proofreading", args=[source.id])
         self.client.post(url)
+        source.refresh_from_db()
+        submitted_by, submitted_at = source.last_updated_by, source.date_updated
 
         self.client.force_login(user=self.users["editor"])
-        self.assertRedirects(
-            self.client.post(url), reverse("source-detail", args=[source.id])
+        self.assertEqual(self.client.post(url).status_code, 403)
+        source.refresh_from_db()
+        self.assertEqual(source.last_updated_by, submitted_by)
+        self.assertEqual(source.date_updated, submitted_at)
+        for page in ("source-detail", "source-edit"):
+            response = self.client.get(reverse(page, args=[source.id]))
+            self.assertEqual(response.status_code, 200)
+            self.assertFalse(response.context["user_can_submit_for_proofreading"])
+            self.assertNotContains(response, "btn-submit-for-proofreading")
+
+    def test_published_source_cannot_be_submitted(self) -> None:
+        # Submitting would overwrite a status such as "Published / Complete"
+        # on a source that stays published.
+        source = make_fake_source(
+            published=True,
+            current_editors=[self.users["user"], self.users["editor"]],
         )
+        source.created_by = self.users["user"]
+        source.source_status = "Published / Complete"
+        source.save()
+        url = reverse("source-submit-for-proofreading", args=[source.id])
+        for user in ("user", "editor", "superuser"):
+            with self.subTest(user=user):
+                self.client.force_login(user=self.users[user])
+                self.assertEqual(self.client.post(url).status_code, 403)
+                for page in ("source-detail", "source-edit"):
+                    response = self.client.get(reverse(page, args=[source.id]))
+                    self.assertNotContains(response, "btn-submit-for-proofreading")
+        source.refresh_from_db()
+        self.assertEqual(source.source_status, "Published / Complete")
+
+    def test_edit_form_does_not_submit_a_published_source(self) -> None:
+        # A forged or stale edit-form submission still saves the edits but
+        # leaves a published source's status alone.
+        source = make_fake_source(published=True, current_editors=[self.users["user"]])
+        source.created_by = self.users["user"]
+        source.source_status = "Published / Complete"
+        source.save()
+        self.client.force_login(user=self.users["user"])
+        response = self.client.post(
+            reverse("source-edit", args=[source.id]),
+            {
+                "shelfmark": "edited-not-submitted",
+                "source_completeness": "1",
+                "production_method": "1",
+                "submit_for_proofreading": "1",
+            },
+        )
+        self.assertEqual(response.status_code, 302)
+        source.refresh_from_db()
+        self.assertEqual(source.shelfmark, "edited-not-submitted")
+        self.assertEqual(source.source_status, "Published / Complete")
 
     def test_submit_locks_chant_editing(self) -> None:
         # #1962 asks for the submitter's edit access to be removed. Chant
@@ -596,9 +651,12 @@ class SourceSubmitForProofreadingViewTest(CustomAccessTestMixin, TestCase):
         self.assertNotContains(response, submit_url)
 
     def test_detail_page_hides_submit_button_from_unassigned_user(self) -> None:
+        # A global viewer can open an unpublished source without being
+        # assigned to it, but must not be offered the submit button.
         source = self.sources["unassigned_source"]
-        self.client.force_login(user=self.users["user"])
+        self.client.force_login(user=self.users["global viewer"])
         detail = self.client.get(reverse("source-detail", args=[source.id]))
+        self.assertEqual(detail.status_code, 200)
         self.assertFalse(detail.context["user_can_submit_for_proofreading"])
 
     def test_edit_form_cannot_revert_a_lock_set_while_it_was_open(self) -> None:

@@ -877,6 +877,9 @@ class SourceEditView(CustomAccessMixin, UpdateView):  # type: ignore[type-arg]
     def get_context_data(self, **kwargs):
         source = self.object
         context = super().get_context_data(**kwargs)
+        context["user_can_submit_for_proofreading"] = (
+            self.user_can_submit_source_for_proofreading(source)
+        )
 
         if source.segment_m2m.filter(id=settings.BOWER_SEGMENT_ID).exists():
             # if this is a sequence source
@@ -955,6 +958,12 @@ class SourceEditView(CustomAccessMixin, UpdateView):  # type: ignore[type-arg]
             # back the stale, unlocked status.
             form.instance.source_status = fresh.source_status
             form.instance.last_updated_by = self.request.user
+            # A stale or forged form can still post the submit button for a
+            # published or already-submitted source; save the edits, but
+            # don't submit it.
+            submitting = submitting and self.user_can_submit_source_for_proofreading(
+                form.instance
+            )
             self.save_form_fields_only(form)
             if submitting:
                 # The button lives inside this form, so save the indexer's
