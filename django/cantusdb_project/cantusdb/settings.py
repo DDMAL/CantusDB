@@ -74,9 +74,12 @@ INSTALLED_APPS = [
     "reversion",  # django-reversion, for version history of objects in database
     "users",
     "django_extensions",
+    "django_prometheus",
 ]
 
 MIDDLEWARE = [
+    # Must stay first and last so request metrics cover the whole stack.
+    "django_prometheus.middleware.PrometheusBeforeMiddleware",
     "django.middleware.security.SecurityMiddleware",
     "main_app.middleware.CancelDisconnectedSearchMiddleware",
     "django.contrib.sessions.middleware.SessionMiddleware",
@@ -87,6 +90,7 @@ MIDDLEWARE = [
     "django.middleware.clickjacking.XFrameOptionsMiddleware",
     "django.contrib.flatpages.middleware.FlatpageFallbackMiddleware",
     "reversion.middleware.RevisionMiddleware",
+    "django_prometheus.middleware.PrometheusAfterMiddleware",
 ]
 
 ROOT_URLCONF = "cantusdb.urls"
@@ -234,6 +238,13 @@ CANTORALES_SEGMENT_ID = 4067
 # show a "Record contributed by" / "Last modified by" line on the chant
 # detail page until a real editor is recorded. See issue #2104.
 GENERIC_ADMIN_FULL_NAME = "cantus database administrator"
+
+# Monitoring (see docs/monitoring.md). /metrics only answers requests that
+# arrive on this gunicorn bind, which is reachable on the internal compose
+# network only; nginx exposes it to the monitoring cluster via an IP allowlist.
+CANTUSDB_METRICS_PORT = int(os.getenv("CANTUSDB_METRICS_PORT", "9464"))
+# Avoid a database query at import time; migration state is checked on deploy.
+PROMETHEUS_EXPORT_MIGRATIONS = False
 
 # Celery configurations
 CELERY_BROKER_URL = "redis://redis:6379/0"

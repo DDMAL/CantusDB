@@ -118,9 +118,13 @@ from main_app.views.autocomplete import (
 )
 from main_app.views.auth import change_password
 from main_app.views.markdown import markdown_preview
+from main_app.views.monitoring import health, metrics
 
 urlpatterns = [
     path("markdown/preview/", markdown_preview, name="markdown-preview"),
+    # monitoring (see docs/monitoring.md)
+    path("health/", health, name="health"),
+    path("metrics", metrics, name="metrics"),
     path(
         "contact/",
         contact,
