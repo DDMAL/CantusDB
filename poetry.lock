@@ -762,6 +762,22 @@ Django = ">=1.11"
 six = ">=1.5.2"
 
 [[package]]
+name = "django-prometheus"
+version = "2.5.0"
+description = "Django middlewares to monitor your application with Prometheus.io."
+optional = false
+python-versions = "*"
+groups = ["main"]
+files = [
+    {file = "django_prometheus-2.5.0-py2.py3-none-any.whl", hash = "sha256:f15efb526cd53f9cf12da72dc55506322f5566b017a819ff27be1da302303134"},
+    {file = "django_prometheus-2.5.0.tar.gz", hash = "sha256:4837b3c3734d8350880839ab8235aafd250b668c348e159d4aecc3cbefeee53e"},
+]
+
+[package.dependencies]
+Django = ">=4.2,<5.0 || >=5.1.dev0,<6.1"
+prometheus-client = ">=0.7"
+
+[[package]]
 name = "django-quill-editor"
 version = "0.1.40"
 description = "Integrate Quill editor with Django project."
@@ -1527,6 +1543,23 @@ files = [
 docs = ["furo (>=2024.8.6)", "proselint (>=0.14)", "sphinx (>=8.0.2)", "sphinx-autodoc-typehints (>=2.4)"]
 test = ["appdirs (==1.4.4)", "covdefaults (>=2.3)", "pytest (>=8.3.2)", "pytest-cov (>=5)", "pytest-mock (>=3.14)"]
 type = ["mypy (>=1.11.2)"]
+
+[[package]]
+name = "prometheus-client"
+version = "0.26.0"
+description = "Python client for the Prometheus monitoring system."
+optional = false
+python-versions = ">=3.9"
+groups = ["main"]
+files = [
+    {file = "prometheus_client-0.26.0-py3-none-any.whl", hash = "sha256:fa93d06737aa02bacd05794768508bb97d2fbee28cb3bca04eaae92f0ca953d6"},
+    {file = "prometheus_client-0.26.0.tar.gz", hash = "sha256:04a91bcf94e2cf74a44a1a874d651a2e853ed354b6e822f3b7487751465d5c2b"},
+]
+
+[package.extras]
+aiohttp = ["aiohttp"]
+django = ["django"]
+twisted = ["twisted"]
 
 [[package]]
 name = "prompt-toolkit"
@@ -2391,4 +2424,4 @@ watchdog = ["watchdog (>=2.3)"]
 [metadata]
 lock-version = "2.1"
 python-versions = "3.12.10"
-content-hash = "ee86092b414e2d919564cfe280abb0006def069f66f21af422049b8ada9aaadd"
+content-hash = "5740d8e77bb5f241bfb6e23186cbd60146967f8d0595d6a1abaac3ef3ef4adf2"
