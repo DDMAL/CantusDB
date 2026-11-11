@@ -10,6 +10,12 @@ docs/monitoring.md). Without it, these hooks do nothing.
 
 import os
 
+# Imported here, not inside child_exit: the master runs that hook while
+# reaping workers from a signal handler, and an import started there can be
+# re-entered when several workers exit at once (e.g. on shutdown), failing
+# with "partially initialized module".
+from prometheus_client import multiprocess
+
 
 def on_starting(server):  # pylint: disable=unused-argument
     """Discard metric files left over from a previous run of the server."""
@@ -26,8 +32,4 @@ def child_exit(server, worker):  # pylint: disable=unused-argument
     """Drop live gauges of a worker that exited, so they are not reported."""
     if not os.environ.get("PROMETHEUS_MULTIPROC_DIR"):
         return
-    # Imported lazily so the master never loads it when metrics are disabled.
-    # pylint: disable-next=import-outside-toplevel
-    from prometheus_client import multiprocess
-
     multiprocess.mark_process_dead(worker.pid)
