@@ -246,6 +246,18 @@ CANTUSDB_METRICS_PORT = int(os.getenv("CANTUSDB_METRICS_PORT", "9464"))
 # Avoid a database query at import time; migration state is checked on deploy.
 PROMETHEUS_EXPORT_MIGRATIONS = False
 
+CACHES = {
+    # Django's implicit default, stated explicitly now that CACHES is defined.
+    "default": {"BACKEND": "django.core.cache.backends.locmem.LocMemCache"},
+    # Shares the business metrics snapshot between gunicorn workers. Redis
+    # database 1 keeps it apart from the Celery broker (database 0).
+    "metrics": {
+        "BACKEND": "django.core.cache.backends.redis.RedisCache",
+        "LOCATION": "redis://redis:6379/1",
+        "OPTIONS": {"socket_connect_timeout": 1, "socket_timeout": 1},
+    },
+}
+
 # Celery configurations
 CELERY_BROKER_URL = "redis://redis:6379/0"
 CELERY_RESULT_BACKEND = "redis://redis:6379/0"
