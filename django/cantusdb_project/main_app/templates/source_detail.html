@@ -177,7 +177,7 @@
                    class="guillemet"
                    target="_blank">Image with Inventory (Cantus Ultimus)</a>
             {% endif %}
-            {% for link in source.source_links.all %}
+            {% for link in source.source_links.all|dictsort:"pk" %}
                 {% if link.url_type == link.URLTypes.IIIF_MANIFEST %}
                     <a href="{% static 'viewer/uv.html' %}#?manifest={{ link.url }}"
                        class="guillemet"

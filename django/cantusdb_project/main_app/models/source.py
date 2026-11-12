@@ -247,7 +247,9 @@ class Source(BaseModel):
         """
         # source_links is SourceURL's related_name; mypy cannot see reverse
         # relations without django-stubs, which this project does not install.
-        for link in self.source_links.all():  # type: ignore[attr-defined]
+        # Match the edit form's order even after PostgreSQL moves an updated
+        # row. Sort in Python so prefetched source lists do not add queries.
+        for link in sorted(self.source_links.all(), key=lambda link: link.pk):  # type: ignore[attr-defined]
             if link.url_type == SourceURL.URLTypes.EXTERNAL_IMAGES:
                 return link.url
         return self.image_link or None
