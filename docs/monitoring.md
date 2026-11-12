@@ -16,6 +16,11 @@ Returns JSON and is never cached. It is meant for uptime probes.
 
 Redis backs Celery tasks, not page rendering. A Redis outage therefore doesn't count as the site being down; it shows up in `cantusdb_dependency_up` instead. The response never includes error details. Failures are logged as warnings by `main_app.metrics`.
 
+The checks are bounded so they finish before the probe and scrape timeouts:
+- Connecting to PostgreSQL times out after 3 seconds. This is `connect_timeout` in `DATABASES`, and it applies to the whole app. A `PGCONNECT_TIMEOUT` set in the environment takes precedence.
+- The database query times out after 1 second (`statement_timeout`).
+- Redis calls time out after 1 second.
+
 ### `/metrics` (internal only)
 
 Returns metrics in the Prometheus text format. The endpoint only answers when gunicorn accepted the connection on its **metrics bind** (`CANTUSDB_METRICS_PORT`, default `9464`). It checks the local port of the connection socket (`gunicorn.socket`), which request headers cannot spoof. Any other request gets a 404, including requests proxied from the public site on port 8000.
