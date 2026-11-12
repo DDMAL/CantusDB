@@ -11,6 +11,7 @@ from django.test import TestCase, override_settings
 from django.urls import reverse
 
 from main_app.metrics import database_is_up, redis_is_up
+from main_app.tests.test_metrics import LOCMEM_CACHES
 
 
 class DependencyCheckTest(TestCase):
@@ -69,6 +70,7 @@ class HealthViewTest(TestCase):
         self.assertEqual(response.status_code, 405)
 
 
+@override_settings(CACHES=LOCMEM_CACHES)
 @patch("main_app.metrics.redis_is_up", return_value=False)
 class MetricsViewTest(TestCase):
     """
