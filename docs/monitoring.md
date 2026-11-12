@@ -55,6 +55,30 @@ gunicorn -c gunicorn.conf.py cantusdb.wsgi:application --bind :8000 --bind :9464
 |---|---|---|
 | `cantusdb_dependency_up` | `dependency` = `postgres` \| `redis` | 1 if the service answered, 0 if not |
 
+**Business metrics** come from `BusinessMetricsCollector` in `main_app/metrics.py`. They are all gauges.
+
+| Metric | Labels | Meaning |
+|---|---|---|
+| `cantusdb_sources` | `published` (`true`/`false`), `production_method` (`manuscript`/`print`) | Sources. Every combination is reported, including zeros |
+| `cantusdb_sources_by_status` | `source_status` (one of the `Source.source_status` choices, or `unset`) | Sources by status |
+| `cantusdb_chants`, `cantusdb_sequences` | | Total chants and total sequences |
+| `cantusdb_chants_with_volpiano` | | Chants with a melody, meaning volpiano is non-empty (same rule as `Source.number_of_melodies`) |
+| `cantusdb_chants_proofread` | `field` (`full_text`, `full_text_std`, `volpiano`, `other_fields`) | Chants with that field marked as proofread |
+| `cantusdb_objects_created` | `model` (`chant`, `sequence`, `source`), `window` (`24h`, `7d`) | Objects created within the window |
+| `cantusdb_objects_updated` | `model`, `window` | Objects saved within the window. This also counts newly created objects |
+| `cantusdb_revisions` | `window` | django-reversion revisions, i.e. saved edits |
+| `cantusdb_active_editors` | `window` | Distinct users with a revision. Revisions from management commands have no user and don't count |
+| `cantusdb_data_check_last_completed_timestamp_seconds` | | Start time of the latest completed data check. Not reported if no check has ever completed |
+| `cantusdb_users` | `is_active` | User accounts |
+| `cantusdb_users_logged_in` | `window` (`30d`) | Users who logged in within the window |
+| `cantusdb_indexers` | | Users with `is_indexer` |
+| `cantusdb_group_members` | `group` | Users with a membership in the group (`users.Group`) that hasn't expired. Same rule as `user_group_valid` |
+| `cantusdb_business_metrics_up` | | 1 if the metrics were computed, 0 if computing them failed. A failure never fails the scrape |
+| `cantusdb_business_metrics_compute_seconds` | | How long the last computation took |
+| `cantusdb_business_metrics_computed_timestamp_seconds` | | When the snapshot being served was computed |
+
+Computing these metrics scans whole tables. The result is therefore cached for 5 minutes in the `metrics` cache alias (Redis database 1, separate from the Celery broker on database 0) and shared by all gunicorn workers. If Redis is unavailable, the metrics are computed on every scrape instead. A failed computation is not cached.
+
 ## Configuration
 
 | Variable | Where | Default | Purpose |
