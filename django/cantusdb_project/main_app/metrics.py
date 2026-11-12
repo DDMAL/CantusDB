@@ -18,7 +18,7 @@ from typing import Any
 import redis
 from django.conf import settings
 from django.core.cache import caches
-from django.db import connection
+from django.db import connection, transaction
 from django.db.models import Count, Max, Q
 from django.utils import timezone
 from prometheus_client import (
@@ -38,15 +38,23 @@ from users.models import Group, User
 logger = logging.getLogger(__name__)
 
 # Keep health checks well inside the blackbox probe and scrape timeouts.
+# Connecting to PostgreSQL is bounded by connect_timeout in DATABASES.
 REDIS_TIMEOUT_SECONDS = 1
+DATABASE_STATEMENT_TIMEOUT_MS = 1000
 
 
 def database_is_up() -> bool:
     """Return whether the default database answers a trivial query."""
     try:
-        with connection.cursor() as cursor:
+        with transaction.atomic(), connection.cursor() as cursor:
+            # SET LOCAL lasts until the transaction ends. Rolling back (the
+            # check is read-only) also undoes it inside an outer atomic block.
+            cursor.execute(
+                f"SET LOCAL statement_timeout = {DATABASE_STATEMENT_TIMEOUT_MS}"
+            )
             cursor.execute("SELECT 1")
             cursor.fetchone()
+            transaction.set_rollback(True)
     except Exception as error:  # pylint: disable=broad-exception-caught
         logger.warning("Database health check failed: %s", error)
         return False

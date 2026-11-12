@@ -129,6 +129,10 @@ DATABASES = {
         "HOST": os.getenv("POSTGRES_HOST"),
         "PORT": os.getenv("POSTGRES_PORT"),
         "PASSWORD": os.getenv("POSTGRES_PASSWORD"),
+        # Fail fast when PostgreSQL is unreachable instead of waiting for
+        # psycopg's 130s default, so /health/ and /metrics report it before the
+        # probe/scrape timeout. A PGCONNECT_TIMEOUT set in the environment wins.
+        "OPTIONS": {} if os.getenv("PGCONNECT_TIMEOUT") else {"connect_timeout": 3},
     }
 }
 
