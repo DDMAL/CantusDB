@@ -3,10 +3,12 @@ Tests for the monitoring views: the public health check and the
 internal-only Prometheus metrics endpoint.
 """
 
+import os
 import socket
+from unittest import skipIf
 from unittest.mock import MagicMock, patch
 
-from django.db import OperationalError
+from django.db import OperationalError, connection
 from django.test import TestCase, override_settings
 from django.urls import reverse
 
@@ -17,6 +19,18 @@ from main_app.tests.test_metrics import LOCMEM_CACHES
 class DependencyCheckTest(TestCase):
     def test_database_is_up(self) -> None:
         self.assertTrue(database_is_up())
+
+    def test_database_check_does_not_leak_statement_timeout(self) -> None:
+        with connection.cursor() as cursor:
+            cursor.execute("SHOW statement_timeout")
+            before = cursor.fetchone()[0]
+            self.assertTrue(database_is_up())
+            cursor.execute("SHOW statement_timeout")
+            self.assertEqual(cursor.fetchone()[0], before)
+
+    @skipIf(os.getenv("PGCONNECT_TIMEOUT"), "PGCONNECT_TIMEOUT overrides the default")
+    def test_database_connect_timeout_configured(self) -> None:
+        self.assertEqual(connection.settings_dict["OPTIONS"]["connect_timeout"], 3)
 
     def test_database_is_down(self) -> None:
         broken_connection = MagicMock()
