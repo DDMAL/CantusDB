@@ -13,7 +13,7 @@ gunicorn = "23.0.0"
 requests = "2.33.0"
 ujson = "5.13.0"
 volpiano-display-utilities = { git = "https://github.com/DDMAL/volpiano-display-utilities.git", tag = "v1.3.2" }
-psycopg = {extras = ["binary"], version = "3.1.18"}
+psycopg = {extras = ["binary"], version = "3.3.6"}
 cmarkgfm = "2024.11.20"
 celery = "5.5.1"
 redis = "5.2.1"
