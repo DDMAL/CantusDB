@@ -3,11 +3,13 @@ Tests for the business metrics collected in main_app.metrics.
 """
 
 import socket
+import time
 from datetime import date, timedelta
 from unittest.mock import MagicMock, patch
 
 import redis
 from django.core.cache import caches
+from django.db import connection
 from django.test import TestCase, override_settings
 from django.urls import reverse
 from django.utils import timezone
@@ -36,6 +38,18 @@ LOCMEM_CACHES = {
         "LOCATION": "business-metrics-tests",
     },
 }
+
+
+def sleep_in_database(*_args) -> None:
+    """Stand-in for a business metrics query blocked in the database."""
+    with connection.cursor() as cursor:
+        cursor.execute("SELECT pg_sleep(5)")
+
+
+def show_statement_timeout() -> str:
+    with connection.cursor() as cursor:
+        cursor.execute("SHOW statement_timeout")
+        return cursor.fetchone()[0]
 
 
 def as_samples(families) -> dict:
@@ -257,6 +271,24 @@ class BusinessMetricsCollectorTest(BusinessMetricsTestCase):
             self.collect()
         self.assertEqual(self.collect()[("cantusdb_business_metrics_up",)], 1)
 
+    def test_queries_over_budget_report_down(self) -> None:
+        statement_timeout_before = show_statement_timeout()
+        started = time.monotonic()
+        with patch("main_app.metrics.BUSINESS_METRICS_BUDGET_SECONDS", 0.2), patch(
+            "main_app.metrics._content_families", side_effect=sleep_in_database
+        ):
+            samples = self.collect()
+        # PostgreSQL cancelled the query at the budget, not after pg_sleep(5).
+        self.assertLess(time.monotonic() - started, 2)
+        self.assertEqual(samples, {("cantusdb_business_metrics_up",): 0})
+        # The per-query limit does not stay on the connection.
+        self.assertEqual(show_statement_timeout(), statement_timeout_before)
+
+    def test_budget_used_up_before_a_query_reports_down(self) -> None:
+        with patch("main_app.metrics.BUSINESS_METRICS_BUDGET_SECONDS", 0):
+            samples = self.collect()
+        self.assertEqual(samples, {("cantusdb_business_metrics_up",): 0})
+
     def test_computes_without_cache_when_redis_is_down(self) -> None:
         broken_cache = MagicMock()
         broken_cache.get.side_effect = redis.ConnectionError("refused")
@@ -290,3 +322,18 @@ class MetricsEndpointBusinessMetricsTest(TestCase):
         )
         self.assertIn("cantusdb_business_metrics_up 1.0", body)
         self.assertIn("# TYPE cantusdb_group_members gauge", body)
+
+    def test_slow_business_metrics_keep_the_rest_of_the_scrape(
+        self, _redis_is_up: MagicMock
+    ) -> None:
+        with patch("main_app.metrics.BUSINESS_METRICS_BUDGET_SECONDS", 0.2), patch(
+            "main_app.metrics._content_families", side_effect=sleep_in_database
+        ), override_settings(CANTUSDB_METRICS_PORT=self.listener.getsockname()[1]):
+            response = self.client.get(
+                reverse("metrics"), **{"gunicorn.socket": self.listener}
+            )
+        self.assertEqual(response.status_code, 200)
+        body = response.content.decode()
+        self.assertIn("cantusdb_business_metrics_up 0.0", body)
+        self.assertIn('cantusdb_dependency_up{dependency="postgres"} 1.0', body)
+        self.assertIn("django_http_requests_total_by_view_transport_method", body)
